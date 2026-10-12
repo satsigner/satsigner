@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSLabelTags from '@/components/SSLabelTags'
 import SSText from '@/components/SSText'
@@ -17,6 +17,8 @@ import {
   isMutedArkMovement
 } from '@/utils/arkMovement'
 import { formatNumber } from '@/utils/format'
+
+import SSPressable from './SSPressable'
 
 type SSArkRefreshCardProps = {
   movement: ArkMovement
@@ -38,7 +40,7 @@ function SSArkRefreshCard({
   const feeDisplay = privacyMode ? PRIVACY_MASK : formatNumber(fee)
 
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={onPress}
       activeOpacity={0.7}
       style={isMuted ? styles.mutedContainer : undefined}
@@ -70,7 +72,7 @@ function SSArkRefreshCard({
           )}
         </SSVStack>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

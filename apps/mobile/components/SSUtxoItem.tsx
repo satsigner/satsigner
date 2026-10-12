@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -13,6 +13,7 @@ import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 
 import { SSIconExclude, SSIconPlus, SSIconX } from './icons'
 import SSIconButton from './SSIconButton'
+import SSPressable from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
@@ -117,7 +118,7 @@ function SSUtxoItem({
         {readonly || !onToggleSelected ? (
           body
         ) : (
-          <TouchableOpacity
+          <SSPressable
             style={styles.pressable}
             onPress={() => {
               if (excluded && !selected) {
@@ -130,7 +131,7 @@ function SSUtxoItem({
             }
           >
             {body}
-          </TouchableOpacity>
+          </SSPressable>
         )}
         {onToggleExcluded && !readonly ? (
           <SSIconButton

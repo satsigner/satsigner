@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -11,6 +11,8 @@ import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { EcashKeyset, EcashProof } from '@/types/models/Ecash'
+
+import SSPressable from './SSPressable'
 
 type SSEcashProofCardProps = {
   keysetCounters?: Record<string, number>
@@ -57,7 +59,7 @@ function SSEcashProofCard({
   }
 
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
@@ -117,22 +119,22 @@ function SSEcashProofCard({
             <SSText color="muted" size="xs" uppercase>
               {t('ecash.proofs.secret')}
             </SSText>
-            <TouchableOpacity onPress={handleCopySecret} activeOpacity={0.7}>
+            <SSPressable onPress={handleCopySecret} activeOpacity={0.7}>
               <SSText type="mono" size="xs" numberOfLines={1}>
                 {privacyMode ? '••••••••••••••••' : proof.secret}
               </SSText>
-            </TouchableOpacity>
+            </SSPressable>
           </SSVStack>
 
           <SSVStack gap="none">
             <SSText color="muted" size="xs" uppercase>
               {t('ecash.proofs.blindingFactor')}
             </SSText>
-            <TouchableOpacity onPress={handleCopyC} activeOpacity={0.7}>
+            <SSPressable onPress={handleCopyC} activeOpacity={0.7}>
               <SSText type="mono" size="xs" numberOfLines={1}>
                 {privacyMode ? '••••••••••••••••' : proof.C}
               </SSText>
-            </TouchableOpacity>
+            </SSPressable>
           </SSVStack>
 
           {proof.mintUrl && (
@@ -158,7 +160,7 @@ function SSEcashProofCard({
           )}
         </SSVStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
