@@ -17,6 +17,7 @@ import {
 import { toBrantaPayee } from '@/utils/brantaPayee'
 
 const BRANTA_LOOKUP_TIMEOUT_MS = 8000
+const QR_URI_PATTERN = /^(bitcoin|lightning):/i
 
 type BrantaLookupClient = Pick<
   BrantaService,
@@ -63,6 +64,15 @@ function getBrantaService(): BrantaService {
 }
 
 /**
+ * A pasted `bitcoin:` or `lightning:` string is the QR payload. Only
+ * getPaymentsByQrCode reads `branta_id` and `branta_secret`. Plain text
+ * such as a bolt11 invoice still uses getPayments.
+ */
+function usesQrLookup(input: string, source: BrantaLookupSource): boolean {
+  return source === 'qr' || QR_URI_PATTERN.test(input)
+}
+
+/**
  * Looks up a scanned or pasted destination. A miss or a failure is not shown
  * to the user — the destination simply has no Branta record.
  * Pass the full QR or pasted text. Do not split a unified URI first.
@@ -83,19 +93,14 @@ async function lookupBrantaPayee(
   }, BRANTA_LOOKUP_TIMEOUT_MS)
 
   try {
-    const result =
-      source === 'qr'
-        ? await client.getPaymentsByQrCode(
-            trimmed,
-            undefined,
-            controller.signal
-          )
-        : await client.getPayments(
-            trimmed,
-            undefined,
-            undefined,
-            controller.signal
-          )
+    const result = usesQrLookup(trimmed, source)
+      ? await client.getPaymentsByQrCode(trimmed, undefined, controller.signal)
+      : await client.getPayments(
+          trimmed,
+          undefined,
+          undefined,
+          controller.signal
+        )
 
     if (result.payments.length === 0) {
       return null

@@ -50,6 +50,25 @@ describe('lookupBrantaPayee', () => {
     expect(client.getPayments).not.toHaveBeenCalled()
   })
 
+  it('looks up a pasted bitcoin URI with the QR parser', async () => {
+    const uri = 'bitcoin:bc1qexample?branta_id=1&branta_secret=2'
+    const client = clientWith({
+      payments: [payment],
+      verifyUrl: payee.verifyUrl
+    })
+
+    await expect(
+      lookupBrantaPayee(uri, 'paste', client)
+    ).resolves.toStrictEqual(payee)
+
+    expect(client.getPaymentsByQrCode).toHaveBeenCalledWith(
+      uri,
+      undefined,
+      expect.any(AbortSignal)
+    )
+    expect(client.getPayments).not.toHaveBeenCalled()
+  })
+
   it('looks up pasted text with getPayments', async () => {
     const pasted = 'lnbc1example'
     const client = clientWith({
