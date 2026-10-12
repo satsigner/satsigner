@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import {
   type BdkWallet,
   KeychainKind,
@@ -86,8 +87,7 @@ const sleep = (ms: number) =>
 
 const btcToSats = (btc: number) => Math.round(btc * SATS_PER_BITCOIN)
 
-const hexToBytes = (hex: string) =>
-  (hex.match(/.{1,2}/g) ?? []).map((b) => parseInt(b, 16))
+const hexToBytes = (value: string) => Array.from(hex.decode(value))
 
 const toUnixSec = (date?: Date) =>
   date ? Math.floor(date.getTime() / 1000) : undefined
