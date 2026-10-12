@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, type TextInput, View } from 'react-native'
+import {
+  Pressable,
+  type PressableStateCallbackType,
+  StyleSheet,
+  type TextInput,
+  View
+} from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes, Typography } from '@/styles'
@@ -44,10 +50,7 @@ function SSNumberGhostInput({
       ) : (
         <Pressable
           onPress={() => setIsEditing(true)}
-          style={({ pressed }) => [
-            styles.inputButtonBase,
-            pressed && styles.inputButtonPressed
-          ]}
+          style={getInputButtonStyle}
         >
           <SSHStack
             gap="xs"
@@ -66,6 +69,10 @@ function SSNumberGhostInput({
       )}
     </View>
   )
+}
+
+function getInputButtonStyle({ pressed }: PressableStateCallbackType) {
+  return [styles.inputButtonBase, pressed && styles.inputButtonPressed]
 }
 
 const styles = StyleSheet.create({
