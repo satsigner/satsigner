@@ -1,6 +1,7 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
+  descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
   getXpubFingerprint,
@@ -163,5 +164,20 @@ describe('parseImportedDescriptorPayload', () => {
         JSON.stringify({ descriptor: 'not a descriptor /<0;1>/*' })
       )
     ).toBeNull()
+  })
+})
+
+describe('descriptorHasPrivateKeyMaterial', () => {
+  it('flags extended private keys in any case', () => {
+    expect(descriptorHasPrivateKeyMaterial('wpkh(xprv9s21ZrQH143K/0/*)')).toBe(
+      true
+    )
+    expect(descriptorHasPrivateKeyMaterial('wpkh(TPRV8ZgxMBicQKsP/0/*)')).toBe(
+      true
+    )
+  })
+
+  it('accepts watch-only descriptors', () => {
+    expect(descriptorHasPrivateKeyMaterial(SPARROW_DESCRIPTOR)).toBe(false)
   })
 })
