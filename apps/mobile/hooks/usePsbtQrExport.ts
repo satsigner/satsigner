@@ -66,11 +66,13 @@ function createBbqrPsbtChunksOrEmpty(
 /**
  * Encodes a PSBT as RAW, UR or BBQR QR frames and cycles through them when
  * the selected format needs more than one QR. Density (`qrComplexity`) and
- * cycling speed (`animationSpeed`) are user adjustable.
+ * cycling speed (`animationSpeed`) are user adjustable. Nothing is encoded or
+ * animated while `active` is false (e.g. the export modal is closed).
  */
 export function usePsbtQrExport(
   psbtBase64: string | undefined,
-  initialDisplayMode = QRDisplayMode.RAW
+  initialDisplayMode = QRDisplayMode.RAW,
+  active = true
 ) {
   const [displayMode, setDisplayModeState] = useState(initialDisplayMode)
   const [frameIndex, setFrameIndex] = useState(0)
@@ -79,7 +81,10 @@ export function usePsbtQrExport(
 
   const qrRef = useRef<View>(null)
 
-  const { chunks, errorKey } = generateQrChunks(psbtBase64, qrComplexity)
+  const { chunks, errorKey } = generateQrChunks(
+    active ? psbtBase64 : undefined,
+    qrComplexity
+  )
   const qrError = errorKey ? t(errorKey) : null
   const modeChunks = chunks[displayMode]
   const isMultiPartQR = modeChunks.length > 1
@@ -89,7 +94,7 @@ export function usePsbtQrExport(
   useAnimationFrameInterval(
     () => setFrameIndex((prev) => prev + 1),
     getQrAnimationIntervalMs(animationSpeed),
-    isMultiPartQR
+    active && isMultiPartQR
   )
 
   function setDisplayMode(mode: QRDisplayMode) {

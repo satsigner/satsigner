@@ -62,7 +62,7 @@ function SSPsbtQRExportModal({
     setAnimationSpeed,
     setDisplayMode,
     setQrComplexity
-  } = usePsbtQrExport(psbtBase64, initialDisplayMode)
+  } = usePsbtQrExport(psbtBase64, initialDisplayMode, visible)
 
   const qrSize = Math.min(
     screenWidth * QR_SIZE_WIDTH_RATIO,
