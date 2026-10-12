@@ -1183,7 +1183,20 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
     setIsLoadingPSBT(false)
   }
 
-  function processPsbtWithAccount(
+  // Loads a PSBT without account context, toasting `successKey` on success.
+  function loadBasicPsbt(psbtBase64: string, successKey: string) {
+    try {
+      processBasicPsbt(psbtBase64)
+      toast.info(t(successKey))
+    } catch {
+      setIsLoadingPSBT(false)
+      toast.error(t('common.error.processPSBT'))
+      setTransactionId(createErrorTransactionId())
+    }
+  }
+
+  // Account-aware PSBT data, or null (after a warning) when it doesn't match.
+  function readAccountPsbtData(
     psbtBase64: string,
     accountData: NonNullable<typeof account>
   ) {
@@ -1192,43 +1205,35 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
         psbtBase64,
         accountData
       )
-
       if (!extractedData) {
-        throw new Error(
-          'Failed to extract transaction data from PSBT. This PSBT may not match the current account.'
-        )
+        toast.warning(t('transaction.preview.psbtNotMatchAccount'))
       }
-
-      processExtractedPsbtData(extractedData)
-
-      const txid = generateTransactionId(psbtBase64)
-      setTransactionId(txid)
-      const mockResult = createMockPsbt(psbtBase64, txid, extractedData.fee)
-      setPsbt(mockResult)
-      setIsLoadingPSBT(false)
+      return extractedData
     } catch (error) {
       handlePsbtExtractionError(error)
-
-      try {
-        processBasicPsbt(psbtBase64)
-        toast.info(t('transaction.preview.psbtLoadedBasic'))
-      } catch {
-        setIsLoadingPSBT(false)
-        toast.error(t('common.error.processPSBT'))
-        setTransactionId(createErrorTransactionId())
-      }
+      return null
     }
   }
 
-  function processPsbtWithoutAccount(psbtBase64: string) {
-    try {
-      processBasicPsbt(psbtBase64)
-      toast.info(t('transaction.preview.psbtLoadedLimited'))
-    } catch {
-      setIsLoadingPSBT(false)
-      toast.error(t('common.error.processPSBT'))
-      setTransactionId(createErrorTransactionId())
+  function processPsbtWithAccount(
+    psbtBase64: string,
+    accountData: NonNullable<typeof account>
+  ) {
+    const extractedData = readAccountPsbtData(psbtBase64, accountData)
+    if (!extractedData) {
+      loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedBasic')
+      return
     }
+
+    processExtractedPsbtData(extractedData)
+    const txid = generateTransactionId(psbtBase64)
+    setTransactionId(txid)
+    setPsbt(createMockPsbt(psbtBase64, txid, extractedData.fee))
+    setIsLoadingPSBT(false)
+  }
+
+  function processPsbtWithoutAccount(psbtBase64: string) {
+    loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedLimited')
   }
 
   useEffect(() => {
