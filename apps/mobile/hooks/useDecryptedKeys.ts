@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { decryptAccountKeysOrFallback } from '@/api/decryption'
 import { type Account, type Key } from '@/types/models/Account'
-import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 /**
  * Decrypts the account's key secrets for signing. Keys that fail to decrypt

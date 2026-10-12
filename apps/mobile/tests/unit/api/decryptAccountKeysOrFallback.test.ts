@@ -1,5 +1,5 @@
+import { decryptAccountKeysOrFallback } from '@/api/decryption'
 import type { Account, Key } from '@/types/models/Account'
-import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 jest.mock<Partial<typeof import('@/storage/encrypted')>>(
   '@/storage/encrypted',
