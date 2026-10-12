@@ -328,30 +328,7 @@ async function getWalletData(
           throw new Error('Invalid account information')
         }
 
-        let template: DescriptorTemplate
-        switch (key.scriptVersion) {
-          case 'P2PKH':
-            template = DescriptorTemplate.Bip44
-            break
-          case 'P2SH-P2WPKH':
-            template = DescriptorTemplate.Bip49
-            break
-          case 'P2WPKH':
-            template = DescriptorTemplate.Bip84
-            break
-          case 'P2TR':
-            template = DescriptorTemplate.Bip86
-            break
-          case 'P2WSH':
-          case 'P2SH-P2WSH':
-          case 'P2SH':
-            throw new Error(
-              `Manual descriptor creation required for ${key.scriptVersion}`
-            )
-          default:
-            template = DescriptorTemplate.Bip84
-            break
-        }
+        const template = mapScriptVersionToBipTemplate(key.scriptVersion)
 
         const externalDescriptor = createPublicDescriptor(
           key.secret.extendedPublicKey,
@@ -389,6 +366,29 @@ async function getWalletData(
     }
     default:
       break
+  }
+}
+
+function mapScriptVersionToBipTemplate(
+  scriptVersion: NonNullable<Key['scriptVersion']>
+): DescriptorTemplate {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return DescriptorTemplate.Bip44
+    case 'P2SH-P2WPKH':
+      return DescriptorTemplate.Bip49
+    case 'P2WPKH':
+      return DescriptorTemplate.Bip84
+    case 'P2TR':
+      return DescriptorTemplate.Bip86
+    case 'P2WSH':
+    case 'P2SH-P2WSH':
+    case 'P2SH':
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion}`
+      )
+    default:
+      return DescriptorTemplate.Bip84
   }
 }
 
@@ -971,7 +971,7 @@ function getWalletOverview(
     keys: [{ scriptVersion: undefined }],
     transactions: ownedTransactions,
     utxos
-  } as Account)
+  })
 
   const seenAddress: Record<string, boolean> = {}
   for (const tx of ownedTransactions) {
@@ -1165,7 +1165,9 @@ async function getTransactionInputValues(
           const prevOut = prevTx.vout[input.previousOutput.vout ?? 0]
           return {
             ...input,
-            value: prevOut ? Math.round(prevOut.value * 1e8) : undefined
+            value: prevOut
+              ? Math.round(prevOut.value * SATS_PER_BITCOIN)
+              : undefined
           }
         } catch {
           return input
@@ -1422,7 +1424,7 @@ function getPublicDescriptorsForAccount(
       ) {
         return null
       }
-      const template = key.scriptVersion as unknown as DescriptorTemplate
+      const template = mapScriptVersionToBipTemplate(key.scriptVersion)
       const external = createPublicDescriptor(
         key.secret.extendedPublicKey,
         template,

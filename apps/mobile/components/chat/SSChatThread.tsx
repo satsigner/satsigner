@@ -95,9 +95,7 @@ export default function SSChatThread({
         continue
       }
       const peerNpub = getPubKeyHexFromNpub(msg.peerPubkey) ?? msg.peerPubkey
-      const profile = profiles[nip19SafeEncode(msg.peerPubkey)] as
-        | AuthorDisplayInfo
-        | undefined
+      const profile = profiles[nip19SafeEncode(msg.peerPubkey)]
       map.set(msg.peerPubkey, {
         color: Colors.gray[500],
         displayName: profile?.displayName,
@@ -183,6 +181,7 @@ export default function SSChatThread({
                 item={toNostrDM(item, ownHex)}
                 account={undefined}
                 accounts={[]}
+                keyFingerprintsByAccount={{}}
                 formattedNpubs={formattedNpubs}
                 visibleComponents={visibleComponents}
                 onToggleVisibility={handleToggleVisibility}

@@ -41,7 +41,11 @@ export default function ArkAddressLabelPage() {
       <SSVStack style={styles.container}>
         <SSAddressDisplay address={addr} />
         {labelsQuery.isSuccess && (
-          <SSLabelInput label={currentLabel} onUpdateLabel={updateLabel} />
+          <SSLabelInput
+            label={currentLabel}
+            onUpdateLabel={updateLabel}
+            onCancel={() => router.back()}
+          />
         )}
       </SSVStack>
     </SSScrollView>

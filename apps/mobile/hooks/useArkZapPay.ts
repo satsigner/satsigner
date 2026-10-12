@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { payArkBolt11 } from '@/api/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
 import { useZapFlowStore } from '@/store/zapFlow'
 import type { ArkLightningSendResult } from '@/types/models/Ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 type UseArkZapPayInput = {

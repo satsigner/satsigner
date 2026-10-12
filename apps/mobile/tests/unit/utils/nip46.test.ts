@@ -1,4 +1,8 @@
-import { canAutoApproveRequest, getEventPreview } from '@/utils/nip46'
+import {
+  canAutoApproveRequest,
+  getEventPreview,
+  parseNip46Request
+} from '@/utils/nip46'
 
 function signEventParams(template: object): string[] {
   return [JSON.stringify(template)]
@@ -70,5 +74,60 @@ describe('getEventPreview', () => {
 
   it('returns null for malformed params', () => {
     expect(getEventPreview(['not-json'])).toBeNull()
+  })
+
+  it('returns null when the payload is not an object', () => {
+    expect(getEventPreview(['[]'])).toBeNull()
+    expect(getEventPreview(['42'])).toBeNull()
+  })
+
+  it('drops tags that are not lists of strings', () => {
+    const preview = getEventPreview(
+      signEventParams({ content: 'hi', kind: 1, tags: [['p', 42]] })
+    )
+
+    expect(preview?.content).toBe('hi')
+    expect(preview?.tags).toStrictEqual([])
+  })
+})
+
+describe('parseNip46Request', () => {
+  it('parses a well-formed request', () => {
+    expect(
+      parseNip46Request({ id: 'req-1', method: 'sign_event', params: ['{}'] })
+    ).toStrictEqual({ id: 'req-1', method: 'sign_event', params: ['{}'] })
+  })
+
+  it('treats missing or non-list params as empty', () => {
+    expect(parseNip46Request({ id: 'req-1', method: 'ping' })).toStrictEqual({
+      id: 'req-1',
+      method: 'ping',
+      params: []
+    })
+    expect(
+      parseNip46Request({ id: 'req-1', method: 'ping', params: 'pk' })
+    ).toStrictEqual({ id: 'req-1', method: 'ping', params: [] })
+  })
+
+  it('keeps param positions, blanking entries that are not strings', () => {
+    expect(
+      parseNip46Request({
+        id: 'req-1',
+        method: 'connect',
+        params: ['pk', 'secret', null, 7]
+      })
+    ).toStrictEqual({
+      id: 'req-1',
+      method: 'connect',
+      params: ['pk', 'secret', '', '']
+    })
+  })
+
+  it('returns null without a usable id or method', () => {
+    expect(parseNip46Request({ method: 'ping' })).toBeNull()
+    expect(parseNip46Request({ id: '', method: 'ping' })).toBeNull()
+    expect(parseNip46Request({ id: 7, method: 'ping' })).toBeNull()
+    expect(parseNip46Request({ id: 'req-1', method: 3 })).toBeNull()
+    expect(parseNip46Request(null)).toBeNull()
   })
 })

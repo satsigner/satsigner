@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -9,16 +9,15 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatTxId } from '@/utils/format'
 import {
-  type AccountMatchResult,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   findMatchingAccount,
+  type KeyFingerprintsByAccount,
   getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
@@ -35,34 +34,34 @@ type SSTransactionDetailsProps = {
   transactionData: TransactionData
   account: Account | undefined
   accounts: Account[]
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
   visibility?: { sankey: boolean; status: boolean }
   onToggleVisibility?: (component: 'sankey' | 'status') => void
   onGoToSignFlow?: () => void
+  /** Called with the matched account id and a linked transaction id when a chart link is pressed. */
+  onOpenLinkedTx?: (accountId: string, txId: string) => void
 }
 
 function SSTransactionDetails({
   transactionData,
   account,
   accounts,
+  keyFingerprintsByAccount,
   visibility,
   onToggleVisibility,
-  onGoToSignFlow
+  onGoToSignFlow,
+  onOpenLinkedTx
 }: SSTransactionDetailsProps) {
-  const [accountMatch, setAccountMatch] = useState<AccountMatchResult | null>(
-    null
-  )
   const { combinedPsbt } = transactionData
   const originalPsbt = extractOriginalPsbt(combinedPsbt)
   const txid = extractTransactionIdFromPSBT(combinedPsbt)
   const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
 
-  useEffect(() => {
-    async function matchAccount() {
-      const match = await findMatchingAccount(originalPsbt, accounts)
-      setAccountMatch(match)
-    }
-    matchAccount()
-  }, [originalPsbt, accounts])
+  const accountMatch = findMatchingAccount(
+    originalPsbt,
+    accounts,
+    keyFingerprintsByAccount
+  )
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account
@@ -70,6 +69,10 @@ function SSTransactionDetails({
     () => getAccountAddressSets(matchedAccount?.addresses ?? []),
     [matchedAccount?.addresses]
   )
+  const handleOpenLinkedTx =
+    matchedAccount && onOpenLinkedTx
+      ? (txId: string) => onOpenLinkedTx(matchedAccount.id, txId)
+      : undefined
   const unspentOutpoints = useMemo(
     () =>
       new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
@@ -153,7 +156,7 @@ function SSTransactionDetails({
     vin,
     vout,
     vsize
-  } as unknown as Transaction
+  }
 
   const textSize = onToggleVisibility ? 'lg' : 'md'
 
@@ -179,7 +182,6 @@ function SSTransactionDetails({
           {visibility?.sankey ? (
             <View style={styles.chatChartContainer}>
               <SSTransactionChart
-                accountId={matchedAccount?.id}
                 transaction={transaction}
                 ownAddresses={ownAddresses}
                 internalAddresses={internalAddresses}
@@ -190,6 +192,7 @@ function SSTransactionDetails({
                 spendingTxIdsByOutpoint={spendingTxIdsByOutpoint}
                 outpointLabelsByRef={outpointLabelsByRef}
                 scale={0.75}
+                onOpenLinkedTx={handleOpenLinkedTx}
               />
             </View>
           ) : (
@@ -217,7 +220,6 @@ function SSTransactionDetails({
         <>
           <View style={styles.chartContainer}>
             <SSTransactionChart
-              accountId={matchedAccount?.id}
               transaction={transaction}
               ownAddresses={ownAddresses}
               internalAddresses={internalAddresses}
@@ -226,6 +228,7 @@ function SSTransactionDetails({
               txLabelsById={txLabelsById}
               knownTxIds={knownTxIds}
               outpointLabelsByRef={outpointLabelsByRef}
+              onOpenLinkedTx={handleOpenLinkedTx}
             />
           </View>
           {isMultisig && (

@@ -1,4 +1,9 @@
-import { Network } from 'react-native-bdk-sdk'
+import {
+  createPublicDescriptor,
+  DescriptorTemplate,
+  KeychainKind,
+  Network
+} from 'react-native-bdk-sdk'
 
 import {
   buildTransactionWithRpc,
@@ -226,6 +231,52 @@ describe('getPublicDescriptorsForAccount', () => {
     expect(() =>
       getPublicDescriptorsForAccount(account, Network.Testnet)
     ).toThrow(/private key material/)
+  })
+
+  it('derives xpub descriptors with the BIP template matching the script version', () => {
+    const extendedPublicKey = 'tpubD6NzVbkrYhZ4Xexample'
+    const account = makeAccount({
+      keys: [
+        makeKey({
+          creationType: 'importExtendedPub',
+          scriptVersion: 'P2WPKH',
+          secret: { extendedPublicKey }
+        })
+      ]
+    })
+
+    const result = getPublicDescriptorsForAccount(account, Network.Testnet)
+
+    expect(result).toStrictEqual([
+      'mock-public-descriptor',
+      'mock-public-descriptor'
+    ])
+    expect(createPublicDescriptor).toHaveBeenCalledWith(
+      extendedPublicKey,
+      DescriptorTemplate.Bip84,
+      KeychainKind.External,
+      Network.Testnet
+    )
+    expect(createPublicDescriptor).toHaveBeenCalledWith(
+      extendedPublicKey,
+      DescriptorTemplate.Bip84,
+      KeychainKind.Internal,
+      Network.Testnet
+    )
+  })
+
+  it('returns null for xpub accounts with a multisig script version', () => {
+    const account = makeAccount({
+      keys: [
+        makeKey({
+          creationType: 'importExtendedPub',
+          scriptVersion: 'P2WSH',
+          secret: { extendedPublicKey: 'tpubD6NzVbkrYhZ4Xexample' }
+        })
+      ]
+    })
+
+    expect(getPublicDescriptorsForAccount(account, Network.Testnet)).toBeNull()
   })
 
   it('returns null for creation types it does not know how to derive from (e.g. importAddress)', () => {

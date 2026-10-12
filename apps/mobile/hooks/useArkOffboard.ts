@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { offboardArkVtxos } from '@/api/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
 import type { ArkOffboardInput } from '@/types/models/Ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 function executeArkOffboard(

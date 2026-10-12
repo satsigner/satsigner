@@ -163,7 +163,9 @@ export default function NetworkSettings() {
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 24 }}
         >
-          <SSBitcoinNetworkExplanationLink />
+          <SSBitcoinNetworkExplanationLink
+            onPress={() => router.navigate('/settings/network/comparison')}
+          />
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>

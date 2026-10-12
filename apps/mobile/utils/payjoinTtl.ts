@@ -4,7 +4,7 @@ import {
 } from '@/constants/payjoin'
 
 function isPayjoinSessionTtlPreset(ms: number): boolean {
-  return (PAYJOIN_SESSION_TTL_PRESETS_MS as readonly number[]).includes(ms)
+  return PAYJOIN_SESSION_TTL_PRESETS_MS.some((preset) => preset === ms)
 }
 
 function normalizePayjoinSessionTtlMs(ms: number | undefined): number {

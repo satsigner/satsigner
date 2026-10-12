@@ -5,8 +5,7 @@ import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import { dropSeedFromKeyInMemory } from '@/utils/account'
+import { createResetKey, dropSeedFromKeyInMemory } from '@/utils/account'
 import { randomIv, randomUuid } from '@/utils/crypto'
 
 const DEFAULT_MNEMONIC_WORD_COUNT = 24
@@ -246,7 +245,7 @@ const useAccountBuilderStore = create<
           commonNsec: '',
           deviceNpub: '',
           deviceNsec: '',
-          dms: [] as NostrDM[],
+          dms: [],
           lastUpdated: new Date(),
           relays: [],
           syncStart: new Date(),
@@ -273,16 +272,7 @@ const useAccountBuilderStore = create<
     },
     resetKey: (index) => {
       set((state) => {
-        state.keys[index] = {
-          creationType: undefined,
-          fingerprint: undefined,
-          index,
-          iv: undefined,
-          mnemonicWordCount: undefined,
-          name: '',
-          scriptVersion: undefined,
-          secret: undefined
-        } as unknown as Key
+        state.keys[index] = createResetKey(index)
       })
     },
     setCreationType: (creationType) => {
@@ -412,14 +402,13 @@ const useAccountBuilderStore = create<
     },
     updateKeyFingerprint: (index, fingerprint) => {
       set((state) => {
-        if (state.keys[index]) {
-          state.keys[index].fingerprint = fingerprint
-          if (
-            state.keys[index].secret &&
-            typeof state.keys[index].secret === 'object'
-          ) {
-            ;(state.keys[index].secret as Secret).fingerprint = fingerprint
-          }
+        const key = state.keys[index]
+        if (!key) {
+          return
+        }
+        key.fingerprint = fingerprint
+        if (key.secret && typeof key.secret === 'object') {
+          key.secret.fingerprint = fingerprint
         }
       })
     },

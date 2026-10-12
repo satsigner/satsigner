@@ -1,13 +1,7 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
+import { stripBitcoinPrefix } from '@/utils/parse'
 import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
-
-function stripBitcoinPrefix(uri: string): string {
-  if (uri.toLowerCase().startsWith('bitcoin:')) {
-    return uri.substring(8)
-  }
-  return uri
-}
 
 /**
  * Advertise `pj=` only when amount is unset or meets the anti-probing floor.

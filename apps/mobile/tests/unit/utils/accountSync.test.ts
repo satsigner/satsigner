@@ -1,5 +1,9 @@
 import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
-import { type AccountSyncHistory, shouldFullScan } from '@/utils/accountSync'
+import {
+  type AccountSyncHistory,
+  isTransactionHistoryLoading,
+  shouldFullScan
+} from '@/utils/accountSync'
 
 function makeAccount(
   overrides: Partial<AccountSyncHistory> = {}
@@ -109,5 +113,35 @@ describe('shouldFullScan', () => {
         forceFullScan: false
       })
     ).toBe(false)
+  })
+})
+
+describe('isTransactionHistoryLoading', () => {
+  it('is loading while the account is syncing', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: false, syncStatus: 'syncing' })
+    ).toBe(true)
+  })
+
+  it('is loading while a refresh is in flight before sync status flips', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: true, syncStatus: 'unsynced' })
+    ).toBe(true)
+  })
+
+  it('is not loading once the account has synced', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: false, syncStatus: 'synced' })
+    ).toBe(false)
+  })
+
+  it('is not loading after a failed sync', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: false, syncStatus: 'error' })
+    ).toBe(false)
+  })
+
+  it('is not loading when sync status is unknown', () => {
+    expect(isTransactionHistoryLoading({ refreshing: false })).toBe(false)
   })
 })

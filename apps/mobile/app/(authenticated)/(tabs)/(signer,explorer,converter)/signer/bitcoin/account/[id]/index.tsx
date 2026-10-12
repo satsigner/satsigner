@@ -112,9 +112,11 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { getAccountTotalBalance } from '@/utils/account'
+import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
+import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
   formatAddress,
@@ -129,7 +131,8 @@ import { parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   createScanThroughputTracker,
   formatBlocksPerSec,
-  formatScanDuration
+  formatScanDuration,
+  type ScanThroughput
 } from '@/utils/scanThroughput'
 import { sortTransactions, type TransactionSortField } from '@/utils/sort'
 import { time } from '@/utils/time'
@@ -561,9 +564,9 @@ function SyncScanStats({
   scanFromTimeSec?: number
 }) {
   const trackerRef = useRef(createScanThroughputTracker())
-  const [throughput, setThroughput] = useState({
-    blocksPerSec: null as number | null,
-    etaSeconds: null as number | null,
+  const [throughput, setThroughput] = useState<ScanThroughput>({
+    blocksPerSec: null,
+    etaSeconds: null,
     pct: 0
   })
 
@@ -778,6 +781,9 @@ function TotalTransactions({
   const activityTitle = isSyncing
     ? syncProgressLabel(tasksDone, totalTasks)
     : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
+    ? t('account.transactions.loading')
+    : t('account.transactions.empty')
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
@@ -865,6 +871,16 @@ function TotalTransactions({
             transactions={chartTransactions}
             utxos={account.utxos}
             blockchainHeight={blockchainHeight}
+            onOpenUtxo={(txid, vout) =>
+              router.navigate(
+                `/signer/bitcoin/account/${account.id}/transaction/${txid}/utxo/${vout}`
+              )
+            }
+            onOpenTransaction={(txid) =>
+              router.navigate(
+                `/signer/bitcoin/account/${account.id}/transaction/${txid}`
+              )
+            }
           />
         </View>
       ) : (
@@ -908,13 +924,20 @@ function TotalTransactions({
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
                     blockHeight={blockchainHeight}
-                    link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+                    onPress={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${account.id}/transaction/${item.id}`
+                      )
+                    }
+                    onOpenFiatSettings={() =>
+                      router.navigate('/settings/features/fiatData')
+                    }
                   />
                 </SSVStack>
               )}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
-                  <SSText color="muted">No transactions</SSText>
+                  <SSText color="muted">{emptyListLabel}</SSText>
                 </SSVStack>
               }
               drawDistance={TX_LIST_DRAW_DISTANCE}
@@ -1110,7 +1133,7 @@ function DerivedAddresses({
   setSortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
-  const wallet = useGetAccountWallet(account.id!)
+  const wallet = useGetAccountWallet(account.id)
   const network = appNetworkToBdkNetwork(
     useBlockchainStore((state) => state.selectedNetwork)
   )
@@ -1157,7 +1180,7 @@ function DerivedAddresses({
       return
     }
 
-    let addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    let addresses = await getWalletAddresses(wallet!, network, addressCount)
     addresses = parseAccountAddressesDetails({ ...account, addresses })
     updateAccount({ ...account, addresses })
   }
@@ -1175,7 +1198,7 @@ function DerivedAddresses({
     setAddressCount(newAddressCount)
     setIsLoadingAddresses(true)
 
-    let addrList = await getWalletAddresses(wallet!, network!, newAddressCount)
+    let addrList = await getWalletAddresses(wallet!, network, newAddressCount)
     addrList = parseAccountAddressesDetails({
       ...account,
       addresses: addrList
@@ -1192,7 +1215,7 @@ function DerivedAddresses({
     isUpdatingAddresses.current = true
 
     try {
-      const result = await getLastUnusedAddressFromWallet(wallet!)
+      const result = await getLastUnusedAddressFromWallet(wallet)
 
       if (!result) {
         return
@@ -1208,8 +1231,8 @@ function DerivedAddresses({
 
       if (account.addresses.length >= addressCount) {
         let newAddresses = await getWalletAddresses(
-          wallet!,
-          network!,
+          wallet,
+          network,
           addressCount
         )
         newAddresses = parseAccountAddressesDetails({
@@ -1220,7 +1243,7 @@ function DerivedAddresses({
         return
       }
 
-      let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
+      let newAddresses = await getWalletAddresses(wallet, network, minItems)
       newAddresses = parseAccountAddressesDetails({
         ...account,
         addresses: newAddresses
@@ -1670,6 +1693,14 @@ function SpendableOutputs({
                     totalBalance={totalBalance}
                     addressIndex={addressIndex}
                     excluded={isUtxoExcluded(item.utxo, excludedOutpoints)}
+                    onPress={() =>
+                      router.navigate(
+                        `/signer/bitcoin/account/${account.id}/transaction/${item.utxo.txid}/utxo/${item.utxo.vout}`
+                      )
+                    }
+                    onToggleExcluded={() =>
+                      toggleUtxoExcluded(account.id, item.utxo)
+                    }
                   />
                 </SSVStack>
               )
@@ -1723,6 +1754,7 @@ function SatsInMempool({
   account: Account
   blockchainHeight: number
 }) {
+  const router = useRouter()
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -1760,7 +1792,14 @@ function SatsInMempool({
               btcPrice={btcPrice}
               fiatCurrency={fiatCurrency}
               expand={false}
-              link={`/signer/bitcoin/account/${account.id}/transaction/${item.id}`}
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${account.id}/transaction/${item.id}`
+                )
+              }
+              onOpenFiatSettings={() =>
+                router.navigate('/settings/features/fiatData')
+              }
             />
             <SSHStack gap="sm">
               <SSButton
@@ -1813,8 +1852,8 @@ export default function AccountView() {
     [account?.nostr?.dms]
   )
 
-  const wallet = useGetAccountWallet(id!)
-  const watchOnlyWalletAddress = useGetAccountAddress(id!)
+  const wallet = useGetAccountWallet(id)
+  const watchOnlyWalletAddress = useGetAccountAddress(id)
 
   const isMultiAddressWatchOnly = useMemo(
     () =>
@@ -1886,17 +1925,26 @@ export default function AccountView() {
 
   const bitcoinContentHandler = useBitcoinContentHandler({
     account: account!,
-    accountId: id!,
+    accountId: id,
     closePasteModal: () => {
       closePasteModalRef.current()
-    }
+    },
+    onError: toast.error,
+    onInfo: toast.info,
+    onSuccess: toast.success
   })
 
   const contentHandler = useContentHandler({
     context: 'bitcoin',
     onContentScanned: bitcoinContentHandler.handleContentScanned,
-    onReceive: bitcoinContentHandler.handleReceive,
-    onSend: bitcoinContentHandler.handleSend
+    receiveHref: {
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/receive'
+    },
+    sendHref: {
+      params: { id },
+      pathname: '/signer/bitcoin/account/[id]/signAndSend/selectUtxoList'
+    }
   })
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
@@ -2107,7 +2155,7 @@ export default function AccountView() {
         updateAccount(updatedAccount)
       }
     } catch (error) {
-      toast.error((error as Error).message)
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -2344,6 +2392,7 @@ export default function AccountView() {
             fiatCurrency={fiatCurrency}
             nextBlockFee={nextBlockFee}
             blockHeightSource={blockHeightSource}
+            onPress={() => router.navigate('/explorer/chaintip')}
           />
         </SSVStack>
         {!expand && (
@@ -2431,9 +2480,10 @@ export default function AccountView() {
             <View style={{ marginTop: 4, paddingHorizontal: '6%' }}>
               <TouchableOpacity
                 onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/settings/birthday` as never
-                  )
+                  router.navigate({
+                    params: { id },
+                    pathname: '/signer/bitcoin/account/[id]/settings/birthday'
+                  })
                 }
               >
                 <SSText center size="xxs" style={{ color: Colors.warning }}>

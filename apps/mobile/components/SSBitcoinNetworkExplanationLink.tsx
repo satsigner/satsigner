@@ -1,4 +1,3 @@
-import { router } from 'expo-router'
 import { TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -7,13 +6,15 @@ import { t } from '@/locales'
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
 
-function SSBitcoinNetworkExplanationLink() {
+type SSBitcoinNetworkExplanationLinkProps = {
+  onPress: () => void
+}
+
+function SSBitcoinNetworkExplanationLink({
+  onPress
+}: SSBitcoinNetworkExplanationLinkProps) {
   return (
-    <TouchableOpacity
-      onPress={() => {
-        router.navigate('/settings/network/comparison')
-      }}
-    >
+    <TouchableOpacity onPress={onPress}>
       <SSHStack gap="xs" style={{ justifyContent: 'center' }}>
         <SSText color="muted">
           {t('settings.network.networkComparisonLink')}

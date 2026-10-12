@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import Animated, {
@@ -26,8 +25,9 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Key, Secret } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
+import { hasEncryptedSecret } from '@/utils/key'
 
 type SSMultisigKeyControlProps = {
   index: number
@@ -35,6 +35,20 @@ type SSMultisigKeyControlProps = {
   keyDetails?: Key
   isSettingsMode?: boolean
   accountId?: string
+  /** Open the mnemonic import flow for this key. */
+  onImportMnemonic: () => void
+  /** Open the generate-mnemonic key settings flow for this key. */
+  onGenerateMnemonic: () => void
+  /** Open the descriptor import flow for this key. */
+  onImportDescriptor: () => void
+  /** Open the extended-public-key import flow for this key. */
+  onImportExtendedPub: () => void
+  /** Open the export public key (xpub) screen for this key. */
+  onShareXpub: () => void
+  /** Open the export descriptor screen for this key. */
+  onShareDescriptor: () => void
+  /** Open the export seed words screen for this key. */
+  onViewSeedWords: () => void
 }
 
 function SSMultisigKeyControl({
@@ -42,14 +56,19 @@ function SSMultisigKeyControl({
   keyCount,
   keyDetails,
   isSettingsMode = false,
-  accountId
+  accountId,
+  onImportMnemonic,
+  onGenerateMnemonic,
+  onImportDescriptor,
+  onImportExtendedPub,
+  onShareXpub,
+  onShareDescriptor,
+  onViewSeedWords
 }: SSMultisigKeyControlProps) {
-  const router = useRouter()
   const [
     setKeyName,
     setCreationType,
     setNetwork,
-    getAccountData,
     resetKey,
     dropSeedFromKey,
     setMnemonicWordCount,
@@ -59,7 +78,6 @@ function SSMultisigKeyControl({
       state.setKeyName,
       state.setCreationType,
       state.setNetwork,
-      state.getAccountData,
       state.resetKey,
       state.dropSeedFromKey,
       state.setMnemonicWordCount,
@@ -89,7 +107,8 @@ function SSMultisigKeyControl({
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
   const [resetKeyModalVisible, setResetKeyModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
-  const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
+    useState<NonNullable<Key['mnemonicWordCount']>>(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   const animatedHeight = useSharedValue(0)
@@ -120,7 +139,7 @@ function SSMultisigKeyControl({
         return
       }
 
-      const secret = keyDetails.secret as Secret
+      const { secret } = keyDetails
 
       if (secret.extendedPublicKey) {
         setExtractedPublicKey(secret.extendedPublicKey)
@@ -172,10 +191,8 @@ function SSMultisigKeyControl({
 
   function handleWordCountSelection() {
     setWordCountModalVisible(false)
-    setMnemonicWordCount(
-      localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
-    )
-    router.navigate(`/signer/bitcoin/account/add/import/mnemonic/${index}`)
+    setMnemonicWordCount(localMnemonicWordCount)
+    onImportMnemonic()
   }
 
   function handleAction(type: NonNullable<Key['creationType']>) {
@@ -188,19 +205,13 @@ function SSMultisigKeyControl({
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      router.navigate(
-        `/signer/bitcoin/account/add/multiSig/keySettings/${index}`
-      )
+      onGenerateMnemonic()
     } else if (type === 'importMnemonic') {
       setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
-      router.navigate(
-        `/signer/bitcoin/account/add/(common)/import/descriptor/${index}`
-      )
+      onImportDescriptor()
     } else if (type === 'importExtendedPub') {
-      router.navigate(
-        `/signer/bitcoin/account/add/(common)/import/extendedPub/${index}`
-      )
+      onImportExtendedPub()
     }
   }
 
@@ -212,10 +223,10 @@ function SSMultisigKeyControl({
         setDropSeedModalVisible(true)
         break
       case 'shareXpub':
-        handleShareXpub()
+        onShareXpub()
         break
       case 'shareDescriptor':
-        handleShareDescriptor()
+        onShareDescriptor()
         break
       case 'resetKey':
         setResetKeyModalVisible(true)
@@ -262,66 +273,6 @@ function SSMultisigKeyControl({
     }
   }
 
-  function handleShareXpub() {
-    if (accountId) {
-      router.navigate(
-        `/signer/bitcoin/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
-      )
-    } else {
-      const accountData = getAccountData()
-      const key = accountData.keys[index]
-
-      if (!key) {
-        toast.error('Key not found')
-        return
-      }
-
-      router.navigate(
-        `/signer/bitcoin/account/add/multiSig/export/publicKey?keyIndex=${index}`
-      )
-    }
-  }
-
-  function handleShareDescriptor() {
-    if (accountId) {
-      router.navigate(
-        `/signer/bitcoin/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
-      )
-    } else {
-      const accountData = getAccountData()
-      const key = accountData.keys[index]
-
-      if (!key) {
-        toast.error('Key not found')
-        return
-      }
-
-      router.navigate(
-        `/signer/bitcoin/account/add/multiSig/export/descriptor?keyIndex=${index}`
-      )
-    }
-  }
-
-  function handleViewSeedWords() {
-    if (accountId) {
-      router.navigate(
-        `/signer/bitcoin/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
-      )
-    } else {
-      const accountData = getAccountData()
-      const key = accountData.keys[index]
-
-      if (!key) {
-        toast.error('Key not found')
-        return
-      }
-
-      router.navigate(
-        `/signer/bitcoin/account/add/multiSig/export/seedWords?keyIndex=${index}`
-      )
-    }
-  }
-
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
     setHasUnsavedChanges(true)
@@ -335,7 +286,7 @@ function SSMultisigKeyControl({
     }
   }
 
-  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) {
+  if (hasEncryptedSecret(keyDetails) && !isSettingsMode) {
     return null
   }
 
@@ -364,7 +315,7 @@ function SSMultisigKeyControl({
         {hasSeed ? (
           <SSButton
             label={t('account.seed.viewSeedWords')}
-            onPress={handleViewSeedWords}
+            onPress={onViewSeedWords}
             variant="secondary"
           />
         ) : null}

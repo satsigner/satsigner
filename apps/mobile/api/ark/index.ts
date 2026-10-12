@@ -5,6 +5,7 @@ import type {
   ArkBolt11Invoice,
   ArkDerivedAddress,
   ArkFeeEstimate,
+  ArkFeeRequest,
   ArkLightningSendResult,
   ArkMovement,
   ArkNotificationListener,
@@ -290,4 +291,41 @@ export function fetchArkServerInfo(
   accountId: string
 ): Promise<ArkServerInfo | null> {
   return getArkProvider(serverId).fetchServerInfo(accountId)
+}
+
+export function estimateArkFee(
+  serverId: ArkServerId,
+  accountId: string,
+  request: ArkFeeRequest
+): Promise<ArkFeeEstimate> {
+  switch (request.kind) {
+    case 'arkoor':
+      return estimateArkArkoorFee(serverId, accountId, request.amountSats)
+    case 'lightning':
+      return estimateArkLightningSendFee(
+        serverId,
+        accountId,
+        request.amountSats
+      )
+    case 'board':
+      return estimateArkBoardFee(serverId, accountId, request.amountSats)
+    case 'onchain':
+      return estimateArkSendOnchainFee(
+        serverId,
+        accountId,
+        request.address,
+        request.amountSats
+      )
+    case 'offboard':
+      return estimateArkOffboardFee(
+        serverId,
+        accountId,
+        request.address,
+        request.vtxoIds
+      )
+    case 'refresh':
+      return estimateArkRefreshFee(serverId, accountId, request.vtxoIds)
+    default:
+      throw new Error('Unsupported Ark fee request')
+  }
 }

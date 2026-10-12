@@ -1139,7 +1139,7 @@ export function useEcash() {
           )
           return true
         } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          updateTransactionAction(activeAccountId!, transactionId, {
+          updateTransactionAction(activeAccountId, transactionId, {
             status: 'failed'
           })
           return true
@@ -1203,7 +1203,7 @@ export function useQuotePolling() {
   const [pollCount, setPollCount] = useState(0)
   const [, setLastPollTime] = useState(0)
   const isPollingRef = { current: false }
-  const timeoutRef = { current: null as NodeJS.Timeout | null }
+  const timeoutRef: { current: NodeJS.Timeout | null } = { current: null }
 
   function startPolling(pollFunction: () => Promise<boolean>) {
     setIsPolling(true)
