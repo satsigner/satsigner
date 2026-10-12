@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
-import { TouchableWithoutFeedback, View, type ViewStyle } from 'react-native'
+import { Pressable, View, type ViewStyle } from 'react-native'
 
 import { t } from '@/locales'
 
@@ -30,10 +30,10 @@ function SSClipboardCopy({
   }
 
   return (
-    <TouchableWithoutFeedback onPress={handleClick}>
-      <View
-        style={[fullWidth && { width: '100%' }, style, { overflow: 'visible' }]}
-      >
+    <Pressable
+      onPress={handleClick}
+      style={[fullWidth && { width: '100%' }, style, { overflow: 'visible' }]}
+    >
         <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText
@@ -42,8 +42,7 @@ function SSClipboardCopy({
             message={t('common.copiedToClipboard')}
           />
         )}
-      </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   )
 }
 
