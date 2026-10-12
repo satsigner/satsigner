@@ -22,14 +22,12 @@ import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
 import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
-import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCosignerSignatures } from '@/hooks/useCosignerSignatures'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
-import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNfcPulse } from '@/hooks/useNfcPulse'
-import { useNFCReader } from '@/hooks/useNFCReader'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
+import { usePsbtSignatureImport } from '@/hooks/usePsbtSignatureImport'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -69,11 +67,10 @@ const tn = _tn('transaction.build.preview')
 const TRANSACTION_CHART_SCALE = 0.9
 
 type CosignerSignatures = ReturnType<typeof useCosignerSignatures>
-type NfcTransfer = ReturnType<typeof useNfcTransfer>
 type SeedSigning = ReturnType<typeof useSeedSigning>
 
 type NfcModalProps = {
-  nfcError: NfcTransfer['nfcError']
+  nfcErrorKey: string | null
   nfcPulseStyle: ReturnType<typeof useNfcPulse>
   onClose: () => void
   visible: boolean
@@ -154,31 +151,30 @@ function PreviewTransaction() {
   })
 
   const {
-    cancelNFCEmitterScan,
-    cancelNFCScan,
-    handleNFCExport,
-    handleNFCScan,
+    closeNfcExportModal,
+    closeNfcScanModal,
+    exportToNfc,
+    handleScannedContent,
+    importFromNfc,
     isEmitting,
+    isNfcSupported,
     isReading,
-    nfcError,
-    nfcHardwareSupported,
-    nfcModalVisible,
+    nfcErrorKey,
+    nfcExportModalVisible,
     nfcScanModalVisible,
-    setNfcError,
-    setNfcModalVisible,
-    setNfcScanModalVisible
-  } = useNfcTransfer({ serializedPsbt, updateSignedPsbt })
-  const nfcPulseStyle = useNfcPulse(nfcModalVisible || nfcScanModalVisible)
+    pasteFromClipboard
+  } = usePsbtSignatureImport({
+    importSignedData,
+    onNotice: showNotice,
+    serializedPsbt,
+    signWithMnemonic,
+    storeSignedData: updateSignedPsbt
+  })
+  const nfcPulseStyle = useNfcPulse(
+    nfcExportModalVisible || nfcScanModalVisible
+  )
 
   const shareWithNostrGroup = useNostrShareTransaction({ account, id })
-
-  const { handlePasteFromClipboard } = useClipboardImport({ importSignedData })
-
-  const handleScannedContent = useScannedContentImport({
-    currentCosignerIndex,
-    importSignedData,
-    signWithMnemonic
-  })
 
   const {
     handleMnemonicInvalid,
@@ -218,7 +214,7 @@ function PreviewTransaction() {
   )
 
   function handleCosignerPasteFromClipboard(index: number) {
-    handlePasteFromClipboard(index)
+    pasteFromClipboard(index)
   }
 
   function handleCosignerCameraScan(index: number) {
@@ -227,7 +223,7 @@ function PreviewTransaction() {
   }
 
   function handleCosignerNFCScan(index: number) {
-    handleNFCScan(index)
+    importFromNfc(index)
   }
 
   function handleSeedQRScanned(index: number) {
@@ -236,11 +232,11 @@ function PreviewTransaction() {
   }
 
   function handleWatchOnlyPasteFromClipboard() {
-    handlePasteFromClipboard(WATCH_ONLY_INDEX)
+    pasteFromClipboard(WATCH_ONLY_INDEX)
   }
 
   function handleWatchOnlyNFCScan() {
-    handleNFCScan(WATCH_ONLY_INDEX)
+    importFromNfc(WATCH_ONLY_INDEX)
   }
 
   function shareOrShowError(psbtBase64: string | undefined) {
@@ -284,14 +280,14 @@ function PreviewTransaction() {
     handleCosignerCameraScan,
     handleCosignerNFCScan,
     handleCosignerPasteFromClipboard,
-    handleNFCExport,
+    handleNFCExport: exportToNfc,
     handleSeedQRScanned,
     handleSeedWordsScanned,
     handleShareSignaturesWithNostrGroup,
     handleSignWithLocalKey: signWithLocalKey,
     isEmitting,
     isReading,
-    nfcHardwareSupported,
+    nfcHardwareSupported: isNfcSupported,
     serializedPsbt,
     setNoKeyModalVisible,
     signedPsbts,
@@ -305,14 +301,14 @@ function PreviewTransaction() {
     account,
     accountId: id,
     combineAndFinalizeMultisigPSBTs: finalize,
-    handleNFCExport,
+    handleNFCExport: exportToNfc,
     handleShareWithNostrGroup,
     handleWatchOnlyNFCScan,
     handleWatchOnlyPasteFromClipboard,
     hasAllRequiredSignatures,
     isEmitting,
     isReading,
-    nfcHardwareSupported,
+    nfcHardwareSupported: isNfcSupported,
     psbtBuildStatus,
     router,
     serializedPsbt,
@@ -335,7 +331,8 @@ function PreviewTransaction() {
       setCameraModalVisible(false)
       setCurrentCosignerIndex(null)
     },
-    onContentScanned: handleScannedContent,
+    onContentScanned: (content: DetectedContent) =>
+      handleScannedContent(content, currentCosignerIndex),
     title: getCameraModalTitle(decryptedKeys, currentCosignerIndex),
     visible: cameraModalVisible
   }
@@ -384,27 +381,16 @@ function PreviewTransaction() {
   }
 
   const propsNfcEmitModal = {
-    nfcError,
+    nfcErrorKey,
     nfcPulseStyle,
-    onClose: () => {
-      setNfcModalVisible(false)
-      setNfcError(null)
-      if (isEmitting) {
-        cancelNFCEmitterScan()
-      }
-    },
-    visible: nfcModalVisible
+    onClose: closeNfcExportModal,
+    visible: nfcExportModalVisible
   }
 
   const propsNfcScanModal = {
-    nfcError,
+    nfcErrorKey,
     nfcPulseStyle,
-    onClose: () => {
-      setNfcScanModalVisible(false)
-      if (isReading) {
-        cancelNFCScan()
-      }
-    },
+    onClose: closeNfcScanModal,
     visible: nfcScanModalVisible
   }
 
@@ -573,7 +559,7 @@ function PreviewTransactionDecoded({
 }
 
 function PreviewTransactionNfcEmitModal({
-  nfcError,
+  nfcErrorKey,
   nfcPulseStyle,
   onClose,
   visible
@@ -582,12 +568,14 @@ function PreviewTransactionNfcEmitModal({
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack itemsCenter gap="lg">
         <SSText center style={styles.nfcTitle}>
-          {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
+          {nfcErrorKey
+            ? t('common.errorTitle')
+            : t('transaction.preview.nfcTip')}
         </SSText>
-        {nfcError ? (
+        {nfcErrorKey ? (
           <SSVStack itemsCenter gap="md">
             <SSText color="white" center>
-              {nfcError}
+              {t(nfcErrorKey)}
             </SSText>
           </SSVStack>
         ) : (
@@ -601,7 +589,7 @@ function PreviewTransactionNfcEmitModal({
 }
 
 function PreviewTransactionNfcScanModal({
-  nfcError,
+  nfcErrorKey,
   nfcPulseStyle,
   onClose,
   visible
@@ -610,7 +598,9 @@ function PreviewTransactionNfcScanModal({
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack itemsCenter gap="lg">
         <SSText center style={styles.nfcTitle}>
-          {nfcError ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
+          {nfcErrorKey
+            ? t('common.errorTitle')
+            : t('transaction.preview.nfcTip')}
         </SSText>
         <Animated.View style={nfcPulseStyle}>
           <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
@@ -1039,179 +1029,6 @@ function PreviewTransactionSeedWordsModal({
       </View>
     </SSModal>
   )
-}
-
-type UseScannedContentImportParams = {
-  currentCosignerIndex: number | null
-  importSignedData: CosignerSignatures['importSignedData']
-  signWithMnemonic: CosignerSignatures['signWithMnemonic']
-}
-
-function useScannedContentImport({
-  currentCosignerIndex,
-  importSignedData,
-  signWithMnemonic
-}: UseScannedContentImportParams) {
-  // Routes a QR scanned by SSCameraModal: a SeedQR signs for the current
-  // cosigner, a PSBT or signed transaction is stored as that cosigner's
-  // signature (or the watch-only import when no cosigner is selected).
-  function handleScannedContent(content: DetectedContent) {
-    const mnemonic = content.metadata?.mnemonic
-    if (content.type === 'seed_qr' && typeof mnemonic === 'string') {
-      if (currentCosignerIndex === null) {
-        toast.error(t('camera.error.invalidContent'))
-        return
-      }
-      signWithMnemonic(currentCosignerIndex, mnemonic)
-      return
-    }
-
-    if (content.type !== 'psbt' && content.type !== 'bitcoin_transaction') {
-      toast.error(t('camera.error.invalidContent'))
-      return
-    }
-
-    if (
-      !importSignedData(
-        currentCosignerIndex ?? WATCH_ONLY_INDEX,
-        content.cleaned
-      )
-    ) {
-      return
-    }
-    toast.success(t('common.success.qrScanned'))
-  }
-
-  return handleScannedContent
-}
-
-type UseNfcTransferParams = {
-  serializedPsbt: string
-  updateSignedPsbt: CosignerSignatures['updateSignedPsbt']
-}
-
-function useNfcTransfer({
-  serializedPsbt,
-  updateSignedPsbt
-}: UseNfcTransferParams) {
-  const {
-    isHardwareSupported: nfcHardwareSupported,
-    isReading,
-    readNFCTag,
-    cancelNFCScan
-  } = useNFCReader()
-  const {
-    isEmitting,
-    emitNFCTag,
-    cancelNFCScan: cancelNFCEmitterScan
-  } = useNFCEmitter()
-  const [nfcModalVisible, setNfcModalVisible] = useState(false)
-  const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
-  const [nfcError, setNfcError] = useState<string | null>(null)
-
-  async function handleNFCExport() {
-    if (isEmitting) {
-      await cancelNFCEmitterScan()
-      setNfcModalVisible(false)
-      setNfcError(null)
-      return
-    }
-
-    if (!serializedPsbt) {
-      toast.error(t('error.psbt.notAvailable'))
-      return
-    }
-
-    setNfcModalVisible(true)
-    setNfcError(null)
-    try {
-      await emitNFCTag(serializedPsbt)
-      toast.success(t('transaction.preview.nfcExported'))
-      setNfcModalVisible(false)
-    } catch {
-      // Keep the modal open so the error stays visible until dismissed.
-      setNfcError(t('nfc.error.writeFailed'))
-      toast.error(t('nfc.error.writeFailed'))
-    }
-  }
-
-  async function handleNFCScan(index: number) {
-    if (isReading) {
-      await cancelNFCScan()
-      setNfcScanModalVisible(false)
-      return
-    }
-
-    setNfcScanModalVisible(true)
-    try {
-      const result = await readNFCTag()
-
-      if (!result) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      if (result.txData) {
-        const txHex = Array.from(result.txData)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('')
-
-        updateSignedPsbt(index, txHex)
-
-        toast.success(t('transaction.preview.nfcImported'))
-      } else if (result.txId) {
-        updateSignedPsbt(index, result.txId || '')
-
-        toast.success(t('transaction.preview.nfcImported'))
-      } else {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-      }
-    } catch {
-      toast.error(t('nfc.error.readFailed'))
-    } finally {
-      setNfcScanModalVisible(false)
-    }
-  }
-
-  return {
-    cancelNFCEmitterScan,
-    cancelNFCScan,
-    handleNFCExport,
-    handleNFCScan,
-    isEmitting,
-    isReading,
-    nfcError,
-    nfcHardwareSupported,
-    nfcModalVisible,
-    nfcScanModalVisible,
-    setNfcError,
-    setNfcModalVisible,
-    setNfcScanModalVisible
-  }
-}
-
-type UseClipboardImportParams = {
-  importSignedData: CosignerSignatures['importSignedData']
-}
-
-function useClipboardImport({ importSignedData }: UseClipboardImportParams) {
-  const { pasteFromClipboardSilent } = useClipboardPaste()
-
-  const handlePasteFromClipboard = async (index: number) => {
-    const text = await pasteFromClipboardSilent()
-    if (!text) {
-      toast.error(t('common.error.noClipboardData'))
-      return
-    }
-
-    if (!importSignedData(index, text)) {
-      return
-    }
-
-    toast.success(t('common.success.dataPasted'))
-  }
-
-  return { handlePasteFromClipboard }
 }
 
 type UseSeedSigningParams = {
