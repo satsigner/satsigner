@@ -2,6 +2,7 @@ import { nip19 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { getCachedProfile } from '@/db/nostrCache'
 import { getNostrFollowCache } from '@/storage/mmkv'
 import {
@@ -63,7 +64,7 @@ function profileFromCache(pubkey: string): NostrKind0Profile | null {
   if (!cached) {
     return null
   }
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   if (now - cached.cached_at >= NOSTR_PROFILE_CACHE_TTL_SECS) {
     return null
   }

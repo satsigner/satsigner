@@ -1,3 +1,5 @@
+import { MS_PER_SECOND } from '@/constants/time'
+
 type ScanSample = {
   at: number
   height: number
@@ -52,9 +54,9 @@ function createScanThroughputTracker() {
     if (samples.length >= 2) {
       const [first] = samples
       const latest = samples.at(-1)!
-      const elapsedSec = (latest.at - first.at) / 1000
+      const elapsedSec = (latest.at - first.at) / MS_PER_SECOND
       const deltaBlocks = latest.height - first.height
-      if (elapsedSec * 1000 >= MIN_SAMPLE_SPAN_MS && deltaBlocks >= 0) {
+      if (elapsedSec * MS_PER_SECOND >= MIN_SAMPLE_SPAN_MS && deltaBlocks >= 0) {
         blocksPerSec = deltaBlocks / elapsedSec
       }
     }

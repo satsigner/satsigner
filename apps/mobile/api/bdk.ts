@@ -30,6 +30,7 @@ import {
 } from '@/constants/bdk'
 import { SATS_PER_BITCOIN, WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -1090,7 +1091,7 @@ function parseTxDetailsToTransaction(
     sent,
     size,
     timestamp: confirmationBlockTime?.timestamp
-      ? new Date(confirmationBlockTime.timestamp * 1000)
+      ? new Date(confirmationBlockTime.timestamp * MS_PER_SECOND)
       : undefined,
     type: sent ? 'send' : 'receive',
     version,
@@ -1122,7 +1123,7 @@ function parseLocalOutputToUtxo(
     label: '',
     script,
     timestamp: txDetails?.confirmationBlockTime?.timestamp
-      ? new Date(txDetails.confirmationBlockTime.timestamp * 1000)
+      ? new Date(txDetails.confirmationBlockTime.timestamp * MS_PER_SECOND)
       : undefined,
     txid: transactionId,
     value: localOutput.txout.value,
@@ -1657,7 +1658,7 @@ async function syncWithCoreWallet(
     const tipHeight = await coreWallet.getBlockCount()
     const startHeight = resolveStartHeight(tipHeight)
 
-    let tipMediantime = Math.floor(Date.now() / 1000)
+    let tipMediantime = Math.floor(Date.now() / MS_PER_SECOND)
     try {
       const chainInfo = await coreWallet.getBlockchainInfo()
       tipMediantime = chainInfo.mediantime
@@ -1669,7 +1670,7 @@ async function syncWithCoreWallet(
       tipMediantime - Math.max(0, tipHeight - height) * BDK_SECONDS_PER_BLOCK
 
     const scanFromTimeSec = account.birthdayDate
-      ? Math.floor(account.birthdayDate.getTime() / 1000)
+      ? Math.floor(account.birthdayDate.getTime() / MS_PER_SECOND)
       : estimateBlockTimeSec(startHeight)
 
     const emitProgress = (
@@ -1861,11 +1862,11 @@ async function syncWithCoreWallet(
               : -(tx.sent / SATS_PER_BITCOIN),
           blockheight: tx.blockHeight,
           blocktime: tx.timestamp
-            ? Math.floor(tx.timestamp.getTime() / 1000)
+            ? Math.floor(tx.timestamp.getTime() / MS_PER_SECOND)
             : undefined,
           category: tx.type,
           confirmations: 0,
-          time: tx.timestamp ? Math.floor(tx.timestamp.getTime() / 1000) : 0,
+          time: tx.timestamp ? Math.floor(tx.timestamp.getTime() / MS_PER_SECOND) : 0,
           timereceived: 0,
           txid: tx.id,
           vout: 0
@@ -1945,7 +1946,7 @@ async function syncWithCoreWallet(
           sent: summary.sent,
           size: undefined,
           timestamp: summary.blocktime
-            ? new Date(summary.blocktime * 1000)
+            ? new Date(summary.blocktime * MS_PER_SECOND)
             : undefined,
           type: summary.sent > 0 ? 'send' : 'receive',
           version: undefined,
@@ -2003,7 +2004,7 @@ async function syncWithCoreWallet(
         sent: summary.sent,
         size: raw.length || undefined,
         timestamp: decoded.blocktime
-          ? new Date(decoded.blocktime * 1000)
+          ? new Date(decoded.blocktime * MS_PER_SECOND)
           : undefined,
         type: summary.sent > 0 ? 'send' : 'receive',
         version: d?.version,

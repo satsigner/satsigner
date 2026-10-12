@@ -5,6 +5,7 @@ import {
   MAX_SUPPLY_SATS,
   TARGET_BLOCK_TIME_SECONDS
 } from '@/constants/consensus'
+import { MS_PER_SECOND } from '@/constants/time'
 
 export type HistoricalHalving = {
   epoch: number
@@ -33,7 +34,7 @@ export function blocksUntilHalving(height: number): number {
 export function estimatedHalvingDate(height: number): Date {
   const remaining = blocksUntilHalving(height)
   const nowMs = Date.now()
-  return new Date(nowMs + remaining * TARGET_BLOCK_TIME_SECONDS * 1000)
+  return new Date(nowMs + remaining * TARGET_BLOCK_TIME_SECONDS * MS_PER_SECOND)
 }
 
 export function totalMinedSats(height: number): number {
@@ -69,7 +70,7 @@ export function blocksUntilDifficultyAdjustment(height: number): number {
 export function estimatedDifficultyAdjustmentDate(height: number): Date {
   const remaining = blocksUntilDifficultyAdjustment(height)
   const nowMs = Date.now()
-  return new Date(nowMs + remaining * TARGET_BLOCK_TIME_SECONDS * 1000)
+  return new Date(nowMs + remaining * TARGET_BLOCK_TIME_SECONDS * MS_PER_SECOND)
 }
 
 /**

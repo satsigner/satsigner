@@ -1,3 +1,4 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import type { LNDCombinedTransaction } from '@/types/models/Lightning'
 
@@ -14,7 +15,7 @@ export function formatLightningTxTimeAgo(
   eventUnixSeconds: number,
   nowMs: number
 ): string {
-  const ms = Math.max(0, nowMs - eventUnixSeconds * 1000)
+  const ms = Math.max(0, nowMs - eventUnixSeconds * MS_PER_SECOND)
   if (ms < MS_HOUR) {
     const minutes = ms < MS_MIN ? 1 : Math.max(1, Math.floor(ms / MS_MIN))
     return t('lightning.node.txHistorical.minutesAgo', { count: minutes })
@@ -45,7 +46,7 @@ export function txDateOptions(
   txTimestampSeconds: number,
   nowMs: number
 ): Intl.DateTimeFormatOptions {
-  const age = nowMs - txTimestampSeconds * 1000
+  const age = nowMs - txTimestampSeconds * MS_PER_SECOND
   return {
     day: 'numeric',
     hour: 'numeric',
@@ -74,7 +75,7 @@ export function getTxStatusBadge(
     }
     if (tx.status === 'open') {
       const isExpired =
-        tx.expiry !== undefined && tx.timestamp + tx.expiry < nowMs / 1000
+        tx.expiry !== undefined && tx.timestamp + tx.expiry < nowMs / MS_PER_SECOND
       return isExpired ? 'expired' : 'pending'
     }
   }

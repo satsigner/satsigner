@@ -1,5 +1,6 @@
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { generateMnemonic } from '@/utils/bip39'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -71,7 +72,7 @@ export async function sendSecurityReport({
     if (peerPubkey) {
       const stored: NostrChatMessage = {
         content: text,
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         direction: 'out',
         id: wrap.id ?? `report-${Date.now()}`,
         identityNpub: senderIdentity.npub,
