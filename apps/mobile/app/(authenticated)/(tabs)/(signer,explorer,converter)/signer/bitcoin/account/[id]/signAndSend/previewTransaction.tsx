@@ -1264,26 +1264,26 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
     loadRoutePsbt(psbt)
   }, [psbt, accountId])
 
-  useEffect(() => {
-    if (psbt) {
-      setPsbtBuildStatus('idle')
-      setPsbtBuildErrorMessage('')
-      if (txBuilderResult?.txid()) {
-        setTransactionId(txBuilderResult.txid())
+  // Builds the preview PSBT from the builder state. Reads account and server
+  // at build time, so their updates do not trigger a rebuild loop.
+  const buildPreviewPsbt = useEffectEvent(
+    async (request: { cancelled: boolean }) => {
+      if (psbt) {
+        setPsbtBuildStatus('idle')
+        setPsbtBuildErrorMessage('')
+        if (txBuilderResult?.txid()) {
+          setTransactionId(txBuilderResult.txid())
+        }
+        return
       }
-      return
-    }
 
-    let cancelled = false
-
-    async function getTransaction() {
       clearPsbt()
       setTransactionId('')
       setPsbtBuildStatus('building')
       setPsbtBuildErrorMessage('')
 
       if (!wallet) {
-        if (!cancelled) {
+        if (!request.cancelled) {
           setPsbtBuildStatus('error')
           setPsbtBuildErrorMessage(t('transaction.error.previewMissingWallet'))
           toast.error(t('error.notFound.wallet'))
@@ -1292,7 +1292,7 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
       }
 
       if (inputs.size === 0) {
-        if (!cancelled) {
+        if (!request.cancelled) {
           setPsbtBuildStatus('error')
           setPsbtBuildErrorMessage(t('transaction.error.previewMissingInputs'))
         }
@@ -1300,7 +1300,7 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
       }
 
       if (outputs.length === 0) {
-        if (!cancelled) {
+        if (!request.cancelled) {
           setPsbtBuildStatus('error')
           setPsbtBuildErrorMessage(t('transaction.error.previewMissingOutputs'))
         }
@@ -1325,7 +1325,7 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
               outputs: outputArray
             })
 
-        if (cancelled) {
+        if (request.cancelled) {
           return
         }
 
@@ -1335,7 +1335,7 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
         setPsbtBuildErrorMessage('')
         setIsDustError(false)
       } catch (error) {
-        if (cancelled) {
+        if (request.cancelled) {
           return
         }
 
@@ -1355,13 +1355,15 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
         }
       }
     }
+  )
 
-    void getTransaction()
-
+  useEffect(() => {
+    const request = { cancelled: false }
+    void buildPreviewPsbt(request)
     return () => {
-      cancelled = true
+      request.cancelled = true
     }
-  }, [wallet, inputs, outputs, fee, rbf, network, setPsbt, clearPsbt, psbt]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [wallet, inputs, outputs, fee, rbf, network, psbt])
 
   // Separate effect to validate addresses and show errors
   // Only validate when we have a complete transaction (not during editing)
