@@ -28,6 +28,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
+import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
@@ -88,8 +89,6 @@ const tn = _tn('transaction.build.preview')
 
 // Shorter outputs are likely still being typed; don't flag them as invalid.
 const MIN_VALID_ADDRESS_LENGTH = 10
-// Cosigner index used for watch-only imports (no cosigner).
-const WATCH_ONLY_INDEX = -1
 
 const TRANSACTION_CHART_SCALE = 0.9
 
