@@ -609,21 +609,25 @@ function SSCameraModal({
             width: CAMERA_SIZE
           }}
         >
-          <CameraView
-            onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
-            onAvailableLensesChanged={(event: AvailableLenses) => {
-              const { lenses } = event
-              if (lenses.length < 2) {
-                return
-              }
-              setAvailableLenses(lenses)
-              setSelectedLens((prev) => prev ?? lenses[0])
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            zoom={zoom}
-            selectedLens={selectedLens}
-            style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
-          />
+          {/* Mounted only once granted: a CameraView created before the
+              permission prompt never starts its session. */}
+          {permission?.granted ? (
+            <CameraView
+              onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
+              onAvailableLensesChanged={(event: AvailableLenses) => {
+                const { lenses } = event
+                if (lenses.length < 2) {
+                  return
+                }
+                setAvailableLenses(lenses)
+                setSelectedLens((prev) => prev ?? lenses[0])
+              }}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              zoom={zoom}
+              selectedLens={selectedLens}
+              style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
+            />
+          ) : null}
           {isFinalizing ? (
             <View
               style={{
