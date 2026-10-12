@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ComponentProps, useEffect, useMemo, useState } from 'react'
+import { type ComponentProps, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import Animated from 'react-native-reanimated'
@@ -23,13 +23,13 @@ import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
 import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { useCosignerSignatures } from '@/hooks/useCosignerSignatures'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
-import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -45,24 +45,14 @@ import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinInvoice } from '@/types/payjoin'
 import { type Notice } from '@/types/ui/notice'
-import { getKeyFingerprint } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatMessage } from '@/utils/notice'
 import { formatPayjoinSummary } from '@/utils/payjoinUri'
 import {
-  bindScannedDataToPsbt,
-  buildPubkeyToCosignerIndex,
-  combineAndFinalizePsbts,
   combinePsbts,
-  extractIndividualSignedPsbts,
   getCollectedSignedPsbts,
-  getCollectedSignerPubkeys,
-  getPsbtTxidOrFallback,
-  hasAllRequiredSignatures,
-  matchSignedPsbtsToCosigners,
-  readPartiallySignedPsbt,
-  validateSignedPSBTForCosigner
+  getPsbtTxidOrFallback
 } from '@/utils/psbt'
 import {
   buildKnownTxIds,
@@ -78,8 +68,7 @@ const tn = _tn('transaction.build.preview')
 
 const TRANSACTION_CHART_SCALE = 0.9
 
-type PsbtManagement = ReturnType<typeof usePSBTManagement>
-type ProcessScannedData = (data: string) => string | null
+type CosignerSignatures = ReturnType<typeof useCosignerSignatures>
 type NfcTransfer = ReturnType<typeof useNfcTransfer>
 type SeedSigning = ReturnType<typeof useSeedSigning>
 
@@ -99,16 +88,9 @@ function PreviewTransaction() {
   const router = useRouter()
   const { id, psbt } = useLocalSearchParams<PreviewTransactionSearchParams>()
 
-  const [inputs, outputs, txBuilderResult, setSignedTx, signedPsbtsFromStore] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.outputs,
-        state.psbt,
-        state.setSignedTx,
-        state.signedPsbts
-      ])
-    )
+  const [inputs, outputs, txBuilderResult] = useTransactionBuilderStore(
+    useShallow((state) => [state.inputs, state.outputs, state.psbt])
+  )
 
   const { payjoinInvoice, payjoinExpiryLabel } = usePayjoinInvoice()
 
@@ -141,24 +123,6 @@ function PreviewTransaction() {
   const decryptedKeys = useDecryptedKeys(account)
 
   const {
-    signedPsbt,
-    signedPsbts,
-    setSignedPsbts,
-    updateSignedPsbt,
-    convertPsbtToFinalTransaction,
-    handleSignWithLocalKey,
-    handleSignWithSeedQR
-  } = usePSBTManagement({
-    account,
-    decryptedKeys,
-    psbt: txBuilderResult
-  })
-
-  const processScannedData = useScannedDataProcessor({
-    convertPsbtToFinalTransaction
-  })
-
-  const {
     isDustError,
     isLoadingPSBT,
     psbtBuildError,
@@ -172,22 +136,22 @@ function PreviewTransaction() {
     routePsbt: psbt
   })
 
-  const validationResults = useSignatureValidation({
-    account,
-    decryptedKeys,
-    signedPsbts
-  })
-
-  useSignatureDetection({
-    account,
-    decryptedKeys,
-    psbt,
+  const {
+    finalize,
+    hasAllRequiredSignatures,
+    importSignedData,
+    signWithLocalKey,
+    signWithMnemonic,
+    signedPsbt,
     signedPsbts,
-    updateSignedPsbt
+    updateSignedPsbt,
+    validationResults
+  } = useCosignerSignatures({
+    account,
+    decryptedKeys,
+    onNotice: showNotice,
+    routePsbt: psbt
   })
-
-  const { combineAndFinalizeMultisigPSBTs, hasAllRequiredSignatures } =
-    useMultisigFinalization({ account, signedPsbts, validationResults })
 
   const {
     cancelNFCEmitterScan,
@@ -208,16 +172,12 @@ function PreviewTransaction() {
 
   const shareWithNostrGroup = useNostrShareTransaction({ account, id })
 
-  const { handlePasteFromClipboard } = useClipboardImport({
-    processScannedData,
-    updateSignedPsbt
-  })
+  const { handlePasteFromClipboard } = useClipboardImport({ importSignedData })
 
   const handleScannedContent = useScannedContentImport({
     currentCosignerIndex,
-    handleSignWithSeedQR,
-    processScannedData,
-    updateSignedPsbt
+    importSignedData,
+    signWithMnemonic
   })
 
   const {
@@ -235,7 +195,7 @@ function PreviewTransaction() {
     wordCountModalVisible
   } = useSeedSigning({
     currentCosignerIndex,
-    handleSignWithSeedQR,
+    handleSignWithSeedQR: signWithMnemonic,
     setCurrentCosignerIndex
   })
 
@@ -256,12 +216,6 @@ function PreviewTransaction() {
       ),
     [inputs, outputs, transactionId, txBuilderResult]
   )
-
-  useEffect(() => {
-    if (signedPsbtsFromStore && signedPsbtsFromStore.size > 0) {
-      setSignedPsbts(signedPsbtsFromStore)
-    }
-  }, [signedPsbtsFromStore, setSignedPsbts])
 
   function handleCosignerPasteFromClipboard(index: number) {
     handlePasteFromClipboard(index)
@@ -320,12 +274,6 @@ function PreviewTransaction() {
     }
   }
 
-  useEffect(() => {
-    if (signedPsbt) {
-      setSignedTx(signedPsbt)
-    }
-  }, [signedPsbt, setSignedTx])
-
   if (!id || !account) {
     return <Redirect href="/" />
   }
@@ -340,7 +288,7 @@ function PreviewTransaction() {
     handleSeedQRScanned,
     handleSeedWordsScanned,
     handleShareSignaturesWithNostrGroup,
-    handleSignWithLocalKey,
+    handleSignWithLocalKey: signWithLocalKey,
     isEmitting,
     isReading,
     nfcHardwareSupported,
@@ -356,7 +304,7 @@ function PreviewTransaction() {
   const propsActions = {
     account,
     accountId: id,
-    combineAndFinalizeMultisigPSBTs,
+    combineAndFinalizeMultisigPSBTs: finalize,
     handleNFCExport,
     handleShareWithNostrGroup,
     handleWatchOnlyNFCScan,
@@ -677,18 +625,18 @@ type PreviewTransactionMultisigSectionProps = {
   transactionId: string
   txBuilderResult: PsbtLike | undefined
   serializedPsbt: string
-  signedPsbts: PsbtManagement['signedPsbts']
+  signedPsbts: CosignerSignatures['signedPsbts']
   validationResults: Map<number, boolean>
   decryptedKeys: Key[]
   nfcHardwareSupported: boolean
   isEmitting: boolean
   isReading: boolean
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  updateSignedPsbt: CosignerSignatures['updateSignedPsbt']
   handleNFCExport: () => void
   handleCosignerPasteFromClipboard: (index: number) => void
   handleCosignerCameraScan: (index: number) => void
   handleCosignerNFCScan: (index: number) => void
-  handleSignWithLocalKey: PsbtManagement['handleSignWithLocalKey']
+  handleSignWithLocalKey: CosignerSignatures['signWithLocalKey']
   handleSeedQRScanned: (index: number) => void
   handleSeedWordsScanned: (index: number) => void
   handleShareSignaturesWithNostrGroup: () => void
@@ -796,7 +744,7 @@ type PreviewTransactionActionsProps = {
   txBuilderResult: PsbtLike | undefined
   serializedPsbt: string
   signedPsbt: string
-  signedPsbts: PsbtManagement['signedPsbts']
+  signedPsbts: CosignerSignatures['signedPsbts']
   nfcHardwareSupported: boolean
   isEmitting: boolean
   isReading: boolean
@@ -1093,50 +1041,16 @@ function PreviewTransactionSeedWordsModal({
   )
 }
 
-type UseScannedDataProcessorParams = {
-  convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
-}
-
-function useScannedDataProcessor({
-  convertPsbtToFinalTransaction
-}: UseScannedDataProcessorParams): ProcessScannedData {
-  const txBuilderResult = useTransactionBuilderStore((state) => state.psbt)
-
-  // Binds scanned/pasted data to the transaction under review. Returns null
-  // (after showing an error) when it does not match: broadcasting it would
-  // execute a different transaction than the one displayed to the user.
-  function processScannedData(data: string) {
-    try {
-      const boundData = bindScannedDataToPsbt(
-        data,
-        txBuilderResult?.toBase64(),
-        convertPsbtToFinalTransaction
-      )
-      if (boundData === null) {
-        toast.error(t('common.error.transactionMismatch'))
-      }
-      return boundData
-    } catch {
-      toast.error(t('common.error.processScannedData'))
-      return null
-    }
-  }
-
-  return processScannedData
-}
-
 type UseScannedContentImportParams = {
   currentCosignerIndex: number | null
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
-  processScannedData: ProcessScannedData
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  importSignedData: CosignerSignatures['importSignedData']
+  signWithMnemonic: CosignerSignatures['signWithMnemonic']
 }
 
 function useScannedContentImport({
   currentCosignerIndex,
-  handleSignWithSeedQR,
-  processScannedData,
-  updateSignedPsbt
+  importSignedData,
+  signWithMnemonic
 }: UseScannedContentImportParams) {
   // Routes a QR scanned by SSCameraModal: a SeedQR signs for the current
   // cosigner, a PSBT or signed transaction is stored as that cosigner's
@@ -1148,7 +1062,7 @@ function useScannedContentImport({
         toast.error(t('camera.error.invalidContent'))
         return
       }
-      handleSignWithSeedQR(currentCosignerIndex, mnemonic)
+      signWithMnemonic(currentCosignerIndex, mnemonic)
       return
     }
 
@@ -1157,180 +1071,23 @@ function useScannedContentImport({
       return
     }
 
-    const processedData = processScannedData(content.cleaned)
-    if (processedData === null) {
+    if (
+      !importSignedData(
+        currentCosignerIndex ?? WATCH_ONLY_INDEX,
+        content.cleaned
+      )
+    ) {
       return
     }
-    updateSignedPsbt(currentCosignerIndex ?? WATCH_ONLY_INDEX, processedData)
     toast.success(t('common.success.qrScanned'))
   }
 
   return handleScannedContent
 }
 
-type UseSignatureDetectionParams = {
-  psbt: string | undefined
-  account: Account | undefined
-  decryptedKeys: Key[]
-  signedPsbts: PsbtManagement['signedPsbts']
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
-}
-
-function useSignatureDetection({
-  psbt,
-  account,
-  decryptedKeys,
-  signedPsbts,
-  updateSignedPsbt
-}: UseSignatureDetectionParams) {
-  // Separate effect to detect existing signatures - runs when both PSBT and decryptedKeys are ready
-  useEffect(() => {
-    if (!psbt || !account || decryptedKeys.length === 0 || !account.keys) {
-      return
-    }
-
-    const currentAccount = account
-    const combinedPsbtBase64 = psbt
-
-    async function detectSignatures() {
-      const signed = readPartiallySignedPsbt(combinedPsbtBase64)
-      if (!signed) {
-        return
-      }
-      const { originalPsbtBase64, psbt: psbtObj } = signed
-
-      const keyFingerprints = await Promise.all(
-        currentAccount.keys.map((key) => getKeyFingerprint(key))
-      )
-      const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
-        psbtObj,
-        keyFingerprints
-      )
-
-      const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-      if (signerPubkeys.size === 0) {
-        return
-      }
-
-      const bySigner = extractIndividualSignedPsbts(
-        combinedPsbtBase64,
-        originalPsbtBase64
-      )
-      if (Object.keys(bySigner).length === 0) {
-        return
-      }
-
-      const matches = matchSignedPsbtsToCosigners(
-        bySigner,
-        pubkeyToCosignerIndex,
-        currentAccount,
-        decryptedKeys,
-        signedPsbts
-      )
-
-      for (const match of matches) {
-        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
-        toast.success(
-          t('transaction.build.preview.detectedSignature', {
-            cosigner: match.cosignerIndex + 1
-          })
-        )
-      }
-    }
-
-    detectSignatures()
-  }, [psbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
-}
-
-type UseSignatureValidationParams = {
-  account: Account | undefined
-  signedPsbts: PsbtManagement['signedPsbts']
-  decryptedKeys: Key[]
-}
-
-function useSignatureValidation({
-  account,
-  signedPsbts,
-  decryptedKeys
-}: UseSignatureValidationParams) {
-  return useMemo(() => {
-    const results = new Map<number, boolean>()
-
-    if (!account) {
-      return results
-    }
-
-    for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
-      if (signedPsbt && signedPsbt.trim()) {
-        try {
-          const isValid = validateSignedPSBTForCosigner(
-            signedPsbt,
-            account,
-            cosignerIndex,
-            decryptedKeys[cosignerIndex]
-          )
-          results.set(cosignerIndex, isValid)
-        } catch {
-          toast.error(t('common.error.validatingCosignerSignature'))
-          results.set(cosignerIndex, false)
-        }
-      }
-    }
-
-    return results
-  }, [signedPsbts, account, decryptedKeys])
-}
-
-type UseMultisigFinalizationParams = {
-  account: Account | undefined
-  signedPsbts: PsbtManagement['signedPsbts']
-  validationResults: Map<number, boolean>
-}
-
-function useMultisigFinalization({
-  account,
-  signedPsbts,
-  validationResults
-}: UseMultisigFinalizationParams) {
-  const [txBuilderResult, setSignedTx] = useTransactionBuilderStore(
-    useShallow((state) => [state.psbt, state.setSignedTx])
-  )
-
-  const combineAndFinalizeMultisigPSBTs = () => {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    if (!originalPsbtBase64) {
-      toast.error(t('common.error.noOriginalPSBT'))
-      return null
-    }
-
-    try {
-      const result = combineAndFinalizePsbts(
-        originalPsbtBase64,
-        Array.from(getCollectedSignedPsbts(signedPsbts).values())
-      )
-      if ('errorKey' in result) {
-        toast.error(t(result.errorKey, result.errorParams))
-        return null
-      }
-      setSignedTx(result.hex)
-      toast.success(t('transaction.finalizedSuccessfully'))
-      return result.hex
-    } catch {
-      toast.error(t('common.error.combinePSBTs'))
-      return null
-    }
-  }
-
-  return {
-    combineAndFinalizeMultisigPSBTs,
-    hasAllRequiredSignatures: () =>
-      hasAllRequiredSignatures(account, validationResults)
-  }
-}
-
 type UseNfcTransferParams = {
   serializedPsbt: string
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  updateSignedPsbt: CosignerSignatures['updateSignedPsbt']
 }
 
 function useNfcTransfer({
@@ -1434,14 +1191,10 @@ function useNfcTransfer({
 }
 
 type UseClipboardImportParams = {
-  processScannedData: ProcessScannedData
-  updateSignedPsbt: PsbtManagement['updateSignedPsbt']
+  importSignedData: CosignerSignatures['importSignedData']
 }
 
-function useClipboardImport({
-  processScannedData,
-  updateSignedPsbt
-}: UseClipboardImportParams) {
+function useClipboardImport({ importSignedData }: UseClipboardImportParams) {
   const { pasteFromClipboardSilent } = useClipboardPaste()
 
   const handlePasteFromClipboard = async (index: number) => {
@@ -1451,12 +1204,10 @@ function useClipboardImport({
       return
     }
 
-    const processedData = processScannedData(text)
-    if (processedData === null) {
+    if (!importSignedData(index, text)) {
       return
     }
 
-    updateSignedPsbt(index, processedData)
     toast.success(t('common.success.dataPasted'))
   }
 
@@ -1464,7 +1215,7 @@ function useClipboardImport({
 }
 
 type UseSeedSigningParams = {
-  handleSignWithSeedQR: PsbtManagement['handleSignWithSeedQR']
+  handleSignWithSeedQR: CosignerSignatures['signWithMnemonic']
   currentCosignerIndex: number | null
   setCurrentCosignerIndex: (index: number | null) => void
 }
