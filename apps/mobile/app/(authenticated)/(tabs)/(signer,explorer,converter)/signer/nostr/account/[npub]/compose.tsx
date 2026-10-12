@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View
 } from 'react-native'
@@ -16,6 +15,7 @@ import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import {
@@ -441,7 +441,7 @@ export default function NostrComposePage() {
               </SSText>
               <SSHStack gap="sm">
                 {(['none', 'fixed', 'range'] as const).map((mode) => (
-                  <TouchableOpacity
+                  <SSPressable
                     key={mode}
                     style={[
                       styles.modeButton,
@@ -457,7 +457,7 @@ export default function NostrComposePage() {
                     >
                       {t(`nostrIdentity.compose.mode_${mode}`)}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
                 ))}
               </SSHStack>
 
@@ -495,7 +495,7 @@ export default function NostrComposePage() {
 
               {amountMode !== 'none' && (
                 <>
-                  <TouchableOpacity
+                  <SSPressable
                     onPress={() => setShowAdvanced(!showAdvanced)}
                     activeOpacity={0.6}
                   >
@@ -504,7 +504,7 @@ export default function NostrComposePage() {
                         ? t('nostrIdentity.compose.hideAdvanced')
                         : t('nostrIdentity.compose.showAdvanced')}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
 
                   {showAdvanced && (
                     <SSVStack gap="sm">
