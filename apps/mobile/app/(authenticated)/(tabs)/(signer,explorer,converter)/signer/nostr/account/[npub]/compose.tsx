@@ -2,11 +2,9 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  Keyboard,
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableWithoutFeedback,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -388,7 +386,6 @@ export default function NostrComposePage() {
           )
         }}
       />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -630,7 +627,6 @@ export default function NostrComposePage() {
             </SSHStack>
           </SSVStack>
         </ScrollView>
-      </TouchableWithoutFeedback>
 
       <SSCameraModal
         visible={importCameraVisible}
