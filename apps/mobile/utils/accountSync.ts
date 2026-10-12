@@ -1,4 +1,5 @@
 import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
+import { type Account } from '@/types/models/Account'
 
 type SyncCheckpoint =
   | {
@@ -45,5 +46,22 @@ function shouldFullScan({
   return checkpoint.height < MIN_USABLE_CHECKPOINT_HEIGHT
 }
 
-export { shouldFullScan }
+type TransactionHistoryLoadingParams = {
+  refreshing: boolean
+  syncStatus?: Account['syncStatus']
+}
+
+/**
+ * Whether the account transaction history may still be arriving.
+ * Used by the account activity list so an empty list during a sync reads as
+ * loading instead of "No transactions".
+ */
+function isTransactionHistoryLoading({
+  refreshing,
+  syncStatus
+}: TransactionHistoryLoadingParams): boolean {
+  return refreshing || syncStatus === 'syncing'
+}
+
+export { isTransactionHistoryLoading, shouldFullScan }
 export type { AccountSyncHistory }
