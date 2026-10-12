@@ -427,6 +427,18 @@ function accountTxsAsEntries(account: Account): WalletTxEntry[] {
 }
 
 /**
+ * Entries from Core replace stored ones with the same txid, so a stored tx
+ * that listsinceblock returns again (e.g. now confirmed) is not summed twice.
+ */
+function mergeWalletTxEntries(
+  fresh: WalletTxEntry[],
+  stored: WalletTxEntry[]
+): WalletTxEntry[] {
+  const freshTxids = new Set(fresh.map((entry) => entry.txid))
+  return [...fresh, ...stored.filter((entry) => !freshTxids.has(entry.txid))]
+}
+
+/**
  * Aggregate per-output wallet entries into per-tx sent/received sats.
  * Txids Core reports as removed (re-orged out) are dropped; still-valid ones
  * reappear on the next sync.
@@ -629,7 +641,10 @@ async function syncWithCoreWallet(
 
   const txSummaries = summarizeWalletTxs(
     isIncremental
-      ? [...sinceResult.transactions, ...accountTxsAsEntries(account)]
+      ? mergeWalletTxEntries(
+          sinceResult.transactions,
+          accountTxsAsEntries(account)
+        )
       : sinceResult.transactions,
     (sinceResult.removed ?? []).map((entry) => entry.txid)
   )
@@ -733,6 +748,7 @@ async function syncWithCoreWallet(
 }
 
 export {
+  mergeWalletTxEntries,
   scanProgressHeight,
   startRescan,
   summarizeWalletTxs,

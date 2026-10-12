@@ -1,4 +1,5 @@
 import {
+  mergeWalletTxEntries,
   scanProgressHeight,
   startRescan,
   summarizeWalletTxs,
@@ -56,6 +57,21 @@ describe('summarizeWalletTxs', () => {
       received: 75_000_000,
       sent: 10_000_000
     })
+  })
+})
+
+describe('mergeWalletTxEntries', () => {
+  it('keeps Core entries over stored ones for the same txid', () => {
+    const entry = { blockheight: 10, blocktime: 1, time: 1 }
+    const merged = mergeWalletTxEntries(
+      [{ ...entry, amount: 0.5, category: 'receive', txid: 'a' }],
+      [
+        { ...entry, amount: 0.5, category: 'receive', txid: 'a' },
+        { ...entry, amount: 0.2, category: 'receive', txid: 'b' }
+      ]
+    )
+    expect(merged.map((e) => e.txid)).toStrictEqual(['a', 'b'])
+    expect(summarizeWalletTxs(merged).get('a')?.received).toBe(50_000_000)
   })
 })
 
