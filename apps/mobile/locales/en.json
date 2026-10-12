@@ -430,8 +430,7 @@
     "verifyMessage.verify": "Verify"
   },
   "app": {
-    "name": "SatSigner",
-    "notImplemented": "Not yet implemented"
+    "name": "SatSigner"
   },
   "ark": {
     "account.bitcoinSource": "On-chain Wallet",
@@ -694,7 +693,6 @@
     "setPinTitle": "Set pin number\nto enter the app",
     "triesLeft": "Tries left",
     "tryLeft": "Try left",
-    "unlock": "Unlock Satsigner",
     "unlocking": "Unlocking…",
     "verifyPinTitle": "Enter current pin number",
     "warningKeysErase": "Too many wrong attempts\n will erase all keys",
@@ -714,7 +712,6 @@
     "confirmations.oneBlock": "1 confirmation",
     "confirmations.oneConf": "1 conf",
     "confirmations.unconfirmed": "Unconfirmed",
-    "cpfp": "Child Pays For Parents",
     "electrumChecksum": "Electrum Checksum",
     "electrumSeedNote": "Electrum seed — keys derived using Electrum's algorithm, not BIP39. Only compatible with Electrum and wallets that support Electrum seeds.",
     "fingerprint": "Fingerprint",
@@ -728,7 +725,6 @@
     "rbf": "Replace By Fee",
     "sat": "sat",
     "sats": "sats",
-    "satsVb": "sats/vB",
     "satVb": "sat/vB",
     "transaction": "transaction",
     "transactions": "transactions",
@@ -738,7 +734,6 @@
     "words": "Words"
   },
   "camera": {
-    "button.resetScan": "Reset Scan",
     "detected": "QR code detected",
     "enableCameraAccess": "Enable Camera Access",
     "error.assembleFailed": "Failed to assemble multi-part QR code",
@@ -746,32 +741,24 @@
     "error.invalidContent": "Invalid content detected",
     "error.partialCashuChunk": "This looks like a chunk of an animated token from an older sender. Ask the sender to upgrade or use a static QR.",
     "error.processFailed": "Failed to process scanned data",
-    "error.scanFailed": "Failed to scan QR code",
     "error.urDecodeFailed": "Failed to decode UR QR code",
     "invalidContent": "Invalid {context} content detected",
     "lens.tele": "Tele",
     "loadingContent": "Loading…",
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
-    "scanningContent": "Scanning {context} content...",
     "scanQRCode": "Scan QRCode",
-    "scanText": "Scan any Bitcoin or Lightning related QR code.",
-    "zoom.decrease": "Zoom out",
-    "zoom.increase": "Zoom in"
+    "scanText": "Scan any Bitcoin or Lightning related QR code."
   },
   "common": {
     "acknowledge": "Acknowledge",
     "add": "Add",
-    "amount": "Amount",
     "areYouSure": "Are you sure?",
     "back": "Back",
     "backToAccountHome": "Back to account home",
     "cancel": "Cancel",
     "clear": "Clear",
-    "clipboardEmpty": "Clipboard is empty or doesn't contain a valid Bitcoin address, payment request, or PSBT",
-    "clipboardHasContent": "Clipboard contains a Bitcoin address, payment request, or PSBT",
     "close": "Close",
     "comingSoon": "Coming soon",
-    "completed": "Completed",
     "confirm": "Confirm",
     "connected": "Connected",
     "continue": "Continue",
@@ -781,8 +768,6 @@
     "copyToClipboard": "Copy to clipboard",
     "create": "Create",
     "createTag": "Create tag %{tag}",
-    "custom": "Custom",
-    "data": "Data",
     "date": "Date",
     "delete": "Delete",
     "description": "Description",
@@ -823,24 +808,19 @@
     "error.transactionMismatch": "The supplied transaction does not match the transaction under review",
     "error.validatingCosignerSignature": "Failed in validating cosigner signature",
     "error.validMnemonic": "Please enter a valid mnemonic",
-    "exceeds": "exceeds",
     "extendedPublicKey": "Extended Public Key",
-    "fetch": "Fetch",
     "fingerprint": "Fingerprint",
     "from": "From",
     "goBack": "Go back",
     "hide": "Hide",
     "import": "Import",
-    "importFromClipboard": "Import from clipboard",
     "invalid": "Invalid",
     "key": "Key",
     "label": "Label",
     "less": "Less",
     "loading": "Loading",
-    "loadingDots": "Loading...",
     "loadingX": "Loading %{x}...",
     "loadMore": "Load more",
-    "max": "Max",
     "more": "More",
     "name": "Name",
     "next": "Next",
@@ -848,11 +828,8 @@
     "noLabel": "No label",
     "notConnected": "Not Connected",
     "of": "Of",
-    "off": "Off",
-    "on": "On",
     "open": "Open",
     "optional": "Optional",
-    "parts": "Parts",
     "paste": "Paste",
     "pasteFromClipboard": "Paste from clipboard",
     "progress": "Progress",
@@ -871,15 +848,12 @@
     "share": "Share",
     "shareError": "Unable to share",
     "show": "Show",
-    "showLess": "Show less",
     "showMore": "Show more",
     "showQR": "Show QR",
     "skip": "Skip",
     "speed": "Speed",
     "success.dataPasted": "Data pasted successfully",
-    "success.psbtImported": "PSBT imported successfully",
     "success.qrScanned": "QR code scanned successfully",
-    "success.signedPsbtImported": "Signed PSBT imported successfully",
     "tags": "Tags",
     "to": "To",
     "total": "Total",
@@ -892,7 +866,6 @@
     "warning": "Warning",
     "warningPerformance": "Trying to load this content may freeze the app",
     "yes": "Yes",
-    "done": "Done",
     "psbtTransport.exportNfc": "Export NFC",
     "psbtTransport.importNfc": "Import NFC",
     "psbtTransport.invalidPsbt": "Not a valid PSBT.",
@@ -903,20 +876,6 @@
     "psbtTransport.scanTitle": "Scan PSBT",
     "reset": "Reset",
     "type": "Type"
-  },
-  "content": {
-    "bbqrFragment": "BBQR Fragment",
-    "bitcoinAddress": "Bitcoin Address",
-    "bitcoinUri": "Bitcoin Payment Request",
-    "detected": "Detected: {type}",
-    "ecashToken": "Ecash Token",
-    "lightningInvoice": "Lightning Network Invoice",
-    "lnurl": "LNURL Payment Request",
-    "processing": "Processing content...",
-    "psbt": "Partially Signed Bitcoin Transaction",
-    "seedQr": "Seed Phrase QR Code",
-    "unknown": "Unknown Content",
-    "ur": "Universal Resource"
   },
   "converter": {
     "currency.bitcoin": "Bitcoin",
@@ -987,8 +946,6 @@
     "energy.totalBitcoin": "Total Bitcoin",
     "europeanScale": "European Scale",
     "title": "Converter",
-    "vsize": "Virtual size",
-    "weight": "Weight",
     "writtenNumbers": "Written Numbers"
   },
   "date": {
@@ -1288,8 +1245,7 @@
     "require.name": "Name is required",
     "require.port": "Port is required",
     "require.rpcPassword": "RPC password is required",
-    "require.rpcUsername": "RPC username is required",
-    "require.url": "URL is required"
+    "require.rpcUsername": "RPC username is required"
   },
   "explorer": {
     "block.date": "Date (from header)",
@@ -1451,8 +1407,6 @@
     "capability.mempoolStats.electrum.why": "Electrum only exposes a fee histogram, not full mempool statistics.",
     "capability.rawBlock.electrum.fix": "Use Esplora or Bitcoin Core RPC, or load/view the raw block from mempool.space.",
     "capability.rawBlock.electrum.why": "Electrum does not expose raw block hex.",
-    "capability.rawBlock.fix": "Download the raw block from mempool.space.",
-    "capability.rawBlock.why": "Configured backends do not expose a raw block download endpoint in the explorer.",
     "capability.txLookup.rpc.fix": "Run Bitcoin Core with -txindex=1 (and rebuild the index if enabling it later), or load the transaction from mempool.space.",
     "capability.txLookup.rpc.why": "Without -txindex, Core cannot look up arbitrary confirmed transactions by txid.",
     "chain.avgBlockTime": "Avg Block Time",
@@ -1621,7 +1575,6 @@
     "publicKey.title": "Export Public Key"
   },
   "files": {
-    "csv": "CSV",
     "json": "JSON"
   },
   "import": {
@@ -1993,12 +1946,7 @@
     "paymentDetails.title": "Payment Details"
   },
   "multisig": {
-    "create": "Create Multi-Signature",
-    "created": "Multi-Signature Wallet Created!",
-    "createError": "Failed to create multi-signature wallet",
-    "creating": "Creating Multi-Signature Wallet...",
-    "gotoWallet": "Go to Wallet",
-    "viewAllWallets": "View All Wallets"
+    "createError": "Failed to create multi-signature wallet"
   },
   "navigation": {
     "item.about": "About",
@@ -2036,11 +1984,7 @@
     "error.readFailed": "Failed to read NFC tag",
     "error.writeFailed": "Failed to write to NFC tag",
     "mode.read": "Read NFC Tag",
-    "mode.write": "Write to NFC Tag",
-    "title.bitcoin": "Bitcoin NFC",
-    "title.default": "NFC",
-    "title.ecash": "Ecash NFC",
-    "title.lightning": "Lightning NFC"
+    "mode.write": "Write to NFC Tag"
   },
   "nip46": {
     "approval.alwaysAllow": "Always allow from this app",
@@ -2565,7 +2509,6 @@
     "button.processBBQR": "Process BBQR",
     "button.processContent": "Process Content",
     "button.processEcashToken": "Process Ecash Token",
-    "button.processLightning": "Process Lightning",
     "button.processLnurl": "Process LNURL",
     "button.processNostr": "Process Nostr Content",
     "button.processSeed": "Process Seed",
@@ -2573,7 +2516,6 @@
     "button.processUR": "Process UR",
     "button.sendToAddress": "Send to Address",
     "button.sendToArk": "Send to Ark Address",
-    "button.urDecodeFailed": "Failed to decode UR",
     "description.ark": "Paste an Ark address, Lightning invoice, LNURL, or Lightning address",
     "description.bitcoin": "Paste Bitcoin addresses, payment requests, or PSBTs",
     "description.default": "Paste any Bitcoin-related content to process it.",
@@ -2585,7 +2527,6 @@
     "error.invalidContent": "The pasted content is invalid.",
     "error.loadFailed": "Failed to load content from clipboard.",
     "error.noContent": "No content to paste",
-    "error.success": "Content pasted successfully",
     "error.validateFailed": "Failed to validate content",
     "title.ark": "Paste Ark Destination",
     "title.bitcoin": "Paste Bitcoin Content",
@@ -2631,7 +2572,6 @@
     "title": "Public Key"
   },
   "qrcode": {
-    "scan.progress": "QR Code Scan Progress",
     "scan.reset": "Reset Scan"
   },
   "receive": {
@@ -2757,7 +2697,6 @@
     "about.securityReport.viewConversation": "View conversation",
     "about.securityReport.sentDescription": "Your encrypted message was published. This is exactly what you sent:",
     "about.securityReport.sentTitle": "Report sent",
-    "about.securityReport.success": "Report sent. Thank you!",
     "about.securityReport.title": "Report an issue",
     "about.securityReport.warning": "Never include seed words, private keys, PINs, or passphrases in your report.",
     "about.title": "About",
@@ -2779,9 +2718,7 @@
     "developer.backupPassphraseInvalid": "Passphrase must be non-empty and use only allowed characters",
     "developer.backupPassphraseLabel": "Passphrase",
     "developer.backupPassphrasePlaceholder": "Enter passphrase",
-    "developer.backupPreviewTitle": "Backup preview",
     "developer.backupPreviewWarning": "This backup includes seed words. Keep it secure and private.",
-    "developer.backupShare": "Share backup",
     "developer.backupSuccess": "Data backup created",
     "developer.backupSummaryArk": "Ark",
     "developer.backupSummaryBitcoin": "Bitcoin",
@@ -3469,9 +3406,6 @@
     "number.greater": "The value must be greather than %{value}",
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
-  },
-  "wallet": {
-    "balance": "wallet balance"
   },
   "warning": {
     "content": "Copyright (c) 2026 SatSigner\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
