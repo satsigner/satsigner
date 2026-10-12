@@ -365,9 +365,8 @@ async function pollRescan(
     } catch (error) {
       consecutiveErrors += 1
       if (consecutiveErrors >= BDK_RESCAN_POLL_MAX_CONSECUTIVE_ERRORS) {
-        const msg = error instanceof Error ? error.message : String(error)
         throw new Error(
-          `Lost connection during rescan after ${consecutiveErrors} retries: ${msg}`,
+          `Lost connection during rescan after ${consecutiveErrors} retries`,
           { cause: error }
         )
       }
