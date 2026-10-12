@@ -10,7 +10,12 @@ import {
 } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { type LayoutChangeEvent, TouchableOpacity, View } from 'react-native'
+import {
+  type LayoutChangeEvent,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -1526,7 +1531,7 @@ export default function IOPreview() {
               <SSButton
                 variant="outline"
                 label={t('transaction.build.toolbar.input')}
-                style={{ flex: 1 }}
+                style={styles.toolbarButton}
                 onPress={() =>
                   router.navigate(
                     `/signer/bitcoin/account/${id}/signAndSend/selectUtxoList`
@@ -1536,19 +1541,19 @@ export default function IOPreview() {
               <SSButton
                 variant="outline"
                 label={t('transaction.build.toolbar.options')}
-                style={{ flex: 1 }}
+                style={styles.toolbarButton}
                 onPress={() => optionsBottomSheetRef.current?.expand()}
               />
               <SSButton
                 variant="outline"
                 label={t('transaction.build.toolbar.fee')}
-                style={{ flex: 1 }}
+                style={styles.toolbarButton}
                 onPress={() => changeFeeBottomSheetRef.current?.expand()}
               />
               <SSButton
                 variant="outline"
                 label={t('transaction.build.toolbar.output')}
-                style={{ flex: 1 }}
+                style={styles.toolbarButton}
                 onPress={handleOnPressAddOutput}
               />
             </SSHStack>
@@ -1556,7 +1561,7 @@ export default function IOPreview() {
               <SSButton
                 variant="outline"
                 label={t('transaction.discard')}
-                style={{ flex: 1 }}
+                style={styles.toolbarButton}
                 onPress={() => {
                   clearTransaction()
                   router.navigate(`/signer/bitcoin/account/${id}`)
@@ -2003,3 +2008,10 @@ export default function IOPreview() {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  toolbarButton: {
+    backgroundColor: Colors.gray[950],
+    flex: 1
+  }
+})
