@@ -567,6 +567,23 @@ export function signedTransactionMatchesPsbt(
   }
 }
 
+// Parses a PSBT that already carries partial signatures, returning it with
+// its unsigned original. Null when it cannot be parsed or has no signatures.
+export function readPartiallySignedPsbt(psbtBase64: string) {
+  try {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    const hasSignatures = psbt.data.inputs.some(
+      (input) => (input.partialSig?.length ?? 0) > 0
+    )
+    if (!hasSignatures) {
+      return null
+    }
+    return { originalPsbtBase64: extractOriginalPsbt(psbtBase64), psbt }
+  } catch {
+    return null
+  }
+}
+
 export function extractOriginalPsbt(psbtBase64: string): string {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const tx = bitcoinjs.Transaction.fromBuffer(

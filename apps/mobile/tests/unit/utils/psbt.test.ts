@@ -12,6 +12,7 @@ import {
   hasEnoughSignatures,
   normalizePsbtToBase64,
   parseWitnessScript,
+  readPartiallySignedPsbt,
   signedTransactionMatchesPsbt
 } from '@/utils/psbt'
 
@@ -448,5 +449,42 @@ describe('extractTransactionDataFromPSBT', () => {
     ])
     expect(data?.fee).toBe(10_000)
     expect(data?.network).toBe('mainnet')
+  })
+})
+
+describe('readPartiallySignedPsbt', () => {
+  // Shortest DER signature (r = s = 1) followed by SIGHASH_ALL.
+  const MINIMAL_DER_SIGNATURE_HEX = '300602010102010101'
+  const pubkey = Buffer.from(TEST_PUBKEY_HEX, 'hex')
+  const script = bitcoinjs.payments.p2wpkh({ pubkey }).output
+
+  function buildPsbt() {
+    const psbt = new bitcoinjs.Psbt()
+    psbt.addInput({
+      hash: Buffer.alloc(32, 0x11),
+      index: 0,
+      witnessUtxo: { script: required(script), value: 100_000 }
+    })
+    psbt.addOutput({ script: required(script), value: 90_000 })
+    return psbt
+  }
+
+  it('returns the psbt and its unsigned original once signed', () => {
+    const psbt = buildPsbt()
+    const unsigned = psbt.toBase64()
+    psbt.updateInput(0, {
+      partialSig: [
+        { pubkey, signature: Buffer.from(MINIMAL_DER_SIGNATURE_HEX, 'hex') }
+      ]
+    })
+
+    const signed = readPartiallySignedPsbt(psbt.toBase64())
+
+    expect(signed?.originalPsbtBase64).toBe(unsigned)
+  })
+
+  it('is null for unsigned or unreadable data', () => {
+    expect(readPartiallySignedPsbt(buildPsbt().toBase64())).toBeNull()
+    expect(readPartiallySignedPsbt('not-a-psbt')).toBeNull()
   })
 })
