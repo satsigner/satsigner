@@ -1,6 +1,7 @@
 import { StyleSheet, TextInput } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -89,8 +90,8 @@ function SSLNURLDetails({
             <SSText style={styles.detailValue}>
               {privacyMode
                 ? '•••• - •••• sats'
-                : `${Math.ceil(lnurlDetails.minSendable / 1000)} - ${Math.floor(
-                    lnurlDetails.maxSendable / 1000
+                : `${Math.ceil(lnurlDetails.minSendable / MILLISATS_PER_SAT)} - ${Math.floor(
+                    lnurlDetails.maxSendable / MILLISATS_PER_SAT
                   )} sats`}
             </SSText>
           </SSHStack>
