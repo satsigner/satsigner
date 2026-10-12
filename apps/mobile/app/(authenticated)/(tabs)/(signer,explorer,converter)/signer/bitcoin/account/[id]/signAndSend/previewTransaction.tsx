@@ -57,7 +57,6 @@ import {
   createMockPsbt,
   type ExtractedTransactionData,
   extractIndividualSignedPsbts,
-  extractOriginalPsbt,
   extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
   generateTransactionId,
@@ -66,6 +65,7 @@ import {
   getPsbtTxidOrFallback,
   hasAllRequiredSignatures,
   matchSignedPsbtsToCosigners,
+  readPartiallySignedPsbt,
   validateSignedPSBTForCosigner
 } from '@/utils/psbt'
 import {
@@ -1492,35 +1492,14 @@ function useSignatureDetection({
     }
 
     const currentAccount = account
-    const currentPsbt = psbt
+    const combinedPsbtBase64 = psbt
 
     async function detectSignatures() {
-      if (!currentAccount || !currentAccount.keys || !currentPsbt) {
+      const signed = readPartiallySignedPsbt(combinedPsbtBase64)
+      if (!signed) {
         return
       }
-
-      const combinedPsbtBase64: string = currentPsbt
-
-      let psbtObj: bitcoinjs.Psbt
-      try {
-        psbtObj = bitcoinjs.Psbt.fromBase64(combinedPsbtBase64)
-      } catch {
-        return
-      }
-
-      const psbtHasSignatures = psbtObj.data.inputs.some(
-        (input) => input.partialSig && input.partialSig.length > 0
-      )
-      if (!psbtHasSignatures) {
-        return
-      }
-
-      let originalPsbtBase64: string
-      try {
-        originalPsbtBase64 = extractOriginalPsbt(combinedPsbtBase64)
-      } catch {
-        return
-      }
+      const { originalPsbtBase64, psbt: psbtObj } = signed
 
       const keyFingerprints = await Promise.all(
         currentAccount.keys.map((key) => getKeyFingerprint(key))
