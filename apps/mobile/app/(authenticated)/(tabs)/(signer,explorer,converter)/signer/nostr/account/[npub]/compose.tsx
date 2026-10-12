@@ -1,12 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import {
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -386,247 +381,243 @@ export default function NostrComposePage() {
           )
         }}
       />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <SSVStack gap="md" style={styles.container}>
-            <SSVStack gap="xs">
-              <SSText size="xs" color="muted">
-                {privacyMode && identity.displayName
-                  ? NOSTR_PRIVACY_MASK
-                  : identity.displayName || t('nostrIdentity.title')}
-              </SSText>
-            </SSVStack>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SSVStack gap="md" style={styles.container}>
+          <SSVStack gap="xs">
+            <SSText size="xs" color="muted">
+              {privacyMode && identity.displayName
+                ? NOSTR_PRIVACY_MASK
+                : identity.displayName || t('nostrIdentity.title')}
+            </SSText>
+          </SSVStack>
 
-            <SSHStack gap="sm" style={styles.importRow}>
-              <SSButton
-                label={t('nostrIdentity.compose.importPasteJson')}
-                variant="outline"
-                style={styles.importButton}
-                onPress={() => {
-                  void handlePasteJson()
-                }}
-              />
-              <SSButton
-                label={t('nostrIdentity.compose.importScanQr')}
-                variant="outline"
-                style={styles.importButton}
-                onPress={() => setImportCameraVisible(true)}
-              />
+          <SSHStack gap="sm" style={styles.importRow}>
+            <SSButton
+              label={t('nostrIdentity.compose.importPasteJson')}
+              variant="outline"
+              style={styles.importButton}
+              onPress={() => {
+                void handlePasteJson()
+              }}
+            />
+            <SSButton
+              label={t('nostrIdentity.compose.importScanQr')}
+              variant="outline"
+              style={styles.importButton}
+              onPress={() => setImportCameraVisible(true)}
+            />
+          </SSHStack>
+
+          <TextInput
+            style={styles.input}
+            placeholderTextColor={Colors.gray[500]}
+            placeholder={t('nostrIdentity.compose.placeholder')}
+            multiline
+            autoFocus
+            maxLength={NOSTR_NIP01_MAX_NOTE_LENGTH}
+            value={content}
+            onChangeText={setContent}
+            textAlignVertical="top"
+          />
+
+          <SSText size="xxs" color="muted" style={styles.charCount}>
+            {charCount}/{NOSTR_NIP01_MAX_NOTE_LENGTH}
+          </SSText>
+
+          <SSVStack gap="sm" style={styles.zapTagsSection}>
+            <SSText size="xs" color="muted" uppercase>
+              {t('nostrIdentity.compose.paymentRequest')}
+            </SSText>
+            <SSHStack gap="sm">
+              {(['none', 'fixed', 'range'] as const).map((mode) => (
+                <SSPressable
+                  key={mode}
+                  style={[
+                    styles.modeButton,
+                    amountMode === mode && styles.modeButtonActive
+                  ]}
+                  onPress={() => setAmountMode(mode)}
+                  activeOpacity={0.6}
+                >
+                  <SSText
+                    size="xs"
+                    weight={amountMode === mode ? 'bold' : 'regular'}
+                    center
+                  >
+                    {t(`nostrIdentity.compose.mode_${mode}`)}
+                  </SSText>
+                </SSPressable>
+              ))}
             </SSHStack>
 
-            <TextInput
-              style={styles.input}
-              placeholderTextColor={Colors.gray[500]}
-              placeholder={t('nostrIdentity.compose.placeholder')}
-              multiline
-              autoFocus
-              maxLength={NOSTR_NIP01_MAX_NOTE_LENGTH}
-              value={content}
-              onChangeText={setContent}
-              textAlignVertical="top"
-            />
-
-            <SSText size="xxs" color="muted" style={styles.charCount}>
-              {charCount}/{NOSTR_NIP01_MAX_NOTE_LENGTH}
-            </SSText>
-
-            <SSVStack gap="sm" style={styles.zapTagsSection}>
-              <SSText size="xs" color="muted" uppercase>
-                {t('nostrIdentity.compose.paymentRequest')}
-              </SSText>
-              <SSHStack gap="sm">
-                {(['none', 'fixed', 'range'] as const).map((mode) => (
-                  <SSPressable
-                    key={mode}
-                    style={[
-                      styles.modeButton,
-                      amountMode === mode && styles.modeButtonActive
-                    ]}
-                    onPress={() => setAmountMode(mode)}
-                    activeOpacity={0.6}
-                  >
-                    <SSText
-                      size="xs"
-                      weight={amountMode === mode ? 'bold' : 'regular'}
-                      center
-                    >
-                      {t(`nostrIdentity.compose.mode_${mode}`)}
-                    </SSText>
-                  </SSPressable>
-                ))}
-              </SSHStack>
-
-              {amountMode === 'fixed' && (
-                <TextInput
-                  style={styles.amountInput}
-                  placeholderTextColor={Colors.gray[500]}
-                  placeholder={t('nostrIdentity.compose.fixedPlaceholder')}
-                  keyboardType="number-pad"
-                  value={fixedAmount}
-                  onChangeText={setFixedAmount}
-                />
-              )}
-
-              {amountMode === 'range' && (
-                <SSHStack gap="sm">
-                  <TextInput
-                    style={[styles.amountInput, styles.halfInput]}
-                    placeholderTextColor={Colors.gray[500]}
-                    placeholder={t('nostrIdentity.compose.minPlaceholder')}
-                    keyboardType="number-pad"
-                    value={minAmount}
-                    onChangeText={setMinAmount}
-                  />
-                  <TextInput
-                    style={[styles.amountInput, styles.halfInput]}
-                    placeholderTextColor={Colors.gray[500]}
-                    placeholder={t('nostrIdentity.compose.maxPlaceholder')}
-                    keyboardType="number-pad"
-                    value={maxAmount}
-                    onChangeText={setMaxAmount}
-                  />
-                </SSHStack>
-              )}
-
-              {amountMode !== 'none' && (
-                <>
-                  <SSPressable
-                    onPress={() => setShowAdvanced(!showAdvanced)}
-                    activeOpacity={0.6}
-                  >
-                    <SSText size="xs" color="muted">
-                      {showAdvanced
-                        ? t('nostrIdentity.compose.hideAdvanced')
-                        : t('nostrIdentity.compose.showAdvanced')}
-                    </SSText>
-                  </SSPressable>
-
-                  {showAdvanced && (
-                    <SSVStack gap="sm">
-                      <View>
-                        <SSText
-                          size="xxs"
-                          color="muted"
-                          style={styles.fieldLabel}
-                        >
-                          {t('nostrIdentity.compose.goalLabel')}
-                        </SSText>
-                        <TextInput
-                          style={styles.amountInput}
-                          placeholderTextColor={Colors.gray[500]}
-                          placeholder={t(
-                            'nostrIdentity.compose.goalPlaceholder'
-                          )}
-                          keyboardType="number-pad"
-                          value={goalAmount}
-                          onChangeText={setGoalAmount}
-                        />
-                      </View>
-
-                      <View>
-                        <SSText
-                          size="xxs"
-                          color="muted"
-                          style={styles.fieldLabel}
-                        >
-                          {t('nostrIdentity.compose.usesLabel')}
-                        </SSText>
-                        <TextInput
-                          style={styles.amountInput}
-                          placeholderTextColor={Colors.gray[500]}
-                          placeholder={t(
-                            'nostrIdentity.compose.usesPlaceholder'
-                          )}
-                          keyboardType="number-pad"
-                          value={maxUses}
-                          onChangeText={setMaxUses}
-                        />
-                      </View>
-
-                      <View>
-                        <SSText
-                          size="xxs"
-                          color="muted"
-                          style={styles.fieldLabel}
-                        >
-                          {t('nostrIdentity.compose.lnurlLabel')}
-                        </SSText>
-                        <TextInput
-                          style={styles.amountInput}
-                          placeholderTextColor={Colors.gray[500]}
-                          placeholder={t(
-                            'nostrIdentity.compose.lnurlPlaceholder'
-                          )}
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          value={customLnurl}
-                          onChangeText={setCustomLnurl}
-                        />
-                      </View>
-                    </SSVStack>
-                  )}
-                </>
-              )}
-            </SSVStack>
-
-            <SSVStack gap="sm">
-              <SSButton
-                label={
-                  showJson
-                    ? t('nostrIdentity.compose.hideJson')
-                    : t('nostrIdentity.compose.showJson')
-                }
-                variant="outline"
-                onPress={() => setShowJson((open) => !open)}
+            {amountMode === 'fixed' && (
+              <TextInput
+                style={styles.amountInput}
+                placeholderTextColor={Colors.gray[500]}
+                placeholder={t('nostrIdentity.compose.fixedPlaceholder')}
+                keyboardType="number-pad"
+                value={fixedAmount}
+                onChangeText={setFixedAmount}
               />
-              {showJson && (
-                <TextInput
-                  style={styles.jsonPreview}
-                  value={draftEventJson}
-                  editable={false}
-                  multiline
-                  scrollEnabled
-                  placeholderTextColor={Colors.gray[500]}
-                />
-              )}
-            </SSVStack>
+            )}
 
+            {amountMode === 'range' && (
+              <SSHStack gap="sm">
+                <TextInput
+                  style={[styles.amountInput, styles.halfInput]}
+                  placeholderTextColor={Colors.gray[500]}
+                  placeholder={t('nostrIdentity.compose.minPlaceholder')}
+                  keyboardType="number-pad"
+                  value={minAmount}
+                  onChangeText={setMinAmount}
+                />
+                <TextInput
+                  style={[styles.amountInput, styles.halfInput]}
+                  placeholderTextColor={Colors.gray[500]}
+                  placeholder={t('nostrIdentity.compose.maxPlaceholder')}
+                  keyboardType="number-pad"
+                  value={maxAmount}
+                  onChangeText={setMaxAmount}
+                />
+              </SSHStack>
+            )}
+
+            {amountMode !== 'none' && (
+              <>
+                <SSPressable
+                  onPress={() => setShowAdvanced(!showAdvanced)}
+                  activeOpacity={0.6}
+                >
+                  <SSText size="xs" color="muted">
+                    {showAdvanced
+                      ? t('nostrIdentity.compose.hideAdvanced')
+                      : t('nostrIdentity.compose.showAdvanced')}
+                  </SSText>
+                </SSPressable>
+
+                {showAdvanced && (
+                  <SSVStack gap="sm">
+                    <View>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        style={styles.fieldLabel}
+                      >
+                        {t('nostrIdentity.compose.goalLabel')}
+                      </SSText>
+                      <TextInput
+                        style={styles.amountInput}
+                        placeholderTextColor={Colors.gray[500]}
+                        placeholder={t('nostrIdentity.compose.goalPlaceholder')}
+                        keyboardType="number-pad"
+                        value={goalAmount}
+                        onChangeText={setGoalAmount}
+                      />
+                    </View>
+
+                    <View>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        style={styles.fieldLabel}
+                      >
+                        {t('nostrIdentity.compose.usesLabel')}
+                      </SSText>
+                      <TextInput
+                        style={styles.amountInput}
+                        placeholderTextColor={Colors.gray[500]}
+                        placeholder={t('nostrIdentity.compose.usesPlaceholder')}
+                        keyboardType="number-pad"
+                        value={maxUses}
+                        onChangeText={setMaxUses}
+                      />
+                    </View>
+
+                    <View>
+                      <SSText
+                        size="xxs"
+                        color="muted"
+                        style={styles.fieldLabel}
+                      >
+                        {t('nostrIdentity.compose.lnurlLabel')}
+                      </SSText>
+                      <TextInput
+                        style={styles.amountInput}
+                        placeholderTextColor={Colors.gray[500]}
+                        placeholder={t(
+                          'nostrIdentity.compose.lnurlPlaceholder'
+                        )}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={customLnurl}
+                        onChangeText={setCustomLnurl}
+                      />
+                    </View>
+                  </SSVStack>
+                )}
+              </>
+            )}
+          </SSVStack>
+
+          <SSVStack gap="sm">
             <SSButton
               label={
-                publishing
-                  ? t('nostrIdentity.compose.publishing')
-                  : t('nostrIdentity.compose.publish')
+                showJson
+                  ? t('nostrIdentity.compose.hideJson')
+                  : t('nostrIdentity.compose.showJson')
               }
-              variant="gradient"
-              gradientType="special"
-              disabled={!canPublish}
-              onPress={handlePublish}
+              variant="outline"
+              onPress={() => setShowJson((open) => !open)}
             />
-
-            <SSHStack gap="sm" style={styles.exportSignedRow}>
-              <SSButton
-                label={t('nostrIdentity.compose.copySigned')}
-                variant="outline"
-                disabled={!canExportSigned}
-                style={styles.exportSignedButton}
-                onPress={() => {
-                  void handleCopySigned()
-                }}
+            {showJson && (
+              <TextInput
+                style={styles.jsonPreview}
+                value={draftEventJson}
+                editable={false}
+                multiline
+                scrollEnabled
+                placeholderTextColor={Colors.gray[500]}
               />
-              <SSButton
-                label={t('nostrIdentity.compose.qrSigned')}
-                variant="outline"
-                disabled={!canExportSigned}
-                style={styles.exportSignedButton}
-                onPress={() => {
-                  void handleQrSigned()
-                }}
-              />
-            </SSHStack>
+            )}
           </SSVStack>
-        </ScrollView>
+
+          <SSButton
+            label={
+              publishing
+                ? t('nostrIdentity.compose.publishing')
+                : t('nostrIdentity.compose.publish')
+            }
+            variant="gradient"
+            gradientType="special"
+            disabled={!canPublish}
+            onPress={handlePublish}
+          />
+
+          <SSHStack gap="sm" style={styles.exportSignedRow}>
+            <SSButton
+              label={t('nostrIdentity.compose.copySigned')}
+              variant="outline"
+              disabled={!canExportSigned}
+              style={styles.exportSignedButton}
+              onPress={() => {
+                void handleCopySigned()
+              }}
+            />
+            <SSButton
+              label={t('nostrIdentity.compose.qrSigned')}
+              variant="outline"
+              disabled={!canExportSigned}
+              style={styles.exportSignedButton}
+              onPress={() => {
+                void handleQrSigned()
+              }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </ScrollView>
 
       <SSCameraModal
         visible={importCameraVisible}
