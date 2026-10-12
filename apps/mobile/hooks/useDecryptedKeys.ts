@@ -5,20 +5,31 @@ import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 /**
  * Decrypts the account's key secrets for signing. Keys that fail to decrypt
- * are returned unchanged (still encrypted).
+ * are returned unchanged (still encrypted). Decrypts again only when the
+ * account or its keys change, not on every account update.
  */
 export function useDecryptedKeys(account: Account | undefined) {
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
+  const accountId = account?.id
+  const keys = account?.keys
 
   useEffect(() => {
-    if (!account || !account.keys || account.keys.length === 0) {
+    if (!accountId || !keys || keys.length === 0) {
       return
     }
-    async function decryptKeys(accountToDecrypt: Account) {
-      setDecryptedKeys(await decryptAccountKeysOrFallback(accountToDecrypt))
+    // Drops a result that arrives after the account or keys changed.
+    const request = { stale: false }
+    void decryptAccountKeysOrFallback({ id: accountId, keys }).then(
+      (result) => {
+        if (!request.stale) {
+          setDecryptedKeys(result)
+        }
+      }
+    )
+    return () => {
+      request.stale = true
     }
-    decryptKeys(account)
-  }, [account])
+  }, [accountId, keys])
 
   return decryptedKeys
 }
