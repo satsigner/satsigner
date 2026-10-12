@@ -14,7 +14,6 @@ import {
 } from 'react-native-bdk-sdk'
 
 import {
-  BDK_PRIVATE_EXTENDED_KEY_PREFIXES,
   BDK_RESCAN_MAX_POLLS,
   BDK_RESCAN_POLL_INTERVAL_MS,
   BDK_RESCAN_POLL_MAX_CONSECUTIVE_ERRORS,
@@ -51,7 +50,12 @@ import {
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
-import { getDescriptorDerivationPath, getFingerprint } from '@/utils/descriptor'
+import {
+  descriptorHasPrivateKeyMaterial,
+  getDescriptorDerivationPath,
+  getFingerprint,
+  PrivateKeyDescriptorError
+} from '@/utils/descriptor'
 import {
   computeRpcScanStartHeight,
   estimateBirthHeight
@@ -928,20 +932,6 @@ function broadcastTransaction(
 }
 
 // ─── Bitcoin Core wallet sync (importdescriptors path) ───────────────────────
-
-function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
-  const lower = descriptor.toLowerCase()
-  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
-    lower.includes(prefix)
-  )
-}
-
-// Thrown when a descriptor contains private key material that must not be
-// silently dropped — distinguished from other derivation failures so it is
-// never swallowed by the catch-all below and re-surfaced to null.
-class PrivateKeyDescriptorError extends Error {
-  name = 'PrivateKeyDescriptorError'
-}
 
 /**
  * Derive a pair of watch-only (public) descriptors for an account.
