@@ -16,9 +16,10 @@ jest.mock<typeof import('@/utils/bip39')>('@/utils/bip39', () => ({
   mnemonicToSeed: jest.fn(() => new Uint8Array())
 }))
 
-jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
-  default: {} as unknown as typeof import('@/api/electrum').default
-}))
+jest.mock<Partial<typeof import('@/api/electrum')>>(
+  '@/api/electrum',
+  () => ({})
+)
 
 function makeCoreWallet() {
   return new BitcoinCoreWallet('http://localhost:8332', 'u', 'p', 'w')
