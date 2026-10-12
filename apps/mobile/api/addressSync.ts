@@ -145,17 +145,13 @@ function sumReceivedByAddress(
   address: string,
   network: Network
 ) {
-  return rawTx.outs.reduce((sum, output) => {
-    try {
-      const outputAddress = bitcoinjs.address.fromOutputScript(
-        output.script,
-        bitcoinjsNetwork(network)
-      )
-      return outputAddress === address ? sum + output.value : sum
-    } catch {
-      return sum
-    }
-  }, 0)
+  const addressScript = bitcoinjs.address.toOutputScript(
+    address,
+    bitcoinjsNetwork(network)
+  )
+  return rawTx.outs
+    .filter((output) => output.script.equals(addressScript))
+    .reduce((sum, output) => sum + output.value, 0)
 }
 
 async function readElectrumSnapshot(
