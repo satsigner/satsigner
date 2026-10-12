@@ -34,6 +34,8 @@ const config = {
     // resolve to the same mock: tests drive `@/api/payjoin` with no native
     // module, and keep importing the helpers from 'react-native-payjoin'.
     '^@/api/payjoinNative$': '<rootDir>/__mocks__/react-native-payjoin.ts',
+    '^@branta-ops/branta$': '<rootDir>/__mocks__/branta.ts',
+    '^@branta-ops/branta/v2$': '<rootDir>/__mocks__/branta-v2.ts',
     '^@secondts/bark-react-native$':
       '<rootDir>/__mocks__/secondts-bark-react-native.ts',
     '^bip-321$': '<rootDir>/__mocks__/bip-321.ts',

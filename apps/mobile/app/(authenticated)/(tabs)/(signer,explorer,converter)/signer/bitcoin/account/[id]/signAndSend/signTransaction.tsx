@@ -23,6 +23,7 @@ import {
 } from '@/api/payjoin'
 import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
@@ -52,6 +53,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
+import { payeesFromOutputs } from '@/utils/brantaPayee'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
@@ -883,6 +885,7 @@ export default function SignTransaction() {
     router.replace('/signer/bitcoin/accountList')
   }
 
+  const brantaPayees = payeesFromOutputs(outputs)
   const showPayjoinWait = !signed && !!payjoinStatus && !manualOriginalPsbt
   const senderHintKey = senderPayjoinHintKey({
     checking: checkingPayjoin,
@@ -1072,6 +1075,9 @@ export default function SignTransaction() {
               </SSVStack>
             )}
 
+            {brantaPayees.map((payee) => (
+              <SSBrantaPayee key={payee.verifyUrl} payee={payee} />
+            ))}
             {manualOriginalPsbt && !signed ? (
               <SSVStack>
                 <SSText color="muted" size="sm" center>

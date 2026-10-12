@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import { saveBrantaPayee } from '@/db/mutations/brantaPayees'
 import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
@@ -21,6 +22,10 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import {
+  paymentHistoryLabel,
+  selectTransactionPayee
+} from '@/utils/brantaPayee'
 import { formatAddress } from '@/utils/format'
 import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
 
@@ -119,11 +124,7 @@ export default function TransactionConfirmation() {
 
   const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
 
-  const txLabelText = outputs
-    .filter((o) => o.label !== defaultChangeAddressLabel)
-    .map((o) => o.label)
-    .filter(Boolean)
-    .join(',')
+  const txLabelText = paymentHistoryLabel(outputs, defaultChangeAddressLabel)
 
   // we store the labels in account.labels, then later on the labels will be
   // restored when the wallet data is fetched.
@@ -196,9 +197,18 @@ export default function TransactionConfirmation() {
     }
 
     const txid = psbt.txid()
+    const branta = selectTransactionPayee(outputs)
+    if (branta) {
+      saveBrantaPayee(id, txid, branta)
+    }
 
-    // Idempotent — skip if sync already added it
-    if (account.transactions.some((tx) => tx.id === txid)) {
+    // Idempotent — skip if sync already added it. Saving the payee first
+    // lets a reload attach the logo after the chain record replaces the draft.
+    const existing = account.transactions.find((tx) => tx.id === txid)
+    if (existing) {
+      if (branta && !existing.branta) {
+        updateAccount(account)
+      }
       return
     }
 
@@ -224,6 +234,7 @@ export default function TransactionConfirmation() {
 
     const optimisticTx: Transaction = {
       blockHeight: undefined,
+      branta,
       fee,
       id: txid,
       label: txLabelText || undefined,

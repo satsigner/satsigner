@@ -2,9 +2,18 @@ import z from 'zod'
 
 import { PricesSchema } from './Blockchain'
 
+const BrantaPayeeSchema = z.object({
+  description: z.string(),
+  logoUrl: z.string(),
+  name: z.string(),
+  parentLogoUrl: z.string().optional(),
+  verifyUrl: z.string()
+})
+
 export const TransactionSchema = z.object({
   address: z.string().optional(),
   blockHeight: z.number().optional(),
+  branta: BrantaPayeeSchema.optional(),
   fee: z.number().optional(),
   id: z.string(),
   label: z.string().optional(),

@@ -24,6 +24,7 @@ import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -39,6 +40,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
+import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import {
   IO_PREVIEW_BOTTOM_GRADIENT_COLORS,
   IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
@@ -68,6 +70,7 @@ import {
   type LoadingAutoSelectUtxosAlgorithm
 } from '@/types/models/AutoSelectUtxos'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
+import { type BrantaLookupSource } from '@/types/models/Branta'
 import { type Utxo } from '@/types/models/Utxo'
 import { type IoPreviewSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
@@ -382,6 +385,12 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+  const {
+    adopt: adoptBrantaPayee,
+    lookup: lookupBrantaPayeeForOutput,
+    payee: brantaPayee,
+    settled: settledBrantaPayee
+  } = useBrantaPayeeLookup()
   const [dustErrorOverride, setDustErrorOverride] = useState(
     dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
   )
@@ -447,8 +456,12 @@ export default function IOPreview() {
     return parsed
   }
 
-  function handlePasteFromClipboard(content: string) {
+  function handlePasteFromClipboard(
+    content: string,
+    source: BrantaLookupSource = 'paste'
+  ) {
     const trimmedContent = content.trim()
+    void lookupBrantaPayeeForOutput(trimmedContent, source)
 
     const bip21Result = parseBitcoinPaymentUri(trimmedContent)
     if (bip21Result) {
@@ -695,7 +708,8 @@ export default function IOPreview() {
     }
 
     // Same Payjoin-aware path as paste (raw keeps bitcoin: + pj=).
-    handlePasteFromClipboard(content.raw?.trim() || content.cleaned.trim())
+    const raw = content.raw.trim() || content.cleaned.trim()
+    handlePasteFromClipboard(raw, 'qr')
     setCameraModalVisible(false)
   }
 
@@ -706,6 +720,7 @@ export default function IOPreview() {
     setOutputAmount(DUST_LIMIT)
     setOriginalOutputAmount(0)
     setOutputLabel('')
+    adoptBrantaPayee(null)
   }
 
   function handleOnPressAddOutput() {
@@ -714,7 +729,7 @@ export default function IOPreview() {
     setAddOutputModalVisible(true)
   }
 
-  function handleAddOutput() {
+  async function handleAddOutput() {
     if (outputAmount > 0 && outputAmount < DUST_LIMIT) {
       toast.error(t('transaction.error.dustOutputBelowLimit'))
       return
@@ -753,8 +768,10 @@ export default function IOPreview() {
       return
     }
 
+    const resolvedPayee = await settledBrantaPayee()
     const output = {
       amount: outputAmount,
+      branta: resolvedPayee ?? undefined,
       kind: existing?.kind,
       label: outputLabel,
       to: stripBitcoinPrefix(outputTo)
@@ -863,6 +880,7 @@ export default function IOPreview() {
       setOutputAmount(outputs[outputIndex].amount)
       setOriginalOutputAmount(outputs[outputIndex].amount)
       setOutputLabel(outputs[outputIndex].label)
+      adoptBrantaPayee(outputs[outputIndex].branta ?? null)
       setCurrentOutputNumber(outputIndex + 1)
       setAddOutputModalVisible(true)
       return
@@ -1655,6 +1673,7 @@ export default function IOPreview() {
                       }
                       setOutputTo(text)
                       setPayjoinUri(undefined)
+                      adoptBrantaPayee(null)
                     }}
                   />
                   {!isEditingStonewallManagedOutput ? (
@@ -1675,6 +1694,7 @@ export default function IOPreview() {
                     </SSHStack>
                   ) : null}
                 </SSVStack>
+                {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
                 <SSTextInput
                   testID="send-output-label"
                   multiline

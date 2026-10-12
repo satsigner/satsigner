@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { useState } from 'react'
 import {
   type StyleProp,
@@ -123,6 +124,10 @@ function SSTransactionCard({
 
   const { amount, type } = getWalletTransactionEffect(transaction)
   const { label, tags } = parseLabel(transaction.label || '')
+  const payeeName = transaction.branta?.name
+  const historyLabel =
+    label || payeeName || t('transaction.noLabel').toUpperCase()
+  const historyLabelMuted = !label && !payeeName
 
   const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
     useShallow((state) => [
@@ -342,17 +347,25 @@ function SSTransactionCard({
                 </SSHStack>
               ) : null}
             </SSVStack>
-            <SSText
-              size={smallView ? 'xxs' : 'xs'}
-              style={[
-                styles.label,
-                { marginTop: 4 },
-                !label && { color: Colors.gray[500] }
-              ]}
-              numberOfLines={1}
-            >
-              {label || t('transaction.noLabel').toUpperCase()}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center', marginTop: 4 }}>
+              {transaction.branta?.logoUrl ? (
+                <Image
+                  contentFit="contain"
+                  source={{ uri: transaction.branta.logoUrl }}
+                  style={styles.payeeLogo}
+                />
+              ) : null}
+              <SSText
+                size={smallView ? 'xxs' : 'xs'}
+                style={[
+                  styles.label,
+                  historyLabelMuted && { color: Colors.gray[500] }
+                ]}
+                numberOfLines={1}
+              >
+                {historyLabel}
+              </SSText>
+            </SSHStack>
           </SSVStack>
           <SSVStack
             gap="none"
@@ -456,6 +469,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Layout.hStack.gap.sm,
     textAlign: 'left'
+  },
+  payeeLogo: {
+    borderRadius: 4,
+    height: 16,
+    width: 16
   },
   tag: {
     alignSelf: 'flex-start',

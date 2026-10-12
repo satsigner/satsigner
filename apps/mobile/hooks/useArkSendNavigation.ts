@@ -2,8 +2,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 
+import { lookupBrantaPayee } from '@/api/branta'
 import { t } from '@/locales'
 import { type ArkDestinationDraft } from '@/types/models/Ark'
+import { type BrantaLookupSource } from '@/types/models/Branta'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getLNURLType } from '@/utils/lnurl'
@@ -45,7 +47,10 @@ export function useArkSendNavigation(accountId: string | undefined) {
     })
   }
 
-  async function processDestination(raw: string): Promise<boolean> {
+  async function processDestination(
+    raw: string,
+    source: BrantaLookupSource = 'paste'
+  ): Promise<boolean> {
     const trimmed = raw.trim()
     if (!trimmed) {
       return false
@@ -55,18 +60,25 @@ export function useArkSendNavigation(accountId: string | undefined) {
       goToLnurlWithdraw(trimmed)
       return true
     }
-    const parsed = await parseArkDestination(trimmed)
+    const [parsed, payee] = await Promise.all([
+      parseArkDestination(trimmed),
+      lookupBrantaPayee(trimmed, source)
+    ])
     if (!parsed.ok) {
       toast.error(t('ark.send.error.invalidDestination'))
       return false
     }
+    queryClient.setQueryData(['branta', 'payee', trimmed], payee)
     goToConfirm(trimmed, parsed.draft)
     return true
   }
 
-  function handleContentReady(content: DetectedContent): Promise<boolean> {
+  function handleContentReady(
+    content: DetectedContent,
+    source: BrantaLookupSource
+  ): Promise<boolean> {
     const raw = content.raw ?? content.cleaned
-    return processDestination(raw)
+    return processDestination(raw, source)
   }
 
   return {

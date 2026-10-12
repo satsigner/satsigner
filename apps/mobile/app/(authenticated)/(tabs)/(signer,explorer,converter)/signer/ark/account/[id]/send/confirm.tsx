@@ -5,6 +5,7 @@ import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
@@ -13,6 +14,7 @@ import {
   ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS,
   ARK_KIND_LABEL_KEYS
 } from '@/constants/ark'
+import { lookupBrantaPayee } from '@/api/branta'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
@@ -31,6 +33,7 @@ import type {
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
+import { type BrantaPayee } from '@/types/models/Branta'
 import { arkSendFeeRequest } from '@/utils/ark'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
@@ -58,6 +61,13 @@ export default function ArkSendConfirmPage() {
       return parsed.draft
     },
     queryKey: ['ark', 'send', 'parse', destination],
+    staleTime: Infinity
+  })
+
+  const payeeQuery = useQuery<BrantaPayee | null>({
+    enabled: Boolean(destination),
+    queryFn: () => lookupBrantaPayee(destination ?? '', 'paste'),
+    queryKey: ['branta', 'payee', destination],
     staleTime: Infinity
   })
 
@@ -208,6 +218,9 @@ export default function ArkSendConfirmPage() {
                   </SSText>
                 )}
               </SSVStack>
+              {payeeQuery.data ? (
+                <SSBrantaPayee payee={payeeQuery.data} />
+              ) : null}
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>
