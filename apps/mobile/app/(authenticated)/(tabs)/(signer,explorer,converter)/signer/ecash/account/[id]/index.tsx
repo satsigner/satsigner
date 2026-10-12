@@ -19,6 +19,7 @@ import {
   SSIconList
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -28,7 +29,6 @@ import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
 import SSPaste from '@/components/SSPaste'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
@@ -44,7 +44,7 @@ import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors } from '@/styles'
 import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
 import { formatFiatPrice } from '@/utils/format'
 
@@ -319,37 +319,18 @@ export default function EcashAccountDetailPage() {
                 {t('ecash.mint.balance')}
               </SSText>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                {privacyMode ? (
-                  <SSText
-                    color="white"
-                    size={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                    weight="ultralight"
-                    style={{
-                      letterSpacing: -1,
-                      lineHeight:
-                        Sizes.text.fontSize[
-                          totalBalance > 1_000_000_000 ? '4xl' : '6xl'
-                        ]
-                    }}
-                  >
-                    {PRIVACY_MASK}
-                  </SSText>
-                ) : (
-                  <SSStyledSatText
-                    amount={totalBalance}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
-                    weight="ultralight"
-                    letterSpacing={-1}
-                  />
-                )}
-                <SSText size="xl" style={{ color: ECASH_BALANCE_LABEL_COLOR }}>
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
-                </SSText>
+                <SSAmountDisplay
+                  privacyMode={privacyMode}
+                  amount={totalBalance}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
+                  weight="ultralight"
+                  letterSpacing={-1}
+                  unitSize="xl"
+                  unitStyle={{ color: ECASH_BALANCE_LABEL_COLOR }}
+                />
               </SSHStack>
               {btcPrice > 0 && (
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
