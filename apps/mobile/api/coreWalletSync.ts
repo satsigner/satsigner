@@ -259,6 +259,19 @@ async function waitForRescanStopped(
 }
 
 /**
+ * Core keeps scanning after the start race times out, so a late failure of
+ * the long-running rescan request must not surface as an unhandled rejection.
+ * The race still sees failures that happen before the timeout.
+ */
+async function ignoreLateFailure(request: Promise<unknown>) {
+  try {
+    await request
+  } catch {
+    // reported through Promise.race when it fails in time
+  }
+}
+
+/**
  * Resolves when `rescanblockchain` returns, or after a timeout while Core
  * keeps scanning in the background (progress is then polled).
  */
@@ -271,9 +284,7 @@ async function startRescan(
     timers.push(setTimeout(resolve, BDK_RESCAN_START_RACE_TIMEOUT_MS))
   })
   const rescan = coreWallet.rescanBlockchain(startHeight)
-  // Core keeps scanning after the race times out, so a late failure of this
-  // long-running request must not surface as an unhandled rejection.
-  rescan.catch(() => undefined)
+  void ignoreLateFailure(rescan)
   try {
     await Promise.race([rescan, timedOut])
   } finally {
