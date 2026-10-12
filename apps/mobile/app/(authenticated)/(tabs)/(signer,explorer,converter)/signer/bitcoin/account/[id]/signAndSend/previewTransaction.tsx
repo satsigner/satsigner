@@ -28,6 +28,7 @@ import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { usePsbtSignatureImport } from '@/hooks/usePsbtSignatureImport'
+import { useSeedSigning } from '@/hooks/useSeedSigning'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -177,22 +178,22 @@ function PreviewTransaction() {
   const shareWithNostrGroup = useNostrShareTransaction({ account, id })
 
   const {
+    closeSeedWordsModal,
+    closeWordCountModal,
+    confirmWordCount,
     handleMnemonicInvalid,
     handleMnemonicValid,
-    handleSeedWordsScanned,
-    handleSeedWordsSubmit,
-    handleWordCountSelect,
-    selectedWordCount,
     seedWordsModalVisible,
-    setCurrentMnemonic,
-    setSeedWordsModalVisible,
+    selectedWordCount,
     setSelectedWordCount,
-    setWordCountModalVisible,
+    startSeedWordsSigning,
+    submitSeedWords,
     wordCountModalVisible
   } = useSeedSigning({
-    currentCosignerIndex,
-    handleSignWithSeedQR: signWithMnemonic,
-    setCurrentCosignerIndex
+    cosignerIndex: currentCosignerIndex,
+    onNotice: showNotice,
+    setCosignerIndex: setCurrentCosignerIndex,
+    signWithMnemonic
   })
 
   const transactionHex = useMemo(
@@ -282,7 +283,7 @@ function PreviewTransaction() {
     handleCosignerPasteFromClipboard,
     handleNFCExport: exportToNfc,
     handleSeedQRScanned,
-    handleSeedWordsScanned,
+    handleSeedWordsScanned: startSeedWordsSigning,
     handleShareSignaturesWithNostrGroup,
     handleSignWithLocalKey: signWithLocalKey,
     isEmitting,
@@ -338,11 +339,8 @@ function PreviewTransaction() {
   }
 
   const propsWordCountModal = {
-    onClose: () => {
-      setWordCountModalVisible(false)
-      setCurrentCosignerIndex(null)
-    },
-    onContinue: () => handleWordCountSelect(selectedWordCount),
+    onClose: closeWordCountModal,
+    onContinue: confirmWordCount,
     selectedWordCount,
     setSelectedWordCount,
     visible: wordCountModalVisible
@@ -351,13 +349,9 @@ function PreviewTransaction() {
   const propsSeedWordsModal = {
     handleMnemonicInvalid,
     handleMnemonicValid,
-    handleSeedWordsSubmit,
+    handleSeedWordsSubmit: submitSeedWords,
     network,
-    onClose: () => {
-      setSeedWordsModalVisible(false)
-      setCurrentMnemonic('')
-      setCurrentCosignerIndex(null)
-    },
+    onClose: closeSeedWordsModal,
     selectedWordCount,
     visible: seedWordsModalVisible
   }
@@ -979,7 +973,7 @@ type PreviewTransactionSeedWordsModalProps = {
   network: Parameters<typeof appNetworkToBdkNetwork>[0]
   handleMnemonicValid: SeedSigning['handleMnemonicValid']
   handleMnemonicInvalid: SeedSigning['handleMnemonicInvalid']
-  handleSeedWordsSubmit: SeedSigning['handleSeedWordsSubmit']
+  handleSeedWordsSubmit: SeedSigning['submitSeedWords']
 }
 
 function PreviewTransactionSeedWordsModal({
@@ -1029,72 +1023,6 @@ function PreviewTransactionSeedWordsModal({
       </View>
     </SSModal>
   )
-}
-
-type UseSeedSigningParams = {
-  handleSignWithSeedQR: CosignerSignatures['signWithMnemonic']
-  currentCosignerIndex: number | null
-  setCurrentCosignerIndex: (index: number | null) => void
-}
-
-function useSeedSigning({
-  handleSignWithSeedQR,
-  currentCosignerIndex,
-  setCurrentCosignerIndex
-}: UseSeedSigningParams) {
-  const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
-  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
-  const [selectedWordCount, setSelectedWordCount] =
-    useState<MnemonicWordCount>(24)
-  const [currentMnemonic, setCurrentMnemonic] = useState('')
-
-  const handleSeedWordsScanned = (index: number) => {
-    setCurrentCosignerIndex(index)
-    setWordCountModalVisible(true)
-  }
-
-  const handleWordCountSelect = (wordCount: MnemonicWordCount) => {
-    setSelectedWordCount(wordCount)
-    setWordCountModalVisible(false)
-    setSeedWordsModalVisible(true)
-  }
-
-  // eslint-disable-next-line
-  const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
-    setCurrentMnemonic(mnemonic)
-  }
-
-  const handleMnemonicInvalid = () => {
-    setCurrentMnemonic('')
-  }
-
-  const handleSeedWordsSubmit = () => {
-    if (!currentMnemonic || currentCosignerIndex === null) {
-      toast.error(t('common.error.validMnemonic'))
-      return
-    }
-
-    handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
-
-    setSeedWordsModalVisible(false)
-    setCurrentMnemonic('')
-    setCurrentCosignerIndex(null)
-  }
-
-  return {
-    handleMnemonicInvalid,
-    handleMnemonicValid,
-    handleSeedWordsScanned,
-    handleSeedWordsSubmit,
-    handleWordCountSelect,
-    seedWordsModalVisible,
-    selectedWordCount,
-    setCurrentMnemonic,
-    setSeedWordsModalVisible,
-    setSelectedWordCount,
-    setWordCountModalVisible,
-    wordCountModalVisible
-  }
 }
 
 type GetTransactionIdDisplayValueParams = {
