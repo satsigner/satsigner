@@ -145,3 +145,73 @@ describe('electrumClient response verification', () => {
     expect(raws).toStrictEqual([fundingTx.toHex()])
   })
 })
+
+describe('electrumClient server version', () => {
+  it('returns the software and protocol versions reported by the server', async () => {
+    const client = makeClient()
+    jest
+      .spyOn(client.client, 'server_version')
+      .mockResolvedValue(['ElectrumX 1.16.0', '1.4'])
+
+    await expect(client.getServerVersion()).resolves.toStrictEqual([
+      'ElectrumX 1.16.0',
+      '1.4'
+    ])
+  })
+
+  it('falls back to empty versions for malformed responses', async () => {
+    const client = makeClient()
+    jest.spyOn(client.client, 'server_version').mockResolvedValue('ElectrumX')
+
+    await expect(client.getServerVersion()).resolves.toStrictEqual(['', ''])
+  })
+})
+
+describe('electrumClient address transactions', () => {
+  function buildSpendingTx(fundingTx: bitcoinjs.Transaction) {
+    const tx = new bitcoinjs.Transaction()
+    tx.version = 2
+    tx.addInput(fundingTx.getHash(), 0)
+    tx.addOutput(SCRIPT, 90_000)
+    return tx
+  }
+
+  it('links inputs to the transaction they spend', () => {
+    const client = makeClient()
+    const fundingTx = buildFundingTx(100_000)
+    const spendingTx = buildSpendingTx(fundingTx)
+
+    const [, spending] = client.parseAddressTransactions(
+      ADDRESS,
+      [fundingTx.toHex(), spendingTx.toHex()],
+      [800_000, 800_001],
+      [undefined, undefined]
+    )
+
+    expect(spending.vin[0].previousOutput).toStrictEqual({
+      txid: fundingTx.getId(),
+      vout: 0
+    })
+    expect(spending.sent).toBe(100_000)
+  })
+
+  it('links inputs of partial transactions to the transaction they spend', () => {
+    const client = makeClient()
+    const fundingTx = buildFundingTx(100_000)
+    const spendingTx = buildSpendingTx(fundingTx)
+    const parsed = client.parseAddressTransactions(
+      ADDRESS,
+      [fundingTx.toHex(), spendingTx.toHex()],
+      [800_000, 800_001],
+      [undefined, undefined]
+    )
+
+    const [, spending] = client.parseAddressPartialTransactions(ADDRESS, parsed)
+
+    expect(spending.vin[0].previousOutput).toStrictEqual({
+      txid: fundingTx.getId(),
+      vout: 0
+    })
+    expect(spending.sent).toBe(100_000)
+  })
+})

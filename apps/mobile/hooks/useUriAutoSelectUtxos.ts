@@ -5,6 +5,7 @@ import {
   isAutoSelectFromUriSearchParam,
   shouldApplyDefaultAutoSelectFromUri
 } from '@/utils/autoSelectUtxos'
+import { getUsableFeeRate } from '@/utils/feeWarnings'
 
 type UseUriAutoSelectUtxosParams = {
   autoSelectFromUri?: string | string[]
@@ -61,7 +62,7 @@ export function useUriAutoSelectUtxos({
     // Wait so we do not underfund and then hydrate the rate without reselecting.
     if (
       (defaultAlgorithm === 'efficiency' || defaultAlgorithm === 'privacy') &&
-      (nextBlockFee === null || nextBlockFee === undefined || nextBlockFee < 1)
+      getUsableFeeRate(nextBlockFee) === null
     ) {
       return
     }

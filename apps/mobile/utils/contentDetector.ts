@@ -20,7 +20,8 @@ import {
 import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
-import { stripBitcoinPrefix } from '@/utils/parse'
+import { isRecord } from '@/utils/object'
+import { hasBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
@@ -148,18 +149,9 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
-    const uriPart = trimmed.substring(8)
-    if (isBitcoinUri(trimmed)) {
-      return {
-        cleaned: trimmed,
-        isValid: true,
-        raw: data,
-        type: 'bitcoin_uri'
-      }
-    }
-    const addressMatch = uriPart.match(/^([^?]+)(\?.*)?$/)
-    if (addressMatch && isBitcoinAddress(addressMatch[1])) {
+  if (hasBitcoinPrefix(trimmed)) {
+    const [address] = stripBitcoinPrefix(trimmed).split('?')
+    if (isBitcoinAddress(address)) {
       return {
         cleaned: trimmed,
         isValid: true,
@@ -491,7 +483,10 @@ function detectNostrContent(data: string): DetectedContent | null {
   }
 
   try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>
+    const parsed: unknown = JSON.parse(trimmed)
+    if (!isRecord(parsed)) {
+      return null
+    }
     const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
     if (kind !== 1 || typeof parsed.content !== 'string') {
       return null
@@ -500,9 +495,9 @@ function detectNostrContent(data: string): DetectedContent | null {
       parsed.tags !== undefined &&
       (!Array.isArray(parsed.tags) ||
         !parsed.tags.every(
-          (tag) =>
+          (tag: unknown) =>
             Array.isArray(tag) &&
-            (tag as unknown[]).every((x) => typeof x === 'string')
+            tag.every((x: unknown) => typeof x === 'string')
         ))
     ) {
       return null
@@ -527,8 +522,9 @@ function detectEncryptedBackupPayload(data: string): DetectedContent | null {
     return null
   }
   try {
-    const payload = JSON.parse(trimmed) as Record<string, unknown>
+    const payload: unknown = JSON.parse(trimmed)
     if (
+      isRecord(payload) &&
       typeof payload.cipher === 'string' &&
       typeof payload.iv === 'string' &&
       typeof payload.salt === 'string'

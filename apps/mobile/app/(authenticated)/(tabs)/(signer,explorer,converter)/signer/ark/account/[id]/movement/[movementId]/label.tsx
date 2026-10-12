@@ -57,7 +57,11 @@ export default function ArkMovementLabelPage() {
       <SSVStack style={styles.container}>
         {movement && <MovementSummary movement={movement} />}
         {labelRef !== null && labelsQuery.isSuccess && (
-          <SSLabelInput label={currentLabel} onUpdateLabel={updateLabel} />
+          <SSLabelInput
+            label={currentLabel}
+            onUpdateLabel={updateLabel}
+            onCancel={() => router.back()}
+          />
         )}
       </SSVStack>
     </SSScrollView>

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 
-import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { useNow } from '@/hooks/useNow'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type PayjoinInvoice } from '@/types/payjoin'
+import { bitcoinAmountBtcToSats } from '@/utils/autoSelectUtxos'
 import {
   formatPayjoinExpiryLabel,
   parsePayjoinExpiresAtMs
@@ -28,7 +28,7 @@ export function usePayjoinInvoice() {
     }
     const amountSats =
       parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? Math.round(parsed.params.amountBtc * SATS_PER_BITCOIN)
+        ? bitcoinAmountBtcToSats(parsed.params.amountBtc)
         : undefined
     return {
       address: parsed.params.address,

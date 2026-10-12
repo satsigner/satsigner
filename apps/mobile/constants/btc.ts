@@ -25,3 +25,8 @@ export const TXID_HEX_REGEX = /^[0-9a-fA-F]{64}$/
 export const OP_N_VALUE_OFFSET = 80
 // Smallest multisig script: OP_m <pubkey> OP_CHECKMULTISIG.
 export const MIN_MULTISIG_SCRIPT_LENGTH = 3
+export const BITCOIN_URI_SCHEME = 'bitcoin:'
+// Output amount placeholder the user fills in on ioPreview.
+export const UNSET_OUTPUT_AMOUNT_SATS = 1
+export const BARE_BITCOIN_ADDRESS_PATTERN = /^[a-zA-Z0-9]{26,62}$/
+export const HEX_PATTERN = /^[0-9a-fA-F]+$/

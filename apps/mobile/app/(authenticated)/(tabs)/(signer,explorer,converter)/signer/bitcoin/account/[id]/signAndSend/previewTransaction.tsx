@@ -425,8 +425,9 @@ function PreviewTransaction() {
   }
 
   const propsContents = {
-    accountId: id,
     knownTxIds,
+    onOpenLinkedTx: (linkedTxId: string) =>
+      router.push(`/signer/bitcoin/account/${id}/transaction/${linkedTxId}`),
     outpointLabelsByRef,
     ownAddresses,
     transaction,
@@ -568,8 +569,8 @@ function PreviewTransactionIdSection({
 
 type PreviewTransactionContentsProps = Pick<
   ComponentProps<typeof SSTransactionChart>,
-  | 'accountId'
   | 'knownTxIds'
+  | 'onOpenLinkedTx'
   | 'outpointLabelsByRef'
   | 'ownAddresses'
   | 'transaction'
@@ -577,8 +578,8 @@ type PreviewTransactionContentsProps = Pick<
 >
 
 function PreviewTransactionContents({
-  accountId,
   knownTxIds,
+  onOpenLinkedTx,
   outpointLabelsByRef,
   ownAddresses,
   transaction,
@@ -591,8 +592,8 @@ function PreviewTransactionContents({
       </SSText>
       <View style={styles.chartContainer}>
         <SSTransactionChart
-          accountId={accountId}
           knownTxIds={knownTxIds}
+          onOpenLinkedTx={onOpenLinkedTx}
           outpointLabelsByRef={outpointLabelsByRef}
           ownAddresses={ownAddresses}
           transaction={transaction}
@@ -759,7 +760,7 @@ function PreviewTransactionMultisigSection({
             totalKeys={account.keys?.length || 0}
             keyDetails={key}
             transactionId={transactionId}
-            txBuilderResult={txBuilderResult!}
+            txBuilderResult={txBuilderResult}
             serializedPsbt={serializedPsbt}
             signedPsbt={signedPsbts.get(index) || ''}
             setSignedPsbt={(psbt: string) => updateSignedPsbt(index, psbt)}
@@ -1129,7 +1130,7 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
       state.clearPsbt
     ])
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const { server } = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork]
@@ -1537,7 +1538,7 @@ function useSignatureDetection({
       const bySigner = extractIndividualSignedPsbts(
         combinedPsbtBase64,
         originalPsbtBase64
-      ) as Record<number, string>
+      )
       if (Object.keys(bySigner).length === 0) {
         return
       }
@@ -1717,7 +1718,7 @@ function useNfcTransfer({
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData as Uint8Array)
+        const txHex = Array.from(result.txData)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 

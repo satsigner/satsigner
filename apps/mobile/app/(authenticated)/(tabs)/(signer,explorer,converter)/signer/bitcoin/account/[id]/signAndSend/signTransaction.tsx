@@ -165,17 +165,17 @@ function buildSignTransactionChartModel(
     (typeof psbt.txid === 'function' ? psbt.txid() : '')
 
   if (extracted && extracted.inputs.length > 0) {
-    const vin = extracted.inputs.map((input) => {
+    const vin: Transaction['vin'] = extracted.inputs.map((input) => {
       const storeInput = inputs.get(
         getUtxoOutpoint({ txid: input.txid, vout: input.vout })
       )
       return {
         label: storeInput?.label || input.label || '',
         previousOutput: { txid: input.txid, vout: input.vout },
-        scriptSig: '' as string | number[],
+        scriptSig: '',
         sequence: 0,
         value: input.value,
-        witness: [] as number[][]
+        witness: []
       }
     })
 
@@ -225,12 +225,11 @@ function getBdkInnerMessage(error: unknown): string | undefined {
   if (!(error instanceof Error) || !('inner' in error)) {
     return undefined
   }
-  const record = error as { inner?: unknown }
-  const { inner } = record
+  const { inner } = error
   if (!inner || typeof inner !== 'object' || !('message' in inner)) {
     return undefined
   }
-  const msg = (inner as { message: unknown }).message
+  const msg = inner.message
   if (typeof msg !== 'string' || msg.length === 0) {
     return undefined
   }
@@ -315,7 +314,7 @@ export default function SignTransaction() {
     [account]
   )
   const shareWithNostrGroup = useNostrShareTransaction({ account, id })
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
@@ -966,7 +965,6 @@ export default function SignTransaction() {
                   {transaction ? (
                     <View style={{ overflow: 'hidden', width: '100%' }}>
                       <SSTransactionChart
-                        accountId={id}
                         transaction={transaction}
                         ownAddresses={ownAddresses}
                         txLabelsById={txLabelsById}
@@ -974,6 +972,11 @@ export default function SignTransaction() {
                         outpointLabelsByRef={outpointLabelsByRef}
                         scale={0.9}
                         showUnspentLabel={false}
+                        onOpenLinkedTx={(linkedTxId) =>
+                          router.push(
+                            `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
+                          )
+                        }
                       />
                     </View>
                   ) : null}

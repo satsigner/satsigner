@@ -1,10 +1,19 @@
-import type { Bip329FileType, Label } from '@/types/bips/329'
+import { z } from 'zod'
+
+import {
+  type Bip329FileType,
+  CurrencyValuesSchema,
+  type Label,
+  LabelSchema,
+  LabelTypeSchema
+} from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
 import type { Address } from '@/types/models/Address'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
+import { isRecord } from './object'
 import { getUtxoOutpoint } from './utxo'
 
 export const bip329parser: Record<Bip329FileType, (text: string) => Label[]> = {
@@ -45,11 +54,132 @@ const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
   value: ['value', 'sats', 'satoshis', 'amount']
 }
 
-const bip329Alias: Record<string, keyof Label> = {}
-for (const [key, aliases] of Object.entries(bip329Aliases)) {
-  for (const value of aliases as string[]) {
-    bip329Alias[value.toLowerCase()] = key as keyof Label
+const bip329Alias = new Map<string, keyof Label>()
+for (const field of LabelSchema.keyof().options) {
+  for (const alias of bip329Aliases[field] ?? []) {
+    bip329Alias.set(alias.toLowerCase(), field)
   }
+}
+
+const MS_PER_SECOND = 1000
+
+/** Sparrow's "Date (UTC)" CSV cells, e.g. `2025-01-09 14:56:08`. */
+const SPARROW_UTC_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/
+
+/** An ISO-8601 offset written without a colon, e.g. `+0100`. */
+const COMPACT_UTC_OFFSET_PATTERN = /([+-]\d{2})(\d{2})$/
+
+const Bip329NumberSchema = z.union([
+  z.number(),
+  z.string().trim().min(1).pipe(z.coerce.number())
+])
+
+/**
+ * Per-field readers that turn BIP-329 values, as other wallets write them,
+ * into what LabelSchema expects: CSV cells are strings, and `time` is
+ * ISO-8601 in files (with an offset, or local time as BIP-329 allows), a UTC
+ * date and time in Sparrow CSVs, and unix seconds in label sync messages
+ * (Bitcoin Safe `timestamp`).
+ */
+const bip329FieldReaders: Record<keyof Label, z.ZodType> = {
+  fee: Bip329NumberSchema,
+  fmv: CurrencyValuesSchema,
+  height: Bip329NumberSchema,
+  heights: z.array(z.number()),
+  keypath: z.string(),
+  label: z.string(),
+  origin: z.string(),
+  rate: CurrencyValuesSchema,
+  ref: z.string(),
+  spendable: z.union([z.boolean(), z.stringbool()]),
+  time: z
+    .union([
+      z.date(),
+      z
+        .string()
+        .transform((iso) => iso.replace(COMPACT_UTC_OFFSET_PATTERN, '$1:$2'))
+        .pipe(z.iso.datetime({ local: true, offset: true }))
+        .transform((iso) => new Date(iso)),
+      z
+        .string()
+        .regex(SPARROW_UTC_DATETIME_PATTERN)
+        .transform((utc) => new Date(`${utc.replace(' ', 'T')}Z`)),
+      z.number().transform((seconds) => new Date(seconds * MS_PER_SECOND))
+    ])
+    .pipe(z.date()),
+  type: LabelTypeSchema,
+  value: Bip329NumberSchema
+}
+
+/** A label record whose label may be missing, checked before it is kept. */
+const LabelRecordSchema = LabelSchema.partial({ label: true })
+
+type LabelRecord = z.infer<typeof LabelRecordSchema>
+
+/** A record whose type BIP-329 does not define; such records are ignored. */
+function hasUnknownType(record: Record<string, unknown>): boolean {
+  return (
+    typeof record.type === 'string' &&
+    record.type !== '' &&
+    !LabelTypeSchema.safeParse(record.type).success
+  )
+}
+
+/**
+ * Reads one imported record, keyed by Label field. Optional fields that
+ * cannot be read are dropped so the rest of the record still imports; the
+ * read fails when type or ref is missing or invalid.
+ */
+function readLabelRecord(record: Record<string, unknown>) {
+  const readable: Record<string, unknown> = {}
+  for (const [field, reader] of Object.entries(bip329FieldReaders)) {
+    const result = reader.safeParse(record[field])
+    if (result.success) {
+      readable[field] = result.data
+    }
+  }
+  return LabelRecordSchema.safeParse(readable)
+}
+
+/**
+ * The Label for a read record. Null when it has no label text to store, so an
+ * empty label never overwrites an existing one.
+ */
+function toLabel(record: LabelRecord): Label | null {
+  return record.label ? { ...record, label: record.label } : null
+}
+
+/**
+ * Turns imported records into Labels. Records with a type BIP-329 does not
+ * define, without label text, or without a valid type and ref are skipped, so
+ * one malformed record never blocks the rest. Throws the read error when no
+ * record has a valid type and ref: the text is then not a label export, which
+ * is how pasted text is matched to its format.
+ */
+function toLabels(records: Record<string, unknown>[]): Label[] {
+  const reads = records
+    .filter((record) => !hasUnknownType(record))
+    .map(readLabelRecord)
+  const failedRead = reads.find((read) => !read.success)
+  if (failedRead && reads.every((read) => !read.success)) {
+    throw failedRead.error
+  }
+  return reads
+    .map((read) => (read.success ? toLabel(read.data) : null))
+    .filter((label) => label !== null)
+}
+
+/**
+ * Reads one stored label record, such as a label from an app backup where
+ * `time` was serialised as a string, into a Label. Null when it is not a
+ * usable label; never throws.
+ */
+export function parseLabelRecord(value: unknown): Label | null {
+  if (!isRecord(value) || hasUnknownType(value)) {
+    return null
+  }
+  const read = readLabelRecord(value)
+  return read.success ? toLabel(read.data) : null
 }
 
 function formatAddressLabels(addresses: Address[]): Label[] {
@@ -120,14 +250,25 @@ export function formatAccountLabels(account: Account): Label[] {
   return Array.from(labelsByRef.values())
 }
 
+/** Cell text the importer would otherwise misread: commas, quotes, breaks. */
+const CSV_CELL_NEEDS_QUOTES_PATTERN = /[",\r\n]|^'|'$/
+
+/** Writes one CSV cell, quoting it (`""` escapes a quote) when needed. */
+function toCsvCell(value: string | boolean | undefined): string {
+  const text = value === undefined ? '' : String(value)
+  return CSV_CELL_NEEDS_QUOTES_PATTERN.test(text)
+    ? `"${text.replaceAll('"', '""')}"`
+    : text
+}
+
 function labelsToCSV(labels: Label[]) {
-  const CsvHeaderItems = ['type', 'ref', 'spendable', 'label']
+  const CsvHeaderItems = ['type', 'ref', 'spendable', 'label'] as const
   const CsvHeader = CsvHeaderItems.join(',')
-  const CsvRows = [] as string[]
+  const CsvRows: string[] = []
   for (const label of labels) {
     const row = []
     for (const column of CsvHeaderItems) {
-      row.push(label[column as keyof Label])
+      row.push(toCsvCell(label[column]))
     }
     CsvRows.push(row.join(','))
   }
@@ -139,9 +280,25 @@ function removeQuotes(str: string) {
   return str.replace(/^['"]/, '').replace(/['"]$/, '')
 }
 
+/**
+ * One CSV cell, matched after its leading comma: double-quoted (commas
+ * allowed, `""` escapes a quote, must end the cell) or plain text.
+ */
+const CSV_CELL_PATTERN = /,(?:"((?:[^"]|"")*)"(?=,|$)|([^,]*))/g
+
+/** Line breaks in exported files, which may use Windows (CRLF) endings. */
+const LINE_BREAK_PATTERN = /\r?\n/
+
+/** Splits a CSV row into cells, keeping commas inside double-quoted cells. */
+function splitCsvRow(row: string): string[] {
+  return Array.from(`,${row}`.matchAll(CSV_CELL_PATTERN), ([, quoted, plain]) =>
+    quoted === undefined ? removeQuotes(plain) : quoted.replaceAll('""', '"')
+  )
+}
+
 // TODO: refactor this !
 export function CSVtoLabels(CsvText: string): Label[] {
-  const lines = CsvText.split('\n')
+  const lines = CsvText.split(LINE_BREAK_PATTERN)
   if (lines.length < 0) {
     throw new Error('Empty CSV text')
   }
@@ -150,7 +307,7 @@ export function CSVtoLabels(CsvText: string): Label[] {
     throw new Error('Invalid CSV header')
   }
   const rows = lines.slice(1)
-  const labels: Label[] = []
+  const records: Record<string, unknown>[] = []
   const columns = header.split(',')
   for (const row of rows) {
     // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
@@ -164,49 +321,49 @@ export function CSVtoLabels(CsvText: string): Label[] {
       throw new Error('Invalid CSV line')
     }
 
-    const rowItems = row.split(',')
-    const label = {} as Label
+    const rowItems = splitCsvRow(row)
+    const record: Partial<Record<keyof Label, string>> = {}
     for (const [index, col] of columns.entries()) {
       const column = col.toLowerCase()
-      const value = removeQuotes(rowItems[index]) as never
+      const value = rowItems[index] ?? ''
 
       // INFO: the following is meant to parse CSV from nunchuk.
       // It assumes the txid was already added to the label ref field.
       if (column === 'vout') {
-        label.type = 'addr'
-        const txid = label.ref
+        record.type = 'addr'
+        const txid = record.ref
         const vout = value
-        label.ref = `${txid}:${vout}`
+        record.ref = `${txid}:${vout}`
         continue
       }
 
       // INFO: the following is meant to parse CSV from Sparrow.
       if (column === 'output') {
-        label.type = 'output'
-        label.ref = value
+        record.type = 'output'
+        record.ref = value
         continue
       }
 
-      if (column === 'address' && label.type === 'output') {
+      if (column === 'address' && record.type === 'output') {
         continue
       }
 
-      if (column === 'txid' && label.type === undefined) {
-        label.type = 'tx'
-        label.ref = value
+      if (column === 'txid' && record.type === undefined) {
+        record.type = 'tx'
+        record.ref = value
         continue
       }
 
-      if (bip329Alias[column] === undefined) {
+      const field = bip329Alias.get(column)
+      if (field === undefined) {
         continue
       }
 
-      const field = bip329Alias[column]
-      label[field] = value
+      record[field] = value
     }
-    labels.push(label)
+    records.push(record)
   }
-  return labels
+  return toLabels(records)
 }
 
 function labelsToJSON(labels: Label[]): string {
@@ -214,38 +371,43 @@ function labelsToJSON(labels: Label[]): string {
 }
 
 function JSONtoLabels(JSONtext: string): Label[] {
-  return JSON.parse(JSONtext) as Label[]
+  return toLabels(
+    z.array(z.record(z.string(), z.unknown())).parse(JSON.parse(JSONtext))
+  )
 }
 
 export function labelsToJSONL(labels: Label[]): string {
   return labels.map((label) => JSON.stringify(label)).join('\n')
 }
 
-export function JSONLtoLabels(JSONLines: string): Label[] {
-  const lines = JSONLines.split('\n')
-  const labels: Label[] = []
-  for (const line of lines) {
-    if (line === '') {
+function parseJsonlRecord(line: string): Record<string, unknown> {
+  const record: unknown = /^{.+}$/.test(line) ? JSON.parse(line) : undefined
+  if (!isRecord(record)) {
+    throw new Error('Invalid line (JSONL)')
+  }
+  return record
+}
+
+/**
+ * Renames the alias keys of a JSONL record (e.g. `txid`, `timestamp`) to
+ * their Label field and drops unknown keys. When a record carries both an
+ * alias and the canonical key, the alias value wins.
+ */
+function normalizeAliasKeys(record: Record<string, unknown>) {
+  const normalized: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    const field = bip329Alias.get(key.toLowerCase())
+    if (field === undefined || (field === key && field in normalized)) {
       continue
     }
-    if (!line.match(/^{.+}$/)) {
-      throw new Error('Invalid line (JSONL)')
-    }
-    const obj = JSON.parse(line)
-    for (const key of Object.keys(obj)) {
-      const aliasKey = key.toLowerCase()
-      if (bip329Alias[aliasKey] === undefined) {
-        delete obj[key]
-        continue
-      }
-      const field = bip329Alias[aliasKey]
-      if (field === key) {
-        continue
-      }
-      obj[field] = obj[key]
-      delete obj[key]
-    }
-    labels.push(obj as Label)
+    normalized[field] = value
   }
-  return labels
+  return normalized
+}
+
+export function JSONLtoLabels(JSONLines: string): Label[] {
+  const records = JSONLines.split(LINE_BREAK_PATTERN)
+    .filter((line) => line !== '')
+    .map((line) => normalizeAliasKeys(parseJsonlRecord(line)))
+  return toLabels(records)
 }

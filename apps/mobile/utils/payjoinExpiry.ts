@@ -1,6 +1,7 @@
 import { bech32 } from 'bech32'
 
 import { t } from '@/locales'
+import { ensureBitcoinPrefix, hasBitcoinPrefix } from '@/utils/parse'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 const MS_MIN = 60_000
@@ -60,13 +61,9 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
   }
 
   const looksLikeBitcoinUri =
-    pjEndpoint.toLowerCase().startsWith('bitcoin:') ||
-    pjEndpoint.toLowerCase().includes('pj=')
+    hasBitcoinPrefix(pjEndpoint) || pjEndpoint.toLowerCase().includes('pj=')
   if (looksLikeBitcoinUri) {
-    const withPrefix = pjEndpoint.toLowerCase().startsWith('bitcoin:')
-      ? pjEndpoint
-      : `bitcoin:${pjEndpoint}`
-    const parsed = parsePayjoinUri(withPrefix)
+    const parsed = parsePayjoinUri(ensureBitcoinPrefix(pjEndpoint))
     pjEndpoint = parsed.params?.pj ?? ''
   }
 
@@ -107,7 +104,7 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
     }
     // Bitcoin consensus encoding of u32 is little-endian.
     const unixSeconds =
-      (bytes[0]! | (bytes[1]! << 8) | (bytes[2]! << 16) | (bytes[3]! << 24)) >>> // eslint-disable-line unicorn/prefer-math-trunc -- >>> 0 is unsigned u32 coercion
+      (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> // eslint-disable-line unicorn/prefer-math-trunc -- >>> 0 is unsigned u32 coercion
       0
     // Guard against mock / garbage EX values.
     if (unixSeconds < 1_000_000_000) {

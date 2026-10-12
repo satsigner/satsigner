@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
+import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { fetchBackendNextBlockFee } from '@/api/explorerMempool'
 import BitcoinRpc from '@/api/rpc'
+import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type {
   Backend,
@@ -29,7 +30,7 @@ async function fetchNetworkInfo(
   network: Network,
   serverUrl: string,
   serverBackend: Backend,
-  mempoolUrl: string,
+  oracle: MempoolOracle,
   rpcCredentials?: RpcCredentials
 ): Promise<NetworkInfoResult> {
   let height: number | null = null
@@ -84,7 +85,6 @@ async function fetchNetworkInfo(
   let feeSource: FeeSource | null = backendFee !== null ? 'backend' : null
 
   try {
-    const oracle = new MempoolOracle(mempoolUrl)
     const needsHeight = height === null
     const needsFee = fee === null
     const [mempoolHeight, fees] = await Promise.all([
@@ -125,6 +125,7 @@ export function useNetworkInfo() {
 
   const { server } = configs[selectedNetwork]
   const mempoolUrl = configsMempool[selectedNetwork]
+  const oracle = useMempoolOracle(selectedNetwork)
 
   const { data } = useQuery({
     gcTime: 0,
@@ -133,7 +134,7 @@ export function useNetworkInfo() {
         selectedNetwork,
         server.url,
         server.backend,
-        mempoolUrl,
+        oracle,
         server.rpcCredentials
       )
       if (

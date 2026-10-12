@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { type Href, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { ScrollView, StyleSheet } from 'react-native'
 
@@ -29,6 +29,8 @@ import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
   nostrAccountHref,
+  nostrAuthorProfileHref,
+  nostrBunkerConnectHref,
   nostrNoteHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
@@ -111,17 +113,11 @@ export default function NostrAccountLanding() {
   }) {
     if (detected.type === 'nostr_connect') {
       const connectUri = detected.cleaned || detected.raw
-      router.navigate(
-        `${nostrAccountHref(npub, 'bunker')}?connectUri=${encodeURIComponent(connectUri)}` as Href
-      )
+      router.navigate(nostrBunkerConnectHref(npub, connectUri))
       return
     }
     const nostrUri = detected.cleaned || detected.raw
     router.navigate(nostrNoteHref(npub, nostrUri))
-  }
-
-  function handleSend() {
-    router.navigate(nostrAccountHref(npub, 'send'))
   }
 
   function handleNotePress(payload: {
@@ -137,15 +133,11 @@ export default function NostrAccountLanding() {
     router.navigate(nostrNoteHref(npub, nevent))
   }
 
-  function handleReceive() {
-    router.navigate(nostrAccountHref(npub, 'compose'))
-  }
-
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
-    onReceive: handleReceive,
-    onSend: handleSend
+    receiveHref: nostrAccountHref(npub, 'compose'),
+    sendHref: nostrAccountHref(npub, 'send')
   })
 
   if (!identity) {
@@ -220,6 +212,9 @@ export default function NostrAccountLanding() {
             onNotePress={handleNotePress}
             onZapPress={(receipt) =>
               router.navigate(nostrZapDetailHref(npub, receipt.id))
+            }
+            onAuthorPress={(authorNpub) =>
+              router.navigate(nostrAuthorProfileHref(npub, authorNpub))
             }
           />
         </SSVStack>

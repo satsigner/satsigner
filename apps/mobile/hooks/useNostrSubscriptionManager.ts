@@ -71,8 +71,8 @@ function useNostrSubscriptionManager() {
         ? NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
         : NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT
       await nostrApi.subscribeToKind1059(
-        commonNsec as string,
-        commonNpub as string,
+        commonNsec,
+        commonNpub,
         (messages) => messageProcessor.processEventBatch(account, messages),
         limit,
         lastProtocolEOSE,
@@ -101,8 +101,8 @@ function useNostrSubscriptionManager() {
       }
       await nostrApi.connect()
       await nostrApi.subscribeToKind1059(
-        deviceNsec as string,
-        deviceNpub as string,
+        deviceNsec,
+        deviceNpub,
         (messages) => messageProcessor.processEventBatch(account, messages),
         undefined,
         lastDataExchangeEOSE,

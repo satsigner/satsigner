@@ -12,6 +12,8 @@ import {
   NOSTR_WS_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import { Nip46IncomingRequest } from '@/types/models/Nostr'
+import { parseNip46Request } from '@/utils/nip46'
+import { parseNostrEvent } from '@/utils/nostrEvent'
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
 
@@ -27,14 +29,13 @@ function subscribeOnSocket(
 
   ws.addEventListener('message', (msg) => {
     try {
-      const data = JSON.parse(String(msg.data))
-      if (
-        Array.isArray(data) &&
-        data[0] === 'EVENT' &&
-        data[1] === subId &&
-        data[2]
-      ) {
-        onEvent(data[2] as NostrEvent)
+      const data: unknown = JSON.parse(String(msg.data))
+      if (!Array.isArray(data) || data[0] !== 'EVENT' || data[1] !== subId) {
+        return
+      }
+      const event = parseNostrEvent(data[2])
+      if (event) {
+        onEvent(event)
       }
     } catch {
       // ignore parse errors
@@ -167,21 +168,13 @@ export class Nip46BunkerService {
 
         try {
           const decrypted = nip44Decrypt(event.content, convKey)
-          const parsed = JSON.parse(decrypted) as {
-            id?: string
-            method?: string
-            params?: string[]
-          }
+          const request = parseNip46Request(JSON.parse(decrypted))
 
-          if (!parsed.id || !parsed.method) {
+          if (!request) {
             return
           }
 
-          onRequest({
-            id: parsed.id,
-            method: parsed.method,
-            params: Array.isArray(parsed.params) ? parsed.params : []
-          })
+          onRequest(request)
         } catch {
           // decryption failed
         }

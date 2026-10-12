@@ -400,6 +400,8 @@
     "transaction.received": "Transaction received! Click \"Go to Sign Flow\" to continue.",
     "transaction.signFlow": "Go to Sign Flow",
     "transaction.signRequest": "Transaction Sign Request",
+    "transactions.empty": "No transactions",
+    "transactions.loading": "Loading transactions...",
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic",
     "entropy.coin.bitsNote": "Each flip adds 1 bit of entropy.",
