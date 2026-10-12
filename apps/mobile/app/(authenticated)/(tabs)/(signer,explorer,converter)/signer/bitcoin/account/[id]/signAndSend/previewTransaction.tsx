@@ -1,7 +1,13 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ComponentProps, useEffect, useMemo, useState } from 'react'
+import {
+  type ComponentProps,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState
+} from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import Animated from 'react-native-reanimated'
@@ -1236,22 +1242,27 @@ function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
     loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedLimited')
   }
 
-  useEffect(() => {
-    if (!psbt) {
-      return
-    }
-
+  // Reads the latest account without making every account update re-import
+  // the PSBT (which would clear the transaction and any signatures).
+  const loadRoutePsbt = useEffectEvent((psbtBase64: string) => {
     setIsLoadingPSBT(true)
     clearTransaction()
     setSignedTx('')
 
     if (account) {
-      processPsbtWithAccount(psbt, account)
+      processPsbtWithAccount(psbtBase64, account)
     } else {
-      processPsbtWithoutAccount(psbt)
+      processPsbtWithoutAccount(psbtBase64)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [psbt, account])
+  })
+
+  const accountId = account?.id
+  useEffect(() => {
+    if (!psbt) {
+      return
+    }
+    loadRoutePsbt(psbt)
+  }, [psbt, accountId])
 
   useEffect(() => {
     if (psbt) {
