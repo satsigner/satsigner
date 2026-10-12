@@ -7,7 +7,7 @@ import {
   useCameraPermissions
 } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -801,7 +801,7 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        <SSVStack style={{ alignSelf: 'stretch' }}>
+        <SSVStack style={styles.permissionActions}>
           {!permission?.granted && (
             <SSButton
               label={t('camera.enableCameraAccess')}
@@ -821,5 +821,11 @@ function SSCameraModal({
     </SSModal>
   )
 }
+
+const styles = StyleSheet.create({
+  permissionActions: {
+    alignSelf: 'stretch'
+  }
+})
 
 export default SSCameraModal
