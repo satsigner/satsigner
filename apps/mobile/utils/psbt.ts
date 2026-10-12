@@ -16,6 +16,7 @@ import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { stripBitcoinPrefix } from '@/utils/parse'
 
 const bip32 = BIP32Factory(ecc)
 
@@ -1289,9 +1290,7 @@ export function bindScannedDataToPsbt(
   originalPsbtBase64: string | undefined,
   convertPsbtToFinalTransaction: (psbtHex: string) => string
 ) {
-  const processedData = data.toLowerCase().startsWith('bitcoin:')
-    ? data.substring('bitcoin:'.length)
-    : data
+  const processedData = stripBitcoinPrefix(data)
 
   if (processedData.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return originalPsbtBase64
