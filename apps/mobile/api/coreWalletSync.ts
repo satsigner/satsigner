@@ -697,22 +697,25 @@ async function syncWithCoreWallet(
       appNetwork
     )
   ]
+  // Keep the highest indices Core tracks, even past the stop gap.
+  const withCoreExternal = appendAddressAtIndex(
+    wallet,
+    peeked,
+    'external',
+    coreMaxExternal,
+    appNetwork
+  )
+  const withCoreIndices = appendAddressAtIndex(
+    wallet,
+    withCoreExternal,
+    'internal',
+    coreMaxInternal,
+    appNetwork
+  )
   const addresses = ensureAddressesIncludeSeenOutputs(
     wallet,
     appNetwork,
-    appendAddressAtIndex(
-      wallet,
-      appendAddressAtIndex(
-        wallet,
-        peeked,
-        'external',
-        coreMaxExternal,
-        appNetwork
-      ),
-      'internal',
-      coreMaxInternal,
-      appNetwork
-    ),
+    withCoreIndices,
     collectTransactionOutputAddresses(transactions),
     ownershipScanLimit(Math.max(coreMaxExternal, coreMaxInternal))
   )
