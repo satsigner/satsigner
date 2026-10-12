@@ -57,7 +57,7 @@ function SSPsbtQRExportModal({
     isDataTooLargeForSingleQR,
     isMultiPartQR,
     qrComplexity,
-    qrError,
+    qrErrorKey,
     qrRef,
     setAnimationSpeed,
     setDisplayMode,
@@ -71,6 +71,7 @@ function SSPsbtQRExportModal({
   )
   const trackWidth = screenWidth * QR_TRACK_WIDTH_RATIO
   const qrValue = getQRValue()
+  const displayModeDescription = getDisplayModeDescription()
   const isAtMaxDensity = qrComplexity >= QR_COMPLEXITY_MAX - 1
   // A single static QR (max complexity) can't hold data that is too large.
   const canIncreaseComplexity = !(
@@ -105,12 +106,12 @@ function SSPsbtQRExportModal({
         <SSText color="white" uppercase style={styles.title}>
           {t('transaction.preview.PSBT')}
         </SSText>
-        {qrError && (
+        {qrErrorKey && (
           <SSText color="white" size="sm" style={styles.statusText}>
-            {qrError}
+            {t(qrErrorKey)}
           </SSText>
         )}
-        {!qrError && hasChunks && (
+        {!qrErrorKey && hasChunks && (
           <SSShareableQR
             qrRef={qrRef}
             value={qrValue}
@@ -134,7 +135,7 @@ function SSPsbtQRExportModal({
               size="sm"
               style={{ maxWidth: screenWidth * QR_SIZE_WIDTH_RATIO }}
             >
-              {getDisplayModeDescription()}
+              {t(displayModeDescription.key, displayModeDescription.params)}
             </SSText>
             {isDataTooLargeForSingleQR() && isAtMaxDensity && (
               <SSText center color="muted" size="xs">

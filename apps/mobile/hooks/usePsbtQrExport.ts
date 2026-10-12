@@ -9,7 +9,6 @@ import {
   QRDisplayMode
 } from '@/constants/qr'
 import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
-import { t } from '@/locales'
 import {
   createBbqrPsbtChunks,
   createRawQrChunks,
@@ -22,6 +21,15 @@ const QR_VALUE_NO_DATA = 'NO_DATA'
 const QR_VALUE_TOO_LARGE = 'DATA_TOO_LARGE_FOR_QR'
 
 type QrChunks = Record<QRDisplayMode, string[]>
+
+// An i18n key plus its interpolation params, translated by the caller.
+type I18nMessage = { key: string; params?: Record<string, number> }
+
+const STATIC_QR_DESCRIPTION_KEYS: Record<QRDisplayMode, string> = {
+  [QRDisplayMode.BBQR]: 'transaction.preview.staticQrBbqr',
+  [QRDisplayMode.RAW]: 'transaction.preview.staticQrPsbt',
+  [QRDisplayMode.UR]: 'transaction.preview.staticQrUr'
+}
 
 const EMPTY_CHUNKS: QrChunks = {
   [QRDisplayMode.BBQR]: [],
@@ -85,7 +93,6 @@ export function usePsbtQrExport(
     active ? psbtBase64 : undefined,
     qrComplexity
   )
-  const qrError = errorKey ? t(errorKey) : null
   const modeChunks = chunks[displayMode]
   const isMultiPartQR = modeChunks.length > 1
   const currentChunk =
@@ -119,24 +126,20 @@ export function usePsbtQrExport(
     return modeChunks.some((chunk) => chunk.length > QR_MAX_DATA_SIZE)
   }
 
-  function getDisplayModeDescription() {
+  function getDisplayModeDescription(): I18nMessage {
     if (modeChunks.length === 0) {
-      return t('error.psbt.notAvailable')
+      return { key: 'error.psbt.notAvailable' }
     }
     if (isMultiPartQR) {
-      return t('transaction.preview.scanAllChunks', {
-        current: currentChunk + 1,
-        total: modeChunks.length
-      })
+      return {
+        key: 'transaction.preview.scanAllChunks',
+        params: { current: currentChunk + 1, total: modeChunks.length }
+      }
     }
     if (qrComplexity !== QR_COMPLEXITY_MAX) {
-      return t('transaction.preview.singleChunk')
+      return { key: 'transaction.preview.singleChunk' }
     }
-    return {
-      [QRDisplayMode.BBQR]: t('transaction.preview.staticQrBbqr'),
-      [QRDisplayMode.RAW]: t('transaction.preview.staticQrPsbt'),
-      [QRDisplayMode.UR]: t('transaction.preview.staticQrUr')
-    }[displayMode]
+    return { key: STATIC_QR_DESCRIPTION_KEYS[displayMode] }
   }
 
   return {
@@ -148,7 +151,7 @@ export function usePsbtQrExport(
     isDataTooLargeForSingleQR,
     isMultiPartQR,
     qrComplexity,
-    qrError,
+    qrErrorKey: errorKey,
     qrRef,
     setAnimationSpeed,
     setDisplayMode,
