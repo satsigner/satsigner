@@ -249,15 +249,6 @@ async function readElectrumSnapshot(
   }
 }
 
-// A failed close must not turn a finished sync into an error.
-function closeQuietly(electrum: ElectrumClient) {
-  try {
-    electrum.close()
-  } catch {
-    // the socket is already gone
-  }
-}
-
 async function fetchElectrumSnapshot(
   url: string,
   network: Network,
@@ -276,7 +267,7 @@ async function fetchElectrumSnapshot(
       onProgress
     )
   } finally {
-    closeQuietly(electrum)
+    electrum.close()
   }
 }
 
