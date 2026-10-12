@@ -1,6 +1,9 @@
 import { KeychainKind } from 'react-native-bdk-sdk'
 
-import { maxCoreKeychainIndex, revealKnownAddresses } from '@/api/bdkWalletMappers'
+import {
+  maxCoreKeychainIndex,
+  revealKnownAddresses
+} from '@/api/bdkWalletMappers'
 import { type Account } from '@/types/models/Account'
 
 jest.mock<typeof import('@/utils/bip39')>('@/utils/bip39', () => ({
