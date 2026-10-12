@@ -18,6 +18,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
@@ -528,7 +529,7 @@ export default function EcashTransactionDetailPage() {
                     numberOfLines={1}
                     style={{ flex: 1, textAlign: 'right' }}
                   >
-                    {new Date(transaction.expiry * 1000).toLocaleString()}
+                    {new Date(transaction.expiry * MS_PER_SECOND).toLocaleString()}
                   </SSText>
                 </SSHStack>
               )}

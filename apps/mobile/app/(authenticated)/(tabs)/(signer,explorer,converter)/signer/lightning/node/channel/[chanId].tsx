@@ -14,6 +14,7 @@ import {
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useLND } from '@/hooks/useLND'
 import { useLndChannelDetailActions } from '@/hooks/useLndChannelDetailActions'
 import { useLndChannelHistoryQuery } from '@/hooks/useLndChannelHistoryQuery'
@@ -339,7 +340,7 @@ export default function LightningChannelDetailPage() {
     if (!Number.isFinite(sec) || sec <= 0) {
       return '—'
     }
-    return new Date(sec * 1000).toLocaleString('en-US', {
+    return new Date(sec * MS_PER_SECOND).toLocaleString('en-US', {
       day: 'numeric',
       hour: 'numeric',
       hour12: true,

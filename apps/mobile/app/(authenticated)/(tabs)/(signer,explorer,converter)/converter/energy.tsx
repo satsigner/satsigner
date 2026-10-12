@@ -11,6 +11,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -845,7 +846,7 @@ export default function Energy() {
         lastTemplateUpdateRef.current = Date.now()
 
         const templateAge = Math.floor(
-          (Date.now() - lastTemplateUpdateRef.current) / 1000
+          (Date.now() - lastTemplateUpdateRef.current) / MS_PER_SECOND
         )
 
         // If template is too old, reject the block
@@ -1036,7 +1037,7 @@ export default function Energy() {
 
         const updateMiningStats = () => {
           const now = Date.now()
-          const elapsed = (now - startTime) / 1000
+          const elapsed = (now - startTime) / MS_PER_SECOND
           const hashesPerSecond = Math.floor(hashes / elapsed)
           const powerConsumption = isNaN(hashesPerSecond)
             ? '0'
@@ -1558,7 +1559,7 @@ export default function Energy() {
                   <SSText size="xl">
                     {blockTemplate?.curtime
                       ? Math.floor(
-                          (Date.now() / 1000 - blockTemplate.curtime) / 60
+                          (Date.now() / MS_PER_SECOND - blockTemplate.curtime) / 60
                         )
                       : '0'}
                   </SSText>

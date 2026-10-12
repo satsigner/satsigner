@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -186,7 +187,7 @@ function useSyncAccountWithAddress() {
         sent,
         size: t.size,
         timestamp: t.status.block_time
-          ? new Date(t.status.block_time * 1000)
+          ? new Date(t.status.block_time * MS_PER_SECOND)
           : undefined,
         type: received > 0 ? 'receive' : 'send',
         version: t.version,
@@ -242,7 +243,7 @@ function useSyncAccountWithAddress() {
         label: '',
         script,
         timestamp: u.status.block_time
-          ? new Date(u.status.block_time * 1000)
+          ? new Date(u.status.block_time * MS_PER_SECOND)
           : undefined,
         txid: u.txid,
         value: u.value,
@@ -432,7 +433,7 @@ function useSyncAccountWithAddress() {
         received,
         sent: 0, // THIS HAS TO BE COMPUTED LATER
         size: rawTxParsed.byteLength(),
-        timestamp: new Date(timestamp * 1000),
+        timestamp: new Date(timestamp * MS_PER_SECOND),
         type: received > 0 ? 'receive' : 'send',
         version: rawTxParsed.version,
         vin: [],
@@ -494,7 +495,7 @@ function useSyncAccountWithAddress() {
             bitcoinjsNetwork(network)
           )
         ],
-        timestamp: new Date(timestamp * 1000),
+        timestamp: new Date(timestamp * MS_PER_SECOND),
         txid: electrumUtxo.tx_hash,
         value: electrumUtxo.value,
         vout: electrumUtxo.tx_pos

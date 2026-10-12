@@ -1,5 +1,6 @@
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_DELAY_BETWEEN_PUBLISHES_MS } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
@@ -37,7 +38,7 @@ function useNostrPublish() {
 
     let nostrApi: NostrAPI | null = null
     const messageContent = {
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: Math.floor(Date.now() / MS_PER_SECOND),
       description: message
     }
 
@@ -82,7 +83,7 @@ function useNostrPublish() {
 
     let nostrApi: NostrAPI | null = null
     const messageContent = {
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: Math.floor(Date.now() / MS_PER_SECOND),
       data: { data: psbt, data_type: 'PSBT' },
       description: 'PSBT for signing'
     }
