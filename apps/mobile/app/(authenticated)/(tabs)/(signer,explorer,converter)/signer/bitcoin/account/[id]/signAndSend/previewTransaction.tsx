@@ -1,20 +1,12 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import {
-  type ComponentProps,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useState
-} from 'react'
+import { type ComponentProps, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildPsbt, buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
@@ -32,13 +24,13 @@ import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
-import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
+import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -52,21 +44,18 @@ import { type Account, type Key } from '@/types/models/Account'
 import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinInvoice } from '@/types/payjoin'
+import { type Notice } from '@/types/ui/notice'
 import { getKeyFingerprint } from '@/utils/account'
-import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { formatMessage } from '@/utils/notice'
 import { formatPayjoinSummary } from '@/utils/payjoinUri'
 import {
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
   combinePsbts,
-  createMockPsbt,
-  type ExtractedTransactionData,
   extractIndividualSignedPsbts,
-  extractTransactionDataFromPSBT,
-  extractTransactionDataFromPSBTEnhanced,
-  generateTransactionId,
   getCollectedSignedPsbts,
   getCollectedSignerPubkeys,
   getPsbtTxidOrFallback,
@@ -87,9 +76,6 @@ import {
 
 const tn = _tn('transaction.build.preview')
 
-// Shorter outputs are likely still being typed; don't flag them as invalid.
-const MIN_VALID_ADDRESS_LENGTH = 10
-
 const TRANSACTION_CHART_SCALE = 0.9
 
 type PsbtManagement = ReturnType<typeof usePSBTManagement>
@@ -102,6 +88,11 @@ type NfcModalProps = {
   nfcPulseStyle: ReturnType<typeof useNfcPulse>
   onClose: () => void
   visible: boolean
+}
+
+// Shows a message reported by one of the preview hooks.
+function showNotice(notice: Notice) {
+  toast[notice.type](formatMessage(notice))
 }
 
 function PreviewTransaction() {
@@ -170,11 +161,16 @@ function PreviewTransaction() {
   const {
     isDustError,
     isLoadingPSBT,
-    psbtBuildErrorMessage,
+    psbtBuildError,
     psbtBuildStatus,
     serializedPsbt,
     transactionId
-  } = usePsbtPreview({ account, id, psbt })
+  } = useTransactionPsbt({
+    account,
+    accountId: id,
+    onNotice: showNotice,
+    routePsbt: psbt
+  })
 
   const validationResults = useSignatureValidation({
     account,
@@ -424,7 +420,7 @@ function PreviewTransaction() {
   const propsIdSection = {
     isDustError,
     isLoadingPSBT,
-    psbtBuildErrorMessage,
+    psbtBuildErrorMessage: psbtBuildError ? formatMessage(psbtBuildError) : '',
     psbtBuildStatus,
     transactionId
   }
@@ -1097,321 +1093,6 @@ function PreviewTransactionSeedWordsModal({
   )
 }
 
-type UsePsbtPreviewParams = {
-  psbt: string | undefined
-  id: string
-  account: Account | undefined
-}
-
-function usePsbtPreview({ psbt, id, account }: UsePsbtPreviewParams) {
-  const [
-    inputs,
-    outputs,
-    fee,
-    rbf,
-    setPsbt,
-    txBuilderResult,
-    setSignedTx,
-    addInput,
-    addOutput,
-    setFee,
-    setRbf,
-    clearTransaction,
-    clearPsbt
-  ] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.fee,
-      state.rbf,
-      state.setPsbt,
-      state.psbt,
-      state.setSignedTx,
-      state.addInput,
-      state.addOutput,
-      state.setFee,
-      state.setRbf,
-      state.clearTransaction,
-      state.clearPsbt
-    ])
-  )
-  const wallet = useGetAccountWallet(id)
-  const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { server } = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork]
-  )
-
-  const [transactionId, setTransactionId] = useState('')
-  const [isLoadingPSBT, setIsLoadingPSBT] = useState(false)
-  const [psbtBuildStatus, setPsbtBuildStatus] =
-    useState<PsbtBuildStatus>('idle')
-  const [psbtBuildErrorMessage, setPsbtBuildErrorMessage] = useState('')
-  const [isDustError, setIsDustError] = useState(false)
-
-  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
-    for (const input of extractedData.inputs) {
-      addInput({
-        addressTo: input.address,
-        keychain: input.keychain || 'external',
-        label: input.label,
-        script: Buffer.from(input.script, 'hex').toJSON().data,
-        txid: input.txid,
-        value: input.value,
-        vout: input.vout
-      })
-    }
-
-    for (const output of extractedData.outputs) {
-      addOutput({
-        amount: output.value,
-        label: output.label || '',
-        to: output.address
-      })
-    }
-
-    if (extractedData.fee) {
-      setFee(extractedData.fee)
-    }
-
-    setRbf(true)
-  }
-
-  function processBasicPsbt(psbtBase64: string) {
-    const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
-    if (extractedData) {
-      processExtractedPsbtData(extractedData)
-    }
-    const txid = generateTransactionId(psbtBase64)
-    setTransactionId(txid)
-    const mockResult = createMockPsbt(psbtBase64, txid, extractedData?.fee ?? 0)
-    setPsbt(mockResult)
-    setIsLoadingPSBT(false)
-  }
-
-  // Loads a PSBT without account context, toasting `successKey` on success.
-  function loadBasicPsbt(psbtBase64: string, successKey: string) {
-    try {
-      processBasicPsbt(psbtBase64)
-      toast.info(t(successKey))
-    } catch {
-      setIsLoadingPSBT(false)
-      toast.error(t('common.error.processPSBT'))
-      setTransactionId(createErrorTransactionId())
-    }
-  }
-
-  // Account-aware PSBT data, or null (after a warning) when it doesn't match.
-  function readAccountPsbtData(
-    psbtBase64: string,
-    accountData: NonNullable<typeof account>
-  ) {
-    try {
-      const extractedData = extractTransactionDataFromPSBTEnhanced(
-        psbtBase64,
-        accountData
-      )
-      if (!extractedData) {
-        toast.warning(t('transaction.preview.psbtNotMatchAccount'))
-      }
-      return extractedData
-    } catch (error) {
-      handlePsbtExtractionError(error)
-      return null
-    }
-  }
-
-  function processPsbtWithAccount(
-    psbtBase64: string,
-    accountData: NonNullable<typeof account>
-  ) {
-    const extractedData = readAccountPsbtData(psbtBase64, accountData)
-    if (!extractedData) {
-      loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedBasic')
-      return
-    }
-
-    processExtractedPsbtData(extractedData)
-    const txid = generateTransactionId(psbtBase64)
-    setTransactionId(txid)
-    setPsbt(createMockPsbt(psbtBase64, txid, extractedData.fee))
-    setIsLoadingPSBT(false)
-  }
-
-  function processPsbtWithoutAccount(psbtBase64: string) {
-    loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedLimited')
-  }
-
-  // Reads the latest account without making every account update re-import
-  // the PSBT (which would clear the transaction and any signatures).
-  const loadRoutePsbt = useEffectEvent((psbtBase64: string) => {
-    setIsLoadingPSBT(true)
-    clearTransaction()
-    setSignedTx('')
-
-    if (account) {
-      processPsbtWithAccount(psbtBase64, account)
-    } else {
-      processPsbtWithoutAccount(psbtBase64)
-    }
-  })
-
-  const accountId = account?.id
-  useEffect(() => {
-    if (!psbt) {
-      return
-    }
-    loadRoutePsbt(psbt)
-  }, [psbt, accountId])
-
-  // Builds the preview PSBT from the builder state. Reads account and server
-  // at build time, so their updates do not trigger a rebuild loop.
-  const buildPreviewPsbt = useEffectEvent(
-    async (request: { cancelled: boolean }) => {
-      if (psbt) {
-        setPsbtBuildStatus('idle')
-        setPsbtBuildErrorMessage('')
-        if (txBuilderResult?.txid()) {
-          setTransactionId(txBuilderResult.txid())
-        }
-        return
-      }
-
-      clearPsbt()
-      setTransactionId('')
-      setPsbtBuildStatus('building')
-      setPsbtBuildErrorMessage('')
-
-      if (!wallet) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingWallet'))
-          toast.error(t('error.notFound.wallet'))
-        }
-        return
-      }
-
-      if (inputs.size === 0) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingInputs'))
-        }
-        return
-      }
-
-      if (outputs.length === 0) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildErrorMessage(t('transaction.error.previewMissingOutputs'))
-        }
-        return
-      }
-
-      try {
-        const inputArray = Array.from(inputs.values())
-        const outputArray = Array.from(outputs.values())
-
-        const transaction = account
-          ? await buildPsbt(wallet, server, account, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
-          : await buildTransaction(wallet, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
-
-        if (request.cancelled) {
-          return
-        }
-
-        setTransactionId(transaction.txid())
-        setPsbt(transaction)
-        setPsbtBuildStatus('idle')
-        setPsbtBuildErrorMessage('')
-        setIsDustError(false)
-      } catch (error) {
-        if (request.cancelled) {
-          return
-        }
-
-        const { message, isDust } = mapBuildTransactionError(error)
-        setPsbtBuildStatus('error')
-        setPsbtBuildErrorMessage(message)
-        setIsDustError(isDust)
-
-        if (isDust) {
-          return
-        }
-
-        if (String(error).includes('UTXO not found')) {
-          toast.error(t('transaction.preview.utxoNotFound'))
-        } else {
-          toast.error(message)
-        }
-      }
-    }
-  )
-
-  useEffect(() => {
-    const request = { cancelled: false }
-    void buildPreviewPsbt(request)
-    return () => {
-      request.cancelled = true
-    }
-  }, [wallet, inputs, outputs, fee, rbf, network, psbt])
-
-  // Separate effect to validate addresses and show errors
-  // Only validate when we have a complete transaction (not during editing)
-  useEffect(() => {
-    if (!account || !outputs.length || !txBuilderResult) {
-      return
-    }
-
-    const network = bitcoinjsNetwork(account.network)
-
-    for (const output of outputs) {
-      if (!output.to || output.to.trim() === '') {
-        continue
-      }
-
-      try {
-        bitcoinjs.address.toOutputScript(output.to, network)
-      } catch {
-        // Only show error for clearly invalid addresses, not during editing
-        // Check if the address looks like it might be incomplete (too short)
-        if (output.to.length < MIN_VALID_ADDRESS_LENGTH) {
-          continue // Skip validation for very short addresses (likely incomplete)
-        }
-
-        toast.error(
-          t('transaction.preview.invalidAddressFormat', {
-            address: output.to
-          })
-        )
-        break // Only show one error at a time
-      }
-    }
-  }, [account, outputs, txBuilderResult])
-
-  const psbtBase64 = txBuilderResult?.toBase64()
-  const serializedPsbt = psbtBase64
-    ? Buffer.from(psbtBase64, 'base64').toString('hex')
-    : ''
-
-  return {
-    isDustError,
-    isLoadingPSBT,
-    psbtBuildErrorMessage,
-    psbtBuildStatus,
-    serializedPsbt,
-    transactionId
-  }
-}
-
 type UseScannedDataProcessorParams = {
   convertPsbtToFinalTransaction: PsbtManagement['convertPsbtToFinalTransaction']
 }
@@ -1871,10 +1552,6 @@ function getTransactionIdDisplayValue({
   return transactionId || '—'
 }
 
-function createErrorTransactionId() {
-  return `PSBT-ERROR-${Date.now().toString(36)}`
-}
-
 // Camera title: ask for a SeedQR when signing for a cosigner whose key has no
 // stored mnemonic, otherwise a generic "scan QR code".
 function getCameraModalTitle(
@@ -1890,37 +1567,6 @@ function getCameraModalTitle(
   return hasMnemonic
     ? t('camera.scanQRCode')
     : t('transaction.preview.scanSeedQR')
-}
-
-function mapBuildTransactionError(error: unknown) {
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  const lower = errorMessage.toLowerCase()
-  if (lower.includes('dust')) {
-    return {
-      isDust: true,
-      message: t('transaction.error.previewBuildFailedDust')
-    }
-  }
-  return { isDust: false, message: errorMessage }
-}
-
-function handlePsbtExtractionError(error: unknown) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-  if (
-    errorMessage.includes('fingerprint') ||
-    errorMessage.includes('derivation') ||
-    errorMessage.includes('not match')
-  ) {
-    toast.warning(t('transaction.preview.psbtNotMatchAccount'))
-  } else if (
-    errorMessage.includes('Invalid PSBT') ||
-    errorMessage.includes('malformed')
-  ) {
-    toast.error(t('transaction.preview.psbtInvalidFormat'))
-  } else {
-    toast.warning(t('transaction.preview.psbtEnhancedFailed'))
-  }
 }
 
 const styles = StyleSheet.create({
