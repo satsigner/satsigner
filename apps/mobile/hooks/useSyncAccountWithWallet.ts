@@ -3,12 +3,8 @@ import { type BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  getWalletOverview,
-  revealKnownAddresses,
-  syncWallet,
-  syncWithCoreWallet
-} from '@/api/bdk'
+import { syncWallet, syncWithCoreWallet } from '@/api/bdk'
+import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { t } from '@/locales'
