@@ -3,6 +3,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 
+/** Props shape shared by components that render amounts. */
+export type DisplayPreferences = ReturnType<typeof useDisplayPreferences>
+
 /**
  * Amount display settings and the current bitcoin price, for screens to pass
  * down to `SS` components as props. Subscribing once here keeps list cells
@@ -31,6 +34,3 @@ export function useDisplayPreferences() {
     useZeroPadding
   }
 }
-
-/** Props shape shared by components that render amounts. */
-export type DisplayPreferences = ReturnType<typeof useDisplayPreferences>
