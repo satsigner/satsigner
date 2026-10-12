@@ -112,6 +112,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { getAccountTotalBalance } from '@/utils/account'
+import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
@@ -780,6 +781,9 @@ function TotalTransactions({
   const activityTitle = isSyncing
     ? syncProgressLabel(tasksDone, totalTasks)
     : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
+    ? t('account.transactions.loading')
+    : t('account.transactions.empty')
 
   return (
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
@@ -933,7 +937,7 @@ function TotalTransactions({
               )}
               ListEmptyComponent={
                 <SSVStack style={{ alignItems: 'center', paddingTop: 50 }}>
-                  <SSText color="muted">No transactions</SSText>
+                  <SSText color="muted">{emptyListLabel}</SSText>
                 </SSVStack>
               }
               drawDistance={TX_LIST_DRAW_DISTANCE}
