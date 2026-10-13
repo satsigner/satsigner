@@ -6,17 +6,6 @@ import {
 } from '@/api/bdkWalletMappers'
 import { type Account } from '@/types/models/Account'
 
-jest.mock<typeof import('@/utils/bip39')>('@/utils/bip39', () => ({
-  detectElectrumSeed: jest.fn(() => null),
-  getPrivateDescriptorFromElectrumMnemonic: jest.fn(),
-  getPrivateDescriptorFromMnemonic: jest.fn(),
-  mnemonicToSeed: jest.fn(() => new Uint8Array())
-}))
-
-jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
-  default: {} as unknown as typeof import('@/api/electrum').default
-}))
-
 const STOP_GAP = 20
 
 function addressAt(index: number, keychain: 'external' | 'internal') {
