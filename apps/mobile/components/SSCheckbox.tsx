@@ -1,10 +1,4 @@
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import BouncyCheckbox, {
   type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
@@ -12,6 +6,7 @@ import BouncyCheckbox, {
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
+import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
 
 const DEFAULT_CONTAINER_STYLE: StyleProp<ViewStyle> = {}
@@ -39,7 +34,7 @@ function SSCheckbox({
   ...props
 }: SSCheckboxProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
     >
       <View
@@ -74,7 +69,7 @@ function SSCheckbox({
           </SSVStack>
         )}
       </View>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

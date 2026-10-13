@@ -1,11 +1,5 @@
 import { useState } from 'react'
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useFiatData } from '@/hooks/useFiatData'
@@ -31,6 +25,7 @@ import SSAmountDisplay from './SSAmountDisplay'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
+import SSPressable from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -175,7 +170,7 @@ function SSTransactionCard({
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <TouchableOpacity onPress={onPress}>
+    <SSPressable onPress={onPress}>
       <SSVStack
         style={[
           {
@@ -431,7 +426,7 @@ function SSTransactionCard({
           </SSVStack>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

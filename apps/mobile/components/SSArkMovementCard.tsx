@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
@@ -25,6 +25,8 @@ import {
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
+
+import SSPressable from './SSPressable'
 
 type SSArkMovementCardProps = {
   movement: ArkMovement
@@ -75,7 +77,7 @@ function SSArkMovementCard({
         : ''
 
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={onPress}
       activeOpacity={0.7}
       style={isMuted ? styles.mutedContainer : undefined}
@@ -144,7 +146,7 @@ function SSArkMovementCard({
           )}
         </SSVStack>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

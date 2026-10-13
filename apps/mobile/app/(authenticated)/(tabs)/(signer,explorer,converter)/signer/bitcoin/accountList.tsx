@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { View, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
 import {
   NestableDraggableFlatList,
   NestableScrollContainer,
@@ -17,6 +17,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
+import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import {
@@ -737,7 +738,7 @@ export default function AccountList() {
             gap="none"
             style={{ alignItems: 'center', marginBottom: 24 }}
           >
-            <TouchableOpacity
+            <SSPressable
               onPress={() => router.navigate('/settings/network/server')}
             >
               <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
@@ -768,7 +769,7 @@ export default function AccountList() {
                   {connectionParts.url}
                 </SSText>
               </SSHStack>
-            </TouchableOpacity>
+            </SSPressable>
             <SSBlockFeePriceRow
               blockHeight={blockHeight}
               btcPrice={btcPrice}

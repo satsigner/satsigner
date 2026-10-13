@@ -20,7 +20,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -71,6 +70,7 @@ import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPaste from '@/components/SSPaste'
+import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -267,7 +267,7 @@ function PayjoinSessionCard({
   }
 
   return (
-    <TouchableOpacity onPress={handleOpenSession} activeOpacity={0.7}>
+    <SSPressable onPress={handleOpenSession} activeOpacity={0.7}>
       <SSVStack
         gap="none"
         style={{
@@ -340,7 +340,7 @@ function PayjoinSessionCard({
           >
             {pollUrl ?? session.address}
           </SSText>
-          <TouchableOpacity
+          <SSPressable
             onPress={(e) => {
               e.stopPropagation()
               handleDiscardSession()
@@ -350,10 +350,10 @@ function PayjoinSessionCard({
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {t('transaction.discard')}
             </SSText>
-          </TouchableOpacity>
+          </SSPressable>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
@@ -388,7 +388,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
       : ''
 
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={() =>
         router.navigate(
           readyToBroadcast
@@ -456,7 +456,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             {outputCount > 0 ? `, ${outputCount} ${outputLabel}` : ''}
             {fee > 0 ? `, ${fee.toLocaleString()} ${t('bitcoin.sats')}` : ''}
           </SSText>
-          <TouchableOpacity
+          <SSPressable
             onPress={(e) => {
               e.stopPropagation()
               clearTransaction()
@@ -466,10 +466,10 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
               {t('transaction.discard')}
             </SSText>
-          </TouchableOpacity>
+          </SSPressable>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
@@ -1098,7 +1098,7 @@ function SSAddressList({
         {addresses.map((address, index) => (
           <SSVStack key={address.address} gap="xs">
             {index > 0 && <SSSeparator color="gradient" />}
-            <TouchableOpacity
+            <SSPressable
               onPress={() =>
                 router.navigate({
                   params: { addr: address.address, id: accountId },
@@ -1107,7 +1107,7 @@ function SSAddressList({
               }
             >
               <AddressCard address={{ index, ...address }} />
-            </TouchableOpacity>
+            </SSPressable>
           </SSVStack>
         ))}
         {!isMultiAddressWatchOnly && (
@@ -1269,7 +1269,7 @@ function DerivedAddresses({
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (
-      <TouchableOpacity
+      <SSPressable
         onPress={() =>
           router.navigate(
             `/signer/bitcoin/account/${account.id}/address/${item.address}`
@@ -1324,7 +1324,7 @@ function DerivedAddresses({
             {item.summary.utxos}
           </SSText>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
     ),
     [] // eslint-disable-line react-hooks/exhaustive-deps
   )
@@ -2353,7 +2353,7 @@ export default function AccountView() {
           gap="none"
           style={{ alignItems: 'center', paddingHorizontal: '6%' }}
         >
-          <TouchableOpacity
+          <SSPressable
             onPress={() => router.navigate('/settings/network/server')}
           >
             <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
@@ -2386,7 +2386,7 @@ export default function AccountView() {
                 </SSText>
               </SSHStack>
             </SSHStack>
-          </TouchableOpacity>
+          </SSPressable>
           <SSBlockFeePriceRow
             blockHeight={networkBlockHeight}
             btcPrice={btcPrice}
@@ -2463,7 +2463,7 @@ export default function AccountView() {
           account?.keys[0]?.creationType !== 'importAddress' &&
           !account?.birthdayDate && (
             <View style={{ marginTop: 4, paddingHorizontal: '6%' }}>
-              <TouchableOpacity
+              <SSPressable
                 onPress={() =>
                   router.navigate({
                     params: { id },
@@ -2474,7 +2474,7 @@ export default function AccountView() {
                 <SSText center size="xxs" style={{ color: Colors.warning }}>
                   {t('account.birthdayDate.nudge')}
                 </SSText>
-              </TouchableOpacity>
+              </SSPressable>
             </View>
           )}
         <View style={{ flex: 1 }}>

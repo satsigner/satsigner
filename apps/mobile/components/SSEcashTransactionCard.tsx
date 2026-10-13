@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
+import { ActivityIndicator, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -22,6 +22,7 @@ import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSAmountDisplay from './SSAmountDisplay'
+import SSPressable from './SSPressable'
 import SSTimeAgoText from './SSTimeAgoText'
 
 type SSEcashTransactionCardProps = {
@@ -137,7 +138,7 @@ function SSEcashTransactionCard({
   }
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <SSPressable onPress={onPress} activeOpacity={0.7}>
       <SSVStack style={styles.container} gap="none">
         <SSHStack justifyBetween style={{ alignItems: 'center' }}>
           <SSTimeAgoText date={new Date(transaction.timestamp)} size="xs" />
@@ -267,7 +268,7 @@ function SSEcashTransactionCard({
           </SSText>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

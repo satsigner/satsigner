@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import {
+  Pressable,
+  type PressableStateCallbackType,
   StyleSheet,
   type TextInput,
-  TouchableHighlight,
   View
 } from 'react-native'
 
@@ -47,10 +48,9 @@ function SSNumberGhostInput({
           {...props}
         />
       ) : (
-        <TouchableHighlight
-          underlayColor={Colors.gray[850]}
+        <Pressable
           onPress={() => setIsEditing(true)}
-          style={styles.inputButtonBase}
+          style={getInputButtonStyle}
         >
           <SSHStack
             gap="xs"
@@ -65,10 +65,14 @@ function SSNumberGhostInput({
               </SSText>
             ) : null}
           </SSHStack>
-        </TouchableHighlight>
+        </Pressable>
       )}
     </View>
   )
+}
+
+function getInputButtonStyle({ pressed }: PressableStateCallbackType) {
+  return [styles.inputButtonBase, pressed && styles.inputButtonPressed]
 }
 
 const styles = StyleSheet.create({
@@ -79,6 +83,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 72,
     justifyContent: 'center'
+  },
+  inputButtonPressed: {
+    backgroundColor: Colors.gray[850]
   }
 })
 

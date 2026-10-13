@@ -1,10 +1,11 @@
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
 import { SSIconChevronRight } from './icons'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSSettingsCardsProps = {
@@ -21,7 +22,7 @@ function SSSettingsCards({
   onPress
 }: SSSettingsCardsProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={0.5}
       style={styles.containerBase}
       onPress={() => onPress()}
@@ -38,7 +39,7 @@ function SSSettingsCards({
           <SSIconChevronRight height={11.6} width={6} />
         </SSHStack>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

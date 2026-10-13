@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Platform, TouchableOpacity } from 'react-native'
+import { Platform } from 'react-native'
 import Animated, {
   cancelAnimation,
   Easing,
@@ -24,6 +24,7 @@ import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
 import SSAmountDisplay from './SSAmountDisplay'
 import SSFingerprint from './SSFingerprint'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 export type SSAccountCardStat = {
@@ -205,7 +206,7 @@ function SSAccountCard({
   }
 
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={activeOpacity}
       onPress={onPress}
       onLongPress={onLongPress}
@@ -274,7 +275,7 @@ function SSAccountCard({
         <SSIconChevronRight height={11.6} width={6} />
         {syncStatus ? renderSyncStatus(syncStatus, lastSyncedAt) : null}
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
