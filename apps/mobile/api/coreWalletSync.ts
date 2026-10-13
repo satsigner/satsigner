@@ -82,17 +82,23 @@ const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
+}
 
-const btcToSats = (btc: number) => Math.round(btc * SATS_PER_BITCOIN)
+function btcToSats(btc: number) {
+  return Math.round(btc * SATS_PER_BITCOIN)
+}
 
-const hexToBytes = (value: string) => Array.from(hex.decode(value))
+function hexToBytes(value: string) {
+  return Array.from(hex.decode(value))
+}
 
-const toUnixSec = (date?: Date) =>
-  date ? Math.floor(date.getTime() / 1000) : undefined
+function toUnixSec(date?: Date) {
+  return date ? Math.floor(date.getTime() / 1000) : undefined
+}
 
 function isListDescriptorsError(error: unknown) {
   return (
@@ -440,9 +446,27 @@ function mergeWalletTxEntries(
 }
 
 /**
- * Aggregate per-output wallet entries into per-tx sent/received sats.
- * Txids Core reports as removed (re-orged out) are dropped; still-valid ones
- * reappear on the next sync.
+ * Txids from listsinceblock's `removed` that are not back in the active chain
+ * or mempool. Core also lists re-added txs in `removed`, while `transactions`
+ * holds them with 0+ confirmations; negative means conflicted by the new chain.
+ */
+function reorgedOutTxids(
+  transactions: CoreWalletListTx[],
+  removed: CoreWalletListTx[] = []
+): string[] {
+  const activeTxids = new Set(
+    transactions
+      .filter((entry) => entry.confirmations >= 0)
+      .map((entry) => entry.txid)
+  )
+  return removed
+    .map((entry) => entry.txid)
+    .filter((txid) => !activeTxids.has(txid))
+}
+
+/**
+ * Aggregate per-output wallet entries into per-tx sent/received sats,
+ * dropping `removedTxids` (txs re-orged out of the chain).
  */
 function summarizeWalletTxs(
   entries: WalletTxEntry[],
@@ -647,7 +671,7 @@ async function syncWithCoreWallet(
           accountTxsAsEntries(account)
         )
       : sinceResult.transactions,
-    (sinceResult.removed ?? []).map((entry) => entry.txid)
+    reorgedOutTxids(sinceResult.transactions, sinceResult.removed)
   )
   const transactions = await Promise.all(
     [...txSummaries].map(async ([txid, summary]) =>
@@ -753,6 +777,7 @@ async function syncWithCoreWallet(
 
 export {
   mergeWalletTxEntries,
+  reorgedOutTxids,
   scanProgressHeight,
   startRescan,
   startRescanFrom,

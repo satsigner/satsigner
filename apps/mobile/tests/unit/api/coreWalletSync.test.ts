@@ -1,12 +1,17 @@
 import {
   mergeWalletTxEntries,
+  reorgedOutTxids,
   scanProgressHeight,
   startRescan,
   startRescanFrom,
   summarizeWalletTxs,
   toSinglePathDescriptors
 } from '@/api/coreWalletSync'
-import { BitcoinCoreWallet, type CoreWalletInfo } from '@/api/rpc'
+import {
+  BitcoinCoreWallet,
+  type CoreWalletInfo,
+  type CoreWalletListTx
+} from '@/api/rpc'
 import { BDK_RESCAN_START_RACE_TIMEOUT_MS } from '@/constants/bdk'
 
 const RESCAN_IN_PROGRESS_MESSAGE =
@@ -85,6 +90,42 @@ describe('mergeWalletTxEntries', () => {
     )
     expect(merged.map((e) => e.txid)).toStrictEqual(['a', 'b'])
     expect(summarizeWalletTxs(merged).get('a')?.received).toBe(50_000_000)
+  })
+})
+
+describe('reorgedOutTxids', () => {
+  function listTx(txid: string, confirmations: number): CoreWalletListTx {
+    return {
+      amount: 0.1,
+      category: 'receive',
+      confirmations,
+      time: 1,
+      timereceived: 1,
+      txid,
+      vout: 0
+    }
+  }
+
+  it('keeps removed txs Core lists again and drops gone or conflicted ones', () => {
+    const transactions = [
+      listTx('remined', 2),
+      listTx('mempool', 0),
+      listTx('conflicted', -1)
+    ]
+    const removed = [
+      listTx('remined', 2),
+      listTx('mempool', 0),
+      listTx('conflicted', -1),
+      listTx('gone', 0)
+    ]
+    expect(reorgedOutTxids(transactions, removed)).toStrictEqual([
+      'conflicted',
+      'gone'
+    ])
+  })
+
+  it('returns nothing when Core reports no removed txs', () => {
+    expect(reorgedOutTxids([listTx('a', 1)])).toStrictEqual([])
   })
 })
 
