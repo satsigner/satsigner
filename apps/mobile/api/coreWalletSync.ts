@@ -19,7 +19,10 @@ import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type RpcCredentials } from '@/types/settings/blockchain'
+import {
+  type Network as BlockchainNetwork,
+  type RpcCredentials
+} from '@/types/settings/blockchain'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import {
   annotateTransactionsWithWalletOwnership,
@@ -55,7 +58,7 @@ type CoreWalletSyncProgress = (
 
 type WalletTxEntry = Pick<
   CoreWalletListTx,
-  'amount' | 'blockheight' | 'blocktime' | 'category' | 'time' | 'txid'
+  'amount' | 'blockheight' | 'blocktime' | 'category' | 'txid'
 >
 
 type WalletTxSummary = {
@@ -72,9 +75,8 @@ type CoreWalletSyncResult = Pick<
   rpcLastBlockHash: string
 }
 
-type AppNetwork = Account['addresses'][number]['network']
-
-const ALREADY_RESCANNING_ERROR = 'already rescanning'
+// Core: "Wallet is currently rescanning. Abort existing rescan or wait."
+const RESCAN_IN_PROGRESS_ERROR = 'currently rescanning'
 const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
 
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
@@ -98,9 +100,9 @@ function isListDescriptorsError(error: unknown) {
   )
 }
 
-function isAlreadyRescanning(error: unknown) {
+function isRescanInProgress(error: unknown) {
   return (
-    error instanceof Error && error.message.includes(ALREADY_RESCANNING_ERROR)
+    error instanceof Error && error.message.includes(RESCAN_IN_PROGRESS_ERROR)
   )
 }
 
@@ -259,21 +261,9 @@ async function waitForRescanStopped(
 }
 
 /**
- * Core keeps scanning after the start race times out, so a late failure of
- * the long-running rescan request must not surface as an unhandled rejection.
- * The race still sees failures that happen before the timeout.
- */
-async function ignoreLateFailure(request: Promise<unknown>) {
-  try {
-    await request
-  } catch {
-    // reported through Promise.race when it fails in time
-  }
-}
-
-/**
  * Resolves when `rescanblockchain` returns, or after a timeout while Core
- * keeps scanning in the background (progress is then polled).
+ * keeps scanning in the background (progress is then polled). A rescan
+ * failure after the timeout is already handled by the race.
  */
 async function startRescan(
   coreWallet: BitcoinCoreWallet,
@@ -283,10 +273,8 @@ async function startRescan(
   const timedOut = new Promise<void>((resolve) => {
     timers.push(setTimeout(resolve, BDK_RESCAN_START_RACE_TIMEOUT_MS))
   })
-  const rescan = coreWallet.rescanBlockchain(startHeight)
-  void ignoreLateFailure(rescan)
   try {
-    await Promise.race([rescan, timedOut])
+    await Promise.race([coreWallet.rescanBlockchain(startHeight), timedOut])
   } finally {
     for (const timer of timers) {
       clearTimeout(timer)
@@ -296,7 +284,7 @@ async function startRescan(
 
 /**
  * Start a rescan from `startHeight`. If another client is already rescanning,
- * abort it and retry once; a second "already rescanning" is tolerated.
+ * abort it and retry once; a second "currently rescanning" is tolerated.
  */
 async function startRescanFrom(
   coreWallet: BitcoinCoreWallet,
@@ -306,12 +294,12 @@ async function startRescanFrom(
   try {
     await startRescan(coreWallet, startHeight)
   } catch (error) {
-    if (!isAlreadyRescanning(error)) {
+    if (!isRescanInProgress(error)) {
       throw error
     }
     await waitForRescanStopped(coreWallet, isCancelled)
     await startRescan(coreWallet, startHeight).catch((retryError: unknown) => {
-      if (!isAlreadyRescanning(retryError)) {
+      if (!isRescanInProgress(retryError)) {
         throw retryError
       }
     })
@@ -435,7 +423,6 @@ function accountTxsAsEntries(account: Account): WalletTxEntry[] {
     blockheight: tx.blockHeight,
     blocktime: toUnixSec(tx.timestamp),
     category: tx.type,
-    time: toUnixSec(tx.timestamp) ?? 0,
     txid: tx.id
   }))
 }
@@ -538,7 +525,7 @@ function peekKeychainAddresses(
   keychain: 'external' | 'internal',
   usedAddresses: Set<string>,
   stopGap: number,
-  network: AppNetwork
+  network: BlockchainNetwork
 ): Account['addresses'] {
   const kind =
     keychain === 'external' ? KeychainKind.External : KeychainKind.Internal
@@ -768,6 +755,7 @@ export {
   mergeWalletTxEntries,
   scanProgressHeight,
   startRescan,
+  startRescanFrom,
   summarizeWalletTxs,
   syncWithCoreWallet,
   toSinglePathDescriptors

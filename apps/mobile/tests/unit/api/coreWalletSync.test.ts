@@ -2,11 +2,23 @@ import {
   mergeWalletTxEntries,
   scanProgressHeight,
   startRescan,
+  startRescanFrom,
   summarizeWalletTxs,
   toSinglePathDescriptors
 } from '@/api/coreWalletSync'
-import { BitcoinCoreWallet } from '@/api/rpc'
+import { BitcoinCoreWallet, type CoreWalletInfo } from '@/api/rpc'
 import { BDK_RESCAN_START_RACE_TIMEOUT_MS } from '@/constants/bdk'
+
+const RESCAN_IN_PROGRESS_MESSAGE =
+  'RPC error -4: Wallet is currently rescanning. Abort existing rescan or wait.'
+
+const IDLE_WALLET_INFO: CoreWalletInfo = {
+  balance: 0,
+  descriptors: true,
+  scanning: false,
+  unconfirmed_balance: 0,
+  walletname: 'w'
+}
 
 // See bdkRpc.test.ts: stubs keep `@/api/bdk`'s module graph loadable.
 jest.mock<typeof import('@/utils/bip39')>('@/utils/bip39', () => ({
@@ -43,7 +55,7 @@ describe('toSinglePathDescriptors', () => {
 
 describe('summarizeWalletTxs', () => {
   it('aggregates outputs per txid in sats and drops re-orged txids', () => {
-    const entry = { blockheight: 10, blocktime: 1, time: 1 }
+    const entry = { blockheight: 10, blocktime: 1 }
     const result = summarizeWalletTxs(
       [
         { ...entry, amount: 0.5, category: 'receive', txid: 'a' },
@@ -63,7 +75,7 @@ describe('summarizeWalletTxs', () => {
 
 describe('mergeWalletTxEntries', () => {
   it('keeps Core entries over stored ones for the same txid', () => {
-    const entry = { blockheight: 10, blocktime: 1, time: 1 }
+    const entry = { blockheight: 10, blocktime: 1 }
     const merged = mergeWalletTxEntries(
       [{ ...entry, amount: 0.5, category: 'receive', txid: 'a' }],
       [
@@ -113,5 +125,35 @@ describe('startRescan', () => {
 
     await expect(startRescan(coreWallet, 0)).rejects.toThrow('rescanning')
     expect(jest.getTimerCount()).toBe(0)
+  })
+})
+
+describe('startRescanFrom', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('stops the running scan and retries when Core is already rescanning', async () => {
+    const coreWallet = makeCoreWallet()
+    jest.spyOn(coreWallet, 'getWalletInfo').mockResolvedValue(IDLE_WALLET_INFO)
+    const rescan = jest
+      .spyOn(coreWallet, 'rescanBlockchain')
+      .mockRejectedValueOnce(new Error(RESCAN_IN_PROGRESS_MESSAGE))
+      .mockResolvedValueOnce({ start_height: 0, stop_height: 10 })
+
+    await expect(startRescanFrom(coreWallet, 0)).resolves.toBeUndefined()
+    expect(rescan).toHaveBeenCalledTimes(2)
+  })
+
+  it('rethrows other rescan errors without retrying', async () => {
+    const coreWallet = makeCoreWallet()
+    const rescan = jest
+      .spyOn(coreWallet, 'rescanBlockchain')
+      .mockRejectedValue(new Error('RPC error -8: Invalid start_height'))
+
+    await expect(startRescanFrom(coreWallet, 0)).rejects.toThrow(
+      'Invalid start_height'
+    )
+    expect(rescan).toHaveBeenCalledTimes(1)
   })
 })
