@@ -21,7 +21,7 @@ import { type EcashTransaction } from '@/types/models/Ecash'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice } from '@/utils/format'
 
-import SSStyledSatText from './SSStyledSatText'
+import SSAmountDisplay from './SSAmountDisplay'
 import SSTimeAgoText from './SSTimeAgoText'
 
 type SSEcashTransactionCardProps = {
@@ -203,38 +203,25 @@ function SSEcashTransactionCard({
                   alignItems: 'flex-end'
                 }}
               >
-                {privacyMode ? (
-                  <SSText
-                    size="xl"
-                    weight="light"
-                    style={{ letterSpacing: -0.5 }}
-                  >
-                    ••••
-                  </SSText>
-                ) : (
-                  <SSStyledSatText
-                    amount={transaction.amount}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    type={
-                      transaction.type === 'mint'
-                        ? 'receive'
-                        : transaction.type === 'melt'
-                          ? 'send'
-                          : transaction.type
-                    }
-                    textSize="xl"
-                    noColor={false}
-                    weight="light"
-                    letterSpacing={-0.5}
-                  />
-                )}
-                <SSText color="muted" size="sm" style={{ marginBottom: -2 }}>
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
-                </SSText>
+                <SSAmountDisplay
+                  privacyMode={privacyMode}
+                  amount={transaction.amount}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  currency={currencyUnit}
+                  type={
+                    transaction.type === 'mint'
+                      ? 'receive'
+                      : transaction.type === 'melt'
+                        ? 'send'
+                        : transaction.type
+                  }
+                  textSize="xl"
+                  noColor={false}
+                  weight="light"
+                  letterSpacing={-0.5}
+                  unitStyle={styles.unit}
+                />
               </SSHStack>
             </SSHStack>
           </SSHStack>
@@ -291,6 +278,9 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingHorizontal: 0,
     paddingTop: 4
+  },
+  unit: {
+    marginBottom: -2
   }
 })
 
