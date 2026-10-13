@@ -7,7 +7,7 @@ import {
   useCameraPermissions
 } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -35,6 +35,8 @@ import {
   decodeBBQRWalletPayload,
   interpretAssembledBitcoinPayload
 } from '@/utils/walletQrPayload'
+
+import SSPressable from './SSPressable'
 
 type SSCameraModalProps = {
   visible: boolean
@@ -668,7 +670,7 @@ function SSCameraModal({
               {availableLenses.map((lens) => {
                 const active = lens === selectedLens
                 return (
-                  <TouchableOpacity
+                  <SSPressable
                     key={lens}
                     onPress={() => handleLensSelect(lens)}
                     accessibilityLabel={getLensLabel(lens)}
@@ -687,7 +689,7 @@ function SSCameraModal({
                     >
                       {getLensLabel(lens)}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
                 )
               })}
             </View>

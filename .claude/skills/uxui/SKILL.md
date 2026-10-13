@@ -26,6 +26,7 @@ metadata:
 | `<TextInput>` | `<SSTextInput>` |
 | `<TouchableOpacity>` (icon) | `<SSIconButton>` |
 | `<TouchableOpacity>` (full-width CTA) | `<SSButton>` |
+| `<TouchableOpacity>` / `<Pressable>` (any other tap target) | `<SSPressable>` |
 
 ### Never hardcode values
 
@@ -104,6 +105,22 @@ Hoist handlers outside the component or use stable references. Inline arrow func
 - `noColor={false}`: send = `mainRed`, receive = `mainGreen`
 - Fiat is always secondary — show below or alongside, never replace
 
+**`SSAmountDisplay`** — amount + unit label, masked in privacy mode
+```tsx
+<SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+  <SSAmountDisplay
+    privacyMode={privacyMode}
+    amount={satoshis}
+    currency={currencyUnit}
+    textSize="4xl"
+    unitSize="xl"
+  />
+</SSHStack>
+```
+- Takes every `SSStyledSatText` prop plus `privacyMode`, `unitSize` (default `sm`) and `unitStyle`
+- Renders a fragment — wrap it in your own row; fiat line stays with the caller
+- Use it instead of hand-writing `privacyMode ? mask : <SSStyledSatText />` + unit label
+
 ---
 
 ### Inputs & Forms
@@ -143,6 +160,8 @@ Hoist handlers outside the component or use stable references. Inline arrow func
 **`SSIconButton`** — icon-only touchable (wraps SVG icon)
 
 **`SSActionButton`** — full-height (62px) touchable row for action lists
+
+**`SSPressable`** — generic tap target; dims to `activeOpacity` (default 0.2) while pressed
 
 ---
 

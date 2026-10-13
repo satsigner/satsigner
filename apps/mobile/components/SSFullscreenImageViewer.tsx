@@ -2,7 +2,6 @@ import {
   Image,
   Modal,
   StyleSheet,
-  TouchableOpacity,
   View,
   useWindowDimensions
 } from 'react-native'
@@ -24,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import SSText from '@/components/SSText'
 import { Colors } from '@/styles'
+
+import SSPressable from './SSPressable'
 
 const DISMISS_DRAG_THRESHOLD = 100
 const DISMISS_VELOCITY_Y = -500
@@ -152,7 +153,7 @@ function SSFullscreenImageViewerContent({
           ]}
           pointerEvents="box-none"
         >
-          <TouchableOpacity
+          <SSPressable
             style={styles.closeButton}
             onPress={onClose}
             hitSlop={12}
@@ -160,7 +161,7 @@ function SSFullscreenImageViewerContent({
             <SSText size="md" center>
               ✕
             </SSText>
-          </TouchableOpacity>
+          </SSPressable>
         </View>
       </Animated.View>
     </GestureHandlerRootView>

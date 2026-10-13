@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Image,
   StyleSheet,
-  TouchableOpacity,
   View,
   type StyleProp,
   type ViewStyle
@@ -12,6 +11,8 @@ import SSFullscreenImageViewer from '@/components/SSFullscreenImageViewer'
 import { useImageActionsStore } from '@/store/imageActions'
 import { Colors } from '@/styles'
 import { parseImageExif } from '@/utils/imageExif'
+
+import SSPressable from './SSPressable'
 
 type ImageDimensions = { width: number; height: number }
 
@@ -33,7 +34,7 @@ function SSNoteInlineImage({
   })
 
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={0.9}
       onPress={onPress}
       onLongPress={() => onLongPress(uri, dimensions)}
@@ -54,7 +55,7 @@ function SSNoteInlineImage({
         ]}
         resizeMode="contain"
       />
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

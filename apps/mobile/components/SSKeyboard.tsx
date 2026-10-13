@@ -1,11 +1,6 @@
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  DimensionValue,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { DimensionValue, StyleSheet, View } from 'react-native'
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -19,6 +14,7 @@ import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
 import { SSIconDelete, SSIconTrash } from './icons'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSKeyboardProps = {
@@ -222,7 +218,7 @@ function SSKeyboardCell({
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          <TouchableOpacity
+          <SSPressable
             onPress={() => onKeyPress(item)}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -254,7 +250,7 @@ function SSKeyboardCell({
                 height={Sizes.text.fontSize['2xl']}
               />
             )}
-          </TouchableOpacity>
+          </SSPressable>
         </View>
       </LinearGradient>
     </View>

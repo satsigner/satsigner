@@ -3,9 +3,9 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
 import SSLabelDetails from '@/components/SSLabelDetails'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
@@ -152,16 +152,13 @@ export function MovementSummary({ movement }: { movement: ArkMovement }) {
         size={ICON_SIZE}
       />
       <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-        {privacyMode ? (
-          <SSText size="4xl" weight="ultralight" style={{ letterSpacing: -1 }}>
-            ••••
-          </SSText>
-        ) : kind === 'refresh' && amountSats === 0 ? (
+        {!privacyMode && kind === 'refresh' && amountSats === 0 ? (
           <SSText size="2xl" weight="light" color="muted">
             {t('ark.movement.refreshLabel')}
           </SSText>
         ) : (
-          <SSStyledSatText
+          <SSAmountDisplay
+            privacyMode={privacyMode}
             amount={amountSats}
             decimals={0}
             useZeroPadding={useZeroPadding}
@@ -172,11 +169,9 @@ export function MovementSummary({ movement }: { movement: ArkMovement }) {
             textSize="4xl"
             weight="ultralight"
             letterSpacing={-1}
+            unitSize="lg"
           />
         )}
-        <SSText size="lg" color="muted">
-          {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-        </SSText>
       </SSHStack>
       {btcPrice > 0 && amountSats > 0 && kind !== 'refresh' && (
         <SSText color="muted" size="sm">

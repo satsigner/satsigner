@@ -1,10 +1,11 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import {
   type CacheCategory,
@@ -186,7 +187,7 @@ function CacheRow({ label, count, onClear }: CacheRowProps) {
       <SSText size="sm" color="muted" style={rowStyles.count}>
         {count}
       </SSText>
-      <TouchableOpacity
+      <SSPressable
         onPress={onClear}
         disabled={count === 0}
         style={rowStyles.clearButton}
@@ -195,7 +196,7 @@ function CacheRow({ label, count, onClear }: CacheRowProps) {
         <SSText size="xs" color={count === 0 ? 'muted' : 'white'} uppercase>
           {t('common.clear')}
         </SSText>
-      </TouchableOpacity>
+      </SSPressable>
     </SSHStack>
   )
 }

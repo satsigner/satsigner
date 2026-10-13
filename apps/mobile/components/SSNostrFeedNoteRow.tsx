@@ -1,6 +1,6 @@
 import { nip19 } from 'nostr-tools'
 import { type ReactNode } from 'react'
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
@@ -28,6 +28,8 @@ import {
 } from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
+
+import SSPressable from './SSPressable'
 
 function getDTagFromTags(tags: string[][]): string | undefined {
   const row = tags.find((tag) => tag[0] === 'd')
@@ -167,9 +169,9 @@ function SSNostrFeedAuthorRow({
   }
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+    <SSPressable activeOpacity={0.7} onPress={onPress}>
       {row}
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
@@ -259,9 +261,9 @@ function NoteQuoteCard({
   )
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+      <SSPressable activeOpacity={0.7} onPress={onPress}>
         {inner}
-      </TouchableOpacity>
+      </SSPressable>
     )
   }
   return inner
@@ -464,7 +466,7 @@ function SSNostrFeedNoteRow({
               }
             />
           ) : (
-            <TouchableOpacity
+            <SSPressable
               activeOpacity={quotedId && onQuotePress ? 0.7 : 1}
               onPress={
                 quotedId && onQuotePress
@@ -477,7 +479,7 @@ function SSNostrFeedNoteRow({
                   {t('nostrIdentity.feed.quotedNote')}
                 </SSText>
               </View>
-            </TouchableOpacity>
+            </SSPressable>
           )
         ) : null}
       </SSVStack>
@@ -486,13 +488,9 @@ function SSNostrFeedNoteRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity
-        style={styles.noteRow}
-        activeOpacity={0.6}
-        onPress={onPress}
-      >
+      <SSPressable style={styles.noteRow} activeOpacity={0.6} onPress={onPress}>
         {inner}
-      </TouchableOpacity>
+      </SSPressable>
     )
   }
 

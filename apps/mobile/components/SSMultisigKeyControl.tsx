@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -28,6 +28,8 @@ import { Colors } from '@/styles'
 import type { Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { hasEncryptedSecret } from '@/utils/key'
+
+import SSPressable from './SSPressable'
 
 type SSMultisigKeyControlProps = {
   index: number
@@ -382,7 +384,7 @@ function SSMultisigKeyControl({
         index === keyCount - 1 && { borderBottomWidth: 1 }
       ]}
     >
-      <TouchableOpacity
+      <SSPressable
         onPress={() => {
           setIsExpanded(!isExpanded)
         }}
@@ -454,7 +456,7 @@ function SSMultisigKeyControl({
             </SSText>
           </SSVStack>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
 
       <Animated.View style={expandStyle}>
         {/* Hidden content for measurement - always rendered but invisible */}

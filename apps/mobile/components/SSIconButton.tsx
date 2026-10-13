@@ -1,8 +1,10 @@
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
+
+import SSPressable from './SSPressable'
 
 type SSIconButtonProps = {
   rounded?: boolean
-} & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
+} & React.ComponentPropsWithoutRef<typeof SSPressable>
 
 function SSIconButton({
   rounded = false,
@@ -11,13 +13,13 @@ function SSIconButton({
   ...props
 }: SSIconButtonProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={0.65}
       style={[rounded && styles.rounded, style]}
       {...props}
     >
       {children}
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

@@ -1,12 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { fetchKind10063Servers } from '@/api/blossom'
 import { NostrAPI } from '@/api/nostr'
 import SSIconX from '@/components/icons/SSIconX'
 import SSButton from '@/components/SSButton'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import {
@@ -49,13 +50,9 @@ function ServerRow({ url, isPrimary, onRemove }: ServerRowProps) {
           </SSText>
         </SSHStack>
       </SSVStack>
-      <TouchableOpacity
-        onPress={onRemove}
-        style={styles.removeButton}
-        hitSlop={8}
-      >
+      <SSPressable onPress={onRemove} style={styles.removeButton} hitSlop={8}>
         <SSIconX width={10} height={10} />
-      </TouchableOpacity>
+      </SSPressable>
     </SSHStack>
   )
 }
