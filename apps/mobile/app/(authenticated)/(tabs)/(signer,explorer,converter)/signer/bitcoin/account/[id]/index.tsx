@@ -56,6 +56,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import { AddressCard } from '@/components/SSAddressCard'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBubbleChart from '@/components/SSBubbleChart'
@@ -2400,33 +2401,17 @@ export default function AccountView() {
             <SSVStack itemsCenter gap="none">
               <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
                 <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                  <SSText
-                    size={balanceTextSize}
-                    color="white"
+                  <SSAmountDisplay
+                    privacyMode={privacyMode}
+                    amount={accountTotalBalance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    textSize={balanceTextSize}
                     weight="ultralight"
-                    style={{
-                      lineHeight: Sizes.text.fontSize[balanceTextSize]
-                    }}
-                  >
-                    {privacyMode ? (
-                      '••••'
-                    ) : (
-                      <SSStyledSatText
-                        amount={accountTotalBalance}
-                        decimals={0}
-                        useZeroPadding={useZeroPadding}
-                        currency={currencyUnit}
-                        textSize={balanceTextSize}
-                        weight="ultralight"
-                        letterSpacing={-1}
-                      />
-                    )}
-                  </SSText>
-                  <SSText size="xl" color="muted">
-                    {currencyUnit === 'btc'
-                      ? t('bitcoin.btc')
-                      : t('bitcoin.sats')}
-                  </SSText>
+                    letterSpacing={-1}
+                    unitSize="xl"
+                  />
                 </SSHStack>
                 {showCurrentFiat ? (
                   <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>

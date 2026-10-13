@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSStyledSatText from '@/components/SSStyledSatText'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -70,24 +70,17 @@ function SSEcashProofCard({
             #{proofIndex + 1}
           </SSText>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            {privacyMode ? (
-              <SSText size="lg" weight="medium">
-                ••••
-              </SSText>
-            ) : (
-              <SSStyledSatText
-                amount={proof.amount}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize="lg"
-                weight="medium"
-                letterSpacing={-0.5}
-              />
-            )}
-            <SSText color="muted" size="xs">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-            </SSText>
+            <SSAmountDisplay
+              privacyMode={privacyMode}
+              amount={proof.amount}
+              decimals={0}
+              useZeroPadding={useZeroPadding}
+              currency={currencyUnit}
+              textSize="lg"
+              weight="medium"
+              letterSpacing={-0.5}
+              unitSize="xs"
+            />
           </SSHStack>
         </SSHStack>
 

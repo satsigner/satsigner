@@ -11,10 +11,10 @@ import {
   SSIconOutgoing,
   SSIconOutgoingLightning
 } from '@/components/icons'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSShareableQR from '@/components/SSShareableQR'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
@@ -301,38 +301,25 @@ export default function EcashTransactionDetailPage() {
                   {getTransactionLabel(transaction.type)}
                 </SSText>
                 <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
-                  {privacyMode ? (
-                    <SSText
-                      size="xl"
-                      weight="light"
-                      style={{ letterSpacing: -0.5 }}
-                    >
-                      ••••
-                    </SSText>
-                  ) : (
-                    <SSStyledSatText
-                      amount={transaction.amount}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      type={
-                        transaction.type === 'mint'
-                          ? 'receive'
-                          : transaction.type === 'melt'
-                            ? 'send'
-                            : transaction.type
-                      }
-                      textSize="xl"
-                      noColor={false}
-                      weight="light"
-                      letterSpacing={-0.5}
-                    />
-                  )}
-                  <SSText color="muted">
-                    {currencyUnit === 'btc'
-                      ? t('bitcoin.btc')
-                      : t('bitcoin.sats')}
-                  </SSText>
+                  <SSAmountDisplay
+                    privacyMode={privacyMode}
+                    amount={transaction.amount}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={
+                      transaction.type === 'mint'
+                        ? 'receive'
+                        : transaction.type === 'melt'
+                          ? 'send'
+                          : transaction.type
+                    }
+                    textSize="xl"
+                    noColor={false}
+                    weight="light"
+                    letterSpacing={-0.5}
+                    unitSize="sm"
+                  />
                 </SSHStack>
                 {btcPrice > 0 && (
                   <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
