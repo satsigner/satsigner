@@ -26,6 +26,7 @@ metadata:
 | `<TextInput>` | `<SSTextInput>` |
 | `<TouchableOpacity>` (icon) | `<SSIconButton>` |
 | `<TouchableOpacity>` (full-width CTA) | `<SSButton>` |
+| `<TouchableOpacity>` / `<Pressable>` (any other tap target) | `<SSPressable>` |
 
 ### Never hardcode values
 
@@ -159,6 +160,8 @@ Hoist handlers outside the component or use stable references. Inline arrow func
 **`SSIconButton`** — icon-only touchable (wraps SVG icon)
 
 **`SSActionButton`** — full-height (62px) touchable row for action lists
+
+**`SSPressable`** — generic tap target; dims to `activeOpacity` (default 0.2) while pressed
 
 ---
 
