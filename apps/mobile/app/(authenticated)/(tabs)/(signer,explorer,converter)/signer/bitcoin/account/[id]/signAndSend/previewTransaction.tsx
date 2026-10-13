@@ -1979,7 +1979,7 @@ function PreviewTransaction() {
             : t('transaction.preview.singleChunk')
         }
         if (serializedPsbt.length > 1500) {
-          return t('error.qr.dataTooLarge')
+          return t('common.error.dataTooLarge')
         }
         if (!serializedPsbt) {
           return t('error.psbt.notAvailable')
@@ -2745,7 +2745,9 @@ function PreviewTransaction() {
         >
           <SSVStack itemsCenter gap="lg">
             <SSText center style={{ maxWidth: 300 }}>
-              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
+              {nfcError
+                ? t('nfc.error.writeFailed')
+                : t('transaction.preview.nfcTip')}
             </SSText>
             {nfcError ? (
               <SSVStack itemsCenter gap="md">
@@ -2772,7 +2774,7 @@ function PreviewTransaction() {
         >
           <SSVStack itemsCenter gap="lg">
             <SSText center style={{ maxWidth: 300 }}>
-              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
+              {t('transaction.preview.nfcTip')}
             </SSText>
             <Animated.View style={nfcPulseStyle}>
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
