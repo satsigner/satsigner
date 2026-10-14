@@ -281,14 +281,8 @@ describe('getScriptTypeFromAddress', () => {
     ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2', 'p2pkh'],
     ['3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'p2sh'],
     ['bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', 'p2wpkh'],
-    [
-      'bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3',
-      'p2wsh'
-    ],
-    [
-      'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr',
-      'p2tr'
-    ]
+    ['bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3', 'p2wsh'],
+    ['bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr', 'p2tr']
   ])('classifies %s as %s', (address, expected) => {
     expect(getScriptTypeFromAddress(address, 'bitcoin')).toBe(expected)
   })
