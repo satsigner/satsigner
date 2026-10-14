@@ -1,3 +1,5 @@
+import { MS_PER_SECOND } from '@/constants/time'
+
 export const time = {
   days: (days: number) => time.hours(days * 24),
   daysAfter: (date: Date, days: number) =>
@@ -16,11 +18,11 @@ export const time = {
   minutesBefore: (date: Date, minutes: number) =>
     date.getTime() - time.seconds(minutes * 60),
   now: () => new Date().getTime(),
-  seconds: (seconds: number) => seconds * 1000,
+  seconds: (seconds: number) => seconds * MS_PER_SECOND,
   secondsAfter: (date: Date, seconds: number) =>
-    date.getTime() + seconds * 1000,
+    date.getTime() + seconds * MS_PER_SECOND,
   secondsBefore: (date: Date, seconds: number) =>
-    date.getTime() - seconds * 1000,
+    date.getTime() - seconds * MS_PER_SECOND,
   weeks: (weeks: number) => time.days(weeks * 7),
   weeksAfter: (date: Date, weeks: number) =>
     date.getTime() + time.days(weeks * 7),

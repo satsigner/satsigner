@@ -1,3 +1,4 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import { formatDate as formatDateUtil } from '@/utils/format'
 
@@ -6,7 +7,7 @@ export const formatRelativeTime = (timestamp: number | undefined): string => {
     return ''
   }
 
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   const diff = now - timestamp
 
   const minutes = Math.floor(diff / 60)
@@ -60,7 +61,7 @@ export const formatDate = (timestamp: number | undefined): string => {
     return ''
   }
 
-  const date = new Date(timestamp * 1000)
+  const date = new Date(timestamp * MS_PER_SECOND)
 
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -77,7 +78,7 @@ export function formatDateShort(timestamp: number | undefined): string {
   if (typeof timestamp !== 'number') {
     return ''
   }
-  return new Date(timestamp * 1000).toLocaleString('en-US', {
+  return new Date(timestamp * MS_PER_SECOND).toLocaleString('en-US', {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',

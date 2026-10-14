@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -10,6 +10,7 @@ import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSBlockDecoded from './SSBlockDecoded'
 import SSPerformanceWarning from './SSPerformanceWarning'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 const tnBlock = _tn('explorer.block')
@@ -52,7 +53,7 @@ type FormatChipProps = {
 
 function FormatChip({ label, active, disabled, onPress }: FormatChipProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled, selected: active }}
       disabled={disabled}
@@ -70,7 +71,7 @@ function FormatChip({ label, active, disabled, onPress }: FormatChipProps) {
       >
         {label}
       </SSText>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
@@ -349,7 +350,7 @@ function SSTransactionDecodedBytes({
   return (
     <SSVStack gap="none">
       <SSHStack gap="none" style={styles.zoomContainer}>
-        <TouchableOpacity
+        <SSPressable
           onPress={handleZoomOut}
           disabled={textSize === TEXT_SIZES[0]}
           style={[
@@ -360,8 +361,8 @@ function SSTransactionDecodedBytes({
           <SSText size="xl" style={styles.zoomText}>
             -
           </SSText>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </SSPressable>
+        <SSPressable
           onPress={handleZoomIn}
           disabled={textSize === TEXT_SIZES.at(-1)}
           style={[
@@ -374,7 +375,7 @@ function SSTransactionDecodedBytes({
           <SSText size="xl" style={styles.zoomText}>
             +
           </SSText>
-        </TouchableOpacity>
+        </SSPressable>
       </SSHStack>
       <SSHStack style={styles.bytesContainer} gap="none">
         {decoded.map((item, i) => (
@@ -382,7 +383,7 @@ function SSTransactionDecodedBytes({
             {byteChunks(item.hex).map((byte, j) => {
               const selected = selectedItem === i
               return (
-                <TouchableOpacity
+                <SSPressable
                   key={`${i}_${j}`}
                   onPress={() => setSelectedItem(selectedItem === i ? -1 : i)}
                 >
@@ -406,7 +407,7 @@ function SSTransactionDecodedBytes({
                   >
                     {byte}
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
               )
             })}
           </Fragment>

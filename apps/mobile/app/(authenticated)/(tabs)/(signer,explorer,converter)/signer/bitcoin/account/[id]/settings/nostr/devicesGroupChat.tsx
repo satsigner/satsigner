@@ -19,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
@@ -189,7 +190,7 @@ export default function DevicesGroupChat() {
         toast.error(t('common.error.missingRequiredNostrConfig'))
         return
       }
-      const created_at = Math.floor(Date.now() / 1000)
+      const created_at = Math.floor(Date.now() / MS_PER_SECOND)
       pendingId = `pending-${Date.now()}`
       const optimisticMessage: NostrDM = {
         author: devicePubkeyHex,

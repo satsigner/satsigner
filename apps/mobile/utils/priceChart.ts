@@ -1,3 +1,4 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import { formatNumber } from '@/utils/format'
 
 export const PRICE_CHART_DAYS = 30
@@ -59,7 +60,7 @@ function formatPriceChartDate(timestampSeconds: number) {
   return new Intl.DateTimeFormat(undefined, {
     day: 'numeric',
     month: 'short'
-  }).format(new Date(timestampSeconds * 1000))
+  }).format(new Date(timestampSeconds * MS_PER_SECOND))
 }
 
 export function formatCompactFiat(value: number): string {

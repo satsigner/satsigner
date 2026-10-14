@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
@@ -25,7 +26,7 @@ function useNostrDeviceAnnouncement() {
       }
 
       const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         public_key_bech32: deviceNpub
       }
 

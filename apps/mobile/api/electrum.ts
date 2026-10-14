@@ -9,6 +9,7 @@ import {
   ELECTRUM_CONNECTION_TIMEOUT,
   ELECTRUM_TX_CACHE_MAX_ENTRIES
 } from '@/constants/electrum'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   ElectrumClientSchema,
   type ElectrumClientInterface
@@ -421,7 +422,7 @@ class ElectrumClient extends BaseElectrumClient {
       script: [...bitcoinjs.address.toOutputScript(address, this.network)],
       timestamp:
         timestamps[index] !== undefined
-          ? new Date(timestamps[index] * 1000)
+          ? new Date(timestamps[index] * MS_PER_SECOND)
           : undefined,
       txid: electrumUtxo.tx_hash,
       value: electrumUtxo.value,
@@ -461,7 +462,7 @@ class ElectrumClient extends BaseElectrumClient {
         size: parsedTx.byteLength(),
         timestamp:
           timestampSeconds !== undefined
-            ? new Date(timestampSeconds * 1000)
+            ? new Date(timestampSeconds * MS_PER_SECOND)
             : undefined,
         type: 'send',
         version: parsedTx.version,

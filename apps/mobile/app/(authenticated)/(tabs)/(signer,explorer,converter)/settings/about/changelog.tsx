@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native'
 import SSMarkdown from '@/components/SSMarkdown'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -36,7 +37,7 @@ export default function Changelog() {
   } = useQuery({
     queryFn: fetchGithubReleases,
     queryKey: ['githubReleases'],
-    staleTime: 1000 * 60 * 60
+    staleTime: MS_PER_SECOND * 60 * 60
   })
 
   return (

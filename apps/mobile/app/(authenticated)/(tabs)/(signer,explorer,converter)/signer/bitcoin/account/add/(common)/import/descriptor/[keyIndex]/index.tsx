@@ -428,7 +428,7 @@ export default function ImportDescriptor() {
 
       toast.success(t('watchonly.success.nfcRead'))
     } catch {
-      toast.error(t('watchonly.error.nfcRead'))
+      toast.error(t('nfc.error.readFailed'))
     }
   }
 

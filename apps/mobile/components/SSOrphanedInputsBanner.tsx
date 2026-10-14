@@ -1,9 +1,10 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSOrphanedInputsBannerProps = {
@@ -21,11 +22,11 @@ export default function SSOrphanedInputsBanner({
         <SSText style={styles.message}>
           {t('transaction.orphanedInputs.warning', { count })}
         </SSText>
-        <TouchableOpacity onPress={onRemove} style={styles.button}>
+        <SSPressable onPress={onRemove} style={styles.button}>
           <SSText style={styles.buttonText}>
             {t('transaction.orphanedInputs.remove')}
           </SSText>
-        </TouchableOpacity>
+        </SSPressable>
       </SSHStack>
     </View>
   )

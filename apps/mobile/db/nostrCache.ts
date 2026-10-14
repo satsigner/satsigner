@@ -9,6 +9,7 @@ import {
   NOSTR_KIND_ZAP_RECEIPT,
   NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { isStringArray } from '@/utils/array'
 
@@ -86,7 +87,7 @@ type CountRow = { cnt: number }
 type NewestTimestampRow = { max_ts: number | null }
 
 function nowUnix(): number {
-  return Math.floor(Date.now() / 1000)
+  return Math.floor(Date.now() / MS_PER_SECOND)
 }
 
 function parseTagsJson(raw: unknown): string[][] {

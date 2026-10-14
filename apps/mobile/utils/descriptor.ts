@@ -1,3 +1,4 @@
+import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
 import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
 import {
@@ -8,6 +9,21 @@ import {
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
+
+/** True when a descriptor holds an extended private key (xprv, tprv, ...). */
+export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
+  const lower = descriptor.toLowerCase()
+  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
+    lower.includes(prefix)
+  )
+}
+
+// Thrown when a descriptor contains private key material that must not be
+// silently dropped. Callers rethrow it so a catch-all never turns it into a
+// plain derivation failure.
+export class PrivateKeyDescriptorError extends Error {
+  name = 'PrivateKeyDescriptorError'
+}
 
 export function getCleanXpub(xpubWithPrefix: string): string {
   const xpubMatch = xpubWithPrefix.match(/\]([txyzuv]pub[a-zA-Z0-9]{107})$/)

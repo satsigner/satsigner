@@ -9,6 +9,7 @@ import {
   NOSTR_ZAP_INVOICE_TIMEOUT_MS,
   NOSTR_ZAP_RECEIPT_FETCH_LIMIT
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   cacheEvents,
   cacheProfile,
@@ -640,7 +641,7 @@ export async function enrichZapReceipts(
     return
   }
 
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   const profileMap = new Map<
     string,
     { lud16?: string; name?: string; nip05?: string; picture?: string }

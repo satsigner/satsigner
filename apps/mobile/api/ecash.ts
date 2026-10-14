@@ -11,13 +11,13 @@ import {
   Wallet
 } from '@cashu/cashu-ts'
 
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
   BOLT11_METHOD,
   ECASH_MAX_EMPTY_BATCHES,
   ECASH_RESTORE_BATCH_SIZE,
   ECASH_RESTORE_TIMEOUT_MS,
   NUT15_MPP,
-  MSATS_PER_SAT,
   SAT_UNIT
 } from '@/constants/ecash'
 import type {
@@ -237,7 +237,7 @@ export async function createMppMeltQuote(
   await wallet.loadMint()
   const quote = await wallet.createMultiPathMeltQuote(
     invoice,
-    amountSats * MSATS_PER_SAT
+    amountSats * MILLISATS_PER_SAT
   )
   return mapMeltQuote(quote, mintUrl)
 }

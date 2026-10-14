@@ -1,14 +1,11 @@
 import { Canvas, Circle, Text, useFont } from '@shopify/react-native-skia'
 import { useState } from 'react'
-import {
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import { Colors } from '@/styles'
+
+import SSPressable from './SSPressable'
 
 const CANVAS_HEIGHT = 200
 const DOT_MIN_RADIUS = 4
@@ -86,7 +83,7 @@ export default function SSNetworkDots({ distribution }: SSNetworkDotsProps) {
       {/* Touch overlay */}
       <View style={[StyleSheet.absoluteFill, { height: CANVAS_HEIGHT }]}>
         {dots.map((dot) => (
-          <TouchableOpacity
+          <SSPressable
             key={dot.country}
             style={[
               styles.dotTouchTarget,

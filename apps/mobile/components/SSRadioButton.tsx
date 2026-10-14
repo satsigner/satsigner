@@ -1,8 +1,9 @@
-import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
+import { ActivityIndicator, StyleSheet } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
 import SSOutlineGlassBorders from './SSOutlineGlassBorders'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSRadioButtonProps = {
@@ -10,7 +11,7 @@ type SSRadioButtonProps = {
   label: string
   loading?: boolean
   selected: boolean
-} & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
+} & React.ComponentPropsWithoutRef<typeof SSPressable>
 
 function SSRadioButton({
   variant = 'default',
@@ -29,7 +30,7 @@ function SSRadioButton({
       : undefined
 
   return (
-    <TouchableOpacity
+    <SSPressable
       style={[
         styles.buttonBase,
         variant === 'outline' && styles.buttonOutline,
@@ -52,7 +53,7 @@ function SSRadioButton({
       ) : (
         <ActivityIndicator color={Colors.gray[200]} />
       )}
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

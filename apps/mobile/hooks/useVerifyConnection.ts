@@ -7,6 +7,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { servers } from '@/constants/servers'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { useBlockchainStore } from '@/store/blockchain'
 import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
@@ -45,17 +46,17 @@ function useVerifyConnection() {
             ok = await ElectrumClient.test(
               server.url,
               server.network,
-              config.timeout * 1000
+              config.timeout * MS_PER_SECOND
             )
           } else if (server.backend === 'rpc') {
             ok = await BitcoinRpc.test(
               server.url,
               server.rpcCredentials?.username ?? '',
               server.rpcCredentials?.password ?? '',
-              config.timeout * 1000
+              config.timeout * MS_PER_SECOND
             )
           } else {
-            ok = await Esplora.test(server.url, config.timeout * 1000)
+            ok = await Esplora.test(server.url, config.timeout * MS_PER_SECOND)
           }
           return ok ? 'connected' : 'failed'
         } catch {
@@ -73,7 +74,7 @@ function useVerifyConnection() {
         server.rpcCredentials?.username,
         server.rpcCredentials?.password
       ],
-      refetchInterval: config.connectionTestInterval * 1000,
+      refetchInterval: config.connectionTestInterval * MS_PER_SECOND,
       refetchIntervalInBackground: true,
       refetchOnMount: 'always'
     })

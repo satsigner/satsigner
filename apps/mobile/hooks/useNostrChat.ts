@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { markChatThreadRead } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
 import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
@@ -94,7 +95,7 @@ export function useNostrChatProfiles(
 
     // Cache-first: apply SQLite-cached profiles immediately so known peers
     // render instantly, and only relay-fetch the ones still missing.
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / MS_PER_SECOND)
     const stillMissing: string[] = []
     for (const npub of missing) {
       const hex = getPubKeyHexFromNpub(npub)

@@ -14,6 +14,7 @@ import {
   NOSTR_BLOSSOM_SERVER_LIST_KIND,
   NOSTR_FILES_FETCH_TIMEOUT_MS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { getSecretFromNsec } from '@/utils/nostr'
 import { isRecord } from '@/utils/object'
 import { optionalLenient, withFallback } from '@/utils/schema'
@@ -174,7 +175,7 @@ export async function pickImageForUpload(): Promise<{
 }
 
 function buildListAuthHeader(secretKey: Uint8Array, serverUrl: string): string {
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   const authEvent = finalizeEvent(
     {
       content: 'List blobs',
@@ -192,7 +193,7 @@ function buildListAuthHeader(secretKey: Uint8Array, serverUrl: string): string {
 }
 
 function buildAuthHeader(payloadHash: string, secretKey: Uint8Array): string {
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   const authEvent = finalizeEvent(
     {
       content: 'Upload image',

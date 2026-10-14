@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { type TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -8,6 +8,7 @@ import { Colors } from '@/styles'
 
 import { SSIconCircleX } from './icons'
 import SSIconButton from './SSIconButton'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
@@ -92,23 +93,23 @@ const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
         {showSuggestions ? (
           <SSHStack gap="sm" style={styles.wrap}>
             {suggestedTags.map((tag: string) => (
-              <TouchableOpacity
+              <SSPressable
                 key={tag}
                 activeOpacity={0.6}
                 style={styles.button}
                 onPress={() => addTag(tag)}
               >
                 <SSText>{tag}</SSText>
-              </TouchableOpacity>
+              </SSPressable>
             ))}
             {canCreateTag ? (
-              <TouchableOpacity
+              <SSPressable
                 activeOpacity={0.6}
                 style={styles.button}
                 onPress={() => addTag(text)}
               >
                 <SSText>{t('common.createTag', { tag: text })}</SSText>
-              </TouchableOpacity>
+              </SSPressable>
             ) : null}
           </SSHStack>
         ) : null}

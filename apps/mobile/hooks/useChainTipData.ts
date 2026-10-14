@@ -9,6 +9,7 @@ import {
 } from '@/api/explorerMempool'
 import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
+import { MS_PER_SECOND } from '@/constants/time'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Block, MemPoolFees } from '@/types/models/Blockchain'
@@ -215,7 +216,7 @@ const SECONDS_PER_DAY = 86_400
 
 function windowPriceHistory(series: { price: number; time: number }[]) {
   const cutoff =
-    Math.floor(Date.now() / 1000) - PRICE_CHART_DAYS * SECONDS_PER_DAY
+    Math.floor(Date.now() / MS_PER_SECOND) - PRICE_CHART_DAYS * SECONDS_PER_DAY
   const window = series.filter(
     (point) => point.time >= cutoff && isUsablePrice(point.price)
   )

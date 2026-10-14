@@ -5,7 +5,6 @@ import {
   StyleSheet,
   type TextStyle,
   type ViewStyle,
-  TouchableOpacity,
   View,
   type ViewProps
 } from 'react-native'
@@ -15,6 +14,7 @@ import { Colors, Sizes } from '@/styles'
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
 import SSOutlineGlassBorders from './SSOutlineGlassBorders'
+import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
 
 export type SSButtonProps = {
@@ -38,7 +38,7 @@ export type SSButtonProps = {
   totalButtons?: number
   verticalIndex?: number
   totalButtonsVertical?: number
-} & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
+} & React.ComponentPropsWithoutRef<typeof SSPressable>
 
 function SSButton({
   label = '',
@@ -80,7 +80,7 @@ function SSButton({
   const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
 
   return (
-    <TouchableOpacity
+    <SSPressable
       key={disabled || loading ? 'disabled' : 'enabled'}
       style={buttonStyle}
       activeOpacity={0.6}
@@ -213,7 +213,7 @@ function SSButton({
           <SSIconChevronDown height={5} width={11.6} />
         </View>
       )}
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

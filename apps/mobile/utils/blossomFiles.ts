@@ -6,6 +6,7 @@ import {
 import { NostrAPI } from '@/api/nostr'
 import { BYTES_PER_KIB } from '@/constants/format'
 import { NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import {
   type BlossomFileCategory,
@@ -29,7 +30,7 @@ export const formatBlossomFileSize = (bytes: number) =>
   formatBytes(bytes, BYTES_PER_KIB)
 
 export function formatBlossomUploadDate(unixTs: number): string {
-  const date = new Date(unixTs * 1000)
+  const date = new Date(unixTs * MS_PER_SECOND)
   return date.toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
@@ -38,7 +39,7 @@ export function formatBlossomUploadDate(unixTs: number): string {
 }
 
 function formatBlossomUploadDateTime(unixTs: number): string {
-  const date = new Date(unixTs * 1000)
+  const date = new Date(unixTs * MS_PER_SECOND)
   return date.toLocaleString(undefined, {
     day: 'numeric',
     hour: '2-digit',

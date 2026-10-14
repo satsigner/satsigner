@@ -2,7 +2,6 @@ import * as WebBrowser from 'expo-web-browser'
 import {
   Image,
   StyleSheet,
-  TouchableOpacity,
   View,
   type StyleProp,
   type ViewStyle
@@ -12,6 +11,8 @@ import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type NostrVideoEmbed } from '@/types/models/Nostr'
+
+import SSPressable from './SSPressable'
 
 type SSNoteInlineVideosProps = {
   embeds: NostrVideoEmbed[]
@@ -40,7 +41,7 @@ function SSNoteInlineVideos({ embeds, style }: SSNoteInlineVideosProps) {
   return (
     <View style={[styles.wrap, style]}>
       {embeds.map((embed) => (
-        <TouchableOpacity
+        <SSPressable
           key={embed.watchUrl}
           activeOpacity={0.7}
           accessibilityLabel={t('nostrIdentity.feed.openVideo')}
@@ -72,7 +73,7 @@ function SSNoteInlineVideos({ embeds, style }: SSNoteInlineVideosProps) {
               </SSText>
             </View>
           </View>
-        </TouchableOpacity>
+        </SSPressable>
       ))}
     </View>
   )

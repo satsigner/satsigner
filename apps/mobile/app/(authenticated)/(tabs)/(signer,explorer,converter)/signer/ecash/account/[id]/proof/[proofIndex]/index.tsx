@@ -6,11 +6,11 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { encodeProofsAsToken } from '@/api/ecash'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useEcash } from '@/hooks/useEcash'
@@ -242,24 +242,17 @@ export default function EcashProofDetailPage() {
               {t('ecash.proofDetail.amount')}
             </SSText>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              {privacyMode ? (
-                <SSText size="4xl" weight="ultralight">
-                  ••••
-                </SSText>
-              ) : (
-                <SSStyledSatText
-                  amount={proof.amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize="4xl"
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
-              )}
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
+              <SSAmountDisplay
+                privacyMode={privacyMode}
+                amount={proof.amount}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
+                textSize="4xl"
+                weight="ultralight"
+                letterSpacing={-1}
+                unitSize="xl"
+              />
             </SSHStack>
             {btcPrice > 0 && (
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>

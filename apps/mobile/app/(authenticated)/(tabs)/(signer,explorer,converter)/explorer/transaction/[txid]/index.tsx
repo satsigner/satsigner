@@ -16,6 +16,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { getExplorerExampleTransaction } from '@/constants/explorerExamples'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useExplorerTransaction } from '@/hooks/useExplorerTransaction'
 import { useExplorerTransactionEnrich } from '@/hooks/useExplorerTransactionEnrich'
 import { useFiatData } from '@/hooks/useFiatData'
@@ -421,7 +422,9 @@ export default function ExplorerTransactionDetail() {
                     [
                       tn('blockTime'),
                       enrichment.status.block_time
-                        ? formatDate(enrichment.status.block_time * 1000)
+                        ? formatDate(
+                            enrichment.status.block_time * MS_PER_SECOND
+                          )
                         : '--'
                     ],
                     [

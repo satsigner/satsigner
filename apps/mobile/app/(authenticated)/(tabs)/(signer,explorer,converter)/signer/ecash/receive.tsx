@@ -13,7 +13,7 @@ import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -344,11 +344,13 @@ export default function EcashReceivePage() {
                           ? `•••• - •••• ${t('bitcoin.sats')}`
                           : `${formatNumber(
                               Math.ceil(
-                                lnurlWithdrawDetails.minWithdrawable / 1000
+                                lnurlWithdrawDetails.minWithdrawable /
+                                  MILLISATS_PER_SAT
                               )
                             )} - ${formatNumber(
                               Math.floor(
-                                lnurlWithdrawDetails.maxWithdrawable / 1000
+                                lnurlWithdrawDetails.maxWithdrawable /
+                                  MILLISATS_PER_SAT
                               )
                             )} ${t('bitcoin.sats')}`}
                       </SSText>
@@ -425,10 +427,10 @@ export default function EcashReceivePage() {
                   amount &&
                   !isNaN(Number(amount)) && (
                     <SSText color="muted" size="xs">
-                      {Number(amount) * 1000 <
+                      {Number(amount) * MILLISATS_PER_SAT <
                       lnurlWithdrawDetails.minWithdrawable
                         ? t('ecash.error.amountTooLow')
-                        : Number(amount) * 1000 >
+                        : Number(amount) * MILLISATS_PER_SAT >
                             lnurlWithdrawDetails.maxWithdrawable
                           ? t('ecash.error.amountTooHigh')
                           : ''}
@@ -479,9 +481,9 @@ export default function EcashReceivePage() {
                       isFetchingLNURL ||
                       (isLNURLWithdrawMode &&
                         lnurlWithdrawDetails !== null &&
-                        (Number(amount) * 1000 <
+                        (Number(amount) * MILLISATS_PER_SAT <
                           lnurlWithdrawDetails.minWithdrawable ||
-                          Number(amount) * 1000 >
+                          Number(amount) * MILLISATS_PER_SAT >
                             lnurlWithdrawDetails.maxWithdrawable))
                     }
                   />

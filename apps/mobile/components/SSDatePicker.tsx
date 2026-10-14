@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -13,6 +12,8 @@ import {
 import { useMountEffect } from '@/hooks/useMountEffect'
 import { t } from '@/locales'
 import { sfProTextRegular } from '@/styles/typography'
+
+import SSPressable from './SSPressable'
 
 const MONTH_KEYS = [
   'jan',
@@ -332,7 +333,7 @@ function DateBlock({
             marginTop: index === 0 ? height / 2 - dHeight / 2 : 0
           }
           return (
-            <TouchableOpacity
+            <SSPressable
               key={index}
               onPress={() => {
                 onChange(type, digits[index])
@@ -348,7 +349,7 @@ function DateBlock({
                   {formatter ? formatter(value) : value}
                 </Text>
               )}
-            </TouchableOpacity>
+            </SSPressable>
           )
         })}
       </ScrollView>
