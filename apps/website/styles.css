@@ -63,8 +63,8 @@ a{
   top: 0;
   z-index: 100;
   width: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.12));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  border-bottom: none;
 }
 .site-nav-inner {
   display: flex;
@@ -517,6 +517,28 @@ a{
   .feature-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .feature-grid-card.is-span-2,
+  .feature-grid-card.is-span-4 {
+    grid-column: span 2;
+  }
+  .feature-grid-card.is-span-4 {
+    grid-row: span 2;
+  }
+  .feature-grid-card.is-span-2 h3,
+  .feature-grid-card.is-span-4 h3 {
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+  }
+  .feature-grid-card.is-span-4 h3 {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    max-width: 12ch;
+  }
+  .feature-grid-card.is-span-2 p,
+  .feature-grid-card.is-span-4 p {
+    max-width: 42ch;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.78);
+  }
 }
 @media (min-width: 960px) {
   .feature-grid {
@@ -531,6 +553,9 @@ a{
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  min-height: 9rem;
 }
 .feature-grid-card h3 {
   margin: 0 0 0.4rem;
