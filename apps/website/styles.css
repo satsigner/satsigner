@@ -114,8 +114,8 @@ a{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 0.65rem;
+  height: 0.65rem;
   margin: 0;
   padding: 0;
   border: 0;
@@ -216,40 +216,8 @@ a{
   overflow: visible;
   background: #000;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
     0 28px 70px rgba(0, 0, 0, 0.45);
-}
-.phone-buttons {
-  display: none;
-}
-.hero.is-phone .phone-buttons {
-  display: block;
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-.hero.is-phone .phone-buttons::before,
-.hero.is-phone .phone-buttons::after {
-  content: "";
-  position: absolute;
-  background: #2a2a2c;
-  border-radius: 2px;
-}
-.hero.is-phone .phone-buttons::before {
-  left: -2px;
-  top: 18%;
-  width: 3px;
-  height: 46px;
-  box-shadow:
-    0 34px 0 0 #2c2c2e,
-    0 64px 0 0 #2c2c2e;
-}
-.hero.is-phone .phone-buttons::after {
-  right: -2px;
-  top: 24%;
-  width: 3px;
-  height: 64px;
 }
 .hero.is-phone .hero-mark::before {
   content: "";
@@ -272,13 +240,13 @@ a{
   border-radius: inherit;
   pointer-events: none;
   border: 4px solid transparent;
-  filter: blur(1.4px);
+  filter: blur(1.8px);
   background:
     linear-gradient(#000, #000) padding-box,
-    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box;
+    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box;
   background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
 .hero-mark .phone::before {
@@ -344,10 +312,40 @@ a{
   letter-spacing: -0.02em;
   line-height: 1;
 }
+.hero-mark .phone-status {
+  top: 26px;
+  left: 16px;
+  right: 8px;
+  margin: 0;
+  padding: 0 4px 0 16px;
+}
 .phone-signals {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+}
+.hero-mark .phone-signals svg {
+  height: 11.5px;
+  width: auto;
+}
+.hero-mark .menu-header,
+.hero-mark .stack-header {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  height: 48px;
+  margin-top: 36px;
+  padding: 0 8px;
+}
+.hero-mark .menu-header .settings {
+  position: static;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+.hero-mark .menu-title {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 .hero-mark .phone-screen {
   inset: 0;
@@ -357,6 +355,30 @@ a{
   min-height: 0;
   border-radius: 0;
   background: #0a0a0a;
+}
+.hero-mark .menu-button {
+  background: linear-gradient(180deg, #121212, #0c0c0c);
+  color: rgba(255, 255, 255, 0.72);
+}
+.hero-mark .menu-button::before {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.02)
+  );
+}
+.hero-mark .menu-button::after {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.45), transparent);
+}
+.hero-mark .menu-button .edge-left {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+}
+.hero-mark .menu-button .edge-right {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+}
+.hero-mark .menu-button.is-soon {
+  color: #4a4a4a;
 }
 .hero.is-live .hero-app {
   opacity: 1;
@@ -425,13 +447,18 @@ a{
   display: block;
 }
 .hero.is-intro .hero-mark-type {
-  animation: hero-logo-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: hero-logo-in 1.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero.is-intro .hero-logo-light {
-  animation: hero-light-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: hero-light-in 1.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero.is-intro.is-phone .hero-mark {
-  animation: hero-phone-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) 1.4s both;
+  animation: hero-phone-shell 1.45s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
+}
+.hero.is-intro.is-phone .hero-app,
+.hero.is-intro.is-phone .hero-mark::before,
+.hero.is-intro.is-phone .hero-mark::after {
+  animation: hero-phone-in 1.45s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
 }
 @keyframes hero-logo-in {
   0% { opacity: 0; transform: translate(-50%, calc(-50% + 42px)); }
@@ -443,9 +470,21 @@ a{
   55% { opacity: 1; }
   100% { opacity: 1; transform: none; }
 }
+@keyframes hero-phone-shell {
+  from {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  to {
+    background-color: #000;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      0 28px 70px rgba(0, 0, 0, 0.45);
+  }
+}
 @keyframes hero-phone-in {
-  from { opacity: 0; transform: translateY(26px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .hero-title {
   font-weight: 500;
@@ -507,6 +546,7 @@ a{
 .zapstore-badge img {
   height: 36px;
   width: auto;
+  margin-top: -2px;
 }
 .hero-form input[type="text"] {
   width: 16rem;
@@ -554,11 +594,9 @@ a{
 .as-seen-in {
   position: relative;
   z-index: 3;
-  background: #000;
+  background: transparent;
   text-align: center;
   padding: 2rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .as-seen-in-label {
   display: block;
@@ -2258,8 +2296,7 @@ html[data-theme="light"] .nav-links a:hover,
 html[data-theme="light"] .theme-toggle:hover {
   color: #161616;
 }
-html[data-theme="light"] .hero-canvas,
-html[data-theme="light"] .as-seen-in {
+html[data-theme="light"] .hero-canvas {
   background: #e6e6e6;
 }
 html[data-theme="light"] .hero-subline,
@@ -2293,7 +2330,6 @@ html[data-theme="light"] .features-list li::before {
 }
 html[data-theme="light"] .topic-section,
 html[data-theme="light"] .feature-pair,
-html[data-theme="light"] .as-seen-in,
 html[data-theme="light"] .testimonial-section,
 html[data-theme="light"] .site-footer,
 html[data-theme="light"] .releases-all,

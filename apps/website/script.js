@@ -239,8 +239,10 @@
       var anchor = mark.querySelector('.hero-mark-type');
       if (anchor) {
         var ar = anchor.getBoundingClientRect();
-        ax = (ar.left + ar.width / 2 - rect.left) * dpr;
-        ay = (ar.top + ar.height / 2 - rect.top) * dpr;
+        if (ar.width > 1 && ar.height > 1) {
+          ax = (ar.left + ar.width / 2 - rect.left) * dpr;
+          ay = (ar.top + ar.height / 2 - rect.top) * dpr;
+        }
       }
     }
     gl.uniform2f(uRes, canvas.width, canvas.height);
@@ -252,9 +254,9 @@
     gl.uniform1f(uPointerOn, pointer.on);
     if (shape === 3 && introStart) {
       var elapsed = t - introStart;
-      if (elapsed >= 3600) hero.classList.remove('is-intro');
-      phoneReveal = elapsed < 3600 ? 0 : Math.min(1, (elapsed - 3600) / 900);
-      if (phoneReveal >= 1) introStart = 0;
+      if (elapsed >= 2300) hero.classList.remove('is-intro');
+      phoneReveal = elapsed < 1000 ? 0 : Math.min(1, (elapsed - 1000) / 700);
+      if (elapsed >= 1700) introStart = 0;
     }
     gl.uniform1f(uDpr, dpr);
     gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
