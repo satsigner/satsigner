@@ -283,6 +283,8 @@ a{
   pointer-events: none;
 }
 .hero-mark .phone {
+  --ui-scale: 1;
+  --bezel: 0px;
   position: absolute;
   top: 0;
   left: 0;
