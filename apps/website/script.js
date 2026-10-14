@@ -251,13 +251,16 @@
     gl.uniform1f(uPointerOn, pointer.on);
     if (shape === 3 && introStart) {
       var elapsed = t - introStart;
-      if (elapsed >= 2650) hero.classList.remove('is-intro');
-      phoneReveal = elapsed < 2650 ? 0 : Math.min(1, (elapsed - 2650) / 900);
+      if (elapsed >= 3600) hero.classList.remove('is-intro');
+      phoneReveal = elapsed < 3600 ? 0 : Math.min(1, (elapsed - 3600) / 900);
       if (phoneReveal >= 1) introStart = 0;
     }
     gl.uniform1f(uDpr, dpr);
     gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
     gl.uniform2f(uHalf, halfX, halfY);
+    var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
+    gl.uniform1f(uTheme, theme);
+    gl.clearColor(theme ? 0.902 : 0, theme ? 0.902 : 0, theme ? 0.902 : 0, 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (lgl && lu && shape >= 2 && mark) {
       var type = mark.querySelector('.hero-mark-type');
@@ -534,5 +537,50 @@ if (typeof Swiper !== 'undefined') {
       setTimeout(revealPerspectiveIfInViewButHidden, 80);
       setTimeout(revealPerspectiveIfInViewButHidden, 500);
     });
+  });
+})();
+
+(function initHeroDemo() {
+  var hero = document.querySelector('.hero');
+  var mark = document.querySelector('.hero-mark');
+  var splash = document.querySelector('.hero-splash');
+  var app = document.querySelector('.hero-app');
+  var phone = mark && mark.querySelector('.phone');
+  if (!hero || !mark || !splash || !app || !phone) return;
+
+  var clock = phone.querySelector('.phone-time');
+  function paintClock() {
+    if (!clock) return;
+    var now = new Date();
+    clock.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+
+  function fitPhone() {
+    var box = app.clientWidth ? app : mark;
+    var scale = box.clientWidth / 390;
+    phone.style.height = (box.clientHeight / scale) + 'px';
+    phone.style.transform = 'scale(' + scale + ')';
+  }
+
+  fitPhone();
+  paintClock();
+  window.addEventListener('resize', fitPhone);
+
+  document.querySelectorAll('.theme-toggle').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.removeAttribute('data-theme');
+      try { localStorage.setItem('theme', next); } catch (e) {}
+    });
+  });
+
+  splash.addEventListener('click', function () {
+    if (hero.classList.contains('is-live')) return;
+    fitPhone();
+    hero.classList.add('is-live');
+    splash.setAttribute('aria-hidden', 'true');
+    app.removeAttribute('aria-hidden');
+    if (window.satSignerDemo) window.satSignerDemo.open();
   });
 })();

@@ -207,16 +207,161 @@ a{
   pointer-events: none;
 }
 .hero.is-phone .hero-mark {
-  width: 297px;
-  height: 606px;
-  border-radius: 45px;
-  overflow: hidden;
+  --bezel: 9px;
+  width: 280px;
+  height: auto;
+  aspect-ratio: 390 / 844;
+  border-radius: 48px;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at center, #0a0a0c 93%, #34343a 100%);
+  box-shadow:
+    inset 0 0 5px rgba(255, 255, 255, 0.28),
+    0 28px 70px rgba(0, 0, 0, 0.45);
+}
+.phone-buttons {
+  display: none;
+}
+.hero.is-phone .phone-buttons {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.hero.is-phone .phone-buttons::before,
+.hero.is-phone .phone-buttons::after {
+  content: "";
+  position: absolute;
+  background: #2a2a2c;
+  border-radius: 2px;
+}
+.hero.is-phone .phone-buttons::before {
+  left: -2px;
+  top: 18%;
+  width: 3px;
+  height: 46px;
+  box-shadow:
+    0 34px 0 0 #2c2c2e,
+    0 64px 0 0 #2c2c2e;
+}
+.hero.is-phone .phone-buttons::after {
+  right: -2px;
+  top: 24%;
+  width: 3px;
+  height: 64px;
+}
+.hero.is-phone .hero-mark::before {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  top: calc(var(--bezel) + 11px);
+  left: 50%;
+  width: 92px;
+  height: 26px;
+  transform: translateX(-50%);
+  border-radius: 20px;
+  background: #050505;
+  pointer-events: none;
+}
+.hero.is-phone .hero-mark::after {
+  content: "";
+  position: absolute;
+  z-index: 6;
+  inset: var(--bezel);
+  border-radius: 39px;
+  pointer-events: none;
 }
 .hero.is-phone .hero-mark-type {
   display: none;
 }
 .hero.is-phone .hero-mark-shot {
   display: block;
+}
+.hero-app {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #0a0a0a;
+  opacity: 0;
+  pointer-events: none;
+}
+.hero.is-phone .hero-app,
+.hero.is-phone .hero-splash {
+  inset: var(--bezel) var(--bezel) 0;
+  border-radius: 39px 39px 48px 48px;
+}
+.hero.is-phone .hero-app {
+  background: #050505;
+  opacity: 1;
+}
+.hero.is-phone:not(.is-live) .hero-app {
+  pointer-events: none;
+}
+.hero-mark .phone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: 390px;
+  height: 844px;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform-origin: top left;
+}
+.phone-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  height: 28px;
+  margin: 14px 22px 8px;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.phone-signals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-mark .phone-screen {
+  flex: 1;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  border-radius: 0;
+}
+.hero.is-live .hero-app {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.7s ease 0.12s;
+}
+.hero-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.hero.is-live .hero-splash {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.65s ease;
 }
 .hero.is-badge .hero-mark-type {
   display: grid;
@@ -259,8 +404,8 @@ a{
 .hero.is-intro .hero-logo-light {
   animation: hero-light-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.hero.is-intro .hero-mark-shot {
-  animation: hero-phone-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+.hero.is-intro.is-phone .hero-mark {
+  animation: hero-phone-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) 1.4s both;
 }
 @keyframes hero-logo-in {
   0% { opacity: 0; transform: translate(-50%, calc(-50% + 42px)); }
@@ -753,7 +898,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   .hero.is-phone .hero-mark {
     width: min(260px, 68vw);
     height: auto;
-    aspect-ratio: 297 / 606;
+    aspect-ratio: 390 / 844;
   }
   .hero.is-badge .hero-mark-type {
     font-size: 1.05rem;

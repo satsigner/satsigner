@@ -512,11 +512,10 @@ body {
   opacity: 0.18;
 }
 
-.hero.is-phone .tab-bar {
+.tab-bar {
+  display: flex;
+  height: 70px;
   margin-top: auto;
-  padding-bottom: 10px;
-  height: 80px;
-}
   background: var(--gray-925);
   border-top: 1px solid transparent;
   border-image: linear-gradient(
