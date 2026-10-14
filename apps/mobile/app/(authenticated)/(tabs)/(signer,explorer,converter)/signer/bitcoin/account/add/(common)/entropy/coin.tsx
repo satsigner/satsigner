@@ -4,7 +4,6 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -14,6 +13,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSBinaryDisplay from '@/components/SSBinaryDisplay'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -171,7 +171,7 @@ export default function CoinEntropy() {
             </SSVStack>
             {complete ? null : (
               <SSHStack justifyBetween style={{ marginTop: 24 }}>
-                <TouchableOpacity
+                <SSPressable
                   key="heads"
                   activeOpacity={0.7}
                   style={[styles.coinHeads, coinShape]}
@@ -180,8 +180,8 @@ export default function CoinEntropy() {
                   <SSText size="xl" weight="bold" style={styles.headsLabel}>
                     0
                   </SSText>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </SSPressable>
+                <SSPressable
                   key="tails"
                   activeOpacity={0.7}
                   style={[styles.coinTails, coinShape]}
@@ -190,7 +190,7 @@ export default function CoinEntropy() {
                   <SSText size="xl" weight="bold">
                     1
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
               </SSHStack>
             )}
             {complete ? (

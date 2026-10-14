@@ -317,7 +317,7 @@ function NostrKeys() {
       setSeedRevealed(false)
       toast.success(t('common.success.dataPasted'))
     } catch {
-      toast.error(t('common.error.failedToPaste'))
+      toast.error(t('common.error.pasteFromClipboard'))
     }
   }
 

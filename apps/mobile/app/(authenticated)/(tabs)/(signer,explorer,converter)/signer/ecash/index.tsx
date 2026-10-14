@@ -2,11 +2,11 @@ import { FlashList } from '@shopify/flash-list'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
-import { TouchableOpacity } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconECash } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSPressable from '@/components/SSPressable'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
@@ -61,7 +61,7 @@ function EcashAccountCard({
       : `${mintCount} ${mintCount === 1 ? t('ecash.mint.singular') : t('ecash.mint.plural')}`
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
+    <SSPressable onPress={onPress} activeOpacity={0.88}>
       <View style={styles.accountCardShell}>
         <LinearGradient
           colors={[ECASH_CARD_FILL_TOP, ECASH_CARD_FILL_BOTTOM]}
@@ -145,7 +145,7 @@ function EcashAccountCard({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

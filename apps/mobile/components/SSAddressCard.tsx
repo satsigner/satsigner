@@ -1,5 +1,3 @@
-import { TouchableOpacity } from 'react-native'
-
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -10,6 +8,7 @@ import { formatNumber } from '@/utils/format'
 
 import { SSIconEyeOn, SSIconTrash } from './icons'
 import SSDetailsList from './SSDetailsList'
+import SSPressable from './SSPressable'
 
 type AddressCardProps = {
   address: WatchedAddress
@@ -41,14 +40,14 @@ export function AddressCard({
         </SSText>
         <SSHStack gap="sm">
           {showView && (
-            <TouchableOpacity onPress={onViewDetails}>
+            <SSPressable onPress={onViewDetails}>
               <SSIconEyeOn width={16} height={16} />
-            </TouchableOpacity>
+            </SSPressable>
           )}
           {showDelete && (
-            <TouchableOpacity onPress={onDelete}>
+            <SSPressable onPress={onDelete}>
               <SSIconTrash width={16} height={16} />
-            </TouchableOpacity>
+            </SSPressable>
           )}
         </SSHStack>
       </SSHStack>

@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Keyboard, StyleSheet, TouchableOpacity } from 'react-native'
+import { Keyboard, StyleSheet } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -20,6 +20,7 @@ import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCollapsible from '@/components/SSCollapsible'
+import SSPressable from '@/components/SSPressable'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -885,11 +886,9 @@ export default function WatchOnly() {
                             <SSText uppercase weight="bold">
                               {`${t('bitcoin.address')} #${index + 1}`}
                             </SSText>
-                            <TouchableOpacity
-                              onPress={() => deleteAddress(address)}
-                            >
+                            <SSPressable onPress={() => deleteAddress(address)}>
                               <SSIconTrash height={12} width={12} />
-                            </TouchableOpacity>
+                            </SSPressable>
                           </SSHStack>
                           <SSAddressDisplay
                             address={address}

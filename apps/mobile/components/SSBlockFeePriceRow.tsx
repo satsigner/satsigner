@@ -1,9 +1,11 @@
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import type { BlockHeightSource } from '@/hooks/useNetworkInfo'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
+
+import SSPressable from './SSPressable'
 
 type SSBlockFeePriceRowProps = {
   blockHeight: number | null | undefined
@@ -26,7 +28,7 @@ function SSBlockFeePriceRow({
     blockHeightSource === 'backend' ? Colors.white : Colors.gray['500']
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <SSPressable onPress={onPress} activeOpacity={0.7}>
       <SSHStack gap="xxs" style={{ justifyContent: 'center' }}>
         <SSText size="xxs" style={{ color: Colors.gray['500'] }}>
           Block{' '}
@@ -54,7 +56,7 @@ function SSBlockFeePriceRow({
           {` ${fiatCurrency}`}
         </SSText>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

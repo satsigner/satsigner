@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { type Direction } from '@/types/logic/sort'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 const LABELED_ARROW_HEIGHT = 5
@@ -47,18 +48,18 @@ function SSSortDirectionToggle({
 
   if (!label) {
     return (
-      <TouchableOpacity
+      <SSPressable
         style={[styles.unlabeledButton, !active && styles.muted]}
         activeOpacity={0.7}
         onPress={handleToggle}
       >
         {arrow}
-      </TouchableOpacity>
+      </SSPressable>
     )
   }
 
   return (
-    <TouchableOpacity
+    <SSPressable
       style={[styles.buttonBase, !active && styles.muted]}
       activeOpacity={0.7}
       onPress={handleToggle}
@@ -67,7 +68,7 @@ function SSSortDirectionToggle({
       <SSText size="sm" color={active ? 'white' : 'muted'}>
         {label}
       </SSText>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

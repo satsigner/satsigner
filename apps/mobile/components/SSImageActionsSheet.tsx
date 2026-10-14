@@ -5,7 +5,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
   useWindowDimensions
 } from 'react-native'
@@ -35,6 +34,8 @@ import { Colors, Layout } from '@/styles'
 import { setClipboard } from '@/utils/clipboard'
 import { formatBytes } from '@/utils/format'
 import { type ImageExifData } from '@/utils/imageExif'
+
+import SSPressable from './SSPressable'
 
 const DISMISS_DRAG_THRESHOLD = 80
 const DISMISS_VELOCITY_Y = 500
@@ -307,7 +308,7 @@ export default function SSImageActionsSheet() {
       statusBarTranslucent
     >
       <>
-        <TouchableOpacity
+        <SSPressable
           style={styles.overlay}
           activeOpacity={1}
           onPress={dismissWithAnimation}

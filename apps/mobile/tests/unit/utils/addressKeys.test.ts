@@ -56,7 +56,8 @@ const account: Account = {
   utxos: []
 }
 
-// As built by api/bdk.ts#getWalletAddresses: no derivationPath field.
+// As built by api/bdkWalletMappers.ts#getWalletAddresses: no derivationPath
+// field.
 const addressAtIndex3: Address = {
   address: EXPECTED_ADDRESS,
   index: 3,
