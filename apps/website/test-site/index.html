@@ -13,8 +13,12 @@
     <p class="stage-note">Test site. Screens and icons extracted from the React Native app.</p>
     <div class="phone" aria-label="SatSigner">
       <div class="phone-screen">
-        <section id="view-menu">
+        <section id="view-intro">
+          <div class="intro" id="intro"></div>
+        </section>
+        <section id="view-menu" hidden>
           <header class="menu-header">
+            <button type="button" class="settings" data-settings aria-label="Settings"></button>
             <p class="menu-title" id="menu-title">Signer</p>
           </header>
           <div class="menu-list" id="menu-list"></div>
@@ -31,9 +35,14 @@
             <p>Bitcoin</p>
           </header>
           <div class="accounts-body">
-            <p class="connection"><span class="dot"></span>Signet — Default <span>mempool.space</span></p>
-            <p class="totals"><span>Total balance <strong>22,240,000</strong></span><span>Mempool <strong>50,000</strong></span></p>
+            <p class="connection"><span class="dot"></span><span id="network-label">Signet</span> — Default <span>mempool.space</span></p>
+            <p class="totals"><span>Total balance <strong id="total-balance">22,240,000</strong></span><span>Mempool <strong id="total-mempool">50,000</strong></span></p>
             <button type="button" class="menu-button add-account"><span class="edge-left"></span><span class="edge-right"></span>Add account</button>
+            <nav class="network-tabs" aria-label="Networks">
+              <button type="button" class="network-tab" data-network="bitcoin">Bitcoin</button>
+              <button type="button" class="network-tab" data-network="testnet">Testnet</button>
+              <button type="button" class="network-tab is-active" data-network="signet">Signet</button>
+            </nav>
             <div id="account-list"></div>
           </div>
         </section>
@@ -76,11 +85,7 @@
             <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
             <p id="account-title">Spending</p>
           </header>
-          <div class="accounts-body">
-            <p class="account-amount" id="account-balance">1,240,000</p>
-            <p class="account-unit">sats</p>
-            <button type="button" class="menu-button" id="send-open"><span class="edge-left"></span><span class="edge-right"></span>Send</button>
-          </div>
+          <div class="account-landing" id="account-landing"></div>
         </section>
 
         <section id="view-send" hidden>
@@ -89,6 +94,7 @@
             <p>Add output</p>
           </header>
           <div class="accounts-body">
+            <div id="coin-select"></div>
             <label class="field">
               <span>Address</span>
               <input id="send-address" value="tb1qpayjoin0demo0000000000000000000000">
@@ -145,6 +151,7 @@
             <p class="hint" id="sent-summary"></p>
           </div>
         </section>
+        <div id="sheet" class="sheet" hidden></div>
       </div>
     </div>
   </main>

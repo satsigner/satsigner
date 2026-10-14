@@ -44,7 +44,7 @@ const icons = {
   signerActive:
     '<svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="currentColor"/></svg>',
   explorer:
-    '<svg viewBox="0 0 28 16" fill="none"><path fill="none" stroke="currentColor" d="M7.7 7.7a6.3 6.3 0 1 0 0.1 0M20.3 7.7a6.3 6.3 0 1 0 0.1 0"/></svg>',
+    '<svg viewBox="0 0 28 16" fill="none"><mask id="explorer-outline" fill="#fff"><path fill-rule="evenodd" d="M14 12.228a7.724 7.724 0 1 1 0-9.008 7.724 7.724 0 1 1 0 9.008Z" clip-rule="evenodd"/></mask><path fill="currentColor" d="m14 12.228.812-.584-.812-1.13-.812 1.13.812.584Zm0-9.008-.812.584.812 1.13.812-1.13L14 3.22Zm-.812 8.424a6.714 6.714 0 0 1-5.464 2.804v2a8.714 8.714 0 0 0 7.088-3.636l-1.624-1.168Zm-5.464 2.804A6.724 6.724 0 0 1 1 7.724h-2a8.724 8.724 0 0 0 8.724 8.724v-2ZM1 7.724A6.724 6.724 0 0 1 7.724 1v-2A8.724 8.724 0 0 0-1 7.724h2ZM7.724 1a6.714 6.714 0 0 1 5.464 2.804l1.624-1.167A8.714 8.714 0 0 0 7.724-1v2Zm7.088 2.804A6.714 6.714 0 0 1 20.276 1v-2a8.714 8.714 0 0 0-7.088 3.637l1.624 1.167ZM20.276 1A6.724 6.724 0 0 1 27 7.724h2A8.724 8.724 0 0 0 20.276-1v2ZM27 7.724a6.724 6.724 0 0 1-6.724 6.724v2A8.724 8.724 0 0 0 29 7.724h-2Zm-6.724 6.724a6.714 6.714 0 0 1-5.464-2.804l-1.624 1.168a8.714 8.714 0 0 0 7.088 3.636v-2Z" mask="url(#explorer-outline)"/></svg>',
   explorerActive:
     '<svg viewBox="0 0 28 16" fill="none"><path fill="currentColor" fill-rule="evenodd" d="M14 12.228a7.724 7.724 0 1 1 0-9.008 7.724 7.724 0 1 1 0 9.008Z"/></svg>',
   converter:
@@ -54,7 +54,31 @@ const icons = {
   chevron:
     '<svg viewBox="0 0 5 12" fill="none"><path d="M1 1l3 4.5L1 10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
   back:
-    '<svg viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>'
+    '<svg viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  paste:
+    '<svg viewBox="0 0 14 12" fill="none"><path d="M2.5 2.5h9a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" stroke="currentColor"/><path d="M4.5 2.5V2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v.5M4 5h6M4 6.5h4M4 8h6" stroke="currentColor"/></svg>',
+  camera:
+    '<svg viewBox="0 0 14 12" fill="none"><path d="M13.5 3.8v7.9H.5V3.8h2.8a1.6 1.6 0 0 0 1.3-.7l.6-.9h3.9l.6.9a1.6 1.6 0 0 0 1.3.7Z" stroke="currentColor"/><circle cx="7" cy="7.2" r="2.5" stroke="currentColor"/></svg>',
+  nfc:
+    '<svg viewBox="0 0 14 16" fill="none"><path d="M8 2c3.4 3.4 3.4 9 0 12.4M5.5 4.5c2 2 2 5.4 0 7.4M3.3 6.7c.8.8.8 2.2 0 3" stroke="currentColor"/></svg>',
+  incoming:
+    '<svg viewBox="0 0 16 16" fill="none"><path d="M8.5.5V11m0 0L11 8.5M8.5 11 6 8.5" stroke="var(--main-green)"/><path d="M4 2a7.5 7.5 0 1 0 9 0" stroke="var(--main-green)"/></svg>',
+  outgoing:
+    '<svg viewBox="0 0 15 16" fill="none"><rect x="0.5" y="11" width="14" height="4" stroke="var(--main-red)"/><path d="M7.5 8.5V.5m0 0L5 3M7.5.5 10 3" stroke="var(--main-red)"/></svg>',
+  refresh:
+    '<svg viewBox="0 0 12 16" fill="none"><path d="M1 9.2A5.5 5.5 0 1 0 2.7 5.2" stroke="currentColor" stroke-width="0.75"/><path d="M7 7 2.4 5.1 4.2.5" stroke="currentColor" stroke-width="0.75"/></svg>',
+  expand:
+    '<svg viewBox="0 0 15 16" fill="none"><path d="M9 1h5.5v6M6 15H.5V9" stroke="currentColor"/></svg>',
+  search:
+    '<svg viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M12.2 12.2 16.5 16.5" stroke="currentColor" stroke-width="1.2"/></svg>',
+  chart:
+    '<svg viewBox="0 0 17 10" fill="none"><path d="M.6 9h3.9V2h4.6v4h1.8V.5h2v2.5h3.2" stroke="currentColor"/></svg>',
+  menu:
+    '<svg viewBox="0 0 13 10" fill="none"><path d="M4 1h8M4 5h8M4 9h8M2 1H0M2 5H0M2 9H0" stroke="currentColor"/></svg>',
+  settings:
+    '<svg viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1" d="M9.594 3.94A1.125 1.125 0 0 1 10.7 3h2.6a1.125 1.125 0 0 1 1.11.94l.213 1.281a1.249 1.249 0 0 0 .645.87c.074.04.147.083.22.127a1.244 1.244 0 0 0 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.3 2.247a1.125 1.125 0 0 1-.26 1.431l-1 .827a1.239 1.239 0 0 0-.43.992q0 .127 0 .255a1.238 1.238 0 0 0 .43.991l1 .827a1.126 1.126 0 0 1 .26 1.43l-1.3 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456a1.246 1.246 0 0 0-1.076.124q-.109.066-.22.128a1.247 1.247 0 0 0-.644.869l-.213 1.281A1.124 1.124 0 0 1 13.3 21h-2.6a1.126 1.126 0 0 1-1.11-.94l-.214-1.281a1.245 1.245 0 0 0-.644-.87q-.111-.061-.22-.127a1.246 1.246 0 0 0-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.3-2.247a1.125 1.125 0 0 1 .26-1.431l1-.827a1.243 1.243 0 0 0 .43-.991q0-.127 0-.255a1.244 1.244 0 0 0-.43-.992l-1-.827a1.125 1.125 0 0 1-.26-1.43l1.3-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456a1.246 1.246 0 0 0 1.076-.124c.072-.044.146-.086.22-.128a1.241 1.241 0 0 0 .644-.869l.214-1.28Z"/><path stroke="currentColor" stroke-width="1" d="M15 12a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z"/></svg>',
+  bubbles:
+    '<svg viewBox="0 0 18 16" fill="none"><g transform="translate(-0.77 -0.94)"><circle cx="4.77" cy="4.77" r="4.77" transform="translate(8.7 1.45)" fill="none" stroke="currentColor" stroke-width="0.75"/><circle cx="2.8" cy="2.8" r="2.8" transform="translate(1.27 4.51)" fill="none" stroke="currentColor" stroke-width="0.75"/><circle cx="2.28" cy="2.28" r="2.28" transform="translate(5.59 11.97)" fill="none" stroke="currentColor" stroke-width="0.75"/></g></svg>'
 }
 
 function icon(name, className) {
