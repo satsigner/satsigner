@@ -218,10 +218,7 @@ export default function Converter() {
     )
     animateLoading(true)
     try {
-      const datePrices = await resolvePricesAt(
-        usePriceStore.getState().fiatCurrency,
-        timestamp
-      )
+      const datePrices = await resolvePricesAt(timestamp)
       if (requestId !== priceRequestIdRef.current) {
         return
       }

@@ -12,6 +12,10 @@ import {
 } from '@/types/models/Blockchain'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
+// The API's exchange rates are USD-based, so a USD quote converts correctly
+// into every other currency.
+const NETWORK_BASE_CURRENCY: Currency = 'USD'
+
 async function resolveHistoricalPrices(
   currency: Currency,
   timestamps: number[]
@@ -55,14 +59,10 @@ function keepUsablePrices(prices: Record<string, number>) {
 /**
  * Prices in every fiat currency at `timestamp`, for showing values on a past
  * date. Uses bundled history first and, when opted in, fills the currencies
- * it lacks from the network (quoted as `currency`). Currencies with no price
- * are left out. Returns null when historical prices are off or no price is
- * found at all.
+ * it lacks from the network. Currencies with no price are left out. Returns
+ * null when historical prices are off or no price is found at all.
  */
-async function resolvePricesAt(
-  currency: Currency,
-  timestamp: number
-): Promise<Prices | null> {
+async function resolvePricesAt(timestamp: number): Promise<Prices | null> {
   const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
     useSettingsStore.getState()
   if (!fetchHistoricalPrices) {
@@ -80,7 +80,10 @@ async function resolvePricesAt(
 
   try {
     const oracle = new MempoolOracle(getFiatPriceApiUrl())
-    const networkPrices = await oracle.getFullPriceAt(currency, timestamp)
+    const networkPrices = await oracle.getFullPriceAt(
+      NETWORK_BASE_CURRENCY,
+      timestamp
+    )
     return { ...keepUsablePrices(networkPrices), ...localPrices }
   } catch {
     return localOrNull

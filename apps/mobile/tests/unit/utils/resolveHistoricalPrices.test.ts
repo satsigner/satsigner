@@ -82,7 +82,7 @@ describe('resolvePricesAt', () => {
     useSettingsStore.setState({ fetchHistoricalPrices: false })
     const getFullPriceAt = jest.spyOn(MempoolOracle.prototype, 'getFullPriceAt')
 
-    await expect(resolvePricesAt('USD', 100)).resolves.toBeNull()
+    await expect(resolvePricesAt(100)).resolves.toBeNull()
     expect(getLocalPricesAtMock).not.toHaveBeenCalled()
     expect(getFullPriceAt).not.toHaveBeenCalled()
   })
@@ -92,7 +92,7 @@ describe('resolvePricesAt', () => {
     getLocalPricesAtMock.mockReturnValue(ALL_BUNDLED_PRICES)
     const getFullPriceAt = jest.spyOn(MempoolOracle.prototype, 'getFullPriceAt')
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
+    await expect(resolvePricesAt(100)).resolves.toStrictEqual(
       ALL_BUNDLED_PRICES
     )
     expect(getLocalPricesAtMock).toHaveBeenCalledWith(100)
@@ -104,7 +104,7 @@ describe('resolvePricesAt', () => {
     getLocalPricesAtMock.mockReturnValue(SOME_BUNDLED_PRICES)
     const getFullPriceAt = jest.spyOn(MempoolOracle.prototype, 'getFullPriceAt')
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
+    await expect(resolvePricesAt(100)).resolves.toStrictEqual(
       SOME_BUNDLED_PRICES
     )
     expect(getFullPriceAt).not.toHaveBeenCalled()
@@ -114,7 +114,7 @@ describe('resolvePricesAt', () => {
     enableHistoricalPrices(false)
     getLocalPricesAtMock.mockReturnValue({})
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toBeNull()
+    await expect(resolvePricesAt(100)).resolves.toBeNull()
   })
 
   it('fills currencies missing from the bundle with usable api prices', async () => {
@@ -124,11 +124,11 @@ describe('resolvePricesAt', () => {
       .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
       .mockResolvedValue({ CHF: -1, EUR: 40, USD: 42 })
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual({
+    await expect(resolvePricesAt(100)).resolves.toStrictEqual({
       EUR: 40,
       USD: 7
     })
-    expect(getFullPriceAt).toHaveBeenCalledWith('EUR', 100)
+    expect(getFullPriceAt).toHaveBeenCalledWith('USD', 100)
   })
 
   it('keeps the bundled prices when the api request fails', async () => {
@@ -138,7 +138,7 @@ describe('resolvePricesAt', () => {
       .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
       .mockRejectedValue(new Error('network down'))
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
+    await expect(resolvePricesAt(100)).resolves.toStrictEqual(
       SOME_BUNDLED_PRICES
     )
   })
@@ -150,6 +150,6 @@ describe('resolvePricesAt', () => {
       .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
       .mockRejectedValue(new Error('network down'))
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toBeNull()
+    await expect(resolvePricesAt(100)).resolves.toBeNull()
   })
 })
