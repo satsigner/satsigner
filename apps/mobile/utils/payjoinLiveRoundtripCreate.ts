@@ -1,4 +1,5 @@
-import { getWalletData, getWalletOverview, syncWallet } from '@/api/bdk'
+import { getWalletData, syncWallet } from '@/api/bdk'
+import { getWalletOverview } from '@/api/bdkWalletMappers'
 import {
   CLOWN_ACCOUNT_NAME,
   clownSignetWalletSeed,

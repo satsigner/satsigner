@@ -31,14 +31,13 @@ import {
   ownershipScanLimit
 } from '@/utils/walletOwnership'
 
+import { getPublicDescriptorsForAccount, resolveRpcWalletName } from './bdk'
 import {
   appendAddressAtIndex,
-  getPublicDescriptorsForAccount,
   maxCoreKeychainIndex,
-  resolveRpcWalletName,
   revealKnownAddresses,
   toAppNetwork
-} from './bdk'
+} from './bdkWalletMappers'
 import {
   BitcoinCoreWallet,
   type CoreTxDetails,

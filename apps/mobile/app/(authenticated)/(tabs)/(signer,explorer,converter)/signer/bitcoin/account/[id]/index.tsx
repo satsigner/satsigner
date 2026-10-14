@@ -33,7 +33,8 @@ import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
+import { getLastUnusedAddressFromWallet } from '@/api/bdk'
+import { getWalletAddresses } from '@/api/bdkWalletMappers'
 import {
   SSIconBubbles,
   SSIconChartSettings,
