@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 
 import BitcoinRpc, { adjustRpcUrl, BitcoinCoreWallet } from '@/api/rpc'
 import { RPC_DEFAULT_TIMEOUT_MS } from '@/constants/rpc'
+import { HttpStatusError } from '@/utils/errors'
 
 jest.mock<typeof import('react-native')>('react-native', () => ({
   Platform: { OS: 'ios' }
@@ -174,6 +175,23 @@ describe('bitcoinRpc', () => {
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
 
     await expect(rpc.getBlockCount()).rejects.toThrow(/HTTP 401/)
+  })
+
+  it('throws HttpStatusError with the status for HTTP 401', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({}, 401))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toBeInstanceOf(HttpStatusError)
+  })
+
+  it('throws RpcError with the code for JSON-RPC errors', async () => {
+    mockFetch.mockResolvedValueOnce(rpcError(-8, 'Block height out of range'))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -8,
+      name: 'RpcError'
+    })
   })
 
   it('maps HTTP 403 to an rpcallowip hint', async () => {
