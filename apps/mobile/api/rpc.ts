@@ -1,4 +1,3 @@
-import { HttpStatusError, RpcError, TimeoutError } from '@/utils/errors'
 import { Platform } from 'react-native'
 import z from 'zod'
 
@@ -7,6 +6,7 @@ import {
   RPC_LIST_TRANSACTIONS_COUNT,
   RPC_RESCAN_TIMEOUT_MS
 } from '@/constants/rpc'
+import { HttpStatusError, RpcError, TimeoutError } from '@/utils/errors'
 
 let androidIsEmulator: boolean | null = null
 

@@ -1,4 +1,3 @@
-import { RpcError } from '@/utils/errors'
 import { hex } from '@scure/base'
 import {
   type BdkWallet,
@@ -25,6 +24,7 @@ import {
   type Network as BlockchainNetwork,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import {
   annotateTransactionsWithWalletOwnership,
