@@ -22,6 +22,7 @@ import type {
   LNDRequest,
   LNDRequestOptions
 } from '@/types/models/Lightning'
+import { HttpStatusError } from '@/utils/errors'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
 import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
@@ -110,10 +111,10 @@ export const useLND = () => {
           setConnected(false)
         }
         const errorText = await response.text()
-        const error = new Error(
+        throw new HttpStatusError(
+          response.status,
           `LND API error: ${response.status} ${errorText}`
         )
-        throw error
       }
 
       const data = await response.json()
