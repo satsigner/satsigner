@@ -110,6 +110,27 @@ a{
 .nav-links a:hover {
   color: #fff;
 }
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+.theme-toggle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.theme-toggle:hover {
+  color: #fff;
+}
 
 /* ----- Hero ----- */
 .hero {
@@ -410,6 +431,15 @@ a{
 .as-seen-in-logo--btc-conf {
   height: 2.25rem;
   max-width: min(220px, 50vw);
+}
+.as-seen-in-logo--light {
+  display: none;
+}
+html[data-theme="light"] .as-seen-in-logo:not(.as-seen-in-logo--light) {
+  display: none;
+}
+html[data-theme="light"] .as-seen-in-logo--light {
+  display: block;
 }
 
 /* ----- Section spacing ----- */
@@ -2037,4 +2067,89 @@ SWIPER
 .swiper-button-next:after, .swiper-button-prev:after {
     font-size: 21px;
     color: #fff;
+}
+
+html[data-theme="light"] body {
+  background-color: #e6e6e6;
+  color: #161616;
+}
+html[data-theme="light"] a,
+html[data-theme="light"] .nav-wordmark,
+html[data-theme="light"] .nav-links a,
+html[data-theme="light"] .theme-toggle,
+html[data-theme="light"] .feature-grid-intro a,
+html[data-theme="light"] .feature-card strong,
+html[data-theme="light"] .releases-table td:first-child a:hover,
+html[data-theme="light"] .releases-all a:hover,
+html[data-theme="light"] .footer-links a:hover,
+html[data-theme="light"] .as-seen-in-link:hover,
+html[data-theme="light"] .nav-links a:hover,
+html[data-theme="light"] .theme-toggle:hover {
+  color: #161616;
+}
+html[data-theme="light"] .hero-canvas,
+html[data-theme="light"] .as-seen-in {
+  background: #e6e6e6;
+}
+html[data-theme="light"] .hero-subline,
+html[data-theme="light"] .hero-points,
+html[data-theme="light"] .hero-form-label,
+html[data-theme="light"] .section-intro,
+html[data-theme="light"] .features-intro,
+html[data-theme="light"] .features-list li,
+html[data-theme="light"] .feature-grid-intro,
+html[data-theme="light"] .feature-grid-card p,
+html[data-theme="light"] .feature-card,
+html[data-theme="light"] .feature-pair-intro,
+html[data-theme="light"] .testimonial-quote,
+html[data-theme="light"] .testimonial-source,
+html[data-theme="light"] .testimonial-link,
+html[data-theme="light"] .releases-disclaimer,
+html[data-theme="light"] .releases-disclaimer strong,
+html[data-theme="light"] .releases-table th,
+html[data-theme="light"] .releases-table td:first-child a,
+html[data-theme="light"] .releases-table td:nth-child(2),
+html[data-theme="light"] .releases-table td:nth-child(3),
+html[data-theme="light"] .releases-all a,
+html[data-theme="light"] .footer-links a,
+html[data-theme="light"] .footer-legal,
+html[data-theme="light"] .as-seen-in-label,
+html[data-theme="light"] .as-seen-in-link {
+  color: rgba(22, 22, 22, 0.72);
+}
+html[data-theme="light"] .features-list li::before {
+  background: rgba(22, 22, 22, 0.45);
+}
+html[data-theme="light"] .topic-section,
+html[data-theme="light"] .feature-pair,
+html[data-theme="light"] .as-seen-in,
+html[data-theme="light"] .testimonial-section,
+html[data-theme="light"] .site-footer,
+html[data-theme="light"] .releases-all,
+html[data-theme="light"] .releases-table th,
+html[data-theme="light"] .releases-table tbody tr + tr td {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+html[data-theme="light"] .feature-grid {
+  border-top-color: rgba(0, 0, 0, 0.12);
+  border-left-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] .feature-grid-card {
+  border-right-color: rgba(0, 0, 0, 0.12);
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] .feature-card,
+html[data-theme="light"] .releases-card {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+html[data-theme="light"] .releases-table tbody tr:hover td {
+  background: rgba(0, 0, 0, 0.04);
+}
+html[data-theme="light"] .releases-all a {
+  border-bottom-color: rgba(0, 0, 0, 0.25);
+}
+html[data-theme="light"] .phone,
+html[data-theme="light"] .phone-screen {
+  color: #fff;
 }

@@ -22,6 +22,7 @@
     'uniform float uDpr;',
     'uniform float uReveal;',
     'uniform vec2 uHalf;',
+    'uniform float uTheme;',
     'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float sdCircle(vec2 p, float r){ return length(p) - r; }',
     'float sdRoundBox(vec2 p, vec2 b, float r){',
@@ -63,14 +64,20 @@
     '  grain += hash21(floor(css * 4.24));',
     '  grain += hash21(floor(css * 6.3));',
     '  grain = clamp(grain * 0.33, 0.0, 1.0);',
-    '  float floorB = mix(0.055, 0.02, grain);',
-    '  float col = floorB + light * mix(0.62, 1.2, grain);',
+    '  float floorDark = mix(0.055, 0.02, grain);',
+    '  float floorLight = mix(0.925, 0.878, grain);',
+    '  float page = 0.902;',
+    '  float glow = light * mix(0.62, 1.2, grain);',
+    '  float colDark = floorDark + glow;',
+    '  float colLight = floorLight + glow * 0.95;',
+    '  float floorB = mix(floorDark, floorLight, uTheme);',
+    '  float col = mix(colDark, colLight, uTheme);',
     '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
-    '  col = mix(1.0, col, rim);',
+    '  col = mix(mix(1.0, page, uTheme), col, rim);',
     '  col = mix(floorB, col, uReveal);',
     '  float band = uRes.y * 0.22;',
     '  float fade = sqrt(clamp(min(p.y, uRes.y - p.y) / band, 0.0, 1.0));',
-    '  col *= fade;',
+    '  col = mix(mix(page, col, fade), col * fade, 1.0 - uTheme);',
     '  gl_FragColor = vec4(vec3(col), 1.0);',
     '}'
   ].join('\n');
@@ -104,6 +111,7 @@
   var uDpr = gl.getUniformLocation(prog, 'uDpr');
   var uReveal = gl.getUniformLocation(prog, 'uReveal');
   var uHalf = gl.getUniformLocation(prog, 'uHalf');
+  var uTheme = gl.getUniformLocation(prog, 'uTheme');
 
   var logo = document.querySelector('.hero-logo-light');
   var lgl = logo && logo.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: true });

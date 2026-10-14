@@ -6,11 +6,15 @@
     <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>html,body{background:#000;color:#fff}</style>
+    <style>html,body{background:#000;color:#fff}html[data-theme="light"],html[data-theme="light"] body{background:#e6e6e6;color:#161616}</style>
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fonts/inter.css">
+    <link rel="stylesheet" href="test-site/tokens.css">
+    <link rel="stylesheet" href="test-site/screen.css">
     <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
@@ -35,6 +39,12 @@
           <a href="#decoder">Decoder</a>
           <a href="#support">Support</a>
           <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
+          <button type="button" class="theme-toggle" aria-label="Toggle color theme">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"></circle>
+              <path d="M8 1.75a6.25 6.25 0 0 0 0 12.5z" fill="currentColor"></path>
+            </svg>
+          </button>
         </div>
     </div>
   </nav>
@@ -68,9 +78,11 @@
     <div class="as-seen-in-row">
       <a href="https://opensats.org" target="_blank" rel="noopener" class="as-seen-in-logo-link">
         <img class="as-seen-in-logo" src="imgs/open_sats.png" width="510" height="125" alt="OpenSats">
+        <img class="as-seen-in-logo as-seen-in-logo--light" src="imgs/open_sats-light.png" width="510" height="125" alt="">
       </a>
       <a href="https://b.tc/conference" target="_blank" rel="noopener" class="as-seen-in-logo-link">
         <img class="as-seen-in-logo as-seen-in-logo--btc-conf" src="imgs/bitcoin_conference.png" width="368" height="120" alt="Bitcoin Conference">
+        <img class="as-seen-in-logo as-seen-in-logo--btc-conf as-seen-in-logo--light" src="imgs/bitcoin_conference-light.png" width="368" height="120" alt="">
       </a>
     </div>
   </section>
@@ -275,7 +287,9 @@
     <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
   </footer>
 
-  <script src="script.js?v=15"></script>
+  <script src="test-site/icons.js"></script>
+  <script src="test-site/screen.js"></script>
+  <script src="script.js?v=19"></script>
 
   </body>
 </html>
