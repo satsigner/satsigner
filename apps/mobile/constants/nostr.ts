@@ -21,6 +21,11 @@ export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 // NIP-59 gift wraps backdate created_at by up to two days.
 export const NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_EOSE_TIMEOUT_MS = 15000
+export const NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS = 12_000
+export const NOSTR_RELAY_POLL_INTERVAL_MS = 250
+export const NOSTR_PUBLISH_RETRY_DEADLINE_MS = 4000
+// Relays probed when reporting connection status.
+export const NOSTR_RELAY_PROBE_COUNT = 3
 export const NOSTR_EVENT_CACHE_MAX_AGE = 259200
 export const NOSTR_EVENT_CACHE_MAX_ROWS = 5000
 export const NOSTR_FLUSH_QUEUE_DELAY_MS = 50

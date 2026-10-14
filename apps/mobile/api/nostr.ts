@@ -23,7 +23,11 @@ import {
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_PUBLISH_RETRY_DEADLINE_MS,
   NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS,
+  NOSTR_RELAY_POLL_INTERVAL_MS,
+  NOSTR_RELAY_PROBE_COUNT,
   NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
   NOSTR_RELAY_REACHABILITY_TEST_MS,
   NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
@@ -86,7 +90,7 @@ function buildRelayConnectionInfo(
   allUrls: string[],
   connectedUrls: string[]
 ): NostrRelayConnectionInfo {
-  const probeUrls = allUrls.slice(0, 3)
+  const probeUrls = allUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
   const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
   return {
     relayDetails: probeUrls.map((url) => ({
@@ -137,7 +141,7 @@ export async function testNostrRelaysReachable(
   }
 
   // No registry entry yet (first probe before any data fetch) — use a throw-away NDK.
-  const probeUrls = relayUrls.slice(0, 3)
+  const probeUrls = relayUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
   const probeNdk = createMobileNdk(probeUrls)
   await probeNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
   const connected = probeNdk.pool?.connectedRelays().map((r) => r.url) ?? []
@@ -969,7 +973,11 @@ export class NostrAPI {
     }
 
     const filter = { ids: [eventIdHex], limit: 1 }
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    const poolEvent = await NostrAPI.fetchWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
     if (!poolEvent) {
       return null
     }
@@ -999,7 +1007,7 @@ export class NostrAPI {
         kinds: [nostrKinds.RelayList, nostrKinds.DirectMessageRelaysList],
         limit: 10
       },
-      12_000
+      NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS
     )
     return extractInboxRelayUrls([...events])
   }
@@ -1654,7 +1662,7 @@ export class NostrAPI {
     let connected = pool.connectedRelays()
     while (connected.length === 0 && Date.now() < deadline) {
       await new Promise((resolve) => {
-        setTimeout(resolve, 250)
+        setTimeout(resolve, NOSTR_RELAY_POLL_INTERVAL_MS)
       })
       connected = pool.connectedRelays()
     }
@@ -1771,7 +1779,10 @@ export class NostrAPI {
     )
     const missed = intendedUrls.filter((url) => !succeeded.has(url))
     if (missed.length > 0) {
-      const retryConnected = await this.waitForConnectedRelays(4_000, 250)
+      const retryConnected = await this.waitForConnectedRelays(
+        NOSTR_PUBLISH_RETRY_DEADLINE_MS,
+        NOSTR_RELAY_POLL_INTERVAL_MS
+      )
       const retryTargets = retryConnected.filter(
         (relay) => !succeeded.has(relay.url)
       )
