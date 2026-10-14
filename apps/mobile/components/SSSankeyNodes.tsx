@@ -32,7 +32,10 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
-import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
+import {
+  getNodeParagraphLayoutWidth,
+  getUnspentOutputSatsColor
+} from '@/utils/sankeyOutputLabel'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 type SSSankeyNodesProps = {
@@ -57,8 +60,6 @@ const PADDING_LEFT = 8
 const ICON_SIZE = 8
 const RECT_PADDING = 5
 const NODE_MARGIN_LEFT = 1
-/** Extra layout width so amount + unit can paint past the sankey node band. */
-const NODE_TEXT_OVERFLOW_WIDTH = 220
 /** Keeps the sats amount and unit on one line in Skia paragraphs. */
 const NBSP = '\u00A0'
 /** NBSP belongs on the unit run — trailing NBSP on the amount run can drop the first "s". */
@@ -847,12 +848,7 @@ function NodeText({
       para = buildSpentParagraph()
     }
 
-    // Wide layout so value + "sats" stay on one line and can overflow the node band.
-    para.layout(
-      isBlock
-        ? width * 0.6
-        : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
-    )
+    para.layout(getNodeParagraphLayoutWidth(width, PADDING_LEFT, isBlock))
     return para
   }, [
     customFontManager,
@@ -924,9 +920,11 @@ function NodeText({
     return null
   }
 
-  const paragraphLayoutWidth = isBlock
-    ? width * 0.6
-    : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
+  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(
+    width,
+    PADDING_LEFT,
+    isBlock
+  )
   const paragraphActualWidth = isBlock
     ? paragraphLayoutWidth
     : Math.max(width - PADDING_LEFT, mainParagraph.getLongestLine())
