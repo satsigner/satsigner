@@ -2,11 +2,11 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { getLocalLatestPrices, getLocalPriceAt } from '@/api/localPrices'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { getLocalLatestPrices } from '@/api/localPrices'
 import mmkvStorage from '@/storage/mmkv'
 import { useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
+import { satsToFiat } from '@/utils/fiat'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 const EMPTY_PRICES: Prices = {
@@ -30,7 +30,6 @@ type PriceAction = {
   satsToFiat: (sats: number, btcPrice?: number) => number
   setFiatCurrency: (currency: Currency) => void
   fetchPrices: (mempoolUrl: string) => Promise<void>
-  fetchFullPriceAt: (mempoolUrl: string, timestamps: number) => Promise<void>
   resetCurrentPrices: () => void
 }
 
@@ -38,30 +37,6 @@ const usePriceStore = create<PriceState & PriceAction>()(
   persist(
     (set, get) => ({
       btcPrice: 0,
-      fetchFullPriceAt: async (mempoolUrl: string, timestamp: number) => {
-        const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
-          useSettingsStore.getState()
-        if (!fetchHistoricalPrices) {
-          return
-        }
-        const { fiatCurrency } = get()
-        const localPrice = getLocalPriceAt(fiatCurrency, timestamp)
-        if (localPrice !== null) {
-          set({ btcPrice: localPrice })
-          return
-        }
-        if (!fetchHistoricalPricesFromNetwork) {
-          return
-        }
-        try {
-          const oracle = new MempoolOracle(mempoolUrl)
-          const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
-          const btcPrice = prices[fiatCurrency] ?? 0
-          set({ btcPrice, prices })
-        } catch {
-          // Keep last known prices when the API drops the connection.
-        }
-      },
       fetchPrices: async (mempoolUrl: string) => {
         const { fetchCurrentPrices } = useSettingsStore.getState()
         if (!fetchCurrentPrices) {
@@ -94,19 +69,12 @@ const usePriceStore = create<PriceState & PriceAction>()(
       resetCurrentPrices: () => {
         set({ btcPrice: 0, prices: { ...EMPTY_PRICES } })
       },
-      satsToFiat: (sats, btcPrice = 0) => {
-        if (!useSettingsStore.getState().fetchCurrentPrices) {
-          return 0
-        }
-        if (!sats || sats <= 0) {
-          return 0
-        }
-        const bitcoinPrice = btcPrice || get().btcPrice
-        if (bitcoinPrice <= 0) {
-          return 0
-        }
-        return (sats / SATS_PER_BITCOIN) * bitcoinPrice
-      },
+      satsToFiat: (sats, btcPrice = 0) =>
+        satsToFiat(
+          sats,
+          btcPrice || get().btcPrice,
+          useSettingsStore.getState().fetchCurrentPrices
+        ),
       setFiatCurrency: (currency: Currency) => {
         const { fetchCurrentPrices } = useSettingsStore.getState()
         if (!fetchCurrentPrices) {
