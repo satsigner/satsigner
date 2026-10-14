@@ -1,7 +1,7 @@
-import {
-  usePayjoinSessionsStore,
-  buildNewSession
-} from '@/store/payjoinSessions'
+import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import { buildNewSession } from '@/utils/payjoinSession'
+
+const TTL_MS = 600_000
 
 describe('payjoinSessions store', () => {
   beforeEach(() => {
@@ -17,6 +17,7 @@ describe('payjoinSessions store', () => {
       protocol: 'v2',
       role: 'receiver',
       status: 'ready',
+      ttlMs: TTL_MS,
       uri: 'bitcoin:tb1qtest?pjos=0&pj=https://payjo.in/x'
     })
     usePayjoinSessionsStore.getState().upsertSession(session)
@@ -36,6 +37,7 @@ describe('payjoinSessions store', () => {
       protocol: 'v2',
       role: 'sender',
       status: 'waiting',
+      ttlMs: TTL_MS,
       uri: 'bitcoin:tb1qtest?pjos=0&pj=https://payjo.in/x'
     })
     usePayjoinSessionsStore.getState().upsertSession(session)
@@ -63,6 +65,7 @@ describe('payjoinSessions store', () => {
       protocol: 'v1',
       role: 'sender',
       status: 'negotiating',
+      ttlMs: TTL_MS,
       uri: 'bitcoin:tb1qtest?pj=https://example.com/pj'
     })
     const store = usePayjoinSessionsStore.getState()
@@ -87,6 +90,7 @@ describe('payjoinSessions store', () => {
       protocol: 'v2',
       role: 'receiver',
       status: 'proposal_received',
+      ttlMs: TTL_MS,
       uri: 'bitcoin:tb1qtest?pj=https://payjo.in/x'
     })
     const store = usePayjoinSessionsStore.getState()
@@ -113,6 +117,7 @@ describe('payjoinSessions store', () => {
       protocol: 'v2',
       role: 'receiver',
       status: 'ready',
+      ttlMs: TTL_MS,
       uri: 'bitcoin:tb1qalive?pj=https://payjo.in/alive'
     })
     const expired = {
@@ -126,6 +131,7 @@ describe('payjoinSessions store', () => {
         protocol: 'v2',
         role: 'receiver',
         status: 'completed',
+        ttlMs: TTL_MS,
         uri: 'bitcoin:tb1qdead?pj=https://payjo.in/dead'
       }),
       expiresAt: Date.now() - 1
