@@ -7,7 +7,7 @@ import {
   useCameraPermissions
 } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -594,7 +594,7 @@ function SSCameraModal({
       onClose={handleModalClose}
       showLabel={!isFinalizing}
     >
-      <SSVStack itemsCenter gap="md">
+      <SSVStack itemsCenter widthFull gap="md">
         <SSText color="muted" uppercase>
           {isFinalizing
             ? t('camera.detected')
@@ -803,14 +803,12 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        <SSVStack style={styles.permissionActions}>
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
-        </SSVStack>
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
         {progressType && (
           <SSButton
             label={t('qrcode.scan.reset')}
@@ -823,11 +821,5 @@ function SSCameraModal({
     </SSModal>
   )
 }
-
-const styles = StyleSheet.create({
-  permissionActions: {
-    alignSelf: 'stretch'
-  }
-})
 
 export default SSCameraModal
