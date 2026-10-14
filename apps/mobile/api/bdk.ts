@@ -14,7 +14,12 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
-import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BTC_DECIMALS,
+  SATS_PER_BITCOIN,
+  SEQUENCE_FINAL,
+  SEQUENCE_RBF
+} from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -789,7 +794,7 @@ async function buildTransactionWithRpc(
   )
 
   const rpcInputs = data.inputs.map((u) => ({
-    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    sequence: data.options.rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
     txid: u.txid,
     vout: u.vout
   }))
