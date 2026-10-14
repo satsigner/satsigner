@@ -2,11 +2,12 @@ import { hex } from '@scure/base'
 import z from 'zod'
 
 import {
-  ESPLORA_ADDRESS_TXS_PER_REQUEST,
-  ESPLORA_ERROR_MESSAGES
+  ESPLORA_ERROR_MESSAGES,
+  ESPLORA_MIN_CHAIN_TXS_PER_PAGE
 } from '@/constants/esplora'
 import { BlockSchema, BlockStatusSchema } from '@/types/models/Blockchain'
 import {
+  type EsploraTx,
   EsploraTxOutspendsSchema,
   EsploraTxSchema,
   EsploraUtxoSchema
@@ -15,6 +16,12 @@ import {
 const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse
 const parseTxIds = z.array(EsploraTxSchema.shape.txid).parse
+
+/** Whether an address history page is full, so older txs may follow it. */
+function isFullAddressTxsPage(page: EsploraTx[]) {
+  const confirmed = page.filter((tx) => tx.status.confirmed)
+  return confirmed.length >= ESPLORA_MIN_CHAIN_TXS_PER_PAGE
+}
 
 export default class Esplora {
   public esploraUrl: string
@@ -161,7 +168,7 @@ export default class Esplora {
     const transactions = parseTxs(data)
 
     let lastRequestTransactions = transactions
-    while (lastRequestTransactions.length >= ESPLORA_ADDRESS_TXS_PER_REQUEST) {
+    while (isFullAddressTxsPage(lastRequestTransactions)) {
       // Early stop: if every txid on this page is already known, no need to paginate further
       if (
         stopAtTxids &&
