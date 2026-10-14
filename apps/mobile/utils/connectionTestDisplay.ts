@@ -1,6 +1,6 @@
 import { MS_PER_SECOND } from '@/constants/time'
-import { type ConnectionTestResult } from '@/hooks/useConnectionTest'
 import { tn as _tn } from '@/locales'
+import { type ConnectionTestResult } from '@/types/models/ConnectionTest'
 import { formatDate } from '@/utils/date'
 
 const tnServer = _tn('settings.network.server')
