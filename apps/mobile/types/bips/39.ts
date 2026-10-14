@@ -68,6 +68,9 @@ export const LANGUAGE_MAP: Record<WordListName, Language> = {
   spanish: Language.Spanish
 }
 
+// 128-bit seed phrase used for nostr identities and ecash wallets.
+export const SHORT_MNEMONIC_WORD_COUNT = 12
+
 export const WORD_COUNT_MAP: Record<MnemonicWordCount, WordCount> = {
   12: WordCount.Words12,
   15: WordCount.Words15,
