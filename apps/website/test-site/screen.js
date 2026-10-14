@@ -611,6 +611,7 @@ function renderPreview() {
   const payjoin = document.getElementById('payjoin-toggle').checked
   const address = document.getElementById('send-address').value
   document.getElementById('preview-body').innerHTML =
+    signSendSankey('tx-sankey') +
     '<p class="io-line"><span>Inputs</span><strong>' +
     coins
       .filter((coin) => coin.selected)
@@ -742,17 +743,185 @@ const introSteps = [
   }
 ]
 
+function ribbonPath(sx, sy, h, tx, ty, b0, b1) {
+  const half = h / 2
+  const span = tx - sx
+  const cx0 = sx + span * b0
+  const cx1 = sx + span * b1
+  return (
+    'M ' + sx + ' ' + (sy - half) +
+    ' C ' + cx0 + ' ' + (sy - half) + ' ' + cx1 + ' ' + (ty - half) + ' ' + tx + ' ' + (ty - half) +
+    ' L ' + tx + ' ' + (ty + half) +
+    ' C ' + cx1 + ' ' + (ty + half) + ' ' + cx0 + ' ' + (sy + half) + ' ' + sx + ' ' + (sy + half) +
+    ' Z'
+  )
+}
+
+function stackSlots(heights, top) {
+  let y = top
+  return heights.map((h) => {
+    const slot = { h: h, ty: y + h / 2 }
+    y += h
+    return slot
+  })
+}
+
+function signSendSankey(className) {
+  const inputHeights = [8, 29, 9, 24, 10, 6]
+  const outputHeights = [22, 24, 32, 8]
+  const inputs = stackSlots(inputHeights, 157)
+  const outputs = stackSlots(outputHeights, 157)
+  const inRibbons = [
+    [0.38, 0.62, 0, 62],
+    [0.58, 0.4, 1, 118],
+    [0.45, 0.55, 2, 178],
+    [0.52, 0.44, 3, 258],
+    [0.41, 0.59, 4, 322],
+    [0.6, 0.38, 5, 402]
+  ]
+  const outRibbons = [
+    [0.42, 0.58, 0, 88],
+    [0.5, 0.46, 1, 195],
+    [0.39, 0.6, 2, 298],
+    [0.47, 0.54, 3, 385]
+  ]
+  const inId = className + 'In'
+  const outId = className + 'Out'
+  const inPaths = inRibbons
+    .map((ribbon) => {
+      const slot = inputs[ribbon[2]]
+      return '<path fill="url(#' + inId + ')" d="' + ribbonPath(0, ribbon[3], slot.h, 168, slot.ty, ribbon[0], ribbon[1]) + '"/>'
+    })
+    .join('')
+  const outPaths = outRibbons
+    .map((ribbon) => {
+      const slot = outputs[ribbon[2]]
+      return '<path fill="url(#' + outId + ')" d="' + ribbonPath(206, slot.ty, slot.h, 360, ribbon[3], ribbon[0], ribbon[1]) + '"/>'
+    })
+    .join('')
+  return (
+    '<svg class="' + className + '" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+    '<defs><linearGradient id="' + inId + '" gradientUnits="userSpaceOnUse" x1="0" x2="168" y1="0" y2="0">' +
+    '<stop offset="0" stop-color="#0A0A0A"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>' +
+    '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09"/></linearGradient>' +
+    '<linearGradient id="' + outId + '" gradientUnits="userSpaceOnUse" x1="206" x2="360" y1="0" y2="0">' +
+    '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.09"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>' +
+    '<stop offset="1" stop-color="#0A0A0A"/></linearGradient></defs>' +
+    '<rect x="168" y="157" width="38" height="86" fill="rgba(255,255,255,0.09)"/>' +
+    inPaths + outPaths + '</svg>'
+  )
+}
+
+const hexRows = [
+  '00000000  01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   |................|',
+  '00000010  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   |................|',
+  '00000020  00 00 00 00 <b>3b a3 ed fd</b> 7a 7b 12 b2 7a c7 2c 3e   |....<b>;...</b>z{..z.,>|',
+  '00000030  67 76 8f 61 7f c8 1b c3 88 8a 51 32 3a 9f b8 aa   |gv.a......Q2:...|',
+  '00000040  4b 1e 5e 4a 29 ab 5f 49 ff ff 00 1d 1d ac 2b 7c   |K.^J)._I......+||',
+  '00000080  01 04 45 54 68 65 20 54 69 6d 65 73 20 30 33 2f   |..EThe Times 03/|',
+  '00000090  4a 61 6e 2f 32 30 30 39 20 43 68 61 6e 63 65 6c   |Jan/2009 Chancel|',
+  '000000a0  6c 6f 72 20 6f 6e 20 62 72 69 6e 6b 20 6f 66 20   |lor on brink of |'
+]
+
+const bubbleLayout = [
+  [54, '48%', '34%', true],
+  [42, '28%', '28%', true],
+  [36, '68%', '30%', false],
+  [30, '38%', '48%', false],
+  [26, '62%', '46%', false],
+  [22, '22%', '44%', false],
+  [18, '78%', '42%', false],
+  [16, '52%', '22%', false]
+]
+
+const explorerTx = [
+  [[20, 4], [12, 10], [18, 16], [9, 22]],
+  [[15, 4], [24, 10], [11, 16], [19, 22]],
+  [[22, 4], [14, 10], [17, 22]],
+  [[11, 4], [21, 10], [16, 16], [8, 28]],
+  [[18, 4], [10, 10], [14, 22], [23, 28]],
+  [[14, 4], [22, 16], [13, 22], [19, 28]],
+  [[17, 4], [23, 10], [10, 16], [20, 22]],
+  [[16, 10], [21, 16], [12, 22]],
+  [[19, 4], [11, 10], [23, 22], [14, 28]]
+]
+
 const introVisuals = {
-  hex: '<p class="intro-hex">01000000<br>00000000<br>3ba3edfd<br>ffffffff</p>',
+  hex: '<div class="hex-dump">' + hexRows.join('\n') + '</div>',
   bubbles:
-    '<div class="intro-bubbles"><i style="width:72px;height:72px"></i><i style="width:40px;height:40px"></i><i style="width:28px;height:28px"></i></div>',
-  sankey:
-    '<div class="intro-sankey"><span></span><span></span><span></span></div>',
+    '<div class="live-bubbles">' +
+    bubbleLayout
+      .map(
+        (bubble) =>
+          '<i class="' +
+          (bubble[3] ? 'is-bright' : '') +
+          '" style="--r:' +
+          bubble[0] +
+          'px;--x:' +
+          bubble[1] +
+          ';--y:' +
+          bubble[2] +
+          '"></i>'
+      )
+      .join('') +
+    '</div>',
+  sankey: signSendSankey('sign-sankey'),
   layers:
-    '<div class="intro-layers"><span>Lightning</span><span>Ark</span><span>Bitcoin</span></div>',
-  privacy: '<p class="intro-privacy">Coin control</p>',
-  coord: '<p class="intro-coord">NIP-17</p>',
-  explorer: '<p class="intro-explorer">Block 284,112</p>'
+    '<div class="layer-phone"><span>Bitcoin</span><span>Lightning</span><span>Ark</span><span>eCash</span><span>Nostr</span></div>',
+  privacy:
+    '<div class="privacy-rings">' +
+    [0.12, 0.3, 0.5, 0.72, 0.96]
+      .map((size, index) => {
+        const opacity = [0.6, 0.42, 0.27, 0.16, 0.09][index]
+        return '<i style="--d:' + size * 340 + 'px;--o:' + opacity + '"></i>'
+      })
+      .join('') +
+    '</div>',
+  coord:
+    '<svg class="coord-graph" viewBox="0 0 360 420" aria-hidden="true">' +
+    '<line x1="180" y1="160" x2="180" y2="88" stroke="rgba(255,255,255,0.35)"/>' +
+    '<line x1="180" y1="160" x2="295" y2="138" stroke="rgba(255,255,255,0.35)"/>' +
+    '<line x1="180" y1="160" x2="252" y2="218" stroke="rgba(255,255,255,0.35)"/>' +
+    '<line x1="180" y1="160" x2="108" y2="218" stroke="rgba(255,255,255,0.35)"/>' +
+    '<line x1="180" y1="160" x2="70" y2="150" stroke="rgba(255,255,255,0.35)"/>' +
+    '<circle cx="180" cy="160" r="31" fill="none" stroke="rgba(255,255,255,0.7)"/>' +
+    '<text x="180" y="164" fill="rgba(255,255,255,0.82)" font-size="9" text-anchor="middle">wsh(multi)</text>' +
+    '<rect x="158" y="62" width="44" height="28" rx="4" fill="none" stroke="rgba(255,255,255,0.55)"/>' +
+    '<rect x="273" y="120" width="38" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.45)"/>' +
+    '<rect x="232" y="204" width="40" height="26" rx="4" fill="none" stroke="rgba(255,255,255,0.45)"/>' +
+    '<rect x="90" y="204" width="36" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.4)"/>' +
+    '<rect x="48" y="134" width="36" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.4)"/>' +
+    '<text x="180" y="54" fill="rgba(255,255,255,0.7)" font-size="9" text-anchor="middle">Alice</text>' +
+    '<text x="292" y="114" fill="rgba(255,255,255,0.7)" font-size="9" text-anchor="middle">Bob</text>' +
+    '<text x="252" y="244" fill="rgba(255,255,255,0.7)" font-size="9" text-anchor="middle">Carol</text>' +
+    '<text x="108" y="244" fill="rgba(255,255,255,0.7)" font-size="9" text-anchor="middle">Dave</text>' +
+    '</svg>',
+  explorer:
+    '<div class="chain-stage"><div class="chain">' +
+    explorerTx
+      .map((block, index) => {
+        const bars = block
+          .map(
+            (bar) =>
+              '<i style="left:3px;width:' +
+              bar[0] +
+              'px;height:3px;top:' +
+              bar[1] +
+              'px"></i>'
+          )
+          .join('')
+        const link = index < explorerTx.length - 1 ? '<span class="chain-link"></span>' : ''
+        return (
+          '<span class="chain-block' +
+          (index === 4 ? ' is-center' : '') +
+          '">' +
+          bars +
+          '</span>' +
+          link
+        )
+      })
+      .join('') +
+    '</div><span class="chain-scan"></span></div>'
 }
 
 let introIndex = 0
@@ -794,6 +963,15 @@ function renderIntro() {
   document.getElementById('intro-skip').addEventListener('click', () => show('menu'))
 }
 
+function renderSplash() {
+  const intro = document.getElementById('intro')
+  intro.classList.add('is-splash')
+  intro.innerHTML =
+    '<div class="intro-visual">' +
+    introVisuals.hex +
+    '</div><div class="intro-logo"><span>SAT<br>SIGNER</span></div><p class="splash-tag">UTXO manager<br>and Message Signer</p>'
+}
+
 function finishIntro() {
   document.getElementById('intro').innerHTML =
     '<div class="intro-logo"><span>SAT<br>SIGNER</span></div>'
@@ -802,5 +980,18 @@ function finishIntro() {
 
 paintTabs()
 renderMenu('signer')
-renderIntro()
+renderSplash()
 show('intro')
+
+window.satSignerDemo = {
+  open() {
+    show('menu')
+    renderMenu(activeTab)
+  }
+}
+
+const clock = document.querySelector('.phone-time')
+if (clock) {
+  const now = new Date()
+  clock.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0')
+}
