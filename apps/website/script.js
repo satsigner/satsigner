@@ -56,9 +56,8 @@
     '  float aimLen = length(aim);',
     '  vec2 key = aimLen > 1.0 ? normalize(mix(orbit, aim / aimLen, uPointerOn)) : orbit;',
     '  float face = smoothstep(-0.08, 0.72, dot(n, key));',
-    '  float edge = exp(-max(sdf, 0.0) / (5.0 * uDpr));',
     '  float far = exp(-max(sdf, 0.0) / (36.0 * uDpr));',
-    '  float light = edge * (0.08 + 1.05 * face) + far * (0.02 + 0.38 * face);',
+    '  float light = far * (0.02 + 0.38 * face);',
     '  vec2 css = p / max(uDpr, 1.0);',
     '  float grain = hash21(floor(css * 2.0));',
     '  grain += hash21(floor(css * 4.24));',
@@ -73,7 +72,7 @@
     '  float floorB = mix(floorDark, floorLight, uTheme);',
     '  float col = mix(colDark, colLight, uTheme);',
     '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
-    '  col = mix(mix(1.0, page, uTheme), col, rim);',
+    '  col = mix(floorB, col, rim);',
     '  col = mix(floorB, col, uReveal);',
     '  float band = uRes.y * 0.22;',
     '  float fade = sqrt(clamp(min(p.y, uRes.y - p.y) / band, 0.0, 1.0));',
@@ -226,7 +225,7 @@
       var m = mark.getBoundingClientRect();
       cx = (m.left + m.width / 2 - rect.left) * dpr;
       cy = (m.top + m.height / 2 - rect.top) * dpr;
-      var inset = shape >= 1 ? 0.93 : 1;
+      var inset = 1;
       halfX = (m.width / 2) * dpr * inset;
       halfY = (m.height / 2) * dpr * inset;
     }
