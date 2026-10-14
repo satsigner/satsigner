@@ -5,11 +5,11 @@
     "body": ["<ScrollView>", "\t$0", "</ScrollView>"],
     "description": "Scroll View React Native"
   },
-  "touchableopacity": {
+  "sspressable": {
     "scope": "typescriptreact",
-    "prefix": "touchable",
-    "body": ["<TouchableOpacity onPress={$1}>", "\t$0", "</TouchableOpacity>"],
-    "description": "TouchableOpacity React Native"
+    "prefix": "pressable",
+    "body": ["<SSPressable onPress={$1}>", "\t$0", "</SSPressable>"],
+    "description": "SSPressable component"
   },
   "ssbutton": {
     "scope": "typescriptreact",

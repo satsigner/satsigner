@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -16,6 +15,7 @@ import { classifySpecialOutput, specialOutputTag } from '@/utils/specialOutput'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPressable from './SSPressable'
 
 type SSTransactionVoutListProps = {
   txid?: Transaction['id']
@@ -88,7 +88,7 @@ function SSTransactionVoutList({
         )
 
         return (
-          <TouchableOpacity
+          <SSPressable
             key={`${txid}:${index}`}
             onPress={() => {
               if (utxoDict[`${txid}:${index}`]) {
@@ -114,7 +114,7 @@ function SSTransactionVoutList({
                 </SSText>
               </SSVStack>
               {output.address ? (
-                <TouchableOpacity
+                <SSPressable
                   onPress={() => {
                     if (addressDict[output.address]) {
                       onOpenAddress?.(output.address)
@@ -133,7 +133,7 @@ function SSTransactionVoutList({
                       size="sm"
                     />
                   </SSVStack>
-                </TouchableOpacity>
+                </SSPressable>
               ) : null}
               {labelsDict[index] ? (
                 <SSVStack gap="none">
@@ -148,7 +148,7 @@ function SSTransactionVoutList({
                 <SSScriptDecoded script={output.script || []} />
               </SSVStack>
             </SSVStack>
-          </TouchableOpacity>
+          </SSPressable>
         )
       })}
     </SSVStack>

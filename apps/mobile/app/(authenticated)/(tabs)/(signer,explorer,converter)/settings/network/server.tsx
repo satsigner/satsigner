@@ -1,6 +1,6 @@
 import { Stack, useFocusEffect, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplan
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
 import { useConnectionTest } from '@/hooks/useConnectionTest'
@@ -214,7 +215,7 @@ export default function NetworkSettings() {
                                   server.network
                               }
                             />
-                            <TouchableOpacity
+                            <SSPressable
                               onPress={() =>
                                 customServers.includes(server)
                                   ? handleEditCustomServer(network, server)
@@ -303,7 +304,7 @@ export default function NetworkSettings() {
                                   </SSText>
                                 </SSHStack>
                               </SSVStack>
-                            </TouchableOpacity>
+                            </SSPressable>
                           </SSHStack>
                           {customServers.includes(server) && (
                             <SSIconButton

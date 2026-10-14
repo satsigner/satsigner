@@ -1,11 +1,5 @@
 import { useState } from 'react'
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useFiatData } from '@/hooks/useFiatData'
@@ -27,9 +21,11 @@ import { parseLabel } from '@/utils/parse'
 import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
+import SSAmountDisplay from './SSAmountDisplay'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
+import SSPressable from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -174,7 +170,7 @@ function SSTransactionCard({
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <TouchableOpacity onPress={onPress}>
+    <SSPressable onPress={onPress}>
       <SSVStack
         style={[
           {
@@ -248,37 +244,20 @@ function SSTransactionCard({
                   />
                 )}
                 <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                  {privacyMode ? (
-                    <SSText
-                      size={smallView ? 'xl' : '4xl'}
-                      weight="light"
-                      style={{
-                        letterSpacing: smallView ? 0 : -0.5,
-                        lineHeight:
-                          Sizes.text.fontSize[smallView ? 'xl' : '4xl']
-                      }}
-                    >
-                      ••••
-                    </SSText>
-                  ) : (
-                    <SSStyledSatText
-                      amount={Math.abs(amount)}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      type={type}
-                      textSize={smallView ? 'xl' : '4xl'}
-                      noColor={false}
-                      showSign={false}
-                      weight="light"
-                      letterSpacing={smallView ? 0 : -0.5}
-                    />
-                  )}
-                  <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
-                    {currencyUnit === 'btc'
-                      ? t('bitcoin.btc')
-                      : t('bitcoin.sats')}
-                  </SSText>
+                  <SSAmountDisplay
+                    privacyMode={privacyMode}
+                    amount={Math.abs(amount)}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={type}
+                    textSize={smallView ? 'xl' : '4xl'}
+                    noColor={false}
+                    showSign={false}
+                    weight="light"
+                    letterSpacing={smallView ? 0 : -0.5}
+                    unitSize={smallView ? 'xs' : 'sm'}
+                  />
                 </SSHStack>
               </SSHStack>
               {hasPriceDisplay ? (
@@ -447,7 +426,7 @@ function SSTransactionCard({
           </SSVStack>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 
