@@ -227,9 +227,9 @@
       var m = mark.getBoundingClientRect();
       cx = (m.left + m.width / 2 - rect.left) * dpr;
       cy = (m.top + m.height / 2 - rect.top) * dpr;
-      var inset = 1;
-      halfX = (m.width / 2) * dpr * inset;
-      halfY = (m.height / 2) * dpr * inset;
+      var cover = 2 * dpr;
+      halfX = Math.max(1, (m.width / 2) * dpr - cover);
+      halfY = Math.max(1, (m.height / 2) * dpr - cover);
     }
     pointer.x += (pointer.tx - pointer.x) * 0.23;
     pointer.y += (pointer.ty - pointer.y) * 0.23;
@@ -260,7 +260,7 @@
     gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
     gl.uniform2f(uHalf, halfX, halfY);
     var cssRadius = 48;
-    if (mark) cssRadius = parseFloat(getComputedStyle(mark).borderTopLeftRadius) || cssRadius;
+    if (mark) cssRadius = Math.max(0, (parseFloat(getComputedStyle(mark).borderTopLeftRadius) || cssRadius) - 2);
     gl.uniform1f(uRadius, cssRadius * dpr);
     var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
     gl.uniform1f(uTheme, theme);
