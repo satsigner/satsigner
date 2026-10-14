@@ -325,7 +325,6 @@
     "signatureRequired": "Signatures Required",
     "sync.fullRescanStarted": "Full rescan started using the current gap limit.",
     "sync.historicalPricesFailed": "Could not load fiat prices. Check your internet connection.",
-    "sync.rpcAddressSyncUnsupported": "Address-based sync is not supported with Bitcoin Core RPC. Use BDK wallet sync instead.",
     "sync.status.error": "Can't sync",
     "sync.status.old.day": "~%{value}d ago",
     "sync.status.old.hour": "~%{value}h ago",
