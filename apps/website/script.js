@@ -1,3 +1,294 @@
+(function initHeroLight() {
+  var canvas = document.querySelector('.hero-canvas');
+  var hero = document.querySelector('.hero');
+  var mark = document.querySelector('.hero-mark');
+  if (!canvas || !hero) return;
+
+  var gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false });
+  if (!gl) return;
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var vs = 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }';
+  var fs = [
+    'precision highp float;',
+    'uniform vec2 uRes;',
+    'uniform vec2 uCenter;',
+    'uniform vec2 uAim;',
+    'uniform float uTime;',
+    'uniform float uShape;',
+    'uniform vec2 uPointer;',
+    'uniform float uPointerOn;',
+    'uniform float uDpr;',
+    'uniform float uReveal;',
+    'uniform vec2 uHalf;',
+    'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float sdCircle(vec2 p, float r){ return length(p) - r; }',
+    'float sdRoundBox(vec2 p, vec2 b, float r){',
+    '  vec2 q = abs(p) - b + r;',
+    '  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;',
+    '}',
+    'void main(){',
+    '  vec2 p = gl_FragCoord.xy;',
+    '  p.y = uRes.y - p.y;',
+    '  vec2 d = p - uCenter;',
+    '  float sdf;',
+    '  vec2 n;',
+    '  float scale = min(uRes.x, uRes.y);',
+    '  vec2 box = uHalf.x > 1.0 ? uHalf : vec2(scale * 0.105);',
+    '  if (uShape < 0.5) {',
+    '    float r = min(box.x, box.y);',
+    '    sdf = sdCircle(d, r);',
+    '    n = normalize(d + vec2(0.0001));',
+    '  } else {',
+    '    vec2 b = box;',
+    '    float rad = b.x * 0.30;',
+    '    sdf = sdRoundBox(d, b, rad);',
+    '    vec2 q = abs(d) - b + rad;',
+    '    vec2 g = max(q, 0.0);',
+    '    float lg = length(g);',
+    '    n = sign(d) * (lg > 0.001 ? g / lg : normalize(vec2(q.x, q.y) + vec2(0.0001)));',
+    '  }',
+    '  float ang = uTime * 0.21;',
+    '  vec2 orbit = vec2(cos(ang), sin(ang));',
+    '  vec2 aim = uPointer - uAim;',
+    '  float aimLen = length(aim);',
+    '  vec2 key = aimLen > 1.0 ? normalize(mix(orbit, aim / aimLen, uPointerOn)) : orbit;',
+    '  float face = smoothstep(-0.08, 0.72, dot(n, key));',
+    '  float edge = exp(-max(sdf, 0.0) / (5.0 * uDpr));',
+    '  float far = exp(-max(sdf, 0.0) / (36.0 * uDpr));',
+    '  float light = edge * (0.08 + 1.05 * face) + far * (0.02 + 0.38 * face);',
+    '  vec2 css = p / max(uDpr, 1.0);',
+    '  float grain = hash21(floor(css * 2.0));',
+    '  grain += hash21(floor(css * 4.24));',
+    '  grain += hash21(floor(css * 6.3));',
+    '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+    '  float floorB = mix(0.055, 0.02, grain);',
+    '  float col = floorB + light * mix(0.62, 1.2, grain);',
+    '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
+    '  col = mix(1.0, col, rim);',
+    '  col = mix(floorB, col, uReveal);',
+    '  float band = uRes.y * 0.22;',
+    '  float fade = sqrt(clamp(min(p.y, uRes.y - p.y) / band, 0.0, 1.0));',
+    '  col *= fade;',
+    '  gl_FragColor = vec4(vec3(col), 1.0);',
+    '}'
+  ].join('\n');
+
+  function compile(type, src) {
+    var sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return sh;
+  }
+  var prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  var uRes = gl.getUniformLocation(prog, 'uRes');
+  var uCenter = gl.getUniformLocation(prog, 'uCenter');
+  var uAim = gl.getUniformLocation(prog, 'uAim');
+  var uTime = gl.getUniformLocation(prog, 'uTime');
+  var uShape = gl.getUniformLocation(prog, 'uShape');
+  var uPointer = gl.getUniformLocation(prog, 'uPointer');
+  var uPointerOn = gl.getUniformLocation(prog, 'uPointerOn');
+  var uDpr = gl.getUniformLocation(prog, 'uDpr');
+  var uReveal = gl.getUniformLocation(prog, 'uReveal');
+  var uHalf = gl.getUniformLocation(prog, 'uHalf');
+
+  var logo = document.querySelector('.hero-logo-light');
+  var lgl = logo && logo.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: true });
+  var lProg = null;
+  var lu = null;
+  if (lgl) {
+    var lfs = [
+      'precision highp float;',
+      'uniform vec2 uRes;',
+      'uniform vec2 uCenter;',
+      'uniform float uTime;',
+      'uniform vec2 uPointer;',
+      'uniform float uPointerOn;',
+      'uniform float uDpr;',
+      'uniform float uRadius;',
+      'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'void main(){',
+      '  vec2 p = gl_FragCoord.xy;',
+      '  p.y = uRes.y - p.y;',
+      '  vec2 d = p - uCenter;',
+      '  float sdf = length(d) - uRadius + 3.0 * uDpr;',
+      '  vec2 n = normalize(d + vec2(0.0001));',
+      '  float ang = uTime * 0.21;',
+      '  vec2 orbit = vec2(cos(ang), sin(ang));',
+      '  vec2 aim = uPointer - uCenter;',
+      '  float aimLen = length(aim);',
+      '  vec2 key = aimLen > 1.0 ? normalize(mix(orbit, aim / aimLen, uPointerOn)) : orbit;',
+      '  float face = smoothstep(-0.08, 0.72, dot(n, key));',
+      '  float fall = max(uRadius / 120.0, 0.35);',
+      '  float edge = exp(-max(sdf, 0.0) / (5.0 * fall));',
+      '  float far = exp(-max(sdf, 0.0) / (36.0 * fall));',
+      '  float light = edge * (0.08 + 1.05 * face) + far * (0.02 + 0.38 * face);',
+      '  vec2 css = p / max(uDpr, 1.0);',
+      '  float grain = hash21(floor(css * 2.0));',
+      '  grain += hash21(floor(css * 4.24));',
+      '  grain += hash21(floor(css * 6.3));',
+      '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+      '  float bloom = light * mix(0.62, 1.2, grain);',
+      '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
+      '  float alpha = clamp(bloom, 0.0, 1.0) * rim;',
+      '  gl_FragColor = vec4(vec3(alpha), alpha);',
+      '}'
+    ].join('\n');
+    function lcompile(type, src) {
+      var sh = lgl.createShader(type);
+      lgl.shaderSource(sh, src);
+      lgl.compileShader(sh);
+      return sh;
+    }
+    lProg = lgl.createProgram();
+    lgl.attachShader(lProg, lcompile(lgl.VERTEX_SHADER, vs));
+    lgl.attachShader(lProg, lcompile(lgl.FRAGMENT_SHADER, lfs));
+    lgl.linkProgram(lProg);
+    lgl.useProgram(lProg);
+    var lbuf = lgl.createBuffer();
+    lgl.bindBuffer(lgl.ARRAY_BUFFER, lbuf);
+    lgl.bufferData(lgl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), lgl.STATIC_DRAW);
+    var lloc = lgl.getAttribLocation(lProg, 'a');
+    lgl.enableVertexAttribArray(lloc);
+    lgl.vertexAttribPointer(lloc, 2, lgl.FLOAT, false, 0, 0);
+    lgl.enable(lgl.BLEND);
+    lgl.blendFunc(lgl.ONE, lgl.ONE_MINUS_SRC_ALPHA);
+    lu = {
+      res: lgl.getUniformLocation(lProg, 'uRes'),
+      center: lgl.getUniformLocation(lProg, 'uCenter'),
+      time: lgl.getUniformLocation(lProg, 'uTime'),
+      pointer: lgl.getUniformLocation(lProg, 'uPointer'),
+      pointerOn: lgl.getUniformLocation(lProg, 'uPointerOn'),
+      dpr: lgl.getUniformLocation(lProg, 'uDpr'),
+      radius: lgl.getUniformLocation(lProg, 'uRadius')
+    };
+  }
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var shape = 3;
+  var dpr = 1;
+  var pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0 };
+  var introStart = reduce ? 0 : performance.now();
+  var phoneReveal = reduce ? 1 : 0;
+  if (reduce) hero.classList.remove('is-intro');
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    var h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function setPointer(e) {
+    var rect = canvas.getBoundingClientRect();
+    pointer.tx = (e.clientX - rect.left) * dpr;
+    pointer.ty = (e.clientY - rect.top) * dpr;
+    pointer.on = 1;
+  }
+  hero.addEventListener('pointermove', setPointer);
+  hero.addEventListener('pointerleave', function () { pointer.on = 0; });
+
+  function frame(t) {
+    resize();
+    var rect = canvas.getBoundingClientRect();
+    var cx = canvas.width * 0.5;
+    var cy = canvas.height * 0.42;
+    var halfX = 0;
+    var halfY = 0;
+    if (mark) {
+      var m = mark.getBoundingClientRect();
+      cx = (m.left + m.width / 2 - rect.left) * dpr;
+      cy = (m.top + m.height / 2 - rect.top) * dpr;
+      var inset = shape >= 1 ? 0.93 : 1;
+      halfX = (m.width / 2) * dpr * inset;
+      halfY = (m.height / 2) * dpr * inset;
+    }
+    pointer.x += (pointer.tx - pointer.x) * 0.23;
+    pointer.y += (pointer.ty - pointer.y) * 0.23;
+    var ax = cx;
+    var ay = cy;
+    if (shape >= 2 && mark) {
+      var anchor = mark.querySelector('.hero-mark-type');
+      if (anchor) {
+        var ar = anchor.getBoundingClientRect();
+        ax = (ar.left + ar.width / 2 - rect.left) * dpr;
+        ay = (ar.top + ar.height / 2 - rect.top) * dpr;
+      }
+    }
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform2f(uCenter, cx, cy);
+    gl.uniform2f(uAim, ax, ay);
+    gl.uniform1f(uTime, reduce ? 0 : t * 0.001);
+    gl.uniform1f(uShape, shape >= 1 ? 1 : 0);
+    gl.uniform2f(uPointer, pointer.x, pointer.y);
+    gl.uniform1f(uPointerOn, pointer.on);
+    if (shape === 3 && introStart) {
+      var elapsed = t - introStart;
+      if (elapsed >= 2650) hero.classList.remove('is-intro');
+      phoneReveal = elapsed < 2650 ? 0 : Math.min(1, (elapsed - 2650) / 900);
+      if (phoneReveal >= 1) introStart = 0;
+    }
+    gl.uniform1f(uDpr, dpr);
+    gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
+    gl.uniform2f(uHalf, halfX, halfY);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (lgl && lu && shape >= 2 && mark) {
+      var type = mark.querySelector('.hero-mark-type');
+      var lr = logo.getBoundingClientRect();
+      var lw = Math.max(1, Math.floor(lr.width * dpr));
+      var lh = Math.max(1, Math.floor(lr.height * dpr));
+      if (logo.width !== lw || logo.height !== lh) {
+        logo.width = lw;
+        logo.height = lh;
+      }
+      var lcx = lw * 0.5;
+      var lcy = lh * 0.286;
+      var lrad = lw * 0.15;
+      if (type && lr.width > 1) {
+        var tr = type.getBoundingClientRect();
+        lcx = (tr.left + tr.width / 2 - lr.left) * dpr;
+        lcy = (tr.top + tr.height / 2 - lr.top) * dpr;
+        lrad = (tr.width / 2) * dpr;
+      }
+      var lpx = pointer.x - (lr.left - rect.left) * dpr;
+      var lpy = pointer.y - (lr.top - rect.top) * dpr;
+      lgl.viewport(0, 0, lw, lh);
+      lgl.clearColor(0, 0, 0, 0);
+      lgl.clear(lgl.COLOR_BUFFER_BIT);
+      lgl.useProgram(lProg);
+      lgl.uniform2f(lu.res, lw, lh);
+      lgl.uniform2f(lu.center, lcx, lcy);
+      lgl.uniform1f(lu.time, reduce ? 0 : t * 0.001);
+      lgl.uniform2f(lu.pointer, lpx, lpy);
+      lgl.uniform1f(lu.pointerOn, pointer.on);
+      lgl.uniform1f(lu.dpr, dpr);
+      lgl.uniform1f(lu.radius, lrad);
+      lgl.drawArrays(lgl.TRIANGLES, 0, 3);
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
 if (typeof Swiper !== 'undefined') {
   try {
     new Swiper('.events', {

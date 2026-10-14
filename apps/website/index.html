@@ -6,10 +6,12 @@
     <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>html,body{background:#000;color:#fff}</style>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
-
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -20,78 +22,45 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-
-
-
-
-
   </head>
   <body>
 
   <nav class="site-nav">
     <div class="site-nav-inner">
-      <a href="#beta" class="nav-logo"><img src="imgs/satSigner_symbol.png" alt="satsigner"></a>
-      <div class="nav-links">
-        <a href="#beta">Beta</a>
-        <a href="#features">Features</a>
-        <a href="#decoder">Decoder</a>
-        <a href="#support">Support</a>
-        <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
-      </div>
+      <a href="#beta" class="nav-logo"><img src="imgs/satSigner_symbol.png" alt=""><span class="nav-wordmark">SATSIGNER</span></a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#security">Security</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#decoder">Decoder</a>
+          <a href="#support">Support</a>
+          <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
+        </div>
     </div>
   </nav>
 
-  <section class="hero" id="beta">
-    <img class="hero-logo" src="imgs/satSigner_symbol.png" alt="satsigner">
-    <h1 class="hero-title">See every sat. Control every key.</h1>
-    <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
-    <script>
-          function submitForm(event) {
-              event.preventDefault(); // Prevent the default form submission
-
-              const inputField = document.getElementById('inputField').value;
-
-              // Create a new FormData object
-              const formData = new FormData();
-              formData.append('inputField', inputField);
-
-              // Send the data using fetch
-              fetch('https://pvxg.net/satsigner/interest/index.php', {
-                  method: 'POST',
-                  body: formData
-              })
-              .then(response => response.json())
-              .then(data => {
-                  // Get the message element
-                  const messageElement = document.getElementById('message');
-
-                  // Update the message element based on the response
-                  if (data.status === 'success') {
-                      messageElement.textContent = data.message; // Show success message
-                      messageElement.style.color = '#6da66d'; // Set text color to green
-                  } else {
-                      messageElement.textContent = data.message; // Show error message
-                      messageElement.style.color = 'red'; // Set text color to red
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  const messageElement = document.getElementById('message');
-                  messageElement.textContent = 'An error occurred while submitting the form.';
-                  messageElement.style.color = 'red'; // Set text color to red
-              });
-          }
-      </script>
-
-
-
-    <form onsubmit="submitForm(event)" id="nostr-form" class="hero-form">
-      <label for="inputField"><span class="hero-form-label">Get early access—see every sat, your way</span></label>
-      <input type="text" id="inputField" name="inputField" placeholder="npub..." required>
-      <button type="submit" class="button button-primary">Get beta access</button>
-      <div id="message" class="hero-form-message"></div>
-      </form>
+  <section class="hero is-phone is-badge is-intro" id="beta">
+    <canvas class="hero-canvas" aria-hidden="true"></canvas>
+    <div class="hero-stage">
+      <div class="hero-copy">
+        <h1 class="hero-title">See every sat.<br>Control every key.</h1>
+        <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <p class="hero-form-label">Exclusive on Zapstore</p>
+        <a class="zapstore-badge" href="https://zapstore.dev/apps/satsigner" target="_blank" rel="noopener">
+          <img src="imgs/get-it-on-zapstore.svg" alt="Get it on Zapstore" height="36">
+        </a>
+      </div>
+      <div class="hero-mark">
+        <p class="hero-mark-type"><span>SAT<br>SIGNER</span></p>
+        <canvas class="hero-logo-light" aria-hidden="true"></canvas>
+        <img class="hero-mark-shot" src="imgs/ui/satSigner1-hero.png" alt="SatSigner on a phone">
+      </div>
+      <ul class="hero-points">
+        <li>One place for every output</li>
+        <li>Keys protected, not locked away</li>
+        <li>No black boxes</li>
+      </ul>
+    </div>
   </section>
 
   <section class="as-seen-in">
@@ -106,173 +75,146 @@
     </div>
   </section>
 
-  <section class="product-section">
-    <video class="product-video" width="320" height="240" autoplay muted loop playsinline>
-    <source src="imgs/satSigner_UX_intro_SOUND2.mp4" type="video/mp4">
-    <source src="movie.ogg" type="video/ogg">
-    Your browser does not support the video tag.
-  </video>
-  </section>
-
-  <!-- Feature pair 1: Core features + perspective -->
-  <section class="feature-pair feature-pair--type-right" id="features">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">Know exactly what you have</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">One place for every output</span>
-              <span class="perspective-type-detail">See balances, labels, and flows at a glance. Choose what to spend and how—singlesig, multisig, or watch-only. No guessing.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="feature-grid-section" id="features">
+    <h2 class="feature-grid-title">The full toolkit</h2>
+    <p class="feature-grid-intro">Privacy-first Bitcoin signing with complete UTXO control. The same feature set as the <a href="https://github.com/satsigner/satsigner/blob/master/FEATURES.md" target="_blank" rel="noopener">open-source app</a>.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card">
+        <h3>UTXO control</h3>
+        <p>Bubble charts and selection tools so you choose exactly which outputs to spend.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Multisig</h3>
+        <p>M-of-N wallets, sortedmulti descriptors, and per-cosigner PSBT tracking.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Account types</h3>
+        <p>Single-signature, multi-signature, and watch-only on mainnet, testnet, and signet.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Every script</h3>
+        <p>P2PKH, P2SH, nested and native SegWit, and Taproot (P2TR).</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Transaction builder</h3>
+        <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>BIP329 labels</h3>
+        <p>Label transactions, addresses, and UTXOs. Import and export JSON, JSONL, and CSV.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Payjoin</h3>
+        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Keys and PIN</h3>
+        <p>AES-256 storage, PIN lock, duress PIN, and the option to drop the seed after key extraction.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>No tracking</h3>
+        <p>No third-party analytics. MIT-licensed code you can audit.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Air-gapped signing</h3>
+        <p>Seed QR scanning, signature threshold checks, and per-cosigner PSBT export.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Import and export</h3>
+        <p>Descriptors, xpub formats, PSBTs over QR and NFC, and full account backup.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>See the flow</h3>
+        <p>Sankey diagrams, balance timelines, fee-rate history, and network charts.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Lightning and eCash</h3>
+        <p>LND invoices and payments, plus Cashu mints for private tokens.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Nostr sync</h3>
+        <p>Decentralized label sync over DMs, with relays and a trusted-device list.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Explorer and tools</h3>
+        <p>Blocks and transactions, fiat rates, and Bitcoin-to-energy conversion.</p>
+      </article>
     </div>
   </section>
 
-  <!-- Feature pair 2: Security + perspective -->
-  <section class="feature-pair feature-pair--type-right" id="security">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">Sleep better at night</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">Keys protected, not locked away</span>
-              <span class="perspective-type-detail">PIN and encryption where it matters. Drop the seed when you’re done. Open, auditable code—you can verify what’s protecting you.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="topic-section" id="security">
+    <h2 class="feature-grid-title">Security</h2>
+    <p class="feature-grid-intro">Keys stay on the device. Sensitive data is encrypted at rest, and the code is open to audit.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card">
+        <h3>PIN and encryption</h3>
+        <p>AES-256-CBC storage with PIN-protected access.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Duress PIN</h3>
+        <p>A separate PIN for situations where you cannot unlock normally.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Seed dropping</h3>
+        <p>Remove the mnemonic after the keys are extracted.</p>
+      </article>
     </div>
   </section>
 
-  <!-- Feature pair 3: Multi-sig + perspective (multisig layers) -->
-  <section class="feature-pair feature-pair--type-right" id="multisig">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section perspective-section--multisig">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/multisig_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/multisig_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/multisig_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/multisig_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/multisig_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/multisig_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">Shared custody, no trust required</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">Family funds, treasuries, shared wallets</span>
-              <span class="perspective-type-detail">M-of-N that actually works on mobile. PSBTs, air-gapped cosigners, QR and USB. You decide who signs—no one moves sats alone.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="topic-section" id="privacy">
+    <h2 class="feature-grid-title">Privacy</h2>
+    <p class="feature-grid-intro">No third-party tracking. Labels stay yours, and payments can avoid a plain on-chain fingerprint.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card">
+        <h3>No analytics</h3>
+        <p>The app does not send usage data to a third party.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Payjoin</h3>
+        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Your labels</h3>
+        <p>BIP329 labels on device, with optional Nostr sync and export when you choose.</p>
+      </article>
     </div>
   </section>
 
-  <!-- Feature pair 4: Privacy & labeling + perspective -->
-  <section class="feature-pair feature-pair--type-right" id="privacy">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/utxos_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/utxos_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/utxos_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/utxos_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/utxos_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/utxos_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">Your story, not your chain</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">Label what matters, sync how you want</span>
-              <span class="perspective-type-detail">Tag addresses and UTXOs so you remember why they exist. BIP329, Nostr, export when you need—your labels, your device.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="topic-section" id="decoder">
+    <h2 class="feature-grid-title">Decoder</h2>
+    <p class="feature-grid-intro">Inspect a transaction before you trust it. Hex, scripts, inputs, outputs, size, fees, and locktime.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card">
+        <h3>Raw transaction</h3>
+        <p>Decode the bytes instead of accepting a summary.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Scripts and outputs</h3>
+        <p>See inputs, outputs, and script types in one view.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Fees and locktime</h3>
+        <p>Size, fee, and time-locks are visible before you sign.</p>
+      </article>
     </div>
   </section>
 
-  <!-- Feature pair 5: Activity & charts (chart layers) -->
-  <section class="feature-pair feature-pair--type-right" id="chart">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section perspective-section--chart">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/chart_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/chart_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/chart_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/chart_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/chart_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/chart_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">Where it went and where it’s going</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">See flows, not just numbers</span>
-              <span class="perspective-type-detail">Sankey and activity views so you understand movement at a glance. Transactions, derived addresses, spendable outputs—all in one place.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Feature pair 6: Raw transaction data visualization (decoder layers) -->
-  <section class="feature-pair feature-pair--type-right" id="decoder">
-    <div class="feature-pair-content" aria-hidden="true"></div>
-    <div class="feature-pair-visual">
-      <div class="perspective-section perspective-section--decoder">
-        <div class="perspective-outer">
-          <div class="perspective-inner">
-            <div class="perspective-bg-wrap"><div class="perspective-bg perspective-bg--decoder" role="img" aria-hidden="true"></div></div>
-            <img class="perspective-layer perspective-layer-0" src="imgs/prespective/decoder_layer_0.png" alt="">
-            <img class="perspective-layer perspective-layer-1" src="imgs/prespective/decoder_layer_1.png" alt="">
-            <img class="perspective-layer perspective-layer-2" src="imgs/prespective/decoder_layer_2.png" alt="">
-            <img class="perspective-layer perspective-layer-3" src="imgs/prespective/decoder_layer_3.png" alt="">
-            <img class="perspective-layer perspective-layer-4" src="imgs/prespective/decoder_layer_4.png" alt="">
-            <img class="perspective-layer perspective-layer-5" src="imgs/prespective/decoder_layer_5.png" alt="">
-            <div class="perspective-type-title-layer">
-              <span class="perspective-type-title">No black boxes</span>
-            </div>
-            <div class="perspective-type">
-              <span class="perspective-type-line">Inspect every byte when it matters</span>
-              <span class="perspective-type-detail">Decode hex, scripts, inputs and outputs. See size, fees, locktime—the full picture so you never have to “just trust” a tx.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  <section class="topic-section" id="support">
+    <h2 class="feature-grid-title">Support</h2>
+    <p class="feature-grid-intro">Questions and bugs go to the public tracker. Security reports follow the published policy.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card">
+        <h3>Issues</h3>
+        <p><a href="https://github.com/satsigner/satsigner/issues" target="_blank" rel="noopener">Open an issue</a> on GitHub.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Security</h3>
+        <p><a href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md" target="_blank" rel="noopener">Read the security policy</a> before reporting a vulnerability.</p>
+      </article>
+      <article class="feature-grid-card">
+        <h3>Source</h3>
+        <p><a href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">satsigner/satsigner</a> is MIT licensed.</p>
+      </article>
     </div>
   </section>
 
@@ -281,254 +223,59 @@
     <p class="testimonial-source">— Beta tester (replace with real quote and <a href="#" class="testimonial-link">link to source</a>)</p>
   </section>
 
-  <section class="support-section" id="support">
-  <div class="dontion-outter">
-              <div class="dontion-inner">
-
-
-    <div>
-
-
-
-                  <!--
-                  <script>if(!window.btcpay){    var head = document.getElementsByTagName('head')[0];   var script = document.createElement('script');   script.src='https://btcpay989117.lndyn.com/modal/btcpay.js';   script.type = 'text/javascript';   head.append(script);}function onBTCPayFormSubmit(event){    var xhttp = new XMLHttpRequest();    xhttp.onreadystatechange = function() {        if (this.readyState == 4 && this.status == 200) {            if(this.status == 200 && this.responseText){                var response = JSON.parse(this.responseText);                window.btcpay.showInvoice(response.invoiceId);            }        }    };    xhttp.open("POST", event.target.getAttribute('action'), true);    xhttp.send(new FormData( event.target ));}</script><style type="text/css"> .btcpay-form { display: inline-flex; align-items: center; justify-content: center; } .btcpay-form--inline { flex-direction: row; } .btcpay-form--block { flex-direction: column; } .btcpay-form--inline .submit { margin-left: 15px; } .btcpay-form--block select { margin-bottom: 10px; } .btcpay-form .btcpay-custom-container{ text-align: center; }.btcpay-custom { display: flex; align-items: center; justify-content: center; } .btcpay-form .plus-minus { cursor:pointer; font-size:25px; line-height: 25px; background: #DFE0E1; height: 30px; width: 45px; border:none; border-radius: 60px; margin: auto 5px; display: inline-flex; justify-content: center; } .btcpay-form select { -moz-appearance: none; -webkit-appearance: none; appearance: none; color: currentColor; background: transparent; border:1px solid transparent; display: block; padding: 1px; margin-left: auto; margin-right: auto; font-size: 11px; cursor: pointer; } .btcpay-form select:hover { border-color: #ccc; } #btcpay-input-price { -moz-appearance: none; -webkit-appearance: none; border: none; box-shadow: none; text-align: center; font-size: 25px; margin: auto; border-radius: 5px; line-height: 35px; background: #fff; } #btcpay-input-price::-webkit-outer-spin-button, #btcpay-input-price::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } </style>
-                  <form method="POST"  onsubmit="onBTCPayFormSubmit(event);return false"  action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
-                    <input type="hidden" name="storeId" value="ERVAn9xx7uhcPyEFSBdDazaNMwXQEYyshSyUdw1iiGtv" />
-                    <input type="hidden" name="jsonResponse" value="true" />
-                    <input type="" name="price" value="10" />
-                    <input type="select-list" name="currency" value="USD" />
-                  <button type="submit" class="submit" name="submit" style="min-width:146px; min-height:40px; border-radius: 4px;border-style: none;background-color: #333333;" alt="Pay with BtcPay, Self-Hosted Bitcoin Payment Processor"><span style="color:#fff">Support</span>
-                  </button></form>
-                -->
-
-
-
-
-                <script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
-
-
-                <script>
-                $( document ).ready(function() {
-                  $(".btcpay-form").each(function( index, element ) {
-
-                    var jsonForm = new Object();
-                    var type = $(element).find('.input-checkoutDesc').val();
-                    $(element).find('.btcpay-input').keyup(function() {
-
-                      // limit, for validation
-                      // {"p":"Contributor","n":"wdhgt735344eew","t":"rwfrw66uiolou3746467456fwwed","g":"546646665644664654"}
-                      $(element).find('.input-checkoutDesc').val( type + ':' + $(element).find('.input-name').val());
-                      jsonForm.p = type;
-                      jsonForm.t = $(element).find('.input-twitterHandle').val();
-                      console.log(JSON.stringify(jsonForm));
-                      $(element).find('.input-orderId').val(JSON.stringify(jsonForm));
-                    });
-
-                  });
-                });
-                </script>
-
-                <h3>Support the developers</h3>
-                <form method="POST" onsubmit="onBTCPayFormSubmit(event);return false" action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
-                  <input type="hidden" name="storeId" value="GRqWiPg5FBP5j7yNqaHVyAr884e65B7ebFjqE4g8Fu8k" />
-                  <input type="hidden" name="jsonResponse" value="true" />
-
-                  <input class="btcpay-input input-orderId" name="orderId" value="" placeholder="DATA" />
-                  <input class="btcpay-input input-checkoutDesc" name="checkoutDesc" value="Producer" placeholder="" />
-
-
-
-
-                  <div class="form-group">
-                    <!--<label class="form-label" for="first">Twitter Handle</label>-->
-                    <input class="btcpay-input input-twitterHandle form-input" placeholder="name/nym" name="twitter" value="" />
-                  </div>
-
-                  <!--
-                  <div class="form-group">
-                    <label class="form-label" for="first">Display/Company Name</label>
-                    <input class="btcpay-input input-name form-input" name="name" value="" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="first">Github Username</label>
-                    <input class="btcpay-input input-githubUsername form-input" name="github" value="" />
-                  </div>
-                  -->
-
-                  <input type="hidden" name="checkoutQueryString" value="payerData" />
-
-
-
-                  <div class="btcpay-custom-container">
-                    <input class="btcpay-input-price" type="number" name="price" min="1" max="21000" step="1" value="21" data-price="1" style="width:209px;" oninput="handlePriceInput(event);return false" onchange="handleSliderChange(event);return false" />
-                  <select name="currency">
-                    <option value="USD" selected>USD</option>
-                    <option value="GBP">GBP</option>
-                    <option value="EUR">EUR</option>
-                    <option value="BTC">BTC</option>
-                  </select>
-                  <input type="range" class="btcpay-input-range" min="1" max="21000" step="1" value="21" style="width:209px;" oninput="handleSliderInput(event);return false" />
-                  </div>
-                  <button type="submit" class="submit donation" name="submit" title="Pay with BTCPay Server, a Self-Hosted Bitcoin Payment Processor">DONATE NOW</button>
-                </form>
-
-                <script>
-                    if (!window.btcpay) {
-                        var script = document.createElement('script');
-                        script.src = "https://btcpay989117.lndyn.com/modal/btcpay.js";
-                        document.getElementsByTagName('head')[0].append(script);
-                    }
-                    function onBTCPayFormSubmit(event) {
-                        event.preventDefault();
-                        var xhttp = new XMLHttpRequest();
-                        xhttp.onreadystatechange = function() {
-                            if (this.readyState == 4 && this.status == 200 && this.responseText) {
-                                window.btcpay.showInvoice(JSON.parse(this.responseText).invoiceId);
-                            }
-                        };
-                        xhttp.open('POST', event.target.getAttribute('action'), true);
-                        xhttp.send(new FormData(event.target));
-                    }
-
-                    function handleSliderChange(event) {
-                        event.preventDefault();
-                        const root = event.target.closest('.btcpay-form');
-                        const el = root.querySelector('.btcpay-input-price');
-                        const price = parseInt(el.value);
-                        const min = parseInt(event.target.getAttribute('min')) || 1;
-                        const max = parseInt(event.target.getAttribute('max'));
-                        if (price < min) {
-                            el.value = min;
-                        } else if (price > max) {
-                            el.value = max;
-                        }
-                        root.querySelector('.btcpay-input-range').value = el.value;
-                    }
-
-                    function handleSliderInput(event) {
-                        event.target.closest('.btcpay-form').querySelector('.btcpay-input-price').value = event.target.value;
-                    }
-
-                    function handlePriceInput(event) {
-                        event.preventDefault();
-                        const root = event.target.closest('.btcpay-form');
-                        const price = parseInt(event.target.dataset.price);
-                        if (isNaN(event.target.value)) root.querySelector('.btcpay-input-price').value = price;
-                        const min = parseInt(event.target.getAttribute('min')) || 1;
-                        const max = parseInt(event.target.getAttribute('max'));
-                        if (event.target.value < min) {
-                            event.target.value = min;
-                        } else if (event.target.value > max) {
-                            event.target.value = max;
-                        }
-                    }
-                    </script>
-
-
-
-
-
-
-        </div>
-
-
-
-
-                      <!--
-                      <a href="https://geyser.fund/project/satsigner/" target="_blank" class="submit donation-cta geyser"  title="">
-                        <span style="color:#fff">Support on</span><img src="imgs/geyser.svg" style="height: 27px;display:inline-block;padding: 4% 0 9% 5px;vertical-align:middle;">
-                      </a>
-                      -->
-
-        						</div>
-        					</div>
-    </div>
-  </section>
-
   <section class="section section-releases" id="releases">
     <h3 class="section-title">Test APK releases</h3>
     <p class="releases-disclaimer">
       <strong>Disclaimer:</strong> State management and stores have changed in newer versions. Using these older builds may corrupt or invalidate your app data. Use <strong>test-only</strong> devices or profiles. Do not use with real funds or important data.
     </p>
-    <ul class="releases-list">
-      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 1</a></li>
-      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 2</a></li>
-      <li><a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">Test build 3</a></li>
-    </ul>
-  </section>
-
-  <section class="section section-updates">
-    <h3 class="section-title">Progress updates</h3>
-    <div class="swiper events">
-
-      <div class="swiper-wrapper">
-
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-02-23_opensats_development_update_1.jpg">
-          <div class="swiper-slide-title">Update 1</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-04-11_opensats_development_update_2.jpg">
-          <div class="swiper-slide-title">Update 2</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/44f360a2056472eb39e3482013c5fbc49350ceacf3f988d4017aa9a6199cfd36.jpg">
-          <div class="swiper-slide-title">Update 3</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/098e10aa9c420a2a3d247e9586f6e1b3071499ec36cc227b5ab9ddc3f5432bea.jpeg">
-          <div class="swiper-slide-title">Update 4.1</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/cd254efd7acae2e0c9da84ddbd0ce8d40c319c65ed08fb435032d4e1926f2017.jpeg">
-          <div class="swiper-slide-title">Update 4.2</div>
-        </div>
-
-      </div>
-
-      <div class="swiper-pagination"></div>
-      <div class="swiper-button-prev"></div>
-      <div class="swiper-button-next"></div>
-
-  </div>
-
-
-
-  </section>
-
-  <section class="section section-design">
-    <h3 class="section-title">Original Design</h3>
-  <div id="flex-container">
-
-    <img class="flex-cell" src="imgs/ui/satSigner1.png">
-    <img class="flex-cell" src="imgs/ui/satSigner2.png">
-    <img class="flex-cell" src="imgs/ui/satSigner3.png">
-    <img class="flex-cell" src="imgs/ui/satSigner4.png">
-
-    <img class="flex-cell" src="imgs/ui/satSigner5.png">
-    <img class="flex-cell" src="imgs/ui/satSigner6.png">
-    <img class="flex-cell" src="imgs/ui/satSigner7.png">
-    <img class="flex-cell" src="imgs/ui/satSigner8.png">
+    <div class="releases-card">
+      <table class="releases-table">
+        <thead>
+          <tr>
+            <th scope="col">Version</th>
+            <th scope="col">Released</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.6" target="_blank" rel="noopener">v0.3.6</a></td>
+            <td><time datetime="2026-06-10">Jun 10, 2026</time></td>
+            <td>Expo SDK 56, Ark updates, and a round of refactors and fixes.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.5" target="_blank" rel="noopener">v0.3.5</a></td>
+            <td><time datetime="2026-05-15">May 15, 2026</time></td>
+            <td>Import an xpub, block duplicate account names, and miscellaneous fixes.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.4" target="_blank" rel="noopener">v0.3.4</a></td>
+            <td><time datetime="2026-04-29">Apr 29, 2026</time></td>
+            <td>LNURL pay uses minSendable, export the bark database, and pay zaps with Ark.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="releases-all">
+        <a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">All releases on GitHub</a>
+      </p>
     </div>
   </section>
 
   <footer class="site-footer">
     <div class="footer-links">
-      <a href="#beta">Beta</a>
       <a href="#features">Features</a>
+      <a href="#security">Security</a>
+      <a href="#privacy">Privacy</a>
       <a href="#decoder">Decoder</a>
       <a href="#support">Support</a>
       <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank" rel="noopener">Figma</a>
       <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
-  </div>
+    </div>
     <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
   </footer>
 
-  <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
-  <script src="https://unpkg.com/gsap@3/dist/ScrollTrigger.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=15"></script>
 
   </body>
 </html>
