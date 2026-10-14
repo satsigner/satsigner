@@ -13,6 +13,7 @@ import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -199,7 +200,9 @@ export default function Converter() {
   async function refreshPricesForDate(value: Date) {
     const requestId = priceRequestIdRef.current + 1
     priceRequestIdRef.current = requestId
-    const timestamp = Math.floor(new Date(value).setHours(0, 0, 0, 0) / 1000)
+    const timestamp = Math.floor(
+      new Date(value).setHours(0, 0, 0, 0) / MS_PER_SECOND
+    )
     animateLoading(true)
     try {
       await fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)

@@ -7,6 +7,7 @@ import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -238,7 +239,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                   sent: 0,
                   size: tx.size,
                   timestamp: tx.status.block_time
-                    ? new Date(tx.status.block_time * 1000)
+                    ? new Date(tx.status.block_time * MS_PER_SECOND)
                     : undefined,
                   type: 'send',
                   version: tx.version,
@@ -391,7 +392,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     sent: 0,
                     size: rawTx.size,
                     timestamp: rawTx.blocktime
-                      ? new Date(rawTx.blocktime * 1000)
+                      ? new Date(rawTx.blocktime * MS_PER_SECOND)
                       : undefined,
                     type: 'send',
                     version: rawTx.version,

@@ -1,3 +1,4 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import { type PayjoinCoordinationMode } from '@/types/payjoin'
 
 /** Default BIP77 Payjoin Directory (Bull Bitcoin / Payjoin Foundation ecosystem). */
@@ -21,7 +22,7 @@ const PAYJOIN_OHTTP_RELAY_URLS = [
 ] as const
 
 /** Default receiver session TTL (10 minutes). */
-const PAYJOIN_SESSION_TTL_MS = 10 * 60 * 1000
+const PAYJOIN_SESSION_TTL_MS = 10 * 60 * MS_PER_SECOND
 
 /**
  * Receiver session TTL for ark board payjoins (30 minutes).
@@ -30,13 +31,13 @@ const PAYJOIN_SESSION_TTL_MS = 10 * 60 * 1000
  * the general receive TTL runs out mid-flow and the mailbox dies before the
  * sender ever posts. Matches the 30 minutes shhark allows for the same flow.
  */
-const PAYJOIN_BOARD_SESSION_TTL_MS = 30 * 60 * 1000
+const PAYJOIN_BOARD_SESSION_TTL_MS = 30 * 60 * MS_PER_SECOND
 
 /** Allowed session TTL presets for settings (1 / 5 / 10 minutes). */
 const PAYJOIN_SESSION_TTL_PRESETS_MS = [
-  1 * 60 * 1000,
-  5 * 60 * 1000,
-  10 * 60 * 1000
+  1 * 60 * MS_PER_SECOND,
+  5 * 60 * MS_PER_SECOND,
+  10 * 60 * MS_PER_SECOND
 ] as const
 
 /** BIP78 synchronous request timeout. */

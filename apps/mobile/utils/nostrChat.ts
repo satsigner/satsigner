@@ -6,6 +6,7 @@ import { nip59 } from 'nostr-tools'
 import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   insertChatMessage,
   updateChatMessageStatus
@@ -230,7 +231,7 @@ async function sendNip17Chat(
 
   const message: NostrChatMessage = {
     content: text,
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: Math.floor(Date.now() / MS_PER_SECOND),
     direction: 'out',
     id: rumorId,
     identityNpub: identity.npub,
@@ -289,7 +290,7 @@ async function sendNip04Chat(
   const event = await api.createKind4(identity.nsec, peerNpub, text)
   const message: NostrChatMessage = {
     content: text,
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: Math.floor(Date.now() / MS_PER_SECOND),
     direction: 'out',
     id: event.id ?? `pending-${Date.now()}`,
     identityNpub: identity.npub,

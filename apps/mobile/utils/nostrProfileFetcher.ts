@@ -11,6 +11,7 @@ import {
   NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { chunkArray } from '@/utils/chunkArray'
@@ -49,7 +50,7 @@ function isValidHex(hexPubkey: string): boolean {
 
 function getFreshCached(hexPubkey: string): NostrKind0Profile | null {
   const cached = getCachedProfile(hexPubkey)
-  const now = Math.floor(Date.now() / 1000)
+  const now = Math.floor(Date.now() / MS_PER_SECOND)
   if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
     return {
       banner: cached.banner,

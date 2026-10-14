@@ -11,6 +11,7 @@ import {
   INITIAL_SUBSIDY_SATS,
   TARGET_BLOCK_TIME_SECONDS
 } from '@/constants/consensus'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -201,7 +202,7 @@ export default function ExplorerHalving() {
                     const blocksUntil = halvingHeight - height
                     const ms =
                       Date.now() +
-                      blocksUntil * TARGET_BLOCK_TIME_SECONDS * 1000
+                      blocksUntil * TARGET_BLOCK_TIME_SECONDS * MS_PER_SECOND
                     return `~${formatDate(ms)}`
                   }
                   return '--'

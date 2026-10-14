@@ -168,7 +168,9 @@ export function useEcashReceive() {
       const url = decodeLNURL(cleanInput)
       const details = await fetchLNURLWithdrawDetails(url)
       setLnurlWithdrawDetails(details)
-      setAmount(Math.floor(details.maxWithdrawable / 1000).toString())
+      setAmount(
+        Math.floor(details.maxWithdrawable / MILLISATS_PER_SAT).toString()
+      )
       toast.success(t('ecash.success.lnurlWithdrawDetected'))
     } catch (error) {
       toast.error(

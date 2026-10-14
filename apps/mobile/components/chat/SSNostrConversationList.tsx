@@ -2,6 +2,7 @@ import { nip19 } from 'nostr-tools'
 import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
@@ -15,7 +16,7 @@ type SSNostrConversationListProps = {
 }
 
 function formatConversationTime(timestamp: number): string {
-  const date = new Date(timestamp * 1000)
+  const date = new Date(timestamp * MS_PER_SECOND)
   const today = new Date()
   if (date.toDateString() === today.toDateString()) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

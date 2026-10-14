@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
 import SSHStack from '@/layouts/SSHStack'
@@ -35,7 +36,7 @@ export default function ExplorerNode() {
     server.backend === 'electrum' || server.backend === 'rpc'
 
   function formatBlockAge(timestampSeconds: number): string {
-    const elapsedMs = Date.now() - timestampSeconds * 1000
+    const elapsedMs = Date.now() - timestampSeconds * MS_PER_SECOND
     const [value, unit] = formatTimeFromNow(elapsedMs)
     const floored = Math.floor(value)
     if (unit === 'second') {
@@ -114,7 +115,7 @@ export default function ExplorerNode() {
                 label={tn('timestamp')}
                 value={
                   chainData?.timestamp
-                    ? `${formatDate(chainData.timestamp * 1000)} · ${formatTime(new Date(chainData.timestamp * 1000))}`
+                    ? `${formatDate(chainData.timestamp * MS_PER_SECOND)} · ${formatTime(new Date(chainData.timestamp * MS_PER_SECOND))}`
                     : '--'
                 }
                 loading={isLoadingChain}
@@ -218,7 +219,7 @@ export default function ExplorerNode() {
                   />
                   <Row
                     label={tn('lastSeen')}
-                    value={formatDate(bitnodesInfo.lastSeen * 1000)}
+                    value={formatDate(bitnodesInfo.lastSeen * MS_PER_SECOND)}
                     loading={false}
                   />
                 </SSVStack>

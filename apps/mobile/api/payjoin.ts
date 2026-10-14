@@ -30,6 +30,7 @@ import {
   PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS,
   PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import {
   buildNewSession,
@@ -1272,7 +1273,7 @@ async function createReceivePayjoinSession(params: {
   const relays = getShuffledOhttpRelays()
   const directoryUrl = getResolvedPayjoinDirectoryUrl()
   const expireSeconds = Math.floor(
-    (params.ttlMs ?? getPayjoinSessionTtlMs()) / 1000
+    (params.ttlMs ?? getPayjoinSessionTtlMs()) / MS_PER_SECOND
   )
 
   let pjUri: string

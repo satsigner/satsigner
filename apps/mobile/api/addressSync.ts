@@ -1,6 +1,7 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Network, type Server } from '@/types/settings/blockchain'
 import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
@@ -33,7 +34,7 @@ export type AddressSnapshot = {
 export type AddressSyncProgress = (done: number, added: number) => void
 
 function toDate(unixSeconds: number | undefined) {
-  return unixSeconds ? new Date(unixSeconds * 1000) : undefined
+  return unixSeconds ? new Date(unixSeconds * MS_PER_SECOND) : undefined
 }
 
 /**

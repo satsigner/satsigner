@@ -16,6 +16,7 @@ import {
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { cacheEvents } from '@/db/nostrCache'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -319,7 +320,7 @@ export default function NostrComposePage() {
           [
             {
               content: content.trim(),
-              created_at: Math.floor(Date.now() / 1000),
+              created_at: Math.floor(Date.now() / MS_PER_SECOND),
               id: eventId,
               kind: 1,
               pubkey: hexPk,

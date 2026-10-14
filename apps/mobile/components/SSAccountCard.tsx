@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -106,7 +107,7 @@ function SSAccountCard({
     transform: [{ rotate: `${rotation.value}deg` }]
   }))
 
-  const [nowSeconds] = useState(() => Math.floor(Date.now() / 1000))
+  const [nowSeconds] = useState(() => Math.floor(Date.now() / MS_PER_SECOND))
 
   function renderSyncStatus(
     status: Account['syncStatus'],
@@ -129,7 +130,7 @@ function SSAccountCard({
           const syncedMs =
             date instanceof Date ? date.getTime() : new Date(date).getTime()
           if (!Number.isNaN(syncedMs)) {
-            const diff = nowSeconds - syncedMs / 1000
+            const diff = nowSeconds - syncedMs / MS_PER_SECOND
 
             const hours = Math.floor(diff / 3600)
             const days = Math.floor(hours / 24)

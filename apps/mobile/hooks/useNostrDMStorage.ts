@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { NOSTR_DM_FUTURE_TOLERANCE_SEC } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import {
@@ -30,7 +31,7 @@ function getSyncStartSeconds(account: Account): number {
   if (!syncStart) {
     return 0
   }
-  return Math.floor(new Date(syncStart).getTime() / 1000)
+  return Math.floor(new Date(syncStart).getTime() / MS_PER_SECOND)
 }
 
 function getDevicePubkeyHex(
@@ -106,7 +107,10 @@ function useNostrDMStorage() {
         return
       }
       const { created_at } = newMessage
-      if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
+      if (
+        created_at >
+        Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC
+      ) {
         return
       }
 
@@ -134,7 +138,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / 1000 - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - 60 * 5
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = newMessage.description.slice(0, TOAST_CONTENT_MAX)
@@ -222,7 +226,10 @@ function useNostrDMStorage() {
         continue
       }
       const { created_at, description } = newMessage
-      if (created_at > Date.now() / 1000 + NOSTR_DM_FUTURE_TOLERANCE_SEC) {
+      if (
+        created_at >
+        Date.now() / MS_PER_SECOND + NOSTR_DM_FUTURE_TOLERANCE_SEC
+      ) {
         continue
       }
 
@@ -257,7 +264,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / 1000 - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - 60 * 5
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = description.slice(0, TOAST_CONTENT_MAX)

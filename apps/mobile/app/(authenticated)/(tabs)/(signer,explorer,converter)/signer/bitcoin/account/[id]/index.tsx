@@ -84,6 +84,7 @@ import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useFiatData } from '@/hooks/useFiatData'
@@ -518,10 +519,9 @@ function lastSyncedLabel(
     return t('account.sync.status.unsynced')
   }
   // formatRelativeTime wraps chart labels in parentheses — strip for prose.
-  const relative = formatRelativeTime(Math.floor(syncedMs / 1000)).replace(
-    /^\(|\)$/g,
-    ''
-  )
+  const relative = formatRelativeTime(
+    Math.floor(syncedMs / MS_PER_SECOND)
+  ).replace(/^\(|\)$/g, '')
   return t('account.lastSynced', { time: relative })
 }
 
@@ -612,8 +612,8 @@ function SyncScanStats({
         : null
 
   const scanRangeLabel = t('account.syncScanRange', {
-    current: formatDate(currentBlockTimeSec * 1000),
-    from: formatDate(scanFromTimeSec * 1000)
+    current: formatDate(currentBlockTimeSec * MS_PER_SECOND),
+    from: formatDate(scanFromTimeSec * MS_PER_SECOND)
   })
 
   const txFoundLabel =

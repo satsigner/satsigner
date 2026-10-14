@@ -16,6 +16,7 @@ import {
 } from '@/constants/bdk'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -96,7 +97,7 @@ function hexToBytes(value: string) {
 }
 
 function toUnixSec(date?: Date) {
-  return date ? Math.floor(date.getTime() / 1000) : undefined
+  return date ? Math.floor(date.getTime() / MS_PER_SECOND) : undefined
 }
 
 function isListDescriptorsError(error: unknown) {
@@ -388,7 +389,7 @@ async function rescanWallet(
   const tipMediantime = await coreWallet
     .getBlockchainInfo()
     .then((info) => info.mediantime)
-    .catch(() => Math.floor(Date.now() / 1000))
+    .catch(() => Math.floor(Date.now() / MS_PER_SECOND))
 
   const estimateBlockTimeSec = (height: number) =>
     tipMediantime - Math.max(0, tipHeight - height) * BDK_SECONDS_PER_BLOCK
@@ -532,7 +533,7 @@ function toAppTransaction(
     received: summary.received,
     sent: summary.sent,
     size: raw.length || undefined,
-    timestamp: blocktime ? new Date(blocktime * 1000) : undefined,
+    timestamp: blocktime ? new Date(blocktime * MS_PER_SECOND) : undefined,
     type: summary.sent > 0 ? 'send' : 'receive',
     version: d?.version,
     vin,

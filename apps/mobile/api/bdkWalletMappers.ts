@@ -9,6 +9,7 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -426,7 +427,7 @@ function parseTxDetailsToTransaction(
     sent,
     size,
     timestamp: confirmationBlockTime?.timestamp
-      ? new Date(confirmationBlockTime.timestamp * 1000)
+      ? new Date(confirmationBlockTime.timestamp * MS_PER_SECOND)
       : undefined,
     type: sent ? 'send' : 'receive',
     version,
@@ -458,7 +459,7 @@ function parseLocalOutputToUtxo(
     label: '',
     script,
     timestamp: txDetails?.confirmationBlockTime?.timestamp
-      ? new Date(txDetails.confirmationBlockTime.timestamp * 1000)
+      ? new Date(txDetails.confirmationBlockTime.timestamp * MS_PER_SECOND)
       : undefined,
     txid: transactionId,
     value: localOutput.txout.value,

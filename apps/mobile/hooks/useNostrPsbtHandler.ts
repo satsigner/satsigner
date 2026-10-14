@@ -1,5 +1,6 @@
 import { toast } from 'sonner-native'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { type NostrMsgHandler } from '@/types/models/Nostr'
 
 import {
@@ -37,7 +38,7 @@ const psbtHandler: NostrMsgHandler = {
       !Number.isNaN(coercedCreatedAt) &&
       coercedCreatedAt > 0
         ? Math.floor(coercedCreatedAt)
-        : Math.floor(Date.now() / 1000)
+        : Math.floor(Date.now() / MS_PER_SECOND)
 
     const rawDescription = data.data
     const description =

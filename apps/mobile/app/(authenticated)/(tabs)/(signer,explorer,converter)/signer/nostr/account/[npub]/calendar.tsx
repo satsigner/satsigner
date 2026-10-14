@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -26,7 +27,7 @@ type CalendarEvent = {
 }
 
 function formatEventDate(unixTs: number): string {
-  const date = new Date(unixTs * 1000)
+  const date = new Date(unixTs * MS_PER_SECOND)
   return date.toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
