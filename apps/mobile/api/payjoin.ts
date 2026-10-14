@@ -137,16 +137,14 @@ function withTimeoutSignal(
   }
 }
 
+// OkHttp HTTP/2 handshake failures, e.g. "Expected a SETTINGS frame but was 4"
+// or "Required SETTINGS preface not received". Matched on the frame name, not
+// the bare word "settings", so unrelated errors don't trigger the fallback.
+const HTTP2_PREFACE_ERROR_PATTERN = /settings frame|preface|http2|http\/2/i
+
 function isHttp2PrefaceError(error: unknown): boolean {
-  const message = (
-    error instanceof Error ? error.message : String(error)
-  ).toLowerCase()
-  return (
-    message.includes('settings') ||
-    message.includes('preface') ||
-    message.includes('http2') ||
-    message.includes('http/2')
-  )
+  const message = error instanceof Error ? error.message : String(error)
+  return HTTP2_PREFACE_ERROR_PATTERN.test(message)
 }
 
 function isSuccessfulHttpStatus(status: number): boolean {
@@ -1868,6 +1866,7 @@ export {
   createReceivePayjoinSession,
   finalizeBoardReceiverPayjoin,
   finalizeReceiverPayjoin,
+  isHttp2PrefaceError,
   isSenderPostInFlight,
   pollBip77Send,
   pollReceiverSession,
