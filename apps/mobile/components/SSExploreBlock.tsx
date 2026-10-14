@@ -9,6 +9,7 @@ import { Colors, Layout } from '@/styles'
 import { type Block as BaseBlock } from '@/types/models/Blockchain'
 import type { PartialSome } from '@/types/utils'
 import { formatDate, formatNumber, formatTime } from '@/utils/format'
+import { weightToVsize } from '@/utils/transaction'
 
 import SSDetailsList from './SSDetailsList'
 
@@ -65,7 +66,7 @@ function blockVirtualSize(weight: number) {
   if (weight <= 0) {
     return 0
   }
-  return Math.ceil(weight / 4)
+  return weightToVsize(weight)
 }
 
 function formatBlockDate(timestamp?: number) {

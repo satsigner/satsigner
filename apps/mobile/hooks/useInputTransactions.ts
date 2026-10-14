@@ -11,7 +11,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { recalculateDepthH } from '@/utils/transaction'
+import { recalculateDepthH, weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 type ExtendedVin = Transaction['vin'][number] & {
@@ -269,7 +269,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       : [],
                     value: output.value
                   })),
-                  vsize: Math.ceil(tx.weight / 4),
+                  vsize: weightToVsize(tx.weight),
                   weight: tx.weight
                 }
                 newTransactions.set(txid, mappedTx)

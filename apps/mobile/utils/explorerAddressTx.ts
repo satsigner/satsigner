@@ -3,6 +3,7 @@ import { hex } from '@scure/base'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type EsploraTx } from '@/types/models/Esplora'
 import { type Transaction } from '@/types/models/Transaction'
+import { weightToVsize } from '@/utils/transaction'
 
 function mapEsploraTxToAddressTransaction(
   tx: EsploraTx,
@@ -62,7 +63,7 @@ function mapEsploraTxToAddressTransaction(
     version: tx.version,
     vin,
     vout,
-    vsize: Math.ceil(tx.weight / 4),
+    vsize: weightToVsize(tx.weight),
     weight: tx.weight
   }
 }
