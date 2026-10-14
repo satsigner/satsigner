@@ -41,18 +41,19 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
+  NOSTR_POLL_KIND,
   NOSTR_PRIVACY_MASK,
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
-  NOSTR_ZAP_DEFAULT_PRESETS,
-  NOSTR_POLL_KIND
+  NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
+import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { usePriceStore } from '@/store/price'
@@ -60,10 +61,10 @@ import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import type {
-  NostrKind0Profile,
   NostrDecodedContent,
-  NostrFetchedNoteData,
   NostrFeedNoteLike,
+  NostrFetchedNoteData,
+  NostrKind0Profile,
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
@@ -179,11 +180,11 @@ export default function NostrNotePage() {
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
   )
-  const {
-    accounts: ecashAccounts,
-    allMints: ecashAllMints,
-    setActiveAccountId: setEcashActiveAccountId
-  } = useEcash()
+  const { accounts: ecashAccounts, allMints: ecashAllMints } =
+    useEcashAccountState()
+  const setEcashActiveAccountId = useEcashStore(
+    (state) => state.setActiveAccountId
+  )
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)

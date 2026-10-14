@@ -13,12 +13,13 @@ import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
+import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { usePriceStore } from '@/store/price'
@@ -81,11 +82,11 @@ export default function NostrContactProfile() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-  const {
-    accounts: ecashAccounts,
-    allMints: ecashAllMints,
-    setActiveAccountId: setEcashActiveAccountId
-  } = useEcash()
+  const { accounts: ecashAccounts, allMints: ecashAllMints } =
+    useEcashAccountState()
+  const setEcashActiveAccountId = useEcashStore(
+    (state) => state.setActiveAccountId
+  )
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{

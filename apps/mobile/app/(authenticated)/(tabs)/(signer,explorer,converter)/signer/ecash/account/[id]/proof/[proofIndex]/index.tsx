@@ -13,7 +13,7 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -48,7 +48,7 @@ export default function EcashProofDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { proofIndex } = useLocalSearchParams<{ proofIndex: string }>()
-  const { proofs, mints, counters } = useEcash()
+  const { proofs, mints, counters } = useEcashAccountState()
   const {
     isEmitting,
     isHardwareSupported: nfcHardwareSupported,
