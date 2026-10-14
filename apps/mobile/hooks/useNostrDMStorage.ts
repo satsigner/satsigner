@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
 import { NOSTR_DM_FUTURE_TOLERANCE_SEC } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
+import { MS_PER_SECOND, SECONDS_PER_MINUTE } from '@/constants/time'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import {
@@ -21,6 +21,8 @@ import {
 } from './useNostrNotifyUtils'
 
 const PENDING_MATCH_CREATED_AT_TOLERANCE_SEC = 10
+// Only toast for DMs created within this window.
+const DM_NOTIFY_RECENT_WINDOW_SECS = 5 * SECONDS_PER_MINUTE
 
 /**
  * Sync start in unix seconds. `new Date` also accepts a sync start that was
@@ -138,7 +140,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / MS_PER_SECOND - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - DM_NOTIFY_RECENT_WINDOW_SECS
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = newMessage.description.slice(0, TOAST_CONTENT_MAX)
@@ -264,7 +266,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / MS_PER_SECOND - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - DM_NOTIFY_RECENT_WINDOW_SECS
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = description.slice(0, TOAST_CONTENT_MAX)

@@ -12,12 +12,13 @@ import {
 import { finalizeEvent } from 'nostr-tools/pure'
 
 import {
-  NOSTR_NIP17_SEAL_KIND,
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
+  NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
+  NOSTR_NIP17_SEAL_KIND,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_CACHE_TTL_SECS,
@@ -1151,8 +1152,10 @@ export class NostrAPI {
     this.setLoading(true)
     this._callback = _callback
 
-    const TWO_DAYS = 48 * 60 * 60
-    const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
+    const sinceTimestamp =
+      since && since > 0
+        ? since - NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
+        : undefined
 
     const subscriptionQuery = {
       '#p': [recipientPubKeyHex],
