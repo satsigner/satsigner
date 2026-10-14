@@ -95,21 +95,27 @@ export function getOutputVbytes(scriptType: ScriptVersionType): number {
   return OUTPUT_SIZES[scriptType]
 }
 
+export function weightToVsize(weight: number) {
+  return Math.ceil(weight / WITNESS_SCALE_FACTOR)
+}
+
+// Base transaction size (version + locktime).
+const LEGACY_TX_BASE_BYTES = 10
+// Outpoint[36] + script[~108] + sequence[4].
+const LEGACY_INPUT_BYTES = 148
+// Value[8] + script[~26].
+const LEGACY_OUTPUT_BYTES = 34
+
 // TODO: To be removed
 export function legacyEstimateTransactionSize(
   inputCount: number,
   outputCount: number
 ) {
-  // Base transaction size (version + locktime)
-  const baseSize = 10
-  // Each input is roughly 148 bytes (outpoint[36] + script[~108] + sequence[4])
-  const inputSize = inputCount * 148
-  // Each output is roughly 34 bytes (value[8] + script[~26])
-  const outputSize = outputCount * 34
-
-  const totalSize = baseSize + inputSize + outputSize
-  // Virtual size is weight/4
-  const vsize = Math.ceil(totalSize * 0.25)
+  const totalSize =
+    LEGACY_TX_BASE_BYTES +
+    inputCount * LEGACY_INPUT_BYTES +
+    outputCount * LEGACY_OUTPUT_BYTES
+  const vsize = weightToVsize(totalSize)
 
   return { size: totalSize, vsize }
 }
