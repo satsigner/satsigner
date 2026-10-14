@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { getLocalLatestPrices, getLocalPriceAt } from '@/api/localPrices'
+import { getLocalLatestPrices } from '@/api/localPrices'
 import mmkvStorage from '@/storage/mmkv'
 import { useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
@@ -30,7 +30,6 @@ type PriceAction = {
   satsToFiat: (sats: number, btcPrice?: number) => number
   setFiatCurrency: (currency: Currency) => void
   fetchPrices: (mempoolUrl: string) => Promise<void>
-  fetchFullPriceAt: (mempoolUrl: string, timestamps: number) => Promise<void>
   resetCurrentPrices: () => void
 }
 
@@ -38,30 +37,6 @@ const usePriceStore = create<PriceState & PriceAction>()(
   persist(
     (set, get) => ({
       btcPrice: 0,
-      fetchFullPriceAt: async (mempoolUrl: string, timestamp: number) => {
-        const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
-          useSettingsStore.getState()
-        if (!fetchHistoricalPrices) {
-          return
-        }
-        const { fiatCurrency } = get()
-        const localPrice = getLocalPriceAt(fiatCurrency, timestamp)
-        if (localPrice !== null) {
-          set({ btcPrice: localPrice })
-          return
-        }
-        if (!fetchHistoricalPricesFromNetwork) {
-          return
-        }
-        try {
-          const oracle = new MempoolOracle(mempoolUrl)
-          const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
-          const btcPrice = prices[fiatCurrency] ?? 0
-          set({ btcPrice, prices })
-        } catch {
-          // Keep last known prices when the API drops the connection.
-        }
-      },
       fetchPrices: async (mempoolUrl: string) => {
         const { fetchCurrentPrices } = useSettingsStore.getState()
         if (!fetchCurrentPrices) {

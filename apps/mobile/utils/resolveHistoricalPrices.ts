@@ -1,7 +1,11 @@
 import { MempoolOracle } from '@/api/blockchain'
-import { getLocalPriceAt, isUsablePrice } from '@/api/localPrices'
+import {
+  getLocalPriceAt,
+  getLocalPricesAt,
+  isUsablePrice
+} from '@/api/localPrices'
 import { useSettingsStore } from '@/store/settings'
-import { type Currency } from '@/types/models/Blockchain'
+import { type Currency, type Prices } from '@/types/models/Blockchain'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 async function resolveHistoricalPrices(
@@ -38,4 +42,37 @@ async function resolveHistoricalPrices(
   return priceByTimestamp
 }
 
-export { resolveHistoricalPrices }
+/**
+ * Prices in every fiat currency at `timestamp`, for showing values on a past
+ * date. Uses bundled history first and the network only when opted in.
+ * Returns null when historical prices are off or none are found for
+ * `currency`.
+ */
+async function resolvePricesAt(
+  currency: Currency,
+  timestamp: number
+): Promise<Prices | null> {
+  const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
+    useSettingsStore.getState()
+  if (!fetchHistoricalPrices) {
+    return null
+  }
+
+  const localPrices = getLocalPricesAt(timestamp)
+  if (localPrices[currency] !== undefined) {
+    return localPrices
+  }
+
+  if (!fetchHistoricalPricesFromNetwork) {
+    return null
+  }
+
+  try {
+    const oracle = new MempoolOracle(getFiatPriceApiUrl())
+    return await oracle.getFullPriceAt(currency, timestamp)
+  } catch {
+    return null
+  }
+}
+
+export { resolveHistoricalPrices, resolvePricesAt }

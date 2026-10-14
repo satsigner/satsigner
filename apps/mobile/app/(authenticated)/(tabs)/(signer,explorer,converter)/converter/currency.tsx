@@ -22,8 +22,8 @@ import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { isToday } from '@/utils/date'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatLargeNumber } from '@/utils/format'
+import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 const MUTED_OPACITY = 0.35
 const MUTE_DURATION = 150
@@ -77,7 +77,8 @@ export default function Converter() {
     sats: 0
   })
 
-  const fetchFullPriceAt = usePriceStore((state) => state.fetchFullPriceAt)
+  // Prices at the picked date; null falls back to the current prices.
+  const datePricesRef = useRef<PricesMap | null>(null)
   const lastChangeKeyRef = useRef(lastChangeKey)
   lastChangeKeyRef.current = lastChangeKey
   const currencyValuesRef = useRef(currencyValues)
@@ -176,7 +177,7 @@ export default function Converter() {
   function applyAnchoredValues(
     key: CurrencyKey,
     anchoredValue: number,
-    priceMap = usePriceStore.getState().prices
+    priceMap = datePricesRef.current ?? usePriceStore.getState().prices
   ) {
     const btc = getBitcoinValue(key, anchoredValue, priceMap)
     setCurrencyValues({
@@ -205,17 +206,17 @@ export default function Converter() {
     )
     animateLoading(true)
     try {
-      await fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)
+      const datePrices = await resolvePricesAt(
+        usePriceStore.getState().fiatCurrency,
+        timestamp
+      )
       if (requestId !== priceRequestIdRef.current) {
         return
       }
+      datePricesRef.current = datePrices
       const key = lastChangeKeyRef.current
       const anchoredValue = currencyValuesRef.current[key]
-      applyAnchoredValues(
-        key,
-        hasInitializedRef.current ? anchoredValue : 1,
-        usePriceStore.getState().prices
-      )
+      applyAnchoredValues(key, hasInitializedRef.current ? anchoredValue : 1)
       hasInitializedRef.current = true
     } finally {
       if (requestId === priceRequestIdRef.current) {
