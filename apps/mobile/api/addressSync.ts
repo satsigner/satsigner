@@ -5,7 +5,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Network, type Server } from '@/types/settings/blockchain'
 import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
 
-import ElectrumClient from './electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from './electrum'
 import Esplora from './esplora'
 
 // Raw tx hex requests sent to Esplora at once.
@@ -124,6 +124,18 @@ async function fetchEsploraSnapshot(
     }
   }
 
+  // Pagination stops at known history, so older confirmed txids come from the
+  // store. Unconfirmed known txs missing from the newest page were replaced.
+  const fetchedTxids = new Set(esploraTxs.map((tx) => tx.txid))
+  const olderTxids = knownTxs
+    .filter(
+      (tx) =>
+        tx.address === address &&
+        tx.blockHeight !== undefined &&
+        !fetchedTxids.has(tx.id)
+    )
+    .map((tx) => tx.id)
+
   const balance = { confirmed: 0, unconfirmed: 0 }
   for (const utxo of esploraUtxos) {
     if (utxo.status.confirmed) {
@@ -136,7 +148,7 @@ async function fetchEsploraSnapshot(
   return {
     balance,
     transactions,
-    txids: esploraTxs.map((tx) => tx.txid),
+    txids: [...fetchedTxids, ...olderTxids],
     utxos: esploraUtxos.map((utxo) => ({
       timestamp: toDate(utxo.status.block_time),
       txid: utxo.txid,
@@ -262,11 +274,11 @@ async function fetchElectrumSnapshot(
   onProgress: AddressSyncProgress
 ) {
   const electrum = ElectrumClient.fromUrl(url, network)
-  await electrum.init()
   try {
+    await electrum.init()
     return await readElectrumSnapshot(electrum, address, knownTxs, onProgress)
   } finally {
-    electrum.close()
+    closeElectrumClientQuietly(electrum)
   }
 }
 

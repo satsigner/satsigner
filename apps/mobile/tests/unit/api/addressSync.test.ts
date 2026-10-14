@@ -43,6 +43,7 @@ const mockElectrum = {
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   __esModule: true,
+  closeElectrumClientQuietly: () => mockElectrum.close(),
   default: { fromUrl: () => mockElectrum }
 }))
 
@@ -177,6 +178,26 @@ describe('fetchAddressSnapshot with esplora', () => {
       }
     ])
   })
+
+  it('keeps older confirmed history that pagination stopped before', async () => {
+    mockEsplora.getAddressTxs.mockResolvedValue([
+      esploraTx('recent', BLOCK_HEIGHT)
+    ])
+
+    const snapshot = await fetchAddressSnapshot(
+      ESPLORA,
+      ADDRESS,
+      [
+        { ...storedTx('recent', BLOCK_HEIGHT), address: ADDRESS },
+        { ...storedTx('older', 1), address: ADDRESS },
+        { ...storedTx('replaced'), address: ADDRESS },
+        { ...storedTx('elsewhere', 1), address: OTHER_ADDRESS }
+      ],
+      jest.fn()
+    )
+
+    expect(snapshot.txids).toStrictEqual(['recent', 'older'])
+  })
 })
 
 describe('fetchAddressSnapshot with electrum', () => {
@@ -225,6 +246,15 @@ describe('fetchAddressSnapshot with electrum', () => {
       { blockHeight: undefined, timestamp: undefined }
     ])
     expect(totals.done).toBe(totals.added)
+    expect(mockElectrum.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes the client when the connection fails', async () => {
+    mockElectrum.init.mockRejectedValueOnce(new Error('offline'))
+
+    await expect(
+      fetchAddressSnapshot(ELECTRUM, ADDRESS, [], jest.fn())
+    ).rejects.toThrow('offline')
     expect(mockElectrum.close).toHaveBeenCalledTimes(1)
   })
 
