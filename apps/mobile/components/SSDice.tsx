@@ -1,10 +1,7 @@
 import { type ReactNode } from 'react'
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { StyleSheet, View, type ViewStyle } from 'react-native'
+
+import SSPressable from './SSPressable'
 
 type SSDiceProps = {
   children: ReactNode
@@ -15,13 +12,13 @@ type SSDiceProps = {
 
 function SSDice({ children, onPress, selected = false, style }: SSDiceProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       onPress={onPress}
       activeOpacity={1}
       style={[styles.wrapper, selected && styles.selected, style]}
     >
       <View style={styles.dice}>{children}</View>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

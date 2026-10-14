@@ -7,7 +7,7 @@ import {
   useCameraPermissions
 } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -35,6 +35,8 @@ import {
   decodeBBQRWalletPayload,
   interpretAssembledBitcoinPayload
 } from '@/utils/walletQrPayload'
+
+import SSPressable from './SSPressable'
 
 type SSCameraModalProps = {
   visible: boolean
@@ -592,7 +594,7 @@ function SSCameraModal({
       onClose={handleModalClose}
       showLabel={!isFinalizing}
     >
-      <SSVStack itemsCenter gap="md">
+      <SSVStack itemsCenter widthFull gap="md">
         <SSText color="muted" uppercase>
           {isFinalizing
             ? t('camera.detected')
@@ -609,21 +611,25 @@ function SSCameraModal({
             width: CAMERA_SIZE
           }}
         >
-          <CameraView
-            onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
-            onAvailableLensesChanged={(event: AvailableLenses) => {
-              const { lenses } = event
-              if (lenses.length < 2) {
-                return
-              }
-              setAvailableLenses(lenses)
-              setSelectedLens((prev) => prev ?? lenses[0])
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            zoom={zoom}
-            selectedLens={selectedLens}
-            style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
-          />
+          {/* Mounted only once granted: a CameraView created before the
+              permission prompt never starts its session. */}
+          {permission?.granted ? (
+            <CameraView
+              onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
+              onAvailableLensesChanged={(event: AvailableLenses) => {
+                const { lenses } = event
+                if (lenses.length < 2) {
+                  return
+                }
+                setAvailableLenses(lenses)
+                setSelectedLens((prev) => prev ?? lenses[0])
+              }}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              zoom={zoom}
+              selectedLens={selectedLens}
+              style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
+            />
+          ) : null}
           {isFinalizing ? (
             <View
               style={{
@@ -668,7 +674,7 @@ function SSCameraModal({
               {availableLenses.map((lens) => {
                 const active = lens === selectedLens
                 return (
-                  <TouchableOpacity
+                  <SSPressable
                     key={lens}
                     onPress={() => handleLensSelect(lens)}
                     accessibilityLabel={getLensLabel(lens)}
@@ -687,7 +693,7 @@ function SSCameraModal({
                     >
                       {getLensLabel(lens)}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
                 )
               })}
             </View>
@@ -797,14 +803,12 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        <SSVStack>
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
-        </SSVStack>
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
         {progressType && (
           <SSButton
             label={t('qrcode.scan.reset')}

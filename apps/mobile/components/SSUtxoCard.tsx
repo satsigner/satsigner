@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -14,6 +14,7 @@ import { utxoAmountTextSize } from '@/utils/utxoAmountTextSize'
 
 import { SSIconExclude } from './icons'
 import SSIconButton from './SSIconButton'
+import SSPressable from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -52,7 +53,7 @@ function SSUtxoCard({
         <SSUtxoBar utxoValue={utxo.value} totalBalance={totalBalance} />
       )}
       <SSHStack style={{ alignItems: 'stretch' }}>
-        <TouchableOpacity
+        <SSPressable
           style={styles.body}
           onPress={onPress}
           onLongPress={onToggleExcluded}
@@ -109,7 +110,7 @@ function SSUtxoCard({
               {displayLabel || t('utxo.noLabel')}
             </SSText>
           </SSVStack>
-        </TouchableOpacity>
+        </SSPressable>
         <SSIconButton onPress={onToggleExcluded} style={styles.excludeButton}>
           <SSIconExclude
             height={16}

@@ -1,33 +1,19 @@
-import { hex } from '@scure/base'
-import * as bitcoinjs from 'bitcoinjs-lib'
 import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import { MS_PER_SECOND } from '@/constants/time'
+import { fetchAddressSnapshot } from '@/api/addressSync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { applyAddressSnapshot } from '@/utils/addressSync'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
-import { getUtxoOutpoint } from '@/utils/utxo'
-
-type AddressInfo = {
-  transactions: Transaction[]
-  utxos: Utxo[]
-  progress: Account['syncProgress']
-}
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
@@ -48,480 +34,6 @@ function useSyncAccountWithAddress() {
 
   const [loading, setLoading] = useState(false)
 
-  async function syncAccountWithAddressUsingEsplora(
-    account: Account,
-    address: string,
-    url: string
-  ): Promise<AddressInfo> {
-    const esploraClient = new Esplora(url)
-
-    // Build existing tx/utxo maps BEFORE fetching so they can be used for
-    // early-stop pagination and for preserving labels on existing UTXOs
-    const existingTxs: Record<Transaction['id'], number> = {}
-    const existingUtxos: Record<string, number> = {}
-    for (const [index, tx] of account.transactions.entries()) {
-      existingTxs[tx.id] = index
-    }
-    for (const [index, u] of account.utxos.entries()) {
-      existingUtxos[getUtxoOutpoint(u)] = index
-    }
-
-    account.syncProgress = {
-      tasksDone: account.syncProgress?.tasksDone || 0,
-      totalTasks: account.syncProgress?.totalTasks || 0
-    }
-    account.syncProgress.totalTasks += 2
-    setSyncProgress(account.id, account.syncProgress)
-
-    // Fetch transactions using early-stop pagination: once a page contains only
-    // already-known txids we skip fetching older history
-    const existingTxidSet = new Set(Object.keys(existingTxs))
-    const esploraTxs = await esploraClient.getAddressTxs(
-      address,
-      existingTxidSet
-    )
-    const esploraUtxos = await esploraClient.getAddressUtxos(address)
-
-    account.syncProgress.tasksDone += 2
-    setSyncProgress(account.id, account.syncProgress)
-
-    let newTxsCount = 0
-    let newUtxosCount = 0
-    for (const tx of esploraTxs) {
-      if (existingTxs[tx.txid] !== undefined) {
-        continue
-      }
-      newTxsCount += 1
-    }
-    for (const utxo of esploraUtxos) {
-      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] !== undefined) {
-        continue
-      }
-      newUtxosCount += 1
-    }
-
-    account.summary = {
-      ...account.summary,
-      numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
-      numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount
-    }
-    updateAccount(account)
-
-    // because we update the whole account at once, spread is necessary
-    account.syncProgress = { ...account.syncProgress }
-
-    for (const tx of esploraTxs) {
-      if (existingTxs[tx.txid] !== undefined) {
-        continue
-      }
-      account.syncProgress.totalTasks += 1
-    }
-    setSyncProgress(account.id, account.syncProgress)
-
-    const txDictionary: Record<string, number> = {}
-
-    const newTxEntries = esploraTxs
-      .map((t, index) => ({ index, t }))
-      .filter(({ t }) => existingTxs[t.txid] === undefined)
-
-    // Pre-fetch all raw hex in parallel batches of 4 instead of sequentially
-    const rawHexMap: Record<string, string> = {}
-    const BATCH_SIZE = 4
-    for (let i = 0; i < newTxEntries.length; i += BATCH_SIZE) {
-      const batch = newTxEntries.slice(i, i + BATCH_SIZE)
-      const hexResults = await Promise.all(
-        batch.map(({ t }) => esploraClient.getTxHex(t.txid))
-      )
-      for (const [idx, { t }] of batch.entries()) {
-        rawHexMap[t.txid] = hexResults[idx]
-      }
-    }
-
-    for (const { t, index } of newTxEntries) {
-      const vin: Transaction['vin'] = []
-      const vout: Transaction['vout'] = []
-      let sent = 0
-      let received = 0
-
-      for (const input of t.vin) {
-        vin.push({
-          previousOutput: {
-            txid: input.txid,
-            vout: input.vout
-          },
-          scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
-          sequence: input.sequence,
-          witness: input.witness
-            ? input.witness.map((w) => Array.from(hex.decode(w)))
-            : []
-        })
-        if (input.prevout?.scriptpubkey_address === address) {
-          sent += input.prevout?.value
-        }
-      }
-
-      for (const out of t.vout) {
-        vout.push({
-          address: out.scriptpubkey_address || '',
-          script: out.scriptpubkey
-            ? Array.from(hex.decode(out.scriptpubkey))
-            : [],
-          value: out.value
-        })
-        if (out.scriptpubkey_address === address) {
-          received += out.value
-        }
-      }
-
-      const tx: Transaction = {
-        address,
-        blockHeight: t.status.block_height,
-        fee: t.fee,
-        id: t.txid,
-        label: '',
-        lockTime: t.locktime,
-        lockTimeEnabled: t.locktime > 0,
-        prices: {},
-        raw: Array.from(hex.decode(rawHexMap[t.txid])),
-        received,
-        sent,
-        size: t.size,
-        timestamp: t.status.block_time
-          ? new Date(t.status.block_time * MS_PER_SECOND)
-          : undefined,
-        type: received > 0 ? 'receive' : 'send',
-        version: t.version,
-        vin,
-        vout,
-        weight: t.weight
-      }
-
-      txDictionary[tx.id] = index
-      account.transactions = [...account.transactions, tx]
-      account.syncProgress = { ...account.syncProgress }
-      updateAccount(account)
-
-      account.syncProgress = { ...account.syncProgress }
-      account.syncProgress.tasksDone += 1
-      setSyncProgress(account.id, account.syncProgress)
-    }
-
-    // Compute balance from the FULL current UTXO set returned by the API.
-    // This is correct even on re-sync because the API always returns the
-    // complete unspent set, and the outer caller resets balance to 0 before
-    // iterating descriptors.
-    let confirmed = 0
-    let unconfirmed = 0
-    for (const u of esploraUtxos) {
-      if (u.status.confirmed) {
-        confirmed += u.value
-      } else {
-        unconfirmed += u.value
-      }
-    }
-
-    // Replace the stored UTXOs for this address with the fresh set from the
-    // API. This handles both new UTXOs appearing and spent UTXOs disappearing.
-    // Existing UTXO objects are reused where possible to preserve labels.
-    const freshUtxos = esploraUtxos.map((u): Utxo => {
-      const outpoint = `${u.txid}:${u.vout}`
-      if (existingUtxos[outpoint] !== undefined) {
-        return account.utxos[existingUtxos[outpoint]]
-      }
-
-      let script: number[] | undefined
-      if (txDictionary[u.txid] !== undefined) {
-        const txIndex = txDictionary[u.txid]
-        const tx = esploraTxs[txIndex]
-        const { scriptpubkey } = tx.vout[u.vout]
-        script = scriptpubkey ? Array.from(hex.decode(scriptpubkey)) : []
-      }
-
-      return {
-        addressTo: address,
-        keychain: 'external',
-        label: '',
-        script,
-        timestamp: u.status.block_time
-          ? new Date(u.status.block_time * MS_PER_SECOND)
-          : undefined,
-        txid: u.txid,
-        value: u.value,
-        vout: u.vout
-      }
-    })
-
-    const utxosFromOtherAddresses = account.utxos.filter(
-      (u) => u.addressTo !== address
-    )
-    account.utxos = [...utxosFromOtherAddresses, ...freshUtxos]
-
-    account.summary = {
-      ...account.summary,
-      balance: account.summary.balance + confirmed,
-      satsInMempool: account.summary.satsInMempool + unconfirmed
-    }
-
-    account.addresses = [
-      ...account.addresses.filter((a) => a.address !== address),
-      {
-        address,
-        label: '',
-        summary: {
-          balance: confirmed,
-          satsInMempool: unconfirmed,
-          transactions: esploraTxs.length,
-          utxos: esploraUtxos.length
-        },
-        transactions: esploraTxs.map((t) => t.txid),
-        utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`)
-      }
-    ]
-
-    updateAccount(account)
-
-    return {
-      progress: account.syncProgress,
-      transactions: account.transactions,
-      utxos: account.utxos
-    }
-  }
-
-  async function syncAccountWithAddressUsingElectrum(
-    account: Account,
-    address: string,
-    url: string,
-    network: Network
-  ): Promise<AddressInfo> {
-    const electrumClient = ElectrumClient.fromUrl(url, network)
-    await electrumClient.init()
-
-    account.syncProgress = {
-      tasksDone: account.syncProgress?.tasksDone || 0,
-      totalTasks: account.syncProgress?.tasksDone || 0
-    }
-
-    // update tasks because we need to perform 3 requests
-    account.syncProgress.totalTasks += 3
-    setSyncProgress(account.id, account.syncProgress)
-
-    const addressUtxos = await electrumClient.getAddressUtxos(address)
-    const addressTxs = await electrumClient.getAddressTransactions(address)
-    const balance = await electrumClient.getAddressBalance(address)
-
-    account.syncProgress.tasksDone += 3
-    setSyncProgress(account.id, account.syncProgress)
-
-    const existingTx: Record<string, number> = {}
-    const existingUtxo: Record<string, number> = {}
-    for (const [index, tx] of account.transactions.entries()) {
-      existingTx[tx.id] = index
-    }
-    for (const [index, utxo] of account.utxos.entries()) {
-      existingUtxo[getUtxoOutpoint(utxo)] = index
-    }
-
-    let newTxsCount = 0
-    let newUtxosCount = 0
-    for (const t of addressTxs) {
-      if (existingTx[t.tx_hash] !== undefined) {
-        continue
-      }
-      newTxsCount += 1
-    }
-    for (const u of addressUtxos) {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] !== undefined) {
-        continue
-      }
-      newUtxosCount += 1
-    }
-
-    account.summary = {
-      ...account.summary,
-      balance: account.summary.balance + balance.confirmed,
-      numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
-      numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount,
-      satsInMempool: account.summary.satsInMempool + balance.unconfirmed
-    }
-
-    account.addresses = [
-      ...account.addresses.filter((a) => a.address !== address),
-      {
-        address,
-        label: '',
-        summary: {
-          balance: balance.confirmed,
-          satsInMempool: balance.unconfirmed,
-          transactions: addressTxs.length,
-          utxos: addressUtxos.length
-        },
-        transactions: addressTxs.map((t) => t.tx_hash),
-        utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`)
-      }
-    ]
-
-    updateAccount(account)
-
-    // prevent modifying object just updated in store
-    account.syncProgress = { ...account.syncProgress }
-
-    const pendingTx = addressTxs.filter(
-      (t) => existingTx[t.tx_hash] === undefined
-    )
-    const pendingUtxos = addressUtxos.filter(
-      (u) => existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
-    )
-
-    const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length
-    account.syncProgress.totalTasks += estimatedRequests
-    setSyncProgress(account.id, account.syncProgress)
-
-    // variable to track timestamp data for both transactions and utxos
-    const timestampByHeight: Record<number, number> = {}
-    const rawTransactions = []
-    const txTimestamps: number[] = []
-
-    for (const tx of pendingTx) {
-      const txid = tx.tx_hash
-      const { height } = tx
-
-      const rawTx = await electrumClient.getTransactionRaw(txid)
-      rawTransactions.push(rawTx)
-
-      account.syncProgress.tasksDone += 1
-      setSyncProgress(account.id, account.syncProgress)
-
-      if (!timestampByHeight[height]) {
-        timestampByHeight[height] =
-          await electrumClient.getBlockTimestamp(height)
-      }
-      const timestamp = timestampByHeight[height]
-      txTimestamps.push(timestamp)
-
-      account.syncProgress.tasksDone += 1
-      setSyncProgress(account.id, account.syncProgress)
-
-      // Update partial transaction.
-      // It is missing sent, receive, vin and vout which must update later.
-      const rawTxParsed = bitcoinjs.Transaction.fromHex(rawTx)
-
-      const received = rawTxParsed.outs.reduce((previousValue, output) => {
-        try {
-          const outputAddr = bitcoinjs.address.fromOutputScript(
-            output.script,
-            bitcoinjsNetwork(network)
-          )
-
-          if (outputAddr === address) {
-            return previousValue + output.value
-          }
-          return previousValue
-        } catch {
-          return previousValue
-        }
-      }, 0)
-
-      const transaction: Transaction = {
-        address,
-        blockHeight: height,
-        id: rawTxParsed.getId(),
-        label: '',
-        lockTime: rawTxParsed.locktime,
-        lockTimeEnabled: rawTxParsed.locktime > 0,
-        prices: {},
-        raw: Array.from(hex.decode(rawTx)),
-        received,
-        sent: 0, // THIS HAS TO BE COMPUTED LATER
-        size: rawTxParsed.byteLength(),
-        timestamp: new Date(timestamp * MS_PER_SECOND),
-        type: received > 0 ? 'receive' : 'send',
-        version: rawTxParsed.version,
-        vin: [],
-        vout: [],
-        vsize: rawTxParsed.virtualSize(),
-        weight: rawTxParsed.weight()
-      }
-      account.transactions = [...account.transactions, transaction]
-      updateAccount(account)
-
-      // prevent modifying object just updated in store
-      account.syncProgress = { ...account.syncProgress }
-    }
-
-    //
-    const addressTxsDict: Record<string, boolean> = {}
-    for (const tx of addressTxs) {
-      addressTxsDict[tx.tx_hash] = true
-    }
-
-    // Parse the raw transaction and timestamps to transaction objects.
-    // This will  correctly include vin, vout, sent and received.
-    const allTransactions = electrumClient.parseAddressPartialTransactions(
-      address,
-      account.transactions.filter((tx) => addressTxsDict[tx.id])
-    )
-    account.transactions = [
-      ...allTransactions,
-      ...account.transactions.filter((tx) => !addressTxsDict[tx.id])
-    ]
-    updateAccount(account)
-
-    account.syncProgress = { ...account.syncProgress }
-
-    // hard-coded keychain but we can safely assume it is correct.
-    // Who would setup watch-only for a change address?
-    const addressKeychain = 'external'
-
-    for (const electrumUtxo of pendingUtxos) {
-      const { height } = electrumUtxo
-
-      if (!timestampByHeight[height]) {
-        timestampByHeight[height] =
-          await electrumClient.getBlockTimestamp(height)
-      }
-
-      const timestamp = timestampByHeight[height]
-
-      account.syncProgress.tasksDone += 1
-      setSyncProgress(account.id, account.syncProgress)
-
-      const utxo: Utxo = {
-        addressTo: address,
-        keychain: addressKeychain,
-        label: '',
-        script: [
-          ...bitcoinjs.address.toOutputScript(
-            address,
-            bitcoinjsNetwork(network)
-          )
-        ],
-        timestamp: new Date(timestamp * MS_PER_SECOND),
-        txid: electrumUtxo.tx_hash,
-        value: electrumUtxo.value,
-        vout: electrumUtxo.tx_pos
-      }
-
-      account.utxos = [...account.utxos, utxo]
-      updateAccount(account)
-
-      // prevent modifying object just updated in store
-      account.syncProgress = { ...account.syncProgress }
-    }
-
-    try {
-      electrumClient.close()
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${'Failed to close Electrum client'}: ${reason}`)
-    }
-
-    return {
-      progress: account.syncProgress,
-      transactions: account.transactions,
-      utxos: account.utxos
-    }
-  }
-
   async function syncAccountWithAddressDescriptor(
     account: Account,
     addressDescriptor: string
@@ -535,36 +47,32 @@ function useSyncAccountWithAddress() {
       transactions: [...account.transactions]
     }
 
+    const progress = {
+      tasksDone: account.syncProgress?.tasksDone ?? 0,
+      totalTasks: account.syncProgress?.totalTasks ?? 0
+    }
+    function reportProgress(done: number, added: number) {
+      progress.tasksDone += done
+      progress.totalTasks += added
+      setSyncProgress(account.id, { ...progress })
+    }
+
     try {
       const address = parseAddressDescriptorToAddress(addressDescriptor)
+      const snapshot = await fetchAddressSnapshot(
+        { backend, network, url },
+        address,
+        account.transactions,
+        reportProgress
+      )
 
-      let addrInfo: AddressInfo | undefined
-
-      if (backend === 'esplora') {
-        addrInfo = await syncAccountWithAddressUsingEsplora(
-          updatedAccount,
-          address,
-          url
-        )
-      } else if (backend === 'electrum') {
-        addrInfo = await syncAccountWithAddressUsingElectrum(
-          updatedAccount,
-          address,
-          url,
-          network
-        )
-      } else if (backend === 'rpc') {
-        // Bitcoin Core RPC does not support per-address history lookups
-        // without a watching wallet. Use BDK wallet sync (useSyncAccountWithWallet)
-        // for RPC-backed accounts instead.
-        throw new Error(t('account.sync.rpcAddressSyncUnsupported'))
-      } else {
-        throw new Error('unknown backend')
-      }
-
-      updatedAccount.transactions = addrInfo.transactions
-      updatedAccount.utxos = addrInfo.utxos
-
+      updatedAccount = applyAddressSnapshot(
+        updatedAccount,
+        address,
+        network,
+        snapshot
+      )
+      updatedAccount.syncProgress = { ...progress }
       updatedAccount = updateAccountObjectLabels(updatedAccount)
 
       const { fiatCurrency } = usePriceStore.getState()

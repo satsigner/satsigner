@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Platform, TouchableOpacity } from 'react-native'
+import { Platform } from 'react-native'
 import Animated, {
   cancelAnimation,
   Easing,
@@ -17,14 +17,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Layout, Sizes } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
+import SSAmountDisplay from './SSAmountDisplay'
 import SSFingerprint from './SSFingerprint'
-import SSStyledSatText from './SSStyledSatText'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 export type SSAccountCardStat = {
@@ -206,7 +207,7 @@ function SSAccountCard({
   }
 
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={activeOpacity}
       onPress={onPress}
       onLongPress={onLongPress}
@@ -224,28 +225,17 @@ function SSAccountCard({
           </SSHStack>
           <SSVStack gap="none">
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText
-                size="3xl"
-                color="white"
-                style={{ lineHeight: Sizes.text.fontSize['3xl'] }}
-              >
-                {privacyMode ? (
-                  '••••'
-                ) : (
-                  <SSStyledSatText
-                    amount={balance}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    currency={currencyUnit}
-                    textSize="3xl"
-                    weight="light"
-                    letterSpacing={-1}
-                  />
-                )}
-              </SSText>
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
+              <SSAmountDisplay
+                privacyMode={privacyMode}
+                amount={balance}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
+                textSize="3xl"
+                weight="light"
+                letterSpacing={-1}
+                unitSize="xl"
+              />
             </SSHStack>
             {showCurrentFiat ? (
               <SSHStack
@@ -286,7 +276,7 @@ function SSAccountCard({
         <SSIconChevronRight height={11.6} width={6} />
         {syncStatus ? renderSyncStatus(syncStatus, lastSyncedAt) : null}
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 import DraggableFlatList, {
   type RenderItemParams,
   ScaleDecorator
@@ -13,6 +13,7 @@ import { AddressCard } from '@/components/SSAddressCard'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -107,7 +108,7 @@ export function ManageAccountAddresses({
     const address = item
     return (
       <ScaleDecorator activeScale={1.05}>
-        <TouchableOpacity
+        <SSPressable
           activeOpacity={0.8}
           onLongPress={drag}
           delayLongPress={250}
@@ -120,7 +121,7 @@ export function ManageAccountAddresses({
             onViewDetails={() => onViewAddressDetails(address.address)}
             onDelete={() => handleDeleteAddress(address.address)}
           />
-        </TouchableOpacity>
+        </SSPressable>
       </ScaleDecorator>
     )
   }

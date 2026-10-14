@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
@@ -24,6 +24,7 @@ import {
 } from '@/utils/nostr'
 
 import { SSIconChevronRight } from './icons'
+import SSPressable from './SSPressable'
 
 const ACTIVE_CARD_GRADIENT_BOTTOM = Colors.gray[925] // eslint-disable-line prefer-destructuring
 const ACTIVE_CARD_GRADIENT_TOP = Colors.gray[875] // eslint-disable-line prefer-destructuring
@@ -78,7 +79,7 @@ function SSNostrAccountCard({
   })
 
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={1}
       onPress={onPress}
       style={[styles.container, isActive && styles.containerActive]}
@@ -269,7 +270,7 @@ function SSNostrAccountCard({
           </View>
         </View>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

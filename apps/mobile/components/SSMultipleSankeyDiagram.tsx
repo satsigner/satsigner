@@ -2,13 +2,7 @@ import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey } from 'd3-sankey'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { useMemo, type ReactNode } from 'react'
-import {
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -31,6 +25,7 @@ import {
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 
+import SSPressable from './SSPressable'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -383,7 +378,7 @@ function SSMultipleSankeyDiagram({
               const { inputOutpoint } = node
 
               return (
-                <TouchableOpacity
+                <SSPressable
                   key={style.localId ?? inputOutpoint ?? index}
                   style={[
                     styles.node,

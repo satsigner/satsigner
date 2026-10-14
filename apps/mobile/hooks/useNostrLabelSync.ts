@@ -42,7 +42,7 @@ function useNostrLabelSync() {
     }
 
     if (labels.length === 0) {
-      toast.error(t('account.nostrSync.errorMissingData'))
+      toast.error(t('account.nostrSync.noLabels'))
       return
     }
 

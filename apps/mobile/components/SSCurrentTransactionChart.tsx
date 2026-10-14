@@ -1,13 +1,7 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey } from 'd3-sankey'
 import { useMemo } from 'react'
-import {
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
@@ -51,6 +45,7 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPressable from './SSPressable'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 import SSText from './SSText'
@@ -546,7 +541,7 @@ function SSCurrentTransactionChart({
               const { inputOutpoint } = node
 
               return (
-                <TouchableOpacity
+                <SSPressable
                   key={style.localId ?? inputOutpoint ?? index}
                   style={[
                     styles.node,
