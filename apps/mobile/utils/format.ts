@@ -32,7 +32,15 @@ import {
   NPUB_TRUNCATE_CHARS_XS
 } from '@/constants/nostr'
 import { PRIVACY_MASK } from '@/constants/privacy'
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  DAYS_PER_MONTH,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  HOURS_PER_DAY,
+  MINUTES_PER_HOUR,
+  MS_PER_SECOND,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -237,12 +245,12 @@ type TimeFromNow = [
 
 function formatTimeFromNow(milliseconds: number): TimeFromNow {
   const seconds = milliseconds / MS_PER_SECOND
-  const minutes = seconds / 60
-  const hours = minutes / 60
-  const days = hours / 24
-  const weeks = days / 7
-  const months = days / 30 // Approximate
-  const years = days / 365 // Approximate
+  const minutes = seconds / SECONDS_PER_MINUTE
+  const hours = minutes / MINUTES_PER_HOUR
+  const days = hours / HOURS_PER_DAY
+  const weeks = days / DAYS_PER_WEEK
+  const months = days / DAYS_PER_MONTH
+  const years = days / DAYS_PER_YEAR
 
   if (years >= 1) {
     return [years, 'year']
