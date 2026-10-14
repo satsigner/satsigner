@@ -975,9 +975,7 @@ function renderSplash() {
   const intro = document.getElementById('intro')
   intro.classList.add('is-splash')
   intro.innerHTML =
-    '<div class="intro-visual">' +
-    introVisuals.hex +
-    '</div><div class="intro-logo"><span>SAT<br>SIGNER</span></div><p class="splash-tag">UTXO manager<br>and Message Signer</p>'
+    '<div class="intro-logo"><span>SAT<br>SIGNER</span></div><p class="splash-tag">UTXO manager<br>and Message Signer</p>'
   intro.addEventListener('click', startOnboarding, { once: true })
 }
 
