@@ -4,6 +4,7 @@ import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import {
   decrypt as nip04Decrypt,
   encrypt as nip04Encrypt
@@ -341,7 +342,7 @@ export class NostrAPI {
       this.ndk,
       {
         authors: [hexPubkey],
-        kinds: [31922],
+        kinds: [nostrKinds.Date],
         limit: 500
       },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
@@ -366,7 +367,7 @@ export class NostrAPI {
             description: event.content,
             ...(Number.isFinite(endValue) ? { end: endValue } : {}),
             id: event.id,
-            kind: event.kind ?? 31922,
+            kind: event.kind ?? nostrKinds.Date,
             ...(location ? { location } : {}),
             start,
             title: getTagValue('title') ?? getTagValue('summary') ?? 'Untitled'
@@ -640,7 +641,8 @@ export class NostrAPI {
     }
 
     const isKind1Only =
-      kinds.length === 0 || (kinds.length === 1 && kinds[0] === 1)
+      kinds.length === 0 ||
+      (kinds.length === 1 && kinds[0] === nostrKinds.ShortTextNote)
     let cached: {
       id: string
       content: string
@@ -665,7 +667,7 @@ export class NostrAPI {
       return cached
     }
 
-    const kindList = kinds.length > 0 ? kinds : [1]
+    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
     const filter: NDKFilter = {
       authors: [hexPubkey],
       kinds: kindList,
@@ -744,7 +746,7 @@ export class NostrAPI {
     const MAX_AUTHORS = 200
     const authors = following.slice(0, MAX_AUTHORS)
 
-    const kindList = kinds.length > 0 ? kinds : [1]
+    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
     const filter: NDKFilter = {
       authors,
       kinds: kindList,
@@ -778,7 +780,7 @@ export class NostrAPI {
     return {
       content: event.content,
       created_at: event.created_at ?? 0,
-      kind: event.kind ?? 1,
+      kind: event.kind ?? nostrKinds.ShortTextNote,
       pubkey: event.pubkey,
       tags: event.tags.map((tag) =>
         tag.filter((v): v is string => typeof v === 'string')
@@ -990,7 +992,11 @@ export class NostrAPI {
 
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      { authors: [hex], kinds: [10002, 10050], limit: 10 },
+      {
+        authors: [hex],
+        kinds: [nostrKinds.RelayList, nostrKinds.DirectMessageRelaysList],
+        limit: 10
+      },
       12_000
     )
     return extractInboxRelayUrls([...events])
@@ -1012,7 +1018,7 @@ export class NostrAPI {
       {
         content: '',
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
-        kind: 10050,
+        kind: nostrKinds.DirectMessageRelaysList,
         tags: relayUrls.map((url) => ['relay', url])
       },
       secretKey
@@ -1310,7 +1316,7 @@ export class NostrAPI {
       {
         content: encrypted,
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
-        kind: 4,
+        kind: nostrKinds.EncryptedDirectMessage,
         tags: [['p', recipientPubKeyHex]]
       },
       secretNostrKey
@@ -1351,8 +1357,16 @@ export class NostrAPI {
     }
 
     const filters: NDKFilter[] = [
-      { '#p': [ownPubKeyHex], kinds: [4], ...(since && { since }) },
-      { authors: [ownPubKeyHex], kinds: [4], ...(since && { since }) }
+      {
+        '#p': [ownPubKeyHex],
+        kinds: [nostrKinds.EncryptedDirectMessage],
+        ...(since && { since })
+      },
+      {
+        authors: [ownPubKeyHex],
+        kinds: [nostrKinds.EncryptedDirectMessage],
+        ...(since && { since })
+      }
     ]
 
     let subscription: NDKSubscription | undefined
@@ -1425,7 +1439,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content: '',
-      kind: 5,
+      kind: nostrKinds.EventDeletion,
       tags: hexIds.map((id) => ['e', id])
     })
     await event.sign(signer)
@@ -1452,7 +1466,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content,
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
 
@@ -1465,7 +1479,7 @@ export class NostrAPI {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? 1,
+      kind: event.kind ?? nostrKinds.ShortTextNote,
       pubkey: event.pubkey,
       sig: event.sig,
       tags: event.tags.map((tag) =>
@@ -1493,7 +1507,7 @@ export class NostrAPI {
     this.ndk.signer = signer
     const event = new NDKEvent(this.ndk, {
       content,
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
 
@@ -1674,7 +1688,7 @@ export class NostrAPI {
         resolve(value)
       }
       const sub = this.ndk!.subscribe(
-        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 },
+        { authors: ['0'.repeat(64)], kinds: [nostrKinds.Metadata], limit: 1 },
         { closeOnEose: false }
       )
       const timer = setTimeout(() => {

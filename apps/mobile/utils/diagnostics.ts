@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo'
 import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
 import {
@@ -191,7 +192,7 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
 
     const content = 'satsigner diagnostic 🔐'
     const wrap = nip17.wrapEvent(secretKey, { publicKey }, content)
-    if (wrap.kind !== 1059) {
+    if (wrap.kind !== nostrKinds.GiftWrap) {
       throw new Error(`expected gift wrap kind 1059, got ${wrap.kind}`)
     }
     lines.push('gift wrap created (kind 1059)')
