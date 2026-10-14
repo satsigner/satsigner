@@ -8,6 +8,10 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 
+// Wait up to 6s for an in-flight sync to finish before rescanning.
+const SYNC_IDLE_POLL_ATTEMPTS = 60
+const SYNC_IDLE_POLL_INTERVAL_MS = 100
+
 /**
  * Persist a wallet birthday and restart an RPC rescan when a wallet is loaded.
  */
@@ -47,12 +51,12 @@ function useApplyAccountBirthday() {
 
     toast.success(t('account.birthdayDate.rescanQueued'))
 
-    for (let i = 0; i < 60; i += 1) {
+    for (let i = 0; i < SYNC_IDLE_POLL_ATTEMPTS; i += 1) {
       if (!isAccountSyncing(accountId)) {
         break
       }
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, 100)
+        setTimeout(resolve, SYNC_IDLE_POLL_INTERVAL_MS)
       })
     }
 

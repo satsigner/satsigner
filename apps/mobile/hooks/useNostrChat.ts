@@ -27,6 +27,9 @@ import {
 } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 
+const CHAT_RETRY_DELAY_MS = 5000
+const CHAT_THREAD_PAGE_SIZE = 200
+
 type ChatIdentity = {
   npub: string
   nsec?: string
@@ -150,7 +153,7 @@ export function useNostrChatProfiles(
         }
         if (attempt === 0) {
           await new Promise((resolve) => {
-            setTimeout(resolve, 5_000)
+            setTimeout(resolve, CHAT_RETRY_DELAY_MS)
           })
         }
       }
@@ -221,7 +224,9 @@ export function useNostrChatThread(
       setMessages([])
       return
     }
-    setMessages(listChatThread(identity.npub, protocol, peerPubkey, 200))
+    setMessages(
+      listChatThread(identity.npub, protocol, peerPubkey, CHAT_THREAD_PAGE_SIZE)
+    )
   }, [identity, protocol, peerPubkey])
 
   // Initial load + mark incoming as read while the thread is open.
