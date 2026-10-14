@@ -214,7 +214,7 @@ a{
   aspect-ratio: 390 / 844;
   border-radius: var(--radius);
   overflow: visible;
-  background: #0c0c0e;
+  background: #000;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.32),
     0 28px 70px rgba(0, 0, 0, 0.45);
@@ -274,7 +274,7 @@ a{
   border: 4px solid transparent;
   filter: blur(1.4px);
   background:
-    linear-gradient(#0c0c0e, #0c0c0e) padding-box,
+    linear-gradient(#000, #000) padding-box,
     radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
     radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
     radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
