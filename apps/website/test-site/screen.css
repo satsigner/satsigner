@@ -34,8 +34,9 @@ body {
   --ui-drop: 14px;
   --bezel: 8px;
   position: relative;
-  width: 390px;
-  height: 844px;
+  width: min(390px, calc((100vh - 96px) * 390 / 844));
+  aspect-ratio: 390 / 844;
+  height: auto;
   max-height: calc(100vh - 96px);
   border-radius: 52px;
   background: var(--gray-900);
@@ -605,8 +606,17 @@ body {
 }
 
 .hero.is-phone .tab-bar {
-  margin-bottom: -8px;
-  padding-bottom: 8px;
+  height: 84px;
+  margin-bottom: 0;
+  padding-bottom: 18px;
+}
+.hero.is-phone .tab {
+  gap: 5px;
+  font-size: 11px;
+}
+.hero.is-phone .tab-mark {
+  width: 26px;
+  height: 19px;
 }
 
 .tab {
@@ -1466,7 +1476,6 @@ body {
 
 @media (max-width: 420px) {
   .phone {
-    width: min(390px, 100%);
-    height: min(844px, calc(100vh - 88px));
+    width: min(390px, 100%, calc((100vh - 88px) * 390 / 844));
   }
 }
