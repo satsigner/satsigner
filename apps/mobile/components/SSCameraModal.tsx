@@ -594,7 +594,7 @@ function SSCameraModal({
       onClose={handleModalClose}
       showLabel={!isFinalizing}
     >
-      <SSVStack itemsCenter gap="md">
+      <SSVStack itemsCenter widthFull gap="md">
         <SSText color="muted" uppercase>
           {isFinalizing
             ? t('camera.detected')
@@ -611,21 +611,25 @@ function SSCameraModal({
             width: CAMERA_SIZE
           }}
         >
-          <CameraView
-            onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
-            onAvailableLensesChanged={(event: AvailableLenses) => {
-              const { lenses } = event
-              if (lenses.length < 2) {
-                return
-              }
-              setAvailableLenses(lenses)
-              setSelectedLens((prev) => prev ?? lenses[0])
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            zoom={zoom}
-            selectedLens={selectedLens}
-            style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
-          />
+          {/* Mounted only once granted: a CameraView created before the
+              permission prompt never starts its session. */}
+          {permission?.granted ? (
+            <CameraView
+              onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
+              onAvailableLensesChanged={(event: AvailableLenses) => {
+                const { lenses } = event
+                if (lenses.length < 2) {
+                  return
+                }
+                setAvailableLenses(lenses)
+                setSelectedLens((prev) => prev ?? lenses[0])
+              }}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              zoom={zoom}
+              selectedLens={selectedLens}
+              style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}
+            />
+          ) : null}
           {isFinalizing ? (
             <View
               style={{
@@ -799,14 +803,12 @@ function SSCameraModal({
             )}
           </SSVStack>
         )}
-        <SSVStack>
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
-        </SSVStack>
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
         {progressType && (
           <SSButton
             label={t('qrcode.scan.reset')}
