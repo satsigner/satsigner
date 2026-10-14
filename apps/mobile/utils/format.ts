@@ -1,4 +1,4 @@
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   ADDRESS_TRUNCATE_CHARS,
   ADDRESS_TRUNCATE_CHARS_COMPACT,
@@ -84,7 +84,7 @@ function formatNumber(
   separator = ' '
 ) {
   const formatted = padding
-    ? (n / SATS_PER_BITCOIN).toFixed(8)
+    ? (n / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS)
     : n.toLocaleString(undefined, {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals
@@ -431,6 +431,11 @@ function trimOnionAddress(url: string): string {
   return url.replace(onionMatch[0], trimmedOnion)
 }
 
+/** Sats as a BTC decimal string without trailing zeros, e.g. 150000 → "0.0015". */
+function formatSatsAsBtc(sats: number) {
+  return (sats / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS).replace(/\.?0+$/, '')
+}
+
 export {
   formatAddress,
   formatBytes,
@@ -447,6 +452,7 @@ export {
   formatNumber,
   formatPageUrl,
   formatPercentualChange,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTimeFromNow,

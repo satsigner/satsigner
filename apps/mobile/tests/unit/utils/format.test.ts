@@ -6,6 +6,7 @@ import {
   formatNostrCardDate,
   formatNpub,
   formatNumber,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTxId,
@@ -195,5 +196,16 @@ describe('format utils', () => {
       expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
       expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
+  })
+})
+
+describe('formatSatsAsBtc', () => {
+  it('drops trailing zeros', () => {
+    expect(formatSatsAsBtc(150_000)).toBe('0.0015')
+    expect(formatSatsAsBtc(100_000_000)).toBe('1')
+  })
+
+  it('keeps all eight decimals when needed', () => {
+    expect(formatSatsAsBtc(1)).toBe('0.00000001')
   })
 })
