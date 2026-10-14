@@ -9,7 +9,10 @@ import {
   type FetchLike
 } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { validatePayjoinProposal } from '@/utils/payjoinValidate'
 
@@ -106,7 +109,9 @@ describe('payjoin hardening (phase 7)', () => {
   it('marks contributed inputs as seen (replay protection store)', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const original = buildPsbt({
       inputs: [{ txid: TXID_A, vout: 0 }],
@@ -130,6 +135,7 @@ describe('payjoin hardening (phase 7)', () => {
 
     const finalized = await finalizeReceiverPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: () =>
         Promise.resolve({
           body: '',
@@ -153,7 +159,9 @@ describe('payjoin hardening (phase 7)', () => {
     const nativeSpy = jest.spyOn(payjoinNative, 'receiverContributeAndFinalize')
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const original = buildPsbt({
       inputs: [{ txid: TXID_A, vout: 0 }],
@@ -181,6 +189,7 @@ describe('payjoin hardening (phase 7)', () => {
 
     await finalizeReceiverPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: () =>
         Promise.resolve({ body: '', bytes: new Uint8Array(), status: 200 }),
       session: {
@@ -204,7 +213,9 @@ describe('payjoin hardening (phase 7)', () => {
   it('does not mark receiver complete when proposal POST fails', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const original = buildPsbt({
       inputs: [{ txid: TXID_A, vout: 0 }],
@@ -227,6 +238,7 @@ describe('payjoin hardening (phase 7)', () => {
           markInputSeen: () => undefined,
           signPsbt: (psbt) => psbt
         },
+        deps: getPayjoinDeps(),
         fetchImpl: () =>
           Promise.resolve({
             body: 'relay down',
@@ -258,6 +270,7 @@ describe('payjoin hardening (phase 7)', () => {
         markInputSeen: () => undefined,
         signPsbt: (p) => p
       },
+      deps: getPayjoinDeps(),
       fetchImpl,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [changeScript.toString('hex')],
@@ -279,7 +292,9 @@ describe('payjoin hardening (phase 7)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 21_000
+      amountSats: 21_000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     expect(session.pjos).toBe(0)
     expect(session.uri).toContain('pjos=0')
