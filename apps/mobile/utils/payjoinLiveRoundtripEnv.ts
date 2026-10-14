@@ -16,7 +16,10 @@ import {
 } from '@/constants/payjoin'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -230,6 +233,7 @@ async function buildPayjoinLiveRoundtripEnv(
     broadcast,
     buildAndSignOriginal,
     network: selectedNetwork,
+    payjoinDeps: getPayjoinDeps(),
     paymentAmountSats,
     receiverAccountId: receiver.id,
     receiverAddress,
