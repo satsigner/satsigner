@@ -22,6 +22,7 @@
     'uniform float uDpr;',
     'uniform float uReveal;',
     'uniform vec2 uHalf;',
+    'uniform float uRadius;',
     'uniform float uTheme;',
     'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float sdCircle(vec2 p, float r){ return length(p) - r; }',
@@ -43,7 +44,7 @@
     '    n = normalize(d + vec2(0.0001));',
     '  } else {',
     '    vec2 b = box;',
-    '    float rad = b.x * 0.30;',
+    '    float rad = min(uRadius, min(b.x, b.y));',
     '    sdf = sdRoundBox(d, b, rad);',
     '    vec2 q = abs(d) - b + rad;',
     '    vec2 g = max(q, 0.0);',
@@ -110,6 +111,7 @@
   var uDpr = gl.getUniformLocation(prog, 'uDpr');
   var uReveal = gl.getUniformLocation(prog, 'uReveal');
   var uHalf = gl.getUniformLocation(prog, 'uHalf');
+  var uRadius = gl.getUniformLocation(prog, 'uRadius');
   var uTheme = gl.getUniformLocation(prog, 'uTheme');
 
   var logo = document.querySelector('.hero-logo-light');
@@ -257,6 +259,9 @@
     gl.uniform1f(uDpr, dpr);
     gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
     gl.uniform2f(uHalf, halfX, halfY);
+    var cssRadius = 48;
+    if (mark) cssRadius = parseFloat(getComputedStyle(mark).borderTopLeftRadius) || cssRadius;
+    gl.uniform1f(uRadius, cssRadius * dpr);
     var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
     gl.uniform1f(uTheme, theme);
     gl.clearColor(theme ? 0.902 : 0, theme ? 0.902 : 0, theme ? 0.902 : 0, 1);
