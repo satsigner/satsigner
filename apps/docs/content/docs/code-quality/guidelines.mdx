@@ -83,6 +83,38 @@ an API function or hook, not a utility one.
 If a utility executes async code, it likely should be API function. Exceptions
 to the rules must be discussed.
 
+## Services
+
+Services are functions located under `@/services` that hold domain logic: they
+know what a wallet, a payjoin session or a server connection is, and combine
+API calls into one operation. They do not depend on React.
+
+| Layer       | Imports React? | Imports stores? | Does I/O?       | Knows the domain?    |
+| ----------- | -------------- | --------------- | --------------- | -------------------- |
+| `utils/`    | No             | No              | No              | No                   |
+| `api/`      | No             | No              | Yes             | Only the wire format |
+| `services/` | No             | No (injected)   | Via `api/`      | Yes                  |
+| `hooks/`    | Yes            | Yes             | Via `services/` | Yes                  |
+
+They may:
+
+- call API functions
+- call utility functions
+- execute asynchronous code
+- receive store state and setters as arguments (dependency injection)
+- throw errors for the caller to handle
+
+They **shall not**:
+
+- import React or use hooks
+- import stores (pass what they need as arguments instead)
+- use `toast` or display errors
+- use `i18n` for error messages
+
+Hooks call services and keep the React side: component state, effects and
+store subscriptions. If a hook holds a long async flow that does not touch
+React state, move that flow to a service.
+
 ## Hooks
 
 Hooks are functions meant to be reusable pieces of logic that deal with
