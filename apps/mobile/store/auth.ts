@@ -9,6 +9,7 @@ import {
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
+import { SECRET_KEY_BYTE_LENGTH } from '@/config/keys'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
@@ -98,7 +99,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
           await getPin()
         } catch {
           // High-entropy throwaway passphrase; only its KDF digest is kept.
-          await get().setPin(await randomKey(32))
+          await get().setPin(await randomKey(SECRET_KEY_BYTE_LENGTH))
         }
         set({ skipPin: true })
       },
