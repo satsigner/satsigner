@@ -199,4 +199,3 @@ function probeConnection(params: ProbeParams) {
 }
 
 export { probeConnection, SOFTWARE_LABELS }
-export type { ConnectionProbe }
