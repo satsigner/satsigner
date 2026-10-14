@@ -207,16 +207,16 @@ a{
   pointer-events: none;
 }
 .hero.is-phone .hero-mark {
-  --bezel: 9px;
+  --bezel: 10px;
+  --radius: 48px;
   width: 280px;
   height: auto;
   aspect-ratio: 390 / 844;
-  border-radius: 48px;
+  border-radius: var(--radius);
   overflow: visible;
-  background:
-    radial-gradient(ellipse at center, #0a0a0c 93%, #34343a 100%);
+  background: #0c0c0e;
   box-shadow:
-    inset 0 0 5px rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
     0 28px 70px rgba(0, 0, 0, 0.45);
 }
 .phone-buttons {
@@ -255,7 +255,7 @@ a{
   content: "";
   position: absolute;
   z-index: 8;
-  top: calc(var(--bezel) + 11px);
+  top: calc(var(--bezel) + 14px);
   left: 50%;
   width: 92px;
   height: 26px;
@@ -267,12 +267,26 @@ a{
 .hero.is-phone .hero-mark::after {
   content: "";
   position: absolute;
-  z-index: 6;
-  inset: var(--bezel);
-  border-radius: 39px;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
   pointer-events: none;
+  border: 4px solid transparent;
+  filter: blur(1.4px);
+  background:
+    linear-gradient(#0c0c0e, #0c0c0e) padding-box,
+    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
+    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box;
+  background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
-.hero.is-phone .hero-mark-type {
+.hero-mark .phone::before {
+  content: none;
+}
+.hero.is-phone.is-live .hero-mark-type,
+.hero.is-phone.is-live .hero-logo-light,
+.hero.is-phone:not(.is-live) .intro.is-splash .intro-logo {
   display: none;
 }
 .hero.is-phone .hero-mark-shot {
@@ -290,11 +304,11 @@ a{
 }
 .hero.is-phone .hero-app,
 .hero.is-phone .hero-splash {
-  inset: var(--bezel) var(--bezel) 0;
-  border-radius: 39px 39px 48px 48px;
+  inset: var(--bezel);
+  border-radius: calc(var(--radius) - var(--bezel));
 }
 .hero.is-phone .hero-app {
-  background: #050505;
+  background: #0a0a0a;
   opacity: 1;
 }
 .hero.is-phone:not(.is-live) .hero-app {
@@ -310,7 +324,9 @@ a{
   height: 844px;
   max-height: none;
   margin: 0;
+  overflow: visible;
   border-radius: 0;
+  background: #0a0a0a;
   box-shadow: none;
   transform-origin: top left;
 }
@@ -334,11 +350,13 @@ a{
   gap: 6px;
 }
 .hero-mark .phone-screen {
+  inset: 0;
   flex: 1;
   width: 100%;
   height: auto;
   min-height: 0;
   border-radius: 0;
+  background: #0a0a0a;
 }
 .hero.is-live .hero-app {
   opacity: 1;
@@ -385,6 +403,14 @@ a{
 .hero.is-badge .hero-mark-type span {
   position: relative;
   top: -1%;
+}
+.hero.is-phone.is-badge .hero-mark-type {
+  z-index: 4;
+  top: 40%;
+}
+.hero.is-phone.is-badge .hero-logo-light {
+  z-index: 3;
+  clip-path: inset(12px round 36px);
 }
 .hero-logo-light {
   display: none;
