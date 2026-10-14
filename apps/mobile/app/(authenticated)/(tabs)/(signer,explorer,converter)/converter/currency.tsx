@@ -48,6 +48,17 @@ type CurrencyKey =
 
 type PricesMap = ReturnType<typeof usePriceStore.getState>['prices']
 
+/**
+ * Currency to keep fixed when prices change. Falls back to bitcoin when the
+ * anchored fiat currency has no price, so the other values don't drop to 0.
+ */
+function getAnchorKey(key: CurrencyKey, priceMap: PricesMap): CurrencyKey {
+  if (key === 'sats' || key === 'bitcoin' || priceMap[key]) {
+    return key
+  }
+  return 'bitcoin'
+}
+
 function ConverterHeader() {
   return (
     <SSText uppercase style={styles.headerTitle}>
@@ -174,11 +185,12 @@ export default function Converter() {
     return price ? value / price : 0
   }
 
-  function applyAnchoredValues(
-    key: CurrencyKey,
-    anchoredValue: number,
-    priceMap = datePricesRef.current ?? usePriceStore.getState().prices
-  ) {
+  function getActivePrices() {
+    return datePricesRef.current ?? usePriceStore.getState().prices
+  }
+
+  function applyAnchoredValues(key: CurrencyKey, anchoredValue: number) {
+    const priceMap = getActivePrices()
     const btc = getBitcoinValue(key, anchoredValue, priceMap)
     setCurrencyValues({
       CAD: (priceMap.CAD || 0) * btc,
@@ -214,7 +226,9 @@ export default function Converter() {
         return
       }
       datePricesRef.current = datePrices
-      const key = lastChangeKeyRef.current
+      const key = getAnchorKey(lastChangeKeyRef.current, getActivePrices())
+      lastChangeKeyRef.current = key
+      setLastChangedKey(key)
       const anchoredValue = currencyValuesRef.current[key]
       applyAnchoredValues(key, hasInitializedRef.current ? anchoredValue : 1)
       hasInitializedRef.current = true

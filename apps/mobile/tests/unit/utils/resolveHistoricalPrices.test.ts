@@ -54,8 +54,23 @@ describe('resolveHistoricalPrices', () => {
 })
 
 describe('resolvePricesAt', () => {
-  const BUNDLED_PRICES = { EUR: 9, USD: 10 }
-  const NETWORK_PRICES = { EUR: 40, USD: 42 }
+  const ALL_BUNDLED_PRICES = {
+    AUD: 1,
+    CAD: 2,
+    CHF: 3,
+    EUR: 4,
+    GBP: 5,
+    JPY: 6,
+    USD: 7
+  }
+  const SOME_BUNDLED_PRICES = { USD: 7 }
+
+  function enableHistoricalPrices(fromNetwork: boolean) {
+    useSettingsStore.setState({
+      fetchHistoricalPrices: true,
+      fetchHistoricalPricesFromNetwork: fromNetwork
+    })
+  }
 
   afterEach(() => {
     useSettingsStore.setState(initialSettings, true)
@@ -72,51 +87,64 @@ describe('resolvePricesAt', () => {
     expect(getFullPriceAt).not.toHaveBeenCalled()
   })
 
-  it('uses bundled prices for every currency and does not call the api', async () => {
-    useSettingsStore.setState({
-      fetchHistoricalPrices: true,
-      fetchHistoricalPricesFromNetwork: true
-    })
-    getLocalPricesAtMock.mockReturnValue(BUNDLED_PRICES)
+  it('uses bundled prices and does not call the api when all are bundled', async () => {
+    enableHistoricalPrices(true)
+    getLocalPricesAtMock.mockReturnValue(ALL_BUNDLED_PRICES)
     const getFullPriceAt = jest.spyOn(MempoolOracle.prototype, 'getFullPriceAt')
 
     await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
-      BUNDLED_PRICES
+      ALL_BUNDLED_PRICES
     )
     expect(getLocalPricesAtMock).toHaveBeenCalledWith(100)
     expect(getFullPriceAt).not.toHaveBeenCalled()
   })
 
-  it('is null on a bundle miss when the network opt-in is off', async () => {
-    useSettingsStore.setState({ fetchHistoricalPrices: true })
-    getLocalPricesAtMock.mockReturnValue({ USD: 10 })
+  it('returns only the bundled prices when the network opt-in is off', async () => {
+    enableHistoricalPrices(false)
+    getLocalPricesAtMock.mockReturnValue(SOME_BUNDLED_PRICES)
     const getFullPriceAt = jest.spyOn(MempoolOracle.prototype, 'getFullPriceAt')
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toBeNull()
+    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
+      SOME_BUNDLED_PRICES
+    )
     expect(getFullPriceAt).not.toHaveBeenCalled()
   })
 
-  it('fetches a bundle miss from the api when the network opt-in is on', async () => {
-    useSettingsStore.setState({
-      fetchHistoricalPrices: true,
-      fetchHistoricalPricesFromNetwork: true
-    })
+  it('is null when nothing is bundled and the network opt-in is off', async () => {
+    enableHistoricalPrices(false)
     getLocalPricesAtMock.mockReturnValue({})
+
+    await expect(resolvePricesAt('EUR', 100)).resolves.toBeNull()
+  })
+
+  it('fills currencies missing from the bundle with usable api prices', async () => {
+    enableHistoricalPrices(true)
+    getLocalPricesAtMock.mockReturnValue(SOME_BUNDLED_PRICES)
     const getFullPriceAt = jest
       .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
-      .mockResolvedValue(NETWORK_PRICES)
+      .mockResolvedValue({ CHF: -1, EUR: 40, USD: 42 })
 
-    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
-      NETWORK_PRICES
-    )
+    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual({
+      EUR: 40,
+      USD: 7
+    })
     expect(getFullPriceAt).toHaveBeenCalledWith('EUR', 100)
   })
 
-  it('is null when the api request fails', async () => {
-    useSettingsStore.setState({
-      fetchHistoricalPrices: true,
-      fetchHistoricalPricesFromNetwork: true
-    })
+  it('keeps the bundled prices when the api request fails', async () => {
+    enableHistoricalPrices(true)
+    getLocalPricesAtMock.mockReturnValue(SOME_BUNDLED_PRICES)
+    jest
+      .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
+      .mockRejectedValue(new Error('network down'))
+
+    await expect(resolvePricesAt('EUR', 100)).resolves.toStrictEqual(
+      SOME_BUNDLED_PRICES
+    )
+  })
+
+  it('is null when nothing is bundled and the api request fails', async () => {
+    enableHistoricalPrices(true)
     getLocalPricesAtMock.mockReturnValue({})
     jest
       .spyOn(MempoolOracle.prototype, 'getFullPriceAt')
