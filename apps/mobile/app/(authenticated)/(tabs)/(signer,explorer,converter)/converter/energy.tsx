@@ -11,6 +11,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
+import { HTTP_STATUS } from '@/constants/http'
 import { MS_PER_SECOND } from '@/constants/time'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -529,9 +530,9 @@ export default function Energy() {
       if (!response.ok) {
         const errorText = await response.text()
 
-        if (response.status === 401) {
+        if (response.status === HTTP_STATUS.UNAUTHORIZED) {
           throw new Error('Invalid credentials')
-        } else if (response.status === 403) {
+        } else if (response.status === HTTP_STATUS.FORBIDDEN) {
           throw new Error('Access denied')
         } else {
           throw new Error(

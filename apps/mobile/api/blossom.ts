@@ -8,6 +8,7 @@ import { finalizeEvent } from 'nostr-tools'
 import QuickCrypto from 'react-native-quick-crypto'
 import { z } from 'zod'
 
+import { HTTP_STATUS } from '@/constants/http'
 import {
   NOSTR_BLOSSOM_AUTH_EXPIRY_SECS,
   NOSTR_BLOSSOM_AUTH_KIND,
@@ -15,6 +16,7 @@ import {
   NOSTR_FILES_FETCH_TIMEOUT_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { isSuccessfulHttpStatus } from '@/utils/http'
 import { getSecretFromNsec } from '@/utils/nostr'
 import { isRecord } from '@/utils/object'
 import { optionalLenient, withFallback } from '@/utils/schema'
@@ -48,7 +50,10 @@ function toBlobDescriptors(value: unknown): BlobDescriptor[] {
 }
 
 async function parseBlossomList(response: Response): Promise<BlobDescriptor[]> {
-  if (response.status === 401 || response.status === 404) {
+  if (
+    response.status === HTTP_STATUS.UNAUTHORIZED ||
+    response.status === HTTP_STATUS.NOT_FOUND
+  ) {
     return []
   }
   if (!response.ok) {
@@ -70,7 +75,7 @@ export async function listBlossomFiles(
   const base = serverUrl.replace(/\/$/, '')
   const url = `${base}/list/${pubkeyHex}`
   const response = await fetch(url)
-  if (response.status === 401 && nsec) {
+  if (response.status === HTTP_STATUS.UNAUTHORIZED && nsec) {
     const secretKey = getSecretFromNsec(nsec)
     if (secretKey) {
       const authHeader = buildListAuthHeader(secretKey, base)
@@ -222,7 +227,7 @@ function putBinary(
     xhr.setRequestHeader('Authorization', authHeader)
     xhr.setRequestHeader('Content-Type', mimeType)
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
+      if (isSuccessfulHttpStatus(xhr.status)) {
         resolve(xhr.responseText)
       } else {
         reject(
