@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SatSigner screen demo</title>
+  <link rel="stylesheet" href="/fonts/inter.css">
+  <link rel="stylesheet" href="/test-site/tokens.css">
+  <link rel="stylesheet" href="/test-site/screen.css">
+</head>
+<body>
+  <main class="stage">
+    <p class="stage-note">Test site. Screens and icons extracted from the React Native app.</p>
+    <div class="phone" aria-label="SatSigner">
+      <div class="phone-screen">
+        <section id="view-menu">
+          <header class="menu-header">
+            <p class="menu-title" id="menu-title">Signer</p>
+          </header>
+          <div class="menu-list" id="menu-list"></div>
+          <nav class="tab-bar" aria-label="Sections">
+            <button type="button" class="tab" data-tab="explorer" data-label="Explorer"></button>
+            <button type="button" class="tab is-active" data-tab="signer" data-label="Signer"></button>
+            <button type="button" class="tab" data-tab="converter" data-label="Converter"></button>
+          </nav>
+        </section>
+
+        <section id="view-accounts" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="menu" aria-label="Back"></button>
+            <p>Bitcoin</p>
+          </header>
+          <div class="accounts-body">
+            <p class="connection"><span class="dot"></span>Signet — Default <span>mempool.space</span></p>
+            <p class="totals"><span>Total balance <strong>22,240,000</strong></span><span>Mempool <strong>50,000</strong></span></p>
+            <button type="button" class="menu-button add-account"><span class="edge-left"></span><span class="edge-right"></span>Add account</button>
+            <div id="account-list"></div>
+          </div>
+        </section>
+
+        <section id="view-converter" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="menu" aria-label="Back"></button>
+            <p>Converter</p>
+          </header>
+          <div class="converter-body">
+            <label class="currency-field">
+              <span>Bitcoin</span>
+              <input id="btc-input" inputmode="decimal" value="0.0124">
+            </label>
+            <div class="currency-row">
+              <label class="currency-field">
+                <span>Sats</span>
+                <input id="sats-input" readonly>
+              </label>
+              <label class="currency-field">
+                <span>USD</span>
+                <input id="usd-input" readonly>
+              </label>
+            </div>
+            <div class="currency-row">
+              <label class="currency-field">
+                <span>EUR</span>
+                <input value="11,470.00" readonly>
+              </label>
+              <label class="currency-field">
+                <span>GBP</span>
+                <input value="9,820.00" readonly>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-account" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p id="account-title">Spending</p>
+          </header>
+          <div class="accounts-body">
+            <p class="account-amount" id="account-balance">1,240,000</p>
+            <p class="account-unit">sats</p>
+            <button type="button" class="menu-button" id="send-open"><span class="edge-left"></span><span class="edge-right"></span>Send</button>
+          </div>
+        </section>
+
+        <section id="view-send" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Add output</p>
+          </header>
+          <div class="accounts-body">
+            <label class="field">
+              <span>Address</span>
+              <input id="send-address" value="tb1qpayjoin0demo0000000000000000000000">
+            </label>
+            <label class="field">
+              <span>Amount</span>
+              <input id="send-amount" inputmode="numeric" value="50000">
+            </label>
+            <label class="field">
+              <span>Label</span>
+              <input id="send-label" value="Coffee">
+            </label>
+            <label class="field">
+              <span>Change label</span>
+              <input id="change-label" value="Change">
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="payjoin-toggle" checked>
+              Payjoin
+            </label>
+            <p class="hint">Payjoin invoice. Negotiation starts when you sign.</p>
+            <button type="button" class="menu-button" id="send-preview"><span class="edge-left"></span><span class="edge-right"></span>Preview</button>
+          </div>
+        </section>
+
+        <section id="view-preview" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="send" aria-label="Back"></button>
+            <p>Transaction</p>
+          </header>
+          <div class="accounts-body" id="preview-body"></div>
+        </section>
+
+        <section id="view-sign" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="preview" aria-label="Back"></button>
+            <p>Payjoin send</p>
+          </header>
+          <div class="accounts-body">
+            <p class="hint" id="sign-status">Sending the original to the mailbox…</p>
+            <button type="button" class="menu-button" id="broadcast" disabled><span class="edge-left"></span><span class="edge-right"></span>Broadcast transaction</button>
+          </div>
+        </section>
+
+        <section id="view-sent" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Transaction broadcasted</p>
+          </header>
+          <div class="accounts-body">
+            <p class="hint">Demo only. Nothing was sent to the network.</p>
+            <p class="field-label">Transaction id</p>
+            <p class="txid" id="sent-txid"></p>
+            <p class="hint" id="sent-summary"></p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="/test-site/icons.js"></script>
+  <script src="/test-site/screen.js"></script>
+</body>
+</html>
