@@ -926,6 +926,14 @@ const introVisuals = {
 
 let introIndex = 0
 
+function startOnboarding() {
+  introIndex = 0
+  const intro = document.getElementById('intro')
+  if (intro) intro.classList.remove('is-splash')
+  renderIntro()
+  show('intro')
+}
+
 function renderIntro() {
   const step = introSteps[introIndex]
   const last = introIndex === introSteps.length - 1
@@ -970,6 +978,7 @@ function renderSplash() {
     '<div class="intro-visual">' +
     introVisuals.hex +
     '</div><div class="intro-logo"><span>SAT<br>SIGNER</span></div><p class="splash-tag">UTXO manager<br>and Message Signer</p>'
+  intro.addEventListener('click', startOnboarding, { once: true })
 }
 
 function finishIntro() {
@@ -985,8 +994,7 @@ show('intro')
 
 window.satSignerDemo = {
   open() {
-    show('menu')
-    renderMenu(activeTab)
+    startOnboarding()
   }
 }
 

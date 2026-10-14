@@ -30,29 +30,101 @@ body {
 }
 
 .phone {
-  --status-height: 32px;
-  --ui-drop: 18px;
+  --status-height: 34px;
+  --ui-drop: 14px;
+  --bezel: 8px;
   position: relative;
   width: 390px;
   height: 844px;
   max-height: calc(100vh - 96px);
-  overflow: hidden;
-  border-radius: 36px;
-  background: var(--black);
+  border-radius: 52px;
+  background: var(--gray-900);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.phone::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.16) 12%,
+    rgba(255, 255, 255, 0.04) 28%,
+    transparent 46%,
+    transparent 72%,
+    rgba(255, 255, 255, 0.06) 88%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.phone-key {
+  position: absolute;
+  z-index: 1;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), var(--gray-600) 40%, var(--gray-800));
+  pointer-events: none;
+}
+
+.phone-key-silent {
+  top: 112px;
+  left: -2px;
+  height: 18px;
+}
+
+.phone-key-up {
+  top: 148px;
+  left: -2px;
+  height: 46px;
+}
+
+.phone-key-down {
+  top: 206px;
+  left: -2px;
+  height: 46px;
+}
+
+.phone-key-power {
+  top: 178px;
+  right: -2px;
+  height: 68px;
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.35), var(--gray-600) 40%, var(--gray-800));
+}
+
+.phone-island {
+  position: absolute;
+  z-index: 12;
+  top: 20px;
+  left: 50%;
+  width: 104px;
+  height: 26px;
+  border-radius: 20px;
+  background: var(--black);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .phone-status {
   position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 10;
+  top: var(--bezel);
+  right: var(--bezel);
+  left: var(--bezel);
+  z-index: 11;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: var(--status-height);
-  padding: 0 18px;
+  padding: 0 16px;
   color: var(--white);
   font-size: 11px;
   font-weight: 600;
@@ -74,8 +146,9 @@ body {
 
 .phone-screen {
   position: absolute;
-  inset: 0;
+  inset: var(--bezel);
   overflow: hidden;
+  border-radius: 44px;
   background: var(--gray-950);
 }
 
@@ -365,6 +438,10 @@ body {
   justify-content: center;
 }
 
+.intro.is-splash {
+  cursor: pointer;
+}
+
 .intro.is-splash .splash-tag {
   margin: 0 0 12%;
   color: var(--white);
@@ -525,6 +602,11 @@ body {
       rgba(255, 255, 255, 0.02)
     )
     1;
+}
+
+.hero.is-phone .tab-bar {
+  margin-bottom: -8px;
+  padding-bottom: 8px;
 }
 
 .tab {
