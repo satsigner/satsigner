@@ -1,8 +1,14 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
+import {
+  address as bjsAddress,
+  initEccLib,
+  networks,
+  opcodes
+} from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
+import { HASH_BYTE_LENGTH } from '@/constants/btc'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -29,6 +35,12 @@ export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
  * caller-supplied metadata (e.g. an arbitrary address pasted into the
  * explorer verify-message flow has no known ScriptVersionType).
  */
+const HASH160_BYTES = 20
+const P2PKH_SCRIPT_BYTES = 25
+const P2SH_SCRIPT_BYTES = 23
+const P2WPKH_SCRIPT_BYTES = 22
+const WITNESS_V1_OR_P2WSH_SCRIPT_BYTES = 34
+
 export function getScriptTypeFromAddress(
   address: string,
   network: AppNetwork
@@ -36,24 +48,40 @@ export function getScriptTypeFromAddress(
   try {
     const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
     if (
-      script.length === 25 &&
-      script[0] === 0x76 &&
-      script[1] === 0xa9 &&
-      script[23] === 0x88 &&
-      script[24] === 0xac
+      script.length === P2PKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_DUP &&
+      script[1] === opcodes.OP_HASH160 &&
+      script.at(-2) === opcodes.OP_EQUALVERIFY &&
+      script.at(-1) === opcodes.OP_CHECKSIG
     ) {
       return 'p2pkh'
     }
-    if (script.length === 23 && script[0] === 0xa9 && script[22] === 0x87) {
+    if (
+      script.length === P2SH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_HASH160 &&
+      script.at(-1) === opcodes.OP_EQUAL
+    ) {
       return 'p2sh'
     }
-    if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+    if (
+      script.length === P2WPKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === HASH160_BYTES
+    ) {
       return 'p2wpkh'
     }
-    if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+    if (
+      script.length === WITNESS_V1_OR_P2WSH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === HASH_BYTE_LENGTH
+    ) {
       return 'p2wsh'
     }
-    if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+    if (
+      script.length === WITNESS_V1_OR_P2WSH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_1 &&
+      script[1] === HASH_BYTE_LENGTH
+    ) {
       return 'p2tr'
     }
     return null
