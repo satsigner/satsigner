@@ -83,7 +83,26 @@ function parseBlockTemplateResponse(body: unknown) {
   return BlockTemplateResponseSchema.parse(body)
 }
 
+const HASHES_PER_EXAHASH = 1e18
+const NO_HASH_RATE = '0'
+const REGTEST_HASH_RATE = 'no data'
+
+/** Network hash rate label in EH/s for the energy screen. */
+function formatNetworkHashRate(
+  chain: string | undefined,
+  hashRate: number | undefined
+) {
+  if (chain === 'regtest') {
+    return REGTEST_HASH_RATE
+  }
+  if (!chain || hashRate === undefined) {
+    return NO_HASH_RATE
+  }
+  return (hashRate / HASHES_PER_EXAHASH).toFixed(2)
+}
+
 export {
+  formatNetworkHashRate,
   type EnergyBlockchainInfo,
   type EnergyBlockTemplate,
   parseBlockchainInfoResponse,
