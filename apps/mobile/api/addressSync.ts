@@ -3,8 +3,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Transaction } from '@/types/models/Transaction'
 import { type Network, type Server } from '@/types/settings/blockchain'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { getUtxoOutpoint } from '@/utils/outpoint'
+import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
 
 import ElectrumClient from './electrum'
 import Esplora from './esplora'
@@ -30,11 +29,6 @@ export type AddressSnapshot = {
   txids: string[]
 }
 
-export type KnownAddressData = {
-  transactions: Transaction[]
-  outpoints: Set<string>
-}
-
 /** Reports work as deltas: tasks finished and tasks newly scheduled. */
 export type AddressSyncProgress = (done: number, added: number) => void
 
@@ -42,7 +36,39 @@ function toDate(unixSeconds: number | undefined) {
   return unixSeconds ? new Date(unixSeconds * 1000) : undefined
 }
 
-async function fetchEsploraTxHexes(esplora: Esplora, txids: string[]) {
+/**
+ * Returns the stored transaction when the backend now places it in another
+ * block (it confirmed, or a reorg moved it), otherwise undefined.
+ */
+function movedTransaction(
+  knownById: Map<string, Transaction>,
+  txid: string,
+  blockHeight: number | undefined
+) {
+  const stored = knownById.get(txid)
+  if (!stored || stored.blockHeight === blockHeight) {
+    return undefined
+  }
+  return stored
+}
+
+/**
+ * Moves a stored transaction to its new block. Prices are dropped so they
+ * are fetched again for the new timestamp.
+ */
+function reconfirmTransaction(
+  tx: Transaction,
+  blockHeight: number | undefined,
+  timestamp: Date | undefined
+): Transaction {
+  return { ...tx, blockHeight, prices: {}, timestamp }
+}
+
+async function fetchEsploraTxHexes(
+  esplora: Esplora,
+  txids: string[],
+  onProgress: AddressSyncProgress
+) {
   const hexByTxid: Record<string, string> = {}
   for (let i = 0; i < txids.length; i += ESPLORA_TX_HEX_BATCH_SIZE) {
     const batch = txids.slice(i, i + ESPLORA_TX_HEX_BATCH_SIZE)
@@ -50,6 +76,7 @@ async function fetchEsploraTxHexes(esplora: Esplora, txids: string[]) {
     for (const [index, txid] of batch.entries()) {
       hexByTxid[txid] = hexes[index]
     }
+    onProgress(batch.length, 0)
   }
   return hexByTxid
 }
@@ -57,66 +84,45 @@ async function fetchEsploraTxHexes(esplora: Esplora, txids: string[]) {
 async function fetchEsploraSnapshot(
   url: string,
   address: string,
-  known: KnownAddressData,
+  knownTxs: Transaction[],
   onProgress: AddressSyncProgress
 ): Promise<AddressSnapshot> {
   const esplora = new Esplora(url)
-  const knownTxids = new Set(known.transactions.map((tx) => tx.id))
+  const knownById = new Map(knownTxs.map((tx) => [tx.id, tx]))
 
   onProgress(0, 2)
   // Stops paginating once a page holds only known txids.
-  const esploraTxs = await esplora.getAddressTxs(address, knownTxids)
+  const esploraTxs = await esplora.getAddressTxs(
+    address,
+    new Set(knownById.keys())
+  )
   const esploraUtxos = await esplora.getAddressUtxos(address)
   onProgress(2, 0)
 
-  const newTxs = esploraTxs.filter((tx) => !knownTxids.has(tx.txid))
+  const newTxs = esploraTxs.filter((tx) => !knownById.has(tx.txid))
   onProgress(0, newTxs.length)
   const hexByTxid = await fetchEsploraTxHexes(
     esplora,
-    newTxs.map((tx) => tx.txid)
+    newTxs.map((tx) => tx.txid),
+    onProgress
   )
 
-  const transactions = newTxs.map((t): Transaction => {
-    const sent = t.vin
-      .filter((input) => input.prevout?.scriptpubkey_address === address)
-      .reduce((sum, input) => sum + (input.prevout?.value ?? 0), 0)
-    const received = t.vout
-      .filter((out) => out.scriptpubkey_address === address)
-      .reduce((sum, out) => sum + out.value, 0)
-    onProgress(1, 0)
-
-    return {
-      address,
-      blockHeight: t.status.block_height,
-      fee: t.fee,
-      id: t.txid,
-      label: '',
-      lockTime: t.locktime,
-      lockTimeEnabled: t.locktime > 0,
-      prices: {},
-      raw: Array.from(hex.decode(hexByTxid[t.txid])),
-      received,
-      sent,
-      size: t.size,
-      timestamp: toDate(t.status.block_time),
-      type: received > 0 ? 'receive' : 'send',
-      version: t.version,
-      vin: t.vin.map((input) => ({
-        previousOutput: { txid: input.txid, vout: input.vout },
-        scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
-        sequence: input.sequence,
-        witness: (input.witness ?? []).map((w) => Array.from(hex.decode(w)))
-      })),
-      vout: t.vout.map((out) => ({
-        address: out.scriptpubkey_address || '',
-        script: out.scriptpubkey
-          ? Array.from(hex.decode(out.scriptpubkey))
-          : [],
-        value: out.value
-      })),
-      weight: t.weight
+  const transactions: Transaction[] = newTxs.map((tx) => ({
+    ...mapEsploraTxToAddressTransaction(tx, address),
+    raw: Array.from(hex.decode(hexByTxid[tx.txid]))
+  }))
+  for (const { status, txid } of esploraTxs) {
+    const moved = movedTransaction(knownById, txid, status.block_height)
+    if (moved) {
+      transactions.push(
+        reconfirmTransaction(
+          moved,
+          status.block_height,
+          toDate(status.block_time)
+        )
+      )
     }
-  })
+  }
 
   const balance = { confirmed: 0, unconfirmed: 0 }
   for (const utxo of esploraUtxos) {
@@ -140,25 +146,16 @@ async function fetchEsploraSnapshot(
   }
 }
 
-function sumReceivedByAddress(
-  rawTx: bitcoinjs.Transaction,
-  address: string,
-  network: Network
-) {
-  const addressScript = bitcoinjs.address.toOutputScript(
-    address,
-    bitcoinjsNetwork(network)
-  )
-  return rawTx.outs
-    .filter((output) => output.script.equals(addressScript))
-    .reduce((sum, output) => sum + output.value, 0)
+// Electrum reports height 0 for mempool transactions and -1 for those with
+// unconfirmed parents.
+function electrumBlockHeight(height: number) {
+  return height > 0 ? height : undefined
 }
 
 async function readElectrumSnapshot(
   electrum: ElectrumClient,
-  network: Network,
   address: string,
-  known: KnownAddressData,
+  knownTxs: Transaction[],
   onProgress: AddressSyncProgress
 ): Promise<AddressSnapshot> {
   onProgress(0, 3)
@@ -167,48 +164,48 @@ async function readElectrumSnapshot(
   const balance = await electrum.getAddressBalance(address)
   onProgress(3, 0)
 
-  const knownTxids = new Set(known.transactions.map((tx) => tx.id))
-  const pendingTxs = electrumTxs.filter((tx) => !knownTxids.has(tx.tx_hash))
-  const isPendingUtxo = (utxo: (typeof electrumUtxos)[number]) =>
-    !known.outpoints.has(
-      getUtxoOutpoint({ txid: utxo.tx_hash, vout: utxo.tx_pos })
-    )
-  const pendingUtxos = electrumUtxos.filter(isPendingUtxo)
-  onProgress(0, pendingTxs.length * 2 + pendingUtxos.length)
+  const knownById = new Map(knownTxs.map((tx) => [tx.id, tx]))
+  const newTxs = electrumTxs.filter((tx) => !knownById.has(tx.tx_hash))
+  const movedTxs = electrumTxs.filter((tx) =>
+    movedTransaction(knownById, tx.tx_hash, electrumBlockHeight(tx.height))
+  )
+  onProgress(0, newTxs.length * 2 + movedTxs.length)
 
   const timestampByHeight: Record<number, number> = {}
-  async function blockTimestamp(height: number) {
+  async function blockTime(height: number) {
+    if (electrumBlockHeight(height) === undefined) {
+      return undefined
+    }
     if (!timestampByHeight[height]) {
       timestampByHeight[height] = await electrum.getBlockTimestamp(height)
     }
-    return timestampByHeight[height]
+    return toDate(timestampByHeight[height])
   }
 
-  // Partial transactions: sent, vin and vout are filled in by
+  // Partial transactions: received, sent, type, vin and vout are filled in by
   // parseAddressPartialTransactions below.
   const partialTxs: Transaction[] = []
-  for (const { tx_hash: txid, height } of pendingTxs) {
+  for (const { tx_hash: txid, height } of newTxs) {
     const rawTx = await electrum.getTransactionRaw(txid)
     onProgress(1, 0)
-    const timestamp = await blockTimestamp(height)
+    const timestamp = await blockTime(height)
     onProgress(1, 0)
 
     const parsed = bitcoinjs.Transaction.fromHex(rawTx)
-    const received = sumReceivedByAddress(parsed, address, network)
     partialTxs.push({
       address,
-      blockHeight: height,
+      blockHeight: electrumBlockHeight(height),
       id: parsed.getId(),
       label: '',
       lockTime: parsed.locktime,
       lockTimeEnabled: parsed.locktime > 0,
       prices: {},
       raw: Array.from(hex.decode(rawTx)),
-      received,
+      received: 0,
       sent: 0,
       size: parsed.byteLength(),
-      timestamp: new Date(timestamp * 1000),
-      type: received > 0 ? 'receive' : 'send',
+      timestamp,
+      type: 'receive',
       version: parsed.version,
       vin: [],
       vout: [],
@@ -217,35 +214,43 @@ async function readElectrumSnapshot(
     })
   }
 
+  const reconfirmedById = new Map<string, Transaction>()
+  for (const { tx_hash: txid, height } of electrumTxs) {
+    const blockHeight = electrumBlockHeight(height)
+    const moved = movedTransaction(knownById, txid, blockHeight)
+    if (moved) {
+      reconfirmedById.set(
+        txid,
+        reconfirmTransaction(moved, blockHeight, await blockTime(height))
+      )
+      onProgress(1, 0)
+    }
+  }
+
   const addressTxids = new Set(electrumTxs.map((tx) => tx.tx_hash))
   // Known transactions are parsed again so `sent` can see parents fetched now.
   const transactions = electrum.parseAddressPartialTransactions(address, [
-    ...known.transactions.filter((tx) => addressTxids.has(tx.id)),
+    ...knownTxs
+      .filter((tx) => addressTxids.has(tx.id))
+      .map((tx) => reconfirmedById.get(tx.id) ?? tx),
     ...partialTxs
   ])
 
-  // Known UTXOs keep their stored timestamp, so only new ones are looked up.
-  const utxos: AddressSnapshotUtxo[] = []
-  for (const utxo of electrumUtxos) {
-    const timestamp = isPendingUtxo(utxo)
-      ? await blockTimestamp(utxo.height)
-      : undefined
-    if (timestamp !== undefined) {
-      onProgress(1, 0)
-    }
-    utxos.push({
-      timestamp: toDate(timestamp),
-      txid: utxo.tx_hash,
-      value: utxo.value,
-      vout: utxo.tx_pos
-    })
-  }
+  // A UTXO confirms in the same block as the transaction that created it.
+  const timestampByTxid = new Map(
+    transactions.map((tx) => [tx.id, tx.timestamp])
+  )
 
   return {
     balance,
     transactions,
     txids: electrumTxs.map((tx) => tx.tx_hash),
-    utxos
+    utxos: electrumUtxos.map((utxo) => ({
+      timestamp: timestampByTxid.get(utxo.tx_hash),
+      txid: utxo.tx_hash,
+      value: utxo.value,
+      vout: utxo.tx_pos
+    }))
   }
 }
 
@@ -253,19 +258,13 @@ async function fetchElectrumSnapshot(
   url: string,
   network: Network,
   address: string,
-  known: KnownAddressData,
+  knownTxs: Transaction[],
   onProgress: AddressSyncProgress
 ) {
   const electrum = ElectrumClient.fromUrl(url, network)
   await electrum.init()
   try {
-    return await readElectrumSnapshot(
-      electrum,
-      network,
-      address,
-      known,
-      onProgress
-    )
+    return await readElectrumSnapshot(electrum, address, knownTxs, onProgress)
   } finally {
     electrum.close()
   }
@@ -273,24 +272,26 @@ async function fetchElectrumSnapshot(
 
 /**
  * Fetches one address' history and unspent set from the configured backend.
+ * `knownTxs` are the account's stored transactions: only new ones are
+ * downloaded, and known ones whose block changed come back moved to it.
  * Bitcoin Core RPC has no per-address lookup without a watching wallet, so
  * RPC-backed accounts sync through the BDK wallet path instead.
  */
 export function fetchAddressSnapshot(
   server: Pick<Server, 'backend' | 'network' | 'url'>,
   address: string,
-  known: KnownAddressData,
+  knownTxs: Transaction[],
   onProgress: AddressSyncProgress
 ): Promise<AddressSnapshot> {
   if (server.backend === 'esplora') {
-    return fetchEsploraSnapshot(server.url, address, known, onProgress)
+    return fetchEsploraSnapshot(server.url, address, knownTxs, onProgress)
   }
   if (server.backend === 'electrum') {
     return fetchElectrumSnapshot(
       server.url,
       server.network,
       address,
-      known,
+      knownTxs,
       onProgress
     )
   }

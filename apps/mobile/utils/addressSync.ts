@@ -11,7 +11,8 @@ import { getUtxoOutpoint } from '@/utils/outpoint'
  * Merges one address snapshot into a watch-only address account.
  * Transactions are upserted by id. The address' UTXOs are replaced by the
  * snapshot set, reusing stored UTXOs (and their labels) by outpoint, so
- * spent outputs drop out. Balance totals are added to the account summary:
+ * spent outputs drop out. Stored UTXOs take the snapshot timestamp when it
+ * has one. Balance totals are added to the account summary:
  * the caller zeroes them before syncing the account's addresses.
  */
 export function applyAddressSnapshot(
@@ -32,20 +33,23 @@ export function applyAddressSnapshot(
   const script = [
     ...bitcoinjs.address.toOutputScript(address, bitcoinjsNetwork(network))
   ]
-  const addressUtxos = snapshot.utxos.map(
-    (utxo): Utxo =>
-      storedUtxos.get(getUtxoOutpoint(utxo)) ?? {
-        addressTo: address,
-        // Watch-only address accounts track receive addresses.
-        keychain: 'external',
-        label: '',
-        script,
-        timestamp: utxo.timestamp,
-        txid: utxo.txid,
-        value: utxo.value,
-        vout: utxo.vout
-      }
-  )
+  const addressUtxos = snapshot.utxos.map((utxo): Utxo => {
+    const stored = storedUtxos.get(getUtxoOutpoint(utxo))
+    if (stored) {
+      return { ...stored, timestamp: utxo.timestamp ?? stored.timestamp }
+    }
+    return {
+      addressTo: address,
+      // Watch-only address accounts track receive addresses.
+      keychain: 'external',
+      label: '',
+      script,
+      timestamp: utxo.timestamp,
+      txid: utxo.txid,
+      value: utxo.value,
+      vout: utxo.vout
+    }
+  })
 
   return {
     ...account,

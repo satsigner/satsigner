@@ -14,7 +14,6 @@ import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
-import { getUtxoOutpoint } from '@/utils/utxo'
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
@@ -63,10 +62,7 @@ function useSyncAccountWithAddress() {
       const snapshot = await fetchAddressSnapshot(
         { backend, network, url },
         address,
-        {
-          outpoints: new Set(account.utxos.map(getUtxoOutpoint)),
-          transactions: account.transactions
-        },
+        account.transactions,
         reportProgress
       )
 

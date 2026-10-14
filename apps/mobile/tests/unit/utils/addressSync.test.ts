@@ -93,6 +93,15 @@ describe('applyAddressSnapshot', () => {
     expect(after.utxos[2].script?.length).toBeGreaterThan(0)
   })
 
+  it('dates stored utxos once the snapshot has their timestamp', () => {
+    const timestamp = new Date('2024-02-01')
+    const dated = applyAddressSnapshot(before, ADDRESS, 'bitcoin', {
+      ...snapshot,
+      utxos: [{ timestamp, txid: 'a', value: 1000, vout: 0 }]
+    })
+    expect(dated.utxos.find((u) => u.txid === 'a')?.timestamp).toBe(timestamp)
+  })
+
   it('adds the snapshot balance to the account summary', () => {
     expect(after.summary.balance).toBe(1500)
     expect(after.summary.satsInMempool).toBe(200)
