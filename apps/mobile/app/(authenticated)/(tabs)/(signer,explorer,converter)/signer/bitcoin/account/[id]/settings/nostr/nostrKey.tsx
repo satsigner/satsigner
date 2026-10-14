@@ -32,6 +32,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { NostrNoRelaysError } from '@/utils/errors'
 import { deriveNpubFromNsec, generateColorFromNpub } from '@/utils/nostr'
 import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
 
@@ -178,13 +179,8 @@ function NostrKeys() {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      const isNoRelay =
-        message.includes('No relay') ||
-        message.includes('relays could be connected') ||
-        message.includes('relays are responding')
       toast.error(
-        isNoRelay
+        error instanceof NostrNoRelaysError
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )
