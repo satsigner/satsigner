@@ -29,7 +29,7 @@ import {
   forceProfileFetch,
   queueProfileFetch,
   resetProfileFetcher
-} from '@/utils/nostrProfileFetcher'
+} from '@/api/nostrProfileFetcher'
 
 const PK_A = 'a'.repeat(64)
 const PK_B = 'b'.repeat(64)

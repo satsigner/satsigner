@@ -5,7 +5,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import {
   fetchTransactionOutspends,
   type TransactionOutspend
-} from '@/utils/transactionOutspends'
+} from '@/api/transactionOutspends'
 
 type UseTransactionOutspendsParams = {
   enabled?: boolean

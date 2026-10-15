@@ -104,7 +104,7 @@ export const NOSTR_LIVE_CHECK_FALLBACK_RELAYS = [
 ]
 
 // Indexer relays used as the second tier for kind-0 profile fetches when the
-// user's own relays don't have a profile (see utils/nostrProfileFetcher.ts).
+// user's own relays don't have a profile (see api/nostrProfileFetcher.ts).
 export const NOSTR_INDEXER_RELAYS = [
   'wss://indexer.coracle.social',
   'wss://relay.nos.social',

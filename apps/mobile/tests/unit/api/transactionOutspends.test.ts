@@ -1,5 +1,5 @@
 import { type Server } from '@/types/settings/blockchain'
-import { fetchTransactionOutspends } from '@/utils/transactionOutspends'
+import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 
 const mockGetTxOutspends = jest.fn()
 const mockGetTxOut = jest.fn()

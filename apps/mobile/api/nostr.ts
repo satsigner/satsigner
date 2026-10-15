@@ -62,7 +62,7 @@ import {
   fetchProfileCoalesced,
   fetchProfilesCoalesced,
   queueProfileFetches
-} from '@/utils/nostrProfileFetcher'
+} from '@/api/nostrProfileFetcher'
 
 import {
   createMobileNdk,
