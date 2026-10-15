@@ -725,7 +725,7 @@ async function getTransactionInputValues(
 
   for (const [index, vinItem] of vin.entries()) {
     vin[index] = {
-      ...(tx.vin[index] || {}),
+      ...tx.vin[index],
       ...vinItem
     }
   }

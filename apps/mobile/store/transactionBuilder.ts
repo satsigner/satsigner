@@ -115,7 +115,7 @@ function normalizeStonewallPreview(
     excludedUtxoOutpoints: preview.excludedUtxoOutpoints ?? [],
     fakeMixValues: preview.fakeMixValues ?? [],
     fee: preview.fee ?? null,
-    labelOverrides: { ...(preview.labelOverrides ?? {}) }
+    labelOverrides: { ...preview.labelOverrides }
   }
 }
 

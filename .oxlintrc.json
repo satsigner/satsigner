@@ -60,7 +60,6 @@
     "unicorn/prefer-regexp-test": "allow",
     "react/jsx-handler-names": "allow",
     "import/no-named-as-default": "allow",
-    "unicorn/no-useless-fallback-in-spread": "allow",
     "typescript/no-dynamic-delete": "allow",
     "unicorn/no-array-reduce": "allow",
     "react/style-prop-object": "allow",
