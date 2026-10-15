@@ -197,7 +197,7 @@ export default function UnifiedImport() {
     setLocalExternalDescriptor(descriptor)
     if (isValid) {
       setExternalDescriptor(descriptor)
-      setExternalDescriptorError('') // Clear error when valid
+      setExternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -251,7 +251,7 @@ export default function UnifiedImport() {
     setLocalInternalDescriptor(descriptor)
     if (isValid) {
       setInternalDescriptor(descriptor)
-      setInternalDescriptorError('') // Clear error when valid
+      setInternalDescriptorError('')
     }
 
     updateDescriptorValidationState({

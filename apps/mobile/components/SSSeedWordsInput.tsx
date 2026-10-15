@@ -360,7 +360,7 @@ export default function SSSeedWordsInput({
     }
 
     seedWord.value = value.trim()
-    seedWord.dirty = true // Mark as dirty when user starts typing
+    seedWord.dirty = true
     setCurrentWordText(value.trim())
     setCurrentWordIndex(index)
 

@@ -16,18 +16,18 @@ import { TxDecoded } from '@/utils/txDecoded'
 
 type ExtendedVin = Transaction['vin'][number] & {
   address: string
-  index?: number // Add optional index
+  index?: number
 }
 
 type ExtendedVout = Transaction['vout'][number] & {
   index?: number
-  vout?: number // Add optional vout index
+  vout?: number
 }
 
 export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   depthH: number
   vin: ExtendedVin[]
-  vout: ExtendedVout[] // Use ExtendedVout
+  vout: ExtendedVout[]
 }
 
 type EsploraTxFetchResult =
@@ -109,7 +109,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           tx.vout[index] = {
             ...tx.vout[index],
             index: currentIndex,
-            vout: index // Set vout to the original array index
+            vout: index
           }
           currentIndex += 1
         }
@@ -546,7 +546,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       const prevTxid = outpointHashBytesToTxid(input.hash)
                       const prevVout = input.index
                       const prevTx = prevTxsMap.get(prevTxid)
-                      const value = prevTx?.outs[prevVout]?.value // Get value from prev tx output
+                      const value = prevTx?.outs[prevVout]?.value
 
                       let address = 'unknown'
                       if (prevTx) {

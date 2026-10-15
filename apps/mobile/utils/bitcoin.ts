@@ -295,7 +295,7 @@ export function detectNetworkFromKey(key: string): AppNetwork | null {
   } else if (testnetPrefixes.includes(prefix)) {
     // Note: We can't distinguish between testnet and signet from key prefix alone
     // This would need additional context from the user or application state
-    return 'testnet' // Default to testnet
+    return 'testnet'
   }
 
   return null

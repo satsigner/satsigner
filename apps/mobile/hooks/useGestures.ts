@@ -223,12 +223,12 @@ export const useGestures = ({
 
   const panGesture = Gesture.Pan()
     .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
-    .minPointers(minPanPointers) // Set the minimum number of pointers required to recognize the gesture
-    .maxPointers(maxPanPointers) // Set the maximum number of pointers allowed
+    .minPointers(minPanPointers)
+    .maxPointers(maxPanPointers)
     .onStart((event) => {
-      runOnJS(onPanStarted)(event) // Call the onPanStarted function when the pan starts
-      savedTranslate.x.value = translate.x.value // Save the current x translation
-      savedTranslate.y.value = translate.y.value // Save the current y translation
+      runOnJS(onPanStarted)(event)
+      savedTranslate.x.value = translate.x.value
+      savedTranslate.y.value = translate.y.value
     })
     .onUpdate((event) => {
       translate.x.value = savedTranslate.x.value + event.translationX

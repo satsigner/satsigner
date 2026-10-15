@@ -137,7 +137,7 @@ function SSSignatureRequiredDisplay({
                 } else if (isValid === false) {
                   fillColor = '#FF6B6B' // Red for invalid
                 } else {
-                  fillColor = '#A7FFAF' // Default to green if no validation result
+                  fillColor = '#A7FFAF'
                 }
               }
 
