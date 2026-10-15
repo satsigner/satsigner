@@ -62,7 +62,6 @@
     "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
     "import/no-named-as-default-member": "allow",
-    "typescript/no-unsafe-function-type": "allow",
     "unicorn/no-anonymous-default-export": "allow",
     "unicorn/no-abusive-eslint-disable": "allow",
     "typescript/prefer-ts-expect-error": "allow",
