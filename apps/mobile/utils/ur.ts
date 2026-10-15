@@ -80,7 +80,7 @@ export function getURFragmentsFromPSBT(
 
     if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
       throw new Error(
-        `Invalid UR fragment at index ${i}: ${fragment.substring(0, 100)}`
+        `Invalid UR fragment at index ${i}: ${fragment.slice(0, 100)}`
       )
     }
 

@@ -1173,7 +1173,7 @@ function DerivedAddresses({
     if (!label) {
       return t('transaction.noLabel')
     }
-    return label.length > 14 ? `${label.substring(0, 14)}...` : label
+    return label.length > 14 ? `${label.slice(0, 14)}...` : label
   }
 
   async function refreshAddresses() {

@@ -267,9 +267,7 @@ function hasBitcoinPrefix(text: string): boolean {
 }
 
 function stripBitcoinPrefix(text: string): string {
-  return hasBitcoinPrefix(text)
-    ? text.substring(BITCOIN_URI_SCHEME.length)
-    : text
+  return hasBitcoinPrefix(text) ? text.slice(BITCOIN_URI_SCHEME.length) : text
 }
 
 function ensureBitcoinPrefix(text: string): string {
@@ -323,7 +321,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return { address: addressPart }
   }
 
-  const rawQuery = queryString.substring(1)
+  const rawQuery = queryString.slice(1)
   const params = new URLSearchParams(rawQuery)
   const amountParam = params.get('amount')
   const labelParam = params.get('label')

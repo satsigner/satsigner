@@ -1031,8 +1031,7 @@ export default function SignTransaction() {
                       if (!isValidHex) {
                         return (
                           <SSText color="muted" size="sm">
-                            Invalid transaction format:{' '}
-                            {rawTx.substring(0, 100)}
+                            Invalid transaction format: {rawTx.slice(0, 100)}
                             ...
                           </SSText>
                         )

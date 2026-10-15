@@ -104,7 +104,7 @@ function detectQRType(data: string): QRInfo {
   const rawMatch = data.match(/^p(\d+)of(\d+)\s/i)
   if (rawMatch) {
     return {
-      content: data.substring(rawMatch[0].length),
+      content: data.slice(rawMatch[0].length),
       current: parseInt(rawMatch[1], 10) - 1,
       total: parseInt(rawMatch[2], 10),
       type: 'raw'

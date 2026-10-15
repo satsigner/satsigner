@@ -294,8 +294,8 @@ function formatTxId(txid: string, size: TxIdSize = 'default') {
     return txid
   }
 
-  const beginning = txid.substring(0, character)
-  const end = txid.substring(txid.length - character, txid.length)
+  const beginning = txid.slice(0, character)
+  const end = txid.slice(txid.length - character)
   return `${beginning}...${end}`
 }
 
@@ -436,8 +436,8 @@ function trimOnionAddress(url: string): string {
   const port = matchedPort || ''
 
   const onionPart = fullOnion.replace('.onion', '')
-  const first5 = onionPart.substring(0, 5)
-  const last5 = onionPart.substring(onionPart.length - 5)
+  const first5 = onionPart.slice(0, 5)
+  const last5 = onionPart.slice(-5)
 
   const trimmedOnion = `${first5}...${last5}.onion${port}`
 
