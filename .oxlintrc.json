@@ -56,7 +56,6 @@
     "unicorn/consistent-function-scoping": "allow",
     "unicorn/no-useless-undefined": "allow",
     "typescript/consistent-type-imports": "allow",
-    "typescript/consistent-indexed-object-style": "allow",
     "unicorn/prefer-regexp-test": "allow",
     "react/jsx-handler-names": "allow",
     "import/no-named-as-default": "allow",

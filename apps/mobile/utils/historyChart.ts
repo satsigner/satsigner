@@ -346,7 +346,7 @@ export function buildTxXAxisLabels({
       x: xScale(new Date(t.timestamp ?? new Date()))
     }
   })
-  const boundaryBoxes: { [key: string]: Rectangle } = {}
+  const boundaryBoxes: Record<string, Rectangle> = {}
   for (const t of xAxisLabels) {
     boundaryBoxes[t.index] = {
       bottom: chartHeight + 50,
@@ -357,7 +357,7 @@ export function buildTxXAxisLabels({
       width: 60
     }
   }
-  const visible: { [key: string]: boolean } = {}
+  const visible: Record<string, boolean> = {}
   for (let i = 0; i < length; i += 1) {
     visible[xScaleTransactions[i].index] = true
   }
