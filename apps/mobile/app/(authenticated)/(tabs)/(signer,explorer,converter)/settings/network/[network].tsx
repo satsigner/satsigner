@@ -187,11 +187,11 @@ export default function CustomNetwork() {
         return false
       }
 
-      if (!formData.port.match(/^[0-9]+$/)) {
+      if (!/^[0-9]+$/.test(formData.port)) {
         toast.warning(t('error.invalid.port'))
         return false
       }
-    } else if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+    } else if (formData.port.trim() && !/^[0-9]+$/.test(formData.port)) {
       toast.warning(t('error.invalid.port'))
       return false
     }

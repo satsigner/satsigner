@@ -162,7 +162,7 @@ export default function UnifiedImport() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true

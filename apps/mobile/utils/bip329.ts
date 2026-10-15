@@ -302,7 +302,7 @@ export function CSVtoLabels(CsvText: string): Label[] {
     throw new Error('Empty CSV text')
   }
   const [header] = lines
-  if (!header.match(/^([a-zA-Z()]+,?)+/)) {
+  if (!/^([a-zA-Z()]+,?)+/.test(header)) {
     throw new Error('Invalid CSV header')
   }
   const rows = lines.slice(1)
@@ -316,7 +316,7 @@ export function CSVtoLabels(CsvText: string): Label[] {
       continue
     }
 
-    if (!row.match(/^([^,]*,?)+$/)) {
+    if (!/^([^,]*,?)+$/.test(row)) {
       throw new Error('Invalid CSV line')
     }
 

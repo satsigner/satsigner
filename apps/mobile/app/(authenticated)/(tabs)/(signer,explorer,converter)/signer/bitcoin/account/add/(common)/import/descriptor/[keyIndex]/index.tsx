@@ -154,7 +154,7 @@ export default function ImportDescriptor() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
