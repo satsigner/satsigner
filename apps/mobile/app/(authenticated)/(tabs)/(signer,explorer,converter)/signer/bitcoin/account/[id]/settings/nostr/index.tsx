@@ -598,11 +598,7 @@ export default function NostrSync() {
         )
       })
     } else {
-      setSelectedMembers((prev) => {
-        const newSet = new Set(prev)
-        newSet.add(npub)
-        return newSet
-      })
+      setSelectedMembers((prev) => new Set([...prev, npub]))
 
       updateAccountNostr(accountId, {
         lastUpdated: new Date(),

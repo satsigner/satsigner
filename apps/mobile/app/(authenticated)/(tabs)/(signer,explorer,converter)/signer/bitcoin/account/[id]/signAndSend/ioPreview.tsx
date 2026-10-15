@@ -977,8 +977,7 @@ export default function IOPreview() {
 
     if (selectedAutoSelectUtxos === 'privacy') {
       const outpoint = getUtxoOutpoint(inputToRemove)
-      const nextExcluded = new Set(excludedUtxoOutpoints)
-      nextExcluded.add(outpoint)
+      const nextExcluded = new Set([...excludedUtxoOutpoints, outpoint])
 
       if (applyStonewallSelection(nextExcluded)) {
         setRemoveInputModalVisible(false)

@@ -57,7 +57,6 @@
     "typescript/no-dynamic-delete": "allow",
     "unicorn/no-array-reduce": "allow",
     "react/style-prop-object": "allow",
-    "unicorn/no-immediate-mutation": "allow",
     "unicorn/prefer-code-point": "allow",
     "import/no-named-as-default-member": "allow",
     "unicorn/prefer-event-target": "allow",

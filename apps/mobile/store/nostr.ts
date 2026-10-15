@@ -207,11 +207,12 @@ const useNostrStore = create<NostrState & NostrAction>()(
         })
       },
       addSubscription: (subscription: NostrAPI) => {
-        set((state) => {
-          const newSubscriptions = new Set(state.activeSubscriptions)
-          newSubscriptions.add(subscription)
-          return { activeSubscriptions: newSubscriptions }
-        })
+        set((state) => ({
+          activeSubscriptions: new Set([
+            ...state.activeSubscriptions,
+            subscription
+          ])
+        }))
       },
       addTrustedDevice: (accountId, deviceNpub) => {
         set((state) => {
