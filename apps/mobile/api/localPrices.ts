@@ -125,10 +125,10 @@ function getLocalLatestPrice(currency: Currency): number | null {
   return null
 }
 
-function getLocalLatestPrices(): Partial<Record<Currency, number>> {
+function collectLocalPrices(getPrice: (currency: Currency) => number | null) {
   const prices: Partial<Record<Currency, number>> = {}
   for (const currency of FIAT_CURRENCIES) {
-    const price = getLocalLatestPrice(currency)
+    const price = getPrice(currency)
     if (price !== null) {
       prices[currency] = price
     }
@@ -136,10 +136,20 @@ function getLocalLatestPrices(): Partial<Record<Currency, number>> {
   return prices
 }
 
+function getLocalLatestPrices() {
+  return collectLocalPrices(getLocalLatestPrice)
+}
+
+/** Bundled close at or before `timestamp` for each currency that has one. */
+function getLocalPricesAt(timestamp: number) {
+  return collectLocalPrices((currency) => getLocalPriceAt(currency, timestamp))
+}
+
 export {
   findClosestPrice,
   getLocalLatestPrices,
   getLocalPriceAt,
+  getLocalPricesAt,
   getLocalPriceSeries,
   isUsablePrice
 }
