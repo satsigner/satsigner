@@ -33,7 +33,6 @@
     "no-inline-comments": "allow", // Remove it later
     "no-warning-comments": "allow", // Remove it later
     "no-shadow": "allow", // Remove it later
-    "prefer-object-spread": "allow",
     "unicorn/filename-case": "allow",
     "promise/avoid-new": "allow",
 
