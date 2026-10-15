@@ -251,7 +251,7 @@ function getVerboseErrorMessage(error: unknown) {
     return 'Unkown error'
   }
   for (const errorType of ESPLORA_ERROR_MESSAGES) {
-    if (error.message.match(errorType.error)) {
+    if (error.message.includes(errorType.error)) {
       return errorType.reason
     }
   }
