@@ -1,20 +1,23 @@
 import { Slider } from '@miblanchard/react-native-slider'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { satsToFiat as convertSatsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
 
-type SSAmountInputProps = {
+type SSAmountInputProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'fiatEnabled'
+> & {
   min?: number
   max: number
   value: number
@@ -29,18 +32,17 @@ function SSAmountInput({
   value,
   remainingSats,
   privacyMode = false,
-  onValueChange
+  onValueChange,
+  btcPrice,
+  fiatCurrency,
+  fiatEnabled
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(value)
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
+  function satsToFiat(sats: number) {
+    return convertSatsToFiat(sats, btcPrice, fiatEnabled)
+  }
 
   const [localFiatValue, setLocalFiatValue] = useState(() => satsToFiat(value))
 
