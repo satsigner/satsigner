@@ -615,16 +615,21 @@ export default function UnifiedImport() {
       return t('watchonly.importDescriptor.title')
     }
     switch (scriptVersion) {
-      case 'P2PKH':
+      case 'P2PKH': {
         return t('account.import.xpub')
-      case 'P2SH-P2WPKH':
+      }
+      case 'P2SH-P2WPKH': {
         return t('account.import.ypub')
-      case 'P2WPKH':
+      }
+      case 'P2WPKH': {
         return t('account.import.zpub')
-      case 'P2TR':
+      }
+      case 'P2TR': {
         return t('account.import.vpub')
-      default:
+      }
+      default: {
         return t('account.import.xpub')
+      }
     }
   }
 

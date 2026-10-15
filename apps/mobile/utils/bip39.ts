@@ -412,21 +412,26 @@ function getExtendedPublicKeyFromMnemonicCustom(
   if (!path && !isMultisig) {
     const coinType = networkString === 'mainnet' ? '0' : '1'
     switch (scriptVersion) {
-      case 'P2PKH':
+      case 'P2PKH': {
         derivationPath = `m/${BIP44_PURPOSE}'/${coinType}'/0'` // BIP44
         break
-      case 'P2SH-P2WPKH':
+      }
+      case 'P2SH-P2WPKH': {
         derivationPath = `m/${BIP49_PURPOSE}'/${coinType}'/0'` // BIP49
         break
-      case 'P2WPKH':
+      }
+      case 'P2WPKH': {
         derivationPath = `m/${BIP84_PURPOSE}'/${coinType}'/0'` // BIP84
         break
-      case 'P2TR':
+      }
+      case 'P2TR': {
         derivationPath = `m/${BIP86_PURPOSE}'/${coinType}'/0'` // BIP86
         break
+      }
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
-      default:
+      default: {
         break
+      }
     }
   }
 

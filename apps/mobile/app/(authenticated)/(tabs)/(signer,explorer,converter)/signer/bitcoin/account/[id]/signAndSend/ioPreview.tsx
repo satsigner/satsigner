@@ -1094,8 +1094,9 @@ export default function IOPreview() {
 
         break
       }
-      default:
+      default: {
         break
+      }
     }
 
     if (selectionSucceeded) {

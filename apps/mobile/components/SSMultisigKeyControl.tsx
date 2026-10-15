@@ -221,20 +221,25 @@ function SSMultisigKeyControl({
     action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
     switch (action) {
-      case 'dropSeed':
+      case 'dropSeed': {
         setDropSeedModalVisible(true)
         break
-      case 'shareXpub':
+      }
+      case 'shareXpub': {
         onShareXpub()
         break
-      case 'shareDescriptor':
+      }
+      case 'shareDescriptor': {
         onShareDescriptor()
         break
-      case 'resetKey':
+      }
+      case 'resetKey': {
         setResetKeyModalVisible(true)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
   }
 

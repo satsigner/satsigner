@@ -23,12 +23,15 @@ import {
 
 function toAppNetwork(network: Network): BlockchainNetwork {
   switch (network) {
-    case 0:
+    case 0: {
       return 'bitcoin'
-    case 2:
+    }
+    case 2: {
       return 'signet'
-    default:
+    }
+    default: {
       return 'testnet'
+    }
   }
 }
 

@@ -67,12 +67,15 @@ const BIP32Networks: Record<BDKNetwork, BIP32Interface['network']> = {
 
 function bdkNetworkToAppNetwork(network: BDKNetwork): AppNetwork {
   switch (network) {
-    case BDKNetwork.Bitcoin:
+    case BDKNetwork.Bitcoin: {
       return 'bitcoin'
-    case BDKNetwork.Signet:
+    }
+    case BDKNetwork.Signet: {
       return 'signet'
-    default:
+    }
+    default: {
       return 'testnet'
+    }
   }
 }
 
@@ -172,22 +175,30 @@ function getDescriptorFromPubkey(
   const change = kind === KeychainKind.External ? 0 : 1
   const innerPart = `[${fingerprint}/${path}]${pubkey}/${change}/*`
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `pkh(${innerPart})`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `wpkh(${innerPart})`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `sh(wpkh(${innerPart}))`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `tr(${innerPart})`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `wsh(pk(${innerPart}))`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(pk(${innerPart})))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(pk(${innerPart}))`
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 }
 
@@ -202,22 +213,30 @@ function getDescriptorFromPrivateKey(
   const change = kind === KeychainKind.External ? 0 : 1
   const innerPart = `[${fingerprint}/${path}]${accountXprv}/${change}/*`
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `pkh(${innerPart})`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `wpkh(${innerPart})`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `sh(wpkh(${innerPart}))`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `tr(${innerPart})`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `wsh(pk(${innerPart}))`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(pk(${innerPart})))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(pk(${innerPart}))`
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 }
 
@@ -311,36 +330,44 @@ export function getDescriptorsFromKey(
   let internalDescriptor = ''
 
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       externalDescriptor = `pkh(${keyPart}/0/*)`
       internalDescriptor = `pkh(${keyPart}/1/*)`
       break
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
       internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
       break
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       externalDescriptor = `wpkh(${keyPart}/0/*)`
       internalDescriptor = `wpkh(${keyPart}/1/*)`
       break
-    case 'P2TR':
+    }
+    case 'P2TR': {
       externalDescriptor = `tr(${keyPart}/0/*)`
       internalDescriptor = `tr(${keyPart}/1/*)`
       break
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       externalDescriptor = `wsh(${keyPart}/0/*)`
       internalDescriptor = `wsh(${keyPart}/1/*)`
       break
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       externalDescriptor = `sh(wsh(${keyPart}/0/*))`
       internalDescriptor = `sh(wsh(${keyPart}/1/*))`
       break
-    case 'P2SH':
+    }
+    case 'P2SH': {
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 
   // TODO: add checksum while keeping it sinchronous

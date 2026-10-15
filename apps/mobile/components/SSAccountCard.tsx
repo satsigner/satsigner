@@ -118,10 +118,11 @@ function SSAccountCard({
     let icon: React.ReactNode = null
 
     switch (status) {
-      case 'unsynced':
+      case 'unsynced': {
         color = Colors.gray[200] // eslint-disable-line prefer-destructuring
         text = t('account.sync.status.unsynced')
         break
+      }
       case 'synced': {
         color = Colors.mainGreen
         text = t('account.sync.status.synced')
@@ -176,16 +177,19 @@ function SSAccountCard({
         )
         break
       }
-      case 'error':
+      case 'error': {
         color = Colors.mainRed
         text = t('account.sync.status.error')
         break
-      case 'timeout':
+      }
+      case 'timeout': {
         color = Colors.mainRed
         text = t('account.sync.status.timeout')
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     return (

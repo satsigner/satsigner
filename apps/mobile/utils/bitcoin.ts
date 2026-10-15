@@ -65,14 +65,18 @@ export function getScriptTypeFromAddress(
 /** Convert app string network to BDK numeric Network enum */
 export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return BdkNetwork.Bitcoin
-    case 'signet':
+    }
+    case 'signet': {
       return BdkNetwork.Signet
-    case 'testnet':
+    }
+    case 'testnet': {
       return BdkNetwork.Testnet
-    default:
+    }
+    default: {
       return BdkNetwork.Testnet
+    }
   }
 }
 
@@ -144,14 +148,18 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
 // to the network interface used by bitcoinjs-lib
 export function bitcoinjsNetwork(network: AppNetwork): networks.Network {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return networks['bitcoin']
-    case 'signet':
+    }
+    case 'signet': {
       return networks['testnet']
-    case 'testnet':
+    }
+    case 'testnet': {
       return networks['testnet']
-    default:
+    }
+    default: {
       return networks['bitcoin']
+    }
   }
 }
 
@@ -223,32 +231,37 @@ export function convertKeyFormat(
     let version: Uint8Array
 
     switch (targetFormat) {
-      case 'xpub':
+      case 'xpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.xpub
             : KEY_VERSION_BYTES.tpub
         break
-      case 'ypub':
+      }
+      case 'ypub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.ypub
             : KEY_VERSION_BYTES.upub
         break
-      case 'zpub':
+      }
+      case 'zpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.zpub
             : KEY_VERSION_BYTES.vpub_testnet
         break
-      case 'vpub':
+      }
+      case 'vpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.vpub_mainnet
             : KEY_VERSION_BYTES.vpub_testnet
         break
-      default:
+      }
+      default: {
         return key
+      }
     }
 
     const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
@@ -308,22 +321,30 @@ export function getDerivationPathFromScriptVersion(
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `${BIP44_PURPOSE}'/${coinType}'/0'`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `${BIP49_PURPOSE}'/${coinType}'/0'`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `${BIP84_PURPOSE}'/${coinType}'/0'`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `${BIP86_PURPOSE}'/${coinType}'/0'`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    default:
+    }
+    default: {
       return `${BIP84_PURPOSE}'/${coinType}'/0'`
+    }
   }
 }
 
@@ -379,29 +400,37 @@ export function getMultisigDerivationPathFromScriptVersion(
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       // For multisig P2PKH, use P2SH derivation path (m/45'/0'/0')
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       // For multisig P2SH-P2WPKH, use P2SH-P2WSH derivation path (m/48'/0'/0'/1')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       // For multisig P2WPKH, use P2WSH derivation path (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       // For multisig P2TR, use P2TR derivation path (m/86'/0'/0')
       return `${BIP86_PURPOSE}'/${coinType}'/0'`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       // Native SegWit multisig (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    default:
+    }
+    default: {
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
+    }
   }
 }
 
@@ -409,22 +438,30 @@ export function getMultisigScriptTypeFromScriptVersion(
   scriptVersion: string
 ): MultisigScriptType {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return 'P2SH'
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return 'P2SH-P2WSH'
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return 'P2WSH'
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return 'P2TR'
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return 'P2WSH'
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return 'P2SH-P2WSH'
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return 'P2SH'
-    default:
+    }
+    default: {
       return 'P2WSH'
+    }
   }
 }
 

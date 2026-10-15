@@ -448,22 +448,30 @@ export function runDiagnosticCheck(
   ctx: { relayUrls?: string[] } = {}
 ): Promise<DiagnosticResult> {
   switch (id) {
-    case 'crypto':
+    case 'crypto': {
       return checkCryptoRoundtrip()
-    case 'entropy':
+    }
+    case 'entropy': {
       return checkEntropyCollisions()
-    case 'nip17':
+    }
+    case 'nip17': {
       return checkNip17Roundtrip()
-    case 'nip17Live':
+    }
+    case 'nip17Live': {
       return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
-    case 'pinKdf':
+    }
+    case 'pinKdf': {
       return checkPinKdf()
-    case 'relayPersistence':
+    }
+    case 'relayPersistence': {
       return checkRelayPersistence(ctx.relayUrls ?? [])
-    case 'secureStore':
+    }
+    case 'secureStore': {
       return checkSecureStore()
-    case 'sqlite':
+    }
+    case 'sqlite': {
       return checkSqlite()
+    }
     default: {
       const _exhaustive: never = id
       throw new Error(`unknown diagnostic check: ${_exhaustive}`)

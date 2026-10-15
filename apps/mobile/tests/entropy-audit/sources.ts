@@ -76,22 +76,30 @@ export function sampleSource(
 ): Uint8Array {
   const bits = byteCount * 8
   switch (name) {
-    case 'csprng':
+    case 'csprng': {
       return sampleCsprng(byteCount)
-    case 'dice':
+    }
+    case 'dice': {
       return sampleDice(bits, () => 1 + Math.floor(Math.random() * 6))
-    case 'diceBiased':
+    }
+    case 'diceBiased': {
       return sampleDice(bits, () => (Math.random() < 0.9 ? 1 : 2))
-    case 'coin':
+    }
+    case 'coin': {
       return sampleCoin(bits, () => (Math.random() < 0.5 ? '0' : '1'))
-    case 'coinBiased':
+    }
+    case 'coinBiased': {
       return sampleCoin(bits, () => (Math.random() < 0.9 ? '0' : '1'))
-    case 'mix':
+    }
+    case 'mix': {
       return sampleMixedDice(bits)
-    case 'brokenRestricted':
+    }
+    case 'brokenRestricted': {
       return sampleBrokenRestricted(byteCount)
-    case 'brokenLowEntropy':
+    }
+    case 'brokenLowEntropy': {
       return sampleBrokenLowEntropy(bits)
+    }
     default: {
       const _exhaustive: never = name
       throw new Error(`Unknown source: ${_exhaustive}`)

@@ -153,7 +153,7 @@ export default function EcashAccountDetailPage() {
     route
   }: SceneRendererProps & { route: { key: string } }) {
     switch (route.key) {
-      case 'transactions':
+      case 'transactions': {
         return (
           <ScrollView showsVerticalScrollIndicator={false}>
             <SSVStack style={{ paddingBottom: 60 }}>
@@ -193,7 +193,8 @@ export default function EcashAccountDetailPage() {
             </SSVStack>
           </ScrollView>
         )
-      case 'proofs':
+      }
+      case 'proofs': {
         return (
           <ScrollView showsVerticalScrollIndicator={false}>
             <SSVStack style={{ paddingBottom: 60 }}>
@@ -261,8 +262,10 @@ export default function EcashAccountDetailPage() {
             </SSVStack>
           </ScrollView>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

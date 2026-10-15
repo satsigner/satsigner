@@ -231,20 +231,25 @@ async function getWalletData(
 
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'P2SH':
+        case 'P2SH': {
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2SH-P2WSH':
+        }
+        case 'P2SH-P2WSH': {
           finalDescriptor = `sh(wsh(sortedmulti(${account.keysRequired},${keySection})))`
           break
-        case 'P2WSH':
+        }
+        case 'P2WSH': {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2TR':
+        }
+        case 'P2TR': {
           finalDescriptor = `tr(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        default:
+        }
+        default: {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+        }
       }
 
       const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
@@ -346,8 +351,9 @@ async function getWalletData(
 
       break
     }
-    default:
+    default: {
       break
+    }
   }
 }
 
@@ -355,22 +361,28 @@ function mapScriptVersionToBipTemplate(
   scriptVersion: NonNullable<Key['scriptVersion']>
 ): DescriptorTemplate {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return DescriptorTemplate.Bip44
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return DescriptorTemplate.Bip49
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return DescriptorTemplate.Bip84
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return DescriptorTemplate.Bip86
+    }
     case 'P2WSH':
     case 'P2SH-P2WSH':
-    case 'P2SH':
+    case 'P2SH': {
       throw new Error(
         `Manual descriptor creation required for ${scriptVersion}`
       )
-    default:
+    }
+    default: {
       return DescriptorTemplate.Bip84
+    }
   }
 }
 
@@ -391,14 +403,18 @@ function getDescriptorMultiSig(
   const keyPart = baseString.replace(/^wpkh\(/, '').replace(/\)$/, '')
 
   switch (scriptVersion) {
-    case 'P2WSH':
+    case 'P2WSH': {
       return `wsh(${keyPart})`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(${keyPart}))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(${keyPart})`
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 }
 

@@ -269,23 +269,27 @@ export default function NostrSync() {
     status: 'connected' | 'connecting' | 'disconnected'
   ) => {
     switch (status) {
-      case 'connected':
+      case 'connected': {
         return {
           color: '#22c55e',
           text: t('account.nostrSync.relayStatusConnected')
         }
-      case 'connecting':
+      }
+      case 'connecting': {
         return {
           color: '#f59e0b',
           text: t('account.nostrSync.relayStatusConnecting')
         }
-      case 'disconnected':
+      }
+      case 'disconnected': {
         return {
           color: '#ef4444',
           text: t('account.nostrSync.relayStatusDisconnected')
         }
-      default:
+      }
+      default: {
         return { color: '#6b7280', text: 'Unknown' }
+      }
     }
   }
 

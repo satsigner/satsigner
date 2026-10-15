@@ -68,12 +68,15 @@ function truncate(value: string, headChars: number, tailChars = headChars) {
  */
 function formatAddress(address: string, size?: AddressSize) {
   switch (size) {
-    case 'compact':
+    case 'compact': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_COMPACT)
-    case 'default':
+    }
+    case 'default': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS)
-    default:
+    }
+    default: {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_DEFAULT)
+    }
   }
 }
 
@@ -267,14 +270,18 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 
 function txIdTruncateChars(size: TxIdSize): number {
   switch (size) {
-    case 'tiny':
+    case 'tiny': {
       return TXID_TRUNCATE_CHARS_TINY
-    case 'compact':
+    }
+    case 'compact': {
       return TXID_TRUNCATE_CHARS_COMPACT
-    case 'wide':
+    }
+    case 'wide': {
       return TXID_TRUNCATE_CHARS_WIDE
-    default:
+    }
+    default: {
       return TXID_TRUNCATE_CHARS
+    }
   }
 }
 
@@ -302,22 +309,28 @@ function formatShortPubkey(pubkey: string) {
  */
 function formatNpub(npub: string, size?: NpubSize) {
   switch (size) {
-    case 'xs':
+    case 'xs': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XS)
-    case 'sm':
+    }
+    case 'sm': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_SM)
-    case 'md':
+    }
+    case 'md': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_MD)
-    case 'lg':
+    }
+    case 'lg': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_LG)
-    case 'xl':
+    }
+    case 'xl': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XL)
-    default:
+    }
+    default: {
       return truncate(
         npub,
         NOSTR_NPUB_SHORT_HEAD_CHARS,
         NOSTR_NPUB_SHORT_TAIL_CHARS
       )
+    }
   }
 }
 

@@ -844,8 +844,9 @@ function PreviewTransaction() {
           return result
         }
 
-        default:
+        default: {
           return null
+        }
       }
     } catch (error) {
       toast.error(String(error))
@@ -1303,14 +1304,18 @@ function PreviewTransaction() {
   // Whether the current display mode is cycling through more than one chunk
   function isMultiPartQR() {
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         return rawPsbtChunks.length > 1
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         return urChunks.length > 1
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         return qrChunks.length > 1
-      default:
+      }
+      default: {
         return false
+      }
     }
   }
 
@@ -1926,8 +1931,9 @@ function PreviewTransaction() {
         }
         return bbqrValue || 'NO_CHUNKS'
       }
-      default:
+      default: {
         return 'NO_DATA'
+      }
     }
   }
 
@@ -1940,23 +1946,27 @@ function PreviewTransaction() {
     let maxChunkSize = 0
 
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         if (rawPsbtChunks.length > 0) {
           maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
         }
         break
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         if (urChunks.length > 0) {
           maxChunkSize = Math.max(...urChunks.map((c) => c.length))
         }
         break
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         if (qrChunks.length > 0) {
           maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
         }
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     const limit = 1500 // Reduced to prevent crashes
@@ -1966,7 +1976,7 @@ function PreviewTransaction() {
 
   const getDisplayModeDescription = () => {
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         if (rawPsbtChunks.length > 0) {
           if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
             return 'Static QR - Complete PSBT in single code'
@@ -1985,7 +1995,8 @@ function PreviewTransaction() {
           return t('error.psbt.notAvailable')
         }
         return t('transaction.preview.rawPSBT')
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         if (!urChunks.length) {
           return t('error.psbt.notAvailable')
         }
@@ -1998,7 +2009,8 @@ function PreviewTransaction() {
               total: urChunks.length
             })
           : t('transaction.preview.singleChunk')
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         if (!qrChunks.length) {
           return 'Loading BBQR chunks...'
         }
@@ -2011,8 +2023,10 @@ function PreviewTransaction() {
               total: qrChunks.length
             })
           : t('transaction.preview.singleChunk')
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 

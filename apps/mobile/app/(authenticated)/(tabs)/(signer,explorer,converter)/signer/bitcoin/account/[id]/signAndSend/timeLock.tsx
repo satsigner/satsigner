@@ -72,7 +72,7 @@ function TimeLock() {
     route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case 'blockHeight':
+      case 'blockHeight': {
         return (
           <SSNumberInput
             min={CURRENT_BLOCK_HEIGHT}
@@ -84,7 +84,8 @@ function TimeLock() {
             showFeedback
           />
         )
-      case 'date':
+      }
+      case 'date': {
         return (
           <SSVStack gap="lg">
             <SSHStack>
@@ -143,8 +144,10 @@ function TimeLock() {
             </SSHStack>
           </SSVStack>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

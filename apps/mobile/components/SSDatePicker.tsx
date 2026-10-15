@@ -119,19 +119,23 @@ function SSDatePicker({
     const newDate = new Date(date)
 
     switch (type) {
-      case 'day':
+      case 'day': {
         newDate.setDate(digit)
         break
-      case 'month':
+      }
+      case 'month': {
         setSelectedMonth(digit)
         newDate.setMonth(digit - 1)
         break
-      case 'year':
+      }
+      case 'year': {
         setSelectedYear(digit)
         newDate.setFullYear(digit)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     const now = new Date()
@@ -186,7 +190,7 @@ function SSDatePicker({
 
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
-        case 'dd':
+        case 'dd': {
           return {
             digits: filteredDays,
             formatter: undefined,
@@ -194,7 +198,8 @@ function SSDatePicker({
             renderItem: renderDayItem,
             value: date.getDate()
           }
-        case 'mm':
+        }
+        case 'mm': {
           return {
             digits: filteredMonths,
             formatter: formatMonth,
@@ -202,7 +207,8 @@ function SSDatePicker({
             renderItem: undefined,
             value: selectedMonth
           }
-        case 'yyyy':
+        }
+        case 'yyyy': {
           return {
             digits: years,
             formatter: undefined,
@@ -210,6 +216,7 @@ function SSDatePicker({
             renderItem: undefined,
             value: selectedYear
           }
+        }
         default: {
           const colName = ['day', 'month', 'year'][index]
           return {

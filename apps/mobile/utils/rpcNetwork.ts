@@ -7,23 +7,29 @@ const RPC_PORT_TESTNET = 18_332
 /** Bitcoin Core `getblockchaininfo.chain` values per app network tab. */
 function expectedCoreChain(network: Network): string {
   switch (network) {
-    case 'signet':
+    case 'signet': {
       return 'signet'
-    case 'testnet':
+    }
+    case 'testnet': {
       return 'test'
-    default:
+    }
+    default: {
       return 'main'
+    }
   }
 }
 
 function defaultRpcPortForNetwork(network: Network): number {
   switch (network) {
-    case 'signet':
+    case 'signet': {
       return RPC_PORT_SIGNET
-    case 'testnet':
+    }
+    case 'testnet': {
       return RPC_PORT_TESTNET
-    default:
+    }
+    default: {
       return RPC_PORT_MAINNET
+    }
   }
 }
 

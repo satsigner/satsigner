@@ -31,33 +31,42 @@ import { getLNURLType } from '@/utils/lnurl'
 function getStatusColor(status: string) {
   switch (status) {
     case 'PAID':
-    case 'ISSUED':
+    case 'ISSUED': {
       return success
+    }
     case 'PENDING':
-    case 'UNPAID':
+    case 'UNPAID': {
       return warning
+    }
     case 'EXPIRED':
-    case 'CANCELLED':
+    case 'CANCELLED': {
       return error
-    default:
+    }
+    default: {
       return white
+    }
   }
 }
 
 function getStatusText(status: string) {
   switch (status) {
     case 'PENDING':
-    case 'UNPAID':
+    case 'UNPAID': {
       return t('ecash.quote.pending')
+    }
     case 'PAID':
-    case 'ISSUED':
+    case 'ISSUED': {
       return t('ecash.quote.paid')
-    case 'EXPIRED':
+    }
+    case 'EXPIRED': {
       return t('ecash.quote.expired')
-    case 'CANCELLED':
+    }
+    case 'CANCELLED': {
       return t('ecash.quote.cancelled')
-    default:
+    }
+    default: {
       return status || ''
+    }
   }
 }
 

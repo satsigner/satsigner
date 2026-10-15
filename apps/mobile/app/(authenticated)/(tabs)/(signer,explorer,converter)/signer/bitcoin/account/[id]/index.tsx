@@ -2059,7 +2059,7 @@ export default function AccountView() {
     route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case 'totalTransactions':
+      case 'totalTransactions': {
         return (
           <TotalTransactions
             account={account}
@@ -2077,7 +2077,8 @@ export default function AccountView() {
             scanFromTimeSec={scanFromTimeSec}
           />
         )
-      case 'derivedAddresses':
+      }
+      case 'derivedAddresses': {
         return (
           <DerivedAddresses
             account={account}
@@ -2089,7 +2090,8 @@ export default function AccountView() {
             sortDirection={sortDirectionDerivedAddresses}
           />
         )
-      case 'spendableOutputs':
+      }
+      case 'spendableOutputs': {
         return (
           <SpendableOutputs
             account={account}
@@ -2106,15 +2108,18 @@ export default function AccountView() {
             scanFromTimeSec={scanFromTimeSec}
           />
         )
-      case 'satsInMempool':
+      }
+      case 'satsInMempool': {
         return (
           <SatsInMempool
             account={account}
             blockchainHeight={blockchainHeight}
           />
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
