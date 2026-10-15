@@ -22,8 +22,8 @@ import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { isToday } from '@/utils/date'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatLargeNumber } from '@/utils/format'
+import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 const MUTED_OPACITY = 0.35
 const MUTE_DURATION = 150
@@ -47,6 +47,17 @@ type CurrencyKey =
   | 'JPY'
 
 type PricesMap = ReturnType<typeof usePriceStore.getState>['prices']
+
+/**
+ * Currency to keep fixed when prices change. Falls back to bitcoin when the
+ * anchored fiat currency has no price, so the other values don't drop to 0.
+ */
+function getAnchorKey(key: CurrencyKey, priceMap: PricesMap): CurrencyKey {
+  if (key === 'sats' || key === 'bitcoin' || priceMap[key]) {
+    return key
+  }
+  return 'bitcoin'
+}
 
 function ConverterHeader() {
   return (
@@ -77,7 +88,8 @@ export default function Converter() {
     sats: 0
   })
 
-  const fetchFullPriceAt = usePriceStore((state) => state.fetchFullPriceAt)
+  // Prices at the picked date; null falls back to the current prices.
+  const datePricesRef = useRef<PricesMap | null>(null)
   const lastChangeKeyRef = useRef(lastChangeKey)
   lastChangeKeyRef.current = lastChangeKey
   const currencyValuesRef = useRef(currencyValues)
@@ -173,11 +185,12 @@ export default function Converter() {
     return price ? value / price : 0
   }
 
-  function applyAnchoredValues(
-    key: CurrencyKey,
-    anchoredValue: number,
-    priceMap = usePriceStore.getState().prices
-  ) {
+  function getActivePrices() {
+    return datePricesRef.current ?? usePriceStore.getState().prices
+  }
+
+  function applyAnchoredValues(key: CurrencyKey, anchoredValue: number) {
+    const priceMap = getActivePrices()
     const btc = getBitcoinValue(key, anchoredValue, priceMap)
     setCurrencyValues({
       CAD: (priceMap.CAD || 0) * btc,
@@ -205,17 +218,16 @@ export default function Converter() {
     )
     animateLoading(true)
     try {
-      await fetchFullPriceAt(getFiatPriceApiUrl(), timestamp)
+      const datePrices = await resolvePricesAt(timestamp)
       if (requestId !== priceRequestIdRef.current) {
         return
       }
-      const key = lastChangeKeyRef.current
+      datePricesRef.current = datePrices
+      const key = getAnchorKey(lastChangeKeyRef.current, getActivePrices())
+      lastChangeKeyRef.current = key
+      setLastChangedKey(key)
       const anchoredValue = currencyValuesRef.current[key]
-      applyAnchoredValues(
-        key,
-        hasInitializedRef.current ? anchoredValue : 1,
-        usePriceStore.getState().prices
-      )
+      applyAnchoredValues(key, hasInitializedRef.current ? anchoredValue : 1)
       hasInitializedRef.current = true
     } finally {
       if (requestId === priceRequestIdRef.current) {
