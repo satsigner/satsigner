@@ -1,8 +1,20 @@
 import { MempoolOracle } from '@/api/blockchain'
-import { getLocalPriceAt, isUsablePrice } from '@/api/localPrices'
+import {
+  getLocalPriceAt,
+  getLocalPricesAt,
+  isUsablePrice
+} from '@/api/localPrices'
 import { useSettingsStore } from '@/store/settings'
-import { type Currency } from '@/types/models/Blockchain'
+import {
+  type Currency,
+  CurrencySchema,
+  type Prices
+} from '@/types/models/Blockchain'
 import { getFiatPriceApiUrl } from '@/utils/fiatData'
+
+// The API's exchange rates are USD-based, so a USD quote converts correctly
+// into every other currency.
+const NETWORK_BASE_CURRENCY: Currency = 'USD'
 
 async function resolveHistoricalPrices(
   currency: Currency,
@@ -38,4 +50,44 @@ async function resolveHistoricalPrices(
   return priceByTimestamp
 }
 
-export { resolveHistoricalPrices }
+function keepUsablePrices(prices: Record<string, number>) {
+  return Object.fromEntries(
+    Object.entries(prices).filter(([, price]) => isUsablePrice(price))
+  )
+}
+
+/**
+ * Prices in every fiat currency at `timestamp`, for showing values on a past
+ * date. Uses bundled history first and, when opted in, fills the currencies
+ * it lacks from the network. Currencies with no price are left out. Returns
+ * null when historical prices are off or no price is found at all.
+ */
+async function resolvePricesAt(timestamp: number): Promise<Prices | null> {
+  const { fetchHistoricalPrices, fetchHistoricalPricesFromNetwork } =
+    useSettingsStore.getState()
+  if (!fetchHistoricalPrices) {
+    return null
+  }
+
+  const localPrices = getLocalPricesAt(timestamp)
+  const localOrNull = Object.keys(localPrices).length > 0 ? localPrices : null
+  const isLocalComplete = CurrencySchema.options.every(
+    (fiat) => localPrices[fiat] !== undefined
+  )
+  if (isLocalComplete || !fetchHistoricalPricesFromNetwork) {
+    return localOrNull
+  }
+
+  try {
+    const oracle = new MempoolOracle(getFiatPriceApiUrl())
+    const networkPrices = await oracle.getFullPriceAt(
+      NETWORK_BASE_CURRENCY,
+      timestamp
+    )
+    return { ...keepUsablePrices(networkPrices), ...localPrices }
+  } catch {
+    return localOrNull
+  }
+}
+
+export { resolveHistoricalPrices, resolvePricesAt }
