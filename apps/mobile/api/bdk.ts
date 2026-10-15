@@ -252,8 +252,8 @@ async function getWalletData(
         }
       }
 
-      const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
-      const internalDescriptor = finalDescriptor.replace(/<0;1>/g, '1')
+      const externalDescriptor = finalDescriptor.replaceAll('<0;1>', '0')
+      const internalDescriptor = finalDescriptor.replaceAll('<0;1>', '1')
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
@@ -509,7 +509,7 @@ function parseDescriptor(descriptorString: string) {
 }
 
 function normalizeWalletDescriptor(descriptor: string) {
-  return descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  return descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
 }
 
 function splitCombinedWalletDescriptors(
@@ -524,8 +524,8 @@ function splitCombinedWalletDescriptors(
     return { ext, int }
   }
   return {
-    ext: ext.replace(/<0[,;]1>/g, '0'),
-    int: ext.replace(/<0[,;]1>/g, '1')
+    ext: ext.replaceAll(/<0[,;]1>/g, '0'),
+    int: ext.replaceAll(/<0[,;]1>/g, '1')
   }
 }
 

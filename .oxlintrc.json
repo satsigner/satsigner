@@ -46,7 +46,6 @@
     "unicorn/no-nested-ternary": "allow",
     "node/global-require": "allow",
     "unicorn/number-literal-case": "allow",
-    "unicorn/prefer-string-replace-all": "allow",
     "react/no-array-index-key": "allow",
     "unicorn/consistent-function-scoping": "allow",
     "unicorn/no-useless-undefined": "allow",

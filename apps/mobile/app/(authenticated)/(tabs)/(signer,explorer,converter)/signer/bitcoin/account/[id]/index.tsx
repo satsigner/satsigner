@@ -521,7 +521,7 @@ function lastSyncedLabel(
   // formatRelativeTime wraps chart labels in parentheses — strip for prose.
   const relative = formatRelativeTime(
     Math.floor(syncedMs / MS_PER_SECOND)
-  ).replace(/^\(|\)$/g, '')
+  ).replaceAll(/^\(|\)$/g, '')
   return t('account.lastSynced', { time: relative })
 }
 

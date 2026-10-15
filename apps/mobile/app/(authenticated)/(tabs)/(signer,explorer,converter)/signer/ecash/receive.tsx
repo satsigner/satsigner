@@ -163,7 +163,7 @@ export default function EcashReceivePage() {
   }, [tokenParam, lnurlParam])
 
   function handleFiatAmountChange(text: string) {
-    const cleaned = text.replace(/[^0-9.]/g, '')
+    const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
@@ -380,7 +380,7 @@ export default function EcashReceivePage() {
                         : ''
                     }
                     onChangeText={(text) =>
-                      setAmount(text.replace(/[^0-9]/g, ''))
+                      setAmount(text.replaceAll(/[^0-9]/g, ''))
                     }
                     placeholder="0"
                     keyboardType="numeric"

@@ -28,7 +28,7 @@ function byteChunks(hex: string) {
 }
 
 function hexToAsciiFromHex(hex: string) {
-  const normalized = hex.replace(/^0x/i, '').replace(/\s/g, '')
+  const normalized = hex.replace(/^0x/i, '').replaceAll(/\s/g, '')
   let out = ''
   for (let i = 0; i + 1 < normalized.length; i += 2) {
     const n = parseInt(normalized.slice(i, i + 2), 16)

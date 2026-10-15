@@ -24,18 +24,18 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
     rawText = numStr
   }
 
-  rawText = rawText.replace(/[^\d.]/g, '')
+  rawText = rawText.replaceAll(/[^\d.]/g, '')
 
   if (rawText.includes('.')) {
     let [integerPart, decimalPart] = rawText.split('.')
     integerPart = integerPart.replace(/^0+/, '') || '0'
     decimalPart = decimalPart.slice(0, decimal)
-    const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    const formattedInt = integerPart.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ',')
     return `${formattedInt}.${decimalPart}`
   }
 
   const cleanNum = rawText.replace(/^0+/, '') || '0'
-  return cleanNum.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return cleanNum.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 type SSCurrencyInputProps = {
@@ -61,14 +61,14 @@ function SSCurrencyInput({
   ...props
 }: SSCurrencyInputProps) {
   const [localValue, setLocalValue] = useState(() =>
-    formatNumberWithCommas(value?.replace(/,/g, '') || '0', decimal)
+    formatNumberWithCommas(value?.replaceAll(',', '') || '0', decimal)
   )
   const prevValueRef = useRef(value)
 
   if (value !== prevValueRef.current && value !== undefined) {
     prevValueRef.current = value
     const formatted =
-      formatNumberWithCommas(value.replace(/,/g, ''), decimal) || ''
+      formatNumberWithCommas(value.replaceAll(',', ''), decimal) || ''
     if (formatted !== localValue) {
       setLocalValue(formatted)
     }
@@ -83,13 +83,13 @@ function SSCurrencyInput({
       return
     }
 
-    const rawValue = text.replace(/,/g, '')
+    const rawValue = text.replaceAll(',', '')
     if (/^(\d*\.?\d*)$/.test(rawValue)) {
       const formattedValue = formatNumberWithCommas(rawValue, decimal)
       setLocalValue(formattedValue)
 
       if (onChangeValue) {
-        const cleanNum = formattedValue.replace(/,/g, '')
+        const cleanNum = formattedValue.replaceAll(',', '')
         onChangeValue(parseFloat(cleanNum))
       }
     }

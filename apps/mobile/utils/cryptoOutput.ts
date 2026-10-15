@@ -406,10 +406,13 @@ function encodeOutputDescriptorV3(value: CborValue) {
   if (!keys || keys.length === 0) {
     return source
   }
-  const descriptor = source.replace(/@(\d+)/g, (_match, indexStr: string) => {
-    const key = keys[Number(indexStr)]
-    return key ? (encodeKeyExp(key) ?? '') : ''
-  })
+  const descriptor = source.replaceAll(
+    /@(\d+)/g,
+    (_match, indexStr: string) => {
+      const key = keys[Number(indexStr)]
+      return key ? (encodeKeyExp(key) ?? '') : ''
+    }
+  )
   if (!descriptor || descriptor.includes('@')) {
     return null
   }

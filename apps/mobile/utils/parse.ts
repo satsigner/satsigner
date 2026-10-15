@@ -179,7 +179,9 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
 
     return {
       amount: amount ? Number(amount) : 0,
-      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel'),
+      label: label
+        ? label.replaceAll(/(^["“]|["”]$)/g, '')
+        : t('common.noLabel'),
       to: address
     }
   })
@@ -188,7 +190,7 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
 function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replaceAll(/[\u200B-\u200D\uFEFF]/g, '')
     .trim()
 }
 
@@ -233,7 +235,7 @@ function parseMultisigDescriptor(descriptor: string) {
 }
 
 function normalizePathSegment(segment: string): string {
-  return segment.replace(/['H]/g, 'h')
+  return segment.replaceAll(/['H]/g, 'h')
 }
 
 /**

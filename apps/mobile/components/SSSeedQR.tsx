@@ -26,7 +26,7 @@ export default function SSSeedQR({
   onClose,
   title
 }: SSSeedQRProps) {
-  const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
+  const formattedMnemonic = mnemonic.trim().replaceAll(/\s+/g, ' ')
   const wordList = getWordList(mnemonicWordList)
 
   const qrValue = formattedMnemonic

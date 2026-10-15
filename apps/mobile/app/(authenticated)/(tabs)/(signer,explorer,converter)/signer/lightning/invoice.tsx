@@ -129,12 +129,12 @@ export default function InvoicePage() {
   })
 
   const handleAmountChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, '')
+    const numericValue = text.replaceAll(/[^0-9]/g, '')
     setInvoiceAmount(numericValue)
   }
 
   const handleFiatAmountChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9.]/g, '')
+    const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!isNaN(fiat) && btcPrice && btcPrice > 0) {

@@ -77,7 +77,7 @@ export function detectElectrumSeed(mnemonic: string): string | null {
     .normalize('NFKD')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
   try {
     const result = hmac(
       sha512,
@@ -106,7 +106,7 @@ export function mnemonicToSeedElectrum(
     .normalize('NFKD')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
   const salt = `electrum${passphrase}`.normalize('NFKD')
   return pbkdf2Async(sha512, enc.encode(normalizedMnemonic), enc.encode(salt), {
     c: 2048,

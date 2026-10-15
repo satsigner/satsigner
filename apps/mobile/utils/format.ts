@@ -94,7 +94,7 @@ function formatNumber(
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
-  const formattedInteger = integerPart.replace(
+  const formattedInteger = integerPart.replaceAll(
     /(\d)(?=(\d{3})+(?!\d))/g,
     `$1${separator}`
   )

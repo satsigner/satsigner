@@ -251,7 +251,7 @@ export default function ImportDescriptor() {
 
       setExternalDescriptor(descriptor)
 
-      const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
+      const internalDescriptor = descriptor.replaceAll('/0/*', '/1/*')
       setInternalDescriptor(internalDescriptor)
 
       for (let i = 0; i < parsedData.keyData.length; i += 1) {
