@@ -50,7 +50,7 @@ export default function DescriptorPage() {
       setIsLoading(true)
 
       const accountData = getAccountData()
-      const keyIndexNum = parseInt(keyIndex, 10)
+      const keyIndexNum = Number.parseInt(keyIndex, 10)
       const key = accountData.keys[keyIndexNum]
 
       if (!key) {

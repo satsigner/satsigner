@@ -515,7 +515,7 @@ function lastSyncedLabel(
     lastSyncedAt instanceof Date
       ? lastSyncedAt.getTime()
       : new Date(lastSyncedAt).getTime()
-  if (isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
+  if (Number.isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
     return t('account.sync.status.unsynced')
   }
   // formatRelativeTime wraps chart labels in parentheses — strip for prose.

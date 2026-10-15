@@ -139,7 +139,7 @@ export function useNostrSignFlow() {
       }
 
       for (const [key, psbt] of Object.entries(derivedSignedPsbts)) {
-        const index = parseInt(key, 10)
+        const index = Number.parseInt(key, 10)
         const signerPubkey = signerPubkeys[index]
         if (!signerPubkey) {
           continue
@@ -155,7 +155,7 @@ export function useNostrSignFlow() {
 
     const signedPsbtsMap = new Map<number, string>()
     for (const [key, value] of Object.entries(finalSignedPsbts)) {
-      signedPsbtsMap.set(parseInt(key, 10), value)
+      signedPsbtsMap.set(Number.parseInt(key, 10), value)
     }
     setSignedPsbts(signedPsbtsMap)
 

@@ -134,7 +134,7 @@ describe('esplora tests', () => {
 
   it('get latest block height', async () => {
     const resp = await esplora.getLatestBlockHeight()
-    expect(!isNaN(resp)).toBe(true)
+    expect(!Number.isNaN(resp)).toBe(true)
   })
 
   it('get blocks starting from a height', async () => {

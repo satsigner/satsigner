@@ -166,7 +166,7 @@ export default function EcashReceivePage() {
     const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
-    if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
+    if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
       const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
       setAmount(sats > 0 ? sats.toString() : '')
     }
@@ -177,7 +177,7 @@ export default function EcashReceivePage() {
       return
     }
     if (amount) {
-      const fiat = satsToFiat(parseInt(amount, 10))
+      const fiat = satsToFiat(Number.parseInt(amount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -376,7 +376,7 @@ export default function EcashReceivePage() {
                   <SSTextInput
                     value={
                       amount
-                        ? formatNumber(parseInt(amount, 10)).toString()
+                        ? formatNumber(Number.parseInt(amount, 10)).toString()
                         : ''
                     }
                     onChangeText={(text) =>
@@ -414,7 +414,7 @@ export default function EcashReceivePage() {
                     {privacyMode
                       ? `•••• ${fiatCurrency}`
                       : amount
-                        ? `${formatNumber(satsToFiat(parseInt(amount, 10)), 2)} ${fiatCurrency}`
+                        ? `${formatNumber(satsToFiat(Number.parseInt(amount, 10)), 2)} ${fiatCurrency}`
                         : `0 ${fiatCurrency}`}
                   </SSText>
                 ) : (
@@ -427,14 +427,14 @@ export default function EcashReceivePage() {
                     {privacyMode
                       ? `•••• ${t('bitcoin.sats')}`
                       : amount
-                        ? `${formatNumber(parseInt(amount, 10))} ${t('bitcoin.sats')}`
+                        ? `${formatNumber(Number.parseInt(amount, 10))} ${t('bitcoin.sats')}`
                         : `0 ${t('bitcoin.sats')}`}
                   </SSText>
                 )}
                 {isLNURLWithdrawMode &&
                   lnurlWithdrawDetails &&
                   amount &&
-                  !isNaN(Number(amount)) && (
+                  !Number.isNaN(Number(amount)) && (
                     <SSText color="muted" size="xs">
                       {Number(amount) * MILLISATS_PER_SAT <
                       lnurlWithdrawDetails.minWithdrawable

@@ -65,7 +65,7 @@ export default function ZapSettingsPage() {
   >(prefs?.autoApproveWalletId)
 
   function handleAddPreset() {
-    const val = parseInt(newPreset, 10)
+    const val = Number.parseInt(newPreset, 10)
     if (!val || val <= 0) {
       return
     }
@@ -86,7 +86,7 @@ export default function ZapSettingsPage() {
       return
     }
     const parsedOneTap =
-      parseInt(oneTapAmount, 10) || NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
+      Number.parseInt(oneTapAmount, 10) || NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
     updateIdentity(npub, {
       zapPreferences: {
         autoApprove,

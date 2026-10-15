@@ -96,7 +96,7 @@ function useSyncAccountWithAddress() {
           continue
         }
 
-        if (!isNaN(date.getTime())) {
+        if (!Number.isNaN(date.getTime())) {
           transaction.timestamp = date
           timestamps.push(formatTimestamp(date))
         } else {

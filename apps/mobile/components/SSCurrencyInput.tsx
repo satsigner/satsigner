@@ -7,7 +7,7 @@ const formatNumberWithCommas = (numStr: string, decimal: number) => {
   let rawText = ''
   if (numStr.includes('e')) {
     const [baseStr, exponentStr] = numStr.split('e')
-    const exponent = parseInt(exponentStr, 10)
+    const exponent = Number.parseInt(exponentStr, 10)
 
     const [integerPart, rawFractional] = baseStr.split('.')
     let fractionalPart = rawFractional ?? ''
@@ -90,7 +90,7 @@ function SSCurrencyInput({
 
       if (onChangeValue) {
         const cleanNum = formattedValue.replaceAll(',', '')
-        onChangeValue(parseFloat(cleanNum))
+        onChangeValue(Number.parseFloat(cleanNum))
       }
     }
   }

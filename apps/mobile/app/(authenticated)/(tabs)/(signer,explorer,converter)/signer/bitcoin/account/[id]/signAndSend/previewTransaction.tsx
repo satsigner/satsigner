@@ -675,16 +675,16 @@ function PreviewTransaction() {
       if (match) {
         return {
           content: data.slice(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
+          current: Number.parseInt(match[1], 10) - 1, // Convert to 0-based index
+          total: Number.parseInt(match[2], 10),
           type: 'raw' as const
         }
       }
     }
 
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
+      const total = Number.parseInt(data.slice(4, 6), 36)
+      const current = Number.parseInt(data.slice(6, 8), 36)
       return {
         content: data,
         current,
@@ -701,8 +701,8 @@ function PreviewTransaction() {
         const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
+          const current = Number.parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = Number.parseInt(totalStr, 10)
           return {
             content: data,
             current,

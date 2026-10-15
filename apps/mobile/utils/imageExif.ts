@@ -180,7 +180,7 @@ function parseExifDate(raw: unknown): Date | undefined {
   }
   const [, y, mo, d, h, mi, s] = match.map(Number)
   const date = new Date(y, mo - 1, d, h, mi, s)
-  return isNaN(date.getTime()) ? undefined : date
+  return Number.isNaN(date.getTime()) ? undefined : date
 }
 
 const IPTC_DATASET_BYLINE = 5
@@ -261,7 +261,7 @@ function str(v: unknown): string | undefined {
 }
 
 function num(v: unknown): number | undefined {
-  if (typeof v !== 'number' || !isFinite(v)) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) {
     return undefined
   }
   return v

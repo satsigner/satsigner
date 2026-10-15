@@ -34,7 +34,8 @@ export function extractPollInfo(tags: string[][]): NostrPollInfo | null {
     pollTypeTag?.[1] === 'multiplechoice' ? 'multiplechoice' : 'singlechoice'
 
   const endsAtRaw = tags.find((tag) => tag[0] === 'endsAt')?.[1]
-  const endsAt = endsAtRaw !== undefined ? parseInt(endsAtRaw, 10) : undefined
+  const endsAt =
+    endsAtRaw !== undefined ? Number.parseInt(endsAtRaw, 10) : undefined
 
   const relays = tags
     .filter((tag) => tag[0] === 'relay')
@@ -42,7 +43,7 @@ export function extractPollInfo(tags: string[][]): NostrPollInfo | null {
     .filter((relay): relay is string => relay !== undefined)
 
   return {
-    endsAt: endsAt !== undefined && !isNaN(endsAt) ? endsAt : undefined,
+    endsAt: endsAt !== undefined && !Number.isNaN(endsAt) ? endsAt : undefined,
     options,
     pollType,
     relays

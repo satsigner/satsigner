@@ -137,7 +137,7 @@ export default function InvoicePage() {
     const cleaned = text.replaceAll(/[^0-9.]/g, '')
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
-    if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
+    if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
       const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
       setInvoiceAmount(sats > 0 ? sats.toString() : '')
     }
@@ -148,7 +148,7 @@ export default function InvoicePage() {
       return
     }
     if (invoiceAmount) {
-      const fiat = satsToFiat(parseInt(invoiceAmount, 10))
+      const fiat = satsToFiat(Number.parseInt(invoiceAmount, 10))
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -159,10 +159,10 @@ export default function InvoicePage() {
   }
 
   const isFormValid = () => {
-    const amount = parseInt(invoiceAmount, 10)
+    const amount = Number.parseInt(invoiceAmount, 10)
     return (
       invoiceAmount.length > 0 &&
-      !isNaN(amount) &&
+      !Number.isNaN(amount) &&
       amount > 0 &&
       invoiceDescription.trim().length > 0
     )
@@ -279,8 +279,8 @@ export default function InvoicePage() {
       return
     }
 
-    const amount = parseInt(invoiceAmount, 10)
-    if (isNaN(amount) || amount <= 0) {
+    const amount = Number.parseInt(invoiceAmount, 10)
+    if (Number.isNaN(amount) || amount <= 0) {
       toast.error(t('lightning.invoice.validAmount'))
       return
     }
@@ -429,7 +429,9 @@ export default function InvoicePage() {
                       style={styles.input}
                       value={
                         invoiceAmount
-                          ? formatNumber(parseInt(invoiceAmount, 10)).toString()
+                          ? formatNumber(
+                              Number.parseInt(invoiceAmount, 10)
+                            ).toString()
                           : ''
                       }
                       onChangeText={handleAmountChange}
@@ -468,7 +470,7 @@ export default function InvoicePage() {
                       ≈{' '}
                       {invoiceAmount
                         ? formatNumber(
-                            satsToFiat(parseInt(invoiceAmount, 10)),
+                            satsToFiat(Number.parseInt(invoiceAmount, 10)),
                             2
                           )
                         : '0'}{' '}
@@ -482,7 +484,7 @@ export default function InvoicePage() {
                       style={styles.switchableAmount}
                     >
                       {invoiceAmount
-                        ? `${formatNumber(parseInt(invoiceAmount, 10))} sats`
+                        ? `${formatNumber(Number.parseInt(invoiceAmount, 10))} sats`
                         : '0 sats'}
                     </SSText>
                   )}
@@ -615,12 +617,12 @@ export default function InvoicePage() {
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
                       <SSText weight="medium">
-                        {formatNumber(parseInt(currentAmount, 10))} sats
+                        {formatNumber(Number.parseInt(currentAmount, 10))} sats
                       </SSText>
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
-                          satsToFiat(parseInt(currentAmount, 10)),
+                          satsToFiat(Number.parseInt(currentAmount, 10)),
                           2
                         )}{' '}
                         {fiatCurrency}

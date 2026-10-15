@@ -221,7 +221,7 @@ export default function CustomNetwork() {
     }
     if (formData.backend === 'rpc') {
       const scanHeight = formData.rpcScanFromHeight.trim()
-        ? parseInt(formData.rpcScanFromHeight.trim(), 10)
+        ? Number.parseInt(formData.rpcScanFromHeight.trim(), 10)
         : undefined
       return {
         ...base,
@@ -230,7 +230,7 @@ export default function CustomNetwork() {
           username: formData.rpcUsername
         },
         rpcScanFromHeight:
-          scanHeight !== undefined && !isNaN(scanHeight)
+          scanHeight !== undefined && !Number.isNaN(scanHeight)
             ? scanHeight
             : undefined,
         rpcWalletName: formData.rpcWalletName.trim() || undefined

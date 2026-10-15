@@ -85,8 +85,8 @@ export function detectElectrumSeed(mnemonic: string): string | null {
       enc.encode(normalized)
     )
     const hmacHex = Buffer.from(result).toString('hex')
-    const firstDigit = parseInt(hmacHex[0], 16)
-    if (isNaN(firstDigit)) {
+    const firstDigit = Number.parseInt(hmacHex[0], 16)
+    if (Number.isNaN(firstDigit)) {
       return null
     }
     const prefixLength = firstDigit + 2
@@ -196,7 +196,7 @@ export function generateMnemonic(
 function binaryStringToBytes(binary: string): number[] {
   const bytes: number[] = []
   for (let i = 0; i < binary.length; i += 8) {
-    bytes.push(parseInt(binary.slice(i, i + 8), 2))
+    bytes.push(Number.parseInt(binary.slice(i, i + 8), 2))
   }
   return bytes
 }
@@ -296,7 +296,7 @@ function parsePath(path: string): number[] {
 
   const items = parts.slice(1).map((p: string) => {
     const hardened = /('|h|H)$/.test(p)
-    const index = parseInt(p.replace(/['hH]/, ''), 10)
+    const index = Number.parseInt(p.replace(/['hH]/, ''), 10)
     if (Number.isNaN(index)) {
       throw new TypeError(`Invalid path segment: ${p}`)
     }

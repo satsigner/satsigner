@@ -395,7 +395,7 @@ function formatLargeNumber(
   european = false,
   locale = i18n.locale
 ): string {
-  if (!isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
+  if (!Number.isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
     return ''
   }
 

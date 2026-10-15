@@ -286,8 +286,8 @@ export function createURStreamDecoder(): URStreamDecoder {
       urType = typeStr.toLowerCase()
     }
     if (seqStr && totalStr) {
-      const seq = parseInt(seqStr, 10)
-      const total = parseInt(totalStr, 10)
+      const seq = Number.parseInt(seqStr, 10)
+      const total = Number.parseInt(totalStr, 10)
       if (!Number.isNaN(seq)) {
         receivedIndices.add(seq)
       }
@@ -375,8 +375,8 @@ export async function decodeMultiPartURToPSBT(
     const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
 
     if (aMatch && bMatch) {
-      const aSeq = parseInt(aMatch[1], 10)
-      const bSeq = parseInt(bMatch[1], 10)
+      const aSeq = Number.parseInt(aMatch[1], 10)
+      const bSeq = Number.parseInt(bMatch[1], 10)
       return aSeq - bSeq
     }
 

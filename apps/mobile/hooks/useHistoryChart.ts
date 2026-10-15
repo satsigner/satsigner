@@ -407,7 +407,7 @@ export function useHistoryChartLabels({
             )
             const opacityColor = baseColorRgb
               ? Skia.Color(
-                  `rgba(${parseInt(baseColorRgb[1], 16)}, ${parseInt(baseColorRgb[2], 16)}, ${parseInt(baseColorRgb[3], 16)}, 0.4)`
+                  `rgba(${Number.parseInt(baseColorRgb[1], 16)}, ${Number.parseInt(baseColorRgb[2], 16)}, ${Number.parseInt(baseColorRgb[3], 16)}, 0.4)`
                 )
               : Skia.Color('#999999')
             para

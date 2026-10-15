@@ -308,7 +308,7 @@ export default function UnifiedImport() {
         setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
       }
 
-      const keyIndex = parseInt(index, 10)
+      const keyIndex = Number.parseInt(index, 10)
       setKey(keyIndex)
 
       toast.success(t('account.import.success'))

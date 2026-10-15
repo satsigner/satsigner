@@ -170,7 +170,7 @@ describe('format utils', () => {
   describe('formatLargeNumber', () => {
     it('should return empty for zero, non-finite, and values under one thousand', () => {
       expect(formatLargeNumber(0)).toBe('')
-      expect(formatLargeNumber(NaN)).toBe('')
+      expect(formatLargeNumber(Number.NaN)).toBe('')
       expect(formatLargeNumber(42)).toBe('')
       expect(formatLargeNumber(999)).toBe('')
     })

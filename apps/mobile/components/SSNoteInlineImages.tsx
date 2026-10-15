@@ -66,7 +66,7 @@ async function fetchImageMeta(uri: string) {
     const contentType = res.headers.get('content-type') ?? undefined
     const contentLength = res.headers.get('content-length')
     const fileSize =
-      contentLength !== null ? parseInt(contentLength, 10) : undefined
+      contentLength !== null ? Number.parseInt(contentLength, 10) : undefined
     return { contentType, fileSize, filename }
   } catch {
     return { filename }

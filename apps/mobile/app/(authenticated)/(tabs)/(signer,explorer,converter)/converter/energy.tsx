@@ -588,7 +588,7 @@ export default function Energy() {
     }
 
     // For other networks, calculate target from bits
-    const bitsNum = parseInt(bits, 16)
+    const bitsNum = Number.parseInt(bits, 16)
     const exponent = bitsNum >>> 24
     const mantissa = bitsNum & 0xff_ff_ff
     const target = Buffer.alloc(32, 0)
@@ -787,7 +787,7 @@ export default function Energy() {
       header.writeUInt32LE(blockTime, 68)
 
       // Bits (4 bytes) - little endian
-      const bitsNum = parseInt(template.bits, 16)
+      const bitsNum = Number.parseInt(template.bits, 16)
       header.writeUInt32LE(bitsNum, 72)
 
       // Nonce (4 bytes) - little endian
@@ -1039,7 +1039,7 @@ export default function Energy() {
           const now = Date.now()
           const elapsed = (now - startTime) / MS_PER_SECOND
           const hashesPerSecond = Math.floor(hashes / elapsed)
-          const powerConsumption = isNaN(hashesPerSecond)
+          const powerConsumption = Number.isNaN(hashesPerSecond)
             ? '0'
             : (hashesPerSecond * 0.0001).toFixed(2)
 

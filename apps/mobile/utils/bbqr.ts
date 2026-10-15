@@ -51,15 +51,15 @@ export function isBBQRFragment(part: string): boolean {
   let totalParts: number | undefined
   let partNumber: number | undefined
   try {
-    totalParts = parseInt(seqTotal, 36)
-    partNumber = parseInt(seqNumber, 36)
+    totalParts = Number.parseInt(seqTotal, 36)
+    partNumber = Number.parseInt(seqNumber, 36)
   } catch {
     return false
   }
 
   if (
-    isNaN(totalParts) ||
-    isNaN(partNumber) ||
+    Number.isNaN(totalParts) ||
+    Number.isNaN(partNumber) ||
     totalParts < 1 ||
     partNumber >= totalParts
   ) {

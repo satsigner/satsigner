@@ -142,7 +142,7 @@ export function parseZapReceiptFromTags(
       const amountMillisats = getNostrTagValue(zapRequest.tags, 'amount')
       if (amountMillisats) {
         amountSats = Math.floor(
-          parseInt(amountMillisats, 10) / MILLISATS_PER_SAT
+          Number.parseInt(amountMillisats, 10) / MILLISATS_PER_SAT
         )
       }
     }
