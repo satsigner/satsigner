@@ -8,3 +8,6 @@ export const ECASH_BACKUP_VERSION = '1.1'
 export const NUT15_MPP = 15 as const
 export const BOLT11_METHOD = 'bolt11'
 export const SAT_UNIT = 'sat'
+// Mint quote status polling: interval and attempts before giving up (~3 min).
+export const ECASH_QUOTE_POLL_INTERVAL_MS = 1500
+export const ECASH_QUOTE_POLL_MAX_ATTEMPTS = 120

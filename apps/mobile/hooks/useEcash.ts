@@ -19,6 +19,10 @@ import {
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
+import {
+  ECASH_QUOTE_POLL_INTERVAL_MS,
+  ECASH_QUOTE_POLL_MAX_ATTEMPTS
+} from '@/constants/ecash'
 import { t } from '@/locales'
 import { getEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
@@ -54,8 +58,8 @@ import {
   removeSpentSecrets
 } from '@/utils/ecashProofs'
 
-const POLL_INTERVAL = 1500
-const MAX_POLL_ATTEMPTS = 120
+const POLL_INTERVAL = ECASH_QUOTE_POLL_INTERVAL_MS
+const MAX_POLL_ATTEMPTS = ECASH_QUOTE_POLL_MAX_ATTEMPTS
 const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
 
 function toError(error: unknown) {
