@@ -211,7 +211,7 @@ function useNostrDMStorage() {
       return
     }
 
-    let currentDms = [...(currentAccount.nostr.dms || [])]
+    const currentDms = [...(currentAccount.nostr.dms || [])]
     const existingIds = new Set(currentDms.map((m) => m.id))
     const syncStartSec = getSyncStartSeconds(currentAccount)
     const deviceHex = getDevicePubkeyHex(currentAccount)
