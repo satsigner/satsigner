@@ -501,7 +501,7 @@ export function useHistoryChartLabels({
       }
 
       const builtPara = para.build()
-      builtPara.layout(10000)
+      builtPara.layout(10_000)
       paragraphs.set(label.index, builtPara)
     }
 

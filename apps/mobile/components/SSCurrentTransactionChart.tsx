@@ -335,7 +335,7 @@ function SSCurrentTransactionChart({
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
           elevatedFeeRate,
-          feePercentage: Math.round(feePercentage * 10000) / 100,
+          feePercentage: Math.round(feePercentage * 10_000) / 100,
           feeRate: feeRateProp,
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),

@@ -1,7 +1,7 @@
 import QuickCrypto from 'react-native-quick-crypto'
 import uuid from 'react-native-uuid'
 
-const UINT32_RANGE = 0x100000000 // 2^32
+const UINT32_RANGE = 0x1_00_00_00_00 // 2^32
 const IV_BYTES = 16
 const AES_ALGORITHM = 'aes-256-cbc'
 const PBKDF2_ITERATIONS = 10_000
@@ -56,7 +56,7 @@ function seededRandom(seed: number) {
   let state = seed >>> 0
   return function next() {
     state |= 0
-    state = (state + 0x6d2b79f5) | 0
+    state = (state + 0x6d_2b_79_f5) | 0
     let t = Math.imul(state ^ (state >>> 15), 1 | state)
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
     // Same [0, 1) contract as randomNum: divide by 2^32 so a maximal word
@@ -66,10 +66,10 @@ function seededRandom(seed: number) {
 }
 /* eslint-enable unicorn/prefer-math-trunc, operator-assignment */
 
-const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
+const JAVA_RANDOM_MULTIPLIER = 0x5_de_ec_e6_6dn
 const JAVA_RANDOM_ADDEND = 0xbn
 const JAVA_RANDOM_MASK = (1n << 48n) - 1n
-const JAVA_INTEGER_MAX_VALUE = 0x7fffffff
+const JAVA_INTEGER_MAX_VALUE = 0x7f_ff_ff_ff
 
 /**
  * Deterministic PRNG matching java.util.Random (48-bit LCG). Sparrow's

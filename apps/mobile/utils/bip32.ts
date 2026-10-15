@@ -27,8 +27,8 @@ import {
 } from '@/utils/bitcoin'
 
 const VERSIONS = {
-  mainnet: { private: 0x0488ade4, public: 0x0488b21e },
-  testnet: { private: 0x04358394, public: 0x043587cf }
+  mainnet: { private: 0x04_88_ad_e4, public: 0x04_88_b2_1e },
+  testnet: { private: 0x04_35_83_94, public: 0x04_35_87_cf }
 }
 
 const bip32 = BIP32Factory(ecc)
@@ -44,16 +44,16 @@ We need to convert BDK Network enum type to the type used by BIP32Interface.
 
 const BIP32NetworkMainnet: BIP32Interface['network'] = {
   bip32: {
-    private: 0x0488ade4,
-    public: 0x0488b21e
+    private: 0x04_88_ad_e4,
+    public: 0x04_88_b2_1e
   },
   wif: 0x80
 }
 
 const BIP32NetworkTestnet: BIP32Interface['network'] = {
   bip32: {
-    private: 0x04358394,
-    public: 0x043587cf
+    private: 0x04_35_83_94,
+    public: 0x04_35_87_cf
   },
   wif: 0xef
 }
@@ -356,7 +356,7 @@ function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   const master = HDKey.fromMasterSeed(seed, versions)
 
   // Derive m/45' for P2SH
-  const node = master.deriveChild(0x80000000 + BIP45_PURPOSE)
+  const node = master.deriveChild(0x80_00_00_00 + BIP45_PURPOSE)
 
   return node.publicExtendedKey
 }
@@ -374,10 +374,10 @@ function getP2SHP2WSHXpub(
   // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + BIP48_PURPOSE)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2SH_P2WSH)
+    .deriveChild(0x80_00_00_00 + BIP48_PURPOSE)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
+    .deriveChild(0x80_00_00_00 + BIP48_SCRIPT_TYPE_P2SH_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -395,10 +395,10 @@ function getP2WSHXpub(
   // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + BIP48_PURPOSE)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
-    .deriveChild(0x80000000 + BIP48_SCRIPT_TYPE_P2WSH)
+    .deriveChild(0x80_00_00_00 + BIP48_PURPOSE)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
+    .deriveChild(0x80_00_00_00 + BIP48_SCRIPT_TYPE_P2WSH)
 
   return node.publicExtendedKey
 }
@@ -421,9 +421,9 @@ function getP2PKHXpub(
   // Derive m/44'/0'/0' for mainnet, m/44'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + BIP44_PURPOSE)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + BIP44_PURPOSE)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }
@@ -438,9 +438,9 @@ function getP2SHP2WPKHXpub(
   // Derive m/49'/0'/0' for mainnet, m/49'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + BIP49_PURPOSE)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + BIP49_PURPOSE)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }
@@ -452,9 +452,9 @@ function getP2TRXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
   // Derive m/86'/0'/0' for mainnet, m/86'/1'/0' for testnet
   const coinType = network === 'mainnet' ? 0 : 1
   const node = master
-    .deriveChild(0x80000000 + BIP86_PURPOSE)
-    .deriveChild(0x80000000 + coinType)
-    .deriveChild(0x80000000)
+    .deriveChild(0x80_00_00_00 + BIP86_PURPOSE)
+    .deriveChild(0x80_00_00_00 + coinType)
+    .deriveChild(0x80_00_00_00)
 
   return node.publicExtendedKey
 }

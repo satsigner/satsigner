@@ -824,7 +824,7 @@ export default function SignTransaction() {
         outputScriptsHex: callbacks.outputScriptsHex,
         payjoinUri,
         paymentAmountSats,
-        quickPollMs: 3_000
+        quickPollMs: 3000
       })
       payjoinLog('ui startBip77Send result', {
         kind: started.kind,

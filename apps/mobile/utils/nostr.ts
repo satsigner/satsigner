@@ -183,13 +183,13 @@ export function extractInboxRelayUrls(
   const sorted = [...events].toSorted(
     (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
   )
-  const dmInbox = sorted.find((e) => e.kind === 10050)
-  const relayList = sorted.find((e) => e.kind === 10002)
+  const dmInbox = sorted.find((e) => e.kind === 10_050)
+  const relayList = sorted.find((e) => e.kind === 10_002)
   const pick = dmInbox ?? relayList
   if (!pick) {
     return []
   }
-  const tagName = pick.kind === 10050 ? 'relay' : 'r'
+  const tagName = pick.kind === 10_050 ? 'relay' : 'r'
   const urls = pick.tags
     .filter((tag) => tag[0] === tagName && typeof tag[1] === 'string')
     .map((tag) => tag[1])

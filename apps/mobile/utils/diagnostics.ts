@@ -46,9 +46,9 @@ export type DiagnosticCheckId =
   | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
-const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
+const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3000
 const LIVE_RETRIEVE_ATTEMPTS = 4
-const LIVE_RETRIEVE_DELAY_MS = 2_500
+const LIVE_RETRIEVE_DELAY_MS = 2500
 
 // Sized to run in ~1s on-device while still catching weak-RNG classes:
 // any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)

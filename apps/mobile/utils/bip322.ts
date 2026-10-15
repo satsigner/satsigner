@@ -46,7 +46,7 @@ export function buildToSpendTx(
   tx.version = 0
   tx.locktime = 0
   const scriptSig = bscript.compile([opcodes.OP_0, bip322MessageHash(message)])
-  tx.addInput(ZERO_HASH, 0xffffffff, 0, scriptSig)
+  tx.addInput(ZERO_HASH, 0xff_ff_ff_ff, 0, scriptSig)
   tx.addOutput(scriptPubKey, 0)
   return tx
 }

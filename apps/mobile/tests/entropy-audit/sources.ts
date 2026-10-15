@@ -18,8 +18,8 @@ export type EntropySourceName =
   | 'brokenLowEntropy'
 
 const LOW_ENTROPY_SEED_BITS = 30
-const LCG_MULTIPLIER = 1664525
-const LCG_INCREMENT = 1013904223
+const LCG_MULTIPLIER = 1_664_525
+const LCG_INCREMENT = 1_013_904_223
 
 export function sampleCsprng(byteCount: number): Uint8Array {
   const bytes = new Uint8Array(byteCount)

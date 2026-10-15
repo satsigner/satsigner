@@ -789,7 +789,7 @@ async function buildTransactionWithRpc(
   )
 
   const rpcInputs = data.inputs.map((u) => ({
-    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    sequence: data.options.rbf ? 0xff_ff_ff_fd : 0xff_ff_ff_ff,
     txid: u.txid,
     vout: u.vout
   }))

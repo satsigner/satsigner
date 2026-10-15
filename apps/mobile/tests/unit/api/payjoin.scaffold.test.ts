@@ -40,7 +40,7 @@ describe('payjoin scaffold (phase 0)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'acct-keep',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 5_000
+      amountSats: 5000
     })
 
     const broken = {

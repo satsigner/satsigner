@@ -39,28 +39,28 @@ const TIFF_TYPE_SIZE: Record<number, number> = {
   [TIFF_SRATIONAL]: 8
 }
 
-const TAG_IMAGE_DESCRIPTION = 0x010e
-const TAG_MAKE = 0x010f
-const TAG_MODEL = 0x0110
-const TAG_SOFTWARE = 0x0131
-const TAG_ARTIST = 0x013b
-const TAG_COPYRIGHT = 0x8298
-const TAG_EXIF_IFD = 0x8769
-const TAG_GPS_IFD = 0x8825
+const TAG_IMAGE_DESCRIPTION = 0x01_0e
+const TAG_MAKE = 0x01_0f
+const TAG_MODEL = 0x01_10
+const TAG_SOFTWARE = 0x01_31
+const TAG_ARTIST = 0x01_3b
+const TAG_COPYRIGHT = 0x82_98
+const TAG_EXIF_IFD = 0x87_69
+const TAG_GPS_IFD = 0x88_25
 
-const TAG_EXPOSURE_TIME = 0x829a
-const TAG_F_NUMBER = 0x829d
-const TAG_ISO = 0x8827
-const TAG_DATE_TIME_ORIGINAL = 0x9003
-const TAG_FOCAL_LENGTH = 0x920a
-const TAG_LENS_MODEL = 0xa434
+const TAG_EXPOSURE_TIME = 0x82_9a
+const TAG_F_NUMBER = 0x82_9d
+const TAG_ISO = 0x88_27
+const TAG_DATE_TIME_ORIGINAL = 0x90_03
+const TAG_FOCAL_LENGTH = 0x92_0a
+const TAG_LENS_MODEL = 0xa4_34
 
-const TAG_GPS_LAT_REF = 0x0001
-const TAG_GPS_LAT = 0x0002
-const TAG_GPS_LON_REF = 0x0003
-const TAG_GPS_LON = 0x0004
-const TAG_GPS_ALT_REF = 0x0005
-const TAG_GPS_ALT = 0x0006
+const TAG_GPS_LAT_REF = 0x00_01
+const TAG_GPS_LAT = 0x00_02
+const TAG_GPS_LON_REF = 0x00_03
+const TAG_GPS_LON = 0x00_04
+const TAG_GPS_ALT_REF = 0x00_05
+const TAG_GPS_ALT = 0x00_06
 
 function readUint16(view: DataView, offset: number, le: boolean): number {
   return view.getUint16(offset, le)
@@ -278,7 +278,7 @@ export async function parseImageExif(
     const view = new DataView(buffer)
 
     // Verify JPEG SOI marker
-    if (view.getUint16(0, false) !== 0xffd8) {
+    if (view.getUint16(0, false) !== 0xff_d8) {
       return null
     }
 
@@ -293,14 +293,14 @@ export async function parseImageExif(
       const marker = view.getUint16(pos, false)
       const segLen = view.getUint16(pos + 2, false)
 
-      if (marker === 0xffd9 || segLen < 2) {
+      if (marker === 0xff_d9 || segLen < 2) {
         break
       } // EOI or bad segment
       const dataStart = pos + 4
       const dataLen = segLen - 2
 
       // APP1 — may contain EXIF or XMP
-      if (marker === 0xffe1 && dataLen > 6) {
+      if (marker === 0xff_e1 && dataLen > 6) {
         const header = [0, 1, 2, 3, 4, 5]
           .map((i) => view.getUint8(dataStart + i))
           .map((b) => String.fromCharCode(b))
@@ -309,7 +309,7 @@ export async function parseImageExif(
         if (header === 'Exif\0\0') {
           const tiffStart = dataStart + 6
           const byteOrder = view.getUint16(tiffStart, false)
-          const le = byteOrder === 0x4949 // II = little-endian
+          const le = byteOrder === 0x49_49 // II = little-endian
 
           const ifd0Offset = readUint32(view, tiffStart + 4, le)
           const ifd0 = readIFD(view, tiffStart + ifd0Offset, tiffStart, le)
@@ -368,7 +368,7 @@ export async function parseImageExif(
       }
 
       // APP13 — IPTC/NAA (Photoshop)
-      if (marker === 0xffed && dataLen > 14) {
+      if (marker === 0xff_ed && dataLen > 14) {
         const header = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
           .map((i) => view.getUint8(dataStart + i))
           .map((b) => String.fromCharCode(b))

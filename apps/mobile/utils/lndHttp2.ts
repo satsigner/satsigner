@@ -65,7 +65,7 @@ export function looksLikeHttp2Session(raw: Buffer): boolean {
     }
   }
   const type = raw.at(3) ?? -1
-  const streamId = readU32BE(raw, 5) & 0x7fffffff
+  const streamId = readU32BE(raw, 5) & 0x7f_ff_ff_ff
   return (
     streamId === 0 &&
     (type === FRAME_SETTINGS ||
@@ -145,7 +145,7 @@ export function takeHttp2Frames(raw: Buffer): {
   const frame: Http2Frame = {
     flags: raw[4],
     payload: Buffer.from(raw.subarray(9, total)),
-    streamId: readU32BE(raw, 5) & 0x7fffffff,
+    streamId: readU32BE(raw, 5) & 0x7f_ff_ff_ff,
     type: raw[3]
   }
   const next = takeHttp2Frames(Buffer.from(raw.subarray(total)))
@@ -177,7 +177,7 @@ function http2Frame(
   header[2] = length & 0xff
   header[3] = type
   header[4] = flags
-  writeU32BE(header, 5, streamId & 0x7fffffff)
+  writeU32BE(header, 5, streamId & 0x7f_ff_ff_ff)
   return Buffer.concat([header, payload])
 }
 

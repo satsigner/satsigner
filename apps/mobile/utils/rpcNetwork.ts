@@ -1,8 +1,8 @@
 import { type Network } from '@/types/settings/blockchain'
 
 const RPC_PORT_MAINNET = 8332
-const RPC_PORT_SIGNET = 38332
-const RPC_PORT_TESTNET = 18332
+const RPC_PORT_SIGNET = 38_332
+const RPC_PORT_TESTNET = 18_332
 
 /** Bitcoin Core `getblockchaininfo.chain` values per app network tab. */
 function expectedCoreChain(network: Network): string {

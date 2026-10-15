@@ -6,22 +6,22 @@ import {
 describe('defaultElectrumPorts', () => {
   it('uses mainnet 50001/50002', () => {
     expect(defaultElectrumPorts('bitcoin')).toStrictEqual({
-      ssl: 50002,
-      tcp: 50001
+      ssl: 50_002,
+      tcp: 50_001
     })
   })
 
   it('uses signet 60001/60002', () => {
     expect(defaultElectrumPorts('signet')).toStrictEqual({
-      ssl: 60002,
-      tcp: 60001
+      ssl: 60_002,
+      tcp: 60_001
     })
   })
 
   it('uses testnet 51001/51002', () => {
     expect(defaultElectrumPorts('testnet')).toStrictEqual({
-      ssl: 51002,
-      tcp: 51001
+      ssl: 51_002,
+      tcp: 51_001
     })
   })
 })

@@ -188,12 +188,12 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 }
 
 function formatConfirmationCount(confirmations: number) {
-  if (confirmations < 1_000) {
+  if (confirmations < 1000) {
     return `${confirmations}`
   }
 
   if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
+    const roundedValue = Math.round(confirmations / 1000)
     return `~${roundedValue}k`
   }
 

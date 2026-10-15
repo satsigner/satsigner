@@ -233,7 +233,7 @@ export const useNodesAndLinks = ({
           indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
           ioData: {
             elevatedFeeRate: elevatedFeeRateForCurrentTx,
-            feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
+            feePercentage: Math.round(feePercentageForCurrentTx * 10_000) / 100,
             feeRate: displayFeeRate,
             fiatCurrency,
             fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -521,7 +521,8 @@ export const useNodesAndLinks = ({
               depthH: feeOutputDepth,
               id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               ioData: {
-                feePercentage: Math.round(feePercentageForPastTx * 10000) / 100,
+                feePercentage:
+                  Math.round(feePercentageForPastTx * 10_000) / 100,
                 feeRate: minerFeeRate,
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(minerFee), 2),

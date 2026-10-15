@@ -292,7 +292,7 @@ function parsePath(path: string): number[] {
     throw new Error('Derivation path must start with "m"')
   }
 
-  const HARDENED_OFFSET = 0x80000000 // replace HDKey.HARDENED_OFFSET
+  const HARDENED_OFFSET = 0x80_00_00_00 // replace HDKey.HARDENED_OFFSET
 
   const items = parts.slice(1).map((p: string) => {
     const hardened = /('|h|H)$/.test(p)

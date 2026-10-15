@@ -32,7 +32,7 @@ export type DecodeBlockResult = {
 }
 
 /** Cap displayed decoded hex so large blocks stay interactive. */
-export const BLOCK_DECODE_PREVIEW_CHARS = 8_192
+export const BLOCK_DECODE_PREVIEW_CHARS = 8192
 
 /**
  * Extra binary headroom so fat coinbases can still parse even when the

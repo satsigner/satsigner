@@ -27,8 +27,8 @@ describe('canAutoApproveRequest', () => {
       0, // profile metadata
       3, // contact list
       5, // deletion
-      10002, // relay list
-      10003 // bookmarks
+      10_002, // relay list
+      10_003 // bookmarks
     ]) {
       expect(
         canAutoApproveRequest('sign_event', signEventParams({ kind }))
@@ -38,7 +38,7 @@ describe('canAutoApproveRequest', () => {
 
   it('requires explicit approval for unknown sign_event kinds', () => {
     expect(
-      canAutoApproveRequest('sign_event', signEventParams({ kind: 99999 }))
+      canAutoApproveRequest('sign_event', signEventParams({ kind: 99_999 }))
     ).toBe(false)
   })
 

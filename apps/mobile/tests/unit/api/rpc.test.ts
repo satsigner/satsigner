@@ -402,7 +402,7 @@ describe('bitcoinCoreWallet', () => {
     await wallet.listUnspent()
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.params).toStrictEqual([0, 9999999])
+    expect(body.params).toStrictEqual([0, 9_999_999])
   })
 
   it('listTransactions defaults to a large count and includes watch-only', async () => {
@@ -412,7 +412,7 @@ describe('bitcoinCoreWallet', () => {
     await wallet.listTransactions()
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.params).toStrictEqual(['*', 99999, 0, true])
+    expect(body.params).toStrictEqual(['*', 99_999, 0, true])
   })
 
   it('getTransaction requests the verbose/decoded form', async () => {

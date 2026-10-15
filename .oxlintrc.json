@@ -42,7 +42,6 @@
     "import/consistent-type-specifier-style": "allow",
     "unicorn/switch-case-braces": "allow",
     "typescript/no-import-type-side-effects": "allow",
-    "unicorn/numeric-separators-style": "allow",
     "unicorn/prefer-number-properties": "allow",
     "typescript/no-non-null-assertion": "allow",
     "unicorn/prefer-spread": "allow",

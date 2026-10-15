@@ -29,7 +29,7 @@ function createCryptoPsbtCBOR(psbtBytes: Buffer): Uint8Array {
   } else if (dataLength < 256) {
     // Byte string with 1-byte length: 0x58 + length byte
     cborHeader = [0x58, dataLength]
-  } else if (dataLength < 65536) {
+  } else if (dataLength < 65_536) {
     // Byte string with 2-byte length: 0x59 + length bytes (big endian)
     cborHeader = [0x59, (dataLength >> 8) & 0xff, dataLength & 0xff]
   } else {

@@ -17,7 +17,7 @@ import {
 import { getUtxoOutpoint } from './outpoint'
 
 const DEFAULT_LONG_TERM_FEE_RATE = 5
-const SELECTION_SEED_MAX = 0x1_0000_0000
+const SELECTION_SEED_MAX = 0x1_00_00_00_00
 const BASE_TX_OVERHEAD_VBYTES = 10
 const DEFAULT_CHANGE_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'
 const DEFAULT_RECIPIENT_SCRIPT_TYPE: ScriptVersionType = 'P2WPKH'

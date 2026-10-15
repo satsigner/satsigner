@@ -466,7 +466,7 @@ function SSMultisigKeyControl({
             opacity: 0,
             position: 'absolute',
             right: 0,
-            top: -10000 // Move off-screen
+            top: -10_000 // Move off-screen
           }}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout

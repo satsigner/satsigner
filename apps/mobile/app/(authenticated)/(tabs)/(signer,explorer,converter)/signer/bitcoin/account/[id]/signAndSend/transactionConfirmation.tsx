@@ -237,7 +237,7 @@ export default function TransactionConfirmation() {
         label: u.label,
         previousOutput: { txid: u.txid, vout: u.vout },
         scriptSig: [],
-        sequence: 0xffffffff,
+        sequence: 0xff_ff_ff_ff,
         value: u.value,
         witness: []
       })),
