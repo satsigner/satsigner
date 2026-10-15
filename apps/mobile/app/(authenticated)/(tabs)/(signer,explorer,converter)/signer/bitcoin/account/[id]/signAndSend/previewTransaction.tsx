@@ -2035,6 +2035,7 @@ function PreviewTransaction() {
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
   return (
+    // oxlint-disable-next-line react/jsx-no-useless-fragment -- remove with the #530 refactor (PR #567) to avoid a full re-indent conflict
     <>
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack justifyBetween>

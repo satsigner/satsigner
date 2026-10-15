@@ -586,9 +586,7 @@ export default function EcashTransactionDetailPage() {
             {t('ecash.transactionDetail.lightningInvoice')}
           </SSText>
           {lightningInvoice && (
-            <>
-              <SSShareableQR value={lightningInvoice} size={250} />
-            </>
+            <SSShareableQR value={lightningInvoice} size={250} />
           )}
         </SSVStack>
       </SSModal>

@@ -58,7 +58,6 @@
     "unicorn/no-array-reduce": "allow",
     "react/style-prop-object": "allow",
     "unicorn/no-immediate-mutation": "allow",
-    "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
     "import/no-named-as-default-member": "allow",
     "unicorn/prefer-event-target": "allow",

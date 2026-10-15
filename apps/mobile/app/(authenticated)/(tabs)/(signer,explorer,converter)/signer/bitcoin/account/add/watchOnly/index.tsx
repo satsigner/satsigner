@@ -957,23 +957,19 @@ export default function WatchOnly() {
                 </SSVStack>
               )}
               {selectedOption === 'importDescriptor' && (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText center>
-                      {t('watchonly.importDescriptor.internal')}
-                    </SSText>
-                    <SSTextInput
-                      value={internalDescriptor}
-                      style={
-                        isValidInternalDescriptor
-                          ? styles.valid
-                          : styles.invalid
-                      }
-                      multiline
-                      onChangeText={updateInternalDescriptor}
-                    />
-                  </SSVStack>
-                </>
+                <SSVStack gap="xxs">
+                  <SSText center>
+                    {t('watchonly.importDescriptor.internal')}
+                  </SSText>
+                  <SSTextInput
+                    value={internalDescriptor}
+                    style={
+                      isValidInternalDescriptor ? styles.valid : styles.invalid
+                    }
+                    multiline
+                    onChangeText={updateInternalDescriptor}
+                  />
+                </SSVStack>
               )}
             </SSVStack>
           </SSVStack>

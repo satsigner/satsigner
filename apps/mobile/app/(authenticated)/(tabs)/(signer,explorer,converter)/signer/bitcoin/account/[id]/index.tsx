@@ -2212,120 +2212,120 @@ export default function AccountView() {
     const tabWidth =
       isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
 
+    if (expand) {
+      return null
+    }
+
     return (
-      <>
-        {!expand && (
-          <SSHStack
-            gap="none"
-            style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
-          >
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(0)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfTransactions}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.totalTransactions')}
-                </SSText>
-                {tabIndex === 0 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            {(!isImportAddress || account.keys.length > 1) && (
-              <SSActionButton
-                style={{ width: tabWidth }}
-                onPress={() => handleTabIndexChange(1)}
-              >
-                <SSVStack gap="none">
-                  <SSText center size="lg">
-                    {account.summary.numberOfAddresses}
-                  </SSText>
-                  <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {isMultiAddressWatchOnly
-                      ? t('accounts.watchedAddresses')
-                      : t('accounts.derivedAddresses')}
-                  </SSText>
-                  {tabIndex === 1 && (
-                    <View
-                      style={{
-                        alignSelf: 'center',
-                        backgroundColor: Colors.white,
-                        bottom: -12,
-                        height: 2,
-                        position: 'absolute',
-                        width: '100%'
-                      }}
-                    />
-                  )}
-                </SSVStack>
-              </SSActionButton>
+      <SSHStack
+        gap="none"
+        style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
+      >
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(0)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {account.summary.numberOfTransactions}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.totalTransactions')}
+            </SSText>
+            {tabIndex === 0 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
             )}
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(2)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfUtxos}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.spendableOutputs')}
-                </SSText>
-                {tabIndex === 2 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(3)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {formatNumber(account.summary.satsInMempool, 0, false, ',')}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.satsInMempool')}
-                </SSText>
-                {tabIndex === 3 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-          </SSHStack>
+          </SSVStack>
+        </SSActionButton>
+        {(!isImportAddress || account.keys.length > 1) && (
+          <SSActionButton
+            style={{ width: tabWidth }}
+            onPress={() => handleTabIndexChange(1)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.numberOfAddresses}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {isMultiAddressWatchOnly
+                  ? t('accounts.watchedAddresses')
+                  : t('accounts.derivedAddresses')}
+              </SSText>
+              {tabIndex === 1 && (
+                <View
+                  style={{
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white,
+                    bottom: -12,
+                    height: 2,
+                    position: 'absolute',
+                    width: '100%'
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
         )}
-      </>
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(2)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {account.summary.numberOfUtxos}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.spendableOutputs')}
+            </SSText>
+            {tabIndex === 2 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(3)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {formatNumber(account.summary.satsInMempool, 0, false, ',')}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.satsInMempool')}
+            </SSText>
+            {tabIndex === 3 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+      </SSHStack>
     )
   }
 
