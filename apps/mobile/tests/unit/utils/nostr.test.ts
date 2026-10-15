@@ -190,9 +190,9 @@ describe('deriveNostrKeysFromDescriptor', () => {
     )
     expect(result1.commonNsec).toBe(result2.commonNsec)
     expect(result1.commonNpub).toBe(result2.commonNpub)
-    expect(Array.from(result1.privateKeyBytes)).toStrictEqual(
-      Array.from(result2.privateKeyBytes)
-    )
+    expect([...result1.privateKeyBytes]).toStrictEqual([
+      ...result2.privateKeyBytes
+    ])
   })
 
   it('produces different keys for different descriptors', async () => {

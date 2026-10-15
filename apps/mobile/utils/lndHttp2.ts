@@ -51,7 +51,7 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
   if (left.length !== right.length) {
     return false
   }
-  return Array.from(left).every((byte, index) => byte === right[index])
+  return [...left].every((byte, index) => byte === right[index])
 }
 
 export function looksLikeHttp2Session(raw: Buffer): boolean {

@@ -6,25 +6,25 @@ import {
 
 describe('scriptToBytes', () => {
   it('parses hex strings', () => {
-    expect(Array.from(scriptToBytes('6a0b68656c6c6f') ?? [])).toStrictEqual([
+    expect([...(scriptToBytes('6a0b68656c6c6f') ?? [])]).toStrictEqual([
       0x6a, 0x0b, 0x68, 0x65, 0x6c, 0x6c, 0x6f
     ])
   })
 
   it('accepts byte arrays', () => {
-    expect(Array.from(scriptToBytes([0x6a, 0x01, 0xff]) ?? [])).toStrictEqual([
+    expect([...(scriptToBytes([106, 1, 255]) ?? [])]).toStrictEqual([
       0x6a, 0x01, 0xff
     ])
   })
 
   it('treats bare ASM OP_RETURN as OP_RETURN', () => {
-    expect(Array.from(scriptToBytes('OP_RETURN') ?? [])).toStrictEqual([0x6a])
+    expect([...(scriptToBytes('OP_RETURN') ?? [])]).toStrictEqual([0x6a])
   })
 
   it('parses ASM OP_RETURN hex payload', () => {
-    expect(
-      Array.from(scriptToBytes('OP_RETURN 68656c6c6f') ?? [])
-    ).toStrictEqual([0x6a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f])
+    expect([...(scriptToBytes('OP_RETURN 68656c6c6f') ?? [])]).toStrictEqual([
+      0x6a, 0x05, 0x68, 0x65, 0x6c, 0x6c, 0x6f
+    ])
   })
 })
 

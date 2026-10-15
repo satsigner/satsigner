@@ -141,11 +141,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     }
 
     const levelOneTxids = new Set(
-      Array.from(inputs.values()).map((u) => normalizeTxid(u.txid))
+      [...inputs.values()].map((u) => normalizeTxid(u.txid))
     )
 
     const newTransactions = new Map<string, ExtendedTransaction>()
-    const queue = Array.from(inputs.values()).map((input) => ({
+    const queue = [...inputs.values()].map((input) => ({
       level: 1,
       txid: normalizeTxid(input.txid)
     }))
@@ -251,21 +251,19 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       vout: input.vout
                     },
                     scriptSig: input.scriptsig
-                      ? Array.from(Buffer.from(input.scriptsig, 'hex'))
+                      ? [...Buffer.from(input.scriptsig, 'hex')]
                       : [],
                     sequence: input.sequence,
                     value: input.prevout?.value,
                     witness: input.witness
-                      ? input.witness.map((w) =>
-                          Array.from(Buffer.from(w, 'hex'))
-                        )
+                      ? input.witness.map((w) => [...Buffer.from(w, 'hex')])
                       : []
                   })),
                   vout: tx.vout.map((output) => ({
                     address: output?.scriptpubkey_address || '',
                     label: undefined,
                     script: output.scriptpubkey
-                      ? Array.from(hex.decode(output.scriptpubkey))
+                      ? [...hex.decode(output.scriptpubkey)]
                       : [],
                     value: output.value
                   })),
@@ -316,7 +314,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
                     prices: {},
-                    raw: Array.from(Buffer.from(fetched.hex, 'hex')),
+                    raw: [...Buffer.from(fetched.hex, 'hex')],
                     received: 0,
                     sent: 0,
                     size: parsedTx.byteLength(),
@@ -330,17 +328,17 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         txid: outpointHashBytesToTxid(input.hash),
                         vout: input.index
                       },
-                      scriptSig: Array.from(input.script),
+                      scriptSig: [...input.script],
                       sequence: input.sequence,
                       value: undefined,
-                      witness: input.witness.map((w) => Array.from(w))
+                      witness: input.witness.map((w) => [...w])
                     })),
                     vout: parsedTx.outs.map((output) => ({
                       address: output.script
                         ? outputScriptToAddress(output.script)
                         : '',
                       label: undefined,
-                      script: Array.from(output.script),
+                      script: [...output.script],
                       value: output.value
                     })),
                     vsize: parsedTx.virtualSize(),
@@ -387,7 +385,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     lockTime: rawTx.locktime,
                     lockTimeEnabled: rawTx.locktime > 0,
                     prices: {},
-                    raw: Array.from(hex.decode(rawTx.hex)),
+                    raw: [...hex.decode(rawTx.hex)],
                     received: 0,
                     sent: 0,
                     size: rawTx.size,
@@ -409,9 +407,9 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       sequence: input.sequence,
                       value: undefined,
                       witness: input.txinwitness
-                        ? input.txinwitness.map((w) =>
-                            Array.from(Buffer.from(w, 'hex'))
-                          )
+                        ? input.txinwitness.map((w) => [
+                            ...Buffer.from(w, 'hex')
+                          ])
                         : []
                     })),
                     vout: rawTx.vout.map((output) => ({
@@ -420,7 +418,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         output.scriptPubKey.addresses?.[0] ??
                         '',
                       label: undefined,
-                      script: Array.from(hex.decode(output.scriptPubKey.hex)),
+                      script: [...hex.decode(output.scriptPubKey.hex)],
                       value: Math.round(output.value * SATS_PER_BITCOIN)
                     })),
                     vsize: rawTx.vsize,
@@ -535,7 +533,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
                     prices: {},
-                    raw: Array.from(Buffer.from(rawHex, 'hex')),
+                    raw: [...Buffer.from(rawHex, 'hex')],
                     received: 0, // Not needed
                     sent: 0, // Not needed
                     size: parsedTx.byteLength(),
@@ -566,10 +564,10 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                           txid: prevTxid,
                           vout: prevVout
                         },
-                        scriptSig: Array.from(input.script),
+                        scriptSig: [...input.script],
                         sequence: input.sequence,
                         value, // Assign fetched value
-                        witness: input.witness.map((w) => Array.from(w))
+                        witness: input.witness.map((w) => [...w])
                       }
                     }),
                     vout: parsedTx.outs.map((output) => ({
@@ -577,7 +575,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                         ? outputScriptToAddress(output.script)
                         : '',
                       label: undefined, // TODO: add label
-                      script: Array.from(output.script),
+                      script: [...output.script],
                       value: output.value
                     })),
                     vsize: parsedTx.virtualSize(),
@@ -741,7 +739,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
         }
 
         const mappedInputs = new Map(
-          Array.from(inputs.entries()).map(([key, utxo]) => [
+          [...inputs.entries()].map(([key, utxo]) => [
             key,
             {
               scriptpubkey_address: utxo.addressTo || '',

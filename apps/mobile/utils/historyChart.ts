@@ -198,7 +198,7 @@ export function buildUtxoRectangles({
   chartWidth,
   currentDate
 }: UtxoGeometryParams): UtxoRectangle[] {
-  return Array.from(balanceHistory.entries())
+  return [...balanceHistory.entries()]
     .flatMap(([index, balances]) => {
       const x1 = xScale(
         new Date(transactions.at(index)?.timestamp ?? currentDate)
@@ -212,7 +212,7 @@ export function buildUtxoRectangles({
         return []
       }
       let totalBalance = 0
-      return Array.from(balances.entries()).map(([, utxo]) => {
+      return [...balances.entries()].map(([, utxo]) => {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.value)
         let gradientType = 0

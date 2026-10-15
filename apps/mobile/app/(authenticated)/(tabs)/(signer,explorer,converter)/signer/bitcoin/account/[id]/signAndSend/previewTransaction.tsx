@@ -782,7 +782,7 @@ function PreviewTransaction() {
     try {
       switch (type) {
         case 'raw': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
@@ -796,7 +796,7 @@ function PreviewTransaction() {
         }
 
         case 'bbqr': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
@@ -811,7 +811,7 @@ function PreviewTransaction() {
         }
 
         case 'ur': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
@@ -910,7 +910,7 @@ function PreviewTransaction() {
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
 
-    const inputArray = Array.from(inputs.values())
+    const inputArray = [...inputs.values()]
 
     for (const input of inputArray) {
       if (
@@ -950,22 +950,20 @@ function PreviewTransaction() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const inputArray = Array.from(inputs.values())
+    const inputArray = [...inputs.values()]
     const { size, vsize } =
       inputArray.length > 0
         ? estimateTransactionSize(inputArray, outputs)
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
-    const vin: Transaction['vin'] = Array.from(inputs.values()).map(
-      (input: Utxo) => ({
-        label: input.label || '',
-        previousOutput: { txid: input.txid, vout: input.vout },
-        scriptSig: '',
-        sequence: 0,
-        value: input.value,
-        witness: []
-      })
-    )
+    const vin: Transaction['vin'] = [...inputs.values()].map((input: Utxo) => ({
+      label: input.label || '',
+      previousOutput: { txid: input.txid, vout: input.vout },
+      scriptSig: '',
+      sequence: 0,
+      value: input.value,
+      witness: []
+    }))
 
     const vout: Transaction['vout'] = outputs.map((output: Output) => ({
       address: output.to,
@@ -1051,8 +1049,8 @@ function PreviewTransaction() {
       }
 
       try {
-        const inputArray = Array.from(inputs.values())
-        const outputArray = Array.from(outputs.values())
+        const inputArray = [...inputs.values()]
+        const outputArray = [...outputs.values()]
 
         const transaction = account
           ? await buildPsbt(wallet, server, account, {
@@ -1470,7 +1468,7 @@ function PreviewTransaction() {
 
     if (type === 'ur') {
       // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...Array.from(newScanned))
+      const maxFragmentNumber = Math.max(...newScanned)
       const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
 
       // For fountain encoding, try assembly after collecting enough fragments
@@ -1641,7 +1639,7 @@ function PreviewTransaction() {
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData)
+        const txHex = [...result.txData]
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
@@ -1751,7 +1749,7 @@ function PreviewTransaction() {
 
     const requiredSignatures = account.keysRequired || account.keys.length
 
-    const validSignatures = Array.from(validationResults.values()).filter(
+    const validSignatures = [...validationResults.values()].filter(
       (isValid) => isValid === true
     ).length
 
@@ -1767,7 +1765,7 @@ function PreviewTransaction() {
         return null
       }
 
-      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
+      const collectedSignedPsbts = [...signedPsbts.values()].filter(
         (psbt) => psbt && psbt.trim().length > 0
       )
 
@@ -2159,7 +2157,7 @@ function PreviewTransaction() {
                     <SSSignatureRequiredDisplay
                       requiredNumber={account.keysRequired || 1}
                       totalNumber={account.keyCount || 1}
-                      collectedSignatures={Array.from(signedPsbts.entries())
+                      collectedSignatures={[...signedPsbts.entries()]
                         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
                         .map(([index]) => index)}
                       validationResults={validationResults}
@@ -2227,7 +2225,7 @@ function PreviewTransaction() {
                     >
                       {t('transaction.preview.signaturesCollected')}:{' '}
                       {
-                        Array.from(signedPsbts.values()).filter(
+                        [...signedPsbts.values()].filter(
                           (psbt) => psbt && psbt.trim().length > 0
                         ).length
                       }{' '}
@@ -2646,9 +2644,7 @@ function PreviewTransaction() {
                 {scanProgress.type === 'ur' ? (
                   <>
                     {(() => {
-                      const maxFragment = Math.max(
-                        ...Array.from(scanProgress.scanned)
-                      )
+                      const maxFragment = Math.max(...scanProgress.scanned)
                       const actualTotal = maxFragment + 1
                       const conservativeTarget = Math.ceil(actualTotal * 1.1)
                       const theoreticalTarget = Math.ceil(
@@ -2716,7 +2712,7 @@ function PreviewTransaction() {
                       />
                     </View>
                     <SSText color="muted" size="sm" center>
-                      {`Scanned parts: ${Array.from(scanProgress.scanned)
+                      {`Scanned parts: ${[...scanProgress.scanned]
                         .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}

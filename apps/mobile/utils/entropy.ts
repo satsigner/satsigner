@@ -41,7 +41,7 @@ function hashToBits(domain: string, input: string, bits: number): string {
     .update(`${domain}:${input}`)
     .digest()
 
-  return Array.from(digest.subarray(0, bits / BITS_PER_BYTE))
+  return [...digest.subarray(0, bits / BITS_PER_BYTE)]
     .map((byte) => byte.toString(2).padStart(BITS_PER_BYTE, '0'))
     .join('')
 }

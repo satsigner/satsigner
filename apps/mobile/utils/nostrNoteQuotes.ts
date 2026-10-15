@@ -135,7 +135,7 @@ export function collectUnresolvedEventIds(
     }
   }
 
-  return Array.from(ids)
+  return [...ids]
 }
 
 export function isNoteQuotePost(note: NostrFeedNoteLike): boolean {

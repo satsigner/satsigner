@@ -202,7 +202,7 @@ export default function TransactionConfirmation() {
       return
     }
 
-    const inputsList = Array.from(inputs.values())
+    const inputsList = [...inputs.values()]
     const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
 
     const ownAddresses = new Set(account.addresses.map((a) => a.address))

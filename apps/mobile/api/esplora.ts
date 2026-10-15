@@ -95,10 +95,10 @@ export default class Esplora {
         txid: input.txid,
         vout: input.vout
       },
-      scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
+      scriptSig: [...hex.decode(input.scriptsig ?? '')],
       sequence: input.sequence,
       value: input.prevout?.value,
-      witness: input.witness?.map((w) => Array.from(hex.decode(w)))
+      witness: input.witness?.map((w) => [...hex.decode(w)])
     }))
   }
 

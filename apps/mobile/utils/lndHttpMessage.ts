@@ -23,7 +23,7 @@ function indexOfBytes(
     (_, i) => i + from
   )
   const found = startIndexes.find((start) =>
-    Array.from(needle).every((byte, j) => haystack[start + j] === byte)
+    [...needle].every((byte, j) => haystack[start + j] === byte)
   )
   return found ?? -1
 }

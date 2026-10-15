@@ -246,7 +246,7 @@ export function formatAccountLabels(account: Account): Label[] {
     labelsByRef.set(label.ref, label)
   }
 
-  return Array.from(labelsByRef.values())
+  return [...labelsByRef.values()]
 }
 
 /** Cell text the importer would otherwise misread: commas, quotes, breaks. */

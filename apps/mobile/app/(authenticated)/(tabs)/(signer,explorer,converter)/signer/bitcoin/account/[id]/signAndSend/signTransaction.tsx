@@ -113,7 +113,7 @@ function buildSignTransactionChartModel(
     return null
   }
 
-  const inputArray = Array.from(inputs.values())
+  const inputArray = [...inputs.values()]
   let size: number
   let vsize: number
 
@@ -213,16 +213,14 @@ function buildSignTransactionChartModel(
     }
   }
 
-  const vin: Transaction['vin'] = Array.from(inputs.values()).map(
-    (input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '',
-      sequence: 0,
-      value: input.value,
-      witness: []
-    })
-  )
+  const vin: Transaction['vin'] = [...inputs.values()].map((input: Utxo) => ({
+    label: input.label || '',
+    previousOutput: { txid: input.txid, vout: input.vout },
+    scriptSig: '',
+    sequence: 0,
+    value: input.value,
+    witness: []
+  }))
 
   const vout: Transaction['vout'] = outputs.map((output: Output) => ({
     address: output.to,
@@ -567,7 +565,7 @@ export default function SignTransaction() {
         ...outputs.filter((o) => o.kind === 'change').map((o) => o.to)
       ],
       signPsbt: (proposalBase64) => {
-        const utxos = Array.from(inputs.values())
+        const utxos = [...inputs.values()]
         const prepared = preparePayjoinPsbtForWalletSign({
           getPrevTxHex: (txid) => wallet.getTx(txid),
           psbtBase64: proposalBase64,
@@ -578,7 +576,7 @@ export default function SignTransaction() {
         return proposal.toBase64()
       },
       transactions: account.transactions ?? [],
-      utxos: Array.from(inputs.values())
+      utxos: [...inputs.values()]
     })
   }
 

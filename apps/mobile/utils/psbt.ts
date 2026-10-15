@@ -662,7 +662,7 @@ export function extractIndividualSignedPsbts(
   const individualSignedPsbts: Record<number, string> = {}
 
   const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-  const signerPubkeyArray = Array.from(signerPubkeys)
+  const signerPubkeyArray = [...signerPubkeys]
 
   for (const [index, pubkey] of signerPubkeyArray.entries()) {
     const individualPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)

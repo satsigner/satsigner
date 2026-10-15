@@ -109,7 +109,7 @@ function SSSignatureDropdown({
     }
 
     try {
-      const collectedSignedPsbts = Array.from(signedPsbts.entries())
+      const collectedSignedPsbts = [...signedPsbts.entries()]
         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
         .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
           acc[cosignerIndex] = psbt

@@ -42,7 +42,6 @@
     "typescript/no-import-type-side-effects": "allow",
     "unicorn/prefer-number-properties": "allow",
     "typescript/no-non-null-assertion": "allow",
-    "unicorn/prefer-spread": "allow",
     "unicorn/prefer-module": "allow",
     "unicorn/no-nested-ternary": "allow",
     "node/global-require": "allow",

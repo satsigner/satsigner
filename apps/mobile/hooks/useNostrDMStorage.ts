@@ -171,7 +171,7 @@ function useNostrDMStorage() {
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
         if (pendingIdx !== -1) {
-          currentDms = currentDms.slice()
+          currentDms = [...currentDms]
           currentDms[pendingIdx] = newMessage
           const updatedDms = currentDms.toSorted(
             (a, b) => a.created_at - b.created_at
@@ -249,7 +249,7 @@ function useNostrDMStorage() {
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
         if (pendingIdx !== -1) {
-          currentDms = currentDms.slice()
+          // currentDms is already a local copy of the stored list.
           currentDms[pendingIdx] = newMessage
         } else {
           currentDms.push(newMessage)

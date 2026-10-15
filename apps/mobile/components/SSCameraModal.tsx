@@ -134,7 +134,7 @@ function assembleRawMultiPart(
   chunks: Map<number, string>,
   context: SSCameraModalProps['context']
 ): string | null {
-  const sortedChunks = Array.from(chunks.entries())
+  const sortedChunks = [...chunks.entries()]
     .toSorted(([a], [b]) => a - b)
     .map(([, content]) => content)
 
@@ -449,7 +449,7 @@ function SSCameraModal({
 
       state.scanned.add(current)
       state.chunks.set(current, content)
-      const scannedIndices = Array.from(state.scanned)
+      const scannedIndices = [...state.scanned]
       const receivedCount = state.scanned.size
       setProgress((prev) => {
         if (

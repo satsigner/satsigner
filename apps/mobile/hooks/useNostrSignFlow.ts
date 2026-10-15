@@ -84,7 +84,7 @@ export function useNostrSignFlow() {
       addInput({
         ...input,
         keychain: input.keychain || 'external',
-        script: Array.from(hex.decode(input.script))
+        script: [...hex.decode(input.script)]
       })
     }
 
@@ -116,9 +116,9 @@ export function useNostrSignFlow() {
     let finalSignedPsbts = derivedSignedPsbts
     if (accountMatch.account.policyType === 'multisig') {
       const remappedPsbts: Record<number, string> = {}
-      const signerPubkeys = Array.from(
-        getCollectedSignerPubkeys(transactionData.combinedPsbt)
-      )
+      const signerPubkeys = [
+        ...getCollectedSignerPubkeys(transactionData.combinedPsbt)
+      ]
 
       const cosignerPubkeys = await Promise.all(
         accountMatch.account.keys.map(async (key) => {

@@ -228,7 +228,7 @@ function buildOutputGroups(
     })
   }
 
-  return Array.from(groups.values())
+  return [...groups.values()]
 }
 
 function getRecipientVbytes(
