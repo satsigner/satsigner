@@ -87,10 +87,22 @@ const listEl = document.getElementById('menu-list')
 const tabs = document.querySelectorAll('.tab')
 let activeTab = 'signer'
 
-function show(name) {
+const demoQuery = new URLSearchParams(location.search)
+const isStage = Boolean(document.querySelector('.stage'))
+if (demoQuery.has('embed')) document.documentElement.classList.add('is-embed')
+if (demoQuery.has('bare')) document.documentElement.classList.add('is-bare')
+if (demoQuery.has('device')) document.documentElement.classList.add('is-device')
+
+let routeId = 'intro'
+
+function show(name, route) {
   Object.entries(views).forEach(([key, node]) => {
     node.hidden = key !== name
   })
+  routeId = route || name
+  if (isStage && !demoQuery.has('embed') && location.hash !== '#' + routeId) {
+    history.replaceState(null, '', '#' + routeId)
+  }
 }
 
 function renderMenu(tab) {
@@ -135,8 +147,8 @@ tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
     activeTab = tab.dataset.tab
     paintTabs()
-    show('menu')
     renderMenu(activeTab)
+    show('menu', activeTab === 'explorer' ? 'explorer' : 'menu')
   })
 })
 
@@ -614,7 +626,10 @@ function renderCoins() {
     coinView = bubbles ? 'list' : 'bubbles'
     renderCoins()
   })
-  document.getElementById('coins-next').addEventListener('click', () => openSend('output'))
+  document.getElementById('coins-next').addEventListener('click', () => {
+    renderPreview()
+    show('preview')
+  })
   bindCoins(root)
 }
 
@@ -1061,16 +1076,67 @@ function signSendSankey(className) {
   )
 }
 
+const genesisBytes = Array.from(
+  '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'.match(/../g),
+  (pair) => parseInt(pair, 16)
+)
+
+function formatHexDump(rowCount) {
+  const lines = []
+  for (let row = 0; row < rowCount; row += 1) {
+    const offset = (row * 16).toString(16).padStart(8, '0')
+    const bytes = []
+    const ascii = []
+    for (let column = 0; column < 16; column += 1) {
+      const value = genesisBytes[(row * 16 + column) % genesisBytes.length]
+      bytes.push(value.toString(16).padStart(2, '0'))
+      ascii.push(value >= 32 && value < 127 ? String.fromCharCode(value) : '.')
+    }
+    lines.push(offset + '  ' + bytes.join(' ') + '   |' + ascii.join('') + '|')
+  }
+  return lines
+}
+
 const hexRows = [
-  '00000000  01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   |................|',
+  '00000000  <b data-mark="version">01 00 00 00</b> 00 00 00 00 00 00 00 00 00 00 00 00   |................|',
   '00000010  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   |................|',
-  '00000020  00 00 00 00 <b>3b a3 ed fd</b> 7a 7b 12 b2 7a c7 2c 3e   |....<b>;...</b>z{..z.,>|',
+  '00000020  00 00 00 00 <b data-mark="merkle">3b a3 ed fd</b> 7a 7b 12 b2 7a c7 2c 3e   |....<b data-mark="merkle">;...</b>z{..z.,>|',
   '00000030  67 76 8f 61 7f c8 1b c3 88 8a 51 32 3a 9f b8 aa   |gv.a......Q2:...|',
-  '00000040  4b 1e 5e 4a 29 ab 5f 49 ff ff 00 1d 1d ac 2b 7c   |K.^J)._I......+||',
-  '00000080  01 04 45 54 68 65 20 54 69 6d 65 73 20 30 33 2f   |..EThe Times 03/|',
-  '00000090  4a 61 6e 2f 32 30 30 39 20 43 68 61 6e 63 65 6c   |Jan/2009 Chancel|',
-  '000000a0  6c 6f 72 20 6f 6e 20 62 72 69 6e 6b 20 6f 66 20   |lor on brink of |'
+  '00000040  4b 1e 5e 4a <b data-mark="time">29 ab 5f 49</b> <b data-mark="bits">ff ff 00 1d</b> <b data-mark="nonce">1d ac 2b 7c</b>   |K.^J<b data-mark="time">)._I</b><b data-mark="bits">....</b><b data-mark="nonce">..+|</b>|',
+  '00000080  01 04 <b data-mark="headline">45 54 68 65 20 54 69 6d 65 73</b> 20 30 33 2f   |..<b data-mark="headline">EThe Times</b> 03/|',
+  '00000090  <b data-mark="date">4a 61 6e 2f 32 30 30 39</b> 20 <b data-mark="news">43 68 61 6e 63 65 6c</b>   |<b data-mark="date">Jan/2009</b> <b data-mark="news">Chancel</b>|',
+  '000000a0  <b data-mark="news">6c 6f 72 20 6f 6e 20 62 72 69 6e 6b 20 6f 66 20</b>   |<b data-mark="news">lor on brink of </b>|'
 ]
+
+let hexTimer = 0
+
+function stopHexHighlight() {
+  if (!hexTimer) return
+  clearInterval(hexTimer)
+  hexTimer = 0
+}
+
+function startHexHighlight() {
+  stopHexHighlight()
+  const dump = document.querySelector('.hex-dump')
+  if (!dump) return
+  const marks = Array.from(dump.querySelectorAll('b'))
+  const ids = []
+  marks.forEach((mark) => {
+    if (ids.indexOf(mark.dataset.mark) === -1) ids.push(mark.dataset.mark)
+  })
+  if (!ids.length) return
+  let index = 0
+  const paint = () => {
+    const current = ids[index]
+    marks.forEach((mark) => mark.classList.toggle('is-on', mark.dataset.mark === current))
+  }
+  paint()
+  hexTimer = setInterval(() => {
+    index = (index + 1) % ids.length
+    paint()
+  }, 1100)
+}
 
 function packIntroBubbles(values) {
   const screenW = 390
@@ -1246,6 +1312,7 @@ function startOnboarding() {
 }
 
 function renderIntro() {
+  stopHexHighlight()
   const step = introSteps[introIndex]
   const last = introIndex === introSteps.length - 1
   document.getElementById('intro').innerHTML =
@@ -1281,12 +1348,14 @@ function renderIntro() {
     renderIntro()
   })
   document.getElementById('intro-skip').addEventListener('click', () => show('menu'))
+  if (step.visual === 'hex') startHexHighlight()
 }
 
 function renderSplash() {
+  stopHexHighlight()
   const intro = document.getElementById('intro')
   intro.classList.add('is-splash')
-  const splashHex = hexRows.map((row) => row.replace(/<\/?b>/g, '')).join('\n')
+  const splashHex = formatHexDump(72).join('\n')
   intro.innerHTML =
     '<div class="splash-code" aria-hidden="true">' +
     splashHex +
@@ -1295,19 +1364,112 @@ function renderSplash() {
 }
 
 function finishIntro() {
+  stopHexHighlight()
   document.getElementById('intro').innerHTML =
     '<div class="intro-logo"><span>SAT<br>SIGNER</span></div>'
   setTimeout(() => show('menu'), 700)
 }
 
-paintTabs()
-renderMenu('signer')
-renderSplash()
-show('intro')
+function menuTab(tab) {
+  activeTab = tab
+  paintTabs()
+  renderMenu(tab)
+  show('menu', tab === 'explorer' ? 'explorer' : 'menu')
+}
+
+function go(id) {
+  if (id === 'intro') {
+    renderSplash()
+    show('intro', 'intro')
+    return true
+  }
+  if (id === 'menu' || id === 'signer') {
+    menuTab('signer')
+    return true
+  }
+  if (id === 'explorer') {
+    menuTab('explorer')
+    return true
+  }
+  if (id === 'accounts') {
+    renderAccounts()
+    show('accounts', 'accounts')
+    return true
+  }
+  if (id === 'converter') {
+    syncFromBtc()
+    show('converter', 'converter')
+    return true
+  }
+  if (id === 'account' || id === 'coins' || id === 'chart') {
+    openAccountData = accounts[0]
+    showChart = id === 'chart'
+    outputView = 'bubbles'
+    accountTab = id === 'coins' ? 2 : 0
+    renderAccount()
+    show('account', id)
+    return true
+  }
+  if (id === 'send' || id === 'payjoin') {
+    openAccountData = accounts[0]
+    document.getElementById('payjoin-toggle').checked = true
+    openSend('output')
+    show('send', id === 'payjoin' ? 'payjoin' : 'send')
+    return true
+  }
+  if (id === 'preview') {
+    openAccountData = accounts[0]
+    renderPreview()
+    show('preview', 'preview')
+    return true
+  }
+  if (id === 'sign') {
+    openAccountData = accounts[0]
+    document.getElementById('payjoin-toggle').checked = true
+    startSign()
+    show('sign', 'sign')
+    return true
+  }
+  if (id === 'settings') {
+    menuTab('signer')
+    openSettings()
+    routeId = 'settings'
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#settings')
+    return true
+  }
+  return false
+}
+
+const requested = isStage
+  ? (location.hash || '').replace(/^#/, '') || demoQuery.get('screen') || ''
+  : ''
+
+if (!go(requested)) {
+  paintTabs()
+  renderMenu('signer')
+  renderSplash()
+  show('intro')
+}
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== location.origin) return
+  if (!event.data || event.data.type !== 'satsigner' || !event.data.play) return
+  go(routeId)
+})
+
+const stageHome = document.getElementById('stage-home')
+if (stageHome) {
+  stageHome.addEventListener('click', () => {
+    closeSheet()
+    setDrawer(false)
+    go('intro')
+  })
+}
 
 window.satSignerDemo = {
-  open() {
-    startOnboarding()
+  open(screen) {
+    if (screen) go(screen)
+    else startOnboarding()
   }
 }
 

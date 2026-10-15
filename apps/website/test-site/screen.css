@@ -29,6 +29,22 @@ body {
   letter-spacing: 0.04em;
 }
 
+.stage-home {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--white);
+  font: inherit;
+  font-size: var(--font-sm);
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.95rem;
+  cursor: pointer;
+}
+
+.stage-home:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .phone {
   --status-height: 34px;
   --ui-drop: 14px;
@@ -289,15 +305,20 @@ body {
   color: var(--gray-400);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 7.5px;
-  line-height: 2.15;
+  line-height: 2.85;
   letter-spacing: 0;
   white-space: pre;
   transform: translateX(-50%);
 }
 
 .hex-dump b {
-  color: var(--white);
+  color: inherit;
   font-weight: inherit;
+  transition: color 0.35s ease;
+}
+
+.hex-dump b.is-on {
+  color: var(--white);
 }
 
 .live-bubbles i {
@@ -466,15 +487,16 @@ body {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 48px;
   overflow: hidden;
   pointer-events: none;
   color: var(--gray-500);
   opacity: 0.42;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 8px;
-  line-height: 2.2;
+  line-height: 1.45;
   letter-spacing: 0;
   white-space: pre;
 }
@@ -1715,6 +1737,55 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+html.is-embed body,
+html.is-embed .stage {
+  background: transparent;
+}
+
+html.is-embed .stage {
+  min-height: 100%;
+  padding: 0;
+}
+
+html.is-embed .stage-note,
+html.is-embed .stage-home {
+  display: none;
+}
+
+html.is-device .stage {
+  justify-content: flex-start;
+  padding: 0;
+}
+
+html.is-device .phone {
+  --frame: 100vw;
+  max-height: none;
+}
+
+html.is-bare body,
+html.is-bare .stage {
+  background: #0a0a0a;
+}
+
+html.is-bare .phone {
+  width: 100%;
+  height: 100vh;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+  --frame: 100vw;
+  --bezel: 0px;
+  --radius: 0px;
+}
+
+html.is-bare .phone::before,
+html.is-bare .phone-key,
+html.is-bare .phone-island,
+html.is-bare .phone-status {
+  display: none;
 }
 
 @media (max-width: 420px) {
