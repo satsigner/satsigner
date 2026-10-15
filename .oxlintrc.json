@@ -70,7 +70,6 @@
     "unicorn/no-hex-escape": "allow",
     "import/no-named-as-default-member": "allow",
     "typescript/no-unsafe-function-type": "allow",
-    "unicorn/prefer-date-now": "allow",
     "unicorn/no-anonymous-default-export": "allow",
     "unicorn/no-abusive-eslint-disable": "allow",
     "typescript/prefer-ts-expect-error": "allow",
