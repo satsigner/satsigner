@@ -590,3 +590,75 @@ if (typeof Swiper !== 'undefined') {
     if (window.satSignerDemo) window.satSignerDemo.open();
   });
 })();
+
+(function initFeatureFlows() {
+  var cards = document.querySelectorAll('.feature-grid-card[data-screen]');
+  var dialog = document.getElementById('flow-modal');
+  var modalFrame = dialog && dialog.querySelector('iframe');
+  var modalTitle = document.getElementById('flow-modal-title');
+  var modalDesc = document.getElementById('flow-modal-desc');
+  if (!cards.length || !dialog || !modalFrame) return;
+
+  function flowSrc(screen, device) {
+    var query = 'embed=1&screen=' + encodeURIComponent(screen);
+    if (device) query += '&device=1';
+    return 'test-site/?' + query;
+  }
+
+  function replay(frame) {
+    if (!frame.contentWindow) return;
+    frame.contentWindow.postMessage({ type: 'satsigner', play: true }, location.origin);
+  }
+
+  cards.forEach(function (card) {
+    var screen = card.getAttribute('data-screen');
+    var layer = document.createElement('div');
+    layer.className = 'feature-flow';
+    var frame = document.createElement('iframe');
+    frame.title = '';
+    frame.tabIndex = -1;
+    frame.setAttribute('aria-hidden', 'true');
+    frame.loading = 'lazy';
+    frame.src = flowSrc(screen, true);
+    layer.appendChild(frame);
+    card.insertBefore(layer, card.firstChild);
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.style.cursor = 'pointer';
+
+    function openFlow() {
+      var heading = card.querySelector('h3');
+      var copy = card.querySelector('p');
+      if (modalTitle) modalTitle.textContent = heading ? heading.textContent : '';
+      if (modalDesc) modalDesc.textContent = copy ? copy.textContent : '';
+      modalFrame.src = flowSrc(screen, false);
+      dialog.showModal();
+    }
+
+    card.addEventListener('mouseenter', function () { replay(frame); });
+    card.addEventListener('focusin', function () { replay(frame); });
+    card.addEventListener('click', function (event) {
+      if (event.target.closest('a')) return;
+      openFlow();
+    });
+    card.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openFlow();
+    });
+  });
+
+  dialog.addEventListener('click', function (event) {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener('cancel', function (event) {
+    event.preventDefault();
+    dialog.close();
+  });
+  dialog.querySelector('[data-flow-close]').addEventListener('click', function () {
+    dialog.close();
+  });
+  dialog.addEventListener('close', function () {
+    modalFrame.src = 'about:blank';
+  });
+})();

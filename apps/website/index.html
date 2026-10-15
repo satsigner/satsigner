@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="test-site/tokens.css">
     <link rel="stylesheet" href="test-site/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=42" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -35,8 +35,6 @@
         <div class="nav-links">
           <a href="#features">Features</a>
           <a href="#security">Security</a>
-          <a href="#privacy">Privacy</a>
-          <a href="#decoder">Decoder</a>
           <a href="#support">Support</a>
           <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
           <button type="button" class="theme-toggle" aria-label="Toggle color theme">
@@ -241,122 +239,104 @@
     <h2 class="feature-grid-title">The full toolkit</h2>
     <p class="feature-grid-intro">Privacy-first Bitcoin signing with complete UTXO control. The same feature set as the <a href="https://github.com/satsigner/satsigner/blob/master/FEATURES.md" target="_blank" rel="noopener">open-source app</a>.</p>
     <div class="feature-grid">
-      <article class="feature-grid-card is-span-4">
+      <article class="feature-grid-card is-span-4" data-screen="coins">
         <h3>UTXO control</h3>
         <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="accounts">
         <h3>Account types</h3>
         <p>Single-signature, multi-signature, and watch-only on mainnet, testnet, and signet.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="accounts">
         <h3>Every script</h3>
         <p>P2PKH, P2SH, nested and native SegWit, and Taproot (P2TR).</p>
       </article>
-      <article class="feature-grid-card is-span-2">
+      <article class="feature-grid-card is-span-2" data-screen="accounts">
         <h3>Multisig</h3>
         <p>M-of-N wallets, sortedmulti descriptors, and per-cosigner PSBT tracking.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="send">
         <h3>Transaction builder</h3>
         <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="account">
         <h3>BIP329 labels</h3>
         <p>Label transactions, addresses, and UTXOs. Import and export JSON, JSONL, and CSV.</p>
       </article>
-      <article class="feature-grid-card is-span-2">
+      <article class="feature-grid-card is-span-2" data-screen="preview">
         <h3>Payjoin</h3>
         <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
       </article>
-      <article class="feature-grid-card is-span-2">
+      <article class="feature-grid-card is-span-2" data-screen="sign">
         <h3>Air-gapped signing</h3>
         <p>Seed QR scanning, signature threshold checks, and per-cosigner PSBT export.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="settings">
         <h3>Keys and PIN</h3>
         <p>AES-256 storage, PIN lock, duress PIN, and the option to drop the seed after key extraction.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="intro">
         <h3>No tracking</h3>
         <p>No third-party analytics. MIT-licensed code you can audit.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="chart">
         <h3>See the flow</h3>
         <p>Sankey diagrams, balance timelines, fee-rate history, and network charts.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="menu">
         <h3>Import and export</h3>
         <p>Descriptors, xpub formats, PSBTs over QR and NFC, and full account backup.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="menu">
         <h3>Lightning and eCash</h3>
         <p>LND invoices and payments, plus Cashu mints for private tokens.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="menu">
         <h3>Nostr sync</h3>
         <p>Decentralized label sync over DMs, with relays and a trusted-device list.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="explorer">
         <h3>Explorer and tools</h3>
         <p>Blocks and transactions, fiat rates, and Bitcoin-to-energy conversion.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="preview">
+        <h3>Raw transaction</h3>
+        <p>Decode the bytes instead of accepting a summary.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="send">
+        <h3>Scripts and outputs</h3>
+        <p>See inputs, outputs, and script types in one view.</p>
       </article>
     </div>
   </section>
 
   <section class="topic-section" id="security">
-    <h2 class="feature-grid-title">Security</h2>
-    <p class="feature-grid-intro">Keys stay on the device. Sensitive data is encrypted at rest, and the code is open to audit.</p>
+    <h2 class="feature-grid-title">Security and privacy</h2>
+    <p class="feature-grid-intro">Keys stay on the device. No third-party tracking, and payments can avoid a plain on-chain fingerprint.</p>
     <div class="feature-grid">
-      <article class="feature-grid-card">
+      <article class="feature-grid-card is-span-2" data-screen="settings">
         <h3>PIN and encryption</h3>
         <p>AES-256-CBC storage with PIN-protected access.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="settings">
         <h3>Duress PIN</h3>
         <p>A separate PIN for situations where you cannot unlock normally.</p>
       </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="settings">
         <h3>Seed dropping</h3>
         <p>Remove the mnemonic after the keys are extracted.</p>
       </article>
-    </div>
-  </section>
-
-  <section class="topic-section" id="privacy">
-    <h2 class="feature-grid-title">Privacy</h2>
-    <p class="feature-grid-intro">No third-party tracking. Labels stay yours, and payments can avoid a plain on-chain fingerprint.</p>
-    <div class="feature-grid">
-      <article class="feature-grid-card">
+      <article class="feature-grid-card" data-screen="intro">
         <h3>No analytics</h3>
         <p>The app does not send usage data to a third party.</p>
       </article>
-      <article class="feature-grid-card">
-        <h3>Payjoin</h3>
-        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
-      </article>
-      <article class="feature-grid-card">
+      <article class="feature-grid-card is-row-2" data-screen="account">
         <h3>Your labels</h3>
         <p>BIP329 labels on device, with optional Nostr sync and export when you choose.</p>
       </article>
-    </div>
-  </section>
-
-  <section class="topic-section" id="decoder">
-    <h2 class="feature-grid-title">Decoder</h2>
-    <p class="feature-grid-intro">Inspect a transaction before you trust it. Hex, scripts, inputs, outputs, size, fees, and locktime.</p>
-    <div class="feature-grid">
-      <article class="feature-grid-card">
-        <h3>Raw transaction</h3>
-        <p>Decode the bytes instead of accepting a summary.</p>
-      </article>
-      <article class="feature-grid-card">
-        <h3>Scripts and outputs</h3>
-        <p>See inputs, outputs, and script types in one view.</p>
-      </article>
-      <article class="feature-grid-card">
-        <h3>Fees and locktime</h3>
-        <p>Size, fee, and time-locks are visible before you sign.</p>
+      <article class="feature-grid-card is-span-2" data-screen="preview">
+        <h3>Payjoin</h3>
+        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
       </article>
     </div>
   </section>
@@ -364,25 +344,20 @@
   <section class="topic-section" id="support">
     <h2 class="feature-grid-title">Support</h2>
     <p class="feature-grid-intro">Questions and bugs go to the public tracker. Security reports follow the published policy.</p>
-    <div class="feature-grid">
-      <article class="feature-grid-card">
-        <h3>Issues</h3>
-        <p><a href="https://github.com/satsigner/satsigner/issues" target="_blank" rel="noopener">Open an issue</a> on GitHub.</p>
-      </article>
-      <article class="feature-grid-card">
-        <h3>Security</h3>
-        <p><a href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md" target="_blank" rel="noopener">Read the security policy</a> before reporting a vulnerability.</p>
-      </article>
-      <article class="feature-grid-card">
-        <h3>Source</h3>
-        <p><a href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">satsigner/satsigner</a> is MIT licensed.</p>
-      </article>
+    <div class="support-actions">
+      <a class="support-action" href="https://github.com/satsigner/satsigner/issues" target="_blank" rel="noopener">
+        <span>Issues</span>
+        Open an issue
+      </a>
+      <a class="support-action" href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md" target="_blank" rel="noopener">
+        <span>Security</span>
+        Read the security policy
+      </a>
+      <a class="support-action" href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">
+        <span>Source</span>
+        satsigner/satsigner
+      </a>
     </div>
-  </section>
-
-  <section class="testimonial-section">
-    <blockquote class="testimonial-quote">“Finally, a mobile wallet where I can actually see what I have and where it goes—without the spreadsheet.”</blockquote>
-    <p class="testimonial-source">— Beta tester (replace with real quote and <a href="#" class="testimonial-link">link to source</a>)</p>
   </section>
 
   <section class="section section-releases" id="releases">
@@ -427,8 +402,6 @@
     <div class="footer-links">
       <a href="#features">Features</a>
       <a href="#security">Security</a>
-      <a href="#privacy">Privacy</a>
-      <a href="#decoder">Decoder</a>
       <a href="#support">Support</a>
       <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank" rel="noopener">Figma</a>
@@ -437,9 +410,19 @@
     <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
   </footer>
 
+  <dialog class="flow-modal" id="flow-modal">
+    <button type="button" class="flow-modal-close" data-flow-close>Close</button>
+    <div class="flow-modal-panel">
+      <div class="flow-modal-copy">
+        <h2 id="flow-modal-title"></h2>
+        <p id="flow-modal-desc"></p>
+      </div>
+      <iframe class="flow-modal-frame" title="SatSigner flow"></iframe>
+    </div>
+  </dialog>
   <script src="test-site/icons.js"></script>
   <script src="test-site/screen.js"></script>
-  <script src="script.js?v=26"></script>
+  <script src="script.js?v=31"></script>
 
   </body>
 </html>
