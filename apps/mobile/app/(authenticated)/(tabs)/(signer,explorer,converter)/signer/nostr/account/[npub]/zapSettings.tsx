@@ -65,15 +65,15 @@ export default function ZapSettingsPage() {
   >(prefs?.autoApproveWalletId)
 
   function handleAddPreset() {
-    const val = parseInt(newPreset, 10)
-    if (!val || val <= 0) {
+    const presetSats = parseInt(newPreset, 10)
+    if (!presetSats || presetSats <= 0) {
       return
     }
-    if (presets.includes(val)) {
+    if (presets.includes(presetSats)) {
       setNewPreset('')
       return
     }
-    setPresets([...presets, val].toSorted((a, b) => a - b))
+    setPresets([...presets, presetSats].toSorted((a, b) => a - b))
     setNewPreset('')
   }
 
