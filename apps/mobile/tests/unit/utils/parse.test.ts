@@ -3,6 +3,7 @@ import {
   normalizeUtxoLabelForDisplay,
   parseDescriptor,
   parseLabel,
+  sanitizeScannedText,
   parseLabelTags,
   parseUriParameters,
   stripBitcoinPrefix
@@ -195,5 +196,13 @@ describe('parse utils', () => {
       expect(hardenedPath).toBe('m/0h')
       expect(xpubs).toHaveLength(1)
     })
+  })
+})
+
+describe('sanitizeScannedText', () => {
+  it('drops spaces, zero-width and control characters but keeps newlines', () => {
+    expect(sanitizeScannedText(' wpkh( xpub​ )\u0007\nnext ')).toBe(
+      'wpkh(xpub)\nnext'
+    )
   })
 })

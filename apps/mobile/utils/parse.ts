@@ -254,6 +254,22 @@ function parseSinglesigDescriptor(descriptor: string) {
   return { hardenedPath, xpubs }
 }
 
+const INLINE_WHITESPACE = /[^\S\n]+/g
+const ZERO_WIDTH_CHARACTERS = /[\u200B-\u200D\uFEFF]/g
+const CONTROL_CHARACTERS_EXCEPT_NEWLINE =
+  // oxlint-disable-next-line no-control-regex
+  /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g
+
+/** Strips spaces and invisible characters that NFC tags and QR codes add to scanned text. */
+export function sanitizeScannedText(text: string) {
+  return text
+    .trim()
+    .replaceAll(INLINE_WHITESPACE, '')
+    .replaceAll(ZERO_WIDTH_CHARACTERS, '')
+    .replaceAll(CONTROL_CHARACTERS_EXCEPT_NEWLINE, '')
+    .normalize('NFKC')
+}
+
 export function parseDescriptor(descriptor: string) {
   const d = normalizeDescriptorForParsing(descriptor)
   if (isSortedMultiDescriptor(d)) {
