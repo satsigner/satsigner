@@ -251,14 +251,18 @@ export class MempoolOracle implements BlockchainOracle {
     }
 
     const btcPrice = prices[0][currency]
-    const pricesEntries: Record<string, number> = Object.fromEntries([
-      ...Object.entries(exchangeRates).map(([key, rate]) => {
-        const currencyCode = key.replace('USD', '')
-        return [currencyCode, btcPrice * Number(rate)]
-      }),
-      ['USD', btcPrice]
-    ])
-    return pricesEntries
+    const usdPrice = prices[0].USD
+    const pricesAt: Record<string, number> = {}
+    // exchangeRates are USD→X pairs (`USDEUR`, …), so they scale the USD
+    // price; the requested currency keeps its own historical price.
+    if (usdPrice !== undefined) {
+      for (const [pair, rate] of Object.entries(exchangeRates)) {
+        pricesAt[pair.replace('USD', '')] = usdPrice * rate
+      }
+      pricesAt.USD = usdPrice
+    }
+    pricesAt[currency] = btcPrice
+    return pricesAt
   }
 
   async getPricesAt(currency: string, timestamps: number[]) {
