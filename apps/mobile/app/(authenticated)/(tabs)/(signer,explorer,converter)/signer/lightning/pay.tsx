@@ -28,6 +28,7 @@ import {
   LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_SUCCESS_NAVIGATE_DELAY_MS
 } from '@/constants/lightning'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -78,6 +79,7 @@ function onchainValidationMessage(
 }
 
 export default function PayPage() {
+  const amountDisplay = useDisplayPreferences()
   const router = useRouter()
   const { paymentRequest: paymentRequestParam, invoice: invoiceParam } =
     useLocalSearchParams()
@@ -639,6 +641,9 @@ export default function PayPage() {
                       label={t('lightning.pay.amount')}
                     />
                     <SSAmountInput
+                      btcPrice={amountDisplay.btcPrice}
+                      fiatCurrency={amountDisplay.fiatCurrency}
+                      fiatEnabled={amountDisplay.fiatEnabled}
                       max={onchainAmountMax}
                       min={DUST_LIMIT}
                       onValueChange={handleOnchainAmountChange}

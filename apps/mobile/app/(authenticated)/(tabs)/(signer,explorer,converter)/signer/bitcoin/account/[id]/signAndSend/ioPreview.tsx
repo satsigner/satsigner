@@ -42,6 +42,7 @@ import {
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
@@ -134,6 +135,7 @@ import {
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
+  const amountDisplay = useDisplayPreferences()
   const router = useRouter()
   const { id, autoSelectFromUri, dustWarning } =
     useLocalSearchParams<IoPreviewSearchParams>()
@@ -1605,6 +1607,9 @@ export default function IOPreview() {
                     }
                   >
                     <SSAmountInput
+                      btcPrice={amountDisplay.btcPrice}
+                      fiatCurrency={amountDisplay.fiatCurrency}
+                      fiatEnabled={amountDisplay.fiatEnabled}
                       key={`amount-input-${outputsCount}`}
                       min={DUST_LIMIT}
                       max={

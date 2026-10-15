@@ -36,6 +36,7 @@ import {
 } from '@/constants/headerChrome'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -56,6 +57,7 @@ const TAB_WIDTH = '50%'
 const tabs = [{ key: 'transactions' }, { key: 'proofs' }]
 
 export default function EcashAccountDetailPage() {
+  const display = useDisplayPreferences()
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -237,6 +239,7 @@ export default function EcashAccountDetailPage() {
                   ) : (
                     proofs.map((proof, index) => (
                       <SSEcashProofCard
+                        {...display}
                         key={`${proof.id}-${proof.secret.slice(0, 8)}`}
                         proof={proof}
                         proofIndex={index}

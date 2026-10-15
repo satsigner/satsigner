@@ -57,6 +57,7 @@ import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import { useArkSync } from '@/hooks/useArkSync'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -99,6 +100,7 @@ type ArkTabRoute = { key: ArkTabKey }
 type ArkVtxosView = 'list' | 'bubbles'
 
 export default function ArkAccountDetailPage() {
+  const display = useDisplayPreferences()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
@@ -370,6 +372,7 @@ export default function ArkAccountDetailPage() {
   function renderRefreshItem({ item }: { item: ArkMovement }) {
     return (
       <SSArkRefreshCard
+        {...display}
         movement={item}
         onPress={() =>
           router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)
@@ -418,6 +421,7 @@ export default function ArkAccountDetailPage() {
     }
     return (
       <SSArkVtxoCard
+        {...display}
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
@@ -600,6 +604,7 @@ export default function ArkAccountDetailPage() {
       const refreshing = syncMutation.isPending || addressesResult.isLoading
       return renderListWithLoader(
         <SSArkAddressesView
+          {...display}
           addresses={addresses}
           labels={labels}
           expand={expand}
