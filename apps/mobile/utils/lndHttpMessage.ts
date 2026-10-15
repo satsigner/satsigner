@@ -178,7 +178,7 @@ function findHeaderSeparator(
 function throwInvalidHttp1(view: Buffer): never {
   const preview = asBuffer(view.subarray(0, 48))
     .toString('latin1')
-    .replace(/[^\x20-\x7E]/g, '.')
+    .replace(/[^\u0020-\u007E]/g, '.')
   throw new Error(
     preview
       ? `Invalid HTTP response from LND (${preview})`

@@ -67,7 +67,6 @@
     "unicorn/no-immediate-mutation": "allow",
     "react/jsx-no-useless-fragment": "allow",
     "unicorn/prefer-code-point": "allow",
-    "unicorn/no-hex-escape": "allow",
     "import/no-named-as-default-member": "allow",
     "typescript/no-unsafe-function-type": "allow",
     "unicorn/no-anonymous-default-export": "allow",

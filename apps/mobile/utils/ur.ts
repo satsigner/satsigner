@@ -224,7 +224,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
 
 function normalizeCashuTokenString(decodedString: string): string {
   if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
-    return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
+    return decodedString.replace(/[^\u0020-\u007E]/g, '').trim()
   }
 
   return decodedString
