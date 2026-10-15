@@ -1692,7 +1692,6 @@ function PreviewTransaction() {
     setSeedWordsModalVisible(true)
   }
 
-  // eslint-disable-next-line
   const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
   }
