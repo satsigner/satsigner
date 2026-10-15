@@ -20,6 +20,14 @@ body {
   overflow-x: hidden;
   text-align: center;
   -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 
@@ -2361,4 +2369,14 @@ html[data-theme="light"] .releases-all a {
 html[data-theme="light"] .phone,
 html[data-theme="light"] .phone-screen {
   color: #fff;
+}
+html[data-theme="light"] .hero.is-phone .hero-mark::after {
+  filter: blur(1.5px);
+  background:
+    linear-gradient(#000, #000) padding-box,
+    radial-gradient(circle 90px at 0 0, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
+    radial-gradient(circle 90px at 100% 0, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
+    radial-gradient(circle 86px at 0 100%, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.22) 38%, transparent 100%) border-box,
+    radial-gradient(circle 86px at 100% 100%, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.22) 38%, transparent 100%) border-box;
+  background-clip: padding-box, border-box, border-box, border-box, border-box;
 }

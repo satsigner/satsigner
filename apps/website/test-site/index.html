@@ -26,11 +26,13 @@
         </span>
       </div>
       <div class="phone-screen">
+        <aside class="drawer" id="drawer" aria-label="Navigation" aria-hidden="true"></aside>
         <section id="view-intro">
           <div class="intro" id="intro"></div>
         </section>
         <section id="view-menu" hidden>
           <header class="menu-header">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false"></button>
             <button type="button" class="settings" data-settings aria-label="Settings"></button>
             <p class="menu-title" id="menu-title">Signer</p>
           </header>
@@ -104,10 +106,11 @@
         <section id="view-send" hidden>
           <header class="stack-header">
             <button type="button" class="back" data-back="account" aria-label="Back"></button>
-            <p>Add output</p>
+            <p id="send-title">Outputs</p>
           </header>
           <div class="accounts-body">
             <div id="coin-select"></div>
+            <div id="send-form" hidden>
             <label class="field">
               <span>Address</span>
               <input id="send-address" value="tb1qpayjoin0demo0000000000000000000000">
@@ -130,6 +133,7 @@
             </label>
             <p class="hint">Payjoin invoice. Negotiation starts when you sign.</p>
             <button type="button" class="menu-button" id="send-preview"><span class="edge-left"></span><span class="edge-right"></span>Preview</button>
+            </div>
           </div>
         </section>
 

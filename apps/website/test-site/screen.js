@@ -57,7 +57,7 @@ const accounts = [
     stats: [
       ['12', 'Transactions'],
       ['28', 'Addresses'],
-      ['4', 'Outputs'],
+      ['10', 'Outputs'],
       ['0', 'Mempool']
     ]
   },
@@ -142,7 +142,13 @@ tabs.forEach((tab) => {
 
 document.querySelectorAll('[data-back]').forEach((button) => {
   button.innerHTML = icon('back', 'back-mark')
-  button.addEventListener('click', () => show(button.dataset.back || 'menu'))
+  button.addEventListener('click', () => {
+    if (button.closest('#view-send') && sendPhase === 'output') {
+      openSend('coins')
+      return
+    }
+    show(button.dataset.back || 'menu')
+  })
 })
 
 document.querySelectorAll('.stack-header').forEach((header) => {
@@ -159,6 +165,119 @@ document.querySelectorAll('[data-settings]').forEach((button) => {
   button.innerHTML = icon('settings', 'settings-mark')
   button.addEventListener('click', openSettings)
 })
+
+const phoneScreen = document.querySelector('.phone-screen')
+const drawer = document.getElementById('drawer')
+const navToggle = document.getElementById('nav-toggle')
+
+function paintNavToggle() {
+  const open = phoneScreen.classList.contains('is-drawer')
+  navToggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+  navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Menu')
+  navToggle.innerHTML = icon(open ? 'close' : 'hamburger', 'nav-mark')
+}
+
+function renderDrawer() {
+  drawer.innerHTML = Object.entries(groups)
+    .map(([key, group]) => {
+      const items = group.items
+        .map((item) => {
+          const current = key === activeTab && item.title === 'Bitcoin'
+          return (
+            '<button type="button" class="drawer-item' +
+            (item.soon ? ' is-soon' : '') +
+            (current ? ' is-current' : '') +
+            '" data-drawer-tab="' +
+            key +
+            '"' +
+            (item.screen ? ' data-drawer-screen="' + item.screen + '"' : '') +
+            '>' +
+            icon(item.icon, 'drawer-mark') +
+            '<span>' +
+            item.title +
+            '</span></button>'
+          )
+        })
+        .join('')
+      return '<div class="drawer-group"><p class="drawer-label">' + group.title + '</p>' + items + '</div>'
+    })
+    .join('') +
+    '<div class="drawer-foot">' +
+    '<button type="button" class="drawer-item" data-drawer-settings>' +
+    icon('settings', 'drawer-mark') +
+    '<span>Settings</span></button>' +
+    '<button type="button" class="drawer-item" data-drawer-about>' +
+    icon('signer', 'drawer-mark') +
+    '<span>About</span></button>' +
+    '<p class="drawer-version">v1.0.0</p></div>'
+}
+
+function setDrawer(open) {
+  phoneScreen.classList.toggle('is-drawer', open)
+  drawer.setAttribute('aria-hidden', open ? 'false' : 'true')
+  paintNavToggle()
+  if (open) renderDrawer()
+}
+
+if (navToggle && drawer && phoneScreen) {
+navToggle.addEventListener('click', () => {
+  setDrawer(!phoneScreen.classList.contains('is-drawer'))
+})
+
+let drawerDrag = null
+drawer.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return
+  drawerDrag = { y: event.clientY, top: drawer.scrollTop, moved: false, id: event.pointerId }
+})
+drawer.addEventListener('pointermove', (event) => {
+  if (!drawerDrag || drawerDrag.id !== event.pointerId) return
+  const delta = event.clientY - drawerDrag.y
+  if (Math.abs(delta) > 5) {
+    drawerDrag.moved = true
+    drawer.classList.add('is-dragging')
+    drawer.setPointerCapture(event.pointerId)
+  }
+  if (drawerDrag.moved) drawer.scrollTop = drawerDrag.top - delta
+})
+function endDrawerDrag(event) {
+  if (!drawerDrag || drawerDrag.id !== event.pointerId) return
+  drawer.classList.remove('is-dragging')
+  const moved = drawerDrag.moved
+  drawerDrag = null
+  if (moved) {
+    const stopClick = (clickEvent) => {
+      clickEvent.stopPropagation()
+      clickEvent.preventDefault()
+      drawer.removeEventListener('click', stopClick, true)
+    }
+    drawer.addEventListener('click', stopClick, true)
+  }
+}
+drawer.addEventListener('pointerup', endDrawerDrag)
+drawer.addEventListener('pointercancel', endDrawerDrag)
+
+drawer.addEventListener('click', (event) => {
+  const item = event.target.closest('[data-drawer-tab], [data-drawer-settings], [data-drawer-about]')
+  if (!item) return
+  if (item.hasAttribute('data-drawer-settings')) {
+    setDrawer(false)
+    openSettings()
+    return
+  }
+  if (item.hasAttribute('data-drawer-about')) {
+    setDrawer(false)
+    openSheet('About', '<p class="sheet-copy">SatSigner. Privacy-first Bitcoin signer with complete UTXO control.</p>')
+    return
+  }
+  activeTab = item.dataset.drawerTab
+  paintTabs()
+  renderMenu(activeTab)
+  show(item.dataset.drawerScreen || 'menu')
+  setDrawer(false)
+})
+
+paintNavToggle()
+}
 
 const accountList = document.getElementById('account-list')
 const networkTabs = document.querySelectorAll('.network-tab')
@@ -299,63 +418,156 @@ function historyChart(txs) {
 const coins = [
   { id: 'salary', label: 'Salary', value: 800000, fiat: '800.00', address: 'tb1q…4e20', selected: true },
   { id: 'refund', label: 'Coffee refund', value: 650000, fiat: '650.00', address: 'tb1q…10b3', selected: false },
-  { id: 'change', label: 'Change', value: 210000, fiat: '210.00', address: 'tb1q…91aa', selected: false }
+  { id: 'change', label: 'Change', value: 210000, fiat: '210.00', address: 'tb1q…91aa', selected: false },
+  { id: 'invoice', label: 'Invoice', value: 125000, fiat: '125.00', address: 'tb1q…77c1', selected: false },
+  { id: 'gift', label: 'Gift', value: 84000, fiat: '84.00', address: 'tb1q…2aa9', selected: false },
+  { id: 'tips', label: 'Tips', value: 42000, fiat: '42.00', address: 'tb1q…b014', selected: false },
+  { id: 'dust', label: 'Dust', value: 18000, fiat: '18.00', address: 'tb1q…55e8', selected: false },
+  { id: 'rebate', label: 'Rebate', value: 9500, fiat: '9.50', address: 'tb1q…c3d2', selected: false },
+  { id: 'test', label: 'Test', value: 3300, fiat: '3.30', address: 'tb1q…90af', selected: false },
+  { id: 'spare', label: 'Spare', value: 1200, fiat: '1.20', address: 'tb1q…61bb', selected: false }
 ]
 let coinView = 'list'
 let outputView = 'bubbles'
+let sendPhase = 'coins'
 
 function toggleCoin(id) {
   const coin = coins.find((entry) => entry.id === id)
   if (!coin) return
   coin.selected = !coin.selected
-  if (!document.getElementById('view-send').hidden) renderCoins()
+  if (!document.getElementById('view-send').hidden && sendPhase === 'coins') renderCoins()
   if (!document.getElementById('view-account').hidden) renderAccount()
 }
 
 function utxoList() {
-  return coins
-    .map(
-      (coin) =>
-        '<button type="button" class="utxo" data-coin="' +
-        coin.id +
-        '"><span class="utxo-mark' +
-        (coin.selected ? ' is-on' : '') +
-        '">' +
-        (coin.selected ? '×' : '+') +
-        '</span><span class="utxo-main"><strong>' +
-        coin.value.toLocaleString('en-US') +
-        ' sats</strong><small>' +
-        coin.fiat +
-        ' USD</small></span><span class="utxo-meta">' +
-        coin.address +
-        '<small>' +
-        coin.label +
-        '</small></span></button>'
-    )
-    .join('')
-}
-
-function bubblePack() {
-  const sizes = { salary: 124, refund: 108, change: 76 }
   return (
-    '<div class="bubble-pack">' +
+    '<table class="utxo-table"><thead><tr><th></th><th>Amount</th><th>Label</th><th>Address</th></tr></thead><tbody>' +
     coins
       .map(
         (coin) =>
+          '<tr class="utxo' +
+          (coin.selected ? ' is-on' : '') +
+          '" data-coin="' +
+          coin.id +
+          '"><td><span class="utxo-mark' +
+          (coin.selected ? ' is-on' : '') +
+          '">' +
+          (coin.selected ? '×' : '+') +
+          '</span></td><td><strong>' +
+          coin.value.toLocaleString('en-US') +
+          '</strong><small>' +
+          coin.fiat +
+          ' USD</small></td><td>' +
+          coin.label +
+          '</td><td>' +
+          coin.address +
+          '</td></tr>'
+      )
+      .join('') +
+    '</tbody></table>'
+  )
+}
+
+function packCoins(items, width, height) {
+  const padding = 4
+  const nodes = items
+    .map((item) => ({ item: item, r: Math.sqrt(item.value) }))
+    .sort((a, b) => b.r - a.r)
+  nodes[0].x = 0
+  nodes[0].y = 0
+  const placed = [nodes[0]]
+
+  function hits(x, y, r) {
+    return placed.some((peer) => {
+      const dx = peer.x - x
+      const dy = peer.y - y
+      const min = peer.r + r + padding
+      return dx * dx + dy * dy < min * min
+    })
+  }
+
+  for (let index = 1; index < nodes.length; index += 1) {
+    const node = nodes[index]
+    let best = null
+    let bestScore = Infinity
+    placed.forEach((peer) => {
+      const dist = peer.r + node.r + padding
+      for (let step = 0; step < 24; step += 1) {
+        const angle = (Math.PI * 2 * step) / 24 + index
+        const x = peer.x + Math.cos(angle) * dist
+        const y = peer.y + Math.sin(angle) * dist
+        if (hits(x, y, node.r)) continue
+        const score = x * x + y * y
+        if (score < bestScore) {
+          bestScore = score
+          best = { x: x, y: y }
+        }
+      }
+    })
+    node.x = best ? best.x : 0
+    node.y = best ? best.y : placed.length * node.r
+    placed.push(node)
+  }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  nodes.forEach((node) => {
+    minX = Math.min(minX, node.x - node.r)
+    minY = Math.min(minY, node.y - node.r)
+    maxX = Math.max(maxX, node.x + node.r)
+    maxY = Math.max(maxY, node.y + node.r)
+  })
+  const boundsW = Math.max(maxX - minX, 1)
+  const boundsH = Math.max(maxY - minY, 1)
+  const scale = Math.min(width / boundsW, height / boundsH)
+  const offsetX = (width - boundsW * scale) / 2
+  const offsetY = (height - boundsH * scale) / 2
+  return nodes.map((node) => ({
+    item: node.item,
+    d: node.r * 2 * scale,
+    x: offsetX + (node.x - minX) * scale,
+    y: offsetY + (node.y - minY) * scale
+  }))
+}
+
+function bubblePack() {
+  const width = 340
+  const height = 360
+  return (
+    '<div class="coin-map">' +
+    packCoins(coins, width, height)
+      .map((bubble) => {
+        const coin = bubble.item
+        const showLabel = bubble.d >= 72
+        const font = Math.max(7, Math.min(12, bubble.d * 0.16))
+        return (
           '<button type="button" class="bubble' +
           (coin.selected ? ' is-selected' : '') +
           '" data-coin="' +
           coin.id +
           '" style="width:' +
-          sizes[coin.id] +
+          bubble.d +
           'px;height:' +
-          sizes[coin.id] +
-          'px"><strong>' +
-          coin.value.toLocaleString('en-US') +
-          '</strong><span>' +
-          coin.label +
-          '</span></button>'
-      )
+          bubble.d +
+          'px;min-width:' +
+          bubble.d +
+          'px;min-height:' +
+          bubble.d +
+          'px;left:' +
+          bubble.x +
+          'px;top:' +
+          bubble.y +
+          'px"><strong style="font-size:' +
+          font +
+          'px">' +
+          (bubble.d < 48 ? '' : coin.value.toLocaleString('en-US')) +
+          '</strong>' +
+          (showLabel ? '<span>' + coin.label + '</span>' : '') +
+          '</button>'
+        )
+      })
       .join('') +
     '</div>'
   )
@@ -369,21 +581,58 @@ function bindCoins(root) {
 
 function renderCoins() {
   const root = document.getElementById('coin-select')
-  const picked = coins.filter((coin) => coin.selected).length
+  const picked = coins.filter((coin) => coin.selected)
+  const selectedSats = picked.reduce((sum, coin) => sum + coin.value, 0)
+  const totalSats = coins.reduce((sum, coin) => sum + coin.value, 0)
+  const bubbles = coinView === 'bubbles'
   root.innerHTML =
-    '<div class="coin-bar"><span>Coins · ' +
-    picked +
-    ' selected</span><button type="button" id="coin-view" aria-label="' +
-    (coinView === 'bubbles' ? 'List' : 'Bubbles') +
+    '<header class="coin-head">' +
+    '<div class="coin-bar"><span>Spendable outputs</span><button type="button" id="coin-view" aria-label="' +
+    (bubbles ? 'List' : 'Bubbles') +
     '">' +
-    icon(coinView === 'bubbles' ? 'menu' : 'bubbles', 'tool-icon') +
+    icon(bubbles ? 'menu' : 'bubbles', 'tool-icon') +
     '</button></div>' +
-    (coinView === 'bubbles' ? bubblePack() : utxoList())
+    '<p class="coin-count">' +
+    picked.length +
+    ' of ' +
+    coins.length +
+    ' selected</p>' +
+    '<p class="coin-total"><span>Total</span><b>' +
+    totalSats.toLocaleString('en-US') +
+    '</b><span>sats</span><b>' +
+    (totalSats / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+    '</b><span>USD</span></p>' +
+    '<p class="coin-selected">' +
+    selectedSats.toLocaleString('en-US') +
+    ' <span>sats</span></p>' +
+    '<p class="coin-fiat">' +
+    (selectedSats / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+    ' <span>USD</span></p></header>' +
+    (bubbles ? bubblePack() : utxoList()) +
+    '<button type="button" class="menu-button" id="coins-next"><span class="edge-left"></span><span class="edge-right"></span>Next</button>'
   document.getElementById('coin-view').addEventListener('click', () => {
-    coinView = coinView === 'bubbles' ? 'list' : 'bubbles'
+    coinView = bubbles ? 'list' : 'bubbles'
     renderCoins()
   })
+  document.getElementById('coins-next').addEventListener('click', () => openSend('output'))
   bindCoins(root)
+}
+
+function openSend(phase) {
+  sendPhase = phase
+  const form = document.getElementById('send-form')
+  const title = document.getElementById('send-title')
+  if (phase === 'coins') {
+    coinView = 'list'
+    form.hidden = true
+    title.textContent = 'Outputs'
+    renderCoins()
+  } else {
+    document.getElementById('coin-select').innerHTML = ''
+    form.hidden = false
+    title.textContent = 'Add output'
+  }
+  show('send')
 }
 
 function closeSheet() {
@@ -410,8 +659,7 @@ function useSample(address, amount, label) {
   document.getElementById('send-amount').value = String(amount)
   document.getElementById('send-label').value = label
   closeSheet()
-  show('send')
-  renderCoins()
+  openSend('output')
 }
 
 function openSettings() {
@@ -469,10 +717,10 @@ function renderAccount() {
   const txs = activity[account.fingerprint]
   const max = Math.max(...txs.map((tx) => tx.balance))
   const tabs = [
-    [account.stats[0][0], 'Transactions'],
-    [account.stats[1][0], 'Addresses'],
-    [account.stats[2][0], 'Outputs'],
-    [account.stats[3][0], 'Mempool']
+    [account.stats[0][0], 'Total\nTransactions'],
+    [account.stats[1][0], 'Used\nAddresses'],
+    [account.stats[2][0], 'Spendable\nOutputs'],
+    [account.stats[3][0], 'Sats in\nMempool']
   ]
   const list =
     accountTab === 0
@@ -562,10 +810,7 @@ function renderAccount() {
     (accountTab === 0 && showChart
       ? historyChart(txs)
       : '<div class="tx-list">' + list + '</div>')
-  document.getElementById('send-open').addEventListener('click', () => {
-    renderCoins()
-    show('send')
-  })
+  document.getElementById('send-open').addEventListener('click', () => openSend('coins'))
   document.getElementById('paste-open').addEventListener('click', openPaste)
   document.getElementById('camera-open').addEventListener('click', openCamera)
   document.getElementById('nfc-open').addEventListener('click', openNfc)
@@ -790,24 +1035,28 @@ function signSendSankey(className) {
   const inPaths = inRibbons
     .map((ribbon) => {
       const slot = inputs[ribbon[2]]
-      return '<path fill="url(#' + inId + ')" d="' + ribbonPath(0, ribbon[3], slot.h, 168, slot.ty, ribbon[0], ribbon[1]) + '"/>'
+      return '<path fill="url(#' + inId + ')" d="' + ribbonPath(0, ribbon[3], slot.h, 144, slot.ty, ribbon[0], ribbon[1]) + '"/>'
     })
     .join('')
   const outPaths = outRibbons
     .map((ribbon) => {
       const slot = outputs[ribbon[2]]
-      return '<path fill="url(#' + outId + ')" d="' + ribbonPath(206, slot.ty, slot.h, 360, ribbon[3], ribbon[0], ribbon[1]) + '"/>'
+      return '<path fill="url(#' + outId + ')" d="' + ribbonPath(216, slot.ty, slot.h, 360, ribbon[3], ribbon[0], ribbon[1]) + '"/>'
     })
     .join('')
   return (
     '<svg class="' + className + '" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-    '<defs><linearGradient id="' + inId + '" gradientUnits="userSpaceOnUse" x1="0" x2="168" y1="0" y2="0">' +
-    '<stop offset="0" stop-color="#0A0A0A"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>' +
+    '<defs><linearGradient id="' + inId + '" gradientUnits="userSpaceOnUse" x1="0" x2="144" y1="0" y2="0">' +
+    '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>' +
+    '<stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.02"/>' +
+    '<stop offset="0.62" stop-color="#FFFFFF" stop-opacity="0.09"/>' +
     '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0.09"/></linearGradient>' +
-    '<linearGradient id="' + outId + '" gradientUnits="userSpaceOnUse" x1="206" x2="360" y1="0" y2="0">' +
-    '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.09"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.05"/>' +
-    '<stop offset="1" stop-color="#0A0A0A"/></linearGradient></defs>' +
-    '<rect x="168" y="157" width="38" height="86" fill="rgba(255,255,255,0.09)"/>' +
+    '<linearGradient id="' + outId + '" gradientUnits="userSpaceOnUse" x1="216" x2="360" y1="0" y2="0">' +
+    '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.09"/>' +
+    '<stop offset="0.38" stop-color="#FFFFFF" stop-opacity="0.09"/>' +
+    '<stop offset="0.58" stop-color="#FFFFFF" stop-opacity="0.02"/>' +
+    '<stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>' +
+    '<rect x="144" y="157" width="72" height="86" fill="rgba(255,255,255,0.09)"/>' +
     inPaths + outPaths + '</svg>'
   )
 }
@@ -823,16 +1072,75 @@ const hexRows = [
   '000000a0  6c 6f 72 20 6f 6e 20 62 72 69 6e 6b 20 6f 66 20   |lor on brink of |'
 ]
 
-const bubbleLayout = [
-  [54, '48%', '34%', true],
-  [42, '28%', '28%', true],
-  [36, '68%', '30%', false],
-  [30, '38%', '48%', false],
-  [26, '62%', '46%', false],
-  [22, '22%', '44%', false],
-  [18, '78%', '42%', false],
-  [16, '52%', '22%', false]
-]
+function packIntroBubbles(values) {
+  const screenW = 390
+  const screenH = 844
+  const packW = screenW * 0.9
+  const packH = screenH * 0.48
+  const offsetX = (screenW - packW) / 2
+  const offsetY = screenH * 0.12
+  const padding = 6
+  const nodes = values
+    .map((value) => ({ value: value, r: Math.sqrt(value) }))
+    .sort((a, b) => b.r - a.r)
+  nodes[0].x = 0
+  nodes[0].y = 0
+  const placed = [nodes[0]]
+
+  function hits(x, y, r) {
+    return placed.some((peer) => {
+      const dx = peer.x - x
+      const dy = peer.y - y
+      const min = peer.r + r
+      return dx * dx + dy * dy < min * min - 0.01
+    })
+  }
+
+  for (let index = 1; index < nodes.length; index += 1) {
+    const node = nodes[index]
+    let best = null
+    let bestScore = Infinity
+    placed.forEach((peer) => {
+      const dist = peer.r + node.r + 0.6
+      for (let step = 0; step < 36; step += 1) {
+        const angle = (Math.PI * 2 * step) / 36 + index
+        const x = peer.x + Math.cos(angle) * dist
+        const y = peer.y + Math.sin(angle) * dist
+        if (hits(x, y, node.r)) continue
+        const score = x * x + y * y
+        if (score < bestScore) {
+          bestScore = score
+          best = { x: x, y: y }
+        }
+      }
+    })
+    node.x = best ? best.x : 0
+    node.y = best ? best.y : placed.length * node.r
+    placed.push(node)
+  }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  nodes.forEach((node) => {
+    minX = Math.min(minX, node.x - node.r)
+    minY = Math.min(minY, node.y - node.r)
+    maxX = Math.max(maxX, node.x + node.r)
+    maxY = Math.max(maxY, node.y + node.r)
+  })
+  const boundsW = Math.max(maxX - minX, 1)
+  const boundsH = Math.max(maxY - minY, 1)
+  const scale = Math.min((packW - padding) / boundsW, (packH - padding) / boundsH)
+  return nodes.map((node) => ({
+    d: node.r * 2 * scale,
+    x: offsetX + (node.x - minX) * scale + (packW - boundsW * scale) / 2,
+    y: offsetY + (node.y - minY) * scale + (packH - boundsH * scale) / 2
+  }))
+}
+
+const bubbleLayout = packIntroBubbles([900, 600, 320, 160, 80, 45, 25, 12, 5])
+const bubbleMax = Math.max.apply(null, bubbleLayout.map((bubble) => bubble.d))
 
 const explorerTx = [
   [[20, 4], [12, 10], [18, 16], [9, 22]],
@@ -854,14 +1162,14 @@ const introVisuals = {
       .map(
         (bubble) =>
           '<i class="' +
-          (bubble[3] ? 'is-bright' : '') +
+          (bubble.d / bubbleMax >= 0.45 ? 'is-bright' : '') +
           '" style="--r:' +
-          bubble[0] +
+          bubble.d +
           'px;--x:' +
-          bubble[1] +
-          ';--y:' +
-          bubble[2] +
-          '"></i>'
+          bubble.x +
+          'px;--y:' +
+          bubble.y +
+          'px"></i>'
       )
       .join('') +
     '</div>',
@@ -929,7 +1237,10 @@ let introIndex = 0
 function startOnboarding() {
   introIndex = 0
   const intro = document.getElementById('intro')
-  if (intro) intro.classList.remove('is-splash')
+  if (intro) {
+    intro.classList.remove('is-splash')
+    intro.removeEventListener('click', startOnboarding)
+  }
   renderIntro()
   show('intro')
 }
@@ -956,7 +1267,8 @@ function renderIntro() {
     '</button><div class="intro-side"><button type="button" id="intro-back"' +
     (introIndex === 0 ? ' disabled' : '') +
     '>Back</button><button type="button" id="intro-skip">Skip</button></div>'
-  document.getElementById('intro-next').addEventListener('click', () => {
+  document.getElementById('intro-next').addEventListener('click', (event) => {
+    event.stopPropagation()
     if (last) finishIntro()
     else {
       introIndex += 1
@@ -974,8 +1286,11 @@ function renderIntro() {
 function renderSplash() {
   const intro = document.getElementById('intro')
   intro.classList.add('is-splash')
+  const splashHex = hexRows.map((row) => row.replace(/<\/?b>/g, '')).join('\n')
   intro.innerHTML =
-    '<div class="intro-logo"><span>SAT<br>SIGNER</span></div><p class="splash-tag">UTXO manager<br>and Message Signer</p>'
+    '<div class="splash-code" aria-hidden="true">' +
+    splashHex +
+    '</div><div class="intro-logo"><span>SAT<br>SIGNER</span></div>'
   intro.addEventListener('click', startOnboarding, { once: true })
 }
 

@@ -54,9 +54,9 @@ const icons = {
   chevron:
     '<svg viewBox="0 0 5 12" fill="none"><path d="M1 1l3 4.5L1 10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
   back:
-    '<svg viewBox="0 0 12 12" fill="none"><path d="M8 1L3 6l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M14 19.5 8.5 12 14 4.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>',
   paste:
-    '<svg viewBox="0 0 14 12" fill="none"><path d="M2.5 2.5h9a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" stroke="currentColor"/><path d="M4.5 2.5V2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v.5M4 5h6M4 6.5h4M4 8h6" stroke="currentColor"/></svg>',
+    '<svg viewBox="0 0.5 14 13.5" fill="none"><path d="M2.5 2.5h9a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" stroke="currentColor"/><path d="M4.5 2.5V2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v.5M4 5h6M4 6.5h4M4 8h6" stroke="currentColor"/></svg>',
   camera:
     '<svg viewBox="0 0 14 12" fill="none"><path d="M13.5 3.8v7.9H.5V3.8h2.8a1.6 1.6 0 0 0 1.3-.7l.6-.9h3.9l.6.9a1.6 1.6 0 0 0 1.3.7Z" stroke="currentColor"/><circle cx="7" cy="7.2" r="2.5" stroke="currentColor"/></svg>',
   nfc:
@@ -75,6 +75,10 @@ const icons = {
     '<svg viewBox="0 0 17 10" fill="none"><path d="M.6 9h3.9V2h4.6v4h1.8V.5h2v2.5h3.2" stroke="currentColor"/></svg>',
   menu:
     '<svg viewBox="0 0 13 10" fill="none"><path d="M4 1h8M4 5h8M4 9h8M2 1H0M2 5H0M2 9H0" stroke="currentColor"/></svg>',
+  hamburger:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" stroke-width="1"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24" fill="none"><path d="M5 19 19 5M19 19 5 5" stroke="currentColor" stroke-width="1"/></svg>',
   settings:
     '<svg viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1" d="M9.594 3.94A1.125 1.125 0 0 1 10.7 3h2.6a1.125 1.125 0 0 1 1.11.94l.213 1.281a1.249 1.249 0 0 0 .645.87c.074.04.147.083.22.127a1.244 1.244 0 0 0 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.3 2.247a1.125 1.125 0 0 1-.26 1.431l-1 .827a1.239 1.239 0 0 0-.43.992q0 .127 0 .255a1.238 1.238 0 0 0 .43.991l1 .827a1.126 1.126 0 0 1 .26 1.43l-1.3 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456a1.246 1.246 0 0 0-1.076.124q-.109.066-.22.128a1.247 1.247 0 0 0-.644.869l-.213 1.281A1.124 1.124 0 0 1 13.3 21h-2.6a1.126 1.126 0 0 1-1.11-.94l-.214-1.281a1.245 1.245 0 0 0-.644-.87q-.111-.061-.22-.127a1.246 1.246 0 0 0-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.3-2.247a1.125 1.125 0 0 1 .26-1.431l1-.827a1.243 1.243 0 0 0 .43-.991q0-.127 0-.255a1.244 1.244 0 0 0-.43-.992l-1-.827a1.125 1.125 0 0 1-.26-1.43l1.3-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456a1.246 1.246 0 0 0 1.076-.124c.072-.044.146-.086.22-.128a1.241 1.241 0 0 0 .644-.869l.214-1.28Z"/><path stroke="currentColor" stroke-width="1" d="M15 12a3 3 0 1 1-3-3 3 3 0 0 1 3 3Z"/></svg>',
   bubbles:
