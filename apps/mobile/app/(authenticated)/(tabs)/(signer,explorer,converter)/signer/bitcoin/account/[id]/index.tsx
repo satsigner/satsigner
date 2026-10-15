@@ -104,7 +104,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
+import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Sizes } from '@/styles'
@@ -120,7 +120,6 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
   formatAddress,
   formatDate,

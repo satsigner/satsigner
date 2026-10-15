@@ -49,7 +49,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
+import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
@@ -61,7 +61,6 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 

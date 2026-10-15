@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useBlockchainStore } from '@/store/blockchain'
 import {
   fetchTransactionOutspends,
   type TransactionOutspend
 } from '@/api/transactionOutspends'
+import { useBlockchainStore } from '@/store/blockchain'
 
 type UseTransactionOutspendsParams = {
   enabled?: boolean
