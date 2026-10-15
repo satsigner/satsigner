@@ -14,6 +14,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -31,7 +32,7 @@ const TABLE_BODY_HEIGHT_RATIO = 0.32
 const TABLE_BODY_HEIGHT_RATIO_EXPANDED = 0.62
 const LABEL_TRUNCATE_CHARS = 14
 
-type SSArkAddressesViewProps = {
+type SSArkAddressesViewProps = Pick<DisplayPreferences, 'privacyMode'> & {
   addresses: ArkAddress[]
   labels: Record<string, Label>
   expand: boolean
@@ -59,7 +60,8 @@ function SSArkAddressesView({
   onToggleExpand,
   onRefresh,
   onPressAddress,
-  emptyComponent
+  emptyComponent,
+  privacyMode
 }: SSArkAddressesViewProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const [view, setView] = useState<'table' | 'list'>('table')
@@ -174,6 +176,7 @@ function SSArkAddressesView({
                 <SSArkAddressCard
                   address={address}
                   label={labels[address.address]?.label ?? ''}
+                  privacyMode={privacyMode}
                 />
               </SSPressable>
             </SSVStack>

@@ -132,7 +132,7 @@ function SSArkMovementCard({
               {privacyMode ? '••••' : formatTxId(txid)}
             </SSText>
           ) : null}
-          <SSLabelTags label={label} size="xs" />
+          <SSLabelTags label={label} privacyMode={privacyMode} size="xs" />
         </SSVStack>
         <SSVStack gap="xxs" style={styles.rightColumn}>
           <SSTimeAgoText date={timestamp} size="xs" />
