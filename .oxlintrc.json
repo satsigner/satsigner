@@ -64,7 +64,6 @@
     "import/no-named-as-default-member": "allow",
     "unicorn/no-anonymous-default-export": "allow",
     "unicorn/no-abusive-eslint-disable": "allow",
-    "typescript/prefer-ts-expect-error": "allow",
     "unicorn/prefer-event-target": "allow",
     "unicorn/prefer-add-event-listener": "allow",
     "unicorn/no-new-buffer": "allow",
