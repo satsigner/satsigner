@@ -1,4 +1,9 @@
-import { findClosestPrice } from '@/api/localPrices'
+import {
+  findClosestPrice,
+  getLocalPriceAt,
+  getLocalPricesAt
+} from '@/api/localPrices'
+import { CurrencySchema } from '@/types/models/Blockchain'
 
 describe('findClosestPrice', () => {
   const times = [100, 200, 300]
@@ -38,5 +43,24 @@ describe('findClosestPrice', () => {
 
   it('returns null for a negative sentinel close', () => {
     expect(findClosestPrice([100, 200], [-1, 2], 100)).toBeNull()
+  })
+})
+
+describe('getLocalPricesAt', () => {
+  const timestamp = 1_577_836_800
+
+  it('returns the bundled close for each currency that has one', () => {
+    const prices = getLocalPricesAt(timestamp)
+
+    expect(prices.USD).toBeGreaterThan(0)
+    for (const currency of CurrencySchema.options) {
+      expect(prices[currency]).toBe(
+        getLocalPriceAt(currency, timestamp) ?? undefined
+      )
+    }
+  })
+
+  it('is empty before the bundled history starts', () => {
+    expect(getLocalPricesAt(0)).toStrictEqual({})
   })
 })
