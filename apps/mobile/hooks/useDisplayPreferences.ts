@@ -12,15 +12,21 @@ export type DisplayPreferences = ReturnType<typeof useDisplayPreferences>
  * from each subscribing to the stores themselves.
  */
 export function useDisplayPreferences() {
-  const [currencyUnit, fiatEnabled, privacyMode, useZeroPadding] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.fetchCurrentPrices,
-        state.privacyMode,
-        state.useZeroPadding
-      ])
-    )
+  const [
+    currencyUnit,
+    fiatEnabled,
+    historicalFiatEnabled,
+    privacyMode,
+    useZeroPadding
+  ] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.fetchCurrentPrices,
+      state.fetchHistoricalPrices,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
+  )
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -30,6 +36,7 @@ export function useDisplayPreferences() {
     currencyUnit,
     fiatCurrency,
     fiatEnabled,
+    historicalFiatEnabled,
     privacyMode,
     useZeroPadding
   }
