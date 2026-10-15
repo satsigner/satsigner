@@ -1,20 +1,22 @@
 import * as Clipboard from 'expo-clipboard'
 import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSText from '@/components/SSText'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { EcashKeyset, EcashProof } from '@/types/models/Ecash'
 
 import SSPressable from './SSPressable'
 
-type SSEcashProofCardProps = {
+type SSEcashProofCardProps = Pick<
+  DisplayPreferences,
+  'currencyUnit' | 'privacyMode' | 'useZeroPadding'
+> & {
   keysetCounters?: Record<string, number>
   keysets?: EcashKeyset[]
   onPress?: () => void
@@ -27,16 +29,11 @@ function SSEcashProofCard({
   keysets,
   onPress,
   proof,
-  proofIndex
+  proofIndex,
+  currencyUnit,
+  privacyMode,
+  useZeroPadding
 }: SSEcashProofCardProps) {
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-
   const keyset = keysets?.find((ks) => ks.id === proof.id)
   const counter = keysetCounters?.[proof.id]
 
