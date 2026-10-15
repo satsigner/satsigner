@@ -66,7 +66,6 @@
     "unicorn/no-abusive-eslint-disable": "allow",
     "unicorn/prefer-event-target": "allow",
     "unicorn/prefer-add-event-listener": "allow",
-    "unicorn/no-new-buffer": "allow",
     "no-bitwise": "allow",
     "class-methods-use-this": "allow",
     "max-classes-per-file": "allow",
