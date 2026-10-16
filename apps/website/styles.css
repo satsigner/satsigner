@@ -214,6 +214,36 @@ a{
   border-radius: inherit;
   pointer-events: none;
 }
+.hero.is-phone .hero-mark .phone-key {
+  position: absolute;
+  z-index: 9;
+  width: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), #3a3a3a 40%, #1c1c1c);
+  pointer-events: none;
+}
+.hero.is-phone .hero-mark .phone-key-silent {
+  top: calc(100% * 112 / 844);
+  left: -1.5px;
+  height: calc(100% * 18 / 844);
+}
+.hero.is-phone .hero-mark .phone-key-up {
+  top: calc(100% * 148 / 844);
+  left: -1.5px;
+  height: calc(100% * 46 / 844);
+}
+.hero.is-phone .hero-mark .phone-key-down {
+  top: calc(100% * 206 / 844);
+  left: -1.5px;
+  height: calc(100% * 46 / 844);
+}
+.hero.is-phone .hero-mark .phone-key-power {
+  top: calc(100% * 178 / 844);
+  right: -1.5px;
+  left: auto;
+  height: calc(100% * 68 / 844);
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.35), #3a3a3a 40%, #1c1c1c);
+}
 .hero.is-phone .hero-mark {
   --bezel: 10px;
   --radius: 48px;
