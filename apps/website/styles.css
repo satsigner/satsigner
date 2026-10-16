@@ -217,32 +217,32 @@ a{
 .hero.is-phone .hero-mark .phone-key {
   position: absolute;
   z-index: 9;
-  width: 1.5px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), #3a3a3a 40%, #1c1c1c);
+  width: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), rgba(58, 58, 58, 0.45) 40%, rgba(28, 28, 28, 0.2));
   pointer-events: none;
 }
 .hero.is-phone .hero-mark .phone-key-silent {
   top: calc(100% * 112 / 844);
-  left: -1.5px;
+  left: -1px;
   height: calc(100% * 18 / 844);
 }
 .hero.is-phone .hero-mark .phone-key-up {
   top: calc(100% * 148 / 844);
-  left: -1.5px;
+  left: -1px;
   height: calc(100% * 46 / 844);
 }
 .hero.is-phone .hero-mark .phone-key-down {
   top: calc(100% * 206 / 844);
-  left: -1.5px;
+  left: -1px;
   height: calc(100% * 46 / 844);
 }
 .hero.is-phone .hero-mark .phone-key-power {
   top: calc(100% * 178 / 844);
-  right: -1.5px;
+  right: -1px;
   left: auto;
   height: calc(100% * 68 / 844);
-  background: linear-gradient(270deg, rgba(255, 255, 255, 0.35), #3a3a3a 40%, #1c1c1c);
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.22), rgba(58, 58, 58, 0.45) 40%, rgba(28, 28, 28, 0.2));
 }
 .hero.is-phone .hero-mark {
   --bezel: 10px;
@@ -946,6 +946,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   z-index: 1;
   height: auto;
   border: 0;
+  background: #000;
   pointer-events: none;
   opacity: 0.72;
   overflow: hidden;
@@ -982,18 +983,21 @@ html[data-theme="light"] .as-seen-in-logo--light {
   cursor: pointer;
 }
 .flow-modal {
-  width: 100vw;
-  max-width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
   margin: 0;
   padding: 1.5rem;
   border: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: #000;
   overflow: auto;
 }
 .flow-modal::backdrop {
-  background: rgba(0, 0, 0, 0.82);
+  background: #000;
 }
 .flow-modal-panel {
   display: flex;
@@ -1007,6 +1011,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .flow-modal-copy {
   width: min(22rem, 100%);
   color: #fff;
+  text-align: left;
   pointer-events: auto;
 }
 .flow-modal-copy h2 {
@@ -1072,6 +1077,64 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .flow-modal-arrow-next::before {
   transform: translate(-70%, -50%) rotate(45deg);
 }
+.flow-modal.is-expanded .flow-modal-copy {
+  display: none;
+}
+.flow-modal.is-expanded .flow-modal-panel {
+  justify-content: center;
+}
+.flow-modal.is-expanded .flow-modal-stage {
+  width: min(460px, calc((100vh - 4rem) * 390 / 844), calc(100vw - 7rem));
+}
+.flow-modal-expand {
+  position: fixed;
+  top: 0.85rem;
+  right: 3.4rem;
+  z-index: 2;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+}
+.flow-modal-expand:hover,
+.flow-modal-expand:focus-visible,
+.flow-modal-expand[aria-pressed="true"] {
+  color: rgba(255, 255, 255, 0.78);
+}
+.flow-modal-expand::before,
+.flow-modal-expand::after {
+  content: "";
+  position: absolute;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-color: currentColor;
+  border-style: solid;
+}
+.flow-modal-expand::before {
+  top: 0.45rem;
+  left: 0.45rem;
+  border-width: 1.5px 0 0 1.5px;
+}
+.flow-modal-expand::after {
+  right: 0.45rem;
+  bottom: 0.45rem;
+  border-width: 0 1.5px 1.5px 0;
+}
+.flow-modal-expand[aria-pressed="true"]::before {
+  top: auto;
+  left: auto;
+  right: 0.55rem;
+  bottom: 0.55rem;
+}
+.flow-modal-expand[aria-pressed="true"]::after {
+  right: auto;
+  bottom: auto;
+  top: 0.55rem;
+  left: 0.55rem;
+}
 .flow-modal-close {
   position: fixed;
   top: 0.85rem;
@@ -1105,17 +1168,48 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .flow-modal-close::after {
   transform: translate(-50%, -50%) rotate(-45deg);
 }
-@media (max-width: 800px) {
+@media (max-width: 900px) {
+  .flow-modal {
+    padding: 4.25rem 3.25rem 2rem;
+  }
   .flow-modal-panel {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
-    gap: 1.25rem;
-    padding-top: 2.5rem;
+    gap: 1.5rem;
+    width: min(28rem, 100%);
+    margin: 0 auto;
+    text-align: center;
+  }
+  .flow-modal-copy {
+    width: 100%;
+    text-align: center;
+  }
+  .flow-modal-copy h2,
+  .flow-modal-copy p {
+    margin-left: auto;
+    margin-right: auto;
   }
   .flow-modal-stage {
-    width: min(320px, calc((70vh) * 390 / 844), 100%);
+    width: min(320px, calc((100dvh - 16rem) * 390 / 844), calc(100vw - 6.5rem));
     align-self: center;
+  }
+}
+@media (max-width: 520px) {
+  .flow-modal {
+    padding: 3.75rem 2.75rem 1.5rem;
+  }
+  .flow-modal-panel {
+    gap: 1.15rem;
+  }
+  .flow-modal-copy h2 {
+    font-size: 1.65rem;
+  }
+  .flow-modal-copy p {
+    font-size: 0.95rem;
+  }
+  .flow-modal-stage {
+    width: min(280px, calc((100dvh - 15rem) * 390 / 844), calc(100vw - 5.5rem));
   }
 }
 .feature-grid-card h3 {

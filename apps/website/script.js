@@ -306,7 +306,7 @@
       lgl.uniform2f(lu.center, lcx, lcy);
       lgl.uniform1f(lu.time, reduce ? 0 : t * 0.001);
       lgl.uniform2f(lu.pointer, lpx, lpy);
-      lgl.uniform1f(lu.pointerOn, pointer.on);
+      lgl.uniform1f(lu.pointerOn, follow);
       lgl.uniform1f(lu.dpr, dpr);
       lgl.uniform1f(lu.radius, lrad);
       lgl.drawArrays(lgl.TRIANGLES, 0, 3);
@@ -627,7 +627,9 @@ if (typeof Swiper !== 'undefined') {
   });
 
   var current = -1;
+  var expanded = false;
   var syncing = false;
+  var expandButton = dialog.querySelector('[data-flow-expand]');
 
   function flowSrc(screen, device) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
@@ -640,16 +642,36 @@ if (typeof Swiper !== 'undefined') {
     frame.contentWindow.postMessage({ type: 'satsigner', play: true }, location.origin);
   }
 
-  function flowSlug() {
-    var hash = location.hash || '';
-    var match = hash.match(/^#features\/([a-z0-9-]+)$/);
-    return match ? match[1] : '';
+  function flowHash(slug, openExpanded) {
+    var hash = '#features/' + slug;
+    if (openExpanded) hash += '?expanded=1';
+    return hash;
   }
 
-  function showFlow(index) {
+  function parseFlow() {
+    var hash = location.hash || '';
+    var match = hash.match(/^#features\/([a-z0-9-]+)(?:\?(.*))?$/);
+    if (!match) return { slug: '', expanded: false };
+    return {
+      slug: match[1],
+      expanded: new URLSearchParams(match[2] || '').get('expanded') === '1'
+    };
+  }
+
+  function applyExpanded(on) {
+    expanded = Boolean(on);
+    dialog.classList.toggle('is-expanded', expanded);
+    if (expandButton) {
+      expandButton.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+      expandButton.setAttribute('aria-label', expanded ? 'Collapse presentation' : 'Expand presentation');
+    }
+  }
+
+  function showFlow(index, openExpanded) {
     var card = cards[index];
     if (!card) return;
     current = index;
+    applyExpanded(openExpanded);
     var heading = card.querySelector('h3');
     var copy = card.querySelector('p');
     var screen = card.getAttribute('data-screen');
@@ -663,16 +685,16 @@ if (typeof Swiper !== 'undefined') {
 
   function openSlug(slug, push) {
     if (!slugs[slug]) return;
-    var hash = '#features/' + slug;
+    var hash = flowHash(slug, expanded);
     if (location.hash === hash) {
-      showFlow(cards.indexOf(slugs[slug]));
+      showFlow(cards.indexOf(slugs[slug]), expanded);
       return;
     }
     syncing = true;
-    if (push) history.pushState({ flow: slug }, '', hash);
-    else history.replaceState({ flow: slug }, '', hash);
+    if (push) history.pushState({ flow: slug, expanded: expanded }, '', hash);
+    else history.replaceState({ flow: slug, expanded: expanded }, '', hash);
     syncing = false;
-    showFlow(cards.indexOf(slugs[slug]));
+    showFlow(cards.indexOf(slugs[slug]), expanded);
   }
 
   function closeFlow() {
@@ -727,6 +749,16 @@ if (typeof Swiper !== 'undefined') {
     closeFlow();
   });
   dialog.querySelector('[data-flow-close]').addEventListener('click', closeFlow);
+  if (expandButton) {
+    expandButton.addEventListener('click', function () {
+      if (current < 0) return;
+      applyExpanded(!expanded);
+      var slug = cards[current].getAttribute('data-flow');
+      syncing = true;
+      history.replaceState({ flow: slug, expanded: expanded }, '', flowHash(slug, expanded));
+      syncing = false;
+    });
+  }
   dialog.querySelectorAll('[data-flow-prev]').forEach(function (button) {
     button.addEventListener('click', function () { step(-1); });
   });
@@ -736,6 +768,7 @@ if (typeof Swiper !== 'undefined') {
   dialog.addEventListener('close', function () {
     modalFrame.src = 'about:blank';
     current = -1;
+    applyExpanded(false);
   });
   dialog.addEventListener('keydown', function (event) {
     if (event.key === 'ArrowRight') {
@@ -747,18 +780,18 @@ if (typeof Swiper !== 'undefined') {
     }
   });
 
+  function syncFromLocation() {
+    var flow = parseFlow();
+    if (flow.slug && slugs[flow.slug]) showFlow(cards.indexOf(slugs[flow.slug]), flow.expanded);
+    else if (dialog.open) dialog.close();
+  }
+
   window.addEventListener('hashchange', function () {
     if (syncing) return;
-    var slug = flowSlug();
-    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
-    else if (dialog.open) dialog.close();
+    syncFromLocation();
   });
-  window.addEventListener('popstate', function () {
-    var slug = flowSlug();
-    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
-    else if (dialog.open) dialog.close();
-  });
+  window.addEventListener('popstate', syncFromLocation);
 
-  var initial = flowSlug();
-  if (initial && slugs[initial]) showFlow(cards.indexOf(slugs[initial]));
+  var initial = parseFlow();
+  if (initial.slug && slugs[initial.slug]) showFlow(cards.indexOf(slugs[initial.slug]), initial.expanded);
 })();
