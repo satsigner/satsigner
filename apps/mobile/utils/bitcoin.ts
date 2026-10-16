@@ -30,17 +30,17 @@ initEccLib(ecc)
 
 export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
 
-/**
- * Classify an address by decoding its output script, rather than trusting
- * caller-supplied metadata (e.g. an arbitrary address pasted into the
- * explorer verify-message flow has no known ScriptVersionType).
- */
 const HASH160_BYTES = 20
 const P2PKH_SCRIPT_BYTES = 25
 const P2SH_SCRIPT_BYTES = 23
 const P2WPKH_SCRIPT_BYTES = 22
 const WITNESS_V1_OR_P2WSH_SCRIPT_BYTES = 34
 
+/**
+ * Classify an address by decoding its output script, rather than trusting
+ * caller-supplied metadata (e.g. an arbitrary address pasted into the
+ * explorer verify-message flow has no known ScriptVersionType).
+ */
 export function getScriptTypeFromAddress(
   address: string,
   network: AppNetwork
