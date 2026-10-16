@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="test-site/tokens.css">
     <link rel="stylesheet" href="test-site/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=42" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=43" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -411,18 +411,22 @@
   </footer>
 
   <dialog class="flow-modal" id="flow-modal">
-    <button type="button" class="flow-modal-close" data-flow-close>Close</button>
+    <button type="button" class="flow-modal-close" data-flow-close aria-label="Close"></button>
     <div class="flow-modal-panel">
       <div class="flow-modal-copy">
         <h2 id="flow-modal-title"></h2>
         <p id="flow-modal-desc"></p>
       </div>
-      <iframe class="flow-modal-frame" title="SatSigner flow"></iframe>
+      <div class="flow-modal-stage">
+        <iframe class="flow-modal-frame" title="SatSigner flow"></iframe>
+      </div>
+      <button type="button" class="flow-modal-arrow flow-modal-arrow-prev" data-flow-prev aria-label="Previous"></button>
+      <button type="button" class="flow-modal-arrow flow-modal-arrow-next" data-flow-next aria-label="Next"></button>
     </div>
   </dialog>
   <script src="test-site/icons.js"></script>
   <script src="test-site/screen.js"></script>
-  <script src="script.js?v=31"></script>
+  <script src="script.js?v=32"></script>
 
   </body>
 </html>

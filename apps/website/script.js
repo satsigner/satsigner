@@ -592,12 +592,32 @@ if (typeof Swiper !== 'undefined') {
 })();
 
 (function initFeatureFlows() {
-  var cards = document.querySelectorAll('.feature-grid-card[data-screen]');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.feature-grid-card[data-screen]'));
   var dialog = document.getElementById('flow-modal');
   var modalFrame = dialog && dialog.querySelector('iframe');
   var modalTitle = document.getElementById('flow-modal-title');
   var modalDesc = document.getElementById('flow-modal-desc');
   if (!cards.length || !dialog || !modalFrame) return;
+
+  var slugs = {};
+  cards.forEach(function (card) {
+    var heading = card.querySelector('h3');
+    var base = (heading ? heading.textContent : card.getAttribute('data-screen') || 'flow')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    var slug = base;
+    var n = 2;
+    while (slugs[slug]) {
+      slug = base + '-' + n;
+      n += 1;
+    }
+    slugs[slug] = card;
+    card.setAttribute('data-flow', slug);
+  });
+
+  var current = -1;
+  var syncing = false;
 
   function flowSrc(screen, device) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
@@ -608,6 +628,56 @@ if (typeof Swiper !== 'undefined') {
   function replay(frame) {
     if (!frame.contentWindow) return;
     frame.contentWindow.postMessage({ type: 'satsigner', play: true }, location.origin);
+  }
+
+  function flowSlug() {
+    var hash = location.hash || '';
+    var match = hash.match(/^#features\/([a-z0-9-]+)$/);
+    return match ? match[1] : '';
+  }
+
+  function showFlow(index) {
+    var card = cards[index];
+    if (!card) return;
+    current = index;
+    var heading = card.querySelector('h3');
+    var copy = card.querySelector('p');
+    var screen = card.getAttribute('data-screen');
+    if (modalTitle) modalTitle.textContent = heading ? heading.textContent : '';
+    if (modalDesc) modalDesc.textContent = copy ? copy.textContent : '';
+    var nextSrc = flowSrc(screen, true);
+    if (modalFrame.getAttribute('src') !== nextSrc) modalFrame.src = nextSrc;
+    else replay(modalFrame);
+    if (!dialog.open) dialog.showModal();
+  }
+
+  function openSlug(slug, push) {
+    if (!slugs[slug]) return;
+    var hash = '#features/' + slug;
+    if (location.hash === hash) {
+      showFlow(cards.indexOf(slugs[slug]));
+      return;
+    }
+    syncing = true;
+    if (push) history.pushState({ flow: slug }, '', hash);
+    else history.replaceState({ flow: slug }, '', hash);
+    syncing = false;
+    showFlow(cards.indexOf(slugs[slug]));
+  }
+
+  function closeFlow() {
+    if ((location.hash || '').indexOf('#features/') === 0) {
+      syncing = true;
+      history.pushState({ flow: null }, '', '#features');
+      syncing = false;
+    }
+    if (dialog.open) dialog.close();
+  }
+
+  function step(delta) {
+    if (!cards.length) return;
+    var index = current < 0 ? 0 : (current + delta + cards.length) % cards.length;
+    openSlug(cards[index].getAttribute('data-flow'), true);
   }
 
   cards.forEach(function (card) {
@@ -626,39 +696,59 @@ if (typeof Swiper !== 'undefined') {
     card.setAttribute('role', 'button');
     card.style.cursor = 'pointer';
 
-    function openFlow() {
-      var heading = card.querySelector('h3');
-      var copy = card.querySelector('p');
-      if (modalTitle) modalTitle.textContent = heading ? heading.textContent : '';
-      if (modalDesc) modalDesc.textContent = copy ? copy.textContent : '';
-      modalFrame.src = flowSrc(screen, false);
-      dialog.showModal();
-    }
-
     card.addEventListener('mouseenter', function () { replay(frame); });
     card.addEventListener('focusin', function () { replay(frame); });
     card.addEventListener('click', function (event) {
       if (event.target.closest('a')) return;
-      openFlow();
+      openSlug(card.getAttribute('data-flow'), true);
     });
     card.addEventListener('keydown', function (event) {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      openFlow();
+      openSlug(card.getAttribute('data-flow'), true);
     });
   });
 
   dialog.addEventListener('click', function (event) {
-    if (event.target === dialog) dialog.close();
+    if (event.target === dialog) closeFlow();
   });
   dialog.addEventListener('cancel', function (event) {
     event.preventDefault();
-    dialog.close();
+    closeFlow();
   });
-  dialog.querySelector('[data-flow-close]').addEventListener('click', function () {
-    dialog.close();
+  dialog.querySelector('[data-flow-close]').addEventListener('click', closeFlow);
+  dialog.querySelectorAll('[data-flow-prev]').forEach(function (button) {
+    button.addEventListener('click', function () { step(-1); });
+  });
+  dialog.querySelectorAll('[data-flow-next]').forEach(function (button) {
+    button.addEventListener('click', function () { step(1); });
   });
   dialog.addEventListener('close', function () {
     modalFrame.src = 'about:blank';
+    current = -1;
   });
+  dialog.addEventListener('keydown', function (event) {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      step(1);
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      step(-1);
+    }
+  });
+
+  window.addEventListener('hashchange', function () {
+    if (syncing) return;
+    var slug = flowSlug();
+    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
+    else if (dialog.open) dialog.close();
+  });
+  window.addEventListener('popstate', function () {
+    var slug = flowSlug();
+    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
+    else if (dialog.open) dialog.close();
+  });
+
+  var initial = flowSlug();
+  if (initial && slugs[initial]) showFlow(cards.indexOf(slugs[initial]));
 })();
