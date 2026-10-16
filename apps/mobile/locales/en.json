@@ -3220,7 +3220,6 @@
     "preview.utxoNotFound": "UTXO not found in wallet database. Please sync your wallet or check your inputs.",
     "preview.nfcExported": "Exported via NFC",
     "preview.nfcImported": "Imported via NFC",
-    "signWithSeedWords": "Sign with Seed Words",
     "size": "Raw size",
     "txid": "Txid",
     "unlockingScript": "Unlocking script",

@@ -913,7 +913,7 @@ function PreviewTransactionSeedWordsModal({
           showPasteButton
           showScanSeedQRButton
           showActionButton
-          actionButtonLabel={t('transaction.signWithSeedWords')}
+          actionButtonLabel={t('transaction.preview.signWithSeedWords')}
           actionButtonVariant="secondary"
           onActionButtonPress={handleSeedWordsSubmit}
           actionButtonDisabled={false}
