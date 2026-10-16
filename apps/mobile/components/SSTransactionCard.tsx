@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
+import { brantaLogoUrl } from '@/utils/brantaUrl'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,
@@ -125,12 +126,18 @@ function SSTransactionCard({
     label || payeeName || t('transaction.noLabel').toUpperCase()
   const historyLabelMuted = !label && !payeeName
 
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
+  const [brantaTorEnabled, currencyUnit, useZeroPadding, privacyMode] =
+    useSettingsStore(
+      useShallow((state) => [
+        state.brantaTorEnabled,
+        state.currencyUnit,
+        state.useZeroPadding,
+        state.privacyMode
+      ])
+    )
+  const payeeLogoUrl = brantaLogoUrl(
+    transaction.branta?.logoUrl,
+    brantaTorEnabled
   )
   const { showCurrentFiat, showHistoricalFiat } = useFiatData()
 
@@ -327,10 +334,10 @@ function SSTransactionCard({
               ) : null}
             </SSVStack>
             <SSHStack gap="xs" style={{ alignItems: 'center', marginTop: 4 }}>
-              {transaction.branta?.logoUrl ? (
+              {payeeLogoUrl ? (
                 <Image
                   contentFit="contain"
-                  source={{ uri: transaction.branta.logoUrl }}
+                  source={{ uri: payeeLogoUrl }}
                   style={styles.payeeLogo}
                 />
               ) : null}
