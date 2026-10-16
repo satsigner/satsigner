@@ -207,12 +207,12 @@ export default function EcashSendPage() {
                   btcPrice={amountDisplay.btcPrice}
                   fiatCurrency={amountDisplay.fiatCurrency}
                   fiatEnabled={amountDisplay.fiatEnabled}
+                  privacyMode={amountDisplay.privacyMode}
                   value={parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={spendableSats}
                   remainingSats={spendableSats}
-                  privacyMode={privacyMode}
                 />
               </SSVStack>
               {routeLabel ? (

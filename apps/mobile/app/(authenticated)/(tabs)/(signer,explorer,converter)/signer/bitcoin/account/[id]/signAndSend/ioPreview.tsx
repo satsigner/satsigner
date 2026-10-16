@@ -1610,6 +1610,7 @@ export default function IOPreview() {
                       btcPrice={amountDisplay.btcPrice}
                       fiatCurrency={amountDisplay.fiatCurrency}
                       fiatEnabled={amountDisplay.fiatEnabled}
+                      privacyMode={amountDisplay.privacyMode}
                       key={`amount-input-${outputsCount}`}
                       min={DUST_LIMIT}
                       max={

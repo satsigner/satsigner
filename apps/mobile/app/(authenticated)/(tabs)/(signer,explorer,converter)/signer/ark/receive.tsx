@@ -190,6 +190,7 @@ export default function ArkReceivePage() {
                       btcPrice={amountDisplay.btcPrice}
                       fiatCurrency={amountDisplay.fiatCurrency}
                       fiatEnabled={amountDisplay.fiatEnabled}
+                      privacyMode={amountDisplay.privacyMode}
                       min={DUST_LIMIT}
                       max={LIGHTNING_CHANNEL_THRESHOLD}
                       value={Number(amount)}

@@ -16,13 +16,12 @@ import SSText from './SSText'
 
 type SSAmountInputProps = Pick<
   DisplayPreferences,
-  'btcPrice' | 'fiatCurrency' | 'fiatEnabled'
+  'btcPrice' | 'fiatCurrency' | 'fiatEnabled' | 'privacyMode'
 > & {
   min?: number
   max: number
   value: number
   remainingSats?: number
-  privacyMode?: boolean
   onValueChange: (value: number) => void
 }
 
@@ -31,7 +30,7 @@ function SSAmountInput({
   max,
   value,
   remainingSats,
-  privacyMode = false,
+  privacyMode,
   onValueChange,
   btcPrice,
   fiatCurrency,

@@ -644,6 +644,7 @@ export default function PayPage() {
                       btcPrice={amountDisplay.btcPrice}
                       fiatCurrency={amountDisplay.fiatCurrency}
                       fiatEnabled={amountDisplay.fiatEnabled}
+                      privacyMode={amountDisplay.privacyMode}
                       max={onchainAmountMax}
                       min={DUST_LIMIT}
                       onValueChange={handleOnchainAmountChange}

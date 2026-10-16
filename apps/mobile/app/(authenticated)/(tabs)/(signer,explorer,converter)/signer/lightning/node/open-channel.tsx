@@ -384,6 +384,7 @@ export default function OpenChannelPage() {
                       btcPrice={amountDisplay.btcPrice}
                       fiatCurrency={amountDisplay.fiatCurrency}
                       fiatEnabled={amountDisplay.fiatEnabled}
+                      privacyMode={amountDisplay.privacyMode}
                       max={amountMax}
                       min={LND_OPEN_CHANNEL_MIN_FUNDING_SAT}
                       onValueChange={handleLocalAmountChange}

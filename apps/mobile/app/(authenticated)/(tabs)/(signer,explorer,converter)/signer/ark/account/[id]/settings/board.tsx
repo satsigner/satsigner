@@ -504,6 +504,7 @@ export default function ArkBoardPage() {
                     btcPrice={amountDisplay.btcPrice}
                     fiatCurrency={amountDisplay.fiatCurrency}
                     fiatEnabled={amountDisplay.fiatEnabled}
+                    privacyMode={amountDisplay.privacyMode}
                     min={minAmountSats}
                     max={confirmedSats}
                     value={amountSats}
