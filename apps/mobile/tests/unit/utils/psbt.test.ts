@@ -220,6 +220,7 @@ describe('hasAllRequiredSignatures', () => {
   const account: Account = {
     addresses: [],
     createdAt: new Date('2024-01-01'),
+    displayIndex: 0,
     id: 'acc-1',
     keyCount: 3,
     keys: [key, key, key],
@@ -363,7 +364,7 @@ describe('2-of-2 multisig signatures', () => {
 
     expect(finalize).not.toHaveBeenCalled()
     expect(
-      bitcoinjs.Psbt.fromBase64(required(bound)).data.inputs[0].partialSig
+      bitcoinjs.Psbt.fromBase64(bound ?? '').data.inputs[0].partialSig
     ).toHaveLength(2)
   })
 

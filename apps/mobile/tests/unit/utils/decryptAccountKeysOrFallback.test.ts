@@ -34,6 +34,7 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
   return {
     addresses: [],
     createdAt: new Date('2024-01-01'),
+    displayIndex: 0,
     id: 'acc-1',
     keyCount: 1,
     keys: [makeKey()],
