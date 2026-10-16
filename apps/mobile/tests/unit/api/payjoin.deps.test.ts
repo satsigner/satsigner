@@ -15,13 +15,13 @@ import {
 } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import { parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   type PayjoinDeps,
   type PayjoinSession,
   type PayjoinSessionStore,
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 const TTL_MS = 120_000
 const RECEIVE_ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
