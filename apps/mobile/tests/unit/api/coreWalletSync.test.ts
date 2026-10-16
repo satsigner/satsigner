@@ -1,4 +1,6 @@
 import {
+  isListDescriptorsError,
+  isRescanInProgress,
   mergeWalletTxEntries,
   reorgedOutTxids,
   scanProgressHeight,
@@ -197,5 +199,34 @@ describe('startRescanFrom', () => {
       'Invalid start_height'
     )
     expect(rescan).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('core wallet RPC error matchers', () => {
+  const LEGACY_WALLET_MESSAGE =
+    'listdescriptors is not available for non-descriptor wallets'
+
+  it('detects a rescan already in progress by code and text', () => {
+    expect(
+      isRescanInProgress(new RpcError(-4, RESCAN_IN_PROGRESS_MESSAGE))
+    ).toBe(true)
+    expect(
+      isRescanInProgress(new RpcError(-1, RESCAN_IN_PROGRESS_MESSAGE))
+    ).toBe(false)
+    expect(isRescanInProgress(new Error(RESCAN_IN_PROGRESS_MESSAGE))).toBe(
+      false
+    )
+  })
+
+  it('detects a legacy wallet listdescriptors failure by code and text', () => {
+    expect(
+      isListDescriptorsError(new RpcError(-4, LEGACY_WALLET_MESSAGE))
+    ).toBe(true)
+    expect(
+      isListDescriptorsError(new RpcError(-1, LEGACY_WALLET_MESSAGE))
+    ).toBe(false)
+    expect(isListDescriptorsError(new RpcError(-4, 'Wallet not found'))).toBe(
+      false
+    )
   })
 })

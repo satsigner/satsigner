@@ -783,6 +783,8 @@ async function syncWithCoreWallet(
 }
 
 export {
+  isListDescriptorsError,
+  isRescanInProgress,
   mergeWalletTxEntries,
   reorgedOutTxids,
   scanProgressHeight,
