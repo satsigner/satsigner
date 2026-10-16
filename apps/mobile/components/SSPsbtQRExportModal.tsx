@@ -49,13 +49,11 @@ function SSPsbtQRExportModal({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const {
     animationSpeed,
-    canIncreaseComplexity,
     decreaseComplexity,
     decreaseSpeed,
     displayMode,
     getDisplayModeDescription,
     getQRValue,
-    hasChunks,
     increaseComplexity,
     increaseSpeed,
     isMultiPartQR,
@@ -92,7 +90,14 @@ function SSPsbtQRExportModal({
             {t(qrErrorKey)}
           </SSText>
         )}
-        {!qrErrorKey && hasChunks && (
+        {qrErrorKey && psbtBase64 && (
+          <SSPairedTabs
+            activeTab={displayMode}
+            onChange={setDisplayMode}
+            {...DISPLAY_MODE_TABS}
+          />
+        )}
+        {!qrErrorKey && (
           <SSShareableQR
             qrRef={qrRef}
             value={qrValue}
@@ -136,7 +141,7 @@ function SSPsbtQRExportModal({
             </SSText>
           </SSShareableQR>
         )}
-        {hasChunks ? (
+        {!qrErrorKey && (
           <SSHStack
             justifyEvenly
             style={{ width: screenWidth * QR_SIZE_WIDTH_RATIO }}
@@ -156,8 +161,7 @@ function SSPsbtQRExportModal({
                   style={styles.stepButton}
                 />
                 <SSButton
-                  variant={canIncreaseComplexity ? 'outline' : 'ghost'}
-                  disabled={!canIncreaseComplexity}
+                  variant="outline"
                   label="+"
                   onPress={increaseComplexity}
                   style={styles.stepButton}
@@ -187,10 +191,6 @@ function SSPsbtQRExportModal({
               </SSHStack>
             </SSVStack>
           </SSHStack>
-        ) : (
-          <SSText color="white" size="sm" style={styles.statusText}>
-            {t('common.loading')}
-          </SSText>
         )}
       </SSVStack>
     </SSModal>

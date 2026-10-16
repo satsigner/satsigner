@@ -101,15 +101,11 @@ export function usePsbtQrExport(
     return value.length > QR_MAX_DATA_SIZE ? QR_VALUE_TOO_LARGE : value
   }
 
-  const isDataTooLargeForSingleQR = modeChunks.some(
-    (chunk) => chunk.length > QR_MAX_DATA_SIZE
-  )
-  // The next step up is the single static QR, which can't hold oversized data.
-  const canIncreaseComplexity = !(
-    qrComplexity === QR_COMPLEXITY_MAX - 1 && isDataTooLargeForSingleQR
-  )
-  const showMaxDensityNote =
-    isDataTooLargeForSingleQR && qrComplexity >= QR_COMPLEXITY_MAX - 1
+  // Max density asks for one static QR; the data was too large for one.
+  const showMaxDensityNote = qrComplexity === QR_COMPLEXITY_MAX && isMultiPartQR
+  // A format can fail to encode on its own (e.g. BBQR) while others work.
+  const qrErrorKey =
+    errorKey ?? (modeChunks.length === 0 ? 'error.qr.generation' : null)
 
   function decreaseComplexity() {
     setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
@@ -145,18 +141,16 @@ export function usePsbtQrExport(
 
   return {
     animationSpeed,
-    canIncreaseComplexity,
     decreaseComplexity,
     decreaseSpeed,
     displayMode,
     getDisplayModeDescription,
     getQRValue,
-    hasChunks: modeChunks.length > 0,
     increaseComplexity,
     increaseSpeed,
     isMultiPartQR,
     qrComplexity,
-    qrErrorKey: errorKey,
+    qrErrorKey,
     qrRef,
     setDisplayMode,
     showMaxDensityNote
