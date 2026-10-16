@@ -12,7 +12,7 @@ describe('scriptToBytes', () => {
   })
 
   it('accepts byte arrays', () => {
-    expect([...(scriptToBytes([106, 1, 255]) ?? [])]).toStrictEqual([
+    expect([...(scriptToBytes([0x6a, 0x01, 0xff]) ?? [])]).toStrictEqual([
       0x6a, 0x01, 0xff
     ])
   })
