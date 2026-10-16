@@ -149,8 +149,7 @@ function PreviewTransaction() {
   } = usePsbtSignatureImport({
     importSignedData,
     onNotice: showNotice,
-    signWithMnemonic,
-    storeSignedData: updateSignedPsbt
+    signWithMnemonic
   })
   const {
     closeNfcExportModal,

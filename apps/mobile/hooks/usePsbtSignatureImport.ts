@@ -10,8 +10,6 @@ import { type DetectedContent } from '@/utils/contentDetector'
 type UsePsbtSignatureImportParams = {
   /** Binds data to the PSBT under review and stores it; false if rejected. */
   importSignedData: (cosignerIndex: number, data: string) => boolean
-  /** Stores data for a cosigner as is (NFC reads are stored unbound). */
-  storeSignedData: (cosignerIndex: number, data: string) => void
   signWithMnemonic: (cosignerIndex: number, mnemonic: string) => void
   onNotice: (notice: Notice) => void
 }
@@ -22,7 +20,6 @@ type UsePsbtSignatureImportParams = {
  */
 export function usePsbtSignatureImport({
   importSignedData,
-  storeSignedData,
   signWithMnemonic,
   onNotice
 }: UsePsbtSignatureImportParams) {
@@ -87,14 +84,13 @@ export function usePsbtSignatureImport({
     setNfcScanModalVisible(true)
     try {
       const result = await readNFCTag()
-      const signedData = result?.txData
-        ? hex.encode(result.txData)
-        : result?.txId
-      if (!signedData) {
+      if (!result?.txData) {
         onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
         return
       }
-      storeSignedData(cosignerIndex, signedData)
+      if (!importSignedData(cosignerIndex, hex.encode(result.txData))) {
+        return
+      }
       onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
     } catch {
       onNotice({ key: 'nfc.error.readFailed', type: 'error' })
