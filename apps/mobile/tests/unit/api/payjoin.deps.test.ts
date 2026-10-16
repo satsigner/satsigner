@@ -1,11 +1,21 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+import {
+  __resetPayjoinMock,
+  __setMailboxProposal,
+  createReceiverSession
+} from 'react-native-payjoin'
+
 import {
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
   finalizeReceiverPayjoin,
-  type FetchLike
+  type FetchLike,
+  pollBip77Send,
+  startBip77Send
 } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import { parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   type PayjoinDeps,
   type PayjoinSession,
@@ -17,6 +27,30 @@ const TTL_MS = 120_000
 const RECEIVE_ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
 const CANDIDATE_TXID = 'bb'.repeat(32)
 const SEEN_OUTPOINT = `${'cc'.repeat(32)}:3`
+
+const PAYMENT_SCRIPT = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
+
+function buildPsbt(inputs: { txid: string; vout: number }[]) {
+  const psbt = new bitcoinjs.Psbt({ network: bitcoinjs.networks.testnet })
+  for (const input of inputs) {
+    psbt.addInput({
+      hash: input.txid,
+      index: input.vout,
+      witnessUtxo: {
+        script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
+        value: 100_000
+      }
+    })
+  }
+  psbt.addOutput({ script: PAYMENT_SCRIPT, value: 50_000 })
+  return psbt.toBase64()
+}
+
+const ORIGINAL_PSBT = buildPsbt([{ txid: 'aa'.repeat(32), vout: 0 }])
+const PROPOSAL_PSBT = buildPsbt([
+  { txid: 'aa'.repeat(32), vout: 0 },
+  { txid: CANDIDATE_TXID, vout: 1 }
+])
 
 const noopFetch: FetchLike = () =>
   Promise.resolve({ body: '', bytes: new Uint8Array(), status: 200 })
@@ -74,6 +108,7 @@ function createDeps(): PayjoinDeps {
 
 describe('payjoin injected dependencies', () => {
   beforeEach(() => {
+    __resetPayjoinMock()
     usePayjoinSessionsStore.getState().clearAll()
   })
 
@@ -148,5 +183,54 @@ describe('payjoin injected dependencies', () => {
     expect(deps.sessions.hasSeenInput(`${CANDIDATE_TXID}:1`)).toBe(true)
     expect(usePayjoinSessionsStore.getState().seenInputs).toHaveLength(0)
     contribute.mockRestore()
+  })
+
+  it('tracks a BIP77 send in the injected store only', async () => {
+    const deps = createDeps()
+    const handle = await createReceiverSession({
+      address: RECEIVE_ADDRESS,
+      directoryUrl: 'https://payjo.in',
+      expireSeconds: 600,
+      ohttpRelayUrl: 'https://pj.bobspacebkk.com',
+      receiveScriptHex: '0014751e76e8199196d454941c45d1b3a323f1433bd6'
+    })
+    const sendParams = {
+      callbacks,
+      disableOutputSubstitution: false,
+      fetchImpl: noopFetch,
+      outputScriptsHex: [PAYMENT_SCRIPT.toString('hex')],
+      paymentAmountSats: 50_000
+    }
+
+    const started = await startBip77Send({
+      ...sendParams,
+      accountId: 'acct-send',
+      deps,
+      originalPsbtBase64: ORIGINAL_PSBT,
+      payjoinUri: handle.pjUri,
+      quickPollMs: 0
+    })
+    if (started.kind !== 'waiting') {
+      throw new Error(`expected waiting, got ${started.kind}`)
+    }
+    expect(deps.sessions.getSession(started.session.id)?.role).toBe('sender')
+
+    const mailboxId = parsePayjoinUri(handle.pjUri)
+      .params?.pj.split('/')
+      .pop()
+      ?.split('#')[0]
+    __setMailboxProposal(mailboxId ?? '', PROPOSAL_PSBT)
+    const polled = await pollBip77Send({
+      ...sendParams,
+      deps,
+      session: started.session,
+      timeoutMs: 2000
+    })
+
+    expect(polled.kind).toBe('proposal')
+    expect(deps.sessions.getSession(started.session.id)?.status).toBe(
+      'completed'
+    )
+    expect(usePayjoinSessionsStore.getState().sessions).toHaveLength(0)
   })
 })
