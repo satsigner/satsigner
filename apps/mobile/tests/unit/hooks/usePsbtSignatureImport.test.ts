@@ -6,7 +6,11 @@ import { usePsbtSignatureImport } from '@/hooks/usePsbtSignatureImport'
 jest.mock<Partial<typeof import('@/hooks/useClipboardPaste')>>(
   '@/hooks/useClipboardPaste',
   () => ({
-    useClipboardPaste: () => ({ pasteFromClipboardSilent: jest.fn() })
+    useClipboardPaste: () => ({
+      pasteFromClipboard: jest.fn(),
+      pasteFromClipboardSilent: jest.fn(),
+      pasteFromClipboardWithValidation: jest.fn()
+    })
   })
 )
 
@@ -16,6 +20,8 @@ jest.mock<Partial<typeof import('@/hooks/useNFCReader')>>(
   () => ({
     useNFCReader: () => ({
       cancelNFCScan: jest.fn(),
+      isAvailable: true,
+      isEnabled: true,
       isHardwareSupported: true,
       isReading: false,
       readNFCTag: mockReadNFCTag
