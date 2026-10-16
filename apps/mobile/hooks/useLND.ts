@@ -212,7 +212,10 @@ export const useLND = () => {
       })
       const body = await response.text()
       if (!response.ok) {
-        throw new Error(`LND API error: ${response.status} ${body}`)
+        throw new HttpStatusError(
+          response.status,
+          `LND API error: ${response.status} ${body}`
+        )
       }
       if (!body) {
         return {}
