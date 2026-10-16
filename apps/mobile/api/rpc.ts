@@ -6,7 +6,7 @@ import {
   RPC_LIST_TRANSACTIONS_COUNT,
   RPC_RESCAN_TIMEOUT_MS
 } from '@/constants/rpc'
-import { HttpStatusError, RpcError, TimeoutError } from '@/utils/errors'
+import { HttpStatusError, RpcError, RequestTimeoutError } from '@/utils/errors'
 
 let androidIsEmulator: boolean | null = null
 
@@ -92,7 +92,7 @@ function toUserFacingError(err: unknown, url: string): Error {
     raw.includes('AbortError') ||
     (err instanceof Error && err.name === 'AbortError')
   ) {
-    return new TimeoutError(
+    return new RequestTimeoutError(
       `Connection to ${url} timed out.\n` +
         'Check that the host and port are correct and that no firewall is blocking the connection.'
     )

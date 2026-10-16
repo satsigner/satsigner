@@ -18,8 +18,8 @@ class HttpStatusError extends AppError {
 }
 
 /** A request did not complete within its time budget. */
-class TimeoutError extends AppError {
-  override name = 'TimeoutError'
+class RequestTimeoutError extends AppError {
+  override name = 'RequestTimeoutError'
 }
 
 /** A JSON-RPC server returned an error object. */
@@ -38,4 +38,10 @@ class NostrNoRelaysError extends AppError {
   override name = 'NostrNoRelaysError'
 }
 
-export { AppError, HttpStatusError, NostrNoRelaysError, RpcError, TimeoutError }
+export {
+  AppError,
+  HttpStatusError,
+  NostrNoRelaysError,
+  RpcError,
+  RequestTimeoutError
+}

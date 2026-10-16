@@ -3,7 +3,7 @@ import {
   HttpStatusError,
   NostrNoRelaysError,
   RpcError,
-  TimeoutError
+  RequestTimeoutError
 } from '@/utils/errors'
 
 describe('error hierarchy', () => {
@@ -12,7 +12,7 @@ describe('error hierarchy', () => {
     expect(error).toBeInstanceOf(HttpStatusError)
     expect(error).toBeInstanceOf(AppError)
     expect(error).toBeInstanceOf(Error)
-    expect(error).not.toBeInstanceOf(TimeoutError)
+    expect(error).not.toBeInstanceOf(RequestTimeoutError)
     expect(error.status).toBe(404)
     expect(error.name).toBe('HttpStatusError')
   })
