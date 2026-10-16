@@ -6,9 +6,17 @@ import {
   ANIMATION_SPEED_MIN,
   QR_COMPLEXITY_MAX,
   QR_MAX_DATA_SIZE,
+  QRDisplayMode,
   RAW_CHUNK_BASE_SIZE
 } from '@/constants/qr'
-import { createRawQrChunks, getQrAnimationIntervalMs } from '@/utils/qrExport'
+import {
+  createPsbtQrChunks,
+  createRawQrChunks,
+  getQrAnimationIntervalMs
+} from '@/utils/qrExport'
+
+const PSBT_BASE64 =
+  'cHNidP8BAHECAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////8AAAAA'
 
 describe('createRawQrChunks', () => {
   it('returns the data unchunked at max complexity when it fits', () => {
@@ -53,5 +61,14 @@ describe('getQrAnimationIntervalMs', () => {
     expect(getQrAnimationIntervalMs(ANIMATION_SPEED_MAX * 10)).toBe(
       ANIMATION_INTERVAL_FLOOR_MS
     )
+  })
+})
+
+describe('createPsbtQrChunks', () => {
+  it('encodes the PSBT in every display mode', () => {
+    const chunks = createPsbtQrChunks(PSBT_BASE64, QR_COMPLEXITY_MAX)
+    expect(chunks[QRDisplayMode.RAW]).toStrictEqual([PSBT_BASE64])
+    expect(chunks[QRDisplayMode.UR].length).toBeGreaterThan(0)
+    expect(chunks[QRDisplayMode.BBQR].length).toBeGreaterThan(0)
   })
 })
