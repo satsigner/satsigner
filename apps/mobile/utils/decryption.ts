@@ -134,9 +134,9 @@ export function decryptAccountKeysOrFallback(
   account: Pick<Account, 'id' | 'keys'>
 ) {
   return Promise.all(
-    account.keys.map(async (key, index) => {
+    account.keys.map(async (key) => {
       try {
-        const secret = await decryptAccountKeySecret(account.id, index)
+        const secret = await decryptAccountKeySecret(account.id, key.index)
         return { ...key, secret }
       } catch {
         return key

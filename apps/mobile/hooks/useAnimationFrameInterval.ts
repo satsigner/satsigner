@@ -16,9 +16,11 @@ export function useAnimationFrameInterval(
       return
     }
 
-    const state = { frameId: 0, lastTick: 0 }
+    // The clock starts on the first frame, so the first tick waits intervalMs.
+    const state: { frameId: number; lastTick?: number } = { frameId: 0 }
 
     function animate(timestamp: number) {
+      state.lastTick ??= timestamp
       if (timestamp - state.lastTick >= intervalMs) {
         tick()
         state.lastTick = timestamp

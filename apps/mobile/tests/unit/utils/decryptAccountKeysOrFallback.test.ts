@@ -1,4 +1,4 @@
-import type { Account, Key } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 jest.mock<Partial<typeof import('@/storage/encrypted')>>(
@@ -85,5 +85,16 @@ describe('decryptAccountKeysOrFallback', () => {
 
     expect(keys[0].secret).toStrictEqual({ mnemonic: 'word1 word2' })
     expect(keys[1]).toBe(encryptedKey)
+  })
+
+  it('reads each secret by the key index, not its array position', async () => {
+    getPin.mockResolvedValue('1234')
+    getKeySecret.mockResolvedValue({ iv: 'iv-1', secret: 'enc' })
+    aesDecrypt.mockResolvedValue(JSON.stringify({ mnemonic: 'word1' }))
+    const account = makeAccount({ keys: [makeKey({ index: 2 })] })
+
+    await decryptAccountKeysOrFallback(account)
+
+    expect(getKeySecret).toHaveBeenCalledWith('acc-1', 2)
   })
 })

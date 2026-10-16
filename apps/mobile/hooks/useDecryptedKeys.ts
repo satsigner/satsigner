@@ -16,6 +16,7 @@ export function useDecryptedKeys(
 ) {
   const [decrypted, setDecrypted] = useState<{
     accountId: string
+    sourceKeys: Key[]
     keys: Key[]
   }>()
   const accountId = account?.id
@@ -33,7 +34,7 @@ export function useDecryptedKeys(
         keys: accountKeys
       })
       if (!request.stale) {
-        setDecrypted({ accountId: id, keys: result })
+        setDecrypted({ accountId: id, keys: result, sourceKeys: accountKeys })
       }
     }
     void decryptKeys(accountId, keys)
@@ -42,8 +43,13 @@ export function useDecryptedKeys(
     }
   }, [accountId, keys])
 
-  // Never hands out another account's secrets while this one decrypts.
-  if (!keys?.length || !decrypted || decrypted.accountId !== accountId) {
+  // Never hands out another account's or key list's secrets while decrypting.
+  if (
+    !keys?.length ||
+    !decrypted ||
+    decrypted.accountId !== accountId ||
+    decrypted.sourceKeys !== keys
+  ) {
     return NO_KEYS
   }
   return decrypted.keys

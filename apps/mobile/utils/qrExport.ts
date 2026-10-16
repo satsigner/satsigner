@@ -16,7 +16,7 @@ import {
   UR_FRAGMENT_BASE_SIZE,
   UR_FRAGMENT_MIN_SIZE
 } from '@/constants/qr'
-import { BBQRFileTypes, createBBQRChunks } from '@/utils/bbqr'
+import { BBQRFileTypes, createBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
 
 export type PsbtQrChunks = Record<QRDisplayMode, string[]>
@@ -79,13 +79,15 @@ export function getQrAnimationIntervalMs(speed: number) {
   return Math.max(interval, ANIMATION_INTERVAL_FLOOR_MS)
 }
 
-// BBQR chunks of the PSBT, or none when the payload cannot be BBQR encoded.
+// BBQR chunks of the PSBT, or none when the payload cannot be BBQR encoded
+// (including the non-BBQR fallback chunks createBBQRChunks returns).
 function createBbqrPsbtChunksOrEmpty(
   psbtBytes: Uint8Array,
   complexity: number
 ) {
   try {
-    return createBbqrPsbtChunks(psbtBytes, complexity)
+    const chunks = createBbqrPsbtChunks(psbtBytes, complexity)
+    return chunks.every(isBBQRFragment) ? chunks : []
   } catch {
     return []
   }
