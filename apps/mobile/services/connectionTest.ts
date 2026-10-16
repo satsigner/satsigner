@@ -30,6 +30,7 @@ type ProbeParams = {
   onElectrumClient?: (client: ElectrumClient) => void
 }
 
+const CONNECTION_TEST_TIMEOUT_MS = 10_000
 // Fee target (blocks) for the median fee shown after an RPC test.
 const RPC_FEE_TARGET_BLOCKS = 6
 // estimatesmartfee answers in BTC/kvB; this converts it to sat/vB.
@@ -192,10 +193,38 @@ const PROBES: Record<
 /**
  * Connects to a server, checks it serves the expected network, and collects
  * what the settings screen shows about it. Throws when the server is
- * unreachable or on the wrong chain.
+ * unreachable, on the wrong chain, or slower than CONNECTION_TEST_TIMEOUT_MS.
  */
-function probeConnection(params: ProbeParams) {
-  return PROBES[params.backend](params, Date.now())
+async function probeConnection(params: ProbeParams) {
+  const timers: ReturnType<typeof setTimeout>[] = []
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timers.push(
+      setTimeout(
+        () => reject(new Error('Connection test timeout')),
+        CONNECTION_TEST_TIMEOUT_MS
+      )
+    )
+  })
+  try {
+    return await Promise.race([
+      PROBES[params.backend](params, Date.now()),
+      timedOut
+    ])
+  } finally {
+    for (const timer of timers) {
+      clearTimeout(timer)
+    }
+  }
 }
 
-export { probeConnection, SOFTWARE_LABELS }
+/** Closes an Electrum client handed out through `onElectrumClient`. */
+function closeProbeClient(client: ElectrumClient) {
+  closeElectrumClientQuietly(client)
+}
+
+export {
+  closeProbeClient,
+  CONNECTION_TEST_TIMEOUT_MS,
+  probeConnection,
+  SOFTWARE_LABELS
+}

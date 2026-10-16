@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
-import { probeConnection, SOFTWARE_LABELS } from '@/services/connectionTest'
+import type ElectrumClient from '@/api/electrum'
+import {
+  closeProbeClient,
+  probeConnection,
+  SOFTWARE_LABELS
+} from '@/services/connectionTest'
 import {
   type ConnectionTestResult,
   type NodeInfo
@@ -14,16 +18,6 @@ import {
 } from '@/types/settings/blockchain'
 
 const CONNECTION_TEST_COOLDOWN_MS = 2000
-const CONNECTION_TEST_TIMEOUT_MS = 10_000
-
-function rejectAfterTimeout(): Promise<never> {
-  return new Promise((_resolve, reject) => {
-    setTimeout(
-      () => reject(new Error('Connection test timeout')),
-      CONNECTION_TEST_TIMEOUT_MS
-    )
-  })
-}
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
@@ -37,7 +31,7 @@ export function useConnectionTest() {
     if (!currentClient) {
       return
     }
-    closeElectrumClientQuietly(currentClient)
+    closeProbeClient(currentClient)
     setCurrentClient(null)
   }, [currentClient])
 
@@ -62,16 +56,13 @@ export function useConnectionTest() {
     setNodeInfo(null)
 
     try {
-      const probe = await Promise.race([
-        probeConnection({
-          backend,
-          network,
-          onElectrumClient: setCurrentClient,
-          rpcCredentials,
-          url
-        }),
-        rejectAfterTimeout()
-      ])
+      const probe = await probeConnection({
+        backend,
+        network,
+        onElectrumClient: setCurrentClient,
+        rpcCredentials,
+        url
+      })
       setNodeInfo(probe.nodeInfo)
       return probe.result
     } catch (error) {
