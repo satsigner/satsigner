@@ -264,7 +264,7 @@ export default function EcashSendPage() {
                     />
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart
-                        ? `${currentChunkIndex + 1} / ${totalChunks}`
+                        ? `${(currentChunkIndex % totalChunks) + 1} / ${totalChunks}`
                         : ''}
                     </SSText>
                     {isMultiPart && (
