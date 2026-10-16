@@ -60,6 +60,10 @@ function createStore() {
 }
 
 describe('restoreProofsFromMints', () => {
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('connects new mints, adds proofs and advances the keyset counter', async () => {
     jest.mocked(connectToMint).mockResolvedValue(mint(MINT_URL))
     jest
@@ -92,5 +96,36 @@ describe('restoreProofsFromMints', () => {
 
     expect(summary.mintsFailed).toBe(1)
     expect(summary.proofsFound).toBe(0)
+  })
+
+  it('reuses a listed mint and leaves counters alone without a last counter', async () => {
+    jest
+      .mocked(restoreProofsFromSeed)
+      .mockResolvedValue({ lastCounter: undefined, proofs: [proof(4)] })
+    const { state, store } = createStore()
+    store.addMint(mint(MINT_URL))
+    state.counters = [{ counter: 9, keysetId: 'other' }]
+
+    const summary = await restoreProofsFromMints('acc', [MINT_URL], SEED, store)
+
+    expect(connectToMint).not.toHaveBeenCalled()
+    expect(summary.proofsFound).toBe(1)
+    expect(state.counters).toStrictEqual([{ counter: 9, keysetId: 'other' }])
+  })
+
+  it('keeps other keyset counters when advancing the active one', async () => {
+    jest
+      .mocked(restoreProofsFromSeed)
+      .mockResolvedValue({ lastCounter: 1, proofs: [proof(4)] })
+    const { state, store } = createStore()
+    store.addMint(mint(MINT_URL))
+    state.counters = [{ counter: 9, keysetId: 'other' }]
+
+    await restoreProofsFromMints('acc', [MINT_URL], SEED, store)
+
+    expect(state.counters).toStrictEqual([
+      { counter: 9, keysetId: 'other' },
+      { counter: 2, keysetId: 'ks1' }
+    ])
   })
 })
