@@ -1,4 +1,3 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import {
   Redirect,
@@ -79,8 +78,8 @@ import {
 } from '@/utils/sankeyInputLabel'
 import {
   buildChartTransactionFromBuilder,
-  estimateTransactionSize,
-  legacyEstimateTransactionSize
+  estimateBuilderTransactionSize,
+  getFinalizedTransactionSize
 } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -114,36 +113,9 @@ function buildSignTransactionChartModel(
     return null
   }
 
-  const inputArray = Array.from(inputs.values())
-  let size: number
-  let vsize: number
-
-  const trimmed = finalizedTxHex.trim()
-  if (
-    trimmed.length >= 20 &&
-    /^[0-9a-fA-F]+$/i.test(trimmed) &&
-    !trimmed.toLowerCase().startsWith('70736274')
-  ) {
-    try {
-      const finalized = bitcoinjs.Transaction.fromHex(trimmed)
-      vsize = finalized.virtualSize()
-      size = finalized.byteLength(true)
-    } catch {
-      const est =
-        inputArray.length > 0
-          ? estimateTransactionSize(inputArray, outputs)
-          : legacyEstimateTransactionSize(inputs.size, outputs.length)
-      size = est.size
-      vsize = est.vsize
-    }
-  } else {
-    const est =
-      inputArray.length > 0
-        ? estimateTransactionSize(inputArray, outputs)
-        : legacyEstimateTransactionSize(inputs.size, outputs.length)
-    size = est.size
-    vsize = est.vsize
-  }
+  const { size, vsize } =
+    getFinalizedTransactionSize(finalizedTxHex) ??
+    estimateBuilderTransactionSize(inputs, outputs)
 
   // Prefer PSBT I/O (what will be signed/broadcast) over builder store state.
   const psbtBase64 = typeof psbt.toBase64 === 'function' ? psbt.toBase64() : ''

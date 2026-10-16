@@ -1,7 +1,12 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { TXID_HEX_REGEX, WITNESS_SCALE_FACTOR } from '@/constants/btc'
+import {
+  HEX_PATTERN,
+  PSBT_MAGIC_HEX,
+  TXID_HEX_REGEX,
+  WITNESS_SCALE_FACTOR
+} from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { ScriptVersionType } from '@/types/models/Script'
@@ -11,6 +16,9 @@ import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
+
+// Shorter hex cannot be a raw transaction worth parsing.
+const MIN_RAW_TRANSACTION_HEX_LENGTH = 20
 
 function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
   return (
@@ -343,10 +351,7 @@ export function buildChartTransactionFromBuilder(
   id: string
 ): Transaction {
   const inputArray = Array.from(inputs.values())
-  const { size, vsize } =
-    inputArray.length > 0
-      ? estimateTransactionSize(inputArray, outputs)
-      : legacyEstimateTransactionSize(inputs.size, outputs.length)
+  const { size, vsize } = estimateBuilderTransactionSize(inputs, outputs)
 
   return {
     id,
@@ -372,5 +377,39 @@ export function buildChartTransactionFromBuilder(
       value: output.amount
     })),
     vsize
+  }
+}
+
+// Size of a transaction being built: per input script type when inputs are
+// known, otherwise the legacy per-count estimate.
+export function estimateBuilderTransactionSize(
+  inputs: Map<string, Utxo>,
+  outputs: Output[]
+) {
+  const inputArray = Array.from(inputs.values())
+  return inputArray.length > 0
+    ? estimateTransactionSize(inputArray, outputs)
+    : legacyEstimateTransactionSize(inputs.size, outputs.length)
+}
+
+// Exact size of a finalized transaction hex, or null when the hex is not a
+// parseable raw transaction (e.g. empty, or still a PSBT).
+export function getFinalizedTransactionSize(transactionHex: string) {
+  const trimmed = transactionHex.trim()
+  const isRawTransactionHex =
+    trimmed.length >= MIN_RAW_TRANSACTION_HEX_LENGTH &&
+    HEX_PATTERN.test(trimmed) &&
+    !trimmed.toLowerCase().startsWith(PSBT_MAGIC_HEX)
+  if (!isRawTransactionHex) {
+    return null
+  }
+  try {
+    const transaction = bitcoinjs.Transaction.fromHex(trimmed)
+    return {
+      size: transaction.byteLength(true),
+      vsize: transaction.virtualSize()
+    }
+  } catch {
+    return null
   }
 }

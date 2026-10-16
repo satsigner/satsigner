@@ -7,7 +7,10 @@ import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts
 import {
   buildChartTransactionFromBuilder,
   buildPreviewTransactionHex,
+  estimateBuilderTransactionSize,
   estimateTransactionSize,
+  getFinalizedTransactionSize,
+  legacyEstimateTransactionSize,
   recalculateDepthH
 } from '../../../utils/transaction'
 
@@ -698,6 +701,34 @@ describe('transaction builder previews', () => {
       address,
       label: 'rent',
       value: 90_000
+    })
+  })
+})
+
+describe('estimateBuilderTransactionSize', () => {
+  it('falls back to the legacy estimate without inputs', () => {
+    expect(estimateBuilderTransactionSize(new Map(), [])).toStrictEqual(
+      legacyEstimateTransactionSize(0, 0)
+    )
+  })
+})
+
+describe('getFinalizedTransactionSize', () => {
+  it('returns null for empty, PSBT or invalid hex', () => {
+    expect(getFinalizedTransactionSize('')).toBeNull()
+    expect(
+      getFinalizedTransactionSize(`70736274ff${'00'.repeat(20)}`)
+    ).toBeNull()
+    expect(getFinalizedTransactionSize('zz'.repeat(20))).toBeNull()
+  })
+
+  it('reads size and vsize of a raw transaction', () => {
+    const transaction = new bitcoinjs.Transaction()
+    transaction.addInput(Buffer.alloc(32), 0)
+    transaction.addOutput(Buffer.from(`0014${'00'.repeat(20)}`, 'hex'), 1000)
+    expect(getFinalizedTransactionSize(transaction.toHex())).toStrictEqual({
+      size: transaction.byteLength(true),
+      vsize: transaction.virtualSize()
     })
   })
 })
