@@ -112,7 +112,9 @@ type PayjoinSendResult =
 
 type PayjoinWalletCallbacks = {
   isScriptOwned: (scriptHex: string) => boolean | Promise<boolean>
+  /** Read only by the BIP78 manual receive path; BIP77 uses PayjoinDeps. */
   hasSeenInput: (outpoint: string) => boolean | Promise<boolean>
+  /** Read only by the BIP78 manual receive path; BIP77 uses PayjoinDeps. */
   markInputSeen: (outpoint: string) => void | Promise<void>
   listCandidateOutpoints: () =>
     | { txid: string; vout: number; value: number; scriptHex: string }[]
