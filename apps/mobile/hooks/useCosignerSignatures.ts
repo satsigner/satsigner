@@ -10,6 +10,7 @@ import {
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
+  combinePsbts,
   extractIndividualSignedPsbts,
   getCollectedSignedPsbts,
   getCollectedSignerPubkeys,
@@ -144,6 +145,31 @@ export function useCosignerSignatures({
     return true
   }
 
+  // The PSBT under review combined with every signature collected so far (to
+  // share with other cosigners), or null after reporting why it could not be.
+  function combineCollectedSignatures() {
+    const originalPsbtBase64 = txBuilderResult?.toBase64()
+    if (!originalPsbtBase64) {
+      onNotice({
+        key: 'account.nostrSync.transactionDataNotAvailable',
+        type: 'error'
+      })
+      return null
+    }
+    try {
+      return combinePsbts([
+        originalPsbtBase64,
+        ...getCollectedSignedPsbts(signedPsbts).values()
+      ])
+    } catch {
+      onNotice({
+        key: 'account.nostrSync.failedToSendTransactionData',
+        type: 'error'
+      })
+      return null
+    }
+  }
+
   // Combines every collected signature into the PSBT under review and
   // finalizes it. Returns the transaction hex, or null when it can't yet.
   function finalize() {
@@ -176,6 +202,7 @@ export function useCosignerSignatures({
   }
 
   return {
+    combineCollectedSignatures,
     finalize,
     hasAllRequiredSignatures: () =>
       hasAllRequiredSignatures(account, validationResults),

@@ -49,11 +49,7 @@ import { isPSBT } from '@/utils/bitcoinContent'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatMessage } from '@/utils/notice'
 import { formatPayjoinSummary } from '@/utils/payjoinInvoice'
-import {
-  combinePsbts,
-  getCollectedSignedPsbts,
-  getPsbtTxidOrFallback
-} from '@/utils/psbt'
+import { getCollectedSignedPsbts, getPsbtTxidOrFallback } from '@/utils/psbt'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -125,6 +121,7 @@ function PreviewTransaction() {
   })
 
   const {
+    combineCollectedSignatures,
     finalize,
     hasAllRequiredSignatures,
     importSignedData,
@@ -221,23 +218,10 @@ function PreviewTransaction() {
     shareOrShowError(txBuilderResult?.toBase64())
   }
 
-  // Shares the PSBT under review combined with every cosigner signature
-  // collected so far.
   function handleShareSignaturesWithNostrGroup() {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    if (!transactionId || !originalPsbtBase64) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-    try {
-      shareOrShowError(
-        combinePsbts([
-          originalPsbtBase64,
-          ...getCollectedSignedPsbts(signedPsbts).values()
-        ])
-      )
-    } catch {
-      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    const combinedPsbt = combineCollectedSignatures()
+    if (combinedPsbt) {
+      shareOrShowError(combinedPsbt)
     }
   }
 
