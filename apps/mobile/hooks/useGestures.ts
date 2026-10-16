@@ -222,7 +222,7 @@ export const useGestures = ({
   }
 
   const panGesture = Gesture.Pan()
-    .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
+    .enabled(isPanEnabled)
     .minPointers(minPanPointers)
     .maxPointers(maxPanPointers)
     .onStart((event) => {
