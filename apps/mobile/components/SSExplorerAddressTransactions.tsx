@@ -33,14 +33,13 @@ function TxRow({ txid, onPress }: TxRowProps) {
   )
 }
 
-type SSExplorerAddressTransactionsProps = {
+type SSExplorerAddressTransactionsProps = SSTransactionCardDisplayProps & {
   address: string
   txids: string[]
   heightByTxid?: Record<string, number>
   preferMempool?: boolean
   onOpenTransaction: (txid: string) => void
   onOpenFiatSettings: () => void
-  display: SSTransactionCardDisplayProps
 }
 
 function SSExplorerAddressTransactions({
@@ -50,7 +49,7 @@ function SSExplorerAddressTransactions({
   preferMempool = false,
   onOpenTransaction,
   onOpenFiatSettings,
-  display
+  ...display
 }: SSExplorerAddressTransactionsProps) {
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight

@@ -310,7 +310,7 @@ export default function ExplorerAddressDetail() {
             </SSVStack>
 
             <SSExplorerAddressTransactions
-              display={display}
+              {...display}
               address={data.address}
               txids={data.txids}
               heightByTxid={data.heightByTxid}
