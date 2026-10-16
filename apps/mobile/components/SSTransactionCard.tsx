@@ -1,14 +1,11 @@
 import { useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
-import { useFiatData } from '@/hooks/useFiatData'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
@@ -79,11 +76,21 @@ function HistoricalFiatUnavailable({
   )
 }
 
-type SSTransactionCardProps = {
+/** Display settings a screen passes through to every transaction card. */
+type SSTransactionCardDisplayProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'fiatEnabled'
+  | 'historicalFiatEnabled'
+  | 'privacyMode'
+  | 'useZeroPadding'
+>
+
+type SSTransactionCardProps = SSTransactionCardDisplayProps & {
   transaction: Transaction
   blockHeight: number
-  fiatCurrency: Currency
-  btcPrice: number
   walletBalance?: number
   onPress: () => void
   onOpenFiatSettings: () => void
@@ -102,7 +109,12 @@ function SSTransactionCard({
   onPress,
   onOpenFiatSettings,
   expand,
-  style = DEFAULT_STYLE
+  style = DEFAULT_STYLE,
+  currencyUnit,
+  privacyMode,
+  useZeroPadding,
+  fiatEnabled: showCurrentFiat,
+  historicalFiatEnabled: showHistoricalFiat
 }: SSTransactionCardProps) {
   const confirmedAtBlockHeight =
     typeof transaction.blockHeight === 'number' && transaction.blockHeight > 0
@@ -119,15 +131,6 @@ function SSTransactionCard({
 
   const { amount, type } = getWalletTransactionEffect(transaction)
   const { label, tags } = parseLabel(transaction.label || '')
-
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
-  )
-  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
 
   const { prices } = transaction
   const oldPrice = showHistoricalFiat && prices ? prices[fiatCurrency] : null
@@ -450,4 +453,5 @@ const styles = StyleSheet.create({
   }
 })
 
+export type { SSTransactionCardDisplayProps }
 export default SSTransactionCard

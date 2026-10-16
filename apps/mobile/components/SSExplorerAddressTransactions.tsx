@@ -1,16 +1,16 @@
 import { Pressable, StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
-import SSTransactionCard from '@/components/SSTransactionCard'
+import SSTransactionCard, {
+  type SSTransactionCardDisplayProps
+} from '@/components/SSTransactionCard'
 import { useExplorerAddressTxDetails } from '@/hooks/useExplorerAddressTxDetails'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePriceStore } from '@/store/price'
 import { Colors, Layout } from '@/styles'
 import type { Transaction } from '@/types/models/Transaction'
 
@@ -33,7 +33,7 @@ function TxRow({ txid, onPress }: TxRowProps) {
   )
 }
 
-type SSExplorerAddressTransactionsProps = {
+type SSExplorerAddressTransactionsProps = SSTransactionCardDisplayProps & {
   address: string
   txids: string[]
   heightByTxid?: Record<string, number>
@@ -48,13 +48,11 @@ function SSExplorerAddressTransactions({
   heightByTxid,
   preferMempool = false,
   onOpenTransaction,
-  onOpenFiatSettings
+  onOpenFiatSettings,
+  ...display
 }: SSExplorerAddressTransactionsProps) {
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
-  )
-  const [fiatCurrency, btcPrice] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.btcPrice])
   )
 
   const {
@@ -135,8 +133,7 @@ function SSExplorerAddressTransactions({
               key={transaction.id}
               transaction={transaction}
               blockHeight={blockchainHeight}
-              fiatCurrency={fiatCurrency}
-              btcPrice={btcPrice}
+              {...display}
               onPress={() => onOpenTransaction(transaction.id)}
               onOpenFiatSettings={onOpenFiatSettings}
               expand
