@@ -21,7 +21,6 @@ import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
 import { WATCH_ONLY_INDEX } from '@/constants/account'
-import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { useCosignerSignatures } from '@/hooks/useCosignerSignatures'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import { useNfcPulse } from '@/hooks/useNfcPulse'
@@ -45,6 +44,7 @@ import { type PreviewTransactionSearchParams } from '@/types/navigation/searchPa
 import { type PayjoinInvoice } from '@/types/payjoin'
 import { type Notice } from '@/types/ui/notice'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
+import { isPSBT } from '@/utils/bitcoinContent'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatMessage } from '@/utils/notice'
 import { formatPayjoinSummary } from '@/utils/payjoinUri'
@@ -264,27 +264,57 @@ function PreviewTransaction() {
     validationResults
   }
 
-  const propsActions = {
+  const isMultisig = account.policyType === 'multisig'
+
+  function navigateToSignTransaction() {
+    router.navigate(`/signer/bitcoin/account/${id}/signAndSend/signTransaction`)
+  }
+
+  // Multisig needs every collected signature combined and finalized first.
+  function handleSign() {
+    if (isMultisig && !finalize()) {
+      return
+    }
+    navigateToSignTransaction()
+  }
+
+  function handleCopyUnsignedPsbt() {
+    const psbtBase64 = txBuilderResult?.toBase64()
+    if (!psbtBase64) {
+      return
+    }
+    Clipboard.setStringAsync(psbtBase64)
+    toast(t('common.copiedToClipboard'))
+  }
+
+  const propsSignActions = {
     account,
-    accountId: id,
-    combineAndFinalizeMultisigPSBTs: finalize,
-    handleNFCExport: exportToNfc,
-    handleShareWithNostrGroup,
-    handleWatchOnlyNFCScan,
-    handleWatchOnlyPasteFromClipboard,
-    hasAllRequiredSignatures,
+    canShareWithGroup:
+      !!account.nostr?.autoSync && !!txBuilderResult?.toBase64(),
+    collectedSignatures: getCollectedSignedPsbts(signedPsbts).size,
+    isSignDisabled:
+      !transactionId ||
+      psbtBuildStatus !== 'idle' ||
+      (isMultisig && !hasAllRequiredSignatures()),
+    onShareWithGroup: handleShareWithNostrGroup,
+    onSign: handleSign
+  }
+
+  const propsWatchOnlyActions = {
+    account,
     isEmitting,
     isReading,
     nfcHardwareSupported: isNfcSupported,
-    psbtBuildStatus,
-    router,
+    onCheckSignature: navigateToSignTransaction,
+    onCopy: handleCopyUnsignedPsbt,
+    onNFCExport: exportToNfc,
+    onNFCScan: handleWatchOnlyNFCScan,
+    onPaste: handleWatchOnlyPasteFromClipboard,
+    onScanQR: () => setCameraModalVisible(true),
+    onShowQR: () => setNoKeyModalVisible(true),
     serializedPsbt,
-    setCameraModalVisible,
-    setNoKeyModalVisible,
     signedPsbt,
-    signedPsbts,
-    transactionId,
-    txBuilderResult
+    transactionId
   }
 
   const propsQrExportModal = {
@@ -367,7 +397,8 @@ function PreviewTransaction() {
             <PreviewTransactionContents {...propsContents} />
             <PreviewTransactionDecoded transactionHex={transactionHex} />
             <PreviewTransactionMultisigSection {...propsMultisigSection} />
-            <PreviewTransactionActions {...propsActions} />
+            <PreviewTransactionSignActions {...propsSignActions} />
+            <PreviewTransactionWatchOnlyActions {...propsWatchOnlyActions} />
           </SSVStack>
         </ScrollView>
       </SSVStack>
@@ -623,19 +654,12 @@ function PreviewTransactionMultisigSection({
   }
 
   return (
-    <SSVStack gap="md" style={{ marginTop: 16 }}>
+    <SSVStack gap="md" style={styles.sectionSpacing}>
       <SSText center color="muted" size="sm" uppercase>
         {t('transaction.preview.multisigSignatureRequired')}
       </SSText>
 
-      {/* N of M Component */}
-      <SSText
-        style={{
-          alignSelf: 'center',
-          fontSize: 55,
-          textTransform: 'lowercase'
-        }}
-      >
+      <SSText style={styles.keysRequired}>
         {account.keysRequired || 1} {t('common.of')} {account.keyCount || 1}
       </SSText>
 
@@ -648,7 +672,6 @@ function PreviewTransactionMultisigSection({
         validationResults={validationResults}
       />
 
-      {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
       <SSVStack gap="none">
         {account.keys?.map((key, index) => (
           <SSSignatureDropdown
@@ -683,249 +706,209 @@ function PreviewTransactionMultisigSection({
   )
 }
 
-type PreviewTransactionActionsProps = {
+type PreviewTransactionSignActionsProps = {
   account: Account
-  accountId: string
-  router: ReturnType<typeof useRouter>
-  transactionId: string
-  psbtBuildStatus: PsbtBuildStatus
-  txBuilderResult: PsbtLike | undefined
-  serializedPsbt: string
-  signedPsbt: string
-  signedPsbts: CosignerSignatures['signedPsbts']
-  nfcHardwareSupported: boolean
-  isEmitting: boolean
-  isReading: boolean
-  hasAllRequiredSignatures: () => boolean
-  combineAndFinalizeMultisigPSBTs: () => string | null
-  handleShareWithNostrGroup: () => void
-  handleNFCExport: () => void
-  handleWatchOnlyPasteFromClipboard: () => void
-  handleWatchOnlyNFCScan: () => void
-  setNoKeyModalVisible: (visible: boolean) => void
-  setCameraModalVisible: (visible: boolean) => void
+  canShareWithGroup: boolean
+  collectedSignatures: number
+  isSignDisabled: boolean
+  onShareWithGroup: () => void
+  onSign: () => void
 }
 
-function PreviewTransactionActions({
+// Sign button for accounts holding keys, with the multisig signature count.
+function PreviewTransactionSignActions({
   account,
-  accountId,
-  router,
-  transactionId,
-  psbtBuildStatus,
-  txBuilderResult,
-  serializedPsbt,
-  signedPsbt,
-  signedPsbts,
-  nfcHardwareSupported,
-  isEmitting,
-  isReading,
-  hasAllRequiredSignatures,
-  combineAndFinalizeMultisigPSBTs,
-  handleShareWithNostrGroup,
-  handleNFCExport,
-  handleWatchOnlyPasteFromClipboard,
-  handleWatchOnlyNFCScan,
-  setNoKeyModalVisible,
-  setCameraModalVisible
-}: PreviewTransactionActionsProps) {
+  canShareWithGroup,
+  collectedSignatures,
+  isSignDisabled,
+  onShareWithGroup,
+  onSign
+}: PreviewTransactionSignActionsProps) {
+  if (account.policyType === 'watchonly' || account.keys.length === 0) {
+    return null
+  }
+
+  const isMultisig = account.policyType === 'multisig'
+
   return (
     <>
-      {account.policyType !== 'watchonly' &&
-      account.keys &&
-      account.keys.length > 0 ? (
-        <>
-          {account.policyType === 'multisig' && (
-            <SSText center color="muted" size="sm" style={{ marginBottom: 8 }}>
-              {t('transaction.preview.signaturesCollected')}:{' '}
-              {getCollectedSignedPsbts(signedPsbts).size} /{' '}
-              {account.keysRequired || account.keys.length}
-            </SSText>
-          )}
-          <SSButton
-            variant="secondary"
-            disabled={
-              !transactionId ||
-              psbtBuildStatus === 'building' ||
-              psbtBuildStatus === 'error' ||
-              (account.policyType === 'multisig' && !hasAllRequiredSignatures())
-            }
-            label={
-              account.policyType === 'multisig'
-                ? t('transaction.preview.checkAllSignatures')
-                : t('sign.transaction')
-            }
-            onPress={() => {
-              if (account?.policyType === 'multisig') {
-                const finalTransactionHex = combineAndFinalizeMultisigPSBTs()
-
-                if (finalTransactionHex) {
-                  router.navigate(
-                    `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
-                  )
-                }
-              } else {
-                router.navigate(
-                  `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
-                )
-              }
-            }}
-          />
-          {account?.nostr?.autoSync && txBuilderResult?.toBase64() && (
-            <SSButton
-              variant="ghost"
-              label={t('account.nostrSync.shareWithGroup')}
-              onPress={handleShareWithNostrGroup}
-            />
-          )}
-        </>
-      ) : (
-        account.keys &&
-        account.keys.length > 0 &&
-        (account.keys[0].creationType === 'importDescriptor' ||
-          account.keys[0].creationType === 'importExtendedPub') && (
-          <>
-            <SSText
-              center
-              color="muted"
-              size="sm"
-              uppercase
-              style={{ marginTop: 16 }}
-            >
-              {t('transaction.preview.exportUnsigned')}
-            </SSText>
-            <SSHStack gap="xxs" justifyBetween>
-              <SSButton
-                variant="outline"
-                disabled={!transactionId}
-                label={t('common.copy')}
-                style={{ width: '48%' }}
-                onPress={() => {
-                  if (txBuilderResult?.toBase64()) {
-                    Clipboard.setStringAsync(txBuilderResult.toBase64())
-                    toast(t('common.copiedToClipboard'))
-                  }
-                }}
-              />
-              <SSButton
-                variant="outline"
-                disabled={!transactionId}
-                label={t('transaction.preview.showQR')}
-                style={{ width: '48%' }}
-                onPress={() => {
-                  setNoKeyModalVisible(true)
-                }}
-              />
-            </SSHStack>
-            <SSHStack gap="xxs" justifyBetween>
-              <SSButton
-                label={t('transaction.preview.usb')}
-                style={{ width: '48%' }}
-                variant="outline"
-                disabled
-              />
-
-              <SSButton
-                label={
-                  isEmitting
-                    ? t('watchonly.read.scanning')
-                    : t('transaction.preview.exportNFC')
-                }
-                style={{ width: '48%' }}
-                variant="outline"
-                disabled={!nfcHardwareSupported || !serializedPsbt}
-                onPress={handleNFCExport}
-              />
-            </SSHStack>
-            <SSText
-              center
-              color="muted"
-              size="sm"
-              uppercase
-              style={{ marginTop: 16 }}
-            >
-              {signedPsbt &&
-              (signedPsbt.toLowerCase().startsWith(PSBT_MAGIC_HEX) ||
-                signedPsbt.startsWith(PSBT_MAGIC_BASE64))
-                ? t('transaction.preview.importedPsbt')
-                : t('transaction.preview.importSigned')}
-            </SSText>
-            <View
-              style={{
-                backgroundColor: Colors.gray[900],
-                borderColor: Colors.gray[700],
-                borderRadius: 8,
-                borderWidth: 1,
-                maxHeight: 600,
-                minHeight: 200,
-                paddingBottom: 12,
-                paddingHorizontal: 12,
-                paddingTop: 12
-              }}
-            >
-              <ScrollView
-                style={{ flex: 1 }}
-                showsVerticalScrollIndicator
-                nestedScrollEnabled
-              >
-                <SSText
-                  style={{
-                    color: Colors.white,
-                    fontFamily: Typography.sfProMono,
-                    fontSize: 12,
-                    lineHeight: 18
-                  }}
-                >
-                  {signedPsbt || t('transaction.preview.signedPsbt')}
-                </SSText>
-              </ScrollView>
-            </View>
-            <SSHStack gap="xxs" justifyBetween>
-              <SSButton
-                label={t('common.paste')}
-                style={{ width: '48%' }}
-                variant="outline"
-                onPress={handleWatchOnlyPasteFromClipboard}
-              />
-              <SSButton
-                label={t('transaction.preview.scanQR')}
-                style={{ width: '48%' }}
-                variant="outline"
-                onPress={() => setCameraModalVisible(true)}
-              />
-            </SSHStack>
-            <SSHStack gap="xxs" justifyBetween>
-              <SSButton
-                label={t('transaction.preview.usb')}
-                style={{ width: '48%' }}
-                variant="outline"
-                disabled
-              />
-              <SSButton
-                label={
-                  isReading
-                    ? t('watchonly.read.scanning')
-                    : t('watchonly.read.nfc')
-                }
-                style={{ width: '48%' }}
-                variant="outline"
-                disabled={!nfcHardwareSupported}
-                onPress={handleWatchOnlyNFCScan}
-              />
-            </SSHStack>
-            <SSButton
-              label={t('transaction.preview.checkSignature')}
-              style={{ marginTop: 26 }}
-              variant="secondary"
-              disabled={!signedPsbt}
-              onPress={() =>
-                router.navigate(
-                  `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
-                )
-              }
-            />
-          </>
-        )
+      {isMultisig && (
+        <SSText center color="muted" size="sm" style={styles.signaturesCount}>
+          {t('transaction.preview.signaturesCollected')}: {collectedSignatures}{' '}
+          / {account.keysRequired || account.keys.length}
+        </SSText>
       )}
+      <SSButton
+        variant="secondary"
+        disabled={isSignDisabled}
+        label={
+          isMultisig
+            ? t('transaction.preview.checkAllSignatures')
+            : t('sign.transaction')
+        }
+        onPress={onSign}
+      />
+      {canShareWithGroup && (
+        <SSButton
+          variant="ghost"
+          label={t('account.nostrSync.shareWithGroup')}
+          onPress={onShareWithGroup}
+        />
+      )}
+    </>
+  )
+}
+
+type PreviewTransactionWatchOnlyActionsProps = {
+  account: Account
+  isEmitting: boolean
+  isReading: boolean
+  nfcHardwareSupported: boolean
+  serializedPsbt: string
+  signedPsbt: string
+  transactionId: string
+  onCheckSignature: () => void
+  onCopy: () => void
+  onNFCExport: () => void
+  onNFCScan: () => void
+  onPaste: () => void
+  onScanQR: () => void
+  onShowQR: () => void
+}
+
+// Watch-only accounts imported from a descriptor or xpub: export the unsigned
+// PSBT, then import it back signed.
+function PreviewTransactionWatchOnlyActions({
+  account,
+  isEmitting,
+  isReading,
+  nfcHardwareSupported,
+  serializedPsbt,
+  signedPsbt,
+  transactionId,
+  onCheckSignature,
+  onCopy,
+  onNFCExport,
+  onNFCScan,
+  onPaste,
+  onScanQR,
+  onShowQR
+}: PreviewTransactionWatchOnlyActionsProps) {
+  const creationType = account.keys[0]?.creationType
+  const isImportedWatchOnly =
+    account.policyType === 'watchonly' &&
+    (creationType === 'importDescriptor' ||
+      creationType === 'importExtendedPub')
+  if (!isImportedWatchOnly) {
+    return null
+  }
+
+  return (
+    <>
+      <SSText
+        center
+        color="muted"
+        size="sm"
+        uppercase
+        style={styles.sectionSpacing}
+      >
+        {t('transaction.preview.exportUnsigned')}
+      </SSText>
+      <SSHStack gap="xxs" justifyBetween>
+        <SSButton
+          variant="outline"
+          disabled={!transactionId}
+          label={t('common.copy')}
+          style={styles.halfButton}
+          onPress={onCopy}
+        />
+        <SSButton
+          variant="outline"
+          disabled={!transactionId}
+          label={t('transaction.preview.showQR')}
+          style={styles.halfButton}
+          onPress={onShowQR}
+        />
+      </SSHStack>
+      <SSHStack gap="xxs" justifyBetween>
+        <SSButton
+          label={t('transaction.preview.usb')}
+          style={styles.halfButton}
+          variant="outline"
+          disabled
+        />
+        <SSButton
+          label={
+            isEmitting
+              ? t('watchonly.read.scanning')
+              : t('transaction.preview.exportNFC')
+          }
+          style={styles.halfButton}
+          variant="outline"
+          disabled={!nfcHardwareSupported || !serializedPsbt}
+          onPress={onNFCExport}
+        />
+      </SSHStack>
+      <SSText
+        center
+        color="muted"
+        size="sm"
+        uppercase
+        style={styles.sectionSpacing}
+      >
+        {isPSBT(signedPsbt)
+          ? t('transaction.preview.importedPsbt')
+          : t('transaction.preview.importSigned')}
+      </SSText>
+      <View style={styles.signedPsbtBox}>
+        <ScrollView
+          style={styles.signedPsbtScroll}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
+          <SSText style={styles.signedPsbtText}>
+            {signedPsbt || t('transaction.preview.signedPsbt')}
+          </SSText>
+        </ScrollView>
+      </View>
+      <SSHStack gap="xxs" justifyBetween>
+        <SSButton
+          label={t('common.paste')}
+          style={styles.halfButton}
+          variant="outline"
+          onPress={onPaste}
+        />
+        <SSButton
+          label={t('transaction.preview.scanQR')}
+          style={styles.halfButton}
+          variant="outline"
+          onPress={onScanQR}
+        />
+      </SSHStack>
+      <SSHStack gap="xxs" justifyBetween>
+        <SSButton
+          label={t('transaction.preview.usb')}
+          style={styles.halfButton}
+          variant="outline"
+          disabled
+        />
+        <SSButton
+          label={
+            isReading ? t('watchonly.read.scanning') : t('watchonly.read.nfc')
+          }
+          style={styles.halfButton}
+          variant="outline"
+          disabled={!nfcHardwareSupported}
+          onPress={onNFCScan}
+        />
+      </SSHStack>
+      <SSButton
+        label={t('transaction.preview.checkSignature')}
+        style={styles.checkSignatureButton}
+        variant="secondary"
+        disabled={!signedPsbt}
+        onPress={onCheckSignature}
+      />
     </>
   )
 }
@@ -1031,6 +1014,13 @@ function getCameraModalTitle(
 
 const styles = StyleSheet.create({
   chartContainer: { overflow: 'hidden' },
+  checkSignatureButton: { marginTop: 26 },
+  halfButton: { width: '48%' },
+  keysRequired: {
+    alignSelf: 'center',
+    fontSize: 55,
+    textTransform: 'lowercase'
+  },
   mainLayout: { paddingBottom: 20, paddingTop: 0 },
   nfcTitle: { maxWidth: 300 },
   payjoinNote: {
@@ -1040,6 +1030,7 @@ const styles = StyleSheet.create({
   payjoinNoteHint: {
     color: Colors.gray[500]
   },
+  sectionSpacing: { marginTop: 16 },
   seedWordsModalBody: {
     flex: 1,
     maxWidth: 400,
@@ -1048,6 +1039,23 @@ const styles = StyleSheet.create({
   },
   seedWordsModalContent: { paddingHorizontal: 16 },
   seedWordsModalScroll: { maxHeight: 600, maxWidth: 400, width: '100%' },
+  signaturesCount: { marginBottom: 8 },
+  signedPsbtBox: {
+    backgroundColor: Colors.gray[900],
+    borderColor: Colors.gray[700],
+    borderRadius: 8,
+    borderWidth: 1,
+    maxHeight: 600,
+    minHeight: 200,
+    padding: 12
+  },
+  signedPsbtScroll: { flex: 1 },
+  signedPsbtText: {
+    color: Colors.white,
+    fontFamily: Typography.sfProMono,
+    fontSize: 12,
+    lineHeight: 18
+  },
   statusText: { marginTop: 8 }
 })
 
