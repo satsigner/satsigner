@@ -5,6 +5,7 @@ import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { lookupBrantaPayee } from '@/api/branta'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -14,8 +15,6 @@ import {
   ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS,
   ARK_KIND_LABEL_KEYS
 } from '@/constants/ark'
-import { lookupBrantaPayee } from '@/api/branta'
-import { useSettingsStore } from '@/store/settings'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
@@ -28,6 +27,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
   ArkSendInput,
@@ -156,7 +156,8 @@ export default function ArkSendConfirmPage() {
     !sendMutation.isPending &&
     onchainAddressNetworkValid &&
     lnurlAmountInRange &&
-    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
+    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading) &&
+    !(brantaLookupEnabled && payeeQuery.isPending)
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replace(/[^0-9]/g, ''))
@@ -234,7 +235,7 @@ export default function ArkSendConfirmPage() {
                   </SSText>
                 )}
               </SSVStack>
-              {payeeQuery.data ? (
+              {brantaLookupEnabled && payeeQuery.data ? (
                 <SSBrantaPayee payee={payeeQuery.data} />
               ) : null}
               {draft.kind === 'bolt11' && draft.description && (

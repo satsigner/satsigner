@@ -36,13 +36,13 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
-import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import {
   IO_PREVIEW_BOTTOM_GRADIENT_COLORS,
   IO_PREVIEW_BOTTOM_GRADIENT_EXTEND_PX,
   IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS,
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
+import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
@@ -458,6 +458,9 @@ export default function IOPreview() {
     content: string,
     source: BrantaLookupSource = 'paste'
   ) {
+    if (addingOutputRef.current) {
+      return
+    }
     const trimmedContent = content.trim()
     void lookupBrantaPayeeForOutput(trimmedContent, source)
 
@@ -505,6 +508,9 @@ export default function IOPreview() {
 
   const { pasteFromClipboard } = useClipboardPaste({
     onPaste: (content) => {
+      if (addingOutputRef.current) {
+        return
+      }
       try {
         handlePasteFromClipboard(content)
       } catch {
@@ -700,6 +706,9 @@ export default function IOPreview() {
   }, [feeRate])
 
   function handleContentScanned(content: DetectedContent) {
+    if (addingOutputRef.current) {
+      return
+    }
     if (!content.isValid) {
       toast.error(t('camera.error.invalidContent'))
       return
@@ -797,6 +806,9 @@ export default function IOPreview() {
   }
 
   function handleRemoveOutput() {
+    if (addingOutputRef.current) {
+      return
+    }
     if (!currentOutputLocalId) {
       return
     }
@@ -1614,7 +1626,12 @@ export default function IOPreview() {
       </LinearGradient>
       <SSModal
         visible={addOutputModalVisible}
-        onClose={() => setAddOutputModalVisible(false)}
+        onClose={() => {
+          if (addingOutputRef.current) {
+            return
+          }
+          setAddOutputModalVisible(false)
+        }}
         fullOpacity
       >
         <View style={{ alignSelf: 'center', maxWidth: 1000, width: '100%' }}>
@@ -1631,7 +1648,9 @@ export default function IOPreview() {
                 <SSVStack gap="none">
                   <View
                     pointerEvents={
-                      isEditingStonewallManagedOutput ? 'none' : 'auto'
+                      isEditingStonewallManagedOutput || savingOutput
+                        ? 'none'
+                        : 'auto'
                     }
                   >
                     <SSAmountInput
@@ -1651,7 +1670,12 @@ export default function IOPreview() {
                           ? remainingSats + originalOutputAmount - minerFee
                           : remainingSats - minerFee
                       }
-                      onValueChange={(value) => setOutputAmount(value)}
+                      onValueChange={(value) => {
+                        if (addingOutputRef.current) {
+                          return
+                        }
+                        setOutputAmount(value)
+                      }}
                     />
                   </View>
                 </SSVStack>
@@ -1663,7 +1687,7 @@ export default function IOPreview() {
                     align="left"
                     multiline
                     numberOfLines={4}
-                    editable={!isEditingStonewallManagedOutput}
+                    editable={!isEditingStonewallManagedOutput && !savingOutput}
                     style={{
                       fontFamily: Typography.sfProMono,
                       fontSize: 22,
@@ -1673,6 +1697,9 @@ export default function IOPreview() {
                       textAlignVertical: 'top'
                     }}
                     onChangeText={(text) => {
+                      if (addingOutputRef.current) {
+                        return
+                      }
                       // Long-press paste / Maestro inputText hit onChangeText,
                       // not the Paste button — still detect Payjoin URIs.
                       if (hasPayjoinParam(text)) {
@@ -1691,13 +1718,20 @@ export default function IOPreview() {
                         variant="outline"
                         label={t('common.paste')}
                         style={{ flex: 1 }}
+                        disabled={savingOutput}
                         onPress={pasteFromClipboard}
                       />
                       <SSButton
                         variant="outline"
                         label={t('camera.scanQRCode')}
                         style={{ flex: 1 }}
-                        onPress={() => setCameraModalVisible(true)}
+                        disabled={savingOutput}
+                        onPress={() => {
+                          if (addingOutputRef.current) {
+                            return
+                          }
+                          setCameraModalVisible(true)
+                        }}
                       />
                     </SSHStack>
                   ) : null}
@@ -1709,8 +1743,14 @@ export default function IOPreview() {
                   numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
                   align="left"
+                  editable={!savingOutput}
                   value={outputLabel}
-                  onChangeText={(text) => setOutputLabel(text)}
+                  onChangeText={(text) => {
+                    if (addingOutputRef.current) {
+                      return
+                    }
+                    setOutputLabel(text)
+                  }}
                   blurOnSubmit
                   returnKeyType="done"
                   style={{
@@ -1726,7 +1766,9 @@ export default function IOPreview() {
                     variant="danger"
                     style={{ flex: 1 }}
                     disabled={
-                      !currentOutputLocalId || isEditingStonewallManagedOutput
+                      !currentOutputLocalId ||
+                      isEditingStonewallManagedOutput ||
+                      savingOutput
                     }
                     onPress={handleRemoveOutput}
                   />
