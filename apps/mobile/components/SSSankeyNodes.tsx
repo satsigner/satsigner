@@ -32,7 +32,10 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
-import { getNodeParagraphLayoutWidth } from '@/utils/sankeyNodeTextLayout'
+import {
+  getNodeParagraphLayoutWidth,
+  getNodeParagraphOffsetX
+} from '@/utils/sankeyNodeTextLayout'
 import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
@@ -880,7 +883,7 @@ function NodeText({
     showUnspentLabel
   ])
 
-  const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
+  const paragraphX = x + getNodeParagraphOffsetX(width, PADDING_LEFT, isBlock)
   const paragraphY = isBlock
     ? y + 4
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT

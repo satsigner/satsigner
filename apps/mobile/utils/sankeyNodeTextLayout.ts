@@ -19,4 +19,16 @@ export function getNodeParagraphLayoutWidth(
   return Math.max(nodeWidth - paddingLeft, NODE_TEXT_OVERFLOW_WIDTH)
 }
 
+/** X offset of a sankey node paragraph; block node text is centred. */
+export function getNodeParagraphOffsetX(
+  nodeWidth: number,
+  paddingLeft: number,
+  isBlock: boolean
+) {
+  if (isBlock) {
+    return (nodeWidth * (1 - BLOCK_TEXT_WIDTH_RATIO)) / 2
+  }
+  return paddingLeft
+}
+
 export { NODE_TEXT_OVERFLOW_WIDTH }

@@ -1,5 +1,6 @@
 import {
   getNodeParagraphLayoutWidth,
+  getNodeParagraphOffsetX,
   NODE_TEXT_OVERFLOW_WIDTH
 } from '@/utils/sankeyNodeTextLayout'
 
@@ -16,5 +17,18 @@ describe('getNodeParagraphLayoutWidth', () => {
 
   it('uses a share of the node width for block nodes', () => {
     expect(getNodeParagraphLayoutWidth(100, 8, true)).toBe(60)
+  })
+})
+
+describe('getNodeParagraphOffsetX', () => {
+  it('centres block node text', () => {
+    const width = 100
+    const offset = getNodeParagraphOffsetX(width, 8, true)
+    const textWidth = getNodeParagraphLayoutWidth(width, 8, true)
+    expect(offset * 2 + textWidth).toBeCloseTo(width)
+  })
+
+  it('uses the left padding for other nodes', () => {
+    expect(getNodeParagraphOffsetX(100, 8, false)).toBe(8)
   })
 })
