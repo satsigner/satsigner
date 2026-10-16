@@ -224,11 +224,9 @@ describe('bitcoinRpc', () => {
   })
 
   it('throws HttpStatusError when a failed response has no JSON body', async () => {
-    mockFetch.mockResolvedValueOnce({
-      json: () => Promise.reject(new SyntaxError('Unexpected token')),
-      ok: false,
-      status: 502
-    } as unknown as Response)
+    mockFetch.mockResolvedValueOnce(
+      new Response('Bad Gateway', { status: 502 })
+    )
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
 
     await expect(rpc.getBlockCount()).rejects.toMatchObject({
