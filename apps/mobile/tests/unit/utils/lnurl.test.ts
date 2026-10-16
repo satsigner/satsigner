@@ -266,7 +266,7 @@ describe('requestLNURLPayInvoice response validation', () => {
   })
 })
 
-describe('lNURL HTTP errors', () => {
+describe('http errors from LNURL endpoints', () => {
   afterEach(() => {
     jest.restoreAllMocks()
   })

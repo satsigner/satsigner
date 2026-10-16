@@ -262,7 +262,10 @@ describe('bitcoinRpc', () => {
     mockFetch.mockRejectedValueOnce(abortError)
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
 
-    await expect(rpc.getBlockCount()).rejects.toThrow(/timed out/)
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      message: expect.stringMatching(/timed out/),
+      name: 'RequestTimeoutError'
+    })
   })
 
   describe('hasBlockFilterIndex', () => {
