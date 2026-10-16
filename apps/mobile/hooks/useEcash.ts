@@ -54,6 +54,7 @@ import {
   buildCounterInit,
   withKeysetCounter
 } from '@/utils/ecashKeysetCounters'
+import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
 import {
   proofsAfterMelt,
   proofsAfterSend,
@@ -63,13 +64,6 @@ import {
 const POLL_INTERVAL = 1500
 const MAX_POLL_ATTEMPTS = 120
 
-const PAYMENT_ERROR_KEYS = {
-  insufficientForFees: 'ecash.error.insufficientForFees',
-  insufficientProofs: 'ecash.error.insufficientProofs',
-  mintsLackMpp: 'ecash.error.mintsLackMpp'
-} as const
-
-/** Localized message for a Lightning payment that could not be routed. */
 /** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
 async function getSeedForAccount(accountId: string) {
   const mnemonic = await getEcashMnemonic(accountId)
@@ -77,16 +71,6 @@ async function getSeedForAccount(accountId: string) {
     return undefined
   }
   return mnemonicToSeed(mnemonic, '')
-}
-
-function toPaymentErrorMessage(error: EcashPaymentError) {
-  if (error.reason === 'mppPartialPayment') {
-    return t('ecash.error.mppPartialPayment', {
-      settled: error.settled,
-      total: error.total
-    })
-  }
-  return t(PAYMENT_ERROR_KEYS[error.reason])
 }
 
 export function useEcash() {
