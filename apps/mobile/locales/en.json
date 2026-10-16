@@ -858,10 +858,6 @@
     "psbtTransport.exportNfc": "Export NFC",
     "psbtTransport.importNfc": "Import NFC",
     "psbtTransport.invalidPsbt": "Not a valid PSBT.",
-    "psbtTransport.qrError": "Could not generate QR for this PSBT.",
-    "psbtTransport.qrHint": "Animated BBQR — scan all parts with the other device.",
-    "psbtTransport.qrPart": "Part %{current} of %{total}",
-    "psbtTransport.qrTitle": "PSBT QR",
     "psbtTransport.scanTitle": "Scan PSBT",
     "reset": "Reset",
     "type": "Type"
