@@ -191,6 +191,15 @@ async function rpcFetch<T>(
     )
   }
 
+  // Legacy (1.0) JSON-RPC errors arrive as HTTP 500/404 with the error
+  // envelope in the body, so read it before falling back to the status.
+  const envelope = RpcResponseSchema.safeParse(
+    await response.json().catch(() => null)
+  )
+  if (envelope.success && envelope.data.error) {
+    throw new RpcError(envelope.data.error.code, envelope.data.error.message)
+  }
+
   if (!response.ok) {
     throw new HttpStatusError(
       response.status,
@@ -198,19 +207,13 @@ async function rpcFetch<T>(
     )
   }
 
-  const envelope = RpcResponseSchema.safeParse(await response.json())
   if (!envelope.success) {
     throw new Error('Node returned an invalid JSON-RPC response', {
       cause: envelope.error
     })
   }
 
-  const { data } = envelope
-  if (data.error) {
-    throw new RpcError(data.error.code, data.error.message)
-  }
-
-  return data.result as T
+  return envelope.data.result as T
 }
 
 export type BlockchainInfo = {

@@ -24,8 +24,11 @@ function rpcResult<T>(result: T): Response {
   return jsonResponse({ error: null, id: 'x', result })
 }
 
-function rpcError(code: number, message: string): Response {
-  return jsonResponse({ error: { code, message }, id: 'x', result: null })
+function rpcError(code: number, message: string, status = 200): Response {
+  return jsonResponse(
+    { error: { code, message }, id: 'x', result: null },
+    status
+  )
 }
 
 describe('adjustRpcUrl', () => {
@@ -191,6 +194,46 @@ describe('bitcoinRpc', () => {
     await expect(rpc.getBlockCount()).rejects.toMatchObject({
       code: -8,
       name: 'RpcError'
+    })
+  })
+
+  it('reads the JSON-RPC error from an HTTP 500 legacy response', async () => {
+    mockFetch.mockResolvedValueOnce(
+      rpcError(
+        -4,
+        'Wallet is currently rescanning. Abort existing rescan or wait.',
+        500
+      )
+    )
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -4,
+      name: 'RpcError'
+    })
+  })
+
+  it('reads the JSON-RPC error from an HTTP 404 method-not-found response', async () => {
+    mockFetch.mockResolvedValueOnce(rpcError(-32_601, 'Method not found', 404))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -32_601,
+      name: 'RpcError'
+    })
+  })
+
+  it('throws HttpStatusError when a failed response has no JSON body', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      ok: false,
+      status: 502
+    } as unknown as Response)
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      name: 'HttpStatusError',
+      status: 502
     })
   })
 
