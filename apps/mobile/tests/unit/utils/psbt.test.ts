@@ -1,3 +1,4 @@
+import * as ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account, type Key } from '@/types/models/Account'
@@ -324,6 +325,26 @@ describe('combineAndFinalizePsbts', () => {
     const psbt = buildMultisigPsbt()
     expect(combineAndFinalizePsbts(psbt, [psbt])).toStrictEqual({
       errorKey: 'transaction.preview.notEnoughSignatures'
+    })
+  })
+
+  it('finalizes once every cosigner has signed', () => {
+    // The test pubkeys are G and 2G, so private keys 1 and 2 sign for them.
+    const signers = [1, 2].map((scalar, index) => {
+      const privateKey = Buffer.alloc(32)
+      privateKey[31] = scalar
+      return {
+        publicKey: pubkeys[index],
+        sign: (hash: Buffer) => Buffer.from(ecc.sign(hash, privateKey))
+      }
+    })
+    const original = buildMultisigPsbt()
+    const signedPsbts = signers.map((signer) =>
+      bitcoinjs.Psbt.fromBase64(original).signInput(0, signer).toBase64()
+    )
+
+    expect(combineAndFinalizePsbts(original, signedPsbts)).toStrictEqual({
+      hex: expect.stringMatching(/^[0-9a-f]+$/)
     })
   })
 })
