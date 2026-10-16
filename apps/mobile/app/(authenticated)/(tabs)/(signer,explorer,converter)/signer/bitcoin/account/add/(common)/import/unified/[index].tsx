@@ -31,6 +31,7 @@ import {
   parseImportedDescriptorPayload,
   parseXpubInput
 } from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -196,7 +197,7 @@ export default function UnifiedImport() {
     setLocalExternalDescriptor(descriptor)
     if (isValid) {
       setExternalDescriptor(descriptor)
-      setExternalDescriptorError('') // Clear error when valid
+      setExternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -250,7 +251,7 @@ export default function UnifiedImport() {
     setLocalInternalDescriptor(descriptor)
     if (isValid) {
       setInternalDescriptor(descriptor)
-      setInternalDescriptorError('') // Clear error when valid
+      setInternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -446,14 +447,7 @@ export default function UnifiedImport() {
         return
       }
 
-      const text = nfcData.text
-        .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
-        .replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text).replace(/^en/, '')
 
       if (importType === 'descriptor') {
         let externalDescriptor = text

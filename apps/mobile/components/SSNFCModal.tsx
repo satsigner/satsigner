@@ -20,6 +20,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { sanitizeScannedText } from '@/utils/parse'
 
 type SSNFCModalProps = {
   visible: boolean
@@ -73,13 +74,7 @@ function SSNFCModal({
         return
       }
 
-      const text = nfcData.text
-        .trim()
-        .replace(/[^\S\n]+/g, '')
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '')
-        .normalize('NFKC')
+      const text = sanitizeScannedText(nfcData.text)
 
       onContentRead(text)
       onClose()

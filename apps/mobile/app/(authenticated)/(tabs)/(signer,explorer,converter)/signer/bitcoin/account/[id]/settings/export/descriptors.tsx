@@ -347,7 +347,7 @@ export default function ExportDescriptors() {
                       finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
                   }
                 } else {
-                  const [singleKey] = keySection.split(',') // Use first (and only) key
+                  const [singleKey] = keySection.split(',')
                   switch (scriptVersion) {
                     case 'P2PKH':
                       finalDescriptor = `pkh(${singleKey.replace(
