@@ -3,6 +3,7 @@ import BIP32Factory from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import {
+  HEX_PATTERN,
   MIN_MULTISIG_SCRIPT_LENGTH,
   OP_N_VALUE_OFFSET,
   PSBT_MAGIC_HEX
@@ -1313,7 +1314,7 @@ export function bindScannedDataToPsbt(
 
   if (
     originalPsbtBase64 &&
-    /^[a-fA-F0-9]+$/.test(processedData) &&
+    HEX_PATTERN.test(processedData) &&
     !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
   ) {
     return null
