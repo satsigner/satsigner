@@ -4,7 +4,10 @@ import {
   createReceivePayjoinSession,
   tryResumeReceiverSession
 } from '@/api/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 
 describe('payjoin scaffold (phase 0)', () => {
@@ -21,7 +24,9 @@ describe('payjoin scaffold (phase 0)', () => {
       accountId: 'acct-1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
       amountSats: 10_000,
-      label: 'phase0'
+      deps: getPayjoinDeps(),
+      label: 'phase0',
+      network: 'signet'
     })
 
     expect(session.role).toBe('receiver')
@@ -40,7 +45,9 @@ describe('payjoin scaffold (phase 0)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'acct-keep',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 5_000
+      amountSats: 5_000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     const broken = {
@@ -49,7 +56,10 @@ describe('payjoin scaffold (phase 0)', () => {
     }
     usePayjoinSessionsStore.getState().upsertSession(broken)
 
-    const resumed = await tryResumeReceiverSession(broken)
+    const resumed = await tryResumeReceiverSession(
+      broken,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).toBeNull()
     expect(usePayjoinSessionsStore.getState().getSession(session.id)?.id).toBe(
       session.id
@@ -59,12 +69,17 @@ describe('payjoin scaffold (phase 0)', () => {
   it('removes the JS session when nativeState is missing', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'acct-dead',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const dead = { ...session, nativeState: undefined }
     usePayjoinSessionsStore.getState().upsertSession(dead)
 
-    const resumed = await tryResumeReceiverSession(dead)
+    const resumed = await tryResumeReceiverSession(
+      dead,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).toBeNull()
     expect(
       usePayjoinSessionsStore.getState().getSession(session.id)

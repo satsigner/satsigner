@@ -36,7 +36,10 @@ import {
   sampleSignetWalletSeed,
   sampleSignetXpubFingerprint
 } from '@/constants/samples'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
@@ -163,7 +166,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     expect(session.status).toBe('ready')
@@ -186,10 +191,15 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
-    const resumed = await tryResumeReceiverSession(created)
+    const resumed = await tryResumeReceiverSession(
+      created,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).not.toBeNull()
     expect(resumed?.amountSats).toBe(PAYMENT_SATS)
     expect(resumed?.label).toBe(LABEL)
@@ -207,7 +217,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     const dead = {
@@ -216,7 +228,10 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     }
     usePayjoinSessionsStore.getState().upsertSession(dead)
 
-    const resumed = await tryResumeReceiverSession(dead)
+    const resumed = await tryResumeReceiverSession(
+      dead,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).toBeNull()
     expect(
       usePayjoinSessionsStore.getState().getSession(created.id)
@@ -226,7 +241,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
     expect(renewed.status).toBe('ready')
     expect(renewed.amountSats).toBe(PAYMENT_SATS)
@@ -238,7 +255,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'receiver-sample',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     const original = buildOriginalPsbt({
@@ -278,6 +297,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const sendResult = await sendPayjoin({
       accountId: 'sender-sample',
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [wallet.receiveScript.toString('hex')],
@@ -301,6 +321,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const { session: withOriginal, originalPsbtBase64 } =
       await pollReceiverSession({
         callbacks,
+        deps: getPayjoinDeps(),
         fetchImpl: noopFetch,
         session: receiver
       })
@@ -315,6 +336,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
 
     const finalized = await finalizeReceiverPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: toFinalize
     })
@@ -348,6 +370,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const started = await startBip77Send({
       accountId: 'sender-sample',
       callbacks,
+      deps: getPayjoinDeps(),
       disableOutputSubstitution: true,
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
