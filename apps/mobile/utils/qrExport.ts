@@ -32,10 +32,10 @@ export function createRawQrChunks(data: string, complexity: number) {
 
   const chunkSize =
     RAW_CHUNK_BASE_SIZE * Math.min(complexity, RAW_CHUNK_MAX_MULTIPLIER)
-  const dataChunks: string[] = []
-  for (let i = 0; i < data.length; i += chunkSize) {
-    dataChunks.push(data.slice(i, i + chunkSize))
-  }
+  const dataChunks = Array.from(
+    { length: Math.ceil(data.length / chunkSize) },
+    (_, index) => data.slice(index * chunkSize, (index + 1) * chunkSize)
+  )
   return dataChunks.map(
     (chunk, index) => `p${index + 1}of${dataChunks.length} ${chunk}`
   )
