@@ -27,8 +27,8 @@ class RpcError extends AppError {
   override name = 'RpcError'
   readonly code: number
 
-  constructor(code: number, message: string) {
-    super(`RPC error ${code}: ${message}`)
+  constructor(code: number, message: string, options?: ErrorOptions) {
+    super(`RPC error ${code}: ${message}`, options)
     this.code = code
   }
 }
