@@ -6,7 +6,71 @@
     <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>html,body{background:#000;color:#fff}html[data-theme="light"],html[data-theme="light"] body{background:#e6e6e6;color:#161616}</style>
+    <meta name="color-scheme" content="dark light">
+    <style>
+      html { color-scheme: dark; background: #000; }
+      html[data-theme="light"] { color-scheme: light; background: #e6e6e6; }
+      html, body { background: #000; color: #fff; margin: 0; }
+      html[data-theme="light"], html[data-theme="light"] body { background: #e6e6e6; color: #161616; }
+      html:not(.is-ready) body > :not(.boot) { visibility: hidden; }
+      html:not(.is-ready) .hero.is-badge .hero-mark-type {
+        visibility: visible;
+        position: fixed;
+        z-index: 1001;
+        left: 50%;
+        top: 50%;
+        width: 112px;
+        margin: 0;
+        opacity: 1;
+        animation: none;
+        transform: translate(-50%, -50%);
+      }
+      html.is-ready .hero.is-intro .hero-mark-type,
+      html.is-ready .hero.is-intro .hero-logo-light {
+        animation: none;
+        opacity: 1;
+      }
+      .boot {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        background: #000;
+        color: #fff;
+        pointer-events: none;
+      }
+      html[data-theme="light"] .boot { background: #e6e6e6; color: #161616; }
+      .boot-line {
+        position: absolute;
+        bottom: 18vh;
+        width: 72px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.16);
+        overflow: hidden;
+      }
+      html[data-theme="light"] .boot-line { background: rgba(0, 0, 0, 0.12); }
+      .boot-line i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: rgba(255, 255, 255, 0.85);
+        animation: boot-line 1.15s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+      }
+      html[data-theme="light"] .boot-line i { background: rgba(0, 0, 0, 0.7); }
+      html.is-ready .boot {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.7s ease, visibility 0s linear 0.7s;
+      }
+      @keyframes boot-line {
+        to { width: 100%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-line i { animation: none; width: 100%; }
+        html.is-ready .boot { transition: none; }
+      }
+    </style>
     <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +79,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="test-site/tokens.css">
     <link rel="stylesheet" href="test-site/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=43" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=49" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -28,6 +92,9 @@
     <link rel="manifest" href="/site.webmanifest">
   </head>
   <body>
+  <div class="boot" aria-hidden="true">
+    <div class="boot-line"><i></i></div>
+  </div>
 
   <nav class="site-nav">
     <div class="site-nav-inner">
@@ -426,7 +493,61 @@
   </dialog>
   <script src="test-site/icons.js"></script>
   <script src="test-site/screen.js"></script>
-  <script src="script.js?v=32"></script>
+  <script src="script.js?v=34"></script>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var started = performance.now();
+      var min = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900;
+      var shown = false;
+      function reveal() {
+        if (shown) return;
+        shown = true;
+        var wait = Math.max(0, min - (performance.now() - started));
+        setTimeout(function () {
+          var logo = document.querySelector('.hero-mark-type');
+          var reduce = min === 0;
+          var first = logo ? logo.getBoundingClientRect() : null;
+          if (logo) logo.style.animation = 'none';
+          root.classList.add('is-ready');
+          if (logo && first && !reduce && first.width > 0) {
+            var last = logo.getBoundingClientRect();
+            logo.style.position = 'fixed';
+            logo.style.zIndex = '1001';
+            logo.style.left = first.left + 'px';
+            logo.style.top = first.top + 'px';
+            logo.style.width = first.width + 'px';
+            logo.style.height = first.height + 'px';
+            logo.style.margin = '0';
+            logo.style.transform = 'none';
+            requestAnimationFrame(function () {
+              logo.style.transition = 'left 2.1s cubic-bezier(0.16, 1, 0.3, 1), top 2.1s cubic-bezier(0.16, 1, 0.3, 1), width 2.1s cubic-bezier(0.16, 1, 0.3, 1), height 2.1s cubic-bezier(0.16, 1, 0.3, 1)';
+              logo.style.left = last.left + 'px';
+              logo.style.top = last.top + 'px';
+              logo.style.width = last.width + 'px';
+              logo.style.height = last.height + 'px';
+            });
+            logo.addEventListener('transitionend', function (event) {
+              if (event.propertyName !== 'left') return;
+              logo.removeAttribute('style');
+            });
+          } else if (logo) {
+            logo.removeAttribute('style');
+          }
+          var boot = document.querySelector('.boot');
+          if (!boot) return;
+          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 2300);
+        }, wait);
+      }
+      function arm() {
+        var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+        fonts.then(reveal).catch(reveal);
+      }
+      if (document.readyState === 'complete') arm();
+      else window.addEventListener('load', arm);
+      setTimeout(reveal, 3500);
+    })();
+  </script>
 
   </body>
 </html>
