@@ -32,10 +32,8 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
-import {
-  getNodeParagraphLayoutWidth,
-  getUnspentOutputSatsColor
-} from '@/utils/sankeyOutputLabel'
+import { getNodeParagraphLayoutWidth } from '@/utils/sankeyNodeTextLayout'
+import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 type SSSankeyNodesProps = {
