@@ -10,6 +10,12 @@ import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
+// OP_1..OP_16 encode small integers as opcode - OP_N_OFFSET.
+const OP_N_OFFSET = bitcoinjs.opcodes.OP_1 - 1
+// Length bounds a partial signature must fall within to count as present.
+const MIN_SIGNATURE_BYTES = 64
+const MAX_SIGNATURE_BYTES = 72
+
 const bip32 = BIP32Factory(ecc)
 
 bitcoinjs.initEccLib(ecc)
@@ -623,10 +629,10 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
   const nOp = decompiled.at(-2)!
 
   const m = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - 80])
+    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - OP_N_OFFSET])
   )
   const n = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - 80])
+    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - OP_N_OFFSET])
   )
 
   return { required: m, total: n }
@@ -907,14 +913,14 @@ function parseWitnessScript(witnessScript: Buffer) {
     return null
   }
 
-  const threshold = op - 80
+  const threshold = op - OP_N_OFFSET
   const totalKeys = countPublicKeysInScript(script)
 
   return { threshold, totalKeys }
 }
 
 function isValidOpCode(op: number): boolean {
-  return op >= 81 && op <= 96
+  return op >= bitcoinjs.opcodes.OP_1 && op <= bitcoinjs.opcodes.OP_16
 }
 
 function countPublicKeysInScript(script: (number | Buffer)[]): number {
@@ -970,7 +976,7 @@ function isValidSignature(
   }
 
   const sigLength = sig.signature.length
-  return sigLength >= 64 && sigLength <= 72
+  return sigLength >= MIN_SIGNATURE_BYTES && sigLength <= MAX_SIGNATURE_BYTES
 }
 
 function validateCosignerSignature(

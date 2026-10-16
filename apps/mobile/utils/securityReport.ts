@@ -1,6 +1,7 @@
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/types/bips/39'
 import { type NostrChatMessage } from '@/types/models/Nostr'
 import { generateMnemonic } from '@/utils/bip39'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -18,7 +19,7 @@ export type ThrowawayIdentity = {
  * user can save the seed words / nsec and later re-import to read our reply.
  */
 export function createThrowawayIdentity(): ThrowawayIdentity {
-  const mnemonic = generateMnemonic(12)
+  const mnemonic = generateMnemonic(SHORT_MNEMONIC_WORD_COUNT)
   const { npub, nsec } = deriveNostrKeysFromMnemonic(mnemonic)
   return { mnemonic, npub, nsec }
 }

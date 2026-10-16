@@ -10,6 +10,7 @@ import {
 } from 'bitcoinjs-lib'
 import * as varuint from 'varuint-bitcoin'
 
+import { HASH_BYTE_LENGTH, NULL_PREVOUT_INDEX } from '@/constants/btc'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork, getScriptTypeFromAddress } from '@/utils/bitcoin'
 import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
@@ -18,7 +19,7 @@ initEccLib(ecc)
 
 const BIP322_TAG = Buffer.from('BIP0322-signed-message', 'utf8')
 const TAP_TWEAK_TAG = Buffer.from('TapTweak', 'utf8')
-const ZERO_HASH = Buffer.alloc(32, 0)
+const ZERO_HASH = Buffer.alloc(HASH_BYTE_LENGTH, 0)
 const SCHNORR_SIGNATURE_LENGTH = 64
 // "simple" variant text prefix from the BIP-322 spec, used by real-world
 // wallets (e.g. Sparrow's drongo Bip322.java) - satsigner signs with it and
@@ -46,7 +47,7 @@ export function buildToSpendTx(
   tx.version = 0
   tx.locktime = 0
   const scriptSig = bscript.compile([opcodes.OP_0, bip322MessageHash(message)])
-  tx.addInput(ZERO_HASH, 0xffffffff, 0, scriptSig)
+  tx.addInput(ZERO_HASH, NULL_PREVOUT_INDEX, 0, scriptSig)
   tx.addOutput(scriptPubKey, 0)
   return tx
 }

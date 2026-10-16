@@ -3,6 +3,7 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/types/bips/39'
 import type {
   NostrDecodedContent,
   NostrDerivedKeys,
@@ -30,7 +31,7 @@ export function deriveNostrKeysFromMnemonic(
 
 /** New personal device keys: BIP39 seed → NIP-06 nsec/npub. */
 export function generateDeviceNostrKeysFromSeed(): NostrDerivedKeys {
-  const mnemonic = generateMnemonic(12)
+  const mnemonic = generateMnemonic(SHORT_MNEMONIC_WORD_COUNT)
   return deriveNostrKeysFromMnemonic(mnemonic)
 }
 

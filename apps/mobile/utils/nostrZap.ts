@@ -1,5 +1,6 @@
 import NDK, { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
 import { finalizeEvent, nip57 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
@@ -686,7 +687,7 @@ export async function enrichZapReceipts(
         ndk,
         {
           authors: stalePubkeys,
-          kinds: [0],
+          kinds: [nostrKinds.Metadata],
           limit: stalePubkeys.length
         },
         NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS

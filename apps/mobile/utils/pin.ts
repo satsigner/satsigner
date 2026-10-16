@@ -4,6 +4,7 @@ import {
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
   PIN_SIZE,
+  RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
@@ -49,7 +50,7 @@ async function ensurePin(): Promise<string> {
     if (!__DEV__) {
       throw new Error('PIN unavailable')
     }
-    return setPin(await randomKey(32))
+    return setPin(await randomKey(RANDOM_PIN_BYTE_LENGTH))
   }
 }
 

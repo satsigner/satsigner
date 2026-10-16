@@ -1,5 +1,6 @@
 import type NDK from '@nostr-dev-kit/ndk'
 import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import {
   createEphemeralNdk,
@@ -100,7 +101,7 @@ function fetchKind0Events(
     const newest: FetchResult = new Map()
     const filter: NDKFilter = {
       authors: hexPubkeys,
-      kinds: [0],
+      kinds: [nostrKinds.Metadata],
       limit: hexPubkeys.length
     }
     const sub = ndk.subscribe(filter, { closeOnEose: false })

@@ -12,7 +12,7 @@ import SSButton from '@/components/SSButton'
 import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -330,7 +330,7 @@ export default function Converter() {
                 >
                   <SSCurrencyInput
                     value={currencyValues.bitcoin
-                      .toFixed(8)
+                      .toFixed(BTC_DECIMALS)
                       .replace(/\.?0+$/, '')}
                     size="large"
                     onChangeValue={(value) =>

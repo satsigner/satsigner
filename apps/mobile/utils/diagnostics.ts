@@ -1,7 +1,9 @@
 import NetInfo from '@react-native-community/netinfo'
 import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
+import { SECRET_KEY_BYTE_LENGTH } from '@/config/keys'
 import {
   NOSTR_LIVE_CHECK_FALLBACK_RELAYS,
   NOSTR_SECURITY_REPORT_NPUB
@@ -185,13 +187,15 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   const ok = await runGuarded(lines, async () => {
     // Same generation path as NostrAPI.generateNostrKeys (randomKey), since
     // nostr-tools' react-native build does not export generateSecretKey.
-    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+    const secretKey = new Uint8Array(
+      Buffer.from(await randomKey(SECRET_KEY_BYTE_LENGTH), 'hex')
+    )
     const publicKey = getPublicKey(secretKey)
     lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
 
     const content = 'satsigner diagnostic 🔐'
     const wrap = nip17.wrapEvent(secretKey, { publicKey }, content)
-    if (wrap.kind !== 1059) {
+    if (wrap.kind !== nostrKinds.GiftWrap) {
       throw new Error(`expected gift wrap kind 1059, got ${wrap.kind}`)
     }
     lines.push('gift wrap created (kind 1059)')
@@ -252,7 +256,7 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
     if (!/^[0-9a-f]{32}$/.test(sample)) {
       throw new Error('randomIv output malformed')
     }
-    const key = await randomKey(32)
+    const key = await randomKey(SECRET_KEY_BYTE_LENGTH)
     if (!/^[0-9a-f]{64}$/.test(key)) {
       throw new Error('randomKey output malformed')
     }
@@ -356,7 +360,9 @@ async function checkNip17LiveRoundtrip(
         : 'no relays configured — using well-known defaults'
     )
 
-    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+    const secretKey = new Uint8Array(
+      Buffer.from(await randomKey(SECRET_KEY_BYTE_LENGTH), 'hex')
+    )
     const publicKey = getPublicKey(secretKey)
     const nsec = nip19.nsecEncode(secretKey)
     const npub = nip19.npubEncode(publicKey)

@@ -1,3 +1,5 @@
+import * as nostrKinds from 'nostr-tools/kinds'
+
 import { NOSTR_ZAP_TAG_NAMES } from '@/constants/nostr'
 import { NostrKind1DraftImport } from '@/types/models/Nostr'
 import { isRecord } from '@/utils/object'
@@ -30,8 +32,9 @@ export function parseKind1DraftFromJson(
     return null
   }
 
-  const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
-  if (kind !== 1) {
+  const kind =
+    typeof parsed.kind === 'number' ? parsed.kind : nostrKinds.ShortTextNote
+  if (kind !== nostrKinds.ShortTextNote) {
     return null
   }
   if (typeof parsed.content !== 'string') {

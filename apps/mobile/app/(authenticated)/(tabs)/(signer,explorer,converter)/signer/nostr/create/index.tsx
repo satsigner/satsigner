@@ -14,6 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/types/bips/39'
 import { generateMnemonic } from '@/utils/bip39'
 import { chunkArray } from '@/utils/chunkArray'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
@@ -24,7 +25,7 @@ export default function CreateNostrIdentity() {
   const [qrModalValue, setQrModalValue] = useState<string | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
-  const [mnemonic] = useState(() => generateMnemonic(12))
+  const [mnemonic] = useState(() => generateMnemonic(SHORT_MNEMONIC_WORD_COUNT))
   const words = mnemonic.split(' ')
   const keys = deriveNostrKeysFromMnemonic(mnemonic)
 
