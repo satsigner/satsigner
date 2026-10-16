@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,10 +27,10 @@ import { usePriceStore } from '@/store/price'
 import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
-  LNDGraphNodeInfo,
   LNDInvoice,
   LNDOnchainTransaction,
-  LNDPayment
+  LNDPayment,
+  LNDGraphNodeInfo
 } from '@/types/models/Lightning'
 import { formatFiatPrice, formatLnKey, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
