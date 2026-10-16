@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,6 +11,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
+import { brantaLogoUrl } from '@/utils/brantaUrl'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,
@@ -119,13 +121,23 @@ function SSTransactionCard({
 
   const { amount, type } = getWalletTransactionEffect(transaction)
   const { label, tags } = parseLabel(transaction.label || '')
+  const payeeName = transaction.branta?.name
+  const historyLabel =
+    label || payeeName || t('transaction.noLabel').toUpperCase()
+  const historyLabelMuted = !label && !payeeName
 
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
+  const [brantaTorEnabled, currencyUnit, useZeroPadding, privacyMode] =
+    useSettingsStore(
+      useShallow((state) => [
+        state.brantaTorEnabled,
+        state.currencyUnit,
+        state.useZeroPadding,
+        state.privacyMode
+      ])
+    )
+  const payeeLogoUrl = brantaLogoUrl(
+    transaction.branta?.logoUrl,
+    brantaTorEnabled
   )
   const { showCurrentFiat, showHistoricalFiat } = useFiatData()
 
@@ -321,17 +333,25 @@ function SSTransactionCard({
                 </SSHStack>
               ) : null}
             </SSVStack>
-            <SSText
-              size={smallView ? 'xxs' : 'xs'}
-              style={[
-                styles.label,
-                { marginTop: 4 },
-                !label && { color: Colors.gray[500] }
-              ]}
-              numberOfLines={1}
-            >
-              {label || t('transaction.noLabel').toUpperCase()}
-            </SSText>
+            <SSHStack gap="xs" style={{ alignItems: 'center', marginTop: 4 }}>
+              {payeeLogoUrl ? (
+                <Image
+                  contentFit="contain"
+                  source={{ uri: payeeLogoUrl }}
+                  style={styles.payeeLogo}
+                />
+              ) : null}
+              <SSText
+                size={smallView ? 'xxs' : 'xs'}
+                style={[
+                  styles.label,
+                  historyLabelMuted && { color: Colors.gray[500] }
+                ]}
+                numberOfLines={1}
+              >
+                {historyLabel}
+              </SSText>
+            </SSHStack>
           </SSVStack>
           <SSVStack
             gap="none"
@@ -435,6 +455,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Layout.hStack.gap.sm,
     textAlign: 'left'
+  },
+  payeeLogo: {
+    borderRadius: 4,
+    height: 16,
+    width: 16
   },
   tag: {
     alignSelf: 'flex-start',

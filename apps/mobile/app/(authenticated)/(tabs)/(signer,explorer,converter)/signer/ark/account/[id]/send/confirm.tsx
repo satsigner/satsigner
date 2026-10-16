@@ -5,6 +5,8 @@ import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { lookupBrantaPayee } from '@/api/branta'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
@@ -25,12 +27,17 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
   ArkSendInput,
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
+import {
+  type BrantaLookupSource,
+  type BrantaPayee
+} from '@/types/models/Branta'
 import { arkSendFeeRequest } from '@/utils/ark'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
@@ -41,12 +48,24 @@ import { validateAddress } from '@/utils/validation'
 
 import { ArkInvoiceStats, styles } from '../../[id]/pay-invoice'
 
+function brantaLookupSource(
+  value: string | string[] | undefined
+): BrantaLookupSource {
+  const source = Array.isArray(value) ? value[0] : value
+  return source === 'qr' ? 'qr' : 'paste'
+}
+
 export default function ArkSendConfirmPage() {
   const router = useRouter()
-  const { id, destination } = useLocalSearchParams<{
-    id: string
+  const { brantaSource, destination, id } = useLocalSearchParams<{
+    brantaSource?: string
     destination: string
+    id: string
   }>()
+  const brantaLookupEnabled = useSettingsStore(
+    (state) => state.brantaLookupEnabled
+  )
+  const source = brantaLookupSource(brantaSource)
 
   const parsedQuery = useQuery<ArkDestinationDraft>({
     enabled: Boolean(destination),
@@ -58,6 +77,13 @@ export default function ArkSendConfirmPage() {
       return parsed.draft
     },
     queryKey: ['ark', 'send', 'parse', destination],
+    staleTime: Infinity
+  })
+
+  const payeeQuery = useQuery<BrantaPayee | null>({
+    enabled: Boolean(destination) && brantaLookupEnabled,
+    queryFn: () => lookupBrantaPayee(destination ?? '', source),
+    queryKey: ['branta', 'payee', destination, source],
     staleTime: Infinity
   })
 
@@ -130,7 +156,8 @@ export default function ArkSendConfirmPage() {
     !sendMutation.isPending &&
     onchainAddressNetworkValid &&
     lnurlAmountInRange &&
-    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
+    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading) &&
+    !(brantaLookupEnabled && payeeQuery.isPending)
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replace(/[^0-9]/g, ''))
@@ -208,6 +235,9 @@ export default function ArkSendConfirmPage() {
                   </SSText>
                 )}
               </SSVStack>
+              {brantaLookupEnabled && payeeQuery.data ? (
+                <SSBrantaPayee payee={payeeQuery.data} />
+              ) : null}
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>

@@ -310,6 +310,21 @@ const SCHEMA_V10 = `
 ALTER TABLE accounts ADD COLUMN display_index INTEGER NOT NULL DEFAULT 0
 `
 
+const SCHEMA_V11 = `
+CREATE TABLE IF NOT EXISTS branta_payees (
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  tx_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  logo_url TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  verify_url TEXT NOT NULL,
+  parent_logo_url TEXT,
+  PRIMARY KEY (account_id, tx_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_branta_payees_account ON branta_payees(account_id)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -320,7 +335,8 @@ const SCHEMAS = [
   SCHEMA_V7,
   SCHEMA_V8,
   SCHEMA_V9,
-  SCHEMA_V10
+  SCHEMA_V10,
+  SCHEMA_V11
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
