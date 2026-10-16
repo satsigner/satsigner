@@ -480,44 +480,70 @@ function utxoList() {
   )
 }
 
+function tangentPoints(a, b, radius) {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const distance = Math.hypot(dx, dy)
+  const reachA = a.r + radius
+  const reachB = b.r + radius
+  if (!distance || distance > reachA + reachB || distance < Math.abs(reachA - reachB)) return []
+  const along = (reachA * reachA + distance * distance - reachB * reachB) / (2 * reachA * distance)
+  const clamped = Math.max(-1, Math.min(1, along))
+  const across = Math.sqrt(Math.max(0, 1 - clamped * clamped))
+  const ux = dx / distance
+  const uy = dy / distance
+  const px = a.x + ux * reachA * clamped
+  const py = a.y + uy * reachA * clamped
+  const ox = -uy * reachA * across
+  const oy = ux * reachA * across
+  return [
+    { x: px + ox, y: py + oy },
+    { x: px - ox, y: py - oy }
+  ]
+}
+
 function packCoins(items, width, height) {
-  const padding = 4
+  const gap = 3
   const nodes = items
-    .map((item) => ({ item: item, r: Math.sqrt(item.value) }))
+    .map((item) => ({ item: item, r: Math.sqrt(Math.max(item.value, 1)) + gap }))
     .sort((a, b) => b.r - a.r)
+  if (!nodes.length) return []
   nodes[0].x = 0
   nodes[0].y = 0
-  const placed = [nodes[0]]
+  if (nodes[1]) {
+    nodes[1].x = nodes[0].r + nodes[1].r
+    nodes[1].y = 0
+  }
+  const placed = nodes.slice(0, Math.min(2, nodes.length))
 
-  function hits(x, y, r) {
+  function overlaps(x, y, radius, ignore) {
     return placed.some((peer) => {
+      if (peer === ignore) return false
       const dx = peer.x - x
       const dy = peer.y - y
-      const min = peer.r + r + padding
-      return dx * dx + dy * dy < min * min
+      const min = peer.r + radius
+      return dx * dx + dy * dy < min * min - 0.05
     })
   }
 
-  for (let index = 1; index < nodes.length; index += 1) {
+  for (let index = 2; index < nodes.length; index += 1) {
     const node = nodes[index]
     let best = null
     let bestScore = Infinity
-    placed.forEach((peer) => {
-      const dist = peer.r + node.r + padding
-      for (let step = 0; step < 24; step += 1) {
-        const angle = (Math.PI * 2 * step) / 24 + index
-        const x = peer.x + Math.cos(angle) * dist
-        const y = peer.y + Math.sin(angle) * dist
-        if (hits(x, y, node.r)) continue
-        const score = x * x + y * y
-        if (score < bestScore) {
-          bestScore = score
-          best = { x: x, y: y }
-        }
+    for (let left = 0; left < placed.length; left += 1) {
+      for (let right = left + 1; right < placed.length; right += 1) {
+        tangentPoints(placed[left], placed[right], node.r).forEach((point) => {
+          if (overlaps(point.x, point.y, node.r)) return
+          const score = point.x * point.x + point.y * point.y
+          if (score < bestScore) {
+            bestScore = score
+            best = point
+          }
+        })
       }
-    })
-    node.x = best ? best.x : 0
-    node.y = best ? best.y : placed.length * node.r
+    }
+    node.x = best ? best.x : nodes[0].r + node.r
+    node.y = best ? best.y : index * node.r
     placed.push(node)
   }
 
@@ -526,40 +552,51 @@ function packCoins(items, width, height) {
   let maxX = -Infinity
   let maxY = -Infinity
   nodes.forEach((node) => {
-    minX = Math.min(minX, node.x - node.r)
-    minY = Math.min(minY, node.y - node.r)
-    maxX = Math.max(maxX, node.x + node.r)
-    maxY = Math.max(maxY, node.y + node.r)
+    const radius = node.r - gap
+    minX = Math.min(minX, node.x - radius)
+    minY = Math.min(minY, node.y - radius)
+    maxX = Math.max(maxX, node.x + radius)
+    maxY = Math.max(maxY, node.y + radius)
   })
   const boundsW = Math.max(maxX - minX, 1)
   const boundsH = Math.max(maxY - minY, 1)
-  const scale = Math.min(width / boundsW, height / boundsH)
+  const margin = 8
+  const scale = Math.min((width - margin * 2) / boundsW, (height - margin * 2) / boundsH)
   const offsetX = (width - boundsW * scale) / 2
   const offsetY = (height - boundsH * scale) / 2
-  return nodes.map((node) => ({
-    item: node.item,
-    d: node.r * 2 * scale,
-    x: offsetX + (node.x - minX) * scale,
-    y: offsetY + (node.y - minY) * scale
-  }))
+  const pad = 2
+  return nodes.map((node) => {
+    const full = (node.r - gap) * scale
+    const radius = Math.max(2, full - pad)
+    return {
+      item: node.item,
+      d: radius * 2,
+      x: offsetX + (node.x - (node.r - gap) - minX) * scale + (full - radius),
+      y: offsetY + (node.y - (node.r - gap) - minY) * scale + (full - radius)
+    }
+  })
 }
 
-function bubblePack() {
-  const width = 340
-  const height = 360
+function bubblePack(enter, full) {
+  const screen = document.getElementById('view-send')
+  const width = full ? screen.clientWidth || 390 : 340
+  const height = full ? screen.clientHeight || 844 : 360
   return (
-    '<div class="coin-map">' +
+    '<div class="coin-map"><div class="coin-map-stage">' +
     packCoins(coins, width, height)
-      .map((bubble) => {
+      .map((bubble, index) => {
         const coin = bubble.item
         const showLabel = bubble.d >= 72
         const font = Math.max(7, Math.min(12, bubble.d * 0.16))
         return (
           '<button type="button" class="bubble' +
+          (enter ? ' is-enter' : '') +
           (coin.selected ? ' is-selected' : '') +
           '" data-coin="' +
           coin.id +
-          '" style="width:' +
+          '" style="' +
+          (enter ? 'animation-delay:' + index * 55 + 'ms;' : '') +
+          'width:' +
           bubble.d +
           'px;height:' +
           bubble.d +
@@ -581,14 +618,64 @@ function bubblePack() {
         )
       })
       .join('') +
-    '</div>'
+    '</div></div>'
   )
+}
+
+let bubbleZoomId = null
+let coinClickTimer = 0
+
+function applyBubbleZoom(map) {
+  const stage = map.querySelector('.coin-map-stage')
+  const zoomingIn = Boolean(bubbleZoomId)
+  map.classList.toggle('is-zoomed', zoomingIn)
+  map.classList.toggle('is-zoom-out', !zoomingIn)
+  if (!bubbleZoomId) {
+    stage.style.transform = ''
+    return
+  }
+  const bubble = stage.querySelector('[data-coin="' + bubbleZoomId + '"]')
+  if (!bubble) {
+    stage.style.transform = ''
+    return
+  }
+  const width = map.clientWidth
+  const height = map.clientHeight
+  const diameter = bubble.offsetWidth
+  const centerX = bubble.offsetLeft + diameter / 2
+  const centerY = bubble.offsetTop + diameter / 2
+  const scale = Math.min(8, Math.max(1.8, (Math.min(width, height) * 0.72) / diameter))
+  stage.style.transform =
+    'translate(' +
+    (width / 2 - scale * centerX) +
+    'px, ' +
+    (height / 2 - scale * centerY) +
+    'px) scale(' +
+    scale +
+    ')'
 }
 
 function bindCoins(root) {
   root.querySelectorAll('[data-coin]').forEach((button) => {
-    button.addEventListener('click', () => toggleCoin(button.dataset.coin))
+    button.addEventListener('click', () => {
+      if (!button.classList.contains('bubble')) {
+        toggleCoin(button.dataset.coin)
+        return
+      }
+      window.clearTimeout(coinClickTimer)
+      coinClickTimer = window.setTimeout(() => toggleCoin(button.dataset.coin), 240)
+    })
+    button.addEventListener('dblclick', (event) => {
+      if (!button.classList.contains('bubble')) return
+      event.preventDefault()
+      window.clearTimeout(coinClickTimer)
+      const map = button.closest('.coin-map')
+      bubbleZoomId = bubbleZoomId ? null : button.dataset.coin
+      if (map) applyBubbleZoom(map)
+    })
   })
+  const map = root.querySelector('.coin-map')
+  if (map && bubbleZoomId) applyBubbleZoom(map)
 }
 
 function renderCoins() {
@@ -597,6 +684,8 @@ function renderCoins() {
   const selectedSats = picked.reduce((sum, coin) => sum + coin.value, 0)
   const totalSats = coins.reduce((sum, coin) => sum + coin.value, 0)
   const bubbles = coinView === 'bubbles'
+  document.getElementById('view-send').classList.toggle('is-bubbles', bubbles)
+  const enterBubbles = bubbles && !root.querySelector('.coin-map')
   root.innerHTML =
     '<header class="coin-head">' +
     '<div class="coin-bar"><span>Spendable outputs</span><button type="button" id="coin-view" aria-label="' +
@@ -620,10 +709,11 @@ function renderCoins() {
     '<p class="coin-fiat">' +
     (selectedSats / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
     ' <span>USD</span></p></header>' +
-    (bubbles ? bubblePack() : utxoList()) +
+    (bubbles ? bubblePack(enterBubbles, true) : utxoList()) +
     '<button type="button" class="menu-button" id="coins-next"><span class="edge-left"></span><span class="edge-right"></span>Next</button>'
   document.getElementById('coin-view').addEventListener('click', () => {
     coinView = bubbles ? 'list' : 'bubbles'
+    if (coinView === 'list') bubbleZoomId = null
     renderCoins()
   })
   document.getElementById('coins-next').addEventListener('click', () => {
@@ -641,13 +731,15 @@ function openSend(phase) {
     coinView = 'list'
     form.hidden = true
     title.textContent = 'Outputs'
+    show('send')
     renderCoins()
   } else {
+    document.getElementById('view-send').classList.remove('is-bubbles')
     document.getElementById('coin-select').innerHTML = ''
     form.hidden = false
     title.textContent = 'Add output'
+    show('send')
   }
-  show('send')
 }
 
 function closeSheet() {
@@ -737,6 +829,8 @@ function renderAccount() {
     [account.stats[2][0], 'Spendable\nOutputs'],
     [account.stats[3][0], 'Sats in\nMempool']
   ]
+  const landing = document.getElementById('account-landing')
+  const enterBubbles = outputView === 'bubbles' && !landing.querySelector('.coin-map')
   const list =
     accountTab === 0
       ? txs
@@ -767,7 +861,7 @@ function renderAccount() {
         ? '<p class="addr">tb1q' + account.fingerprint + 'spend000000000000000000</p><p class="addr">tb1q' + account.fingerprint + 'change00000000000000000</p>'
         : accountTab === 2
           ? outputView === 'bubbles'
-            ? bubblePack()
+            ? bubblePack(enterBubbles)
             : utxoList()
           : '<p class="tx-card"><span><strong>50,000 sats</strong><small>Unconfirmed</small></span></p>'
   document.getElementById('account-title').textContent = account.name
@@ -841,6 +935,7 @@ function renderAccount() {
   if (bubbleToggle) {
     bubbleToggle.addEventListener('click', () => {
       outputView = outputView === 'bubbles' ? 'list' : 'bubbles'
+      if (outputView === 'list') bubbleZoomId = null
       renderAccount()
     })
   }
