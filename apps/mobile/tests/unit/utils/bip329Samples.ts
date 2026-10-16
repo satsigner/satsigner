@@ -108,7 +108,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
       time: new Date('2024-12-31T12:33:02.000Z'),
       type: 'tx',
-      value: 200000
+      value: 200_000
     },
     {
       label: 'back from carlo A',
@@ -123,7 +123,7 @@ const sampleCsvSparrowTxExpected = [
       ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
       time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: -15612
+      value: -15_612
     },
     {
       fee: 238,
@@ -132,14 +132,14 @@ const sampleCsvSparrowTxExpected = [
       ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
       time: new Date('2024-12-31T14:59:59.000Z'),
       type: 'tx',
-      value: -72337
+      value: -72_337
     },
     {
       label: 'Hunicus send',
       ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
       time: new Date('2024-12-31T17:06:32.000Z'),
       type: 'tx',
-      value: 149872
+      value: 149_872
     },
     {
       label: 'Hunicus send',
@@ -154,7 +154,7 @@ const sampleCsvSparrowTxExpected = [
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
       time: new Date('2025-01-09T14:50:30.000Z'),
       type: 'tx',
-      value: -52516
+      value: -52_516
     },
     {
       label: 'Hunicus send',
@@ -169,14 +169,14 @@ const sampleCsvSparrowTxExpected = [
       ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
       time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: -49718
+      value: -49_718
     },
     {
       label: 'more hunicus',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
       time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
-      value: 83501
+      value: 83_501
     },
     {
       fee: 454,
@@ -192,7 +192,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
       time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: -34193
+      value: -34_193
     },
     {
       fee: 380,
@@ -200,7 +200,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
       time: new Date('2025-03-02T22:48:42.000Z'),
       type: 'tx',
-      value: -12711
+      value: -12_711
     }
   ],
   [
@@ -209,7 +209,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'd948cbe2d084d1abcf7d34fa4b31a6f264b3f055388be43002f23c4e370a6791',
       time: new Date('2024-12-31T12:33:02.000Z'),
       type: 'tx',
-      value: 200000
+      value: 200_000
     },
     {
       label: 'back from carlo A',
@@ -224,7 +224,7 @@ const sampleCsvSparrowTxExpected = [
       ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
       time: new Date('2024-12-31T14:46:58.000Z'),
       type: 'tx',
-      value: -15612
+      value: -15_612
     },
     {
       fee: 238,
@@ -233,14 +233,14 @@ const sampleCsvSparrowTxExpected = [
       ref: '659a13373d6fad4adcfc74aa6fd331fe16d783ebb77f89e57edda61a58a85022',
       time: new Date('2024-12-31T14:59:59.000Z'),
       type: 'tx',
-      value: -72337
+      value: -72_337
     },
     {
       label: 'Hunicus send',
       ref: 'bb1749d04d08010aed39a72af83313657e2c09175175777075800d313f2bfc3d',
       time: new Date('2024-12-31T17:06:32.000Z'),
       type: 'tx',
-      value: 149872
+      value: 149_872
     },
     {
       label: 'Hunicus send',
@@ -255,7 +255,7 @@ const sampleCsvSparrowTxExpected = [
       ref: '269b53e16d96425eb7d2183841e29552eab6a553cac098c76d0c75062ef48856',
       time: new Date('2025-01-09T14:50:30.000Z'),
       type: 'tx',
-      value: -52516
+      value: -52_516
     },
     {
       label: 'Hunicus send',
@@ -270,14 +270,14 @@ const sampleCsvSparrowTxExpected = [
       ref: 'ae3d3ec185eb197fcc8bf4f533a45099875ffbe4d2b9abaceb059c3439d2dff7',
       time: new Date('2025-01-09T14:56:08.000Z'),
       type: 'tx',
-      value: -49718
+      value: -49_718
     },
     {
       label: 'more hunicus',
       ref: '7b01cbe040782b04821eede9f9038a72263464def5d0a801b4c65eda72619ce7',
       time: new Date('2025-01-31T16:06:38.000Z'),
       type: 'tx',
-      value: 83501
+      value: 83_501
     },
     {
       fee: 454,
@@ -293,7 +293,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'dd31e2071659d1bc385426843ea60b4c4c0d5ab61030582b146fcb745ca28161',
       time: new Date('2025-03-02T02:19:12.000Z'),
       type: 'tx',
-      value: -34193
+      value: -34_193
     },
     {
       fee: 380,
@@ -301,7 +301,7 @@ const sampleCsvSparrowTxExpected = [
       ref: 'b48a73173fed37c1c268b4a079caf777424917c8223c5556c0cc0435213030c5',
       time: new Date('2025-03-02T22:48:42.000Z'),
       type: 'tx',
-      value: -12711
+      value: -12_711
     }
   ]
 ]
@@ -400,15 +400,15 @@ bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,480,-21701,2378
 const sampleCsvNonchukTxExpected = [
   {
     fee: 231,
-    height: 228763,
+    height: 228_763,
     label: 'Multiple addresses',
     ref: '7718a523c3ff3ef344e5860e9cb0b7e463631f21a55d583c0ffac211bcffec90',
     type: 'tx',
-    value: -15381
+    value: -15_381
   },
   {
     fee: 209,
-    height: 235125,
+    height: 235_125,
     label: 'Recieved money',
     ref: 'ccb69fdf971f40a04fd5f7c91666549cb62177967d8e3105296e38b1925b63de',
     type: 'tx',
@@ -416,7 +416,7 @@ const sampleCsvNonchukTxExpected = [
   },
   {
     fee: 209,
-    height: 237735,
+    height: 237_735,
     label: 'four dollars going out #red',
     ref: '98dbad2760355b45aa046c3689108394ef9f741baf63840724802f4280e27a91',
     type: 'tx',
@@ -431,11 +431,11 @@ bbede7bf7c52a098e21f97dd5116c19f544323b2cfe6accb1fc0a67144c30d57,1,36666,237880,
 
 const sampleCsvNonchukUtxoExpected = [
   {
-    height: 231855,
+    height: 231_855,
     label: 'cold storage',
     ref: 'a55f8be6f928f2fc023241e9b265ce1e6df70e19980d8bd6f8571c5a34169654:3',
     type: 'addr',
-    value: 19451
+    value: 19_451
   }
 ]
 

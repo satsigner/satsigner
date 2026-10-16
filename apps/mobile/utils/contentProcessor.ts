@@ -254,28 +254,33 @@ export function getBitcoinContentHref(
   accountId: string
 ): Href | null {
   switch (content.type) {
-    case 'psbt':
+    case 'psbt': {
       return {
         params: { id: accountId, psbt: psbtContentToBase64(content.cleaned) },
         pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
       }
-    case 'bitcoin_transaction':
+    }
+    case 'bitcoin_transaction': {
       return {
         params: { id: accountId, signedPsbt: content.cleaned },
         pathname: '/signer/bitcoin/account/[id]/signAndSend/previewTransaction'
       }
-    case 'bitcoin_descriptor':
+    }
+    case 'bitcoin_descriptor': {
       return {
         params: { descriptor: content.cleaned },
         pathname: '/signer/bitcoin/account/add/watchOnly'
       }
-    case 'extended_public_key':
+    }
+    case 'extended_public_key': {
       return {
         params: { extendedPublicKey: content.cleaned },
         pathname: '/signer/bitcoin/account/add/watchOnly'
       }
-    default:
+    }
+    default: {
       return null
+    }
   }
 }
 

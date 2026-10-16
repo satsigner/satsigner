@@ -75,7 +75,7 @@ describe('signedTransactionMatchesPsbt', () => {
       witnessUtxo: { script, value: 100_000 }
     })
     psbt.addOutput({ address, value: 90_000 })
-    psbt.addOutput({ address, value: 5_000 })
+    psbt.addOutput({ address, value: 5000 })
     return psbt
   }
 

@@ -93,7 +93,7 @@ function btcToSats(btc: number) {
 }
 
 function hexToBytes(value: string) {
-  return Array.from(hex.decode(value))
+  return [...hex.decode(value)]
 }
 
 function toUnixSec(date?: Date) {

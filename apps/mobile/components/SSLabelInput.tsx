@@ -24,7 +24,7 @@ type SSLabelInputProps = {
 }
 
 function stripLineBreaks(text: string) {
-  return text.replace(/[\r\n]+/g, '')
+  return text.replaceAll(/[\r\n]+/g, '')
 }
 
 function SSLabelInput({

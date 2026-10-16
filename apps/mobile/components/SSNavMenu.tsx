@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     width: '100%',
-    zIndex: 99999
+    zIndex: 99_999
   },
   groupWrapper: {
     gap: 0

@@ -248,7 +248,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         tx.vout &&
         tx.vout.length > 0 &&
         tx.vout.some((output, idx) =>
-          Array.from(selectedInputs.entries()).some(([key, input]) => {
+          [...selectedInputs.entries()].some(([key, input]) => {
             const colon = key.lastIndexOf(':')
             const keyTxid = colon !== -1 ? key.slice(0, colon) : key
             const keyVout =
@@ -276,9 +276,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         )
 
       // Check if this transaction is not an input to any other transaction in our set
-      const isNotConnectedToOtherTx = Array.from(
-        updatedTransactions.values()
-      ).every(
+      const isNotConnectedToOtherTx = [...updatedTransactions.values()].every(
         (otherTx) =>
           !otherTx.vin.some((input) => input.previousOutput.txid === txid)
       )

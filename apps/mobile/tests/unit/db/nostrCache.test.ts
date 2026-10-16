@@ -12,9 +12,9 @@ import { mockQueryResult } from './queryResult'
 const execute = jest.mocked(getDb().execute)
 
 const EVENT_ROW = {
-  cached_at: 1700000100,
+  cached_at: 1_700_000_100,
   content: 'hello',
-  created_at: 1700000000,
+  created_at: 1_700_000_000,
   event_id: 'event-1',
   is_own: 0,
   kind: 1,
@@ -40,7 +40,7 @@ describe('nostr cache db', () => {
 
       expect(getCachedEvent('event-1')).toStrictEqual({
         content: 'hello',
-        created_at: 1700000000,
+        created_at: 1_700_000_000,
         event_id: 'event-1',
         is_own: 0,
         kind: 1,
@@ -93,8 +93,8 @@ describe('nostr cache db', () => {
         mockQueryResult([
           {
             banner: null,
-            cached_at: 1700000100,
-            created_at: 1700000000,
+            cached_at: 1_700_000_100,
+            created_at: 1_700_000_000,
             display_name: 'Alice',
             event_id: null,
             lud16: null,
@@ -107,8 +107,8 @@ describe('nostr cache db', () => {
 
       expect(getCachedProfile('PUBKEY-1')).toStrictEqual({
         banner: undefined,
-        cached_at: 1700000100,
-        created_at: 1700000000,
+        cached_at: 1_700_000_100,
+        created_at: 1_700_000_000,
         displayName: 'Alice',
         event_id: undefined,
         lud16: undefined,
@@ -125,9 +125,9 @@ describe('nostr cache db', () => {
 
   describe('getNewestCachedTimestamp', () => {
     it('returns the newest cached timestamp', () => {
-      execute.mockReturnValue(mockQueryResult([{ max_ts: 1700000000 }]))
+      execute.mockReturnValue(mockQueryResult([{ max_ts: 1_700_000_000 }]))
 
-      expect(getNewestCachedTimestamp(1)).toBe(1700000000)
+      expect(getNewestCachedTimestamp(1)).toBe(1_700_000_000)
     })
 
     it('returns null when nothing of that kind is cached', () => {

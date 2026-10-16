@@ -44,7 +44,7 @@ function isHttpPjEndpoint(pj: string): boolean {
  * not treated as the outer bitcoin: URI fragment (PDK / BIP77 style).
  */
 function encodePjEndpointForQuery(pjEndpoint: string): string {
-  return normalizePjEndpoint(pjEndpoint).replace(/#/g, '%23')
+  return normalizePjEndpoint(pjEndpoint).replaceAll('#', '%23')
 }
 
 function normalizeBip77FragmentDelimiters(pjUrl: string): string {
@@ -55,7 +55,7 @@ function normalizeBip77FragmentDelimiters(pjUrl: string): string {
   const base = pjUrl.slice(0, hashIndex)
   let fragment = pjUrl.slice(hashIndex + 1)
   // Accept legacy `+` separators by normalizing to `-` for comparisons.
-  fragment = fragment.replace(/\+/g, '-')
+  fragment = fragment.replaceAll('+', '-')
   return `${base}#${fragment}`
 }
 
@@ -155,7 +155,7 @@ function parsePayjoinUri(uri: string): ParsePayjoinUriResult {
       }
     } else if (keyLower === 'label' && value) {
       try {
-        label = decodeURIComponent(value).replace(/(^["“]|["”]$)/g, '')
+        label = decodeURIComponent(value).replaceAll(/(^["“]|["”]$)/g, '')
       } catch {
         label = value
       }

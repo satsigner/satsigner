@@ -231,24 +231,29 @@ async function getWalletData(
 
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'P2SH':
+        case 'P2SH': {
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2SH-P2WSH':
+        }
+        case 'P2SH-P2WSH': {
           finalDescriptor = `sh(wsh(sortedmulti(${account.keysRequired},${keySection})))`
           break
-        case 'P2WSH':
+        }
+        case 'P2WSH': {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2TR':
+        }
+        case 'P2TR': {
           finalDescriptor = `tr(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        default:
+        }
+        default: {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+        }
       }
 
-      const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
-      const internalDescriptor = finalDescriptor.replace(/<0;1>/g, '1')
+      const externalDescriptor = finalDescriptor.replaceAll('<0;1>', '0')
+      const internalDescriptor = finalDescriptor.replaceAll('<0;1>', '1')
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
@@ -346,8 +351,9 @@ async function getWalletData(
 
       break
     }
-    default:
+    default: {
       break
+    }
   }
 }
 
@@ -355,22 +361,28 @@ function mapScriptVersionToBipTemplate(
   scriptVersion: NonNullable<Key['scriptVersion']>
 ): DescriptorTemplate {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return DescriptorTemplate.Bip44
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return DescriptorTemplate.Bip49
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return DescriptorTemplate.Bip84
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return DescriptorTemplate.Bip86
+    }
     case 'P2WSH':
     case 'P2SH-P2WSH':
-    case 'P2SH':
+    case 'P2SH': {
       throw new Error(
         `Manual descriptor creation required for ${scriptVersion}`
       )
-    default:
+    }
+    default: {
       return DescriptorTemplate.Bip84
+    }
   }
 }
 
@@ -391,14 +403,18 @@ function getDescriptorMultiSig(
   const keyPart = baseString.replace(/^wpkh\(/, '').replace(/\)$/, '')
 
   switch (scriptVersion) {
-    case 'P2WSH':
+    case 'P2WSH': {
       return `wsh(${keyPart})`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(${keyPart}))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(${keyPart})`
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 }
 
@@ -493,7 +509,7 @@ function parseDescriptor(descriptorString: string) {
 }
 
 function normalizeWalletDescriptor(descriptor: string) {
-  return descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  return descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
 }
 
 function splitCombinedWalletDescriptors(
@@ -508,8 +524,8 @@ function splitCombinedWalletDescriptors(
     return { ext, int }
   }
   return {
-    ext: ext.replace(/<0[,;]1>/g, '0'),
-    int: ext.replace(/<0[,;]1>/g, '1')
+    ext: ext.replaceAll(/<0[,;]1>/g, '0'),
+    int: ext.replaceAll(/<0[,;]1>/g, '1')
   }
 }
 
@@ -725,7 +741,7 @@ async function getTransactionInputValues(
 
   for (const [index, vinItem] of vin.entries()) {
     vin[index] = {
-      ...(tx.vin[index] || {}),
+      ...tx.vin[index],
       ...vinItem
     }
   }
@@ -789,7 +805,7 @@ async function buildTransactionWithRpc(
   )
 
   const rpcInputs = data.inputs.map((u) => ({
-    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    sequence: data.options.rbf ? 0xff_ff_ff_fd : 0xff_ff_ff_ff,
     txid: u.txid,
     vout: u.vout
   }))

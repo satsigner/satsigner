@@ -32,7 +32,7 @@ export type DecodeBlockResult = {
 }
 
 /** Cap displayed decoded hex so large blocks stay interactive. */
-export const BLOCK_DECODE_PREVIEW_CHARS = 8_192
+export const BLOCK_DECODE_PREVIEW_CHARS = 8192
 
 /**
  * Extra binary headroom so fat coinbases can still parse even when the
@@ -44,7 +44,7 @@ const PARSE_HEADROOM_BYTES = 1_000_000
 const TX_PROBE_MAX_HEX_CHARS = 100_000
 
 function normalizeHex(hex: string): string {
-  return hex.trim().toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
+  return hex.trim().toLowerCase().replace(/^0x/, '').replaceAll(/\s+/g, '')
 }
 
 /** Display-order (big-endian) hex without mutating the source buffer. */

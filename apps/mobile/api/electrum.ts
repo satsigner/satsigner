@@ -456,7 +456,7 @@ class ElectrumClient extends BaseElectrumClient {
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         prices: {},
-        raw: Array.from(hex.decode(rawTx)),
+        raw: [...hex.decode(rawTx)],
         received: 0,
         sent: 0,
         size: parsedTx.byteLength(),

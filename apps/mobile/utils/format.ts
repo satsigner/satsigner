@@ -68,12 +68,15 @@ function truncate(value: string, headChars: number, tailChars = headChars) {
  */
 function formatAddress(address: string, size?: AddressSize) {
   switch (size) {
-    case 'compact':
+    case 'compact': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_COMPACT)
-    case 'default':
+    }
+    case 'default': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS)
-    default:
+    }
+    default: {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_DEFAULT)
+    }
   }
 }
 
@@ -91,7 +94,7 @@ function formatNumber(
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
-  const formattedInteger = integerPart.replace(
+  const formattedInteger = integerPart.replaceAll(
     /(\d)(?=(\d{3})+(?!\d))/g,
     `$1${separator}`
   )
@@ -188,12 +191,12 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 }
 
 function formatConfirmationCount(confirmations: number) {
-  if (confirmations < 1_000) {
+  if (confirmations < 1000) {
     return `${confirmations}`
   }
 
   if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
+    const roundedValue = Math.round(confirmations / 1000)
     return `~${roundedValue}k`
   }
 
@@ -267,14 +270,18 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 
 function txIdTruncateChars(size: TxIdSize): number {
   switch (size) {
-    case 'tiny':
+    case 'tiny': {
       return TXID_TRUNCATE_CHARS_TINY
-    case 'compact':
+    }
+    case 'compact': {
       return TXID_TRUNCATE_CHARS_COMPACT
-    case 'wide':
+    }
+    case 'wide': {
       return TXID_TRUNCATE_CHARS_WIDE
-    default:
+    }
+    default: {
       return TXID_TRUNCATE_CHARS
+    }
   }
 }
 
@@ -287,8 +294,8 @@ function formatTxId(txid: string, size: TxIdSize = 'default') {
     return txid
   }
 
-  const beginning = txid.substring(0, character)
-  const end = txid.substring(txid.length - character, txid.length)
+  const beginning = txid.slice(0, character)
+  const end = txid.slice(txid.length - character)
   return `${beginning}...${end}`
 }
 
@@ -302,22 +309,28 @@ function formatShortPubkey(pubkey: string) {
  */
 function formatNpub(npub: string, size?: NpubSize) {
   switch (size) {
-    case 'xs':
+    case 'xs': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XS)
-    case 'sm':
+    }
+    case 'sm': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_SM)
-    case 'md':
+    }
+    case 'md': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_MD)
-    case 'lg':
+    }
+    case 'lg': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_LG)
-    case 'xl':
+    }
+    case 'xl': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XL)
-    default:
+    }
+    default: {
       return truncate(
         npub,
         NOSTR_NPUB_SHORT_HEAD_CHARS,
         NOSTR_NPUB_SHORT_TAIL_CHARS
       )
+    }
   }
 }
 
@@ -382,7 +395,7 @@ function formatLargeNumber(
   european = false,
   locale = i18n.locale
 ): string {
-  if (!isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
+  if (!Number.isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
     return ''
   }
 
@@ -423,8 +436,8 @@ function trimOnionAddress(url: string): string {
   const port = matchedPort || ''
 
   const onionPart = fullOnion.replace('.onion', '')
-  const first5 = onionPart.substring(0, 5)
-  const last5 = onionPart.substring(onionPart.length - 5)
+  const first5 = onionPart.slice(0, 5)
+  const last5 = onionPart.slice(-5)
 
   const trimmedOnion = `${first5}...${last5}.onion${port}`
 

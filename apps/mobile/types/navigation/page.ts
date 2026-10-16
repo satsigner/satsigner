@@ -1,6 +1,4 @@
-export type PageParams = {
-  [key: string]: string | number
-}
+export type PageParams = Record<string, string | number>
 
 export type PageRoute = {
   path: string

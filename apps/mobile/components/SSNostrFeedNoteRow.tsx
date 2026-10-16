@@ -42,7 +42,7 @@ function encodeNotePrimaryNip19(note: NostrFeedNoteLike): string {
     if (
       d &&
       note.pubkey &&
-      (note.kind === 1063 || (note.kind >= 30000 && note.kind < 40000))
+      (note.kind === 1063 || (note.kind >= 30_000 && note.kind < 40_000))
     ) {
       return nip19.naddrEncode({
         identifier: d,

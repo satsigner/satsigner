@@ -43,7 +43,7 @@ export function joinQRs(parts: string[]): JoinResult {
     throw new Error('fileType must be a single uppercase letter')
   }
 
-  const numParts = parseInt(header.slice(4, 6), 36)
+  const numParts = Number.parseInt(header.slice(4, 6), 36)
 
   if (numParts < 1) {
     throw new Error('zero parts?')
@@ -52,7 +52,7 @@ export function joinQRs(parts: string[]): JoinResult {
   const data = new Map<number, string>()
 
   for (const p of parts) {
-    const idx = parseInt(p.slice(6, 8), 36)
+    const idx = Number.parseInt(p.slice(6, 8), 36)
 
     if (idx >= numParts) {
       throw new Error(`got part ${idx} but only expecting ${numParts}`)

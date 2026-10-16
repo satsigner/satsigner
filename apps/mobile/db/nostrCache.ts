@@ -448,7 +448,7 @@ export function clearCacheCategory(
   const pk = ownPubkeyHex?.toLowerCase()
 
   switch (category) {
-    case 'ownNotes':
+    case 'ownNotes': {
       if (pk) {
         db.execute(
           'DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = 1 AND pubkey = ?',
@@ -456,29 +456,35 @@ export function clearCacheCategory(
         )
       }
       break
-    case 'ownZaps':
+    }
+    case 'ownZaps': {
       db.execute(
         `DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
         []
       )
       break
-    case 'feedNotes':
+    }
+    case 'feedNotes': {
       db.execute(
         'DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = 1',
         []
       )
       break
-    case 'zapReceipts':
+    }
+    case 'zapReceipts': {
       db.execute(
         `DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
         []
       )
       break
-    case 'profiles':
+    }
+    case 'profiles': {
       db.execute('DELETE FROM nostr_profile_cache', [])
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 }
 

@@ -660,7 +660,7 @@ describe('isSequencePatterned', () => {
   })
 
   it('accepts a non-periodic dice sequence', () => {
-    const rolls = '123156241635425163142536415263'.split('').concat('312645')
+    const rolls = [...'123156241635425163142536415263', '312645']
     expect(isSequencePatterned(rolls)).toBe(false)
   })
 })

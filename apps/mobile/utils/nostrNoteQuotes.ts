@@ -71,7 +71,7 @@ export function hasEmbeddedEventRef(content: string): boolean {
 export function stripNostrEventRefs(content: string): string {
   return content
     .replace(NOSTR_EVENT_REF_RE, '')
-    .replace(/[ \t]{2,}/g, ' ')
+    .replaceAll(/[ \t]{2,}/g, ' ')
     .trim()
 }
 
@@ -135,7 +135,7 @@ export function collectUnresolvedEventIds(
     }
   }
 
-  return Array.from(ids)
+  return [...ids]
 }
 
 export function isNoteQuotePost(note: NostrFeedNoteLike): boolean {

@@ -135,7 +135,7 @@ describe('bitcoin utils', () => {
       expect(result).toStrictEqual({
         address: 'bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26',
         options: {
-          amount: 0.02587175,
+          amount: 0.025_871_75,
           label: undefined,
           message: undefined
         }

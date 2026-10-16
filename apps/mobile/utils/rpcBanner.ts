@@ -1,6 +1,6 @@
 import type { BlockchainInfo, NetworkInfo } from '@/api/rpc'
 
-const CORE_VERSION_MAJOR_DIVISOR = 10000
+const CORE_VERSION_MAJOR_DIVISOR = 10_000
 const CORE_VERSION_MINOR_DIVISOR = 100
 
 export function formatCoreVersion(version: number): string {

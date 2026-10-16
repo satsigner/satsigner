@@ -39,7 +39,7 @@ function buildOriginalPsbt(boardSats = 50_000): string {
   psbt.addInput({
     hash: TXID_A,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: 100_000

@@ -11,7 +11,7 @@ import { getConfirmWordCandidates } from '@/utils/seed'
 const englishMnemonic =
   'visa toddler sentence rival twin believe report person library security stadium hurt'
 
-const MAX_UINT32_DRAW = 0xffffffff
+const MAX_UINT32_DRAW = 0xff_ff_ff_ff
 
 /**
  * Forces the next `count` draws to the maximal uint32, then falls back to real

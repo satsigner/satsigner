@@ -64,7 +64,7 @@ type UsePayjoinReceiverParams = {
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
 
-const RECEIVER_POLL_INTERVAL_MS = 8_000
+const RECEIVER_POLL_INTERVAL_MS = 8000
 const START_SESSION_LOCK_MS = 45_000
 
 function isNativeSessionMissingError(message: string): boolean {

@@ -345,7 +345,7 @@ describe('message handlers', () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
         data: { data: 'cHNidP8base64data', data_type: 'PSBT' },
-        eventContent: { created_at: 1704067200 },
+        eventContent: { created_at: 1_704_067_200 },
         onPendingDM
       })
 
@@ -359,7 +359,7 @@ describe('message handlers', () => {
       )
       expect(onPendingDM).toHaveBeenCalledWith({
         eventContent: {
-          created_at: 1704067200,
+          created_at: 1_704_067_200,
           description: 'cHNidP8base64data'
         },
         skipToast: true,
@@ -422,7 +422,7 @@ describe('message handlers', () => {
     it('handle calls onPendingDM via context with event and content', async () => {
       const onPendingDM = jest.fn()
       const context = createMockContext({
-        eventContent: { created_at: 1704067200, description: 'Hello world' },
+        eventContent: { created_at: 1_704_067_200, description: 'Hello world' },
         onPendingDM
       })
 

@@ -674,17 +674,17 @@ function PreviewTransaction() {
       const match = data.match(/^p(\d+)of(\d+)\s/)
       if (match) {
         return {
-          content: data.substring(match[0].length),
-          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
-          total: parseInt(match[2], 10),
+          content: data.slice(match[0].length),
+          current: Number.parseInt(match[1], 10) - 1, // Convert to 0-based index
+          total: Number.parseInt(match[2], 10),
           type: 'raw' as const
         }
       }
     }
 
     if (isBBQRFragment(data)) {
-      const total = parseInt(data.slice(4, 6), 36)
-      const current = parseInt(data.slice(6, 8), 36)
+      const total = Number.parseInt(data.slice(4, 6), 36)
+      const current = Number.parseInt(data.slice(6, 8), 36)
       return {
         content: data,
         current,
@@ -701,8 +701,8 @@ function PreviewTransaction() {
         const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
-          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr, 10)
+          const current = Number.parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = Number.parseInt(totalStr, 10)
           return {
             content: data,
             current,
@@ -782,7 +782,7 @@ function PreviewTransaction() {
     try {
       switch (type) {
         case 'raw': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
@@ -796,7 +796,7 @@ function PreviewTransaction() {
         }
 
         case 'bbqr': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
@@ -811,7 +811,7 @@ function PreviewTransaction() {
         }
 
         case 'ur': {
-          const sortedChunks = Array.from(chunks.entries())
+          const sortedChunks = [...chunks.entries()]
             .toSorted(([a], [b]) => a - b)
             .map(([, content]) => content)
 
@@ -844,8 +844,9 @@ function PreviewTransaction() {
           return result
         }
 
-        default:
+        default: {
           return null
+        }
       }
     } catch (error) {
       toast.error(String(error))
@@ -909,7 +910,7 @@ function PreviewTransaction() {
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
 
-    const inputArray = Array.from(inputs.values())
+    const inputArray = [...inputs.values()]
 
     for (const input of inputArray) {
       if (
@@ -949,22 +950,20 @@ function PreviewTransaction() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const inputArray = Array.from(inputs.values())
+    const inputArray = [...inputs.values()]
     const { size, vsize } =
       inputArray.length > 0
         ? estimateTransactionSize(inputArray, outputs)
         : legacyEstimateTransactionSize(inputs.size, outputs.length)
 
-    const vin: Transaction['vin'] = Array.from(inputs.values()).map(
-      (input: Utxo) => ({
-        label: input.label || '',
-        previousOutput: { txid: input.txid, vout: input.vout },
-        scriptSig: '',
-        sequence: 0,
-        value: input.value,
-        witness: []
-      })
-    )
+    const vin: Transaction['vin'] = [...inputs.values()].map((input: Utxo) => ({
+      label: input.label || '',
+      previousOutput: { txid: input.txid, vout: input.vout },
+      scriptSig: '',
+      sequence: 0,
+      value: input.value,
+      witness: []
+    }))
 
     const vout: Transaction['vout'] = outputs.map((output: Output) => ({
       address: output.to,
@@ -1050,8 +1049,8 @@ function PreviewTransaction() {
       }
 
       try {
-        const inputArray = Array.from(inputs.values())
-        const outputArray = Array.from(outputs.values())
+        const inputArray = [...inputs.values()]
+        const outputArray = [...outputs.values()]
 
         const transaction = account
           ? await buildPsbt(wallet, server, account, {
@@ -1303,14 +1302,18 @@ function PreviewTransaction() {
   // Whether the current display mode is cycling through more than one chunk
   function isMultiPartQR() {
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         return rawPsbtChunks.length > 1
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         return urChunks.length > 1
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         return qrChunks.length > 1
-      default:
+      }
+      default: {
         return false
+      }
     }
   }
 
@@ -1465,7 +1468,7 @@ function PreviewTransaction() {
 
     if (type === 'ur') {
       // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...Array.from(newScanned))
+      const maxFragmentNumber = Math.max(...newScanned)
       const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
 
       // For fountain encoding, try assembly after collecting enough fragments
@@ -1636,7 +1639,7 @@ function PreviewTransaction() {
       }
 
       if (result.txData) {
-        const txHex = Array.from(result.txData)
+        const txHex = [...result.txData]
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
 
@@ -1689,7 +1692,6 @@ function PreviewTransaction() {
     setSeedWordsModalVisible(true)
   }
 
-  // eslint-disable-next-line
   const handleMnemonicValid = (mnemonic: string, _fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
   }
@@ -1746,7 +1748,7 @@ function PreviewTransaction() {
 
     const requiredSignatures = account.keysRequired || account.keys.length
 
-    const validSignatures = Array.from(validationResults.values()).filter(
+    const validSignatures = [...validationResults.values()].filter(
       (isValid) => isValid === true
     ).length
 
@@ -1762,7 +1764,7 @@ function PreviewTransaction() {
         return null
       }
 
-      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
+      const collectedSignedPsbts = [...signedPsbts.values()].filter(
         (psbt) => psbt && psbt.trim().length > 0
       )
 
@@ -1926,8 +1928,9 @@ function PreviewTransaction() {
         }
         return bbqrValue || 'NO_CHUNKS'
       }
-      default:
+      default: {
         return 'NO_DATA'
+      }
     }
   }
 
@@ -1940,23 +1943,27 @@ function PreviewTransaction() {
     let maxChunkSize = 0
 
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         if (rawPsbtChunks.length > 0) {
           maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
         }
         break
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         if (urChunks.length > 0) {
           maxChunkSize = Math.max(...urChunks.map((c) => c.length))
         }
         break
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         if (qrChunks.length > 0) {
           maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
         }
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     const limit = 1500 // Reduced to prevent crashes
@@ -1966,7 +1973,7 @@ function PreviewTransaction() {
 
   const getDisplayModeDescription = () => {
     switch (displayMode) {
-      case QRDisplayMode.RAW:
+      case QRDisplayMode.RAW: {
         if (rawPsbtChunks.length > 0) {
           if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
             return 'Static QR - Complete PSBT in single code'
@@ -1985,7 +1992,8 @@ function PreviewTransaction() {
           return t('error.psbt.notAvailable')
         }
         return t('transaction.preview.rawPSBT')
-      case QRDisplayMode.UR:
+      }
+      case QRDisplayMode.UR: {
         if (!urChunks.length) {
           return t('error.psbt.notAvailable')
         }
@@ -1998,7 +2006,8 @@ function PreviewTransaction() {
               total: urChunks.length
             })
           : t('transaction.preview.singleChunk')
-      case QRDisplayMode.BBQR:
+      }
+      case QRDisplayMode.BBQR: {
         if (!qrChunks.length) {
           return 'Loading BBQR chunks...'
         }
@@ -2011,8 +2020,10 @@ function PreviewTransaction() {
               total: qrChunks.length
             })
           : t('transaction.preview.singleChunk')
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 
@@ -2024,6 +2035,7 @@ function PreviewTransaction() {
   const containerPadding = screenWidth * 0.05 // 5% of screen width
 
   return (
+    // oxlint-disable-next-line react/jsx-no-useless-fragment -- remove with the #530 refactor (PR #567) to avoid a full re-indent conflict
     <>
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack justifyBetween>
@@ -2145,7 +2157,7 @@ function PreviewTransaction() {
                     <SSSignatureRequiredDisplay
                       requiredNumber={account.keysRequired || 1}
                       totalNumber={account.keyCount || 1}
-                      collectedSignatures={Array.from(signedPsbts.entries())
+                      collectedSignatures={[...signedPsbts.entries()]
                         .filter(([, psbt]) => psbt && psbt.trim().length > 0)
                         .map(([index]) => index)}
                       validationResults={validationResults}
@@ -2213,7 +2225,7 @@ function PreviewTransaction() {
                     >
                       {t('transaction.preview.signaturesCollected')}:{' '}
                       {
-                        Array.from(signedPsbts.values()).filter(
+                        [...signedPsbts.values()].filter(
                           (psbt) => psbt && psbt.trim().length > 0
                         ).length
                       }{' '}
@@ -2632,9 +2644,7 @@ function PreviewTransaction() {
                 {scanProgress.type === 'ur' ? (
                   <>
                     {(() => {
-                      const maxFragment = Math.max(
-                        ...Array.from(scanProgress.scanned)
-                      )
+                      const maxFragment = Math.max(...scanProgress.scanned)
                       const actualTotal = maxFragment + 1
                       const conservativeTarget = Math.ceil(actualTotal * 1.1)
                       const theoreticalTarget = Math.ceil(
@@ -2702,7 +2712,7 @@ function PreviewTransaction() {
                       />
                     </View>
                     <SSText color="muted" size="sm" center>
-                      {`Scanned parts: ${Array.from(scanProgress.scanned)
+                      {`Scanned parts: ${[...scanProgress.scanned]
                         .toSorted((a, b) => a - b)
                         .map((n) => n + 1)
                         .join(', ')}`}

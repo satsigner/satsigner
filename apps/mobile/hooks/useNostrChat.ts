@@ -150,7 +150,7 @@ export function useNostrChatProfiles(
         }
         if (attempt === 0) {
           await new Promise((resolve) => {
-            setTimeout(resolve, 5_000)
+            setTimeout(resolve, 5000)
           })
         }
       }

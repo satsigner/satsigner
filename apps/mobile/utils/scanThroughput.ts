@@ -12,7 +12,7 @@ type ScanThroughput = {
 }
 
 const SAMPLE_WINDOW_MS = 20_000
-const MIN_SAMPLE_SPAN_MS = 1_000
+const MIN_SAMPLE_SPAN_MS = 1000
 
 /**
  * Derive scan throughput from successive block-height progress samples.
