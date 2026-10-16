@@ -1,14 +1,7 @@
-import { useMemo } from 'react'
-
 import { useNow } from '@/hooks/useNow'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type PayjoinInvoice } from '@/types/payjoin'
-import { bitcoinAmountBtcToSats } from '@/utils/autoSelectUtxos'
-import {
-  formatPayjoinExpiryLabel,
-  parsePayjoinExpiresAtMs
-} from '@/utils/payjoinExpiry'
-import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
+import { formatPayjoinExpiryLabel } from '@/utils/payjoinExpiry'
+import { parsePayjoinInvoice } from '@/utils/payjoinInvoice'
 
 /**
  * Parses the payjoin URI stored in the transaction builder into an invoice,
@@ -17,32 +10,9 @@ import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
  */
 export function usePayjoinInvoice() {
   const payjoinUri = useTransactionBuilderStore((state) => state.payjoinUri)
-
-  const payjoinInvoice = useMemo((): PayjoinInvoice | undefined => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? bitcoinAmountBtcToSats(parsed.params.amountBtc)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label,
-      pj: parsed.params.pj,
-      pjos: parsed.params.pjos,
-      uri: payjoinUri
-    }
-  }, [payjoinUri])
-
   const nowMs = useNow()
+
+  const payjoinInvoice = parsePayjoinInvoice(payjoinUri)
   const payjoinExpiryLabel = formatPayjoinExpiryLabel(
     payjoinInvoice?.expiresAt,
     nowMs
