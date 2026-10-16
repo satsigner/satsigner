@@ -37,7 +37,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Typography } from '@/styles'
 import type {
@@ -103,20 +102,15 @@ export default function PayPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const detailsRequestId = useRef(0)
-  const [fiatCurrency, satsToFiat, fetchPrices, _btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.fetchPrices,
-      state.btcPrice
-    ])
+  const [satsToFiat, fetchPrices] = usePriceStore(
+    useShallow((state) => [state.satsToFiat, state.fetchPrices])
   )
+  const { fiatCurrency, privacyMode } = amountDisplay
   const { fiatPriceApiUrl } = useFiatData()
   useQuery({
     queryFn: () => fetchPrices(fiatPriceApiUrl),
     queryKey: ['prices', fiatCurrency, fiatPriceApiUrl]
   })
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(

@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
@@ -24,7 +23,6 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
@@ -77,10 +75,8 @@ export default function EcashSendPage() {
     tokenVersion
   } = useEcashSend()
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const satsToFiat = usePriceStore((state) => state.satsToFiat)
+  const { fiatCurrency, privacyMode } = amountDisplay
   const { width } = useWindowDimensions()
   const qrSize = Math.floor(width * 0.88)
   const routeLabel = describeTokenRoute(tokenRoute, mints)

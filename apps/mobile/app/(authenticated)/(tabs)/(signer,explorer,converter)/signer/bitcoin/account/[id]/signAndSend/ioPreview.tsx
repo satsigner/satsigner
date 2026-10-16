@@ -145,14 +145,10 @@ export default function IOPreview() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const [currencyUnit, defaultAutoSelectUtxos, useZeroPadding] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.defaultAutoSelectUtxos,
-        state.useZeroPadding
-      ])
-    )
+  const defaultAutoSelectUtxos = useSettingsStore(
+    (state) => state.defaultAutoSelectUtxos
+  )
+  const { btcPrice, currencyUnit, fiatCurrency, useZeroPadding } = amountDisplay
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -247,13 +243,7 @@ export default function IOPreview() {
     }, [changeAddress, secondChangeAddress, decoyAddress])
   )
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
+  const satsToFiat = usePriceStore((state) => state.satsToFiat)
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
