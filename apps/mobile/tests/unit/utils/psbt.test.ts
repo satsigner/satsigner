@@ -377,6 +377,17 @@ describe('2-of-2 multisig signatures', () => {
     ).toBeNull()
   })
 
+  it('rejects a raw transaction imported into a cosigner slot', () => {
+    const original = buildMultisigPsbt()
+    const unsignedTxHex = bitcoinjs.Transaction.fromBuffer(
+      bitcoinjs.Psbt.fromBase64(original).data.globalMap.unsignedTx.toBuffer()
+    ).toHex()
+
+    expect(
+      bindImportedSignature(unsignedTxHex, original, false, jest.fn())
+    ).toBeNull()
+  })
+
   it('finalizes a PSBT imported for watch-only broadcast', () => {
     const original = buildMultisigPsbt()
     const finalize = jest.fn(() => 'final-tx-hex')

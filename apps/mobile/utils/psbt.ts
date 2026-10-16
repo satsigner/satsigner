@@ -1352,12 +1352,14 @@ export function bindImportedSignature(
       convertPsbtToFinalTransaction
     )
   }
-  return bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
+  const bound = bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
     combinePsbts([
       originalPsbtBase64,
       Buffer.from(psbtHex, 'hex').toString('base64')
     ])
   )
+  // A raw transaction carries no PSBT signatures to validate or combine.
+  return bound?.startsWith(PSBT_MAGIC_BASE64) ? bound : null
 }
 
 function psbtBase64ToHex(data: string) {
