@@ -46,4 +46,26 @@ describe('useDecryptedKeys', () => {
     })
     expect(result.current).toStrictEqual([])
   })
+
+  it('returns no keys once the account has none left', async () => {
+    const account = makeAccount('a', 'encrypted-a')
+    mockDecrypt.mockResolvedValueOnce([makeKey('decrypted-a')])
+
+    const result: { current: Key[] } = { current: [] }
+    function Harness({ keys }: { keys: Key[] }) {
+      result.current = useDecryptedKeys({ id: account.id, keys })
+      return null
+    }
+
+    let renderer: ReactTestRenderer | undefined
+    await act(async () => {
+      renderer = create(createElement(Harness, { keys: account.keys }))
+    })
+    expect(result.current).toHaveLength(1)
+
+    await act(async () => {
+      renderer?.update(createElement(Harness, { keys: [] }))
+    })
+    expect(result.current).toStrictEqual([])
+  })
 })

@@ -43,7 +43,7 @@ export function useDecryptedKeys(
   }, [accountId, keys])
 
   // Never hands out another account's secrets while this one decrypts.
-  if (!decrypted || decrypted.accountId !== accountId) {
+  if (!keys?.length || !decrypted || decrypted.accountId !== accountId) {
     return NO_KEYS
   }
   return decrypted.keys
