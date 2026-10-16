@@ -115,7 +115,9 @@ export function legacyEstimateTransactionSize(
     LEGACY_TX_BASE_BYTES +
     inputCount * LEGACY_INPUT_BYTES +
     outputCount * LEGACY_OUTPUT_BYTES
-  const vsize = weightToVsize(totalSize)
+  // totalSize is in bytes, not weight units, so this under-reports a legacy
+  // vsize. Kept as on master; the estimate is due for removal.
+  const vsize = Math.ceil(totalSize / WITNESS_SCALE_FACTOR)
 
   return { size: totalSize, vsize }
 }
