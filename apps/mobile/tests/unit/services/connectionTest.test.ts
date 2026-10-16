@@ -1,6 +1,13 @@
+import ElectrumClient, {
+  closeElectrumClientQuietly,
+  ElectrumServerVersionSchema
+} from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { probeConnection } from '@/services/connectionTest'
+import {
+  CONNECTION_TEST_TIMEOUT_MS,
+  probeConnection
+} from '@/services/connectionTest'
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   ElectrumServerVersionSchema: { safeParse: jest.fn() },
@@ -20,6 +27,26 @@ jest.mock<typeof import('@/api/esplora')>('@/api/esplora', () => ({
 }))
 
 const RPC_URL = 'http://node.local:38332'
+const ELECTRUM_URL = 'ssl://electrum.local:60002'
+
+function mockElectrum(initElectrum: jest.Mock) {
+  const client = {
+    client: {
+      blockchainHeaders_subscribe: jest
+        .fn()
+        .mockRejectedValue(new Error('unsupported')),
+      initElectrum,
+      server_banner: jest.fn().mockRejectedValue(new Error('unsupported'))
+    },
+    getBlockTimestamp: jest.fn()
+  }
+  jest.mocked(ElectrumClient.fromUrl).mockReturnValue(client)
+  jest.mocked(ElectrumServerVersionSchema.safeParse).mockReturnValue({
+    data: ['Fulcrum', '1.10'],
+    success: true
+  })
+  return client
+}
 
 function mockRpc(chain: string) {
   jest.mocked(BitcoinRpc).mockReturnValue({
@@ -91,5 +118,59 @@ describe('probeConnection', () => {
       tipTimestampSec: undefined
     })
     expect(probe.nodeInfo.medianFee).toBe(4)
+  })
+
+  it('hands out and closes the Electrum client when optional calls fail', async () => {
+    const client = mockElectrum(
+      jest.fn().mockResolvedValue(['Fulcrum', '1.10'])
+    )
+    const onElectrumClient = jest.fn()
+
+    const probe = await probeConnection({
+      backend: 'electrum',
+      network: 'signet',
+      onElectrumClient,
+      url: ELECTRUM_URL
+    })
+
+    expect(onElectrumClient).toHaveBeenCalledWith(client)
+    expect(closeElectrumClientQuietly).toHaveBeenCalledWith(client)
+    expect(probe.result).toStrictEqual({
+      banner: undefined,
+      blockHeight: undefined,
+      success: true,
+      tipTimestampSec: undefined
+    })
+    expect(probe.nodeInfo).toMatchObject({
+      software: 'Fulcrum',
+      version: '1.10'
+    })
+  })
+
+  it('rejects when the Electrum handshake fails', async () => {
+    mockElectrum(jest.fn().mockRejectedValue(new Error('connection refused')))
+
+    await expect(
+      probeConnection({
+        backend: 'electrum',
+        network: 'signet',
+        url: ELECTRUM_URL
+      })
+    ).rejects.toThrow('connection refused')
+  })
+
+  it('rejects when the server does not answer in time', async () => {
+    jest.useFakeTimers()
+    mockElectrum(jest.fn().mockReturnValue(new Promise(() => {})))
+
+    const probe = probeConnection({
+      backend: 'electrum',
+      network: 'signet',
+      url: ELECTRUM_URL
+    })
+    jest.advanceTimersByTime(CONNECTION_TEST_TIMEOUT_MS)
+
+    await expect(probe).rejects.toThrow('Connection test timeout')
+    jest.useRealTimers()
   })
 })
