@@ -141,7 +141,8 @@ describe('payjoin injected dependencies', () => {
       }
     })
 
-    const checks = contribute.mock.calls[0][3]
+    const [contributeCall] = contribute.mock.calls
+    const checks = contributeCall?.[3]
     expect(finalized.status).toBe('completed')
     expect(checks?.isOutpointSeen(SEEN_OUTPOINT)).toBe(true)
     expect(deps.sessions.hasSeenInput(`${CANDIDATE_TXID}:1`)).toBe(true)
