@@ -112,6 +112,10 @@ describe('payjoin injected dependencies', () => {
     usePayjoinSessionsStore.getState().clearAll()
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('persists receiver sessions in the injected store only', async () => {
     const deps = createDeps()
     const session = await createReceivePayjoinSession({
@@ -182,7 +186,6 @@ describe('payjoin injected dependencies', () => {
     expect(checks?.isOutpointSeen(SEEN_OUTPOINT)).toBe(true)
     expect(deps.sessions.hasSeenInput(`${CANDIDATE_TXID}:1`)).toBe(true)
     expect(usePayjoinSessionsStore.getState().seenInputs).toHaveLength(0)
-    contribute.mockRestore()
   })
 
   it('tracks a BIP77 send in the injected store only', async () => {
@@ -232,5 +235,49 @@ describe('payjoin injected dependencies', () => {
       'completed'
     )
     expect(usePayjoinSessionsStore.getState().sessions).toHaveLength(0)
+  })
+
+  it('contributes an input the injected store has not seen', async () => {
+    const deps = createDeps()
+    deps.sessions.markInputSeen(`${CANDIDATE_TXID}:1`)
+    const contribute = jest.spyOn(
+      payjoinNative,
+      'receiverContributeAndFinalize'
+    )
+    const session = await createReceivePayjoinSession({
+      accountId: 'acct-pick',
+      address: RECEIVE_ADDRESS,
+      deps,
+      network: 'signet'
+    })
+    const unseen = {
+      scriptHex: `0014${'55'.repeat(20)}`,
+      txid: 'dd'.repeat(32),
+      value: 90_000,
+      vout: 2
+    }
+
+    await finalizeReceiverPayjoin({
+      callbacks: {
+        ...callbacks,
+        listCandidateOutpoints: () => [
+          ...callbacks.listCandidateOutpoints(),
+          unseen
+        ]
+      },
+      deps,
+      fetchImpl: noopFetch,
+      session: {
+        ...session,
+        originalPsbtBase64: ORIGINAL_PSBT,
+        status: 'proposal_received'
+      }
+    })
+
+    const [contributeCall] = contribute.mock.calls
+    expect(contributeCall?.[1]).toStrictEqual(unseen)
+    expect(deps.sessions.hasSeenInput(`${unseen.txid}:${unseen.vout}`)).toBe(
+      true
+    )
   })
 })
