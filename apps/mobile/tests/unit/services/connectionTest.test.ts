@@ -65,6 +65,7 @@ function mockRpc(chain: string) {
 
 describe('probeConnection', () => {
   afterEach(() => {
+    jest.useRealTimers()
     jest.resetAllMocks()
   })
 
@@ -157,6 +158,7 @@ describe('probeConnection', () => {
         url: ELECTRUM_URL
       })
     ).rejects.toThrow('connection refused')
+    expect(closeElectrumClientQuietly).toHaveBeenCalledTimes(1)
   })
 
   it('rejects when the server does not answer in time', async () => {
@@ -171,6 +173,28 @@ describe('probeConnection', () => {
     jest.advanceTimersByTime(CONNECTION_TEST_TIMEOUT_MS)
 
     await expect(probe).rejects.toThrow('Connection test timeout')
-    jest.useRealTimers()
+  })
+
+  it('passes through the Electrum tip, its timestamp and a trimmed banner', async () => {
+    const client = mockElectrum(
+      jest.fn().mockResolvedValue(['Fulcrum', '1.10'])
+    )
+    client.client.blockchainHeaders_subscribe.mockResolvedValue({ height: 10 })
+    client.client.server_banner.mockResolvedValue('  hi  ')
+    client.getBlockTimestamp.mockResolvedValue(1_700_000_000)
+
+    const probe = await probeConnection({
+      backend: 'electrum',
+      network: 'signet',
+      url: ELECTRUM_URL
+    })
+
+    expect(client.getBlockTimestamp).toHaveBeenCalledWith(10)
+    expect(probe.result).toStrictEqual({
+      banner: 'hi',
+      blockHeight: 10,
+      success: true,
+      tipTimestampSec: 1_700_000_000
+    })
   })
 })
