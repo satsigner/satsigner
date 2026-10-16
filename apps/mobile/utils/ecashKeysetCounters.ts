@@ -1,15 +1,4 @@
-import { getEcashMnemonic } from '@/storage/encrypted'
 import type { EcashKeysetCounter } from '@/types/models/Ecash'
-import { mnemonicToSeed } from '@/utils/bip39'
-
-/** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
-async function getSeedForAccount(accountId: string) {
-  const mnemonic = await getEcashMnemonic(accountId)
-  if (!mnemonic) {
-    return undefined
-  }
-  return mnemonicToSeed(mnemonic, '')
-}
 
 /** Keyset counters in the shape cashu-ts expects for deterministic secrets. */
 function buildCounterInit(counters: EcashKeysetCounter[]) {
@@ -32,4 +21,4 @@ function withKeysetCounter(
   ]
 }
 
-export { buildCounterInit, getSeedForAccount, withKeysetCounter }
+export { buildCounterInit, withKeysetCounter }

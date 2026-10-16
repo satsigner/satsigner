@@ -3,12 +3,15 @@ import {
   getMintBalance,
   restoreProofsFromSeed
 } from '@/api/ecash'
-import { buildCounterInit, withKeysetCounter } from '@/services/ecash/wallet'
 import type {
   EcashKeysetCounter,
   EcashMint,
   EcashProof
 } from '@/types/models/Ecash'
+import {
+  buildCounterInit,
+  withKeysetCounter
+} from '@/utils/ecashKeysetCounters'
 
 /** Live reads and writes on one ecash account, injected by the caller. */
 type EcashAccountStore = {

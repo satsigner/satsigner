@@ -28,11 +28,7 @@ import {
   refreshSendTokenStatuses,
   selectSendTokensToCheck
 } from '@/services/ecash/tokenStatus'
-import {
-  buildCounterInit,
-  getSeedForAccount,
-  withKeysetCounter
-} from '@/services/ecash/wallet'
+import { getEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
 import type {
   EcashMeltResult,
@@ -47,12 +43,17 @@ import type {
   MintQuoteState,
   WalletOptions
 } from '@/types/models/Ecash'
+import { mnemonicToSeed } from '@/utils/bip39'
 import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
   EcashBackupValidationError,
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
+import {
+  buildCounterInit,
+  withKeysetCounter
+} from '@/utils/ecashKeysetCounters'
 import {
   proofsAfterMelt,
   proofsAfterSend,
@@ -69,6 +70,15 @@ const PAYMENT_ERROR_KEYS = {
 } as const
 
 /** Localized message for a Lightning payment that could not be routed. */
+/** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
+async function getSeedForAccount(accountId: string) {
+  const mnemonic = await getEcashMnemonic(accountId)
+  if (!mnemonic) {
+    return undefined
+  }
+  return mnemonicToSeed(mnemonic, '')
+}
+
 function toPaymentErrorMessage(error: EcashPaymentError) {
   if (error.reason === 'mppPartialPayment') {
     return t('ecash.error.mppPartialPayment', {
