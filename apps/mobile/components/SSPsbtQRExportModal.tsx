@@ -7,9 +7,7 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import {
   ANIMATION_SPEED_MAX,
-  ANIMATION_SPEED_MIN,
   QR_COMPLEXITY_MAX,
-  QR_COMPLEXITY_MIN,
   QR_VALUE_PREVIEW_LENGTH,
   QRDisplayMode
 } from '@/constants/qr'
@@ -51,18 +49,21 @@ function SSPsbtQRExportModal({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const {
     animationSpeed,
+    canIncreaseComplexity,
+    decreaseComplexity,
+    decreaseSpeed,
     displayMode,
     getDisplayModeDescription,
     getQRValue,
     hasChunks,
-    isDataTooLargeForSingleQR,
+    increaseComplexity,
+    increaseSpeed,
     isMultiPartQR,
     qrComplexity,
     qrErrorKey,
     qrRef,
-    setAnimationSpeed,
     setDisplayMode,
-    setQrComplexity
+    showMaxDensityNote
   } = usePsbtQrExport(psbtBase64, initialDisplayMode, visible)
 
   const qrSize = Math.min(
@@ -73,27 +74,6 @@ function SSPsbtQRExportModal({
   const trackWidth = screenWidth * QR_TRACK_WIDTH_RATIO
   const qrValue = getQRValue()
   const displayModeDescription = getDisplayModeDescription()
-  const isAtMaxDensity = qrComplexity >= QR_COMPLEXITY_MAX - 1
-  // A single static QR (max complexity) can't hold data that is too large.
-  const canIncreaseComplexity = !(
-    qrComplexity === QR_COMPLEXITY_MAX - 1 && isDataTooLargeForSingleQR()
-  )
-
-  function decreaseComplexity() {
-    setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
-  }
-
-  function increaseComplexity() {
-    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, qrComplexity + 1))
-  }
-
-  function decreaseSpeed() {
-    setAnimationSpeed(Math.max(ANIMATION_SPEED_MIN, animationSpeed - 1))
-  }
-
-  function increaseSpeed() {
-    setAnimationSpeed(Math.min(ANIMATION_SPEED_MAX, animationSpeed + 1))
-  }
 
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
@@ -138,7 +118,7 @@ function SSPsbtQRExportModal({
             >
               {formatMessage(displayModeDescription)}
             </SSText>
-            {isDataTooLargeForSingleQR() && isAtMaxDensity && (
+            {showMaxDensityNote && (
               <SSText center color="muted" size="xs">
                 {t('transaction.preview.maxDensityLimited')}
               </SSText>

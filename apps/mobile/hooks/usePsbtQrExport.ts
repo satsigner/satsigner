@@ -3,8 +3,11 @@ import { type View } from 'react-native'
 
 import {
   ANIMATION_SPEED_DEFAULT,
+  ANIMATION_SPEED_MAX,
+  ANIMATION_SPEED_MIN,
   QR_COMPLEXITY_DEFAULT,
   QR_COMPLEXITY_MAX,
+  QR_COMPLEXITY_MIN,
   QR_MAX_DATA_SIZE,
   QRDisplayMode
 } from '@/constants/qr'
@@ -98,8 +101,30 @@ export function usePsbtQrExport(
     return value.length > QR_MAX_DATA_SIZE ? QR_VALUE_TOO_LARGE : value
   }
 
-  function isDataTooLargeForSingleQR() {
-    return modeChunks.some((chunk) => chunk.length > QR_MAX_DATA_SIZE)
+  const isDataTooLargeForSingleQR = modeChunks.some(
+    (chunk) => chunk.length > QR_MAX_DATA_SIZE
+  )
+  // The next step up is the single static QR, which can't hold oversized data.
+  const canIncreaseComplexity = !(
+    qrComplexity === QR_COMPLEXITY_MAX - 1 && isDataTooLargeForSingleQR
+  )
+  const showMaxDensityNote =
+    isDataTooLargeForSingleQR && qrComplexity >= QR_COMPLEXITY_MAX - 1
+
+  function decreaseComplexity() {
+    setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
+  }
+
+  function increaseComplexity() {
+    setQrComplexity(Math.min(QR_COMPLEXITY_MAX, qrComplexity + 1))
+  }
+
+  function decreaseSpeed() {
+    setAnimationSpeed(Math.max(ANIMATION_SPEED_MIN, animationSpeed - 1))
+  }
+
+  function increaseSpeed() {
+    setAnimationSpeed(Math.min(ANIMATION_SPEED_MAX, animationSpeed + 1))
   }
 
   function getDisplayModeDescription(): Message {
@@ -120,17 +145,20 @@ export function usePsbtQrExport(
 
   return {
     animationSpeed,
+    canIncreaseComplexity,
+    decreaseComplexity,
+    decreaseSpeed,
     displayMode,
     getDisplayModeDescription,
     getQRValue,
     hasChunks: modeChunks.length > 0,
-    isDataTooLargeForSingleQR,
+    increaseComplexity,
+    increaseSpeed,
     isMultiPartQR,
     qrComplexity,
     qrErrorKey: errorKey,
     qrRef,
-    setAnimationSpeed,
     setDisplayMode,
-    setQrComplexity
+    showMaxDensityNote
   }
 }
