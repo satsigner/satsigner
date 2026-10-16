@@ -41,10 +41,10 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
-  NOSTR_POLL_KIND,
   NOSTR_PRIVACY_MASK,
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
-  NOSTR_ZAP_DEFAULT_PRESETS
+  NOSTR_ZAP_DEFAULT_PRESETS,
+  NOSTR_POLL_KIND
 } from '@/constants/nostr'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
@@ -60,10 +60,10 @@ import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import type {
-  NostrDecodedContent,
-  NostrFeedNoteLike,
-  NostrFetchedNoteData,
   NostrKind0Profile,
+  NostrDecodedContent,
+  NostrFetchedNoteData,
+  NostrFeedNoteLike,
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
