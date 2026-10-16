@@ -234,7 +234,7 @@ export function useConnectionTest() {
           chainWork: chainInfo.chainwork,
           medianFee: feeResult?.feerate
             ? Math.round(
-                (feeResult.feerate * SATS_PER_BITCOIN) / VBYTES_PER_KVB
+                feeResult.feerate * (SATS_PER_BITCOIN / VBYTES_PER_KVB)
               )
             : undefined,
           mempoolSize: mempoolInfo?.size,
