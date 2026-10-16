@@ -10,6 +10,7 @@ import {
   QR_COMPLEXITY_MAX,
   QR_ENCODING_OVERHEAD,
   QR_MAX_DATA_SIZE,
+  QRDisplayMode,
   RAW_CHUNK_BASE_SIZE,
   RAW_CHUNK_MAX_MULTIPLIER,
   UR_FRAGMENT_BASE_SIZE,
@@ -17,6 +18,8 @@ import {
 } from '@/constants/qr'
 import { BBQRFileTypes, createBBQRChunks } from '@/utils/bbqr'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
+
+export type PsbtQrChunks = Record<QRDisplayMode, string[]>
 
 // The max complexity means "one static QR", unless the data cannot fit in one.
 function isSingleStaticQr(complexity: number, encodedSize: number) {
@@ -74,4 +77,32 @@ export function getQrAnimationIntervalMs(speed: number) {
       (ANIMATION_INTERVAL_MAX_MS - ANIMATION_INTERVAL_MIN_MS)) /
       (ANIMATION_SPEED_MAX - ANIMATION_SPEED_MIN)
   return Math.max(interval, ANIMATION_INTERVAL_FLOOR_MS)
+}
+
+// BBQR chunks of the PSBT, or none when the payload cannot be BBQR encoded.
+function createBbqrPsbtChunksOrEmpty(
+  psbtBytes: Uint8Array,
+  complexity: number
+) {
+  try {
+    return createBbqrPsbtChunks(psbtBytes, complexity)
+  } catch {
+    return []
+  }
+}
+
+// Encodes a base64 PSBT in every QR export format. The decoded PSBT bytes are
+// zeroed once encoded.
+export function createPsbtQrChunks(
+  psbtBase64: string,
+  complexity: number
+): PsbtQrChunks {
+  const psbtBytes = new Uint8Array(Buffer.from(psbtBase64, 'base64'))
+  const bbqrChunks = createBbqrPsbtChunksOrEmpty(psbtBytes, complexity)
+  psbtBytes.fill(0)
+  return {
+    [QRDisplayMode.BBQR]: bbqrChunks,
+    [QRDisplayMode.RAW]: createRawQrChunks(psbtBase64, complexity),
+    [QRDisplayMode.UR]: createUrPsbtFragments(psbtBase64, complexity)
+  }
 }

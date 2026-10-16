@@ -9,21 +9,16 @@ import {
   QRDisplayMode
 } from '@/constants/qr'
 import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
+import { type Message } from '@/types/ui/notice'
 import {
-  createBbqrPsbtChunks,
-  createRawQrChunks,
-  createUrPsbtFragments,
-  getQrAnimationIntervalMs
+  createPsbtQrChunks,
+  getQrAnimationIntervalMs,
+  type PsbtQrChunks
 } from '@/utils/qrExport'
 
 // Placeholder values shown in the QR when there is nothing valid to encode.
 const QR_VALUE_NO_DATA = 'NO_DATA'
 const QR_VALUE_TOO_LARGE = 'DATA_TOO_LARGE_FOR_QR'
-
-type QrChunks = Record<QRDisplayMode, string[]>
-
-// An i18n key plus its interpolation params, translated by the caller.
-type I18nMessage = { key: string; params?: Record<string, number> }
 
 const STATIC_QR_DESCRIPTION_KEYS: Record<QRDisplayMode, string> = {
   [QRDisplayMode.BBQR]: 'transaction.preview.staticQrBbqr',
@@ -31,21 +26,10 @@ const STATIC_QR_DESCRIPTION_KEYS: Record<QRDisplayMode, string> = {
   [QRDisplayMode.UR]: 'transaction.preview.staticQrUr'
 }
 
-const EMPTY_CHUNKS: QrChunks = {
+const EMPTY_CHUNKS: PsbtQrChunks = {
   [QRDisplayMode.BBQR]: [],
   [QRDisplayMode.RAW]: [],
   [QRDisplayMode.UR]: []
-}
-
-function createQrChunks(psbtBase64: string, complexity: number): QrChunks {
-  const psbtBytes = new Uint8Array(Buffer.from(psbtBase64, 'base64'))
-  const bbqrChunks = createBbqrPsbtChunksOrEmpty(psbtBytes, complexity)
-  psbtBytes.fill(0)
-  return {
-    [QRDisplayMode.BBQR]: bbqrChunks,
-    [QRDisplayMode.RAW]: createRawQrChunks(psbtBase64, complexity),
-    [QRDisplayMode.UR]: createUrPsbtFragments(psbtBase64, complexity)
-  }
 }
 
 // Encodes the PSBT in every format, or returns the i18n key of the error.
@@ -54,20 +38,12 @@ function generateQrChunks(psbtBase64: string | undefined, complexity: number) {
     return { chunks: EMPTY_CHUNKS, errorKey: 'error.psbt.notAvailable' }
   }
   try {
-    return { chunks: createQrChunks(psbtBase64, complexity), errorKey: null }
+    return {
+      chunks: createPsbtQrChunks(psbtBase64, complexity),
+      errorKey: null
+    }
   } catch {
     return { chunks: EMPTY_CHUNKS, errorKey: 'error.qr.generation' }
-  }
-}
-
-function createBbqrPsbtChunksOrEmpty(
-  psbtBytes: Uint8Array,
-  complexity: number
-) {
-  try {
-    return createBbqrPsbtChunks(psbtBytes, complexity)
-  } catch {
-    return []
   }
 }
 
@@ -126,7 +102,7 @@ export function usePsbtQrExport(
     return modeChunks.some((chunk) => chunk.length > QR_MAX_DATA_SIZE)
   }
 
-  function getDisplayModeDescription(): I18nMessage {
+  function getDisplayModeDescription(): Message {
     if (modeChunks.length === 0) {
       return { key: 'error.psbt.notAvailable' }
     }

@@ -18,6 +18,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { formatMessage } from '@/utils/notice'
 
 const QR_SIZE_WIDTH_RATIO = 0.9
 const QR_SIZE_HEIGHT_RATIO = 0.5
@@ -135,7 +136,7 @@ function SSPsbtQRExportModal({
               size="sm"
               style={{ maxWidth: screenWidth * QR_SIZE_WIDTH_RATIO }}
             >
-              {t(displayModeDescription.key, displayModeDescription.params)}
+              {formatMessage(displayModeDescription)}
             </SSText>
             {isDataTooLargeForSingleQR() && isAtMaxDensity && (
               <SSText center color="muted" size="xs">
