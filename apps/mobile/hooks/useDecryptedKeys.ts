@@ -3,13 +3,21 @@ import { useEffect, useState } from 'react'
 import { decryptAccountKeysOrFallback } from '@/api/decryption'
 import { type Account, type Key } from '@/types/models/Account'
 
+const NO_KEYS: Key[] = []
+
 /**
  * Decrypts the account's key secrets for signing. Keys that fail to decrypt
  * are returned unchanged (still encrypted). Decrypts again only when the
- * account or its keys change, not on every account update.
+ * account or its keys change, not on every account update. Empty until the
+ * current account's keys are decrypted.
  */
-export function useDecryptedKeys(account: Account | undefined) {
-  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
+export function useDecryptedKeys(
+  account: Pick<Account, 'id' | 'keys'> | undefined
+) {
+  const [decrypted, setDecrypted] = useState<{
+    accountId: string
+    keys: Key[]
+  }>()
   const accountId = account?.id
   const keys = account?.keys
 
@@ -25,7 +33,7 @@ export function useDecryptedKeys(account: Account | undefined) {
         keys: accountKeys
       })
       if (!request.stale) {
-        setDecryptedKeys(result)
+        setDecrypted({ accountId: id, keys: result })
       }
     }
     void decryptKeys(accountId, keys)
@@ -34,5 +42,9 @@ export function useDecryptedKeys(account: Account | undefined) {
     }
   }, [accountId, keys])
 
-  return decryptedKeys
+  // Never hands out another account's secrets while this one decrypts.
+  if (!decrypted || decrypted.accountId !== accountId) {
+    return NO_KEYS
+  }
+  return decrypted.keys
 }

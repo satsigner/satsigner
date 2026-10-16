@@ -1,0 +1,49 @@
+import { createElement } from 'react'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+
+import { decryptAccountKeysOrFallback } from '@/api/decryption'
+import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
+import { type Account, type Key } from '@/types/models/Account'
+
+jest.mock<Partial<typeof import('@/api/decryption')>>(
+  '@/api/decryption',
+  () => ({ decryptAccountKeysOrFallback: jest.fn() })
+)
+
+const mockDecrypt = jest.mocked(decryptAccountKeysOrFallback)
+
+function makeKey(secret: string): Key {
+  return { creationType: 'importMnemonic', index: 0, iv: '', secret }
+}
+
+function makeAccount(id: string, secret: string) {
+  return { id, keys: [makeKey(secret)] }
+}
+
+describe('useDecryptedKeys', () => {
+  it("never returns the previous account's keys for a new account", async () => {
+    const accountA = makeAccount('a', 'encrypted-a')
+    const accountB = makeAccount('b', 'encrypted-b')
+    const decryptedA = [makeKey('decrypted-a')]
+    mockDecrypt.mockResolvedValueOnce(decryptedA)
+    // Account B's decryption never settles during the test.
+    mockDecrypt.mockReturnValueOnce(new Promise(() => {}))
+
+    const result: { current: Key[] } = { current: [] }
+    function Harness({ account }: { account: Pick<Account, 'id' | 'keys'> }) {
+      result.current = useDecryptedKeys(account)
+      return null
+    }
+
+    let renderer: ReactTestRenderer | undefined
+    await act(async () => {
+      renderer = create(createElement(Harness, { account: accountA }))
+    })
+    expect(result.current).toBe(decryptedA)
+
+    await act(async () => {
+      renderer?.update(createElement(Harness, { account: accountB }))
+    })
+    expect(result.current).toStrictEqual([])
+  })
+})
