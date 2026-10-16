@@ -3187,6 +3187,7 @@
     "preview.scanAllChunks": "Chunk %{current} of %{total}",
     "preview.signaturesCollected": "Signatures Collected",
     "preview.signedPsbt": "Signed PSBT",
+    "preview.showQR": "Show QR",
     "preview.signWithLocalKey": "Sign with Local Key",
     "preview.SignWithSeedQR": "Sign with Seed QR",
     "preview.signWithSeedWords": "Sign with Seed Words",
