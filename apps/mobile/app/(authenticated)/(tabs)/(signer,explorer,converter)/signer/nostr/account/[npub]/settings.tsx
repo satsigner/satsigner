@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import {
   SSIconCalendar,
@@ -11,6 +11,7 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -206,11 +207,7 @@ type ChicletProps = {
 
 function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
   return (
-    <TouchableOpacity
-      style={styles.chiclet}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+    <SSPressable style={styles.chiclet} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.chicletTile}>
         <LinearGradient
           colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
@@ -263,7 +260,7 @@ function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
       >
         {label}
       </SSText>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

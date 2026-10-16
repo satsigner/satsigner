@@ -348,9 +348,9 @@ export function getAccountDerivationPath(
 
 /**
  * Full derivation path for a specific address. Addresses built from BDK's
- * peekAddress() (see api/bdk.ts#getWalletAddresses) don't carry their own
- * derivationPath, so this reconstructs it from the account path plus the
- * change level (0=external, 1=internal) and index. IMPORTANT: the change
+ * peekAddress() (see api/bdkWalletMappers.ts#getWalletAddresses) don't carry
+ * their own derivationPath, so this reconstructs it from the account path plus
+ * the change level (0=external, 1=internal) and index. IMPORTANT: the change
  * level must be included - `${accountPath}/${index}` alone derives a
  * completely different (wrong) key, since it's missing a whole path level.
  */

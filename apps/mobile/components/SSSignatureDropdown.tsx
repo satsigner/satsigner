@@ -1,6 +1,6 @@
 import { setStringAsync } from 'expo-clipboard'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -17,6 +17,8 @@ import { Colors, Sizes, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
 import { validateNormalizedPsbt } from '@/utils/psbt'
+
+import SSPressable from './SSPressable'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -132,7 +134,7 @@ function SSSignatureDropdown({
     <View
       style={[styles.container, index === totalKeys - 1 && styles.lastItem]}
     >
-      <TouchableOpacity
+      <SSPressable
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!transactionId}
         style={[styles.header, !transactionId && styles.headerDisabled]}
@@ -201,7 +203,7 @@ function SSSignatureDropdown({
             </SSText>
           </SSVStack>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
 
       {isExpanded && (
         <SSVStack style={{ paddingBottom: 28, paddingHorizontal: 0 }} gap="sm">

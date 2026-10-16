@@ -73,7 +73,7 @@ function SSNFCModal({
 
       onContentRead(text)
       onClose()
-      toast.success(t('success.nfcRead'))
+      toast.success(t('watchonly.success.nfcRead'))
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : undefined
       if (errorMessage) {
@@ -98,7 +98,7 @@ function SSNFCModal({
 
     try {
       await emitNFCTag(dataToWrite)
-      toast.success(t('success.exportNFC'))
+      toast.success(t('nfc.success.write'))
       onClose()
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'

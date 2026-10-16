@@ -1,21 +1,20 @@
-import { StyleSheet, TouchableHighlight } from 'react-native'
+import { StyleSheet } from 'react-native'
 
-import { Colors, Sizes } from '@/styles'
+import { Sizes } from '@/styles'
 
-type SSActionButtonProps = React.ComponentPropsWithoutRef<
-  typeof TouchableHighlight
->
+import SSPressable from './SSPressable'
+
+type SSActionButtonProps = React.ComponentPropsWithoutRef<typeof SSPressable>
 
 function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
   return (
-    <TouchableHighlight
+    <SSPressable
       activeOpacity={0.65}
-      underlayColor={Colors.transparent}
       style={[styles.buttonBase, style]}
       {...props}
     >
       {children}
-    </TouchableHighlight>
+    </SSPressable>
   )
 }
 

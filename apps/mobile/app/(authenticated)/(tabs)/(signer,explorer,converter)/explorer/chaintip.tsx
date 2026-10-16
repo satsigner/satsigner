@@ -15,6 +15,7 @@ import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   PRICE_CHART_DAYS,
   useChainTipData,
@@ -171,7 +172,7 @@ export default function ChainTip() {
                 label={tn('timestamp')}
                 value={
                   chainData?.block?.timestamp
-                    ? formatDate(chainData.block.timestamp * 1000)
+                    ? formatDate(chainData.block.timestamp * MS_PER_SECOND)
                     : '--'
                 }
                 loading={isLoading}

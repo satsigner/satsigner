@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -54,24 +54,17 @@ function SSArkVtxoCard({
         ) : null}
         <SSVStack gap="xxs" style={styles.leftColumn}>
           <SSHStack gap="xs" style={styles.amountRow}>
-            {privacyMode ? (
-              <SSText size="lg" weight="light">
-                ••••
-              </SSText>
-            ) : (
-              <SSStyledSatText
-                amount={vtxo.amountSats}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                currency={currencyUnit}
-                textSize="lg"
-                weight="light"
-                noColor
-              />
-            )}
-            <SSText color="muted" size="xs">
-              {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-            </SSText>
+            <SSAmountDisplay
+              privacyMode={privacyMode}
+              amount={vtxo.amountSats}
+              decimals={0}
+              useZeroPadding={useZeroPadding}
+              currency={currencyUnit}
+              textSize="lg"
+              weight="light"
+              noColor
+              unitSize="xs"
+            />
           </SSHStack>
           <SSText size="xxs" style={styles.id} numberOfLines={1}>
             {formatTxId(vtxo.id)}

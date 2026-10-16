@@ -1,11 +1,5 @@
 import { useState } from 'react'
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import {
   SSIconCollapse,
@@ -29,6 +23,8 @@ import { type Direction } from '@/types/logic/sort'
 import type { ArkAddress } from '@/types/models/Ark'
 import { formatAddress } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
+
+import SSPressable from './SSPressable'
 
 const TABLE_WIDTH_RATIO = 1.2
 const TABLE_BODY_HEIGHT_RATIO = 0.32
@@ -81,7 +77,7 @@ function SSArkAddressesView({
   function renderTableRow(address: ArkAddress) {
     const label = labels[address.address]?.label
     return (
-      <TouchableOpacity
+      <SSPressable
         key={address.address}
         onPress={() => onPressAddress(address.address)}
       >
@@ -126,7 +122,7 @@ function SSArkAddressesView({
             {address.receiveCount}
           </SSText>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
     )
   }
 
@@ -174,12 +170,12 @@ function SSArkAddressesView({
           {sortedAddresses.map((address, index) => (
             <SSVStack key={address.address} gap="xs">
               {index > 0 && <SSSeparator color="gradient" />}
-              <TouchableOpacity onPress={() => onPressAddress(address.address)}>
+              <SSPressable onPress={() => onPressAddress(address.address)}>
                 <SSArkAddressCard
                   address={address}
                   label={labels[address.address]?.label ?? ''}
                 />
-              </TouchableOpacity>
+              </SSPressable>
             </SSVStack>
           ))}
           {sortedAddresses.length === 0 && emptyComponent}

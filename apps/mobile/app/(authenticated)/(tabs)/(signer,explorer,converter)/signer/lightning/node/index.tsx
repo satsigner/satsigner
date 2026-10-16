@@ -43,6 +43,7 @@ import {
   LND_NODE_CARD_PUBKEY_TAIL_CHARS
 } from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
@@ -499,7 +500,7 @@ export default function NodeDetailPage() {
 
   function renderTxRow(tx: LNDCombinedTransaction) {
     const nowMs = Date.now()
-    const timestamp = new Date(tx.timestamp * 1000)
+    const timestamp = new Date(tx.timestamp * MS_PER_SECOND)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
     const isReceive = tx.amount > 0
     const statusBadge = getTxStatusBadge(tx, nowMs)

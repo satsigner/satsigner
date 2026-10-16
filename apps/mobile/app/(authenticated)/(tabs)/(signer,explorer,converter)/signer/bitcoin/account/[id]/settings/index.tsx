@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -18,6 +18,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
+import SSPressable from '@/components/SSPressable'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
@@ -308,7 +309,7 @@ export default function AccountSettings() {
             </SSText>
           </SSHStack>
           {account.keys[0].creationType !== 'importAddress' && (
-            <TouchableOpacity
+            <SSPressable
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/birthday`
@@ -326,7 +327,7 @@ export default function AccountSettings() {
                   <SSIconChevronRight height={12} width={7} />
                 </SSHStack>
               </SSHStack>
-            </TouchableOpacity>
+            </SSPressable>
           )}
           <SSHStack justifyBetween>
             <SSText color="muted">{t('account.network.title')}</SSText>

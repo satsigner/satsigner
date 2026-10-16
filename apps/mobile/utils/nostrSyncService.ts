@@ -7,6 +7,7 @@ import {
   NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT,
   NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 import type {
@@ -115,7 +116,7 @@ async function createProtocolSubscription(
     protocolLimit,
     lastProtocolEOSE,
     () => {
-      const timestamp = Math.floor(Date.now() / 1000)
+      const timestamp = Math.floor(Date.now() / MS_PER_SECOND)
       useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
     }
   )
@@ -150,7 +151,7 @@ async function createDataExchangeSubscription(
     undefined,
     lastDataExchangeEOSE,
     () => {
-      const timestamp = Math.floor(Date.now() / 1000)
+      const timestamp = Math.floor(Date.now() / MS_PER_SECOND)
       useNostrStore.getState().setLastDataExchangeEOSE(account.id, timestamp)
     }
   )
@@ -300,7 +301,7 @@ async function doFetchOnce(
           fetchOnceProtocolLimit,
           lastProtocolEOSE,
           () => {
-            const timestamp = Math.floor(Date.now() / 1000)
+            const timestamp = Math.floor(Date.now() / MS_PER_SECOND)
             useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
             resolveProtocolEose()
           }
@@ -315,7 +316,7 @@ async function doFetchOnce(
               undefined,
               lastDataExchangeEOSE,
               () => {
-                const timestamp = Math.floor(Date.now() / 1000)
+                const timestamp = Math.floor(Date.now() / MS_PER_SECOND)
                 useNostrStore
                   .getState()
                   .setLastDataExchangeEOSE(account.id, timestamp)

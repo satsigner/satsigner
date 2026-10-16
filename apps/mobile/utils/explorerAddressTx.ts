@@ -1,5 +1,6 @@
 import { hex } from '@scure/base'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { type EsploraTx } from '@/types/models/Esplora'
 import { type Transaction } from '@/types/models/Transaction'
 
@@ -55,7 +56,7 @@ function mapEsploraTxToAddressTransaction(
     sent,
     size: tx.size,
     timestamp: tx.status.block_time
-      ? new Date(tx.status.block_time * 1000)
+      ? new Date(tx.status.block_time * MS_PER_SECOND)
       : undefined,
     type: received > sent ? 'receive' : 'send',
     version: tx.version,

@@ -1,4 +1,5 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { MS_PER_SECOND } from '@/constants/time'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import {
   type Account,
@@ -278,7 +279,7 @@ export function checkWalletNeedsSync(
     lastSync.getDate()
   )
 
-  const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+  const MILISECONDS_PER_DAY = MS_PER_SECOND * 60 * 60 * 24
   const daysSinceLastSync = Math.floor(
     (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
   )
