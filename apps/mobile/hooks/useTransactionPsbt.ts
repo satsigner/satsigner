@@ -1,4 +1,3 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -17,8 +16,9 @@ import {
   extractTransactionDataFromPSBTEnhanced,
   generateTransactionId
 } from '@/utils/psbt'
+import { validateAddress } from '@/utils/validation'
 
-// Shorter outputs are likely still being typed; don't flag them as invalid.
+// Shorter output addresses are likely still being typed.
 const MIN_VALID_ADDRESS_LENGTH = 10
 
 type UseTransactionPsbtParams = {
@@ -203,6 +203,11 @@ export function useTransactionPsbt({
     loadRoutePsbt(routePsbt)
   }, [routePsbt, loadedAccountId])
 
+  function failBuild(key: string) {
+    setPsbtBuildStatus('error')
+    setPsbtBuildError({ key })
+  }
+
   // Builds the preview PSBT from the builder state. Reads account and server
   // at build time, so their updates do not trigger a rebuild loop.
   const buildPreviewPsbt = useEffectEvent(
@@ -221,28 +226,18 @@ export function useTransactionPsbt({
       setPsbtBuildStatus('building')
       setPsbtBuildError(null)
 
+      // Checked before any await, so the request cannot be cancelled yet.
       if (!wallet) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildError({ key: 'transaction.error.previewMissingWallet' })
-          onNotice({ key: 'error.notFound.wallet', type: 'error' })
-        }
+        failBuild('transaction.error.previewMissingWallet')
+        onNotice({ key: 'error.notFound.wallet', type: 'error' })
         return
       }
-
       if (inputs.size === 0) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildError({ key: 'transaction.error.previewMissingInputs' })
-        }
+        failBuild('transaction.error.previewMissingInputs')
         return
       }
-
       if (outputs.length === 0) {
-        if (!request.cancelled) {
-          setPsbtBuildStatus('error')
-          setPsbtBuildError({ key: 'transaction.error.previewMissingOutputs' })
-        }
+        failBuild('transaction.error.previewMissingOutputs')
         return
       }
 
@@ -312,32 +307,21 @@ export function useTransactionPsbt({
     })
   })
 
-  // Separate effect to validate addresses and show errors
-  // Only validate when we have a complete transaction (not during editing)
+  // Reports the first output address that is invalid for the account's
+  // network once a PSBT is built. Short addresses are likely still being typed.
   useEffect(() => {
     if (!account || !outputs.length || !txBuilderResult) {
       return
     }
 
     const network = bitcoinjsNetwork(account.network)
-
-    for (const output of outputs) {
-      if (!output.to || output.to.trim() === '') {
-        continue
-      }
-
-      try {
-        bitcoinjs.address.toOutputScript(output.to, network)
-      } catch {
-        // Only show error for clearly invalid addresses, not during editing
-        // Check if the address looks like it might be incomplete (too short)
-        if (output.to.length < MIN_VALID_ADDRESS_LENGTH) {
-          continue // Skip validation for very short addresses (likely incomplete)
-        }
-
-        reportInvalidAddress(output.to)
-        break // Only show one error at a time
-      }
+    const invalidOutput = outputs.find(
+      (output) =>
+        output.to.trim().length >= MIN_VALID_ADDRESS_LENGTH &&
+        !validateAddress(output.to, network)
+    )
+    if (invalidOutput) {
+      reportInvalidAddress(invalidOutput.to)
     }
   }, [account, outputs, txBuilderResult])
 
