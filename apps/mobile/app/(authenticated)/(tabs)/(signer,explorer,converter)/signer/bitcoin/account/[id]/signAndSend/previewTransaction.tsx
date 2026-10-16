@@ -47,7 +47,7 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatMessage } from '@/utils/notice'
-import { formatPayjoinSummary } from '@/utils/payjoinUri'
+import { formatPayjoinSummary } from '@/utils/payjoinInvoice'
 import {
   combinePsbts,
   getCollectedSignedPsbts,

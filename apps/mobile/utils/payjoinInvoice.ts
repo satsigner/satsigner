@@ -1,5 +1,7 @@
+import { t } from '@/locales'
 import { type PayjoinInvoice } from '@/types/payjoin'
 import { bitcoinAmountBtcToSats } from '@/utils/autoSelectUtxos'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { parsePayjoinExpiresAtMs } from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 
@@ -29,4 +31,25 @@ export function parsePayjoinInvoice(
     pjos,
     uri
   }
+}
+
+// One-line summary of a payjoin invoice: endpoint kind, amount, label,
+// address and expiry, joined with " · ". Empty parts are skipped.
+export function formatPayjoinSummary(
+  invoice: PayjoinInvoice,
+  expiryLabel: string | null
+) {
+  return [
+    invoice.endpointKind === 'bip78'
+      ? t('transaction.build.payjoin.data.bip78')
+      : t('transaction.build.payjoin.data.bip77'),
+    invoice.amountSats !== undefined
+      ? `${formatNumber(invoice.amountSats)} ${t('bitcoin.sats')}`
+      : null,
+    invoice.label || null,
+    formatAddress(invoice.address, 'default'),
+    expiryLabel
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }

@@ -1,4 +1,7 @@
-import { parsePayjoinInvoice } from '@/utils/payjoinInvoice'
+import {
+  formatPayjoinSummary,
+  parsePayjoinInvoice
+} from '@/utils/payjoinInvoice'
 
 const ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
 const PJ = 'https://example.com/payjoin'
@@ -26,5 +29,20 @@ describe('parsePayjoinInvoice', () => {
     expect(
       parsePayjoinInvoice(`bitcoin:${ADDRESS}?pj=${PJ}`)?.amountSats
     ).toBeUndefined()
+  })
+})
+
+describe('formatPayjoinSummary', () => {
+  it('joins the non-empty invoice parts', () => {
+    const invoice = parsePayjoinInvoice(
+      `bitcoin:${ADDRESS}?amount=0.001&label=shop&pj=${PJ}`
+    )
+    if (!invoice) {
+      throw new Error('expected an invoice')
+    }
+    const summary = formatPayjoinSummary(invoice, null)
+    expect(summary).toContain('100,000')
+    expect(summary).toContain('shop')
+    expect(summary.split(' · ')).toHaveLength(4)
   })
 })
