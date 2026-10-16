@@ -280,4 +280,22 @@ describe('payjoin injected dependencies', () => {
       true
     )
   })
+
+  it('rejects instead of a placeholder URI when a custom directory fails', async () => {
+    const deps = createDeps()
+    deps.settings.hasCustomDirectory = true
+    jest
+      .spyOn(payjoinNative, 'createReceiverSession')
+      .mockRejectedValue(new Error('directory down'))
+
+    await expect(
+      createReceivePayjoinSession({
+        accountId: 'acct-custom',
+        address: RECEIVE_ADDRESS,
+        deps,
+        network: 'signet'
+      })
+    ).rejects.toThrow('directory down')
+    expect(deps.sessions.getSessions()).toHaveLength(0)
+  })
 })
