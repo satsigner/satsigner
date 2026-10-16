@@ -17,6 +17,7 @@ import {
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
 import { type Network } from '@/types/settings/blockchain'
+import { AppError } from '@/utils/errors'
 import { compactError } from '@/utils/payjoinLog'
 
 /** Ordered steps of the live Signet BIP77 roundtrip (Sample → Clown). */
@@ -56,7 +57,7 @@ function mapPayjoinRoundtripError(error: unknown): string {
   return compactError(error)
 }
 
-class PayjoinRoundtripAbortError extends Error {
+class PayjoinRoundtripAbortError extends AppError {
   constructor() {
     super('payjoin roundtrip aborted')
     this.name = 'PayjoinRoundtripAbortError'

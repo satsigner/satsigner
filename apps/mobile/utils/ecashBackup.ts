@@ -5,11 +5,12 @@ import type {
   EcashProof,
   EcashTransaction
 } from '@/types/models/Ecash'
+import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
 
 export type EcashBackupValidationReason = 'invalid' | 'proofs_missing'
 
-export class EcashBackupValidationError extends Error {
+export class EcashBackupValidationError extends AppError {
   reason: EcashBackupValidationReason
 
   constructor(reason: EcashBackupValidationReason) {
