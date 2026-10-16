@@ -137,10 +137,12 @@ function withTimeoutSignal(
   }
 }
 
-// OkHttp HTTP/2 handshake failures, e.g. "Expected a SETTINGS frame but was 4"
-// or "Required SETTINGS preface not received". Matched on the frame name, not
-// the bare word "settings", so unrelated errors don't trigger the fallback.
-const HTTP2_PREFACE_ERROR_PATTERN = /settings frame|preface|http2|http\/2/i
+// OkHttp HTTP/2 handshake failures, e.g. "Expected a SETTINGS frame but was 4",
+// "TYPE_SETTINGS length % 6 != 0" or "PROTOCOL_ERROR SETTINGS_MAX_FRAME_SIZE".
+// Matched on frame and field names, not the bare word "settings", so
+// unrelated errors don't trigger the fallback.
+const HTTP2_PREFACE_ERROR_PATTERN =
+  /settings frame|type_settings|\bsettings_[a-z_]+|preface|http2|http\/2/i
 
 function isHttp2PrefaceError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
