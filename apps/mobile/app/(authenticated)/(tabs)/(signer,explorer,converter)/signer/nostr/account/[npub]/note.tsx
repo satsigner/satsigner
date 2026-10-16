@@ -46,7 +46,6 @@ import {
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
   NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
-import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -180,8 +179,8 @@ export default function NostrNotePage() {
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
   )
-  const { accounts: ecashAccounts, allMints: ecashAllMints } =
-    useEcashAccountState()
+  const ecashAccounts = useEcashStore((state) => state.accounts)
+  const ecashAllMints = useEcashStore((state) => state.mints)
   const setEcashActiveAccountId = useEcashStore(
     (state) => state.setActiveAccountId
   )
