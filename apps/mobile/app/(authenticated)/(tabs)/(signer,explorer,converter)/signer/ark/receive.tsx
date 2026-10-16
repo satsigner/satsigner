@@ -47,7 +47,7 @@ function handleBoarded() {
 }
 
 export default function ArkReceivePage() {
-  const amountDisplay = useDisplayPreferences()
+  const display = useDisplayPreferences()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
@@ -187,10 +187,10 @@ export default function ArkReceivePage() {
                       {t('ark.receive.amount')} ({t('bitcoin.sats')})
                     </SSText>
                     <SSAmountInput
-                      btcPrice={amountDisplay.btcPrice}
-                      fiatCurrency={amountDisplay.fiatCurrency}
-                      fiatEnabled={amountDisplay.fiatEnabled}
-                      privacyMode={amountDisplay.privacyMode}
+                      btcPrice={display.btcPrice}
+                      fiatCurrency={display.fiatCurrency}
+                      fiatEnabled={display.fiatEnabled}
+                      privacyMode={display.privacyMode}
                       min={DUST_LIMIT}
                       max={LIGHTNING_CHANNEL_THRESHOLD}
                       value={Number(amount)}
