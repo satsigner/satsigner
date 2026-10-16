@@ -441,6 +441,12 @@ function NodeText({
     isBlock
   ])
 
+  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(
+    width,
+    PADDING_LEFT,
+    isBlock
+  )
+
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
       return null
@@ -849,7 +855,7 @@ function NodeText({
       para = buildSpentParagraph()
     }
 
-    para.layout(getNodeParagraphLayoutWidth(width, PADDING_LEFT, isBlock))
+    para.layout(paragraphLayoutWidth)
     return para
   }, [
     customFontManager,
@@ -858,7 +864,7 @@ function NodeText({
     isInput,
     isUnspent,
     isNeutralOutput,
-    width,
+    paragraphLayoutWidth,
     ioData?.txSize,
     ioData.vSize,
     ioData?.feeRate,
@@ -921,11 +927,6 @@ function NodeText({
     return null
   }
 
-  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(
-    width,
-    PADDING_LEFT,
-    isBlock
-  )
   const paragraphActualWidth = isBlock
     ? paragraphLayoutWidth
     : Math.max(width - PADDING_LEFT, mainParagraph.getLongestLine())
