@@ -131,14 +131,9 @@ function SSSignatureRequiredDisplay({
               const isValid = validationResults?.get(cosignerIndex)
 
               let fillColor = 'transparent'
+              // A collected signature shows green unless validation failed.
               if (isCollected) {
-                if (isValid === true) {
-                  fillColor = '#A7FFAF' // Green for valid
-                } else if (isValid === false) {
-                  fillColor = '#FF6B6B' // Red for invalid
-                } else {
-                  fillColor = '#A7FFAF'
-                }
+                fillColor = isValid === false ? '#FF6B6B' : '#A7FFAF'
               }
 
               return (
