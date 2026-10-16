@@ -4,10 +4,10 @@ import {
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
   PIN_SIZE,
+  RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
-import { SECRET_KEY_BYTE_LENGTH } from '@/config/keys'
 import { getItem, setItem } from '@/storage/encrypted'
 import { generateSalt, pbkdf2Encrypt, randomKey } from '@/utils/crypto'
 import { getSessionPinDigest } from '@/utils/pinSession'
@@ -50,7 +50,7 @@ async function ensurePin(): Promise<string> {
     if (!__DEV__) {
       throw new Error('PIN unavailable')
     }
-    return setPin(await randomKey(SECRET_KEY_BYTE_LENGTH))
+    return setPin(await randomKey(RANDOM_PIN_BYTE_LENGTH))
   }
 }
 

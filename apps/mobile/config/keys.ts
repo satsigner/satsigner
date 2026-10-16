@@ -1,7 +1,7 @@
 const DEFAULT_MULTISIG_KEY_COUNT = 3
 const DEFAULT_MULTISIG_KEYS_REQUIRED = 2
 const MAX_MULTISIG_KEYS = 15
-// secp256k1 private keys and random PIN seeds.
+// secp256k1 private key length.
 const SECRET_KEY_BYTE_LENGTH = 32
 
 export {
