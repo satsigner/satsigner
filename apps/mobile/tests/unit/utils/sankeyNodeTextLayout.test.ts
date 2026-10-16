@@ -21,7 +21,7 @@ describe('getNodeParagraphLayoutWidth', () => {
 })
 
 describe('getNodeParagraphOffsetX', () => {
-  it('centres block node text', () => {
+  it('centers block node text', () => {
     const width = 100
     const offset = getNodeParagraphOffsetX(width, 8, true)
     const textWidth = getNodeParagraphLayoutWidth(width, 8, true)

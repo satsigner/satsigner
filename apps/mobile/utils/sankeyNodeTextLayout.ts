@@ -8,7 +8,7 @@ const NODE_TEXT_OVERFLOW_WIDTH = 220
  * narrower than NODE_TEXT_OVERFLOW_WIDTH, so the amount and its unit stay on
  * one line instead of being truncated with an ellipsis.
  */
-export function getNodeParagraphLayoutWidth(
+function getNodeParagraphLayoutWidth(
   nodeWidth: number,
   paddingLeft: number,
   isBlock: boolean
@@ -19,8 +19,8 @@ export function getNodeParagraphLayoutWidth(
   return Math.max(nodeWidth - paddingLeft, NODE_TEXT_OVERFLOW_WIDTH)
 }
 
-/** X offset of a sankey node paragraph; block node text is centred. */
-export function getNodeParagraphOffsetX(
+/** X offset of a sankey node paragraph; block node text is centered. */
+function getNodeParagraphOffsetX(
   nodeWidth: number,
   paddingLeft: number,
   isBlock: boolean
@@ -31,4 +31,8 @@ export function getNodeParagraphOffsetX(
   return paddingLeft
 }
 
-export { NODE_TEXT_OVERFLOW_WIDTH }
+export {
+  getNodeParagraphLayoutWidth,
+  getNodeParagraphOffsetX,
+  NODE_TEXT_OVERFLOW_WIDTH
+}
