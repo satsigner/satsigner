@@ -13,6 +13,7 @@ export function useNostrContactProfile(
     enabled: enabled && Boolean(npub) && relays.length > 0,
     queryFn: () => new NostrAPI(relays).fetchKind0(npub ?? ''),
     queryKey: ['nostr', 'contact-profile', npub, relays],
+    retry: false,
     staleTime: NOSTR_CONTACT_PROFILE_STALE_TIME_MS
   })
 }

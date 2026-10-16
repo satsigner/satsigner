@@ -43,6 +43,9 @@ export function useAccountPublicKeys(
       }
       return fetchAccountPublicKeys(account, network)
     },
-    queryKey: ['bitcoin', 'account-public-keys', account?.id, network]
+    queryKey: ['bitcoin', 'account-public-keys', account?.id, network],
+    // Decrypts keys: do it once per cache lifetime, and don't retry a failure.
+    retry: false,
+    staleTime: Infinity
   })
 }
