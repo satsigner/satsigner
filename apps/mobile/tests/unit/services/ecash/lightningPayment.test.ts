@@ -105,4 +105,126 @@ describe('payLightningInvoiceFromMints', () => {
     expect(error).toBeInstanceOf(EcashPaymentError)
     expect(error).toMatchObject({ reason: 'mintsLackMpp' })
   })
+
+  it('shrinks an MPP slice after a fee miss and melts the planned amounts', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const proofs = [proof(MINT_A, 61), proof(MINT_B, 51)]
+    const p = params(proofs)
+
+    await payLightningInvoiceFromMints(p)
+
+    expect(
+      jest
+        .mocked(createMppMeltQuote)
+        .mock.calls.map((call) => [call[1], call[3]])
+    ).toStrictEqual([
+      [MINT_A, 61],
+      [MINT_A, 60],
+      [MINT_B, 40]
+    ])
+    expect(p.meltProofs).toHaveBeenNthCalledWith(1, MINT_A, quote(MINT_A, 60), [
+      proofs[0]
+    ])
+    expect(p.meltProofs).toHaveBeenNthCalledWith(2, MINT_B, quote(MINT_B, 40), [
+      proofs[1]
+    ])
+  })
+
+  it('gives up on a mint after three fee-miss attempts', async () => {
+    const FEE_TARGET = 62
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount, FEE_TARGET - amount))
+      )
+    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
+      reason: 'insufficientForFees'
+    })
+    const mintACalls = jest
+      .mocked(createMppMeltQuote)
+      .mock.calls.filter((call) => call[1] === MINT_A)
+    expect(mintACalls.map((call) => call[3])).toStrictEqual([61, 60, 59])
+    expect(p.addMeltQuote).not.toHaveBeenCalled()
+  })
+
+  it('drops a covering quote that misses on fees and falls back to MPP', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const p = params([proof(MINT_A, 150), proof(MINT_B, 20)])
+    p.createMeltQuote.mockImplementation((mintUrl: string) =>
+      Promise.resolve(quote(mintUrl, 100, 60))
+    )
+
+    await payLightningInvoiceFromMints(p)
+
+    expect(p.removeMeltQuote).toHaveBeenCalledWith(`${MINT_A}-100`)
+    expect(p.meltProofs).toHaveBeenCalledWith(MINT_A, quote(MINT_A, 100), [
+      proof(MINT_A, 150)
+    ])
+  })
+
+  it('reports insufficientForFees when the covering mint misses and no mint has MPP', async () => {
+    jest.mocked(mintSupportsBolt11Mpp).mockResolvedValue(false)
+    const p = params([proof(MINT_A, 150)])
+    p.createMeltQuote.mockImplementation((mintUrl: string) =>
+      Promise.resolve(quote(mintUrl, 100, 60))
+    )
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
+      reason: 'insufficientForFees'
+    })
+  })
+
+  it('rethrows the quote creation error when nothing could be planned', async () => {
+    jest.mocked(mintSupportsBolt11Mpp).mockResolvedValue(false)
+    const p = params([proof(MINT_A, 150)])
+    p.createMeltQuote.mockRejectedValue(new Error('mint offline'))
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toThrow(
+      'mint offline'
+    )
+  })
+
+  it('reports a partial payment when a later MPP melt fails', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const meltError = new Error('melt failed')
+    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
+    p.meltProofs
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(meltError)
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
+      cause: meltError,
+      reason: 'mppPartialPayment',
+      settled: 1,
+      total: 2
+    })
+  })
+
+  it('rethrows the raw error and drops unused quotes when the first melt fails', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const meltError = new Error('melt failed')
+    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
+    p.meltProofs.mockRejectedValueOnce(meltError)
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toBe(meltError)
+    expect(p.removeMeltQuote).toHaveBeenCalledWith(`${MINT_B}-40`)
+  })
 })
