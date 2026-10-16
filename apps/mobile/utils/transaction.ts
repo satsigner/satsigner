@@ -330,7 +330,11 @@ export function buildPreviewTransactionHex(
     transaction.addInput(hash, input.vout)
   }
 
-  if (!outputs.every((output) => validateAddress(output.to, bitcoinjsNet))) {
+  const canEncodeOutput = (output: Output) =>
+    validateAddress(output.to, bitcoinjsNet) &&
+    Number.isSafeInteger(output.amount) &&
+    output.amount >= 0
+  if (!outputs.every(canEncodeOutput)) {
     return ''
   }
   for (const output of outputs) {

@@ -685,6 +685,16 @@ describe('transaction builder previews', () => {
     ).toBe('')
   })
 
+  it('returns empty hex when an output amount is not whole sats', () => {
+    expect(
+      buildPreviewTransactionHex(
+        new Map([['a', utxo]]),
+        [{ ...output, amount: 1.5 }],
+        'bitcoin'
+      )
+    ).toBe('')
+  })
+
   it('builds the chart transaction from builder data', () => {
     const transaction = buildChartTransactionFromBuilder(
       new Map([['a', utxo]]),
