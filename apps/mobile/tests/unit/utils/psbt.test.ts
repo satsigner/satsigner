@@ -3,6 +3,8 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account, type Key } from '@/types/models/Account'
 import {
+  bindImportedSignature,
+  combinePsbts,
   createPlaceholderTransactionId,
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
@@ -285,7 +287,7 @@ describe('getPsbtTxidOrFallback', () => {
   })
 })
 
-describe('combineAndFinalizePsbts', () => {
+describe('2-of-2 multisig signatures', () => {
   const pubkeys = [
     '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
     '02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5'
@@ -328,24 +330,60 @@ describe('combineAndFinalizePsbts', () => {
     })
   })
 
-  it('finalizes once every cosigner has signed', () => {
-    // The test pubkeys are G and 2G, so private keys 1 and 2 sign for them.
-    const signers = [1, 2].map((scalar, index) => {
-      const privateKey = Buffer.alloc(32)
-      privateKey[31] = scalar
-      return {
-        publicKey: pubkeys[index],
-        sign: (hash: Buffer) => Buffer.from(ecc.sign(hash, privateKey))
-      }
-    })
-    const original = buildMultisigPsbt()
-    const signedPsbts = signers.map((signer) =>
-      bitcoinjs.Psbt.fromBase64(original).signInput(0, signer).toBase64()
-    )
+  // The test pubkeys are G and 2G, so private keys 1 and 2 sign for them.
+  const signers = [1, 2].map((scalar, index) => {
+    const privateKey = Buffer.alloc(32)
+    privateKey[31] = scalar
+    return {
+      publicKey: pubkeys[index],
+      sign: (hash: Buffer) => Buffer.from(ecc.sign(hash, privateKey))
+    }
+  })
 
-    expect(combineAndFinalizePsbts(original, signedPsbts)).toStrictEqual({
+  function signAll(psbtBase64: string) {
+    return signers.map((signer) =>
+      bitcoinjs.Psbt.fromBase64(psbtBase64).signInput(0, signer).toBase64()
+    )
+  }
+
+  it('finalizes once every cosigner has signed', () => {
+    const original = buildMultisigPsbt()
+
+    expect(combineAndFinalizePsbts(original, signAll(original))).toStrictEqual({
       hex: expect.stringMatching(/^[0-9a-f]+$/)
     })
+  })
+
+  it('keeps a fully signed PSBT imported into a cosigner slot unfinalized', () => {
+    const original = buildMultisigPsbt()
+    const fullySigned = combinePsbts(signAll(original))
+    const finalize = jest.fn(() => 'final-tx-hex')
+
+    const bound = bindImportedSignature(fullySigned, original, false, finalize)
+
+    expect(finalize).not.toHaveBeenCalled()
+    expect(
+      bitcoinjs.Psbt.fromBase64(required(bound)).data.inputs[0].partialSig
+    ).toHaveLength(2)
+  })
+
+  it('rejects a cosigner PSBT for a different transaction', () => {
+    const original = buildMultisigPsbt()
+    const other = bitcoinjs.Psbt.fromBase64(original)
+    other.addOutput({ script: required(p2wsh.output), value: 1000 })
+
+    expect(
+      bindImportedSignature(other.toBase64(), original, false, jest.fn())
+    ).toBeNull()
+  })
+
+  it('finalizes a PSBT imported for watch-only broadcast', () => {
+    const original = buildMultisigPsbt()
+    const finalize = jest.fn(() => 'final-tx-hex')
+
+    expect(bindImportedSignature(original, original, true, finalize)).toBe(
+      'final-tx-hex'
+    )
   })
 })
 

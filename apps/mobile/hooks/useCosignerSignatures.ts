@@ -1,13 +1,14 @@
 import { useEffect, useEffectEvent, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account, type Key } from '@/types/models/Account'
 import { type Notice } from '@/types/ui/notice'
 import { getKeyFingerprint } from '@/utils/account'
 import {
-  bindScannedDataToPsbt,
+  bindImportedSignature,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
   combinePsbts,
@@ -117,11 +118,13 @@ export function useCosignerSignatures({
   // Binds scanned/pasted data to the transaction under review. Returns null
   // (after reporting an error) when it does not match: broadcasting it would
   // execute a different transaction than the one displayed to the user.
-  function bindToPsbt(data: string) {
+  function bindToPsbt(cosignerIndex: number, data: string) {
+    const originalPsbtBase64 = txBuilderResult?.toBase64()
     try {
-      const boundData = bindScannedDataToPsbt(
+      const boundData = bindImportedSignature(
         data,
-        txBuilderResult?.toBase64(),
+        originalPsbtBase64,
+        cosignerIndex === WATCH_ONLY_INDEX,
         convertPsbtToFinalTransaction
       )
       if (boundData === null) {
@@ -137,7 +140,7 @@ export function useCosignerSignatures({
   // Stores scanned/pasted data as a cosigner's signature (or the watch-only
   // import) once it is bound to the PSBT under review. False when rejected.
   function importSignedData(cosignerIndex: number, data: string) {
-    const boundData = bindToPsbt(data)
+    const boundData = bindToPsbt(cosignerIndex, data)
     if (boundData === null) {
       return false
     }
