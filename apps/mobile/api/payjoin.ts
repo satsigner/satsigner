@@ -1579,10 +1579,7 @@ async function finalizeReceiverPayjoin(params: {
   )
   const walletChecks = {
     isOutpointOwned: (outpoint: string) => ownedOutpoints.has(outpoint),
-    isOutpointSeen: (outpoint: string) => {
-      const seen = params.callbacks.hasSeenInput(outpoint)
-      return typeof seen === 'boolean' ? seen : false
-    }
+    isOutpointSeen: (outpoint: string) => sessions.hasSeenInput(outpoint)
   }
   const prepared = await receiverContributeAndFinalize(
     nativeState,

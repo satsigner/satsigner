@@ -171,9 +171,10 @@ describe('payjoin hardening (phase 7)', () => {
     // input (TXID_A:0) has been seen before.
     const ownedOutpoint = `${TXID_B}:1`
     const seenOutpoint = `${TXID_A}:0`
+    usePayjoinSessionsStore.getState().markInputSeen(seenOutpoint)
 
     const callbacks: PayjoinWalletCallbacks = {
-      hasSeenInput: (o) => o === seenOutpoint,
+      hasSeenInput: () => false,
       isScriptOwned: () => false,
       listCandidateOutpoints: () => [
         {
@@ -206,7 +207,7 @@ describe('payjoin hardening (phase 7)', () => {
     expect(checks?.isOutpointOwned(ownedOutpoint)).toBe(true)
     expect(checks?.isOutpointOwned(`${TXID_C}:0`)).toBe(false)
     expect(checks?.isOutpointSeen(seenOutpoint)).toBe(true)
-    expect(checks?.isOutpointSeen(ownedOutpoint)).toBe(false)
+    expect(checks?.isOutpointSeen(`${TXID_C}:0`)).toBe(false)
     nativeSpy.mockRestore()
   })
 
