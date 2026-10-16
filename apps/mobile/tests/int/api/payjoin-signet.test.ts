@@ -38,7 +38,6 @@ import {
 } from '@/constants/samples'
 import {
   getPayjoinDeps,
-  payjoinSessionStore,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
@@ -197,7 +196,10 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       network: 'signet'
     })
 
-    const resumed = await tryResumeReceiverSession(created, payjoinSessionStore)
+    const resumed = await tryResumeReceiverSession(
+      created,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).not.toBeNull()
     expect(resumed?.amountSats).toBe(PAYMENT_SATS)
     expect(resumed?.label).toBe(LABEL)
@@ -226,7 +228,10 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     }
     usePayjoinSessionsStore.getState().upsertSession(dead)
 
-    const resumed = await tryResumeReceiverSession(dead, payjoinSessionStore)
+    const resumed = await tryResumeReceiverSession(
+      dead,
+      getPayjoinDeps().sessions
+    )
     expect(resumed).toBeNull()
     expect(
       usePayjoinSessionsStore.getState().getSession(created.id)

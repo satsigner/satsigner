@@ -212,4 +212,4 @@ function getPayjoinDeps(): PayjoinDeps {
   }
 }
 
-export { getPayjoinDeps, payjoinSessionStore, usePayjoinSessionsStore }
+export { getPayjoinDeps, usePayjoinSessionsStore }

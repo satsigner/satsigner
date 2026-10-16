@@ -3,7 +3,7 @@ import {
   tryResumeReceiverSession
 } from '@/api/payjoin'
 import {
-  payjoinSessionStore,
+  getPayjoinDeps,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
 import { type PayjoinSession } from '@/types/payjoin'
@@ -103,7 +103,10 @@ async function resolveReceiverSessionOnStart(params: {
     return { kind: 'create_fresh' }
   }
 
-  const resumed = await tryResumeReceiverSession(existing, payjoinSessionStore)
+  const resumed = await tryResumeReceiverSession(
+    existing,
+    getPayjoinDeps().sessions
+  )
   if (resumed) {
     return { kind: 'session', session: applyBip21(resumed, bip21) }
   }
