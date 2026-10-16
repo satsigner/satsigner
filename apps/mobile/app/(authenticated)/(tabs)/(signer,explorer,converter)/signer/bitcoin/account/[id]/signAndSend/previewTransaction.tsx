@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ComponentProps, useMemo, useState } from 'react'
+import { type ComponentProps, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import Animated from 'react-native-reanimated'
@@ -95,22 +95,10 @@ function PreviewTransaction() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-  const ownAddresses = useMemo(
-    () => new Set(account?.addresses?.map((a) => a.address)),
-    [account]
-  )
-  const txLabelsById = useMemo(
-    () => buildTxLabelsById(account?.transactions),
-    [account?.transactions]
-  )
-  const knownTxIds = useMemo(
-    () => buildKnownTxIds(account?.transactions),
-    [account?.transactions]
-  )
-  const outpointLabelsByRef = useMemo(
-    () => buildOutpointLabelsByRef(account ?? {}),
-    [account]
-  )
+  const ownAddresses = new Set(account?.addresses?.map((a) => a.address))
+  const txLabelsById = buildTxLabelsById(account?.transactions)
+  const knownTxIds = buildKnownTxIds(account?.transactions)
+  const outpointLabelsByRef = buildOutpointLabelsByRef(account ?? {})
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -196,38 +184,17 @@ function PreviewTransaction() {
     signWithMnemonic
   })
 
-  const transactionHex = useMemo(
-    () =>
-      account
-        ? buildPreviewTransactionHex(inputs, outputs, account.network)
-        : '',
-    [account, inputs, outputs]
+  const transactionHex = account
+    ? buildPreviewTransactionHex(inputs, outputs, account.network)
+    : ''
+  const transaction = buildChartTransactionFromBuilder(
+    inputs,
+    outputs,
+    getPsbtTxidOrFallback(txBuilderResult, transactionId)
   )
 
-  const transaction = useMemo(
-    () =>
-      buildChartTransactionFromBuilder(
-        inputs,
-        outputs,
-        getPsbtTxidOrFallback(txBuilderResult, transactionId)
-      ),
-    [inputs, outputs, transactionId, txBuilderResult]
-  )
-
-  function handleCosignerPasteFromClipboard(index: number) {
-    pasteFromClipboard(index)
-  }
-
+  // Opens the camera to scan a signed PSBT or a SeedQR for the cosigner.
   function handleCosignerCameraScan(index: number) {
-    setCameraModalVisible(true)
-    setCurrentCosignerIndex(index)
-  }
-
-  function handleCosignerNFCScan(index: number) {
-    importFromNfc(index)
-  }
-
-  function handleSeedQRScanned(index: number) {
     setCameraModalVisible(true)
     setCurrentCosignerIndex(index)
   }
@@ -279,10 +246,9 @@ function PreviewTransaction() {
     account,
     decryptedKeys,
     handleCosignerCameraScan,
-    handleCosignerNFCScan,
-    handleCosignerPasteFromClipboard,
+    handleCosignerNFCScan: importFromNfc,
+    handleCosignerPasteFromClipboard: pasteFromClipboard,
     handleNFCExport: exportToNfc,
-    handleSeedQRScanned,
     handleSeedWordsScanned: startSeedWordsSigning,
     handleShareSignaturesWithNostrGroup,
     handleSignWithLocalKey: signWithLocalKey,
@@ -621,7 +587,6 @@ type PreviewTransactionMultisigSectionProps = {
   handleCosignerCameraScan: (index: number) => void
   handleCosignerNFCScan: (index: number) => void
   handleSignWithLocalKey: CosignerSignatures['signWithLocalKey']
-  handleSeedQRScanned: (index: number) => void
   handleSeedWordsScanned: (index: number) => void
   handleShareSignaturesWithNostrGroup: () => void
   setNoKeyModalVisible: (visible: boolean) => void
@@ -644,7 +609,6 @@ function PreviewTransactionMultisigSection({
   handleCosignerCameraScan,
   handleCosignerNFCScan,
   handleSignWithLocalKey,
-  handleSeedQRScanned,
   handleSeedWordsScanned,
   handleShareSignaturesWithNostrGroup,
   setNoKeyModalVisible
@@ -709,7 +673,7 @@ function PreviewTransactionMultisigSection({
             onCameraScan={handleCosignerCameraScan}
             onNFCScan={handleCosignerNFCScan}
             onSignWithLocalKey={() => handleSignWithLocalKey(index)}
-            onSignWithSeedQR={() => handleSeedQRScanned(index)}
+            onSignWithSeedQR={() => handleCosignerCameraScan(index)}
             onSignWithSeedWords={() => handleSeedWordsScanned(index)}
             validationResult={validationResults.get(index)}
           />
