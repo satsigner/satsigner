@@ -59,7 +59,7 @@ async function probeElectrum(
   const tip = await client.client
     .blockchainHeaders_subscribe()
     .catch(() => null)
-  const blockHeight = tip?.height ?? 0
+  const blockHeight = tip?.height || 0
   const tipTimestampSec =
     blockHeight > 0
       ? await client.getBlockTimestamp(blockHeight).catch(() => undefined)
