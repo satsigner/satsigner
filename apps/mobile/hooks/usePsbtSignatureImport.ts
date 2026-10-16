@@ -1,3 +1,4 @@
+import { hex } from '@scure/base'
 import { useState } from 'react'
 
 import { WATCH_ONLY_INDEX } from '@/constants/account'
@@ -68,16 +69,16 @@ export function usePsbtSignatureImport({
     cosignerIndex: number | null
   ) {
     const mnemonic = content.metadata?.mnemonic
-    if (content.type === 'seed_qr' && typeof mnemonic === 'string') {
-      if (cosignerIndex === null) {
-        onNotice({ key: 'camera.error.invalidContent', type: 'error' })
-        return
-      }
+    const isSeedQr = content.type === 'seed_qr' && typeof mnemonic === 'string'
+    const isSignedData =
+      content.type === 'psbt' || content.type === 'bitcoin_transaction'
+
+    if (isSeedQr && cosignerIndex !== null) {
       signWithMnemonic(cosignerIndex, mnemonic)
       return
     }
 
-    if (content.type !== 'psbt' && content.type !== 'bitcoin_transaction') {
+    if (!isSignedData) {
       onNotice({ key: 'camera.error.invalidContent', type: 'error' })
       return
     }
@@ -124,27 +125,15 @@ export function usePsbtSignatureImport({
     setNfcScanModalVisible(true)
     try {
       const result = await readNFCTag()
-
-      if (!result) {
+      const signedData = result?.txData
+        ? hex.encode(result.txData)
+        : result?.txId
+      if (!signedData) {
         onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
         return
       }
-
-      if (result.txData) {
-        const txHex = Array.from(result.txData)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('')
-
-        storeSignedData(cosignerIndex, txHex)
-
-        onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
-      } else if (result.txId) {
-        storeSignedData(cosignerIndex, result.txId || '')
-
-        onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
-      } else {
-        onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
-      }
+      storeSignedData(cosignerIndex, signedData)
+      onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
     } catch {
       onNotice({ key: 'nfc.error.readFailed', type: 'error' })
     } finally {
