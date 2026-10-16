@@ -23,7 +23,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { Address, type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
@@ -64,7 +63,6 @@ function AddressDetails() {
   )
   const allAccountUtxos = account?.utxos || []
 
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
@@ -180,7 +178,7 @@ function AddressDetails() {
                   `/signer/bitcoin/account/${accountId}/address/${addr}/label`
                 )
               }
-              privacyMode={privacyMode}
+              privacyMode={display.privacyMode}
             />
             <SSSeparator />
             <SSVStack gap="sm">
