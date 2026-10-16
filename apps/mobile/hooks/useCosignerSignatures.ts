@@ -288,6 +288,9 @@ function useSignatureDetection({
 
     const currentAccount = account
     const combinedPsbtBase64 = routePsbt
+    // Drops a detection that finishes after its inputs changed, so a
+    // signature is not stored and reported twice.
+    const request = { stale: false }
 
     async function detectSignatures() {
       const signed = readPartiallySignedPsbt(combinedPsbtBase64)
@@ -299,6 +302,9 @@ function useSignatureDetection({
       const keyFingerprints = await Promise.all(
         currentAccount.keys.map((key) => getKeyFingerprint(key))
       )
+      if (request.stale) {
+        return
+      }
       const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
         psbtObj,
         keyFingerprints
@@ -331,6 +337,9 @@ function useSignatureDetection({
       }
     }
 
-    detectSignatures()
+    void detectSignatures()
+    return () => {
+      request.stale = true
+    }
   }, [routePsbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
 }
