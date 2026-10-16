@@ -9,7 +9,6 @@ import {
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconBlackIndicator,
@@ -43,8 +42,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
 import { formatFiatPrice } from '@/utils/format'
@@ -67,16 +64,8 @@ export default function EcashAccountDetailPage() {
 
   const setActiveAccountId = useEcashStore((state) => state.setActiveAccountId)
 
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-  const [fiatCurrency, btcPrice] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.btcPrice])
-  )
+  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
+    display
 
   const handleSettingsPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings`)
