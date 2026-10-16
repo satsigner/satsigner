@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { MempoolOracle } from '@/api/blockchain'
+import { MempoolServers } from '@/constants/servers'
 import { time } from '@/utils/time'
 
 // Bitcoin Core `getblockchaininfo.chain` → mempool.space API base.
 const HASH_RATE_API_BY_CHAIN: Record<string, string> = {
-  main: 'https://mempool.space/api',
-  signet: 'https://mempool.space/signet/api',
-  test: 'https://mempool.space/testnet4/api'
+  main: MempoolServers.bitcoin,
+  signet: MempoolServers.signet,
+  test: MempoolServers.testnet
 }
 
 /** Network hash rate (H/s) for a Core chain, refreshed every minute. */
