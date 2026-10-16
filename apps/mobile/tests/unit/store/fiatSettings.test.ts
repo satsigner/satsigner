@@ -10,7 +10,7 @@ import {
 
 const initialState = useSettingsStore.getState()
 
-describe('fiat data helpers', () => {
+describe('settings fiat helpers', () => {
   afterEach(() => {
     useSettingsStore.setState(initialState, true)
   })
