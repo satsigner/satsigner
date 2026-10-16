@@ -16,10 +16,7 @@ import {
 } from '@/constants/payjoin'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import {
-  getPayjoinDeps,
-  usePayjoinSessionsStore
-} from '@/store/payjoinSessions'
+import { getPayjoinDeps } from '@/store/payjoinSessions'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -127,7 +124,8 @@ async function buildPayjoinLiveRoundtripEnv(
     0
   ).address
   const { server } = configs[selectedNetwork]
-  const sessions = usePayjoinSessionsStore.getState()
+  const payjoinDeps = getPayjoinDeps()
+  const { sessions } = payjoinDeps
   const network = bitcoinjsNetwork(selectedNetwork)
 
   function buildSenderCallbacks() {
@@ -233,7 +231,7 @@ async function buildPayjoinLiveRoundtripEnv(
     broadcast,
     buildAndSignOriginal,
     network: selectedNetwork,
-    payjoinDeps: getPayjoinDeps(),
+    payjoinDeps,
     paymentAmountSats,
     receiverAccountId: receiver.id,
     receiverAddress,
