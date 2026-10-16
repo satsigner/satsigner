@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import ElectrumClient, { ElectrumServerVersionSchema } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { FULLY_CONFIRMED_COUNT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   type Backend,
   type Network,
@@ -28,6 +28,8 @@ type NodeInfo = {
 const CONNECTION_TEST_COOLDOWN_MS = 2000
 // Core's estimatesmartfee answers in BTC per 1000 vbytes.
 const VBYTES_PER_KVB = 1000
+// Confirmation target, in blocks, for the sample fee estimate.
+const FEE_ESTIMATE_CONF_TARGET = 6
 
 export type ConnectionTestResult =
   | {
@@ -209,7 +211,7 @@ export function useConnectionTest() {
             rpc.getBlockchainInfo(),
             rpc.getNetworkInfo().catch(() => null),
             rpc.getMempoolInfo().catch(() => null),
-            rpc.estimateSmartFee(FULLY_CONFIRMED_COUNT).catch(() => null),
+            rpc.estimateSmartFee(FEE_ESTIMATE_CONF_TARGET).catch(() => null),
             rpc.hasBlockFilterIndex().catch(() => false)
           ])
 
