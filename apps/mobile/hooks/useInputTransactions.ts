@@ -20,7 +20,9 @@ type ExtendedVin = Transaction['vin'][number] & {
 }
 
 type ExtendedVout = Transaction['vout'][number] & {
+  /** Display order within its depth. */
   index?: number
+  /** Position in the transaction's original output list. */
   vout?: number
 }
 
