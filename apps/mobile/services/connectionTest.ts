@@ -48,7 +48,18 @@ async function probeElectrum(
 ): Promise<ConnectionProbe> {
   const client = ElectrumClient.fromUrl(url, network)
   onElectrumClient?.(client)
+  try {
+    return await readElectrumNode(client, network, startTime)
+  } finally {
+    closeElectrumClientQuietly(client)
+  }
+}
 
+async function readElectrumNode(
+  client: ElectrumClient,
+  network: Network,
+  startTime: number
+): Promise<ConnectionProbe> {
   const serverInfo = await client.client.initElectrum(
     { client: 'satsigner', version: '1.4' },
     { callback: null, maxRetry: 0 }
@@ -71,7 +82,6 @@ async function probeElectrum(
       : undefined
 
   const serverVersion = ElectrumServerVersionSchema.safeParse(serverInfo)
-  closeElectrumClientQuietly(client)
 
   return {
     nodeInfo: {
