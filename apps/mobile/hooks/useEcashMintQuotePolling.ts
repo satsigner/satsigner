@@ -45,7 +45,8 @@ export function shouldKeepPolling(state: QueryState<MintQuoteState>) {
 
 /**
  * Checks a mint quote once and runs `onPaid` / `onFailed` for a final state.
- * `onPaid` never runs twice at the same time for one quote.
+ * `onPaid` never runs twice at the same time for one quote; the skipped
+ * check returns PENDING.
  */
 export async function checkMintQuoteOnce({
   mintUrl,
@@ -59,8 +60,13 @@ export async function checkMintQuoteOnce({
     onFailed()
     return state
   }
-  if (!PAID_STATES.has(state) || claimingQuoteIds.has(quoteId)) {
+  if (!PAID_STATES.has(state)) {
     return state
+  }
+  // Another check is claiming this quote; report it as unsettled so polling
+  // goes on if that claim fails.
+  if (claimingQuoteIds.has(quoteId)) {
+    return 'PENDING'
   }
   claimingQuoteIds.add(quoteId)
   try {

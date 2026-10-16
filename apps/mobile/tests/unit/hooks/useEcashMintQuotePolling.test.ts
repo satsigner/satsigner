@@ -88,8 +88,12 @@ describe('checkMintQuoteOnce', () => {
   it('does not claim the same quote twice at the same time', async () => {
     const p = params('ISSUED')
 
-    await Promise.all([checkMintQuoteOnce(p), checkMintQuoteOnce(p)])
+    const results = await Promise.all([
+      checkMintQuoteOnce(p),
+      checkMintQuoteOnce(p)
+    ])
 
     expect(p.onPaid).toHaveBeenCalledTimes(1)
+    expect(results).toStrictEqual(['ISSUED', 'PENDING'])
   })
 })
