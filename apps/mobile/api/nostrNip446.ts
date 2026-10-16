@@ -11,6 +11,7 @@ import {
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_WS_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { Nip46IncomingRequest } from '@/types/models/Nostr'
 import { parseNip46Request } from '@/utils/nip46'
 import { parseNostrEvent } from '@/utils/nostrEvent'
@@ -156,7 +157,7 @@ export class Nip46BunkerService {
       '#p': [signerPubkeyHex],
       kinds: [NOSTR_NIP46_EVENT_KIND],
       since:
-        Math.floor(Date.now() / 1000) -
+        Math.floor(Date.now() / MS_PER_SECOND) -
         NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
     }
     for (const ws of this.sockets) {
@@ -200,7 +201,7 @@ export class Nip46BunkerService {
     const event = finalizeEvent(
       {
         content: encrypted,
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         kind: NOSTR_NIP46_EVENT_KIND,
         tags: [['p', clientPubkey]]
       },

@@ -55,7 +55,8 @@ const regressionAccount: Account = {
   utxos: []
 }
 
-// As built by api/bdk.ts#getWalletAddresses: no derivationPath field.
+// As built by api/bdkWalletMappers.ts#getWalletAddresses: no derivationPath
+// field.
 const regressionAddress: Address = {
   address: REGRESSION_ADDRESS,
   index: 3,

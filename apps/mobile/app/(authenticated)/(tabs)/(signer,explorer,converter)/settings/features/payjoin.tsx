@@ -10,6 +10,7 @@ import {
   PAYJOIN_DIRECTORY_URL,
   PAYJOIN_SESSION_TTL_PRESETS_MS
 } from '@/constants/payjoin'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -18,9 +19,9 @@ import { type PayjoinCoordinationMode } from '@/types/payjoin'
 import { PAYJOIN_COORDINATION_MODES } from '@/utils/payjoinMode'
 
 const TTL_LABEL_KEYS: Record<number, string> = {
-  [1 * 60 * 1000]: 'settings.payjoin.sessionTtl.oneMinute',
-  [5 * 60 * 1000]: 'settings.payjoin.sessionTtl.fiveMinutes',
-  [10 * 60 * 1000]: 'settings.payjoin.sessionTtl.tenMinutes'
+  [1 * 60 * MS_PER_SECOND]: 'settings.payjoin.sessionTtl.oneMinute',
+  [5 * 60 * MS_PER_SECOND]: 'settings.payjoin.sessionTtl.fiveMinutes',
+  [10 * 60 * MS_PER_SECOND]: 'settings.payjoin.sessionTtl.tenMinutes'
 }
 
 const MODE_LABEL_KEYS: Record<PayjoinCoordinationMode, string> = {

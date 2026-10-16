@@ -2,12 +2,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { EXPLORER_EXAMPLE_ADDRESSES } from '@/constants/explorerExamples'
@@ -143,7 +144,7 @@ export default function ExplorerAddress() {
           {showExamples ? (
             <SSVStack gap="none">
               {EXPLORER_EXAMPLE_ADDRESSES.map((ex) => (
-                <TouchableOpacity
+                <SSPressable
                   key={ex.address}
                   style={styles.exampleCard}
                   onPress={() => handleExample(ex.address)}
@@ -168,7 +169,7 @@ export default function ExplorerAddress() {
                     height={12}
                     stroke={Colors.gray['600']}
                   />
-                </TouchableOpacity>
+                </SSPressable>
               ))}
             </SSVStack>
           ) : null}

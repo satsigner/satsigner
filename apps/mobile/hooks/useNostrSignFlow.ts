@@ -55,7 +55,7 @@ export function useNostrSignFlow() {
     )
 
     if (!accountMatch) {
-      toast.error(t('transaction.dataNotFound'))
+      toast.error(t('common.error.transactionDataNotFound'))
       return false
     }
 
@@ -104,7 +104,7 @@ export function useNostrSignFlow() {
 
     const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
     if (!extractedTxid) {
-      toast.error(t('transaction.invalidPsbt'))
+      toast.error(t('account.nostrSync.devicesGroupChat.invalidPsbt'))
       return false
     }
 

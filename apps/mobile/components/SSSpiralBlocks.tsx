@@ -15,7 +15,6 @@ import {
   Dimensions,
   Platform,
   StyleSheet,
-  TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
@@ -27,6 +26,8 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
+
+import SSPressable from './SSPressable'
 
 const SCREEN_HEIGHT = Dimensions.get('screen').height
 const FACTOR_BLOCK_DISTANCE = 0.055
@@ -249,16 +250,14 @@ function SSSpiralBlocks({
   const touchableBlocks = useMemo(
     () =>
       spiralBlocks.map((_, index) => (
-        <TouchableOpacity
+        <SSPressable
           key={spiralBlocks[index]?.height ?? index}
           style={invisibleOverlayBlocks[index]}
-          delayPressIn={0}
-          delayPressOut={0}
           onPress={() => onBlockPress(data[index])}
           activeOpacity={0.7}
         >
           <Animated.View />
-        </TouchableOpacity>
+        </SSPressable>
       )),
     [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress]
   )
@@ -330,7 +329,7 @@ function SSSpiralBlocks({
             ]}
             onLayout={onCanvasLayout}
           >
-            {/* Render TouchableOpacity components with pre-calculated handlers */}
+            {/* Render SSPressable components with pre-calculated handlers */}
             {touchableBlocks}
           </Animated.View>
         </View>

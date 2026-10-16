@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   type Bip329FileType,
   CurrencyValuesSchema,
@@ -60,8 +61,6 @@ for (const field of LabelSchema.keyof().options) {
     bip329Alias.set(alias.toLowerCase(), field)
   }
 }
-
-const MS_PER_SECOND = 1000
 
 /** Sparrow's "Date (UTC)" CSV cells, e.g. `2025-01-09 14:56:08`. */
 const SPARROW_UTC_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/

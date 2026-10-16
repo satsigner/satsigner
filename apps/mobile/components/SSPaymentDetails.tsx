@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -106,10 +107,10 @@ function SSPaymentDetails({
 }: SSPaymentDetailsProps) {
   const amountSats = bolt11AmountSats(decodedInvoice)
   const nowMs = Date.now()
-  const createdAt = new Date(Number(decodedInvoice.timestamp) * 1000)
+  const createdAt = new Date(Number(decodedInvoice.timestamp) * MS_PER_SECOND)
   const expiresAt = new Date(
-    Number(decodedInvoice.timestamp) * 1000 +
-      Number(decodedInvoice.expiry) * 1000
+    Number(decodedInvoice.timestamp) * MS_PER_SECOND +
+      Number(decodedInvoice.expiry) * MS_PER_SECOND
   )
   const createdAbsolute = formatAbsoluteDateParts(createdAt)
   const expiresAbsolute = formatAbsoluteDateParts(expiresAt)

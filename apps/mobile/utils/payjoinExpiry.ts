@@ -1,5 +1,6 @@
 import { bech32 } from 'bech32'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import { ensureBitcoinPrefix, hasBitcoinPrefix } from '@/utils/parse'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
@@ -110,7 +111,7 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
     if (unixSeconds < 1_000_000_000) {
       return undefined
     }
-    return unixSeconds * 1000
+    return unixSeconds * MS_PER_SECOND
   } catch {
     return undefined
   }

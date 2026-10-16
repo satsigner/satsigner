@@ -24,7 +24,7 @@ import SSPaymentDetails from '@/components/SSPaymentDetails'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT } from '@/constants/btc'
+import { DUST_LIMIT, MILLISATS_PER_SAT } from '@/constants/btc'
 import {
   LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_SUCCESS_NAVIGATE_DELAY_MS
@@ -154,7 +154,7 @@ export default function PayPage() {
         return
       }
       setLNURLDetails(details)
-      const minSats = Math.ceil(details.minSendable / 1000)
+      const minSats = Math.ceil(details.minSendable / MILLISATS_PER_SAT)
       setAmount(minSats.toString())
     } catch {
       if (requestId !== detailsRequestId.current) {

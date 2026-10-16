@@ -14,6 +14,7 @@ import SSNumberInput from '@/components/SSNumberInput'
 import SSSpiralBlocks from '@/components/SSSpiralBlocks'
 import SSText from '@/components/SSText'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSHStack from '@/layouts/SSHStack'
@@ -105,15 +106,19 @@ function ExplorerDifficulty() {
 
   const heightStart = firstBlock?.height.toString() ?? '?'
   const heightEnd = lastBlock?.height.toString() ?? '?'
-  const dateStart = firstBlock ? formatDate(firstBlock.timestamp * 1000) : '?'
-  const dateEnd = lastBlock ? formatDate(lastBlock.timestamp * 1000) : '?'
+  const dateStart = firstBlock
+    ? formatDate(firstBlock.timestamp * MS_PER_SECOND)
+    : '?'
+  const dateEnd = lastBlock
+    ? formatDate(lastBlock.timestamp * MS_PER_SECOND)
+    : '?'
 
   const tn = _tn('explorer.difficulty')
   const tnTime = _tn('time')
 
   const averageBlockTime = difficultyAdjustment
     ? `~${tnTime('minutes', {
-        value: (difficultyAdjustment.timeAvg / 1000 / 60).toFixed(1)
+        value: (difficultyAdjustment.timeAvg / MS_PER_SECOND / 60).toFixed(1)
       })}`
     : '?'
 
@@ -381,7 +386,9 @@ function BlockDetails({ block, onClose }: BlockDetailsProps) {
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted">{tn('date')}</SSText>
-          <SSText weight="bold">{formatDate(block.timestamp * 1000)}</SSText>
+          <SSText weight="bold">
+            {formatDate(block.timestamp * MS_PER_SECOND)}
+          </SSText>
         </SSVStack>
       </SSHStack>
       <SSHStack style={styles.blockDetailsSectionGroup}>

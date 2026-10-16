@@ -1,3 +1,4 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import type { LNDPendingChannelsResponse } from '@/types/models/Lightning'
 
 export function formatLndVersion(version: string): string {
@@ -23,7 +24,7 @@ export function formatBestHeaderUtc(bestHeaderTimestamp: string): string {
     return '—'
   }
   const SECONDS_THRESHOLD = 1e12
-  const ms = n < SECONDS_THRESHOLD ? n * 1000 : n
+  const ms = n < SECONDS_THRESHOLD ? n * MS_PER_SECOND : n
   return new Date(ms).toISOString()
 }
 

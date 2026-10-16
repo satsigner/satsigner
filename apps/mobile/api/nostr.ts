@@ -25,6 +25,7 @@ import {
   NOSTR_RELAY_REACHABILITY_TEST_MS,
   NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   cacheEvents,
   getCachedEvent,
@@ -274,7 +275,7 @@ export class NostrAPI {
     }
 
     const cached = getCachedProfile(pk)
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / MS_PER_SECOND)
     if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
       return {
         banner: cached.banner,
@@ -411,7 +412,7 @@ export class NostrAPI {
       return Promise.resolve()
     }
 
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / MS_PER_SECOND)
     const missing: string[] = []
     const cachedBatch = new Map<string, NostrKind0Profile>()
 
@@ -1010,7 +1011,7 @@ export class NostrAPI {
     const signed = finalizeEvent(
       {
         content: '',
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         kind: 10050,
         tags: relayUrls.map((url) => ['relay', url])
       },
@@ -1308,7 +1309,7 @@ export class NostrAPI {
     const signed = finalizeEvent(
       {
         content: encrypted,
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         kind: 4,
         tags: [['p', recipientPubKeyHex]]
       },

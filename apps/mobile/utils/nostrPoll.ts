@@ -1,4 +1,5 @@
 import { NOSTR_POLL_RESPONSE_KIND } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   type NostrPollInfo,
   type NostrPollOption,
@@ -57,7 +58,7 @@ export function extractResponseOptionIds(tags: string[][]): string[] {
 
 export function isPollExpired(
   endsAt: number | undefined,
-  nowSec = Math.floor(Date.now() / 1000)
+  nowSec = Math.floor(Date.now() / MS_PER_SECOND)
 ): boolean {
   return endsAt !== undefined && nowSec >= endsAt
 }

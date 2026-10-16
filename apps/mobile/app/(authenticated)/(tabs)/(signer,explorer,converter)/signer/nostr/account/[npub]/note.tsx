@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -37,6 +36,7 @@ import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
+import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
@@ -995,7 +995,7 @@ export default function NostrNotePage() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack gap="md" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
-              <TouchableOpacity
+              <SSPressable
                 activeOpacity={0.7}
                 disabled={!npub}
                 onPress={() =>
@@ -1073,7 +1073,7 @@ export default function NostrNotePage() {
                     )}
                   </SSVStack>
                 </SSHStack>
-              </TouchableOpacity>
+              </SSPressable>
             ) : null}
 
             {showMarkdownToggle ? (
@@ -1278,7 +1278,7 @@ export default function NostrNotePage() {
 
             {fetched ? (
               <SSVStack gap="xxs">
-                <TouchableOpacity
+                <SSPressable
                   activeOpacity={0.7}
                   onPress={() => setShowMeta((v) => !v)}
                   style={styles.metaToggle}
@@ -1291,7 +1291,7 @@ export default function NostrNotePage() {
                   ) : (
                     <SSIconChevronDown width={10} height={10} />
                   )}
-                </TouchableOpacity>
+                </SSPressable>
                 {showMeta ? (
                   <SSVStack gap="xxs">
                     <SSHStack gap="xs" style={styles.metaRow}>
@@ -1395,7 +1395,7 @@ export default function NostrNotePage() {
                         </SSText>
                       </SSHStack>
                     ))}
-                    <TouchableOpacity
+                    <SSPressable
                       activeOpacity={0.7}
                       onPress={() => setShowJson((v) => !v)}
                       style={styles.metaToggle}
@@ -1408,7 +1408,7 @@ export default function NostrNotePage() {
                       ) : (
                         <SSIconChevronDown width={10} height={10} />
                       )}
-                    </TouchableOpacity>
+                    </SSPressable>
                     {showJson ? (
                       <SSClipboardCopy text={eventJson}>
                         <SSText size="xxs" type="mono" style={styles.jsonText}>
@@ -1533,7 +1533,7 @@ export default function NostrNotePage() {
                             ),
                             enhancedZap.zapMax!
                           ].map((sats) => (
-                            <TouchableOpacity
+                            <SSPressable
                               key={sats}
                               style={styles.presetButton}
                               disabled={zapLoading || !effectiveLud16}
@@ -1545,7 +1545,7 @@ export default function NostrNotePage() {
                                   ? NOSTR_PRIVACY_MASK
                                   : sats.toLocaleString()}
                               </SSText>
-                            </TouchableOpacity>
+                            </SSPressable>
                           ))}
                         </SSHStack>
                         <TextInput
@@ -1677,7 +1677,7 @@ export default function NostrNotePage() {
                   <SSText size="xs" color="muted" uppercase style={{ flex: 1 }}>
                     {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
                   </SSText>
-                  <TouchableOpacity
+                  <SSPressable
                     onPress={() => handleZapSortPress('date')}
                     hitSlop={8}
                   >
@@ -1692,8 +1692,8 @@ export default function NostrNotePage() {
                           : ' ↓'
                         : ''}
                     </SSText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                  </SSPressable>
+                  <SSPressable
                     onPress={() => handleZapSortPress('amount')}
                     hitSlop={8}
                   >
@@ -1708,11 +1708,11 @@ export default function NostrNotePage() {
                           : ' ↓'
                         : ''}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
                 </SSHStack>
                 {sortedZapReceipts.map((receipt) => (
                   <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
-                    <TouchableOpacity
+                    <SSPressable
                       activeOpacity={0.7}
                       disabled={!npub}
                       onPress={() =>
@@ -1764,7 +1764,7 @@ export default function NostrNotePage() {
                           ) : null}
                         </SSVStack>
                       </SSHStack>
-                    </TouchableOpacity>
+                    </SSPressable>
                     <SSVStack gap="xxs" style={styles.receiptAmountCol}>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
@@ -1843,7 +1843,7 @@ export default function NostrNotePage() {
 
             {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
-                <TouchableOpacity
+                <SSPressable
                   activeOpacity={0.6}
                   disabled={!npub}
                   onPress={() => {
@@ -1858,7 +1858,7 @@ export default function NostrNotePage() {
                   <SSText size="xs" color="muted" uppercase>
                     {t('nostrIdentity.note.replyingTo')}
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
                 {replyParentLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -1871,7 +1871,7 @@ export default function NostrNotePage() {
                     {t('nostrIdentity.note.parentNotOnRelays')}
                   </SSText>
                 ) : replyParentNoteLike ? (
-                  <TouchableOpacity
+                  <SSPressable
                     activeOpacity={0.6}
                     disabled={!npub}
                     style={styles.replyParentNoteRow}
@@ -1907,7 +1907,7 @@ export default function NostrNotePage() {
                         }
                       />
                     </View>
-                  </TouchableOpacity>
+                  </SSPressable>
                 ) : null}
               </SSVStack>
             ) : null}

@@ -13,7 +13,6 @@ import { CameraView, useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,6 +20,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -347,7 +347,7 @@ export default function CustomNetwork() {
                     selected={be === formData.backend}
                     onPress={() => updateField('backend', be)}
                   />
-                  <TouchableOpacity onPress={() => updateField('backend', be)}>
+                  <SSPressable onPress={() => updateField('backend', be)}>
                     <SSVStack gap="none" justifyBetween>
                       <SSText
                         style={{
@@ -362,7 +362,7 @@ export default function CustomNetwork() {
                         {t(`settings.network.server.description.${be}`)}
                       </SSText>
                     </SSVStack>
-                  </TouchableOpacity>
+                  </SSPressable>
                 </SSHStack>
               ))}
             </SSVStack>
@@ -386,7 +386,7 @@ export default function CustomNetwork() {
                           selected={protocol === formData.protocol}
                           onPress={() => updateField('protocol', protocol)}
                         />
-                        <TouchableOpacity
+                        <SSPressable
                           onPress={() => updateField('protocol', protocol)}
                         >
                           <SSText
@@ -398,7 +398,7 @@ export default function CustomNetwork() {
                           >
                             {t(`settings.network.server.protocol.${protocol}`)}
                           </SSText>
-                        </TouchableOpacity>
+                        </SSPressable>
                       </SSHStack>
                     ))}
                   </SSHStack>

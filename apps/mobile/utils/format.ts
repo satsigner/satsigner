@@ -32,6 +32,7 @@ import {
   NPUB_TRUNCATE_CHARS_XS
 } from '@/constants/nostr'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { MS_PER_SECOND } from '@/constants/time'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -140,7 +141,7 @@ function formatNostrCardDate(unixSeconds: number): string {
   if (!unixSeconds) {
     return ''
   }
-  const d = new Date(unixSeconds * 1000)
+  const d = new Date(unixSeconds * MS_PER_SECOND)
   const dd = String(d.getDate()).padStart(2, '0')
   const mmm = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)
   const yyyy = String(d.getFullYear())
@@ -159,7 +160,7 @@ function formatDate(date: Date | string | number) {
 }
 
 function formatTimestamp(date: Date) {
-  return Math.floor(date.getTime() / 1000)
+  return Math.floor(date.getTime() / MS_PER_SECOND)
 }
 
 function formatPageUrl(path: string, params: PageParams) {
@@ -235,7 +236,7 @@ type TimeFromNow = [
 ]
 
 function formatTimeFromNow(milliseconds: number): TimeFromNow {
-  const seconds = milliseconds / 1000
+  const seconds = milliseconds / MS_PER_SECOND
   const minutes = seconds / 60
   const hours = minutes / 60
   const days = hours / 24

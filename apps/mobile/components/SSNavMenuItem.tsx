@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
 
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSNavMenuItemProps = {
@@ -31,7 +32,7 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
 
   const content = useMemo(
     () => (
-      <TouchableOpacity
+      <SSPressable
         activeOpacity={0.7}
         onPress={handlePress}
         style={[styles.touchable, { opacity }]}
@@ -44,7 +45,7 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
             {item.title}
           </SSText>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
     ),
     [focused, handlePress, item, opacity]
   )

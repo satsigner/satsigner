@@ -3,11 +3,22 @@
 // logic is exercised without native BDK.
 jest.mock<typeof import('@/api/bdk')>('@/api/bdk', () => ({
   getWalletData: jest.fn(),
-  getWalletOverview: jest.fn(),
   syncWallet: jest.fn()
 }))
+jest.mock<typeof import('@/api/bdkWalletMappers')>(
+  '@/api/bdkWalletMappers',
+  () => ({
+    appendAddressAtIndex: jest.fn(),
+    getWalletAddresses: jest.fn(),
+    getWalletOverview: jest.fn(),
+    maxCoreKeychainIndex: jest.fn(),
+    revealKnownAddresses: jest.fn(),
+    toAppNetwork: jest.fn()
+  })
+)
 
-import { getWalletData, getWalletOverview, syncWallet } from '@/api/bdk'
+import { getWalletData, syncWallet } from '@/api/bdk'
+import { getWalletOverview } from '@/api/bdkWalletMappers'
 import {
   CLOWN_ACCOUNT_NAME,
   clownSignetWalletSeed,

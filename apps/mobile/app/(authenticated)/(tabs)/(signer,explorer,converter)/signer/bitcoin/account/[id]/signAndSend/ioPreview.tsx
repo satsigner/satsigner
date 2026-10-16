@@ -10,12 +10,7 @@ import {
 } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  type LayoutChangeEvent,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -36,6 +31,7 @@ import SSFeeRateChart, {
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
+import SSPressable from '@/components/SSPressable'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -1486,7 +1482,7 @@ export default function IOPreview() {
                 style={{ marginBottom: Layout.vStack.gap.sm }}
               >
                 {!loadHistory ? (
-                  <TouchableOpacity onPress={handleLoadHistory}>
+                  <SSPressable onPress={handleLoadHistory}>
                     <SSHStack gap="xs">
                       <SSHStack gap="xxs">
                         <SSIconChevronLeft
@@ -1504,12 +1500,12 @@ export default function IOPreview() {
                         {t('transaction.loadHistory').toUpperCase()}
                       </SSText>
                     </SSHStack>
-                  </TouchableOpacity>
+                  </SSPressable>
                 ) : (
                   <View />
                 )}
                 {payjoinInvoice ? (
-                  <TouchableOpacity
+                  <SSPressable
                     testID="send-payjoin-data"
                     onPress={handleOpenPayjoinData}
                   >
@@ -1530,7 +1526,7 @@ export default function IOPreview() {
                         />
                       </SSHStack>
                     </SSHStack>
-                  </TouchableOpacity>
+                  </SSPressable>
                 ) : null}
               </SSHStack>
             )}

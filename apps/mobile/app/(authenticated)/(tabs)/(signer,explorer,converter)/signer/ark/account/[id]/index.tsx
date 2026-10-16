@@ -24,6 +24,7 @@ import {
 } from '@/components/icons'
 import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
@@ -37,7 +38,6 @@ import SSModal from '@/components/SSModal'
 import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
 import SSSelectionActionBar from '@/components/SSSelectionActionBar'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
@@ -65,7 +65,7 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Layout, Sizes } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
 import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
@@ -686,32 +686,17 @@ export default function ArkAccountDetailPage() {
               {t('ark.balance.title')}
             </SSText>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              {privacyMode ? (
-                <SSText
-                  color="white"
-                  size={totalSize}
-                  weight="ultralight"
-                  style={{
-                    letterSpacing: -1,
-                    lineHeight: Sizes.text.fontSize[totalSize]
-                  }}
-                >
-                  {PRIVACY_MASK}
-                </SSText>
-              ) : (
-                <SSStyledSatText
-                  amount={total}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  currency={currencyUnit}
-                  textSize={totalSize}
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
-              )}
-              <SSText size="xl" color="muted">
-                {currencyUnit === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}
-              </SSText>
+              <SSAmountDisplay
+                privacyMode={privacyMode}
+                amount={total}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                currency={currencyUnit}
+                textSize={totalSize}
+                weight="ultralight"
+                letterSpacing={-1}
+                unitSize="xl"
+              />
             </SSHStack>
             {btcPrice > 0 && (
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>

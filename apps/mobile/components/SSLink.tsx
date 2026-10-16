@@ -1,9 +1,10 @@
 import * as WebBrowser from 'expo-web-browser'
-import { Platform, StyleSheet, TouchableOpacity } from 'react-native'
+import { Platform, StyleSheet } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 import { type TextFontSize } from '@/styles/sizes'
 
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSLinkProps = {
@@ -14,7 +15,7 @@ type SSLinkProps = {
 
 function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
   return (
-    <TouchableOpacity
+    <SSPressable
       activeOpacity={0.5}
       onPress={async () => await WebBrowser.openBrowserAsync(url)}
     >
@@ -23,7 +24,7 @@ function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
       >
         {text}
       </SSText>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

@@ -20,6 +20,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import SSIntroAnimation from '@/components/SSIntroAnimation'
+import { MS_PER_SECOND } from '@/constants/time'
 import { queryClient } from '@/lib/queryClient'
 import {
   getLastBackgroundTimestamp,
@@ -119,7 +120,7 @@ export default function RootLayout() {
       requiresAuth
     ) {
       const inactivityStartTime = getLastBackgroundTimestamp()
-      const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
+      const elapsed = (Date.now() - (inactivityStartTime || 0)) / MS_PER_SECOND
 
       if (elapsed >= lockDeltaTime) {
         setLockTriggered(true)
