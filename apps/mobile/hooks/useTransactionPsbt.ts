@@ -11,6 +11,7 @@ import { type Message, type Notice } from '@/types/ui/notice'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   createMockPsbt,
+  createPlaceholderTransactionId,
   type ExtractedTransactionData,
   extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
@@ -132,7 +133,7 @@ export function useTransactionPsbt({
     } catch {
       setIsLoadingPSBT(false)
       onNotice({ key: 'common.error.processPSBT', type: 'error' })
-      setTransactionId(createErrorTransactionId())
+      setTransactionId(createPlaceholderTransactionId('ERROR'))
     }
   }
 
@@ -338,10 +339,6 @@ export function useTransactionPsbt({
     serializedPsbt,
     transactionId
   }
-}
-
-function createErrorTransactionId() {
-  return `PSBT-ERROR-${Date.now().toString(36)}`
 }
 
 // Dust failures get a dedicated message; other build errors show the

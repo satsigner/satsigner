@@ -2,6 +2,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type Account, type Key } from '@/types/models/Account'
 import {
+  createPlaceholderTransactionId,
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
@@ -486,5 +487,14 @@ describe('readPartiallySignedPsbt', () => {
   it('is null for unsigned or unreadable data', () => {
     expect(readPartiallySignedPsbt(buildPsbt().toBase64())).toBeNull()
     expect(readPartiallySignedPsbt('not-a-psbt')).toBeNull()
+  })
+})
+
+describe('createPlaceholderTransactionId', () => {
+  it('prefixes the id with PSBT and the optional tag', () => {
+    expect(createPlaceholderTransactionId()).toMatch(/^PSBT-[0-9a-z]+$/)
+    expect(createPlaceholderTransactionId('ERROR')).toMatch(
+      /^PSBT-ERROR-[0-9a-z]+$/
+    )
   })
 })

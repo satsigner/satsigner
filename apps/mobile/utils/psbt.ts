@@ -1199,10 +1199,17 @@ export function hasEnoughSignatures(input: PsbtInputWithSignatures) {
   return (input.partialSig?.length ?? 0) >= parsed.threshold
 }
 
+// A unique id shown in place of a txid that could not be read, e.g.
+// `PSBT-lq2x9k` or, with a `tag`, `PSBT-ERROR-lq2x9k`.
+export function createPlaceholderTransactionId(tag?: string) {
+  return ['PSBT', tag, Date.now().toString(36)].filter(Boolean).join('-')
+}
+
 // The PSBT's txid, or a unique placeholder id when it cannot be extracted.
 export function generateTransactionId(psbtBase64: string) {
-  const extractedTxid = extractTransactionIdFromPSBT(psbtBase64)
-  return extractedTxid || `PSBT-${Date.now().toString(36)}`
+  return (
+    extractTransactionIdFromPSBT(psbtBase64) || createPlaceholderTransactionId()
+  )
 }
 
 // Maps each PSBT input pubkey to the index of the account key (cosigner)
