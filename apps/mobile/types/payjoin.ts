@@ -219,7 +219,6 @@ export type {
   PayjoinSession,
   PayjoinSessionStatus,
   PayjoinSessionStore,
-  PayjoinSettings,
   PayjoinUriParams,
   PayjoinWalletCallbacks,
   ProcessResult,
