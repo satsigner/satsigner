@@ -37,6 +37,9 @@ export function useAccountPublicKeys(
 ) {
   return useQuery({
     enabled: Boolean(account),
+    // Drop the keys on unmount, like component state did, so a wiped or
+    // re-keyed account never shows stale data.
+    gcTime: 0,
     queryFn: () => {
       if (!account) {
         throw new Error('Account is required')
