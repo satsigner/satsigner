@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
-import { decryptAccountKeysOrFallback } from '@/api/decryption'
 import { type Account, type Key } from '@/types/models/Account'
+import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 const NO_KEYS: Key[] = []
 

@@ -1,12 +1,12 @@
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
-import { decryptAccountKeysOrFallback } from '@/api/decryption'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import { type Account, type Key } from '@/types/models/Account'
+import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
-jest.mock<Partial<typeof import('@/api/decryption')>>(
-  '@/api/decryption',
+jest.mock<Partial<typeof import('@/utils/decryption')>>(
+  '@/utils/decryption',
   () => ({ decryptAccountKeysOrFallback: jest.fn() })
 )
 
