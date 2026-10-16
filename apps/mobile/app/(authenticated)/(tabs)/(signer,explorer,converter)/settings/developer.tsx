@@ -122,6 +122,8 @@ export default function Developer() {
         excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
+        // branta_payees stay on the device. The payee name is already in
+        // labels when that setting is on.
         labels: account.labels,
         name: account.name,
         network: account.network,

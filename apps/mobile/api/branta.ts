@@ -10,13 +10,15 @@ import { sha256 } from '@noble/hashes/sha2'
 import { randomBytes } from '@noble/hashes/utils'
 import Constants from 'expo-constants'
 
+import { BRANTA_LOOKUP_TIMEOUT_MS } from '@/constants/branta'
+import { useSettingsStore } from '@/store/settings'
 import {
   type BrantaLookupSource,
   type BrantaPayee
 } from '@/types/models/Branta'
 import { toBrantaPayee } from '@/utils/brantaPayee'
+import { createBrantaTorFetch } from '@/utils/brantaTorFetch'
 
-const BRANTA_LOOKUP_TIMEOUT_MS = 8000
 const QR_URI_PATTERN = /^(bitcoin|lightning):/i
 
 type BrantaLookupClient = Pick<
@@ -25,6 +27,7 @@ type BrantaLookupClient = Pick<
 >
 
 let service: BrantaService | undefined
+let serviceKey = ''
 
 function isProductionBranta(extra: unknown): boolean {
   if (!extra || typeof extra !== 'object') {
@@ -49,16 +52,21 @@ function brantaServerBaseUrl() {
  * every other build uses staging.
  */
 function getBrantaService(): BrantaService {
-  if (!service) {
+  const torEnabled = useSettingsStore.getState().brantaTorEnabled
+  const baseUrl = brantaServerBaseUrl()
+  const key = `${baseUrl}:${torEnabled}`
+  if (!service || serviceKey !== key) {
     service = new BrantaService(
       {
-        baseUrl: brantaServerBaseUrl(),
+        baseUrl,
         privacy: PrivacyMode.Strict
       },
       {
-        crypto: createNobleCryptoProvider({ gcm, hmac, randomBytes, sha256 })
+        crypto: createNobleCryptoProvider({ gcm, hmac, randomBytes, sha256 }),
+        ...(torEnabled ? { fetchImpl: createBrantaTorFetch() } : {})
       }
     )
+    serviceKey = key
   }
   return service
 }
@@ -80,12 +88,18 @@ function usesQrLookup(input: string, source: BrantaLookupSource): boolean {
 async function lookupBrantaPayee(
   input: string,
   source: BrantaLookupSource,
-  client: BrantaLookupClient = getBrantaService()
+  client?: BrantaLookupClient
 ): Promise<BrantaPayee | null> {
+  if (!useSettingsStore.getState().brantaLookupEnabled) {
+    return null
+  }
+
   const trimmed = input.trim()
   if (!trimmed) {
     return null
   }
+
+  const lookupClient = client ?? getBrantaService()
 
   const controller = new AbortController()
   const timer = setTimeout(() => {
@@ -94,8 +108,12 @@ async function lookupBrantaPayee(
 
   try {
     const result = usesQrLookup(trimmed, source)
-      ? await client.getPaymentsByQrCode(trimmed, undefined, controller.signal)
-      : await client.getPayments(
+      ? await lookupClient.getPaymentsByQrCode(
+          trimmed,
+          undefined,
+          controller.signal
+        )
+      : await lookupClient.getPayments(
           trimmed,
           undefined,
           undefined,

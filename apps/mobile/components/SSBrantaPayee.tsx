@@ -1,12 +1,15 @@
 import { Image } from 'expo-image'
 import * as WebBrowser from 'expo-web-browser'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type BrantaPayee } from '@/types/models/Branta'
+import { brantaHttpsUrl, brantaLogoUrl } from '@/utils/brantaUrl'
 
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSBrantaPayeeProps = {
@@ -17,20 +20,36 @@ type SSBrantaPayeeProps = {
 const LOGO_SIZE = 44
 const PARENT_LOGO_SIZE = 16
 
+function openBrantaVerify(url: string) {
+  void WebBrowser.openBrowserAsync(url)
+}
+
 function SSBrantaPayee({ payee, interactive = true }: SSBrantaPayeeProps) {
+  const torEnabled = useSettingsStore((state) => state.brantaTorEnabled)
+  const logoUrl = brantaLogoUrl(payee.logoUrl, torEnabled)
+  const parentLogoUrl = brantaLogoUrl(payee.parentLogoUrl, torEnabled)
+  const verifyUrl = torEnabled ? undefined : brantaHttpsUrl(payee.verifyUrl)
+
+  function handlePress() {
+    if (!verifyUrl) {
+      return
+    }
+    openBrantaVerify(verifyUrl)
+  }
+
   const body = (
     <SSHStack gap="sm" style={styles.row}>
-      {payee.logoUrl ? (
+      {logoUrl ? (
         <View>
           <Image
             contentFit="contain"
-            source={{ uri: payee.logoUrl }}
+            source={{ uri: logoUrl }}
             style={styles.logo}
           />
-          {payee.parentLogoUrl ? (
+          {parentLogoUrl ? (
             <Image
               contentFit="contain"
-              source={{ uri: payee.parentLogoUrl }}
+              source={{ uri: parentLogoUrl }}
               style={styles.parentLogo}
             />
           ) : null}
@@ -49,23 +68,20 @@ function SSBrantaPayee({ payee, interactive = true }: SSBrantaPayeeProps) {
     </SSHStack>
   )
 
-  if (!interactive) {
+  if (!interactive || !verifyUrl) {
     return <View style={styles.card}>{body}</View>
   }
 
   return (
-    <TouchableOpacity
+    <SSPressable
       accessibilityRole="link"
       accessibilityLabel={payee.name}
-      activeOpacity={0.7}
-      onPress={() => {
-        void WebBrowser.openBrowserAsync(payee.verifyUrl)
-      }}
+      onPress={handlePress}
       style={styles.card}
       testID="branta-payee"
     >
       {body}
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

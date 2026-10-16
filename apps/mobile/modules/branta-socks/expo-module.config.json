@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["BrantaSocksModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.brantasocks.BrantaSocksModule"]
+  }
+}

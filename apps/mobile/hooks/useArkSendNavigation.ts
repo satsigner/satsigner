@@ -2,7 +2,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 
-import { lookupBrantaPayee } from '@/api/branta'
 import { t } from '@/locales'
 import { type ArkDestinationDraft } from '@/types/models/Ark'
 import { type BrantaLookupSource } from '@/types/models/Branta'
@@ -23,7 +22,11 @@ export function useArkSendNavigation(accountId: string | undefined) {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  function goToConfirm(cleanedDestination: string, draft: ArkDestinationDraft) {
+  function goToConfirm(
+    cleanedDestination: string,
+    draft: ArkDestinationDraft,
+    source: BrantaLookupSource = 'paste'
+  ) {
     if (!accountId) {
       return
     }
@@ -32,7 +35,11 @@ export function useArkSendNavigation(accountId: string | undefined) {
       draft
     )
     router.navigate({
-      params: { destination: cleanedDestination, id: accountId },
+      params: {
+        brantaSource: source,
+        destination: cleanedDestination,
+        id: accountId
+      },
       pathname: '/signer/ark/account/[id]/send/confirm'
     })
   }
@@ -60,16 +67,12 @@ export function useArkSendNavigation(accountId: string | undefined) {
       goToLnurlWithdraw(trimmed)
       return true
     }
-    const [parsed, payee] = await Promise.all([
-      parseArkDestination(trimmed),
-      lookupBrantaPayee(trimmed, source)
-    ])
+    const parsed = await parseArkDestination(trimmed)
     if (!parsed.ok) {
       toast.error(t('ark.send.error.invalidDestination'))
       return false
     }
-    queryClient.setQueryData(['branta', 'payee', trimmed], payee)
-    goToConfirm(trimmed, parsed.draft)
+    goToConfirm(trimmed, parsed.draft, source)
     return true
   }
 

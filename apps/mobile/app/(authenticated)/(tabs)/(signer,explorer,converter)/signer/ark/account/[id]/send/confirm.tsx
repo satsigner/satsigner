@@ -15,6 +15,7 @@ import {
   ARK_KIND_LABEL_KEYS
 } from '@/constants/ark'
 import { lookupBrantaPayee } from '@/api/branta'
+import { useSettingsStore } from '@/store/settings'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
@@ -33,7 +34,10 @@ import type {
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
-import { type BrantaPayee } from '@/types/models/Branta'
+import {
+  type BrantaLookupSource,
+  type BrantaPayee
+} from '@/types/models/Branta'
 import { arkSendFeeRequest } from '@/utils/ark'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
@@ -44,12 +48,24 @@ import { validateAddress } from '@/utils/validation'
 
 import { ArkInvoiceStats, styles } from '../../[id]/pay-invoice'
 
+function brantaLookupSource(
+  value: string | string[] | undefined
+): BrantaLookupSource {
+  const source = Array.isArray(value) ? value[0] : value
+  return source === 'qr' ? 'qr' : 'paste'
+}
+
 export default function ArkSendConfirmPage() {
   const router = useRouter()
-  const { id, destination } = useLocalSearchParams<{
-    id: string
+  const { brantaSource, destination, id } = useLocalSearchParams<{
+    brantaSource?: string
     destination: string
+    id: string
   }>()
+  const brantaLookupEnabled = useSettingsStore(
+    (state) => state.brantaLookupEnabled
+  )
+  const source = brantaLookupSource(brantaSource)
 
   const parsedQuery = useQuery<ArkDestinationDraft>({
     enabled: Boolean(destination),
@@ -65,9 +81,9 @@ export default function ArkSendConfirmPage() {
   })
 
   const payeeQuery = useQuery<BrantaPayee | null>({
-    enabled: Boolean(destination),
-    queryFn: () => lookupBrantaPayee(destination ?? '', 'paste'),
-    queryKey: ['branta', 'payee', destination],
+    enabled: Boolean(destination) && brantaLookupEnabled,
+    queryFn: () => lookupBrantaPayee(destination ?? '', source),
+    queryKey: ['branta', 'payee', destination, source],
     staleTime: Infinity
   })
 

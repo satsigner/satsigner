@@ -387,6 +387,8 @@ export default function IOPreview() {
     payee: brantaPayee,
     settled: settledBrantaPayee
   } = useBrantaPayeeLookup()
+  const addingOutputRef = useRef(false)
+  const [savingOutput, setSavingOutput] = useState(false)
   const [dustErrorOverride, setDustErrorOverride] = useState(
     dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
   )
@@ -764,24 +766,34 @@ export default function IOPreview() {
       return
     }
 
-    const resolvedPayee = await settledBrantaPayee()
-    const output = {
-      amount: outputAmount,
-      branta: resolvedPayee ?? undefined,
-      kind: existing?.kind,
-      label: outputLabel,
-      to: stripBitcoinPrefix(outputTo)
+    if (addingOutputRef.current) {
+      return
     }
+    addingOutputRef.current = true
+    setSavingOutput(true)
+    try {
+      const resolvedPayee = await settledBrantaPayee()
+      const output = {
+        amount: outputAmount,
+        branta: resolvedPayee ?? undefined,
+        kind: existing?.kind,
+        label: outputLabel,
+        to: stripBitcoinPrefix(outputTo)
+      }
 
-    if (outputIndex === -1) {
-      addOutput(output)
-    } else {
-      updateOutput(outputs[outputIndex].localId, output)
+      if (outputIndex === -1) {
+        addOutput(output)
+      } else {
+        updateOutput(outputs[outputIndex].localId, output)
+      }
+
+      setOutputsCount((prev: number) => prev + 1)
+      setAddOutputModalVisible(false)
+      resetLocalOutput()
+    } finally {
+      addingOutputRef.current = false
+      setSavingOutput(false)
     }
-
-    setOutputsCount((prev: number) => prev + 1)
-    setAddOutputModalVisible(false)
-    resetLocalOutput()
   }
 
   function handleRemoveOutput() {
@@ -1722,7 +1734,9 @@ export default function IOPreview() {
                     label={t('transaction.build.save.output.title')}
                     variant="secondary"
                     style={{ flex: 1 }}
-                    disabled={!outputTo || !outputAmount || !outputLabel}
+                    disabled={
+                      !outputTo || !outputAmount || !outputLabel || savingOutput
+                    }
                     onPress={handleAddOutput}
                   />
                 </SSHStack>

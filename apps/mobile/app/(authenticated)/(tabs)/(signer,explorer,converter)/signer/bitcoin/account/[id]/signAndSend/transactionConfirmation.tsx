@@ -16,6 +16,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
@@ -23,6 +24,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
+  labelWithPayeeName,
   paymentHistoryLabel,
   selectTransactionPayee
 } from '@/utils/brantaPayee'
@@ -123,8 +125,15 @@ export default function TransactionConfirmation() {
   }
 
   const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
+  const brantaLabelSyncEnabled = useSettingsStore(
+    (state) => state.brantaLabelSyncEnabled
+  )
 
-  const txLabelText = paymentHistoryLabel(outputs, defaultChangeAddressLabel)
+  const txLabelText = paymentHistoryLabel(
+    outputs,
+    defaultChangeAddressLabel,
+    brantaLabelSyncEnabled
+  )
 
   // we store the labels in account.labels, then later on the labels will be
   // restored when the wallet data is fetched.
@@ -142,16 +151,19 @@ export default function TransactionConfirmation() {
         }
 
         const vout = i
+        const label = brantaLabelSyncEnabled
+          ? labelWithPayeeName(output.label, output.branta?.name ?? '')
+          : output.label
 
         const outputRef = `${txid}:${vout}`
         labels.push({
-          label: output.label,
+          label,
           ref: outputRef,
           type: 'output'
         })
 
         labels.push({
-          label: output.label,
+          label,
           ref: output.to,
           type: 'addr'
         })
@@ -187,7 +199,15 @@ export default function TransactionConfirmation() {
 
       importLabels(id, labels)
     }
-  }, [id, psbt, outputs, importLabels, defaultChangeAddressLabel, txLabelText])
+  }, [
+    brantaLabelSyncEnabled,
+    id,
+    psbt,
+    outputs,
+    importLabels,
+    defaultChangeAddressLabel,
+    txLabelText
+  ])
 
   // Optimistically update the account with the just-broadcast transaction so
   // the user sees it immediately without waiting for a full sync.
@@ -198,16 +218,25 @@ export default function TransactionConfirmation() {
 
     const txid = psbt.txid()
     const branta = selectTransactionPayee(outputs)
-    if (branta) {
-      saveBrantaPayee(id, txid, branta)
+    try {
+      if (branta) {
+        saveBrantaPayee(id, txid, branta)
+      }
+    } catch {
+      // The payee row is display-only. A failed write must not skip history.
     }
 
-    // Idempotent — skip if sync already added it. Saving the payee first
-    // lets a reload attach the logo after the chain record replaces the draft.
+    // Idempotent — skip if sync already added it. Attach the payee on the
+    // in-memory transaction before saving so a reload can still show it.
     const existing = account.transactions.find((tx) => tx.id === txid)
     if (existing) {
       if (branta && !existing.branta) {
-        updateAccount(account)
+        updateAccount({
+          ...account,
+          transactions: account.transactions.map((transaction) =>
+            transaction.id === txid ? { ...transaction, branta } : transaction
+          )
+        })
       }
       return
     }
@@ -255,7 +284,9 @@ export default function TransactionConfirmation() {
       vout: outputs.map((output) => ({
         address: output.to,
         kind: output.kind,
-        label: output.label,
+        label: brantaLabelSyncEnabled
+          ? labelWithPayeeName(output.label, output.branta?.name ?? '')
+          : output.label,
         script: '',
         value: output.amount
       }))

@@ -1,9 +1,10 @@
 import { lookupBrantaPayee } from '@/api/branta'
+import { useSettingsStore } from '@/store/settings'
 import { type BrantaPayee } from '@/types/models/Branta'
 
 const payee: BrantaPayee = {
   description: 'March invoice',
-  logoUrl: 'https://example.com/logo.png',
+  logoUrl: 'https://guardrail.branta.pro/logo.png',
   name: 'Acme',
   verifyUrl: 'https://guardrail.branta.pro/v2/verify/abc'
 }
@@ -11,7 +12,7 @@ const payee: BrantaPayee = {
 const payment = {
   description: 'March invoice',
   platform: 'Acme',
-  platformLogoUrl: 'https://example.com/logo.png'
+  platformLogoUrl: 'https://guardrail.branta.pro/logo.png'
 }
 
 function clientWith(result: { payments: unknown[]; verifyUrl: string }) {
@@ -22,6 +23,33 @@ function clientWith(result: { payments: unknown[]; verifyUrl: string }) {
 }
 
 describe('lookupBrantaPayee', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ brantaLookupEnabled: true })
+  })
+
+  afterEach(() => {
+    useSettingsStore.setState({
+      brantaLabelSyncEnabled: false,
+      brantaLookupEnabled: false,
+      brantaTorEnabled: false
+    })
+  })
+
+  it('does not contact Branta while lookup is off', async () => {
+    useSettingsStore.setState({ brantaLookupEnabled: false })
+    const client = clientWith({
+      payments: [payment],
+      verifyUrl: payee.verifyUrl
+    })
+
+    await expect(
+      lookupBrantaPayee('bc1qexample', 'paste', client)
+    ).resolves.toBeNull()
+
+    expect(client.getPayments).not.toHaveBeenCalled()
+    expect(client.getPaymentsByQrCode).not.toHaveBeenCalled()
+  })
+
   it('does not call Branta for an empty destination', async () => {
     const client = clientWith({ payments: [], verifyUrl: '' })
 

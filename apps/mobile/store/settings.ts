@@ -23,6 +23,12 @@ import { normalizePayjoinSessionTtlMs } from '@/utils/payjoinTtl'
 type FiatPriceProvider = 'custom' | 'mempool'
 
 type SettingsState = {
+  /** When true, payee names are written into transaction, output, and change labels. */
+  brantaLabelSyncEnabled: boolean
+  /** When true, scan and paste may contact Branta. Off by default. */
+  brantaLookupEnabled: boolean
+  /** When true, Branta lookups use Orbot and do not use the clearnet. */
+  brantaTorEnabled: boolean
   mnemonicWordList: WordListName
   useZeroPadding: boolean
   currencyUnit: 'sats' | 'btc'
@@ -46,6 +52,15 @@ type SettingsState = {
 }
 
 type SettingsAction = {
+  setBrantaLabelSyncEnabled: (
+    brantaLabelSyncEnabled: SettingsState['brantaLabelSyncEnabled']
+  ) => void
+  setBrantaLookupEnabled: (
+    brantaLookupEnabled: SettingsState['brantaLookupEnabled']
+  ) => void
+  setBrantaTorEnabled: (
+    brantaTorEnabled: SettingsState['brantaTorEnabled']
+  ) => void
   setCurrencyUnit: (currencyUnit: SettingsState['currencyUnit']) => void
   setUseZeroPadding: (useZeroPadding: SettingsState['useZeroPadding']) => void
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
@@ -110,6 +125,9 @@ function migrateFiatPriceSettings(
 const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
+      brantaLabelSyncEnabled: false,
+      brantaLookupEnabled: false,
+      brantaTorEnabled: false,
       currencyUnit: 'sats',
       defaultAutoSelectUtxos: 'privacy',
       fetchCurrentPrices: true,
@@ -123,6 +141,15 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       payjoinEnabled: true,
       payjoinSessionTtlMs: PAYJOIN_SESSION_TTL_MS,
       privacyMode: false,
+      setBrantaLabelSyncEnabled: (brantaLabelSyncEnabled) => {
+        set({ brantaLabelSyncEnabled })
+      },
+      setBrantaLookupEnabled: (brantaLookupEnabled) => {
+        set({ brantaLookupEnabled })
+      },
+      setBrantaTorEnabled: (brantaTorEnabled) => {
+        set({ brantaTorEnabled })
+      },
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
       },

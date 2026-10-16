@@ -1,6 +1,7 @@
 import { type BrantaPayee } from '@/types/models/Branta'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
+import { brantaHttpsUrl } from '@/utils/brantaUrl'
 
 type BrantaPaymentLike = {
   description?: string
@@ -38,20 +39,40 @@ function toBrantaPayee(result: BrantaPaymentsLike): BrantaPayee | null {
   }
 
   const name = trimmed(payment.platform)
-  const verifyUrl = trimmed(result.verifyUrl)
+  const verifyUrl = brantaHttpsUrl(result.verifyUrl)
   if (!name || !verifyUrl) {
     return null
   }
 
-  const parentLogoUrl = trimmed(payment.parentPlatform?.logoUrl)
+  const parentLogoUrl = brantaHttpsUrl(payment.parentPlatform?.logoUrl)
+  const logoUrl = brantaHttpsUrl(payment.platformLogoUrl) ?? ''
 
   return {
     description: trimmed(payment.description),
-    logoUrl: trimmed(payment.platformLogoUrl),
+    logoUrl,
     name,
     ...(parentLogoUrl ? { parentLogoUrl } : {}),
     verifyUrl
   }
+}
+
+function labelWithPayeeName(label: string, payeeName: string): string {
+  const trimmedLabel = label.trim()
+  const trimmedName = payeeName.trim()
+  if (!trimmedName) {
+    return trimmedLabel
+  }
+  if (!trimmedLabel) {
+    return trimmedName
+  }
+  if (
+    trimmedLabel.localeCompare(trimmedName, undefined, {
+      sensitivity: 'accent'
+    }) === 0
+  ) {
+    return trimmedLabel
+  }
+  return `${trimmedLabel},${trimmedName}`
 }
 
 function isRecipientOutput(output: LabeledOutput): boolean {
@@ -74,17 +95,23 @@ function selectTransactionPayee(
 }
 
 /**
- * History already indexes the transaction label. The payee name is included
- * so a past payment can be found by the counterparty, not only an address.
+ * History indexes the transaction label. The payee name is added only when
+ * the label setting is on, so Nostr label sync and the encrypted backup
+ * carry it through the labels that already leave the device.
  */
 function paymentHistoryLabel(
   outputs: LabeledOutput[],
-  changeLabel: string
+  changeLabel: string,
+  includePayeeName = false
 ): string {
   const labels = outputs
     .filter((output) => output.label !== changeLabel)
     .map((output) => output.label.trim())
     .filter(Boolean)
+
+  if (!includePayeeName) {
+    return labels.join(',')
+  }
 
   for (const payee of payeesFromOutputs(outputs)) {
     const alreadyPresent = labels.some(
@@ -116,6 +143,7 @@ function attachBrantaPayees(
 
 export {
   attachBrantaPayees,
+  labelWithPayeeName,
   paymentHistoryLabel,
   payeesFromOutputs,
   selectTransactionPayee,
