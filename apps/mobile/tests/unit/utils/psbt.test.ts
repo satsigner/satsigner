@@ -431,6 +431,16 @@ describe('bindScannedDataToPsbt', () => {
     expect(bindScannedDataToPsbt(tx.toHex(), psbtBase64, convert)).toBeNull()
   })
 
+  it('accepts a matching transaction pasted with a trailing newline', () => {
+    expect(
+      bindScannedDataToPsbt(`${unsignedTxHex}\n`, psbtBase64, convert)
+    ).toBe(unsignedTxHex)
+  })
+
+  it('rejects data that is neither a PSBT nor a transaction', () => {
+    expect(bindScannedDataToPsbt('hello', psbtBase64, convert)).toBeNull()
+  })
+
   it('binds a base64 PSBT like a hex one', () => {
     expect(bindScannedDataToPsbt(psbtBase64, psbtBase64, convert)).toBe(
       `final:${psbt.toHex()}`

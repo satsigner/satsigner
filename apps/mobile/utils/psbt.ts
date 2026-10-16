@@ -1305,15 +1305,15 @@ export function combineAndFinalizePsbts(
 // Binds scanned or pasted data (hex or base64 PSBT, or raw transaction hex)
 // to the PSBT under review. A PSBT is combined with it via
 // `convertPsbtToFinalTransaction` (which throws on mismatch); a raw transaction
-// must spend and pay exactly what the PSBT does. Returns null when the data
-// does not match, so a swapped QR/clipboard/NFC tag cannot substitute what
-// gets broadcast.
+// must spend and pay exactly what the PSBT does; anything else is rejected.
+// Returns null when the data does not match, so a swapped QR/clipboard/NFC tag
+// cannot substitute what gets broadcast.
 export function bindScannedDataToPsbt(
   data: string,
   originalPsbtBase64: string | undefined,
   convertPsbtToFinalTransaction: (psbtHex: string) => string
 ) {
-  const processedData = psbtBase64ToHex(stripBitcoinPrefix(data))
+  const processedData = psbtBase64ToHex(stripBitcoinPrefix(data.trim()))
 
   if (processedData.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return originalPsbtBase64
@@ -1321,9 +1321,12 @@ export function bindScannedDataToPsbt(
       : processedData
   }
 
+  if (!originalPsbtBase64) {
+    return processedData
+  }
+
   if (
-    originalPsbtBase64 &&
-    HEX_PATTERN.test(processedData) &&
+    !HEX_PATTERN.test(processedData) ||
     !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
   ) {
     return null
