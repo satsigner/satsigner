@@ -91,8 +91,8 @@ function createBbqrPsbtChunksOrEmpty(
   }
 }
 
-// Encodes a base64 PSBT in every QR export format. The decoded PSBT bytes are
-// zeroed once encoded.
+// Encodes a base64 PSBT in every QR export format. Only the decoded byte copy
+// used for BBQR is zeroed; the base64 string and the chunks stay in memory.
 export function createPsbtQrChunks(
   psbtBase64: string,
   complexity: number
