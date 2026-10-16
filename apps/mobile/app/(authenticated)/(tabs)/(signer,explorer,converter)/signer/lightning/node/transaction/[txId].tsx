@@ -24,7 +24,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
+import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
   LNDInvoice,
@@ -32,7 +32,6 @@ import type {
   LNDPayment,
   LNDGraphNodeInfo
 } from '@/types/models/Lightning'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice, formatLnKey, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 

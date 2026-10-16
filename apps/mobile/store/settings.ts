@@ -224,4 +224,17 @@ function getResolvedPayjoinDirectoryUrl(): string {
   )
 }
 
-export { getPayjoinSessionTtlMs, getResolvedPayjoinDirectoryUrl }
+/** Price API the app should call: the custom URL when set, else the default. */
+function getFiatPriceApiUrl() {
+  const { fiatPriceApiUrl, fiatPriceProvider } = useSettingsStore.getState()
+  if (fiatPriceProvider !== 'custom') {
+    return DEFAULT_FIAT_PRICE_API_URL
+  }
+  return normalizeFiatPriceApiUrl(fiatPriceApiUrl) || DEFAULT_FIAT_PRICE_API_URL
+}
+
+export {
+  getFiatPriceApiUrl,
+  getPayjoinSessionTtlMs,
+  getResolvedPayjoinDirectoryUrl
+}

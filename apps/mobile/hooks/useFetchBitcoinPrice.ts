@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { useFiatData } from '@/hooks/useFiatData'
 import { usePriceStore } from '@/store/price'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { getFiatPriceApiUrl } from '@/store/settings'
 
 export function useFetchBitcoinPrice() {
   const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()

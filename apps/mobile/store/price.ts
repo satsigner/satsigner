@@ -4,10 +4,9 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { MempoolOracle } from '@/api/blockchain'
 import { getLocalLatestPrices } from '@/api/localPrices'
 import mmkvStorage from '@/storage/mmkv'
-import { useSettingsStore } from '@/store/settings'
+import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
 import { satsToFiat } from '@/utils/fiat'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 
 const EMPTY_PRICES: Prices = {
   AUD: 0,
