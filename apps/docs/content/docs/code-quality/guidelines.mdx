@@ -89,12 +89,12 @@ Services are functions located under `@/services` that hold domain logic: they
 know what a wallet, a payjoin session or a server connection is, and combine
 API calls into one operation. They do not depend on React.
 
-| Layer       | Imports React? | Imports stores? | Does I/O?       | Knows the domain?    |
-| ----------- | -------------- | --------------- | --------------- | -------------------- |
-| `utils/`    | No             | No              | No              | No                   |
-| `api/`      | No             | No              | Yes             | Only the wire format |
-| `services/` | No             | No (injected)   | Via `api/`      | Yes                  |
-| `hooks/`    | Yes            | Yes             | Via `services/` | Yes                  |
+| Layer       | Imports React? | Imports stores? | Does I/O?                                  |
+| ----------- | -------------- | --------------- | ------------------------------------------ |
+| `utils/`    | No             | No              | No                                         |
+| `api/`      | No             | No              | Yes                                        |
+| `services/` | No             | No (injected)   | Via `api/`                                 |
+| `hooks/`    | Yes            | Yes             | Yes, prefer `services/` for multi-step I/O |
 
 They may:
 
