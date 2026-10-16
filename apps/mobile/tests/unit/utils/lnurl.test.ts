@@ -1,5 +1,6 @@
 import { bech32 } from 'bech32'
 
+import { HttpStatusError } from '@/utils/errors'
 import {
   fetchLNURLPayDetails,
   isLnurlWithdrawAmountInRange,
@@ -262,5 +263,31 @@ describe('requestLNURLPayInvoice response validation', () => {
     await expect(
       requestLNURLPayInvoice('https://service.example/cb', 1000)
     ).rejects.toThrow('no payment request received')
+  })
+})
+
+describe('lNURL HTTP errors', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('throws HttpStatusError when the pay endpoint is missing', async () => {
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('', { status: 404 }))
+
+    await expect(
+      fetchLNURLPayDetails('https://service.example/lnurlp/me')
+    ).rejects.toMatchObject({ name: 'HttpStatusError', status: 404 })
+  })
+
+  it('throws HttpStatusError when the invoice callback fails', async () => {
+    jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('gone', { status: 404 }))
+
+    await expect(
+      requestLNURLPayInvoice('https://service.example/cb', 1000)
+    ).rejects.toBeInstanceOf(HttpStatusError)
   })
 })
