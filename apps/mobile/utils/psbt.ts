@@ -12,7 +12,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 
 // OP_1..OP_16 encode small integers as opcode - OP_N_OFFSET.
 const OP_N_OFFSET = bitcoinjs.opcodes.OP_1 - 1
-// 64-byte schnorr up to 72-byte DER signature with sighash flag.
+// Length bounds a partial signature must fall within to count as present.
 const MIN_SIGNATURE_BYTES = 64
 const MAX_SIGNATURE_BYTES = 72
 
