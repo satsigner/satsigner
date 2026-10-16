@@ -9,8 +9,8 @@ type UseNostrShareTransactionParams = {
 }
 
 /**
- * Returns a handler that hands a PSBT (base64) to the account's nostr devices
- * group chat. The handler returns the i18n key of the reason it could not
+ * Returns a handler that hands a PSBT (base64) or signed transaction hex to
+ * the account's nostr devices group chat. The handler returns the i18n key of the reason it could not
  * share (auto-sync disabled, no PSBT), or null once it navigated.
  */
 export function useNostrShareTransaction({
