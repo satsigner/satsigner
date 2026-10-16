@@ -371,6 +371,21 @@ describe('bindScannedDataToPsbt', () => {
     tx.outs[0].value = 10
     expect(bindScannedDataToPsbt(tx.toHex(), psbtBase64, convert)).toBeNull()
   })
+
+  it('binds a base64 PSBT like a hex one', () => {
+    expect(bindScannedDataToPsbt(psbtBase64, psbtBase64, convert)).toBe(
+      `final:${psbt.toHex()}`
+    )
+  })
+
+  it('rejects a PSBT the conversion refuses as a mismatch', () => {
+    const throwingConvert = () => {
+      throw new Error('mismatch')
+    }
+    expect(
+      bindScannedDataToPsbt(psbt.toHex(), psbtBase64, throwingConvert)
+    ).toBeNull()
+  })
 })
 
 describe('buildPubkeyToCosignerIndex', () => {

@@ -6,6 +6,7 @@ import {
   HEX_PATTERN,
   MIN_MULTISIG_SCRIPT_LENGTH,
   OP_N_VALUE_OFFSET,
+  PSBT_MAGIC_BASE64,
   PSBT_MAGIC_HEX
 } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -1301,21 +1302,22 @@ export function combineAndFinalizePsbts(
   }
 }
 
-// Binds scanned or pasted data (hex PSBT or raw transaction hex) to the PSBT
-// under review. A hex PSBT is combined with it via `convertPsbtToFinalTransaction`
-// (which throws on mismatch); a raw transaction must spend and pay exactly
-// what the PSBT does. Returns null when the transaction does not match, so a
-// swapped QR/clipboard cannot substitute what gets broadcast.
+// Binds scanned or pasted data (hex or base64 PSBT, or raw transaction hex)
+// to the PSBT under review. A PSBT is combined with it via
+// `convertPsbtToFinalTransaction` (which throws on mismatch); a raw transaction
+// must spend and pay exactly what the PSBT does. Returns null when the data
+// does not match, so a swapped QR/clipboard/NFC tag cannot substitute what
+// gets broadcast.
 export function bindScannedDataToPsbt(
   data: string,
   originalPsbtBase64: string | undefined,
   convertPsbtToFinalTransaction: (psbtHex: string) => string
 ) {
-  const processedData = stripBitcoinPrefix(data)
+  const processedData = psbtBase64ToHex(stripBitcoinPrefix(data))
 
   if (processedData.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
     return originalPsbtBase64
-      ? convertPsbtToFinalTransaction(processedData)
+      ? convertOrNull(convertPsbtToFinalTransaction, processedData)
       : processedData
   }
 
@@ -1328,6 +1330,24 @@ export function bindScannedDataToPsbt(
   }
 
   return processedData
+}
+
+function psbtBase64ToHex(data: string) {
+  if (!data.startsWith(PSBT_MAGIC_BASE64)) {
+    return data
+  }
+  return Buffer.from(data, 'base64').toString('hex')
+}
+
+function convertOrNull(
+  convertPsbtToFinalTransaction: (psbtHex: string) => string,
+  psbtHex: string
+) {
+  try {
+    return convertPsbtToFinalTransaction(psbtHex)
+  } catch {
+    return null
+  }
 }
 
 // The txid of a built PSBT, or `fallback` when there is none or it can't be read.
