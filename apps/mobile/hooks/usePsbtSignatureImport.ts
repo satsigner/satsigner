@@ -3,14 +3,11 @@ import { useState } from 'react'
 
 import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { type Notice } from '@/types/ui/notice'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 type UsePsbtSignatureImportParams = {
-  /** The PSBT under review, hex encoded, for NFC export. */
-  serializedPsbt: string
   /** Binds data to the PSBT under review and stores it; false if rejected. */
   importSignedData: (cosignerIndex: number, data: string) => boolean
   /** Stores data for a cosigner as is (NFC reads are stored unbound). */
@@ -20,12 +17,10 @@ type UsePsbtSignatureImportParams = {
 }
 
 /**
- * Moves PSBTs in and out of the device for signing: exports the PSBT under
- * review over NFC, and imports signed PSBTs or transactions from the
+ * Imports signed PSBTs or transactions for the PSBT under review from the
  * clipboard, NFC or a scanned QR (a scanned SeedQR signs directly).
  */
 export function usePsbtSignatureImport({
-  serializedPsbt,
   importSignedData,
   storeSignedData,
   signWithMnemonic,
@@ -38,14 +33,7 @@ export function usePsbtSignatureImport({
     readNFCTag,
     cancelNFCScan
   } = useNFCReader()
-  const {
-    isEmitting,
-    emitNFCTag,
-    cancelNFCScan: cancelNFCEmitterScan
-  } = useNFCEmitter()
-  const [nfcExportModalVisible, setNfcExportModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
-  const [nfcErrorKey, setNfcErrorKey] = useState<string | null>(null)
 
   async function pasteFromClipboard(cosignerIndex: number) {
     const text = await pasteFromClipboardSilent()
@@ -89,32 +77,6 @@ export function usePsbtSignatureImport({
     onNotice({ key: 'common.success.qrScanned', type: 'success' })
   }
 
-  async function exportToNfc() {
-    if (isEmitting) {
-      await cancelNFCEmitterScan()
-      setNfcExportModalVisible(false)
-      setNfcErrorKey(null)
-      return
-    }
-
-    if (!serializedPsbt) {
-      onNotice({ key: 'error.psbt.notAvailable', type: 'error' })
-      return
-    }
-
-    setNfcExportModalVisible(true)
-    setNfcErrorKey(null)
-    try {
-      await emitNFCTag(serializedPsbt)
-      onNotice({ key: 'transaction.preview.nfcExported', type: 'success' })
-      setNfcExportModalVisible(false)
-    } catch {
-      // Keep the modal open so the error stays visible until dismissed.
-      setNfcErrorKey('nfc.error.writeFailed')
-      onNotice({ key: 'nfc.error.writeFailed', type: 'error' })
-    }
-  }
-
   async function importFromNfc(cosignerIndex: number) {
     if (isReading) {
       await cancelNFCScan()
@@ -141,14 +103,6 @@ export function usePsbtSignatureImport({
     }
   }
 
-  function closeNfcExportModal() {
-    setNfcExportModalVisible(false)
-    setNfcErrorKey(null)
-    if (isEmitting) {
-      cancelNFCEmitterScan()
-    }
-  }
-
   function closeNfcScanModal() {
     setNfcScanModalVisible(false)
     if (isReading) {
@@ -157,16 +111,11 @@ export function usePsbtSignatureImport({
   }
 
   return {
-    closeNfcExportModal,
     closeNfcScanModal,
-    exportToNfc,
     handleScannedContent,
     importFromNfc,
-    isEmitting,
     isNfcSupported,
     isReading,
-    nfcErrorKey,
-    nfcExportModalVisible,
     nfcScanModalVisible,
     pasteFromClipboard
   }

@@ -26,6 +26,7 @@ import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import { useNfcPulse } from '@/hooks/useNfcPulse'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
+import { usePsbtNfcExport } from '@/hooks/usePsbtNfcExport'
 import { usePsbtSignatureImport } from '@/hooks/usePsbtSignatureImport'
 import { useSeedSigning } from '@/hooks/useSeedSigning'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
@@ -71,9 +72,10 @@ type CosignerSignatures = ReturnType<typeof useCosignerSignatures>
 type SeedSigning = ReturnType<typeof useSeedSigning>
 
 type NfcModalProps = {
-  nfcErrorKey: string | null
-  nfcPulseStyle: ReturnType<typeof useNfcPulse>
+  errorKey: string | null
   onClose: () => void
+  pulseStyle: ReturnType<typeof useNfcPulse>
+  statusLabel: string
   visible: boolean
 }
 
@@ -140,25 +142,26 @@ function PreviewTransaction() {
   })
 
   const {
-    closeNfcExportModal,
     closeNfcScanModal,
-    exportToNfc,
     handleScannedContent,
     importFromNfc,
-    isEmitting,
     isNfcSupported,
     isReading,
-    nfcErrorKey,
-    nfcExportModalVisible,
     nfcScanModalVisible,
     pasteFromClipboard
   } = usePsbtSignatureImport({
     importSignedData,
     onNotice: showNotice,
-    serializedPsbt,
     signWithMnemonic,
     storeSignedData: updateSignedPsbt
   })
+  const {
+    closeNfcExportModal,
+    exportToNfc,
+    isEmitting,
+    nfcErrorKey,
+    nfcExportModalVisible
+  } = usePsbtNfcExport({ onNotice: showNotice, serializedPsbt })
   const nfcPulseStyle = useNfcPulse(
     nfcExportModalVisible || nfcScanModalVisible
   )
@@ -371,16 +374,18 @@ function PreviewTransaction() {
   }
 
   const propsNfcEmitModal = {
-    nfcErrorKey,
-    nfcPulseStyle,
+    errorKey: nfcErrorKey,
     onClose: closeNfcExportModal,
+    pulseStyle: nfcPulseStyle,
+    statusLabel: t('transaction.preview.emittingNFC'),
     visible: nfcExportModalVisible
   }
 
   const propsNfcScanModal = {
-    nfcErrorKey,
-    nfcPulseStyle,
+    errorKey: null,
     onClose: closeNfcScanModal,
+    pulseStyle: nfcPulseStyle,
+    statusLabel: t('watchonly.read.scanning'),
     visible: nfcScanModalVisible
   }
 
@@ -404,8 +409,8 @@ function PreviewTransaction() {
       </SSVStack>
       <SSPsbtQRExportModal {...propsQrExportModal} />
       <SSCameraModal context="bitcoin" {...propsCameraModal} />
-      <PreviewTransactionNfcEmitModal {...propsNfcEmitModal} />
-      <PreviewTransactionNfcScanModal {...propsNfcScanModal} />
+      <PreviewTransactionNfcModal {...propsNfcEmitModal} />
+      <PreviewTransactionNfcModal {...propsNfcScanModal} />
       <SSWordCountSelectModal {...propsWordCountModal} />
       <PreviewTransactionSeedWordsModal {...propsSeedWordsModal} />
     </SSMainLayout>
@@ -549,53 +554,29 @@ function PreviewTransactionDecoded({
   )
 }
 
-function PreviewTransactionNfcEmitModal({
-  nfcErrorKey,
-  nfcPulseStyle,
+// NFC transfer in progress: a pulsing status, or the error that stopped it.
+function PreviewTransactionNfcModal({
+  errorKey,
   onClose,
+  pulseStyle,
+  statusLabel,
   visible
 }: NfcModalProps) {
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>
       <SSVStack itemsCenter gap="lg">
         <SSText center style={styles.nfcTitle}>
-          {nfcErrorKey
-            ? t('common.errorTitle')
-            : t('transaction.preview.nfcTip')}
+          {errorKey ? t('common.errorTitle') : t('transaction.preview.nfcTip')}
         </SSText>
-        {nfcErrorKey ? (
-          <SSVStack itemsCenter gap="md">
-            <SSText color="white" center>
-              {t(nfcErrorKey)}
-            </SSText>
-          </SSVStack>
+        {errorKey ? (
+          <SSText color="white" center>
+            {t(errorKey)}
+          </SSText>
         ) : (
-          <Animated.View style={nfcPulseStyle}>
-            <SSText uppercase>{t('transaction.preview.emittingNFC')}</SSText>
+          <Animated.View style={pulseStyle}>
+            <SSText uppercase>{statusLabel}</SSText>
           </Animated.View>
         )}
-      </SSVStack>
-    </SSModal>
-  )
-}
-
-function PreviewTransactionNfcScanModal({
-  nfcErrorKey,
-  nfcPulseStyle,
-  onClose,
-  visible
-}: NfcModalProps) {
-  return (
-    <SSModal visible={visible} fullOpacity onClose={onClose}>
-      <SSVStack itemsCenter gap="lg">
-        <SSText center style={styles.nfcTitle}>
-          {nfcErrorKey
-            ? t('common.errorTitle')
-            : t('transaction.preview.nfcTip')}
-        </SSText>
-        <Animated.View style={nfcPulseStyle}>
-          <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
-        </Animated.View>
       </SSVStack>
     </SSModal>
   )
