@@ -204,19 +204,20 @@ function useSignatureValidation({
     }
 
     for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
-      if (signedPsbt && signedPsbt.trim()) {
-        try {
-          const isValid = validateSignedPSBTForCosigner(
-            signedPsbt,
-            account,
-            cosignerIndex,
-            decryptedKeys[cosignerIndex]
-          )
-          results.set(cosignerIndex, isValid)
-        } catch {
-          failedCosigners.push(cosignerIndex)
-          results.set(cosignerIndex, false)
-        }
+      if (!signedPsbt.trim()) {
+        continue
+      }
+      try {
+        const isValid = validateSignedPSBTForCosigner(
+          signedPsbt,
+          account,
+          cosignerIndex,
+          decryptedKeys[cosignerIndex]
+        )
+        results.set(cosignerIndex, isValid)
+      } catch {
+        failedCosigners.push(cosignerIndex)
+        results.set(cosignerIndex, false)
       }
     }
 
