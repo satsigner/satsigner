@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 
 /**
  * Calls `onTick` every `intervalMs` while `active`, timed with
@@ -9,11 +9,7 @@ export function useAnimationFrameInterval(
   intervalMs: number,
   active: boolean
 ) {
-  const onTickRef = useRef(onTick)
-
-  useEffect(() => {
-    onTickRef.current = onTick
-  }, [onTick])
+  const tick = useEffectEvent(onTick)
 
   useEffect(() => {
     if (!active) {
@@ -24,7 +20,7 @@ export function useAnimationFrameInterval(
 
     function animate(timestamp: number) {
       if (timestamp - state.lastTick >= intervalMs) {
-        onTickRef.current()
+        tick()
         state.lastTick = timestamp
       }
       state.frameId = requestAnimationFrame(animate)
