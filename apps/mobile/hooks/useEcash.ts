@@ -521,7 +521,7 @@ export function useEcash() {
     } catch (error) {
       if (error instanceof EcashPaymentError) {
         throw new TypeError(toPaymentErrorMessage(error), {
-          cause: error.cause
+          cause: error
         })
       }
       throw error

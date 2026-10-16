@@ -111,4 +111,4 @@ async function restoreProofsFromMints(
 }
 
 export { restoreProofsFromMints }
-export type { EcashAccountStore, RestoreSummary }
+export type { EcashAccountStore }
