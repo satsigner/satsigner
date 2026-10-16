@@ -189,7 +189,7 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var shape = 3;
   var dpr = 1;
-  var pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0 };
+  var pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0, target: 0, moved: 0, idle: 0 };
   var introStart = reduce ? 0 : performance.now();
   var phoneReveal = reduce ? 1 : 0;
   if (reduce) hero.classList.remove('is-intro');
@@ -209,12 +209,15 @@
 
   function setPointer(e) {
     var rect = canvas.getBoundingClientRect();
-    pointer.tx = (e.clientX - rect.left) * dpr;
-    pointer.ty = (e.clientY - rect.top) * dpr;
-    pointer.on = 1;
+    var nx = (e.clientX - rect.left) * dpr;
+    var ny = (e.clientY - rect.top) * dpr;
+    if (Math.hypot(nx - pointer.tx, ny - pointer.ty) > 2 * dpr) pointer.moved = performance.now();
+    pointer.tx = nx;
+    pointer.ty = ny;
+    pointer.target = 1;
   }
   hero.addEventListener('pointermove', setPointer);
-  hero.addEventListener('pointerleave', function () { pointer.on = 0; });
+  hero.addEventListener('pointerleave', function () { pointer.target = 0; });
 
   function frame(t) {
     resize();
@@ -233,6 +236,13 @@
     }
     pointer.x += (pointer.tx - pointer.x) * 0.23;
     pointer.y += (pointer.ty - pointer.y) * 0.23;
+    var blend = pointer.target > pointer.on ? 0.045 : 0.018;
+    pointer.on += (pointer.target - pointer.on) * blend;
+    if (Math.abs(pointer.target - pointer.on) < 0.001) pointer.on = pointer.target;
+    var idleTarget = pointer.target > 0 && t - pointer.moved > 900 ? 1 : 0;
+    pointer.idle += (idleTarget - pointer.idle) * 0.016;
+    if (Math.abs(idleTarget - pointer.idle) < 0.001) pointer.idle = idleTarget;
+    var follow = pointer.on * (0.7 - pointer.idle * 0.52);
     var ax = cx;
     var ay = cy;
     if (shape >= 2 && mark) {
@@ -251,7 +261,7 @@
     gl.uniform1f(uTime, reduce ? 0 : t * 0.001);
     gl.uniform1f(uShape, shape >= 1 ? 1 : 0);
     gl.uniform2f(uPointer, pointer.x, pointer.y);
-    gl.uniform1f(uPointerOn, pointer.on);
+    gl.uniform1f(uPointerOn, follow);
     if (shape === 3 && introStart) {
       var elapsed = t - introStart;
       if (elapsed >= 2300) hero.classList.remove('is-intro');
