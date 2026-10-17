@@ -2,10 +2,9 @@ import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/typ
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
-import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSContactProfileQrOverlay from '@/components/SSContactProfileQrOverlay'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
@@ -14,6 +13,7 @@ import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useEcash } from '@/hooks/useEcash'
+import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -25,10 +25,10 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
-import { type NostrIdentity } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
+  buildContactIdentity,
   encodeContactNprofile,
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
@@ -56,9 +56,18 @@ export default function NostrContactProfile() {
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = owner?.relays ?? globalRelays
 
-  const [targetIdentity, setTargetIdentity] = useState<NostrIdentity | null>(
-    null
+  const [openedAt] = useState(Date.now)
+  const hasRelays = Boolean(targetNpub) && effectiveRelays.length > 0
+  const relayConnected = owner?.relayConnected === true
+  const profileQuery = useNostrContactProfile(
+    targetNpub,
+    effectiveRelays,
+    relayConnected
   )
+  const targetIdentity = hasRelays
+    ? buildContactIdentity(targetNpub, profileQuery.data, openedAt)
+    : null
+  const loading = profileQuery.isLoading
 
   const nip05 = targetIdentity?.nip05?.trim()
   const { data: nip05Valid } = useQuery({
@@ -67,7 +76,6 @@ export default function NostrContactProfile() {
     queryKey: ['nostr', 'nip05-valid', targetNpub, nip05],
     staleTime: 5 * 60_000
   })
-  const [loading, setLoading] = useState(true)
   const [zapLoading, setZapLoading] = useState(false)
   const [qrOverlayVisible, setQrOverlayVisible] = useState(false)
   const [qrOverlayKey, setQrOverlayKey] = useState(0)
@@ -123,51 +131,6 @@ export default function NostrContactProfile() {
   function handleCloseQrOverlay() {
     setQrOverlayVisible(false)
   }
-
-  async function loadProfile() {
-    if (!targetNpub || effectiveRelays.length === 0) {
-      setLoading(false)
-      return
-    }
-
-    if (owner?.relayConnected !== true) {
-      setTargetIdentity({
-        createdAt: Date.now(),
-        isWatchOnly: true,
-        npub: targetNpub
-      })
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
-    try {
-      const api = new NostrAPI(effectiveRelays)
-      const profile = await api.fetchKind0(targetNpub)
-      setTargetIdentity({
-        banner: profile?.banner,
-        createdAt: Date.now(),
-        displayName: profile?.displayName,
-        isWatchOnly: true,
-        lud16: profile?.lud16,
-        nip05: profile?.nip05,
-        npub: targetNpub,
-        picture: profile?.picture
-      })
-    } catch {
-      setTargetIdentity({
-        createdAt: Date.now(),
-        isWatchOnly: true,
-        npub: targetNpub
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadProfile()
-  }, [effectiveRelays, owner?.relayConnected, targetNpub]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleZap() {
     if (availablePaymentMethods.length === 0) {

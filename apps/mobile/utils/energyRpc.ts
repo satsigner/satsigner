@@ -1,5 +1,10 @@
 import z from 'zod'
 
+import {
+  HASHES_PER_EXAHASH,
+  NO_HASH_RATE_LABEL,
+  REGTEST_HASH_RATE_LABEL
+} from '@/constants/energy'
 import { BlockchainInfoSchema, BlockTemplateSchema } from '@/types/models/Rpc'
 
 const RpcErrorSchema = z.object({
@@ -83,7 +88,22 @@ function parseBlockTemplateResponse(body: unknown) {
   return BlockTemplateResponseSchema.parse(body)
 }
 
+/** Network hash rate label in EH/s for the energy screen. */
+function formatNetworkHashRate(
+  chain: string | undefined,
+  hashRate: number | undefined
+) {
+  if (chain === 'regtest') {
+    return REGTEST_HASH_RATE_LABEL
+  }
+  if (!chain || hashRate === undefined) {
+    return NO_HASH_RATE_LABEL
+  }
+  return (hashRate / HASHES_PER_EXAHASH).toFixed(2)
+}
+
 export {
+  formatNetworkHashRate,
   type EnergyBlockchainInfo,
   type EnergyBlockTemplate,
   parseBlockchainInfoResponse,

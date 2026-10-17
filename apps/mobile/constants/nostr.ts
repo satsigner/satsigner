@@ -345,3 +345,5 @@ export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-payer',
   'zap-uses'
 ])
+
+export const NOSTR_CONTACT_PROFILE_STALE_TIME_MS = 60_000

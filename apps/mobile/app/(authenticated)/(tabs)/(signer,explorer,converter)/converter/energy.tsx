@@ -12,6 +12,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useNetworkHashRate } from '@/hooks/useNetworkHashRate'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -24,6 +25,7 @@ import { blocksUntilDifficultyAdjustment } from '@/utils/bitcoin/consensus'
 import {
   type EnergyBlockchainInfo,
   type EnergyBlockTemplate,
+  formatNetworkHashRate,
   parseBlockchainInfoResponse,
   parseBlockTemplateResponse,
   parseChainInfoResponse
@@ -137,6 +139,11 @@ export default function Energy() {
 
   const [blockchainInfo, setBlockchainInfo] =
     useState<EnergyBlockchainInfo | null>(null)
+  const { data: latestHashRate } = useNetworkHashRate(blockchainInfo?.chain)
+  const networkHashRate = formatNetworkHashRate(
+    blockchainInfo?.chain,
+    latestHashRate
+  )
   const [blockHeader, setBlockHeader] = useState('')
   const [blocksFound, setBlocksFound] = useState(0)
   const [blockTemplate, setBlockTemplate] =
@@ -162,7 +169,6 @@ export default function Energy() {
     lastHash: ''
   })
 
-  const [networkHashRate, setNetworkHashRate] = useState('0')
   const [templateData, setTemplateData] = useState('')
   const [totalSats, setTotalSats] = useState('0')
   const [txError, setTxError] = useState('')
@@ -397,41 +403,6 @@ export default function Energy() {
     }
   }, [isConnected, fetchBlockTemplate, fetchRpc])
 
-  const fetchNetworkHashRate = useCallback(async () => {
-    if (!blockchainInfo) {
-      setNetworkHashRate('0')
-      return
-    }
-
-    // For regtest, set "no data" message
-    if (blockchainInfo.chain === 'regtest') {
-      setNetworkHashRate('no data')
-      return
-    }
-
-    try {
-      let endpoint = 'https://mempool.space/api/v1/mining/hashrate/1m'
-
-      if (blockchainInfo.chain === 'signet') {
-        endpoint = 'https://mempool.space/signet/api/v1/mining/hashrate/1m'
-      } else if (blockchainInfo.chain === 'test') {
-        endpoint = 'https://mempool.space/testnet4/api/v1/mining/hashrate/1m'
-      }
-
-      const response = await fetch(endpoint)
-      if (!response.ok) {
-        throw new Error('Failed to fetch network hash rate')
-      }
-      const data = await response.json()
-      const latestHashRate = data.hashrates.at(-1)!.avgHashrate
-      // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
-      const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
-      setNetworkHashRate(hashRateInEH)
-    } catch {
-      setNetworkHashRate('0')
-    }
-  }, [blockchainInfo])
-
   useEffect(() => {
     let intervalId: NodeJS.Timeout
 
@@ -461,12 +432,6 @@ export default function Energy() {
       setDifficultyProgress(progress)
     }
   }, [blockchainInfo])
-
-  useEffect(() => {
-    fetchNetworkHashRate()
-    const intervalId = setInterval(fetchNetworkHashRate, 60000) // Update every minute
-    return () => clearInterval(intervalId)
-  }, [fetchNetworkHashRate])
 
   useEffect(() => {
     if (isConnected) {
