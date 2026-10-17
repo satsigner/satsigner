@@ -1,7 +1,7 @@
+import { NODE_TEXT_OVERFLOW_WIDTH } from '@/constants/sankey'
 import {
   getNodeParagraphLayoutWidth,
-  getNodeParagraphOffsetX,
-  NODE_TEXT_OVERFLOW_WIDTH
+  getNodeParagraphOffsetX
 } from '@/utils/sankeyNodeTextLayout'
 
 describe('getNodeParagraphLayoutWidth', () => {

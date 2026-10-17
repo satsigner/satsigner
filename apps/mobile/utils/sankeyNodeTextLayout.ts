@@ -1,7 +1,7 @@
-/** Block node text spans this share of the node width. */
-const BLOCK_TEXT_WIDTH_RATIO = 0.6
-/** Extra layout width so amount + unit can paint past the sankey node band. */
-const NODE_TEXT_OVERFLOW_WIDTH = 220
+import {
+  BLOCK_TEXT_WIDTH_RATIO,
+  NODE_TEXT_OVERFLOW_WIDTH
+} from '@/constants/sankey'
 
 /**
  * Width used to lay out a sankey node paragraph. Non-block nodes never get
@@ -31,8 +31,4 @@ function getNodeParagraphOffsetX(
   return paddingLeft
 }
 
-export {
-  getNodeParagraphLayoutWidth,
-  getNodeParagraphOffsetX,
-  NODE_TEXT_OVERFLOW_WIDTH
-}
+export { getNodeParagraphLayoutWidth, getNodeParagraphOffsetX }
