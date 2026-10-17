@@ -52,14 +52,14 @@ function SSPsbtQRExportModal({
     decreaseComplexity,
     decreaseSpeed,
     displayMode,
-    getDisplayModeDescription,
-    getQRValue,
+    displayModeDescription,
     increaseComplexity,
     increaseSpeed,
     isMultiPartQR,
     qrComplexity,
     qrErrorKey,
     qrRef,
+    qrValue,
     setDisplayMode,
     showMaxDensityNote
   } = usePsbtQrExport(psbtBase64, initialDisplayMode, visible)
@@ -70,8 +70,6 @@ function SSPsbtQRExportModal({
     QR_SIZE_MAX
   )
   const trackWidth = screenWidth * QR_TRACK_WIDTH_RATIO
-  const qrValue = getQRValue()
-  const displayModeDescription = getDisplayModeDescription()
 
   return (
     <SSModal visible={visible} fullOpacity onClose={onClose}>

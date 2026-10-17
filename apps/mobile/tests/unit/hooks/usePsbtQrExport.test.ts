@@ -9,13 +9,11 @@ jest.mock<Partial<typeof import('@/hooks/useAnimationFrameInterval')>>(
   '@/hooks/useAnimationFrameInterval',
   () => ({ useAnimationFrameInterval: jest.fn() })
 )
-jest.mock<Partial<typeof import('@/utils/qrExport')>>(
-  '@/utils/qrExport',
-  () => ({
-    createPsbtQrChunks: jest.fn(),
-    getQrAnimationIntervalMs: jest.fn(() => 1000)
-  })
-)
+jest.mock<typeof import('@/utils/qrExport')>('@/utils/qrExport', () => ({
+  ...jest.requireActual<typeof import('@/utils/qrExport')>('@/utils/qrExport'),
+  createPsbtQrChunks: jest.fn(),
+  getQrAnimationIntervalMs: jest.fn(() => 1000)
+}))
 
 const mockCreateChunks = jest.mocked(createPsbtQrChunks)
 
@@ -100,7 +98,7 @@ describe('usePsbtQrExport', () => {
       'cHNidP8B',
       expect.any(Number)
     )
-    expect(hook.current?.getQRValue()).toBe('raw')
+    expect(hook.current?.qrValue).toBe('raw')
   })
 
   it('keeps showing the frames while the modal closes', async () => {
@@ -109,6 +107,6 @@ describe('usePsbtQrExport', () => {
 
     await setActive(false)
     expect(hook.current?.qrErrorKey).toBeNull()
-    expect(hook.current?.getQRValue()).toBe('raw')
+    expect(hook.current?.qrValue).toBe('raw')
   })
 })

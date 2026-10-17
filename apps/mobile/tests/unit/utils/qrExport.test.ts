@@ -12,7 +12,9 @@ import {
 import {
   createPsbtQrChunks,
   createRawQrChunks,
-  getQrAnimationIntervalMs
+  getQrAnimationIntervalMs,
+  getQrDisplayModeDescription,
+  getQrValue
 } from '@/utils/qrExport'
 
 const PSBT_BASE64 =
@@ -70,5 +72,54 @@ describe('createPsbtQrChunks', () => {
     expect(chunks[QRDisplayMode.RAW]).toStrictEqual([PSBT_BASE64])
     expect(chunks[QRDisplayMode.UR].length).toBeGreaterThan(0)
     expect(chunks[QRDisplayMode.BBQR].length).toBeGreaterThan(0)
+  })
+})
+
+describe('getQrValue', () => {
+  it('returns the frame when it fits one QR', () => {
+    expect(getQrValue('p1of2 abc')).toBe('p1of2 abc')
+  })
+
+  it('returns a placeholder without a frame or when it is too large', () => {
+    expect(getQrValue(undefined)).toBe('NO_DATA')
+    expect(getQrValue('a'.repeat(QR_MAX_DATA_SIZE + 1))).toBe(
+      'DATA_TOO_LARGE_FOR_QR'
+    )
+  })
+})
+
+describe('getQrDisplayModeDescription', () => {
+  const base = {
+    chunkCount: 1,
+    currentChunk: 0,
+    displayMode: QRDisplayMode.UR,
+    qrComplexity: QR_COMPLEXITY_MAX
+  }
+
+  it('shows the frame being displayed of an animated QR', () => {
+    expect(
+      getQrDisplayModeDescription({ ...base, chunkCount: 3, currentChunk: 1 })
+    ).toStrictEqual({
+      key: 'transaction.preview.scanAllChunks',
+      params: { current: 2, total: 3 }
+    })
+  })
+
+  it('names the static QR format at max density', () => {
+    expect(getQrDisplayModeDescription(base)).toStrictEqual({
+      key: 'transaction.preview.staticQrUr'
+    })
+  })
+
+  it('notes a single chunk below max density', () => {
+    expect(
+      getQrDisplayModeDescription({ ...base, qrComplexity: 1 })
+    ).toStrictEqual({ key: 'transaction.preview.singleChunk' })
+  })
+
+  it('reports a missing PSBT without frames', () => {
+    expect(
+      getQrDisplayModeDescription({ ...base, chunkCount: 0 })
+    ).toStrictEqual({ key: 'error.psbt.notAvailable' })
   })
 })

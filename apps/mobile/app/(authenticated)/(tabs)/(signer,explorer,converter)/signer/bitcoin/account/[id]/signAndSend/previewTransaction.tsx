@@ -281,7 +281,7 @@ function PreviewTransaction() {
     isSignDisabled:
       !transactionId ||
       psbtBuildStatus !== 'idle' ||
-      (isMultisig && !hasAllRequiredSignatures()),
+      (isMultisig && !hasAllRequiredSignatures),
     onShareWithGroup: handleShareWithNostrGroup,
     onSign: handleSign
   }

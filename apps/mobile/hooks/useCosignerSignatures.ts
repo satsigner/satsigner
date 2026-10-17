@@ -212,8 +212,10 @@ export function useCosignerSignatures({
   return {
     combineCollectedSignatures,
     finalize,
-    hasAllRequiredSignatures: () =>
-      hasAllRequiredSignatures(account, validationResults),
+    hasAllRequiredSignatures: hasAllRequiredSignatures(
+      account,
+      validationResults
+    ),
     importSignedData,
     signWithLocalKey: handleSignWithLocalKey,
     signWithMnemonic: handleSignWithSeedQR,

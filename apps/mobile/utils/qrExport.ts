@@ -16,10 +16,28 @@ import {
   UR_FRAGMENT_BASE_SIZE,
   UR_FRAGMENT_MIN_SIZE
 } from '@/constants/qr'
+import { type Message } from '@/types/ui/notice'
 import { BBQRFileTypes, createBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
 
 export type PsbtQrChunks = Record<QRDisplayMode, string[]>
+
+// Placeholder values shown in the QR when there is nothing valid to encode.
+const QR_VALUE_NO_DATA = 'NO_DATA'
+const QR_VALUE_TOO_LARGE = 'DATA_TOO_LARGE_FOR_QR'
+
+const STATIC_QR_DESCRIPTION_KEYS: Record<QRDisplayMode, string> = {
+  [QRDisplayMode.BBQR]: 'transaction.preview.staticQrBbqr',
+  [QRDisplayMode.RAW]: 'transaction.preview.staticQrPsbt',
+  [QRDisplayMode.UR]: 'transaction.preview.staticQrUr'
+}
+
+type QrDisplayModeDescriptionParams = {
+  chunkCount: number
+  currentChunk: number
+  displayMode: QRDisplayMode
+  qrComplexity: number
+}
 
 // The max complexity means "one static QR", unless the data cannot fit in one.
 function isSingleStaticQr(complexity: number, encodedSize: number) {
@@ -107,4 +125,36 @@ export function createPsbtQrChunks(
     [QRDisplayMode.RAW]: createRawQrChunks(psbtBase64, complexity),
     [QRDisplayMode.UR]: createUrPsbtFragments(psbtBase64, complexity)
   }
+}
+
+// The value to encode in the QR for a frame, or a placeholder when there is no
+// frame or it is too large for one QR.
+export function getQrValue(chunk: string | undefined) {
+  if (!chunk) {
+    return QR_VALUE_NO_DATA
+  }
+  return chunk.length > QR_MAX_DATA_SIZE ? QR_VALUE_TOO_LARGE : chunk
+}
+
+// Caption under the QR: which frame of an animated QR is shown, or what kind of
+// static QR it is.
+export function getQrDisplayModeDescription({
+  chunkCount,
+  currentChunk,
+  displayMode,
+  qrComplexity
+}: QrDisplayModeDescriptionParams): Message {
+  if (chunkCount === 0) {
+    return { key: 'error.psbt.notAvailable' }
+  }
+  if (chunkCount > 1) {
+    return {
+      key: 'transaction.preview.scanAllChunks',
+      params: { current: currentChunk + 1, total: chunkCount }
+    }
+  }
+  if (qrComplexity !== QR_COMPLEXITY_MAX) {
+    return { key: 'transaction.preview.singleChunk' }
+  }
+  return { key: STATIC_QR_DESCRIPTION_KEYS[displayMode] }
 }
