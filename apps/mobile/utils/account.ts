@@ -287,3 +287,9 @@ export function checkWalletNeedsSync(
   // Account updated too long ago.
   return daysSinceLastSync > maxDaysWithoutSyncing
 }
+
+// True when the (decrypted) key keeps its mnemonic on this device.
+export function hasStoredMnemonic(key: Key | undefined) {
+  const secret = key?.secret
+  return typeof secret === 'object' && !!secret.mnemonic
+}

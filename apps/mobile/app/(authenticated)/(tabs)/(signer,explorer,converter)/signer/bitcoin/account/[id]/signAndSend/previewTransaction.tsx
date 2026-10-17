@@ -44,6 +44,7 @@ import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type PreviewTransactionSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinInvoice } from '@/types/payjoin'
 import { type Notice } from '@/types/ui/notice'
+import { hasStoredMnemonic } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -57,7 +58,8 @@ import {
 } from '@/utils/sankeyInputLabel'
 import {
   buildChartTransactionFromBuilder,
-  buildPreviewTransactionHex
+  buildPreviewTransactionHex,
+  getTransactionIdDisplay
 } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.preview')
@@ -453,11 +455,13 @@ function PreviewTransactionIdSection({
       </SSText>
       <SSTransactionIdFormatted
         size="lg"
-        value={getTransactionIdDisplayValue({
-          isLoadingPSBT,
-          psbtBuildStatus,
-          transactionId
-        })}
+        value={formatMessage(
+          getTransactionIdDisplay({
+            isLoadingPSBT,
+            psbtBuildStatus,
+            transactionId
+          })
+        )}
       />
       {isLoadingPSBT && (
         <SSText color="muted" size="sm" style={styles.statusText}>
@@ -936,29 +940,6 @@ function PreviewTransactionSeedWordsModal({
   )
 }
 
-type GetTransactionIdDisplayValueParams = {
-  isLoadingPSBT: boolean
-  psbtBuildStatus: PsbtBuildStatus
-  transactionId: string
-}
-
-function getTransactionIdDisplayValue({
-  isLoadingPSBT,
-  psbtBuildStatus,
-  transactionId
-}: GetTransactionIdDisplayValueParams) {
-  if (isLoadingPSBT) {
-    return t('common.loading')
-  }
-  if (psbtBuildStatus === 'building') {
-    return t('transaction.preview.buildingTransaction')
-  }
-  if (psbtBuildStatus === 'error') {
-    return '—'
-  }
-  return transactionId || '—'
-}
-
 // Camera title: ask for a SeedQR when signing for a cosigner whose key has no
 // stored mnemonic, otherwise a generic "scan QR code".
 function getCameraModalTitle(
@@ -968,10 +949,7 @@ function getCameraModalTitle(
   if (currentCosignerIndex === null) {
     return t('camera.scanQRCode')
   }
-  const secret = decryptedKeys[currentCosignerIndex]?.secret
-  const hasMnemonic =
-    typeof secret === 'object' && 'mnemonic' in secret && !!secret.mnemonic
-  return hasMnemonic
+  return hasStoredMnemonic(decryptedKeys[currentCosignerIndex])
     ? t('camera.scanQRCode')
     : t('transaction.preview.scanSeedQR')
 }

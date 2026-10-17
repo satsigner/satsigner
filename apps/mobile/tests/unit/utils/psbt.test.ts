@@ -12,6 +12,7 @@ import {
   combineAndFinalizePsbts,
   extractTransactionDataFromPSBT,
   getCollectedSignedPsbts,
+  getPsbtExtractionNotice,
   getPsbtTxidOrFallback,
   hasAllRequiredSignatures,
   hasEnoughSignatures,
@@ -604,5 +605,30 @@ describe('createPlaceholderTransactionId', () => {
     expect(createPlaceholderTransactionId('ERROR')).toMatch(
       /^PSBT-ERROR-[0-9a-z]+$/
     )
+  })
+})
+
+describe('getPsbtExtractionNotice', () => {
+  it('warns when the PSBT belongs to another account', () => {
+    expect(
+      getPsbtExtractionNotice(new Error('fingerprint does not match'))
+    ).toStrictEqual({
+      key: 'transaction.preview.psbtNotMatchAccount',
+      type: 'warning'
+    })
+  })
+
+  it('reports a malformed PSBT as an error', () => {
+    expect(getPsbtExtractionNotice(new Error('Invalid PSBT'))).toStrictEqual({
+      key: 'transaction.preview.psbtInvalidFormat',
+      type: 'error'
+    })
+  })
+
+  it('falls back to basic processing for other failures', () => {
+    expect(getPsbtExtractionNotice('boom')).toStrictEqual({
+      key: 'transaction.preview.psbtEnhancedFailed',
+      type: 'warning'
+    })
   })
 })

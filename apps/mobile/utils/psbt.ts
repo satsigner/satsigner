@@ -16,6 +16,7 @@ import {
 } from '@/types/models/Psbt'
 import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { type Notice } from '@/types/ui/notice'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { stripBitcoinPrefix } from '@/utils/parse'
@@ -1396,4 +1397,25 @@ export function getPsbtTxidOrFallback(
   } catch {
     return fallback
   }
+}
+
+// Why reading a PSBT with the account's keys failed: it belongs to another
+// account, it is malformed, or the enhanced reading failed for another reason.
+export function getPsbtExtractionNotice(error: unknown): Notice {
+  const errorMessage = error instanceof Error ? error.message : ''
+
+  if (
+    errorMessage.includes('fingerprint') ||
+    errorMessage.includes('derivation') ||
+    errorMessage.includes('not match')
+  ) {
+    return { key: 'transaction.preview.psbtNotMatchAccount', type: 'warning' }
+  }
+  if (
+    errorMessage.includes('Invalid PSBT') ||
+    errorMessage.includes('malformed')
+  ) {
+    return { key: 'transaction.preview.psbtInvalidFormat', type: 'error' }
+  }
+  return { key: 'transaction.preview.psbtEnhancedFailed', type: 'warning' }
 }

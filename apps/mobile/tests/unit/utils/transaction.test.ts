@@ -10,7 +10,9 @@ import {
   estimateBuilderTransactionSize,
   estimateTransactionSize,
   getFinalizedTransactionSize,
+  getTransactionIdDisplay,
   legacyEstimateTransactionSize,
+  mapBuildTransactionError,
   recalculateDepthH
 } from '../../../utils/transaction'
 
@@ -740,5 +742,66 @@ describe('getFinalizedTransactionSize', () => {
       size: transaction.byteLength(true),
       vsize: transaction.virtualSize()
     })
+  })
+})
+
+describe('mapBuildTransactionError', () => {
+  it('shows a dust message without a toast', () => {
+    expect(
+      mapBuildTransactionError(new Error('Output below the dust limit'))
+    ).toStrictEqual({
+      isDust: true,
+      message: { key: 'transaction.error.previewBuildFailedDust' },
+      notice: null
+    })
+  })
+
+  it('asks to sync when a UTXO is missing', () => {
+    const result = mapBuildTransactionError(new Error('UTXO not found: abc:0'))
+    expect(result.message).toStrictEqual({ text: 'UTXO not found: abc:0' })
+    expect(result.notice).toStrictEqual({
+      key: 'transaction.preview.utxoNotFound',
+      type: 'error'
+    })
+  })
+
+  it('shows the library message for other errors', () => {
+    expect(mapBuildTransactionError('Insufficient funds')).toStrictEqual({
+      isDust: false,
+      message: { text: 'Insufficient funds' },
+      notice: { text: 'Insufficient funds', type: 'error' }
+    })
+  })
+})
+
+describe('getTransactionIdDisplay', () => {
+  const ready = {
+    isLoadingPSBT: false,
+    psbtBuildStatus: 'idle',
+    transactionId: 'ab'.repeat(32)
+  } satisfies Parameters<typeof getTransactionIdDisplay>[0]
+
+  it('shows the transaction id once built', () => {
+    expect(getTransactionIdDisplay(ready)).toStrictEqual({
+      text: 'ab'.repeat(32)
+    })
+  })
+
+  it('shows progress while loading or building', () => {
+    expect(
+      getTransactionIdDisplay({ ...ready, isLoadingPSBT: true })
+    ).toStrictEqual({ key: 'common.loading' })
+    expect(
+      getTransactionIdDisplay({ ...ready, psbtBuildStatus: 'building' })
+    ).toStrictEqual({ key: 'transaction.preview.buildingTransaction' })
+  })
+
+  it('shows a placeholder after a failed build or without an id', () => {
+    expect(
+      getTransactionIdDisplay({ ...ready, psbtBuildStatus: 'error' })
+    ).toStrictEqual({ text: '—' })
+    expect(
+      getTransactionIdDisplay({ ...ready, transactionId: '' })
+    ).toStrictEqual({ text: '—' })
   })
 })

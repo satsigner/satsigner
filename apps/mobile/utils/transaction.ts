@@ -9,10 +9,12 @@ import {
 } from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
+import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { ScriptVersionType } from '@/types/models/Script'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { type Message, type Notice } from '@/types/ui/notice'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
@@ -416,4 +418,70 @@ export function getFinalizedTransactionSize(transactionHex: string) {
   } catch {
     return null
   }
+}
+
+// Shown instead of a transaction id that is not available.
+const TRANSACTION_ID_PLACEHOLDER = '—'
+
+// Error text markers BDK uses for preview build failures.
+const DUST_ERROR_MARKER = 'dust'
+const UTXO_NOT_FOUND_ERROR_MARKER = 'UTXO not found'
+
+type BuildTransactionErrorDisplay = {
+  isDust: boolean
+  // Shown under the transaction id.
+  message: Message
+  // Reported as a toast; dust failures show a banner instead.
+  notice: Notice | null
+}
+
+// How to show a failed preview build: dust gets a dedicated message, other
+// errors show the library's own message.
+export function mapBuildTransactionError(
+  error: unknown
+): BuildTransactionErrorDisplay {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  if (errorMessage.toLowerCase().includes(DUST_ERROR_MARKER)) {
+    return {
+      isDust: true,
+      message: { key: 'transaction.error.previewBuildFailedDust' },
+      notice: null
+    }
+  }
+  if (errorMessage.includes(UTXO_NOT_FOUND_ERROR_MARKER)) {
+    return {
+      isDust: false,
+      message: { text: errorMessage },
+      notice: { key: 'transaction.preview.utxoNotFound', type: 'error' }
+    }
+  }
+  return {
+    isDust: false,
+    message: { text: errorMessage },
+    notice: { text: errorMessage, type: 'error' }
+  }
+}
+
+type TransactionIdDisplayParams = {
+  isLoadingPSBT: boolean
+  psbtBuildStatus: PsbtBuildStatus
+  transactionId: string
+}
+
+// What to show as the transaction id while the PSBT loads, builds or failed.
+export function getTransactionIdDisplay({
+  isLoadingPSBT,
+  psbtBuildStatus,
+  transactionId
+}: TransactionIdDisplayParams): Message {
+  if (isLoadingPSBT) {
+    return { key: 'common.loading' }
+  }
+  if (psbtBuildStatus === 'building') {
+    return { key: 'transaction.preview.buildingTransaction' }
+  }
+  if (psbtBuildStatus === 'error' || !transactionId) {
+    return { text: TRANSACTION_ID_PLACEHOLDER }
+  }
+  return { text: transactionId }
 }

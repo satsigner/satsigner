@@ -15,8 +15,10 @@ import {
   type ExtractedTransactionData,
   extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
-  generateTransactionId
+  generateTransactionId,
+  getPsbtExtractionNotice
 } from '@/utils/psbt'
+import { mapBuildTransactionError } from '@/utils/transaction'
 import { validateAddress } from '@/utils/validation'
 
 // Shorter output addresses are likely still being typed.
@@ -274,19 +276,12 @@ export function useTransactionPsbt({
           return
         }
 
-        const { message, isDust } = mapBuildTransactionError(error)
+        const { isDust, message, notice } = mapBuildTransactionError(error)
         setPsbtBuildStatus('error')
         setPsbtBuildError(message)
         setIsDustError(isDust)
-
-        if (isDust) {
-          return
-        }
-
-        if (String(error).includes('UTXO not found')) {
-          onNotice({ key: 'transaction.preview.utxoNotFound', type: 'error' })
-        } else {
-          onNotice({ ...message, type: 'error' })
+        if (notice) {
+          onNotice(notice)
         }
       }
     }
@@ -339,40 +334,4 @@ export function useTransactionPsbt({
     serializedPsbt,
     transactionId
   }
-}
-
-// Dust failures get a dedicated message; other build errors show the
-// library's own message.
-function mapBuildTransactionError(error: unknown): {
-  isDust: boolean
-  message: Message
-} {
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  if (errorMessage.toLowerCase().includes('dust')) {
-    return {
-      isDust: true,
-      message: { key: 'transaction.error.previewBuildFailedDust' }
-    }
-  }
-  return { isDust: false, message: { text: errorMessage } }
-}
-
-// Classifies why reading a PSBT with the account's keys failed.
-function getPsbtExtractionNotice(error: unknown): Notice {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-  if (
-    errorMessage.includes('fingerprint') ||
-    errorMessage.includes('derivation') ||
-    errorMessage.includes('not match')
-  ) {
-    return { key: 'transaction.preview.psbtNotMatchAccount', type: 'warning' }
-  }
-  if (
-    errorMessage.includes('Invalid PSBT') ||
-    errorMessage.includes('malformed')
-  ) {
-    return { key: 'transaction.preview.psbtInvalidFormat', type: 'error' }
-  }
-  return { key: 'transaction.preview.psbtEnhancedFailed', type: 'warning' }
 }
