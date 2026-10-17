@@ -556,6 +556,29 @@ if (typeof Swiper !== 'undefined') {
   });
 })();
 
+(function initSiteNav() {
+  var nav = document.querySelector('.site-nav');
+  var menu = document.querySelector('.nav-menu');
+  if (!nav || !menu) return;
+  function setMenu(open) {
+    nav.classList.toggle('is-open', open);
+    menu.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menu.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+  }
+  menu.addEventListener('click', function () {
+    setMenu(!nav.classList.contains('is-open'));
+  });
+  nav.querySelectorAll('.nav-links a').forEach(function (link) {
+    link.addEventListener('click', function () { setMenu(false); });
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') setMenu(false);
+  });
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 640) setMenu(false);
+  });
+})();
+
 (function initHeroDemo() {
   var hero = document.querySelector('.hero');
   var mark = document.querySelector('.hero-mark');
