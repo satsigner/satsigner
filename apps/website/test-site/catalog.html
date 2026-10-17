@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Translated screens</title>
+  <link rel="stylesheet" href="/fonts/inter.css">
+  <link rel="stylesheet" href="/test-site/catalog.css?v=2">
+</head>
+<body>
+  <main class="catalog">
+    <h1>Translated screens</h1>
+    <p class="catalog-intro">Test catalog. Not linked from the marketing site. Open a card in the <a href="/test-site/index.html">phone demo</a>.</p>
+    <div class="view-toggle" role="group" aria-label="Catalog layout">
+      <button type="button" data-view="list">List</button>
+      <button type="button" data-view="table">Table</button>
+    </div>
+    <div class="screen-grid" id="list-view"></div>
+    <table class="screen-table" id="table-view" hidden>
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th>Screen</th>
+          <th>Route</th>
+          <th>Markup</th>
+          <th>What it is</th>
+        </tr>
+      </thead>
+      <tbody id="screen-rows"></tbody>
+    </table>
+  </main>
+  <script src="/test-site/catalog.js?v=2"></script>
+</body>
+</html>
