@@ -6,6 +6,8 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'
 
 const mockRequestTechnology = jest.fn()
+const mockGetTag = jest.fn()
+const mockCancelTechnologyRequest = jest.fn()
 jest.mock<typeof import('react-native-nfc-manager')>(
   'react-native-nfc-manager',
   () => {
@@ -18,8 +20,8 @@ jest.mock<typeof import('react-native-nfc-manager')>(
       NfcTech: { Ndef: 'Ndef' },
       __esModule: true,
       default: {
-        cancelTechnologyRequest: jest.fn(() => Promise.resolve()),
-        getTag: jest.fn(),
+        cancelTechnologyRequest: () => mockCancelTechnologyRequest(),
+        getTag: () => mockGetTag(),
         requestTechnology: () => mockRequestTechnology()
       }
     }
@@ -66,6 +68,8 @@ describe('useNFCReader readNFCTag', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockAdapterStatus.isEnabled = true
+    mockRequestTechnology.mockResolvedValue(undefined)
+    mockCancelTechnologyRequest.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -83,6 +87,19 @@ describe('useNFCReader readNFCTag', () => {
     const error = await readAndCatch(hook)
 
     expect(error).toBeInstanceOf(NfcCancelledError)
+    expect(hook.current?.isReading).toBe(false)
+    expect(mockCancelTechnologyRequest).not.toHaveBeenCalled()
+  })
+
+  it('closes the NFC request when reading the tag fails', async () => {
+    const failure = new Error('tag lost')
+    mockGetTag.mockRejectedValue(failure)
+    const hook = await renderReader()
+
+    const error = await readAndCatch(hook)
+
+    expect(error).toBe(failure)
+    expect(mockCancelTechnologyRequest).toHaveBeenCalledTimes(1)
     expect(hook.current?.isReading).toBe(false)
   })
 

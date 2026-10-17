@@ -50,14 +50,22 @@ export function useNFCReader() {
   }, [checkNFCAvailability])
 
   // Waits for an NDEF tag. Ends the reading state when the session fails or
-  // is cancelled, so the next read can start.
+  // is cancelled, so the next read can start. A failed request (including a
+  // cancel) already ended the session; a failed tag read closes it here.
   async function requestNdefTag() {
     try {
       await NfcManager.requestTechnology(NfcTech.Ndef)
-      return await NfcManager.getTag()
     } catch (requestError) {
       setIsReading(false)
       throw toNfcSessionError(requestError)
+    }
+
+    try {
+      return await NfcManager.getTag()
+    } catch (tagError) {
+      NfcManager.cancelTechnologyRequest()
+      setIsReading(false)
+      throw toNfcSessionError(tagError)
     }
   }
 
