@@ -57,7 +57,7 @@ export function useConnectionTest() {
       const probe = await probeConnection({
         backend,
         network,
-        onElectrumClient: setCurrentClient,
+        onElectrumClientOpened: setCurrentClient,
         rpcCredentials,
         url
       })

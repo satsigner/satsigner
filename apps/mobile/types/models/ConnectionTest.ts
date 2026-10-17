@@ -47,6 +47,5 @@ export type ProbeParams = {
   backend: Backend
   network: Network
   rpcCredentials?: RpcCredentials
-  /** Receives the open Electrum client so the caller can close it early. */
-  onElectrumClient?: (client: ElectrumClient) => void
+  onElectrumClientOpened?: (client: ElectrumClient) => void
 }

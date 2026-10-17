@@ -123,16 +123,16 @@ describe('probeConnection', () => {
     const client = mockElectrum(
       jest.fn().mockResolvedValue(['Fulcrum', '1.10'])
     )
-    const onElectrumClient = jest.fn()
+    const onElectrumClientOpened = jest.fn()
 
     const probe = await probeConnection({
       backend: 'electrum',
       network: 'signet',
-      onElectrumClient,
+      onElectrumClientOpened,
       url: ELECTRUM_URL
     })
 
-    expect(onElectrumClient).toHaveBeenCalledWith(client)
+    expect(onElectrumClientOpened).toHaveBeenCalledWith(client)
     expect(closeElectrumClientQuietly).toHaveBeenCalledWith(client)
     expect(probe.result).toStrictEqual({
       banner: undefined,

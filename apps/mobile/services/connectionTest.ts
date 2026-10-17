@@ -7,8 +7,8 @@ import BitcoinRpc from '@/api/rpc'
 import {
   BTC_PER_KVB_TO_SAT_PER_VB,
   CONNECTION_TEST_TIMEOUT_MS,
-  ELECTRUM_CLIENT_INFO,
-  RPC_FEE_TARGET_BLOCKS,
+  ELECTRUM_HANDSHAKE_CLIENT_INFO,
+  RPC_MEDIAN_FEE_TARGET_BLOCKS,
   SOFTWARE_LABELS
 } from '@/constants/connectionTest'
 import {
@@ -20,11 +20,11 @@ import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 
 async function probeElectrum(
-  { url, network, onElectrumClient }: ProbeParams,
+  { url, network, onElectrumClientOpened }: ProbeParams,
   startTime: number
 ): Promise<ConnectionProbe> {
   const client = ElectrumClient.fromUrl(url, network)
-  onElectrumClient?.(client)
+  onElectrumClientOpened?.(client)
   try {
     return await readElectrumNode(client, network, startTime)
   } finally {
@@ -37,10 +37,13 @@ async function readElectrumNode(
   network: Network,
   startTime: number
 ): Promise<ConnectionProbe> {
-  const serverInfo = await client.client.initElectrum(ELECTRUM_CLIENT_INFO, {
-    callback: null,
-    maxRetry: 0
-  })
+  const serverInfo = await client.client.initElectrum(
+    ELECTRUM_HANDSHAKE_CLIENT_INFO,
+    {
+      callback: null,
+      maxRetry: 0
+    }
+  )
   const responseTime = Date.now() - startTime
 
   // Headers, timestamp and banner are optional: not every server supports them.
@@ -136,7 +139,7 @@ async function probeRpc(
       rpc.getBlockchainInfo(),
       rpc.getNetworkInfo().catch(() => null),
       rpc.getMempoolInfo().catch(() => null),
-      rpc.estimateSmartFee(RPC_FEE_TARGET_BLOCKS).catch(() => null),
+      rpc.estimateSmartFee(RPC_MEDIAN_FEE_TARGET_BLOCKS).catch(() => null),
       rpc.hasBlockFilterIndex().catch(() => false)
     ])
   const responseTime = Date.now() - startTime
@@ -204,7 +207,7 @@ async function probeConnection(params: ProbeParams) {
   }
 }
 
-/** Closes an Electrum client handed out through `onElectrumClient`. */
+/** Closes an Electrum client handed out through `onElectrumClientOpened`. */
 function closeProbeClient(client: ElectrumClient) {
   closeElectrumClientQuietly(client)
 }
