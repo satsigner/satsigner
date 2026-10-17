@@ -2,7 +2,7 @@ import { Buffer } from 'buffer'
 
 import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { decodeBBQRChunks } from '@/utils/bbqr'
-import { isBitcoinAddress } from '@/utils/bitcoin'
+import { validateAddress } from '@/utils/validation'
 
 const WALLET_TEXT_PATTERN =
   /(?:^|[\s"(])(?:wpkh\(|wsh\(|tr\(|sh\(|pkh\(|combo\(|multi\(|sortedmulti\(|addr\(|rawtr\(|\[(?:[0-9a-fA-F]{8})\/|[tuvxyz]pub)/i
@@ -15,7 +15,7 @@ export function looksLikeWalletText(value: string): boolean {
   if (trimmed.startsWith('{') && trimmed.includes('"descriptor"')) {
     return true
   }
-  if (isBitcoinAddress(trimmed)) {
+  if (validateAddress(trimmed)) {
     return true
   }
   return WALLET_TEXT_PATTERN.test(trimmed)

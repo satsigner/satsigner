@@ -11,7 +11,6 @@ import {
   validateBolt12,
   validateLightning
 } from '@/utils/bip321'
-import { isBitcoinAddress } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import {
   parseImportedDescriptorPayload,
@@ -23,7 +22,11 @@ import { isLNURL } from '@/utils/lnurl'
 import { isRecord } from '@/utils/object'
 import { hasBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
-import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
+import {
+  validateAddress,
+  validateExtendedKey,
+  validateFingerprint
+} from '@/utils/validation'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -151,7 +154,7 @@ function detectBitcoinContent(data: string): DetectedContent | null {
 
   if (hasBitcoinPrefix(trimmed)) {
     const [address] = stripBitcoinPrefix(trimmed).split('?')
-    if (isBitcoinAddress(address)) {
+    if (validateAddress(address)) {
       return {
         cleaned: trimmed,
         isValid: true,
@@ -161,7 +164,7 @@ function detectBitcoinContent(data: string): DetectedContent | null {
     }
   }
 
-  if (isBitcoinAddress(trimmed)) {
+  if (validateAddress(trimmed)) {
     return {
       cleaned: trimmed,
       isValid: true,
@@ -173,7 +176,7 @@ function detectBitcoinContent(data: string): DetectedContent | null {
   const addressMatch = trimmed.match(/^([a-zA-Z0-9]{26,62})(\?.*)?$/)
   if (addressMatch) {
     const [, addressPart] = addressMatch
-    if (isBitcoinAddress(addressPart)) {
+    if (validateAddress(addressPart)) {
       return {
         cleaned: trimmed,
         isValid: true,
