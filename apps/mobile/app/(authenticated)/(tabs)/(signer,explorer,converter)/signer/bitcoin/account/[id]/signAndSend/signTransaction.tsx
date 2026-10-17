@@ -285,7 +285,7 @@ export default function SignTransaction() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
-  const shareWithNostrGroup = useNostrShareTransaction({ account, id })
+  const shareWithNostrGroup = useNostrShareTransaction(account)
   const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])

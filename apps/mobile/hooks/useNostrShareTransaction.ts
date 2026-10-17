@@ -3,20 +3,13 @@ import { useRouter } from 'expo-router'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
-type UseNostrShareTransactionParams = {
-  account: Account | undefined
-  id: string
-}
-
 /**
  * Returns a handler that hands a PSBT (base64) or signed transaction hex to
- * the account's nostr devices group chat. The handler returns the i18n key of the reason it could not
- * share (auto-sync disabled, no PSBT), or null once it navigated.
+ * the account's nostr devices group chat. The handler returns the i18n key of
+ * the reason it could not share (auto-sync disabled, no PSBT), or null once
+ * it navigated.
  */
-export function useNostrShareTransaction({
-  account,
-  id
-}: UseNostrShareTransactionParams) {
+export function useNostrShareTransaction(account: Account | undefined) {
   const router = useRouter()
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
@@ -34,7 +27,7 @@ export function useNostrShareTransaction({
       transactionData: { combinedPsbt: psbtBase64 }
     })
     router.push({
-      params: { id },
+      params: { id: account.id },
       pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
     })
     return null

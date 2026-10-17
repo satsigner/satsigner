@@ -162,7 +162,7 @@ function PreviewTransaction() {
     nfcExportModalVisible || nfcScanModalVisible
   )
 
-  const shareWithNostrGroup = useNostrShareTransaction({ account, id })
+  const shareWithNostrGroup = useNostrShareTransaction(account)
 
   const {
     closeSeedWordsModal,
