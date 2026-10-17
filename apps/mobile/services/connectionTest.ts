@@ -5,6 +5,13 @@ import ElectrumClient, {
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import {
+  BTC_PER_KVB_TO_SAT_PER_VB,
+  CONNECTION_TEST_TIMEOUT_MS,
+  ELECTRUM_CLIENT_INFO,
+  RPC_FEE_TARGET_BLOCKS,
+  SOFTWARE_LABELS
+} from '@/constants/connectionTest'
+import {
   type ConnectionTestSuccess,
   type NodeInfo
 } from '@/types/models/ConnectionTest'
@@ -30,18 +37,6 @@ type ProbeParams = {
   onElectrumClient?: (client: ElectrumClient) => void
 }
 
-const CONNECTION_TEST_TIMEOUT_MS = 10_000
-// Fee target (blocks) for the median fee shown after an RPC test.
-const RPC_FEE_TARGET_BLOCKS = 6
-// estimatesmartfee answers in BTC/kvB; this converts it to sat/vB.
-const BTC_PER_KVB_TO_SAT_PER_VB = 1e5
-
-const SOFTWARE_LABELS: Record<Backend, string> = {
-  electrum: 'Electrum',
-  esplora: 'Esplora',
-  rpc: 'Bitcoin Core'
-}
-
 async function probeElectrum(
   { url, network, onElectrumClient }: ProbeParams,
   startTime: number
@@ -60,10 +55,10 @@ async function readElectrumNode(
   network: Network,
   startTime: number
 ): Promise<ConnectionProbe> {
-  const serverInfo = await client.client.initElectrum(
-    { client: 'satsigner', version: '1.4' },
-    { callback: null, maxRetry: 0 }
-  )
+  const serverInfo = await client.client.initElectrum(ELECTRUM_CLIENT_INFO, {
+    callback: null,
+    maxRetry: 0
+  })
   const responseTime = Date.now() - startTime
 
   // Headers, timestamp and banner are optional: not every server supports them.
@@ -232,9 +227,4 @@ function closeProbeClient(client: ElectrumClient) {
   closeElectrumClientQuietly(client)
 }
 
-export {
-  closeProbeClient,
-  CONNECTION_TEST_TIMEOUT_MS,
-  probeConnection,
-  SOFTWARE_LABELS
-}
+export { closeProbeClient, probeConnection }

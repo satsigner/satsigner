@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 
 import type ElectrumClient from '@/api/electrum'
 import {
-  closeProbeClient,
-  probeConnection,
+  CONNECTION_TEST_COOLDOWN_MS,
   SOFTWARE_LABELS
-} from '@/services/connectionTest'
+} from '@/constants/connectionTest'
+import { closeProbeClient, probeConnection } from '@/services/connectionTest'
 import {
   type ConnectionTestResult,
   type NodeInfo
@@ -16,8 +16,6 @@ import {
   type ProxyConfig,
   type RpcCredentials
 } from '@/types/settings/blockchain'
-
-const CONNECTION_TEST_COOLDOWN_MS = 2000
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)

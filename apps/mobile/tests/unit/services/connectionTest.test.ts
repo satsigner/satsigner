@@ -4,10 +4,8 @@ import ElectrumClient, {
 } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import {
-  CONNECTION_TEST_TIMEOUT_MS,
-  probeConnection
-} from '@/services/connectionTest'
+import { CONNECTION_TEST_TIMEOUT_MS } from '@/constants/connectionTest'
+import { probeConnection } from '@/services/connectionTest'
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   ElectrumServerVersionSchema: { safeParse: jest.fn() },
