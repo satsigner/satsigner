@@ -25,6 +25,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { MNEMONIC_WORD_COUNTS } from '@/types/bips/39'
 import type { Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { hasEncryptedSecret } from '@/utils/key'
@@ -673,7 +674,7 @@ function SSMultisigKeyControl({
         onSelect={handleWordCountSelection}
         onCancel={() => setWordCountModalVisible(false)}
       >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
+        {MNEMONIC_WORD_COUNTS.toReversed().map((count) => (
           <SSRadioButton
             key={count}
             label={`${count} ${t('bitcoin.words').toLowerCase()}`}

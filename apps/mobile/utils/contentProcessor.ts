@@ -28,6 +28,7 @@ import { getUsableFeeRate } from '@/utils/feeWarnings'
 import { ensureBitcoinPrefix, parseUriParameters } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
+  buildPubkeyToCosignerIndex,
   combinePsbts,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
@@ -294,21 +295,10 @@ export function mapSignedPsbtsToCosigners(
   psbtBase64: string,
   keyFingerprints: string[]
 ): Map<number, string> {
-  const pubkeyToCosignerIndex = new Map<string, number>()
-  const combinedPsbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-  for (const input of combinedPsbt.data.inputs) {
-    for (const derivation of input.bip32Derivation ?? []) {
-      const cosignerIndex = keyFingerprints.indexOf(
-        derivation.masterFingerprint.toString('hex')
-      )
-      if (cosignerIndex !== -1) {
-        pubkeyToCosignerIndex.set(
-          derivation.pubkey.toString('hex'),
-          cosignerIndex
-        )
-      }
-    }
-  }
+  const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
+    bitcoinjs.Psbt.fromBase64(psbtBase64),
+    keyFingerprints
+  )
 
   const psbtsByCosigner = new Map<number, string[]>()
   for (const psbtStr of Object.values(individualSignedPsbts)) {

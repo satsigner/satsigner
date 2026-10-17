@@ -2,13 +2,23 @@ import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { PSBT_MAGIC_HEX } from '@/constants/btc'
+import {
+  HEX_PATTERN,
+  MIN_MULTISIG_SCRIPT_LENGTH,
+  OP_N_VALUE_OFFSET,
+  PSBT_MAGIC_BASE64,
+  PSBT_MAGIC_HEX
+} from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type MockPsbt } from '@/types/models/Psbt'
+import {
+  type MockPsbt,
+  type PsbtInputWithSignatures
+} from '@/types/models/Psbt'
 import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { stripBitcoinPrefix } from '@/utils/parse'
 
 const bip32 = BIP32Factory(ecc)
 
@@ -559,6 +569,23 @@ export function signedTransactionMatchesPsbt(
   }
 }
 
+// Parses a PSBT that already carries partial signatures, returning it with
+// its unsigned original. Null when it cannot be parsed or has no signatures.
+export function readPartiallySignedPsbt(psbtBase64: string) {
+  try {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    const hasSignatures = psbt.data.inputs.some(
+      (input) => (input.partialSig?.length ?? 0) > 0
+    )
+    if (!hasSignatures) {
+      return null
+    }
+    return { originalPsbtBase64: extractOriginalPsbt(psbtBase64), psbt }
+  } catch {
+    return null
+  }
+}
+
 export function extractOriginalPsbt(psbtBase64: string): string {
   const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
   const tx = bitcoinjs.Transaction.fromBuffer(
@@ -623,10 +650,10 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
   const nOp = decompiled.at(-2)!
 
   const m = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - 80])
+    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - OP_N_VALUE_OFFSET])
   )
   const n = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - 80])
+    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - OP_N_VALUE_OFFSET])
   )
 
   return { required: m, total: n }
@@ -896,9 +923,10 @@ function isValidNonWitnessUtxo(nonWitnessUtxo: Buffer): boolean {
   return !!(nonWitnessUtxo && nonWitnessUtxo.length > 0)
 }
 
-function parseWitnessScript(witnessScript: Buffer) {
+// Reads the m-of-n of a multisig witness script; null when it is not one.
+export function parseWitnessScript(witnessScript: Buffer) {
   const script = bitcoinjs.script.decompile(witnessScript)
-  if (!script || script.length < 3) {
+  if (!script || script.length < MIN_MULTISIG_SCRIPT_LENGTH) {
     return null
   }
 
@@ -907,14 +935,14 @@ function parseWitnessScript(witnessScript: Buffer) {
     return null
   }
 
-  const threshold = op - 80
+  const threshold = op - OP_N_VALUE_OFFSET
   const totalKeys = countPublicKeysInScript(script)
 
   return { threshold, totalKeys }
 }
 
 function isValidOpCode(op: number): boolean {
-  return op >= 81 && op <= 96
+  return op >= bitcoinjs.opcodes.OP_1 && op <= bitcoinjs.opcodes.OP_16
 }
 
 function countPublicKeysInScript(script: (number | Buffer)[]): number {
@@ -1156,4 +1184,213 @@ export function matchSignedPsbtsToCosigners(
   }
 
   return matches
+}
+
+// True when the input carries at least the threshold number of partial
+// signatures its multisig witness script requires. Inputs without a witness
+// script are considered ready.
+export function hasEnoughSignatures(input: PsbtInputWithSignatures) {
+  if (!input.witnessScript) {
+    return true
+  }
+  const parsed = parseWitnessScript(input.witnessScript)
+  if (!parsed) {
+    return false
+  }
+  return (input.partialSig?.length ?? 0) >= parsed.threshold
+}
+
+// A unique id shown in place of a txid that could not be read, e.g.
+// `PSBT-lq2x9k` or, with a `tag`, `PSBT-ERROR-lq2x9k`.
+export function createPlaceholderTransactionId(tag?: string) {
+  return ['PSBT', tag, Date.now().toString(36)].filter(Boolean).join('-')
+}
+
+// The PSBT's txid, or a unique placeholder id when it cannot be extracted.
+export function generateTransactionId(psbtBase64: string) {
+  return (
+    extractTransactionIdFromPSBT(psbtBase64) || createPlaceholderTransactionId()
+  )
+}
+
+// Maps each PSBT input pubkey to the index of the account key (cosigner)
+// that derived it, matched through the BIP32 master fingerprint.
+// `keyFingerprints[i]` is the master fingerprint of account key `i`.
+export function buildPubkeyToCosignerIndex(
+  psbt: bitcoinjs.Psbt,
+  keyFingerprints: (string | undefined)[]
+) {
+  const pubkeyToCosignerIndex = new Map<string, number>()
+  for (const input of psbt.data.inputs) {
+    for (const derivation of input.bip32Derivation ?? []) {
+      const cosignerIndex = keyFingerprints.indexOf(
+        derivation.masterFingerprint.toString('hex')
+      )
+      if (cosignerIndex !== -1) {
+        pubkeyToCosignerIndex.set(
+          derivation.pubkey.toString('hex'),
+          cosignerIndex
+        )
+      }
+    }
+  }
+  return pubkeyToCosignerIndex
+}
+
+// Keeps only the cosigners that have a non-empty signed PSBT.
+export function getCollectedSignedPsbts(signedPsbts: Map<number, string>) {
+  return new Map(
+    Array.from(signedPsbts).filter(([, psbt]) => psbt && psbt.trim().length > 0)
+  )
+}
+
+// True when a multisig account has at least `keysRequired` valid signatures.
+export function hasAllRequiredSignatures(
+  account: Account | undefined,
+  validationResults: Map<number, boolean>
+) {
+  if (!account || account.policyType !== 'multisig' || !account.keys) {
+    return false
+  }
+  const requiredSignatures = account.keysRequired || account.keys.length
+  const validSignatures = Array.from(validationResults.values()).filter(
+    Boolean
+  ).length
+  return validSignatures >= requiredSignatures
+}
+
+type CombineAndFinalizeResult =
+  | { hex: string }
+  | { errorKey: string; errorParams?: Record<string, number> }
+
+// Combines cosigner-signed PSBTs into the original, finalizes it and extracts
+// the signed transaction hex. Failures return an i18n key to show the user.
+export function combineAndFinalizePsbts(
+  originalPsbtBase64: string,
+  signedPsbtsBase64: string[]
+): CombineAndFinalizeResult {
+  if (signedPsbtsBase64.length === 0) {
+    return { errorKey: 'common.error.noSignedPSBTs' }
+  }
+
+  const combinedPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+  for (const [index, signedPsbtBase64] of signedPsbtsBase64.entries()) {
+    try {
+      combinedPsbt.combine(bitcoinjs.Psbt.fromBase64(signedPsbtBase64))
+    } catch {
+      return {
+        errorKey: 'transaction.preview.errorCombiningPsbt',
+        errorParams: { index: index + 1 }
+      }
+    }
+  }
+
+  if (!combinedPsbt.data.inputs.every(hasEnoughSignatures)) {
+    return { errorKey: 'transaction.preview.notEnoughSignatures' }
+  }
+
+  try {
+    combinedPsbt.finalizeAllInputs()
+  } catch {
+    return { errorKey: 'common.error.finalizeTransaction' }
+  }
+
+  try {
+    return { hex: combinedPsbt.extractTransaction().toHex() }
+  } catch {
+    return { errorKey: 'common.error.extractTransaction' }
+  }
+}
+
+// Binds scanned or pasted data (hex or base64 PSBT, or raw transaction hex)
+// to the PSBT under review. A PSBT is combined with it via
+// `convertPsbtToFinalTransaction` (which throws on mismatch); a raw transaction
+// must spend and pay exactly what the PSBT does; anything else is rejected.
+// Returns null when the data does not match, so a swapped QR/clipboard/NFC tag
+// cannot substitute what gets broadcast.
+export function bindScannedDataToPsbt(
+  data: string,
+  originalPsbtBase64: string | undefined,
+  convertPsbtToFinalTransaction: (psbtHex: string) => string
+) {
+  const processedData = psbtBase64ToHex(stripBitcoinPrefix(data.trim()))
+
+  if (processedData.toLowerCase().startsWith(PSBT_MAGIC_HEX)) {
+    return originalPsbtBase64
+      ? convertOrNull(convertPsbtToFinalTransaction, processedData)
+      : processedData
+  }
+
+  if (!originalPsbtBase64) {
+    return processedData
+  }
+
+  if (
+    !HEX_PATTERN.test(processedData) ||
+    !signedTransactionMatchesPsbt(originalPsbtBase64, processedData)
+  ) {
+    return null
+  }
+
+  return processedData
+}
+
+// Binds data imported into a signature slot. A cosigner slot keeps the PSBT
+// combined with the one under review but unfinalized, so its signatures can be
+// validated and combined with the others; only the watch-only import is
+// finalized for broadcast.
+export function bindImportedSignature(
+  data: string,
+  originalPsbtBase64: string | undefined,
+  isWatchOnly: boolean,
+  convertPsbtToFinalTransaction: (psbtHex: string) => string
+) {
+  if (isWatchOnly || !originalPsbtBase64) {
+    return bindScannedDataToPsbt(
+      data,
+      originalPsbtBase64,
+      convertPsbtToFinalTransaction
+    )
+  }
+  const bound = bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
+    combinePsbts([
+      originalPsbtBase64,
+      Buffer.from(psbtHex, 'hex').toString('base64')
+    ])
+  )
+  // A raw transaction carries no PSBT signatures to validate or combine.
+  return bound?.startsWith(PSBT_MAGIC_BASE64) ? bound : null
+}
+
+function psbtBase64ToHex(data: string) {
+  if (!data.startsWith(PSBT_MAGIC_BASE64)) {
+    return data
+  }
+  return Buffer.from(data, 'base64').toString('hex')
+}
+
+function convertOrNull(
+  convertPsbtToFinalTransaction: (psbtHex: string) => string,
+  psbtHex: string
+) {
+  try {
+    return convertPsbtToFinalTransaction(psbtHex)
+  } catch {
+    return null
+  }
+}
+
+// The txid of a built PSBT, or `fallback` when there is none or it can't be read.
+export function getPsbtTxidOrFallback(
+  psbt: { txid: () => string } | undefined,
+  fallback: string
+) {
+  if (!psbt) {
+    return fallback
+  }
+  try {
+    return psbt.txid() || fallback
+  } catch {
+    return fallback
+  }
 }

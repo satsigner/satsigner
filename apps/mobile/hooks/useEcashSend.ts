@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
@@ -54,8 +54,6 @@ export function useEcashSend() {
   const [animatedQR, setAnimatedQR] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [tokenVersion, setTokenVersion] = useState<'v3' | 'v4'>('v4')
-  const animationRef = useRef<number | null>(null)
-  const lastUpdateRef = useRef<number>(0)
 
   const { activeAccount, mints, payLightningInvoice, proofs, sendEcash } =
     useEcash()
@@ -406,7 +404,6 @@ export function useEcashSend() {
     activeAccount,
     amount,
     animatedQR,
-    animationRef,
     comment,
     currentChunkIndex,
     decodedInvoice,
@@ -422,7 +419,6 @@ export function useEcashSend() {
     isGenerating,
     isLNURLMode,
     isMelting,
-    lastUpdateRef,
     lnurlDetails,
     meltTokens,
     memo,

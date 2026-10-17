@@ -16,7 +16,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
-import { WORDLIST_LIST } from '@/types/bips/39'
+import { MNEMONIC_WORD_COUNTS, WORDLIST_LIST } from '@/types/bips/39'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
@@ -237,7 +237,7 @@ export default function SingleSig() {
         onSelect={handleOnSelectMnemonicWordCount}
         onCancel={() => setMnemonicWordCountModalVisible(false)}
       >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
+        {MNEMONIC_WORD_COUNTS.toReversed().map((count) => (
           <SSRadioButton
             key={count}
             label={`${count} ${t('bitcoin.words').toLowerCase()}`}

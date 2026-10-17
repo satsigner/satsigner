@@ -1,5 +1,5 @@
 import { setStringAsync } from 'expo-clipboard'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -13,15 +13,10 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
 import { Colors, Sizes, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
-import {
-  combinePsbts,
-  type TransactionData,
-  validateNormalizedPsbt
-} from '@/utils/psbt'
+import { validateNormalizedPsbt } from '@/utils/psbt'
 
 import SSPressable from './SSPressable'
 
@@ -39,8 +34,8 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
-  signedPsbts: Map<number, string>
   onShowQR: () => void
+  onShareWithGroup: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
   onCameraScan: (index: number) => void
@@ -48,8 +43,6 @@ type SSSignatureDropdownProps = {
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
   onSignWithSeedWords: () => void
-  /** Navigate to the devices group chat to share the transaction. */
-  onNavigateToGroupChat: () => void
   validationResult?: boolean
 }
 
@@ -66,8 +59,8 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
-  signedPsbts,
   onShowQR,
+  onShareWithGroup,
   onNFCExport,
   onPasteFromClipboard,
   onCameraScan,
@@ -75,13 +68,9 @@ function SSSignatureDropdown({
   onSignWithLocalKey,
   onSignWithSeedQR,
   onSignWithSeedWords,
-  onNavigateToGroupChat,
   validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
 
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
@@ -96,55 +85,6 @@ function SSSignatureDropdown({
       signedPsbt
     }
   )
-
-  const handleSendTransactionToGroup = useCallback(() => {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
-    }
-
-    if (!transactionId || !txBuilderResult?.toBase64()) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-
-    try {
-      const collectedSignedPsbts = Array.from(signedPsbts.entries())
-        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
-        .reduce<Record<number, string>>((acc, [cosignerIndex, psbt]) => {
-          acc[cosignerIndex] = psbt
-          return acc
-        }, {})
-
-      const psbtsToCombine = [
-        txBuilderResult.toBase64(),
-        ...Object.values(collectedSignedPsbts)
-      ]
-      const combinedPsbt = combinePsbts(psbtsToCombine)
-
-      const transactionData: TransactionData = {
-        combinedPsbt
-      }
-
-      const transaction = combinedPsbt
-
-      setTransactionToShare({
-        transaction,
-        transactionData
-      })
-
-      onNavigateToGroupChat()
-    } catch {
-      toast.error(t('account.nostrSync.failedToSendTransactionData'))
-    }
-  }, [
-    account,
-    transactionId,
-    txBuilderResult,
-    signedPsbts,
-    onNavigateToGroupChat,
-    setTransactionToShare
-  ])
 
   const { sourceLabel } = useKeySourceLabel({
     decryptedKey,
@@ -351,7 +291,7 @@ function SSSignatureDropdown({
             label={t('transaction.preview.nip17group')}
             variant="outline"
             disabled={!transactionId || !account?.nostr?.autoSync}
-            onPress={handleSendTransactionToGroup}
+            onPress={onShareWithGroup}
           />
           <SSText
             center

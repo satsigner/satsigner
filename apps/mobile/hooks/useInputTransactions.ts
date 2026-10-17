@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { SATS_PER_BITCOIN, TXID_HEX_REGEX } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
@@ -165,7 +165,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       }
       const id = normalizeTxid(txId)
       const candidates: string[] = [id]
-      if (/^[a-f0-9]{64}$/i.test(id) && Buffer.from(id, 'hex').length === 32) {
+      if (TXID_HEX_REGEX.test(id)) {
         candidates.push(
           // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
           Buffer.from(id, 'hex').reverse().toString('hex').toLowerCase()
@@ -211,11 +211,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
             if (server.backend === 'esplora') {
               const esploraClient = new Esplora(server.url)
               let fetched = await fetchEsploraTx(esploraClient, txid)
-              if (
-                !fetched &&
-                /^[a-fA-F0-9]{64}$/i.test(txid) &&
-                Buffer.from(txid, 'hex').length === 32
-              ) {
+              if (!fetched && TXID_HEX_REGEX.test(txid)) {
                 const reversed =
                   // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
                   Buffer.from(txid, 'hex').reverse().toString('hex')

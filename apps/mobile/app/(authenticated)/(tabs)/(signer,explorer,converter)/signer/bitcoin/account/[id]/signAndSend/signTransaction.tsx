@@ -1,4 +1,3 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
 import * as Clipboard from 'expo-clipboard'
 import {
   Redirect,
@@ -33,6 +32,7 @@ import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -41,7 +41,6 @@ import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useNostrStore } from '@/store/nostr'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -78,8 +77,9 @@ import {
   buildTxLabelsById
 } from '@/utils/sankeyInputLabel'
 import {
-  estimateTransactionSize,
-  legacyEstimateTransactionSize
+  buildChartTransactionFromBuilder,
+  estimateBuilderTransactionSize,
+  getFinalizedTransactionSize
 } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -113,36 +113,9 @@ function buildSignTransactionChartModel(
     return null
   }
 
-  const inputArray = Array.from(inputs.values())
-  let size: number
-  let vsize: number
-
-  const trimmed = finalizedTxHex.trim()
-  if (
-    trimmed.length >= 20 &&
-    /^[0-9a-fA-F]+$/i.test(trimmed) &&
-    !trimmed.toLowerCase().startsWith('70736274')
-  ) {
-    try {
-      const finalized = bitcoinjs.Transaction.fromHex(trimmed)
-      vsize = finalized.virtualSize()
-      size = finalized.byteLength(true)
-    } catch {
-      const est =
-        inputArray.length > 0
-          ? estimateTransactionSize(inputArray, outputs)
-          : legacyEstimateTransactionSize(inputs.size, outputs.length)
-      size = est.size
-      vsize = est.vsize
-    }
-  } else {
-    const est =
-      inputArray.length > 0
-        ? estimateTransactionSize(inputArray, outputs)
-        : legacyEstimateTransactionSize(inputs.size, outputs.length)
-    size = est.size
-    vsize = est.vsize
-  }
+  const { size, vsize } =
+    getFinalizedTransactionSize(finalizedTxHex) ??
+    estimateBuilderTransactionSize(inputs, outputs)
 
   // Prefer PSBT I/O (what will be signed/broadcast) over builder store state.
   const psbtBase64 = typeof psbt.toBase64 === 'function' ? psbt.toBase64() : ''
@@ -213,35 +186,9 @@ function buildSignTransactionChartModel(
     }
   }
 
-  const vin: Transaction['vin'] = Array.from(inputs.values()).map(
-    (input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '',
-      sequence: 0,
-      value: input.value,
-      witness: []
-    })
-  )
-
-  const vout: Transaction['vout'] = outputs.map((output: Output) => ({
-    address: output.to,
-    kind: output.kind,
-    label: output.label || '',
-    script: '',
-    value: output.amount
-  }))
-
   return {
-    id: txid,
-    lockTimeEnabled: false,
-    prices: {},
-    received: 0,
-    sent: 0,
+    ...buildChartTransactionFromBuilder(inputs, outputs, txid),
     size,
-    type: 'send' as const,
-    vin,
-    vout,
     vsize
   }
 }
@@ -338,9 +285,7 @@ export default function SignTransaction() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
-  const setTransactionToShare = useNostrStore(
-    (state) => state.setTransactionToShare
-  )
+  const shareWithNostrGroup = useNostrShareTransaction({ account, id })
   const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -522,23 +467,10 @@ export default function SignTransaction() {
   }
 
   function handleShareWithNostrGroup() {
-    if (!account?.nostr?.autoSync) {
-      toast.error(t('account.nostrSync.autoSyncMustBeEnabled'))
-      return
+    const errorKey = shareWithNostrGroup(psbt?.toBase64() ?? signedTx)
+    if (errorKey) {
+      toast.error(t(errorKey))
     }
-    const txString = psbt?.toBase64() ?? signedTx ?? ''
-    if (!txString) {
-      toast.error(t('account.nostrSync.transactionDataNotAvailable'))
-      return
-    }
-    setTransactionToShare({
-      transaction: txString,
-      transactionData: { combinedPsbt: txString }
-    })
-    router.push({
-      params: { id },
-      pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-    })
   }
 
   const paymentAmountSats = useMemo(

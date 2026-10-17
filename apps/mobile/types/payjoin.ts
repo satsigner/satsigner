@@ -22,6 +22,18 @@ type PayjoinUriParams = {
   pjos?: 0 | 1
 }
 
+/** A payjoin invoice parsed from the BIP21 URI the user is paying. */
+type PayjoinInvoice = {
+  address: string
+  amountSats?: number
+  endpointKind?: PayjoinEndpointKind
+  expiresAt?: number
+  label?: string
+  pj: string
+  pjos?: 0 | 1
+  uri: string
+}
+
 type PayjoinSessionRole = 'sender' | 'receiver'
 
 /**
@@ -185,6 +197,7 @@ export type {
   PayjoinBoardDestination,
   PayjoinCoordinationMode,
   PayjoinEndpointKind,
+  PayjoinInvoice,
   PayjoinNativeRequest,
   PayjoinSendResult,
   PayjoinSession,
