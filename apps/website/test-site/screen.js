@@ -14,11 +14,11 @@ const groups = {
     title: 'Signer',
     items: [
       { title: 'Bitcoin', icon: 'bitcoin', screen: 'accounts' },
-      { title: 'Lightning', icon: 'lightning' },
-      { title: 'Ark', icon: 'ark' },
+      { title: 'Lightning', icon: 'lightning', screen: 'lightning' },
+      { title: 'Ark', icon: 'ark', screen: 'ark' },
       { title: 'Liquid', icon: 'liquid', soon: true },
-      { title: 'ECash', icon: 'ecash' },
-      { title: 'Nostr', icon: 'nostr' }
+      { title: 'ECash', icon: 'ecash', screen: 'ecash' },
+      { title: 'Nostr', icon: 'nostr', screen: 'nostr' }
     ]
   },
   explorer: {
@@ -96,6 +96,7 @@ if (demoQuery.has('device')) document.documentElement.classList.add('is-device')
 let routeId = 'intro'
 
 function show(name, route) {
+  if (!views[name]) return
   Object.entries(views).forEach(([key, node]) => {
     node.hidden = key !== name
   })
@@ -123,7 +124,7 @@ function renderMenu(tab) {
       item.title +
       '</span></span>'
     button.addEventListener('click', () => {
-      if (item.screen) show(item.screen)
+      if (item.screen) go(item.screen)
     })
     row.appendChild(button)
     listEl.appendChild(row)
@@ -151,6 +152,36 @@ tabs.forEach((tab) => {
     show('menu', activeTab === 'explorer' ? 'explorer' : 'menu')
   })
 })
+
+document.querySelectorAll('.detail-tabs').forEach((row) => {
+  const root = row.closest('section')
+  if (!root) return
+  row.querySelectorAll('[data-panel]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.getAttribute('data-panel')
+      row.querySelectorAll('[data-panel]').forEach((tab) => {
+        tab.classList.toggle('is-active', tab === button)
+      })
+      root.querySelectorAll('[data-pane]').forEach((pane) => {
+        pane.hidden = pane.getAttribute('data-pane') !== id
+      })
+    })
+  })
+})
+
+document.querySelectorAll('[data-go]').forEach((button) => {
+  button.addEventListener('click', () => go(button.getAttribute('data-go')))
+})
+
+const nostrConnect = document.getElementById('nostr-connect')
+if (nostrConnect) {
+  nostrConnect.addEventListener('click', () => {
+    const label = nostrConnect.querySelector('.nostr-connect-label')
+    const connected = nostrConnect.dataset.connected !== 'false'
+    nostrConnect.dataset.connected = connected ? 'false' : 'true'
+    if (label) label.textContent = connected ? 'Connect all' : 'Disconnect all'
+  })
+}
 
 document.querySelectorAll('[data-back]').forEach((button) => {
   button.innerHTML = icon('back', 'back-mark')
@@ -769,14 +800,460 @@ function useSample(address, amount, label) {
   openSend('output')
 }
 
-function openSettings() {
-  openSheet(
-    'Settings',
-    '<button type="button" class="settings-row">Network<small>Signet</small></button>' +
-      '<button type="button" class="settings-row">Currency<small>Sats</small></button>' +
-      '<button type="button" class="settings-row">Charts<small>Line</small></button>' +
-      '<button type="button" class="settings-row">Privacy<small>Off</small></button>'
+const settingsPages = {
+  root: {
+    title: 'App Settings',
+    body: function () {
+      return (
+        '<div class="settings-list">' +
+        settingsCard('network', 'Bitcoin Network', 'Connect to a node to sync with the Bitcoin mainnet, testnet, or Signet.', '', 'network') +
+        settingsCard('ark', 'Ark Network', 'Ark server configuration per network.', '', 'ark') +
+        settingsCard('chart', 'Features', 'Show more or less detail about the app and the Bitcoin protocol.', '', 'chart') +
+        settingsCard('currency', 'Fiat Currency', 'Choose the fiat currency used for price display.', '', 'currency') +
+        settingsCard('settings', 'App Security', 'Change app-wide security options to reduce risk if your device is compromised.', '', 'settings') +
+        settingsCard('menu', 'About', 'App version and related build information.', '', 'menu') +
+        settingsCard('node', 'Developer', 'Development-only tools for faster local testing and debugging.', '', 'node') +
+        '</div>'
+      )
+    }
+  },
+  network: {
+    title: 'Bitcoin Network',
+    body: function () {
+      return (
+        '<div class="settings-list">' +
+        settingsCard('node', 'Server', 'Select backend to connect to the network', 'Signet', 'network-server') +
+        settingsCard('mempool', 'Explorer', 'Select servers used in explorer', 'mempool.space', 'network-explorer') +
+        settingsCard('settings', 'Parameters', 'Customize network parameters', '', 'network-params') +
+        '</div>' +
+        '<p class="sheet-note">Signet is the active network. Coins have no value.</p>'
+      )
+    }
+  },
+  ark: {
+    title: 'Ark Network',
+    body: function () {
+      return (
+        '<p class="settings-label">Bitcoin</p>' +
+        '<p class="sheet-note">Mainnet Ark configuration.</p>' +
+        '<p class="settings-copy">Server Address</p>' +
+        checkRow('Second', 'https://ark.second.tech', true) +
+        '<p class="settings-copy">Esplora Address</p>' +
+        checkRow('Second', 'https://mempool.second.tech/api', true) +
+        '<p class="settings-label">Signet</p>' +
+        '<p class="sheet-note">Signet Ark configuration.</p>' +
+        '<p class="settings-copy">Server Address</p>' +
+        checkRow('Second', 'https://ark.signet.2nd.dev', true) +
+        '<p class="settings-copy">Esplora Address</p>' +
+        checkRow('Second', 'https://esplora.signet.2nd.dev', true) +
+        '<button type="button" class="menu-button" data-settings-page="root"><span class="edge-left"></span><span class="edge-right"></span>Close</button>'
+      )
+    }
+  },
+  chart: {
+    title: 'Features',
+    body: function () {
+      return (
+        '<div class="settings-list">' +
+        settingsCard('chart', 'Charts', 'Control the visible layers and navigation of the transaction history, transaction flow and utxo bubble charts.', '', 'charts') +
+        settingsCard('currency', 'Currency Formatting', 'Currency display and formatting', 'Sats', 'currency-format') +
+        settingsCard('currency', 'Fiat Data', 'Control how fiat price data is fetched and displayed', 'Mempool', 'fiat-data') +
+        settingsCard('bubbles', 'UTXO Auto Select', 'Default UTXO selection when paying from a Bitcoin URI with an amount', '', 'utxo') +
+        settingsCard('menu', 'Mnemonic Seed Language', 'Default language used in mnemonic from BIP39 word list', 'English', 'bip39') +
+        settingsCard('bubbles', 'Payjoin', 'Collaborate on Bitcoin payments to improve privacy.', 'On', 'payjoin') +
+        '</div>'
+      )
+    }
+  },
+  currency: {
+    title: 'Fiat Currency',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Select currency</p>' +
+        ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'JPY', 'AUD']
+          .map(function (code) {
+            return (
+              '<button type="button" class="settings-row' +
+              (code === 'USD' ? ' is-selected' : '') +
+              '">' +
+              code +
+              (code === 'USD' ? '<small>Selected</small>' : '') +
+              '</button>'
+            )
+          })
+          .join('')
+      )
+    }
+  },
+  settings: {
+    title: 'App Security',
+    body: function () {
+      return (
+        '<p class="settings-label">App Pin</p>' +
+        '<p class="settings-copy">Maximum pin tries</p>' +
+        '<p class="settings-value">3</p>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Change pin</button>' +
+        '<p class="settings-label">Duress Pin</p>' +
+        '<button type="button" class="settings-row">Enable duress pin<small>Off</small></button>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Set duress pin</button>' +
+        '<p class="settings-label">Seed</p>' +
+        '<button type="button" class="settings-row">Allow skipping seed word confirmation<small>Off</small></button>'
+      )
+    }
+  },
+  menu: {
+    title: 'About',
+    body: function () {
+      return (
+        '<button type="button" class="settings-row">Version<small>0.3.6</small></button>' +
+        '<button type="button" class="settings-row">License<small>MIT</small></button>' +
+        '<button type="button" class="settings-row" data-settings-page="changelog">Change Log' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row" data-settings-page="report">Report an issue' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<p class="settings-label">Follow us</p>' +
+        '<button type="button" class="settings-row">Nostr</button>' +
+        '<button type="button" class="settings-row">X</button>'
+      )
+    }
+  },
+  node: {
+    title: 'Developer',
+    body: function () {
+      return (
+        '<button type="button" class="settings-row" data-settings-page="backup">Backup data' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row" data-settings-page="recover">Recover data' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row">Delete Bitcoin Accounts' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row">Clear storage (full reset)' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        checkRow('Skip PIN', 'Off', false) +
+        '<button type="button" class="settings-row" data-settings-page="diagnosis">Diagnostics' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row">Design' +
+        icon('chevron', 'settings-chevron') +
+        '</button>'
+      )
+    }
+  },
+  'network-server': {
+    title: 'Server',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Select backend to connect to the network</p>' +
+        '<p class="settings-label">Signet</p>' +
+        '<p class="sheet-note">Centralized network used for testing (coins have no value)</p>' +
+        checkRow('Mempool', 'https://mempool.space/signet/api', true) +
+        checkRow('Blockstream', 'https://blockstream.info/signet/api', false) +
+        checkRow('Blockstream', 'ssl://electrum.blockstream.info:60002', false) +
+        '<p class="settings-label">Bitcoin</p>' +
+        '<p class="sheet-note">Decentralized network (coins have value)</p>' +
+        checkRow('Mempool', 'https://mempool.space/api', true) +
+        checkRow('Blockstream', 'ssl://electrum.blockstream.info:50002', false) +
+        '<p class="settings-label">Testnet</p>' +
+        '<p class="sheet-note">Decentralized network used for testing (coins have no value)</p>' +
+        checkRow('Mempool Testnet4', 'https://mempool.space/testnet4/api', true) +
+        checkRow('Mutinynet', 'https://mutinynet.com/api', false) +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Add custom</button>'
+      )
+    }
+  },
+  'network-explorer': {
+    title: 'Explorer',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Select Mempool-compatible servers which will be used in Explorer, mining and other pages.</p>' +
+        '<label class="settings-field">Bitcoin<input value="https://mempool.space/api" readonly></label>' +
+        '<label class="settings-field">Testnet<input value="https://mempool.space/testnet4/api" readonly></label>' +
+        '<label class="settings-field">Signet<input value="https://mempool.space/signet/api" readonly></label>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Save</button>'
+      )
+    }
+  },
+  'network-params': {
+    title: 'Parameters',
+    body: function () {
+      return (
+        '<p class="settings-label">Signet</p>' +
+        '<p class="sheet-note">Centralized network used for testing (coins have no value)</p>' +
+        '<p class="settings-copy">Connection mode</p>' +
+        checkRow('Manual', '', false) +
+        checkRow('Auto', '', true) +
+        '<label class="settings-field">Delay since last sync before autosyncing (in minutes)<input value="30" readonly></label>' +
+        '<label class="settings-field">Connection test interval (in seconds)<input value="60" readonly></label>' +
+        '<p class="sheet-note">Only works when autoconnection is on</p>' +
+        '<label class="settings-field">Retries<input value="5" readonly></label>' +
+        '<label class="settings-field">Timeout<input value="15" readonly></label>' +
+        '<label class="settings-field">Stop Gap<input value="20" readonly></label>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Save</button>'
+      )
+    }
+  },
+  charts: {
+    title: 'Chart Settings',
+    body: function () {
+      return (
+        '<p class="settings-label">History Chart</p>' +
+        '<p class="settings-copy">Layers</p>' +
+        checkRow('Show Labels', '', true) +
+        checkRow('Show Amounts', '', true) +
+        checkRow('Show Transaction Info', '', true) +
+        checkRow('Show Output Fields', '', false) +
+        checkRow('Show current fiat value', '', true) +
+        checkRow('Show fiat value at the time of the TX', '', false) +
+        checkRow('Show percentage difference', '', false) +
+        '<p class="settings-copy">Navigation</p>' +
+        checkRow('Lock Zoom To X-Axis', '', false) +
+        '<p class="settings-label">Transaction Flow Chart</p>' +
+        checkRow('Show Transaction Flow Chart', '', true) +
+        '<p class="settings-label">Utxo Bubbles</p>' +
+        checkRow('Show Utxo Bubbles', '', true) +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Save</button>'
+      )
+    }
+  },
+  'currency-format': {
+    title: 'Currency Formatting',
+    body: function () {
+      return (
+        '<p class="settings-copy">Display options</p>' +
+        checkRow('Show 0.00.. padding', '', false) +
+        '<p class="settings-copy">Currency unit</p>' +
+        checkRow('SATS', '', true) +
+        checkRow('BTC', '', false)
+      )
+    }
+  },
+  'fiat-data': {
+    title: 'Fiat Data',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Current prices are requested from the price provider. Historical prices use on-device data by default and do not send transaction dates.</p>' +
+        '<p class="settings-copy">Price provider</p>' +
+        checkRow('Mempool', '', true) +
+        checkRow('Custom provider', '', false) +
+        '<p class="settings-label">Fetching</p>' +
+        checkRow('Fetch current prices', '', true) +
+        checkRow('Show historical prices (on-device)', '', true) +
+        checkRow('Fetch missing historical prices from API', '', false) +
+        '<p class="sheet-note">Sends transaction timestamps to the price provider. Only enable if you do not need privacy for those dates.</p>' +
+        '<p class="settings-label">Data available</p>' +
+        '<p class="sheet-note">Current spot prices (USD, EUR, GBP, CAD, CHF, JPY, AUD). Cross-currency exchange rates. Historical BTC price at a specific timestamp.</p>'
+      )
+    }
+  },
+  utxo: {
+    title: 'UTXO Auto Select',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Choose how inputs are selected automatically when you scan or paste a Bitcoin payment link that includes an amount.</p>' +
+        checkRow('Privacy', '', true) +
+        checkRow('Efficiency', '', false) +
+        checkRow('User', '', false) +
+        '<p class="sheet-note">Best possible transaction template that breaks as many heuristics as possible.</p>'
+      )
+    }
+  },
+  bip39: {
+    title: 'Mnemonic Seed Language',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Select the default language for the word list used in mnemonic seed from BIP39 when creating a new account.</p>' +
+        ['chinese_simplified', 'chinese_traditional', 'czech', 'english', 'french', 'italian', 'japanese', 'korean', 'portuguese', 'spanish']
+          .map(function (name) {
+            return checkRow(name, '', name === 'english')
+          })
+          .join('') +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Save</button>'
+      )
+    }
+  },
+  payjoin: {
+    title: 'Payjoin',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Collaborate on Bitcoin payments to improve privacy. Enabled by default for singlesig accounts. Receiving wallets need at least one spendable coin to participate.</p>' +
+        checkRow('Payjoin', '', true) +
+        '<p class="settings-label">Coordination</p>' +
+        '<p class="sheet-note">Directory coordinates over the network. Manual keeps everything offline by exchanging PSBTs out of band.</p>' +
+        checkRow('Directory', 'Coordinate through a Payjoin directory and OHTTP relays.', true) +
+        checkRow('Manual (offline)', 'Exchange PSBTs by hand (QR, NFC, or copy).', false) +
+        '<label class="settings-field">Directory URL<input value="" placeholder="https://payjo.in" readonly></label>' +
+        '<p class="sheet-note">Leave empty to use the default directory (payjo.in).</p>' +
+        '<p class="settings-label">Session lifetime</p>' +
+        '<p class="sheet-note">How long a receive mailbox stays open before it expires.</p>' +
+        checkRow('1 minute', '', false) +
+        checkRow('5 minutes', '', true) +
+        checkRow('10 minutes', '', false)
+      )
+    }
+  },
+  changelog: {
+    title: 'Change Log',
+    body: function () {
+      return (
+        '<button type="button" class="settings-row">Version<small>0.3.6</small></button>' +
+        '<button type="button" class="settings-row">Source code' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<button type="button" class="settings-row">APK' +
+        icon('chevron', 'settings-chevron') +
+        '</button>' +
+        '<p class="sheet-copy">Release notes load from the project repository.</p>'
+      )
+    }
+  },
+  report: {
+    title: 'Report an issue',
+    body: function () {
+      return (
+        '<p class="sheet-copy">Report a security issue or a bug. Your report is sent as an encrypted NIP-17 message to the SatSigner project npub.</p>' +
+        '<p class="sheet-note">Never include seed words, private keys, PINs, or passphrases in your report.</p>' +
+        '<textarea class="paste-box" readonly>Describe the issue, affected version, and steps to reproduce…</textarea>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Send report</button>'
+      )
+    }
+  },
+  backup: {
+    title: 'Backup',
+    body: function () {
+      return (
+        '<p class="sheet-note">This backup includes seed words. Keep it secure and private.</p>' +
+        '<label class="settings-field">Passphrase<input value="" placeholder="Enter passphrase" readonly></label>' +
+        '<p class="sheet-note">Encryption: PBKDF2-SHA256 (10,000 iterations) + AES-256-CBC.</p>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Encrypt and share</button>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Encrypt and save to file</button>'
+      )
+    }
+  },
+  recover: {
+    title: 'Recover data',
+    body: function () {
+      return (
+        '<textarea class="paste-box" readonly>Paste encrypted backup data here…</textarea>' +
+        '<label class="settings-field">Passphrase<input value="" placeholder="Enter passphrase to decrypt" readonly></label>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Decrypt</button>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Upload file</button>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Scan QR</button>'
+      )
+    }
+  },
+  diagnosis: {
+    title: 'Diagnostics',
+    body: function () {
+      return (
+        '<p class="settings-label">Quick checks</p>' +
+        '<p class="sheet-note">One-click local health checks. No network, no funds, no confirmations needed.</p>' +
+        checkRow('Crypto roundtrip (AES / PBKDF2)', '', false) +
+        checkRow('PIN KDF derivation', '', false) +
+        checkRow('Secure store read/write', '', false) +
+        checkRow('Database integrity', '', false) +
+        checkRow('Entropy collision test (RNG)', '', false) +
+        checkRow('NIP-17 gift wrap roundtrip', '', false) +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Run all checks</button>' +
+        '<p class="settings-label">Payjoin Signet roundtrip</p>' +
+        '<p class="sheet-note">Run a real BIP77 Payjoin roundtrip between the Sample and Clown Signet wallets. For testing only.</p>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Run Signet roundtrip</button>'
+      )
+    }
+  }
+}
+
+function checkRow(label, detail, on) {
+  return (
+    '<button type="button" class="settings-check' +
+    (on ? ' is-on' : '') +
+    '"><i></i><span><strong>' +
+    label +
+    '</strong>' +
+    (detail ? '<em>' + detail + '</em>' : '') +
+    '</span></button>'
   )
+}
+
+const settingsParent = {
+  network: 'root',
+  ark: 'root',
+  chart: 'root',
+  currency: 'root',
+  settings: 'root',
+  menu: 'root',
+  node: 'root',
+  'network-server': 'network',
+  'network-explorer': 'network',
+  'network-params': 'network',
+  charts: 'chart',
+  'currency-format': 'chart',
+  'fiat-data': 'chart',
+  utxo: 'chart',
+  bip39: 'chart',
+  payjoin: 'chart',
+  changelog: 'menu',
+  report: 'menu',
+  backup: 'node',
+  recover: 'node',
+  diagnosis: 'node'
+}
+
+function settingsCard(mark, title, description, value, page) {
+  return (
+    '<button type="button" class="settings-card"' +
+    (page ? ' data-settings-page="' + page + '"' : '') +
+    '>' +
+    icon(mark, 'settings-card-mark') +
+    '<span><strong>' +
+    title +
+    '</strong><em>' +
+    description +
+    '</em></span>' +
+    (value ? '<small>' + value + '</small>' : '') +
+    icon('chevron', 'settings-chevron') +
+    '</button>'
+  )
+}
+
+function showSettingsPage(id) {
+  const page = settingsPages[id] || settingsPages.root
+  const sheet = document.getElementById('sheet')
+  const title = sheet.querySelector('.sheet-head p')
+  const body = sheet.querySelector('.sheet-body')
+  if (title) title.textContent = page.title
+  if (body) body.innerHTML = page.body()
+  sheet.dataset.settingsPage = id
+}
+
+function openSettings() {
+  openSheet('App Settings', settingsPages.root.body(), function (sheet) {
+    sheet.dataset.settingsPage = 'root'
+    const close = document.getElementById('sheet-close')
+    close.addEventListener(
+      'click',
+      function (event) {
+        const page = sheet.dataset.settingsPage
+        const parent = settingsParent[sheet.dataset.settingsPage]
+        if (parent) {
+          event.stopImmediatePropagation()
+          showSettingsPage(parent)
+        }
+      },
+      true
+    )
+    sheet.addEventListener('click', function (event) {
+      const card = event.target.closest('[data-settings-page]')
+      if (!card || !settingsPages[card.dataset.settingsPage]) return
+      if (card.dataset.settingsPage === sheet.dataset.settingsPage) return
+      showSettingsPage(card.dataset.settingsPage)
+    })
+  })
 }
 
 function openPaste() {
@@ -1523,6 +2000,34 @@ function go(id) {
     document.getElementById('payjoin-toggle').checked = true
     startSign()
     show('sign', 'sign')
+    return true
+  }
+  if (id === 'sent') {
+    openAccountData = accounts[0]
+    document.getElementById('sent-txid').textContent =
+      'demo' + openAccountData.fingerprint + '00000000000000000000000000000000000000000000'
+    document.getElementById('sent-summary').textContent = 'Payjoin send. 50,000 sats · Demo'
+    show('sent', 'sent')
+    return true
+  }
+  if (
+    id === 'ark' ||
+    id === 'ark-account' ||
+    id === 'lightning' ||
+    id === 'lightning-node' ||
+    id === 'lightning-rest' ||
+    id === 'lightning-rpc' ||
+    id === 'ecash' ||
+    id === 'ecash-account' ||
+    id === 'ecash-send' ||
+    id === 'ecash-receive' ||
+    id === 'ecash-add' ||
+    id === 'nostr' ||
+    id === 'nostr-account' ||
+    id === 'nostr-relays' ||
+    id === 'nostr-add'
+  ) {
+    show(id, id)
     return true
   }
   if (id === 'settings') {
