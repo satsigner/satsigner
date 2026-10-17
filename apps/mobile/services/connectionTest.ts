@@ -12,30 +12,12 @@ import {
   SOFTWARE_LABELS
 } from '@/constants/connectionTest'
 import {
-  type ConnectionTestSuccess,
-  type NodeInfo
+  type ConnectionProbe,
+  type ProbeParams
 } from '@/types/models/ConnectionTest'
-import {
-  type Backend,
-  type Network,
-  type RpcCredentials
-} from '@/types/settings/blockchain'
+import { type Backend, type Network } from '@/types/settings/blockchain'
 import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
-
-type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
-}
-
-type ProbeParams = {
-  url: string
-  backend: Backend
-  network: Network
-  rpcCredentials?: RpcCredentials
-  /** Receives the open Electrum client so the caller can close it early. */
-  onElectrumClient?: (client: ElectrumClient) => void
-}
 
 async function probeElectrum(
   { url, network, onElectrumClient }: ProbeParams,

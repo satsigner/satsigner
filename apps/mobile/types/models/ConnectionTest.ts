@@ -1,3 +1,10 @@
+import type ElectrumClient from '@/api/electrum'
+import {
+  type Backend,
+  type Network,
+  type RpcCredentials
+} from '@/types/settings/blockchain'
+
 export type NodeInfo = {
   version?: string
   blockHeight?: number
@@ -29,3 +36,17 @@ export type ConnectionTestResult =
       success: false
       error?: string
     }
+
+export type ConnectionProbe = {
+  result: ConnectionTestSuccess
+  nodeInfo: NodeInfo
+}
+
+export type ProbeParams = {
+  url: string
+  backend: Backend
+  network: Network
+  rpcCredentials?: RpcCredentials
+  /** Receives the open Electrum client so the caller can close it early. */
+  onElectrumClient?: (client: ElectrumClient) => void
+}
