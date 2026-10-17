@@ -3195,6 +3195,7 @@
     "preview.usb": "USB",
     "preview.scanQR": "Scan QR",
     "preview.checkSignature": "Check Signature",
+    "preview.cosignerRequiresPsbt": "A cosigner signature must be a signed PSBT, not a transaction",
     "preview.importedPsbt": "Imported PSBT (may need additional signatures)",
     "preview.maxDensityLimited": "Max density limited due to data size",
     "preview.qrDensity": "QR density: %{value}/%{max}",

@@ -1372,29 +1372,44 @@ export function bindImportedSignature(
   if (!originalPsbtBase64) {
     return { errorKey: 'common.error.noOriginalPSBT' }
   }
-  return toBindResult(() => bindCosignerPsbt(data, originalPsbtBase64))
-}
-
-// A cosigner's PSBT combined with the one under review, unfinalized. Null when
-// it does not match, or for a raw transaction, which carries no PSBT
-// signatures to validate or combine.
-function bindCosignerPsbt(data: string, originalPsbtBase64: string) {
-  const bound = bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
-    combinePsbts([
-      originalPsbtBase64,
-      Buffer.from(psbtHex, 'hex').toString('base64')
-    ])
+  return toBindResult(
+    () =>
+      bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
+        combinePsbts([
+          originalPsbtBase64,
+          Buffer.from(psbtHex, 'hex').toString('base64')
+        ])
+      ),
+    requireCosignerPsbt
   )
-  return bound?.startsWith(PSBT_MAGIC_BASE64) ? bound : null
 }
 
-function toBindResult(bind: () => string | null): BindImportedSignatureResult {
+// A cosigner slot keeps the bound PSBT (combined with the one under review,
+// unfinalized). A matching raw transaction is rejected: it carries no PSBT
+// signatures to validate or combine.
+function requireCosignerPsbt(boundData: string): BindImportedSignatureResult {
+  if (!boundData.startsWith(PSBT_MAGIC_BASE64)) {
+    return { errorKey: 'transaction.preview.cosignerRequiresPsbt' }
+  }
+  return { boundData }
+}
+
+function acceptBoundData(boundData: string): BindImportedSignatureResult {
+  return { boundData }
+}
+
+// Runs a binding: null (no match) becomes a transaction mismatch, a throw a
+// processing error; bound data goes through `classify`.
+function toBindResult(
+  bind: () => string | null,
+  classify: (boundData: string) => BindImportedSignatureResult = acceptBoundData
+): BindImportedSignatureResult {
   try {
     const boundData = bind()
     if (boundData === null) {
       return { errorKey: 'common.error.transactionMismatch' }
     }
-    return { boundData }
+    return classify(boundData)
   } catch {
     return { errorKey: 'common.error.processScannedData' }
   }

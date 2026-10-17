@@ -411,7 +411,7 @@ describe('2-of-2 multisig signatures', () => {
     ).toStrictEqual({ errorKey: 'common.error.transactionMismatch' })
   })
 
-  it('rejects a raw transaction imported into a cosigner slot', () => {
+  it('asks for a PSBT when a matching transaction is imported into a cosigner slot', () => {
     const original = buildMultisigPsbt()
     const unsignedTxHex = bitcoinjs.Transaction.fromBuffer(
       bitcoinjs.Psbt.fromBase64(original).data.globalMap.unsignedTx.toBuffer()
@@ -419,6 +419,18 @@ describe('2-of-2 multisig signatures', () => {
 
     expect(
       bindImportedSignature(unsignedTxHex, original, false, jest.fn())
+    ).toStrictEqual({ errorKey: 'transaction.preview.cosignerRequiresPsbt' })
+  })
+
+  it('rejects a different transaction imported into a cosigner slot', () => {
+    const original = buildMultisigPsbt()
+    const tx = bitcoinjs.Transaction.fromBuffer(
+      bitcoinjs.Psbt.fromBase64(original).data.globalMap.unsignedTx.toBuffer()
+    )
+    tx.outs[0].value = 10
+
+    expect(
+      bindImportedSignature(tx.toHex(), original, false, jest.fn())
     ).toStrictEqual({ errorKey: 'common.error.transactionMismatch' })
   })
 
