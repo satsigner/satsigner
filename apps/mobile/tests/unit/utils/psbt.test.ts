@@ -1,6 +1,7 @@
 import * as ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
+import { PSBT_MAGIC_BASE64, PSBT_MAGIC_HEX } from '@/constants/btc'
 import { type Account, type Key } from '@/types/models/Account'
 import {
   bindImportedSignature,
@@ -35,9 +36,6 @@ function testP2wpkhAddress(network: bitcoinjs.Network): string {
 }
 
 describe('normalizePsbtToBase64', () => {
-  const PSBT_MAGIC_HEX = '70736274ff'
-  const PSBT_MAGIC_BASE64 = 'cHNidP'
-
   it('converts hex PSBT with magic prefix to base64', () => {
     const hexPsbt = `${PSBT_MAGIC_HEX}01000000`
     const result = normalizePsbtToBase64(hexPsbt)

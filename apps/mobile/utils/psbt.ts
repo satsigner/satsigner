@@ -740,7 +740,7 @@ export function normalizePsbtToBase64(psbt: string): string {
     return Buffer.from(psbt, 'hex').toString('base64')
   }
   if (
-    !psbt.startsWith('cHNidP') &&
+    !psbt.startsWith(PSBT_MAGIC_BASE64) &&
     /^[a-fA-F0-9]+$/.test(psbt) &&
     psbt.length > 100
   ) {
