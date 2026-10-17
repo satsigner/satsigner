@@ -6,10 +6,10 @@ describe('formatMessage', () => {
     expect(formatMessage({ key: 'common.loading' })).toBe(t('common.loading'))
     expect(
       formatMessage({
-        key: 'transaction.preview.wordsCount',
+        key: 'transaction.preview.enterSeedWordsHint',
         params: { count: 12 }
       })
-    ).toBe(t('transaction.preview.wordsCount', { count: 12 }))
+    ).toBe(t('transaction.preview.enterSeedWordsHint', { count: 12 }))
   })
 
   it('returns plain text as is', () => {

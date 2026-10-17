@@ -15,8 +15,8 @@ import SSPreviewTransactionDecoded from '@/components/previewTransaction/SSPrevi
 import SSPreviewTransactionId from '@/components/previewTransaction/SSPreviewTransactionId'
 import SSPreviewWatchOnlyActions from '@/components/previewTransaction/SSPreviewWatchOnlyActions'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSPsbtQRExportModal from '@/components/SSPsbtQRExportModal'
-import SSWordCountSelectModal from '@/components/SSWordCountSelectModal'
 import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { useCosignerSignatures } from '@/hooks/useCosignerSignatures'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
@@ -315,10 +315,10 @@ function PreviewTransaction() {
   }
 
   const propsWordCountModal = {
-    onClose: closeWordCountModal,
-    onContinue: confirmWordCount,
+    onCancel: closeWordCountModal,
+    onChange: setSelectedWordCount,
+    onSelect: confirmWordCount,
     selectedWordCount,
-    setSelectedWordCount,
     visible: wordCountModalVisible
   }
 
@@ -387,7 +387,7 @@ function PreviewTransaction() {
       <SSCameraModal context="bitcoin" {...propsCameraModal} />
       <SSPreviewNfcModal {...propsNfcEmitModal} />
       <SSPreviewNfcModal {...propsNfcScanModal} />
-      <SSWordCountSelectModal {...propsWordCountModal} />
+      <SSMnemonicWordCountSelectModal {...propsWordCountModal} />
       <SSPreviewSeedWordsModal {...propsSeedWordsModal} />
     </SSMainLayout>
   )
