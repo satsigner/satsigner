@@ -10,9 +10,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconAdd, SSIconGreen, SSIconGreenNoSecret } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSModal from '@/components/SSModal'
-import SSRadioButton from '@/components/SSRadioButton'
-import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
@@ -25,7 +24,6 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { MNEMONIC_WORD_COUNTS } from '@/types/bips/39'
 import type { Key } from '@/types/models/Account'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { hasEncryptedSecret } from '@/utils/key'
@@ -666,23 +664,13 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
-      <SSSelectModal
+      <SSMnemonicWordCountSelectModal
         visible={wordCountModalVisible}
-        title={t('account.mnemonic.title')}
-        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        selectedWordCount={localMnemonicWordCount}
+        onChange={setLocalMnemonicWordCount}
         onSelect={handleWordCountSelection}
         onCancel={() => setWordCountModalVisible(false)}
-      >
-        {MNEMONIC_WORD_COUNTS.toReversed().map((count) => (
-          <SSRadioButton
-            key={count}
-            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localMnemonicWordCount === count}
-            onPress={() => setLocalMnemonicWordCount(count)}
-          />
-        ))}
-      </SSSelectModal>
+      />
     </View>
   )
 }

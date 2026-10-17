@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -16,7 +17,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
-import { MNEMONIC_WORD_COUNTS, WORDLIST_LIST } from '@/types/bips/39'
+import { WORDLIST_LIST } from '@/types/bips/39'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
@@ -229,25 +230,13 @@ export default function SingleSig() {
         }}
         onCancel={() => setScriptVersionModalVisible(false)}
       />
-      <SSSelectModal
+      <SSMnemonicWordCountSelectModal
         visible={mnemonicWordCountModalVisible}
-        title={t('account.mnemonic.title')}
-        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        selectedWordCount={localMnemonicWordCount}
+        onChange={setLocalMnemonicWordCount}
         onSelect={handleOnSelectMnemonicWordCount}
         onCancel={() => setMnemonicWordCountModalVisible(false)}
-      >
-        {MNEMONIC_WORD_COUNTS.toReversed().map((count) => (
-          <SSRadioButton
-            key={count}
-            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localMnemonicWordCount === count}
-            onPress={() =>
-              setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
-            }
-          />
-        ))}
-      </SSSelectModal>
+      />
       <SSSelectModal
         visible={mnemonicWordListModalVisible}
         title={t('account.mnemonic.wordList')}
