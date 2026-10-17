@@ -970,6 +970,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .feature-grid-card[data-screen] {
   cursor: pointer;
 }
+.feature-grid-card h3,
 .feature-grid-card p,
 .feature-grid-card .view-flows {
   position: relative;
@@ -1053,13 +1054,34 @@ html[data-theme="light"] .as-seen-in-logo--light {
   height: 100%;
   max-height: 100%;
   margin: 0;
-  padding: 1.5rem;
+  padding: 1.5rem 3.25rem;
   border: 0;
   background: #000;
   overflow: auto;
 }
 .flow-modal::backdrop {
   background: #000;
+}
+.flow-modal-logo {
+  position: fixed;
+  top: 1.15rem;
+  left: 1.35rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 300;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.flow-modal-logo img {
+  display: block;
+  width: auto;
+  height: 32px;
 }
 .flow-modal-panel {
   display: flex;
@@ -1075,6 +1097,52 @@ html[data-theme="light"] .as-seen-in-logo--light {
   color: #fff;
   text-align: left;
   pointer-events: auto;
+}
+.flow-modal-copy {
+  transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.flow-modal-stage {
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.28s, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.28s;
+}
+.flow-modal.is-leaving .flow-modal-copy,
+.flow-modal.is-leaving .flow-modal-stage {
+  opacity: 0;
+  transition-delay: 0s;
+}
+.flow-modal.is-leaving[data-dir="next"] .flow-modal-copy {
+  transform: translateX(-28px);
+}
+.flow-modal.is-leaving[data-dir="prev"] .flow-modal-copy {
+  transform: translateX(28px);
+}
+.flow-modal.is-leaving[data-dir="next"] .flow-modal-stage {
+  transform: translateX(-22px) scale(0.96);
+}
+.flow-modal.is-leaving[data-dir="prev"] .flow-modal-stage {
+  transform: translateX(22px) scale(0.96);
+}
+.flow-modal.is-entering .flow-modal-copy,
+.flow-modal.is-entering .flow-modal-stage {
+  opacity: 0;
+  transition: none;
+}
+.flow-modal.is-entering[data-dir="next"] .flow-modal-copy {
+  transform: translateX(28px);
+}
+.flow-modal.is-entering[data-dir="prev"] .flow-modal-copy {
+  transform: translateX(-28px);
+}
+.flow-modal.is-entering[data-dir="next"] .flow-modal-stage {
+  transform: translateX(28px) scale(0.96);
+}
+.flow-modal.is-entering[data-dir="prev"] .flow-modal-stage {
+  transform: translateX(-28px) scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-modal-copy,
+  .flow-modal-stage {
+    transition: none;
+  }
 }
 .flow-modal-copy h2 {
   margin: 0 0 0.75rem;
@@ -1096,12 +1164,38 @@ html[data-theme="light"] .as-seen-in-logo--light {
   aspect-ratio: 390 / 844;
   pointer-events: auto;
 }
+.flow-modal:focus {
+  outline: none;
+}
+.flow-modal-glow {
+  position: absolute;
+  z-index: 0;
+  inset: -8% -6%;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.55), transparent 42%),
+    radial-gradient(circle at 82% 88%, rgba(255, 255, 255, 0.28), transparent 46%);
+  filter: blur(26px);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: flow-device-light 8s ease-in-out infinite;
+}
 .flow-modal-frame {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+  border-radius: calc(100% * 48 / 280) / calc(100% * 48 / 280 * 390 / 844);
   background: transparent;
+}
+@keyframes flow-device-light {
+  0% { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate3d(5%, 4%, 0) scale(1.06); opacity: 0.95; }
+  100% { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-modal-glow { animation: none; opacity: 0.7; }
 }
 .flow-modal-arrow {
   position: fixed;
@@ -1139,64 +1233,6 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .flow-modal-arrow-next::before {
   transform: translate(-70%, -50%) rotate(45deg);
 }
-.flow-modal.is-expanded .flow-modal-copy {
-  display: none;
-}
-.flow-modal.is-expanded .flow-modal-panel {
-  justify-content: center;
-}
-.flow-modal.is-expanded .flow-modal-stage {
-  width: min(460px, calc((100vh - 4rem) * 390 / 844), calc(100vw - 7rem));
-}
-.flow-modal-expand {
-  position: fixed;
-  top: 0.85rem;
-  right: 3.4rem;
-  z-index: 2;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.42);
-  cursor: pointer;
-}
-.flow-modal-expand:hover,
-.flow-modal-expand:focus-visible,
-.flow-modal-expand[aria-pressed="true"] {
-  color: rgba(255, 255, 255, 0.78);
-}
-.flow-modal-expand::before,
-.flow-modal-expand::after {
-  content: "";
-  position: absolute;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-color: currentColor;
-  border-style: solid;
-}
-.flow-modal-expand::before {
-  top: 0.45rem;
-  left: 0.45rem;
-  border-width: 1.5px 0 0 1.5px;
-}
-.flow-modal-expand::after {
-  right: 0.45rem;
-  bottom: 0.45rem;
-  border-width: 0 1.5px 1.5px 0;
-}
-.flow-modal-expand[aria-pressed="true"]::before {
-  top: auto;
-  left: auto;
-  right: 0.55rem;
-  bottom: 0.55rem;
-}
-.flow-modal-expand[aria-pressed="true"]::after {
-  right: auto;
-  bottom: auto;
-  top: 0.55rem;
-  left: 0.55rem;
-}
 .flow-modal-close {
   position: fixed;
   top: 0.85rem;
@@ -1233,6 +1269,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
 @media (max-width: 900px) {
   .flow-modal {
     padding: 4.25rem 3.25rem 2rem;
+  }
+  .flow-modal-logo {
+    left: 50%;
+    transform: translateX(-50%);
   }
   .flow-modal-panel {
     flex-direction: column;
@@ -1660,11 +1700,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
 }
 @media (max-width: 480px) {
   .hero-title {
-    font-size: clamp(2.15rem, 11vw, 2.7rem);
+    font-size: clamp(1.95rem, 10vw, 2.45rem);
   }
-  .site-nav-inner {
-    flex-wrap: wrap;
-    gap: 0.55rem;
+  .nav-logo img {
+    height: 28px;
   }
   .feature-pair {
     padding: 1.5rem 0.75rem;
@@ -2901,14 +2940,40 @@ html[data-theme="light"] .feature-grid {
   border-top-color: rgba(255, 255, 255, 0.12);
   border-left-color: rgba(255, 255, 255, 0.12);
 }
-html[data-theme="light"] .feature-grid-card,
+html[data-theme="light"] .feature-grid-card {
+  background: #fff;
+  color: #000;
+}
 html[data-theme="light"] .feature-grid-card h3,
 html[data-theme="light"] .feature-grid-card p {
-  background: #000;
-  color: #fff;
+  background: transparent;
+  color: #000;
 }
-html[data-theme="light"] .feature-grid-card p {
-  color: rgba(255, 255, 255, 0.72);
+html[data-theme="light"] .feature-flow::after {
+  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
+}
+html[data-theme="light"] .feature-flow iframe {
+  opacity: 1;
+}
+html[data-theme="light"] .flow-modal,
+html[data-theme="light"] .flow-modal::backdrop {
+  background: #d4d4d4;
+  color: #000;
+}
+html[data-theme="light"] .flow-modal-logo,
+html[data-theme="light"] .flow-modal-copy,
+html[data-theme="light"] .flow-modal-copy p {
+  color: #000;
+}
+html[data-theme="light"] .flow-modal-arrow,
+html[data-theme="light"] .flow-modal-close {
+  color: rgba(0, 0, 0, 0.42);
+}
+html[data-theme="light"] .flow-modal-arrow:hover,
+html[data-theme="light"] .flow-modal-arrow:focus-visible,
+html[data-theme="light"] .flow-modal-close:hover,
+html[data-theme="light"] .flow-modal-close:focus-visible {
+  color: #000;
 }
 html[data-theme="light"] .feature-grid-card {
   border-right-color: rgba(255, 255, 255, 0.12);

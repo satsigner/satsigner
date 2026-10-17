@@ -79,7 +79,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="test-site/tokens.css">
     <link rel="stylesheet" href="test-site/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=51" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=65" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -798,8 +798,11 @@
     <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
   </footer>
 
-  <dialog class="flow-modal" id="flow-modal">
-    <button type="button" class="flow-modal-expand" data-flow-expand aria-pressed="false" aria-label="Expand presentation"></button>
+  <dialog class="flow-modal" id="flow-modal" tabindex="-1">
+    <a href="#features" class="flow-modal-logo" tabindex="-1">
+      <img src="imgs/satSigner_symbol.png" alt="">
+      <span>SATSIGNER</span>
+    </a>
     <button type="button" class="flow-modal-close" data-flow-close aria-label="Close"></button>
     <div class="flow-modal-panel">
       <div class="flow-modal-copy">
@@ -807,7 +810,8 @@
         <p id="flow-modal-desc"></p>
       </div>
       <div class="flow-modal-stage">
-        <iframe class="flow-modal-frame" title="SatSigner flow"></iframe>
+        <span class="flow-modal-glow" aria-hidden="true"></span>
+        <iframe class="flow-modal-frame" title="SatSigner flow" tabindex="-1"></iframe>
       </div>
       <button type="button" class="flow-modal-arrow flow-modal-arrow-prev" data-flow-prev aria-label="Previous"></button>
       <button type="button" class="flow-modal-arrow flow-modal-arrow-next" data-flow-next aria-label="Next"></button>
@@ -815,7 +819,7 @@
   </dialog>
   <script src="test-site/icons.js"></script>
   <script src="test-site/screen.js"></script>
-  <script src="script.js?v=34"></script>
+  <script src="script.js?v=47"></script>
   <script>
     (function () {
       var root = document.documentElement;

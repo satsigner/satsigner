@@ -675,9 +675,9 @@ if (typeof Swiper !== 'undefined') {
   });
 
   var current = -1;
-  var expanded = false;
   var syncing = false;
-  var expandButton = dialog.querySelector('[data-flow-expand]');
+  var slideToken = 0;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function flowSrc(screen, device) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
@@ -690,36 +690,13 @@ if (typeof Swiper !== 'undefined') {
     frame.contentWindow.postMessage({ type: 'satsigner', play: true }, location.origin);
   }
 
-  function flowHash(slug, openExpanded) {
-    var hash = '#features/' + slug;
-    if (openExpanded) hash += '?expanded=1';
-    return hash;
-  }
-
-  function parseFlow() {
+  function flowSlug() {
     var hash = location.hash || '';
-    var match = hash.match(/^#features\/([a-z0-9-]+)(?:\?(.*))?$/);
-    if (!match) return { slug: '', expanded: false };
-    return {
-      slug: match[1],
-      expanded: new URLSearchParams(match[2] || '').get('expanded') === '1'
-    };
+    var match = hash.match(/^#features\/([a-z0-9-]+)/);
+    return match ? match[1] : '';
   }
 
-  function applyExpanded(on) {
-    expanded = Boolean(on);
-    dialog.classList.toggle('is-expanded', expanded);
-    if (expandButton) {
-      expandButton.setAttribute('aria-pressed', expanded ? 'true' : 'false');
-      expandButton.setAttribute('aria-label', expanded ? 'Collapse presentation' : 'Expand presentation');
-    }
-  }
-
-  function showFlow(index, openExpanded) {
-    var card = cards[index];
-    if (!card) return;
-    current = index;
-    applyExpanded(openExpanded);
+  function paintFlow(card) {
     var heading = card.querySelector('h3');
     var copy = card.querySelector('p');
     var screen = card.getAttribute('data-screen');
@@ -728,21 +705,51 @@ if (typeof Swiper !== 'undefined') {
     var nextSrc = flowSrc(screen, true);
     if (modalFrame.getAttribute('src') !== nextSrc) modalFrame.src = nextSrc;
     else replay(modalFrame);
-    if (!dialog.open) dialog.showModal();
   }
 
-  function openSlug(slug, push) {
+  function revealFlow(direction) {
+    dialog.dataset.dir = direction < 0 ? 'prev' : 'next';
+    dialog.classList.add('is-entering');
+    void dialog.offsetWidth;
+    dialog.classList.remove('is-entering');
+  }
+
+  function showFlow(index, direction) {
+    var card = cards[index];
+    if (!card || index === current) return;
+    var token = ++slideToken;
+    var leaving = dialog.open && current >= 0 && !reduceMotion;
+    if (direction == null) direction = current < 0 || index > current ? 1 : -1;
+    current = index;
+    if (!leaving) {
+      paintFlow(card);
+      if (!dialog.open) dialog.showModal();
+      dialog.focus();
+      if (!reduceMotion) revealFlow(direction);
+      return;
+    }
+    dialog.dataset.dir = direction < 0 ? 'prev' : 'next';
+    dialog.classList.add('is-leaving');
+    window.setTimeout(function () {
+      if (token !== slideToken) return;
+      paintFlow(card);
+      dialog.classList.remove('is-leaving');
+      revealFlow(direction);
+    }, 280);
+  }
+
+  function openSlug(slug, push, direction) {
     if (!slugs[slug]) return;
-    var hash = flowHash(slug, expanded);
+    var hash = '#features/' + slug;
     if (location.hash === hash) {
-      showFlow(cards.indexOf(slugs[slug]), expanded);
+      showFlow(cards.indexOf(slugs[slug]), direction);
       return;
     }
     syncing = true;
-    if (push) history.pushState({ flow: slug, expanded: expanded }, '', hash);
-    else history.replaceState({ flow: slug, expanded: expanded }, '', hash);
+    if (push) history.pushState({ flow: slug }, '', hash);
+    else history.replaceState({ flow: slug }, '', hash);
     syncing = false;
-    showFlow(cards.indexOf(slugs[slug]), expanded);
+    showFlow(cards.indexOf(slugs[slug]), direction);
   }
 
   function closeFlow() {
@@ -757,7 +764,7 @@ if (typeof Swiper !== 'undefined') {
   function step(delta) {
     if (!cards.length) return;
     var index = current < 0 ? 0 : (current + delta + cards.length) % cards.length;
-    openSlug(cards[index].getAttribute('data-flow'), true);
+    openSlug(cards[index].getAttribute('data-flow'), true, delta);
   }
 
   cards.forEach(function (card) {
@@ -797,16 +804,6 @@ if (typeof Swiper !== 'undefined') {
     closeFlow();
   });
   dialog.querySelector('[data-flow-close]').addEventListener('click', closeFlow);
-  if (expandButton) {
-    expandButton.addEventListener('click', function () {
-      if (current < 0) return;
-      applyExpanded(!expanded);
-      var slug = cards[current].getAttribute('data-flow');
-      syncing = true;
-      history.replaceState({ flow: slug, expanded: expanded }, '', flowHash(slug, expanded));
-      syncing = false;
-    });
-  }
   dialog.querySelectorAll('[data-flow-prev]').forEach(function (button) {
     button.addEventListener('click', function () { step(-1); });
   });
@@ -816,30 +813,72 @@ if (typeof Swiper !== 'undefined') {
   dialog.addEventListener('close', function () {
     modalFrame.src = 'about:blank';
     current = -1;
-    applyExpanded(false);
   });
-  dialog.addEventListener('keydown', function (event) {
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      step(1);
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      step(-1);
-    }
+  window.addEventListener('keydown', function (event) {
+    if (!dialog.open) return;
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    step(event.key === 'ArrowRight' ? 1 : -1);
+    dialog.focus();
   });
-
-  function syncFromLocation() {
-    var flow = parseFlow();
-    if (flow.slug && slugs[flow.slug]) showFlow(cards.indexOf(slugs[flow.slug]), flow.expanded);
-    else if (dialog.open) dialog.close();
-  }
 
   window.addEventListener('hashchange', function () {
     if (syncing) return;
-    syncFromLocation();
+    var slug = flowSlug();
+    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
+    else if (dialog.open) dialog.close();
   });
-  window.addEventListener('popstate', syncFromLocation);
+  window.addEventListener('popstate', function () {
+    var slug = flowSlug();
+    if (slug && slugs[slug]) showFlow(cards.indexOf(slugs[slug]));
+    else if (dialog.open) dialog.close();
+  });
 
-  var initial = parseFlow();
-  if (initial.slug && slugs[initial.slug]) showFlow(cards.indexOf(slugs[initial.slug]), initial.expanded);
+  var initial = flowSlug();
+  if (initial && slugs[initial]) showFlow(cards.indexOf(slugs[initial]));
+})();
+
+// Phone and its UI leave 1.3× faster than the copy, points, and logo.
+(function () {
+  var hero = document.getElementById('beta');
+  var phone = hero && hero.querySelector('.hero-mark');
+  var logo = phone && phone.querySelector('.hero-mark-type');
+  var light = phone && phone.querySelector('.hero-logo-light');
+  if (!hero || !phone || !logo) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var extra = 0.3;
+  var frame = 0;
+
+  function clear() {
+    phone.style.transform = '';
+    logo.style.transform = '';
+    if (light) light.style.transform = '';
+  }
+
+  function apply() {
+    frame = 0;
+    var y = window.scrollY || window.pageYOffset || 0;
+    if (y <= 0 || hero.classList.contains('is-intro')) {
+      clear();
+      return;
+    }
+    var shift = (y * extra).toFixed(2);
+    phone.style.transform = 'translate3d(0,-' + shift + 'px,0)';
+    logo.style.transform = 'translate3d(0,' + shift + 'px,0) translate(-50%, -50%)';
+    if (light) light.style.transform = 'translate3d(0,' + shift + 'px,0)';
+  }
+
+  window.addEventListener('scroll', function () {
+    if (frame) return;
+    frame = requestAnimationFrame(apply);
+  }, { passive: true });
+
+  if (window.MutationObserver) {
+    new MutationObserver(function () {
+      if (frame) return;
+      frame = requestAnimationFrame(apply);
+    }).observe(hero, { attributes: true, attributeFilter: ['class'] });
+  }
+  apply();
 })();
