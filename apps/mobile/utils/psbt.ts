@@ -1260,21 +1260,32 @@ export function hasAllRequiredSignatures(
   return validSignatures >= requiredSignatures
 }
 
-type CombineAndFinalizeResult =
-  | { hex: string }
-  | { errorKey: string; errorParams?: Record<string, number> }
+// A failed PSBT operation: the i18n key (and params) of what to tell the user.
+type ErrorKeyResult = {
+  errorKey: string
+  errorParams?: Record<string, number>
+}
 
-// Combines cosigner-signed PSBTs into the original, finalizes it and extracts
-// the signed transaction hex. Failures return an i18n key to show the user.
+type CombineAndFinalizeResult = { hex: string } | ErrorKeyResult
+
+// Combines cosigner-signed PSBTs into the original (the PSBT under review),
+// finalizes it and extracts the signed transaction hex. Failures return an
+// i18n key to show the user.
 export function combineAndFinalizePsbts(
-  originalPsbtBase64: string,
+  originalPsbtBase64: string | undefined,
   signedPsbtsBase64: string[]
 ): CombineAndFinalizeResult {
+  if (!originalPsbtBase64) {
+    return { errorKey: 'common.error.noOriginalPSBT' }
+  }
   if (signedPsbtsBase64.length === 0) {
     return { errorKey: 'common.error.noSignedPSBTs' }
   }
 
-  const combinedPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+  const combinedPsbt = readPsbtOrNull(originalPsbtBase64)
+  if (!combinedPsbt) {
+    return { errorKey: 'common.error.combinePSBTs' }
+  }
   for (const [index, signedPsbtBase64] of signedPsbtsBase64.entries()) {
     try {
       combinedPsbt.combine(bitcoinjs.Psbt.fromBase64(signedPsbtBase64))
@@ -1336,34 +1347,57 @@ export function bindScannedDataToPsbt(
   return processedData
 }
 
-// Binds data imported into a signature slot. A cosigner slot keeps the PSBT
+type BindImportedSignatureResult = { boundData: string } | ErrorKeyResult
+
+// Binds data imported into a signature slot to the PSBT under review, or
+// returns the i18n key of why it was rejected. A cosigner slot keeps the PSBT
 // combined with the one under review but unfinalized, so its signatures can be
-// validated and combined with the others; it is rejected while no PSBT is
-// under review. Only the watch-only import is finalized for broadcast.
+// validated and combined with the others; it needs a PSBT under review. Only
+// the watch-only import is finalized for broadcast.
 export function bindImportedSignature(
   data: string,
   originalPsbtBase64: string | undefined,
   isWatchOnly: boolean,
   convertPsbtToFinalTransaction: (psbtHex: string) => string
-) {
+): BindImportedSignatureResult {
   if (isWatchOnly) {
-    return bindScannedDataToPsbt(
-      data,
-      originalPsbtBase64,
-      convertPsbtToFinalTransaction
+    return toBindResult(() =>
+      bindScannedDataToPsbt(
+        data,
+        originalPsbtBase64,
+        convertPsbtToFinalTransaction
+      )
     )
   }
   if (!originalPsbtBase64) {
-    return null
+    return { errorKey: 'common.error.noOriginalPSBT' }
   }
+  return toBindResult(() => bindCosignerPsbt(data, originalPsbtBase64))
+}
+
+// A cosigner's PSBT combined with the one under review, unfinalized. Null when
+// it does not match, or for a raw transaction, which carries no PSBT
+// signatures to validate or combine.
+function bindCosignerPsbt(data: string, originalPsbtBase64: string) {
   const bound = bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
     combinePsbts([
       originalPsbtBase64,
       Buffer.from(psbtHex, 'hex').toString('base64')
     ])
   )
-  // A raw transaction carries no PSBT signatures to validate or combine.
   return bound?.startsWith(PSBT_MAGIC_BASE64) ? bound : null
+}
+
+function toBindResult(bind: () => string | null): BindImportedSignatureResult {
+  try {
+    const boundData = bind()
+    if (boundData === null) {
+      return { errorKey: 'common.error.transactionMismatch' }
+    }
+    return { boundData }
+  } catch {
+    return { errorKey: 'common.error.processScannedData' }
+  }
 }
 
 function psbtBase64ToHex(data: string) {
@@ -1371,6 +1405,14 @@ function psbtBase64ToHex(data: string) {
     return data
   }
   return Buffer.from(data, 'base64').toString('hex')
+}
+
+function readPsbtOrNull(psbtBase64: string) {
+  try {
+    return bitcoinjs.Psbt.fromBase64(psbtBase64)
+  } catch {
+    return null
+  }
 }
 
 function convertOrNull(
@@ -1418,4 +1460,61 @@ export function getPsbtExtractionNotice(error: unknown): Notice {
     return { key: 'transaction.preview.psbtInvalidFormat', type: 'error' }
   }
   return { key: 'transaction.preview.psbtEnhancedFailed', type: 'warning' }
+}
+
+// The PSBT under review combined with every signature collected so far, to
+// share with the other cosigners, or the i18n key of why it could not be.
+export function combineSignaturesForSharing(
+  originalPsbtBase64: string | undefined,
+  signedPsbts: Map<number, string>
+): { psbtBase64: string } | ErrorKeyResult {
+  if (!originalPsbtBase64) {
+    return { errorKey: 'account.nostrSync.transactionDataNotAvailable' }
+  }
+  try {
+    return {
+      psbtBase64: combinePsbts([
+        originalPsbtBase64,
+        ...getCollectedSignedPsbts(signedPsbts).values()
+      ])
+    }
+  } catch {
+    return { errorKey: 'account.nostrSync.failedToSendTransactionData' }
+  }
+}
+
+// Validates each collected cosigner signature against the account's keys.
+// `failedCosigners` lists the cosigners whose signature could not be checked
+// at all (as opposed to checked and found invalid).
+export function validateCosignerSignatures(
+  signedPsbts: Map<number, string>,
+  account: Account | undefined,
+  decryptedKeys: Key[]
+) {
+  const results = new Map<number, boolean>()
+  const failedCosigners: number[] = []
+  if (!account) {
+    return { failedCosigners, results }
+  }
+
+  for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
+    if (!signedPsbt.trim()) {
+      continue
+    }
+    try {
+      results.set(
+        cosignerIndex,
+        validateSignedPSBTForCosigner(
+          signedPsbt,
+          account,
+          cosignerIndex,
+          decryptedKeys[cosignerIndex]
+        )
+      )
+    } catch {
+      failedCosigners.push(cosignerIndex)
+      results.set(cosignerIndex, false)
+    }
+  }
+  return { failedCosigners, results }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { WATCH_ONLY_INDEX } from '@/constants/account'
@@ -11,14 +11,14 @@ import {
   bindImportedSignature,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
-  combinePsbts,
+  combineSignaturesForSharing,
   extractIndividualSignedPsbts,
   getCollectedSignedPsbts,
   getCollectedSignerPubkeys,
   hasAllRequiredSignatures,
   matchSignedPsbtsToCosigners,
   readPartiallySignedPsbt,
-  validateSignedPSBTForCosigner
+  validateCosignerSignatures
 } from '@/utils/psbt'
 
 type UseCosignerSignaturesParams = {
@@ -115,98 +115,57 @@ export function useCosignerSignatures({
     }
   }, [signedPsbt, setSignedTx])
 
-  // Binds scanned/pasted data to the transaction under review. Returns null
-  // (after reporting an error) when it does not match: broadcasting it would
-  // execute a different transaction than the one displayed to the user.
-  function bindToPsbt(cosignerIndex: number, data: string) {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    try {
-      const boundData = bindImportedSignature(
-        data,
-        originalPsbtBase64,
-        cosignerIndex === WATCH_ONLY_INDEX,
-        convertPsbtToFinalTransaction
-      )
-      if (boundData === null) {
-        onNotice({
-          key: originalPsbtBase64
-            ? 'common.error.transactionMismatch'
-            : 'common.error.noOriginalPSBT',
-          type: 'error'
-        })
-      }
-      return boundData
-    } catch {
-      onNotice({ key: 'common.error.processScannedData', type: 'error' })
-      return null
-    }
-  }
-
   // Stores scanned/pasted data as a cosigner's signature (or the watch-only
-  // import) once it is bound to the PSBT under review. False when rejected.
+  // import) once it is bound to the PSBT under review. False (after reporting
+  // why) when rejected: broadcasting it would execute a different transaction
+  // than the one displayed to the user.
   function importSignedData(cosignerIndex: number, data: string) {
-    const boundData = bindToPsbt(cosignerIndex, data)
-    if (boundData === null) {
+    const result = bindImportedSignature(
+      data,
+      txBuilderResult?.toBase64(),
+      cosignerIndex === WATCH_ONLY_INDEX,
+      convertPsbtToFinalTransaction
+    )
+    if ('errorKey' in result) {
+      onNotice({ key: result.errorKey, type: 'error' })
       return false
     }
-    updateSignedPsbt(cosignerIndex, boundData)
+    updateSignedPsbt(cosignerIndex, result.boundData)
     return true
   }
 
   // The PSBT under review combined with every signature collected so far (to
   // share with other cosigners), or null after reporting why it could not be.
   function combineCollectedSignatures() {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    if (!originalPsbtBase64) {
-      onNotice({
-        key: 'account.nostrSync.transactionDataNotAvailable',
-        type: 'error'
-      })
+    const result = combineSignaturesForSharing(
+      txBuilderResult?.toBase64(),
+      signedPsbts
+    )
+    if ('errorKey' in result) {
+      onNotice({ key: result.errorKey, type: 'error' })
       return null
     }
-    try {
-      return combinePsbts([
-        originalPsbtBase64,
-        ...getCollectedSignedPsbts(signedPsbts).values()
-      ])
-    } catch {
-      onNotice({
-        key: 'account.nostrSync.failedToSendTransactionData',
-        type: 'error'
-      })
-      return null
-    }
+    return result.psbtBase64
   }
 
   // Combines every collected signature into the PSBT under review and
   // finalizes it. Returns the transaction hex, or null when it can't yet.
   function finalize() {
-    const originalPsbtBase64 = txBuilderResult?.toBase64()
-    if (!originalPsbtBase64) {
-      onNotice({ key: 'common.error.noOriginalPSBT', type: 'error' })
+    const result = combineAndFinalizePsbts(
+      txBuilderResult?.toBase64(),
+      Array.from(getCollectedSignedPsbts(signedPsbts).values())
+    )
+    if ('errorKey' in result) {
+      onNotice({
+        key: result.errorKey,
+        params: result.errorParams,
+        type: 'error'
+      })
       return null
     }
-
-    try {
-      const result = combineAndFinalizePsbts(
-        originalPsbtBase64,
-        Array.from(getCollectedSignedPsbts(signedPsbts).values())
-      )
-      if ('errorKey' in result) {
-        onNotice({
-          key: result.errorKey,
-          params: result.errorParams,
-          type: 'error'
-        })
-        return null
-      }
-      setSignedTx(result.hex)
-      onNotice({ key: 'transaction.finalizedSuccessfully', type: 'success' })
-      return result.hex
-    } catch {
-      onNotice({ key: 'common.error.combinePSBTs', type: 'error' })
-      return null
-    }
+    setSignedTx(result.hex)
+    onNotice({ key: 'transaction.finalizedSuccessfully', type: 'success' })
+    return result.hex
   }
 
   return {
@@ -232,46 +191,23 @@ function useSignatureValidation({
   signedPsbts,
   onValidationError
 }: UseSignatureValidationParams) {
-  const validation = useMemo(() => {
-    const results = new Map<number, boolean>()
-    const failedCosigners: number[] = []
-
-    if (!account) {
-      return { failedCosigners, results }
-    }
-
-    for (const [cosignerIndex, signedPsbt] of signedPsbts.entries()) {
-      if (!signedPsbt.trim()) {
-        continue
-      }
-      try {
-        const isValid = validateSignedPSBTForCosigner(
-          signedPsbt,
-          account,
-          cosignerIndex,
-          decryptedKeys[cosignerIndex]
-        )
-        results.set(cosignerIndex, isValid)
-      } catch {
-        failedCosigners.push(cosignerIndex)
-        results.set(cosignerIndex, false)
-      }
-    }
-
-    return { failedCosigners, results }
-  }, [signedPsbts, account, decryptedKeys])
+  const validation = validateCosignerSignatures(
+    signedPsbts,
+    account,
+    decryptedKeys
+  )
 
   // One error per cosigner signature that could not be validated, each time
-  // the signatures are validated again.
-  const reportValidationErrors = useEffectEvent((failedCosigners: number[]) => {
-    for (const _cosignerIndex of failedCosigners) {
+  // the signatures, account or keys change and are validated again.
+  const reportValidationErrors = useEffectEvent(() => {
+    for (const _cosignerIndex of validation.failedCosigners) {
       onValidationError()
     }
   })
 
   useEffect(() => {
-    reportValidationErrors(validation.failedCosigners)
-  }, [validation])
+    reportValidationErrors()
+  }, [signedPsbts, account, decryptedKeys])
 
   return validation.results
 }

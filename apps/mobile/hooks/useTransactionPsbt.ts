@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildPsbt, buildTransaction } from '@/api/bdk'
+import { buildPsbt } from '@/api/bdk'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -248,19 +248,12 @@ export function useTransactionPsbt({
         const inputArray = Array.from(inputs.values())
         const outputArray = Array.from(outputs.values())
 
-        const transaction = account
-          ? await buildPsbt(wallet, server, account, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
-          : await buildTransaction(wallet, {
-              fee,
-              inputs: inputArray,
-              options: { rbf },
-              outputs: outputArray
-            })
+        const transaction = await buildPsbt(wallet, server, account, {
+          fee,
+          inputs: inputArray,
+          options: { rbf },
+          outputs: outputArray
+        })
 
         if (request.cancelled) {
           return

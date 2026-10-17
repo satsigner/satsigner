@@ -92,24 +92,26 @@ export function usePsbtSignatureImport({
     }
 
     setNfcScanModalVisible(true)
-    try {
-      const signedData = getNfcSignedData(await readNFCTag())
-      if (!signedData) {
-        onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
-        return
-      }
-      if (!importSignedData(cosignerIndex, signedData)) {
-        return
-      }
-      onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
-    } catch (error) {
-      const errorKey = getNfcErrorKey(error, 'nfc.error.readFailed')
+    const [read] = await Promise.allSettled([readNFCTag()])
+    setNfcScanModalVisible(false)
+
+    if (read.status === 'rejected') {
+      const errorKey = getNfcErrorKey(read.reason, 'nfc.error.readFailed')
       if (errorKey) {
         onNotice({ key: errorKey, type: 'error' })
       }
-    } finally {
-      setNfcScanModalVisible(false)
+      return
     }
+
+    const signedData = getNfcSignedData(read.value)
+    if (!signedData) {
+      onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
+      return
+    }
+    if (!importSignedData(cosignerIndex, signedData)) {
+      return
+    }
+    onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
   }
 
   function closeNfcScanModal() {

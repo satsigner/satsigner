@@ -2,15 +2,14 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
-import { buildPsbt, buildTransaction } from '@/api/bdk'
+import { buildPsbt } from '@/api/bdk'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
 
 jest.mock<Partial<typeof import('@/api/bdk')>>('@/api/bdk', () => ({
-  buildPsbt: jest.fn(),
-  buildTransaction: jest.fn()
+  buildPsbt: jest.fn()
 }))
 
 const mockUseWallet = jest.fn()
@@ -23,7 +22,6 @@ jest.mock<typeof import('@/hooks/useGetAccountWallet')>(
 )
 
 const mockBuildPsbt = jest.mocked(buildPsbt)
-const mockBuildTransaction = jest.mocked(buildTransaction)
 
 const ADDRESS = bitcoinjs.payments.p2wpkh({
   pubkey: Buffer.from(
@@ -139,15 +137,20 @@ describe('useTransactionPsbt', () => {
   it('builds the preview PSBT from the builder state', async () => {
     fillBuilder()
     const built = createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
-    mockBuildTransaction.mockResolvedValue(built)
+    mockBuildPsbt.mockResolvedValue(built)
 
     const { hook } = await renderTransactionPsbt({
       account: undefined,
       routePsbt: undefined
     })
 
-    expect(mockBuildTransaction).toHaveBeenCalledTimes(1)
-    expect(mockBuildPsbt).not.toHaveBeenCalled()
+    expect(mockBuildPsbt).toHaveBeenCalledTimes(1)
+    expect(mockBuildPsbt).toHaveBeenCalledWith(
+      { wallet: 'stub' },
+      expect.anything(),
+      undefined,
+      expect.objectContaining({ fee: expect.any(Number) })
+    )
     expect(hook.current?.psbtBuildStatus).toBe('idle')
     expect(hook.current?.transactionId).toBe('built-txid')
     expect(useTransactionBuilderStore.getState().psbt).toBe(built)
@@ -184,14 +187,12 @@ describe('useTransactionPsbt', () => {
     expect(hook.current?.psbtBuildError).toStrictEqual({
       key: 'transaction.error.previewMissingInputs'
     })
-    expect(mockBuildTransaction).not.toHaveBeenCalled()
+    expect(mockBuildPsbt).not.toHaveBeenCalled()
   })
 
   it('flags a dust output without a toast', async () => {
     fillBuilder()
-    mockBuildTransaction.mockRejectedValue(
-      new Error('Output below the dust limit')
-    )
+    mockBuildPsbt.mockRejectedValue(new Error('Output below the dust limit'))
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
@@ -207,7 +208,7 @@ describe('useTransactionPsbt', () => {
 
   it("reports other build errors with the library's message", async () => {
     fillBuilder()
-    mockBuildTransaction.mockRejectedValue(new Error('Insufficient funds'))
+    mockBuildPsbt.mockRejectedValue(new Error('Insufficient funds'))
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
@@ -229,7 +230,7 @@ describe('useTransactionPsbt', () => {
       routePsbt
     })
 
-    expect(mockBuildTransaction).not.toHaveBeenCalled()
+    expect(mockBuildPsbt).not.toHaveBeenCalled()
     expect(useTransactionBuilderStore.getState().psbt?.toBase64()).toBe(
       routePsbt
     )

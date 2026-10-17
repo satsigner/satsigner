@@ -845,10 +845,12 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
+// Builds a PSBT through the account's RPC wallet when the server is a Bitcoin
+// Core node, otherwise with the BDK wallet (also when the account is unknown).
 function buildPsbt(
   wallet: BdkWallet,
   server: Server,
-  account: Account,
+  account: Account | undefined,
   data: {
     fee: number
     inputs: Utxo[]
@@ -858,7 +860,7 @@ function buildPsbt(
 ): Promise<PsbtLike> {
   const { backend, url, rpcCredentials, rpcWalletName } = server
 
-  if (backend === 'rpc' && url && rpcCredentials) {
+  if (backend === 'rpc' && url && rpcCredentials && account) {
     const walletName = resolveRpcWalletName(account, rpcWalletName)
     return buildTransactionWithRpc(url, rpcCredentials, walletName, {
       inputs: data.inputs,
@@ -1023,7 +1025,6 @@ async function deleteWalletDb(dbPath: string): Promise<void> {
 export {
   broadcastTransaction,
   buildPsbt,
-  buildTransaction,
   buildTransactionWithRpc,
   deleteWalletDb,
   getDescriptorString,

@@ -10,6 +10,7 @@ import {
   bindScannedDataToPsbt,
   buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
+  combineSignaturesForSharing,
   extractTransactionDataFromPSBT,
   getCollectedSignedPsbts,
   getPsbtExtractionNotice,
@@ -18,6 +19,7 @@ import {
   hasEnoughSignatures,
   normalizePsbtToBase64,
   parseWitnessScript,
+  validateCosignerSignatures,
   readPartiallySignedPsbt,
   signedTransactionMatchesPsbt
 } from '@/utils/psbt'
@@ -156,6 +158,14 @@ function required<T>(value: T | undefined): T {
   return value
 }
 
+// The bound data of a successful bindImportedSignature, failing the test otherwise.
+function boundDataOf(result: ReturnType<typeof bindImportedSignature>) {
+  if ('errorKey' in result) {
+    throw new Error(result.errorKey)
+  }
+  return result.boundData
+}
+
 describe('multisig witness script helpers', () => {
   const pubkeys = [
     '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
@@ -209,61 +219,83 @@ describe('getCollectedSignedPsbts', () => {
   })
 })
 
-describe('hasAllRequiredSignatures', () => {
-  const key: Key = {
-    creationType: 'generateMnemonic',
-    index: 0,
-    iv: '',
-    secret: ''
-  }
-  const account: Account = {
-    addresses: [],
-    createdAt: new Date('2024-01-01'),
-    displayIndex: 0,
-    id: 'acc-1',
-    keyCount: 3,
-    keys: [key, key, key],
-    keysRequired: 2,
-    labels: {},
-    name: 'Test',
-    network: 'bitcoin',
-    nostr: {
-      autoSync: false,
-      commonNpub: '',
-      commonNsec: '',
-      dms: [],
-      lastUpdated: new Date(),
-      relays: [],
-      syncStart: new Date(),
-      trustedMemberDevices: []
-    },
-    policyType: 'multisig',
-    summary: {
-      balance: 0,
-      numberOfAddresses: 0,
-      numberOfTransactions: 0,
-      numberOfUtxos: 0,
-      satsInMempool: 0
-    },
-    syncStatus: 'synced',
-    transactions: [],
-    utxos: []
-  }
+const MULTISIG_KEY: Key = {
+  creationType: 'generateMnemonic',
+  index: 0,
+  iv: '',
+  secret: ''
+}
+const MULTISIG_ACCOUNT: Account = {
+  addresses: [],
+  createdAt: new Date('2024-01-01'),
+  displayIndex: 0,
+  id: 'acc-1',
+  keyCount: 3,
+  keys: [MULTISIG_KEY, MULTISIG_KEY, MULTISIG_KEY],
+  keysRequired: 2,
+  labels: {},
+  name: 'Test',
+  network: 'bitcoin',
+  nostr: {
+    autoSync: false,
+    commonNpub: '',
+    commonNsec: '',
+    dms: [],
+    lastUpdated: new Date(),
+    relays: [],
+    syncStart: new Date(),
+    trustedMemberDevices: []
+  },
+  policyType: 'multisig',
+  summary: {
+    balance: 0,
+    numberOfAddresses: 0,
+    numberOfTransactions: 0,
+    numberOfUtxos: 0,
+    satsInMempool: 0
+  },
+  syncStatus: 'synced',
+  transactions: [],
+  utxos: []
+}
 
+describe('hasAllRequiredSignatures', () => {
   it('is true once enough signatures are valid', () => {
     const results = new Map([
       [0, true],
       [1, false],
       [2, true]
     ])
-    expect(hasAllRequiredSignatures(account, results)).toBe(true)
+    expect(hasAllRequiredSignatures(MULTISIG_ACCOUNT, results)).toBe(true)
   })
 
   it('is false below the threshold or without an account', () => {
-    expect(hasAllRequiredSignatures(account, new Map([[0, true]]))).toBe(false)
+    expect(
+      hasAllRequiredSignatures(MULTISIG_ACCOUNT, new Map([[0, true]]))
+    ).toBe(false)
     expect(hasAllRequiredSignatures(undefined, new Map([[0, true]]))).toBe(
       false
     )
+  })
+})
+
+describe('validateCosignerSignatures', () => {
+  it('validates nothing without an account', () => {
+    expect(
+      validateCosignerSignatures(new Map([[0, 'cHNidP8B']]), undefined, [])
+    ).toStrictEqual({ failedCosigners: [], results: new Map() })
+  })
+
+  it('skips empty slots and marks unusable signatures invalid', () => {
+    const { results } = validateCosignerSignatures(
+      new Map([
+        [0, '  '],
+        [1, 'not-a-psbt']
+      ]),
+      MULTISIG_ACCOUNT,
+      MULTISIG_ACCOUNT.keys
+    )
+    expect(results).toStrictEqual(new Map([[1, false]]))
   })
 })
 
@@ -359,11 +391,13 @@ describe('2-of-2 multisig signatures', () => {
     const fullySigned = combinePsbts(signAll(original))
     const finalize = jest.fn(() => 'final-tx-hex')
 
-    const bound = bindImportedSignature(fullySigned, original, false, finalize)
+    const bound = boundDataOf(
+      bindImportedSignature(fullySigned, original, false, finalize)
+    )
 
     expect(finalize).not.toHaveBeenCalled()
     expect(
-      bitcoinjs.Psbt.fromBase64(bound ?? '').data.inputs[0].partialSig
+      bitcoinjs.Psbt.fromBase64(bound).data.inputs[0].partialSig
     ).toHaveLength(2)
   })
 
@@ -374,7 +408,7 @@ describe('2-of-2 multisig signatures', () => {
 
     expect(
       bindImportedSignature(other.toBase64(), original, false, jest.fn())
-    ).toBeNull()
+    ).toStrictEqual({ errorKey: 'common.error.transactionMismatch' })
   })
 
   it('rejects a raw transaction imported into a cosigner slot', () => {
@@ -385,7 +419,7 @@ describe('2-of-2 multisig signatures', () => {
 
     expect(
       bindImportedSignature(unsignedTxHex, original, false, jest.fn())
-    ).toBeNull()
+    ).toStrictEqual({ errorKey: 'common.error.transactionMismatch' })
   })
 
   it('rejects a cosigner import while no PSBT is under review', () => {
@@ -393,16 +427,59 @@ describe('2-of-2 multisig signatures', () => {
 
     expect(
       bindImportedSignature(signed, undefined, false, jest.fn())
-    ).toBeNull()
+    ).toStrictEqual({ errorKey: 'common.error.noOriginalPSBT' })
   })
 
   it('finalizes a PSBT imported for watch-only broadcast', () => {
     const original = buildMultisigPsbt()
     const finalize = jest.fn(() => 'final-tx-hex')
 
-    expect(bindImportedSignature(original, original, true, finalize)).toBe(
-      'final-tx-hex'
+    expect(
+      bindImportedSignature(original, original, true, finalize)
+    ).toStrictEqual({ boundData: 'final-tx-hex' })
+  })
+
+  it('reports a missing PSBT under review when finalizing', () => {
+    expect(combineAndFinalizePsbts(undefined, ['cHNidP8B'])).toStrictEqual({
+      errorKey: 'common.error.noOriginalPSBT'
+    })
+  })
+
+  it('reports an unreadable PSBT under review when finalizing', () => {
+    expect(combineAndFinalizePsbts('not a psbt', ['cHNidP8B'])).toStrictEqual({
+      errorKey: 'common.error.combinePSBTs'
+    })
+  })
+
+  it('combines the collected signatures to share with other cosigners', () => {
+    const original = buildMultisigPsbt()
+    const [firstSignature] = signAll(original)
+
+    const result = combineSignaturesForSharing(
+      original,
+      new Map([
+        [0, firstSignature],
+        [1, '']
+      ])
     )
+
+    expect(result).toStrictEqual({
+      psbtBase64: combinePsbts([original, firstSignature])
+    })
+  })
+
+  it('reports why the signatures could not be shared', () => {
+    expect(combineSignaturesForSharing(undefined, new Map())).toStrictEqual({
+      errorKey: 'account.nostrSync.transactionDataNotAvailable'
+    })
+    expect(
+      combineSignaturesForSharing(
+        buildMultisigPsbt(),
+        new Map([[0, 'not-a-psbt']])
+      )
+    ).toStrictEqual({
+      errorKey: 'account.nostrSync.failedToSendTransactionData'
+    })
   })
 })
 
