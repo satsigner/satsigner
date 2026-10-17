@@ -9,7 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -21,7 +21,8 @@ import { buildEcashBackupPayload } from '@/utils/ecashBackup'
 import { formatNumber } from '@/utils/format'
 
 export default function EcashBackupPage() {
-  const { activeAccountId, mints, proofs, transactions } = useEcash()
+  const { activeAccountId, mints, proofs, transactions } =
+    useEcashAccountState()
   const [currencyUnit, useZeroPadding] = useSettingsStore(
     useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
