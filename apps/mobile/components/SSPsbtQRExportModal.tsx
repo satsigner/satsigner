@@ -90,7 +90,7 @@ function SSPsbtQRExportModal({
             {t(qrErrorKey)}
           </SSText>
         )}
-        {qrErrorKey && psbtBase64 && (
+        {qrErrorKey && !!psbtBase64 && (
           <SSPairedTabs
             activeTab={displayMode}
             onChange={setDisplayMode}

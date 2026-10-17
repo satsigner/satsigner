@@ -53,8 +53,10 @@ function generateQrChunks(psbtBase64: string | undefined, complexity: number) {
 /**
  * Encodes a PSBT as RAW, UR or BBQR QR frames and cycles through them when
  * the selected format needs more than one QR. Density (`qrComplexity`) and
- * cycling speed (`animationSpeed`) are user adjustable. Nothing is encoded or
- * animated while `active` is false (e.g. the export modal is closed).
+ * cycling speed (`animationSpeed`) are user adjustable. Nothing is encoded
+ * until `active` first turns true (e.g. the export modal opens), and frames
+ * only cycle while it is true. The frames are kept once encoded, so a closing
+ * modal keeps showing them while it fades out.
  */
 export function usePsbtQrExport(
   psbtBase64: string | undefined,
@@ -65,11 +67,16 @@ export function usePsbtQrExport(
   const [frameIndex, setFrameIndex] = useState(0)
   const [qrComplexity, setQrComplexityState] = useState(QR_COMPLEXITY_DEFAULT)
   const [animationSpeed, setAnimationSpeed] = useState(ANIMATION_SPEED_DEFAULT)
+  const [hasBeenActive, setHasBeenActive] = useState(active)
+
+  if (active && !hasBeenActive) {
+    setHasBeenActive(true)
+  }
 
   const qrRef = useRef<View>(null)
 
   const { chunks, errorKey } = generateQrChunks(
-    active ? psbtBase64 : undefined,
+    hasBeenActive ? psbtBase64 : undefined,
     qrComplexity
   )
   const modeChunks = chunks[displayMode]
