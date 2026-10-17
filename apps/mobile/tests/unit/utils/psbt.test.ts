@@ -389,6 +389,14 @@ describe('2-of-2 multisig signatures', () => {
     ).toBeNull()
   })
 
+  it('rejects a cosigner import while no PSBT is under review', () => {
+    const signed = buildMultisigPsbt()
+
+    expect(
+      bindImportedSignature(signed, undefined, false, jest.fn())
+    ).toBeNull()
+  })
+
   it('finalizes a PSBT imported for watch-only broadcast', () => {
     const original = buildMultisigPsbt()
     const finalize = jest.fn(() => 'final-tx-hex')

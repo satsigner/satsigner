@@ -128,7 +128,12 @@ export function useCosignerSignatures({
         convertPsbtToFinalTransaction
       )
       if (boundData === null) {
-        onNotice({ key: 'common.error.transactionMismatch', type: 'error' })
+        onNotice({
+          key: originalPsbtBase64
+            ? 'common.error.transactionMismatch'
+            : 'common.error.noOriginalPSBT',
+          type: 'error'
+        })
       }
       return boundData
     } catch {

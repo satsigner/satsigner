@@ -1337,20 +1337,23 @@ export function bindScannedDataToPsbt(
 
 // Binds data imported into a signature slot. A cosigner slot keeps the PSBT
 // combined with the one under review but unfinalized, so its signatures can be
-// validated and combined with the others; only the watch-only import is
-// finalized for broadcast.
+// validated and combined with the others; it is rejected while no PSBT is
+// under review. Only the watch-only import is finalized for broadcast.
 export function bindImportedSignature(
   data: string,
   originalPsbtBase64: string | undefined,
   isWatchOnly: boolean,
   convertPsbtToFinalTransaction: (psbtHex: string) => string
 ) {
-  if (isWatchOnly || !originalPsbtBase64) {
+  if (isWatchOnly) {
     return bindScannedDataToPsbt(
       data,
       originalPsbtBase64,
       convertPsbtToFinalTransaction
     )
+  }
+  if (!originalPsbtBase64) {
+    return null
   }
   const bound = bindScannedDataToPsbt(data, originalPsbtBase64, (psbtHex) =>
     combinePsbts([

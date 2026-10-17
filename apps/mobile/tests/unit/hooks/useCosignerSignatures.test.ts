@@ -159,6 +159,23 @@ describe('useCosignerSignatures', () => {
     })
   })
 
+  it('rejects a cosigner signature while no PSBT is under review', async () => {
+    useTransactionBuilderStore.getState().clearPsbt()
+    const { hook, onNotice } = await renderCosignerSignatures()
+
+    act(() => {
+      expect(
+        hook.current?.importSignedData(0, signAs(0, buildMultisigPsbt()))
+      ).toBe(false)
+    })
+
+    expect(hook.current?.signedPsbts.has(0)).toBe(false)
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'common.error.noOriginalPSBT',
+      type: 'error'
+    })
+  })
+
   it('finalizes once every cosigner signature is collected', async () => {
     const original = buildMultisigPsbt()
     reviewPsbt(original)
