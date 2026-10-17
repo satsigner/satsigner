@@ -843,7 +843,7 @@
             logo.style.margin = '0';
             logo.style.transform = 'none';
             requestAnimationFrame(function () {
-              logo.style.transition = 'left 2.1s cubic-bezier(0.16, 1, 0.3, 1), top 2.1s cubic-bezier(0.16, 1, 0.3, 1), width 2.1s cubic-bezier(0.16, 1, 0.3, 1), height 2.1s cubic-bezier(0.16, 1, 0.3, 1)';
+              logo.style.transition = 'left 3.4s cubic-bezier(0.16, 1, 0.3, 1), top 3.4s cubic-bezier(0.16, 1, 0.3, 1), width 3.4s cubic-bezier(0.16, 1, 0.3, 1), height 3.4s cubic-bezier(0.16, 1, 0.3, 1)';
               logo.style.left = last.left + 'px';
               logo.style.top = last.top + 'px';
               logo.style.width = last.width + 'px';
@@ -858,7 +858,7 @@
           }
           var boot = document.querySelector('.boot');
           if (!boot) return;
-          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 2300);
+          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 3800);
         }, wait);
       }
       function arm() {

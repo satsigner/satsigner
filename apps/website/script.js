@@ -24,6 +24,7 @@
     'uniform vec2 uHalf;',
     'uniform float uRadius;',
     'uniform float uTheme;',
+    'uniform float uPulse;',
     'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
     'float sdCircle(vec2 p, float r){ return length(p) - r; }',
     'float sdRoundBox(vec2 p, vec2 b, float r){',
@@ -57,8 +58,8 @@
     '  float aimLen = length(aim);',
     '  vec2 key = aimLen > 1.0 ? normalize(mix(orbit, aim / aimLen, uPointerOn)) : orbit;',
     '  float face = smoothstep(-0.08, 0.72, dot(n, key));',
-    '  float far = exp(-max(sdf, 0.0) / (36.0 * uDpr));',
-    '  float light = far * (0.02 + 0.38 * face);',
+    '  float far = exp(-max(sdf, 0.0) / ((36.0 + uPulse * 6.0) * uDpr));',
+    '  float light = far * (0.02 + 0.38 * face) * (1.0 + uPulse * 0.22);',
     '  vec2 css = p / max(uDpr, 1.0);',
     '  float grain = hash21(floor(css * 2.0));',
     '  grain += hash21(floor(css * 4.24));',
@@ -113,6 +114,7 @@
   var uHalf = gl.getUniformLocation(prog, 'uHalf');
   var uRadius = gl.getUniformLocation(prog, 'uRadius');
   var uTheme = gl.getUniformLocation(prog, 'uTheme');
+  var uPulse = gl.getUniformLocation(prog, 'uPulse');
 
   var logo = document.querySelector('.hero-logo-light');
   var lgl = logo && logo.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: true });
@@ -190,8 +192,15 @@
   var shape = 3;
   var dpr = 1;
   var pointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0, target: 0, moved: 0, idle: 0 };
-  var introStart = reduce ? 0 : performance.now();
+  var introStart = 0;
+  var introDone = reduce;
   var phoneReveal = reduce ? 1 : 0;
+  var pulseAt = 0;
+  if (mark && !reduce) {
+    mark.addEventListener('click', function () {
+      pulseAt = performance.now();
+    }, true);
+  }
   if (reduce) hero.classList.remove('is-intro');
 
   function resize() {
@@ -262,11 +271,17 @@
     gl.uniform1f(uShape, shape >= 1 ? 1 : 0);
     gl.uniform2f(uPointer, pointer.x, pointer.y);
     gl.uniform1f(uPointerOn, follow);
+    if (shape === 3 && !introDone && !introStart && document.documentElement.classList.contains('is-ready')) {
+      introStart = t;
+    }
     if (shape === 3 && introStart) {
       var elapsed = t - introStart;
-      if (elapsed >= 2300) hero.classList.remove('is-intro');
-      phoneReveal = elapsed < 1000 ? 0 : Math.min(1, (elapsed - 1000) / 700);
-      if (elapsed >= 1700) introStart = 0;
+      if (elapsed >= 3400) hero.classList.remove('is-intro');
+      phoneReveal = elapsed < 1500 ? 0 : Math.min(1, (elapsed - 1500) / 1100);
+      if (elapsed >= 2600) {
+        introStart = 0;
+        introDone = true;
+      }
     }
     gl.uniform1f(uDpr, dpr);
     gl.uniform1f(uReveal, shape === 3 ? phoneReveal : 1);
@@ -276,6 +291,16 @@
     gl.uniform1f(uRadius, cssRadius * dpr);
     var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
     gl.uniform1f(uTheme, theme);
+    var pulse = 0;
+    if (pulseAt) {
+      var pe = t - pulseAt;
+      var attack = 55;
+      var release = 220;
+      if (pe >= attack + release) pulseAt = 0;
+      else if (pe < attack) pulse = pe / attack;
+      else pulse = 1 - (pe - attack) / release;
+    }
+    gl.uniform1f(uPulse, pulse);
     gl.clearColor(theme ? 0.902 : 0, theme ? 0.902 : 0, theme ? 0.902 : 0, 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (lgl && lu && shape >= 2 && mark) {

@@ -290,6 +290,7 @@ a{
   background: linear-gradient(270deg, rgba(255, 255, 255, 0.22), rgba(58, 58, 58, 0.45) 40%, rgba(28, 28, 28, 0.2));
 }
 .hero.is-phone .hero-mark {
+  will-change: transform;
   --bezel: 10px;
   --radius: 48px;
   width: 280px;
@@ -538,12 +539,28 @@ a{
   animation: hero-light-in 1.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero.is-intro.is-phone .hero-mark {
-  animation: hero-phone-shell 1.45s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
+  animation: hero-phone-shell 1.45s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
 }
 .hero.is-intro.is-phone .hero-app,
 .hero.is-intro.is-phone .hero-mark::before,
-.hero.is-intro.is-phone .hero-mark::after {
-  animation: hero-phone-in 1.45s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
+.hero.is-intro.is-phone .hero-mark::after,
+.hero.is-intro.is-phone .phone-key {
+  animation: hero-phone-in 1.45s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+}
+html:not(.is-ready) .hero.is-intro.is-phone .hero-mark,
+html:not(.is-ready) .hero.is-intro.is-phone .hero-app,
+html:not(.is-ready) .hero.is-intro.is-phone .hero-mark::before,
+html:not(.is-ready) .hero.is-intro.is-phone .hero-mark::after,
+html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
+  animation-play-state: paused;
+}
+@keyframes nav-sheet-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nav-item-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes hero-logo-in {
   0% { opacity: 0; transform: translate(-50%, calc(-50% + 42px)); }
@@ -573,7 +590,7 @@ a{
 }
 .hero-title {
   font-weight: 500;
-  font-size: clamp(2.75rem, 4.8vw, 4.5rem);
+  font-size: clamp(2.4rem, 4vw, 3.85rem);
   margin: 0 0 1rem;
   line-height: 0.95;
   letter-spacing: -0.05em;
