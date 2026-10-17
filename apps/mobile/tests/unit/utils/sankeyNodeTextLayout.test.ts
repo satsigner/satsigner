@@ -1,4 +1,4 @@
-import { NODE_TEXT_OVERFLOW_WIDTH } from '@/constants/sankey'
+import { NODE_TEXT_MIN_LAYOUT_WIDTH } from '@/constants/sankey'
 import {
   getNodeParagraphLayoutWidth,
   getNodeParagraphOffsetX
@@ -7,7 +7,7 @@ import {
 describe('getNodeParagraphLayoutWidth', () => {
   it('keeps narrow output nodes wide enough for amount and unit', () => {
     expect(getNodeParagraphLayoutWidth(40, 8, false)).toBe(
-      NODE_TEXT_OVERFLOW_WIDTH
+      NODE_TEXT_MIN_LAYOUT_WIDTH
     )
   })
 
