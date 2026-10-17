@@ -28,7 +28,6 @@ type SSSignatureDropdownProps = {
   txBuilderResult: PsbtLike
   serializedPsbt: string
   signedPsbt: string
-  setSignedPsbt: (psbt: string) => void
   isAvailable: boolean
   isEmitting: boolean
   isReading: boolean
@@ -40,9 +39,9 @@ type SSSignatureDropdownProps = {
   onPasteFromClipboard: (index: number, psbt: string) => void
   onCameraScan: (index: number) => void
   onNFCScan: (index: number) => void
-  onSignWithLocalKey: () => void
-  onSignWithSeedQR: () => void
-  onSignWithSeedWords: () => void
+  onSignWithLocalKey: (index: number) => void
+  onSignWithSeedQR: (index: number) => void
+  onSignWithSeedWords: (index: number) => void
   validationResult?: boolean
 }
 
@@ -121,6 +120,18 @@ function SSSignatureDropdown({
       0,
       7
     )}...${extendedPublicKey.slice(-4)}`
+  }
+
+  function handleSignWithLocalKey() {
+    onSignWithLocalKey(index)
+  }
+
+  function handleSignWithSeedQR() {
+    onSignWithSeedQR(index)
+  }
+
+  function handleSignWithSeedWords() {
+    onSignWithSeedWords(index)
   }
 
   const isPsbtValid = validateNormalizedPsbt(
@@ -210,9 +221,7 @@ function SSSignatureDropdown({
           {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
-              onPress={() => {
-                onSignWithLocalKey()
-              }}
+              onPress={handleSignWithLocalKey}
               variant="secondary"
               style={{ marginTop: 16 }}
             />
@@ -220,16 +229,12 @@ function SSSignatureDropdown({
             <SSVStack gap="sm" style={{ marginTop: 16 }}>
               <SSButton
                 label={t('transaction.preview.SignWithSeedQR')}
-                onPress={() => {
-                  onSignWithSeedQR()
-                }}
+                onPress={handleSignWithSeedQR}
                 variant="secondary"
               />
               <SSButton
                 label={t('transaction.preview.signWithSeedWords')}
-                onPress={() => {
-                  onSignWithSeedWords()
-                }}
+                onPress={handleSignWithSeedWords}
                 variant="secondary"
               />
             </SSVStack>

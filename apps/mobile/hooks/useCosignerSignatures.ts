@@ -180,7 +180,6 @@ export function useCosignerSignatures({
     signWithMnemonic: handleSignWithSeedQR,
     signedPsbt,
     signedPsbts,
-    updateSignedPsbt,
     validationResults
   }
 }

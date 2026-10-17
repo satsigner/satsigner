@@ -131,7 +131,6 @@ function PreviewTransaction() {
     signWithMnemonic,
     signedPsbt,
     signedPsbts,
-    updateSignedPsbt,
     validationResults
   } = useCosignerSignatures({
     account,
@@ -200,6 +199,31 @@ function PreviewTransaction() {
     setCurrentCosignerIndex(index)
   }
 
+  function handleWatchOnlyCameraScan() {
+    setCameraModalVisible(true)
+  }
+
+  function closeCameraModal() {
+    setCameraModalVisible(false)
+    setCurrentCosignerIndex(null)
+  }
+
+  function handleContentScanned(content: DetectedContent) {
+    handleScannedContent(content, currentCosignerIndex)
+  }
+
+  function showQrExportModal() {
+    setNoKeyModalVisible(true)
+  }
+
+  function closeQrExportModal() {
+    setNoKeyModalVisible(false)
+  }
+
+  function openLinkedTransaction(linkedTxId: string) {
+    router.push(`/signer/bitcoin/account/${id}/transaction/${linkedTxId}`)
+  }
+
   function handleWatchOnlyPasteFromClipboard() {
     pasteFromClipboard(WATCH_ONLY_INDEX)
   }
@@ -244,11 +268,10 @@ function PreviewTransaction() {
     isReading,
     nfcHardwareSupported: isNfcSupported,
     serializedPsbt,
-    setNoKeyModalVisible,
+    showQrExportModal,
     signedPsbts,
     transactionId,
     txBuilderResult,
-    updateSignedPsbt,
     validationResults
   }
 
@@ -298,26 +321,22 @@ function PreviewTransaction() {
     onNFCExport: exportToNfc,
     onNFCScan: handleWatchOnlyNFCScan,
     onPaste: handleWatchOnlyPasteFromClipboard,
-    onScanQR: () => setCameraModalVisible(true),
-    onShowQR: () => setNoKeyModalVisible(true),
+    onScanQR: handleWatchOnlyCameraScan,
+    onShowQR: showQrExportModal,
     serializedPsbt,
     signedPsbt,
     transactionId
   }
 
   const propsQrExportModal = {
-    onClose: () => setNoKeyModalVisible(false),
+    onClose: closeQrExportModal,
     psbtBase64: txBuilderResult?.toBase64(),
     visible: noKeyModalVisible
   }
 
   const propsCameraModal = {
-    onClose: () => {
-      setCameraModalVisible(false)
-      setCurrentCosignerIndex(null)
-    },
-    onContentScanned: (content: DetectedContent) =>
-      handleScannedContent(content, currentCosignerIndex),
+    onClose: closeCameraModal,
+    onContentScanned: handleContentScanned,
     title: getCameraModalTitle(decryptedKeys, currentCosignerIndex),
     visible: cameraModalVisible
   }
@@ -350,8 +369,7 @@ function PreviewTransaction() {
 
   const propsContents = {
     knownTxIds,
-    onOpenLinkedTx: (linkedTxId: string) =>
-      router.push(`/signer/bitcoin/account/${id}/transaction/${linkedTxId}`),
+    onOpenLinkedTx: openLinkedTransaction,
     outpointLabelsByRef,
     ownAddresses,
     transaction,
@@ -580,7 +598,6 @@ type PreviewTransactionMultisigSectionProps = {
   nfcHardwareSupported: boolean
   isEmitting: boolean
   isReading: boolean
-  updateSignedPsbt: CosignerSignatures['updateSignedPsbt']
   handleNFCExport: () => void
   handleCosignerPasteFromClipboard: (index: number) => void
   handleCosignerCameraScan: (index: number) => void
@@ -588,7 +605,7 @@ type PreviewTransactionMultisigSectionProps = {
   handleSignWithLocalKey: CosignerSignatures['signWithLocalKey']
   handleSeedWordsScanned: (index: number) => void
   handleShareSignaturesWithNostrGroup: () => void
-  setNoKeyModalVisible: (visible: boolean) => void
+  showQrExportModal: () => void
 }
 
 function PreviewTransactionMultisigSection({
@@ -602,7 +619,6 @@ function PreviewTransactionMultisigSection({
   nfcHardwareSupported,
   isEmitting,
   isReading,
-  updateSignedPsbt,
   handleNFCExport,
   handleCosignerPasteFromClipboard,
   handleCosignerCameraScan,
@@ -610,7 +626,7 @@ function PreviewTransactionMultisigSection({
   handleSignWithLocalKey,
   handleSeedWordsScanned,
   handleShareSignaturesWithNostrGroup,
-  setNoKeyModalVisible
+  showQrExportModal
 }: PreviewTransactionMultisigSectionProps) {
   if (
     account.policyType !== 'multisig' ||
@@ -651,21 +667,20 @@ function PreviewTransactionMultisigSection({
             txBuilderResult={txBuilderResult}
             serializedPsbt={serializedPsbt}
             signedPsbt={signedPsbts.get(index) || ''}
-            setSignedPsbt={(psbt: string) => updateSignedPsbt(index, psbt)}
             isAvailable={nfcHardwareSupported}
             isEmitting={isEmitting}
             isReading={isReading}
             decryptedKey={decryptedKeys[index]}
             account={account}
-            onShowQR={() => setNoKeyModalVisible(true)}
+            onShowQR={showQrExportModal}
             onShareWithGroup={handleShareSignaturesWithNostrGroup}
             onNFCExport={handleNFCExport}
             onPasteFromClipboard={handleCosignerPasteFromClipboard}
             onCameraScan={handleCosignerCameraScan}
             onNFCScan={handleCosignerNFCScan}
-            onSignWithLocalKey={() => handleSignWithLocalKey(index)}
-            onSignWithSeedQR={() => handleCosignerCameraScan(index)}
-            onSignWithSeedWords={() => handleSeedWordsScanned(index)}
+            onSignWithLocalKey={handleSignWithLocalKey}
+            onSignWithSeedQR={handleCosignerCameraScan}
+            onSignWithSeedWords={handleSeedWordsScanned}
             validationResult={validationResults.get(index)}
           />
         ))}

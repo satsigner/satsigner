@@ -33,11 +33,11 @@ function SSWordCountSelectModal({
         </SSText>
         <SSVStack gap="sm">
           {MNEMONIC_WORD_COUNTS.map((wordCount) => (
-            <SSButton
+            <WordCountOption
               key={wordCount}
-              label={t('transaction.preview.wordsCount', { count: wordCount })}
-              variant={selectedWordCount === wordCount ? 'outline' : 'ghost'}
-              onPress={() => setSelectedWordCount(wordCount)}
+              wordCount={wordCount}
+              selected={selectedWordCount === wordCount}
+              onSelect={setSelectedWordCount}
             />
           ))}
         </SSVStack>
@@ -50,6 +50,30 @@ function SSWordCountSelectModal({
         />
       </SSHStack>
     </SSModal>
+  )
+}
+
+type WordCountOptionProps = {
+  wordCount: MnemonicWordCount
+  selected: boolean
+  onSelect: (count: MnemonicWordCount) => void
+}
+
+function WordCountOption({
+  wordCount,
+  selected,
+  onSelect
+}: WordCountOptionProps) {
+  function handlePress() {
+    onSelect(wordCount)
+  }
+
+  return (
+    <SSButton
+      label={t('transaction.preview.wordsCount', { count: wordCount })}
+      variant={selected ? 'outline' : 'ghost'}
+      onPress={handlePress}
+    />
   )
 }
 
