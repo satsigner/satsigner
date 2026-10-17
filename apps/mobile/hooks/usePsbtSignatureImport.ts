@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import { WATCH_ONLY_INDEX } from '@/constants/account'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { useNFCReader } from '@/hooks/useNFCReader'
+import { type NFCReadResult, useNFCReader } from '@/hooks/useNFCReader'
 import { type Notice } from '@/types/ui/notice'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getNfcErrorKey } from '@/utils/nfcError'
@@ -13,6 +13,15 @@ type UsePsbtSignatureImportParams = {
   importSignedData: (cosignerIndex: number, data: string) => boolean
   signWithMnemonic: (cosignerIndex: number, mnemonic: string) => void
   onNotice: (notice: Notice) => void
+}
+
+// The signed data an NFC tag carries, still to be bound to the PSBT under
+// review: a `bitcoin.org:txn` record, or a "Signed Transaction:" text record.
+function getNfcSignedData(result: NFCReadResult | null) {
+  if (result?.txData) {
+    return hex.encode(result.txData)
+  }
+  return result?.signedTxHex
 }
 
 /**
@@ -84,12 +93,12 @@ export function usePsbtSignatureImport({
 
     setNfcScanModalVisible(true)
     try {
-      const result = await readNFCTag()
-      if (!result?.txData) {
+      const signedData = getNfcSignedData(await readNFCTag())
+      if (!signedData) {
         onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
         return
       }
-      if (!importSignedData(cosignerIndex, hex.encode(result.txData))) {
+      if (!importSignedData(cosignerIndex, signedData)) {
         return
       }
       onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })

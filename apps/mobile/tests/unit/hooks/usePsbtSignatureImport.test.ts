@@ -143,8 +143,29 @@ describe('usePsbtSignatureImport importFromNfc', () => {
     })
   })
 
-  it('rejects a tag that only carries a txid', async () => {
-    mockReadNFCTag.mockResolvedValue({ txId: 'ab'.repeat(32) })
+  it('binds a signed transaction text record to the PSBT under review', async () => {
+    mockReadNFCTag.mockResolvedValue({ signedTxHex: 'abcd', text: 'x' })
+    const importSignedData = jest.fn(() => true)
+    const onNotice = jest.fn()
+    const hook = await renderSignatureImport({
+      importSignedData,
+      onNotice,
+      signWithMnemonic: jest.fn()
+    })
+
+    await act(async () => {
+      await hook.current?.importFromNfc(0)
+    })
+
+    expect(importSignedData).toHaveBeenCalledWith(0, 'abcd')
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'transaction.preview.nfcImported',
+      type: 'success'
+    })
+  })
+
+  it('reports a tag without signed data', async () => {
+    mockReadNFCTag.mockResolvedValue({ text: 'hello' })
     const importSignedData = jest.fn(() => true)
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({

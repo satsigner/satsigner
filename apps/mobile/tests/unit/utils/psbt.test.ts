@@ -453,6 +453,12 @@ describe('bindScannedDataToPsbt', () => {
     expect(bindScannedDataToPsbt('hello', psbtBase64, convert)).toBeNull()
   })
 
+  it('rejects a bare txid', () => {
+    expect(
+      bindScannedDataToPsbt('ab'.repeat(32), psbtBase64, convert)
+    ).toBeNull()
+  })
+
   it('binds a base64 PSBT like a hex one', () => {
     expect(bindScannedDataToPsbt(psbtBase64, psbtBase64, convert)).toBe(
       `final:${psbt.toHex()}`

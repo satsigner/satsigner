@@ -6,8 +6,10 @@ import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
 import { NfcDisabledError } from '@/utils/nfcError'
 import { toNfcSessionError } from '@/utils/nfcSession'
 
-type NFCReadResult = {
-  txId?: string
+export type NFCReadResult = {
+  /** Hex after "Signed Transaction: " in a text record. */
+  signedTxHex?: string
+  /** Payload of a `bitcoin.org:txn` record. */
   txData?: Uint8Array
   text?: string
 }
@@ -90,7 +92,7 @@ export function useNFCReader() {
 
         const match = text.match(/Signed Transaction: ([a-f0-9]+)/i)
         if (match && match[1]) {
-          ;[, result.txId] = match
+          ;[, result.signedTxHex] = match
           result.text = text
         } else if (!result.text) {
           result.text = text
@@ -100,7 +102,7 @@ export function useNFCReader() {
       }
     }
 
-    if (result.txData || result.txId || result.text) {
+    if (result.txData || result.signedTxHex || result.text) {
       setIsReading(false)
       NfcManager.cancelTechnologyRequest()
       return result
