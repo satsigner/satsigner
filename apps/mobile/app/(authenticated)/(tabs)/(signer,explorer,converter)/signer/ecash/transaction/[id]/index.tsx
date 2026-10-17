@@ -179,12 +179,12 @@ export default function EcashTransactionDetailPage() {
     checkMintQuote,
     enabled: transaction?.status === 'pending',
     mintUrl: mint?.url,
-    onFailed: () => {
+    onQuoteExpiredOrCancelled: () => {
       if (transaction) {
         updateTransaction(transaction.id, { status: 'failed' })
       }
     },
-    onPaid: async () => {
+    onQuotePaid: async () => {
       if (!transaction?.quoteId || !mint) {
         return
       }

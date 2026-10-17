@@ -53,8 +53,8 @@ describe('checkMintQuoteOnce', () => {
     return {
       checkMintQuote: jest.fn().mockResolvedValue(quoteState),
       mintUrl: 'https://mint.example',
-      onFailed: jest.fn(),
-      onPaid: jest.fn().mockResolvedValue(undefined),
+      onQuoteExpiredOrCancelled: jest.fn(),
+      onQuotePaid: jest.fn().mockResolvedValue(undefined),
       quoteId: `q-${quoteState}`
     }
   }
@@ -63,8 +63,8 @@ describe('checkMintQuoteOnce', () => {
     const p = params('PAID')
 
     await expect(checkMintQuoteOnce(p)).resolves.toBe('PAID')
-    expect(p.onPaid).toHaveBeenCalledTimes(1)
-    expect(p.onFailed).not.toHaveBeenCalled()
+    expect(p.onQuotePaid).toHaveBeenCalledTimes(1)
+    expect(p.onQuoteExpiredOrCancelled).not.toHaveBeenCalled()
   })
 
   it('does nothing while the quote is unpaid', async () => {
@@ -72,8 +72,8 @@ describe('checkMintQuoteOnce', () => {
 
     await checkMintQuoteOnce(p)
 
-    expect(p.onPaid).not.toHaveBeenCalled()
-    expect(p.onFailed).not.toHaveBeenCalled()
+    expect(p.onQuotePaid).not.toHaveBeenCalled()
+    expect(p.onQuoteExpiredOrCancelled).not.toHaveBeenCalled()
   })
 
   it('reports an expired quote once', async () => {
@@ -81,8 +81,8 @@ describe('checkMintQuoteOnce', () => {
 
     await checkMintQuoteOnce(p)
 
-    expect(p.onFailed).toHaveBeenCalledTimes(1)
-    expect(p.onPaid).not.toHaveBeenCalled()
+    expect(p.onQuoteExpiredOrCancelled).toHaveBeenCalledTimes(1)
+    expect(p.onQuotePaid).not.toHaveBeenCalled()
   })
 
   it('does not claim the same quote twice at the same time', async () => {
@@ -93,7 +93,7 @@ describe('checkMintQuoteOnce', () => {
       checkMintQuoteOnce(p)
     ])
 
-    expect(p.onPaid).toHaveBeenCalledTimes(1)
+    expect(p.onQuotePaid).toHaveBeenCalledTimes(1)
     expect(results).toStrictEqual(['ISSUED', 'PENDING'])
   })
 })

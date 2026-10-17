@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { getWalletData } from '@/api/bdk'
+import {
+  ACCOUNT_PUBLIC_KEYS_DECRYPT_ONCE_STALE_TIME_MS,
+  ACCOUNT_PUBLIC_KEYS_DROP_ON_UNMOUNT_GC_TIME_MS,
+  MISSING_PUBKEY_PLACEHOLDER
+} from '@/constants/account'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
-
-const MISSING_PUBKEY = 'N/A'
 
 /**
  * Extended public keys of each account key. Keys are decrypted inside the
@@ -18,7 +21,7 @@ async function fetchAccountPublicKeys(account: Account, network: Network) {
   const decrypted = await getAccountWithDecryptedKeys(account)
   if (isImportAddress) {
     return decrypted.keys.map(
-      (key) => key.secret.extendedPublicKey || MISSING_PUBKEY
+      (key) => key.secret.extendedPublicKey || MISSING_PUBKEY_PLACEHOLDER
     )
   }
   const walletData = await getWalletData(
@@ -28,7 +31,7 @@ async function fetchAccountPublicKeys(account: Account, network: Network) {
   const extendedKey = walletData?.externalDescriptor
     ? getExtendedKeyFromDescriptor(walletData.externalDescriptor)
     : undefined
-  return decrypted.keys.map(() => extendedKey || MISSING_PUBKEY)
+  return decrypted.keys.map(() => extendedKey || MISSING_PUBKEY_PLACEHOLDER)
 }
 
 export function useAccountPublicKeys(
@@ -37,9 +40,7 @@ export function useAccountPublicKeys(
 ) {
   return useQuery({
     enabled: Boolean(account),
-    // Drop the keys on unmount, like component state did, so a wiped or
-    // re-keyed account never shows stale data.
-    gcTime: 0,
+    gcTime: ACCOUNT_PUBLIC_KEYS_DROP_ON_UNMOUNT_GC_TIME_MS,
     queryFn: () => {
       if (!account) {
         throw new Error('Account is required')
@@ -47,8 +48,7 @@ export function useAccountPublicKeys(
       return fetchAccountPublicKeys(account, network)
     },
     queryKey: ['bitcoin', 'account-public-keys', account?.id, network],
-    // Decrypts keys: do it once per cache lifetime, and don't retry a failure.
     retry: false,
-    staleTime: Infinity
+    staleTime: ACCOUNT_PUBLIC_KEYS_DECRYPT_ONCE_STALE_TIME_MS
   })
 }
