@@ -6,6 +6,7 @@ import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { type Notice } from '@/types/ui/notice'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtSignatureImportParams = {
   /** Binds data to the PSBT under review and stores it; false if rejected. */
@@ -92,8 +93,11 @@ export function usePsbtSignatureImport({
         return
       }
       onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
-    } catch {
-      onNotice({ key: 'nfc.error.readFailed', type: 'error' })
+    } catch (error) {
+      const errorKey = getNfcErrorKey(error, 'nfc.error.readFailed')
+      if (errorKey) {
+        onNotice({ key: errorKey, type: 'error' })
+      }
     } finally {
       setNfcScanModalVisible(false)
     }

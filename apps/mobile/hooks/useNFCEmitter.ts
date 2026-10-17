@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
-import { t } from '@/locales'
 import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
+import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'
+import { toNfcSessionError } from '@/utils/nfcSession'
 
 function getVerboseError(error: unknown, defaultMessage: string) {
   if (!(error instanceof Error)) {
@@ -80,11 +81,16 @@ export function useNFCEmitter() {
       throw new Error('NFC is not available on this device')
     }
     if (!status.isEnabled) {
-      throw new Error(t('watchonly.read.nfcTurnOnInSettings'))
+      throw new NfcDisabledError()
     }
 
     setIsEmitting(true)
-    await NfcManager.requestTechnology(NfcTech.Ndef)
+    try {
+      await NfcManager.requestTechnology(NfcTech.Ndef)
+    } catch (requestError) {
+      setIsEmitting(false)
+      throw toNfcSessionError(requestError)
+    }
 
     const bytes = Ndef.encodeMessage([
       Ndef.textRecord(data, 'en', { id: 'PSBT' })
@@ -100,6 +106,10 @@ export function useNFCEmitter() {
     } catch (writeError) {
       setIsEmitting(false)
       NfcManager.cancelTechnologyRequest()
+      const sessionError = toNfcSessionError(writeError)
+      if (sessionError instanceof NfcCancelledError) {
+        throw sessionError
+      }
       throw new Error(getVerboseError(writeError, 'Failed to write NFC tag'), {
         cause: writeError
       })

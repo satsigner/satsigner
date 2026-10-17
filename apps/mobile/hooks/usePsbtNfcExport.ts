@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { type Notice } from '@/types/ui/notice'
+import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtNfcExportParams = {
   /** The PSBT under review, hex encoded. */
@@ -12,7 +13,7 @@ type UsePsbtNfcExportParams = {
 /**
  * Emits the PSBT under review over NFC. Pressing export again while emitting
  * cancels it. A failed write keeps the modal open with the error until it is
- * dismissed.
+ * dismissed; a cancelled one closes it silently.
  */
 export function usePsbtNfcExport({
   serializedPsbt,
@@ -41,9 +42,14 @@ export function usePsbtNfcExport({
       await emitNFCTag(serializedPsbt)
       onNotice({ key: 'transaction.preview.nfcExported', type: 'success' })
       setNfcExportModalVisible(false)
-    } catch {
-      setNfcErrorKey('nfc.error.writeFailed')
-      onNotice({ key: 'nfc.error.writeFailed', type: 'error' })
+    } catch (error) {
+      const errorKey = getNfcErrorKey(error, 'nfc.error.writeFailed')
+      if (!errorKey) {
+        setNfcExportModalVisible(false)
+        return
+      }
+      setNfcErrorKey(errorKey)
+      onNotice({ key: errorKey, type: 'error' })
     }
   }
 

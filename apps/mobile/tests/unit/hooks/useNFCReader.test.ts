@@ -1,0 +1,109 @@
+import { createElement } from 'react'
+import { NfcError } from 'react-native-nfc-manager'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+
+import { useNFCReader } from '@/hooks/useNFCReader'
+import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'
+
+const mockRequestTechnology = jest.fn()
+jest.mock<typeof import('react-native-nfc-manager')>(
+  'react-native-nfc-manager',
+  () => {
+    class UserCancelError extends Error {
+      name = 'UserCancelError'
+    }
+    return {
+      Ndef: {},
+      NfcError: { UserCancel: UserCancelError },
+      NfcTech: { Ndef: 'Ndef' },
+      __esModule: true,
+      default: {
+        cancelTechnologyRequest: jest.fn(() => Promise.resolve()),
+        getTag: jest.fn(),
+        requestTechnology: () => mockRequestTechnology()
+      }
+    }
+  }
+)
+
+const mockAdapterStatus = { isEnabled: true, isSupported: true }
+jest.mock<typeof import('@/utils/nfcAdapterStatus')>(
+  '@/utils/nfcAdapterStatus',
+  () => ({ getNfcAdapterStatus: () => Promise.resolve(mockAdapterStatus) })
+)
+
+// Unmounted after each test, so the hook's NFC availability retry timer does
+// not fire once the test is done.
+const mountedRenderers: ReactTestRenderer[] = []
+
+type NfcReader = ReturnType<typeof useNFCReader>
+
+async function renderReader() {
+  const hook: { current: NfcReader | null } = { current: null }
+  function Harness() {
+    hook.current = useNFCReader()
+    return null
+  }
+  await act(async () => {
+    mountedRenderers.push(create(createElement(Harness)))
+  })
+  return hook
+}
+
+async function readAndCatch(hook: { current: NfcReader | null }) {
+  const result: { error?: unknown } = {}
+  await act(async () => {
+    try {
+      await hook.current?.readNFCTag()
+    } catch (error) {
+      result.error = error
+    }
+  })
+  return result.error
+}
+
+describe('useNFCReader readNFCTag', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockAdapterStatus.isEnabled = true
+  })
+
+  afterEach(() => {
+    act(() => {
+      for (const renderer of mountedRenderers.splice(0)) {
+        renderer.unmount()
+      }
+    })
+  })
+
+  it('reports a cancelled session and stops reading', async () => {
+    mockRequestTechnology.mockRejectedValue(new NfcError.UserCancel())
+    const hook = await renderReader()
+
+    const error = await readAndCatch(hook)
+
+    expect(error).toBeInstanceOf(NfcCancelledError)
+    expect(hook.current?.isReading).toBe(false)
+  })
+
+  it('passes other session failures through and stops reading', async () => {
+    const failure = new Error('tag lost')
+    mockRequestTechnology.mockRejectedValue(failure)
+    const hook = await renderReader()
+
+    const error = await readAndCatch(hook)
+
+    expect(error).toBe(failure)
+    expect(hook.current?.isReading).toBe(false)
+  })
+
+  it('reports NFC switched off without starting a session', async () => {
+    mockAdapterStatus.isEnabled = false
+    const hook = await renderReader()
+
+    const error = await readAndCatch(hook)
+
+    expect(error).toBeInstanceOf(NfcDisabledError)
+    expect(mockRequestTechnology).not.toHaveBeenCalled()
+  })
+})

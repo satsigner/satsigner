@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { act, create } from 'react-test-renderer'
 
 import { usePsbtSignatureImport } from '@/hooks/usePsbtSignatureImport'
+import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'
 
 jest.mock<Partial<typeof import('@/hooks/useClipboardPaste')>>(
   '@/hooks/useClipboardPaste',
@@ -85,6 +86,61 @@ describe('usePsbtSignatureImport importFromNfc', () => {
     })
 
     expect(onNotice).not.toHaveBeenCalled()
+  })
+
+  it('stays silent when the NFC read is cancelled', async () => {
+    mockReadNFCTag.mockRejectedValue(new NfcCancelledError())
+    const onNotice = jest.fn()
+    const hook = await renderSignatureImport({
+      importSignedData: jest.fn(() => true),
+      onNotice,
+      signWithMnemonic: jest.fn()
+    })
+
+    await act(async () => {
+      await hook.current?.importFromNfc(0)
+    })
+
+    expect(onNotice).not.toHaveBeenCalled()
+    expect(hook.current?.nfcScanModalVisible).toBe(false)
+  })
+
+  it('asks to turn NFC on when it is switched off', async () => {
+    mockReadNFCTag.mockRejectedValue(new NfcDisabledError())
+    const onNotice = jest.fn()
+    const hook = await renderSignatureImport({
+      importSignedData: jest.fn(() => true),
+      onNotice,
+      signWithMnemonic: jest.fn()
+    })
+
+    await act(async () => {
+      await hook.current?.importFromNfc(0)
+    })
+
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'watchonly.read.nfcTurnOnInSettings',
+      type: 'error'
+    })
+  })
+
+  it('reports other NFC read failures', async () => {
+    mockReadNFCTag.mockRejectedValue(new Error('tag lost'))
+    const onNotice = jest.fn()
+    const hook = await renderSignatureImport({
+      importSignedData: jest.fn(() => true),
+      onNotice,
+      signWithMnemonic: jest.fn()
+    })
+
+    await act(async () => {
+      await hook.current?.importFromNfc(0)
+    })
+
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'nfc.error.readFailed',
+      type: 'error'
+    })
   })
 
   it('rejects a tag that only carries a txid', async () => {

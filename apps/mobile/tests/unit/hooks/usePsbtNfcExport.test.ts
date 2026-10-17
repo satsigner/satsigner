@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { act, create } from 'react-test-renderer'
 
 import { usePsbtNfcExport } from '@/hooks/usePsbtNfcExport'
+import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'
 
 const mockEmitter = {
   cancelNFCScan: jest.fn(),
@@ -74,6 +75,35 @@ describe('usePsbtNfcExport', () => {
     })
     expect(hook.current?.nfcExportModalVisible).toBe(false)
     expect(hook.current?.nfcErrorKey).toBeNull()
+  })
+
+  it('closes the modal without an error when the write is cancelled', async () => {
+    mockEmitter.emitNFCTag.mockRejectedValue(new NfcCancelledError())
+    const { hook, onNotice } = await renderNfcExport('70736274ff01')
+
+    await act(async () => {
+      await hook.current?.exportToNfc()
+    })
+
+    expect(onNotice).not.toHaveBeenCalled()
+    expect(hook.current?.nfcExportModalVisible).toBe(false)
+    expect(hook.current?.nfcErrorKey).toBeNull()
+  })
+
+  it('asks to turn NFC on when it is switched off', async () => {
+    mockEmitter.emitNFCTag.mockRejectedValue(new NfcDisabledError())
+    const { hook, onNotice } = await renderNfcExport('70736274ff01')
+
+    await act(async () => {
+      await hook.current?.exportToNfc()
+    })
+
+    expect(hook.current?.nfcExportModalVisible).toBe(true)
+    expect(hook.current?.nfcErrorKey).toBe('watchonly.read.nfcTurnOnInSettings')
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'watchonly.read.nfcTurnOnInSettings',
+      type: 'error'
+    })
   })
 
   it('reports a missing PSBT without emitting', async () => {

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
-import { t } from '@/locales'
 import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
+import { NfcDisabledError } from '@/utils/nfcError'
+import { toNfcSessionError } from '@/utils/nfcSession'
 
 type NFCReadResult = {
   txId?: string
@@ -46,18 +47,29 @@ export function useNFCReader() {
     }
   }, [checkNFCAvailability])
 
+  // Waits for an NDEF tag. Ends the reading state when the session fails or
+  // is cancelled, so the next read can start.
+  async function requestNdefTag() {
+    try {
+      await NfcManager.requestTechnology(NfcTech.Ndef)
+      return await NfcManager.getTag()
+    } catch (requestError) {
+      setIsReading(false)
+      throw toNfcSessionError(requestError)
+    }
+  }
+
   async function readNFCTag(): Promise<NFCReadResult | null> {
     const status = await getNfcAdapterStatus()
     if (!status.isSupported) {
       throw new Error('NFC is not available on this device')
     }
     if (!status.isEnabled) {
-      throw new Error(t('watchonly.read.nfcTurnOnInSettings'))
+      throw new NfcDisabledError()
     }
 
     setIsReading(true)
-    await NfcManager.requestTechnology(NfcTech.Ndef)
-    const tag = await NfcManager.getTag()
+    const tag = await requestNdefTag()
 
     if (!tag?.ndefMessage?.length) {
       setIsReading(false)
