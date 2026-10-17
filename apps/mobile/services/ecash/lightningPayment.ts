@@ -3,6 +3,7 @@ import {
   getMintBalance,
   mintSupportsBolt11Mpp
 } from '@/api/ecash'
+import { MAX_MPP_FEE_SLICE_ATTEMPTS } from '@/constants/ecash'
 import type {
   EcashMint,
   EcashProof,
@@ -14,8 +15,7 @@ import {
   mintCoversMeltQuote,
   sliceAmountAfterFeeMiss
 } from '@/utils/ecashMintRoute'
-
-const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
+import { toError } from '@/utils/error'
 
 type EcashPaymentFailure =
   | 'insufficientProofs'
@@ -57,20 +57,17 @@ type PayInvoiceParams = {
   mints: EcashMint[]
   options: WalletOptions
   getProofs: () => EcashProof[]
-  /** Creates a melt quote and records it for the account. */
-  createMeltQuote: (mintUrl: string, invoice: string) => Promise<MeltQuote>
-  /** Melts proofs against a quote and updates the stored proofs. */
-  meltProofs: (
+  createAndRecordMeltQuote: (
+    mintUrl: string,
+    invoice: string
+  ) => Promise<MeltQuote>
+  meltProofsAndUpdateStore: (
     mintUrl: string,
     quote: MeltQuote,
     proofs: EcashProof[]
   ) => Promise<unknown>
   addMeltQuote: (quote: MeltQuote) => void
   removeMeltQuote: (quoteId: string) => void
-}
-
-function toError(error: unknown) {
-  return error instanceof Error ? error : new Error(String(error))
 }
 
 /** Quote creation is expected to fail on some mints; report it as a value. */
@@ -130,7 +127,7 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
       return false
     }
     const quoteResult = await settleQuote(
-      params.createMeltQuote(mintUrl, invoice)
+      params.createAndRecordMeltQuote(mintUrl, invoice)
     )
     if (!quoteResult.ok) {
       lastQuoteCreationError = quoteResult.error
@@ -144,7 +141,7 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
       return payWithCoveringMint(index + 1)
     }
     const mintProofs = startProofs.filter((proof) => proof.mintUrl === mintUrl)
-    await params.meltProofs(mintUrl, quote, mintProofs)
+    await params.meltProofsAndUpdateStore(mintUrl, quote, mintProofs)
     return true
   }
 
@@ -248,7 +245,11 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
       const mintProofs = params
         .getProofs()
         .filter((proof) => proof.mintUrl === item.mintUrl)
-      await params.meltProofs(item.mintUrl, item.quote, mintProofs)
+      await params.meltProofsAndUpdateStore(
+        item.mintUrl,
+        item.quote,
+        mintProofs
+      )
       await meltPlannedQuotes(index + 1)
     } catch (error) {
       for (const unused of plannedQuotes.slice(index + 1)) {

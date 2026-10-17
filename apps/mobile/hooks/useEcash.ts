@@ -508,10 +508,10 @@ export function useEcash() {
         accountId,
         addMeltQuote: (quote) => addMeltQuoteAction(accountId, quote),
         amountSats,
-        createMeltQuote: createMeltQuoteHandler,
+        createAndRecordMeltQuote: createMeltQuoteHandler,
         getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
         invoice,
-        meltProofs: (mintUrl, quote, mintProofsList) =>
+        meltProofsAndUpdateStore: (mintUrl, quote, mintProofsList) =>
           meltProofsHandler(mintUrl, quote, mintProofsList, { silent: true }),
         mints,
         options: await getWalletOptions(),

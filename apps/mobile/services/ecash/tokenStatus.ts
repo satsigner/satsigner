@@ -1,8 +1,7 @@
 import { validateEcashToken } from '@/api/ecash'
+import { TOKEN_STATUS_CHECK_THROTTLE_MS } from '@/constants/ecash'
 import type { EcashTransaction, WalletOptions } from '@/types/models/Ecash'
-
-// Pause between mint checks so a long history doesn't flood the mint.
-const TOKEN_CHECK_DELAY_MS = 500
+import { sleep } from '@/utils/time'
 
 type TokenValidationResult = {
   isValid: boolean
@@ -90,9 +89,7 @@ async function refreshSendTokenStatuses(
     deps.startChecking(transaction.id)
     await checkTokenStatus(transaction, deps).catch(() => undefined)
     deps.stopChecking(transaction.id)
-    await new Promise((resolve) => {
-      setTimeout(resolve, TOKEN_CHECK_DELAY_MS)
-    })
+    await sleep(TOKEN_STATUS_CHECK_THROTTLE_MS)
   }
 }
 

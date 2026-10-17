@@ -13,7 +13,6 @@ import {
   withKeysetCounter
 } from '@/utils/ecashKeysetCounters'
 
-/** Live reads and writes on one ecash account, injected by the caller. */
 type EcashAccountStore = {
   getMints: () => EcashMint[]
   getProofs: () => EcashProof[]

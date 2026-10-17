@@ -1,11 +1,6 @@
+import { ECASH_PAYMENT_ERROR_I18N_KEYS } from '@/constants/ecash'
 import { t } from '@/locales'
 import type { EcashPaymentError } from '@/services/ecash/lightningPayment'
-
-const PAYMENT_ERROR_KEYS = {
-  insufficientForFees: 'ecash.error.insufficientForFees',
-  insufficientProofs: 'ecash.error.insufficientProofs',
-  mintsLackMpp: 'ecash.error.mintsLackMpp'
-} as const
 
 /** Localized message for a Lightning payment that could not be routed. */
 function toPaymentErrorMessage(error: EcashPaymentError) {
@@ -15,7 +10,7 @@ function toPaymentErrorMessage(error: EcashPaymentError) {
       total: error.total
     })
   }
-  return t(PAYMENT_ERROR_KEYS[error.reason])
+  return t(ECASH_PAYMENT_ERROR_I18N_KEYS[error.reason])
 }
 
 export { toPaymentErrorMessage }
