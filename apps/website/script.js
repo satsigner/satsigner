@@ -276,9 +276,9 @@
     }
     if (shape === 3 && introStart) {
       var elapsed = t - introStart;
-      if (elapsed >= 3400) hero.classList.remove('is-intro');
-      phoneReveal = elapsed < 1500 ? 0 : Math.min(1, (elapsed - 1500) / 1100);
-      if (elapsed >= 2600) {
+      phoneReveal = elapsed < 2000 ? 0 : Math.min(1, (elapsed - 2000) / 1450);
+      if (elapsed >= 4700) {
+        hero.classList.remove('is-intro');
         introStart = 0;
         introDone = true;
       }
@@ -848,6 +848,7 @@ if (typeof Swiper !== 'undefined') {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var extra = 0.3;
+  var logoExtra = 0.2;
   var frame = 0;
 
   function clear() {
@@ -859,14 +860,15 @@ if (typeof Swiper !== 'undefined') {
   function apply() {
     frame = 0;
     var y = window.scrollY || window.pageYOffset || 0;
-    if (y <= 0 || hero.classList.contains('is-intro')) {
-      clear();
+    if (y <= 0 || hero.classList.contains('is-intro') || logo.style.transition) {
+      if (!logo.style.transition) clear();
       return;
     }
-    var shift = (y * extra).toFixed(2);
-    phone.style.transform = 'translate3d(0,-' + shift + 'px,0)';
-    logo.style.transform = 'translate3d(0,' + shift + 'px,0) translate(-50%, -50%)';
-    if (light) light.style.transform = 'translate3d(0,' + shift + 'px,0)';
+    var shift = y * extra;
+    var hold = (shift - y * logoExtra).toFixed(2);
+    phone.style.transform = 'translate3d(0,-' + shift.toFixed(2) + 'px,0)';
+    logo.style.transform = 'translate3d(0,' + hold + 'px,0) translate(-50%, -50%)';
+    if (light) light.style.transform = 'translate3d(0,' + hold + 'px,0)';
   }
 
   window.addEventListener('scroll', function () {

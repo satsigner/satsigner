@@ -591,19 +591,19 @@ a{
   display: block;
 }
 .hero.is-intro .hero-mark-type {
-  animation: hero-logo-in 1.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: hero-logo-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero.is-intro .hero-logo-light {
-  animation: hero-light-in 1.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: hero-light-in 2.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero.is-intro.is-phone .hero-mark {
-  animation: hero-phone-shell 1.45s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+  animation: hero-phone-shell 1.9s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
 }
 .hero.is-intro.is-phone .hero-app,
 .hero.is-intro.is-phone .hero-mark::before,
 .hero.is-intro.is-phone .hero-mark::after,
 .hero.is-intro.is-phone .phone-key {
-  animation: hero-phone-in 1.45s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+  animation: hero-phone-in 1.9s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
 }
 html:not(.is-ready) .hero.is-intro.is-phone .hero-mark,
 html:not(.is-ready) .hero.is-intro.is-phone .hero-app,

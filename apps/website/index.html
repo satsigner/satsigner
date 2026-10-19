@@ -875,37 +875,51 @@
         var wait = Math.max(0, min - (performance.now() - started));
         setTimeout(function () {
           var logo = document.querySelector('.hero-mark-type');
+          var mark = logo && logo.closest('.hero-mark');
           var reduce = min === 0;
-          var first = logo ? logo.getBoundingClientRect() : null;
           if (logo) logo.style.animation = 'none';
+          // will-change: transform on the phone would trap a fixed logo, so clear it before measuring the boot position against the viewport.
+          if (mark) {
+            mark.style.willChange = 'auto';
+            mark.style.animation = 'none';
+          }
+          var first = logo ? logo.getBoundingClientRect() : null;
           root.classList.add('is-ready');
           if (logo && first && !reduce && first.width > 0) {
             var last = logo.getBoundingClientRect();
-            logo.style.position = 'fixed';
-            logo.style.zIndex = '1001';
-            logo.style.left = first.left + 'px';
-            logo.style.top = first.top + 'px';
-            logo.style.width = first.width + 'px';
-            logo.style.height = first.height + 'px';
-            logo.style.margin = '0';
-            logo.style.transform = 'none';
+            var dx = (first.left + first.width / 2) - (last.left + last.width / 2);
+            var dy = (first.top + first.height / 2) - (last.top + last.height / 2);
+            var scale = last.width ? first.width / last.width : 1;
+            var done = false;
+            function finish() {
+              if (done) return;
+              done = true;
+              logo.removeAttribute('style');
+              if (mark) mark.style.willChange = '';
+            }
+            // Stay on left:50% / translate(-50%, -50%) so the badge center never leaves the phone axis. Only the extra offset and scale animate away.
+            logo.style.transformOrigin = 'center';
+            logo.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translate(-50%, -50%) scale(' + scale + ')';
+            if (mark) mark.style.animation = '';
             requestAnimationFrame(function () {
-              logo.style.transition = 'left 3.4s cubic-bezier(0.16, 1, 0.3, 1), top 3.4s cubic-bezier(0.16, 1, 0.3, 1), width 3.4s cubic-bezier(0.16, 1, 0.3, 1), height 3.4s cubic-bezier(0.16, 1, 0.3, 1)';
-              logo.style.left = last.left + 'px';
-              logo.style.top = last.top + 'px';
-              logo.style.width = last.width + 'px';
-              logo.style.height = last.height + 'px';
+              logo.style.transition = 'transform 4.4s cubic-bezier(0.16, 1, 0.3, 1)';
+              logo.style.transform = 'translate(-50%, -50%)';
             });
             logo.addEventListener('transitionend', function (event) {
-              if (event.propertyName !== 'left') return;
-              logo.removeAttribute('style');
+              if (event.propertyName !== 'transform') return;
+              finish();
             });
+            setTimeout(finish, 4600);
           } else if (logo) {
             logo.removeAttribute('style');
+            if (mark) {
+              mark.style.animation = '';
+              mark.style.willChange = '';
+            }
           }
           var boot = document.querySelector('.boot');
           if (!boot) return;
-          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 3800);
+          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 4800);
         }, wait);
       }
       function arm() {
