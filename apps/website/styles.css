@@ -118,6 +118,64 @@ a{
 .nav-links a:hover {
   color: #fff;
 }
+.nav-drop {
+  position: relative;
+}
+.nav-drop::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 11rem;
+  height: 0.7rem;
+}
+.nav-drop-label::after {
+  content: "";
+  display: inline-block;
+  width: 0.32rem;
+  height: 0.32rem;
+  margin-left: 0.32rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-0.12rem) rotate(45deg);
+  opacity: 0.7;
+}
+.nav-drop-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  min-width: 11rem;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem;
+  background: rgba(12, 12, 12, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.nav-drop:hover .nav-drop-menu,
+.nav-drop:focus-within .nav-drop-menu {
+  display: flex;
+}
+.nav-drop-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.host-logo {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.nav-drop-menu a:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 .nav-menu {
   display: none;
   align-items: center;
@@ -967,6 +1025,141 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .support-action:hover::after {
   color: #fff;
 }
+.git-hosts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  max-width: 52rem;
+  margin: 0 auto 1.5rem;
+}
+@media (min-width: 720px) {
+  .git-hosts {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+.git-host {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.15rem 2.75rem 1.15rem 1.15rem;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.git-host .host-logo {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+}
+.git-host-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.git-host-copy > span:first-child {
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.git-host-url {
+  color: inherit;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+.git-host::after {
+  content: "→";
+  position: absolute;
+  right: 1.15rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.95rem;
+}
+.git-host:hover {
+  background: #1c1c1c;
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+}
+.git-host:hover::after {
+  color: #fff;
+}
+.git-build {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+.git-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.git-tab {
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+.git-tab.is-active {
+  background: #141414;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.git-commands {
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 1.1rem 0.35rem;
+  counter-reset: git-step;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 12px 12px 12px;
+}
+.git-commands[hidden] {
+  display: none;
+}
+.git-commands li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  counter-increment: git-step;
+}
+.git-commands li::before {
+  content: counter(git-step, decimal-leading-zero);
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.git-commands code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  color: #fff;
+  word-break: break-all;
+}
 .feature-grid-card[data-screen] {
   cursor: pointer;
 }
@@ -1570,6 +1763,25 @@ html[data-theme="light"] .as-seen-in-logo--light {
   .nav-links a:hover {
     background: rgba(255, 255, 255, 0.08);
   }
+  .nav-drop::before {
+    display: none;
+  }
+  .nav-drop-menu {
+    position: static;
+    display: flex;
+    min-width: 0;
+    margin: 0 0.35rem 0.25rem 0.85rem;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .nav-drop-menu a {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.62);
+  }
   .nav-links .theme-toggle {
     align-self: stretch;
     justify-content: flex-start;
@@ -1591,6 +1803,13 @@ html[data-theme="light"] .as-seen-in-logo--light {
   }
   html[data-theme="light"] .nav-links a:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+  html[data-theme="light"] .nav-drop-menu {
+    background: none;
+    border: 0;
+  }
+  html[data-theme="light"] .nav-drop-menu a {
+    color: rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -2997,6 +3216,44 @@ html[data-theme="light"] .support-action:hover {
 }
 html[data-theme="light"] .support-action:hover::after {
   color: #161616;
+}
+html[data-theme="light"] .nav-drop-menu {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .nav-drop-menu a:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+html[data-theme="light"] .git-tab {
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.5);
+}
+html[data-theme="light"] .git-tab.is-active,
+html[data-theme="light"] .git-commands {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #161616;
+}
+html[data-theme="light"] .git-host {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.72);
+}
+html[data-theme="light"] .git-host-copy > span:first-child,
+html[data-theme="light"] .git-commands code {
+  color: #161616;
+}
+html[data-theme="light"] .git-host::after,
+html[data-theme="light"] .git-commands li::before {
+  color: rgba(0, 0, 0, 0.4);
+}
+html[data-theme="light"] .git-host:hover {
+  background: #f4f4f4;
+  border-color: rgba(0, 0, 0, 0.28);
+  color: #161616;
+}
+html[data-theme="light"] .git-commands li {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 html[data-theme="light"] .feature-card,
 html[data-theme="light"] .releases-card {

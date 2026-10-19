@@ -882,3 +882,20 @@ if (typeof Swiper !== 'undefined') {
   }
   apply();
 })();
+
+(function initGitTabs() {
+  var tabs = document.querySelectorAll('.git-tab');
+  if (!tabs.length) return;
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (other) {
+        var on = other === tab;
+        other.classList.toggle('is-active', on);
+        other.setAttribute('aria-selected', on ? 'true' : 'false');
+        other.tabIndex = on ? 0 : -1;
+        var panel = document.getElementById(other.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !on;
+      });
+    });
+  });
+})();

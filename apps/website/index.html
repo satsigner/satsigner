@@ -105,8 +105,14 @@
         <div class="nav-links" id="nav-links">
           <a href="#features">Features</a>
           <a href="#security">Security</a>
-          <a href="#support">Support</a>
-          <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
+          <a href="#contribute">Contribute</a>
+          <div class="nav-drop">
+            <a href="#git" class="nav-drop-label" aria-haspopup="true">Git</a>
+            <div class="nav-drop-menu">
+              <a href="https://github.com/satsigner/" target="_blank" rel="noopener"><svg class="host-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+              <a href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener"><img class="host-logo" src="imgs/gitworkshop.svg" alt="">gitworkshop.dev</a>
+            </div>
+          </div>
           <button type="button" class="theme-toggle" aria-label="Toggle color theme">
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"></circle>
@@ -736,9 +742,9 @@
     </div>
   </section>
 
-  <section class="topic-section" id="support">
-    <h2 class="feature-grid-title">Support</h2>
-    <p class="feature-grid-intro">Questions and bugs go to the public tracker. Security reports follow the published policy.</p>
+  <section class="topic-section" id="contribute">
+    <h2 class="feature-grid-title">Contribute</h2>
+    <p class="feature-grid-intro">Install a test build and report what breaks, or open a pull request. Security reports follow the published policy.</p>
     <div class="support-actions">
       <a class="support-action" href="https://github.com/satsigner/satsigner/issues" target="_blank" rel="noopener">
         <span>Issues</span>
@@ -748,10 +754,43 @@
         <span>Security</span>
         Read the security policy
       </a>
-      <a class="support-action" href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">
-        <span>Source</span>
-        satsigner/satsigner
+      <a class="support-action" href="https://github.com/satsigner/satsigner/pulls" target="_blank" rel="noopener">
+        <span>Pull requests</span>
+        Send a change
       </a>
+    </div>
+  </section>
+
+  <section class="topic-section" id="git">
+    <h2 class="feature-grid-title">Git</h2>
+    <p class="feature-grid-intro">The app is open source. Clone it from either host, then install dependencies and run a native build.</p>
+    <div class="git-hosts">
+      <a class="git-host" href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">
+        <svg class="host-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <span class="git-host-copy"><span>GitHub</span><span class="git-host-url">github.com/satsigner/satsigner</span></span>
+      </a>
+      <a class="git-host" href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener">
+        <img class="host-logo" src="imgs/gitworkshop.svg" alt="">
+        <span class="git-host-copy"><span>gitworkshop.dev</span><span class="git-host-url">satsigner@satsigner.com/relay.ngit.dev/satsigner</span></span>
+      </a>
+    </div>
+    <div class="git-build">
+      <div class="git-tabs" role="tablist" aria-label="Build target">
+        <button type="button" class="git-tab is-active" role="tab" id="git-tab-android" aria-selected="true" aria-controls="git-panel-android">Android</button>
+        <button type="button" class="git-tab" role="tab" id="git-tab-ios" aria-selected="false" aria-controls="git-panel-ios" tabindex="-1">iOS</button>
+      </div>
+      <ol class="git-commands" id="git-panel-android" role="tabpanel" aria-labelledby="git-tab-android">
+        <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
+        <li><code>cd satsigner</code></li>
+        <li><code>npm install</code></li>
+        <li><code>npx expo run:android</code></li>
+      </ol>
+      <ol class="git-commands" id="git-panel-ios" role="tabpanel" aria-labelledby="git-tab-ios" hidden>
+        <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
+        <li><code>cd satsigner</code></li>
+        <li><code>npm install</code></li>
+        <li><code>npx expo run:ios</code></li>
+      </ol>
     </div>
   </section>
 
@@ -797,15 +836,17 @@
     <div class="footer-links">
       <a href="#features">Features</a>
       <a href="#security">Security</a>
-      <a href="#support">Support</a>
+      <a href="#contribute">Contribute</a>
       <a href="https://github.com/satsigner/" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank" rel="noopener">Figma</a>
-      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
+      <a href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener">ngit</a>
+      <a href="https://x.com/satsigner" target="_blank" rel="noopener">X</a>
+      <a href="https://njump.me/npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
     </div>
-    <p class="footer-legal">© 2025 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
+    <p class="footer-legal">© 2026 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
   </footer>
 
   <dialog class="flow-modal" id="flow-modal" tabindex="-1">
+    <canvas class="flow-modal-light" aria-hidden="true"></canvas>
     <a href="#features" class="flow-modal-logo" tabindex="-1">
       <img src="imgs/satSigner_symbol.png" alt="">
       <span>SATSIGNER</span>
