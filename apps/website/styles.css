@@ -984,14 +984,15 @@ html[data-theme="light"] .as-seen-in-logo--light {
   }
 }
 .support-action {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.45rem;
-  padding: 1.35rem 1.25rem 1.4rem;
+  padding: 1.35rem 2.75rem 1.4rem 1.25rem;
   background: #141414;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   font-size: 0.95rem;
@@ -1006,8 +1007,11 @@ html[data-theme="light"] .as-seen-in-logo--light {
   text-transform: uppercase;
 }
 .support-action::after {
-  content: "↗";
-  margin-top: 0.35rem;
+  content: "→";
+  position: absolute;
+  right: 1.15rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: rgba(255, 255, 255, 0.45);
   font-size: 0.95rem;
 }
@@ -1251,9 +1255,9 @@ html[data-theme="light"] .as-seen-in-logo--light {
 }
 .flow-modal-logo {
   position: fixed;
+  z-index: 2;
   top: 1.15rem;
   left: 1.35rem;
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -1271,10 +1275,15 @@ html[data-theme="light"] .as-seen-in-logo--light {
   height: 32px;
 }
 .flow-modal-panel {
-  display: flex;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) auto minmax(0, 0.35fr);
   align-items: center;
-  justify-content: center;
-  gap: 2.5rem;
+  justify-items: end;
+  gap: 5.5rem;
+  width: 100%;
+  max-width: 1280px;
   min-height: 100%;
   margin: 0 auto;
   pointer-events: none;
@@ -1284,6 +1293,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   color: #fff;
   text-align: left;
   pointer-events: auto;
+  justify-self: end;
 }
 .flow-modal-copy {
   transition: opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1450,6 +1460,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     transform: translateX(-50%);
   }
   .flow-modal-panel {
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -3138,8 +3149,8 @@ html[data-theme="light"] .releases-table tbody tr + tr td {
   border-color: rgba(0, 0, 0, 0.1);
 }
 html[data-theme="light"] .feature-grid {
-  border-top-color: rgba(255, 255, 255, 0.12);
-  border-left-color: rgba(255, 255, 255, 0.12);
+  border-top-color: rgba(0, 0, 0, 0.08);
+  border-left-color: rgba(0, 0, 0, 0.08);
 }
 html[data-theme="light"] .feature-grid-card {
   background: #fff;
@@ -3177,12 +3188,12 @@ html[data-theme="light"] .flow-modal-close:focus-visible {
   color: #000;
 }
 html[data-theme="light"] .feature-grid-card {
-  border-right-color: rgba(255, 255, 255, 0.12);
-  border-bottom-color: rgba(255, 255, 255, 0.12);
+  border-right-color: rgba(0, 0, 0, 0.08);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 html[data-theme="light"] .support-action {
   background: #fff;
-  border-color: rgba(0, 0, 0, 0.18);
+  border-color: rgba(0, 0, 0, 0.1);
   color: rgba(22, 22, 22, 0.72);
 }
 html[data-theme="light"] .support-action span {

@@ -978,6 +978,7 @@ if (typeof Swiper !== 'undefined') {
     button.addEventListener('click', function () { step(1); });
   });
   dialog.addEventListener('close', function () {
+    stopLight();
     modalFrame.src = 'about:blank';
     current = -1;
   });
@@ -1005,7 +1006,8 @@ if (typeof Swiper !== 'undefined') {
   if (initial && slugs[initial]) showFlow(cards.indexOf(slugs[initial]));
 })();
 
-// Phone and its UI leave 1.3× faster than the copy, points, and logo.
+// Phone leaves 1.3× faster than the page. The logo follows that
+// direction at about two thirds of the strength.
 (function () {
   var hero = document.getElementById('beta');
   var phone = hero && hero.querySelector('.hero-mark');
