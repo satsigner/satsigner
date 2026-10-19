@@ -387,17 +387,292 @@ let openAccountData = accounts[0]
 let payjoinTimer = 0
 let showChart = false
 let accountTab = 0
+let addressView = 'table'
+let addressChange = false
 
 const activity = {
   ab12cd34: [
-    { type: 'receive', label: 'Salary', amount: 800000, fiat: '800.00', txid: 'a91c…4e20', conf: '842 conf • 283,270', balance: 800000 },
-    { type: 'send', label: 'Rent', amount: 210000, fiat: '210.00', txid: 'b20d…91aa', conf: '610 conf • 283,502', balance: 590000 },
-    { type: 'receive', label: 'Coffee refund', amount: 650000, fiat: '650.00', txid: 'c77e…10b3', conf: '128 conf • 283,984', balance: 1240000 }
+    {
+      type: 'receive',
+      label: 'Salary',
+      tags: [],
+      amount: 800000,
+      fiat: '800.00',
+      historical: '412.40',
+      priceChange: '+94.0%',
+      ago: '2 months ago',
+      txid: 'a91c8f21b04e20aa11c0d4e20aa91c8f21b04e20aa11c0d4e20aa91c8f4e20',
+      conf: 842,
+      block: 283270,
+      balance: 800000,
+      inputs: 1,
+      outputs: 1,
+      size: 222,
+      vsize: 141,
+      weight: 561,
+      fee: 168,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Rent',
+      tags: ['home'],
+      amount: 210000,
+      fiat: '210.00',
+      historical: '198.10',
+      priceChange: '+6.0%',
+      ago: '6 weeks ago',
+      txid: 'b20d91aa77c0e11f44aa91b20d91aa77c0e11f44aa91b20d91aa77c0e191aa',
+      conf: 610,
+      block: 283502,
+      balance: 590000,
+      inputs: 1,
+      outputs: 2,
+      size: 141,
+      vsize: 110,
+      weight: 438,
+      fee: 242,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Coffee refund',
+      tags: ['coffee'],
+      amount: 650000,
+      fiat: '650.00',
+      historical: '640.20',
+      priceChange: '+1.5%',
+      ago: '3 days ago',
+      txid: 'c77e10b3aa44d90211c77e10b3aa44d90211c77e10b3aa44d90211c710b3',
+      conf: 3,
+      block: 283984,
+      balance: 1240000,
+      inputs: 2,
+      outputs: 2,
+      size: 312,
+      vsize: 186,
+      weight: 744,
+      fee: 510,
+      version: 2
+    }
   ],
   ef56ab78: [
-    { type: 'receive', label: 'Cold storage', amount: 21000000, fiat: '21,000.00', txid: 'd11a…88c0', conf: '4,200 conf • 279,912', balance: 21000000 },
-    { type: 'receive', label: 'Mempool', amount: 50000, fiat: '50.00', txid: 'e44f…02d1', conf: 'Unconfirmed', balance: 21050000 }
+    {
+      type: 'receive',
+      label: 'Cold storage',
+      tags: [],
+      amount: 21000000,
+      fiat: '21,000.00',
+      historical: '18,420.00',
+      priceChange: '+14.0%',
+      ago: '1 year ago',
+      txid: 'd11a88c0ff21ab90eed11a88c0ff21ab90eed11a88c0ff21ab90eed188c0',
+      conf: 4200,
+      block: 279912,
+      balance: 21000000,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 441,
+      fee: 198,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: '',
+      tags: [],
+      amount: 50000,
+      fiat: '50.00',
+      historical: '',
+      priceChange: '',
+      ago: '',
+      txid: 'e44f02d199aa10cc77e44f02d199aa10cc77e44f02d199aa10cc77e402d1',
+      conf: 0,
+      block: 0,
+      balance: 21050000,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 437,
+      fee: 154,
+      version: 2
+    }
   ]
+}
+
+let openTxData = null
+
+function compactTxid(txid) {
+  return txid.slice(0, 4) + '...' + txid.slice(-4)
+}
+
+function confText(count, block) {
+  if (count <= 0) return 'Unconfirmed'
+  const countLabel =
+    count === 1 ? '1 conf' : (count < 1000 ? String(count) : '~' + Math.round(count / 1000) + 'k') + ' confs'
+  return block ? countLabel + ' • ' + block.toLocaleString('en-US') : countLabel
+}
+
+function confClass(count) {
+  if (count <= 0) return 'is-unconfirmed'
+  if (count < 6) return 'is-pending'
+  return 'is-confirmed'
+}
+
+function pctChange(now, base) {
+  if (!base || now === base) return ''
+  const value = ((now - base) * 100) / base
+  return (value > 0 ? '+' : '-') + Math.abs(value).toFixed(1) + '%'
+}
+
+function txCard(tx, previousBalance, max) {
+  const tags = tx.tags.length
+    ? tx.tags
+        .map((tag) => '<span class="tx-tag">' + tag + '</span>')
+        .join('')
+    : '<span class="tx-tag is-empty">No tags</span>'
+  const balanceChange = pctChange(tx.balance, previousBalance)
+  const metaLeft = tx.ago ? tx.ago + ' ' + compactTxid(tx.txid) : compactTxid(tx.txid)
+  return (
+    '<button type="button" class="tx-card" data-txid="' +
+    tx.txid +
+    '">' +
+    bar(tx, max) +
+    '<p class="tx-meta"><span>' +
+    metaLeft +
+    '</span><span class="tx-conf ' +
+    confClass(tx.conf) +
+    '">' +
+    confText(tx.conf, tx.block) +
+    '</span></p><div class="tx-body"><div class="tx-main"><p class="tx-amount ' +
+    tx.type +
+    '">' +
+    icon(tx.type === 'receive' ? 'incoming' : 'outgoing', 'tx-flow') +
+    '<strong>' +
+    tx.amount.toLocaleString('en-US') +
+    '</strong> <span>sats</span></p><p class="tx-fiat"><span class="tx-price">' +
+    tx.fiat +
+    '</span> <span class="tx-ccy">USD</span>' +
+    (tx.historical ? ' <span class="tx-price">(' + tx.historical + ')</span>' : '') +
+    (tx.priceChange
+      ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
+      : '') +
+    '</p><p class="tx-label' +
+    (tx.label ? '' : ' is-empty') +
+    '">' +
+    (tx.label || 'NO LABEL') +
+    '</p></div><div class="tx-side"><p class="tx-balance ' +
+    tx.type +
+    '"><strong>' +
+    tx.balance.toLocaleString('en-US') +
+    '</strong> <span>sats</span></p>' +
+    (balanceChange
+      ? '<p class="tx-pct ' + (balanceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + balanceChange + '</p>'
+      : '') +
+    '<p class="tx-tags">' +
+    tags +
+    '</p></div></div></button>'
+  )
+}
+
+const usedAddresses = {
+  ab12cd34: {
+    receive: [
+      { index: 0, address: 'tb1qsalary0ab12cd34spend0000000000000000', label: 'Salary', balance: 800000, mempool: 0, txs: 1, utxos: 1 },
+      { index: 1, address: 'tb1qcoffee0ab12cd34spend0000000000000000', label: 'Coffee refund', balance: 440000, mempool: 0, txs: 1, utxos: 1 },
+      { index: 2, address: 'tb1qunused0ab12cd34spend0000000000000000', label: '', balance: 0, mempool: 0, txs: 0, utxos: 0 }
+    ],
+    change: [
+      { index: 0, address: 'tb1qchange0ab12cd34internal00000000000000', label: 'Change', balance: 0, mempool: 0, txs: 1, utxos: 0 },
+      { index: 1, address: 'tb1qspare00ab12cd34internal00000000000000', label: '', balance: 0, mempool: 0, txs: 0, utxos: 0 }
+    ]
+  },
+  ef56ab78: {
+    receive: [
+      { index: 0, address: 'tb1qcold000ef56ab78spend0000000000000000', label: 'Cold storage', balance: 21000000, mempool: 0, txs: 1, utxos: 1 },
+      { index: 1, address: 'tb1qpool000ef56ab78spend0000000000000000', label: '', balance: 0, mempool: 50000, txs: 1, utxos: 0 }
+    ],
+    change: [
+      { index: 0, address: 'tb1qchange0ef56ab78internal00000000000000', label: '', balance: 0, mempool: 0, txs: 0, utxos: 0 }
+    ]
+  }
+}
+
+function shortAddress(address) {
+  return address.slice(0, 6) + '...' + address.slice(-6)
+}
+
+function dim(value) {
+  return value ? '' : ' is-dim'
+}
+
+function addressRows(account) {
+  const book = usedAddresses[account.fingerprint] || usedAddresses.ab12cd34
+  const rows = book[addressChange ? 'change' : 'receive'].slice()
+  return rows
+}
+
+function addressTable(account) {
+  const rows = addressRows(account)
+    .map(
+      (row) =>
+        '<button type="button" class="addr-row"><span>' +
+        row.index +
+        '</span><span class="addr-mono">' +
+        shortAddress(row.address) +
+        '</span><span class="' +
+        dim(row.label) +
+        '">' +
+        (row.label ? (row.label.length > 14 ? row.label.slice(0, 14) + '...' : row.label) : 'No label') +
+        '</span><span class="' +
+        dim(row.balance) +
+        '">' +
+        row.balance.toLocaleString('en-US') +
+        '</span><span class="' +
+        dim(row.txs) +
+        '">' +
+        row.txs +
+        '</span><span class="' +
+        dim(row.utxos) +
+        '">' +
+        row.utxos +
+        '</span></button>'
+    )
+    .join('')
+  return (
+    '<div class="addr-scroll"><div class="addr-table"><div class="addr-head"><span>#</span><span>Address</span><span>Label</span><span>Sats</span><span>TXs</span><span>UTXOs</span></div>' +
+    rows +
+    '</div></div><button type="button" class="addr-more">Load more</button>'
+  )
+}
+
+function addressCards(account) {
+  const rows = addressRows(account)
+    .map(
+      (row, index) =>
+        (index ? '<div class="tx-rule"></div>' : '') +
+        '<article class="addr-card"><p>Address #' +
+        row.index +
+        '</p><p class="addr-full">' +
+        row.address +
+        '</p><div class="addr-stats"><div><span>Current balance</span><strong>' +
+        row.balance.toLocaleString('en-US') +
+        '</strong></div><div><span>Unconfirmed balance</span><strong>' +
+        row.mempool.toLocaleString('en-US') +
+        '</strong></div><div><span>Total Transactions</span><strong>' +
+        row.txs +
+        '</strong></div><div><span>Total UTXOs</span><strong>' +
+        row.utxos +
+        '</strong></div><div class="is-wide"><span>Label</span><strong class="' +
+        dim(row.label) +
+        '">' +
+        (row.label || 'No label') +
+        '</strong></div></div></article>'
+    )
+    .join('')
+  return rows + '<button type="button" class="addr-more">Load more</button>'
 }
 
 function bar(tx, max) {
@@ -1308,39 +1583,23 @@ function renderAccount() {
   ]
   const landing = document.getElementById('account-landing')
   const enterBubbles = outputView === 'bubbles' && !landing.querySelector('.coin-map')
+  const visibleTxs = accountTab === 3 ? txs.filter((tx) => tx.conf <= 0) : txs
   const list =
-    accountTab === 0
-      ? txs
-          .map(
-            (tx) =>
-              '<article class="tx-card">' +
-              bar(tx, max) +
-              '<p class="tx-meta"><span>' +
-              tx.txid +
-              '</span><span>' +
-              tx.conf +
-              '</span></p><div class="tx-body"><div><p class="tx-amount ' +
-              tx.type +
-              '">' +
-              icon(tx.type === 'receive' ? 'incoming' : 'outgoing', 'tx-flow') +
-              '<strong>' +
-              tx.amount.toLocaleString('en-US') +
-              '</strong> <span>sats</span></p><p class="tx-fiat">' +
-              tx.fiat +
-              ' <span>USD</span></p><p class="tx-label">' +
-              tx.label +
-              '</p></div><div class="tx-side"><p>' +
-              tx.balance.toLocaleString('en-US') +
-              ' <span>sats</span></p><p class="tx-tag">No tags</p></div></div></article>'
-          )
-          .join('')
+    accountTab === 0 || accountTab === 3
+      ? visibleTxs.length
+          ? visibleTxs
+              .map((tx) => {
+                const index = txs.indexOf(tx)
+                const previous = index <= 0 ? 0 : txs[index - 1].balance
+                return txCard(tx, previous, max)
+              })
+              .join('')
+          : '<p class="tx-empty">No transactions</p>'
       : accountTab === 1
-        ? '<p class="addr">tb1q' + account.fingerprint + 'spend000000000000000000</p><p class="addr">tb1q' + account.fingerprint + 'change00000000000000000</p>'
-        : accountTab === 2
-          ? outputView === 'bubbles'
-            ? bubblePack(enterBubbles)
-            : utxoList()
-          : '<p class="tx-card"><span><strong>50,000 sats</strong><small>Unconfirmed</small></span></p>'
+        ? (addressView === 'table' ? addressTable(account) : addressCards(account))
+        : outputView === 'bubbles'
+          ? bubblePack(enterBubbles)
+          : utxoList()
   document.getElementById('account-title').textContent = account.name
   document.getElementById('account-landing').innerHTML =
     '<p class="connection"><span class="dot"></span>Signet — Default <span>mempool.space</span></p>' +
@@ -1374,25 +1633,40 @@ function renderAccount() {
       )
       .join('') +
     '</div>' +
-    '<div class="activity-bar"><span class="activity-tools">' +
-    icon('refresh', 'tool-icon') +
-    icon('expand', 'tool-icon') +
-    '<em>Synced</em></span><span class="activity-tools">' +
-    icon('search', 'tool-icon') +
-    (accountTab === 2
-      ? '<button type="button" class="tool-button" id="bubble-toggle" aria-label="' +
-        (outputView === 'bubbles' ? 'List' : 'Bubbles') +
+    (accountTab === 1
+      ? '<div class="activity-bar"><span class="activity-tools">' +
+        icon('refresh', 'tool-icon') +
+        icon('expand', 'tool-icon') +
+        '</span><span class="addr-path"><em>Path</em> m/84&#39;/1&#39;/0&#39;/' +
+        (addressChange ? '1' : '0') +
+        '</span><span class="activity-tools"><button type="button" class="tool-button" id="address-view" aria-label="' +
+        (addressView === 'table' ? 'List' : 'Table') +
         '">' +
-        icon(outputView === 'bubbles' ? 'menu' : 'bubbles', 'tool-icon') +
-        '</button>'
-      : accountTab === 0
-        ? '<button type="button" class="tool-button" id="chart-toggle" aria-label="' +
-          (showChart ? 'List' : 'Chart') +
-          '">' +
-          icon(showChart ? 'menu' : 'chart', 'tool-icon') +
-          '</button>'
-        : '') +
-    '</span></div>' +
+        icon(addressView === 'table' ? 'menu' : 'chart', 'tool-icon') +
+        '</button></span></div><div class="addr-switch"><button type="button" class="' +
+        (addressChange ? '' : 'is-on') +
+        '" data-chain="receive">Receive</button><button type="button" class="' +
+        (addressChange ? 'is-on' : '') +
+        '" data-chain="change">Change</button></div>'
+      : '<div class="activity-bar"><span class="activity-tools">' +
+        icon('refresh', 'tool-icon') +
+        icon('expand', 'tool-icon') +
+        '<em>Synced</em></span><span class="activity-tools">' +
+        icon('search', 'tool-icon') +
+        (accountTab === 2
+          ? '<button type="button" class="tool-button" id="bubble-toggle" aria-label="' +
+            (outputView === 'bubbles' ? 'List' : 'Bubbles') +
+            '">' +
+            icon(outputView === 'bubbles' ? 'menu' : 'bubbles', 'tool-icon') +
+            '</button>'
+          : accountTab === 0
+            ? '<button type="button" class="tool-button" id="chart-toggle" aria-label="' +
+              (showChart ? 'List' : 'Chart') +
+              '">' +
+              icon(showChart ? 'menu' : 'chart', 'tool-icon') +
+              '</button>'
+            : '') +
+        '</span></div>') +
     (accountTab === 0 && showChart
       ? historyChart(txs)
       : '<div class="tx-list">' + list + '</div>')
@@ -1416,6 +1690,25 @@ function renderAccount() {
       renderAccount()
     })
   }
+  document.querySelectorAll('.tx-card[data-txid]').forEach((card) => {
+    card.addEventListener('click', () => {
+      const tx = txs.find((item) => item.txid === card.dataset.txid)
+      if (tx) openTransaction(tx)
+    })
+  })
+  const addressToggle = document.getElementById('address-view')
+  if (addressToggle) {
+    addressToggle.addEventListener('click', () => {
+      addressView = addressView === 'table' ? 'list' : 'table'
+      renderAccount()
+    })
+  }
+  document.querySelectorAll('[data-chain]').forEach((button) => {
+    button.addEventListener('click', () => {
+      addressChange = button.dataset.chain === 'change'
+      renderAccount()
+    })
+  })
   document.querySelectorAll('.stat').forEach((button) => {
     button.addEventListener('click', () => {
       accountTab = Number(button.dataset.tab)
@@ -1423,6 +1716,104 @@ function renderAccount() {
       renderAccount()
     })
   })
+}
+
+function detailItem(label, value, extra) {
+  return (
+    '<div class="tx-detail' +
+    (extra || '') +
+    '"><span>' +
+    label +
+    '</span><strong>' +
+    value +
+    '</strong></div>'
+  )
+}
+
+function renderTransaction() {
+  const tx = openTxData
+  if (!tx) return
+  const feeRate = (tx.fee / tx.size).toFixed(2)
+  const feeVrate = (tx.fee / tx.vsize).toFixed(2)
+  const tagLine = tx.tags.length
+    ? tx.tags.map((tag) => '<span class="tx-tag">' + tag + '</span>').join('')
+    : ''
+  const labelLine = tx.label
+    ? '<span class="tx-detail-label">' + tx.label + '</span>' + tagLine
+    : '<span class="tx-placeholder">No label</span><span class="tx-placeholder-dot">·</span><span class="tx-placeholder">No tags</span>'
+  document.getElementById('tx-body').innerHTML =
+    '<div class="tx-hero">' +
+    (tx.ago ? '<p class="tx-ago">' + tx.ago + '</p>' : '') +
+    '<p class="tx-amount ' +
+    tx.type +
+    '">' +
+    icon(tx.type === 'receive' ? 'incoming' : 'outgoing', 'tx-flow') +
+    '<strong>' +
+    tx.amount.toLocaleString('en-US') +
+    '</strong> <span class="tx-unit">sats</span></p><p class="tx-fiat"><span class="tx-price">' +
+    tx.fiat +
+    '</span> <span class="tx-ccy">USD</span>' +
+    (tx.historical ? ' <span class="tx-price">(' + tx.historical + ')</span>' : '') +
+    (tx.priceChange
+      ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
+      : '') +
+    '</p><p class="tx-io"><span class="tx-conf ' +
+    confClass(tx.conf) +
+    '">' +
+    confText(tx.conf, 0) +
+    '</span><span><em>from</em> ' +
+    tx.inputs +
+    (tx.inputs === 1 ? ' input' : ' inputs') +
+    '</span><span><em>to</em> ' +
+    tx.outputs +
+    (tx.outputs === 1 ? ' output' : ' outputs') +
+    '</span></p></div>' +
+    '<div class="tx-rule"></div>' +
+    '<div class="tx-label-row"><div><span class="tx-kicker">Label</span><p>' +
+    labelLine +
+    '</p></div><span class="tx-pencil" aria-hidden="true"></span></div>' +
+    '<div class="tx-rule"></div>' +
+    '<p class="tx-kicker">Transaction flow</p>' +
+    signSendSankey('tx-sankey') +
+    '<div class="tx-rule"></div>' +
+    '<div class="tx-grid">' +
+    detailItem('Block', tx.block ? tx.block.toLocaleString('en-US') : '-', ' is-wide') +
+    detailItem('Hash', tx.txid, ' is-wide is-mono') +
+    detailItem('Raw size', tx.size + ' <small>bytes</small>') +
+    detailItem('Weight', String(tx.weight)) +
+    detailItem('Virtual size', String(tx.vsize)) +
+    detailItem('Fee', tx.fee + ' <small>sats</small>') +
+    detailItem('Fee sat/b', feeRate) +
+    detailItem('Fee sat/vb', feeVrate) +
+    detailItem('Version', String(tx.version)) +
+    detailItem('Total inputs', String(tx.inputs)) +
+    detailItem('Total outputs', String(tx.outputs)) +
+    '</div><div class="tx-rule"></div>' +
+    '<p class="tx-kicker">Decoded</p>' +
+    '<p class="tx-decode-tools"><span>List</span><span>Bytes</span><span class="is-on">Decoded</span><span>Raw</span><span>Hex</span><span>ASCII</span></p>' +
+    '<p class="tx-decode"><span>Version</span>2</p>' +
+    '<p class="tx-decode"><span>Input count</span>' +
+    tx.inputs +
+    '</p><p class="tx-decode"><span>Output count</span>' +
+    tx.outputs +
+    '</p><div class="tx-io-block"><div class="tx-rule"></div><h3>Input 0</h3>' +
+    '<p class="tx-decode"><span>Previous transaction output hash</span><code>' +
+    tx.txid +
+    '</code></p><p class="tx-decode"><span>Output index in transaction</span>0</p>' +
+    '<p class="tx-decode"><span>Sequence</span>4294967293</p></div>' +
+    '<div class="tx-io-block"><div class="tx-rule"></div><h3>Output 0</h3>' +
+    '<p class="tx-decode"><span>Address</span><code>tb1q' +
+    tx.txid.slice(0, 8) +
+    'demo000000000000000000</code></p>' +
+    '<p class="tx-decode"><span>Value</span>' +
+    tx.amount.toLocaleString('en-US') +
+    ' sats</p></div>'
+}
+
+function openTransaction(tx) {
+  openTxData = tx
+  renderTransaction()
+  show('tx', 'tx')
 }
 
 function openAccount(account) {
@@ -1648,25 +2039,148 @@ function signSendSankey(className) {
   )
 }
 
-const genesisBytes = Array.from(
-  '0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'.match(/../g),
-  (pair) => parseInt(pair, 16)
-)
+const splashSource = [
+  '// apps/mobile/api/bdk.ts',
+  'function buildTransaction(',
+  '  wallet: BdkWallet,',
+  '  data: {',
+  '    inputs: Utxo[]',
+  '    outputs: Output[]',
+  '    fee: number',
+  '    options: {',
+  '      rbf: boolean',
+  '    }',
+  '  }',
+  '): Promise<PsbtLike> {',
+  '  const txBuilder = new BdkTxBuilder()',
+  '  txBuilder.addUtxos(',
+  '    data.inputs.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))',
+  '  )',
+  '  txBuilder.manuallySelectedOnly()',
+  '  for (const output of data.outputs) {',
+  '    txBuilder.addRecipient(output.to, output.amount)',
+  '  }',
+  '  txBuilder.feeAbsolute(data.fee)',
+  '  if (data.options.rbf) {',
+  '    txBuilder.enableRbf()',
+  '  }',
+  '  return txBuilder.finish(wallet)',
+  '}',
+  '',
+  'function signTransaction(psbt: PsbtLike, wallet: BdkWallet): boolean {',
+  '  const signed = wallet.sign(psbt)',
+  '  wallet.persist()',
+  '  return signed',
+  '}',
+  '',
+  'function broadcastTransaction(',
+  '  wallet: BdkWallet,',
+  '  psbt: PsbtLike,',
+  '  backend: Backend,',
+  '  url: string,',
+  '  rpcCredentials?: RpcCredentials',
+  '): Promise<string> {',
+  "  if (backend === 'electrum') {",
+  '    return wallet.broadcastWithElectrum(url, psbt)',
+  '  }',
+  "  if (backend === 'rpc') {",
+  '    const rpcClient = new BdkRpcClient({',
+  '      auth: rpcCredentials',
+  '        ? {',
+  '            password: rpcCredentials.password,',
+  "            type: 'userPass',",
+  '            username: rpcCredentials.username',
+  '          }',
+  "        : { type: 'none' },",
+  '      url: adjustRpcUrl(url)',
+  '    })',
+  '    return wallet.broadcastWithRpc(rpcClient, psbt)',
+  '  }',
+  '  return wallet.broadcastWithEsplora(url, psbt)',
+  '}',
+  '',
+  '// apps/mobile/utils/descriptor.ts',
+  'export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {',
+  '  const lower = descriptor.toLowerCase()',
+  '  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>',
+  '    lower.includes(prefix)',
+  '  )',
+  '}',
+  '',
+  'export class PrivateKeyDescriptorError extends Error {',
+  "  name = 'PrivateKeyDescriptorError'",
+  '}',
+  '',
+  'export function getCleanXpub(xpubWithPrefix: string): string {',
+  '  const xpubMatch = xpubWithPrefix.match(/\\]([txyzuv]pub[a-zA-Z0-9]{107})$/)',
+  '  return xpubMatch ? xpubMatch[1] : xpubWithPrefix',
+  '}',
+  '',
+  'export function getOriginDerivation(text: string) {',
+  '  const originMatch = text.match(/^\\[([0-9a-fA-F]{8})\\/([^\\]]+)\\]/)',
+  '  if (!originMatch) return null',
+  '  const derivation = originMatch.at(2)',
+  '  if (!derivation) return null',
+  '  return { fingerprint: originMatch[1], derivation }',
+  '}',
+  '',
+  '// apps/mobile/api/payjoin.ts',
+  'async function sendPayjoin(params: {',
+  '  payjoinUri: string',
+  '  originalPsbtBase64: string',
+  '  paymentAmountSats: number',
+  '  outputScriptsHex: string[]',
+  '  callbacks: PayjoinWalletCallbacks',
+  '}): Promise<PayjoinSendResult> {',
+  '  const parsed = parsePayjoinUri(params.payjoinUri)',
+  '  if (!parsed.isValid || !parsed.params) {',
+  '    return {',
+  "      error: parsed.error ?? 'invalid payjoin uri',",
+  '      fallbackAllowed: true,',
+  '      ok: false,',
+  '      originalPsbtBase64: params.originalPsbtBase64',
+  '    }',
+  '  }',
+  '  if (isSelfTransfer({',
+  '    isScriptOwned: (scriptHex) => {',
+  '      const result = params.callbacks.isScriptOwned(scriptHex)',
+  "      return typeof result === 'boolean' ? result : false",
+  '    },',
+  '    outputScriptsHex: params.outputScriptsHex',
+  '  })) {',
+  '    return {',
+  '      ok: true,',
+  '      originalPsbtBase64: params.originalPsbtBase64,',
+  "      reason: 'self-transfer',",
+  '      usedPayjoin: false',
+  '    }',
+  '  }',
+  '  const endpointKind = parsed.endpointKind ?? detectEndpointKind(parsed.params.pj)',
+  '  const disableOutputSubstitution = (parsed.params.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0',
+  "  if (endpointKind === 'bip78') {",
+  '    return await sendBip78({',
+  '      callbacks: params.callbacks,',
+  '      disableOutputSubstitution,',
+  '      endpoint: parsed.params.pj,',
+  '      originalPsbtBase64: params.originalPsbtBase64,',
+  '      outputScriptsHex: params.outputScriptsHex,',
+  '      payjoinUri: params.payjoinUri,',
+  '      paymentAmountSats: params.paymentAmountSats',
+  '    })',
+  '  }',
+  '  return await sendBip77({',
+  '    callbacks: params.callbacks,',
+  '    disableOutputSubstitution,',
+  '    originalPsbtBase64: params.originalPsbtBase64,',
+  '    outputScriptsHex: params.outputScriptsHex,',
+  '    payjoinUri: params.payjoinUri,',
+  '    paymentAmountSats: params.paymentAmountSats',
+  '  })',
+  '}'
+].join('\n')
 
-function formatHexDump(rowCount) {
-  const lines = []
-  for (let row = 0; row < rowCount; row += 1) {
-    const offset = (row * 16).toString(16).padStart(8, '0')
-    const bytes = []
-    const ascii = []
-    for (let column = 0; column < 16; column += 1) {
-      const value = genesisBytes[(row * 16 + column) % genesisBytes.length]
-      bytes.push(value.toString(16).padStart(2, '0'))
-      ascii.push(value >= 32 && value < 127 ? String.fromCharCode(value) : '.')
-    }
-    lines.push(offset + '  ' + bytes.join(' ') + '   |' + ascii.join('') + '|')
-  }
-  return lines
+function escapeSplashText(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 const hexRows = [
@@ -1927,10 +2441,9 @@ function renderSplash() {
   stopHexHighlight()
   const intro = document.getElementById('intro')
   intro.classList.add('is-splash')
-  const splashHex = formatHexDump(72).join('\n')
   intro.innerHTML =
     '<div class="splash-code" aria-hidden="true">' +
-    splashHex +
+    escapeSplashText(splashSource) +
     '</div><div class="intro-logo"><span>SAT<br>SIGNER</span></div>'
   intro.addEventListener('click', startOnboarding, { once: true })
 }
@@ -1971,6 +2484,11 @@ function go(id) {
   if (id === 'converter') {
     syncFromBtc()
     show('converter', 'converter')
+    return true
+  }
+  if (id === 'tx') {
+    openAccountData = accounts[0]
+    openTransaction(activity[openAccountData.fingerprint][0])
     return true
   }
   if (id === 'account' || id === 'coins' || id === 'chart') {

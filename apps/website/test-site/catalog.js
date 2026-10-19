@@ -5,6 +5,7 @@ const screens = [
   { id: 'accounts', name: 'Bitcoin', view: 'view-accounts', source: 'Accounts' },
   { id: 'converter', name: 'Converter', view: 'view-converter', source: 'Currency converter' },
   { id: 'account', name: 'Account', view: 'view-account', source: 'Account overview' },
+  { id: 'tx', name: 'Transaction', view: 'view-tx', source: 'Transaction details' },
   { id: 'coins', name: 'Coins', view: 'view-account', source: 'Account coins tab' },
   { id: 'chart', name: 'Chart', view: 'view-account', source: 'Account chart' },
   { id: 'send', name: 'Send', view: 'view-send', source: 'Send form' },
