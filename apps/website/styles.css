@@ -655,29 +655,19 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   text-transform: none;
 }
 .hero-subline {
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+  align-self: center;
   font-size: 1.05rem;
   font-weight: 400;
   text-transform: none;
   letter-spacing: -0.011em;
   line-height: 1.45;
   color: rgba(255, 255, 255, 0.72);
-  margin: 0 0 1.75rem;
-  max-width: 32rem;
-}
-.hero-points {
-  position: relative;
-  z-index: 1;
-  justify-self: end;
-  list-style: none;
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.95rem;
-  letter-spacing: -0.011em;
-  line-height: 1.35;
+  max-width: 16rem;
+  text-align: left;
 }
 .hero-form {
   display: flex;
@@ -691,14 +681,6 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   align-items: center;
   gap: 0.6rem;
 }
-.hero-form-label {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 400;
-  letter-spacing: -0.011em;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0 0 0.75rem;
-}
 .zapstore-badge {
   display: inline-block;
   line-height: 0;
@@ -707,6 +689,18 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   height: 36px;
   width: auto;
   margin-top: -2px;
+}
+.hero-version {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+}
+.hero-version:hover {
+  color: #fff;
 }
 .hero-form input[type="text"] {
   width: 16rem;
@@ -1680,10 +1674,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
     font-size: 1.05rem;
     letter-spacing: 0.06em;
   }
-  .hero-points {
+  .hero-subline {
     order: 3;
     justify-self: center;
-    align-items: center;
+    max-width: 28rem;
     text-align: center;
   }
   .hero-form,
@@ -1693,10 +1687,6 @@ html[data-theme="light"] .as-seen-in-logo--light {
   }
   .hero-title {
     font-size: clamp(2.15rem, 10.5vw, 3rem);
-  }
-  .hero-subline {
-    margin-left: auto;
-    margin-right: auto;
   }
   .nav-links {
     gap: 0.9rem;
@@ -3117,9 +3107,13 @@ html[data-theme="light"] .theme-toggle:hover {
 html[data-theme="light"] .hero-canvas {
   background: #e6e6e6;
 }
+html[data-theme="light"] .hero-version {
+  color: rgba(0, 0, 0, 0.45);
+}
+html[data-theme="light"] .hero-version:hover {
+  color: #161616;
+}
 html[data-theme="light"] .hero-subline,
-html[data-theme="light"] .hero-points,
-html[data-theme="light"] .hero-form-label,
 html[data-theme="light"] .section-intro,
 html[data-theme="light"] .features-intro,
 html[data-theme="light"] .features-list li,
