@@ -99,8 +99,18 @@
           <header class="stack-header">
             <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
             <p id="account-title">Spending</p>
+            <button type="button" class="settings" data-account-settings aria-label="Account settings"></button>
           </header>
           <div class="account-landing" id="account-landing"></div>
+        </section>
+
+        <section id="view-account-settings" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p id="account-settings-title">Spending</p>
+            <button type="button" class="settings" data-settings aria-label="Settings"></button>
+          </header>
+          <div class="accounts-body" id="account-settings"></div>
         </section>
 
         <section id="view-tx" hidden>
@@ -479,6 +489,41 @@
           </div>
         </section>
 
+        <section id="view-multisig-setup" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-setup"></div>
+        </section>
+        <section id="view-multisig-keys" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="multisig-setup" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-keys"></div>
+        </section>
+        <section id="view-multisig-key" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="multisig-keys" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-key"></div>
+        </section>
+        <section id="view-multisig-settings" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Multisig</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-settings"></div>
+        </section>
+        <section id="view-multisig-sign" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Transaction</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-sign"></div>
+        </section>
         <section id="view-nostr-add" hidden>
           <header class="stack-header">
             <button type="button" class="back" data-back="nostr" aria-label="Back"></button>

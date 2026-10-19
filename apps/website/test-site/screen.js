@@ -195,7 +195,7 @@ document.querySelectorAll('[data-back]').forEach((button) => {
 })
 
 document.querySelectorAll('.stack-header').forEach((header) => {
-  if (header.querySelector('.settings')) return
+  if (header.querySelector('.settings') || header.closest('#view-account, #view-account-settings')) return
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'settings'
@@ -207,6 +207,11 @@ document.querySelectorAll('.stack-header').forEach((header) => {
 document.querySelectorAll('[data-settings]').forEach((button) => {
   button.innerHTML = icon('settings', 'settings-mark')
   button.addEventListener('click', openSettings)
+})
+
+document.querySelectorAll('[data-account-settings]').forEach((button) => {
+  button.innerHTML = icon('key', 'settings-mark')
+  button.addEventListener('click', () => go('account-settings'))
 })
 
 const phoneScreen = document.querySelector('.phone-screen')
@@ -266,6 +271,27 @@ if (navToggle && drawer && phoneScreen) {
 navToggle.addEventListener('click', () => {
   setDrawer(!phoneScreen.classList.contains('is-drawer'))
 })
+
+document.addEventListener('click', (event) => {
+  if (!phoneScreen.classList.contains('is-drawer')) return
+  const path = event.composedPath()
+  if (path.includes(drawer) || path.includes(navToggle)) return
+  setDrawer(false)
+})
+
+phoneScreen.addEventListener('pointerdown', (event) => {
+  if (!phoneScreen.classList.contains('is-drawer')) return
+  if (event.target.closest('#drawer') || event.target.closest('#nav-toggle')) return
+  event.preventDefault()
+})
+
+phoneScreen.addEventListener('click', (event) => {
+  if (!phoneScreen.classList.contains('is-drawer')) return
+  if (event.target.closest('#drawer') || event.target.closest('#nav-toggle')) return
+  event.preventDefault()
+  event.stopPropagation()
+  setDrawer(false)
+}, true)
 
 let drawerDrag = null
 drawer.addEventListener('pointerdown', (event) => {
@@ -497,6 +523,29 @@ const activity = {
       vsize: 110,
       weight: 437,
       fee: 154,
+      version: 2
+    }
+  ],
+  c0ffee01: [
+    {
+      type: 'receive',
+      label: 'Treasury',
+      tags: ['vault'],
+      amount: 5000000,
+      fiat: '5,000.00',
+      historical: '4,800.00',
+      priceChange: '+4.2%',
+      ago: '1 month ago',
+      txid: 'd10a77ee01c0ffee01d10a77ee01c0ffee01d10a77ee01c0ffee01d10a77',
+      conf: 2016,
+      block: 282000,
+      balance: 5000000,
+      inputs: 2,
+      outputs: 1,
+      size: 372,
+      vsize: 186,
+      weight: 744,
+      fee: 620,
       version: 2
     }
   ]
@@ -1571,6 +1620,42 @@ function openNfc() {
   )
 }
 
+function renderAccountSettings() {
+  const account = openAccountData
+  const root = document.getElementById('account-settings')
+  document.getElementById('account-settings-title').textContent = account.name
+  const pair = (label, value) =>
+    '<p class="acct-row"><span>' + label + '</span><span>' + value + '</span></p>'
+  root.innerHTML =
+    '<p class="acct-kicker">Account Settings and Tools</p>' +
+    '<label class="acct-name">Name<input value="' +
+    account.name +
+    '" readonly></label>' +
+    '<div class="acct-table">' +
+    '<p class="acct-row"><span>Fingerprint</span><span class="acct-print"><i style="background:#' +
+    account.fingerprint.slice(0, 6) +
+    '"></i>' +
+    account.fingerprint +
+    '</span></p>' +
+    pair('Created on', '12 Mar 2024') +
+    '<p class="acct-row"><span>Wallet Birthday</span><span>Not set' +
+    icon('chevron', 'acct-chevron') +
+    '</span></p>' +
+    pair('Network', account.network) +
+    pair('Policy Type', account.watchOnly ? 'Watch Only' : 'Single Signature') +
+    pair('Script', 'Native SegWit') +
+    pair('Derivation path', "m/84'/1'/0'") +
+    pair('Labeled Transactions', '2 <em>of</em> ' + account.stats[0][0]) +
+    pair('Labeled UTXOs', '1 <em>of</em> ' + account.stats[2][0]) +
+    pair('Labeled Addresses', '3 <em>of</em> ' + account.stats[1][0]) +
+    '</div>' +
+    '<button type="button" class="menu-button is-outline"><span class="edge-left"></span><span class="edge-right"></span>Nostr Sync</button>' +
+    '<div class="acct-pair"><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Export labels</button><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Import labels</button></div>' +
+    '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>View mnemonic</button>' +
+    '<div class="acct-pair"><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Descriptors</button><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Public Keys</button></div>' +
+    '<div class="acct-actions"><button type="button" class="menu-button is-outline"><span class="edge-left"></span><span class="edge-right"></span>Rescan Wallet</button><button type="button" class="menu-button is-danger"><span class="edge-left"></span><span class="edge-right"></span>Delete Account</button><button type="button" class="menu-button is-save"><span class="edge-left"></span><span class="edge-right"></span>Save</button></div>'
+}
+
 function renderAccount() {
   const account = openAccountData
   const txs = activity[account.fingerprint]
@@ -1671,6 +1756,8 @@ function renderAccount() {
       ? historyChart(txs)
       : '<div class="tx-list">' + list + '</div>')
   document.getElementById('send-open').addEventListener('click', () => openSend('coins'))
+  const openMultisig = document.getElementById('open-multisig')
+  if (openMultisig) openMultisig.addEventListener('click', () => go('multisig-settings'))
   document.getElementById('paste-open').addEventListener('click', openPaste)
   document.getElementById('camera-open').addEventListener('click', openCamera)
   document.getElementById('nfc-open').addEventListener('click', openNfc)
@@ -1774,7 +1861,7 @@ function renderTransaction() {
     '</p></div><span class="tx-pencil" aria-hidden="true"></span></div>' +
     '<div class="tx-rule"></div>' +
     '<p class="tx-kicker">Transaction flow</p>' +
-    signSendSankey('tx-sankey') +
+    txDetailSankey(tx) +
     '<div class="tx-rule"></div>' +
     '<div class="tx-grid">' +
     detailItem('Block', tx.block ? tx.block.toLocaleString('en-US') : '-', ' is-wide') +
@@ -1856,8 +1943,13 @@ function renderPreview() {
     (payjoin
       ? '<p class="hint">Payjoin invoice. Receiver will contribute a coin. Negotiation starts when you sign.</p>'
       : '') +
-    '<button type="button" class="menu-button" id="sign-open"><span class="edge-left"></span><span class="edge-right"></span>Sign</button>'
-  document.getElementById('sign-open').addEventListener('click', startSign)
+    '<button type="button" class="menu-button" id="sign-open"><span class="edge-left"></span><span class="edge-right"></span>' +
+    (openAccountData.multisig ? 'Collect signatures' : 'Sign') +
+    '</button>'
+  document.getElementById('sign-open').addEventListener('click', () => {
+    if (openAccountData.multisig) go('multisig-sign')
+    else startSign()
+  })
 }
 
 document.getElementById('send-preview').addEventListener('click', () => {
@@ -1987,6 +2079,207 @@ function stackSlots(heights, top) {
     y += h
     return slot
   })
+}
+
+function txRibbon(x1, y1, w1, x2, y2, w2) {
+  const span = Math.abs(x2 - x1)
+  const control = span * 0.22
+  const dir = x2 >= x1 ? 1 : -1
+  return (
+    'M ' + x1 + ' ' + y1 +
+    ' C ' + (x1 + dir * control) + ' ' + y1 + ' ' + (x2 - dir * control) + ' ' + y2 + ' ' + x2 + ' ' + y2 +
+    ' L ' + x2 + ' ' + (y2 + w2) +
+    ' C ' + (x2 - dir * control) + ' ' + (y2 + w2) + ' ' + (x1 + dir * control) + ' ' + (y1 + w1) + ' ' + x1 + ' ' + (y1 + w1) +
+    ' Z'
+  )
+}
+
+function feeHook(x, y, w) {
+  const tipX = x + 16
+  const tipY = y + 40
+  return (
+    'M ' + x + ' ' + (y - 2) +
+    ' C ' + (x + 10) + ' ' + y + ' ' + (tipX + 6) + ' ' + (y + 16) + ' ' + tipX + ' ' + (tipY - 12) +
+    ' L ' + (tipX - 8) + ' ' + tipY +
+    ' C ' + (tipX - 2) + ' ' + (tipY - 14) + ' ' + (x + 6) + ' ' + (y + w + 8) + ' ' + x + ' ' + (y + w) +
+    ' Z'
+  )
+}
+
+function splitFlow(total, count) {
+  if (count <= 1) return [total]
+  const parts = []
+  let left = total
+  for (let index = 0; index < count - 1; index += 1) {
+    const share = index === 0 ? 0.64 : (0.36 / (count - 1))
+    const part = Math.max(1, Math.round(total * share))
+    parts.push(Math.min(part, left - (count - index - 1)))
+    left -= parts[parts.length - 1]
+  }
+  parts.push(Math.max(left, 1))
+  return parts
+}
+
+function shortId(id) {
+  return id.slice(0, 5) + '…' + id.slice(-4)
+}
+
+function flowLabel(lines, x, y, anchor) {
+  return lines
+    .map((line, index) => {
+      return (
+        '<text x="' + x + '" y="' + (y + index * 13) + '" text-anchor="' + anchor + '" fill="' + line.color + '" font-size="' + line.size + '" font-weight="' + (line.weight || 500) + '">' +
+        line.text +
+        '</text>'
+      )
+    })
+    .join('')
+}
+
+function txDetailSankey(tx) {
+  const inputCount = Math.max(tx.inputs, 1)
+  const outputCount = Math.max(tx.outputs, 1)
+  const changePool = tx.type === 'send' && outputCount > 1 ? Math.round(tx.amount * 0.42) : 0
+  const inputValues = splitFlow(tx.amount + tx.fee + changePool, inputCount)
+  const outputValues =
+    tx.type === 'receive'
+      ? splitFlow(tx.amount, outputCount)
+      : outputCount === 1
+        ? [tx.amount]
+        : [tx.amount].concat(splitFlow(changePool, outputCount - 1))
+  const rows = Math.max(inputCount, outputCount + 1)
+  const blockX = 150
+  const blockW = 58
+  const blockY = 4
+  const band = Math.min(124, Math.max(96, 28 + rows * 22))
+  const leftX = 104
+  const rightX = 246
+  const labelGap = Math.max(band / Math.max(rows - 1, 1), 62)
+  const height = blockY + Math.max(band, rows * labelGap) + 8
+  const gid = 'flow' + String(tx.txid || 'tx').slice(0, 6)
+
+  function slotsFor(values, y0, heightPx) {
+    const weights = values.map((value) => Math.max(value, 1))
+    const total = weights.reduce((sum, value) => sum + value, 0)
+    let y = y0
+    return weights.map((weight, index) => {
+      const h = (weight / total) * heightPx
+      const slot = { y: y, h: h }
+      y += h
+      return slot
+    })
+  }
+
+  const inputs = slotsFor(inputValues, blockY, band)
+  const outputs = slotsFor(outputValues, blockY, band * 0.78)
+  const feeY = blockY + band - 8
+
+  function labelY(index) {
+    return 16 + index * labelGap
+  }
+
+  const inputPaths = inputs
+    .map((slot, index) => {
+      const y = inputCount === 1 ? blockY : slot.y
+      const h = inputCount === 1 ? band : slot.h
+      return '<path fill="url(#' + gid + 'In)" d="' + txRibbon(leftX, y, h, blockX, y, h) + '"/>'
+    })
+    .join('')
+
+  const outputPaths = outputs
+    .map((slot, index) => {
+      const ours = tx.type === 'receive' ? index === 0 : index > 0
+      const y = outputCount === 1 ? blockY : slot.y
+      const h = outputCount === 1 ? band * 0.86 : Math.min(slot.h, band * 0.5)
+      const fill = ours ? 'url(#' + gid + 'Mine)' : 'url(#' + gid + 'Pay)'
+      return '<path fill="' + fill + '" d="' + txRibbon(blockX + blockW, y, h, rightX, y + index * 4, h) + '"/>'
+    })
+    .join('')
+
+  const inputCards = inputValues
+    .map((value, index) => {
+      const named = index === 0 && tx.type === 'send' && tx.label
+      const y = inputCount === 1 ? blockY + 18 : labelY(index)
+      return flowLabel(
+        [
+          { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
+          { text: 'from ' + shortId(tx.txid), color: '#8A8A8A', size: 8 },
+          { text: named ? tx.label : 'Previous', color: named ? '#7DFF8A' : '#FF5C5C', size: 11, weight: 700 }
+        ],
+        0,
+        y,
+        'start'
+      )
+    })
+    .join('')
+
+  const outputCards = outputValues
+    .map((value, index) => {
+      const ours = tx.type === 'receive' ? index === 0 : index > 0
+      const name = tx.type === 'receive' ? (index === 0 ? tx.label || 'Receive' : 'Change') : index > 0 ? 'Change' : tx.label || 'Payment'
+      const y = outputCount === 1 ? blockY + 14 : labelY(index)
+      return flowLabel(
+        [
+          { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
+          { text: 'to ' + shortId('tb1qc' + tx.txid.slice(4, 16) + 'aa44'), color: '#8A8A8A', size: 8 },
+          { text: name, color: ours ? '#7DFF8A' : '#FF5C5C', size: 11, weight: 700 }
+        ],
+        252,
+        y,
+        'start'
+      )
+    })
+    .join('')
+
+  const feeCard = flowLabel(
+    [
+      { text: tx.fee.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
+      { text: (tx.fee / tx.vsize).toFixed(2) + ' sat/vB', color: '#8A8A8A', size: 8 },
+      { text: 'Miner fee', color: '#FF5C5C', size: 11, weight: 700 }
+    ],
+    252,
+    labelY(outputCount) + 4,
+    'start'
+  )
+
+  const flapH = Math.round(band * 0.34)
+  const flapX = blockX + 16
+  return (
+    '<svg class="tx-sankey" viewBox="0 0 360 ' + height + '" role="img" aria-label="Transaction flow">' +
+    '<defs>' +
+    '<linearGradient id="' + gid + 'In" x1="' + leftX + '" x2="' + (blockX + 2) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#2A2A2A"/>' +
+    '<stop offset="0.45" stop-color="#4A4A4A"/>' +
+    '<stop offset="0.78" stop-color="#C8C8C8"/>' +
+    '<stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Mine" x1="' + (blockX + blockW) + '" x2="' + rightX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FFFFFF"/>' +
+    '<stop offset="1" stop-color="#EDEDED"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Pay" x1="' + (blockX + blockW) + '" x2="' + rightX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FFFFFF"/>' +
+    '<stop offset="0.72" stop-color="#F3F3F3"/>' +
+    '<stop offset="1" stop-color="#E7A3A3"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Fee" x1="' + (blockX + blockW - 4) + '" y1="' + (feeY - 6) + '" x2="' + (blockX + blockW + 18) + '" y2="' + (feeY + 46) + '" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#6A6A6A"/>' +
+    '<stop offset="0.55" stop-color="#D0D0D0"/>' +
+    '<stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Metal" x1="' + blockX + '" x2="' + (blockX + blockW) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FFFFFF"/>' +
+    '<stop offset="0.22" stop-color="#D2D2D2"/>' +
+    '<stop offset="0.48" stop-color="#8F8F8F"/>' +
+    '<stop offset="0.78" stop-color="#C6C6C6"/>' +
+    '<stop offset="1" stop-color="#F7F7F7"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Flap" x1="' + flapX + '" x2="' + (flapX + 26) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#A3A3A3"/>' +
+    '<stop offset="1" stop-color="#6A6A6A"/></linearGradient>' +
+    '</defs>' +
+    inputPaths + outputPaths +
+    '<path fill="url(#' + gid + 'Fee)" d="' + feeHook(blockX + blockW - 4, feeY, 8) + '"/>' +
+    '<rect x="' + blockX + '" y="' + blockY + '" width="' + blockW + '" height="' + band + '" fill="url(#' + gid + 'Metal)"/>' +
+    '<rect x="' + flapX + '" y="' + blockY + '" width="26" height="' + flapH + '" fill="url(#' + gid + 'Flap)"/>' +
+    inputCards + outputCards + feeCard +
+    '</svg>'
+  )
 }
 
 function signSendSankey(className) {
@@ -2462,6 +2755,338 @@ function menuTab(tab) {
   show('menu', tab === 'explorer' ? 'explorer' : 'menu')
 }
 
+const multisigKeys = [
+  { name: 'Phone', source: 'This device', fingerprint: 'a1b2c3d4', pub: 'tpub…4k2a', seed: true, signed: true },
+  { name: 'Laptop', source: 'Imported descriptor', fingerprint: 'e5f6a7b8', pub: 'tpub…91cd', seed: false, signed: false },
+  { name: 'Hardware', source: 'Extended public key', fingerprint: '9c0d1e2f', pub: 'tpub…0b77', seed: false, signed: false }
+]
+
+let msigRequired = 2
+let msigTotal = 3
+let msigScript = 'Native SegWit (P2WSH)'
+
+function edges(label) {
+  return '<span class="edge-left"></span><span class="edge-right"></span>' + label
+}
+
+function msigKeyRow(key, index, mode) {
+  const empty = !key.fingerprint
+  return (
+    '<button type="button" class="msig-key" data-msig="' +
+    index +
+    '"><span class="msig-mark' +
+    (empty ? ' is-empty' : key.seed ? ' is-seed' : '') +
+    '"></span><span class="msig-key-copy"><em>Key ' +
+    (index + 1) +
+    (mode === 'sign' ? (key.signed ? ' · Signed' : ' · Unsigned') : '') +
+    '</em><strong>' +
+    (key.name || 'No label') +
+    '</strong><small>' +
+    (key.source || 'Add or generate') +
+    '</small></span><span class="msig-key-ids"><em>' +
+    (key.fingerprint || 'Fingerprint') +
+    '</em><small>' +
+    (key.pub || 'Public key') +
+    '</small></span></button><div class="msig-panel" data-msig-panel="' +
+    index +
+    '" hidden></div>'
+  )
+}
+
+function fillPanel(panel, index, mode) {
+  const key = multisigKeys[index]
+  if (mode === 'setup') {
+    if (!key.fingerprint) {
+      panel.innerHTML =
+        '<label class="field"><span>Key name</span><input data-key-name value="' +
+        (key.name || '') +
+        '"></label>' +
+        '<button type="button" class="menu-button" data-generate="' +
+        index +
+        '">' +
+        edges('Generate new secret seed') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Import mnemonic') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Import descriptor') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Import extended public key') +
+        '</button>'
+      const generate = panel.querySelector('[data-generate]')
+      generate.addEventListener('click', () => {
+        const name = panel.querySelector('[data-key-name]').value.trim()
+        if (!name) return
+        key.name = name
+        go('multisig-key')
+      })
+      return
+    }
+  }
+  if (mode === 'sign') {
+    panel.innerHTML = key.signed
+      ? '<button type="button" class="menu-button">' +
+        edges('Copy PSBT') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Show QR') +
+        '</button><button type="button" class="menu-button">' +
+        edges('USB') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Share with group') +
+        '</button>'
+      : '<button type="button" class="menu-button" data-local-sign="' +
+        index +
+        '">' +
+        edges('Sign with this device') +
+        '</button><button type="button" class="menu-button" data-mark-signed="' +
+        index +
+        '">' +
+        edges('Sign with seed words') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Copy unsigned PSBT') +
+        '</button><button type="button" class="menu-button" data-mark-signed="' +
+        index +
+        '">' +
+        edges('Paste signature') +
+        '</button><button type="button" class="menu-button" data-mark-signed="' +
+        index +
+        '">' +
+        edges('Scan QR') +
+        '</button><button type="button" class="menu-button">' +
+        edges('Fetch from group') +
+        '</button>'
+    panel.querySelectorAll('[data-local-sign], [data-mark-signed]').forEach((button) => {
+      button.addEventListener('click', () => {
+        key.signed = true
+        renderMultisigSign()
+      })
+    })
+    return
+  }
+  panel.innerHTML =
+    (key.seed
+      ? '<button type="button" class="menu-button">' + edges('View seed words') + '</button>'
+      : '') +
+    '<button type="button" class="menu-button">' +
+    edges('Share extended public key') +
+    '</button><button type="button" class="menu-button">' +
+    edges('Share descriptor') +
+    '</button>' +
+    (key.seed
+      ? '<button type="button" class="menu-button" data-drop="' +
+        index +
+        '">' +
+        edges('Drop seed from this device') +
+        '</button>'
+      : '') +
+    '<button type="button" class="menu-button" data-reset="' +
+    index +
+    '">' +
+    edges('Reset key') +
+    '</button>'
+  const drop = panel.querySelector('[data-drop]')
+  if (drop) {
+    drop.addEventListener('click', () => {
+      key.seed = false
+      key.source = 'Public key only'
+      renderMultisigSettings()
+    })
+  }
+  const reset = panel.querySelector('[data-reset]')
+  if (reset) {
+    reset.addEventListener('click', () => {
+      key.name = ''
+      key.source = ''
+      key.fingerprint = ''
+      key.pub = ''
+      key.seed = false
+      renderMultisigSettings()
+    })
+  }
+}
+
+function bindMsig(root, mode) {
+  root.querySelectorAll('.msig-key').forEach((button) => {
+    button.addEventListener('click', () => {
+      const index = button.dataset.msig
+      const panel = root.querySelector('[data-msig-panel="' + index + '"]')
+      const open = panel.hidden
+      root.querySelectorAll('.msig-panel').forEach((item) => {
+        item.hidden = true
+      })
+      panel.hidden = !open
+      if (!panel.hidden && !panel.childElementCount) fillPanel(panel, Number(index), mode)
+    })
+  })
+}
+
+function pips(on, total) {
+  return (
+    '<div class="msig-dots">' +
+    Array.from({ length: total }, (_, index) => '<span class="msig-pip' + (index < on ? ' is-on' : '') + '"></span>').join('') +
+    '</div>'
+  )
+}
+
+function renderMultisigSetup() {
+  const root = document.getElementById('multisig-setup')
+  root.innerHTML =
+    '<p class="field-label">Policy</p><p class="msig-count">Multisignature</p>' +
+    '<p class="field-label">Signatures required</p><div class="msig-stepper"><button type="button" id="req-down" aria-label="Fewer signatures">−</button><strong id="req-value">' +
+    msigRequired +
+    ' of ' +
+    msigTotal +
+    '</strong><button type="button" id="req-up" aria-label="More signatures">+</button></div>' +
+    '<p class="field-label">Keys</p><div class="msig-stepper"><button type="button" id="keys-down" aria-label="Fewer keys">−</button><strong>' +
+    msigTotal +
+    '</strong><button type="button" id="keys-up" aria-label="More keys">+</button></div>' +
+    '<p class="field-label">Script</p><button type="button" class="menu-button" id="script-cycle">' +
+    edges(msigScript) +
+    '</button><button type="button" class="menu-button" id="import-descriptor">' +
+    edges('Import descriptor') +
+    '</button><button type="button" class="menu-button" id="msig-continue">' +
+    edges('Continue') +
+    '</button>'
+  root.querySelector('#req-down').addEventListener('click', () => {
+    msigRequired = Math.max(1, msigRequired - 1)
+    renderMultisigSetup()
+  })
+  root.querySelector('#req-up').addEventListener('click', () => {
+    msigRequired = Math.min(msigTotal, msigRequired + 1)
+    renderMultisigSetup()
+  })
+  root.querySelector('#keys-down').addEventListener('click', () => {
+    msigTotal = Math.max(2, msigTotal - 1)
+    msigRequired = Math.min(msigRequired, msigTotal)
+    renderMultisigSetup()
+  })
+  root.querySelector('#keys-up').addEventListener('click', () => {
+    msigTotal = Math.min(15, msigTotal + 1)
+    renderMultisigSetup()
+  })
+  root.querySelector('#script-cycle').addEventListener('click', () => {
+    const scripts = ['Native SegWit (P2WSH)', 'Nested SegWit (P2SH-P2WSH)', 'Taproot (P2TR)', 'Legacy (P2SH)']
+    msigScript = scripts[(scripts.indexOf(msigScript) + 1) % scripts.length]
+    renderMultisigSetup()
+  })
+  root.querySelector('#import-descriptor').addEventListener('click', () => go('multisig-keys'))
+  root.querySelector('#msig-continue').addEventListener('click', () => go('multisig-keys'))
+}
+
+function renderMultisigKeys() {
+  const root = document.getElementById('multisig-keys')
+  while (multisigKeys.length < msigTotal) {
+    multisigKeys.push({ name: '', source: '', fingerprint: '', pub: '', seed: false, signed: false })
+  }
+  const shown = multisigKeys.slice(0, msigTotal)
+  const ready = shown.every((key) => key.fingerprint)
+  root.innerHTML =
+    '<p class="msig-count">' +
+    msigRequired +
+    ' of ' +
+    msigTotal +
+    '</p>' +
+    pips(0, msigTotal) +
+    '<p class="hint">Add or generate keys</p><div class="msig-keys">' +
+    shown.map((key, index) => msigKeyRow(key, index, 'setup')).join('') +
+    '</div><button type="button" class="menu-button' +
+    (ready ? '' : ' is-off') +
+    '" id="msig-confirm"' +
+    (ready ? '' : ' disabled') +
+    '>' +
+    edges('Confirm') +
+    '</button>'
+  bindMsig(root, 'setup')
+  if (ready) {
+    root.querySelector('#msig-confirm').addEventListener('click', () => {
+      openAccountData = accounts.find((account) => account.multisig)
+      renderAccount()
+      show('account', 'account')
+    })
+  }
+}
+
+function renderMultisigKey() {
+  const root = document.getElementById('multisig-key')
+  root.innerHTML =
+    '<p class="field-label">Policy</p><p class="hint">Multisignature</p>' +
+    '<p class="field-label">Key</p><p class="hint">1 of ' +
+    msigTotal +
+    '</p><p class="field-label">Mnemonic</p><button type="button" class="menu-button" id="word-cycle">' +
+    edges('24 words') +
+    '</button><p class="field-label">Entropy</p><button type="button" class="menu-button" id="entropy-cycle">' +
+    edges('No extra entropy') +
+    '</button><button type="button" class="menu-button" id="generate-key">' +
+    edges('Generate') +
+    '</button>'
+  const words = ['24 words', '21 words', '18 words', '15 words', '12 words']
+  const entropy = ['No extra entropy', 'Coin flips', 'Dice rolls', 'Drawing']
+  let word = 0
+  let ent = 0
+  root.querySelector('#word-cycle').addEventListener('click', () => {
+    word = (word + 1) % words.length
+    root.querySelector('#word-cycle').lastChild.textContent = words[word]
+  })
+  root.querySelector('#entropy-cycle').addEventListener('click', () => {
+    ent = (ent + 1) % entropy.length
+    root.querySelector('#entropy-cycle').lastChild.textContent = entropy[ent]
+  })
+  root.querySelector('#generate-key').addEventListener('click', () => {
+    multisigKeys[0].name = multisigKeys[0].name || 'Phone'
+    multisigKeys[0].source = 'This device'
+    multisigKeys[0].fingerprint = 'a1b2c3d4'
+    multisigKeys[0].pub = 'tpub…4k2a'
+    multisigKeys[0].seed = true
+    go('multisig-keys')
+  })
+}
+
+function renderMultisigSettings() {
+  const root = document.getElementById('multisig-settings')
+  root.innerHTML =
+    '<p class="field-label">Policy</p><p class="msig-count">2 of 3</p>' +
+    pips(3, 3) +
+    '<p class="field-label">Script</p><p class="hint">Native SegWit (P2WSH)</p>' +
+    '<p class="field-label">Cosigners</p><div class="msig-keys">' +
+    multisigKeys.map((key, index) => msigKeyRow(key, index, 'settings')).join('') +
+    '</div><p class="hint">Demo only. Seeds stay on this page.</p>'
+  bindMsig(root, 'settings')
+}
+
+function renderMultisigSign() {
+  openAccountData = accounts.find((account) => account.multisig) || openAccountData
+  const signed = multisigKeys.filter((key) => key.signed).length
+  const ready = signed >= 2
+  const root = document.getElementById('multisig-sign')
+  root.innerHTML =
+    '<p class="io-line"><span>Output</span><strong>50,000 sats</strong></p><p class="io-sub">Coffee</p><p class="io-line"><span>Miner fee</span><strong>620 sats</strong></p>' +
+    '<p class="field-label">Signatures required</p><p class="msig-count">2 of 3</p>' +
+    pips(signed, 3) +
+    '<div class="msig-keys">' +
+    multisigKeys.map((key, index) => msigKeyRow(key, index, 'sign')).join('') +
+    '</div><p class="collected">Signatures collected: ' +
+    signed +
+    ' / 2</p><button type="button" class="menu-button' +
+    (ready ? '' : ' is-off') +
+    '" id="check-sigs"' +
+    (ready ? '' : ' disabled') +
+    '>' +
+    edges('Check all signatures') +
+    '</button><button type="button" class="menu-button">' +
+    edges('Share with group') +
+    '</button>'
+  bindMsig(root, 'sign')
+  const check = root.querySelector('#check-sigs')
+  if (ready) {
+    check.addEventListener('click', () => {
+      document.getElementById('sent-txid').textContent = 'democ0ffee0100000000000000000000000000000000000000000000'
+      document.getElementById('sent-summary').textContent = 'Multisig send. 2 of 3 · 50,000 sats · Demo'
+      show('sent', 'sent')
+    })
+  }
+}
+
+document.querySelector('.add-account').addEventListener('click', () => go('multisig-setup'))
+
 function go(id) {
   if (id === 'intro') {
     renderSplash()
@@ -2498,6 +3123,11 @@ function go(id) {
     accountTab = id === 'coins' ? 2 : 0
     renderAccount()
     show('account', id)
+    return true
+  }
+  if (id === 'account-settings') {
+    renderAccountSettings()
+    show('account-settings', 'account-settings')
     return true
   }
   if (id === 'send' || id === 'payjoin') {
@@ -2546,6 +3176,36 @@ function go(id) {
     id === 'nostr-add'
   ) {
     show(id, id)
+    return true
+  }
+  if (id === 'multisig-setup') {
+    renderMultisigSetup()
+    show('multisig-setup', 'multisig-setup')
+    return true
+  }
+  if (id === 'multisig-keys') {
+    renderMultisigKeys()
+    show('multisig-keys', 'multisig-keys')
+    return true
+  }
+  if (id === 'multisig-key') {
+    renderMultisigKey()
+    show('multisig-key', 'multisig-key')
+    return true
+  }
+  if (id === 'multisig-settings') {
+    openAccountData = accounts.find((account) => account.multisig) || accounts[0]
+    renderMultisigSettings()
+    show('multisig-settings', 'multisig-settings')
+    return true
+  }
+  if (id === 'multisig-sign') {
+    openAccountData = accounts.find((account) => account.multisig) || accounts[0]
+    multisigKeys[0].signed = true
+    multisigKeys[1].signed = false
+    multisigKeys[2].signed = false
+    renderMultisigSign()
+    show('multisig-sign', 'multisig-sign')
     return true
   }
   if (id === 'settings') {
