@@ -1354,17 +1354,13 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .flow-modal:focus {
   outline: none;
 }
-.flow-modal-glow {
-  position: absolute;
+.flow-modal-light {
+  position: fixed;
+  inset: 0;
   z-index: 0;
-  inset: -8% -6%;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.55), transparent 42%),
-    radial-gradient(circle at 82% 88%, rgba(255, 255, 255, 0.28), transparent 46%);
-  filter: blur(26px);
-  opacity: 0.85;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  animation: flow-device-light 8s ease-in-out infinite;
 }
 .flow-modal-frame {
   position: relative;
@@ -1375,14 +1371,6 @@ html[data-theme="light"] .as-seen-in-logo--light {
   border: 0;
   border-radius: calc(100% * 48 / 280) / calc(100% * 48 / 280 * 390 / 844);
   background: transparent;
-}
-@keyframes flow-device-light {
-  0% { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.55; }
-  50% { transform: translate3d(5%, 4%, 0) scale(1.06); opacity: 0.95; }
-  100% { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.55; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .flow-modal-glow { animation: none; opacity: 0.7; }
 }
 .flow-modal-arrow {
   position: fixed;

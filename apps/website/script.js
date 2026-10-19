@@ -678,6 +678,172 @@ if (typeof Swiper !== 'undefined') {
   var syncing = false;
   var slideToken = 0;
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lightCanvas = dialog.querySelector('.flow-modal-light');
+  var lightStage = dialog.querySelector('.flow-modal-stage');
+  var lightRunning = false;
+  var lightGl = lightCanvas && lightCanvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false });
+  var lightPointer = { x: 0, y: 0, tx: 0, ty: 0, on: 0, target: 0, moved: 0, idle: 0 };
+  var lightDpr = 1;
+  var lightProg = null;
+  var lightU = null;
+
+  if (lightGl && lightStage) {
+    var lightVs = 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }';
+    var lightFs = [
+      'precision highp float;',
+      'uniform vec2 uRes;',
+      'uniform vec2 uCenter;',
+      'uniform vec2 uAim;',
+      'uniform float uTime;',
+      'uniform vec2 uPointer;',
+      'uniform float uPointerOn;',
+      'uniform float uDpr;',
+      'uniform vec2 uHalf;',
+      'uniform float uRadius;',
+      'uniform float uTheme;',
+      'uniform float uFade;',
+      'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'float sdRoundBox(vec2 p, vec2 b, float r){',
+      '  vec2 q = abs(p) - b + r;',
+      '  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;',
+      '}',
+      'void main(){',
+      '  vec2 p = gl_FragCoord.xy;',
+      '  p.y = uRes.y - p.y;',
+      '  vec2 d = p - uCenter;',
+      '  vec2 b = uHalf;',
+      '  float rad = min(uRadius, min(b.x, b.y));',
+      '  float sdf = sdRoundBox(d, b, rad);',
+      '  vec2 q = abs(d) - b + rad;',
+      '  vec2 g = max(q, 0.0);',
+      '  float lg = length(g);',
+      '  vec2 n = sign(d) * (lg > 0.001 ? g / lg : normalize(vec2(q.x, q.y) + vec2(0.0001)));',
+      '  float ang = uTime * 0.21;',
+      '  vec2 orbit = vec2(cos(ang), sin(ang));',
+      '  vec2 aim = uPointer - uAim;',
+      '  float aimLen = length(aim);',
+      '  vec2 key = aimLen > 1.0 ? normalize(mix(orbit, aim / aimLen, uPointerOn)) : orbit;',
+      '  float face = smoothstep(-0.08, 0.72, dot(n, key));',
+      '  float far = exp(-max(sdf, 0.0) / (36.0 * uDpr));',
+      '  float light = far * (0.02 + 0.38 * face) * uFade;',
+      '  vec2 css = p / max(uDpr, 1.0);',
+      '  float grain = hash21(floor(css * 2.0));',
+      '  grain += hash21(floor(css * 4.24));',
+      '  grain += hash21(floor(css * 6.3));',
+      '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+      '  float floorDark = mix(0.055, 0.02, grain);',
+      '  float floorLight = mix(0.831, 0.78, grain);',
+      '  float page = mix(0.0, 0.831, uTheme);',
+      '  float glow = light * mix(0.62, 1.2, grain);',
+      '  float colDark = floorDark + glow;',
+      '  float colLight = floorLight + glow * 0.95;',
+      '  float floorB = mix(floorDark, floorLight, uTheme);',
+      '  float col = mix(colDark, colLight, uTheme);',
+      '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
+      '  col = mix(floorB, col, rim);',
+      '  float band = uRes.y * 0.22;',
+      '  float fade = sqrt(clamp(min(p.y, uRes.y - p.y) / band, 0.0, 1.0));',
+      '  col = mix(mix(page, col, fade), col * fade, 1.0 - uTheme);',
+      '  gl_FragColor = vec4(vec3(col), 1.0);',
+      '}'
+    ].join('\n');
+    function compileLight(type, src) {
+      var sh = lightGl.createShader(type);
+      lightGl.shaderSource(sh, src);
+      lightGl.compileShader(sh);
+      return sh;
+    }
+    lightProg = lightGl.createProgram();
+    lightGl.attachShader(lightProg, compileLight(lightGl.VERTEX_SHADER, lightVs));
+    lightGl.attachShader(lightProg, compileLight(lightGl.FRAGMENT_SHADER, lightFs));
+    lightGl.linkProgram(lightProg);
+    lightGl.useProgram(lightProg);
+    var lightBuf = lightGl.createBuffer();
+    lightGl.bindBuffer(lightGl.ARRAY_BUFFER, lightBuf);
+    lightGl.bufferData(lightGl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), lightGl.STATIC_DRAW);
+    var lightLoc = lightGl.getAttribLocation(lightProg, 'a');
+    lightGl.enableVertexAttribArray(lightLoc);
+    lightGl.vertexAttribPointer(lightLoc, 2, lightGl.FLOAT, false, 0, 0);
+    lightU = {
+      res: lightGl.getUniformLocation(lightProg, 'uRes'),
+      center: lightGl.getUniformLocation(lightProg, 'uCenter'),
+      aim: lightGl.getUniformLocation(lightProg, 'uAim'),
+      time: lightGl.getUniformLocation(lightProg, 'uTime'),
+      pointer: lightGl.getUniformLocation(lightProg, 'uPointer'),
+      pointerOn: lightGl.getUniformLocation(lightProg, 'uPointerOn'),
+      dpr: lightGl.getUniformLocation(lightProg, 'uDpr'),
+      half: lightGl.getUniformLocation(lightProg, 'uHalf'),
+      radius: lightGl.getUniformLocation(lightProg, 'uRadius'),
+      theme: lightGl.getUniformLocation(lightProg, 'uTheme'),
+      fade: lightGl.getUniformLocation(lightProg, 'uFade')
+    };
+    dialog.addEventListener('pointermove', function (e) {
+      var rect = lightCanvas.getBoundingClientRect();
+      var nx = (e.clientX - rect.left) * lightDpr;
+      var ny = (e.clientY - rect.top) * lightDpr;
+      if (Math.hypot(nx - lightPointer.tx, ny - lightPointer.ty) > 2 * lightDpr) lightPointer.moved = performance.now();
+      lightPointer.tx = nx;
+      lightPointer.ty = ny;
+      lightPointer.target = 1;
+    });
+    dialog.addEventListener('pointerleave', function () { lightPointer.target = 0; });
+  }
+
+  function drawLight(t) {
+    if (!lightRunning || !lightGl || !lightU) return;
+    lightDpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.floor(lightCanvas.clientWidth * lightDpr));
+    var h = Math.max(1, Math.floor(lightCanvas.clientHeight * lightDpr));
+    if (lightCanvas.width !== w || lightCanvas.height !== h) {
+      lightCanvas.width = w;
+      lightCanvas.height = h;
+    }
+    lightGl.viewport(0, 0, w, h);
+    var rect = lightCanvas.getBoundingClientRect();
+    var box = lightStage.getBoundingClientRect();
+    var cx = (box.left + box.width / 2 - rect.left) * lightDpr;
+    var cy = (box.top + box.height / 2 - rect.top) * lightDpr;
+    var inset = 7 * lightDpr;
+    var halfX = Math.max(1, (box.width / 2) * lightDpr - inset);
+    var halfY = Math.max(1, (box.height / 2) * lightDpr - inset);
+    lightPointer.x += (lightPointer.tx - lightPointer.x) * 0.23;
+    lightPointer.y += (lightPointer.ty - lightPointer.y) * 0.23;
+    var blend = lightPointer.target > lightPointer.on ? 0.045 : 0.018;
+    lightPointer.on += (lightPointer.target - lightPointer.on) * blend;
+    var idleTarget = lightPointer.target > 0 && t - lightPointer.moved > 900 ? 1 : 0;
+    lightPointer.idle += (idleTarget - lightPointer.idle) * 0.016;
+    var follow = lightPointer.on * (0.7 - lightPointer.idle * 0.52);
+    var theme = document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
+    var cssRadius = Math.max(0, box.width * 48 / 280 - 7);
+    lightGl.useProgram(lightProg);
+    lightGl.uniform2f(lightU.res, w, h);
+    lightGl.uniform2f(lightU.center, cx, cy);
+    lightGl.uniform2f(lightU.aim, cx, cy);
+    lightGl.uniform1f(lightU.time, reduceMotion ? 0 : t * 0.001);
+    lightGl.uniform2f(lightU.pointer, lightPointer.x, lightPointer.y);
+    lightGl.uniform1f(lightU.pointerOn, follow);
+    lightGl.uniform1f(lightU.dpr, lightDpr);
+    lightGl.uniform2f(lightU.half, halfX, halfY);
+    lightGl.uniform1f(lightU.radius, cssRadius * lightDpr);
+    lightGl.uniform1f(lightU.theme, theme);
+    var stageOpacity = parseFloat(getComputedStyle(lightStage).opacity);
+    if (isNaN(stageOpacity)) stageOpacity = 1;
+    var breathe = reduceMotion ? 1 : 0.22 + 0.78 * (0.5 + 0.5 * Math.sin(t * 0.001 * Math.PI * 2 / 8));
+    lightGl.uniform1f(lightU.fade, breathe * stageOpacity);
+    lightGl.clearColor(theme ? 0.831 : 0, theme ? 0.831 : 0, theme ? 0.831 : 0, 1);
+    lightGl.drawArrays(lightGl.TRIANGLES, 0, 3);
+    if (!reduceMotion) requestAnimationFrame(drawLight);
+  }
+
+  function startLight() {
+    if (!lightGl || lightRunning) return;
+    lightRunning = true;
+    requestAnimationFrame(drawLight);
+  }
+
+  function stopLight() {
+    lightRunning = false;
+  }
 
   function flowSrc(screen, device) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
@@ -724,6 +890,7 @@ if (typeof Swiper !== 'undefined') {
     if (!leaving) {
       paintFlow(card);
       if (!dialog.open) dialog.showModal();
+      startLight();
       dialog.focus();
       if (!reduceMotion) revealFlow(direction);
       return;
