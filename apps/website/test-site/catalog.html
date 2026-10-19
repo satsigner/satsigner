@@ -5,16 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Translated screens</title>
   <link rel="stylesheet" href="/fonts/inter.css">
-  <link rel="stylesheet" href="/test-site/catalog.css?v=2">
+  <link rel="stylesheet" href="/test-site/catalog.css?v=5">
 </head>
 <body>
   <main class="catalog">
     <h1>Translated screens</h1>
-    <p class="catalog-intro">Test catalog. Not linked from the marketing site. Open a card in the <a href="/test-site/index.html">phone demo</a>.</p>
+    <p class="catalog-intro">Test catalog. Not linked from the marketing site.</p>
     <div class="view-toggle" role="group" aria-label="Catalog layout">
-      <button type="button" data-view="list">List</button>
-      <button type="button" data-view="table">Table</button>
+      <button type="button" data-view="phone">Phone</button>
+      <button type="button" data-view="list">Cards</button>
+      <button type="button" data-view="table">List</button>
+      <button type="button" data-view="flow">Flow</button>
     </div>
+    <div class="phone-view" id="phone-view" hidden>
+      <iframe title="Phone demo" src="/test-site/index.html"></iframe>
+    </div>
+    <div class="flow" id="flow-view" hidden></div>
     <div class="screen-grid" id="list-view"></div>
     <table class="screen-table" id="table-view" hidden>
       <thead>
@@ -29,6 +35,6 @@
       <tbody id="screen-rows"></tbody>
     </table>
   </main>
-  <script src="/test-site/catalog.js?v=2"></script>
+  <script src="/test-site/catalog.js?v=4"></script>
 </body>
 </html>

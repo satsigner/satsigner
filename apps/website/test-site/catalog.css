@@ -7,8 +7,15 @@ body {
   margin: 0;
   background: #000;
   color: #fff;
-  font-family: Inter, sans-serif;
+  font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 a {
@@ -19,6 +26,11 @@ a {
   max-width: 1100px;
   margin: 0 auto;
   padding: 5rem 1.5rem 4rem;
+}
+
+body:has(#table-view:not([hidden])) .catalog,
+body:has(#flow-view:not([hidden])) .catalog {
+  max-width: none;
 }
 
 .catalog h1 {
@@ -187,7 +199,7 @@ a {
 .screen-table th,
 .screen-table td {
   text-align: left;
-  padding: 0.85rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   vertical-align: middle;
 }
@@ -206,14 +218,15 @@ a {
 
 .thumb {
   position: relative;
-  width: 72px;
+  display: block;
+  width: 54px;
   aspect-ratio: 390 / 844;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 17.143% / 7.921%;
   background: #000;
   box-shadow:
-    -8px -4px 18px rgba(255, 255, 255, 0.16),
-    6px 8px 16px rgba(255, 255, 255, 0.06);
+    -6px -3px 14px rgba(255, 255, 255, 0.16),
+    4px 6px 12px rgba(255, 255, 255, 0.06);
 }
 
 .thumb iframe {
@@ -223,7 +236,7 @@ a {
   width: 390px;
   height: 844px;
   border: 0;
-  transform: scale(0.1846);
+  transform: scale(0.13846);
   transform-origin: top left;
   pointer-events: none;
 }
@@ -232,6 +245,103 @@ a {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.flow {
+  position: relative;
+  overflow: auto;
+  padding-bottom: 2rem;
+}
+
+.flow-canvas {
+  position: relative;
+}
+
+.flow svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.flow-edge {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.25;
+}
+
+.flow.is-dim .flow-edge {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.flow.is-dim .flow-edge.is-hot {
+  stroke: rgba(255, 255, 255, 0.85);
+}
+
+.flow-lane {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flow-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  box-sizing: border-box;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: #0c0c0c;
+  color: #fff;
+  text-decoration: none;
+}
+
+.flow-node strong {
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.flow-node span {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.flow-node.is-hot,
+.flow-node:hover,
+.flow-node:focus-visible {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: #161616;
+}
+
+.flow.is-dim .flow-node {
+  opacity: 0.38;
+}
+
+.flow.is-dim .flow-node.is-hot {
+  opacity: 1;
+}
+
+.phone-view {
+  display: flex;
+  justify-content: center;
+}
+
+.phone-view iframe {
+  width: min(100%, 480px);
+  height: min(920px, calc(100vh - 14rem));
+  min-height: 640px;
+  border: 0;
+  border-radius: 16px;
+  background: #0a0a0a;
 }
 
 [hidden] {
