@@ -37,6 +37,12 @@ export const time = {
   zero: 0
 }
 
+export function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
 /**
  * Settles like `promise`, or rejects with `message` once `ms` pass first.
  * The timer is cleared either way. `promise` itself keeps running.

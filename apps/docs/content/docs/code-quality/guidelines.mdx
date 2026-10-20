@@ -454,9 +454,9 @@ export { toError }
 Instead of:
 
 ```typescript
-// services/ecash/tokenStatus.ts
+// hooks/useEcashSend.ts
 await new Promise((resolve) => {
-  setTimeout(resolve, TOKEN_STATUS_CHECK_THROTTLE_MS)
+  setTimeout(resolve, LNURL_PAY_DELAY_MS)
 })
 ```
 
@@ -465,13 +465,13 @@ Do:
 ```typescript
 // utils/time.ts
 export function sleep(ms: number) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
 }
 
-// services/ecash/tokenStatus.ts
-await sleep(TOKEN_STATUS_CHECK_THROTTLE_MS)
+// hooks/useEcashSend.ts
+await sleep(LNURL_PAY_DELAY_MS)
 ```
 
 ### Names over comments

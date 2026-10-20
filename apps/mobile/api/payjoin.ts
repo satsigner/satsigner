@@ -69,6 +69,7 @@ import {
 } from '@/utils/payjoinValidate'
 import { addressScriptHex } from '@/utils/payjoinWallet'
 import { extractTransactionIdFromPSBT } from '@/utils/psbt'
+import { sleep } from '@/utils/time'
 
 type HttpResponse = {
   status: number
@@ -286,12 +287,6 @@ async function defaultFetch(
       cause: nativeError
     })
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
 
 async function postBip78OriginalPsbt(params: {

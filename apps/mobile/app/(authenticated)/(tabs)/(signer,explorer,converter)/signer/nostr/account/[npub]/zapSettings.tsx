@@ -13,13 +13,13 @@ import {
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
   NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
-import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
+import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
@@ -42,7 +42,8 @@ export default function ZapSettingsPage() {
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
   )
-  const { accounts: ecashAccounts, allMints: ecashAllMints } = useEcash()
+  const ecashAccounts = useEcashStore((state) => state.accounts)
+  const ecashAllMints = useEcashStore((state) => state.mints)
   const arkAccounts = useArkStore((state) => state.accounts)
   const wallets = buildPaymentMethods(
     lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,

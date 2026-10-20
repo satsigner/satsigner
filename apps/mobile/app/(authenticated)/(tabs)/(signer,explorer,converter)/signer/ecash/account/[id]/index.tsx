@@ -36,7 +36,7 @@ import {
 } from '@/constants/headerChrome'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useEcash } from '@/hooks/useEcash'
+import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -59,7 +59,8 @@ export default function EcashAccountDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { mints, proofs, transactions, activeAccount, counters } = useEcash()
+  const { mints, proofs, transactions, activeAccount, counters } =
+    useEcashAccountState()
   const [tabIndex, setTabIndex] = useState(0)
   const [proofsView, setProofsView] = useState<'list' | 'bubbles'>('list')
 

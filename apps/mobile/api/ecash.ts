@@ -27,6 +27,7 @@ import type {
   EcashProof,
   EcashReceiveResult,
   EcashSendResult,
+  EcashTokenValidation,
   MeltQuote,
   MintQuote,
   WalletOptions
@@ -479,7 +480,7 @@ export async function validateEcashToken(
   accountId: string,
   mintUrl: string,
   options?: WalletOptions
-): Promise<{ isValid: boolean; isSpent?: boolean; details?: string }> {
+): Promise<EcashTokenValidation> {
   try {
     const decodedToken = getDecodedToken(token)
 

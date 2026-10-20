@@ -8,3 +8,11 @@ export const ECASH_BACKUP_VERSION = '1.1'
 export const NUT15_MPP = 15 as const
 export const BOLT11_METHOD = 'bolt11'
 export const SAT_UNIT = 'sat'
+export const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
+export const ECASH_QUOTE_POLL_INTERVAL_MS = 1500
+export const ECASH_QUOTE_MAX_POLL_ATTEMPTS = 120
+export const ECASH_PAYMENT_ERROR_I18N_KEYS = {
+  insufficientForFees: 'ecash.error.insufficientForFees',
+  insufficientProofs: 'ecash.error.insufficientProofs',
+  mintsLackMpp: 'ecash.error.mintsLackMpp'
+} as const

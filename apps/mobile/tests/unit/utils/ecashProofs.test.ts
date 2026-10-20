@@ -4,7 +4,8 @@ import {
   ecashProofsToBubbleData,
   proofsAfterMelt,
   proofsAfterSend,
-  removeSpentSecrets
+  removeSpentSecrets,
+  uniqueProofsBySecret
 } from '@/utils/ecashProofs'
 import { formatNumber } from '@/utils/format'
 
@@ -100,5 +101,20 @@ describe('ecashProofsToBubbleData', () => {
       label: PRIVACY_MASK,
       value: 1000
     })
+  })
+})
+
+describe('uniqueProofsBySecret', () => {
+  const mint = 'https://mint.example'
+
+  it('keeps the first proof for each secret in order', () => {
+    const first = proof('a', 1, mint)
+    const duplicate = { ...proof('a', 1, mint), C: 'C-dup' }
+    const other = proof('b', 2, mint)
+
+    expect(uniqueProofsBySecret([first, other, duplicate])).toStrictEqual([
+      first,
+      other
+    ])
   })
 })
