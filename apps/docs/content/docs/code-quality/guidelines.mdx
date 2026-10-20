@@ -364,11 +364,9 @@ Instead of:
 ```typescript
 // services/connectionTest.ts
 const CONNECTION_TEST_TIMEOUT_MS = 10_000
-const SOFTWARE_LABELS: Record<Backend, string> = {
-  electrum: 'Electrum',
-  esplora: 'Esplora',
-  rpc: 'Bitcoin Core'
-}
+
+// hooks/useConnectionTest.ts
+const CONNECTION_TEST_COOLDOWN_MS = 2000
 ```
 
 Do:
@@ -376,11 +374,7 @@ Do:
 ```typescript
 // constants/connectionTest.ts
 export const CONNECTION_TEST_TIMEOUT_MS = 10_000
-export const SOFTWARE_LABELS: Record<Backend, string> = {
-  electrum: 'Electrum',
-  esplora: 'Esplora',
-  rpc: 'Bitcoin Core'
-}
+export const CONNECTION_TEST_COOLDOWN_MS = 2000
 ```
 
 ### Types
@@ -396,7 +390,7 @@ type ProbeParams = {
   url: string
   backend: Backend
   network: Network
-  onElectrumClientOpened?: (client: ElectrumClient) => void
+  rpcCredentials?: RpcCredentials
 }
 ```
 
@@ -408,7 +402,7 @@ export type ProbeParams = {
   url: string
   backend: Backend
   network: Network
-  onElectrumClientOpened?: (client: ElectrumClient) => void
+  rpcCredentials?: RpcCredentials
 }
 ```
 
@@ -416,9 +410,9 @@ Instead of:
 
 ```typescript
 // services/connectionTest.ts
-type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
+type ConnectionTestFailure = {
+  success: false
+  error?: string
 }
 ```
 
@@ -426,9 +420,9 @@ Do:
 
 ```typescript
 // types/models/ConnectionTest.ts
-export type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
+export type ConnectionTestFailure = {
+  success: false
+  error?: string
 }
 ```
 
