@@ -36,3 +36,25 @@ export const time = {
     date.getTime() - time.days(weeks * DAYS_PER_WEEK),
   zero: 0
 }
+
+/**
+ * Settles like `promise`, or rejects with `message` once `ms` pass first.
+ * The timer is cleared either way. `promise` itself keeps running.
+ */
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message = 'Operation timed out'
+) {
+  const timers: ReturnType<typeof setTimeout>[] = []
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timers.push(setTimeout(() => reject(new Error(message)), ms))
+  })
+  try {
+    return await Promise.race([promise, timedOut])
+  } finally {
+    for (const timer of timers) {
+      clearTimeout(timer)
+    }
+  }
+}

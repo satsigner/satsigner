@@ -49,7 +49,7 @@ export default function NetworkSettings() {
   )
 
   const [connectionStatus] = useVerifyConnection()
-  const { testing, testConnection, resetTest } = useConnectionTest()
+  const { testing, testConnection } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -93,7 +93,6 @@ export default function NetworkSettings() {
     setTestingServer(server.url)
     setLastProbeBanner(null)
     setLastServerBanner(null)
-    await resetTest()
 
     try {
       const result = await testConnection(

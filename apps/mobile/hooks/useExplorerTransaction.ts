@@ -15,7 +15,7 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
-import { time } from '@/utils/time'
+import { time, withTimeout } from '@/utils/time'
 import { weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -24,19 +24,9 @@ export type ExplorerLoadingPhase = string | null
 const TXID_LENGTH = 64
 const TIMEOUT_MS = 30_000
 const TIMEOUT_TOR_MS = 90_000
-function withTimeout<T>(promise: Promise<T>, url: string): Promise<T> {
+function withExplorerTimeout<T>(promise: Promise<T>, url: string) {
   const ms = url.includes('.onion') ? TIMEOUT_TOR_MS : TIMEOUT_MS
-  let timeoutId: ReturnType<typeof setTimeout> | undefined
-  const timeoutPromise = new Promise<T>((_resolve, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error('timeout'))
-    }, ms)
-  })
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    if (timeoutId !== undefined) {
-      clearTimeout(timeoutId)
-    }
-  })
+  return withTimeout(promise, ms, 'timeout')
 }
 
 /** Wire-order outpoint hash → explorer txid (Hermes: no TypedArray#toReversed). */
@@ -193,12 +183,15 @@ function fetchTransaction(
   rpcCredentials?: RpcCredentials
 ): Promise<ExplorerTransaction> {
   if (backend === 'electrum') {
-    return withTimeout(fetchFromElectrum(txid, url, onPhase), url)
+    return withExplorerTimeout(fetchFromElectrum(txid, url, onPhase), url)
   }
   if (backend === 'rpc') {
-    return withTimeout(fetchFromRpc(txid, url, rpcCredentials, onPhase), url)
+    return withExplorerTimeout(
+      fetchFromRpc(txid, url, rpcCredentials, onPhase),
+      url
+    )
   }
-  return withTimeout(fetchFromEsplora(txid, url, onPhase), url)
+  return withExplorerTimeout(fetchFromEsplora(txid, url, onPhase), url)
 }
 
 export function useExplorerTransaction(txid: string | null) {
@@ -264,7 +257,7 @@ export function useExplorerTransaction(txid: string | null) {
     )
 
     try {
-      const result = await withTimeout(
+      const result = await withExplorerTimeout(
         fetchFromMempool(normalizedTxid, oracle, setLoadingPhase),
         oracle.baseUrl
       )
