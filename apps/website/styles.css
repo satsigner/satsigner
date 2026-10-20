@@ -1194,10 +1194,14 @@ html[data-theme="light"] .as-seen-in-logo--light {
   z-index: 0;
   pointer-events: none;
   background: transparent;
+  opacity: 0;
   box-shadow:
     -20px -10px 42px rgba(255, 255, 255, 0.2),
     14px 18px 34px rgba(255, 255, 255, 0.07);
-  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.feature-flow.is-lit::before {
+  opacity: 1;
 }
 .feature-flow iframe {
   position: absolute;
@@ -1205,10 +1209,14 @@ html[data-theme="light"] .as-seen-in-logo--light {
   height: auto;
   border: 0;
   background: #000;
+  color-scheme: dark;
   pointer-events: none;
-  opacity: 0.72;
+  opacity: 0;
   overflow: hidden;
-  transition: opacity 0.45s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.55s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.feature-flow.is-ready iframe {
+  opacity: 0.72;
 }
 .feature-grid-card:hover .feature-flow::before,
 .feature-grid-card:focus-within .feature-flow::before,
@@ -3168,7 +3176,7 @@ html[data-theme="light"] .feature-grid-card p {
 html[data-theme="light"] .feature-flow::after {
   background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
 }
-html[data-theme="light"] .feature-flow iframe {
+html[data-theme="light"] .feature-flow.is-ready iframe {
   opacity: 1;
 }
 html[data-theme="light"] .flow-modal,

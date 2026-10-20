@@ -943,8 +943,26 @@ if (typeof Swiper !== 'undefined') {
     frame.tabIndex = -1;
     frame.setAttribute('aria-hidden', 'true');
     frame.loading = 'lazy';
-    frame.src = flowSrc(screen, true);
+    frame.addEventListener('load', function () {
+      if (!frame.getAttribute('src')) return;
+      layer.classList.add('is-ready');
+      window.setTimeout(function () {
+        layer.classList.add('is-lit');
+      }, 520);
+    });
     layer.appendChild(frame);
+    if ('IntersectionObserver' in window) {
+      var watch = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          frame.src = flowSrc(screen, true);
+          watch.disconnect();
+        });
+      }, { rootMargin: '240px 0px' });
+      watch.observe(card);
+    } else {
+      frame.src = flowSrc(screen, true);
+    }
     card.insertBefore(layer, card.firstChild);
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
