@@ -17,6 +17,10 @@ import {
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
+import {
+  ECASH_QUOTE_MAX_POLL_ATTEMPTS,
+  ECASH_QUOTE_POLL_INTERVAL_MS
+} from '@/constants/ecash'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { t } from '@/locales'
 import {
@@ -55,9 +59,6 @@ import {
   proofsAfterSend,
   removeSpentSecrets
 } from '@/utils/ecashProofs'
-
-const POLL_INTERVAL = 1500
-const MAX_POLL_ATTEMPTS = 120
 
 /** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
 async function getSeedForAccount(accountId: string) {
@@ -738,7 +739,7 @@ export function useQuotePolling() {
     let currentLastPollTime = Date.now()
 
     const poll = async () => {
-      if (currentPollCount >= MAX_POLL_ATTEMPTS) {
+      if (currentPollCount >= ECASH_QUOTE_MAX_POLL_ATTEMPTS) {
         setIsPolling(false)
         isPollingRef.current = false
         return
@@ -749,8 +750,8 @@ export function useQuotePolling() {
       }
 
       const now = Date.now()
-      if (now - currentLastPollTime < POLL_INTERVAL) {
-        const delay = POLL_INTERVAL - (now - currentLastPollTime)
+      if (now - currentLastPollTime < ECASH_QUOTE_POLL_INTERVAL_MS) {
+        const delay = ECASH_QUOTE_POLL_INTERVAL_MS - (now - currentLastPollTime)
         timeoutRef.current = setTimeout(poll, delay)
         return
       }
@@ -769,7 +770,7 @@ export function useQuotePolling() {
         }
 
         if (isPollingRef.current) {
-          timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
+          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
         }
       } catch {
         currentPollCount += 1
@@ -777,8 +778,11 @@ export function useQuotePolling() {
         setPollCount(currentPollCount)
         setLastPollTime(currentLastPollTime)
 
-        if (isPollingRef.current && currentPollCount < MAX_POLL_ATTEMPTS) {
-          timeoutRef.current = setTimeout(poll, POLL_INTERVAL)
+        if (
+          isPollingRef.current &&
+          currentPollCount < ECASH_QUOTE_MAX_POLL_ATTEMPTS
+        ) {
+          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
         } else {
           setIsPolling(false)
           isPollingRef.current = false
