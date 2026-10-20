@@ -1,0 +1,46 @@
+/* Studio dashboard. Uses catalog.css page tokens so it follows the light/dark toggle. */
+.dashboard { max-width: 1120px; margin: 0 auto; padding: 96px 24px 96px; color: var(--ink); }
+.dashboard[hidden] { display: none; }
+.dashboard h1 { max-width: 760px; margin: 8px 0 16px; font-size: clamp(28px, 4vw, 44px); font-weight: 300; line-height: 1.1; letter-spacing: -0.5px; }
+.dashboard h2 { margin: 0 0 16px; font-size: 13px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; }
+.dashboard h2 span { margin-left: 6px; color: var(--ink-muted); }
+.dash-eyebrow { margin: 0; color: var(--ink-muted); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+.dash-lede { max-width: 720px; margin: 0; color: var(--ink-soft); font-size: 16px; line-height: 1.6; }
+.dash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.dash-actions button { height: 36px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--pill); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.dash-actions button:hover { border-color: var(--line-hot); }
+.dash-actions .dash-cta { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.dashboard section + section { margin-top: 56px; }
+.dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.dash-stat { display: flex; flex-direction: column; gap: 4px; padding: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.dash-stat strong { font-size: 32px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.dash-stat span { font-size: 13px; }
+.dash-stat small { color: var(--ink-muted); font-size: 12px; }
+.dash-area-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.dash-area { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.dash-area:hover { border-color: var(--line-strong); }
+.dash-area-name { font-size: 14px; }
+.dash-area-count { color: var(--ink-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dash-bar { grid-column: 1 / -1; display: block; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.dash-bar i { display: block; height: 100%; background: var(--ink); }
+.dash-area.is-done .dash-bar i { background: #a7ffaf; }
+.dash-tracker-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.dash-tracker-head h2 { margin: 0; }
+.dash-filters { display: flex; gap: 8px; }
+.dash-filters input, .dash-filters select { height: 32px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table th { padding: 8px; border-bottom: 1px solid var(--line-strong); color: var(--ink-muted); font-weight: 400; text-align: left; }
+.dash-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.dash-table tr[hidden] { display: none; }
+.dash-table code { font-size: 12px; word-break: break-all; }
+.dash-table a { color: var(--ink-soft); }
+.dash-uses span { display: inline-block; margin: 0 4px 4px 0; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-muted); font-size: 11px; }
+.dash-uses span.is-kit { border-color: var(--line-hot); color: var(--ink); }
+.dash-note, .dash-kit p { color: var(--ink-muted); font-size: 13px; line-height: 1.8; }
+.dash-kit code { display: inline-block; margin: 0 4px 4px 0; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink-soft); font-size: 12px; }
+.dash-problems li { color: #dcbb13; font-size: 13px; }
+@media (max-width: 760px) {
+  .dashboard { padding: 80px 16px 64px; }
+  .dash-stats { grid-template-columns: repeat(2, 1fr); }
+  .dash-table th:nth-child(3), .dash-table td:nth-child(3) { display: none; }
+}

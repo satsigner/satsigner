@@ -441,6 +441,7 @@ const table = document.getElementById('table-view')
 const flow = document.getElementById('flow-view')
 const phone = document.getElementById('phone-view')
 const componentsView = document.getElementById('components-view')
+const dashboardView = document.getElementById('dashboard-view')
 const catalog = document.getElementById('catalog-views')
 const buttons = document.querySelectorAll('[data-view]')
 
@@ -680,7 +681,7 @@ components.forEach((component) => {
 const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map' }
 
 function isLayoutMode(mode) {
-  return mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components'
+  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components'
 }
 
 function viewFromUrl() {
@@ -691,12 +692,13 @@ function viewFromUrl() {
 
 function setView(mode, updateUrl) {
   mode = viewAliases[mode] || mode
-  if (!isLayoutMode(mode)) mode = 'prototype'
+  if (!isLayoutMode(mode)) mode = 'dashboard'
   list.hidden = mode !== 'screens'
   table.hidden = mode !== 'table'
   flow.hidden = mode !== 'map'
   phone.hidden = mode !== 'prototype'
   componentsView.hidden = mode !== 'components'
+  dashboardView.hidden = mode !== 'dashboard'
   if (catalog) catalog.hidden = mode === 'prototype'
   buttons.forEach((button) => {
     button.classList.toggle('is-active', button.getAttribute('data-view') === mode)
@@ -748,7 +750,8 @@ themeToggle.addEventListener('click', () => {
   applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light')
 })
 
-setView(viewFromUrl() || 'prototype', true)
+// Land on the dashboard; a deep link to a screen (#send) still opens the prototype.
+setView(viewFromUrl() || (location.hash.length > 1 ? 'prototype' : 'dashboard'), true)
 
 renderFlow()
 if (!flow.hidden) centerIntro()

@@ -29,6 +29,17 @@ The site is deployed as plain static files on Netlify. There is no build step an
 - Pages load only `.html`, `.css` and `.js` files with `<script>`/`<link>`. No bundler, no `import` of npm packages, no server routes.
 - Data the browser needs (routes, coverage) is emitted as `.js` files that set globals, so pages work from any static host or `file://`.
 
+## Dashboard
+
+`/studio/` opens on the Dashboard (`dashboard.js`, `dashboard.css`). It explains what Studio is and shows live progress:
+
+- route coverage and coverage by area
+- a filterable tracker of every missing route, with the components it uses and a link to its source
+- the kit components ported so far
+- icon, string and style-rule counts, and when extraction last ran
+
+It reads `generated/meta.js`, `routes.js` and `coverage.js`, so rerun the two tools after porting screens. When you port an app component into the kit, add it to `KIT_PORTS` in `dashboard.js`.
+
 ## Extraction pipeline
 
 Run `node studio/tools/extract-all.mjs --app ../satsigner/apps/mobile` (the default path assumes the app repo sits next to this one). It uses the app's own TypeScript install and writes these files to `generated/`. Never edit them by hand:

@@ -13,10 +13,12 @@
   <link rel="stylesheet" href="/studio/components.css">
   <link rel="stylesheet" href="/studio/screen.css">
   <link rel="stylesheet" href="/studio/catalog.css?v=24">
+  <link rel="stylesheet" href="/studio/dashboard.css">
 </head>
 <body>
   <div class="view-toggle" role="group" aria-label="Catalog layout">
     <a class="studio-brand" href="/studio/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER STUDIO</span></a>
+    <button type="button" data-view="dashboard">Dashboard</button>
     <button type="button" data-view="prototype">Prototype</button>
     <button type="button" data-view="screens">Screens</button>
     <button type="button" data-view="table">Table</button>
@@ -621,6 +623,7 @@
     <button type="button" class="stage-home" id="stage-home">Home</button>
   </main>
   <div class="catalog" id="catalog-views" hidden>
+    <div class="dashboard" id="dashboard-view" hidden></div>
     <div class="flow" id="flow-view" hidden></div>
     <div class="screen-grid" id="list-view"></div>
     <div class="component-grid" id="components-view" hidden></div>
@@ -648,6 +651,10 @@
   <script src="/studio/screens/settings-network.js"></script>
   <script src="/studio/screens/settings-features.js"></script>
   <script src="/studio/screens/settings-system.js"></script>
+  <script src="/studio/generated/routes.js"></script>
+  <script src="/studio/generated/coverage.js"></script>
+  <script src="/studio/generated/meta.js"></script>
   <script src="/studio/catalog.js?v=26"></script>
+  <script src="/studio/dashboard.js"></script>
 </body>
 </html>
