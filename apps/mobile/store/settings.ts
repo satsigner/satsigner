@@ -12,9 +12,13 @@ import {
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import {
+  type PayjoinCoordinationMode,
+  type PayjoinSettings
+} from '@/types/payjoin'
 import { isRecord } from '@/utils/object'
 import {
+  hasCustomPayjoinDirectoryUrl,
   normalizePayjoinCoordinationMode,
   resolvePayjoinDirectoryUrl
 } from '@/utils/payjoinMode'
@@ -212,16 +216,15 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
 
 export { migrateFiatPriceSettings, useSettingsStore }
 
-function getPayjoinSessionTtlMs(): number {
-  return normalizePayjoinSessionTtlMs(
-    useSettingsStore.getState().payjoinSessionTtlMs
-  )
+/** Current payjoin settings, read once, for `PayjoinDeps`. */
+function getPayjoinSettings(): PayjoinSettings {
+  const { payjoinDirectoryUrl, payjoinSessionTtlMs } =
+    useSettingsStore.getState()
+  return {
+    directoryUrl: resolvePayjoinDirectoryUrl(payjoinDirectoryUrl),
+    hasCustomDirectory: hasCustomPayjoinDirectoryUrl(payjoinDirectoryUrl),
+    sessionTtlMs: normalizePayjoinSessionTtlMs(payjoinSessionTtlMs)
+  }
 }
 
-function getResolvedPayjoinDirectoryUrl(): string {
-  return resolvePayjoinDirectoryUrl(
-    useSettingsStore.getState().payjoinDirectoryUrl
-  )
-}
-
-export { getPayjoinSessionTtlMs, getResolvedPayjoinDirectoryUrl }
+export { getPayjoinSettings }

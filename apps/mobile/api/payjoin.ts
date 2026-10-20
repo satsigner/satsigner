@@ -31,20 +31,12 @@ import {
   PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
 import { MS_PER_SECOND } from '@/constants/time'
-import { useBlockchainStore } from '@/store/blockchain'
-import {
-  buildNewSession,
-  usePayjoinSessionsStore
-} from '@/store/payjoinSessions'
-import {
-  getPayjoinSessionTtlMs,
-  getResolvedPayjoinDirectoryUrl,
-  useSettingsStore
-} from '@/store/settings'
 import {
   type PayjoinBoardDestination,
+  type PayjoinDeps,
   type PayjoinSendResult,
   type PayjoinSession,
+  type PayjoinSessionStore,
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
@@ -58,8 +50,8 @@ import {
   payjoinWarn,
   urlHost
 } from '@/utils/payjoinLog'
-import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
+import { buildNewSession } from '@/utils/payjoinSession'
 import {
   isPayjoinSuccess,
   isPayjoinTerminal
@@ -360,6 +352,7 @@ async function sendPayjoin(params: {
   fetchImpl?: FetchLike
   timeoutMs?: number
   accountId?: string
+  deps: PayjoinDeps
 }): Promise<PayjoinSendResult> {
   const parsed = parsePayjoinUri(params.payjoinUri)
   if (!parsed.isValid || !parsed.params) {
@@ -410,6 +403,7 @@ async function sendPayjoin(params: {
   return await sendBip77({
     accountId: params.accountId,
     callbacks: params.callbacks,
+    deps: params.deps,
     disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     originalPsbtBase64: params.originalPsbtBase64,
@@ -599,6 +593,7 @@ async function startBip77Send(params: {
   fetchImpl?: FetchLike
   /** Brief wait for an already-online receiver before returning "waiting". */
   quickPollMs?: number
+  deps: PayjoinDeps
 }): Promise<Bip77AsyncSendResult> {
   const parsed = parsePayjoinUri(params.payjoinUri)
   const mailbox =
@@ -629,6 +624,7 @@ async function startBip77SendOnce(
     outputScriptsHex: string[]
     fetchImpl?: FetchLike
     quickPollMs?: number
+    deps: PayjoinDeps
   },
   mailbox: string
 ): Promise<Bip77AsyncSendResult> {
@@ -642,7 +638,7 @@ async function startBip77SendOnce(
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
   const relays = getShuffledOhttpRelays()
-  const directoryUrl = getResolvedPayjoinDirectoryUrl()
+  const { directoryUrl } = params.deps.settings
   let lastError = 'bip77 send failed'
   const parsed = parsePayjoinUri(params.payjoinUri)
 
@@ -778,9 +774,10 @@ async function startBip77SendOnce(
           protocol: 'v2',
           role: 'sender',
           status: 'waiting',
+          ttlMs: params.deps.settings.sessionTtlMs,
           uri: params.payjoinUri
         })
-        usePayjoinSessionsStore.getState().upsertSession(session)
+        params.deps.sessions.upsertSession(session)
         payjoinLog('sender waiting for receiver', {
           mailbox,
           ms: Date.now() - startedAt,
@@ -823,6 +820,7 @@ async function pollBip77Send(params: {
   outputScriptsHex: string[]
   fetchImpl?: FetchLike
   timeoutMs?: number
+  deps: PayjoinDeps
 }): Promise<Bip77AsyncSendResult> {
   const originalPsbtBase64 = params.session.originalPsbtBase64 ?? ''
   if (isPayjoinTerminal(params.session.status)) {
@@ -871,12 +869,10 @@ async function pollBip77Send(params: {
   }
 
   function fallbackDeadSession(reason: string): Bip77AsyncSendResult {
-    usePayjoinSessionsStore
-      .getState()
-      .updateSessionStatus(params.session.id, 'fallback', {
-        error: reason,
-        nativeState: undefined
-      })
+    params.deps.sessions.updateSessionStatus(params.session.id, 'fallback', {
+      error: reason,
+      nativeState: undefined
+    })
     payjoinWarn('sender resume unrecoverable — falling back', {
       mailbox,
       reason: compactError(reason),
@@ -891,15 +887,11 @@ async function pollBip77Send(params: {
     timeoutMs: params.timeoutMs ?? PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS
   })
 
-  usePayjoinSessionsStore
-    .getState()
-    .updateSessionStatus(params.session.id, 'negotiating')
+  params.deps.sessions.updateSessionStatus(params.session.id, 'negotiating')
 
   try {
     while (Date.now() < deadline) {
-      const live = usePayjoinSessionsStore
-        .getState()
-        .getSession(params.session.id)
+      const live = params.deps.sessions.getSession(params.session.id)
       if (live && isPayjoinTerminal(live.status)) {
         return {
           kind: 'fallback',
@@ -935,12 +927,14 @@ async function pollBip77Send(params: {
             params.outputScriptsHex
           )
           if (result.ok && result.usedPayjoin) {
-            usePayjoinSessionsStore
-              .getState()
-              .updateSessionStatus(params.session.id, 'completed', {
+            params.deps.sessions.updateSessionStatus(
+              params.session.id,
+              'completed',
+              {
                 nativeState: undefined,
                 payjoinPsbtBase64: result.psbtBase64
-              })
+              }
+            )
             payjoinLog('sender resume got proposal', {
               mailbox,
               ms: Date.now() - startedAt,
@@ -997,7 +991,7 @@ async function pollBip77Send(params: {
     status: 'waiting',
     updatedAt: Date.now()
   }
-  usePayjoinSessionsStore.getState().upsertSession(updated)
+  params.deps.sessions.upsertSession(updated)
   payjoinLog('sender resume still waiting', {
     mailbox,
     ms: Date.now() - startedAt,
@@ -1017,10 +1011,12 @@ async function sendBip77(params: {
   fetchImpl?: FetchLike
   timeoutMs: number
   accountId?: string
+  deps: PayjoinDeps
 }): Promise<PayjoinSendResult> {
   const started = await startBip77Send({
     accountId: params.accountId ?? 'unknown',
     callbacks: params.callbacks,
+    deps: params.deps,
     disableOutputSubstitution: params.disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     originalPsbtBase64: params.originalPsbtBase64,
@@ -1044,6 +1040,7 @@ async function sendBip77(params: {
 
   const polled = await pollBip77Send({
     callbacks: params.callbacks,
+    deps: params.deps,
     disableOutputSubstitution: params.disableOutputSubstitution,
     fetchImpl: params.fetchImpl,
     outputScriptsHex: params.outputScriptsHex,
@@ -1193,11 +1190,13 @@ function applyManualSenderProposal(params: {
   )
 }
 
-function clearReceiverSessionsForAccount(accountId: string) {
-  const store = usePayjoinSessionsStore.getState()
-  for (const session of store.sessions) {
+function clearReceiverSessionsForAccount(
+  accountId: string,
+  sessions: PayjoinSessionStore
+) {
+  for (const session of sessions.getSessions()) {
     if (session.accountId === accountId && session.role === 'receiver') {
-      store.removeSession(session.id)
+      sessions.removeSession(session.id)
     }
   }
 }
@@ -1211,10 +1210,11 @@ function clearReceiverSessionsForAccount(accountId: string) {
  *   to check status, orphaning any sender already waiting on the old mailbox.
  */
 async function tryResumeReceiverSession(
-  session: PayjoinSession
+  session: PayjoinSession,
+  sessions: PayjoinSessionStore
 ): Promise<PayjoinSession | null> {
   if (!session.nativeState || !isNativeAvailable()) {
-    usePayjoinSessionsStore.getState().removeSession(session.id)
+    sessions.removeSession(session.id)
     return null
   }
   try {
@@ -1250,27 +1250,25 @@ async function createReceivePayjoinSession(params: {
   amountSats?: number
   board?: PayjoinBoardDestination
   label?: string
-  network?: AppNetwork
+  network: AppNetwork
   ttlMs?: number
+  deps: PayjoinDeps
 }): Promise<PayjoinSession> {
   // PDK matches the sender's outputs against this script to find the payment.
   // Without it every proposal is rejected with "Missing payment.", so refuse to
   // mint a mailbox that could never complete.
-  const network =
-    params.network ?? useBlockchainStore.getState().selectedNetwork
   const receiveScriptHex = addressScriptHex(
     params.address,
-    bitcoinjsNetwork(network)
+    bitcoinjsNetwork(params.network)
   )
   if (!receiveScriptHex) {
     throw new Error(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)
   }
 
   const relays = getShuffledOhttpRelays()
-  const directoryUrl = getResolvedPayjoinDirectoryUrl()
-  const expireSeconds = Math.floor(
-    (params.ttlMs ?? getPayjoinSessionTtlMs()) / MS_PER_SECOND
-  )
+  const { directoryUrl, hasCustomDirectory } = params.deps.settings
+  const ttlMs = params.ttlMs ?? params.deps.settings.sessionTtlMs
+  const expireSeconds = Math.floor(ttlMs / MS_PER_SECOND)
 
   let pjUri: string
   let nativeState: string | undefined
@@ -1326,8 +1324,7 @@ async function createReceivePayjoinSession(params: {
         throw new Error(createError)
       }
       // Custom directory must not silently fall back to the default host.
-      const customDirectory = useSettingsStore.getState().payjoinDirectoryUrl
-      if (hasCustomPayjoinDirectoryUrl(customDirectory)) {
+      if (hasCustomDirectory) {
         throw new Error(createError)
       }
       const placeholderEndpoint = `${directoryUrl}/unavailable#RK1-pending`
@@ -1372,11 +1369,11 @@ async function createReceivePayjoinSession(params: {
     role: 'receiver',
     // 'ready' = mailbox created (URI has pj=); poll moves it to 'waiting'.
     status: nativeState ? 'ready' : 'error',
-    ttlMs: params.ttlMs,
+    ttlMs,
     uri: pjUri!
   })
 
-  usePayjoinSessionsStore.getState().upsertSession(session)
+  params.deps.sessions.upsertSession(session)
   payjoinLog('receiver session stored', {
     error: createError ? compactError(createError) : undefined,
     mailbox: mailboxFromEndpoint(session.pjEndpoint),
@@ -1394,6 +1391,7 @@ async function pollReceiverSession(params: {
   session: PayjoinSession
   callbacks: PayjoinWalletCallbacks
   fetchImpl?: FetchLike
+  deps: PayjoinDeps
 }): Promise<{
   session: PayjoinSession
   originalPsbtBase64?: string
@@ -1443,13 +1441,13 @@ async function pollReceiverSession(params: {
         ...params.session,
         expiresAt: Math.max(
           params.session.expiresAt,
-          now + getPayjoinSessionTtlMs()
+          now + params.deps.settings.sessionTtlMs
         ),
         nativeState: processed.state,
         status: 'proposal_received' as const,
         updatedAt: now
       }
-      usePayjoinSessionsStore.getState().upsertSession(updated)
+      params.deps.sessions.upsertSession(updated)
       return {
         originalPsbtBase64: params.session.originalPsbtBase64,
         session: updated
@@ -1461,7 +1459,7 @@ async function pollReceiverSession(params: {
       status: 'waiting' as const,
       updatedAt: now
     }
-    usePayjoinSessionsStore.getState().upsertSession(updated)
+    params.deps.sessions.upsertSession(updated)
     return { session: updated }
   }
 
@@ -1474,7 +1472,7 @@ async function pollReceiverSession(params: {
       status: 'proposal_received' as const,
       updatedAt: Date.now()
     }
-    usePayjoinSessionsStore.getState().upsertSession(updated)
+    params.deps.sessions.upsertSession(updated)
     return { originalPsbtBase64, session: updated }
   }
 
@@ -1485,7 +1483,7 @@ async function pollReceiverSession(params: {
       status: 'error' as const,
       updatedAt: Date.now()
     }
-    usePayjoinSessionsStore.getState().upsertSession(updated)
+    params.deps.sessions.upsertSession(updated)
     return { session: updated }
   }
 
@@ -1510,6 +1508,7 @@ async function finalizeReceiverPayjoin(params: {
   session: PayjoinSession
   callbacks: PayjoinWalletCallbacks
   fetchImpl?: FetchLike
+  deps: PayjoinDeps
 }): Promise<PayjoinSession> {
   if (!canFinalizePayjoinProposal(params.session)) {
     return {
@@ -1529,14 +1528,14 @@ async function finalizeReceiverPayjoin(params: {
   }
 
   const candidates = await params.callbacks.listCandidateOutpoints()
-  const store = usePayjoinSessionsStore.getState()
+  const { sessions } = params.deps
 
   // Prefer inputs never contributed. If every unspent candidate is already
   // marked seen, reuse one — still being listed means the prior Payjoin did
   // not spend it (abandoned / failed POST), so hard-rejecting left wallets
   // stuck on "Negotiating…" forever.
   let chosen = candidates.find(
-    (c) => !store.hasSeenInput(`${c.txid}:${c.vout}`)
+    (c) => !sessions.hasSeenInput(`${c.txid}:${c.vout}`)
   )
   if (!chosen && candidates.length > 0) {
     const [firstCandidate] = candidates
@@ -1552,7 +1551,7 @@ async function finalizeReceiverPayjoin(params: {
       error: 'no utxos to contribute',
       status: 'error' as const
     }
-    store.upsertSession(updated)
+    sessions.upsertSession(updated)
     return updated
   }
 
@@ -1576,10 +1575,7 @@ async function finalizeReceiverPayjoin(params: {
   )
   const walletChecks = {
     isOutpointOwned: (outpoint: string) => ownedOutpoints.has(outpoint),
-    isOutpointSeen: (outpoint: string) => {
-      const seen = params.callbacks.hasSeenInput(outpoint)
-      return typeof seen === 'boolean' ? seen : false
-    }
+    isOutpointSeen: (outpoint: string) => sessions.hasSeenInput(outpoint)
   }
   const prepared = await receiverContributeAndFinalize(
     nativeState,
@@ -1606,7 +1602,7 @@ async function finalizeReceiverPayjoin(params: {
       status: 'error' as const,
       updatedAt: Date.now()
     }
-    store.upsertSession(updated)
+    sessions.upsertSession(updated)
     return updated
   }
 
@@ -1617,7 +1613,7 @@ async function finalizeReceiverPayjoin(params: {
   })
   assertPayjoinHttpOk(res, 'bip77 receiver proposal post')
 
-  store.markInputSeen(outpoint)
+  sessions.markInputSeen(outpoint)
 
   let txid: string | undefined
   try {
@@ -1635,7 +1631,7 @@ async function finalizeReceiverPayjoin(params: {
     // Keep the card alive past mailbox TTL until broadcast sync or discard.
     expiresAt: Math.max(
       params.session.expiresAt,
-      now + getPayjoinSessionTtlMs()
+      now + params.deps.settings.sessionTtlMs
     ),
     // Drop native handle after the proposal is posted — keeps MMKV small and
     // avoids retaining the receiver entry once the sender can poll it.
@@ -1646,7 +1642,7 @@ async function finalizeReceiverPayjoin(params: {
     txid,
     updatedAt: now
   }
-  store.upsertSession(updated)
+  sessions.upsertSession(updated)
   return updated
 }
 
@@ -1661,19 +1657,20 @@ async function finalizeReceiverPayjoin(params: {
 async function finalizeBoardReceiverPayjoin(params: {
   session: PayjoinSession
   fetchImpl?: FetchLike
+  deps: PayjoinDeps
 }): Promise<PayjoinSession> {
   const { session } = params
   const { board } = session
-  const store = usePayjoinSessionsStore.getState()
+  const { sessions } = params.deps
   if (!canFinalizePayjoinProposal(session)) {
-    return failBoardSession(session, 'missing proposal state')
+    return failBoardSession(sessions, session, 'missing proposal state')
   }
   const { nativeState } = session
   if (!nativeState) {
-    return failBoardSession(session, 'missing proposal state')
+    return failBoardSession(sessions, session, 'missing proposal state')
   }
   if (!board) {
-    return failBoardSession(session, 'missing board destination')
+    return failBoardSession(sessions, session, 'missing board destination')
   }
 
   payjoinLog('board receiver finalize', {
@@ -1686,28 +1683,33 @@ async function finalizeBoardReceiverPayjoin(params: {
   // against a sender probing with an input it already used in a past session.
   const prepared = await receiverFinalizeWithoutInputs(nativeState, {
     isOutpointOwned: () => false,
-    isOutpointSeen: (outpoint) => store.hasSeenInput(outpoint)
+    isOutpointSeen: (outpoint) => sessions.hasSeenInput(outpoint)
   })
 
   if (!prepared.request.url) {
-    return failBoardSession(session, 'missing directory post after finalize', {
-      nativeState: prepared.state,
-      payjoinPsbtBase64: prepared.psbtBase64,
-      proposalPsbtBase64: prepared.psbtBase64
-    })
+    return failBoardSession(
+      sessions,
+      session,
+      'missing directory post after finalize',
+      {
+        nativeState: prepared.state,
+        payjoinPsbtBase64: prepared.psbtBase64,
+        proposalPsbtBase64: prepared.psbtBase64
+      }
+    )
   }
 
   // A retry after a failed directory post must not register the board twice.
   const cosign = session.txid
-    ? reuseRegisteredBoard(session, prepared.psbtBase64)
-    : await cosignBoard(session, board, prepared.psbtBase64)
+    ? reuseRegisteredBoard(sessions, session, prepared.psbtBase64)
+    : await cosignBoard(sessions, session, board, prepared.psbtBase64)
   if ('failed' in cosign) {
     return cosign.failed
   }
 
   const fetchImpl = params.fetchImpl ?? defaultFetch
   if (!session.txid) {
-    store.upsertSession({
+    sessions.upsertSession({
       ...session,
       payjoinPsbtBase64: prepared.psbtBase64,
       proposalPsbtBase64: prepared.psbtBase64,
@@ -1725,7 +1727,7 @@ async function finalizeBoardReceiverPayjoin(params: {
   } catch (error) {
     // Keep the pre-finalize native handle so the poll loop re-derives the same
     // proposal and only repeats the post.
-    return failBoardSession(session, compactError(error), {
+    return failBoardSession(sessions, session, compactError(error), {
       payjoinPsbtBase64: prepared.psbtBase64,
       proposalPsbtBase64: prepared.psbtBase64,
       txid: cosign.txid
@@ -1736,7 +1738,10 @@ async function finalizeBoardReceiverPayjoin(params: {
   const updated: PayjoinSession = {
     ...session,
     error: undefined,
-    expiresAt: Math.max(session.expiresAt, now + getPayjoinSessionTtlMs()),
+    expiresAt: Math.max(
+      session.expiresAt,
+      now + params.deps.settings.sessionTtlMs
+    ),
     // Drop native handle after the proposal is posted — the pending board is
     // registered with bark, which now owns confirmation tracking.
     nativeState: undefined,
@@ -1746,13 +1751,14 @@ async function finalizeBoardReceiverPayjoin(params: {
     txid: cosign.txid,
     updatedAt: now
   }
-  store.upsertSession(updated)
+  sessions.upsertSession(updated)
   return updated
 }
 
 type BoardCosignResult = { txid: string } | { failed: PayjoinSession }
 
 function failBoardSession(
+  sessions: PayjoinSessionStore,
   session: PayjoinSession,
   error: string,
   patch: Partial<PayjoinSession> = {}
@@ -1764,7 +1770,7 @@ function failBoardSession(
     status: 'error',
     updatedAt: Date.now()
   }
-  usePayjoinSessionsStore.getState().upsertSession(updated)
+  sessions.upsertSession(updated)
   return updated
 }
 
@@ -1774,6 +1780,7 @@ function failBoardSession(
  * session ends in a terminal error and the user mints a fresh QR.
  */
 async function cosignBoard(
+  sessions: PayjoinSessionStore,
   session: PayjoinSession,
   board: PayjoinBoardDestination,
   psbtBase64: string
@@ -1799,6 +1806,7 @@ async function cosignBoard(
     })
     return {
       failed: failBoardSession(
+        sessions,
         session,
         `${PAYJOIN_BOARD_COSIGN_FAILED_ERROR}: ${compactError(error)}`,
         {
@@ -1817,6 +1825,7 @@ async function cosignBoard(
  * would broadcast a transaction bark is not watching.
  */
 function reuseRegisteredBoard(
+  sessions: PayjoinSessionStore,
   session: PayjoinSession,
   psbtBase64: string
 ): BoardCosignResult {
@@ -1826,9 +1835,14 @@ function reuseRegisteredBoard(
   const replayedTxid = extractTransactionIdFromPSBT(psbtBase64)
   if (!session.txid || !registeredTxid || registeredTxid !== replayedTxid) {
     return {
-      failed: failBoardSession(session, PAYJOIN_BOARD_TXID_MISMATCH_ERROR, {
-        nativeState: undefined
-      })
+      failed: failBoardSession(
+        sessions,
+        session,
+        PAYJOIN_BOARD_TXID_MISMATCH_ERROR,
+        {
+          nativeState: undefined
+        }
+      )
     }
   }
   return { txid: session.txid }
@@ -1843,6 +1857,7 @@ async function processDirectoryBridgedBip78Proposal(params: {
   originalPsbtBase64: string
   callbacks: PayjoinWalletCallbacks
   fetchImpl?: FetchLike
+  deps: PayjoinDeps
 }): Promise<PayjoinSession> {
   const withProposal = {
     ...params.session,
@@ -1850,9 +1865,10 @@ async function processDirectoryBridgedBip78Proposal(params: {
     status: 'proposal_received' as const,
     updatedAt: Date.now()
   }
-  usePayjoinSessionsStore.getState().upsertSession(withProposal)
+  params.deps.sessions.upsertSession(withProposal)
   return await finalizeReceiverPayjoin({
     callbacks: params.callbacks,
+    deps: params.deps,
     fetchImpl: params.fetchImpl,
     session: withProposal
   })
