@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import type ElectrumClient from '@/api/electrum'
-import {
-  CONNECTION_TEST_COOLDOWN_MS,
-  SOFTWARE_LABELS
-} from '@/constants/connectionTest'
+import { CONNECTION_TEST_COOLDOWN_MS } from '@/constants/connectionTest'
 import { closeProbeClient, probeConnection } from '@/services/connectionTest'
-import {
-  type ConnectionTestResult,
-  type NodeInfo
-} from '@/types/models/ConnectionTest'
+import { type ConnectionTestResult } from '@/types/models/ConnectionTest'
 import {
   type Backend,
   type Network,
@@ -19,7 +13,6 @@ import {
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
-  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null)
   const [currentClient, setCurrentClient] = useState<ElectrumClient | null>(
     null
   )
@@ -51,24 +44,16 @@ export function useConnectionTest() {
     setLastTestTime(now)
     cleanupPreviousConnection()
     setTesting(true)
-    setNodeInfo(null)
 
     try {
-      const probe = await probeConnection({
+      return await probeConnection({
         backend,
         network,
         onElectrumClientOpened: setCurrentClient,
         rpcCredentials,
         url
       })
-      setNodeInfo(probe.nodeInfo)
-      return probe.result
     } catch (error) {
-      setNodeInfo({
-        network,
-        responseTime: Date.now() - now,
-        software: SOFTWARE_LABELS[backend]
-      })
       const fallback = proxy?.enabled
         ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
         : 'Unknown connection error'
@@ -84,7 +69,6 @@ export function useConnectionTest() {
   function resetTest() {
     cleanupPreviousConnection()
     setTesting(false)
-    setNodeInfo(null)
   }
 
   useEffect(
@@ -95,7 +79,6 @@ export function useConnectionTest() {
   )
 
   return {
-    nodeInfo,
     resetTest,
     testConnection,
     testing

@@ -1,82 +1,49 @@
-import ElectrumClient, {
-  closeElectrumClientQuietly,
-  ElectrumServerVersionSchema
-} from '@/api/electrum'
+import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { SATS_PER_BITCOIN, VBYTES_PER_KVB } from '@/constants/btc'
+import { CONNECTION_TEST_TIMEOUT_MS } from '@/constants/connectionTest'
 import {
-  CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS,
-  CONNECTION_TEST_TIMEOUT_MS,
-  ELECTRUM_HANDSHAKE_CLIENT_INFO,
-  SOFTWARE_LABELS
-} from '@/constants/connectionTest'
-import {
-  type ConnectionProbe,
+  type ConnectionTestSuccess,
   type ProbeParams
 } from '@/types/models/ConnectionTest'
-import { type Backend, type Network } from '@/types/settings/blockchain'
-import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
+import { type Backend } from '@/types/settings/blockchain'
+import { formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
+import { withTimeout } from '@/utils/time'
 
-async function probeElectrum(
-  { url, network, onElectrumClientOpened }: ProbeParams,
-  startTime: number
-): Promise<ConnectionProbe> {
+async function probeElectrum({
+  url,
+  network,
+  onElectrumClientOpened
+}: ProbeParams): Promise<ConnectionTestSuccess> {
   const client = ElectrumClient.fromUrl(url, network)
   onElectrumClientOpened?.(client)
   try {
-    return await readElectrumNode(client, network, startTime)
+    return await readElectrumTip(client)
   } finally {
     closeElectrumClientQuietly(client)
   }
 }
 
-async function readElectrumNode(
-  client: ElectrumClient,
-  network: Network,
-  startTime: number
-): Promise<ConnectionProbe> {
-  const serverInfo = await client.client.initElectrum(
-    ELECTRUM_HANDSHAKE_CLIENT_INFO,
-    {
-      callback: null,
-      maxRetry: 0
-    }
-  )
-  const responseTime = Date.now() - startTime
+async function readElectrumTip(
+  client: ElectrumClient
+): Promise<ConnectionTestSuccess> {
+  await client.init()
 
   // Headers, timestamp and banner are optional: not every server supports them.
-  const tip = await client.client
-    .blockchainHeaders_subscribe()
-    .catch(() => null)
-  const blockHeight = tip?.height || 0
-  const tipTimestampSec =
-    blockHeight > 0
-      ? await client.getBlockTimestamp(blockHeight).catch(() => undefined)
-      : undefined
-  const rawBanner = await client.client.server_banner().catch(() => null)
-  const banner =
-    typeof rawBanner === 'string' && rawBanner.trim()
-      ? rawBanner.trim()
-      : undefined
-
-  const serverVersion = ElectrumServerVersionSchema.safeParse(serverInfo)
+  const tip = await client.subscribeToBlockHeaders().catch(() => null)
+  const tipHeight = tip?.height ?? 0
+  const blockHeight = tipHeight > 0 ? tipHeight : undefined
+  const tipTimestampSec = blockHeight
+    ? await client.getBlockTimestamp(blockHeight).catch(() => undefined)
+    : undefined
+  const banner = await client.getServerBanner().catch(() => '')
 
   return {
-    nodeInfo: {
-      blockHeight,
-      network,
-      responseTime,
-      software: serverVersion.data?.[0] || SOFTWARE_LABELS.electrum,
-      version: serverVersion.data?.[1] || 'Unknown'
-    },
-    result: {
-      banner,
-      blockHeight: blockHeight > 0 ? blockHeight : undefined,
-      success: true,
-      tipTimestampSec
-    }
+    banner: banner.trim() || undefined,
+    blockHeight,
+    success: true,
+    tipTimestampSec
   }
 }
 
@@ -89,93 +56,57 @@ async function getEsploraTipTimestamp(client: Esplora, blockHeight: number) {
   return block.timestamp
 }
 
-async function probeEsplora(
-  { url, network }: ProbeParams,
-  startTime: number
-): Promise<ConnectionProbe> {
+async function probeEsplora({
+  url
+}: ProbeParams): Promise<ConnectionTestSuccess> {
   const client = new Esplora(url)
 
-  const rawHeight = await client.getLatestBlockHeight()
-  const blockHeight =
-    typeof rawHeight === 'number' ? rawHeight : Number(rawHeight)
-  const responseTime = Date.now() - startTime
-
-  const mempoolInfo = await client._call('/mempool')
-  const feeEstimates = await client.getFeeEstimates()
+  const blockHeight = Number(await client.getLatestBlockHeight())
   const tipTimestampSec = await getEsploraTipTimestamp(
     client,
     blockHeight
   ).catch(() => undefined)
 
   return {
-    nodeInfo: {
-      blockHeight,
-      medianFee: feeEstimates['6'] || feeEstimates['3'] || undefined,
-      mempoolSize: mempoolInfo?.count || undefined,
-      network,
-      responseTime,
-      software: SOFTWARE_LABELS.esplora
-    },
-    result: {
-      blockHeight: Number.isFinite(blockHeight) ? blockHeight : undefined,
-      success: true,
-      tipTimestampSec
-    }
+    blockHeight: Number.isFinite(blockHeight) ? blockHeight : undefined,
+    success: true,
+    tipTimestampSec
   }
 }
 
-async function probeRpc(
-  { url, network, rpcCredentials }: ProbeParams,
-  startTime: number
-): Promise<ConnectionProbe> {
+async function probeRpc({
+  url,
+  network,
+  rpcCredentials
+}: ProbeParams): Promise<ConnectionTestSuccess> {
   const rpc = new BitcoinRpc(
     url,
     rpcCredentials?.username ?? '',
     rpcCredentials?.password ?? ''
   )
 
-  const [chainInfo, networkInfo, mempoolInfo, feeResult, hasFilterIndex] =
-    await Promise.all([
-      rpc.getBlockchainInfo(),
-      rpc.getNetworkInfo().catch(() => null),
-      rpc.getMempoolInfo().catch(() => null),
-      rpc
-        .estimateSmartFee(CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS)
-        .catch(() => null),
-      rpc.hasBlockFilterIndex().catch(() => false)
-    ])
-  const responseTime = Date.now() - startTime
+  const [chainInfo, networkInfo, hasFilterIndex] = await Promise.all([
+    rpc.getBlockchainInfo(),
+    rpc.getNetworkInfo().catch(() => null),
+    rpc.hasBlockFilterIndex().catch(() => false)
+  ])
 
   if (chainInfo.chain !== expectedCoreChain(network)) {
     throw new Error(formatChainMismatchError(network, chainInfo.chain, url))
   }
 
   return {
-    nodeInfo: {
-      blockHeight: chainInfo.blocks,
-      chainWork: chainInfo.chainwork,
-      medianFee: feeResult?.feerate
-        ? Math.round(feeResult.feerate * (SATS_PER_BITCOIN / VBYTES_PER_KVB))
-        : undefined,
-      mempoolSize: mempoolInfo?.size,
-      network: chainInfo.chain,
-      responseTime,
-      software: networkInfo?.subversion?.trim() || SOFTWARE_LABELS.rpc,
-      version: networkInfo ? formatCoreVersion(networkInfo.version) : undefined
-    },
-    result: {
-      banner: networkInfo ? formatRpcBanner(networkInfo, chainInfo) : undefined,
-      blockFilterIndexMissing: !hasFilterIndex,
-      blockHeight: chainInfo.blocks,
-      success: true,
-      tipTimestampSec: chainInfo.mediantime
-    }
+    banner: networkInfo ? formatRpcBanner(networkInfo, chainInfo) : undefined,
+    blockFilterIndexMissing: !hasFilterIndex,
+    blockHeight: chainInfo.blocks,
+    success: true,
+    tipTimestampSec: chainInfo.mediantime
   }
 }
 
 const PROBES: Record<
   Backend,
-  (params: ProbeParams, startTime: number) => Promise<ConnectionProbe>
+  (params: ProbeParams) => Promise<ConnectionTestSuccess>
 > = {
   electrum: probeElectrum,
   esplora: probeEsplora,
@@ -183,30 +114,16 @@ const PROBES: Record<
 }
 
 /**
- * Connects to a server, checks it serves the expected network, and collects
- * what the settings screen shows about it. Throws when the server is
- * unreachable, on the wrong chain, or slower than CONNECTION_TEST_TIMEOUT_MS.
+ * Connects to a server, checks it serves the expected network, and reads its
+ * tip for the settings screens. Throws when the server is unreachable, on the
+ * wrong chain, or slower than CONNECTION_TEST_TIMEOUT_MS.
  */
-async function probeConnection(params: ProbeParams) {
-  const timers: ReturnType<typeof setTimeout>[] = []
-  const timedOut = new Promise<never>((_resolve, reject) => {
-    timers.push(
-      setTimeout(
-        () => reject(new Error('Connection test timeout')),
-        CONNECTION_TEST_TIMEOUT_MS
-      )
-    )
-  })
-  try {
-    return await Promise.race([
-      PROBES[params.backend](params, Date.now()),
-      timedOut
-    ])
-  } finally {
-    for (const timer of timers) {
-      clearTimeout(timer)
-    }
-  }
+function probeConnection(params: ProbeParams) {
+  return withTimeout(
+    PROBES[params.backend](params),
+    CONNECTION_TEST_TIMEOUT_MS,
+    'Connection test timeout'
+  )
 }
 
 /** Closes an Electrum client handed out through `onElectrumClientOpened`. */

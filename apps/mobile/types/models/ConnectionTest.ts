@@ -5,18 +5,6 @@ import {
   type RpcCredentials
 } from '@/types/settings/blockchain'
 
-export type NodeInfo = {
-  version?: string
-  blockHeight?: number
-  responseTime?: number
-  network?: string
-  software?: string
-  mempoolSize?: number
-  chainWork?: string
-  medianFee?: number
-  hashRate?: string
-}
-
 export type ConnectionTestSuccess = {
   success: true
   blockHeight?: number
@@ -36,11 +24,6 @@ export type ConnectionTestResult =
       success: false
       error?: string
     }
-
-export type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
-}
 
 export type ProbeParams = {
   url: string
