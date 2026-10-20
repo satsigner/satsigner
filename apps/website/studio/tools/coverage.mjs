@@ -12,7 +12,9 @@ const routes = JSON.parse(fs.readFileSync(path.join(studio, 'generated/routes.js
 const map = JSON.parse(fs.readFileSync(path.join(studio, 'coverage.json'), 'utf8'))
 delete map._doc
 
-const catalogIds = [...fs.readFileSync(path.join(studio, 'catalog.js'), 'utf8').matchAll(/\{ id: '([^']+)', name:/g)].map((m) => m[1])
+// Every catalog screen carries a permanent number (n). New screens take the next free number.
+const numbers = [...fs.readFileSync(path.join(studio, 'catalog.js'), 'utf8').matchAll(/\{ n: (\d+), id: '([^']+)'/g)]
+const catalogIds = [...fs.readFileSync(path.join(studio, 'catalog.js'), 'utf8').matchAll(/\{ n: \d+, id: '([^']+)', name:/g)].map((m) => m[1])
 const known = new Set(routes.map((r) => r.path))
 const byRoute = new Map()
 const problems = []
@@ -23,6 +25,11 @@ for (const [id, paths] of Object.entries(map)) {
     if (!known.has(p)) problems.push(`coverage.json: '${id}' points at unknown route ${p} (renamed in the app?)`)
     byRoute.set(p, [...(byRoute.get(p) || []), id])
   }
+}
+const seenN = new Map()
+for (const [, n, id] of numbers) {
+  if (seenN.has(n)) problems.push(`catalog.js: number ${n} is used by both '${seenN.get(n)}' and '${id}'`)
+  seenN.set(n, id)
 }
 for (const id of catalogIds) if (!(id in map)) problems.push(`catalog.js: '${id}' has no route in coverage.json`)
 

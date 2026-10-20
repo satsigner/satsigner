@@ -64,4 +64,4 @@ New screens go in `screens.js` with `registerScreen(id, { source, title, back, r
 1. Pick a missing route from `generated/coverage.md`.
 2. Read its `routes.json` entry for the components, strings, and targets it uses.
 3. Build it with `ss.*`, port any missing component into the kit first, take copy from `t()`, and look up exact values in `generated/styles.css`.
-4. Add the screen to `catalog.js` and its route to `coverage.json`.
+4. Add the screen to `catalog.js` with the next free number (`{ n: 187, id: … }`). Numbers are permanent, so never renumber. Then add its route to `coverage.json`.

@@ -610,3 +610,6 @@ body.is-full-cards .screen-card {
   .studio-brand { z-index: 7; left: 0; padding: 0 0.4rem 0 1rem; background: var(--page); }
   #theme-toggle { box-shadow: 0 0 0 0.6rem var(--page); }
 }
+
+/* Screen number column in the table view */
+.screen-table td.num { width: 3rem; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
