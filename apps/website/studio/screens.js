@@ -167,3 +167,175 @@ registerScreen('wallet-synced', {
     }
   }
 })
+
+// --- signAndSend: coin selection -----------------------------------------------------
+
+// Fixture metadata the old coin list didn't need.
+coins.forEach((coin, i) => {
+  if (!coin.timestamp) coin.timestamp = Date.UTC(2026, 9, 18 - i * 3, 12)
+  if (coin.excluded === undefined) coin.excluded = false
+  if (coin.addressIndex === undefined) coin.addressIndex = i * 2
+})
+const coinSort = { field: 'amount', dir: 'desc' }
+const usd = (sats) => ((sats / SATS_PER_BTC) * USD_PER_BTC).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const shortDate = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+// SSUtxoSizeMeter: square-root scale, 1–82% width.
+function sizeMeter(value, largest, selected) {
+  const pct = Math.min(82, Math.max(1, 1 + (81 * Math.round((Math.sqrt(value) / Math.sqrt(largest)) * 100)) / 100))
+  return `<div class="utxo-meter"><i></i><b class="${selected ? 'is-on' : ''}" style="width:${pct}%"></b></div>`
+}
+
+// SSUtxoItem
+function utxoItem(coin, largest) {
+  return `<div class="utxo-item${coin.excluded ? ' is-excluded' : ''}">
+    <div class="utxo-row">
+      <button type="button" class="utxo-body" data-coin="${coin.id}">${ss.vstack({ gap: 'xs' },
+        ss.hstack({ justifyBetween: true, style: 'align-items:flex-start' },
+          ss.hstack({},
+            `<span class="utxo-select${coin.selected ? ' is-on' : ''}">${ss.icon(coin.selected ? 'x' : 'plus', { size: 8 })}</span>`,
+            ss.vstack({ gap: 'xs' },
+              ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.styledSat({ amount: coin.value, textSize: 'md' }), ss.text({ size: 'xs', color: 'muted' }, t('bitcoin.sats'))),
+              ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({}, usd(coin.value)), ss.text({ color: 'muted' }, 'USD')))),
+          ss.vstack({ gap: 'xs', style: 'align-items:flex-end' },
+            ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({}, coin.address), ss.text({ color: 'muted' }, '(' + coin.addressIndex + ')')),
+            ss.text({ style: 'color:var(--gray-100)' }, shortDate(coin.timestamp)))),
+        ss.text({ color: coin.label ? 'white' : 'muted' }, coin.label || t('utxo.noLabel')))}</button>
+      <button type="button" class="utxo-exclude${coin.excluded ? ' is-on' : ''}" data-exclude="${coin.id}" aria-label="Exclude">${ss.icon('exclude', { size: 16 })}</button>
+    </div>
+    ${sizeMeter(coin.value, largest, coin.selected)}
+  </div>`
+}
+
+// selectUtxoList.tsx
+registerScreen('coin-list', {
+  source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/[id]/signAndSend/selectUtxoList.tsx',
+  title: () => openAccountData.name,
+  back: 'account',
+  render: () => {
+    const usable = coins.filter((c) => !c.excluded)
+    const selected = coins.filter((c) => c.selected)
+    const total = usable.reduce((s, c) => s + c.value, 0)
+    const picked = selected.reduce((s, c) => s + c.value, 0)
+    const all = usable.length > 0 && usable.every((c) => c.selected)
+    const excluded = coins.filter((c) => c.excluded).length
+    const largest = Math.max(...coins.map((c) => c.value))
+    const key = { date: (c) => c.timestamp, amount: (c) => c.value, label: (c) => (c.label || '').toLowerCase() }[coinSort.field]
+    const sorted = [...coins].sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (coinSort.dir === 'asc' ? 1 : -1))
+    const label = !selected.length
+      ? t('transaction.build.add.inputs.button.noSelection')
+      : all
+        ? t('transaction.build.add.inputs.button.allSelected')
+        : selected.length === 1
+          ? t('transaction.build.add.inputs.button.oneSelected')
+          : t('transaction.build.add.inputs.button.multipleSelected', { count: selected.length })
+    const sortToggle = (field) =>
+      `<button type="button" class="sort-toggle${coinSort.field === field ? ' is-on' : ''}" data-sort="${field}"><span>${
+        coinSort.field === field && coinSort.dir === 'asc' ? '↑' : '↓'
+      }</span>${ss.text({ as: 'span', color: coinSort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
+    return `<div class="coin-list">
+      <div class="coin-head">${ss.vstack({},
+        ss.hstack({ justifyBetween: true },
+          `<button type="button" class="badge-button" data-go="exclude-utxos" aria-label="${t('utxo.exclude.title')}">${ss.icon('exclude', { size: 16 })}${
+            excluded ? `<span class="exclude-badge">${excluded}</span>` : ''
+          }</button>`,
+          ss.text({ size: 'md' }, t('transaction.build.select.spendableOutputs')),
+          ss.hstack({ gap: 'sm' },
+            ss.iconButton({ label: 'Filter', className: 'badge-button' }, ss.icon('filter', { size: 16 })),
+            ss.iconButton({ label: 'Bubbles', id: 'coin-bubbles' }, ss.icon('bubbles', { size: 15 })))),
+        ss.vstack({ itemsCenter: true, gap: 'sm' },
+          ss.vstack({ itemsCenter: true, gap: 'xs' },
+            ss.text({}, `${selected.length} ${t('common.of').toLowerCase()} ${usable.length} ${t('common.selected').toLowerCase()}`),
+            ss.hstack({ gap: 'xs' },
+              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('common.total')),
+              ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, total.toLocaleString('en-US')),
+              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('bitcoin.sats')),
+              ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, usd(total)),
+              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, 'USD'))),
+          ss.vstack({ itemsCenter: true, gap: 'none' },
+            ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+              ss.styledSat({ amount: picked, textSize: '7xl', weight: 'ultralight', letterSpacing: -1 }),
+              ss.text({ size: 'xl', color: 'muted' }, t('bitcoin.sats'))),
+            ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+              ss.text({ size: 'md', color: 'muted' }, usd(picked)),
+              ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD')))))}</div>
+      ${ss.separator({ color: 'grayDark', style: 'margin-top:12px' })}
+      <div class="coin-tools">
+        <button type="button" class="select-all" id="coin-all">${(all ? t('common.deselectAll') : t('common.selectAll')).toUpperCase()} ${total.toLocaleString('en-US')} ${t('bitcoin.sats')}</button>
+        ${ss.hstack({ gap: 'sm' }, ['date', 'amount', 'label'].map(sortToggle))}
+      </div>
+      <div class="coin-rows">${sorted.map((c) => utxoItem(c, largest)).join('')}</div>
+      <div class="coin-submit">${ss.button({ label, variant: 'secondary', disabled: !selected.length, id: 'coin-use', style: 'width:92%' })}</div>
+    </div>`
+  },
+  bind: (body) => {
+    const rerender = () => openKitScreen('coin-list')
+    body.addEventListener('click', (e) => {
+      const coinBtn = e.target.closest('[data-coin]')
+      if (coinBtn) {
+        const coin = coins.find((c) => c.id === coinBtn.dataset.coin)
+        if (!(coin.excluded && !coin.selected)) coin.selected = !coin.selected
+        return rerender()
+      }
+      const ex = e.target.closest('[data-exclude]')
+      if (ex) {
+        const coin = coins.find((c) => c.id === ex.dataset.exclude)
+        coin.excluded = !coin.excluded
+        if (coin.excluded) coin.selected = false
+        return rerender()
+      }
+      const sort = e.target.closest('[data-sort]')
+      if (sort) {
+        const field = sort.dataset.sort
+        coinSort.dir = coinSort.field === field && coinSort.dir === 'desc' ? 'asc' : 'desc'
+        coinSort.field = field
+        return rerender()
+      }
+      if (e.target.closest('#coin-all')) {
+        const usable = coins.filter((c) => !c.excluded)
+        const all = usable.every((c) => c.selected)
+        usable.forEach((c) => (c.selected = !all))
+        return rerender()
+      }
+      if (e.target.closest('#coin-use')) openSend('output')
+      if (e.target.closest('#coin-bubbles')) {
+        coinView = 'bubbles'
+        openSend('coins')
+        coinView = 'bubbles'
+        renderCoins()
+      }
+    })
+  }
+})
+
+// excludeUtxos.tsx
+registerScreen('exclude-utxos', {
+  source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/[id]/signAndSend/excludeUtxos.tsx',
+  title: () => t('utxo.exclude.title').toUpperCase(),
+  back: 'coin-list',
+  render: () => {
+    const list = coins.filter((c) => c.excluded)
+    return ss.vstack({ gap: 'sm' },
+      ss.text({ color: 'muted' }, list.length ? t('utxo.exclude.count', { count: list.length }) : t('utxo.exclude.empty')),
+      list
+        .map((c) =>
+          ss.vstack({ gap: 'sm', className: 'excluded-row' },
+            ss.hstack({ justifyBetween: true },
+              ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.styledSat({ amount: c.value, textSize: 'md' }), ss.text({ size: 'xs', color: 'muted' }, t('bitcoin.sats'))),
+              ss.text({ color: 'muted', type: 'mono' }, c.address)),
+            ss.hstack({ justifyBetween: true },
+              ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({}, usd(c.value)), ss.text({ color: 'muted' }, 'USD')),
+              ss.text({ color: 'muted' }, shortDate(c.timestamp))),
+            c.label ? ss.text({}, c.label) : '',
+            ss.button({ variant: 'outline', label: t('utxo.exclude.include'), data: { include: c.id } })))
+        .join(ss.separator({ color: 'grayDark' })))
+  },
+  bind: (body) => {
+    body.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-include]')
+      if (!b) return
+      coins.find((c) => c.id === b.dataset.include).excluded = false
+      openKitScreen('exclude-utxos')
+    })
+  }
+})

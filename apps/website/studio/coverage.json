@@ -18,6 +18,8 @@
   "builder": ["/signer/bitcoin/account/:id/signAndSend/selectUtxoBubbles"],
   "sign": ["/signer/bitcoin/account/:id/signAndSend/signTransaction"],
   "psbt-qr": ["/signer/bitcoin/account/:id/signAndSend/signTransaction"],
+  "coin-list": ["/signer/bitcoin/account/:id/signAndSend/selectUtxoList"],
+  "exclude-utxos": ["/signer/bitcoin/account/:id/signAndSend/excludeUtxos"],
   "fee-management": ["/signer/bitcoin/account/:id/signAndSend/feeManagement"],
   "timelock": ["/signer/bitcoin/account/:id/signAndSend/timeLock"],
   "wallet-synced": ["/signer/bitcoin/account/:id/signAndSend/walletSyncedConfirmation"],

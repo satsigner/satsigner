@@ -3419,3 +3419,30 @@ html.is-bare .phone-status {
 .timelock-tab.is-on { border-color: var(--white); }
 .timelock-tab .ss-glass { display: none; }
 .timelock-pane[hidden] { display: none; }
+
+/* selectUtxoList.tsx + SSUtxoItem + SSUtxoSizeMeter */
+#kit-body:has(.coin-list) { padding: 0; position: relative; }
+.coin-list { display: flex; flex-direction: column; min-height: 100%; padding-bottom: 100px; }
+.coin-head { padding: var(--layout-main-container-padding-top) var(--layout-main-container-padding-horizontal) 0; }
+.badge-button { position: relative; display: inline-flex; border: 0; padding: 0; background: none; color: var(--white); cursor: pointer; }
+.exclude-badge { position: absolute; right: -4px; top: -4px; min-width: 14px; height: 14px; padding: 0 3px; box-sizing: border-box; border-radius: 7px; background: var(--error); color: var(--white); font-size: var(--sizes-text-font-size-xxs); line-height: 14px; text-align: center; }
+.coin-tools { display: flex; align-items: center; justify-content: space-between; padding: 0 5%; border-bottom: 1px solid var(--gray-900); }
+.select-all { flex-shrink: 1; min-width: 0; height: var(--sizes-button-height); border: 0; padding: 0; background: none; color: var(--gray-75); font: inherit; font-size: var(--sizes-button-font-size); letter-spacing: 1px; text-decoration: underline; text-align: left; cursor: pointer; }
+.sort-toggle { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 0; background: none; color: var(--white); font: inherit; opacity: 0.4; cursor: pointer; }
+.sort-toggle.is-on { opacity: 1; }
+.utxo-item { position: relative; }
+.utxo-row { display: flex; align-items: stretch; }
+.utxo-body { flex: 1; min-width: 0; border: 0; padding: 16px 5%; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.utxo-body:active { opacity: 0.7; }
+.utxo-item.is-excluded .utxo-body { opacity: 0.45; }
+.utxo-select { display: inline-flex; align-items: center; justify-content: center; align-self: baseline; flex: none; width: 20px; height: 20px; margin-top: 2px; border-radius: 10px; background: var(--gray-500); color: var(--white); }
+.utxo-select.is-on { background: var(--error); }
+.utxo-exclude { display: flex; align-items: center; border: 0; padding: 0 5% 0 0; background: none; color: var(--gray-500); cursor: pointer; }
+.utxo-exclude.is-on { color: var(--main-red); }
+.utxo-meter { position: absolute; left: 0; bottom: 0; width: 100%; height: 2px; }
+.utxo-meter i { position: absolute; inset: 0; background: var(--gray-850); }
+.utxo-meter b { position: absolute; left: 0; top: 0; height: 2px; background: var(--white); opacity: 0.3; }
+.utxo-meter b.is-on { top: -2px; height: 6px; border-radius: 1px; opacity: 1; }
+.coin-submit { position: sticky; bottom: 20px; display: flex; justify-content: center; margin-top: auto; }
+.coin-submit .ss-button[disabled] { opacity: 1; background: var(--gray-700); color: var(--gray-400); }
+.excluded-row { padding: 12px 0; }

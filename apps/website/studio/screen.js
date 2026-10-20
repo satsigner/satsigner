@@ -190,7 +190,7 @@ document.querySelectorAll('[data-back]').forEach((button) => {
   button.innerHTML = icon('back', 'back-mark')
   button.addEventListener('click', () => {
     if (button.closest('#view-send') && sendPhase === 'output') {
-      openSend('coins')
+      go('coin-list')
       return
     }
     show(button.dataset.back || 'menu')
@@ -1168,7 +1168,8 @@ function draftTotals() {
   const vsize = 11 + 68 * Math.max(inputs.length, 1) + 31 * (draft.outputs.length + 1)
   const fee = Math.round(vsize * draft.feeRate)
   const change = inValue - outValue - fee
-  return { inputs, inValue, outValue, vsize, fee, change, underfunded: change < 0 }
+  const spendable = coins.filter((coin) => !coin.excluded).reduce((sum, coin) => sum + coin.value, 0)
+  return { inputs, inValue, outValue, vsize, fee, change, spendable, underfunded: change < 0 }
 }
 
 function draftTx(tot) {
@@ -1209,10 +1210,10 @@ function renderIo() {
         '<i style="width:8px"></i>', gray(500, '~'), gray(200, NEXT_BLOCK_FEE), gray(500, ' sat/vB'),
         '<i style="width:12px"></i>', gray(200, USD_PER_BTC.toLocaleString('en-US')), gray(500, ' USD')),
       ss.hstack({ gap: 'sm', style: 'flex-wrap:wrap;justify-content:center' },
-        ss.hstack({ gap: 'xxs' }, gray(75, tot.inputs.length), gray(400, t('common.of').toLowerCase()), gray(75, coins.length),
+        ss.hstack({ gap: 'xxs' }, gray(75, tot.inputs.length), gray(400, t('common.of').toLowerCase()), gray(75, coins.filter((coin) => !coin.excluded).length),
           gray(400, t('common.selected').toLowerCase()), gray(400, t('common.separator')), gray(75, autoTitle(draft.autoSelect))),
-        ss.hstack({ gap: 'xs' }, gray(400, t('common.total')), gray(75, openAccountData.balance.toLocaleString('en-US')), gray(400, t('bitcoin.sats')),
-          gray(75, fiat(openAccountData.balance)), gray(400, 'USD'))),
+        ss.hstack({ gap: 'xs' }, gray(400, t('common.total')), gray(75, tot.spendable.toLocaleString('en-US')), gray(400, t('bitcoin.sats')),
+          gray(75, fiat(tot.spendable)), gray(400, 'USD'))),
       tot.underfunded ? ss.text({ size: 'xxs', style: 'color:var(--warning);margin-top:-2px' }, t('transaction.error.insufficientInputs')) : '',
       ss.vstack({ gap: 'xxs', itemsCenter: true },
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
@@ -1305,7 +1306,7 @@ function openOutputModal(id) {
 
 document.getElementById('view-send').addEventListener('click', (e) => {
   const hit = (sel) => e.target.closest(sel)
-  if (hit('#io-inputs')) openSend('coins')
+  if (hit('#io-inputs')) go('coin-list')
   if (hit('#io-options')) ss.open('io-options-sheet')
   if (hit('#io-fee')) ss.open('io-fee-sheet')
   if (hit('#io-payjoin')) ss.open('io-payjoin-sheet')
@@ -2023,7 +2024,7 @@ function renderAccount() {
     (accountTab === 0 && showChart
       ? historyChart(txs)
       : '<div class="tx-list">' + list + '</div>')
-  document.getElementById('send-open').addEventListener('click', () => openSend('coins'))
+  document.getElementById('send-open').addEventListener('click', () => go('coin-list'))
   const openMultisig = document.getElementById('open-multisig')
   if (openMultisig) openMultisig.addEventListener('click', () => go('multisig-settings'))
   document.getElementById('paste-open').addEventListener('click', openPaste)
