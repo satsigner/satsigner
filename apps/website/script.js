@@ -847,9 +847,10 @@ if (typeof Swiper !== 'undefined') {
     lightRunning = false;
   }
 
-  function flowSrc(screen, device) {
+  function flowSrc(screen, device, scroll) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
     if (device) query += '&device=1';
+    if (scroll) query += '&scroll=' + encodeURIComponent(scroll);
     return 'studio/?' + query;
   }
 
@@ -870,7 +871,7 @@ if (typeof Swiper !== 'undefined') {
     var screen = card.getAttribute('data-screen');
     if (modalTitle) modalTitle.textContent = heading ? heading.textContent : '';
     if (modalDesc) modalDesc.textContent = copy ? copy.textContent : '';
-    var nextSrc = flowSrc(screen, true);
+    var nextSrc = flowSrc(screen, true, card.getAttribute('data-scroll'));
     if (modalFrame.getAttribute('src') !== nextSrc) modalFrame.src = nextSrc;
     else replay(modalFrame);
   }
@@ -957,13 +958,13 @@ if (typeof Swiper !== 'undefined') {
       var watch = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) return;
-          frame.src = flowSrc(screen, true);
+          frame.src = flowSrc(screen, true, card.getAttribute('data-scroll'));
           watch.disconnect();
         });
       }, { rootMargin: '240px 0px' });
       watch.observe(card);
     } else {
-      frame.src = flowSrc(screen, true);
+      frame.src = flowSrc(screen, true, card.getAttribute('data-scroll'));
     }
     card.insertBefore(layer, card.firstChild);
     card.tabIndex = 0;

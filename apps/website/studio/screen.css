@@ -3478,4 +3478,4 @@ html.is-bare .intro.is-splash .intro-logo { visibility: hidden; }
 
 /* setPin / setDuressPin have no header bar; add its 48px so the title lines up with other screens' content */
 #view-kit[data-screen="set-pin"] .es-shell,
-#view-kit[data-screen="set-duress-pin"] .es-shell { padding-top: calc(48px + 32px); }
+#view-kit[data-screen="set-duress-pin"] .es-shell { padding-top: calc(48px + 64px); }

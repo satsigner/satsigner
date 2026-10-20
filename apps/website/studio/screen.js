@@ -3638,6 +3638,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSplash()
     show('intro')
   }
+  // ?scroll=<selector>: scroll that element into view inside the screen (homepage feature cards)
+  const scrollTo = demoQuery.get('scroll')
+  if (scrollTo) {
+    setTimeout(() => {
+      const target = [...document.querySelectorAll('.phone-screen > section:not([hidden]) ' + scrollTo)][0]
+      let box = target && target.parentElement
+      while (box && box.scrollHeight <= box.clientHeight + 1) box = box.parentElement
+      if (target && box) box.scrollTop += target.getBoundingClientRect().top - box.getBoundingClientRect().top - 24
+    }, 150)
+  }
 })
 
 window.addEventListener('message', (event) => {
