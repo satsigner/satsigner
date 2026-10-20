@@ -276,3 +276,45 @@
   animation: ss-fade 160ms ease-out;
   pointer-events: none;
 }
+
+/* SSStyledSatText — components/SSStyledSatText.tsx */
+.ss-sat { letter-spacing: -0.1px; white-space: nowrap; }
+.ss-sat .ss-sat-lead { color: var(--soft-white); }
+.ss-sat .ss-sat-main { color: var(--white); }
+.ss-sat.is-send .ss-sat-lead { color: var(--soft-red); }
+.ss-sat.is-send .ss-sat-main { color: var(--main-red); }
+.ss-sat.is-send.is-padded .ss-sat-lead { color: var(--soft-bar-red); }
+.ss-sat.is-receive .ss-sat-lead { color: var(--soft-green); }
+.ss-sat.is-receive .ss-sat-main { color: var(--main-green); }
+.ss-sat.is-receive.is-padded .ss-sat-lead { color: var(--soft-bar-green); }
+.ss-sat .ss-sat-sign { margin-right: 2px; color: var(--main-red); font-weight: var(--sizes-text-font-weight-medium); opacity: 0.78; }
+
+/* SSAddressDisplay — components/SSAddressDisplay.tsx */
+.ss-address { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--layout-h-stack-gap-sm); box-sizing: border-box; width: 100%; padding: 12px; border-radius: 5px; background: var(--gray-800); }
+.ss-address.is-outline { background: none; border: 1px solid var(--gray-600); }
+.ss-address.is-bare { justify-content: flex-start; padding: 0; background: none; }
+
+/* SSDetailsList — components/SSDetailsList.tsx */
+.ss-details { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 0; }
+
+/* SSActionButton — components/SSActionButton.tsx */
+.ss-action-button { display: flex; align-items: center; justify-content: center; height: var(--sizes-action-button-height); border: 0; padding: 0; background: none; color: var(--white); font: inherit; font-size: var(--sizes-action-button-font-size); cursor: pointer; }
+.ss-action-button:active { opacity: 0.65; }
+
+/* SSQRCode — white quiet zone, black modules */
+.ss-qr { box-sizing: border-box; padding: 0; background: var(--white); border-radius: 2px; }
+.ss-qr svg { display: block; width: 100%; height: 100%; fill: var(--black); shape-rendering: crispEdges; }
+
+/* SSAmountInput + SSNumberGhostInput */
+.ss-amount-input { display: flex; flex-direction: column; gap: 8px; }
+.ss-ghost-input { display: block; }
+.ss-ghost-value { display: flex; align-items: center; justify-content: center; box-sizing: border-box; height: 72px; border: 1px solid var(--gray-400); border-radius: var(--sizes-text-input-border-radius); background: var(--gray-950); cursor: text; }
+.ss-ghost-value[hidden] { display: none; }
+.ss-ghost-value:active { background: var(--gray-850); }
+.ss-ghost-field { box-sizing: border-box; width: 100%; height: 72px; border: 0; border-radius: var(--sizes-text-input-border-radius); background: var(--gray-850); color: var(--white); font: inherit; font-size: var(--sizes-text-font-size-5xl); font-weight: var(--sizes-text-font-weight-light); text-align: center; outline: none; }
+.ss-amount-fiat.is-switchable { text-decoration: underline; cursor: pointer; }
+.ss-slider { --fill: 0%; width: 100%; height: 22px; margin: 4px 0 0; background: none; -webkit-appearance: none; appearance: none; }
+.ss-slider::-webkit-slider-runnable-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--white) var(--fill), var(--gray-600) var(--fill)); }
+.ss-slider::-moz-range-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--white) var(--fill), var(--gray-600) var(--fill)); }
+.ss-slider::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -5px; border-radius: 11px; background: var(--white); -webkit-appearance: none; }
+.ss-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 11px; background: var(--white); }

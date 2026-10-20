@@ -591,6 +591,39 @@ const kitComponents = [
       ss.button({ label: 'Open modal', variant: 'outline', id: 'kit-modal-open' }),
       ss.modal({ id: 'kit-modal' }, ss.text({ size: 'lg', center: true }, 'Modal body')))
   }
+  ,{
+    name: 'SSStyledSatText · SSAmountDisplay',
+    source: 'plain, send, receive, BTC padded, privacy',
+    html: ss.vstack({ gap: 'sm' },
+      ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: 22190000 })),
+      ss.styledSat({ amount: 50000, noColor: false, type: 'send', textSize: 'xl' }),
+      ss.styledSat({ amount: 125000, noColor: false, type: 'receive', textSize: 'xl' }),
+      ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: 0.0125, currency: 'btc', textSize: '2xl' })),
+      ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: 1, privacyMode: true, textSize: '2xl' })))
+  },
+  {
+    name: 'SSAddressDisplay · SSDetailsList',
+    source: 'tap address to copy',
+    html: ss.vstack({ gap: 'md' },
+      ss.addressDisplay({ address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }),
+      ss.addressDisplay({ address: 'tb1qrent0000010000000000000', variant: 'outline', size: 'sm' }),
+      ss.detailsList({ columns: 3, items: [['Fee', 1420, { unit: 'sats' }], ['Rate', '4.2', { unit: 'sat/vB' }], ['Size', 141, { unit: 'vB' }], ['Inputs', 2], ['Outputs', 2], ['Locktime', '']] }))
+  },
+  {
+    name: 'SSAmountInput',
+    source: 'tap value to type, drag slider, tap fiat to switch',
+    html: ss.amountInput({ min: 546, max: 2000000, value: 50000, remainingSats: 2000000 })
+  },
+  {
+    name: 'SSShareableQR · SSActionButton',
+    source: 'fixture QR, not a real encoding',
+    html: ss.vstack({ gap: 'md' },
+      ss.shareableQR({ value: 'bitcoin:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', size: 200 }),
+      ss.hstack({ justifyEvenly: true },
+        ss.actionButton({}, ss.text({ uppercase: true }, 'Send')),
+        ss.actionButton({}, ss.icon('camera', { size: 22 })),
+        ss.actionButton({}, ss.text({ uppercase: true }, 'Receive'))))
+  }
 ]
 components.unshift(...kitComponents)
 document.addEventListener('click', (e) => {

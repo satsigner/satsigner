@@ -199,5 +199,167 @@ const ss = (() => {
     }
   })
 
-  return { esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
+
+  // --- amounts, addresses, details (batch 2) ---
+
+  const PRIVACY_MASK = '••••'
+  const fmt = (n, decimals = 0, pad = false) => {
+    const v = Number(n).toLocaleString('en-US', { minimumFractionDigits: pad ? decimals : 0, maximumFractionDigits: decimals })
+    return v
+  }
+  // Fixture price used by amount inputs; screens may overwrite ss.price.
+  const price = { fiat: 'USD', btc: 100000 }
+  const satsToFiat = (sats) => (sats / 1e8) * price.btc
+
+  // SSStyledSatText: leading zeros dimmed, digits spaced in threes, red/green for send/receive.
+  function styledSat(p = {}) {
+    const size = p.textSize || '3xl'
+    const pad = p.useZeroPadding || p.currency === 'btc'
+    const decimals = p.decimals ?? (p.currency === 'btc' ? 8 : 0)
+    const raw = Number(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: pad ? decimals : 0, maximumFractionDigits: decimals, useGrouping: false })
+    const spaced = raw.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+    const i = spaced.search(/[1-9]/) === -1 ? spaced.length : spaced.search(/[1-9]/)
+    const lead = spaced.slice(0, i)
+    const rest = spaced.slice(i)
+    const noColor = p.noColor !== false
+    const type = p.type || 'send'
+    const tone = noColor ? '' : ` is-${type}`
+    return `<span class="ss-text ss-sat s-${size}${p.weight ? ` w-${p.weight}` : ''}${tone}${pad && lead ? ' is-padded' : ''}">${
+      type === 'send' && !noColor && p.showSign !== false ? '<span class="ss-sat-sign">-</span>' : ''
+    }${lead ? `<span class="ss-sat-lead">${lead}</span>` : ''}${rest ? `<span class="ss-sat-main">${rest}</span>` : ''}</span>`
+  }
+
+  // SSAmountDisplay: amount + muted unit, masked in privacy mode. Returns inline siblings.
+  function amountDisplay(p = {}) {
+    const size = p.textSize || '3xl'
+    const value = p.privacyMode ? `<span class="ss-text s-${size}">${PRIVACY_MASK}</span>` : styledSat({ ...p, textSize: size })
+    return `${value}<span class="ss-text is-muted s-${p.unitSize || 'sm'}">${p.currency === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}</span>`
+  }
+
+  // SSAddressDisplay: address in 4-char mono groups, copy on tap.
+  function addressDisplay(p = {}) {
+    const groups = (String(p.address).match(/.{1,4}/g) || []).map((g) => text({ type: 'mono', size: p.size || 'md', as: 'span' }, esc(g)))
+    const body = `<div class="ss-address is-${p.variant || 'default'}">${groups.join('')}</div>`
+    return p.copyToClipboard === false ? body : clipboardCopy({ text: p.address }, body)
+  }
+
+  // SSDetailsList: items are [header, text, options?].
+  function detailsList(p = {}) {
+    const width = `${Math.floor(100 / (p.columns || 1))}%`
+    const items = (p.items || []).map(([header, value, o = {}]) => {
+      const opt = { headerSize: 'sm', textSize: 'xs', uppercase: true, variant: 'sans-serif', ...p, ...o }
+      const valid = value !== undefined && value !== ''
+      const inner = vstack({ gap: opt.variant === 'mono' ? 'sm' : 'none' },
+        text({ uppercase: opt.uppercase, color: 'muted', size: opt.headerSize }, esc(header)),
+        hstack({ gap: 'xs', style: 'align-items:baseline' },
+          text({ type: opt.variant === 'mono' ? 'mono' : undefined, size: opt.textSize }, valid ? esc(value) : '-'),
+          valid && opt.unit ? text({ color: 'muted', size: opt.textSize }, esc(opt.unit)) : ''))
+      return `<div style="width:${o.width || width}">${opt.copyToClipboard && valid ? clipboardCopy({ text: value }, inner) : inner}</div>`
+    })
+    return `<div class="ss-details" style="row-gap:${p.gap ?? 8}px">${items.join('')}</div>`
+  }
+
+  // SSActionButton: bare 62px pressable row (used for account action bars).
+  function actionButton(p = {}, ...children) {
+    return `<button type="button" class="${cls('ss-action-button', p.className)}"${attrs(p)}>${kids(children)}</button>`
+  }
+
+  // SSQRCode: deterministic fake QR (no real encoding — prototype only).
+  function qr(p = {}) {
+    const n = 29
+    const cells = new Array(n * n).fill(0)
+    const reserved = new Array(n * n).fill(false)
+    const finder = (x, y) => {
+      for (let r = -1; r < 8; r++)
+        for (let c = -1; c < 8; c++) {
+          const X = x + c, Y = y + r
+          if (X < 0 || Y < 0 || X >= n || Y >= n) continue
+          const inside = r >= 0 && r <= 6 && c >= 0 && c <= 6
+          const on = inside && (r === 0 || c === 0 || r === 6 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4))
+          cells[Y * n + X] = on ? 1 : 0
+          reserved[Y * n + X] = true
+        }
+    }
+    finder(0, 0); finder(n - 7, 0); finder(0, n - 7)
+    let h = 2166136261
+    for (const ch of String(p.value)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0
+    for (let i = 0; i < cells.length; i++) {
+      if (reserved[i]) continue
+      h = (Math.imul(h, 1664525) + 1013904223) >>> 0
+      cells[i] = (h >>> 24) & 1
+    }
+    const rects = cells.map((on, i) => (on ? `<rect x="${i % n}" y="${Math.floor(i / n)}" width="1.02" height="1.02"/>` : '')).join('')
+    const size = p.size || 220
+    return `<div class="ss-qr" style="width:${size}px;height:${size}px"><svg viewBox="-2 -2 ${n + 4} ${n + 4}" role="img" aria-label="QR code">${rects}</svg></div>`
+  }
+
+  // SSShareableQR: QR + optional children + share button.
+  function shareableQR(p = {}, ...children) {
+    return vstack({ itemsCenter: true, gap: 'md' }, qr(p), kids(children),
+      p.hideShareButton ? '' : button({ label: t('common.share'), variant: 'outline', data: { 'ss-copy': p.value } }))
+  }
+
+  // SSAmountInput: ghost number (tap to edit), fiat toggle, min/max row and slider.
+  function amountInput(p = {}) {
+    const min = p.min ?? 546
+    const max = p.max ?? 100000
+    const v = Math.min(max, Math.max(min, p.value ?? min))
+    return `<div class="ss-amount-input" data-ss-amount data-min="${min}" data-max="${max}" data-remaining="${p.remainingSats ?? ''}">
+      <label class="ss-ghost-input"><span class="ss-ghost-value">${hstack({ gap: 'xs', style: 'align-items:baseline;justify-content:center' },
+        text({ size: '5xl', weight: 'light', as: 'span', className: 'ss-amount-value' }, fmt(v)),
+        text({ color: 'muted', size: 'lg', as: 'span', className: 'ss-amount-unit' }, t('bitcoin.sats')))}</span>
+        <input class="ss-ghost-field" inputmode="numeric" value="${v}" hidden></label>
+      ${hstack({ gap: 'xs', style: 'justify-content:center' }, text({ color: 'muted', size: 'lg', className: 'ss-amount-fiat is-switchable' }, `${fmt(satsToFiat(v), 2, true)} ${price.fiat}`))}
+      ${hstack({ justifyBetween: true },
+        hstack({ gap: 'xs' }, text({}, String(min)), text({ color: 'muted' }, t('bitcoin.sats'))),
+        p.remainingSats !== undefined ? text({ color: 'muted', className: 'ss-amount-remaining' }, `${t('common.remaining')} ${fmt(p.remainingSats - v)} ${t('bitcoin.sats')}`) : '',
+        hstack({ gap: 'xs' }, text({}, String(max)), text({ color: 'muted' }, t('bitcoin.sats'))))}
+      <input type="range" class="ss-slider" min="${min}" max="${max}" step="1" value="${v}" style="--fill:${((v - min) / (max - min || 1)) * 100}%">
+    </div>`
+  }
+
+  function syncAmount(root, sats, fromSlider) {
+    const min = +root.dataset.min, max = +root.dataset.max
+    sats = Math.min(max, Math.max(min, Math.round(sats) || min))
+    root.querySelector('.ss-amount-value').textContent = fmt(sats)
+    root.querySelector('.ss-ghost-field').value = sats
+    if (!fromSlider) root.querySelector('.ss-slider').value = sats
+    root.querySelector('.ss-slider').style.setProperty('--fill', `${((sats - min) / (max - min || 1)) * 100}%`)
+    const fiat = root.querySelector('.ss-amount-fiat')
+    if (!root.classList.contains('is-fiat')) fiat.textContent = `${fmt(satsToFiat(sats), 2, true)} ${price.fiat}`
+    else fiat.textContent = `${fmt(sats)} ${t('bitcoin.sats')}`
+    const rem = root.querySelector('.ss-amount-remaining')
+    if (rem) rem.textContent = `${t('common.remaining')} ${fmt(+root.dataset.remaining - sats)} ${t('bitcoin.sats')}`
+    root.dataset.value = sats
+    root.dispatchEvent(new CustomEvent('ss-change', { bubbles: true, detail: { sats } }))
+  }
+
+  document.addEventListener('input', (e) => {
+    const root = e.target.closest('[data-ss-amount]')
+    if (root && e.target.matches('.ss-slider')) syncAmount(root, +e.target.value, true)
+  })
+  document.addEventListener('click', (e) => {
+    const root = e.target.closest('[data-ss-amount]')
+    if (!root) return
+    if (e.target.closest('.ss-ghost-value')) {
+      const field = root.querySelector('.ss-ghost-field')
+      root.querySelector('.ss-ghost-value').hidden = true
+      field.hidden = false
+      field.focus()
+      field.select()
+    }
+    if (e.target.closest('.ss-amount-fiat')) {
+      root.classList.toggle('is-fiat')
+      syncAmount(root, +root.querySelector('.ss-ghost-field').value)
+    }
+  })
+  document.addEventListener('focusout', (e) => {
+    const root = e.target.closest?.('[data-ss-amount]')
+    if (!root || !e.target.matches('.ss-ghost-field')) return
+    syncAmount(root, +e.target.value)
+    e.target.hidden = true
+    root.querySelector('.ss-ghost-value').hidden = false
+  })
+
+  return { price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
 })()
