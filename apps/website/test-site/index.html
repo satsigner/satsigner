@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <style>html,body{background:#000}</style>
   <title>SatSigner screen demo</title>
   <link rel="stylesheet" href="/fonts/inter.css">
   <link rel="stylesheet" href="/test-site/tokens.css">
@@ -158,9 +160,43 @@
         <section id="view-preview" hidden>
           <header class="stack-header">
             <button type="button" class="back" data-back="send" aria-label="Back"></button>
-            <p>Transaction</p>
+            <p id="preview-title">Transaction</p>
           </header>
           <div class="accounts-body" id="preview-body"></div>
+        </section>
+
+        <section id="view-duress" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="settings" aria-label="Back"></button>
+            <p>Duress PIN</p>
+          </header>
+          <div class="accounts-body">
+            <p class="sheet-copy">Set a duress PIN. Unlocking with it erases every account.</p>
+            <p class="pin-dots" aria-label="PIN entry"><i class="is-on"></i><i class="is-on"></i><i></i><i></i></p>
+            <p class="settings-copy">Upon unlocking with this PIN</p>
+            <p class="hint">All account data is deleted. This PIN becomes the new PIN, then duress is turned off.</p>
+          </div>
+        </section>
+
+        <section id="view-seed-drop" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Drop seed</p>
+          </header>
+          <div class="accounts-body">
+            <p class="settings-label">Spending</p>
+            <p class="hint">Fingerprint ab12cd34 · xpub only after this</p>
+            <p class="sheet-copy">This permanently removes the mnemonic from this key. Signing will use the extended public key. It cannot be undone.</p>
+            <button type="button" class="menu-button is-danger"><span class="edge-left"></span><span class="edge-right"></span>Drop seed</button>
+          </div>
+        </section>
+
+        <section id="view-psbt-qr" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="preview" aria-label="Back"></button>
+            <p>UQR</p>
+          </header>
+          <div class="accounts-body psbt-qr" id="psbt-qr"></div>
         </section>
 
         <section id="view-sign" hidden>
@@ -489,6 +525,49 @@
           </div>
         </section>
 
+        <section id="view-difficulty" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="explorer" aria-label="Back"></button>
+            <p>Difficulty</p>
+          </header>
+          <div class="accounts-body" id="difficulty"></div>
+        </section>
+
+        <section id="view-new-account" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p>New account</p>
+          </header>
+          <div class="accounts-body section-body" id="new-account"></div>
+        </section>
+        <section id="view-new-singlesig" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-account" aria-label="Back"></button>
+            <p id="new-singlesig-title">Spending</p>
+          </header>
+          <div class="accounts-body section-body" id="new-singlesig"></div>
+        </section>
+        <section id="view-entropy-dice" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Dice</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-dice"></div>
+        </section>
+        <section id="view-entropy-coin" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Coin flips</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-coin"></div>
+        </section>
+        <section id="view-entropy-drawing" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Drawing</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-drawing"></div>
+        </section>
         <section id="view-multisig-setup" hidden>
           <header class="stack-header">
             <button type="button" class="back" data-back="accounts" aria-label="Back"></button>

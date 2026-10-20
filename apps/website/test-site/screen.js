@@ -480,6 +480,38 @@ const activity = {
       weight: 744,
       fee: 510,
       version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Books',
+      tags: ['payjoin'],
+      amount: 50000,
+      fiat: '50.00',
+      historical: '49.20',
+      priceChange: '+1.6%',
+      ago: '1 day ago',
+      txid: 'pj77e10b3aa44d90211c77e10b3aa44d90211c77e10b3aa44d90211c7pj77',
+      conf: 6,
+      block: 284010,
+      balance: 1290000,
+      inputs: 2,
+      outputs: 2,
+      size: 372,
+      vsize: 186,
+      weight: 744,
+      fee: 420,
+      version: 2,
+      payjoin: true,
+      contributed: 80000,
+      flowInputs: [
+        { value: 80000, label: 'Savings', ours: true, from: 'a91c8f21b04e' },
+        { value: 130420, label: 'Counterparty', ours: false, from: 'e44f02d199aa' }
+      ],
+      flowOutputs: [
+        { value: 130000, label: 'Books', ours: true, to: 'tb1qbooks00001' },
+        { value: 80000, label: 'Sender change', ours: false, to: 'tb1qsender009' },
+        { value: 420, label: 'Miner fee', fee: true }
+      ]
     }
   ],
   ef56ab78: [
@@ -746,37 +778,58 @@ function bar(tx, max) {
 }
 
 function historyChart(txs) {
-  const balances = txs.map((tx) => tx.balance)
+  const latest = txs.length ? txs[txs.length - 1].balance : 0
+  const steps = [
+    [8, 90000],
+    [28, 160000],
+    [46, 148000],
+    [92, 410000],
+    [108, 250000],
+    [124, 270000],
+    [168, 620000],
+    [186, 590000],
+    [214, 980000],
+    [236, 640000],
+    [252, 710000],
+    [278, 1320000],
+    [292, 1100000],
+    [312, latest]
+  ]
+  const balances = steps.map((step) => step[1])
   const max = Math.max(...balances)
   const min = Math.min(...balances)
   const span = Math.max(max - min, 1)
-  const points = txs.map((tx, index) => ({
-    x: 28 + (index / Math.max(txs.length - 1, 1)) * 264,
-    y: 24 + (1 - (tx.balance - min) / span) * 96
+  const plotTop = 18
+  const floor = 228
+  const points = steps.map((step) => ({
+    x: step[0],
+    y: plotTop + (1 - (step[1] - min) / span) * (floor - plotTop - 6)
   }))
   let line = 'M' + points[0].x + ' ' + points[0].y
   for (let index = 1; index < points.length; index += 1) {
     line += ' H' + points[index].x + ' V' + points[index].y
   }
   return (
-    '<svg class="history-chart" viewBox="0 0 320 150" aria-label="Balance history">' +
+    '<svg class="history-chart" viewBox="0 0 320 236" preserveAspectRatio="xMidYMax meet" aria-label="Balance history">' +
     '<path d="' +
     line +
-    ' V128 H' +
+    ' V' +
+    floor +
+    ' H' +
     points[0].x +
-    ' Z" fill="var(--soft-green)"/>' +
+    ' Z" fill="rgba(255,255,255,0.14)"/>' +
     '<path d="' +
     line +
-    '" fill="none" stroke="var(--main-green)" stroke-width="1.5"/>' +
+    '" fill="none" stroke="var(--white)" stroke-width="1.75"/>' +
     points
       .map(
         (point) =>
-          '<circle cx="' + point.x + '" cy="' + point.y + '" r="3" fill="var(--white)"/>'
+          '<circle cx="' + point.x + '" cy="' + point.y + '" r="2.2" fill="var(--white)"/>'
       )
       .join('') +
-    '<text x="16" y="20" fill="var(--gray-500)" font-size="9">' +
+    '<text x="8" y="14" fill="var(--gray-500)" font-size="9">' +
     max.toLocaleString('en-US') +
-    '</text><text x="16" y="140" fill="var(--gray-500)" font-size="9">' +
+    '</text><text x="8" y="234" fill="var(--gray-500)" font-size="9">' +
     min.toLocaleString('en-US') +
     '</text></svg>'
   )
@@ -1078,6 +1131,48 @@ function renderCoins() {
   bindCoins(root)
 }
 
+function renderOutputModal() {
+  const available = 1240000
+  openSheet(
+    'Output',
+    '<p class="output-amount" id="output-amount">210,000 <span>sats</span></p>' +
+      '<p class="output-fiat" id="output-fiat">210.00 USD</p>' +
+      '<label class="output-slider">' +
+      '<span>Amount</span>' +
+      '<input id="output-range" type="range" min="0" max="' +
+      available +
+      '" step="1000" value="210000">' +
+      '</label>' +
+      '<label class="field">' +
+      '<span>Label</span>' +
+      '<input id="output-label" value="Invoice">' +
+      '</label>' +
+      '<p class="output-script"><span>Script</span><strong>P2WPKH</strong></p>' +
+      '<button type="button" class="menu-button" id="output-save"><span class="edge-left"></span><span class="edge-right"></span>Save output</button>',
+    (sheet) => {
+      sheet.classList.add('is-output')
+      const range = sheet.querySelector('#output-range')
+      const amount = sheet.querySelector('#output-amount')
+      const fiat = sheet.querySelector('#output-fiat')
+      const label = sheet.querySelector('#output-label')
+      function paint() {
+        const sats = Number(range.value) || 0
+        amount.innerHTML = sats.toLocaleString('en-US') + ' <span>sats</span>'
+        fiat.textContent = (sats / 1000).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + ' USD'
+      }
+      range.addEventListener('input', paint)
+      sheet.querySelector('#output-save').addEventListener('click', () => {
+        document.getElementById('send-amount').value = range.value
+        document.getElementById('send-label').value = label.value || 'Invoice'
+        closeSheet()
+      })
+    }
+  )
+}
+
 function openSend(phase) {
   sendPhase = phase
   const form = document.getElementById('send-form')
@@ -1288,6 +1383,26 @@ const settingsPages = {
         checkRow('Mempool Testnet4', 'https://mempool.space/testnet4/api', true) +
         checkRow('Mutinynet', 'https://mutinynet.com/api', false) +
         '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Add custom</button>'
+      )
+    }
+  },
+  'custom-backend': {
+    title: 'Custom Backend',
+    body: function () {
+      return (
+        '<p class="settings-copy">Backend</p>' +
+        checkRow('Electrum', 'Connect to node with ssl://, tls://, or tcp://', true) +
+        checkRow('Esplora', 'Data exchange with HTTP API using https://', false) +
+        checkRow('RPC', 'Bitcoin Core JSON-RPC via http://', false) +
+        '<label class="settings-field">Name<input value="My node"></label>' +
+        '<p class="settings-copy">Protocol</p>' +
+        checkRow('SSL/TLS', '', true) +
+        checkRow('TCP (unencrypted)', '', false) +
+        '<label class="settings-field">Host<input value="192.168.0.144"></label>' +
+        '<label class="settings-field">Port<input value="50002"></label>' +
+        '<p class="settings-copy">URL Preview</p>' +
+        '<p class="settings-value">ssl://192.168.0.144:50002</p>' +
+        '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Test connection</button>'
       )
     }
   },
@@ -1513,6 +1628,7 @@ const settingsParent = {
   menu: 'root',
   node: 'root',
   'network-server': 'network',
+  'custom-backend': 'network-server',
   'network-explorer': 'network',
   'network-params': 'network',
   charts: 'chart',
@@ -1844,7 +1960,11 @@ function renderTransaction() {
     (tx.priceChange
       ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
       : '') +
-    '</p><p class="tx-io"><span class="tx-conf ' +
+    '</p>' +
+    (tx.payjoin && tx.contributed
+      ? '<p class="tx-contributed">Contributed ' + tx.contributed.toLocaleString('en-US') + ' sats</p>'
+      : '') +
+    '<p class="tx-io"><span class="tx-conf ' +
     confClass(tx.conf) +
     '">' +
     confText(tx.conf, 0) +
@@ -1861,6 +1981,7 @@ function renderTransaction() {
     '</p></div><span class="tx-pencil" aria-hidden="true"></span></div>' +
     '<div class="tx-rule"></div>' +
     '<p class="tx-kicker">Transaction flow</p>' +
+    (tx.payjoin ? '<p class="tx-payjoin">Possible Payjoin (mixed ownership)</p>' : '') +
     txDetailSankey(tx) +
     '<div class="tx-rule"></div>' +
     '<div class="tx-grid">' +
@@ -1912,7 +2033,93 @@ function openAccount(account) {
   show('account')
 }
 
+function renderBuilder() {
+  document.getElementById('preview-title').textContent = 'Transaction'
+  const amount = 210000
+  const fee = 242
+  const change = 589758
+  const tx = {
+    type: 'send',
+    label: 'Rent',
+    txid: 'b20d91aa77c0e11f44aa91b20d91aa77c0e11f44aa91b20d91aa77c0e191aa',
+    inputs: 1,
+    outputs: 2,
+    amount: amount,
+    fee: fee,
+    size: 141,
+    vsize: 110,
+    flowInputs: [{ value: amount + change + fee, label: 'Salary', ours: true, from: 'a91c8f21b04e' }],
+    flowOutputs: [
+      { value: amount, label: 'Rent', ours: false, to: 'tb1qrent000001' },
+      { value: change, label: 'Change', ours: true, to: 'tb1qchange0001' },
+      { value: fee, label: 'Miner fee', fee: true }
+    ]
+  }
+  document.getElementById('preview-body').innerHTML =
+    txDetailSankey(tx) +
+    '<p class="io-line"><span>Input</span><strong>Salary · 800,000 sats</strong></p>' +
+    '<p class="io-line"><span>Output</span><strong>Rent · 210,000 sats</strong></p>' +
+    '<p class="io-line"><span>Change</span><strong>589,758 sats</strong></p>' +
+    '<p class="io-line"><span>Miner fee</span><strong>242 sats · 2.20 sat/vB</strong></p>'
+}
+
+function renderDecoded() {
+  document.getElementById('preview-title').textContent = 'Decoded'
+  const groups = [
+    ['#ffffff', '02000000'],
+    ['#888888', '00'],
+    ['#ffffff', '01'],
+    ['#888888', '01'],
+    ['#E01919', 'a91c8f21b04e20aa11c0d4e20aa91c8f21b04e20aa11c0d4e20aa91c8f4e20'],
+    ['#860B0B', '00000000'],
+    ['#DD9595', '00'],
+    ['#860B0B', 'fdffffff'],
+    ['#aaaaaa', '02'],
+    ['#07BC03', '9034030000000000'],
+    ['#93CC92', '16'],
+    ['#608A64', '0014b20d91aa77c0e11f44aa91b20d91aa77c0e191'],
+    ['#07BC03', '7e00010000000000'],
+    ['#93CC92', '16'],
+    ['#608A64', '0014c77e10b3aa44d90211c77e10b3aa44d90211c7'],
+    ['#888888', '02'],
+    ['#C13939', '21'],
+    ['#C13939', '02a91c8f21b04e20aa11c0d4e20aa91c8f21b04e20aa11c0d4e20aa91c8f21'],
+    ['#8F5252', '4730440220b77e10b3aa44d90211c77e10b3aa44d90211c77e10b3aa44d90211c710b3'],
+    ['#eeeeee', '00000000']
+  ]
+  const bytes = groups
+    .map((group) => {
+      let marks = ''
+      for (let index = 0; index < group[1].length; index += 2) {
+        marks += '<i style="color:' + group[0] + '">' + group[1].slice(index, index + 2) + '</i>'
+      }
+      return marks
+    })
+    .join('')
+  const legend = [
+    ['#ffffff', 'Version'],
+    ['#888888', 'Marker'],
+    ['#E01919', 'Previous output'],
+    ['#860B0B', 'Index'],
+    ['#07BC03', 'Value'],
+    ['#608A64', 'Script'],
+    ['#C13939', 'Witness pubkey'],
+    ['#8F5252', 'Signature'],
+    ['#eeeeee', 'Locktime']
+  ]
+    .map((item) => '<span style="color:' + item[0] + '">' + item[1] + '</span>')
+    .join('')
+  document.getElementById('preview-body').innerHTML =
+    '<p class="tx-decode-tools"><span>List</span><span class="is-on">Bytes</span><span class="is-on">Decoded</span><span>Raw</span><span>Hex</span><span>ASCII</span></p>' +
+    '<p class="decode-bytes">' +
+    bytes +
+    '</p><p class="decode-legend">' +
+    legend +
+    '</p>'
+}
+
 function renderPreview() {
+  document.getElementById('preview-title').textContent = 'Transaction'
   const amount = Number(document.getElementById('send-amount').value) || 0
   const fee = 420
   const change = Math.max(openAccountData.balance - amount - fee, 0)
@@ -1956,6 +2163,79 @@ document.getElementById('send-preview').addEventListener('click', () => {
   renderPreview()
   show('preview')
 })
+
+let psbtQrTimer = 0
+
+function qrMarkup(seed) {
+  const n = 25
+  const cells = new Array(n * n).fill(0)
+  const reserved = new Array(n * n).fill(false)
+  function finder(x, y) {
+    for (let row = 0; row < 7; row += 1) {
+      for (let col = 0; col < 7; col += 1) {
+        const edge = row === 0 || col === 0 || row === 6 || col === 6
+        const core = row >= 2 && row <= 4 && col >= 2 && col <= 4
+        const index = (y + row) * n + (x + col)
+        cells[index] = edge || core ? 1 : 0
+        reserved[index] = true
+      }
+    }
+  }
+  finder(0, 0)
+  finder(n - 7, 0)
+  finder(0, n - 7)
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 33 + seed.charCodeAt(i)) >>> 0
+  for (let i = 0; i < cells.length; i += 1) {
+    if (reserved[i]) continue
+    hash = (hash * 1664525 + 1013904223) >>> 0
+    cells[i] = (hash >>> 24) & 1
+  }
+  const rects = cells
+    .map((on, index) => {
+      if (!on) return ''
+      const x = index % n
+      const y = Math.floor(index / n)
+      return '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>'
+    })
+    .join('')
+  return '<svg viewBox="0 0 ' + n + ' ' + n + '" role="img" aria-label="PSBT QR">' + rects + '</svg>'
+}
+
+function renderPsbtQr() {
+  clearInterval(psbtQrTimer)
+  const root = document.getElementById('psbt-qr')
+  const parts = [
+    'ur:crypto-psbt/1-3/lpadaxcssoytjytahd',
+    'ur:crypto-psbt/2-3/lpcssratcssgcywzjo',
+    'ur:crypto-psbt/3-3/hdosjojkidjyzmadlp'
+  ]
+  let index = 0
+  function paint() {
+    root.innerHTML =
+      '<div class="psbt-qr-card">' +
+      qrMarkup(parts[index]) +
+      '</div><p class="psbt-qr-part">ur:crypto-psbt/' +
+      (index + 1) +
+      '-' +
+      parts.length +
+      '</p><p class="psbt-qr-hint">Animated UQR — scan until the other device has the PSBT.</p>' +
+      '<button type="button" class="menu-button" id="psbt-qr-close"><span class="edge-left"></span><span class="edge-right"></span>Close</button>'
+    root.querySelector('#psbt-qr-close').addEventListener('click', () => go('preview'))
+  }
+  paint()
+  psbtQrTimer = setInterval(() => {
+    index = (index + 1) % parts.length
+    const part = root.querySelector('.psbt-qr-part')
+    const card = root.querySelector('.psbt-qr-card')
+    if (!part || !card) {
+      clearInterval(psbtQrTimer)
+      return
+    }
+    part.textContent = 'ur:crypto-psbt/' + (index + 1) + '-' + parts.length
+    card.innerHTML = qrMarkup(parts[index])
+  }, 280)
+}
 
 function startSign() {
   clearTimeout(payjoinTimer)
@@ -2083,25 +2363,14 @@ function stackSlots(heights, top) {
 
 function txRibbon(x1, y1, w1, x2, y2, w2) {
   const span = Math.abs(x2 - x1)
-  const control = span * 0.22
+  const control = Math.min(span * 0.4, 60)
   const dir = x2 >= x1 ? 1 : -1
   return (
     'M ' + x1 + ' ' + y1 +
-    ' C ' + (x1 + dir * control) + ' ' + y1 + ' ' + (x2 - dir * control) + ' ' + y2 + ' ' + x2 + ' ' + y2 +
-    ' L ' + x2 + ' ' + (y2 + w2) +
-    ' C ' + (x2 - dir * control) + ' ' + (y2 + w2) + ' ' + (x1 + dir * control) + ' ' + (y1 + w1) + ' ' + x1 + ' ' + (y1 + w1) +
-    ' Z'
-  )
-}
-
-function feeHook(x, y, w) {
-  const tipX = x + 16
-  const tipY = y + 40
-  return (
-    'M ' + x + ' ' + (y - 2) +
-    ' C ' + (x + 10) + ' ' + y + ' ' + (tipX + 6) + ' ' + (y + 16) + ' ' + tipX + ' ' + (tipY - 12) +
-    ' L ' + (tipX - 8) + ' ' + tipY +
-    ' C ' + (tipX - 2) + ' ' + (tipY - 14) + ' ' + (x + 6) + ' ' + (y + w + 8) + ' ' + x + ' ' + (y + w) +
+    ' L ' + x1 + ' ' + (y1 + w1) +
+    ' C ' + (x1 + dir * control) + ' ' + (y1 + w1) + ' ' + (x2 - dir * control) + ' ' + (y2 + w2) + ' ' + x2 + ' ' + (y2 + w2) +
+    ' L ' + x2 + ' ' + y2 +
+    ' C ' + (x2 - dir * control) + ' ' + y2 + ' ' + (x1 + dir * control) + ' ' + y1 + ' ' + x1 + ' ' + y1 +
     ' Z'
   )
 }
@@ -2137,147 +2406,154 @@ function flowLabel(lines, x, y, anchor) {
 }
 
 function txDetailSankey(tx) {
-  const inputCount = Math.max(tx.inputs, 1)
-  const outputCount = Math.max(tx.outputs, 1)
+  const flowInputs = tx.flowInputs
+  const flowOutputs = tx.flowOutputs
+  const inputCount = flowInputs ? flowInputs.length : Math.max(tx.inputs, 1)
+  const outputCount = flowOutputs ? flowOutputs.filter((item) => !item.fee).length : Math.max(tx.outputs, 1)
   const changePool = tx.type === 'send' && outputCount > 1 ? Math.round(tx.amount * 0.42) : 0
-  const inputValues = splitFlow(tx.amount + tx.fee + changePool, inputCount)
-  const outputValues =
-    tx.type === 'receive'
+  const inputValues = flowInputs
+    ? flowInputs.map((item) => item.value)
+    : splitFlow(tx.amount + tx.fee + changePool, inputCount)
+  const outputValues = flowOutputs
+    ? flowOutputs.filter((item) => !item.fee).map((item) => item.value)
+    : tx.type === 'receive'
       ? splitFlow(tx.amount, outputCount)
       : outputCount === 1
         ? [tx.amount]
         : [tx.amount].concat(splitFlow(changePool, outputCount - 1))
-  const rows = Math.max(inputCount, outputCount + 1)
-  const blockX = 150
-  const blockW = 58
-  const blockY = 4
-  const band = Math.min(124, Math.max(96, 28 + rows * 22))
-  const leftX = 104
+  const rightValues = flowOutputs ? flowOutputs.map((item) => item.value) : outputValues.concat([tx.fee])
+  const row = 68
+  const rows = Math.max(inputCount, rightValues.length)
+  const height = rows * row + 8
+  const blockX = 146
+  const blockW = 50
+  const leftX = 108
   const rightX = 246
-  const labelGap = Math.max(band / Math.max(rows - 1, 1), 62)
-  const height = blockY + Math.max(band, rows * labelGap) + 8
   const gid = 'flow' + String(tx.txid || 'tx').slice(0, 6)
+  const throughput = inputValues.reduce((sum, value) => sum + value, 0)
+  const band = Math.min(100, Math.max(34, Math.round(18 * Math.log10(Math.max(throughput, 10)))))
 
-  function slotsFor(values, y0, heightPx) {
-    const weights = values.map((value) => Math.max(value, 1))
-    const total = weights.reduce((sum, value) => sum + value, 0)
+  function linearShare(values, totalPx) {
+    const sum = values.reduce((total, value) => total + value, 0) || 1
+    const widths = values.map((value) => Math.max((value / sum) * totalPx, 2))
+    const scaled = widths.reduce((total, value) => total + value, 0)
+    return widths.map((value) => (value / scaled) * totalPx)
+  }
+
+  const inH = linearShare(inputValues, band)
+  const rightH = linearShare(rightValues, band)
+  const blockY = Math.max(4, (height - band) / 2)
+
+  function stack(heights, y0) {
     let y = y0
-    return weights.map((weight, index) => {
-      const h = (weight / total) * heightPx
+    return heights.map((h) => {
       const slot = { y: y, h: h }
       y += h
       return slot
     })
   }
 
-  const inputs = slotsFor(inputValues, blockY, band)
-  const outputs = slotsFor(outputValues, blockY, band * 0.78)
-  const feeY = blockY + band - 8
-
-  function labelY(index) {
-    return 16 + index * labelGap
+  function sideY(index, count, h) {
+    const start = (height - count * row) / 2
+    return start + index * row + (row - h) / 2
   }
 
-  const inputPaths = inputs
+  const inSlots = stack(inH, blockY)
+  const rightSlots = stack(rightH, blockY)
+
+  const inputPaths = inSlots
     .map((slot, index) => {
-      const y = inputCount === 1 ? blockY : slot.y
-      const h = inputCount === 1 ? band : slot.h
-      return '<path fill="url(#' + gid + 'In)" d="' + txRibbon(leftX, y, h, blockX, y, h) + '"/>'
+      const y = sideY(index, inputCount, slot.h)
+      const ours = flowInputs ? flowInputs[index].ours : true
+      const fill = flowInputs ? (ours ? 'url(#' + gid + 'OwnIn)' : 'url(#' + gid + 'ForeignIn)') : 'url(#' + gid + 'In)'
+      return '<path fill="' + fill + '" d="' + txRibbon(leftX, y, slot.h, blockX, slot.y, slot.h) + '"/>'
     })
     .join('')
 
-  const outputPaths = outputs
+  const outputPaths = rightSlots
     .map((slot, index) => {
-      const ours = tx.type === 'receive' ? index === 0 : index > 0
-      const y = outputCount === 1 ? blockY : slot.y
-      const h = outputCount === 1 ? band * 0.86 : Math.min(slot.h, band * 0.5)
-      const fill = ours ? 'url(#' + gid + 'Mine)' : 'url(#' + gid + 'Pay)'
-      return '<path fill="' + fill + '" d="' + txRibbon(blockX + blockW, y, h, rightX, y + index * 4, h) + '"/>'
+      const y = sideY(index, rightValues.length, slot.h)
+      const isFee = index === rightSlots.length - 1
+      const ours = !isFee && (tx.type === 'receive' ? index === 0 : index > 0)
+      const fill = isFee ? 'url(#' + gid + 'Fee)' : ours ? 'url(#' + gid + 'Mine)' : 'url(#' + gid + 'Pay)'
+      return '<path fill="' + fill + '" d="' + txRibbon(blockX + blockW, slot.y, slot.h, rightX, y, slot.h) + '"/>'
     })
     .join('')
 
   const inputCards = inputValues
     .map((value, index) => {
-      const named = index === 0 && tx.type === 'send' && tx.label
-      const y = inputCount === 1 ? blockY + 18 : labelY(index)
+      const flow = flowInputs && flowInputs[index]
+      const named = flow ? flow.ours : index === 0 && tx.type === 'send' && tx.label
+      const name = flow ? flow.label : named ? tx.label : 'Previous'
+      const y = sideY(index, inputCount, inSlots[index].h) + 4
       return flowLabel(
         [
-          { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
-          { text: 'from ' + shortId(tx.txid), color: '#8A8A8A', size: 8 },
-          { text: named ? tx.label : 'Previous', color: named ? '#7DFF8A' : '#FF5C5C', size: 11, weight: 700 }
+          { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
+          { text: 'from ' + shortId(flow ? flow.from : tx.txid), color: '#8A8A8A', size: 8 },
+          { text: name, color: named ? '#A7FFAF' : '#FF7171', size: 10, weight: 700 }
         ],
-        0,
+        2,
         y,
         'start'
       )
     })
     .join('')
 
-  const outputCards = outputValues
+  const outputCards = rightValues
     .map((value, index) => {
-      const ours = tx.type === 'receive' ? index === 0 : index > 0
-      const name = tx.type === 'receive' ? (index === 0 ? tx.label || 'Receive' : 'Change') : index > 0 ? 'Change' : tx.label || 'Payment'
-      const y = outputCount === 1 ? blockY + 14 : labelY(index)
-      return flowLabel(
-        [
-          { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
-          { text: 'to ' + shortId('tb1qc' + tx.txid.slice(4, 16) + 'aa44'), color: '#8A8A8A', size: 8 },
-          { text: name, color: ours ? '#7DFF8A' : '#FF5C5C', size: 11, weight: 700 }
-        ],
-        252,
-        y,
-        'start'
-      )
+      const flow = flowOutputs && flowOutputs[index]
+      const isFee = flow ? !!flow.fee : index === rightValues.length - 1
+      const ours = flow ? !!flow.ours : !isFee && (tx.type === 'receive' ? index === 0 : index > 0)
+      const name = flow
+        ? flow.label
+        : isFee
+          ? 'Miner fee'
+          : tx.type === 'receive'
+            ? index === 0
+              ? tx.label || 'Receive'
+              : 'Change'
+            : index > 0
+              ? 'Change'
+              : tx.label || 'Payment'
+      const y = sideY(index, rightValues.length, rightSlots[index].h) + 4
+      const lines = [
+        { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
+        {
+          text: isFee
+            ? (tx.fee / tx.vsize).toFixed(2) + ' sat/vB'
+            : 'to ' + shortId(flow && flow.to ? flow.to : 'tb1q' + tx.txid.slice(0, 12)),
+          color: '#8A8A8A',
+          size: 8
+        },
+        { text: name, color: ours ? '#A7FFAF' : '#FF7171', size: 10, weight: 700 }
+      ]
+      return flowLabel(lines, rightX + 8, y, 'start')
     })
     .join('')
 
-  const feeCard = flowLabel(
-    [
-      { text: tx.fee.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 13, weight: 650 },
-      { text: (tx.fee / tx.vsize).toFixed(2) + ' sat/vB', color: '#8A8A8A', size: 8 },
-      { text: 'Miner fee', color: '#FF5C5C', size: 11, weight: 700 }
-    ],
-    252,
-    labelY(outputCount) + 4,
-    'start'
-  )
-
-  const flapH = Math.round(band * 0.34)
-  const flapX = blockX + 16
+  const stripH = Math.min(band, Math.max(34, tx.size * 0.1))
   return (
     '<svg class="tx-sankey" viewBox="0 0 360 ' + height + '" role="img" aria-label="Transaction flow">' +
     '<defs>' +
-    '<linearGradient id="' + gid + 'In" x1="' + leftX + '" x2="' + (blockX + 2) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#2A2A2A"/>' +
-    '<stop offset="0.45" stop-color="#4A4A4A"/>' +
-    '<stop offset="0.78" stop-color="#C8C8C8"/>' +
-    '<stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'In" x1="' + leftX + '" x2="' + blockX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#111111"/><stop offset="1" stop-color="#828282"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'OwnIn" x1="' + leftX + '" x2="' + blockX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#14301A"/><stop offset="1" stop-color="#828282"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'ForeignIn" x1="' + leftX + '" x2="' + blockX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#3A1515"/><stop offset="1" stop-color="#828282"/></linearGradient>' +
     '<linearGradient id="' + gid + 'Mine" x1="' + (blockX + blockW) + '" x2="' + rightX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#FFFFFF"/>' +
-    '<stop offset="1" stop-color="#EDEDED"/></linearGradient>' +
+    '<stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
     '<linearGradient id="' + gid + 'Pay" x1="' + (blockX + blockW) + '" x2="' + rightX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#FFFFFF"/>' +
-    '<stop offset="0.72" stop-color="#F3F3F3"/>' +
-    '<stop offset="1" stop-color="#E7A3A3"/></linearGradient>' +
-    '<linearGradient id="' + gid + 'Fee" x1="' + (blockX + blockW - 4) + '" y1="' + (feeY - 6) + '" x2="' + (blockX + blockW + 18) + '" y2="' + (feeY + 46) + '" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#6A6A6A"/>' +
-    '<stop offset="0.55" stop-color="#D0D0D0"/>' +
-    '<stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
-    '<linearGradient id="' + gid + 'Metal" x1="' + blockX + '" x2="' + (blockX + blockW) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#FFFFFF"/>' +
-    '<stop offset="0.22" stop-color="#D2D2D2"/>' +
-    '<stop offset="0.48" stop-color="#8F8F8F"/>' +
-    '<stop offset="0.78" stop-color="#C6C6C6"/>' +
-    '<stop offset="1" stop-color="#F7F7F7"/></linearGradient>' +
-    '<linearGradient id="' + gid + 'Flap" x1="' + flapX + '" x2="' + (flapX + 26) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
-    '<stop offset="0" stop-color="#A3A3A3"/>' +
-    '<stop offset="1" stop-color="#6A6A6A"/></linearGradient>' +
+    '<stop offset="0" stop-color="#FFFFFF"/><stop offset="0.9" stop-color="#FFFFFF"/><stop offset="1" stop-color="#D98A8A"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Fee" x1="' + (blockX + blockW) + '" x2="' + rightX + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#FFFFFF"/><stop offset="0.3" stop-color="#FFFFFF"/><stop offset="1" stop-color="#111111"/></linearGradient>' +
+    '<linearGradient id="' + gid + 'Block" x1="' + blockX + '" x2="' + (blockX + blockW) + '" y1="0" y2="0" gradientUnits="userSpaceOnUse">' +
+    '<stop offset="0" stop-color="#828282"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>' +
     '</defs>' +
     inputPaths + outputPaths +
-    '<path fill="url(#' + gid + 'Fee)" d="' + feeHook(blockX + blockW - 4, feeY, 8) + '"/>' +
-    '<rect x="' + blockX + '" y="' + blockY + '" width="' + blockW + '" height="' + band + '" fill="url(#' + gid + 'Metal)"/>' +
-    '<rect x="' + flapX + '" y="' + blockY + '" width="26" height="' + flapH + '" fill="url(#' + gid + 'Flap)"/>' +
-    inputCards + outputCards + feeCard +
+    '<rect x="' + blockX + '" y="' + blockY + '" width="' + blockW + '" height="' + band + '" fill="url(#' + gid + 'Block)"/>' +
+    '<rect x="' + (blockX + blockW / 6) + '" y="' + blockY + '" width="' + (blockW / 1.5) + '" height="' + stripH + '" fill="#515151" opacity="0.6"/>' +
+    inputCards + outputCards +
     '</svg>'
   )
 }
@@ -3085,7 +3361,345 @@ function renderMultisigSign() {
   }
 }
 
-document.querySelector('.add-account').addEventListener('click', () => go('multisig-setup'))
+let newAccountName = 'Spending'
+let newAccountPolicy = 'singlesig'
+
+function renderNewAccount() {
+  const root = document.getElementById('new-account')
+  const policies = [
+    ['singlesig', 'Single signature', 'One key spends'],
+    ['multisig', 'Multisignature', 'Several keys must sign'],
+    ['watchonly', 'Watch only', 'Track a wallet without the seed']
+  ]
+  root.innerHTML =
+    '<label class="field"><span>Name</span><input id="new-account-name" value="' +
+    newAccountName +
+    '"></label><p class="field-label">Policy</p>' +
+    policies
+      .map(
+        (policy) =>
+          '<button type="button" class="policy-option' +
+          (newAccountPolicy === policy[0] ? ' is-on' : '') +
+          '" data-policy="' +
+          policy[0] +
+          '"><strong>' +
+          policy[1] +
+          '</strong><span>' +
+          policy[2] +
+          '</span></button>'
+      )
+      .join('') +
+    '<button type="button" class="menu-button" id="new-account-continue">' +
+    edges('Continue') +
+    '</button>'
+  root.querySelector('#new-account-name').addEventListener('input', (event) => {
+    newAccountName = event.target.value || 'Spending'
+  })
+  root.querySelectorAll('[data-policy]').forEach((button) => {
+    button.addEventListener('click', () => {
+      newAccountPolicy = button.getAttribute('data-policy')
+      renderNewAccount()
+    })
+  })
+  root.querySelector('#new-account-continue').addEventListener('click', () => {
+    if (newAccountPolicy === 'multisig') go('multisig-setup')
+    else if (newAccountPolicy === 'watchonly') go('accounts')
+    else go('new-singlesig')
+  })
+}
+
+function renderNewSinglesig() {
+  document.getElementById('new-singlesig-title').textContent = newAccountName
+  const root = document.getElementById('new-singlesig')
+  root.innerHTML =
+    '<p class="field-label">Policy</p><p class="hint">Single signature</p>' +
+    '<p class="field-label">Entropy</p><p class="hint">Add your own randomness, then the app mixes it into the seed.</p>' +
+    '<button type="button" class="menu-button" data-entropy="entropy-dice">' +
+    edges('Dice rolls') +
+    '</button><button type="button" class="menu-button" data-entropy="entropy-coin">' +
+    edges('Coin flips') +
+    '</button><button type="button" class="menu-button" data-entropy="entropy-drawing">' +
+    edges('Drawing') +
+    '</button><button type="button" class="menu-button" id="entropy-none">' +
+    edges('No extra entropy') +
+    '</button>'
+  root.querySelectorAll('[data-entropy]').forEach((button) => {
+    button.addEventListener('click', () => go(button.getAttribute('data-entropy')))
+  })
+  root.querySelector('#entropy-none').addEventListener('click', () => go('accounts'))
+}
+
+function entropyBits(values) {
+  if (!values.length) return '—'
+  return values
+    .map((value) => Number(value).toString(2).padStart(3, '0'))
+    .join(' ')
+}
+
+function renderEntropyDice() {
+  const root = document.getElementById('entropy-dice')
+  const total = 6
+  const rolls = []
+  function paint() {
+    root.innerHTML =
+      '<p class="entropy-bits">' +
+      entropyBits(rolls) +
+      '</p><p class="entropy-count">' +
+      rolls.length +
+      '</p><p class="entropy-of">of ' +
+      total +
+      '</p><p class="hint">Tap the face you rolled. Demo stops at six rolls.</p><div class="dice-pad">' +
+      [1, 2, 3, 4, 5, 6]
+        .map((face) => '<button type="button" class="die" data-face="' + face + '">' + face + '</button>')
+        .join('') +
+      '</div><button type="button" class="menu-button" id="dice-undo">' +
+      edges('Undo') +
+      '</button><button type="button" class="menu-button' +
+      (rolls.length >= total ? '' : ' is-off') +
+      '" id="dice-done"' +
+      (rolls.length >= total ? '' : ' disabled') +
+      '>' +
+      edges('Continue') +
+      '</button>'
+    root.querySelectorAll('[data-face]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (rolls.length >= total) return
+        rolls.push(Number(button.getAttribute('data-face')))
+        paint()
+      })
+    })
+    root.querySelector('#dice-undo').addEventListener('click', () => {
+      rolls.pop()
+      paint()
+    })
+    if (rolls.length >= total) {
+      root.querySelector('#dice-done').addEventListener('click', () => go('accounts'))
+    }
+  }
+  paint()
+}
+
+function renderEntropyCoin() {
+  const root = document.getElementById('entropy-coin')
+  const total = 8
+  const flips = []
+  function paint() {
+    root.innerHTML =
+      '<p class="entropy-bits">' +
+      (flips.length ? flips.join(' ') : '—') +
+      '</p><p class="entropy-count">' +
+      flips.length +
+      '</p><p class="entropy-of">of ' +
+      total +
+      '</p><p class="hint">Heads is 0. Tails is 1. Demo stops at eight flips.</p><div class="coin-pad">' +
+      '<button type="button" class="coin-face" data-flip="0">Heads</button>' +
+      '<button type="button" class="coin-face" data-flip="1">Tails</button></div>' +
+      '<button type="button" class="menu-button" id="coin-undo">' +
+      edges('Undo') +
+      '</button><button type="button" class="menu-button' +
+      (flips.length >= total ? '' : ' is-off') +
+      '" id="coin-done"' +
+      (flips.length >= total ? '' : ' disabled') +
+      '>' +
+      edges('Continue') +
+      '</button>'
+    root.querySelectorAll('[data-flip]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (flips.length >= total) return
+        flips.push(button.getAttribute('data-flip'))
+        paint()
+      })
+    })
+    root.querySelector('#coin-undo').addEventListener('click', () => {
+      flips.pop()
+      paint()
+    })
+    if (flips.length >= total) {
+      root.querySelector('#coin-done').addEventListener('click', () => go('accounts'))
+    }
+  }
+  paint()
+}
+
+function renderEntropyDrawing() {
+  const root = document.getElementById('entropy-drawing')
+  const total = 24
+  let samples = 0
+  root.innerHTML =
+    '<p class="entropy-bits" id="draw-bits">—</p><p class="entropy-count" id="draw-count">0</p><p class="entropy-of">of ' +
+    total +
+    ' bits</p><p class="hint">Draw in the box. Each stroke adds demo entropy.</p><canvas class="draw-pad" id="draw-pad"></canvas><button type="button" class="menu-button" id="draw-clear">' +
+    edges('Clear') +
+    '</button><button type="button" class="menu-button is-off" id="draw-done" disabled>' +
+    edges('Continue') +
+    '</button>'
+  const canvas = root.querySelector('#draw-pad')
+  const ctx = canvas.getContext('2d')
+  function fit() {
+    const rect = canvas.getBoundingClientRect()
+    canvas.width = rect.width
+    canvas.height = rect.height
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 3
+    ctx.lineCap = 'round'
+  }
+  fit()
+  let drawing = false
+  function point(event) {
+    const rect = canvas.getBoundingClientRect()
+    const source = event.touches ? event.touches[0] : event
+    return { x: source.clientX - rect.left, y: source.clientY - rect.top }
+  }
+  function mark(pos) {
+    if (samples >= total) return
+    samples += 1
+    root.querySelector('#draw-count').textContent = String(samples)
+    root.querySelector('#draw-bits').textContent = (pos.x.toString(2) + pos.y.toString(2)).slice(0, 24)
+    if (samples >= total) {
+      const done = root.querySelector('#draw-done')
+      done.disabled = false
+      done.classList.remove('is-off')
+    }
+  }
+  canvas.addEventListener('pointerdown', (event) => {
+    drawing = true
+    const pos = point(event)
+    ctx.beginPath()
+    ctx.moveTo(pos.x, pos.y)
+    mark(pos)
+  })
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drawing) return
+    const pos = point(event)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.stroke()
+    mark(pos)
+  })
+  canvas.addEventListener('pointerup', () => {
+    drawing = false
+  })
+  root.querySelector('#draw-clear').addEventListener('click', () => {
+    samples = 0
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    root.querySelector('#draw-count').textContent = '0'
+    root.querySelector('#draw-bits').textContent = '—'
+    const done = root.querySelector('#draw-done')
+    done.disabled = true
+    done.classList.add('is-off')
+  })
+  root.querySelector('#draw-done').addEventListener('click', () => {
+    if (samples >= total) go('accounts')
+  })
+}
+
+document.querySelector('.add-account').addEventListener('click', () => go('new-account'))
+
+function difficultySpiral(times) {
+  const growth = 0.97
+  const step = 0.055
+  let phi = 1 / growth
+  let arc = growth * (Math.asinh(phi) + phi * Math.sqrt(phi * phi + 1))
+  const points = []
+  times.forEach((gap, index) => {
+    if (index !== 0 && index !== times.length - 1) arc += gap * step
+    phi = Math.sqrt(Math.max(arc * growth, 0))
+    const radius = growth * phi
+    points.push({
+      x: radius * Math.cos(phi),
+      y: radius * Math.sin(phi),
+      rotation: phi
+    })
+  })
+  const limit = 190
+  const scale = 148 / limit
+  const cx = 180
+  const cy = 160
+  const marks = [180]
+    .map((radius) => {
+      const r = radius * scale
+      return (
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.28)" stroke-dasharray="2 3"/>' +
+        '<text x="' + cx + '" y="' + (cy - r - 4) + '" fill="#8A8A8A" font-size="8" text-anchor="middle">1 WEEK</text>'
+      )
+    })
+    .join('')
+  const blocks = points
+    .map((point) => {
+      const x = cx + point.x * scale
+      const y = cy + point.y * scale
+      return (
+        '<rect x="-2.2" y="-2.2" width="4.4" height="4.4" fill="#F2F2F2" transform="translate(' +
+        x.toFixed(1) +
+        ' ' +
+        y.toFixed(1) +
+        ') rotate(' +
+        ((point.rotation * 180) / Math.PI).toFixed(1) +
+        ')"/>'
+      )
+    })
+    .join('')
+  return (
+    '<svg class="difficulty-spiral" viewBox="0 0 360 320" role="img" aria-label="Difficulty epoch spiral">' +
+    marks +
+    blocks +
+    '</svg>'
+  )
+}
+
+function renderDifficulty() {
+  const times = '0,77,1498,1893,1369,392,173,315,66,644,484,443,845,6,556,227,564,212,458,371,1786,1100,70,830,17,723,541,593,859,14,305,720,0,494,196,436,586,322,253,960,113,60,119,1121,367,649,1541,104,239,725,1155,911,725,406,1600,887,1444,73,342,747,0,903,580,406,0,1187,192,266,412,646,479,2464,1836,268,1042,956,403,141,203,1304,1008,368,933,1517,150,130,356,571,398,51,99,465,960,346,975,706,153,321,332,1561,608,1338,112,0,1231,804,237,673,165,306,360,444,38,168,743,276,3043,935,189,100,221,186,3121,277,354,1513,0,605,1201,405,458,525,599,171,753,541,368,0,65,381,198,454,160,54,819,244,508,801,488,269,54,543,1080,221,2,166,601,1912,82,225,1040,62,635,881,74,1189,111,200,551,2435,318,2173,442,0,410,0,286,473,721,130,89,161,1260,627,5,2318,405,1886,1467,653,454,831,1325,5,365,927,2033,1586,1131,203,2199,717,225,282,201,746,462,840,1691,0,479,0,799,457,342,137,1082,158,1831,1596,1488,0,108,209,733,96,1141,1359,36,760,360,237,1516,574,787,0,174,1393,205,478,836,3459,591,1506,1438,166,680,375,2002,157,1202,364,645,144,649,483,276,552,550,0,584,155,199,53,535,430,291,346,7,18,211,857,1294,561,937,241,661,56,79,155,81,1187,1043,1436,410,59,14,1142,327,1062,647,471,133,703,18,32,912,1350,0,226,176,264,356,844,563,89,207,0,282,363,1528,647,580,178,778,40,461,377,185,1201,129,142,2049,846,23,735,592,1300,94,124,223,267,66,556,72,603,128,135,112,305,198,2074,1506,847,365,580,181,22,396,177,218,286,487,756,590,983,325,475,687,485,904,554,634,129,59,418,640,458,1642,465,72,408,168,886,236,187,29,410,252,1399,524,17,686,0,29,2240,39,93,84,177,587,1750,512,1593,113,3521,1218,963,563,786,1759,576,581,165,453,213,430,3931,2,24,356,893,456,914,233,749,293,1001,772,0,17,1889,200,2406,327,148,1616,908,818,494,252,71,917,452,313,587,145,176,286,468,172,105,76,502,1347,254,366,60,193,10,44,195,80,45,332,40,170,118,488,752,645,372,1422,1998,932,114,265,78,158,302,18,71,2085,1277,708,216,845,1004,3,342,1465,368,459,222,355,1555,331,33,152,936,1522,31,260,310,103,134,394,422,235,417,51,361,1007,243,1686,207,759,1546,909,248,156,224,183,1467,193,30,107,492,208,416'.split(',').map(Number)
+  document.getElementById('difficulty').innerHTML =
+    '<p class="difficulty-tip">140,577,680,051,920</p>' +
+    '<p class="difficulty-meta">Block height 972,231</p>' +
+    '<div class="difficulty-row">' +
+    '<p class="difficulty-stat"><strong>~9.6 minutes</strong><span>Average block time</span></p>' +
+    '<p class="difficulty-stat is-end"><strong>~10.0 days</strong><span>Next adjustment</span></p>' +
+    '</div>' +
+    '<p class="difficulty-source">mempool.space</p>' +
+    difficultySpiral(times) +
+    '<p class="difficulty-range">Epoch 482 · blocks 971,712–972,231</p>'
+}
+
+function renderScriptSelect() {
+  const scripts = [
+    ['P2PKH', 'Legacy (P2PKH)'],
+    ['P2SH-P2WPKH', 'Nested SegWit (P2SH-P2WPKH)'],
+    ['P2WPKH', 'Native SegWit (P2WPKH)'],
+    ['P2TR', 'Taproot (P2TR)']
+  ]
+  let selected = 'P2WPKH'
+  function paint(sheet) {
+    const body = sheet.querySelector('.sheet-body')
+    body.innerHTML =
+      '<p class="sheet-copy">P2WPKH — Native SegWit. Locks bitcoin to a witness program.</p>' +
+      scripts
+        .map(
+          (script) =>
+            '<button type="button" class="policy-option' +
+            (selected === script[0] ? ' is-on' : '') +
+            '" data-script="' +
+            script[0] +
+            '"><strong>' +
+            script[1] +
+            '</strong></button>'
+        )
+        .join('')
+    body.querySelectorAll('[data-script]').forEach((button) => {
+      button.addEventListener('click', () => {
+        selected = button.getAttribute('data-script')
+        const chosen = scripts.find((script) => script[0] === selected)
+        body.querySelector('.sheet-copy').textContent =
+          selected + ' — ' + chosen[1].replace(' (' + selected + ')', '') + '.'
+        body.querySelectorAll('[data-script]').forEach((row) => {
+          row.classList.toggle('is-on', row.getAttribute('data-script') === selected)
+        })
+      })
+    })
+  }
+  menuTab('signer')
+  openSheet('Script', '', paint)
+  document.getElementById('sheet').classList.add('is-script')
+}
 
 function go(id) {
   if (id === 'intro') {
@@ -3095,6 +3709,11 @@ function go(id) {
   }
   if (id === 'menu' || id === 'signer') {
     menuTab('signer')
+    return true
+  }
+  if (id === 'difficulty') {
+    renderDifficulty()
+    show('difficulty', 'difficulty')
     return true
   }
   if (id === 'explorer') {
@@ -3111,9 +3730,10 @@ function go(id) {
     show('converter', 'converter')
     return true
   }
-  if (id === 'tx') {
+  if (id === 'tx' || id === 'payjoin-tx') {
     openAccountData = accounts[0]
-    openTransaction(activity[openAccountData.fingerprint][0])
+    const list = activity[openAccountData.fingerprint]
+    openTransaction(id === 'payjoin-tx' ? list.find((item) => item.payjoin) || list[0] : list[0])
     return true
   }
   if (id === 'account' || id === 'coins' || id === 'chart') {
@@ -3130,6 +3750,13 @@ function go(id) {
     show('account-settings', 'account-settings')
     return true
   }
+  if (id === 'output') {
+    openAccountData = accounts[0]
+    openSend('output')
+    renderOutputModal()
+    show('send', 'output')
+    return true
+  }
   if (id === 'send' || id === 'payjoin') {
     openAccountData = accounts[0]
     document.getElementById('payjoin-toggle').checked = true
@@ -3137,10 +3764,21 @@ function go(id) {
     show('send', id === 'payjoin' ? 'payjoin' : 'send')
     return true
   }
+  if (id === 'builder') {
+    openAccountData = accounts[0]
+    renderBuilder()
+    show('preview', 'builder')
+    return true
+  }
   if (id === 'preview') {
     openAccountData = accounts[0]
-    renderPreview()
+    renderDecoded()
     show('preview', 'preview')
+    return true
+  }
+  if (id === 'psbt-qr') {
+    renderPsbtQr()
+    show('psbt-qr', 'psbt-qr')
     return true
   }
   if (id === 'sign') {
@@ -3159,6 +3797,8 @@ function go(id) {
     return true
   }
   if (
+    id === 'duress' ||
+    id === 'seed-drop' ||
     id === 'ark' ||
     id === 'ark-account' ||
     id === 'lightning' ||
@@ -3176,6 +3816,31 @@ function go(id) {
     id === 'nostr-add'
   ) {
     show(id, id)
+    return true
+  }
+  if (id === 'new-account') {
+    renderNewAccount()
+    show('new-account', 'new-account')
+    return true
+  }
+  if (id === 'new-singlesig') {
+    renderNewSinglesig()
+    show('new-singlesig', 'new-singlesig')
+    return true
+  }
+  if (id === 'entropy-dice') {
+    renderEntropyDice()
+    show('entropy-dice', 'entropy-dice')
+    return true
+  }
+  if (id === 'entropy-coin') {
+    renderEntropyCoin()
+    show('entropy-coin', 'entropy-coin')
+    return true
+  }
+  if (id === 'entropy-drawing') {
+    renderEntropyDrawing()
+    show('entropy-drawing', 'entropy-drawing')
     return true
   }
   if (id === 'multisig-setup') {
@@ -3206,6 +3871,20 @@ function go(id) {
     multisigKeys[2].signed = false
     renderMultisigSign()
     show('multisig-sign', 'multisig-sign')
+    return true
+  }
+  if (id === 'script') {
+    renderScriptSelect()
+    routeId = 'script'
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#script')
+    return true
+  }
+  if (id === 'custom-backend') {
+    menuTab('signer')
+    openSettings()
+    showSettingsPage('custom-backend')
+    routeId = 'custom-backend'
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#custom-backend')
     return true
   }
   if (id === 'settings') {
