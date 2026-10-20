@@ -1127,27 +1127,24 @@ function renderCoins() {
     if (coinView === 'list') bubbleZoomId = null
     renderCoins()
   })
-  document.getElementById('coins-next').addEventListener('click', () => {
-    renderPreview()
-    show('preview')
-  })
+  // selectUtxoList.tsx continues to ioPreview
+  document.getElementById('coins-next').addEventListener('click', () => openSend('output'))
   bindCoins(root)
 }
 
 function openSend(phase) {
   sendPhase = phase
-  const form = document.getElementById('send-form')
   const title = document.getElementById('send-title')
   if (phase === 'coins') {
     coinView = 'list'
-    form.hidden = true
     title.textContent = 'Outputs'
+    document.querySelector('#view-send > .accounts-body').hidden = false
+    document.getElementById('io-preview').hidden = true
     show('send')
     renderCoins()
   } else {
     document.getElementById('view-send').classList.remove('is-bubbles')
     document.getElementById('coin-select').innerHTML = ''
-    form.hidden = true
     title.textContent = openAccountData ? openAccountData.name : 'Spending'
     renderIo()
     show('send')
@@ -1174,23 +1171,8 @@ function draftTotals() {
   return { inputs, inValue, outValue, vsize, fee, change, underfunded: change < 0 }
 }
 
-function syncLegacySendForm() {
-  // renderPreview() and startSign() still read the old form fields.
-  const first = draft.outputs[0] || { amount: 0, to: '', label: '' }
-  document.getElementById('send-amount').value = first.amount
-  document.getElementById('send-address').value = first.to
-  document.getElementById('send-label').value = first.label
-}
-
-function renderIo() {
-  const root = document.getElementById('io-preview')
-  const accountsBody = document.querySelector('#view-send > .accounts-body')
-  accountsBody.hidden = true
-  root.hidden = false
-  const tot = draftTotals()
-  const gray = (n, v) => ss.text({ size: 'xxs', as: 'span', style: 'color:var(--gray-' + n + ')' }, String(v))
-  const fiat = (sats) => ((sats / SATS_PER_BTC) * USD_PER_BTC).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const tx = {
+function draftTx(tot) {
+  return {
     type: 'send',
     txid: 'draft0' + tot.inputs.length + draft.outputs.length,
     amount: tot.outValue,
@@ -1205,6 +1187,17 @@ function renderIo() {
       .concat(tot.change > 0 ? [{ value: tot.change, label: 'Change', ours: true, to: 'tb1qchange0001' }] : [])
       .concat([{ value: tot.fee, label: 'Miner fee', fee: true }])
   }
+}
+
+function renderIo() {
+  const root = document.getElementById('io-preview')
+  const accountsBody = document.querySelector('#view-send > .accounts-body')
+  accountsBody.hidden = true
+  root.hidden = false
+  const tot = draftTotals()
+  const gray = (n, v) => ss.text({ size: 'xxs', as: 'span', style: 'color:var(--gray-' + n + ')' }, String(v))
+  const fiat = (sats) => ((sats / SATS_PER_BTC) * USD_PER_BTC).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const tx = draftTx(tot)
   const autoTitle = (k) => t('transaction.build.options.autoSelect.utxos.' + k + '.title')
 
   root.innerHTML =
@@ -1348,7 +1341,6 @@ document.getElementById('view-send').addEventListener('click', (e) => {
     renderIo()
   }
   if (hit('#io-preview-go')) {
-    syncLegacySendForm()
     renderPreview()
     show('preview')
   }
@@ -1374,9 +1366,7 @@ function openSheet(title, body, onReady) {
 }
 
 function useSample(address, amount, label) {
-  document.getElementById('send-address').value = address
-  document.getElementById('send-amount').value = String(amount)
-  document.getElementById('send-label').value = label
+  draft.outputs = [{ id: Date.now(), amount: amount, to: address, label: label }]
   closeSheet()
   openSend('output')
 }
@@ -2227,6 +2217,10 @@ function renderBuilder() {
 
 function renderDecoded() {
   document.getElementById('preview-title').textContent = 'Decoded'
+  document.getElementById('preview-body').innerHTML = decodedMarkup()
+}
+
+function decodedMarkup() {
   const groups = [
     ['#ffffff', '02000000'],
     ['#888888', '00'],
@@ -2271,60 +2265,62 @@ function renderDecoded() {
   ]
     .map((item) => '<span style="color:' + item[0] + '">' + item[1] + '</span>')
     .join('')
-  document.getElementById('preview-body').innerHTML =
+  return (
     '<p class="tx-decode-tools"><span>List</span><span class="is-on">Bytes</span><span class="is-on">Decoded</span><span>Raw</span><span>Hex</span><span>ASCII</span></p>' +
     '<p class="decode-bytes">' +
     bytes +
     '</p><p class="decode-legend">' +
     legend +
     '</p>'
+  )
 }
+
+// previewTransaction.tsx — txid, contents diagram, decoded bytes, sign / export.
+let previewTxid = ''
 
 function renderPreview() {
-  document.getElementById('preview-title').textContent = 'Transaction'
-  const amount = Number(document.getElementById('send-amount').value) || 0
-  const fee = 420
-  const change = Math.max(openAccountData.balance - amount - fee, 0)
-  const label = document.getElementById('send-label').value || 'No label'
-  const changeLabel = document.getElementById('change-label').value || 'Change'
+  const tot = draftTotals()
+  const tn = (k) => t('transaction.build.preview.' + k)
   const payjoin = document.getElementById('payjoin-toggle').checked
-  const address = document.getElementById('send-address').value
-  document.getElementById('preview-body').innerHTML =
-    signSendSankey('tx-sankey') +
-    '<p class="io-line"><span>Inputs</span><strong>' +
-    coins
-      .filter((coin) => coin.selected)
-      .map((coin) => coin.label)
-      .join(', ') +
-    '</strong></p><p class="io-line"><span>Output 1</span><strong>' +
-    amount.toLocaleString('en-US') +
-    ' sats</strong></p><p class="io-sub">' +
-    label +
-    '</p><p class="io-sub">' +
-    address +
-    '</p><p class="io-line"><span>Change</span><strong>' +
-    change.toLocaleString('en-US') +
-    ' sats</strong></p><p class="io-sub">' +
-    changeLabel +
-    '</p><p class="io-line"><span>Miner fee</span><strong>' +
-    fee +
-    ' sats</strong></p>' +
-    (payjoin
-      ? '<p class="hint">Payjoin invoice. Receiver will contribute a coin. Negotiation starts when you sign.</p>'
-      : '') +
-    '<button type="button" class="menu-button" id="sign-open"><span class="edge-left"></span><span class="edge-right"></span>' +
-    (openAccountData.multisig ? 'Collect signatures' : 'Sign') +
-    '</button>'
-  document.getElementById('sign-open').addEventListener('click', () => {
-    if (openAccountData.multisig) go('multisig-sign')
-    else startSign()
-  })
+  const first = draft.outputs[0]
+  const watchOnly = openAccountData.watchOnly
+  previewTxid = demoTxid(openAccountData.fingerprint + JSON.stringify(draft) + tot.fee)
+  document.getElementById('preview-title').textContent = openAccountData.name
+  const section = (title, body) => ss.vstack({ gap: 'xxs' }, ss.text({ color: 'muted', uppercase: true }, title), body)
+  const note = payjoin && first
+    ? ss.vstack({ gap: 'xs', style: 'padding:4px 0' },
+        ss.text({ size: 'xs', uppercase: true, color: 'muted', center: true }, t('transaction.build.payjoin.previewNote.title')),
+        ss.text({ weight: 'light', center: true },
+          [t('transaction.build.payjoin.data.bip77'), first.amount.toLocaleString('en-US') + ' ' + t('bitcoin.sats'), first.label, ss.shortId(first.to)].filter(Boolean).join(' · ')),
+        ss.text({ size: 'xs', center: true, style: 'color:var(--gray-500)' }, t('transaction.build.payjoin.previewNote.hint')))
+    : ''
+  const actions = watchOnly
+    ? ss.vstack({ gap: 'sm' },
+        ss.text({ color: 'muted', center: true, uppercase: true }, t('transaction.preview.exportUnsigned')),
+        ss.hstack({ gap: 'xxs', justifyBetween: true },
+          ss.clipboardCopy({ text: 'cHNidP8BAH' + previewTxid }, ss.button({ variant: 'outline', label: t('common.copy') })),
+          ss.button({ variant: 'outline', label: 'Show QR', go: 'psbt-qr' })))
+    : ss.button({
+        variant: 'secondary',
+        label: openAccountData.multisig ? t('transaction.preview.checkAllSignatures') : t('sign.transaction'),
+        id: 'sign-open',
+        disabled: tot.underfunded || !draft.outputs.length
+      })
+  document.getElementById('preview-body').innerHTML = ss.vstack({ justifyBetween: true, gap: 'lg' },
+    ss.vstack({},
+      note,
+      section(t('transaction.id'), ss.txid({ value: previewTxid, size: 'lg' })),
+      section(tn('contents'), '<div style="overflow:hidden">' + txDetailSankey(draftTx(tot)) + '</div>'),
+      section(tn('decoded'), decodedMarkup())),
+    actions)
+  const sign = document.getElementById('sign-open')
+  if (sign)
+    sign.addEventListener('click', () => {
+      if (openAccountData.multisig) go('multisig-sign')
+      else startSign()
+    })
 }
 
-document.getElementById('send-preview').addEventListener('click', () => {
-  renderPreview()
-  show('preview')
-})
 
 let psbtQrTimer = 0
 
@@ -2404,9 +2400,11 @@ const signState = { payjoin: false, phase: 'signing', status: '', hint: '', txid
 
 function demoTxid(seed) {
   let h = 2166136261
+  for (let i = 0; i < seed.length; i += 1) h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0
   let out = ''
   for (let i = 0; out.length < 64; i += 1) {
-    h = Math.imul(h ^ seed.charCodeAt(i % seed.length) ^ i, 16777619) >>> 0
+    h = Math.imul(h ^ (i + 1), 16777619) >>> 0
+    h = (h ^ (h >>> 13)) >>> 0
     out += h.toString(16).padStart(8, '0')
   }
   return out.slice(0, 64)
@@ -2460,9 +2458,9 @@ function startSign() {
     phase: payjoin ? 'payjoin' : 'signing',
     status: t('transaction.build.payjoin.stage.postingOriginal'),
     hint: 'transaction.build.payjoin.stage.postingOriginalHint',
-    amount: Number(document.getElementById('send-amount').value) || 0,
-    label: document.getElementById('send-label').value || '',
-    txid: demoTxid((openAccountData ? openAccountData.fingerprint : 'demo') + Date.now())
+    amount: draft.outputs.reduce((sum, out) => sum + out.amount, 0),
+    label: draft.outputs.map((out) => out.label).filter(Boolean).join(', '),
+    txid: previewTxid || demoTxid((openAccountData ? openAccountData.fingerprint : 'demo') + Date.now())
   })
   renderSign()
   show('sign')
@@ -2659,6 +2657,8 @@ function flowLabel(lines, x, y, anchor) {
     .join('')
 }
 
+let txSankeyCount = 0
+
 function txDetailSankey(tx) {
   const flowInputs = tx.flowInputs
   const flowOutputs = tx.flowOutputs
@@ -2683,7 +2683,8 @@ function txDetailSankey(tx) {
   const blockW = 50
   const leftX = 108
   const rightX = 246
-  const gid = 'flow' + String(tx.txid || 'tx').slice(0, 6)
+  // Unique per render: the same tx can be drawn in two views and gradient ids must not collide.
+  const gid = 'flow' + String(tx.txid || 'tx').slice(0, 6).replace(/\W/g, '') + ++txSankeyCount
   const throughput = inputValues.reduce((sum, value) => sum + value, 0)
   const band = Math.min(100, Math.max(34, Math.round(18 * Math.log10(Math.max(throughput, 10)))))
 

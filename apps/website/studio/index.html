@@ -148,30 +148,8 @@
           </header>
           <div class="accounts-body">
             <div id="coin-select"></div>
-            <div id="send-form" hidden>
-            <label class="field">
-              <span>Address</span>
-              <input id="send-address" value="tb1qpayjoin0demo0000000000000000000000">
-            </label>
-            <label class="field">
-              <span>Amount</span>
-              <input id="send-amount" inputmode="numeric" value="50000">
-            </label>
-            <label class="field">
-              <span>Label</span>
-              <input id="send-label" value="Coffee">
-            </label>
-            <label class="field">
-              <span>Change label</span>
-              <input id="change-label" value="Change">
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="payjoin-toggle" checked>
-              Payjoin
-            </label>
-            <p class="hint">Payjoin invoice. Negotiation starts when you sign.</p>
-            <button type="button" class="menu-button" id="send-preview"><span class="edge-left"></span><span class="edge-right"></span>Preview</button>
-            </div>
+            <!-- Payjoin flag for the send flow (payjoin route turns it on) -->
+            <input type="checkbox" id="payjoin-toggle" checked hidden>
           </div>
           <!-- apps/mobile/.../signAndSend/ioPreview.tsx, rendered by renderIo() -->
           <div class="io-preview" id="io-preview" hidden></div>
