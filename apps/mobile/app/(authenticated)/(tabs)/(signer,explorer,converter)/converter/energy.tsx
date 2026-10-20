@@ -9,8 +9,14 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  HASH_BYTE_LENGTH,
+  NULL_PREVOUT_INDEX,
+  SATS_PER_BITCOIN,
+  SEQUENCE_FINAL
+} from '@/constants/btc'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
+import { HTTP_STATUS } from '@/constants/http'
 import { MS_PER_SECOND } from '@/constants/time'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -529,9 +535,9 @@ export default function Energy() {
       if (!response.ok) {
         const errorText = await response.text()
 
-        if (response.status === 401) {
+        if (response.status === HTTP_STATUS.UNAUTHORIZED) {
           throw new Error('Invalid credentials')
-        } else if (response.status === 403) {
+        } else if (response.status === HTTP_STATUS.FORBIDDEN) {
           throw new Error('Access denied')
         } else {
           throw new Error(
@@ -677,9 +683,9 @@ export default function Energy() {
       }
 
       tx.addInput(
-        Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
-        0xffffffff, // Previous vout (0xffffffff for coinbase)
-        0xffffffff, // Sequence (0xffffffff for coinbase)
+        Buffer.alloc(HASH_BYTE_LENGTH),
+        NULL_PREVOUT_INDEX,
+        SEQUENCE_FINAL,
         coinbaseScript
       )
 

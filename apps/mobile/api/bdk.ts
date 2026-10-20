@@ -1,20 +1,25 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
+  type AddressInfo,
   BdkRpcClient,
-  BdkWallet,
   BdkTxBuilder,
+  BdkWallet,
   createPublicDescriptor,
   DescriptorTemplate,
   KeychainKind,
   type Network,
   Psbt,
   type PsbtLike,
-  walletNameFromDescriptor,
-  type AddressInfo
+  walletNameFromDescriptor
 } from 'react-native-bdk-sdk'
 
 import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BTC_DECIMALS,
+  SATS_PER_BITCOIN,
+  SEQUENCE_FINAL,
+  SEQUENCE_RBF
+} from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -752,7 +757,7 @@ function getLastUnusedAddressFromWallet(wallet: BdkWallet): AddressInfo {
 // rounding to 8 decimal places to avoid binary floating-point drift
 // (e.g. avoids values like 0.1 + 0.2 style representation errors).
 function satsToBtc(sats: number): number {
-  return Number((sats / SATS_PER_BITCOIN).toFixed(8))
+  return Number((sats / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS))
 }
 
 // Resolves the Bitcoin Core wallet name to use for an account. Prefers the
@@ -789,7 +794,7 @@ async function buildTransactionWithRpc(
   )
 
   const rpcInputs = data.inputs.map((u) => ({
-    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    sequence: data.options.rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
     txid: u.txid,
     vout: u.vout
   }))

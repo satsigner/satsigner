@@ -14,7 +14,7 @@ import {
   BDK_RESCAN_STOP_POLL_MAX_ATTEMPTS,
   BDK_SECONDS_PER_BLOCK
 } from '@/constants/bdk'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { HASH_HEX_LENGTH, SATS_PER_BITCOIN } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
@@ -633,7 +633,7 @@ async function syncWithCoreWallet(
   }
 
   const priorHash = account.rpcLastBlockHash ?? ''
-  const isIncremental = priorHash.length === 64
+  const isIncremental = priorHash.length === HASH_HEX_LENGTH
   const [sinceResult, unspent, listedDescriptors] = await Promise.all([
     coreWallet.listSinceBlock(priorHash),
     coreWallet.listUnspent(),

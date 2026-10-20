@@ -1,4 +1,3 @@
-import { NOSTR_POLL_RESPONSE_KIND } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   type NostrPollInfo,
@@ -6,8 +5,6 @@ import {
   type NostrPollResponse,
   type NostrPollType
 } from '@/types/models/Nostr'
-
-export { NOSTR_POLL_RESPONSE_KIND }
 
 export type { NostrPollInfo, NostrPollResponse, NostrPollType }
 
