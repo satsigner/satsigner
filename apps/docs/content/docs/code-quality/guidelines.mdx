@@ -295,3 +295,215 @@ function myFunction(myArg: {
   // code
 }
 ```
+
+## Code placement and naming
+
+### Constants
+
+Constants live in `@/constants`, in the file of their domain, not in the module
+that uses them.
+
+Instead of:
+
+```typescript
+// services/ecash/lightningPayment.ts
+const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
+```
+
+Do:
+
+```typescript
+// constants/ecash.ts
+export const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
+
+// services/ecash/lightningPayment.ts
+import { MAX_MPP_FEE_SLICE_ATTEMPTS } from '@/constants/ecash'
+```
+
+Instead of:
+
+```typescript
+// services/connectionTest.ts
+const CONNECTION_TEST_TIMEOUT_MS = 10_000
+const SOFTWARE_LABELS: Record<Backend, string> = {
+  electrum: 'Electrum',
+  esplora: 'Esplora',
+  rpc: 'Bitcoin Core'
+}
+```
+
+Do:
+
+```typescript
+// constants/connectionTest.ts
+export const CONNECTION_TEST_TIMEOUT_MS = 10_000
+export const SOFTWARE_LABELS: Record<Backend, string> = {
+  electrum: 'Electrum',
+  esplora: 'Esplora',
+  rpc: 'Bitcoin Core'
+}
+```
+
+### Types
+
+Exported types live in `@/types`, next to the related model, not in the
+service, hook or component that declares them.
+
+Instead of:
+
+```typescript
+// services/connectionTest.ts
+type ProbeParams = {
+  url: string
+  backend: Backend
+  network: Network
+  onElectrumClientOpened?: (client: ElectrumClient) => void
+}
+```
+
+Do:
+
+```typescript
+// types/models/ConnectionTest.ts
+export type ProbeParams = {
+  url: string
+  backend: Backend
+  network: Network
+  onElectrumClientOpened?: (client: ElectrumClient) => void
+}
+```
+
+Instead of:
+
+```typescript
+// services/connectionTest.ts
+type ConnectionProbe = {
+  result: ConnectionTestSuccess
+  nodeInfo: NodeInfo
+}
+```
+
+Do:
+
+```typescript
+// types/models/ConnectionTest.ts
+export type ConnectionProbe = {
+  result: ConnectionTestSuccess
+  nodeInfo: NodeInfo
+}
+```
+
+### Generic helpers
+
+Helpers that do not depend on a domain live in `@/utils`, so other modules can
+reuse them instead of writing their own copy.
+
+Instead of:
+
+```typescript
+// services/ecash/lightningPayment.ts
+function toError(error: unknown) {
+  return error instanceof Error ? error : new Error(String(error))
+}
+```
+
+Do:
+
+```typescript
+// utils/error.ts
+function toError(error: unknown) {
+  return error instanceof Error ? error : new Error(String(error))
+}
+
+export { toError }
+```
+
+Instead of:
+
+```typescript
+// services/ecash/tokenStatus.ts
+await new Promise((resolve) => {
+  setTimeout(resolve, TOKEN_STATUS_CHECK_THROTTLE_MS)
+})
+```
+
+Do:
+
+```typescript
+// utils/time.ts
+export function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+// services/ecash/tokenStatus.ts
+await sleep(TOKEN_STATUS_CHECK_THROTTLE_MS)
+```
+
+### Names over comments
+
+Do not explain a variable, function or prop with a comment. Give it a name that
+makes the comment unnecessary.
+
+Instead of:
+
+```typescript
+// Pause between mint checks so a long history doesn't flood the mint.
+const TOKEN_CHECK_DELAY_MS = 500
+```
+
+Do:
+
+```typescript
+const TOKEN_STATUS_CHECK_THROTTLE_MS = 500
+```
+
+Instead of:
+
+```typescript
+type PayInvoiceParams = {
+  /** Creates a melt quote and records it for the account. */
+  createMeltQuote: (mintUrl: string, invoice: string) => Promise<MeltQuote>
+  /** Melts proofs against a quote and updates the stored proofs. */
+  meltProofs: (
+    mintUrl: string,
+    quote: MeltQuote,
+    proofs: EcashProof[]
+  ) => Promise<unknown>
+}
+```
+
+Do:
+
+```typescript
+type PayInvoiceParams = {
+  createAndRecordMeltQuote: (
+    mintUrl: string,
+    invoice: string
+  ) => Promise<MeltQuote>
+  meltProofsAndUpdateStore: (
+    mintUrl: string,
+    quote: MeltQuote,
+    proofs: EcashProof[]
+  ) => Promise<unknown>
+}
+```
+
+Instead of:
+
+```typescript
+// Another check is claiming this quote; report it as unsettled.
+if (claimingQuoteIds.has(quoteId)) {
+  return 'PENDING'
+}
+```
+
+Do:
+
+```typescript
+const isClaimedByConcurrentCheck = quoteIdsBeingClaimed.has(quoteId)
+if (isClaimedByConcurrentCheck) {
+  return 'PENDING'
+}
+```
