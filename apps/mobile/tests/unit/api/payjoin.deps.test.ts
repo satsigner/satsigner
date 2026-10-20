@@ -14,6 +14,7 @@ import {
   startBip77Send
 } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
+import { PAYJOIN_DIRECTORY_URL } from '@/constants/payjoin'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import {
   type PayjoinDeps,
@@ -99,7 +100,7 @@ function createDeps(): PayjoinDeps {
   return {
     sessions: createMemorySessionStore(),
     settings: {
-      directoryUrl: 'https://payjo.in',
+      directoryUrl: PAYJOIN_DIRECTORY_URL,
       hasCustomDirectory: false,
       sessionTtlMs: TTL_MS
     }
@@ -120,7 +121,7 @@ describe('payjoin injected dependencies', () => {
     const deps = createDeps()
     const session = await createReceivePayjoinSession({
       accountId: 'acct-deps',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      address: RECEIVE_ADDRESS,
       deps,
       network: 'signet'
     })
@@ -133,7 +134,7 @@ describe('payjoin injected dependencies', () => {
     const deps = createDeps()
     const session = await createReceivePayjoinSession({
       accountId: 'acct-ttl',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      address: RECEIVE_ADDRESS,
       deps,
       network: 'signet'
     })
@@ -145,7 +146,7 @@ describe('payjoin injected dependencies', () => {
     const deps = createDeps()
     await createReceivePayjoinSession({
       accountId: 'acct-clear',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      address: RECEIVE_ADDRESS,
       deps,
       network: 'signet'
     })
@@ -192,7 +193,7 @@ describe('payjoin injected dependencies', () => {
     const deps = createDeps()
     const handle = await createReceiverSession({
       address: RECEIVE_ADDRESS,
-      directoryUrl: 'https://payjo.in',
+      directoryUrl: PAYJOIN_DIRECTORY_URL,
       expireSeconds: 600,
       ohttpRelayUrl: 'https://pj.bobspacebkk.com',
       receiveScriptHex: '0014751e76e8199196d454941c45d1b3a323f1433bd6'
