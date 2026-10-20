@@ -84,20 +84,6 @@ describe('payLightningInvoiceFromMints', () => {
     expect(createMppMeltQuote).not.toHaveBeenCalled()
   })
 
-  it('splits the payment across MPP mints when no mint covers it', async () => {
-    jest
-      .mocked(createMppMeltQuote)
-      .mockImplementation((_account, mintUrl, _invoice, amount) =>
-        Promise.resolve(quote(mintUrl, amount))
-      )
-    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
-
-    await payLightningInvoiceFromMints(p)
-
-    expect(p.addMeltQuote).toHaveBeenCalledTimes(2)
-    expect(p.meltProofsAndUpdateStore).toHaveBeenCalledTimes(2)
-  })
-
   it('reports a typed error when no mint supports MPP', async () => {
     jest.mocked(mintSupportsBolt11Mpp).mockResolvedValue(false)
 
@@ -129,6 +115,8 @@ describe('payLightningInvoiceFromMints', () => {
       [MINT_A, 60],
       [MINT_B, 40]
     ])
+    expect(p.addMeltQuote).toHaveBeenCalledTimes(2)
+    expect(p.meltProofsAndUpdateStore).toHaveBeenCalledTimes(2)
     expect(p.meltProofsAndUpdateStore).toHaveBeenNthCalledWith(
       1,
       MINT_A,
