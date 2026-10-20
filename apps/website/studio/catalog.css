@@ -592,3 +592,21 @@ body.is-full-cards .screen-card {
 [hidden] {
   display: none !important;
 }
+
+/* Narrow screens: the view tabs scroll sideways between the logo and the theme toggle */
+@media (max-width: 640px) {
+  .view-toggle {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 0 3.25rem 0 3rem;
+    box-sizing: border-box;
+    scrollbar-width: none;
+    pointer-events: auto;
+  }
+  .view-toggle::-webkit-scrollbar { display: none; }
+  .view-toggle button { flex: none; }
+  .studio-brand { position: fixed; left: 1rem; top: 1.25rem; transform: none; height: 2rem; }
+  #theme-toggle { background: var(--page); }
+  .studio-brand { z-index: 7; left: 0; padding: 0 0.4rem 0 1rem; background: var(--page); }
+  #theme-toggle { box-shadow: 0 0 0 0.6rem var(--page); }
+}
