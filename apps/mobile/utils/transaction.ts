@@ -164,7 +164,7 @@ export function estimateTransactionSize(
   const size = hasWitness
     ? baseSize + inputWitness + SEGWIT_MARKER_FLAG_WEIGHT
     : baseSize
-  const vsize = hasWitness ? Math.ceil(weight / WITNESS_SCALE_FACTOR) : size
+  const vsize = hasWitness ? weightToVsize(weight) : size
 
   return { size, vsize }
 }
