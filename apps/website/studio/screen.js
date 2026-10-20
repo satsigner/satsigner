@@ -24,16 +24,16 @@ const groups = {
   explorer: {
     title: 'Explorer',
     items: [
-      { title: 'Mempool', icon: 'mempool' },
-      { title: 'Chaintip', icon: 'chaintip' },
-      { title: 'Block', icon: 'block' },
-      { title: 'Transaction', icon: 'transaction' },
-      { title: 'Address', icon: 'address' },
-      { title: 'Difficulty', icon: 'difficulty' },
-      { title: 'Halving', icon: 'halving' },
-      { title: 'Chain', icon: 'chain' },
-      { title: 'Node', icon: 'node' },
-      { title: 'Network', icon: 'network' }
+      { title: 'Mempool', icon: 'mempool', screen: 'explorer-mempool' },
+      { title: 'Chaintip', icon: 'chaintip', screen: 'explorer-chaintip' },
+      { title: 'Block', icon: 'block', screen: 'explorer-block' },
+      { title: 'Transaction', icon: 'transaction', screen: 'explorer-transaction' },
+      { title: 'Address', icon: 'address', screen: 'explorer-address' },
+      { title: 'Difficulty', icon: 'difficulty', screen: 'difficulty' },
+      { title: 'Halving', icon: 'halving', screen: 'explorer-halving' },
+      { title: 'Chain', icon: 'chain', screen: 'explorer-chain' },
+      { title: 'Node', icon: 'node', screen: 'explorer-node' },
+      { title: 'Network', icon: 'network', screen: 'explorer-network' }
     ]
   },
   converter: {
@@ -1150,7 +1150,7 @@ function renderIo() {
     '<div class="io-chart">' + (tot.inputs.length ? txDetailSankey(tx) : '') + '</div>' +
     '<div class="io-top">' +
     ss.vstack({ gap: 'xs', itemsCenter: true },
-      ss.hstack({ gap: 'xxs', className: 'io-chaintip', go: 'difficulty' },
+      ss.hstack({ gap: 'xxs', className: 'io-chaintip', go: 'explorer-chaintip' },
         gray(500, 'Block '), gray('white', BLOCK_HEIGHT.toLocaleString('en-US')).replace('var(--gray-white)', 'var(--white)'),
         '<i style="width:8px"></i>', gray(500, '~'), gray(200, NEXT_BLOCK_FEE), gray(500, ' sat/vB'),
         '<i style="width:12px"></i>', gray(200, USD_PER_BTC.toLocaleString('en-US')), gray(500, ' USD')),

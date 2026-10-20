@@ -1,12 +1,12 @@
 # Studio coverage
 
-**64 / 175 routes** (37%) have a Studio screen.
+**79 / 175 routes** (45%) have a Studio screen.
 
 | Area | Covered | Missing routes |
 |---|---|---|
 | _session | 0/1 | `/_session` |
 | converter | 1/2 | `/converter/energy` |
-| explorer | 1/16 | `/explorer/address`, `/explorer/address/:address`, `/explorer/address/:address/verifyMessage`, `/explorer/block`, `/explorer/block/:block`, `/explorer/block/:block/hex`, `/explorer/block/:block/transactions`, `/explorer/chain`, `/explorer/chaintip`, `/explorer/halving`, `/explorer/mempool`, `/explorer/network`, `/explorer/node`, `/explorer/transaction`, `/explorer/transaction/:txid` |
+| explorer | 16/16 |  |
 | home | 1/1 |  |
 | setDuressPin | 0/1 | `/setDuressPin` |
 | setPin | 0/1 | `/setPin` |

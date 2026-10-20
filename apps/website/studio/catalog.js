@@ -3,6 +3,21 @@ const screens = [
   { id: 'signer', name: 'Signer', view: 'view-menu', source: 'Signer tab' },
   { id: 'explorer', name: 'Explorer', view: 'view-menu', source: 'Explorer tab' },
   { id: 'difficulty', name: 'Difficulty', view: 'view-difficulty', source: 'Difficulty epoch' },
+  { id: 'explorer-address', name: 'Address', view: 'view-kit', source: 'Address lookup' },
+  { id: 'explorer-address-detail', name: 'Address detail', view: 'view-kit', source: 'Balance and UTXOs' },
+  { id: 'explorer-address-verify', name: 'Verify message', view: 'view-kit', source: 'Signature check' },
+  { id: 'explorer-transaction', name: 'Transaction', view: 'view-kit', source: 'Transaction lookup' },
+  { id: 'explorer-transaction-detail', name: 'Transaction detail', view: 'view-kit', source: 'Inputs and outputs' },
+  { id: 'explorer-node', name: 'Node', view: 'view-kit', source: 'Node info' },
+  { id: 'explorer-network', name: 'Network', view: 'view-kit', source: 'Network stats' },
+  { id: 'explorer-block', name: 'Block', view: 'view-kit', source: 'Block lookup' },
+  { id: 'explorer-block-detail', name: 'Block detail', view: 'view-kit', source: 'Header and analytics' },
+  { id: 'explorer-block-hex', name: 'Block hex', view: 'view-kit', source: 'Raw, dump, decoded' },
+  { id: 'explorer-block-transactions', name: 'Block transactions', view: 'view-kit', source: 'Transaction list' },
+  { id: 'explorer-chain', name: 'Chain', view: 'view-kit', source: 'Chain overview' },
+  { id: 'explorer-chaintip', name: 'Chaintip', view: 'view-kit', source: 'Latest block' },
+  { id: 'explorer-halving', name: 'Halving', view: 'view-kit', source: 'Subsidy schedule' },
+  { id: 'explorer-mempool', name: 'Mempool', view: 'view-kit', source: 'Fee market' },
   { id: 'accounts', name: 'Bitcoin', view: 'view-accounts', source: 'Accounts' },
   { id: 'converter', name: 'Converter', view: 'view-menu', source: 'Converter tab' },
   { id: 'currency', name: 'Currency', view: 'view-converter', source: 'Currency converter' },
@@ -78,10 +93,10 @@ const screens = [
 ]
 
 const themes = [
-  ['Shell', ['signer', 'difficulty', 'settings']],
+  ['Shell', ['signer', 'settings']],
   ['Settings', ['settings-network', 'settings-network-detail', 'settings-network-server', 'settings-network-explorer', 'settings-network-params', 'settings-network-comparison', 'settings-ark', 'settings-features', 'settings-features-auto-select', 'settings-features-bip39', 'settings-features-currency-formatting', 'settings-features-fiat-data', 'settings-features-charts', 'settings-features-payjoin', 'settings-fiat', 'settings-security', 'settings-security-report', 'settings-about', 'settings-about-changelog', 'settings-developer', 'settings-developer-diagnosis', 'settings-developer-recover', 'settings-design', 'settings-icons']],
   ['Signer', ['intro']],
-  ['Explorer', ['explorer']],
+  ['Explorer', ['explorer', 'difficulty', 'explorer-address', 'explorer-address-detail', 'explorer-address-verify', 'explorer-transaction', 'explorer-transaction-detail', 'explorer-node', 'explorer-network', 'explorer-block', 'explorer-block-detail', 'explorer-block-hex', 'explorer-block-transactions', 'explorer-chain', 'explorer-chaintip', 'explorer-halving', 'explorer-mempool']],
   ['Converter', ['converter', 'currency']],
   ['Bitcoin', ['accounts', 'account', 'tx', 'coins', 'chart', 'send', 'output', 'payjoin', 'preview', 'builder', 'sign', 'psbt-qr', 'sent', 'coin-list', 'coin-bubbles', 'exclude-utxos', 'fee-management', 'timelock', 'wallet-synced', 'script', 'new-account', 'new-singlesig', 'entropy-dice', 'entropy-coin', 'entropy-drawing', 'multisig-setup', 'multisig-keys', 'multisig-key', 'multisig-settings', 'multisig-sign']],
   ['Lightning', ['lightning', 'lightning-node', 'lightning-rest', 'lightning-rpc']],
@@ -206,7 +221,21 @@ document.querySelectorAll('.screen-table th button').forEach((button) => {
 const navSections = [
   {
     name: 'Explorer',
-    tree: { id: 'explorer', children: [{ id: 'difficulty' }] }
+    tree: {
+      id: 'explorer',
+      children: [
+        { id: 'explorer-mempool' },
+        { id: 'explorer-chaintip' },
+        { id: 'explorer-block', children: [{ id: 'explorer-block-detail', children: [{ id: 'explorer-block-hex' }, { id: 'explorer-block-transactions' }] }] },
+        { id: 'explorer-transaction', children: [{ id: 'explorer-transaction-detail' }] },
+        { id: 'explorer-address', children: [{ id: 'explorer-address-detail', children: [{ id: 'explorer-address-verify' }] }] },
+        { id: 'difficulty' },
+        { id: 'explorer-halving' },
+        { id: 'explorer-chain' },
+        { id: 'explorer-node' },
+        { id: 'explorer-network' }
+      ]
+    }
   },
   {
     name: 'Signer',
