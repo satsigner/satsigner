@@ -1,4 +1,4 @@
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   ADDRESS_TRUNCATE_CHARS,
   ADDRESS_TRUNCATE_CHARS_COMPACT,
@@ -32,7 +32,15 @@ import {
   NPUB_TRUNCATE_CHARS_XS
 } from '@/constants/nostr'
 import { PRIVACY_MASK } from '@/constants/privacy'
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  DAYS_PER_MONTH,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  HOURS_PER_DAY,
+  MINUTES_PER_HOUR,
+  MS_PER_SECOND,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -84,7 +92,7 @@ function formatNumber(
   separator = ' '
 ) {
   const formatted = padding
-    ? (n / SATS_PER_BITCOIN).toFixed(8)
+    ? (n / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS)
     : n.toLocaleString(undefined, {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals
@@ -237,12 +245,12 @@ type TimeFromNow = [
 
 function formatTimeFromNow(milliseconds: number): TimeFromNow {
   const seconds = milliseconds / MS_PER_SECOND
-  const minutes = seconds / 60
-  const hours = minutes / 60
-  const days = hours / 24
-  const weeks = days / 7
-  const months = days / 30 // Approximate
-  const years = days / 365 // Approximate
+  const minutes = seconds / SECONDS_PER_MINUTE
+  const hours = minutes / MINUTES_PER_HOUR
+  const days = hours / HOURS_PER_DAY
+  const weeks = days / DAYS_PER_WEEK
+  const months = days / DAYS_PER_MONTH
+  const years = days / DAYS_PER_YEAR
 
   if (years >= 1) {
     return [years, 'year']
@@ -431,8 +439,19 @@ function trimOnionAddress(url: string): string {
   return url.replace(onionMatch[0], trimmedOnion)
 }
 
+/** BTC as a decimal string without trailing zeros, e.g. 0.00150000 → "0.0015". */
+function formatBtc(btc: number) {
+  return btc.toFixed(BTC_DECIMALS).replace(/\.?0+$/, '')
+}
+
+/** Sats as a BTC decimal string without trailing zeros, e.g. 150000 → "0.0015". */
+function formatSatsAsBtc(sats: number) {
+  return formatBtc(sats / SATS_PER_BITCOIN)
+}
+
 export {
   formatAddress,
+  formatBtc,
   formatBytes,
   formatConfirmations,
   formatConfirmationsWithBlock,
@@ -447,6 +466,7 @@ export {
   formatNumber,
   formatPageUrl,
   formatPercentualChange,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTimeFromNow,

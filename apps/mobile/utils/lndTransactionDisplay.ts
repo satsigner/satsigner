@@ -1,12 +1,13 @@
-import { MS_PER_SECOND } from '@/constants/time'
+import { DAYS_PER_MONTH, DAYS_PER_YEAR, MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import type { LNDCombinedTransaction } from '@/types/models/Lightning'
+import { time } from '@/utils/time'
 
-const MS_MIN = 60_000
-const MS_HOUR = 3_600_000
-const MS_DAY = 86_400_000
-const MS_MONTH = 30 * MS_DAY
-const MS_YEAR = 365 * MS_DAY
+const MS_MIN = time.minutes(1)
+const MS_HOUR = time.hours(1)
+const MS_DAY = time.days(1)
+const MS_MONTH = time.days(DAYS_PER_MONTH)
+const MS_YEAR = time.days(DAYS_PER_YEAR)
 const DAYS_SWITCH_TO_MONTHS = 90
 const MONTHS_SWITCH_TO_YEARS = 14
 
@@ -40,8 +41,6 @@ export function formatLightningTxTimeAgo(
   })
 }
 
-const MS_30_DAYS = 30 * MS_DAY
-
 export function txDateOptions(
   txTimestampSeconds: number,
   nowMs: number
@@ -53,7 +52,7 @@ export function txDateOptions(
     hour12: true,
     minute: 'numeric',
     month: 'short',
-    ...(age < MS_30_DAYS ? { second: 'numeric' } : {}),
+    ...(age < MS_MONTH ? { second: 'numeric' } : {}),
     year: 'numeric'
   }
 }

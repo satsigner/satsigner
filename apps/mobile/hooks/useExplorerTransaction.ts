@@ -16,6 +16,7 @@ import type {
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 import { time } from '@/utils/time'
+import { weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 export type ExplorerLoadingPhase = string | null
@@ -137,7 +138,7 @@ async function fetchFromEsplora(
     size: tx.size,
     txid: tx.txid,
     version: tx.version,
-    vsize: Math.ceil(tx.weight / 4),
+    vsize: weightToVsize(tx.weight),
     weight: tx.weight
   }
 }

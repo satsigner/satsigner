@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import z from 'zod'
 
+import { HTTP_STATUS } from '@/constants/http'
 import {
   RPC_DEFAULT_TIMEOUT_MS,
   RPC_LIST_TRANSACTIONS_COUNT,
@@ -188,11 +189,11 @@ async function rpcFetch<T>(
     throw toUserFacingError(error, url)
   }
 
-  if (response.status === 401) {
+  if (response.status === HTTP_STATUS.UNAUTHORIZED) {
     throw toUserFacingError(new Error('401 Unauthorized'), url)
   }
 
-  if (response.status === 403) {
+  if (response.status === HTTP_STATUS.FORBIDDEN) {
     throw toUserFacingError(new Error('403 Forbidden'), url)
   }
 

@@ -1,3 +1,4 @@
+import * as nostrKinds from 'nostr-tools/kinds'
 import {
   type NitroSQLiteConnection,
   type SQLiteValue
@@ -6,7 +7,6 @@ import {
 import {
   NOSTR_EVENT_CACHE_MAX_ROWS,
   NOSTR_EVENT_CACHE_MAX_AGE,
-  NOSTR_KIND_ZAP_RECEIPT,
   NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
@@ -225,7 +225,7 @@ export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
   try {
     const { rows } = db.execute<CachedEventRow>(
       `SELECT * FROM nostr_event_cache
-       WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
+       WHERE kind = ${nostrKinds.Zap}
        ORDER BY created_at DESC`,
       []
     )
@@ -252,10 +252,10 @@ export function getCachedZapsByPubkey(
     const pk = pubkey.toLowerCase()
     const sql = until
       ? `SELECT * FROM nostr_event_cache
-         WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT} AND created_at < ?
+         WHERE kind = ${nostrKinds.Zap} AND created_at < ?
          ORDER BY created_at DESC`
       : `SELECT * FROM nostr_event_cache
-         WHERE kind = ${NOSTR_KIND_ZAP_RECEIPT}
+         WHERE kind = ${nostrKinds.Zap}
          ORDER BY created_at DESC`
     const params = until ? [until] : []
     const { rows } = db.execute<CachedEventRow>(sql, params)
@@ -416,7 +416,7 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
     )
     const ownZaps = countRows(
       db,
-      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${nostrKinds.Zap}`
     )
     const feedNotes = countRows(
       db,
@@ -424,7 +424,7 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
     )
     const zapReceipts = countRows(
       db,
-      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`
+      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 0 AND kind = ${nostrKinds.Zap}`
     )
     const profiles = countRows(
       db,
@@ -458,7 +458,7 @@ export function clearCacheCategory(
       break
     case 'ownZaps':
       db.execute(
-        `DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
+        `DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = ${nostrKinds.Zap}`,
         []
       )
       break
@@ -470,7 +470,7 @@ export function clearCacheCategory(
       break
     case 'zapReceipts':
       db.execute(
-        `DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = ${NOSTR_KIND_ZAP_RECEIPT}`,
+        `DELETE FROM nostr_event_cache WHERE is_own = 0 AND kind = ${nostrKinds.Zap}`,
         []
       )
       break

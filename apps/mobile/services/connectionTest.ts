@@ -4,11 +4,11 @@ import ElectrumClient, {
 } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { SATS_PER_BITCOIN, VBYTES_PER_KVB } from '@/constants/btc'
 import {
-  BTC_PER_KVB_TO_SAT_PER_VB,
+  CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS,
   CONNECTION_TEST_TIMEOUT_MS,
   ELECTRUM_HANDSHAKE_CLIENT_INFO,
-  RPC_MEDIAN_FEE_TARGET_BLOCKS,
   SOFTWARE_LABELS
 } from '@/constants/connectionTest'
 import {
@@ -139,7 +139,9 @@ async function probeRpc(
       rpc.getBlockchainInfo(),
       rpc.getNetworkInfo().catch(() => null),
       rpc.getMempoolInfo().catch(() => null),
-      rpc.estimateSmartFee(RPC_MEDIAN_FEE_TARGET_BLOCKS).catch(() => null),
+      rpc
+        .estimateSmartFee(CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS)
+        .catch(() => null),
       rpc.hasBlockFilterIndex().catch(() => false)
     ])
   const responseTime = Date.now() - startTime
@@ -153,7 +155,7 @@ async function probeRpc(
       blockHeight: chainInfo.blocks,
       chainWork: chainInfo.chainwork,
       medianFee: feeResult?.feerate
-        ? Math.round(feeResult.feerate * BTC_PER_KVB_TO_SAT_PER_VB)
+        ? Math.round(feeResult.feerate * (SATS_PER_BITCOIN / VBYTES_PER_KVB))
         : undefined,
       mempoolSize: mempoolInfo?.size,
       network: chainInfo.chain,
