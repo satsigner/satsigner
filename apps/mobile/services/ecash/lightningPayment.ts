@@ -224,11 +224,7 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
     params.addMeltQuote(item.quote)
   }
 
-  async function meltPlannedQuotes(index: number): Promise<void> {
-    const item = plannedQuotes[index]
-    if (!item) {
-      return
-    }
+  for (const [index, item] of plannedQuotes.entries()) {
     try {
       const mintProofs = params
         .getProofs()
@@ -238,7 +234,6 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
         item.quote,
         mintProofs
       )
-      await meltPlannedQuotes(index + 1)
     } catch (error) {
       for (const unused of plannedQuotes.slice(index + 1)) {
         params.removeMeltQuote(unused.quote.quote)
@@ -256,8 +251,6 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
       throw error
     }
   }
-
-  await meltPlannedQuotes(0)
 }
 
 export { EcashPaymentError, payLightningInvoiceFromMints }

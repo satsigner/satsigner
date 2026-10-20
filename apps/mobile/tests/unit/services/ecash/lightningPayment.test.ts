@@ -17,6 +17,7 @@ jest.mock<typeof import('@/api/ecash')>('@/api/ecash', () => ({
 
 const MINT_A = 'https://a.example'
 const MINT_B = 'https://b.example'
+const MINT_C = 'https://c.example'
 
 function mint(url: string): EcashMint {
   return { balance: 0, isConnected: true, keysets: [], url }
@@ -219,6 +220,26 @@ describe('payLightningInvoiceFromMints', () => {
     await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
       cause: meltError,
       failure: { reason: 'mppPartialPayment', settled: 1, total: 2 }
+    })
+  })
+
+  it('counts every settled part when a later MPP melt fails', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const meltError = new Error('melt failed')
+    const p = params([proof(MINT_A, 40), proof(MINT_B, 35), proof(MINT_C, 30)])
+    p.mints = [mint(MINT_A), mint(MINT_B), mint(MINT_C)]
+    p.meltProofsAndUpdateStore
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(meltError)
+
+    await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
+      cause: meltError,
+      failure: { reason: 'mppPartialPayment', settled: 2, total: 3 }
     })
   })
 
