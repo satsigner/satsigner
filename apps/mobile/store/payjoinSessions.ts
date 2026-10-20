@@ -2,17 +2,12 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import {
-  getPayjoinSessionTtlMs,
-  getResolvedPayjoinDirectoryUrl,
-  useSettingsStore
-} from '@/store/settings'
+import { getPayjoinSettings } from '@/store/settings'
 import {
   type PayjoinDeps,
   type PayjoinSession,
   type PayjoinSessionStore
 } from '@/types/payjoin'
-import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
 import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 
 // Cap `seenInputs` growth: once it exceeds SEEN_INPUTS_MAX, trim back down
@@ -190,14 +185,9 @@ const payjoinSessionStore: PayjoinSessionStore = {
 
 /** Live session store and current settings, for passing into `@/api/payjoin`. */
 function getPayjoinDeps(): PayjoinDeps {
-  const { payjoinDirectoryUrl } = useSettingsStore.getState()
   return {
     sessions: payjoinSessionStore,
-    settings: {
-      directoryUrl: getResolvedPayjoinDirectoryUrl(),
-      hasCustomDirectory: hasCustomPayjoinDirectoryUrl(payjoinDirectoryUrl),
-      sessionTtlMs: getPayjoinSessionTtlMs()
-    }
+    settings: getPayjoinSettings()
   }
 }
 
