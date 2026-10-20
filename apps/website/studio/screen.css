@@ -3468,3 +3468,6 @@ html.is-bare .phone-status {
 html.is-bare .phone-screen > section {
   height: calc(100vh / var(--ui-scale));
 }
+
+/* Homepage hero draws its own animated logo over the splash, so the bare embed hides the splash logo */
+html.is-bare .intro.is-splash .intro-logo { visibility: hidden; }
