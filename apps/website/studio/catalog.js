@@ -322,7 +322,7 @@ function renderFlow() {
   canvas.style.height = height + 'px'
   let zoom = 1
   function applyZoom() {
-    zoom = Math.min(1.8, Math.max(0.35, Math.round(zoom * 20) / 20))
+    zoom = Math.min(1.8, Math.max(0.1, Math.round(zoom * 20) / 20))
     canvas.style.transform = 'scale(' + zoom + ')'
     scale.style.width = width * zoom + 'px'
     scale.style.height = height * zoom + 'px'
@@ -586,4 +586,7 @@ setView(viewFromUrl() || 'prototype', true)
 
 renderFlow()
 if (!flow.hidden) centerIntro()
+window.addEventListener('load', () => {
+  if (!flow.hidden) centerIntro()
+})
 }
