@@ -559,6 +559,16 @@ function setView(mode, updateUrl) {
     url.searchParams.set('view', mode)
     history.replaceState(null, '', url)
   }
+  if (mode === 'map') centerIntro()
+}
+
+function centerIntro() {
+  const node = document.querySelector('#flow-view [data-id="intro"]')
+  if (!node) return
+  const rect = node.getBoundingClientRect()
+  const doc = document.scrollingElement
+  doc.scrollLeft += rect.left + rect.width / 2 - window.innerWidth / 2
+  doc.scrollTop += rect.top + rect.height / 2 - window.innerHeight / 2
 }
 
 buttons.forEach((button) => {
@@ -575,4 +585,5 @@ cardHeight.addEventListener('click', () => {
 setView(viewFromUrl() || 'prototype', true)
 
 renderFlow()
+if (!flow.hidden) centerIntro()
 }
