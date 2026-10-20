@@ -848,7 +848,7 @@ if (typeof Swiper !== 'undefined') {
   function flowSrc(screen, device) {
     var query = 'embed=1&screen=' + encodeURIComponent(screen);
     if (device) query += '&device=1';
-    return 'test-site/?' + query;
+    return 'studio/?' + query;
   }
 
   function replay(frame) {
