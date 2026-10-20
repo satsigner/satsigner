@@ -79,7 +79,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="studio/tokens.css">
     <link rel="stylesheet" href="studio/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=70" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=85" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -741,12 +741,22 @@
   <section class="topic-section" id="studio">
     <h2 class="feature-grid-title">Studio</h2>
     <p class="feature-grid-intro">Walk the app in the browser. Prototype flows, screen catalog, and components, without installing a build.</p>
-    <div class="support-actions">
-      <a class="support-action" href="/studio/">
-        <span>Prototype</span>
-        Open SatSigner Studio
-      </a>
-    </div>
+    <a class="studio-entry" href="/studio/" target="_blank" rel="noopener">
+      <span class="studio-entry-phone" aria-hidden="true">
+        <iframe src="/studio/?embed=1&amp;device=1&amp;screen=accounts" title="" tabindex="-1" loading="lazy"></iframe>
+      </span>
+      <span class="studio-entry-copy">
+        <span class="studio-entry-kicker">In the browser</span>
+        <span class="studio-entry-title">Open SatSigner Studio</span>
+        <span class="studio-entry-modes">
+          <span>Prototype</span>
+          <span>Screens</span>
+          <span>Table</span>
+          <span>Map</span>
+          <span>Components</span>
+        </span>
+      </span>
+    </a>
   </section>
 
   <section class="topic-section" id="contribute">

@@ -137,7 +137,7 @@ a{
   margin-left: 0.32rem;
   border-right: 1px solid currentColor;
   border-bottom: 1px solid currentColor;
-  transform: translateY(-0.12rem) rotate(45deg);
+  transform: translateY(-0.2rem) rotate(45deg);
   opacity: 0.7;
 }
 .nav-drop-menu {
@@ -1016,16 +1016,121 @@ html[data-theme="light"] .as-seen-in-logo--light {
   right: 1.15rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.72rem;
 }
 .support-action:hover {
-  background: #1c1c1c;
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #fff;
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.14);
 }
-.support-action:hover::after {
+.studio-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  overflow: hidden;
+  background:
+    radial-gradient(28rem 10rem at 50% 120%, rgba(255, 255, 255, 0.16), transparent 60%),
+    #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
   color: #fff;
+  text-decoration: none;
+  text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.studio-entry:hover {
+  background:
+    radial-gradient(28rem 10rem at 50% 120%, rgba(255, 255, 255, 0.05), transparent 60%),
+    #070707;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+.studio-entry-phone {
+  position: relative;
+  z-index: 1;
+  width: 4.6rem;
+  aspect-ratio: 390 / 844;
+  height: auto;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0.7rem;
+  background: #000;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.25s ease;
+}
+.studio-entry-phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
+  background: #000;
+}
+.studio-entry:hover .studio-entry-phone {
+  transform: translateY(-3px);
+}
+.studio-entry-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.studio-entry-kicker {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.studio-entry-title {
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.studio-entry-title::after {
+  content: "→";
+  margin-left: 0.45rem;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.72rem;
+  vertical-align: 0.18em;
+}
+.studio-entry-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+.studio-entry-modes span {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.75rem;
+}
+@media (max-width: 640px) {
+  .studio-entry {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 1.5rem 1.15rem 1.25rem;
+  }
+  .studio-entry-copy {
+    align-items: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-entry-phone {
+    transition: none;
+  }
 }
 .git-hosts {
   display: grid;
@@ -1089,16 +1194,12 @@ html[data-theme="light"] .as-seen-in-logo--light {
   right: 1.15rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.72rem;
 }
 .git-host:hover {
-  background: #1c1c1c;
-  border-color: rgba(255, 255, 255, 0.55);
-  color: #fff;
-}
-.git-host:hover::after {
-  color: #fff;
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.14);
 }
 .git-build {
   max-width: 52rem;
@@ -1122,6 +1223,12 @@ html[data-theme="light"] .as-seen-in-logo--light {
   font-weight: 500;
   letter-spacing: 0.01em;
   cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.git-tab:hover,
+.git-commands:hover {
+  background: #0c0c0c;
+  border-color: rgba(255, 255, 255, 0.04);
 }
 .git-tab.is-active {
   background: #141414;
@@ -1764,8 +1871,14 @@ html[data-theme="light"] .as-seen-in-logo--light {
   .nav-links a:hover {
     background: rgba(255, 255, 255, 0.08);
   }
+  .nav-drop {
+    text-align: left;
+  }
   .nav-drop::before {
     display: none;
+  }
+  .nav-drop-label {
+    display: block;
   }
   .nav-drop-menu {
     position: static;
@@ -3165,7 +3278,7 @@ html[data-theme="light"] .feature-grid {
   border-left-color: rgba(0, 0, 0, 0.08);
 }
 html[data-theme="light"] .feature-grid-card {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.45);
   color: #000;
 }
 html[data-theme="light"] .feature-grid-card h3,
@@ -3174,7 +3287,7 @@ html[data-theme="light"] .feature-grid-card p {
   color: #000;
 }
 html[data-theme="light"] .feature-flow::after {
-  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%);
 }
 html[data-theme="light"] .feature-flow.is-ready iframe {
   opacity: 1;
@@ -3204,7 +3317,7 @@ html[data-theme="light"] .feature-grid-card {
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 html[data-theme="light"] .support-action {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.45);
   border-color: rgba(0, 0, 0, 0.1);
   color: rgba(22, 22, 22, 0.72);
 }
@@ -3212,15 +3325,35 @@ html[data-theme="light"] .support-action span {
   color: #161616;
 }
 html[data-theme="light"] .support-action::after {
-  color: rgba(22, 22, 22, 0.4);
+  color: rgba(22, 22, 22, 0.38);
 }
 html[data-theme="light"] .support-action:hover {
-  background: #f4f4f4;
-  border-color: rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(22, 22, 22, 0.72);
+}
+html[data-theme="light"] .studio-entry {
+  background:
+    radial-gradient(28rem 10rem at 50% 120%, rgba(0, 0, 0, 0.06), transparent 60%),
+    #f7f7f7;
+  border-color: rgba(0, 0, 0, 0.1);
   color: #161616;
 }
-html[data-theme="light"] .support-action:hover::after {
-  color: #161616;
+html[data-theme="light"] .studio-entry:hover {
+  background:
+    radial-gradient(28rem 10rem at 50% 120%, rgba(0, 0, 0, 0.05), transparent 60%),
+    #ececec;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+html[data-theme="light"] .studio-entry-kicker,
+html[data-theme="light"] .studio-entry-modes span {
+  color: rgba(22, 22, 22, 0.62);
+}
+html[data-theme="light"] .studio-entry-modes span {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] .studio-entry-title::after {
+  color: rgba(22, 22, 22, 0.38);
 }
 html[data-theme="light"] .nav-drop-menu {
   background: rgba(255, 255, 255, 0.94);
@@ -3235,12 +3368,12 @@ html[data-theme="light"] .git-tab {
 }
 html[data-theme="light"] .git-tab.is-active,
 html[data-theme="light"] .git-commands {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.45);
   border-color: rgba(0, 0, 0, 0.1);
   color: #161616;
 }
 html[data-theme="light"] .git-host {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.45);
   border-color: rgba(0, 0, 0, 0.1);
   color: rgba(0, 0, 0, 0.72);
 }
@@ -3253,9 +3386,15 @@ html[data-theme="light"] .git-commands li::before {
   color: rgba(0, 0, 0, 0.4);
 }
 html[data-theme="light"] .git-host:hover {
-  background: #f4f4f4;
-  border-color: rgba(0, 0, 0, 0.28);
-  color: #161616;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.72);
+}
+html[data-theme="light"] .git-tab:hover,
+html[data-theme="light"] .git-commands:hover {
+  background: #ececec;
+  border-color: rgba(0, 0, 0, 0.16);
+  color: rgba(0, 0, 0, 0.72);
 }
 html[data-theme="light"] .git-commands li {
   border-bottom-color: rgba(0, 0, 0, 0.1);
