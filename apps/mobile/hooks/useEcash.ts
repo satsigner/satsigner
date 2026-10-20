@@ -70,21 +70,16 @@ async function getSeedForAccount(accountId: string) {
 
 export function useEcash() {
   const {
-    accounts,
     activeAccount,
     activeAccountId,
-    allMints,
-    counters,
     mintQuotes,
     mints,
     proofs,
     transactions
   } = useEcashAccountState()
   const [
-    addAccount,
     renameAccount,
     removeAccount,
-    setActiveAccountId,
     addMintAction,
     removeMintAction,
     addProofsAction,
@@ -98,14 +93,11 @@ export function useEcash() {
     updateTransactionAction,
     advanceKeysetCounter,
     restoreFromBackup,
-    clearAllData,
     clearAccountData
   ] = useEcashStore(
     useShallow((state) => [
-      state.addAccount,
       state.renameAccount,
       state.removeAccount,
-      state.setActiveAccountId,
       state.addMint,
       state.removeMint,
       state.addProofs,
@@ -119,7 +111,6 @@ export function useEcash() {
       state.updateTransaction,
       state.advanceKeysetCounter,
       state.restoreFromBackup,
-      state.clearAllData,
       state.clearAccountData
     ])
   )
@@ -687,11 +678,6 @@ export function useEcash() {
     }
   }
 
-  function clearAllDataHandler() {
-    clearAllData()
-    toast.success(t('ecash.success.dataCleared'))
-  }
-
   function clearAccountDataHandler() {
     if (!activeAccountId) {
       return
@@ -700,71 +686,15 @@ export function useEcash() {
     toast.success(t('ecash.success.dataCleared'))
   }
 
-  function resumePollingForTransaction(
-    transactionId: string,
-    startPolling: (pollFunction: () => Promise<boolean>) => void
-  ) {
-    if (!activeAccountId) {
-      return
-    }
-    const transaction = transactions.find((txn) => txn.id === transactionId)
-    if (
-      !transaction ||
-      transaction.status !== 'pending' ||
-      !transaction.quoteId
-    ) {
-      return
-    }
-
-    const mint = mints.find((m) => m.url === transaction.mintUrl)
-    if (!mint) {
-      return
-    }
-
-    startPolling(async () => {
-      try {
-        const status = await checkMintQuoteHandler(
-          mint.url,
-          transaction.quoteId!
-        )
-
-        if (status === 'PAID' || status === 'ISSUED') {
-          await mintProofsHandler(
-            mint.url,
-            transaction.amount,
-            transaction.quoteId!
-          )
-          return true
-        } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          updateTransactionAction(activeAccountId, transactionId, {
-            status: 'failed'
-          })
-          return true
-        }
-        return false
-      } catch {
-        return false
-      }
-    })
-  }
-
   return {
-    accounts,
     activeAccount,
     activeAccountId,
-    addAccount,
-    allMints,
     checkMintQuote: checkMintQuoteHandler,
     checkTokenStatus,
     clearAccountData: clearAccountDataHandler,
-    clearAllData: clearAllDataHandler,
     connectToMint: connectToMintHandler,
-    counters,
-    createMeltQuote: createMeltQuoteHandler,
     createMintQuote: createMintQuoteHandler,
     disconnectMint,
-    markReceivedTokensAsSpent,
-    meltProofs: meltProofsHandler,
     mintProofs: mintProofsHandler,
     mintQuotes,
     mints,
@@ -776,9 +706,7 @@ export function useEcash() {
     restoreAllAccountMintsFromSeed,
     restoreFromBackup: restoreFromBackupHandler,
     restoreFromSeed: restoreFromSeedHandler,
-    resumePollingForTransaction,
     sendEcash: sendEcashHandler,
-    setActiveAccountId,
     transactions,
     updateTransaction: (
       transactionId: string,
