@@ -4,7 +4,8 @@ const screens = [
   { id: 'explorer', name: 'Explorer', view: 'view-menu', source: 'Explorer tab' },
   { id: 'difficulty', name: 'Difficulty', view: 'view-difficulty', source: 'Difficulty epoch' },
   { id: 'accounts', name: 'Bitcoin', view: 'view-accounts', source: 'Accounts' },
-  { id: 'converter', name: 'Converter', view: 'view-converter', source: 'Currency converter' },
+  { id: 'converter', name: 'Converter', view: 'view-menu', source: 'Converter tab' },
+  { id: 'currency', name: 'Currency', view: 'view-converter', source: 'Currency converter' },
   { id: 'account', name: 'Account', view: 'view-account', source: 'Account overview' },
   { id: 'tx', name: 'Transaction', view: 'view-tx', source: 'Transaction details' },
   { id: 'coins', name: 'Coins', view: 'view-account', source: 'Account coins tab' },
@@ -47,11 +48,27 @@ const screens = [
   { id: 'script', name: 'Script', view: 'sheet', source: 'Account script selector' }
 ]
 
+const themes = [
+  ['Shell', ['signer', 'difficulty', 'settings']],
+  ['Signer', ['intro']],
+  ['Explorer', ['explorer']],
+  ['Converter', ['converter', 'currency']],
+  ['Bitcoin', ['accounts', 'account', 'tx', 'coins', 'chart', 'send', 'output', 'payjoin', 'preview', 'builder', 'sign', 'psbt-qr', 'sent', 'script', 'new-account', 'new-singlesig', 'entropy-dice', 'entropy-coin', 'entropy-drawing', 'multisig-setup', 'multisig-keys', 'multisig-key', 'multisig-settings', 'multisig-sign', 'custom-backend']],
+  ['Lightning', ['lightning', 'lightning-node', 'lightning-rest', 'lightning-rpc']],
+  ['Ark', ['ark', 'ark-account']],
+  ['ECash', ['ecash', 'ecash-account', 'ecash-send', 'ecash-receive', 'ecash-add']],
+  ['Nostr', ['nostr', 'nostr-account', 'nostr-relays', 'nostr-add']]
+]
+const themeOf = {}
+themes.forEach(([theme, ids]) => ids.forEach((id) => { themeOf[id] = theme }))
+
+if (!new URLSearchParams(location.search).has('embed')) {
+
 const list = document.getElementById('list-view')
 const tableBody = document.getElementById('screen-rows')
 
 function previewSrc(id) {
-  return '/test-site/?embed=1&device=1&screen=' + encodeURIComponent(id)
+  return '/studio/?embed=1&device=1&screen=' + encodeURIComponent(id)
 }
 
 function frame(id, title) {
@@ -70,7 +87,7 @@ function replay(iframe) {
 }
 
 screens.forEach((screen) => {
-  const href = '/test-site/index.html#' + screen.id
+  const href = '/studio/?view=prototype#' + screen.id
 
   const card = document.createElement('a')
   card.className = 'screen-card'
@@ -107,206 +124,239 @@ screens.forEach((screen) => {
   link.href = href
   link.textContent = screen.name
   name.appendChild(link)
+  name.dataset.sort = screen.name
   row.appendChild(name)
+
+  const theme = document.createElement('td')
+  theme.textContent = themeOf[screen.id] || ''
+  theme.dataset.sort = theme.textContent
+  row.appendChild(theme)
 
   const route = document.createElement('td')
   route.className = 'route'
   route.textContent = '#' + screen.id
+  route.dataset.sort = route.textContent
   row.appendChild(route)
 
   const markup = document.createElement('td')
   markup.className = 'route'
   markup.textContent = screen.view
+  markup.dataset.sort = markup.textContent
   row.appendChild(markup)
 
   const source = document.createElement('td')
   source.textContent = screen.source
+  source.dataset.sort = source.textContent
   row.appendChild(source)
   tableBody.appendChild(row)
 })
 
-const flows = [
-  ['intro', 'signer'],
-  ['signer', 'explorer'],
-  ['explorer', 'signer'],
-  ['signer', 'converter'],
-  ['signer', 'settings'],
-  ['signer', 'accounts'],
-  ['signer', 'lightning'],
-  ['signer', 'ark'],
-  ['signer', 'ecash'],
-  ['signer', 'nostr'],
-  ['accounts', 'account'],
-  ['accounts', 'new-account'],
-  ['new-account', 'new-singlesig'],
-  ['new-account', 'multisig-setup'],
-  ['new-singlesig', 'entropy-dice'],
-  ['new-singlesig', 'entropy-coin'],
-  ['new-singlesig', 'entropy-drawing'],
-  ['accounts', 'multisig-setup'],
-  ['account', 'tx'],
-  ['account', 'coins'],
-  ['account', 'chart'],
-  ['account', 'send'],
-  ['account', 'multisig-settings'],
-  ['send', 'payjoin'],
-  ['send', 'preview'],
-  ['preview', 'sign'],
-  ['preview', 'psbt-qr'],
-  ['preview', 'multisig-sign'],
-  ['sign', 'sent'],
-  ['multisig-sign', 'sent'],
-  ['multisig-setup', 'multisig-keys'],
-  ['multisig-keys', 'multisig-key'],
-  ['multisig-key', 'multisig-keys'],
-  ['multisig-keys', 'account'],
-  ['lightning', 'lightning-node'],
-  ['lightning', 'lightning-rest'],
-  ['lightning', 'lightning-rpc'],
-  ['ark', 'ark-account'],
-  ['ecash', 'ecash-account'],
-  ['ecash', 'ecash-add'],
-  ['ecash-account', 'ecash-send'],
-  ['ecash-account', 'ecash-receive'],
-  ['nostr', 'nostr-account'],
-  ['nostr', 'nostr-add'],
-  ['nostr-account', 'nostr-relays']
+const sortColumns = { name: 1, theme: 2, route: 3, markup: 4, source: 5 }
+let sortKey = ''
+let sortDir = 1
+
+document.querySelectorAll('.screen-table th button').forEach((button) => {
+  button.addEventListener('click', () => {
+    const key = button.getAttribute('data-sort')
+    sortDir = sortKey === key ? -sortDir : 1
+    sortKey = key
+    document.querySelectorAll('.screen-table th').forEach((header) => header.removeAttribute('aria-sort'))
+    button.parentElement.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending')
+    const index = sortColumns[key]
+    const rows = [...tableBody.rows]
+    rows.sort((a, b) => {
+      const left = a.cells[index].dataset.sort
+      const right = b.cells[index].dataset.sort
+      return left.localeCompare(right) * sortDir
+    })
+    rows.forEach((row) => tableBody.appendChild(row))
+  })
+})
+
+const navSections = [
+  {
+    name: 'Explorer',
+    tree: { id: 'explorer', children: [{ id: 'difficulty' }] }
+  },
+  {
+    name: 'Signer',
+    tree: {
+      id: 'signer',
+      children: [
+        {
+          id: 'accounts',
+          children: [
+            {
+              id: 'account',
+              children: [
+                { id: 'tx' },
+                { id: 'coins' },
+                { id: 'chart' },
+                { id: 'script' },
+                { id: 'multisig-settings' },
+                {
+                  id: 'send',
+                  children: [
+                    { id: 'output' },
+                    { id: 'payjoin' },
+                    { id: 'preview', children: [{ id: 'builder' }, { id: 'sign', children: [{ id: 'sent' }] }, { id: 'psbt-qr' }, { id: 'multisig-sign' }] }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'new-account',
+              children: [
+                { id: 'new-singlesig', children: [{ id: 'entropy-dice' }, { id: 'entropy-coin' }, { id: 'entropy-drawing' }] },
+                { id: 'multisig-setup', children: [{ id: 'multisig-keys', children: [{ id: 'multisig-key' }] }] }
+              ]
+            }
+          ]
+        },
+        { id: 'lightning', children: [{ id: 'lightning-node' }, { id: 'lightning-rest' }, { id: 'lightning-rpc' }] },
+        { id: 'ark', children: [{ id: 'ark-account' }] },
+        {
+          id: 'ecash',
+          children: [
+            { id: 'ecash-account', children: [{ id: 'ecash-send' }, { id: 'ecash-receive' }] },
+            { id: 'ecash-add' }
+          ]
+        },
+        {
+          id: 'nostr',
+          children: [
+            { id: 'nostr-account', children: [{ id: 'nostr-relays' }] },
+            { id: 'nostr-add' }
+          ]
+        },
+        { id: 'settings', children: [{ id: 'custom-backend' }] }
+      ]
+    }
+  },
+  {
+    name: 'Converter',
+    tree: { id: 'converter', children: [{ id: 'currency' }] }
+  }
 ]
 
-const flowLanes = [
-  { name: 'Shell', ids: ['intro', 'signer', 'explorer', 'converter', 'settings'] },
-  { name: 'Bitcoin', ids: ['accounts', 'account', 'tx', 'coins', 'chart', 'send', 'payjoin', 'preview', 'sign', 'psbt-qr', 'sent'] },
-  { name: 'New account', ids: ['new-account', 'new-singlesig', 'entropy-dice', 'entropy-coin', 'entropy-drawing'] },
-  { name: 'Multisig', ids: ['multisig-setup', 'multisig-keys', 'multisig-key', 'multisig-settings', 'multisig-sign'] },
-  { name: 'Lightning', ids: ['lightning', 'lightning-node', 'lightning-rest', 'lightning-rpc'] },
-  { name: 'Ark', ids: ['ark', 'ark-account'] },
-  { name: 'ECash', ids: ['ecash', 'ecash-account', 'ecash-send', 'ecash-receive', 'ecash-add'] },
-  { name: 'Nostr', ids: ['nostr', 'nostr-account', 'nostr-relays', 'nostr-add'] }
-]
+function flowKids(node) {
+  return node.children || []
+}
 
-const flowColumns = {
-  intro: 0,
-  signer: 1,
-  explorer: 2,
-  converter: 2,
-  settings: 2,
-  accounts: 1,
-  account: 2,
-  tx: 3,
-  coins: 3,
-  chart: 3,
-  send: 3,
-  payjoin: 4,
-  preview: 4,
-  sign: 5,
-  'psbt-qr': 5,
-  sent: 6,
-  'new-account': 1,
-  'new-singlesig': 2,
-  'entropy-dice': 3,
-  'entropy-coin': 3,
-  'entropy-drawing': 3,
-  'multisig-setup': 1,
-  'multisig-keys': 2,
-  'multisig-key': 3,
-  'multisig-settings': 3,
-  'multisig-sign': 5,
-  lightning: 1,
-  'lightning-node': 2,
-  'lightning-rest': 2,
-  'lightning-rpc': 2,
-  ark: 1,
-  'ark-account': 2,
-  ecash: 1,
-  'ecash-account': 2,
-  'ecash-send': 3,
-  'ecash-receive': 3,
-  'ecash-add': 2,
-  nostr: 1,
-  'nostr-account': 2,
-  'nostr-relays': 3,
-  'nostr-add': 2
+function flowWidth(node) {
+  const kids = flowKids(node)
+  if (!kids.length) return 1
+  return kids.reduce((sum, child) => sum + flowWidth(child), 0)
+}
+
+function flowDepth(node) {
+  const kids = flowKids(node)
+  if (!kids.length) return 1
+  return 1 + Math.max(...kids.map(flowDepth))
+}
+
+function placeFlow(node, left, row, slots, edges) {
+  const width = flowWidth(node)
+  slots[node.id] = { col: left + (width - 1) / 2, row }
+  let cursor = left
+  flowKids(node).forEach((child) => {
+    edges.push([node.id, child.id])
+    placeFlow(child, cursor, row + 1, slots, edges)
+    cursor += flowWidth(child)
+  })
 }
 
 function renderFlow() {
   const root = document.getElementById('flow-view')
   const nodeW = 156
   const nodeH = 52
-  const colW = 196
-  const rowH = 68
-  const padX = 108
-  const padY = 28
+  const colW = 172
+  const rowH = 72
+  const padX = 24
+  const padY = 56
   const slots = {}
-  flowLanes.forEach((lane) => {
-    const rows = {}
-    lane.ids.forEach((id) => {
-      const column = flowColumns[id]
-      rows[column] = rows[column] || []
-      const row = rows[column].length
-      rows[column].push(id)
-      slots[id] = { column, row }
-    })
+  const flows = [['intro', 'explorer'], ['intro', 'signer'], ['intro', 'converter']]
+  let cursor = 0
+  navSections.forEach((section) => {
+    const width = flowWidth(section.tree)
+    placeFlow(section.tree, cursor, 1, slots, flows)
+    cursor += width + 0.6
   })
-  let y = padY
-  const laneMeta = flowLanes.map((lane) => {
-    const height = Math.max(...lane.ids.map((id) => slots[id].row + 1)) * rowH
-    const meta = { name: lane.name, y, height }
-    y += height + 28
-    return meta
-  })
-  const laneY = Object.fromEntries(flowLanes.map((lane, index) => [lane.name, laneMeta[index].y]))
-  const laneOf = {}
-  flowLanes.forEach((lane) => lane.ids.forEach((id) => (laneOf[id] = lane.name)))
+  slots.intro = { col: (cursor - 0.6) / 2, row: 0 }
   const boxes = {}
   screens.forEach((screen) => {
     const slot = slots[screen.id]
+    if (!slot) return
     boxes[screen.id] = {
-      x: padX + slot.column * colW,
-      y: laneY[laneOf[screen.id]] + slot.row * rowH,
+      x: padX + slot.col * colW,
+      y: padY + slot.row * rowH,
       w: nodeW,
       h: nodeH
     }
   })
-  const width = padX + 7 * colW
-  const height = y
+  const width = padX * 2 + cursor * colW
+  const depth = Math.max(...navSections.map((section) => flowDepth(section.tree)))
+  const height = padY + (1 + depth) * rowH + 24
   root.innerHTML = ''
+  const zoomBar = document.createElement('div')
+  zoomBar.className = 'flow-zoom'
+  zoomBar.setAttribute('role', 'group')
+  zoomBar.setAttribute('aria-label', 'Chart zoom')
+  const zoomOut = document.createElement('button')
+  zoomOut.type = 'button'
+  zoomOut.textContent = '−'
+  zoomOut.setAttribute('aria-label', 'Zoom out')
+  const zoomLabel = document.createElement('button')
+  zoomLabel.type = 'button'
+  zoomLabel.setAttribute('aria-label', 'Reset zoom')
+  const zoomIn = document.createElement('button')
+  zoomIn.type = 'button'
+  zoomIn.textContent = '+'
+  zoomIn.setAttribute('aria-label', 'Zoom in')
+  zoomBar.append(zoomOut, zoomLabel, zoomIn)
+  const scale = document.createElement('div')
+  scale.className = 'flow-scale'
   const canvas = document.createElement('div')
   canvas.className = 'flow-canvas'
   canvas.style.width = width + 'px'
   canvas.style.height = height + 'px'
+  let zoom = 1
+  function applyZoom() {
+    zoom = Math.min(1.8, Math.max(0.35, Math.round(zoom * 20) / 20))
+    canvas.style.transform = 'scale(' + zoom + ')'
+    scale.style.width = width * zoom + 'px'
+    scale.style.height = height * zoom + 'px'
+    zoomLabel.textContent = Math.round(zoom * 100) + '%'
+  }
+  zoomOut.addEventListener('click', () => { zoom -= 0.1; applyZoom() })
+  zoomIn.addEventListener('click', () => { zoom += 0.1; applyZoom() })
+  zoomLabel.addEventListener('click', () => { zoom = 1; applyZoom() })
+  applyZoom()
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height)
   flows.forEach(([from, to]) => {
     const a = boxes[from]
     const b = boxes[to]
+    if (!a || !b) return
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    const x1 = a.x + a.w
-    const y1 = a.y + a.h / 2
-    const x2 = b.x
-    const y2 = b.y + b.h / 2
-    const bend = Math.max(28, Math.abs(x2 - x1) / 2)
-    const start = x2 >= x1 ? x1 : a.x
-    const end = x2 >= x1 ? x2 : b.x + b.w
-    path.setAttribute('d', 'M ' + start + ' ' + y1 + ' C ' + (start + (x2 >= x1 ? bend : -bend)) + ' ' + y1 + ', ' + (end - (x2 >= x1 ? bend : -bend)) + ' ' + y2 + ', ' + end + ' ' + y2)
+    const x1 = a.x + a.w / 2
+    const y1 = a.y + a.h
+    const x2 = b.x + b.w / 2
+    const y2 = b.y
+    const mid = (y1 + y2) / 2
+    path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + mid + ', ' + x2 + ' ' + mid + ', ' + x2 + ' ' + y2)
     path.setAttribute('class', 'flow-edge')
     path.dataset.from = from
     path.dataset.to = to
     svg.appendChild(path)
   })
   canvas.appendChild(svg)
-  laneMeta.forEach((lane) => {
-    const label = document.createElement('p')
-    label.className = 'flow-lane'
-    label.style.left = '0'
-    label.style.top = lane.y + 16 + 'px'
-    label.textContent = lane.name
-    canvas.appendChild(label)
-  })
   screens.forEach((screen) => {
     const box = boxes[screen.id]
+    if (!box) return
     const link = document.createElement('a')
     link.className = 'flow-node'
-    link.href = '/test-site/index.html#' + screen.id
+    link.href = '/studio/?view=prototype#' + screen.id
     link.dataset.id = screen.id
     link.style.left = box.x + 'px'
     link.style.top = box.y + 'px'
@@ -324,7 +374,11 @@ function renderFlow() {
     link.addEventListener('blur', clearFlow)
     canvas.appendChild(link)
   })
-  root.appendChild(canvas)
+  scale.appendChild(canvas)
+  const scroller = document.createElement('div')
+  scroller.className = 'flow-scroll'
+  scroller.appendChild(scale)
+  root.append(zoomBar, scroller)
 }
 
 function highlightFlow(id) {
@@ -353,27 +407,172 @@ function clearFlow() {
   root.querySelectorAll('.is-hot').forEach((node) => node.classList.remove('is-hot'))
 }
 
-renderFlow()
-
 const table = document.getElementById('table-view')
 const flow = document.getElementById('flow-view')
 const phone = document.getElementById('phone-view')
+const componentsView = document.getElementById('components-view')
+const catalog = document.getElementById('catalog-views')
 const buttons = document.querySelectorAll('[data-view]')
-const stored = localStorage.getItem('screen-catalog-view') || 'list'
 
-function setView(mode) {
-  list.hidden = mode !== 'list'
+const components = [
+  {
+    name: 'Menu button',
+    source: 'SSButton',
+    html:
+      '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span><span class="menu-label">' +
+      icon('bitcoin', 'menu-mark') +
+      '<span>Bitcoin</span></span></button>'
+  },
+  {
+    name: 'Soon',
+    source: 'Disabled menu row',
+    html:
+      '<button type="button" class="menu-button is-soon"><span class="edge-left"></span><span class="edge-right"></span><span class="menu-label">' +
+      icon('liquid', 'menu-mark') +
+      '<span>Liquid</span></span></button>'
+  },
+  {
+    name: 'Action buttons',
+    source: 'Outline, danger, save',
+    html:
+      '<div class="acct-actions">' +
+      '<button type="button" class="menu-button is-outline"><span class="edge-left"></span><span class="edge-right"></span>Rescan Wallet</button>' +
+      '<button type="button" class="menu-button is-danger"><span class="edge-left"></span><span class="edge-right"></span>Delete Account</button>' +
+      '<button type="button" class="menu-button is-save"><span class="edge-left"></span><span class="edge-right"></span>Save</button>' +
+      '</div>'
+  },
+  {
+    name: 'Tab bar',
+    source: 'Signer, Explorer, Converter',
+    html:
+      '<nav class="tab-bar" aria-label="Sections">' +
+      '<button type="button" class="tab is-active">' +
+      icon('signerActive', 'tab-mark') +
+      '<span>Signer</span></button>' +
+      '<button type="button" class="tab">' +
+      icon('explorer', 'tab-mark') +
+      '<span>Explorer</span></button>' +
+      '<button type="button" class="tab">' +
+      icon('converter', 'tab-mark') +
+      '<span>Converter</span></button>' +
+      '</nav>'
+  },
+  {
+    name: 'Stack header',
+    source: 'Back, title, settings',
+    html:
+      '<header class="stack-header"><button type="button" class="back" aria-label="Back">' +
+      icon('back', 'back-mark') +
+      '</button><p>Bitcoin</p><button type="button" class="settings" aria-label="Settings">' +
+      icon('settings', 'settings-mark') +
+      '</button></header>'
+  },
+  {
+    name: 'Account card',
+    source: 'SSAccountCard',
+    html:
+      '<button type="button" class="account-card"><span class="fingerprint">a1b2c3d4</span><span class="account-name">Spending</span><span class="account-balance"><span class="account-amount">22,190,000</span> <span class="account-unit">sats</span></span><span class="account-fiat">22,190 <span>USD</span></span><span class="account-stats"><span><strong>12</strong><small>UTXOs</small></span><span><strong>50,000</strong><small>Mempool</small></span></span>' +
+      icon('chevron', 'account-chevron') +
+      '</button>'
+  },
+  {
+    name: 'Network tabs',
+    source: 'Bitcoin, Testnet, Signet',
+    html:
+      '<nav class="network-tabs" aria-label="Networks"><button type="button" class="network-tab">Bitcoin</button><button type="button" class="network-tab">Testnet</button><button type="button" class="network-tab is-active">Signet</button></nav>'
+  },
+  {
+    name: 'Balance strip',
+    source: 'Connection and totals',
+    html:
+      '<p class="connection"><span class="dot"></span><span>Signet</span> — Default <span>mempool.space</span></p><p class="totals"><span>Total balance <strong>22,240,000</strong></span><span>Mempool <strong>50,000</strong></span></p>'
+  },
+  {
+    name: 'Currency field',
+    source: 'Converter input',
+    html:
+      '<label class="currency-field"><span>Bitcoin</span><input value="0.0124" readonly></label>'
+  },
+  {
+    name: 'Field',
+    source: 'Send form',
+    html:
+      '<label class="field"><span>Amount</span><input value="50000" readonly></label>'
+  },
+  {
+    name: 'Policy option',
+    source: 'Account script selector',
+    html:
+      '<button type="button" class="policy-option is-on"><strong>Native Segwit</strong><span>P2WPKH</span></button><button type="button" class="policy-option"><strong>Taproot</strong><span>P2TR</span></button>'
+  },
+  {
+    name: 'Hint',
+    source: 'Demo note',
+    html: '<p class="hint">Demo only. No keys are created.</p>'
+  }
+]
+
+const componentGrid = document.getElementById('components-view')
+components.forEach((component) => {
+  const card = document.createElement('article')
+  card.className = 'component-card'
+  const heading = document.createElement('h2')
+  heading.textContent = component.name
+  const copy = document.createElement('p')
+  copy.textContent = component.source
+  const stage = document.createElement('div')
+  stage.className = 'component-stage'
+  stage.innerHTML = component.html
+  card.appendChild(heading)
+  card.appendChild(copy)
+  card.appendChild(stage)
+  componentGrid.appendChild(card)
+})
+
+const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map' }
+
+function isLayoutMode(mode) {
+  return mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components'
+}
+
+function viewFromUrl() {
+  const raw = new URLSearchParams(location.search).get('view')
+  const mode = viewAliases[raw] || raw
+  return isLayoutMode(mode) ? mode : null
+}
+
+function setView(mode, updateUrl) {
+  mode = viewAliases[mode] || mode
+  if (!isLayoutMode(mode)) mode = 'prototype'
+  list.hidden = mode !== 'screens'
   table.hidden = mode !== 'table'
-  flow.hidden = mode !== 'flow'
-  phone.hidden = mode !== 'phone'
+  flow.hidden = mode !== 'map'
+  phone.hidden = mode !== 'prototype'
+  componentsView.hidden = mode !== 'components'
+  if (catalog) catalog.hidden = mode === 'prototype'
   buttons.forEach((button) => {
     button.classList.toggle('is-active', button.getAttribute('data-view') === mode)
   })
   localStorage.setItem('screen-catalog-view', mode)
+  if (updateUrl) {
+    const url = new URL(location.href)
+    url.searchParams.set('view', mode)
+    history.replaceState(null, '', url)
+  }
 }
 
 buttons.forEach((button) => {
-  button.addEventListener('click', () => setView(button.getAttribute('data-view')))
+  button.addEventListener('click', () => setView(button.getAttribute('data-view'), true))
 })
 
-setView(stored === 'table' || stored === 'flow' || stored === 'phone' ? stored : 'list')
+const cardHeight = document.getElementById('card-height')
+cardHeight.addEventListener('click', () => {
+  const open = document.body.classList.toggle('is-full-cards')
+  cardHeight.textContent = open ? 'Collapse' : 'Expand'
+  cardHeight.setAttribute('aria-pressed', open ? 'true' : 'false')
+})
+
+setView(viewFromUrl() || 'prototype', true)
+
+renderFlow()
+}

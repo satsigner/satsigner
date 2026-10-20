@@ -1,11 +1,11 @@
-# Screen demo protocol
+# Studio protocol
 
-Turn one SatSigner React Native screen into a static HTML, CSS, and JavaScript phone demo. Source of truth is [satsigner/satsigner](https://github.com/satsigner/satsigner/) (`apps/mobile`). This folder is a separate test site. It does not change the marketing homepage.
+Turn one SatSigner React Native screen into a static HTML, CSS, and JavaScript prototype. Source of truth is [satsigner/satsigner](https://github.com/satsigner/satsigner/) (`apps/mobile`). Studio is where flows and screens are designed and checked against the app. It does not change the marketing homepage.
 
 ## Files
 
 - `tokens.css` — CSS variables copied from `apps/mobile/styles/colors.ts`, `sizes.ts`, and `layout.ts`. Glass borders come from `SSButton` elevated styles.
-- `index.html` — test page and phone frame.
+- `index.html` — studio page and phone frame.
 - `screen.css` — layout for one screen. Uses variables from `tokens.css` only.
 - `screen.js` — fixture data and light interaction.
 - `icons.js` — SVG markup copied from `apps/mobile/components/icons`.

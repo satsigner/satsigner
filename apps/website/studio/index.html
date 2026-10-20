@@ -5,14 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <style>html,body{background:#000}</style>
-  <title>SatSigner screen demo</title>
+  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed')</script>
+  <title>SatSigner Studio</title>
   <link rel="stylesheet" href="/fonts/inter.css">
-  <link rel="stylesheet" href="/test-site/tokens.css">
-  <link rel="stylesheet" href="/test-site/screen.css">
+  <link rel="stylesheet" href="/studio/tokens.css">
+  <link rel="stylesheet" href="/studio/screen.css">
+  <link rel="stylesheet" href="/studio/catalog.css?v=18">
 </head>
 <body>
-  <main class="stage">
-    <p class="stage-note">Test site. Screens and icons extracted from the React Native app. <a href="/test-site/catalog.html">All screens</a></p>
+  <div class="view-toggle" role="group" aria-label="Catalog layout">
+    <a class="studio-brand" href="/studio/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER STUDIO</span></a>
+    <button type="button" data-view="prototype">Prototype</button>
+    <button type="button" data-view="screens">Screens</button>
+    <button type="button" data-view="table">Table</button>
+    <button type="button" data-view="map">Map</button>
+    <button type="button" data-view="components">Components</button>
+    <button type="button" id="card-height" aria-pressed="false">Expand</button>
+  </div>
+  <main class="stage" id="phone-view">
     <div class="phone" aria-label="SatSigner">
       <span class="phone-key phone-key-silent" aria-hidden="true"></span>
       <span class="phone-key phone-key-up" aria-hidden="true"></span>
@@ -619,7 +629,26 @@
     </div>
     <button type="button" class="stage-home" id="stage-home">Home</button>
   </main>
-  <script src="/test-site/icons.js"></script>
-  <script src="/test-site/screen.js"></script>
+  <div class="catalog" id="catalog-views" hidden>
+    <div class="flow" id="flow-view" hidden></div>
+    <div class="screen-grid" id="list-view"></div>
+    <div class="component-grid" id="components-view" hidden></div>
+    <table class="screen-table" id="table-view" hidden>
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th><button type="button" data-sort="name">Screen</button></th>
+          <th><button type="button" data-sort="theme">Theme</button></th>
+          <th><button type="button" data-sort="route">Route</button></th>
+          <th><button type="button" data-sort="markup">Markup</button></th>
+          <th><button type="button" data-sort="source">What it is</button></th>
+        </tr>
+      </thead>
+      <tbody id="screen-rows"></tbody>
+    </table>
+  </div>
+  <script src="/studio/icons.js"></script>
+  <script src="/studio/screen.js?v=2"></script>
+  <script src="/studio/catalog.js?v=21"></script>
 </body>
 </html>

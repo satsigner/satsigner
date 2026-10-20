@@ -37,26 +37,6 @@ svg text {
   padding: var(--gap-lg) var(--gap-md);
 }
 
-.stage-note {
-  margin: 0;
-  max-width: 36rem;
-  color: var(--gray-100);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  letter-spacing: 0.04em;
-  text-align: center;
-}
-
-.stage-note a {
-  color: var(--white);
-  text-decoration-color: var(--gray-400);
-  text-underline-offset: 0.18em;
-}
-
-.stage-note a:hover {
-  text-decoration-color: var(--white);
-}
-
 .stage-home {
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -76,7 +56,7 @@ svg text {
 .phone {
   --status-height: 34px;
   --ui-drop: 14px;
-  --frame: min(390px, calc((100vh - 96px) * 390 / 844));
+  --frame: min(390px, calc((100vh - 128px) * 390 / 844));
   --bezel: calc(var(--frame) * 10 / 280);
   --radius: calc(var(--frame) * 48 / 280);
   --ui-scale: calc((var(--frame) - 2 * var(--bezel)) / 390px);
@@ -85,7 +65,7 @@ svg text {
   width: var(--frame);
   aspect-ratio: 390 / 844;
   height: auto;
-  max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 128px);
   border-radius: var(--radius);
   background: #000;
   box-shadow:
@@ -3178,7 +3158,6 @@ html.is-embed .stage {
   padding: 0;
 }
 
-html.is-embed .stage-note,
 html.is-embed .stage-home {
   display: none;
 }
@@ -3402,6 +3381,6 @@ html.is-bare .phone-status {
 
 @media (max-width: 420px) {
   .phone {
-    --frame: min(390px, 100%, calc((100vh - 88px) * 390 / 844));
+    --frame: min(390px, 100%, calc((100vh - 120px) * 390 / 844));
   }
 }

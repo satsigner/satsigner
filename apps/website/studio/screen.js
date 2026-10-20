@@ -39,7 +39,7 @@ const groups = {
   converter: {
     title: 'Converter',
     items: [
-      { title: 'Currency', icon: 'currency', screen: 'converter' },
+      { title: 'Currency', icon: 'currency', screen: 'currency' },
       { title: 'Time', icon: 'time', soon: true },
       { title: 'Energy', icon: 'energy' }
     ]
@@ -100,9 +100,11 @@ function show(name, route) {
   Object.entries(views).forEach(([key, node]) => {
     node.hidden = key !== name
   })
-  routeId = route || name
+  routeId = route || (name === 'menu' ? activeTab : name)
   if (isStage && !demoQuery.has('embed') && location.hash !== '#' + routeId) {
-    history.replaceState(null, '', '#' + routeId)
+    const url = new URL(location.href)
+    url.hash = routeId
+    history.replaceState(null, '', url)
   }
 }
 
@@ -148,8 +150,7 @@ tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
     activeTab = tab.dataset.tab
     paintTabs()
-    renderMenu(activeTab)
-    show('menu', activeTab === 'explorer' ? 'explorer' : 'menu')
+    menuTab(activeTab)
   })
 })
 
@@ -3028,7 +3029,7 @@ function menuTab(tab) {
   activeTab = tab
   paintTabs()
   renderMenu(tab)
-  show('menu', tab === 'explorer' ? 'explorer' : 'menu')
+  show('menu', tab)
 }
 
 const multisigKeys = [
@@ -3726,8 +3727,15 @@ function go(id) {
     return true
   }
   if (id === 'converter') {
+    menuTab('converter')
+    return true
+  }
+  if (id === 'currency') {
+    activeTab = 'converter'
+    paintTabs()
+    renderMenu('converter')
     syncFromBtc()
-    show('converter', 'converter')
+    show('converter', 'currency')
     return true
   }
   if (id === 'tx' || id === 'payjoin-tx') {
@@ -3876,7 +3884,7 @@ function go(id) {
   if (id === 'script') {
     renderScriptSelect()
     routeId = 'script'
-    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#script')
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', location.pathname + location.search + '#script')
     return true
   }
   if (id === 'custom-backend') {
@@ -3884,14 +3892,14 @@ function go(id) {
     openSettings()
     showSettingsPage('custom-backend')
     routeId = 'custom-backend'
-    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#custom-backend')
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', location.pathname + location.search + '#custom-backend')
     return true
   }
   if (id === 'settings') {
     menuTab('signer')
     openSettings()
     routeId = 'settings'
-    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', '#settings')
+    if (isStage && !demoQuery.has('embed')) history.replaceState(null, '', location.pathname + location.search + '#settings')
     return true
   }
   return false

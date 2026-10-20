@@ -25,40 +25,89 @@ a {
 .catalog {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 5rem 1.5rem 4rem;
+  padding: calc(1.25rem + 4rem) 1.5rem 4rem;
 }
 
 body:has(#table-view:not([hidden])) .catalog,
-body:has(#flow-view:not([hidden])) .catalog {
+body:has(#components-view:not([hidden])) .catalog {
   max-width: none;
 }
 
-.catalog h1 {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  text-align: center;
-}
-
-.catalog-intro {
-  max-width: 36rem;
-  margin: 0 auto 1.5rem;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 1rem;
-  line-height: 1.6;
-  text-align: center;
+body:has(#flow-view:not([hidden])) .catalog {
+  max-width: none;
+  padding: 0;
 }
 
 .view-toggle {
+  position: fixed;
+  top: 1.25rem;
+  left: 0;
+  z-index: 6;
   display: flex;
   justify-content: center;
   gap: 0.5rem;
-  margin: 0 auto 2.75rem;
+  width: 100%;
+  margin: 0;
+  pointer-events: none;
+}
+
+.studio-brand {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: auto;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.studio-brand img {
+  height: 22px;
+  width: auto;
+  display: block;
+}
+
+@media (max-width: 860px) {
+  .studio-brand span {
+    display: none;
+  }
+}
+
+html:not(.is-embed) body:has(#phone-view:not([hidden])) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding-top: calc(1.25rem + 2rem);
+}
+
+html:not(.is-embed) body:has(#phone-view:not([hidden])) #phone-view {
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1rem 1rem;
+  justify-content: center;
+}
+
+html:not(.is-embed) body:has(#phone-view:not([hidden])) .phone {
+  --frame: min(340px, calc((100vh - 12rem) * 390 / 844));
+  max-height: calc(100% - 3.25rem);
+}
+
+html.is-embed .view-toggle,
+html.is-embed #catalog-views {
+  display: none !important;
 }
 
 .view-toggle button {
+  pointer-events: auto;
   padding: 0.4rem 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -73,6 +122,55 @@ body:has(#flow-view:not([hidden])) .catalog {
   border-color: rgba(255, 255, 255, 0.55);
   background: #1c1c1c;
   color: #fff;
+}
+
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.component-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 16rem;
+  padding: 1.25rem 1.25rem 1.4rem;
+  background: #000;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.component-card h2,
+.component-card p {
+  margin: 0;
+}
+
+.component-card h2 {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.component-card p {
+  margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8rem;
+}
+
+.component-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: #0a0a0a;
+}
+
+.component-stage .tab-bar,
+.component-stage .acct-actions {
+  margin-top: 0;
 }
 
 .screen-grid {
@@ -97,10 +195,12 @@ body:has(#flow-view:not([hidden])) .catalog {
 
 .screen-card {
   position: relative;
+  container-type: inline-size;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 22rem;
+  transition: min-height 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   margin: 0;
   padding: 1.5rem 1.4rem 1.6rem;
   background: #000;
@@ -190,6 +290,21 @@ body:has(#flow-view:not([hidden])) .catalog {
   opacity: 1;
 }
 
+#card-height {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 7;
+}
+
+body:not(:has(#list-view:not([hidden]))) #card-height {
+  display: none;
+}
+
+body.is-full-cards .screen-card {
+  min-height: calc(140px + min(78cqi, 300px) * 844 / 390 + 1.6rem);
+}
+
 .screen-table {
   width: 100%;
   border-collapse: collapse;
@@ -210,6 +325,25 @@ body:has(#flow-view:not([hidden])) .catalog {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.screen-table th button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.screen-table th[aria-sort="ascending"] button::after {
+  content: " ↑";
+}
+
+.screen-table th[aria-sort="descending"] button::after {
+  content: " ↓";
 }
 
 .screen-table a {
@@ -248,13 +382,43 @@ body:has(#flow-view:not([hidden])) .catalog {
 }
 
 .flow {
+  display: block;
+}
+
+.flow-scroll {
+  overflow: visible;
+  padding: calc(1.25rem + 4rem + 1.5rem) 1.5rem 3rem;
+}
+
+.flow-zoom {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 7;
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.flow-zoom button {
+  min-width: 2.25rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.flow-scale {
   position: relative;
-  overflow: auto;
-  padding-bottom: 2rem;
 }
 
 .flow-canvas {
   position: relative;
+  transform-origin: top left;
 }
 
 .flow svg {
