@@ -136,7 +136,7 @@ export type EcashAccountStore = {
   addMint: (mint: EcashMint) => void
   addProofs: (proofs: EcashProof[]) => void
   updateMintBalance: (mintUrl: string, balance: number) => void
-  updateCounters: (counters: EcashKeysetCounter[]) => void
+  advanceKeysetCounter: (keysetId: string, nextCounter: number) => void
 }
 
 export type EcashPaymentFailure =

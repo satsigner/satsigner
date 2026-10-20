@@ -6,6 +6,7 @@ import type {
   EcashMint,
   EcashProof
 } from '@/types/models/Ecash'
+import { withAdvancedKeysetCounter } from '@/utils/ecashKeysetCounters'
 
 jest.mock<typeof import('@/api/ecash')>('@/api/ecash', () => ({
   __esModule: true,
@@ -48,12 +49,16 @@ function createStore() {
     addProofs: (added) => {
       state.proofs = [...state.proofs, ...added]
     },
+    advanceKeysetCounter: (keysetId, nextCounter) => {
+      state.counters = withAdvancedKeysetCounter(
+        state.counters,
+        keysetId,
+        nextCounter
+      )
+    },
     getCounters: () => state.counters,
     getMints: () => state.mints,
     getProofs: () => state.proofs,
-    updateCounters: (counters) => {
-      state.counters = counters
-    },
     updateMintBalance: jest.fn()
   }
   return { state, store }

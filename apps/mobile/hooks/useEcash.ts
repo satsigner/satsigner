@@ -27,6 +27,7 @@ import { restoreProofsFromMints } from '@/services/ecash/restore'
 import { getEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
 import type {
+  CounterReservedEvent,
   EcashMeltResult,
   EcashMint,
   EcashMintResult,
@@ -47,10 +48,7 @@ import {
   EcashBackupValidationError,
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
-import {
-  buildCounterInit,
-  withKeysetCounter
-} from '@/utils/ecashKeysetCounters'
+import { buildCounterInit } from '@/utils/ecashKeysetCounters'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
 import {
   proofsAfterMelt,
@@ -98,7 +96,7 @@ export function useEcash() {
     removeMeltQuoteAction,
     addTransactionAction,
     updateTransactionAction,
-    updateCountersAction,
+    advanceKeysetCounter,
     restoreFromBackup,
     clearAllData,
     clearAccountData
@@ -119,24 +117,25 @@ export function useEcash() {
       state.removeMeltQuote,
       state.addTransaction,
       state.updateTransaction,
-      state.updateCounters,
+      state.advanceKeysetCounter,
       state.restoreFromBackup,
       state.clearAllData,
       state.clearAccountData
     ])
   )
 
-  function handleCounterReserved(event: {
-    keysetId: string
-    start: number
-    count: number
-  }) {
+  function getLatestCounters(accountId: string) {
+    return useEcashStore.getState().counters[accountId] ?? []
+  }
+
+  function handleCounterReserved(event: CounterReservedEvent) {
     if (!activeAccountId) {
       return
     }
-    updateCountersAction(
+    advanceKeysetCounter(
       activeAccountId,
-      withKeysetCounter(counters, event.keysetId, event.start + event.count)
+      event.keysetId,
+      event.start + event.count
     )
   }
 
@@ -150,7 +149,7 @@ export function useEcash() {
     }
     return {
       bip39seed: seed,
-      counterInit: buildCounterInit(counters),
+      counterInit: buildCounterInit(getLatestCounters(activeAccountId)),
       onCounterReserved: handleCounterReserved
     }
   }
@@ -175,12 +174,11 @@ export function useEcash() {
         const seed = await getSeedForAccount(activeAccountId)
         if (seed) {
           toast.info(t('ecash.recovery.restoring'))
-          const counterInit = buildCounterInit(counters)
           const result = await restoreProofsFromSeed(
             activeAccountId,
             mintUrl,
             seed,
-            counterInit
+            buildCounterInit(getLatestCounters(activeAccountId))
           )
 
           if (result.proofs.length > 0) {
@@ -193,13 +191,10 @@ export function useEcash() {
 
             const activeKeyset = mint.keysets.find((ks) => ks.active)
             if (result.lastCounter !== undefined && activeKeyset) {
-              updateCountersAction(
+              advanceKeysetCounter(
                 activeAccountId,
-                withKeysetCounter(
-                  counters,
-                  activeKeyset.id,
-                  result.lastCounter + 1
-                )
+                activeKeyset.id,
+                result.lastCounter + 1
               )
             }
 
@@ -607,10 +602,11 @@ export function useEcash() {
     const summary = await restoreProofsFromMints(accountId, mintUrls, seed, {
       addMint: (mint) => addMintAction(accountId, mint),
       addProofs: (restored) => addProofsAction(accountId, restored),
-      getCounters: () => useEcashStore.getState().counters[accountId] ?? [],
+      advanceKeysetCounter: (keysetId, nextCounter) =>
+        advanceKeysetCounter(accountId, keysetId, nextCounter),
+      getCounters: () => getLatestCounters(accountId),
       getMints: () => useEcashStore.getState().mints[accountId] ?? [],
       getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
-      updateCounters: (updated) => updateCountersAction(accountId, updated),
       updateMintBalance: (mintUrl, balance) =>
         updateMintBalance(accountId, mintUrl, balance)
     })

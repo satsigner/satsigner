@@ -12,6 +12,7 @@ import type {
   MintQuote
 } from '@/types/models/Ecash'
 import { mergeByKey, type ParsedEcashBackup } from '@/utils/ecashBackup'
+import { withAdvancedKeysetCounter } from '@/utils/ecashKeysetCounters'
 import { isRecord } from '@/utils/object'
 
 const LEGACY_ACCOUNT_ID = 'legacy'
@@ -60,6 +61,11 @@ type EcashAction = {
   ) => void
   clearTransactions: (accountId: string) => void
   updateCounters: (accountId: string, counters: EcashKeysetCounter[]) => void
+  advanceKeysetCounter: (
+    accountId: string,
+    keysetId: string,
+    nextCounter: number
+  ) => void
   restoreFromBackup: (accountId: string, backupData: ParsedEcashBackup) => void
   clearAllData: () => void
   clearAccountData: (accountId: string) => void
@@ -207,6 +213,17 @@ export const useEcashStore = create<EcashState & EcashAction>()(
               transaction,
               ...getAccountArray(state.transactions, accountId)
             ]
+          }
+        })),
+      advanceKeysetCounter: (accountId, keysetId, nextCounter) =>
+        set((state) => ({
+          counters: {
+            ...state.counters,
+            [accountId]: withAdvancedKeysetCounter(
+              getAccountArray(state.counters, accountId),
+              keysetId,
+              nextCounter
+            )
           }
         })),
       clearAccountData: (accountId) =>

@@ -4,10 +4,7 @@ import {
   restoreProofsFromSeed
 } from '@/api/ecash'
 import type { EcashAccountStore } from '@/types/models/Ecash'
-import {
-  buildCounterInit,
-  withKeysetCounter
-} from '@/utils/ecashKeysetCounters'
+import { buildCounterInit } from '@/utils/ecashKeysetCounters'
 
 type RestoreSummary = {
   proofsFound: number
@@ -52,13 +49,7 @@ async function restoreMint(
   if (result.lastCounter === undefined || !activeKeyset) {
     return restored
   }
-  store.updateCounters(
-    withKeysetCounter(
-      store.getCounters(),
-      activeKeyset.id,
-      result.lastCounter + 1
-    )
-  )
+  store.advanceKeysetCounter(activeKeyset.id, result.lastCounter + 1)
   return restored
 }
 

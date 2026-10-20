@@ -1,6 +1,6 @@
 import {
   buildCounterInit,
-  withKeysetCounter
+  withAdvancedKeysetCounter
 } from '@/utils/ecashKeysetCounters'
 
 describe('buildCounterInit', () => {
@@ -14,10 +14,10 @@ describe('buildCounterInit', () => {
   })
 })
 
-describe('withKeysetCounter', () => {
-  it('replaces the keyset counter and keeps the others', () => {
+describe('withAdvancedKeysetCounter', () => {
+  it('advances the keyset counter and keeps the others', () => {
     expect(
-      withKeysetCounter(
+      withAdvancedKeysetCounter(
         [
           { counter: 3, keysetId: 'a' },
           { counter: 7, keysetId: 'b' }
@@ -29,5 +29,17 @@ describe('withKeysetCounter', () => {
       { counter: 7, keysetId: 'b' },
       { counter: 5, keysetId: 'a' }
     ])
+  })
+
+  it('adds a counter for a new keyset', () => {
+    expect(withAdvancedKeysetCounter([], 'a', 4)).toStrictEqual([
+      { counter: 4, keysetId: 'a' }
+    ])
+  })
+
+  it('never moves a counter back', () => {
+    expect(
+      withAdvancedKeysetCounter([{ counter: 9, keysetId: 'a' }], 'a', 2)
+    ).toStrictEqual([{ counter: 9, keysetId: 'a' }])
   })
 })

@@ -9,16 +9,21 @@ function buildCounterInit(counters: EcashKeysetCounter[]) {
   return init
 }
 
-/** Counters with `keysetId` advanced to `nextCounter`. */
-function withKeysetCounter(
+/**
+ * Counters with `keysetId` advanced to `nextCounter`. A counter never moves
+ * back, so deterministic secrets are not derived twice.
+ */
+function withAdvancedKeysetCounter(
   counters: EcashKeysetCounter[],
   keysetId: string,
   nextCounter: number
 ) {
+  const currentCounter =
+    counters.find((c) => c.keysetId === keysetId)?.counter ?? 0
   return [
     ...counters.filter((c) => c.keysetId !== keysetId),
-    { counter: nextCounter, keysetId }
+    { counter: Math.max(currentCounter, nextCounter), keysetId }
   ]
 }
 
-export { buildCounterInit, withKeysetCounter }
+export { buildCounterInit, withAdvancedKeysetCounter }
