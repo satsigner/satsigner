@@ -1,11 +1,11 @@
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { t } from '@/locales'
 import { storeEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
 import { useEcashAccountBuilderStore } from '@/store/ecashAccountBuilder'
-import { SHORT_MNEMONIC_WORD_COUNT } from '@/types/bips/39'
 import type { EcashAccount } from '@/types/models/Ecash'
 import { generateMnemonic, validateMnemonic } from '@/utils/bip39'
 

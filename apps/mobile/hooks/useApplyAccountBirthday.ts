@@ -1,5 +1,9 @@
 import { toast } from 'sonner-native'
 
+import {
+  SYNC_IDLE_POLL_ATTEMPTS,
+  SYNC_IDLE_POLL_INTERVAL_MS
+} from '@/constants/sync'
 import useSyncAccountWithWallet, {
   cancelAccountSync,
   isAccountSyncing
@@ -7,10 +11,6 @@ import useSyncAccountWithWallet, {
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-
-// Wait up to 6s for an in-flight sync to finish before rescanning.
-const SYNC_IDLE_POLL_ATTEMPTS = 60
-const SYNC_IDLE_POLL_INTERVAL_MS = 100
 
 /**
  * Persist a wallet birthday and restart an RPC rescan when a wallet is loaded.

@@ -3,7 +3,11 @@ import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useState } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import {
+  NOSTR_CHAT_PROFILE_RETRY_DELAY_MS,
+  NOSTR_CHAT_THREAD_PAGE_SIZE,
+  NOSTR_PROFILE_CACHE_TTL_SECS
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { markChatThreadRead } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
@@ -26,9 +30,6 @@ import {
   sendNip17Chat
 } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
-
-const CHAT_RETRY_DELAY_MS = 5000
-const CHAT_THREAD_PAGE_SIZE = 200
 
 type ChatIdentity = {
   npub: string
@@ -153,7 +154,7 @@ export function useNostrChatProfiles(
         }
         if (attempt === 0) {
           await new Promise((resolve) => {
-            setTimeout(resolve, CHAT_RETRY_DELAY_MS)
+            setTimeout(resolve, NOSTR_CHAT_PROFILE_RETRY_DELAY_MS)
           })
         }
       }
@@ -225,7 +226,12 @@ export function useNostrChatThread(
       return
     }
     setMessages(
-      listChatThread(identity.npub, protocol, peerPubkey, CHAT_THREAD_PAGE_SIZE)
+      listChatThread(
+        identity.npub,
+        protocol,
+        peerPubkey,
+        NOSTR_CHAT_THREAD_PAGE_SIZE
+      )
     )
   }, [identity, protocol, peerPubkey])
 

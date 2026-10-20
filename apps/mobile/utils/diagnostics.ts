@@ -3,9 +3,9 @@ import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
-import { SECRET_KEY_BYTE_LENGTH } from '@/config/keys'
 import {
   NOSTR_LIVE_CHECK_FALLBACK_RELAYS,
+  NOSTR_SECRET_KEY_BYTE_LENGTH,
   NOSTR_SECURITY_REPORT_NPUB
 } from '@/constants/nostr'
 import { getDb } from '@/db/connection'
@@ -188,7 +188,7 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
     // Same generation path as NostrAPI.generateNostrKeys (randomKey), since
     // nostr-tools' react-native build does not export generateSecretKey.
     const secretKey = new Uint8Array(
-      Buffer.from(await randomKey(SECRET_KEY_BYTE_LENGTH), 'hex')
+      Buffer.from(await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH), 'hex')
     )
     const publicKey = getPublicKey(secretKey)
     lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
@@ -258,7 +258,7 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
     if (!/^[0-9a-f]{32}$/.test(sample)) {
       throw new Error('randomIv output malformed')
     }
-    const key = await randomKey(SECRET_KEY_BYTE_LENGTH)
+    const key = await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH)
     if (!/^[0-9a-f]{64}$/.test(key)) {
       throw new Error('randomKey output malformed')
     }
@@ -363,7 +363,7 @@ async function checkNip17LiveRoundtrip(
     )
 
     const secretKey = new Uint8Array(
-      Buffer.from(await randomKey(SECRET_KEY_BYTE_LENGTH), 'hex')
+      Buffer.from(await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH), 'hex')
     )
     const publicKey = getPublicKey(secretKey)
     const nsec = nip19.nsecEncode(secretKey)

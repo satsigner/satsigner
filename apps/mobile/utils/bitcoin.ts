@@ -8,7 +8,16 @@ import {
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
-import { HASH_BYTE_LENGTH } from '@/constants/btc'
+import {
+  P2PKH_SCRIPT_BYTES,
+  P2SH_SCRIPT_BYTES,
+  P2TR_PROGRAM_BYTES,
+  P2TR_SCRIPT_BYTES,
+  P2WPKH_PROGRAM_BYTES,
+  P2WPKH_SCRIPT_BYTES,
+  P2WSH_PROGRAM_BYTES,
+  P2WSH_SCRIPT_BYTES
+} from '@/constants/btc'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -29,12 +38,6 @@ import { hasBitcoinPrefix } from '@/utils/parse'
 initEccLib(ecc)
 
 export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
-
-const HASH160_BYTES = 20
-const P2PKH_SCRIPT_BYTES = 25
-const P2SH_SCRIPT_BYTES = 23
-const P2WPKH_SCRIPT_BYTES = 22
-const WITNESS_V1_OR_P2WSH_SCRIPT_BYTES = 34
 
 /**
  * Classify an address by decoding its output script, rather than trusting
@@ -66,21 +69,21 @@ export function getScriptTypeFromAddress(
     if (
       script.length === P2WPKH_SCRIPT_BYTES &&
       script[0] === opcodes.OP_0 &&
-      script[1] === HASH160_BYTES
+      script[1] === P2WPKH_PROGRAM_BYTES
     ) {
       return 'p2wpkh'
     }
     if (
-      script.length === WITNESS_V1_OR_P2WSH_SCRIPT_BYTES &&
+      script.length === P2WSH_SCRIPT_BYTES &&
       script[0] === opcodes.OP_0 &&
-      script[1] === HASH_BYTE_LENGTH
+      script[1] === P2WSH_PROGRAM_BYTES
     ) {
       return 'p2wsh'
     }
     if (
-      script.length === WITNESS_V1_OR_P2WSH_SCRIPT_BYTES &&
+      script.length === P2TR_SCRIPT_BYTES &&
       script[0] === opcodes.OP_1 &&
-      script[1] === HASH_BYTE_LENGTH
+      script[1] === P2TR_PROGRAM_BYTES
     ) {
       return 'p2tr'
     }

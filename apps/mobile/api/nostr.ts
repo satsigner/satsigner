@@ -11,7 +11,6 @@ import {
 } from 'nostr-tools/nip04'
 import { finalizeEvent } from 'nostr-tools/pure'
 
-import { SECRET_KEY_BYTE_LENGTH } from '@/config/keys'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
@@ -25,6 +24,7 @@ import {
   NOSTR_PUBKEY_HEX_LENGTH,
   NOSTR_PUBLISH_RETRY_DEADLINE_MS,
   NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_SECRET_KEY_BYTE_LENGTH,
   NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS,
   NOSTR_RELAY_POLL_INTERVAL_MS,
   NOSTR_RELAY_PROBE_COUNT,
@@ -1089,7 +1089,7 @@ export class NostrAPI {
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    const randomHex = await randomKey(SECRET_KEY_BYTE_LENGTH)
+    const randomHex = await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
     // Use the private key directly with NDKPrivateKeySigner

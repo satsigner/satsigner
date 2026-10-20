@@ -1,6 +1,10 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import { SECONDS_PER_DAY, SECONDS_PER_HOUR } from '@/constants/time'
+import {
+  SECONDS_PER_DAY,
+  SECONDS_PER_HOUR,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import type {
   Nip46Method,
   Nip46PermissionPolicy,
@@ -20,6 +24,9 @@ export const NOSTR_DEFAULT_RETRY_CONFIG = {
 export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15000
 export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
+export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
+export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
+export const NOSTR_CHAT_THREAD_PAGE_SIZE = 200
 // NIP-59 gift wraps backdate created_at by up to two days.
 export const NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_EOSE_TIMEOUT_MS = 15000
@@ -239,6 +246,7 @@ export const NOSTR_MENTION_RE =
 export const NOSTR_EVENT_ID_RE = /^[0-9a-fA-F]{64}$/
 export const NOSTR_EVENT_ID_HEX_LENGTH = 64
 export const NOSTR_PUBKEY_HEX_LENGTH = 64
+export const NOSTR_SECRET_KEY_BYTE_LENGTH = 32
 // Shortest plausible bech32 length for npub1/nsec1/note1/nevent1/nprofile1.
 export const NOSTR_BECH32_ID_MIN_LENGTH = 60
 export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [

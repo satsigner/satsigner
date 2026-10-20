@@ -2,19 +2,18 @@ import * as ecc from '@bitcoinerlab/secp256k1'
 import BIP32Factory from 'bip32'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { PSBT_MAGIC_HEX } from '@/constants/btc'
+import {
+  MAX_PARTIAL_SIGNATURE_BYTES,
+  MIN_PARTIAL_SIGNATURE_BYTES,
+  OP_N_OFFSET,
+  PSBT_MAGIC_HEX
+} from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type MockPsbt } from '@/types/models/Psbt'
 import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-
-// OP_1..OP_16 encode small integers as opcode - OP_N_OFFSET.
-const OP_N_OFFSET = bitcoinjs.opcodes.OP_1 - 1
-// Length bounds a partial signature must fall within to count as present.
-const MIN_SIGNATURE_BYTES = 64
-const MAX_SIGNATURE_BYTES = 72
 
 const bip32 = BIP32Factory(ecc)
 
@@ -976,7 +975,10 @@ function isValidSignature(
   }
 
   const sigLength = sig.signature.length
-  return sigLength >= MIN_SIGNATURE_BYTES && sigLength <= MAX_SIGNATURE_BYTES
+  return (
+    sigLength >= MIN_PARTIAL_SIGNATURE_BYTES &&
+    sigLength <= MAX_PARTIAL_SIGNATURE_BYTES
+  )
 }
 
 function validateCosignerSignature(

@@ -1,9 +1,9 @@
 import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
-import { SHORT_MNEMONIC_WORD_COUNT } from '@/types/bips/39'
 import type {
   NostrDecodedContent,
   NostrDerivedKeys,

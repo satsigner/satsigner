@@ -1,4 +1,9 @@
-import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
+import {
+  LEGACY_INPUT_BYTES,
+  LEGACY_OUTPUT_BYTES,
+  LEGACY_TX_BASE_BYTES,
+  WITNESS_SCALE_FACTOR
+} from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { ScriptVersionType } from '@/types/models/Script'
@@ -98,13 +103,6 @@ export function getOutputVbytes(scriptType: ScriptVersionType): number {
 export function weightToVsize(weight: number) {
   return Math.ceil(weight / WITNESS_SCALE_FACTOR)
 }
-
-// Base transaction size (version + locktime).
-const LEGACY_TX_BASE_BYTES = 10
-// Outpoint[36] + script[~108] + sequence[4].
-const LEGACY_INPUT_BYTES = 148
-// Value[8] + script[~26].
-const LEGACY_OUTPUT_BYTES = 34
 
 // TODO: To be removed
 export function legacyEstimateTransactionSize(
