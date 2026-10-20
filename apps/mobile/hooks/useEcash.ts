@@ -519,12 +519,10 @@ export function useEcash() {
         selectedMintUrl
       })
     } catch (error) {
-      if (error instanceof EcashPaymentError) {
-        throw new TypeError(toPaymentErrorMessage(error), {
-          cause: error
-        })
+      if (!(error instanceof EcashPaymentError)) {
+        throw error
       }
-      throw error
+      throw new Error(toPaymentErrorMessage(error), { cause: error })
     }
   }
 
