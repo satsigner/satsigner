@@ -14,8 +14,7 @@ export function useEcashAccountState() {
     allProofs,
     allTransactions,
     allMintQuotes,
-    allCounters,
-    checkingTransactionIds
+    allCounters
   ] = useEcashStore(
     useShallow((state) => [
       state.accounts,
@@ -24,8 +23,7 @@ export function useEcashAccountState() {
       state.proofs,
       state.transactions,
       state.quotes,
-      state.counters,
-      state.checkingTransactionIds
+      state.counters
     ])
   )
 
@@ -49,7 +47,6 @@ export function useEcashAccountState() {
     activeAccount,
     activeAccountId,
     allMints,
-    checkingTransactionIds,
     counters,
     mintQuotes,
     mints,

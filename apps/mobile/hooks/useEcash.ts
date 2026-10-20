@@ -24,10 +24,6 @@ import {
   payLightningInvoiceFromMints
 } from '@/services/ecash/lightningPayment'
 import { restoreProofsFromMints } from '@/services/ecash/restore'
-import {
-  refreshSendTokenStatuses,
-  selectSendTokensToCheck
-} from '@/services/ecash/tokenStatus'
 import { getEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
 import type {
@@ -79,7 +75,6 @@ export function useEcash() {
     activeAccount,
     activeAccountId,
     allMints,
-    checkingTransactionIds,
     counters,
     mintQuotes,
     mints,
@@ -105,9 +100,7 @@ export function useEcash() {
     updateCountersAction,
     restoreFromBackup,
     clearAllData,
-    clearAccountData,
-    addCheckingTransaction,
-    removeCheckingTransaction
+    clearAccountData
   ] = useEcashStore(
     useShallow((state) => [
       state.addAccount,
@@ -128,9 +121,7 @@ export function useEcash() {
       state.updateCounters,
       state.restoreFromBackup,
       state.clearAllData,
-      state.clearAccountData,
-      state.addCheckingTransaction,
-      state.removeCheckingTransaction
+      state.clearAccountData
     ])
   )
 
@@ -720,30 +711,6 @@ export function useEcash() {
     toast.success(t('ecash.success.dataCleared'))
   }
 
-  async function checkPendingTransactionStatus() {
-    if (!activeAccountId) {
-      return
-    }
-    const accountId = activeAccountId
-    const transactionsToCheck = selectSendTokensToCheck(
-      transactions,
-      checkingTransactionIds
-    )
-    if (transactionsToCheck.length === 0) {
-      return
-    }
-
-    await refreshSendTokenStatuses(transactionsToCheck, {
-      accountId,
-      isChecking: (id) => checkingTransactionIds.includes(id),
-      options: await getWalletOptions(),
-      startChecking: addCheckingTransaction,
-      stopChecking: removeCheckingTransaction,
-      updateTokenStatus: (id, tokenStatus) =>
-        updateTransactionAction(accountId, id, { tokenStatus })
-    })
-  }
-
   function resumePollingForTransaction(
     transactionId: string,
     startPolling: (pollFunction: () => Promise<boolean>) => void
@@ -799,9 +766,7 @@ export function useEcash() {
     addAccount,
     allMints,
     checkMintQuote: checkMintQuoteHandler,
-    checkPendingTransactionStatus,
     checkTokenStatus,
-    checkingTransactionIds,
     clearAccountData: clearAccountDataHandler,
     clearAllData: clearAllDataHandler,
     connectToMint: connectToMintHandler,
