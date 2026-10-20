@@ -21,6 +21,14 @@ Turn one SatSigner React Native screen into a static HTML, CSS, and JavaScript p
 7. Interaction is limited to press feedback, the home stagger (60ms delay, 150ms, 24px slide), and the Signer / Explorer / Converter tab switch.
 8. The phone is a fixed 390 by 844 frame.
 
+## Deployment
+
+The site is deployed as plain static files on Netlify. There is no build step and no Node at runtime. Node is used only locally, to run `tools/`. That means:
+
+- Commit everything in `generated/`. The deployed site reads those files directly.
+- Pages load only `.html`, `.css` and `.js` files with `<script>`/`<link>`. No bundler, no `import` of npm packages, no server routes.
+- Data the browser needs (routes, coverage) is emitted as `.js` files that set globals, so pages work from any static host or `file://`.
+
 ## Extraction pipeline
 
 Run `node studio/tools/extract-all.mjs --app ../satsigner/apps/mobile` (the default path assumes the app repo sits next to this one). It uses the app's own TypeScript install and writes these files to `generated/`. Never edit them by hand:
