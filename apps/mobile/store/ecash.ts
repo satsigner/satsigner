@@ -26,7 +26,6 @@ type EcashState = {
   transactions: AccountMap<EcashTransaction[]>
   quotes: AccountMap<{ mint: MintQuote[]; melt: MeltQuote[] }>
   counters: AccountMap<EcashKeysetCounter[]>
-  checkingTransactionIds: string[]
 }
 
 type EcashAction = {
@@ -64,9 +63,6 @@ type EcashAction = {
   restoreFromBackup: (accountId: string, backupData: ParsedEcashBackup) => void
   clearAllData: () => void
   clearAccountData: (accountId: string) => void
-  addCheckingTransaction: (transactionId: string) => void
-  removeCheckingTransaction: (transactionId: string) => void
-  clearCheckingTransactions: () => void
 }
 
 function getAccountArray<T>(map: AccountMap<T[]>, accountId: string): T[] {
@@ -158,14 +154,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
           },
           transactions: { ...state.transactions, [account.id]: [] }
         })),
-      addCheckingTransaction: (transactionId) =>
-        set((state) => ({
-          checkingTransactionIds: state.checkingTransactionIds.includes(
-            transactionId
-          )
-            ? state.checkingTransactionIds
-            : [...state.checkingTransactionIds, transactionId]
-        })),
       addMeltQuote: (accountId, quote) =>
         set((state) => {
           const current = getAccountQuotes(state.quotes, accountId)
@@ -221,7 +209,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             ]
           }
         })),
-      checkingTransactionIds: [],
       clearAccountData: (accountId) =>
         set((state) => ({
           counters: { ...state.counters, [accountId]: [] },
@@ -237,14 +224,12 @@ export const useEcashStore = create<EcashState & EcashAction>()(
         set({
           accounts: [],
           activeAccountId: null,
-          checkingTransactionIds: [],
           counters: {},
           mints: {},
           proofs: {},
           quotes: {},
           transactions: {}
         }),
-      clearCheckingTransactions: () => set({ checkingTransactionIds: [] }),
       clearTransactions: (accountId) =>
         set((state) => ({
           transactions: { ...state.transactions, [accountId]: [] }
@@ -273,12 +258,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
             transactions: remainingTxns
           }
         }),
-      removeCheckingTransaction: (transactionId) =>
-        set((state) => ({
-          checkingTransactionIds: state.checkingTransactionIds.filter(
-            (id) => id !== transactionId
-          )
-        })),
       removeMeltQuote: (accountId, quoteId) =>
         set((state) => {
           const current = getAccountQuotes(state.quotes, accountId)
@@ -416,7 +395,6 @@ export const useEcashStore = create<EcashState & EcashAction>()(
       partialize: (state) => ({
         accounts: state.accounts,
         activeAccountId: state.activeAccountId,
-        checkingTransactionIds: [],
         counters: state.counters,
         mints: state.mints,
         proofs: state.proofs,
