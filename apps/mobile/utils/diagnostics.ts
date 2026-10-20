@@ -196,9 +196,11 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
     const content = 'satsigner diagnostic 🔐'
     const wrap = nip17.wrapEvent(secretKey, { publicKey }, content)
     if (wrap.kind !== nostrKinds.GiftWrap) {
-      throw new Error(`expected gift wrap kind 1059, got ${wrap.kind}`)
+      throw new Error(
+        `expected gift wrap kind ${nostrKinds.GiftWrap}, got ${wrap.kind}`
+      )
     }
-    lines.push('gift wrap created (kind 1059)')
+    lines.push(`gift wrap created (kind ${nostrKinds.GiftWrap})`)
 
     const unwrapped = nip59.unwrapEvent(wrap, secretKey)
     if (unwrapped.content !== content) {

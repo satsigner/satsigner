@@ -5,6 +5,7 @@ import type { NDKEvent } from '@nostr-dev-kit/ndk'
 import * as DocumentPicker from 'expo-document-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import { finalizeEvent } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import QuickCrypto from 'react-native-quick-crypto'
 import { z } from 'zod'
 
@@ -12,7 +13,6 @@ import { HTTP_STATUS } from '@/constants/http'
 import {
   NOSTR_BLOSSOM_AUTH_EXPIRY_SECS,
   NOSTR_BLOSSOM_AUTH_KIND,
-  NOSTR_BLOSSOM_SERVER_LIST_KIND,
   NOSTR_FILES_FETCH_TIMEOUT_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
@@ -144,7 +144,7 @@ export async function fetchKind10063Servers(
   const servers: string[] = []
   await subscribeOnce(
     ndk,
-    { authors: [pubkeyHex], kinds: [NOSTR_BLOSSOM_SERVER_LIST_KIND], limit: 1 },
+    { authors: [pubkeyHex], kinds: [nostrKinds.BlossomServerList], limit: 1 },
     (event) => {
       for (const tag of event.tags) {
         if (tag[0] === 'server' && tag[1]) {

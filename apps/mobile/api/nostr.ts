@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer'
 
-import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
@@ -19,10 +19,10 @@ import {
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
-  NOSTR_NIP17_SEAL_KIND,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_PUBKEY_HEX_LENGTH,
   NOSTR_PUBLISH_RETRY_DEADLINE_MS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS,
@@ -61,10 +61,7 @@ import {
   parseNostrEvent,
   parseNostrRumor
 } from '@/utils/nostrEvent'
-import {
-  extractResponseOptionIds,
-  NOSTR_POLL_RESPONSE_KIND
-} from '@/utils/nostrPoll'
+import { extractResponseOptionIds } from '@/utils/nostrPoll'
 import {
   fetchProfileCoalesced,
   fetchProfilesCoalesced,
@@ -186,7 +183,7 @@ function unwrapNip59EventOrNull(
       nip44.getConversationKey(secretKey, rawEvent.pubkey)
     )
     const seal = parseNostrEvent(JSON.parse(sealJson))
-    if (!seal || seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
+    if (!seal || seal.kind !== nostrKinds.Seal || !verifyEvent(seal)) {
       return null
     }
 
@@ -474,7 +471,7 @@ export class NostrAPI {
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [NDKKind.BookmarkList],
+      kinds: [nostrKinds.BookmarkList],
       limit: 1
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -537,7 +534,7 @@ export class NostrAPI {
 
     const event = new NDKEvent(this.ndk, {
       content,
-      kind: NDKKind.BookmarkList,
+      kind: nostrKinds.BookmarkList,
       tags
     })
 
@@ -576,7 +573,7 @@ export class NostrAPI {
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [NDKKind.Contacts],
+      kinds: [nostrKinds.Contacts],
       limit: 40
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -1082,7 +1079,7 @@ export class NostrAPI {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? 0,
+      kind: event.kind ?? nostrKinds.Metadata,
       pubkey: event.pubkey,
       sig: event.sig,
       tags: event.tags.map((tag) =>
@@ -1168,7 +1165,7 @@ export class NostrAPI {
 
     const subscriptionQuery = {
       '#p': [recipientPubKeyHex],
-      kinds: [NDKKind.GiftWrap],
+      kinds: [nostrKinds.GiftWrap],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
@@ -1538,7 +1535,7 @@ export class NostrAPI {
 
     const filter: NDKFilter<number> = {
       '#e': [pollEventIdHex],
-      kinds: [NOSTR_POLL_RESPONSE_KIND],
+      kinds: [nostrKinds.PollResponse],
       limit: 500
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -1584,7 +1581,7 @@ export class NostrAPI {
 
       const event = new NDKEvent(tempNdk, {
         content: '',
-        kind: NOSTR_POLL_RESPONSE_KIND,
+        kind: nostrKinds.PollResponse,
         tags: [
           ['e', pollEventIdHex],
           ...optionIds.map((optionId) => ['response', optionId])
@@ -1700,7 +1697,11 @@ export class NostrAPI {
         resolve(value)
       }
       const sub = this.ndk!.subscribe(
-        { authors: ['0'.repeat(64)], kinds: [nostrKinds.Metadata], limit: 1 },
+        {
+          authors: ['0'.repeat(NOSTR_PUBKEY_HEX_LENGTH)],
+          kinds: [nostrKinds.Metadata],
+          limit: 1
+        },
         { closeOnEose: false }
       )
       const timer = setTimeout(() => {
