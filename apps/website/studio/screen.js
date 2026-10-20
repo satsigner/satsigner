@@ -16,7 +16,7 @@ const groups = {
       { title: 'Bitcoin', icon: 'bitcoin', screen: 'accounts' },
       { title: 'Lightning', icon: 'lightning', screen: 'lightning' },
       { title: 'Ark', icon: 'ark', screen: 'ark' },
-      { title: 'Liquid', icon: 'liquid', soon: true },
+      { title: 'Liquid', icon: 'liquid', soon: true, upcoming: 'liquid' },
       { title: 'ECash', icon: 'ecash', screen: 'ecash' },
       { title: 'Nostr', icon: 'nostr', screen: 'nostr' }
     ]
@@ -40,8 +40,8 @@ const groups = {
     title: 'Converter',
     items: [
       { title: 'Currency', icon: 'currency', screen: 'currency' },
-      { title: 'Time', icon: 'time', soon: true },
-      { title: 'Energy', icon: 'energy' }
+      { title: 'Time', icon: 'time', soon: true, upcoming: 'time' },
+      { title: 'Energy', icon: 'energy', screen: 'converter-energy' }
     ]
   }
 }
@@ -127,6 +127,7 @@ function renderMenu(tab) {
       '</span></span>'
     button.addEventListener('click', () => {
       if (item.screen) go(item.screen)
+      else if (item.upcoming && typeof esOpenUpcoming === 'function') esOpenUpcoming(item.upcoming)
     })
     row.appendChild(button)
     listEl.appendChild(row)
@@ -3433,6 +3434,7 @@ function renderScriptSelect() {
 }
 
 function go(id) {
+  if (phoneScreen.classList.contains('is-drawer') && id !== 'session') setDrawer(false)
   if (typeof kitScreens !== 'undefined' && kitScreens[id]) {
     openKitScreen(id)
     return true

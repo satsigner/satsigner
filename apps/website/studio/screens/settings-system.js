@@ -127,12 +127,12 @@ registerScreen('settings-security', {
           ss.text({ size: 'lg', weight: 'bold' }, tn('duressPinText2')),
           ss.text({ size: 'lg', weight: 'bold' }, tn('duressPinText3')),
           ss.text({ size: 'lg', weight: 'bold' }, tn('duressPinText4'))),
-        ss.button({ label: tn('duressPin'), variant: 'secondary', go: 'duress' })))
+        ss.button({ label: tn('duressPin'), variant: 'secondary', go: 'set-duress-pin' })))
   },
   bind: (body) => {
     syBindSlider(body, 'sy-pin-tries')
     body.querySelector('#sy-duress-set').onclick = () => ss.open('sy-duress-modal')
-    body.querySelector('#sy-change-pin').onclick = () => ss.toast(t('settings.security.changePin'), document.getElementById('view-kit'))
+    body.querySelector('#sy-change-pin').onclick = () => esChangePin()
     body.querySelector('#sy-save').onclick = () => {
       syState.pinMaxTries = +body.querySelector('#sy-pin-tries').value
       syState.duressEnabled = body.querySelector('#sy-duress').classList.contains('is-on')
