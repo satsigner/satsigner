@@ -6,12 +6,6 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useGestures } from '@/hooks/useGestures'
-import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import type { Output } from '@/types/models/Output'
-import type { Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
   LINK_MAX_WIDTH,
@@ -21,15 +15,21 @@ import {
   SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
   SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX,
   SANKEY_CURRENT_TX_NODE_PADDING_PX,
-  SAFE_LIMIT_OF_INPUTS_OUTPUTS,
-  getSankeyExtentTopPx
-} from '@/types/ui/sankey'
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/constants/sankey'
+import { useGestures } from '@/hooks/useGestures'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
+import { getSankeyExtentTopPx } from '@/utils/sankeyExtent'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
