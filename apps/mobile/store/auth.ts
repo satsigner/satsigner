@@ -6,6 +6,7 @@ import {
   DEFAULT_PIN_MAX_TRIES,
   DURESS_KDF_KEY,
   DURESS_PIN_KEY,
+  RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
@@ -98,7 +99,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
           await getPin()
         } catch {
           // High-entropy throwaway passphrase; only its KDF digest is kept.
-          await get().setPin(await randomKey(32))
+          await get().setPin(await randomKey(RANDOM_PIN_BYTE_LENGTH))
         }
         set({ skipPin: true })
       },

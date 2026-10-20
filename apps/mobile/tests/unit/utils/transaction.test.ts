@@ -4,7 +4,8 @@ import { type Utxo } from '@/types/models/Utxo'
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
   estimateTransactionSize,
-  recalculateDepthH
+  recalculateDepthH,
+  weightToVsize
 } from '../../../utils/transaction'
 
 const minimalTxProps = {
@@ -625,5 +626,12 @@ describe('recalculateDepthH', () => {
     ])
     const result = recalculateDepthH(transactions)
     expect(result.get('txA')?.depthH).toBe(1)
+  })
+})
+
+describe('weightToVsize', () => {
+  it('rounds weight units up to whole vbytes', () => {
+    expect(weightToVsize(400)).toBe(100)
+    expect(weightToVsize(401)).toBe(101)
   })
 })

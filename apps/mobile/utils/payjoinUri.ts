@@ -4,6 +4,7 @@ import {
   type PayjoinEndpointKind,
   type PayjoinUriParams
 } from '@/types/payjoin'
+import { formatSatsAsBtc } from '@/utils/format'
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -213,9 +214,7 @@ function buildPayjoinUri(params: {
   const queryParts: string[] = []
 
   if (params.amountSats !== undefined && params.amountSats > 0) {
-    const amountBtc = params.amountSats / SATS_PER_BITCOIN
-    const formatted = amountBtc.toFixed(8).replace(/\.?0+$/, '')
-    queryParts.push(`amount=${formatted}`)
+    queryParts.push(`amount=${formatSatsAsBtc(params.amountSats)}`)
   }
 
   if (params.label) {

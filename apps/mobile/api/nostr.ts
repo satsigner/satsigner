@@ -1,9 +1,10 @@
 import { Buffer } from 'buffer'
 
-import NDK, { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NetInfo from '@react-native-community/netinfo'
 import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import {
   decrypt as nip04Decrypt,
   encrypt as nip04Encrypt
@@ -11,16 +12,22 @@ import {
 import { finalizeEvent } from 'nostr-tools/pure'
 
 import {
-  NOSTR_NIP17_SEAL_KIND,
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
+  NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
   NOSTR_MAX_PROCESSED_RAW_IDS,
   NOSTR_MAX_QUEUE_SIZE,
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
   NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_PUBKEY_HEX_LENGTH,
+  NOSTR_PUBLISH_RETRY_DEADLINE_MS,
   NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_SECRET_KEY_BYTE_LENGTH,
+  NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS,
+  NOSTR_RELAY_POLL_INTERVAL_MS,
+  NOSTR_RELAY_PROBE_COUNT,
   NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
   NOSTR_RELAY_REACHABILITY_TEST_MS,
   NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
@@ -54,10 +61,7 @@ import {
   parseNostrEvent,
   parseNostrRumor
 } from '@/utils/nostrEvent'
-import {
-  extractResponseOptionIds,
-  NOSTR_POLL_RESPONSE_KIND
-} from '@/utils/nostrPoll'
+import { extractResponseOptionIds } from '@/utils/nostrPoll'
 import {
   fetchProfileCoalesced,
   fetchProfilesCoalesced,
@@ -83,7 +87,7 @@ function buildRelayConnectionInfo(
   allUrls: string[],
   connectedUrls: string[]
 ): NostrRelayConnectionInfo {
-  const probeUrls = allUrls.slice(0, 3)
+  const probeUrls = allUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
   const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
   return {
     relayDetails: probeUrls.map((url) => ({
@@ -134,7 +138,7 @@ export async function testNostrRelaysReachable(
   }
 
   // No registry entry yet (first probe before any data fetch) — use a throw-away NDK.
-  const probeUrls = relayUrls.slice(0, 3)
+  const probeUrls = relayUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
   const probeNdk = createMobileNdk(probeUrls)
   await probeNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
   const connected = probeNdk.pool?.connectedRelays().map((r) => r.url) ?? []
@@ -179,7 +183,7 @@ function unwrapNip59EventOrNull(
       nip44.getConversationKey(secretKey, rawEvent.pubkey)
     )
     const seal = parseNostrEvent(JSON.parse(sealJson))
-    if (!seal || seal.kind !== NOSTR_NIP17_SEAL_KIND || !verifyEvent(seal)) {
+    if (!seal || seal.kind !== nostrKinds.Seal || !verifyEvent(seal)) {
       return null
     }
 
@@ -341,7 +345,7 @@ export class NostrAPI {
       this.ndk,
       {
         authors: [hexPubkey],
-        kinds: [31922],
+        kinds: [nostrKinds.Date],
         limit: 500
       },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
@@ -366,7 +370,7 @@ export class NostrAPI {
             description: event.content,
             ...(Number.isFinite(endValue) ? { end: endValue } : {}),
             id: event.id,
-            kind: event.kind ?? 31922,
+            kind: event.kind ?? nostrKinds.Date,
             ...(location ? { location } : {}),
             start,
             title: getTagValue('title') ?? getTagValue('summary') ?? 'Untitled'
@@ -467,7 +471,7 @@ export class NostrAPI {
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [NDKKind.BookmarkList],
+      kinds: [nostrKinds.BookmarkList],
       limit: 1
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -530,7 +534,7 @@ export class NostrAPI {
 
     const event = new NDKEvent(this.ndk, {
       content,
-      kind: NDKKind.BookmarkList,
+      kind: nostrKinds.BookmarkList,
       tags
     })
 
@@ -569,7 +573,7 @@ export class NostrAPI {
 
     const filter: NDKFilter = {
       authors: [hexPubkey],
-      kinds: [NDKKind.Contacts],
+      kinds: [nostrKinds.Contacts],
       limit: 40
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -640,7 +644,8 @@ export class NostrAPI {
     }
 
     const isKind1Only =
-      kinds.length === 0 || (kinds.length === 1 && kinds[0] === 1)
+      kinds.length === 0 ||
+      (kinds.length === 1 && kinds[0] === nostrKinds.ShortTextNote)
     let cached: {
       id: string
       content: string
@@ -665,7 +670,7 @@ export class NostrAPI {
       return cached
     }
 
-    const kindList = kinds.length > 0 ? kinds : [1]
+    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
     const filter: NDKFilter = {
       authors: [hexPubkey],
       kinds: kindList,
@@ -744,7 +749,7 @@ export class NostrAPI {
     const MAX_AUTHORS = 200
     const authors = following.slice(0, MAX_AUTHORS)
 
-    const kindList = kinds.length > 0 ? kinds : [1]
+    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
     const filter: NDKFilter = {
       authors,
       kinds: kindList,
@@ -778,7 +783,7 @@ export class NostrAPI {
     return {
       content: event.content,
       created_at: event.created_at ?? 0,
-      kind: event.kind ?? 1,
+      kind: event.kind ?? nostrKinds.ShortTextNote,
       pubkey: event.pubkey,
       tags: event.tags.map((tag) =>
         tag.filter((v): v is string => typeof v === 'string')
@@ -965,7 +970,11 @@ export class NostrAPI {
     }
 
     const filter = { ids: [eventIdHex], limit: 1 }
-    const poolEvent = await NostrAPI.fetchWithTimeout(this.ndk, filter, 15000)
+    const poolEvent = await NostrAPI.fetchWithTimeout(
+      this.ndk,
+      filter,
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
     if (!poolEvent) {
       return null
     }
@@ -990,8 +999,12 @@ export class NostrAPI {
 
     const events = await NostrAPI.fetchManyWithTimeout(
       this.ndk,
-      { authors: [hex], kinds: [10002, 10050], limit: 10 },
-      12_000
+      {
+        authors: [hex],
+        kinds: [nostrKinds.RelayList, nostrKinds.DirectMessageRelaysList],
+        limit: 10
+      },
+      NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS
     )
     return extractInboxRelayUrls([...events])
   }
@@ -1012,7 +1025,7 @@ export class NostrAPI {
       {
         content: '',
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
-        kind: 10050,
+        kind: nostrKinds.DirectMessageRelaysList,
         tags: relayUrls.map((url) => ['relay', url])
       },
       secretKey
@@ -1066,7 +1079,7 @@ export class NostrAPI {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? 0,
+      kind: event.kind ?? nostrKinds.Metadata,
       pubkey: event.pubkey,
       sig: event.sig,
       tags: event.tags.map((tag) =>
@@ -1076,7 +1089,7 @@ export class NostrAPI {
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    const randomHex = await randomKey(32)
+    const randomHex = await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH)
     const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
 
     // Use the private key directly with NDKPrivateKeySigner
@@ -1145,12 +1158,14 @@ export class NostrAPI {
     this.setLoading(true)
     this._callback = _callback
 
-    const TWO_DAYS = 48 * 60 * 60
-    const sinceTimestamp = since && since > 0 ? since - TWO_DAYS : undefined
+    const sinceTimestamp =
+      since && since > 0
+        ? since - NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
+        : undefined
 
     const subscriptionQuery = {
       '#p': [recipientPubKeyHex],
-      kinds: [NDKKind.GiftWrap],
+      kinds: [nostrKinds.GiftWrap],
       ...(limit && { limit }),
       ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
     }
@@ -1310,7 +1325,7 @@ export class NostrAPI {
       {
         content: encrypted,
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
-        kind: 4,
+        kind: nostrKinds.EncryptedDirectMessage,
         tags: [['p', recipientPubKeyHex]]
       },
       secretNostrKey
@@ -1351,8 +1366,16 @@ export class NostrAPI {
     }
 
     const filters: NDKFilter[] = [
-      { '#p': [ownPubKeyHex], kinds: [4], ...(since && { since }) },
-      { authors: [ownPubKeyHex], kinds: [4], ...(since && { since }) }
+      {
+        '#p': [ownPubKeyHex],
+        kinds: [nostrKinds.EncryptedDirectMessage],
+        ...(since && { since })
+      },
+      {
+        authors: [ownPubKeyHex],
+        kinds: [nostrKinds.EncryptedDirectMessage],
+        ...(since && { since })
+      }
     ]
 
     let subscription: NDKSubscription | undefined
@@ -1425,7 +1448,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content: '',
-      kind: 5,
+      kind: nostrKinds.EventDeletion,
       tags: hexIds.map((id) => ['e', id])
     })
     await event.sign(signer)
@@ -1452,7 +1475,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content,
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
 
@@ -1465,7 +1488,7 @@ export class NostrAPI {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? 1,
+      kind: event.kind ?? nostrKinds.ShortTextNote,
       pubkey: event.pubkey,
       sig: event.sig,
       tags: event.tags.map((tag) =>
@@ -1493,7 +1516,7 @@ export class NostrAPI {
     this.ndk.signer = signer
     const event = new NDKEvent(this.ndk, {
       content,
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
 
@@ -1512,7 +1535,7 @@ export class NostrAPI {
 
     const filter: NDKFilter<number> = {
       '#e': [pollEventIdHex],
-      kinds: [NOSTR_POLL_RESPONSE_KIND],
+      kinds: [nostrKinds.PollResponse],
       limit: 500
     }
     const events = await NostrAPI.fetchManyWithTimeout(
@@ -1558,7 +1581,7 @@ export class NostrAPI {
 
       const event = new NDKEvent(tempNdk, {
         content: '',
-        kind: NOSTR_POLL_RESPONSE_KIND,
+        kind: nostrKinds.PollResponse,
         tags: [
           ['e', pollEventIdHex],
           ...optionIds.map((optionId) => ['response', optionId])
@@ -1636,7 +1659,7 @@ export class NostrAPI {
     let connected = pool.connectedRelays()
     while (connected.length === 0 && Date.now() < deadline) {
       await new Promise((resolve) => {
-        setTimeout(resolve, 250)
+        setTimeout(resolve, NOSTR_RELAY_POLL_INTERVAL_MS)
       })
       connected = pool.connectedRelays()
     }
@@ -1674,7 +1697,11 @@ export class NostrAPI {
         resolve(value)
       }
       const sub = this.ndk!.subscribe(
-        { authors: ['0'.repeat(64)], kinds: [0], limit: 1 },
+        {
+          authors: ['0'.repeat(NOSTR_PUBKEY_HEX_LENGTH)],
+          kinds: [nostrKinds.Metadata],
+          limit: 1
+        },
         { closeOnEose: false }
       )
       const timer = setTimeout(() => {
@@ -1753,7 +1780,10 @@ export class NostrAPI {
     )
     const missed = intendedUrls.filter((url) => !succeeded.has(url))
     if (missed.length > 0) {
-      const retryConnected = await this.waitForConnectedRelays(4_000, 250)
+      const retryConnected = await this.waitForConnectedRelays(
+        NOSTR_PUBLISH_RETRY_DEADLINE_MS,
+        NOSTR_RELAY_POLL_INTERVAL_MS
+      )
       const retryTargets = retryConnected.filter(
         (relay) => !succeeded.has(relay.url)
       )

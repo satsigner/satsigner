@@ -3,6 +3,11 @@ import { useCallback, useEffect, useState } from 'react'
 import ElectrumClient, { ElectrumServerVersionSchema } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { SATS_PER_BITCOIN, VBYTES_PER_KVB } from '@/constants/btc'
+import {
+  CONNECTION_TEST_COOLDOWN_MS,
+  CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS
+} from '@/constants/connectionTest'
 import {
   type Backend,
   type Network,
@@ -71,7 +76,7 @@ export function useConnectionTest() {
     rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
     const now = Date.now()
-    if (now - lastTestTime < 2000) {
+    if (now - lastTestTime < CONNECTION_TEST_COOLDOWN_MS) {
       return {
         error: 'Please wait before testing another connection',
         success: false
@@ -204,7 +209,9 @@ export function useConnectionTest() {
             rpc.getBlockchainInfo(),
             rpc.getNetworkInfo().catch(() => null),
             rpc.getMempoolInfo().catch(() => null),
-            rpc.estimateSmartFee(6).catch(() => null),
+            rpc
+              .estimateSmartFee(CONNECTION_TEST_FEE_CONF_TARGET_BLOCKS)
+              .catch(() => null),
             rpc.hasBlockFilterIndex().catch(() => false)
           ])
 
@@ -226,7 +233,9 @@ export function useConnectionTest() {
           blockHeight,
           chainWork: chainInfo.chainwork,
           medianFee: feeResult?.feerate
-            ? Math.round(feeResult.feerate * 1e5)
+            ? Math.round(
+                feeResult.feerate * (SATS_PER_BITCOIN / VBYTES_PER_KVB)
+              )
             : undefined,
           mempoolSize: mempoolInfo?.size,
           network: chainInfo.chain,

@@ -41,6 +41,7 @@ import {
 } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { isSuccessfulHttpStatus } from '@/utils/http'
 import {
   compactError,
   mailboxFromEndpoint,
@@ -139,10 +140,6 @@ function isHttp2PrefaceError(error: unknown): boolean {
     message.includes('http2') ||
     message.includes('http/2')
   )
-}
-
-function isSuccessfulHttpStatus(status: number): boolean {
-  return status >= 200 && status < 300
 }
 
 function assertPayjoinHttpOk(res: HttpResponse, context: string): void {
@@ -321,7 +318,7 @@ async function postBip78OriginalPsbt(params: {
       method: 'POST',
       signal: controller.signal
     })
-    if (res.status < 200 || res.status >= 300) {
+    if (!isSuccessfulHttpStatus(res.status)) {
       const err = parseBip78ErrorBody(res.body)
       return {
         error: `${err.errorCode}: ${err.message}`,
@@ -445,8 +442,7 @@ async function sendBip78(params: {
           method: 'POST'
         })
         if (
-          res.status < 200 ||
-          res.status >= 300 ||
+          !isSuccessfulHttpStatus(res.status) ||
           res.body.trim().startsWith('{')
         ) {
           const err = parseBip78ErrorBody(

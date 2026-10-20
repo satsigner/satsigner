@@ -13,7 +13,7 @@ import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
   classifyChartOutputs
 } from '@/utils/stonewall'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { estimateTransactionSize, weightToVsize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import type { ExtendedTransaction } from './useInputTransactions'
@@ -403,7 +403,7 @@ export const useNodesAndLinks = ({
             return nodes
           }, [])
 
-          const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
+          const vsize = weightToVsize(tx?.weight ?? 0)
           const blockDepth = tx.depthH
           const blockIndex = blockDepthIndices.get(blockDepth) || 0
           const blockHeight = `${tx.blockHeight}`
