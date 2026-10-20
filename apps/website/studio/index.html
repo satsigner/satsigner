@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <style>html,body{background:#000}</style>
-  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed')</script>
+  <style>html,body{background:#000}html[data-theme="light"],html[data-theme="light"] body{background:#f4f4f4}</style>
+  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed');if (localStorage.getItem('studio-theme') === 'light') document.documentElement.dataset.theme = 'light'</script>
   <title>SatSigner Studio</title>
   <link rel="stylesheet" href="/fonts/inter.css">
   <link rel="stylesheet" href="/studio/tokens.css">
   <link rel="stylesheet" href="/studio/screen.css">
-  <link rel="stylesheet" href="/studio/catalog.css?v=18">
+  <link rel="stylesheet" href="/studio/catalog.css?v=24">
 </head>
 <body>
   <div class="view-toggle" role="group" aria-label="Catalog layout">
@@ -21,6 +21,12 @@
     <button type="button" data-view="map">Map</button>
     <button type="button" data-view="components">Components</button>
     <button type="button" id="card-height" aria-pressed="false">Expand</button>
+    <button type="button" id="theme-toggle" aria-label="Toggle color theme" aria-pressed="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"></circle>
+        <path d="M8 1.75a6.25 6.25 0 0 0 0 12.5z" fill="currentColor"></path>
+      </svg>
+    </button>
   </div>
   <main class="stage" id="phone-view">
     <div class="phone" aria-label="SatSigner">
@@ -649,6 +655,6 @@
   </div>
   <script src="/studio/icons.js"></script>
   <script src="/studio/screen.js?v=2"></script>
-  <script src="/studio/catalog.js?v=24"></script>
+  <script src="/studio/catalog.js?v=26"></script>
 </body>
 </html>

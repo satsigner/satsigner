@@ -1,12 +1,54 @@
 html {
-  background: #000;
+  --page: #000;
+  --ink: #fff;
+  --ink-muted: rgba(255, 255, 255, 0.55);
+  --ink-soft: rgba(255, 255, 255, 0.72);
+  --ink-faint: rgba(255, 255, 255, 0.4);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.28);
+  --line-hot: rgba(255, 255, 255, 0.7);
+  --pill: rgba(0, 0, 0, 0.45);
+  --pill-active: #1c1c1c;
+  --surface: #000;
+  --surface-2: #0a0a0a;
+  --node: #0c0c0c;
+  --node-hot: #161616;
+  --edge: rgba(255, 255, 255, 0.28);
+  --edge-dim: rgba(255, 255, 255, 0.12);
+  --edge-hot: rgba(255, 255, 255, 0.85);
+  --scrim: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+  --glow: rgba(255, 255, 255, 0.16);
+  background: var(--page);
   color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --page: #f4f4f4;
+  --ink: #111;
+  --ink-muted: rgba(0, 0, 0, 0.5);
+  --ink-soft: rgba(0, 0, 0, 0.68);
+  --ink-faint: rgba(0, 0, 0, 0.4);
+  --line: rgba(0, 0, 0, 0.1);
+  --line-strong: rgba(0, 0, 0, 0.18);
+  --line-hot: rgba(0, 0, 0, 0.55);
+  --pill: rgba(255, 255, 255, 0.82);
+  --pill-active: #fff;
+  --surface: #fff;
+  --surface-2: #f7f7f7;
+  --node: #fff;
+  --node-hot: #fff;
+  --edge: rgba(0, 0, 0, 0.22);
+  --edge-dim: rgba(0, 0, 0, 0.1);
+  --edge-hot: rgba(0, 0, 0, 0.72);
+  --scrim: linear-gradient(180deg, rgba(244, 244, 244, 0.92) 0%, rgba(244, 244, 244, 0) 100%);
+  --glow: rgba(0, 0, 0, 0.08);
+  color-scheme: light;
 }
 
 body {
   margin: 0;
-  background: #000;
-  color: #fff;
+  background: var(--page);
+  color: var(--ink);
   font-family: "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -19,7 +61,7 @@ select {
 }
 
 a {
-  color: #fff;
+  color: var(--ink);
 }
 
 .catalog {
@@ -60,7 +102,7 @@ body:has(#flow-view:not([hidden])) .catalog {
   align-items: center;
   gap: 0.5rem;
   pointer-events: auto;
-  color: #fff;
+  color: var(--ink);
   font-size: 0.78rem;
   font-weight: 300;
   letter-spacing: 0.14em;
@@ -109,27 +151,56 @@ html.is-embed #catalog-views {
 .view-toggle button {
   pointer-events: auto;
   padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--pill);
+  color: var(--ink-soft);
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .view-toggle button.is-active {
-  border-color: rgba(255, 255, 255, 0.55);
-  background: #1c1c1c;
-  color: #fff;
+  border-color: var(--line-hot);
+  background: var(--pill-active);
+  color: var(--ink);
+}
+
+#theme-toggle {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.05rem;
+  height: 2.05rem;
+  padding: 0;
+  color: var(--ink);
+}
+
+#theme-toggle svg {
+  display: block;
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+html[data-theme="light"] .stage-home {
+  border-color: rgba(0, 0, 0, 0.22);
+  color: #111;
+}
+
+html[data-theme="light"] .stage-home:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .component-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
   gap: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 
 .component-card {
@@ -137,9 +208,9 @@ html.is-embed #catalog-views {
   flex-direction: column;
   min-height: 16rem;
   padding: 1.25rem 1.25rem 1.4rem;
-  background: #000;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .component-card h2,
@@ -154,7 +225,7 @@ html.is-embed #catalog-views {
 
 .component-card p {
   margin-top: 0.25rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--ink-muted);
   font-size: 0.8rem;
 }
 
@@ -166,6 +237,7 @@ html.is-embed #catalog-views {
   margin-top: 1.25rem;
   padding: 1rem;
   background: #0a0a0a;
+  color: #fff;
 }
 
 .component-stage .tab-bar,
@@ -177,8 +249,8 @@ html.is-embed #catalog-views {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 
 @media (min-width: 640px) {
@@ -203,10 +275,10 @@ html.is-embed #catalog-views {
   transition: min-height 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   margin: 0;
   padding: 1.5rem 1.4rem 1.6rem;
-  background: #000;
-  color: #fff;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   text-align: left;
   text-decoration: none;
 }
@@ -227,7 +299,7 @@ html.is-embed #catalog-views {
 .screen-card p {
   margin-top: 0.45rem;
   max-width: 28ch;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--ink-soft);
   font-size: 0.95rem;
   line-height: 1.45;
 }
@@ -256,8 +328,8 @@ html.is-embed #catalog-views {
   z-index: 0;
   background: transparent;
   box-shadow:
-    -20px -10px 42px rgba(255, 255, 255, 0.2),
-    14px 18px 34px rgba(255, 255, 255, 0.07);
+    -20px -10px 42px var(--glow),
+    14px 18px 34px var(--glow);
   transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -271,11 +343,20 @@ html.is-embed #catalog-views {
   transition: opacity 0.45s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+html[data-theme="light"] .screen-preview iframe {
+  opacity: 1;
+}
+
+html[data-theme="light"] .screen-preview::after {
+  bottom: auto;
+  height: 140px;
+}
+
 .screen-preview::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 100%);
+  background: var(--scrim);
 }
 
 .screen-card:hover .screen-preview::before,
@@ -293,7 +374,7 @@ html.is-embed #catalog-views {
 #card-height {
   position: fixed;
   top: 1.25rem;
-  right: 1.5rem;
+  right: calc(1.5rem + 2.05rem + 0.5rem);
   z-index: 7;
 }
 
@@ -315,12 +396,12 @@ body.is-full-cards .screen-card {
 .screen-table td {
   text-align: left;
   padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 
 .screen-table th {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--ink-muted);
   font-weight: 500;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
@@ -359,8 +440,8 @@ body.is-full-cards .screen-card {
   border-radius: 17.143% / 7.921%;
   background: #000;
   box-shadow:
-    -6px -3px 14px rgba(255, 255, 255, 0.16),
-    4px 6px 12px rgba(255, 255, 255, 0.06);
+    -6px -3px 14px var(--glow),
+    4px 6px 12px var(--glow);
 }
 
 .thumb iframe {
@@ -378,7 +459,7 @@ body.is-full-cards .screen-card {
 .route {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--ink-soft);
 }
 
 .flow {
@@ -393,7 +474,7 @@ body.is-full-cards .screen-card {
 .flow-zoom {
   position: fixed;
   top: 1.25rem;
-  right: 1.5rem;
+  right: 4.35rem;
   z-index: 7;
   display: flex;
   gap: 0.35rem;
@@ -403,10 +484,10 @@ body.is-full-cards .screen-card {
 .flow-zoom button {
   min-width: 2.25rem;
   padding: 0.35rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.72);
-  color: #fff;
+  background: var(--pill);
+  color: var(--ink);
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
@@ -431,21 +512,21 @@ body.is-full-cards .screen-card {
 
 .flow-edge {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.28);
+  stroke: var(--edge);
   stroke-width: 1.25;
 }
 
 .flow.is-dim .flow-edge {
-  stroke: rgba(255, 255, 255, 0.12);
+  stroke: var(--edge-dim);
 }
 
 .flow.is-dim .flow-edge.is-hot {
-  stroke: rgba(255, 255, 255, 0.85);
+  stroke: var(--edge-hot);
 }
 
 .flow-lane {
   position: absolute;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--ink-faint);
   font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -460,10 +541,10 @@ body.is-full-cards .screen-card {
   gap: 0.15rem;
   box-sizing: border-box;
   padding: 0.45rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: #0c0c0c;
-  color: #fff;
+  background: var(--node);
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -474,7 +555,7 @@ body.is-full-cards .screen-card {
 }
 
 .flow-node span {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--ink-muted);
   font-size: 0.72rem;
   line-height: 1.3;
 }
@@ -482,8 +563,8 @@ body.is-full-cards .screen-card {
 .flow-node.is-hot,
 .flow-node:hover,
 .flow-node:focus-visible {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: #161616;
+  border-color: var(--line-hot);
+  background: var(--node-hot);
 }
 
 .flow.is-dim .flow-node {

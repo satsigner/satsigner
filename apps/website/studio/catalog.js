@@ -582,6 +582,24 @@ cardHeight.addEventListener('click', () => {
   cardHeight.setAttribute('aria-pressed', open ? 'true' : 'false')
 })
 
+const themeToggle = document.getElementById('theme-toggle')
+
+function applyTheme(theme) {
+  const light = theme === 'light'
+  document.documentElement.dataset.theme = light ? 'light' : 'dark'
+  document.documentElement.style.colorScheme = light ? 'light' : 'dark'
+  const meta = document.querySelector('meta[name="color-scheme"]')
+  if (meta) meta.content = light ? 'light' : 'dark'
+  themeToggle.setAttribute('aria-pressed', light ? 'true' : 'false')
+  themeToggle.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode')
+  localStorage.setItem('studio-theme', light ? 'light' : 'dark')
+}
+
+applyTheme(localStorage.getItem('studio-theme') === 'light' ? 'light' : 'dark')
+themeToggle.addEventListener('click', () => {
+  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light')
+})
+
 setView(viewFromUrl() || 'prototype', true)
 
 renderFlow()
