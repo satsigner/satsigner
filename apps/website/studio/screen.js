@@ -1206,7 +1206,7 @@ function renderIoSheets(tot, autoTitle) {
         ss.hstack({},
           ss.button({ variant: 'outline', label: t('transaction.build.options.feeControl'), style: 'flex-grow:1;width:45%', go: 'fee-management' }),
           ss.button({ variant: 'outline', label: t('transaction.build.options.timelock'), style: 'flex-grow:1;width:45%', go: 'timelock' })),
-        ss.button({ variant: 'outline', label: t('transaction.build.options.importOutputs.title') }))) +
+        ss.button({ variant: 'outline', label: t('transaction.build.options.importOutputs.title'), go: 'import-outputs' }))) +
     ss.bottomSheet({ id: 'io-fee-sheet', title: t('transaction.build.update.fee.title'), height: '62%' },
       ss.feeInput({ value: draft.feeRate, vbytes: tot.vsize, max: 40 }),
       ss.button({ variant: 'secondary', label: t('transaction.build.set.fee'), id: 'io-set-fee' }),
@@ -1376,7 +1376,8 @@ function renderAccountSettings() {
     account.fingerprint +
     '</span></p>' +
     pair('Created on', '12 Mar 2024') +
-    '<p class="acct-row"><span>Wallet Birthday</span><span>Not set' +
+    '<p class="acct-row" data-go="account-birthday" role="button"><span>Wallet Birthday</span><span>' +
+    (typeof bsState === 'function' && bsState().birthday ? bsState().birthday : 'Not set') +
     icon('chevron', 'acct-chevron') +
     '</span></p>' +
     pair('Network', account.network) +
@@ -1387,10 +1388,10 @@ function renderAccountSettings() {
     pair('Labeled UTXOs', '1 <em>of</em> ' + account.stats[2][0]) +
     pair('Labeled Addresses', '3 <em>of</em> ' + account.stats[1][0]) +
     '</div>' +
-    '<button type="button" class="menu-button is-outline"><span class="edge-left"></span><span class="edge-right"></span>Nostr Sync</button>' +
-    '<div class="acct-pair"><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Export labels</button><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Import labels</button></div>' +
-    '<button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>View mnemonic</button>' +
-    '<div class="acct-pair"><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Descriptors</button><button type="button" class="menu-button"><span class="edge-left"></span><span class="edge-right"></span>Public Keys</button></div>' +
+    '<button type="button" class="menu-button is-outline" data-go="account-nostr"><span class="edge-left"></span><span class="edge-right"></span>Nostr Sync</button>' +
+    '<div class="acct-pair"><button type="button" class="menu-button" data-go="account-export-labels"><span class="edge-left"></span><span class="edge-right"></span>Export labels</button><button type="button" class="menu-button" data-go="account-import-labels"><span class="edge-left"></span><span class="edge-right"></span>Import labels</button></div>' +
+    '<button type="button" class="menu-button" data-go="account-export-seed-words"><span class="edge-left"></span><span class="edge-right"></span>View mnemonic</button>' +
+    '<div class="acct-pair"><button type="button" class="menu-button" data-go="account-export-descriptors"><span class="edge-left"></span><span class="edge-right"></span>Descriptors</button><button type="button" class="menu-button" data-go="account-export-pubkeys"><span class="edge-left"></span><span class="edge-right"></span>Public Keys</button></div>' +
     '<div class="acct-actions"><button type="button" class="menu-button is-outline"><span class="edge-left"></span><span class="edge-right"></span>Rescan Wallet</button><button type="button" class="menu-button is-danger"><span class="edge-left"></span><span class="edge-right"></span>Delete Account</button><button type="button" class="menu-button is-save"><span class="edge-left"></span><span class="edge-right"></span>Save</button></div>'
 }
 
@@ -1439,7 +1440,7 @@ function renderAccount() {
     icon('camera', 'action-icon') +
     '</button><button type="button" id="nfc-open" aria-label="NFC">' +
     icon('nfc', 'action-icon') +
-    '</button><button type="button">Receive</button></div>' +
+    '</button><button type="button" data-go="account-receive">Receive</button></div>' +
     '<div class="stat-row">' +
     tabs
       .map(
@@ -1598,7 +1599,7 @@ function renderTransaction() {
     (tx.outputs === 1 ? ' output' : ' outputs') +
     '</span></p></div>' +
     '<div class="tx-rule"></div>' +
-    '<div class="tx-label-row"><div><span class="tx-kicker">Label</span><p>' +
+    '<div class="tx-label-row" role="button" onclick="baOpenTxLabel(openTxData)"><div><span class="tx-kicker">Label</span><p>' +
     labelLine +
     '</p></div><span class="tx-pencil" aria-hidden="true"></span></div>' +
     '<div class="tx-rule"></div>' +
@@ -2975,7 +2976,7 @@ function renderMultisigSetup() {
     msigScript = scripts[(scripts.indexOf(msigScript) + 1) % scripts.length]
     renderMultisigSetup()
   })
-  root.querySelector('#import-descriptor').addEventListener('click', () => go('multisig-keys'))
+  root.querySelector('#import-descriptor').addEventListener('click', () => go('add-multisig-import-descriptor'))
   root.querySelector('#msig-continue').addEventListener('click', () => go('multisig-keys'))
 }
 
@@ -3006,8 +3007,7 @@ function renderMultisigKeys() {
   if (ready) {
     root.querySelector('#msig-confirm').addEventListener('click', () => {
       openAccountData = accounts.find((account) => account.multisig)
-      renderAccount()
-      show('account', 'account')
+      go('add-multisig-finish')
     })
   }
 }
@@ -3043,7 +3043,7 @@ function renderMultisigKey() {
     multisigKeys[0].fingerprint = 'a1b2c3d4'
     multisigKeys[0].pub = 'tpub…4k2a'
     multisigKeys[0].seed = true
-    go('multisig-keys')
+    go('add-generate-mnemonic')
   })
 }
 
@@ -3132,7 +3132,7 @@ function renderNewAccount() {
   })
   root.querySelector('#new-account-continue').addEventListener('click', () => {
     if (newAccountPolicy === 'multisig') go('multisig-setup')
-    else if (newAccountPolicy === 'watchonly') go('accounts')
+    else if (newAccountPolicy === 'watchonly') go('add-watch-only')
     else go('new-singlesig')
   })
 }
@@ -3151,11 +3151,13 @@ function renderNewSinglesig() {
     edges('Drawing') +
     '</button><button type="button" class="menu-button" id="entropy-none">' +
     edges('No extra entropy') +
+    '</button><button type="button" class="menu-button is-outline" data-go="add-import-mnemonic">' +
+    edges(t('account.import.title2')) +
     '</button>'
   root.querySelectorAll('[data-entropy]').forEach((button) => {
     button.addEventListener('click', () => go(button.getAttribute('data-entropy')))
   })
-  root.querySelector('#entropy-none').addEventListener('click', () => go('accounts'))
+  root.querySelector('#entropy-none').addEventListener('click', () => go('add-generate-mnemonic'))
 }
 
 function entropyBits(values) {
@@ -3202,7 +3204,7 @@ function renderEntropyDice() {
       paint()
     })
     if (rolls.length >= total) {
-      root.querySelector('#dice-done').addEventListener('click', () => go('accounts'))
+      root.querySelector('#dice-done').addEventListener('click', () => go('add-generate-mnemonic'))
     }
   }
   paint()
@@ -3244,7 +3246,7 @@ function renderEntropyCoin() {
       paint()
     })
     if (flips.length >= total) {
-      root.querySelector('#coin-done').addEventListener('click', () => go('accounts'))
+      root.querySelector('#coin-done').addEventListener('click', () => go('add-generate-mnemonic'))
     }
   }
   paint()
@@ -3317,7 +3319,7 @@ function renderEntropyDrawing() {
     done.classList.add('is-off')
   })
   root.querySelector('#draw-done').addEventListener('click', () => {
-    if (samples >= total) go('accounts')
+    if (samples >= total) go('add-generate-mnemonic')
   })
 }
 

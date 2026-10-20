@@ -3460,3 +3460,6 @@ html.is-bare .phone-status {
 
 /* settings/index.tsx — cards run edge to edge */
 #kit-body:has(.settings-root) { padding: 0; }
+
+/* Kit screens with back: null keep the title centred (the hidden back button leaves the grid) */
+#view-kit .stack-header #kit-title { grid-column: 2; }
