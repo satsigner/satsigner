@@ -1,9 +1,7 @@
 import { connectToMint, restoreProofsFromSeed } from '@/api/ecash'
-import {
-  type EcashAccountStore,
-  restoreProofsFromMints
-} from '@/services/ecash/restore'
+import { restoreProofsFromMints } from '@/services/ecash/restore'
 import type {
+  EcashAccountStore,
   EcashKeysetCounter,
   EcashMint,
   EcashProof
@@ -35,12 +33,14 @@ function proof(amount: number): EcashProof {
   return { C: 'c', amount, id: 'ks1', mintUrl: MINT_URL, secret: `s${amount}` }
 }
 
+type AccountState = {
+  counters: EcashKeysetCounter[]
+  mints: EcashMint[]
+  proofs: EcashProof[]
+}
+
 function createStore() {
-  const state = {
-    counters: [] as EcashKeysetCounter[],
-    mints: [] as EcashMint[],
-    proofs: [] as EcashProof[]
-  }
+  const state: AccountState = { counters: [], mints: [], proofs: [] }
   const store: EcashAccountStore = {
     addMint: (added) => {
       state.mints = [...state.mints, added]

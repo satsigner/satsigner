@@ -102,6 +102,12 @@ export type EcashMeltResult = {
   spentProofs?: EcashProof[]
 }
 
+export type EcashTokenValidation = {
+  isValid: boolean
+  isSpent?: boolean
+  details?: string
+}
+
 export type EcashMintResult = {
   proofs: EcashProof[]
   totalAmount: number
@@ -121,6 +127,16 @@ export type EcashTransaction = {
   invoice?: string // For melt transactions
   quoteId?: string // For mint/melt transactions
   expiry?: number // Expiration timestamp for mint/melt transactions
+}
+
+export type EcashAccountStore = {
+  getMints: () => EcashMint[]
+  getProofs: () => EcashProof[]
+  getCounters: () => EcashKeysetCounter[]
+  addMint: (mint: EcashMint) => void
+  addProofs: (proofs: EcashProof[]) => void
+  updateMintBalance: (mintUrl: string, balance: number) => void
+  updateCounters: (counters: EcashKeysetCounter[]) => void
 }
 
 export type EcashPaymentFailure =

@@ -3,25 +3,11 @@ import {
   getMintBalance,
   restoreProofsFromSeed
 } from '@/api/ecash'
-import type {
-  EcashKeysetCounter,
-  EcashMint,
-  EcashProof
-} from '@/types/models/Ecash'
+import type { EcashAccountStore } from '@/types/models/Ecash'
 import {
   buildCounterInit,
   withKeysetCounter
 } from '@/utils/ecashKeysetCounters'
-
-type EcashAccountStore = {
-  getMints: () => EcashMint[]
-  getProofs: () => EcashProof[]
-  getCounters: () => EcashKeysetCounter[]
-  addMint: (mint: EcashMint) => void
-  addProofs: (proofs: EcashProof[]) => void
-  updateMintBalance: (mintUrl: string, balance: number) => void
-  updateCounters: (counters: EcashKeysetCounter[]) => void
-}
 
 type RestoreSummary = {
   proofsFound: number
@@ -110,4 +96,3 @@ async function restoreProofsFromMints(
 }
 
 export { restoreProofsFromMints }
-export type { EcashAccountStore }

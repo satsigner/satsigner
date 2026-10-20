@@ -33,6 +33,7 @@ import type {
   EcashProof,
   EcashReceiveResult,
   EcashSendResult,
+  EcashTokenValidation,
   EcashTransaction,
   MeltQuote,
   MintQuote,
@@ -588,19 +589,11 @@ export function useEcash() {
     }
   }
 
-  function restoreFromSeedHandler(mintUrl: string): Promise<{
-    proofsFound: number
-    totalAmount: number
-  }> {
+  function restoreFromSeedHandler(mintUrl: string) {
     return restoreFromSeedMintsHandler([mintUrl])
   }
 
-  async function restoreFromSeedMintsHandler(mintUrls: string[]): Promise<{
-    proofsFound: number
-    totalAmount: number
-    mintsScanned: number
-    mintsFailed: number
-  }> {
+  async function restoreFromSeedMintsHandler(mintUrls: string[]) {
     if (!activeAccountId || !activeAccount?.hasSeed) {
       throw new Error('Account has no seed for recovery')
     }
@@ -664,7 +657,7 @@ export function useEcash() {
   async function checkTokenStatus(
     token: string,
     mintUrl: string
-  ): Promise<{ isValid: boolean; isSpent?: boolean; details?: string }> {
+  ): Promise<EcashTokenValidation> {
     if (!activeAccountId) {
       return { details: 'No active account', isValid: false }
     }
