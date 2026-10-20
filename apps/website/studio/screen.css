@@ -526,9 +526,12 @@ svg text {
 }
 
 .intro.is-splash .intro-logo {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  left: 50%;
+  top: 32%;
   flex: none;
+  transform: translate(-50%, -50%);
 }
 
 .intro-logo span {
@@ -541,11 +544,10 @@ svg text {
   background: #fff;
   color: #2a2a2a;
   font-weight: 400;
-  font-size: 26px;
+  font-size: 28px;
   letter-spacing: 0.07em;
   line-height: 1.08;
   text-align: center;
-  padding-top: 10px;
 }
 
 /* Same 48px row as .stack-header so hamburger, title and gear share one centre line on every screen */

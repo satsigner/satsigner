@@ -30,7 +30,8 @@ document.head.insertAdjacentHTML(
   @keyframes es-shake { 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
 
   /* SSKeyboard — 3 columns, keys 1.32:1 with a lit rim */
-  .es-keys { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .es-pin { display: flex; flex-direction: column; flex: 1; }
+  .es-keys { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; margin-top: auto; padding-top: 16px; }
   .es-key { padding: var(--layout-h-stack-gap-xs); }
   .es-key button { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 1.32; box-sizing: border-box;
     border: 0; border-radius: 6px; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.3)); color: var(--white); font: inherit; cursor: pointer; }
@@ -187,7 +188,8 @@ function esMintSelector(selected) {
     `<div class="es-pills">${pill('', t('ecash.mint.autoSelect'), esBalance())}${esState.mints.map((m) => pill(m.url, m.name || m.url, esBalance(m.url))).join('')}</div>`)
 }
 
-// SSPinInput + SSKeyboard. `withClear` puts CLEAR bottom-left (unlock), else DEL bottom-left (set pin).
+// SSPinInput + SSKeyboard: PIN cells on top, keypad pushed to the bottom. Bottom row is [C][0][DEL]
+// (the app's set-PIN pad leaves the right key empty; Studio fills it so the row is complete).
 function esPinPad(pin, opts = {}) {
   const active = pin.findIndex((d) => d === '')
   const cells = pin
@@ -199,12 +201,12 @@ function esPinPad(pin, opts = {}) {
       : `<div class="es-key"><button type="button" class="${k === 'DEL' || k === 'CLEAR' ? 'is-control' : ''}" data-es-key="${k}" aria-label="${k}"><span>${
           k === 'DEL' ? '⌫' : k === 'CLEAR' ? 'C' : k
         }</span></button></div>`
-  const pad = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].concat(opts.withClear ? ['CLEAR', '0', 'DEL'] : ['DEL', '0', ''])
+  const pad = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].concat(['CLEAR', '0', 'DEL'])
   return `<div class="es-pin">${ss.vstack({ gap: 'none', itemsCenter: true, style: 'width:100%' },
     `<div class="es-pin-row${opts.shake ? ' es-shake' : ''}">${cells}</div>`,
     opts.feedback !== undefined ? `<div class="es-pin-feedback">${opts.feedback}</div>` : '',
     opts.below ? `<div class="es-pin-below">${opts.below}</div>` : '')}
-    <div class="es-keys" style="margin-top:16px">${pad.map(key).join('')}</div></div>`
+    <div class="es-keys">${pad.map(key).join('')}</div></div>`
 }
 
 // Apply one key press to a pin array, returns the new array.
