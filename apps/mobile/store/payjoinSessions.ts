@@ -10,7 +10,6 @@ import {
 import {
   type PayjoinDeps,
   type PayjoinSession,
-  type PayjoinSessionStatus,
   type PayjoinSessionStore
 } from '@/types/payjoin'
 import { hasCustomPayjoinDirectoryUrl } from '@/utils/payjoinMode'
@@ -27,20 +26,10 @@ type PayjoinSessionsState = {
   seenInputs: string[]
 }
 
-type PayjoinSessionsAction = {
-  upsertSession: (session: PayjoinSession) => void
-  updateSessionStatus: (
-    id: string,
-    status: PayjoinSessionStatus,
-    patch?: Partial<PayjoinSession>
-  ) => void
-  getSession: (id: string) => PayjoinSession | undefined
+type PayjoinSessionsAction = Omit<PayjoinSessionStore, 'getSessions'> & {
   getActiveReceiverSession: (accountId: string) => PayjoinSession | undefined
   getActiveSenderSession: (accountId: string) => PayjoinSession | undefined
-  removeSession: (id: string) => void
   clearExpiredSessions: (now?: number) => void
-  markInputSeen: (outpoint: string) => void
-  hasSeenInput: (outpoint: string) => boolean
   clearAll: () => void
 }
 
