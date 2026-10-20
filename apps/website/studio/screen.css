@@ -546,22 +546,22 @@ svg text {
   text-align: center;
 }
 
+/* Same 48px row as .stack-header so hamburger, title and gear share one centre line on every screen */
 .menu-header {
-  position: relative;
-  padding: 8px var(--pad-main-x) 0;
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  grid-template-areas: "nav title gear";
+  align-items: center;
+  height: 48px;
+  padding: 0 var(--gap-sm);
   text-align: center;
 }
 
-.menu-header .settings {
-  position: absolute;
-  top: 0;
-  right: var(--gap-sm);
-}
+.menu-header .nav-toggle { grid-area: nav; }
+.menu-header .menu-title { grid-area: title; }
+.menu-header .settings { grid-area: gear; }
 
 .nav-toggle {
-  position: absolute;
-  top: -6px;
-  left: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3463,3 +3463,8 @@ html.is-bare .phone-status {
 
 /* Kit screens with back: null keep the title centred (the hidden back button leaves the grid) */
 #view-kit .stack-header #kit-title { grid-column: 2; }
+
+/* Bare embed (homepage hero): sections fill exactly the iframe height */
+html.is-bare .phone-screen > section {
+  height: calc(100vh / var(--ui-scale));
+}

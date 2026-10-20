@@ -645,7 +645,9 @@ if (typeof Swiper !== 'undefined') {
     hero.classList.add('is-live');
     splash.setAttribute('aria-hidden', 'true');
     app.removeAttribute('aria-hidden');
-    if (window.satSignerDemo) window.satSignerDemo.open();
+    var studio = app.querySelector('.hero-studio');
+    var demo = studio && studio.contentWindow && studio.contentWindow.satSignerDemo;
+    if (demo) demo.open();
   });
 })();
 
