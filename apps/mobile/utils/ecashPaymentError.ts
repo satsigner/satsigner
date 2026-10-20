@@ -1,16 +1,16 @@
 import { ECASH_PAYMENT_ERROR_I18N_KEYS } from '@/constants/ecash'
 import { t } from '@/locales'
-import type { EcashPaymentError } from '@/services/ecash/lightningPayment'
+import type { EcashPaymentFailure } from '@/types/models/Ecash'
 
 /** Localized message for a Lightning payment that could not be routed. */
-function toPaymentErrorMessage(error: EcashPaymentError) {
-  if (error.reason === 'mppPartialPayment') {
+function toPaymentErrorMessage(failure: EcashPaymentFailure) {
+  if (failure.reason === 'mppPartialPayment') {
     return t('ecash.error.mppPartialPayment', {
-      settled: error.settled,
-      total: error.total
+      settled: failure.settled,
+      total: failure.total
     })
   }
-  return t(ECASH_PAYMENT_ERROR_I18N_KEYS[error.reason])
+  return t(ECASH_PAYMENT_ERROR_I18N_KEYS[failure.reason])
 }
 
 export { toPaymentErrorMessage }

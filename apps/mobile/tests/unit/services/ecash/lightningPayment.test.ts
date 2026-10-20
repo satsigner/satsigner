@@ -67,7 +67,7 @@ describe('payLightningInvoiceFromMints', () => {
   it('fails early when the total balance is too low', async () => {
     await expect(
       payLightningInvoiceFromMints(params([proof(MINT_A, 50)]))
-    ).rejects.toMatchObject({ reason: 'insufficientProofs' })
+    ).rejects.toMatchObject({ failure: { reason: 'insufficientProofs' } })
   })
 
   it('pays from a single mint that covers amount and fees', async () => {
@@ -105,7 +105,7 @@ describe('payLightningInvoiceFromMints', () => {
     ).catch((error: unknown) => error)
 
     expect(error).toBeInstanceOf(EcashPaymentError)
-    expect(error).toMatchObject({ reason: 'mintsLackMpp' })
+    expect(error).toMatchObject({ failure: { reason: 'mintsLackMpp' } })
   })
 
   it('shrinks an MPP slice after a fee miss and melts the planned amounts', async () => {
@@ -152,7 +152,7 @@ describe('payLightningInvoiceFromMints', () => {
     const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
 
     await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
-      reason: 'insufficientForFees'
+      failure: { reason: 'insufficientForFees' }
     })
     const mintACalls = jest
       .mocked(createMppMeltQuote)
@@ -190,7 +190,7 @@ describe('payLightningInvoiceFromMints', () => {
     )
 
     await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
-      reason: 'insufficientForFees'
+      failure: { reason: 'insufficientForFees' }
     })
   })
 
@@ -218,9 +218,7 @@ describe('payLightningInvoiceFromMints', () => {
 
     await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
       cause: meltError,
-      reason: 'mppPartialPayment',
-      settled: 1,
-      total: 2
+      failure: { reason: 'mppPartialPayment', settled: 1, total: 2 }
     })
   })
 

@@ -6,6 +6,7 @@ import {
 import { MAX_MPP_FEE_SLICE_ATTEMPTS } from '@/constants/ecash'
 import type {
   EcashMint,
+  EcashPaymentFailure,
   EcashProof,
   MeltQuote,
   WalletOptions
@@ -17,27 +18,14 @@ import {
 } from '@/utils/ecashMintRoute'
 import { toError } from '@/utils/error'
 
-type EcashPaymentFailure =
-  | 'insufficientProofs'
-  | 'insufficientForFees'
-  | 'mintsLackMpp'
-  | 'mppPartialPayment'
-
 /** A Lightning payment from ecash could not be routed or fully settled. */
 class EcashPaymentError extends Error {
-  readonly reason: EcashPaymentFailure
-  readonly settled: number
-  readonly total: number
+  readonly failure: EcashPaymentFailure
 
-  constructor(
-    reason: EcashPaymentFailure,
-    options?: ErrorOptions & { settled?: number; total?: number }
-  ) {
-    super(reason, options)
+  constructor(failure: EcashPaymentFailure, options?: ErrorOptions) {
+    super(failure.reason, options)
     this.name = 'EcashPaymentError'
-    this.reason = reason
-    this.settled = options?.settled ?? 0
-    this.total = options?.total ?? 0
+    this.failure = failure
   }
 }
 
@@ -111,7 +99,7 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
   const mintBalances = await getMintBalances(params, startProofs)
   const totalBalance = mintBalances.reduce((sum, mint) => sum + mint.balance, 0)
   if (totalBalance < amountSats) {
-    throw new EcashPaymentError('insufficientProofs')
+    throw new EcashPaymentError({ reason: 'insufficientProofs' })
   }
 
   const coveringUrls = coveringMintUrls(
@@ -157,9 +145,9 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
     if (lastQuoteCreationError) {
       rethrowQuoteError(lastQuoteCreationError)
     }
-    throw new EcashPaymentError(
-      coveringUrls.length > 0 ? 'insufficientForFees' : 'mintsLackMpp'
-    )
+    throw new EcashPaymentError({
+      reason: coveringUrls.length > 0 ? 'insufficientForFees' : 'mintsLackMpp'
+    })
   }
 
   async function quoteCoveredSlice(
@@ -229,7 +217,7 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
     if (plannedQuotes.length === 0 && lastQuoteCreationError) {
       rethrowQuoteError(lastQuoteCreationError)
     }
-    throw new EcashPaymentError('insufficientForFees')
+    throw new EcashPaymentError({ reason: 'insufficientForFees' })
   }
 
   for (const item of plannedQuotes) {
@@ -256,11 +244,14 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
         params.removeMeltQuote(unused.quote.quote)
       }
       if (index > 0) {
-        throw new EcashPaymentError('mppPartialPayment', {
-          cause: error,
-          settled: index,
-          total: plannedQuotes.length
-        })
+        throw new EcashPaymentError(
+          {
+            reason: 'mppPartialPayment',
+            settled: index,
+            total: plannedQuotes.length
+          },
+          { cause: error }
+        )
       }
       throw error
     }

@@ -122,3 +122,7 @@ export type EcashTransaction = {
   quoteId?: string // For mint/melt transactions
   expiry?: number // Expiration timestamp for mint/melt transactions
 }
+
+export type EcashPaymentFailure =
+  | { reason: 'insufficientProofs' | 'insufficientForFees' | 'mintsLackMpp' }
+  | { reason: 'mppPartialPayment'; settled: number; total: number }

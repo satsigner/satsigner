@@ -513,7 +513,7 @@ export function useEcash() {
       if (!(error instanceof EcashPaymentError)) {
         throw error
       }
-      throw new Error(toPaymentErrorMessage(error), { cause: error })
+      throw new Error(toPaymentErrorMessage(error.failure), { cause: error })
     }
   }
 
