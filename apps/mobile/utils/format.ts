@@ -439,13 +439,19 @@ function trimOnionAddress(url: string): string {
   return url.replace(onionMatch[0], trimmedOnion)
 }
 
+/** BTC as a decimal string without trailing zeros, e.g. 0.00150000 → "0.0015". */
+function formatBtc(btc: number) {
+  return btc.toFixed(BTC_DECIMALS).replace(/\.?0+$/, '')
+}
+
 /** Sats as a BTC decimal string without trailing zeros, e.g. 150000 → "0.0015". */
 function formatSatsAsBtc(sats: number) {
-  return (sats / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS).replace(/\.?0+$/, '')
+  return formatBtc(sats / SATS_PER_BITCOIN)
 }
 
 export {
   formatAddress,
+  formatBtc,
   formatBytes,
   formatConfirmations,
   formatConfirmationsWithBlock,

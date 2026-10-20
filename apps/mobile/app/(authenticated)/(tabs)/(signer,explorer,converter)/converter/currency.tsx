@@ -12,7 +12,7 @@ import SSButton from '@/components/SSButton'
 import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
-import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -22,7 +22,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { isToday } from '@/utils/date'
-import { formatLargeNumber } from '@/utils/format'
+import { formatBtc, formatLargeNumber } from '@/utils/format'
 import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 const MUTED_OPACITY = 0.35
@@ -329,9 +329,7 @@ export default function Converter() {
                   style={styles.inputContainer}
                 >
                   <SSCurrencyInput
-                    value={currencyValues.bitcoin
-                      .toFixed(BTC_DECIMALS)
-                      .replace(/\.?0+$/, '')}
+                    value={formatBtc(currencyValues.bitcoin)}
                     size="large"
                     onChangeValue={(value) =>
                       handleValueChange('bitcoin', value)

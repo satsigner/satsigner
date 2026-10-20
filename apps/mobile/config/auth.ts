@@ -8,7 +8,6 @@ const PIN_LENGTH_KEY = 'satsigner_pin_length'
 const SALT_KEY_DURESS = 'satsigner_salt_duress'
 
 const PIN_SIZE = 4
-// Bytes of entropy in a generated throwaway PIN passphrase.
 const RANDOM_PIN_BYTE_LENGTH = 32
 const PIN_MIN_LENGTH = 4
 const PIN_MAX_LENGTH = 8

@@ -57,6 +57,10 @@ const LIVE_RETRIEVE_DELAY_MS = 2_500
 // indicates a broken CSPRNG — expected collisions are ~2^-98 and ~2^-103.
 const ENTROPY_UUID_SAMPLES = 50_000
 const ENTROPY_IV_SAMPLES = 20_000
+const ENTROPY_SANITY_KEY_BYTES = 32
+const ENTROPY_SANITY_KEY_PATTERN = new RegExp(
+  `^[0-9a-f]{${ENTROPY_SANITY_KEY_BYTES * 2}}$`
+)
 
 async function runGuarded(
   lines: string[],
@@ -258,8 +262,8 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
     if (!/^[0-9a-f]{32}$/.test(sample)) {
       throw new Error('randomIv output malformed')
     }
-    const key = await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH)
-    if (!/^[0-9a-f]{64}$/.test(key)) {
+    const key = await randomKey(ENTROPY_SANITY_KEY_BYTES)
+    if (!ENTROPY_SANITY_KEY_PATTERN.test(key)) {
       throw new Error('randomKey output malformed')
     }
     lines.push('output format sanity ok')
