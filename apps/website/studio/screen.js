@@ -1134,48 +1134,6 @@ function renderCoins() {
   bindCoins(root)
 }
 
-function renderOutputModal() {
-  const available = 1240000
-  openSheet(
-    'Output',
-    '<p class="output-amount" id="output-amount">210,000 <span>sats</span></p>' +
-      '<p class="output-fiat" id="output-fiat">210.00 USD</p>' +
-      '<label class="output-slider">' +
-      '<span>Amount</span>' +
-      '<input id="output-range" type="range" min="0" max="' +
-      available +
-      '" step="1000" value="210000">' +
-      '</label>' +
-      '<label class="field">' +
-      '<span>Label</span>' +
-      '<input id="output-label" value="Invoice">' +
-      '</label>' +
-      '<p class="output-script"><span>Script</span><strong>P2WPKH</strong></p>' +
-      '<button type="button" class="menu-button" id="output-save"><span class="edge-left"></span><span class="edge-right"></span>Save output</button>',
-    (sheet) => {
-      sheet.classList.add('is-output')
-      const range = sheet.querySelector('#output-range')
-      const amount = sheet.querySelector('#output-amount')
-      const fiat = sheet.querySelector('#output-fiat')
-      const label = sheet.querySelector('#output-label')
-      function paint() {
-        const sats = Number(range.value) || 0
-        amount.innerHTML = sats.toLocaleString('en-US') + ' <span>sats</span>'
-        fiat.textContent = (sats / 1000).toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }) + ' USD'
-      }
-      range.addEventListener('input', paint)
-      sheet.querySelector('#output-save').addEventListener('click', () => {
-        document.getElementById('send-amount').value = range.value
-        document.getElementById('send-label').value = label.value || 'Invoice'
-        closeSheet()
-      })
-    }
-  )
-}
-
 function openSend(phase) {
   sendPhase = phase
   const form = document.getElementById('send-form')
@@ -1189,11 +1147,212 @@ function openSend(phase) {
   } else {
     document.getElementById('view-send').classList.remove('is-bubbles')
     document.getElementById('coin-select').innerHTML = ''
-    form.hidden = false
-    title.textContent = 'Add output'
+    form.hidden = true
+    title.textContent = openAccountData ? openAccountData.name : 'Spending'
+    renderIo()
     show('send')
   }
 }
+
+// ioPreview.tsx — the transaction builder. `draft` mirrors the transactionBuilder store.
+const draft = {
+  outputs: [{ id: 1, amount: 50000, to: 'tb1qpayjoin0demo0000000000000000000000', label: 'Coffee' }],
+  feeRate: 2.2,
+  autoSelect: 'user',
+  editing: null
+}
+const BLOCK_HEIGHT = 892417
+const NEXT_BLOCK_FEE = 3
+
+function draftTotals() {
+  const inputs = coins.filter((coin) => coin.selected)
+  const inValue = inputs.reduce((sum, coin) => sum + coin.value, 0)
+  const outValue = draft.outputs.reduce((sum, out) => sum + out.amount, 0)
+  const vsize = 11 + 68 * Math.max(inputs.length, 1) + 31 * (draft.outputs.length + 1)
+  const fee = Math.round(vsize * draft.feeRate)
+  const change = inValue - outValue - fee
+  return { inputs, inValue, outValue, vsize, fee, change, underfunded: change < 0 }
+}
+
+function syncLegacySendForm() {
+  // renderPreview() and startSign() still read the old form fields.
+  const first = draft.outputs[0] || { amount: 0, to: '', label: '' }
+  document.getElementById('send-amount').value = first.amount
+  document.getElementById('send-address').value = first.to
+  document.getElementById('send-label').value = first.label
+}
+
+function renderIo() {
+  const root = document.getElementById('io-preview')
+  const accountsBody = document.querySelector('#view-send > .accounts-body')
+  accountsBody.hidden = true
+  root.hidden = false
+  const tot = draftTotals()
+  const gray = (n, v) => ss.text({ size: 'xxs', as: 'span', style: 'color:var(--gray-' + n + ')' }, String(v))
+  const fiat = (sats) => ((sats / SATS_PER_BTC) * USD_PER_BTC).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const tx = {
+    type: 'send',
+    txid: 'draft0' + tot.inputs.length + draft.outputs.length,
+    amount: tot.outValue,
+    fee: tot.fee,
+    size: tot.vsize + 30,
+    vsize: tot.vsize,
+    inputs: tot.inputs.length,
+    outputs: draft.outputs.length + (tot.change > 0 ? 1 : 0),
+    flowInputs: tot.inputs.map((coin) => ({ value: coin.value, label: coin.label, ours: true, from: coin.address })),
+    flowOutputs: draft.outputs
+      .map((out) => ({ value: out.amount, label: out.label || t('common.noLabel'), ours: false, to: out.to }))
+      .concat(tot.change > 0 ? [{ value: tot.change, label: 'Change', ours: true, to: 'tb1qchange0001' }] : [])
+      .concat([{ value: tot.fee, label: 'Miner fee', fee: true }])
+  }
+  const autoTitle = (k) => t('transaction.build.options.autoSelect.utxos.' + k + '.title')
+
+  root.innerHTML =
+    '<div class="io-chart">' + (tot.inputs.length ? txDetailSankey(tx) : '') + '</div>' +
+    '<div class="io-top">' +
+    ss.vstack({ gap: 'xs', itemsCenter: true },
+      ss.hstack({ gap: 'xxs', className: 'io-chaintip', go: 'difficulty' },
+        gray(500, 'Block '), gray('white', BLOCK_HEIGHT.toLocaleString('en-US')).replace('var(--gray-white)', 'var(--white)'),
+        '<i style="width:8px"></i>', gray(500, '~'), gray(200, NEXT_BLOCK_FEE), gray(500, ' sat/vB'),
+        '<i style="width:12px"></i>', gray(200, USD_PER_BTC.toLocaleString('en-US')), gray(500, ' USD')),
+      ss.hstack({ gap: 'sm', style: 'flex-wrap:wrap;justify-content:center' },
+        ss.hstack({ gap: 'xxs' }, gray(75, tot.inputs.length), gray(400, t('common.of').toLowerCase()), gray(75, coins.length),
+          gray(400, t('common.selected').toLowerCase()), gray(400, t('common.separator')), gray(75, autoTitle(draft.autoSelect))),
+        ss.hstack({ gap: 'xs' }, gray(400, t('common.total')), gray(75, openAccountData.balance.toLocaleString('en-US')), gray(400, t('bitcoin.sats')),
+          gray(75, fiat(openAccountData.balance)), gray(400, 'USD'))),
+      tot.underfunded ? ss.text({ size: 'xxs', style: 'color:var(--warning);margin-top:-2px' }, t('transaction.error.insufficientInputs')) : '',
+      ss.vstack({ gap: 'xxs', itemsCenter: true },
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+          ss.text({ size: '5xl', weight: 'ultralight', style: 'line-height:44px' }, tot.inValue.toLocaleString('en-US')),
+          ss.text({ size: 'lg', color: 'muted' }, t('bitcoin.sats'))),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+          ss.text({ color: 'muted' }, fiat(tot.inValue)),
+          ss.text({ size: 'xxs', style: 'color:var(--gray-500)' }, 'USD')))) +
+    '</div>' +
+    '<div class="io-bottom">' +
+    ss.vstack({ gap: 'xs' },
+      ss.hstack({ justifyBetween: true, style: 'margin-bottom:var(--layout-v-stack-gap-sm)' },
+        '<button type="button" class="io-link" data-go="builder">' + ss.icon('chevronLeft', { width: 3, height: 6 }) + ss.icon('chevronLeft', { width: 3, height: 6 }) + '<span>' + t('transaction.loadHistory').toUpperCase() + '</span></button>',
+        document.getElementById('payjoin-toggle').checked
+          ? '<button type="button" class="io-link" id="io-payjoin"><span>' + t('transaction.build.payjoin.data.open').toUpperCase() + '</span>' + ss.icon('chevronRight', { width: 3, height: 6 }) + ss.icon('chevronRight', { width: 3, height: 6 }) + '</button>'
+          : ''),
+      ss.vstack({ gap: 'xs' },
+        ss.hstack({ gap: 'xs' },
+          ss.button({ variant: 'outline', label: t('transaction.build.toolbar.input'), className: 'io-tool', id: 'io-inputs' }),
+          ss.button({ variant: 'outline', label: t('transaction.build.toolbar.options'), className: 'io-tool', id: 'io-options' }),
+          ss.button({ variant: 'outline', label: t('transaction.build.toolbar.fee'), className: 'io-tool', id: 'io-fee' }),
+          ss.button({ variant: 'outline', label: t('transaction.build.toolbar.output'), className: 'io-tool', id: 'io-add-output' })),
+        ss.hstack({ gap: 'xs' },
+          ss.button({ variant: 'outline', label: t('transaction.discard'), className: 'io-tool', id: 'io-discard' }),
+          ss.button({
+            variant: 'secondary',
+            label: draft.outputs.length ? t('transaction.build.toolbar.preview') : t('transaction.build.add.output.title'),
+            style: 'flex:1',
+            id: draft.outputs.length ? 'io-preview-go' : 'io-add-output',
+            disabled: tot.underfunded && draft.outputs.length > 0
+          })))) +
+    '</div>'
+  document.getElementById('io-overlays').innerHTML = renderIoSheets(tot, autoTitle)
+}
+
+function renderIoSheets(tot, autoTitle) {
+  const describe = (k) => t('transaction.build.options.autoSelect.utxos.' + k + '.description')
+  return ss.bottomSheet({ id: 'io-options-sheet', title: t('transaction.build.options.title') },
+      ss.vstack({ gap: 'xs' },
+        ss.text({ color: 'muted', uppercase: true }, t('transaction.build.options.autoSelect.utxos.label')),
+        ss.hstack({ gap: 'xs' }, ['user', 'privacy', 'efficiency'].map((k) =>
+          ss.radio({ variant: 'outline', label: autoTitle(k), group: 'io-auto', selected: draft.autoSelect === k, style: 'flex:1', data: { auto: k } }))),
+        ss.text({ color: 'muted', id: 'io-auto-desc' }, describe(draft.autoSelect))),
+      ss.vstack({},
+        ss.hstack({},
+          ss.button({ variant: 'outline', label: t('transaction.build.options.feeControl'), style: 'flex-grow:1;width:45%', go: 'fee-management' }),
+          ss.button({ variant: 'outline', label: t('transaction.build.options.timelock'), style: 'flex-grow:1;width:45%', go: 'timelock' })),
+        ss.button({ variant: 'outline', label: t('transaction.build.options.importOutputs.title') }))) +
+    ss.bottomSheet({ id: 'io-fee-sheet', title: t('transaction.build.update.fee.title'), height: '62%' },
+      ss.feeInput({ value: draft.feeRate, vbytes: tot.vsize, max: 40 }),
+      ss.button({ variant: 'secondary', label: t('transaction.build.set.fee'), id: 'io-set-fee' }),
+      ss.button({ variant: 'ghost', label: t('common.cancel'), data: { 'ss-close': '' } })) +
+    ss.bottomSheet({ id: 'io-payjoin-sheet', title: t('transaction.build.payjoin.data.title'), height: '70%' },
+      ss.vstack({ gap: 'md' },
+        [['address', draft.outputs[0] ? draft.outputs[0].to : ''], ['amount', (draft.outputs[0] ? draft.outputs[0].amount : 0).toLocaleString('en-US') + ' ' + t('bitcoin.sats')],
+          ['endpointKind', t('transaction.build.payjoin.data.bip77')], ['endpoint', 'https://payjo.in/demo']].map(([k, v]) =>
+          ss.vstack({ gap: 'xs' }, ss.text({ color: 'muted', uppercase: true, size: 'xs' }, t('transaction.build.payjoin.data.' + k)), ss.text({ style: 'word-break:break-all' }, v))),
+        ss.button({ variant: 'ghost', label: t('common.close'), data: { 'ss-close': '' } }))) +
+    renderOutputModal2()
+}
+
+function renderOutputModal2() {
+  const tot = draftTotals()
+  const editing = draft.outputs.find((out) => out.id === draft.editing)
+  const number = editing ? draft.outputs.indexOf(editing) + 1 : draft.outputs.length + 1
+  const own = editing ? editing.amount : 0
+  const remaining = tot.inValue - tot.outValue + own - tot.fee
+  return ss.modal({ id: 'io-output-modal', fullOpacity: true, showLabel: true, label: t('common.cancel') },
+    ss.vstack({ gap: 'lg', widthFull: true, style: 'overflow:auto' },
+      ss.vstack({ itemsCenter: true }, ss.text({ uppercase: true }, t('transaction.build.add.output.number', { number: number }))),
+      ss.vstack({ gap: 'md' },
+        ss.amountInput({ min: 546, max: Math.max(remaining, 546), value: editing ? editing.amount : Math.min(50000, Math.max(remaining, 546)), remainingSats: remaining }),
+        ss.vstack({},
+          ss.textInput({ placeholder: t('transaction.address'), align: 'left', multiline: true, mono: true, value: editing ? editing.to : '', className: 'io-address', name: 'to' }),
+          ss.hstack({ gap: 'md' },
+            ss.button({ variant: 'outline', label: t('common.paste'), style: 'flex:1', id: 'io-paste' }),
+            ss.button({ variant: 'outline', label: t('camera.scanQRCode'), style: 'flex:1', id: 'io-paste' }))),
+        ss.textInput({ placeholder: t('transaction.build.add.label.title'), align: 'left', multiline: true, value: editing ? editing.label : '', className: 'io-label', name: 'label' }),
+        ss.hstack({},
+          ss.button({ variant: 'danger', label: t('transaction.build.remove.output.title'), style: 'flex:1', disabled: !editing, id: 'io-remove-output' }),
+          ss.button({ variant: 'secondary', label: t('transaction.build.save.output.title'), style: 'flex:1', id: 'io-save-output' })))))
+}
+
+function openOutputModal(id) {
+  draft.editing = id || null
+  const old = document.getElementById('io-output-modal')
+  old.outerHTML = renderOutputModal2()
+  ss.open('io-output-modal')
+}
+
+document.getElementById('view-send').addEventListener('click', (e) => {
+  const hit = (sel) => e.target.closest(sel)
+  if (hit('#io-inputs')) openSend('coins')
+  if (hit('#io-options')) ss.open('io-options-sheet')
+  if (hit('#io-fee')) ss.open('io-fee-sheet')
+  if (hit('#io-payjoin')) ss.open('io-payjoin-sheet')
+  if (hit('#io-add-output')) openOutputModal(null)
+  if (hit('#io-discard')) {
+    draft.outputs = []
+    go('account')
+  }
+  if (hit('[data-auto]')) {
+    draft.autoSelect = hit('[data-auto]').dataset.auto
+    document.getElementById('io-auto-desc').textContent = t('transaction.build.options.autoSelect.utxos.' + draft.autoSelect + '.description')
+  }
+  if (hit('#io-set-fee')) {
+    draft.feeRate = Number(document.querySelector('#io-fee-sheet [data-ss-fee]').dataset.value || draft.feeRate)
+    renderIo()
+  }
+  if (hit('#io-paste')) {
+    document.querySelector('#io-output-modal .io-address textarea').value = 'tb1qpayjoin0demo0000000000000000000000'
+    ss.toast(t('common.paste'), document.getElementById('io-output-modal'))
+  }
+  if (hit('#io-remove-output')) {
+    draft.outputs = draft.outputs.filter((out) => out.id !== draft.editing)
+    renderIo()
+  }
+  if (hit('#io-save-output')) {
+    const modal = document.getElementById('io-output-modal')
+    const amount = Number(modal.querySelector('[data-ss-amount]').dataset.value || modal.querySelector('.ss-ghost-field').value)
+    const to = modal.querySelector('.io-address textarea').value.trim() || 'tb1qdemo0output000000000000000000000'
+    const label = modal.querySelector('.io-label textarea').value.trim()
+    const existing = draft.outputs.find((out) => out.id === draft.editing)
+    if (existing) Object.assign(existing, { amount, to, label })
+    else draft.outputs.push({ id: Date.now(), amount, to, label })
+    renderIo()
+  }
+  if (hit('#io-preview-go')) {
+    syncLegacySendForm()
+    renderPreview()
+    show('preview')
+  }
+})
 
 function closeSheet() {
   document.getElementById('sheet').hidden = true
@@ -2553,6 +2712,12 @@ function txDetailSankey(tx) {
     return start + index * row + (row - h) / 2
   }
 
+  // Labels stay inside their own row even when a ribbon is taller than the row.
+  function labelY(index, count, h) {
+    const rowTop = (height - count * row) / 2 + index * row
+    return Math.max(sideY(index, count, h), rowTop) + 4
+  }
+
   const inSlots = stack(inH, blockY)
   const rightSlots = stack(rightH, blockY)
 
@@ -2580,7 +2745,7 @@ function txDetailSankey(tx) {
       const flow = flowInputs && flowInputs[index]
       const named = flow ? flow.ours : index === 0 && tx.type === 'send' && tx.label
       const name = flow ? flow.label : named ? tx.label : 'Previous'
-      const y = sideY(index, inputCount, inSlots[index].h) + 4
+      const y = labelY(index, inputCount, inSlots[index].h)
       return flowLabel(
         [
           { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
@@ -2610,7 +2775,7 @@ function txDetailSankey(tx) {
             : index > 0
               ? 'Change'
               : tx.label || 'Payment'
-      const y = sideY(index, rightValues.length, rightSlots[index].h) + 4
+      const y = labelY(index, rightValues.length, rightSlots[index].h)
       const lines = [
         { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
         {
@@ -3853,7 +4018,7 @@ function go(id) {
   if (id === 'output') {
     openAccountData = accounts[0]
     openSend('output')
-    renderOutputModal()
+    openOutputModal(draft.outputs[0] ? draft.outputs[0].id : null)
     show('send', 'output')
     return true
   }

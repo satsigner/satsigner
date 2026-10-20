@@ -3384,3 +3384,32 @@ html.is-bare .phone-status {
     --frame: min(390px, 100%, calc((100vh - 120px) * 390 / 844));
   }
 }
+
+/* ioPreview — full-bleed diagram with gradient overlays (constants/ioPreviewLayout.ts) */
+.io-preview { position: relative; flex: 1; overflow: hidden; }
+.io-preview[hidden] { display: none; }
+.io-chart { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 150px var(--pad-main-x) 200px; overflow: auto; }
+.io-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: var(--layout-v-stack-gap-sm) var(--layout-main-container-padding-horizontal) 28px;
+  background: linear-gradient(180deg, #0A0A0AFF 19%, #0A0A0A85 56.6%, #0A0A0A68 77%, #0A0A0A00 100%);
+  pointer-events: none;
+}
+.io-top .io-chaintip { pointer-events: auto; cursor: pointer; justify-content: center; }
+.io-top .io-chaintip i { display: inline-block; }
+.io-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 70px var(--layout-main-container-padding-horizontal) 20px;
+  background: linear-gradient(180deg, #0A0A0A00 0%, #0A0A0A88 10%, #0A0A0ABB 15%, #0A0A0AF2 30%, #0A0A0AFF 100%);
+}
+.io-bottom > .ss-vstack { margin-top: 0; }
+.io-tool { flex: 1; background: var(--gray-950); }
+.io-link { display: inline-flex; align-items: center; gap: 2px; border: 0; padding: 0; background: none; color: var(--gray-300); font: inherit; font-size: 12px; cursor: pointer; }
+.io-link span:last-child, .io-link span:first-child { margin: 0 4px; }
+.io-link .ss-icon { color: var(--gray-300); }
+.io-chart > * { flex: none; }
+/* Inter runs wider than SF Pro; trim label padding so four toolbar labels fit like the app */
+.io-tool .ss-button-label { padding: 0 4px; }
+
+/* Kit modals sit over the whole section, so clear the status bar like the section does */
+.phone-screen .ss-modal { padding-top: calc(var(--status-height) + var(--ui-drop) + var(--layout-main-container-padding-top)); }

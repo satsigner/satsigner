@@ -101,9 +101,13 @@ const ss = (() => {
       p.status && `is-${p.status}`,
       p.actionRight && 'has-action',
       p.className
-    )}"${attrs(p)}><input${p.name ? ` name="${esc(p.name)}"` : ''} value="${esc(p.value)}" placeholder="${esc(p.placeholder)}"${
-      p.readOnly ? ' readonly' : ''
-    }${p.inputMode ? ` inputmode="${esc(p.inputMode)}"` : ''}>${
+    )}"${attrs(p)}>${
+      p.multiline
+        ? `<textarea rows="4"${p.name ? ` name="${esc(p.name)}"` : ''} placeholder="${esc(p.placeholder)}" class="${p.mono ? 'is-mono' : ''}"${p.readOnly ? ' readonly' : ''}>${esc(p.value)}</textarea>`
+        : `<input${p.name ? ` name="${esc(p.name)}"` : ''} value="${esc(p.value)}" placeholder="${esc(p.placeholder)}"${p.readOnly ? ' readonly' : ''}${
+            p.inputMode ? ` inputmode="${esc(p.inputMode)}"` : ''
+          }>`
+    }${
       p.actionRight ? `<span class="ss-input-action">${p.actionRight}</span>` : ''
     }${p.error ? `<p class="ss-input-note is-error">${esc(p.error)}</p>` : ''}${
       p.warning ? `<p class="ss-input-note is-warning">${esc(p.warning)}</p>` : ''
@@ -420,5 +424,73 @@ const ss = (() => {
   // Shorten like utils formatAddress: first 8 … last 8.
   const shortId = (v, n = 8) => (v.length > n * 2 + 3 ? `${v.slice(0, n)}...${v.slice(-n)}` : v)
 
-  return { orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
+  // --- send builder (batch 4) ---
+
+  // SSBottomSheet: slides up over the screen, 50% snap by default, tap the scrim or a
+  // [data-ss-close] to dismiss. Open with ss.open(id).
+  function bottomSheet(p = {}, ...children) {
+    return `<div class="ss-sheet" id="${esc(p.id)}" hidden><div class="ss-sheet-scrim" data-ss-close></div><div class="ss-sheet-panel${
+      p.paddingX === false ? ' is-flush' : ''
+    }" style="height:${p.height || '50%'}">${vstack({}, text({ uppercase: true, center: true }, esc(p.title)), kids(children))}</div></div>`
+  }
+
+  // SSFeeInput: ghost sat/vB value, min/fee/blocks/max row, slider. Fires ss-change with { rate }.
+  function feeInput(p = {}) {
+    const max = p.max || 100
+    const v = p.value || 1
+    const vb = p.vbytes || 0
+    return `<div class="ss-fee-input" data-ss-fee data-max="${max}" data-vbytes="${vb}">
+      <label class="ss-ghost-input"><span class="ss-ghost-value">${hstack({ gap: 'xs', style: 'align-items:baseline;justify-content:center' },
+        text({ size: '5xl', weight: 'light', as: 'span', className: 'ss-fee-value' }, fmt(v, 2)),
+        text({ color: 'muted', size: 'lg', as: 'span' }, t('bitcoin.satVb')))}</span>
+        <input class="ss-ghost-field" inputmode="decimal" value="${v}" hidden></label>
+      ${hstack({ justifyBetween: true },
+        hstack({ gap: 'xs' }, text({}, '1'), text({ color: 'muted' }, t('bitcoin.sat'))),
+        hstack({ gap: 'md' },
+          hstack({ gap: 'xxs' }, text({ className: 'ss-fee-sats' }, String(Math.trunc(vb * v))), text({ color: 'muted' }, t('bitcoin.sats'))),
+          hstack({ gap: 'xxs' }, text({ className: 'ss-fee-fiat' }, fmt(satsToFiat(Math.trunc(vb * v)), 2, true)), text({ color: 'muted' }, price.fiat))),
+        hstack({ gap: 'xs' }, text({}, String(max)), text({ color: 'muted' }, t('bitcoin.satVb'))))}
+      <input type="range" class="ss-slider" min="1" max="${max}" step="0.1" value="${v}" style="--fill:${((v - 1) / (max - 1)) * 100}%">
+    </div>`
+  }
+
+  function syncFee(root, rate, fromSlider) {
+    const max = +root.dataset.max
+    rate = Math.min(max, Math.max(1, Math.round((+rate || 1) * 10) / 10))
+    const vb = +root.dataset.vbytes
+    root.querySelector('.ss-fee-value').textContent = fmt(rate, 2)
+    root.querySelector('.ss-ghost-field').value = rate
+    const slider = root.querySelector('.ss-slider')
+    if (!fromSlider) slider.value = rate
+    slider.style.setProperty('--fill', `${((rate - 1) / (max - 1)) * 100}%`)
+    root.querySelector('.ss-fee-sats').textContent = Math.trunc(vb * rate)
+    root.querySelector('.ss-fee-fiat').textContent = fmt(satsToFiat(Math.trunc(vb * rate)), 2, true)
+    root.dataset.value = rate
+  }
+
+  document.addEventListener('input', (e) => {
+    const root = e.target.closest('[data-ss-fee]')
+    if (root && e.target.matches('.ss-slider')) syncFee(root, +e.target.value, true)
+  })
+  document.addEventListener('click', (e) => {
+    const root = e.target.closest('[data-ss-fee]')
+    if (root && e.target.closest('.ss-ghost-value')) {
+      const field = root.querySelector('.ss-ghost-field')
+      root.querySelector('.ss-ghost-value').hidden = true
+      field.hidden = false
+      field.focus()
+      field.select()
+    }
+    const close = e.target.closest('.ss-sheet [data-ss-close]')
+    if (close) close.closest('.ss-sheet').setAttribute('hidden', '')
+  })
+  document.addEventListener('focusout', (e) => {
+    const root = e.target.closest?.('[data-ss-fee]')
+    if (!root || !e.target.matches('.ss-ghost-field')) return
+    syncFee(root, +e.target.value)
+    e.target.hidden = true
+    root.querySelector('.ss-ghost-value').hidden = false
+  })
+
+  return { bottomSheet, feeInput, orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
 })()
