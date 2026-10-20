@@ -55,7 +55,7 @@ svg text {
 
 .phone {
   --status-height: 34px;
-  --ui-drop: 14px;
+  --ui-drop: 26px;
   --frame: min(390px, calc((100vh - 128px) * 390 / 844));
   --bezel: calc(var(--frame) * 10 / 280);
   --radius: calc(var(--frame) * 48 / 280);
@@ -538,12 +538,14 @@ svg text {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: var(--white);
-  color: var(--black);
-  font-size: 21px;
-  letter-spacing: 4px;
-  line-height: 23px;
+  background: #fff;
+  color: #2a2a2a;
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.07em;
+  line-height: 1.08;
   text-align: center;
+  padding-top: 10px;
 }
 
 /* Same 48px row as .stack-header so hamburger, title and gear share one centre line on every screen */
@@ -3471,3 +3473,7 @@ html.is-bare .phone-screen > section {
 
 /* Homepage hero draws its own animated logo over the splash, so the bare embed hides the splash logo */
 html.is-bare .intro.is-splash .intro-logo { visibility: hidden; }
+
+/* setPin / setDuressPin have no header bar; add its 48px so the title lines up with other screens' content */
+#view-kit[data-screen="set-pin"] .es-shell,
+#view-kit[data-screen="set-duress-pin"] .es-shell { padding-top: calc(48px + 32px); }

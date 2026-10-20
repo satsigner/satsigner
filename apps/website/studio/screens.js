@@ -25,6 +25,8 @@ function openKitScreen(id) {
   if (id === 'settings' && routeId && !String(routeId).startsWith('settings')) settingsReturn = routeId
   kitCurrent = id
   document.getElementById('view-kit').onclick = null
+  // Lets CSS target one kit screen: #view-kit[data-screen="set-pin"]
+  document.getElementById('view-kit').dataset.screen = id
   if (!openAccountData) openAccountData = accounts[0]
   const state = { id }
   document.getElementById('kit-title').textContent = typeof def.title === 'function' ? def.title() : def.title || ''

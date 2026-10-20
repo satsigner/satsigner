@@ -2754,7 +2754,7 @@ function finishIntro() {
   stopHexHighlight()
   document.getElementById('intro').innerHTML =
     '<div class="intro-logo"><span>SAT<br>SIGNER</span></div>'
-  setTimeout(() => show('menu'), 700)
+  setTimeout(() => menuTab('signer'), 700)
 }
 
 function menuTab(tab) {
@@ -3631,9 +3631,10 @@ const requested = isStage
 
 // Route after every script has run, so screens registered in screens.js resolve too.
 document.addEventListener('DOMContentLoaded', () => {
+  // Always draw the menu and tab bar: deep links (e.g. #intro in the homepage hero) reach them later.
+  paintTabs()
+  renderMenu('signer')
   if (!go(requested)) {
-    paintTabs()
-    renderMenu('signer')
     renderSplash()
     show('intro')
   }
