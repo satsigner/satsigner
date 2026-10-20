@@ -215,6 +215,15 @@
           <!-- apps/mobile/.../signAndSend/transactionConfirmation.tsx, rendered by renderSent() -->
           <div class="accounts-body ss-screen" id="sent-body"></div>
         </section>
+        <!-- Shared section for screens registered in screens.js -->
+        <section id="view-kit" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" id="kit-back" aria-label="Back"></button>
+            <p id="kit-title"></p>
+          </header>
+          <div class="accounts-body ss-screen" id="kit-body"></div>
+          <div id="kit-overlays"></div>
+        </section>
         <section id="view-ark" hidden>
           <header class="stack-header">
             <button type="button" class="back" data-back="menu" aria-label="Back"></button>
@@ -635,6 +644,7 @@
   <script src="/studio/generated/strings.js"></script>
   <script src="/studio/components.js"></script>
   <script src="/studio/screen.js?v=2"></script>
+  <script src="/studio/screens.js"></script>
   <script src="/studio/catalog.js?v=26"></script>
 </body>
 </html>

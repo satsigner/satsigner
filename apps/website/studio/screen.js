@@ -3961,6 +3961,10 @@ function renderScriptSelect() {
 }
 
 function go(id) {
+  if (typeof kitScreens !== 'undefined' && kitScreens[id]) {
+    openKitScreen(id)
+    return true
+  }
   if (id === 'intro') {
     renderSplash()
     show('intro', 'intro')

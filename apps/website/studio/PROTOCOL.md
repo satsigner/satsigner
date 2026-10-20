@@ -48,6 +48,8 @@ Then run `node studio/tools/coverage.mjs`. It maps catalog screens to app routes
 
 ## Adding another screen
 
+New screens go in `screens.js` with `registerScreen(id, { source, title, back, render, bind })`. They render into the shared `#view-kit` section, so you don't need to touch `index.html`. `go(id)` opens them, and `draft` and `sendOptions` hold state shared across a flow.
+
 1. Pick a missing route from `generated/coverage.md`.
 2. Read its `routes.json` entry for the components, strings, and targets it uses.
 3. Build it with `ss.*`, port any missing component into the kit first, take copy from `t()`, and look up exact values in `generated/styles.css`.

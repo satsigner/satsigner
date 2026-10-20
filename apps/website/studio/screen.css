@@ -3413,3 +3413,9 @@ html.is-bare .phone-status {
 
 /* Kit modals sit over the whole section, so clear the status bar like the section does */
 .phone-screen .ss-modal { padding-top: calc(var(--status-height) + var(--ui-drop) + var(--layout-main-container-padding-top)); }
+
+/* timeLock.tsx tab buttons: active border white, inactive gray */
+.timelock-tab { border: 1px solid gray; }
+.timelock-tab.is-on { border-color: var(--white); }
+.timelock-tab .ss-glass { display: none; }
+.timelock-pane[hidden] { display: none; }

@@ -378,3 +378,6 @@ html.is-still *, html.is-still *::before, html.is-still *::after { animation-dur
 
 /* SSFeeInput — components/SSFeeInput.tsx */
 .ss-fee-input { display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-sm); }
+
+/* SSNumberInput — red border when out of range */
+.ss-input.is-invalid input { border: 1px solid var(--error); }
