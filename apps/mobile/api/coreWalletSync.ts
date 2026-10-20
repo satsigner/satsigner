@@ -25,6 +25,7 @@ import {
   type RpcCredentials
 } from '@/types/settings/blockchain'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
+import { sleep } from '@/utils/time'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -81,12 +82,6 @@ const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
 
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
 
 function btcToSats(btc: number) {
   return Math.round(btc * SATS_PER_BITCOIN)
