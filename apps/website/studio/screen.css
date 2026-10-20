@@ -593,7 +593,7 @@ svg text {
   overflow: auto;
   touch-action: pan-y;
   cursor: grab;
-  transform: translateX(-100%) scale(var(--ui-scale));
+  transform: scale(var(--ui-scale)) translateX(-100%);
   transform-origin: top left;
   transition: transform 220ms ease;
 }

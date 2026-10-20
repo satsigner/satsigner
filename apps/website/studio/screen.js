@@ -170,8 +170,10 @@ document.querySelectorAll('.detail-tabs').forEach((row) => {
   })
 })
 
-document.querySelectorAll('[data-go]').forEach((button) => {
-  button.addEventListener('click', () => go(button.getAttribute('data-go')))
+// Delegated so markup rendered later (kit screens, sheets) routes too.
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-go]')
+  if (target && !target.disabled) go(target.getAttribute('data-go'))
 })
 
 const nostrConnect = document.getElementById('nostr-connect')
@@ -2238,50 +2240,142 @@ function renderPsbtQr() {
   }, 280)
 }
 
+// signTransaction.tsx — payjoin wait, signing, signed, broadcast. Fixture txid, nothing leaves the page.
+const signState = { payjoin: false, phase: 'signing', status: '', hint: '', txid: '', amount: 0, label: '' }
+
+function demoTxid(seed) {
+  let h = 2166136261
+  let out = ''
+  for (let i = 0; out.length < 64; i += 1) {
+    h = Math.imul(h ^ seed.charCodeAt(i % seed.length) ^ i, 16777619) >>> 0
+    out += h.toString(16).padStart(8, '0')
+  }
+  return out.slice(0, 64)
+}
+
+function renderSign() {
+  const st = signState
+  const tn = (k) => t('transaction.build.sign.' + k)
+  const multisig = openAccountData && openAccountData.multisig
+  const waiting = st.phase === 'payjoin'
+  const signed = st.phase === 'signed'
+  const head = waiting
+    ? ss.vstack({ gap: 'lg', itemsCenter: true },
+        ss.text({ size: 'md', uppercase: true, weight: 'light' }, t('transaction.payjoin.send')),
+        ss.orbitLoader({ size: 160 }),
+        ss.vstack({ gap: 'sm', itemsCenter: true },
+          ss.text({ size: 'md', center: true }, st.status),
+          ss.text({ color: 'muted', center: true }, t(st.hint))))
+    : ss.vstack({ itemsCenter: true },
+        ss.text({ size: 'md', uppercase: true, weight: 'light' }, signed ? (multisig ? tn('readyToBroadcast') : tn('signed')) : tn('signing')),
+        signed ? ss.successCheck({ static: true }) : ss.orbitLoader({ size: 160 }),
+        signed && st.payjoin
+          ? ss.vstack({ gap: 'xs', itemsCenter: true },
+              ss.text({ color: 'muted', center: true }, t('transaction.build.payjoin.success')),
+              ss.text({ color: 'muted', center: true }, t('transaction.build.payjoin.reviewHint')))
+          : '')
+  const details = waiting
+    ? ''
+    : ss.vstack({},
+        ss.vstack({ gap: 'xxs' }, ss.text({ color: 'muted', uppercase: true }, t('transaction.id')), ss.txid({ value: st.txid, size: 'lg' })),
+        ss.vstack({ gap: 'xxs' }, ss.text({ color: 'muted', uppercase: true }, t('transaction.build.preview.contents')), signSendSankey('tx-sankey')),
+        ss.vstack({ gap: 'xxs' }, ss.text({ color: 'muted', uppercase: true }, tn('transaction')),
+          ss.text({ type: 'mono', size: 'xs', color: 'muted', style: 'word-break:break-all' }, '0200000000010' + st.txid + st.txid.slice(0, 40) + '…')))
+  const actions = waiting
+    ? ss.vstack({},
+        ss.button({ label: t('transaction.build.payjoin.openAccounts'), variant: 'secondary', go: 'accounts' }),
+        ss.button({ label: t('transaction.build.payjoin.checkResponse'), variant: 'ghost', id: 'payjoin-check' }),
+        ss.button({ label: t('transaction.build.payjoin.skip'), variant: 'ghost', id: 'payjoin-skip' }))
+    : ss.vstack({},
+        ss.button({ label: t('send.broadcast'), variant: 'secondary', disabled: !signed, id: 'broadcast' }),
+        signed ? ss.button({ label: tn('copySignedTx'), variant: 'ghost', data: { 'ss-copy': st.txid } }) : '')
+  document.getElementById('sign-title').textContent = openAccountData ? openAccountData.name : ''
+  document.getElementById('sign-body').innerHTML = ss.vstack({ justifyBetween: true, gap: 'lg' }, ss.vstack({ gap: 'lg' }, head, details), actions)
+}
+
 function startSign() {
   clearTimeout(payjoinTimer)
   const payjoin = document.getElementById('payjoin-toggle').checked
-  const status = document.getElementById('sign-status')
-  const broadcast = document.getElementById('broadcast')
-  broadcast.disabled = true
+  Object.assign(signState, {
+    payjoin,
+    phase: payjoin ? 'payjoin' : 'signing',
+    status: t('transaction.build.payjoin.stage.postingOriginal'),
+    hint: 'transaction.build.payjoin.stage.postingOriginalHint',
+    amount: Number(document.getElementById('send-amount').value) || 0,
+    label: document.getElementById('send-label').value || '',
+    txid: demoTxid((openAccountData ? openAccountData.fingerprint : 'demo') + Date.now())
+  })
+  renderSign()
   show('sign')
-  if (!payjoin) {
-    status.textContent = 'Transaction signed. Ready to broadcast.'
-    broadcast.disabled = false
-    return
-  }
-  const steps = [
-    'Sending the original to the mailbox…',
-    'Waiting for the receiver to contribute…',
-    'Checking mailbox for the proposal…',
-    'Payjoin proposal ready. Receiver contributed a coin. Review the transaction before broadcasting.'
-  ]
-  let step = 0
-  status.textContent = steps[0]
+  const stages = payjoin
+    ? [
+        ['transaction.build.payjoin.waitingReceiver', 'transaction.build.payjoin.waitingReceiverHint'],
+        ['transaction.build.payjoin.stage.checkingProposal', 'transaction.build.payjoin.stage.checkingProposalHint'],
+        null
+      ]
+    : [null]
+  let i = 0
   function next() {
-    step += 1
-    if (step >= steps.length) {
-      broadcast.disabled = false
-      return
+    const key = stages[i++]
+    if (key) {
+      signState.status = t(key[0])
+      signState.hint = key[1]
     }
-    status.textContent = steps[step]
-    payjoinTimer = setTimeout(next, 700)
+    else signState.phase = signState.phase === 'payjoin' ? 'signing' : 'signed'
+    renderSign()
+    if (signState.phase !== 'signed') payjoinTimer = setTimeout(next, 900)
   }
-  payjoinTimer = setTimeout(next, 700)
+  payjoinTimer = setTimeout(next, 900)
 }
 
-document.getElementById('broadcast').addEventListener('click', () => {
-  const amount = Number(document.getElementById('send-amount').value) || 0
-  const label = document.getElementById('send-label').value || 'No label'
-  const payjoin = document.getElementById('payjoin-toggle').checked
-  document.getElementById('sent-txid').textContent =
-    'demo' + openAccountData.fingerprint + '00000000000000000000000000000000000000000000'
-  document.getElementById('sent-summary').textContent =
-    (payjoin ? 'Payjoin send. ' : '') +
-    amount.toLocaleString('en-US') +
-    ' sats · ' +
-    label
-  show('sent')
+document.getElementById('sign-body').addEventListener('click', (e) => {
+  if (e.target.closest('#payjoin-skip')) {
+    clearTimeout(payjoinTimer)
+    signState.payjoin = false
+    signState.phase = 'signing'
+    renderSign()
+    payjoinTimer = setTimeout(() => {
+      signState.phase = 'signed'
+      renderSign()
+    }, 900)
+  }
+  if (e.target.closest('#payjoin-check')) ss.toast(signState.status, document.getElementById('view-sign'))
+  if (e.target.closest('#broadcast')) {
+    const button = e.target.closest('#broadcast')
+    button.disabled = true
+    button.innerHTML = '<span class="ss-spinner"></span>'
+    setTimeout(() => renderSent(signState.txid), 700)
+  }
+})
+
+// transactionConfirmation.tsx
+function renderSent(txid) {
+  document.getElementById('sent-title').textContent = openAccountData ? openAccountData.name : ''
+  document.getElementById('sent-body').innerHTML =
+    ss.vstack({ justifyBetween: true },
+      ss.vstack({ gap: 'lg', itemsCenter: true, style: 'padding-top:24px' },
+        ss.successCheck(),
+        ss.text({ size: 'md', uppercase: true, weight: 'light', className: 'ss-enter', style: 'animation-delay:500ms' }, t('sent.broadcasted')),
+        ss.vstack({ gap: 'none', itemsCenter: true, className: 'ss-enter', style: 'animation-delay:800ms' },
+          ss.text({ color: 'muted', uppercase: true }, t('transaction.id')),
+          ss.text({}, ss.shortId(txid)))),
+      ss.vstack({ className: 'ss-enter', style: 'animation-delay:1100ms' },
+        ss.clipboardCopy({ text: txid }, ss.button({ variant: 'outline', label: t('sent.copyTransactionId') })),
+        ss.button({ variant: 'outline', label: t('sent.viewOnMempool'), id: 'sent-mempool' }),
+        ss.button({ variant: 'secondary', label: t('common.backToAccountHome'), go: 'account' }))) +
+    ss.modal({ id: 'sent-external', fullOpacity: true, showLabel: false },
+      ss.vstack({ justifyBetween: true, widthFull: true, style: 'flex:1' },
+        ss.vstack({ gap: 'lg', itemsCenter: true, style: 'margin:auto 0' },
+          ss.text({ uppercase: true, weight: 'bold' }, t('common.warning')),
+          ss.text({ color: 'muted', center: true }, t('sent.externalWebsiteWarning'))),
+        ss.vstack({ gap: 'md' },
+          ss.button({ variant: 'danger', label: t('common.open'), data: { 'ss-close': '' } }),
+          ss.button({ variant: 'ghost', label: t('common.cancel'), data: { 'ss-close': '' } }))))
+  show('sent', 'sent')
+}
+
+document.getElementById('sent-body').addEventListener('click', (e) => {
+  if (e.target.closest('#sent-mempool')) ss.open('sent-external')
 })
 
 const btcInput = document.getElementById('btc-input')
@@ -3355,9 +3449,7 @@ function renderMultisigSign() {
   const check = root.querySelector('#check-sigs')
   if (ready) {
     check.addEventListener('click', () => {
-      document.getElementById('sent-txid').textContent = 'democ0ffee0100000000000000000000000000000000000000000000'
-      document.getElementById('sent-summary').textContent = 'Multisig send. 2 of 3 · 50,000 sats · Demo'
-      show('sent', 'sent')
+      renderSent(demoTxid('multisig' + openAccountData.fingerprint))
     })
   }
 }
@@ -3798,10 +3890,7 @@ function go(id) {
   }
   if (id === 'sent') {
     openAccountData = accounts[0]
-    document.getElementById('sent-txid').textContent =
-      'demo' + openAccountData.fingerprint + '00000000000000000000000000000000000000000000'
-    document.getElementById('sent-summary').textContent = 'Payjoin send. 50,000 sats · Demo'
-    show('sent', 'sent')
+    renderSent(demoTxid('sent' + openAccountData.fingerprint))
     return true
   }
   if (

@@ -3457,7 +3457,20 @@ const ssStrings = {
  }
 }
 
+// en.json mixes nesting with dotted keys ("currency.sats"), so try every split of the path.
+function tLookup(node, parts) {
+  if (!parts.length) return node
+  if (node == null || typeof node !== 'object') return undefined
+  for (let i = parts.length; i > 0; i--) {
+    const k = parts.slice(0, i).join('.')
+    if (k in node) {
+      const v = tLookup(node[k], parts.slice(i))
+      if (v !== undefined) return v
+    }
+  }
+}
+
 function t(key, vars = {}) {
-  const v = key.split('.').reduce((o, k) => (o == null ? o : o[k]), ssStrings)
+  const v = tLookup(ssStrings, key.split('.'))
   return typeof v === 'string' ? v.replace(/%\{(\w+)\}/g, (_, k) => vars[k] ?? '') : key
 }

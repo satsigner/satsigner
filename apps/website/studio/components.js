@@ -361,5 +361,64 @@ const ss = (() => {
     root.querySelector('.ss-ghost-value').hidden = false
   })
 
-  return { price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
+  // --- sign / broadcast (batch 3) ---
+
+  // SSLoader: two dots orbiting with a depth scale. One rAF loop drives every loader on the page.
+  function orbitLoader(p = {}) {
+    const size = p.size || 80
+    return `<span class="ss-orbit" style="width:${size}px;height:${size}px" role="status" aria-label="Loading"><svg viewBox="0 0 120 60" width="${size}" height="${size}" preserveAspectRatio="xMidYMid"><circle cx="82" cy="30" r="12"/><circle cx="38" cy="30" r="12"/></svg></span>`
+  }
+  ;(function orbit() {
+    const a = ((performance.now() % 1500) / 1500) * 2 * Math.PI
+    document.querySelectorAll('.ss-orbit svg').forEach((svg) => {
+      const [c1, c2] = svg.children
+      for (const [c, o] of [[c1, a], [c2, a + Math.PI]]) {
+        c.setAttribute('cx', 60 + 22 * Math.cos(o))
+        c.setAttribute('cy', 30 - 22 * Math.sin(o))
+        c.setAttribute('r', 12 * (1 - 0.85 * Math.sin(o)))
+      }
+    })
+    requestAnimationFrame(orbit)
+  })()
+
+  // SSSuccessCheckAnimation: pulse rings, glowing disc, check drawn in. Simplified from the
+  // reanimated version (same geometry, timings and colours).
+  let successId = 0
+  function successCheck(p = {}) {
+    const size = p.size || 159
+    const id = `ss-success-${++successId}`
+    return `<span class="ss-success${p.static ? ' is-static' : ''}" style="width:${size}px;height:${size}px">
+      <i class="ss-success-ring"></i><i class="ss-success-ring is-late"></i>
+      <svg viewBox="-44 -44 248 248" width="${size}" height="${size}" fill="none">
+        <defs>
+          <radialGradient id="${id}-halo" cx="80" cy="80" r="152" gradientUnits="userSpaceOnUse">
+            <stop offset="48%" stop-color="#fff" stop-opacity="0"/><stop offset="62%" stop-color="#fff" stop-opacity="0.045"/>
+            <stop offset="74%" stop-color="#fff" stop-opacity="0.075"/><stop offset="84%" stop-color="#fff" stop-opacity="0.09"/>
+            <stop offset="93%" stop-color="#fff" stop-opacity="0.065"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="${id}-disc" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fff"/><stop offset="48%" stop-color="#fff" stop-opacity="0.95"/><stop offset="100%" stop-color="#fff" stop-opacity="0.84"/>
+          </radialGradient>
+        </defs>
+        <circle class="ss-success-halo" cx="80" cy="80" r="111" fill="url(#${id}-halo)"/>
+        <g transform="translate(80 80) scale(1.222) translate(-80 -80)">
+          <circle cx="80" cy="80" r="72" fill="url(#${id}-disc)"/>
+          <circle cx="80" cy="80" r="72" stroke="var(--gray-50)" stroke-width="1.2"/>
+          <path class="ss-success-check" d="M44 81 L69 106 L116 52" stroke="var(--gray-200)" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+      </svg></span>`
+  }
+
+  // SSTransactionIdFormatted: 64-hex txid as byte pairs, alternating white/gray every 2 bytes.
+  function txid(p = {}) {
+    const v = String(p.value || '').replace(/\s+/g, '')
+    if (!/^[0-9a-fA-F]{64}$/.test(v)) return text({ size: p.size || 'lg', style: 'letter-spacing:0.5px' }, esc(v))
+    const bytes = v.match(/../g)
+    return `<div class="ss-txid s-${p.size || 'lg'}">${bytes.map((b, i) => `<span${Math.floor(i / 2) % 2 ? ' class="is-dim"' : ''}>${b}</span>`).join('')}</div>`
+  }
+
+  // Shorten like utils formatAddress: first 8 … last 8.
+  const shortId = (v, n = 8) => (v.length > n * 2 + 3 ? `${v.slice(0, n)}...${v.slice(-n)}` : v)
+
+  return { orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
 })()

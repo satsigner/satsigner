@@ -35,7 +35,10 @@ const routes = extractRoutes(ctx)
 const en = JSON.parse(fs.readFileSync(path.join(appDir, 'locales/en.json'), 'utf8'))
 writeOut(path.join(outDir, 'strings.js'),
   `/* GENERATED from apps/mobile/locales/en.json. Use t('a.b.c'). */\n\nconst ssStrings = ${JSON.stringify(en, null, 1)}\n\n` +
-  `function t(key, vars = {}) {\n  const v = key.split('.').reduce((o, k) => (o == null ? o : o[k]), ssStrings)\n` +
+  `// en.json mixes nesting with dotted keys ("currency.sats"), so try every split of the path.\n` +
+  `function tLookup(node, parts) {\n  if (!parts.length) return node\n  if (node == null || typeof node !== 'object') return undefined\n` +
+  `  for (let i = parts.length; i > 0; i--) {\n    const k = parts.slice(0, i).join('.')\n    if (k in node) {\n      const v = tLookup(node[k], parts.slice(i))\n      if (v !== undefined) return v\n    }\n  }\n}\n\n` +
+  `function t(key, vars = {}) {\n  const v = tLookup(ssStrings, key.split('.'))\n` +
   `  return typeof v === 'string' ? v.replace(/%\\{(\\w+)\\}/g, (_, k) => vars[k] ?? '') : key\n}\n`)
 
 const warnings = [...icons.warnings, ...css.warnings]

@@ -318,3 +318,37 @@
 .ss-slider::-moz-range-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--white) var(--fill), var(--gray-600) var(--fill)); }
 .ss-slider::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -5px; border-radius: 11px; background: var(--white); -webkit-appearance: none; }
 .ss-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 11px; background: var(--white); }
+
+/* SSLoader — components/SSLoader.tsx */
+.ss-orbit { display: inline-flex; align-items: center; justify-content: center; }
+.ss-orbit svg { fill: var(--white); }
+
+/* SSSuccessCheckAnimation — components/SSSuccessCheckAnimation.tsx */
+.ss-success { position: relative; display: inline-flex; align-items: center; justify-content: center; animation: ss-breathe 3600ms ease-in-out 700ms infinite; }
+.ss-success svg { position: relative; overflow: visible; }
+.ss-success-ring { position: absolute; inset: 22%; border: 1px solid var(--white); border-radius: 50%; opacity: 0; animation: ss-pulse 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 250ms 1; }
+.ss-success-ring.is-late { animation-delay: 470ms; }
+.ss-success-check { stroke-dasharray: 107; stroke-dashoffset: 107; animation: ss-draw 420ms ease-out 220ms forwards; }
+.ss-success-halo { animation: ss-halo 3600ms ease-in-out infinite; }
+.ss-success.is-static, .ss-success.is-static * { animation: none; }
+.ss-success.is-static .ss-success-check { stroke-dashoffset: 0; }
+@keyframes ss-draw { to { stroke-dashoffset: 0; } }
+@keyframes ss-pulse { 0% { opacity: 0.28; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes ss-breathe { 50% { transform: scale(1.038); } }
+@keyframes ss-halo { 0%, 100% { opacity: 0.44; } 50% { opacity: 0.76; } }
+
+/* SSTransactionIdFormatted — components/SSTransactionIdFormatted.tsx */
+.ss-txid { display: flex; flex-wrap: wrap; column-gap: 5px; font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.35px; color: var(--white); font-size: var(--sizes-text-font-size-lg); line-height: 1.38; }
+.ss-txid.s-md { font-size: var(--sizes-text-font-size-md); }
+.ss-txid.s-sm { font-size: var(--sizes-text-font-size-sm); }
+.ss-txid .is-dim { color: var(--gray-100); }
+
+/* Screen scaffold for kit-built views: fills the phone, footer pinned to the bottom */
+.ss-screen { display: flex; flex-direction: column; }
+
+/* FadeIn / FadeInDown entering animations used by screens */
+.ss-enter { opacity: 0; animation: ss-enter 450ms ease-out forwards; }
+@keyframes ss-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* ?still — jump every animation to its end state (screenshots, reviews) */
+html.is-still *, html.is-still *::before, html.is-still *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }
