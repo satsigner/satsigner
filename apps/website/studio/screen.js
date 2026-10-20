@@ -858,7 +858,6 @@ function toggleCoin(id) {
   const coin = coins.find((entry) => entry.id === id)
   if (!coin) return
   coin.selected = !coin.selected
-  if (!document.getElementById('view-send').hidden && sendPhase === 'coins') renderCoins()
   if (!document.getElementById('view-account').hidden) renderAccount()
 }
 
@@ -1089,66 +1088,12 @@ function bindCoins(root) {
   if (map && bubbleZoomId) applyBubbleZoom(map)
 }
 
-function renderCoins() {
-  const root = document.getElementById('coin-select')
-  const picked = coins.filter((coin) => coin.selected)
-  const selectedSats = picked.reduce((sum, coin) => sum + coin.value, 0)
-  const totalSats = coins.reduce((sum, coin) => sum + coin.value, 0)
-  const bubbles = coinView === 'bubbles'
-  document.getElementById('view-send').classList.toggle('is-bubbles', bubbles)
-  const enterBubbles = bubbles && !root.querySelector('.coin-map')
-  root.innerHTML =
-    '<header class="coin-head">' +
-    '<div class="coin-bar"><span>Spendable outputs</span><button type="button" id="coin-view" aria-label="' +
-    (bubbles ? 'List' : 'Bubbles') +
-    '">' +
-    icon(bubbles ? 'menu' : 'bubbles', 'tool-icon') +
-    '</button></div>' +
-    '<p class="coin-count">' +
-    picked.length +
-    ' of ' +
-    coins.length +
-    ' selected</p>' +
-    '<p class="coin-total"><span>Total</span><b>' +
-    totalSats.toLocaleString('en-US') +
-    '</b><span>sats</span><b>' +
-    (totalSats / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-    '</b><span>USD</span></p>' +
-    '<p class="coin-selected">' +
-    selectedSats.toLocaleString('en-US') +
-    ' <span>sats</span></p>' +
-    '<p class="coin-fiat">' +
-    (selectedSats / 1000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-    ' <span>USD</span></p></header>' +
-    (bubbles ? bubblePack(enterBubbles, true) : utxoList()) +
-    '<button type="button" class="menu-button" id="coins-next"><span class="edge-left"></span><span class="edge-right"></span>Next</button>'
-  document.getElementById('coin-view').addEventListener('click', () => {
-    coinView = bubbles ? 'list' : 'bubbles'
-    if (coinView === 'list') bubbleZoomId = null
-    renderCoins()
-  })
-  // selectUtxoList.tsx continues to ioPreview
-  document.getElementById('coins-next').addEventListener('click', () => openSend('output'))
-  bindCoins(root)
-}
-
-function openSend(phase) {
-  sendPhase = phase
-  const title = document.getElementById('send-title')
-  if (phase === 'coins') {
-    coinView = 'list'
-    title.textContent = 'Outputs'
-    document.querySelector('#view-send > .accounts-body').hidden = false
-    document.getElementById('io-preview').hidden = true
-    show('send')
-    renderCoins()
-  } else {
-    document.getElementById('view-send').classList.remove('is-bubbles')
-    document.getElementById('coin-select').innerHTML = ''
-    title.textContent = openAccountData ? openAccountData.name : 'Spending'
-    renderIo()
-    show('send')
-  }
+function openSend() {
+  sendPhase = 'output'
+  document.getElementById('view-send').classList.remove('is-bubbles')
+  document.getElementById('send-title').textContent = openAccountData ? openAccountData.name : 'Spending'
+  renderIo()
+  show('send')
 }
 
 // ioPreview.tsx — the transaction builder. `draft` mirrors the transactionBuilder store.

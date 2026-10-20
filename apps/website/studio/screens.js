@@ -234,31 +234,7 @@ registerScreen('coin-list', {
         coinSort.field === field && coinSort.dir === 'asc' ? '↑' : '↓'
       }</span>${ss.text({ as: 'span', color: coinSort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
     return `<div class="coin-list">
-      <div class="coin-head">${ss.vstack({},
-        ss.hstack({ justifyBetween: true },
-          `<button type="button" class="badge-button" data-go="exclude-utxos" aria-label="${t('utxo.exclude.title')}">${ss.icon('exclude', { size: 16 })}${
-            excluded ? `<span class="exclude-badge">${excluded}</span>` : ''
-          }</button>`,
-          ss.text({ size: 'md' }, t('transaction.build.select.spendableOutputs')),
-          ss.hstack({ gap: 'sm' },
-            ss.iconButton({ label: 'Filter', className: 'badge-button' }, ss.icon('filter', { size: 16 })),
-            ss.iconButton({ label: 'Bubbles', id: 'coin-bubbles' }, ss.icon('bubbles', { size: 15 })))),
-        ss.vstack({ itemsCenter: true, gap: 'sm' },
-          ss.vstack({ itemsCenter: true, gap: 'xs' },
-            ss.text({}, `${selected.length} ${t('common.of').toLowerCase()} ${usable.length} ${t('common.selected').toLowerCase()}`),
-            ss.hstack({ gap: 'xs' },
-              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('common.total')),
-              ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, total.toLocaleString('en-US')),
-              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('bitcoin.sats')),
-              ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, usd(total)),
-              ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, 'USD'))),
-          ss.vstack({ itemsCenter: true, gap: 'none' },
-            ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
-              ss.styledSat({ amount: picked, textSize: '7xl', weight: 'ultralight', letterSpacing: -1 }),
-              ss.text({ size: 'xl', color: 'muted' }, t('bitcoin.sats'))),
-            ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
-              ss.text({ size: 'md', color: 'muted' }, usd(picked)),
-              ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD')))))}</div>
+      <div class="coin-head">${coinHeader('bubbles', 'coin-bubbles')}</div>
       ${ss.separator({ color: 'grayDark', style: 'margin-top:12px' })}
       <div class="coin-tools">
         <button type="button" class="select-all" id="coin-all">${(all ? t('common.deselectAll') : t('common.selectAll')).toUpperCase()} ${total.toLocaleString('en-US')} ${t('bitcoin.sats')}</button>
@@ -298,12 +274,6 @@ registerScreen('coin-list', {
         return rerender()
       }
       if (e.target.closest('#coin-use')) openSend('output')
-      if (e.target.closest('#coin-bubbles')) {
-        coinView = 'bubbles'
-        openSend('coins')
-        coinView = 'bubbles'
-        renderCoins()
-      }
     })
   }
 })
@@ -336,6 +306,84 @@ registerScreen('exclude-utxos', {
       if (!b) return
       coins.find((c) => c.id === b.dataset.include).excluded = false
       openKitScreen('exclude-utxos')
+    })
+  }
+})
+
+// Shared header of selectUtxoList / selectUtxoBubbles.
+function coinHeader(viewIcon, viewId) {
+  const usable = coins.filter((c) => !c.excluded)
+  const picked = coins.filter((c) => c.selected).reduce((s, c) => s + c.value, 0)
+  const total = usable.reduce((s, c) => s + c.value, 0)
+  const excluded = coins.length - usable.length
+  return ss.vstack({},
+    ss.hstack({ justifyBetween: true },
+      `<button type="button" class="badge-button" data-go="exclude-utxos" aria-label="${t('utxo.exclude.title')}">${ss.icon('exclude', { size: 16 })}${
+        excluded ? `<span class="exclude-badge">${excluded}</span>` : ''
+      }</button>`,
+      ss.text({ size: 'md' }, t('transaction.build.select.spendableOutputs')),
+      ss.hstack({ gap: 'sm' },
+        ss.iconButton({ label: 'Filter', className: 'badge-button' }, ss.icon('filter', { size: 16 })),
+        ss.iconButton({ label: viewIcon, go: viewId }, ss.icon(viewIcon, { size: 15 })))),
+    ss.vstack({ itemsCenter: true, gap: 'sm' },
+      ss.vstack({ itemsCenter: true, gap: 'xs' },
+        ss.text({}, `${coins.filter((c) => c.selected).length} ${t('common.of').toLowerCase()} ${usable.length} ${t('common.selected').toLowerCase()}`),
+        ss.hstack({ gap: 'xs' },
+          ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('common.total')),
+          ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, total.toLocaleString('en-US')),
+          ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, t('bitcoin.sats')),
+          ss.text({ size: 'xxs', style: 'color:var(--gray-75)' }, usd(total)),
+          ss.text({ size: 'xxs', style: 'color:var(--gray-400)' }, 'USD'))),
+      ss.vstack({ itemsCenter: true, gap: 'none' },
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+          ss.text({ size: '7xl', weight: 'ultralight', style: 'line-height:62px' }, picked.toLocaleString('en-US')),
+          ss.text({ size: 'xl', color: 'muted' }, t('bitcoin.sats'))),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
+          ss.text({ size: 'md', color: 'muted' }, usd(picked)),
+          ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD')))))
+}
+
+// selectUtxoBubbles.tsx — reuses the existing bubble packer (bubblePack / packCoins).
+let bubblesEntered = false
+registerScreen('coin-bubbles', {
+  source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/[id]/signAndSend/selectUtxoBubbles.tsx',
+  title: () => openAccountData.name,
+  back: 'account',
+  render: () => {
+    const usable = coins.filter((c) => !c.excluded)
+    const all = usable.length > 0 && usable.every((c) => c.selected)
+    const any = coins.some((c) => c.selected)
+    const enter = !bubblesEntered
+    bubblesEntered = true
+    return `<div class="coin-bubbles">
+      <div class="coin-bubbles-chart">${bubblePack(enter, true)}</div>
+      <div class="coin-bubbles-top">${coinHeader('list', 'coin-list')}</div>
+      <div class="coin-bubbles-bottom">${ss.vstack({ style: 'width:92%' },
+        ss.hstack({ justifyBetween: true },
+          ss.button({ label: t('transaction.build.select.customAmount'), variant: 'ghost', className: 'is-auto', id: 'bubbles-custom' }),
+          ss.button({ label: all ? t('common.deselectAll') : t('common.selectAll'), variant: 'ghost', className: 'is-auto', id: 'bubbles-all' })),
+        ss.button({ label: t('transaction.build.add.inputs.title.2'), variant: 'secondary', disabled: !any, id: 'bubbles-use' }))}</div>
+    </div>`
+  },
+  overlays: () =>
+    ss.modal({ id: 'bubbles-custom-modal' },
+      ss.vstack({}, ss.text({ size: 'lg', uppercase: true, center: true, style: 'max-width:240px' }, t('transaction.build.type.customAmount')))),
+  bind: (body) => {
+    body.addEventListener('click', (e) => {
+      const bubble = e.target.closest('[data-coin]')
+      if (bubble) {
+        const coin = coins.find((c) => c.id === bubble.dataset.coin)
+        if (!coin.excluded) coin.selected = !coin.selected
+        return openKitScreen('coin-bubbles')
+      }
+      if (e.target.closest('#bubbles-all')) {
+        const usable = coins.filter((c) => !c.excluded)
+        const all = usable.every((c) => c.selected)
+        usable.forEach((c) => (c.selected = !all))
+        return openKitScreen('coin-bubbles')
+      }
+      if (e.target.closest('#bubbles-custom')) ss.open('bubbles-custom-modal')
+      if (e.target.closest('#bubbles-use')) openSend('output')
     })
   }
 })

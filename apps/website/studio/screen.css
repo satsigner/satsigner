@@ -3446,3 +3446,14 @@ html.is-bare .phone-status {
 .coin-submit { position: sticky; bottom: 20px; display: flex; justify-content: center; margin-top: auto; }
 .coin-submit .ss-button[disabled] { opacity: 1; background: var(--gray-700); color: var(--gray-400); }
 .excluded-row { padding: 12px 0; }
+
+/* selectUtxoBubbles.tsx — chart full-bleed, gradient header and footer on top */
+#kit-body:has(.coin-bubbles) { padding: 0; overflow: hidden; }
+.coin-bubbles { position: relative; height: 100%; }
+.coin-bubbles-chart { position: absolute; inset: 40px 0 0; }
+.coin-bubbles-chart .coin-map { height: 100%; }
+.coin-bubbles-top { position: absolute; top: 0; left: 0; right: 0; padding: var(--layout-main-container-padding-top) var(--layout-main-container-padding-horizontal) 40px; background: linear-gradient(180deg, #0A0A0AF5 18.5%, #0A0A0AA6 55.5%, #0A0A0A4B 77%, #0A0A0A00 100%); pointer-events: none; }
+.coin-bubbles-top button { pointer-events: auto; }
+.coin-bubbles-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 60px 0 20px; background: linear-gradient(180deg, #0A0A0A00 0%, #0A0A0A0F 12.5%, #0A0A0A2A 26.8%, #0A0A0A 100%); }
+.ss-button.is-auto { width: auto; height: auto; padding: 8px 0; }
+.coin-bubbles-bottom .ss-button[disabled] { opacity: 1; background: var(--gray-700); color: var(--gray-400); }
