@@ -89,14 +89,20 @@ Services are functions located under `@/services` that hold domain logic: they
 know what a wallet, a payjoin session or a server connection is, and combine
 API calls into one operation. They do not depend on React.
 
-| Layer       | Imports React? | Imports stores? | Does I/O?                                  |
-| ----------- | -------------- | --------------- | ------------------------------------------ |
-| `utils/`    | No             | No              | No                                         |
-| `api/`      | No             | No              | Yes                                        |
-| `services/` | No             | No (injected)   | Via `api/`                                 |
-| `hooks/`    | Yes            | Yes             | Yes, prefer `services/` for multi-step I/O |
+| Layer       | Imports React? | Imports stores? | Does I/O?                                | Knows the domain? |
+| ----------- | -------------- | --------------- | ---------------------------------------- | ----------------- |
+| `utils/`    | No             | No              | No                                       | Pure rules only   |
+| `api/`      | No             | No              | Yes                                      | Wire format only  |
+| `services/` | No             | No (injected)   | Via `api/`                               | Yes               |
+| `hooks/`    | Yes            | Yes             | Via `services/`, or a single `api/` call | Yes               |
 
-They may:
+To place a function, ask two questions. Does it do I/O? If not, it is a
+utility; a utility may still encode a domain rule, such as which Core chain
+matches a network, as long as it stays pure. Does it know more than the wire
+format, such as what an account, a payjoin session or a server connection is?
+If so, it is a service, not an API function.
+
+Services may:
 
 - call API functions
 - call utility functions
@@ -104,7 +110,7 @@ They may:
 - receive store state and setters as arguments (dependency injection)
 - throw errors for the caller to handle
 
-They **shall not**:
+Services **shall not**:
 
 - import React or use hooks
 - import stores (pass what they need as arguments instead)
@@ -112,8 +118,9 @@ They **shall not**:
 - use `i18n` for error messages
 
 Hooks call services and keep the React side: component state, effects and
-store subscriptions. If a hook holds a long async flow that does not touch
-React state, move that flow to a service.
+store subscriptions. A hook may call a single API function directly, for
+example as a TanStack Query `queryFn`. As soon as it combines API calls or
+decides something about the domain, move that flow to a service.
 
 ## Hooks
 
@@ -123,7 +130,7 @@ component state and/or access external data, and are located under `@/hooks`.
 They may:
 
 - make use of both native and custom hooks
-- make network requests
+- make network requests through a service or a single API function
 - access the store
 - access the clipboard
 - access the camera
