@@ -3457,3 +3457,6 @@ html.is-bare .phone-status {
 .coin-bubbles-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 60px 0 20px; background: linear-gradient(180deg, #0A0A0A00 0%, #0A0A0A0F 12.5%, #0A0A0A2A 26.8%, #0A0A0A 100%); }
 .ss-button.is-auto { width: auto; height: auto; padding: 8px 0; }
 .coin-bubbles-bottom .ss-button[disabled] { opacity: 1; background: var(--gray-700); color: var(--gray-400); }
+
+/* settings/index.tsx — cards run edge to edge */
+#kit-body:has(.settings-root) { padding: 0; }

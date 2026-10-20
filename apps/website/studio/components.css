@@ -381,3 +381,7 @@ html.is-still *, html.is-still *::before, html.is-still *::after { animation-dur
 
 /* SSNumberInput — red border when out of range */
 .ss-input.is-invalid input { border: 1px solid var(--error); }
+
+/* SSSettingsCards — components/SSSettingsCard.tsx */
+.ss-settings-card { display: block; width: 100%; box-sizing: border-box; padding: 24px; border: 0; border-top: 1px solid var(--gray-850); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ss-settings-card:active { opacity: 0.5; }

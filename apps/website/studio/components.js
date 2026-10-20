@@ -72,7 +72,8 @@ const ss = (() => {
     }${attrs(p)}>${kids(children)}</button>`
   }
 
-  const gapVar = (axis, gap) => (gap ? `--gap:var(--layout-${axis}-stack-gap-${gap});` : '')
+  // Always set --gap (default md) so nested stacks don't inherit a parent's gap.
+  const gapVar = (axis, gap) => `--gap:var(--layout-${axis}-stack-gap-${gap || 'md'});`
 
   function vstack(p = {}, ...children) {
     return `<div class="${cls('ss-vstack', p.justifyBetween && 'is-between', p.itemsCenter && 'is-center', p.widthFull && 'is-full', p.className)}"${attrs({
@@ -492,5 +493,14 @@ const ss = (() => {
     root.querySelector('.ss-ghost-value').hidden = false
   })
 
-  return { bottomSheet, feeInput, orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
+  // SSSettingsCards — components/SSSettingsCard.tsx: icon, title, description, chevron.
+  function settingsCard(p = {}) {
+    return `<button type="button" class="ss-settings-card"${attrs(p)}>${hstack({ justifyBetween: true },
+      hstack({ style: 'align-items:center;width:94%' },
+        p.icon || '',
+        vstack({ gap: 'none', style: 'flex-shrink:1' }, text({ size: 'lg' }, esc(p.title)), text({ color: 'muted' }, esc(p.description)))),
+      icon('chevronRight', { width: 6, height: 11.6 }))}</button>`
+  }
+
+  return { settingsCard, bottomSheet, feeInput, orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
 })()

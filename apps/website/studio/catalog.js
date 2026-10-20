@@ -49,17 +49,41 @@ const screens = [
   { id: 'multisig-key', name: 'Key settings', view: 'view-multisig-key', source: 'Generate a cosigner' },
   { id: 'multisig-settings', name: 'Multisig settings', view: 'view-multisig-settings', source: 'Account keys' },
   { id: 'multisig-sign', name: 'Multisig sign', view: 'view-multisig-sign', source: 'Collect signatures' },
-  { id: 'settings', name: 'Settings', view: 'sheet', source: 'Settings sheet' },
-  { id: 'custom-backend', name: 'Custom Backend', view: 'sheet', source: 'Custom backend' },
+  { id: 'settings', name: 'Settings', view: 'view-kit', source: 'App settings' },
+  { id: 'settings-network', name: 'Network', view: 'view-kit', source: 'Bitcoin network' },
+  { id: 'settings-network-detail', name: 'Network detail', view: 'view-kit', source: 'Per-network config' },
+  { id: 'settings-network-server', name: 'Server', view: 'view-kit', source: 'Backend servers' },
+  { id: 'settings-network-explorer', name: 'Explorer servers', view: 'view-kit', source: 'Explorer backends' },
+  { id: 'settings-network-params', name: 'Network params', view: 'view-kit', source: 'Connection parameters' },
+  { id: 'settings-network-comparison', name: 'Network comparison', view: 'view-kit', source: 'Mainnet, testnet, signet' },
+  { id: 'settings-ark', name: 'Ark settings', view: 'view-kit', source: 'Ark servers' },
+  { id: 'settings-features', name: 'Features', view: 'view-kit', source: 'Feature toggles' },
+  { id: 'settings-features-auto-select', name: 'Auto select UTXOs', view: 'view-kit', source: 'Default algorithm' },
+  { id: 'settings-features-bip39', name: 'BIP39', view: 'view-kit', source: 'Word list' },
+  { id: 'settings-features-currency-formatting', name: 'Currency formatting', view: 'view-kit', source: 'Units and padding' },
+  { id: 'settings-features-fiat-data', name: 'Fiat data', view: 'view-kit', source: 'Price sources' },
+  { id: 'settings-features-charts', name: 'Charts', view: 'view-kit', source: 'Chart options' },
+  { id: 'settings-features-payjoin', name: 'Payjoin settings', view: 'view-kit', source: 'Payjoin directory' },
+  { id: 'settings-fiat', name: 'Fiat currency', view: 'view-kit', source: 'Display currency' },
+  { id: 'settings-security', name: 'Security', view: 'view-kit', source: 'PIN and duress' },
+  { id: 'settings-security-report', name: 'Report an issue', view: 'view-kit', source: 'Send a report' },
+  { id: 'settings-about', name: 'About', view: 'view-kit', source: 'Version and links' },
+  { id: 'settings-about-changelog', name: 'Changelog', view: 'view-kit', source: 'Release notes' },
+  { id: 'settings-developer', name: 'Developer', view: 'view-kit', source: 'Dev tools' },
+  { id: 'settings-developer-diagnosis', name: 'Diagnosis', view: 'view-kit', source: 'Self checks' },
+  { id: 'settings-developer-recover', name: 'Recover data', view: 'view-kit', source: 'Restore a backup' },
+  { id: 'settings-design', name: 'Design', view: 'view-kit', source: 'Component sandbox' },
+  { id: 'settings-icons', name: 'Icons', view: 'view-kit', source: 'Icon gallery' },
   { id: 'script', name: 'Script', view: 'sheet', source: 'Account script selector' }
 ]
 
 const themes = [
   ['Shell', ['signer', 'difficulty', 'settings']],
+  ['Settings', ['settings-network', 'settings-network-detail', 'settings-network-server', 'settings-network-explorer', 'settings-network-params', 'settings-network-comparison', 'settings-ark', 'settings-features', 'settings-features-auto-select', 'settings-features-bip39', 'settings-features-currency-formatting', 'settings-features-fiat-data', 'settings-features-charts', 'settings-features-payjoin', 'settings-fiat', 'settings-security', 'settings-security-report', 'settings-about', 'settings-about-changelog', 'settings-developer', 'settings-developer-diagnosis', 'settings-developer-recover', 'settings-design', 'settings-icons']],
   ['Signer', ['intro']],
   ['Explorer', ['explorer']],
   ['Converter', ['converter', 'currency']],
-  ['Bitcoin', ['accounts', 'account', 'tx', 'coins', 'chart', 'send', 'output', 'payjoin', 'preview', 'builder', 'sign', 'psbt-qr', 'sent', 'coin-list', 'coin-bubbles', 'exclude-utxos', 'fee-management', 'timelock', 'wallet-synced', 'script', 'new-account', 'new-singlesig', 'entropy-dice', 'entropy-coin', 'entropy-drawing', 'multisig-setup', 'multisig-keys', 'multisig-key', 'multisig-settings', 'multisig-sign', 'custom-backend']],
+  ['Bitcoin', ['accounts', 'account', 'tx', 'coins', 'chart', 'send', 'output', 'payjoin', 'preview', 'builder', 'sign', 'psbt-qr', 'sent', 'coin-list', 'coin-bubbles', 'exclude-utxos', 'fee-management', 'timelock', 'wallet-synced', 'script', 'new-account', 'new-singlesig', 'entropy-dice', 'entropy-coin', 'entropy-drawing', 'multisig-setup', 'multisig-keys', 'multisig-key', 'multisig-settings', 'multisig-sign']],
   ['Lightning', ['lightning', 'lightning-node', 'lightning-rest', 'lightning-rpc']],
   ['Ark', ['ark', 'ark-account']],
   ['ECash', ['ecash', 'ecash-account', 'ecash-send', 'ecash-receive', 'ecash-add']],
@@ -235,7 +259,7 @@ const navSections = [
             { id: 'nostr-add' }
           ]
         },
-        { id: 'settings', children: [{ id: 'custom-backend' }] }
+        { id: 'settings', children: [{ id: 'settings-network', children: [{ id: 'settings-network-server' }] }, { id: 'settings-features' }, { id: 'settings-security' }, { id: 'settings-about' }, { id: 'settings-developer' }] }
       ]
     }
   },

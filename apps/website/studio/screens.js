@@ -17,16 +17,24 @@ function registerScreen(id, def) {
   kitScreens[id] = def
 }
 
+// Where the settings stack returns to (the screen whose gear opened it).
+let settingsReturn = 'signer'
+
 function openKitScreen(id) {
   const def = kitScreens[id]
+  if (id === 'settings' && routeId && !String(routeId).startsWith('settings')) settingsReturn = routeId
   kitCurrent = id
+  document.getElementById('view-kit').onclick = null
   if (!openAccountData) openAccountData = accounts[0]
   const state = { id }
   document.getElementById('kit-title').textContent = typeof def.title === 'function' ? def.title() : def.title || ''
   const back = document.getElementById('kit-back')
   back.hidden = def.back === null
+  // Settings screens have no gear (headerRight: undefined in the app).
+  const gear = document.querySelector('#view-kit .stack-header [data-settings]')
+  if (gear) gear.hidden = id.startsWith('settings') || def.gear === false
   back.innerHTML = icon('back', 'back-mark')
-  back.onclick = () => go(def.back || 'menu')
+  back.onclick = () => go((typeof def.back === 'function' ? def.back() : def.back) || 'menu')
   // Fresh node each time so listeners from the previous screen don't pile up.
   const old = document.getElementById('kit-body')
   const body = old.cloneNode(false)
