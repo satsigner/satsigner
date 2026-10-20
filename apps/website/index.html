@@ -104,7 +104,6 @@
         </button>
         <div class="nav-links" id="nav-links">
           <a href="#features">Features</a>
-          <a href="#security">Security</a>
           <a href="#contribute">Contribute</a>
           <div class="nav-drop">
             <a href="#git" class="nav-drop-label" aria-haspopup="true">Git</a>
@@ -639,98 +638,99 @@
         <h3>UTXO control</h3>
         <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
       </article>
-      <article class="feature-grid-card" data-screen="accounts">
+      <article class="feature-grid-card" data-screen="new-account">
         <h3>Account types</h3>
         <p>Single-signature, multi-signature, and watch-only on mainnet, testnet, and signet.</p>
       </article>
-      <article class="feature-grid-card" data-screen="accounts">
-        <h3>Every script</h3>
-        <p>P2PKH, P2SH, nested and native SegWit, and Taproot (P2TR).</p>
-      </article>
-      <article class="feature-grid-card is-span-2" data-screen="accounts">
-        <h3>Multisig</h3>
-        <p>M-of-N wallets, sortedmulti descriptors, and per-cosigner PSBT tracking.</p>
-      </article>
-      <article class="feature-grid-card" data-screen="send">
+      <article class="feature-grid-card" data-screen="builder">
         <h3>Transaction builder</h3>
         <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
       </article>
-      <article class="feature-grid-card" data-screen="account">
+      <article class="feature-grid-card is-span-2" data-screen="multisig-sign">
+        <h3>Multisig</h3>
+        <p>M-of-N wallets, sortedmulti descriptors, and per-cosigner PSBT tracking.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="account-settings">
         <h3>BIP329 labels</h3>
         <p>Label transactions, addresses, and UTXOs. Import and export JSON, JSONL, and CSV.</p>
       </article>
-      <article class="feature-grid-card is-span-2" data-screen="preview">
+      <article class="feature-grid-card is-span-2" data-screen="payjoin-tx">
         <h3>Payjoin</h3>
         <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
-      </article>
-      <article class="feature-grid-card is-span-2" data-screen="sign">
-        <h3>Air-gapped signing</h3>
-        <p>Seed QR scanning, signature threshold checks, and per-cosigner PSBT export.</p>
       </article>
       <article class="feature-grid-card" data-screen="settings">
         <h3>Keys and PIN</h3>
         <p>AES-256 storage, PIN lock, duress PIN, and the option to drop the seed after key extraction.</p>
       </article>
-      <article class="feature-grid-card" data-screen="intro">
-        <h3>No tracking</h3>
-        <p>No third-party analytics. MIT-licensed code you can audit.</p>
+      <article class="feature-grid-card is-span-2" data-screen="psbt-qr">
+        <h3>Air-gapped signing</h3>
+        <p>Seed QR scanning, signature threshold checks, and per-cosigner PSBT export.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="custom-backend">
+        <h3>Connect to your node</h3>
+        <p>Point the app at your own Electrum, Esplora, or Bitcoin Core server.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="script">
+        <h3>Every script</h3>
+        <p>P2PKH, P2SH, nested and native SegWit, and Taproot (P2TR).</p>
       </article>
       <article class="feature-grid-card" data-screen="chart">
-        <h3>See the flow</h3>
-        <p>Sankey diagrams, balance timelines, fee-rate history, and network charts.</p>
+        <h3>Balance history</h3>
+        <p>A line chart of the account balance over time, with each receive and send marked.</p>
       </article>
       <article class="feature-grid-card" data-screen="menu">
         <h3>Import and export</h3>
         <p>Descriptors, xpub formats, PSBTs over QR and NFC, and full account backup.</p>
       </article>
-      <article class="feature-grid-card" data-screen="menu">
-        <h3>Lightning and eCash</h3>
-        <p>LND invoices and payments, plus Cashu mints for private tokens.</p>
+      <article class="feature-grid-card" data-screen="lightning">
+        <h3>Lightning</h3>
+        <p>Connect an LND node, then create invoices and pay them.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="ecash">
+        <h3>eCash</h3>
+        <p>Cashu mints for private tokens. Send and receive without leaving the app.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="ark">
+        <h3>Ark accounts</h3>
+        <p>A balance per server, on Bitcoin or Signet, next to the onchain wallet.</p>
       </article>
       <article class="feature-grid-card" data-screen="menu">
         <h3>Nostr sync</h3>
         <p>Decentralized label sync over DMs, with relays and a trusted-device list.</p>
       </article>
-      <article class="feature-grid-card" data-screen="explorer">
-        <h3>Explorer and tools</h3>
-        <p>Blocks and transactions, fiat rates, and Bitcoin-to-energy conversion.</p>
+      <article class="feature-grid-card" data-screen="difficulty">
+        <h3>Explorer</h3>
+        <p>Blocks, the mempool, and each difficulty epoch drawn as a spiral of blocks.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="output">
+        <h3>Scripts and outputs</h3>
+        <p>See inputs, outputs, and script types in one view.</p>
+      </article>
+      <article class="feature-grid-card is-span-3" data-screen="ark-account">
+        <h3>Vtxos</h3>
+        <p>See the virtual outputs behind an Ark balance before you spend them.</p>
       </article>
       <article class="feature-grid-card is-span-2" data-screen="preview">
         <h3>Raw transaction</h3>
         <p>Decode the bytes instead of accepting a summary.</p>
       </article>
-      <article class="feature-grid-card" data-screen="send">
-        <h3>Scripts and outputs</h3>
-        <p>See inputs, outputs, and script types in one view.</p>
+      <article class="feature-grid-card" data-screen="duress">
+        <h3>Duress PIN</h3>
+        <p>A separate PIN for situations where you cannot unlock normally.</p>
       </article>
-    </div>
-  </section>
-
-  <section class="topic-section" id="security">
-    <h2 class="feature-grid-title">Security and privacy</h2>
-    <p class="feature-grid-intro">Keys stay on the device. No third-party tracking, and payments can avoid a plain on-chain fingerprint.</p>
-    <div class="feature-grid">
       <article class="feature-grid-card is-span-2" data-screen="settings">
         <h3>PIN and encryption</h3>
         <p>AES-256-CBC storage with PIN-protected access.</p>
       </article>
-      <article class="feature-grid-card" data-screen="settings">
-        <h3>Duress PIN</h3>
-        <p>A separate PIN for situations where you cannot unlock normally.</p>
-      </article>
-      <article class="feature-grid-card" data-screen="settings">
+      <article class="feature-grid-card" data-screen="seed-drop">
         <h3>Seed dropping</h3>
         <p>Remove the mnemonic after the keys are extracted.</p>
       </article>
-      <article class="feature-grid-card" data-screen="intro">
-        <h3>No analytics</h3>
-        <p>The app does not send usage data to a third party.</p>
-      </article>
-      <article class="feature-grid-card is-row-2" data-screen="account">
+      <article class="feature-grid-card" data-screen="account">
         <h3>Your labels</h3>
         <p>BIP329 labels on device, with optional Nostr sync and export when you choose.</p>
       </article>
-      <article class="feature-grid-card is-span-2" data-screen="preview">
+      <article class="feature-grid-card is-span-2" data-screen="payjoin-tx">
         <h3>Payjoin</h3>
         <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
       </article>
@@ -830,7 +830,6 @@
   <footer class="site-footer">
     <div class="footer-links">
       <a href="#features">Features</a>
-      <a href="#security">Security</a>
       <a href="#contribute">Contribute</a>
       <a href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">GitHub</a>
       <a href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener">ngit</a>
