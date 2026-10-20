@@ -1,56 +1,45 @@
-import { useShallow } from 'zustand/react/shallow'
-
 import { useEcashStore } from '@/store/ecash'
+import {
+  activeAccountItems,
+  activeAccountMintQuotes
+} from '@/utils/ecashAccount'
+import { uniqueProofsBySecret } from '@/utils/ecashProofs'
 
 /**
  * Read-only ecash state for the active account. Screens that only display
- * balances, proofs or history use this instead of the full `useEcash`.
+ * balances, proofs or history use this instead of the full `useEcash`. Each
+ * slice is selected for the active account only, so changes to other
+ * accounts do not re-render the caller.
  */
 export function useEcashAccountState() {
-  const [
-    accounts,
-    activeAccountId,
-    allMints,
-    allProofs,
-    allTransactions,
-    allMintQuotes,
-    allCounters
-  ] = useEcashStore(
-    useShallow((state) => [
-      state.accounts,
-      state.activeAccountId,
-      state.mints,
-      state.proofs,
-      state.transactions,
-      state.quotes,
-      state.counters
-    ])
+  const activeAccountId = useEcashStore((state) => state.activeAccountId)
+  const activeAccount = useEcashStore(
+    (state) =>
+      state.accounts.find((a) => a.id === state.activeAccountId) ?? null
   )
-
-  const activeAccount = accounts.find((a) => a.id === activeAccountId) ?? null
-  const mints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
-  const rawProofs = activeAccountId ? (allProofs[activeAccountId] ?? []) : []
-  const proofs = rawProofs.filter(
-    (proof, index, arr) =>
-      arr.findIndex((p) => p.secret === proof.secret) === index
+  const mints = useEcashStore((state) =>
+    activeAccountItems(state.mints, state.activeAccountId)
   )
-  const transactions = activeAccountId
-    ? (allTransactions[activeAccountId] ?? [])
-    : []
-  const mintQuotes = activeAccountId
-    ? (allMintQuotes[activeAccountId]?.mint ?? [])
-    : []
-  const counters = activeAccountId ? (allCounters[activeAccountId] ?? []) : []
+  const rawProofs = useEcashStore((state) =>
+    activeAccountItems(state.proofs, state.activeAccountId)
+  )
+  const transactions = useEcashStore((state) =>
+    activeAccountItems(state.transactions, state.activeAccountId)
+  )
+  const counters = useEcashStore((state) =>
+    activeAccountItems(state.counters, state.activeAccountId)
+  )
+  const mintQuotes = useEcashStore((state) =>
+    activeAccountMintQuotes(state.quotes, state.activeAccountId)
+  )
 
   return {
-    accounts,
     activeAccount,
     activeAccountId,
-    allMints,
     counters,
     mintQuotes,
     mints,
-    proofs,
+    proofs: uniqueProofsBySecret(rawProofs),
     transactions
   }
 }
