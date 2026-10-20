@@ -4168,12 +4168,15 @@ const requested = isStage
   ? (location.hash || '').replace(/^#/, '') || demoQuery.get('screen') || ''
   : ''
 
-if (!go(requested)) {
-  paintTabs()
-  renderMenu('signer')
-  renderSplash()
-  show('intro')
-}
+// Route after every script has run, so screens registered in screens.js resolve too.
+document.addEventListener('DOMContentLoaded', () => {
+  if (!go(requested)) {
+    paintTabs()
+    renderMenu('signer')
+    renderSplash()
+    show('intro')
+  }
+})
 
 window.addEventListener('message', (event) => {
   if (event.origin !== location.origin) return
