@@ -512,6 +512,91 @@ const components = [
   }
 ]
 
+// SS kit (components.js). Each entry renders through the kit, so this doubles as its test page.
+const kitComponents = [
+  {
+    name: 'SSButton',
+    source: 'default, secondary, outline, elevated, gradient',
+    html: ss.vstack({ gap: 'sm' },
+      ss.button({ label: t('common.continue') }),
+      ss.button({ label: t('common.continue'), variant: 'secondary' }),
+      ss.button({ label: t('common.cancel'), variant: 'outline' }),
+      ss.button({ label: 'Elevated', variant: 'elevated' }),
+      ss.button({ label: 'Gradient', variant: 'gradient' }))
+  },
+  {
+    name: 'SSButton',
+    source: 'subtle, ghost, danger, select, loading, disabled',
+    html: ss.vstack({ gap: 'sm' },
+      ss.button({ label: 'Subtle', variant: 'subtle' }),
+      ss.button({ label: t('common.cancel'), variant: 'ghost' }),
+      ss.button({ label: 'Delete', variant: 'danger' }),
+      ss.button({ label: 'Select', withSelect: true }),
+      ss.button({ loading: true }),
+      ss.button({ label: 'Disabled', disabled: true }))
+  },
+  {
+    name: 'SSText',
+    source: 'sizes, weights, colours, mono',
+    html: ss.vstack({ gap: 'xs' },
+      ss.text({ size: '5xl', weight: 'ultralight' }, '22,190,000'),
+      ss.text({ size: 'xl', weight: 'medium' }, 'Spending'),
+      ss.text({ size: 'md' }, 'Regular md'),
+      ss.text({ color: 'muted', uppercase: true }, 'Muted uppercase'),
+      ss.text({ type: 'mono', size: 'xs' }, 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'))
+  },
+  {
+    name: 'SSTextInput',
+    source: 'default, small left, outline, invalid',
+    html: ss.vstack({ gap: 'sm' },
+      ss.textInput({ placeholder: 'Account name' }),
+      ss.textInput({ size: 'small', align: 'left', value: 'Spending' }),
+      ss.textInput({ variant: 'outline', value: '50000' }),
+      ss.textInput({ status: 'invalid', value: 'bc1qwrong', error: 'Invalid address' }))
+  },
+  {
+    name: 'SSCheckbox · SSRadioButton',
+    source: 'tap to toggle',
+    html: ss.vstack({ gap: 'md' },
+      ss.checkbox({ label: 'Enable payjoin', description: 'Batch with the receiver', selected: true }),
+      ss.checkbox({ label: 'Auto-select UTXOs' }),
+      ss.radio({ label: 'Native Segwit', group: 'script', selected: true }),
+      ss.radio({ label: 'Taproot', group: 'script' }),
+      ss.hstack({ gap: 'none' },
+        ss.radio({ label: 'Sats', group: 'unit', variant: 'outline', selected: true }),
+        ss.radio({ label: 'BTC', group: 'unit', variant: 'outline' })))
+  },
+  {
+    name: 'SSFormLayout · SSSeparator',
+    source: 'labels, items, gradient and dark separators',
+    html: ss.form({},
+      ss.form.item({}, ss.form.label({ label: 'Name' }), ss.textInput({ size: 'small', value: 'Savings' })),
+      ss.separator(),
+      ss.form.item({}, ss.form.label({ label: 'Amount' }), ss.textInput({ size: 'small', value: '50,000' })),
+      ss.separator({ color: 'grayDark' }))
+  },
+  {
+    name: 'SSIconButton · icons',
+    source: 'generated/icons.js',
+    html: ss.hstack({ gap: 'md' },
+      ['settings', 'chevronRight', 'eyeOn', 'bitcoin', 'lightning', 'nostr', 'eCash'].map((name) =>
+        ss.iconButton({ label: name }, ss.icon(name, { size: 22 }))))
+  },
+  {
+    name: 'SSClipboardCopy · SSModal',
+    source: 'tap address to copy, open modal',
+    html: ss.vstack({ gap: 'md', style: 'position:relative;min-height:220px' },
+      ss.clipboardCopy({ text: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' },
+        ss.text({ type: 'mono', size: 'xs' }, 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh')),
+      ss.button({ label: 'Open modal', variant: 'outline', id: 'kit-modal-open' }),
+      ss.modal({ id: 'kit-modal' }, ss.text({ size: 'lg', center: true }, 'Modal body')))
+  }
+]
+components.unshift(...kitComponents)
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#kit-modal-open')) ss.open('kit-modal')
+})
+
 const componentGrid = document.getElementById('components-view')
 components.forEach((component) => {
   const card = document.createElement('article')

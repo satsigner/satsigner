@@ -21,6 +21,26 @@ Turn one SatSigner React Native screen into a static HTML, CSS, and JavaScript p
 7. Interaction is limited to press feedback, the home stagger (60ms delay, 150ms, 24px slide), and the Signer / Explorer / Converter tab switch.
 8. The phone is a fixed 390 by 844 frame.
 
+## Extraction pipeline
+
+Run `node studio/tools/extract-all.mjs --app ../satsigner/apps/mobile` (the default path assumes the app repo sits next to this one). It uses the app's own TypeScript install and writes these files to `generated/`. Never edit them by hand:
+
+- `tokens.css` — every value in `styles/*.ts` (colours, sizes, layout, typography).
+- `icons.js` — `ssIcons`, all `SSIcon*.tsx` files as SVG strings.
+- `styles.css` — every `StyleSheet.create` as `.<File>__<key>` classes, with colours mapped to tokens. Use it as a reference when porting.
+- `strings.js` — `en.json` plus `t('key')`. Use it instead of hard-coding copy.
+- `routes.json` — every route with its params, navigation targets, SS components, and i18n keys.
+- `extract-warnings.txt` — anything the scripts could not convert.
+
+Then run `node studio/tools/coverage.mjs`. It maps catalog screens to app routes through `coverage.json` and writes `generated/coverage.md`, which shows routes with no screen and screens whose route was renamed in the app. Rerun both after pulling app changes.
+
+## Component kit
+
+`components.js` exposes `ss`, with one render function per app component (`ss.button`, `ss.text`, `ss.vstack`, `ss.textInput`, `ss.checkbox`, `ss.radio`, `ss.modal` and the rest). The props mirror the React Native props, and `go:` routes like `data-go`. The styles are in `components.css` (`ss-` classes, generated tokens only). Every kit component is shown at the top of the Components view (`?view=components`). Add a component there when you port it.
+
 ## Adding another screen
 
-Copy this folder’s pattern: one source file, one fixture, one `screen.css`. Reuse `tokens.css`.
+1. Pick a missing route from `generated/coverage.md`.
+2. Read its `routes.json` entry for the components, strings, and targets it uses.
+3. Build it with `ss.*`, port any missing component into the kit first, take copy from `t()`, and look up exact values in `generated/styles.css`.
+4. Add the screen to `catalog.js` and its route to `coverage.json`.

@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+/* Compare generated/routes.json with coverage.json and catalog.js.
+   Usage: node studio/tools/coverage.mjs [--md]  (writes generated/coverage.md) */
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { writeOut } from './lib.mjs'
+
+const studio = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const routes = JSON.parse(fs.readFileSync(path.join(studio, 'generated/routes.json'), 'utf8')).filter((r) => !r.layout)
+const map = JSON.parse(fs.readFileSync(path.join(studio, 'coverage.json'), 'utf8'))
+delete map._doc
+
+const catalogIds = [...fs.readFileSync(path.join(studio, 'catalog.js'), 'utf8').matchAll(/\{ id: '([^']+)'/g)].map((m) => m[1])
+const known = new Set(routes.map((r) => r.path))
+const byRoute = new Map()
+const problems = []
+
+for (const [id, paths] of Object.entries(map)) {
+  if (!catalogIds.includes(id)) problems.push(`coverage.json: '${id}' is not in catalog.js`)
+  for (const p of paths) {
+    if (!known.has(p)) problems.push(`coverage.json: '${id}' points at unknown route ${p} (renamed in the app?)`)
+    byRoute.set(p, [...(byRoute.get(p) || []), id])
+  }
+}
+for (const id of catalogIds) if (!(id in map)) problems.push(`catalog.js: '${id}' has no route in coverage.json`)
+
+const area = (p) => p.split('/')[1] === 'signer' ? `signer/${p.split('/')[2] || ''}` : p.split('/')[1] || 'home'
+const groups = new Map()
+for (const r of routes) {
+  const g = area(r.path)
+  groups.set(g, [...(groups.get(g) || []), r])
+}
+
+const done = routes.filter((r) => byRoute.has(r.path)).length
+const lines = [`# Studio coverage`, ``, `**${done} / ${routes.length} routes** (${Math.round((done / routes.length) * 100)}%) have a Studio screen.`, ``]
+lines.push(`| Area | Covered | Missing routes |`, `|---|---|---|`)
+for (const [g, rs] of [...groups].sort()) {
+  const missing = rs.filter((r) => !byRoute.has(r.path))
+  lines.push(`| ${g} | ${rs.length - missing.length}/${rs.length} | ${missing.map((r) => '`' + r.path + '`').join(', ')} |`)
+}
+if (problems.length) lines.push(``, `## Problems`, ``, ...problems.map((p) => `- ${p}`))
+
+writeOut(path.join(studio, 'generated/coverage.md'), lines.join('\n') + '\n')
+console.log(`${done}/${routes.length} routes covered, ${problems.length} problems`)
+problems.forEach((p) => console.log(`  ! ${p}`))
