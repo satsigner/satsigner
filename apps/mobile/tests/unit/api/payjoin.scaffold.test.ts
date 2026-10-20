@@ -6,6 +6,7 @@ import {
 } from '@/api/payjoin'
 import {
   getPayjoinDeps,
+  payjoinSessionStore,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
@@ -56,10 +57,7 @@ describe('payjoin scaffold (phase 0)', () => {
     }
     usePayjoinSessionsStore.getState().upsertSession(broken)
 
-    const resumed = await tryResumeReceiverSession(
-      broken,
-      getPayjoinDeps().sessions
-    )
+    const resumed = await tryResumeReceiverSession(broken, payjoinSessionStore)
     expect(resumed).toBeNull()
     expect(usePayjoinSessionsStore.getState().getSession(session.id)?.id).toBe(
       session.id
@@ -76,10 +74,7 @@ describe('payjoin scaffold (phase 0)', () => {
     const dead = { ...session, nativeState: undefined }
     usePayjoinSessionsStore.getState().upsertSession(dead)
 
-    const resumed = await tryResumeReceiverSession(
-      dead,
-      getPayjoinDeps().sessions
-    )
+    const resumed = await tryResumeReceiverSession(dead, payjoinSessionStore)
     expect(resumed).toBeNull()
     expect(
       usePayjoinSessionsStore.getState().getSession(session.id)

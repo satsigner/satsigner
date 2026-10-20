@@ -169,6 +169,7 @@ const usePayjoinSessionsStore = create<
   )
 )
 
+/** Live session store, for `@/api/payjoin` calls that need no settings. */
 const payjoinSessionStore: PayjoinSessionStore = {
   getSession: (id) => usePayjoinSessionsStore.getState().getSession(id),
   getSessions: () => usePayjoinSessionsStore.getState().sessions,
@@ -191,4 +192,4 @@ function getPayjoinDeps(): PayjoinDeps {
   }
 }
 
-export { getPayjoinDeps, usePayjoinSessionsStore }
+export { getPayjoinDeps, payjoinSessionStore, usePayjoinSessionsStore }
