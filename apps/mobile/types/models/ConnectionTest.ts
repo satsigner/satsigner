@@ -1,4 +1,3 @@
-import type ElectrumClient from '@/api/electrum'
 import {
   type Backend,
   type Network,
@@ -18,17 +17,16 @@ export type ConnectionTestSuccess = {
   blockFilterIndexMissing?: boolean
 }
 
-export type ConnectionTestResult =
-  | ConnectionTestSuccess
-  | {
-      success: false
-      error?: string
-    }
+export type ConnectionTestFailure = {
+  success: false
+  error?: string
+}
+
+export type ConnectionTestResult = ConnectionTestSuccess | ConnectionTestFailure
 
 export type ProbeParams = {
   url: string
   backend: Backend
   network: Network
   rpcCredentials?: RpcCredentials
-  onElectrumClientOpened?: (client: ElectrumClient) => void
 }

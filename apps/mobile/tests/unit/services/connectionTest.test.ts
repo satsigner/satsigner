@@ -2,7 +2,10 @@ import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { CONNECTION_TEST_TIMEOUT_MS } from '@/constants/connectionTest'
-import { probeConnection } from '@/services/connectionTest'
+import {
+  probeConnection,
+  toConnectionTestFailure
+} from '@/services/connectionTest'
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   __esModule: true,
@@ -22,6 +25,7 @@ jest.mock<typeof import('@/api/esplora')>('@/api/esplora', () => ({
 
 const RPC_URL = 'http://node.local:38332'
 const ELECTRUM_URL = 'ssl://electrum.local:60002'
+const TOR_PROXY = { enabled: true, host: '127.0.0.1', port: 9050 }
 
 function mockElectrum(init: jest.Mock) {
   const client = {
@@ -100,18 +104,15 @@ describe('probeConnection', () => {
     })
   })
 
-  it('hands out and closes the Electrum client when optional calls fail', async () => {
+  it('closes the Electrum client when optional calls fail', async () => {
     const client = mockElectrum(jest.fn().mockResolvedValue(undefined))
-    const onElectrumClientOpened = jest.fn()
 
     const result = await probeConnection({
       backend: 'electrum',
       network: 'signet',
-      onElectrumClientOpened,
       url: ELECTRUM_URL
     })
 
-    expect(onElectrumClientOpened).toHaveBeenCalledWith(client)
     expect(closeElectrumClientQuietly).toHaveBeenCalledWith(client)
     expect(result).toStrictEqual({
       banner: undefined,
@@ -134,9 +135,11 @@ describe('probeConnection', () => {
     expect(closeElectrumClientQuietly).toHaveBeenCalledTimes(1)
   })
 
-  it('rejects when the server does not answer in time', async () => {
+  it('rejects and closes the Electrum client when the server does not answer in time', async () => {
     jest.useFakeTimers()
-    mockElectrum(jest.fn().mockReturnValue(new Promise(() => {})))
+    const client = mockElectrum(
+      jest.fn().mockReturnValue(new Promise(() => {}))
+    )
 
     const probe = probeConnection({
       backend: 'electrum',
@@ -146,6 +149,7 @@ describe('probeConnection', () => {
     jest.advanceTimersByTime(CONNECTION_TEST_TIMEOUT_MS)
 
     await expect(probe).rejects.toThrow('Connection test timeout')
+    expect(closeElectrumClientQuietly).toHaveBeenCalledWith(client)
   })
 
   it('passes through the Electrum tip, its timestamp and a trimmed banner', async () => {
@@ -166,6 +170,28 @@ describe('probeConnection', () => {
       blockHeight: 10,
       success: true,
       tipTimestampSec: 1_700_000_000
+    })
+  })
+})
+
+describe('toConnectionTestFailure', () => {
+  it('surfaces the message of a thrown Error', () => {
+    expect(
+      toConnectionTestFailure(new Error('connection refused'), TOR_PROXY)
+    ).toStrictEqual({ error: 'connection refused', success: false })
+  })
+
+  it('points at Tor when a proxied probe fails without an Error', () => {
+    expect(toConnectionTestFailure('socket closed', TOR_PROXY)).toStrictEqual({
+      error: 'Proxy connection failed. Ensure Tor/Orbot is running.',
+      success: false
+    })
+  })
+
+  it('falls back to a generic message without a proxy', () => {
+    expect(toConnectionTestFailure('socket closed')).toStrictEqual({
+      error: 'Unknown connection error',
+      success: false
     })
   })
 })

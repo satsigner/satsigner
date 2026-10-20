@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import type ElectrumClient from '@/api/electrum'
 import { CONNECTION_TEST_COOLDOWN_MS } from '@/constants/connectionTest'
-import { closeProbeClient, probeConnection } from '@/services/connectionTest'
+import {
+  probeConnection,
+  toConnectionTestFailure
+} from '@/services/connectionTest'
 import { type ConnectionTestResult } from '@/types/models/ConnectionTest'
 import {
   type Backend,
@@ -13,18 +15,7 @@ import {
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
-  const [currentClient, setCurrentClient] = useState<ElectrumClient | null>(
-    null
-  )
-  const [lastTestTime, setLastTestTime] = useState<number>(0)
-
-  const cleanupPreviousConnection = useCallback(() => {
-    if (!currentClient) {
-      return
-    }
-    closeProbeClient(currentClient)
-    setCurrentClient(null)
-  }, [currentClient])
+  const [lastTestTime, setLastTestTime] = useState(0)
 
   async function testConnection(
     url: string,
@@ -42,44 +33,18 @@ export function useConnectionTest() {
     }
 
     setLastTestTime(now)
-    cleanupPreviousConnection()
     setTesting(true)
 
     try {
-      return await probeConnection({
-        backend,
-        network,
-        onElectrumClientOpened: setCurrentClient,
-        rpcCredentials,
-        url
-      })
+      return await probeConnection({ backend, network, rpcCredentials, url })
     } catch (error) {
-      const fallback = proxy?.enabled
-        ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
-        : 'Unknown connection error'
-      return {
-        error: error instanceof Error ? error.message : fallback,
-        success: false
-      }
+      return toConnectionTestFailure(error, proxy)
     } finally {
       setTesting(false)
     }
   }
 
-  function resetTest() {
-    cleanupPreviousConnection()
-    setTesting(false)
-  }
-
-  useEffect(
-    () => () => {
-      cleanupPreviousConnection()
-    },
-    [cleanupPreviousConnection]
-  )
-
   return {
-    resetTest,
     testConnection,
     testing
   }

@@ -3,31 +3,21 @@ import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { CONNECTION_TEST_TIMEOUT_MS } from '@/constants/connectionTest'
 import {
+  type ConnectionTestFailure,
   type ConnectionTestSuccess,
   type ProbeParams
 } from '@/types/models/ConnectionTest'
-import { type Backend } from '@/types/settings/blockchain'
+import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
 import { formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 import { withTimeout } from '@/utils/time'
 
-async function probeElectrum({
-  url,
-  network,
-  onElectrumClientOpened
-}: ProbeParams): Promise<ConnectionTestSuccess> {
-  const client = ElectrumClient.fromUrl(url, network)
-  onElectrumClientOpened?.(client)
-  try {
-    return await readElectrumTip(client)
-  } finally {
-    closeElectrumClientQuietly(client)
-  }
-}
-
-async function readElectrumTip(
-  client: ElectrumClient
+async function probeElectrum(
+  { url, network }: ProbeParams,
+  probeEnded: AbortSignal
 ): Promise<ConnectionTestSuccess> {
+  const client = ElectrumClient.fromUrl(url, network)
+  probeEnded.addEventListener('abort', () => closeElectrumClientQuietly(client))
   await client.init()
 
   // Headers, timestamp and banner are optional: not every server supports them.
@@ -106,7 +96,10 @@ async function probeRpc({
 
 const PROBES: Record<
   Backend,
-  (params: ProbeParams) => Promise<ConnectionTestSuccess>
+  (
+    params: ProbeParams,
+    probeEnded: AbortSignal
+  ) => Promise<ConnectionTestSuccess>
 > = {
   electrum: probeElectrum,
   esplora: probeEsplora,
@@ -116,19 +109,36 @@ const PROBES: Record<
 /**
  * Connects to a server, checks it serves the expected network, and reads its
  * tip for the settings screens. Throws when the server is unreachable, on the
- * wrong chain, or slower than CONNECTION_TEST_TIMEOUT_MS.
+ * wrong chain, or slower than CONNECTION_TEST_TIMEOUT_MS. Any socket the probe
+ * opened is closed once it settles, including on timeout.
  */
-function probeConnection(params: ProbeParams) {
-  return withTimeout(
-    PROBES[params.backend](params),
-    CONNECTION_TEST_TIMEOUT_MS,
-    'Connection test timeout'
-  )
+async function probeConnection(params: ProbeParams) {
+  const probe = new AbortController()
+  try {
+    return await withTimeout(
+      PROBES[params.backend](params, probe.signal),
+      CONNECTION_TEST_TIMEOUT_MS,
+      'Connection test timeout'
+    )
+  } finally {
+    probe.abort()
+  }
 }
 
-/** Closes an Electrum client handed out through `onElectrumClientOpened`. */
-function closeProbeClient(client: ElectrumClient) {
-  closeElectrumClientQuietly(client)
+/** Turns a `probeConnection` rejection into the result the screens show. */
+function toConnectionTestFailure(
+  error: unknown,
+  proxy?: ProxyConfig
+): ConnectionTestFailure {
+  if (error instanceof Error) {
+    return { error: error.message, success: false }
+  }
+  return {
+    error: proxy?.enabled
+      ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
+      : 'Unknown connection error',
+    success: false
+  }
 }
 
-export { closeProbeClient, probeConnection }
+export { probeConnection, toConnectionTestFailure }
