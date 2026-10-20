@@ -6,12 +6,17 @@ import { useShallow } from 'zustand/react/shallow'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  COINBASE_PREV_TXID,
+  HASH_HEX_LENGTH,
+  SATS_PER_BITCOIN,
+  TXID_HEX_PATTERN
+} from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { recalculateDepthH } from '@/utils/transaction'
+import { recalculateDepthH, weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 type ExtendedVin = Transaction['vin'][number] & {
@@ -165,7 +170,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       }
       const id = normalizeTxid(txId)
       const candidates: string[] = [id]
-      if (/^[a-f0-9]{64}$/i.test(id) && Buffer.from(id, 'hex').length === 32) {
+      if (TXID_HEX_PATTERN.test(id)) {
         candidates.push(
           // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
           Buffer.from(id, 'hex').reverse().toString('hex').toLowerCase()
@@ -211,11 +216,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
             if (server.backend === 'esplora') {
               const esploraClient = new Esplora(server.url)
               let fetched = await fetchEsploraTx(esploraClient, txid)
-              if (
-                !fetched &&
-                /^[a-fA-F0-9]{64}$/i.test(txid) &&
-                Buffer.from(txid, 'hex').length === 32
-              ) {
+              if (!fetched && TXID_HEX_PATTERN.test(txid)) {
                 const reversed =
                   // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
                   Buffer.from(txid, 'hex').reverse().toString('hex')
@@ -269,7 +270,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       : [],
                     value: output.value
                   })),
-                  vsize: Math.ceil(tx.weight / 4),
+                  vsize: weightToVsize(tx.weight),
                   weight: tx.weight
                 }
                 newTransactions.set(txid, mappedTx)
@@ -404,7 +405,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                             txid: normalizeTxid(input.txid),
                             vout: input.vout ?? 0
                           }
-                        : { txid: '0'.repeat(64), vout: 0 },
+                        : { txid: COINBASE_PREV_TXID, vout: 0 },
                       scriptSig: [],
                       sequence: input.sequence,
                       value: undefined,
@@ -606,14 +607,13 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
             }
 
             const storedTx = newTransactions.get(txid)
-            const coinbasePrevTxid = '0'.repeat(64)
             if (level < levelDeep && storedTx?.vin) {
               for (const vin of storedTx.vin) {
                 const parentTxid = normalizeTxid(vin.previousOutput.txid)
                 const isCoinbaseInput =
                   !parentTxid ||
-                  parentTxid === coinbasePrevTxid ||
-                  parentTxid.length !== 64
+                  parentTxid === COINBASE_PREV_TXID ||
+                  parentTxid.length !== HASH_HEX_LENGTH
                 if (
                   !isCoinbaseInput &&
                   !processed.has(parentTxid) &&

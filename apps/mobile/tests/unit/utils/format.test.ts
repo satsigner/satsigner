@@ -1,11 +1,13 @@
 import {
   formatAddress,
+  formatBtc,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
   formatNostrCardDate,
   formatNpub,
   formatNumber,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTxId,
@@ -195,5 +197,36 @@ describe('format utils', () => {
       expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
       expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
+  })
+})
+
+describe('formatSatsAsBtc', () => {
+  it('drops trailing zeros', () => {
+    expect(formatSatsAsBtc(150_000)).toBe('0.0015')
+    expect(formatSatsAsBtc(100_000_000)).toBe('1')
+  })
+
+  it('keeps all eight decimals when needed', () => {
+    expect(formatSatsAsBtc(1)).toBe('0.00000001')
+  })
+
+  it('keeps zeros in the integer part', () => {
+    expect(formatSatsAsBtc(1_000_000_000)).toBe('10')
+    expect(formatSatsAsBtc(5_000_000_000)).toBe('50')
+  })
+
+  it('formats zero sats as "0"', () => {
+    expect(formatSatsAsBtc(0)).toBe('0')
+  })
+})
+
+describe('formatBtc', () => {
+  it('drops trailing zeros', () => {
+    expect(formatBtc(0.0015)).toBe('0.0015')
+    expect(formatBtc(21)).toBe('21')
+  })
+
+  it('rounds to eight decimals', () => {
+    expect(formatBtc(0.123_456_789)).toBe('0.12345679')
   })
 })

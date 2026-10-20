@@ -1,4 +1,5 @@
 import { nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { type ReactNode } from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 
@@ -42,7 +43,8 @@ function encodeNotePrimaryNip19(note: NostrFeedNoteLike): string {
     if (
       d &&
       note.pubkey &&
-      (note.kind === 1063 || (note.kind >= 30000 && note.kind < 40000))
+      (note.kind === nostrKinds.FileMetadata ||
+        nostrKinds.isAddressableKind(note.kind))
     ) {
       return nip19.naddrEncode({
         identifier: d,
@@ -50,7 +52,7 @@ function encodeNotePrimaryNip19(note: NostrFeedNoteLike): string {
         pubkey: note.pubkey
       })
     }
-    if (note.kind !== 1 && note.pubkey) {
+    if (note.kind !== nostrKinds.ShortTextNote && note.pubkey) {
       return nip19.neventEncode({
         author: note.pubkey,
         id: note.id,
@@ -309,14 +311,15 @@ function SSNostrFeedNoteRow({
   mentionProfiles,
   formatMarkdown = false
 }: SSNostrFeedNoteRowProps) {
-  const isRepost = note.kind === 6 || note.kind === 16
+  const isRepost =
+    note.kind === nostrKinds.Repost || note.kind === nostrKinds.GenericRepost
   const repostOriginal = isRepost
     ? (parseRepostOriginalEvent(note.content) ?? resolvedQuotedNote ?? null)
     : null
   const repostUnavailable = isRepost && repostOriginal === null
 
   const isQuotePost =
-    note.kind === 1 &&
+    note.kind === nostrKinds.ShortTextNote &&
     (getQuoteTagEventIds(note.tags).length > 0 ||
       hasEmbeddedEventRef(note.content))
 

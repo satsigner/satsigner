@@ -2,6 +2,7 @@ import { bech32 } from 'bech32'
 import z from 'zod'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { HTTP_STATUS } from '@/constants/http'
 import type {
   LNURLPayResponse,
   LNURLWithdrawDetails,
@@ -180,7 +181,7 @@ export async function fetchLNURLPayDetails(
   assertHttpsUrl(url)
   let response = await fetch(url)
 
-  if (response.status === 404) {
+  if (response.status === HTTP_STATUS.NOT_FOUND) {
     const apiUrl = new URL(url)
     const pathParts = apiUrl.pathname.split('/')
     const lastPart = pathParts.at(-1)!
