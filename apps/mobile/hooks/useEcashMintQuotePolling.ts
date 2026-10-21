@@ -10,7 +10,7 @@ import {
   ECASH_MINT_QUOTE_FAILED_STATES,
   ECASH_MINT_QUOTE_PAID_STATES,
   ECASH_QUOTE_POLL_INTERVAL_MS,
-  ECASH_QUOTE_POLL_MAX_ATTEMPTS
+  ECASH_QUOTE_MAX_POLL_ATTEMPTS
 } from '@/constants/ecash'
 import type { MintQuoteState } from '@/types/models/Ecash'
 
@@ -45,7 +45,7 @@ export function shouldKeepPolling(state: QueryState<MintQuoteState>) {
     (ECASH_MINT_QUOTE_PAID_STATES.has(state.data) ||
       ECASH_MINT_QUOTE_FAILED_STATES.has(state.data))
   const attempts = state.dataUpdateCount + state.errorUpdateCount
-  return !settled && attempts < ECASH_QUOTE_POLL_MAX_ATTEMPTS
+  return !settled && attempts < ECASH_QUOTE_MAX_POLL_ATTEMPTS
 }
 
 /**

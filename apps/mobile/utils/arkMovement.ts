@@ -1,3 +1,4 @@
+import { HASH_HEX_LENGTH, TXID_HEX_PATTERN } from '@/constants/btc'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -20,8 +21,7 @@ const STALE_EXIT_SUBSYSTEM_KIND = 'start'
 
 const MUTED_STATUSES = new Set(['failed', 'canceled'])
 
-const BITCOIN_TXID_HEX = /^[0-9a-fA-F]{64}$/
-const BITCOIN_OUTPOINT = /^([0-9a-fA-F]{64}):\d+$/
+const BITCOIN_OUTPOINT = new RegExp(`^([0-9a-fA-F]{${HASH_HEX_LENGTH}}):\\d+$`)
 
 const METADATA_TXID_KEYS = [
   'chain_anchor',
@@ -34,7 +34,7 @@ function txidFromHexOrOutpoint(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null
   }
-  if (BITCOIN_TXID_HEX.test(value)) {
+  if (TXID_HEX_PATTERN.test(value)) {
     return value.toLowerCase()
   }
   const match = BITCOIN_OUTPOINT.exec(value)

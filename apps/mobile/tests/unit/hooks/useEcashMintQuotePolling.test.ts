@@ -1,6 +1,6 @@
 import { type QueryState } from '@tanstack/react-query'
 
-import { ECASH_QUOTE_POLL_MAX_ATTEMPTS } from '@/constants/ecash'
+import { ECASH_QUOTE_MAX_POLL_ATTEMPTS } from '@/constants/ecash'
 import {
   checkMintQuoteOnce,
   shouldKeepPolling
@@ -43,7 +43,7 @@ describe('shouldKeepPolling', () => {
 
   it('stops after the attempt budget, counting failures', () => {
     expect(
-      shouldKeepPolling(state('PENDING', ECASH_QUOTE_POLL_MAX_ATTEMPTS - 1, 1))
+      shouldKeepPolling(state('PENDING', ECASH_QUOTE_MAX_POLL_ATTEMPTS - 1, 1))
     ).toBe(false)
   })
 })

@@ -13,6 +13,18 @@ export function ecashProofsToBubbleData(
   }))
 }
 
+/** Proofs with repeated secrets dropped, keeping the first of each. */
+export function uniqueProofsBySecret(proofs: EcashProof[]) {
+  const seenSecrets = new Set<string>()
+  return proofs.filter((proof) => {
+    if (seenSecrets.has(proof.secret)) {
+      return false
+    }
+    seenSecrets.add(proof.secret)
+    return true
+  })
+}
+
 export function proofsAfterSend(
   allProofs: EcashProof[],
   consumedProofs: EcashProof[],

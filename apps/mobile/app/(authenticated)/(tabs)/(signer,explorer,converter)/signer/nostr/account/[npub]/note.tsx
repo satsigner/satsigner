@@ -1,6 +1,7 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -43,16 +44,15 @@ import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
-  NOSTR_ZAP_DEFAULT_PRESETS,
-  NOSTR_POLL_KIND
+  NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
-import { useEcash } from '@/hooks/useEcash'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
+import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { usePriceStore } from '@/store/price'
@@ -179,11 +179,11 @@ export default function NostrNotePage() {
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
   )
-  const {
-    accounts: ecashAccounts,
-    allMints: ecashAllMints,
-    setActiveAccountId: setEcashActiveAccountId
-  } = useEcash()
+  const ecashAccounts = useEcashStore((state) => state.accounts)
+  const ecashAllMints = useEcashStore((state) => state.mints)
+  const setEcashActiveAccountId = useEcashStore(
+    (state) => state.setActiveAccountId
+  )
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingZap = useZapFlowStore((state) => state.pendingZap)
@@ -633,7 +633,7 @@ export default function NostrNotePage() {
   }, [replyParentId, replyParentRelayHint])
 
   const pollInfo =
-    fetched?.kind === NOSTR_POLL_KIND ? extractPollInfo(fetched.tags) : null
+    fetched?.kind === nostrKinds.Poll ? extractPollInfo(fetched.tags) : null
   const pollExpired = pollInfo ? isPollExpired(pollInfo.endsAt) : false
   const {
     handlePollOptionPress,

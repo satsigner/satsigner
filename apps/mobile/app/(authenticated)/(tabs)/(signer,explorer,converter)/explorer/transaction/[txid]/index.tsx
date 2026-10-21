@@ -14,7 +14,6 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { getExplorerExampleTransaction } from '@/constants/explorerExamples'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useExplorerTransaction } from '@/hooks/useExplorerTransaction'
@@ -31,13 +30,18 @@ import type { Output } from '@/types/models/Output'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import { getExplorerCapability } from '@/utils/explorerCapabilities'
-import { formatDate, formatFiatPrice, formatNumber } from '@/utils/format'
+import {
+  formatDate,
+  formatFiatPrice,
+  formatNumber,
+  formatSatsAsBtc
+} from '@/utils/format'
 import { classifySpecialOutput, specialOutputTag } from '@/utils/specialOutput'
 
 const tn = _tn('explorer.transaction')
 
 function formatBtcAmount(sats: number): string {
-  return `${(sats / SATS_PER_BITCOIN).toFixed(8).replace(/\.?0+$/, '')} BTC`
+  return `${formatSatsAsBtc(sats)} BTC`
 }
 
 function formatSatsFiatLabel(
