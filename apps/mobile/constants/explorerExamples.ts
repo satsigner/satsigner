@@ -197,65 +197,65 @@ export const EXPLORER_EXAMPLE_BLOCKS: ExplorerExampleBlock[] = [
   },
   {
     description: 'Pizza Day — 10,000 BTC paid for two pizzas (May 22, 2010)',
-    height: 57043,
+    height: 57_043,
     label: 'Pizza Day'
   },
   {
     description: 'Value overflow incident — 184 billion BTC bug (Aug 15, 2010)',
-    height: 74638,
+    height: 74_638,
     label: 'Overflow Bug'
   },
   {
     description: '100,000th block — early network maturity milestone',
-    height: 100000,
+    height: 100_000,
     label: '100K'
   },
   {
     description: 'First halving — block subsidy 50 → 25 BTC (Nov 28, 2012)',
-    height: 210000,
+    height: 210_000,
     label: '1st Halving'
   },
   {
     description: 'Second halving — block subsidy 25 → 12.5 BTC (Jul 9, 2016)',
-    height: 420000,
+    height: 420_000,
     label: '2nd Halving'
   },
   {
     description:
       'Bitcoin Cash hard fork — last shared BTC/BCH block (Aug 1, 2017)',
-    height: 478558,
+    height: 478_558,
     label: 'BCH Fork'
   },
   {
     description: 'SegWit activation — BIP141 soft fork (Aug 24, 2017)',
-    height: 481824,
+    height: 481_824,
     label: 'SegWit'
   },
   {
     description: '500,000th block — mid-history milestone',
-    height: 500000,
+    height: 500_000,
     label: '500K'
   },
   {
     description: 'Third halving — block subsidy 12.5 → 6.25 BTC (May 11, 2020)',
-    height: 630000,
+    height: 630_000,
     label: '3rd Halving'
   },
   {
     description: 'Taproot activation — BIP341 soft fork (Nov 14, 2021)',
-    height: 709632,
+    height: 709_632,
     label: 'Taproot'
   },
   {
     description:
       'First Ordinals inscription — inscription #0 by Casey Rodarmor (Dec 14, 2022)',
-    height: 767430,
+    height: 767_430,
     label: 'Ordinals'
   },
   {
     description:
       'Fourth halving — block subsidy 6.25 → 3.125 BTC (Apr 20, 2024)',
-    height: 840000,
+    height: 840_000,
     label: '4th Halving'
   }
 ]

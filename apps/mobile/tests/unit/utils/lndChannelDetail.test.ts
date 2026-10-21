@@ -71,7 +71,7 @@ describe('lndChannelDetail', () => {
       expect(parseLndSats('')).toBe(0)
       expect(parseLndSats('x')).toBe(0)
       expect(parseLndSats(undefined)).toBe(0)
-      expect(parseLndSats(NaN)).toBe(0)
+      expect(parseLndSats(Number.NaN)).toBe(0)
     })
   })
 })

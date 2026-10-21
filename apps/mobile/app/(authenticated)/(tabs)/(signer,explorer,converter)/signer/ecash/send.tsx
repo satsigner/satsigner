@@ -172,7 +172,7 @@ export default function EcashSendPage() {
                   {t('ecash.send.amount')}
                 </SSText>
                 <SSAmountInput
-                  value={parseInt(amount, 10) || 0}
+                  value={Number.parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={spendableSats}

@@ -12,8 +12,11 @@ import {
 } from '@/api/payjoin'
 import { isNativeAvailable } from '@/api/payjoinNative'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import { getPayjoinSessionTtlMs, useSettingsStore } from '@/store/settings'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
+import { useSettingsStore } from '@/store/settings'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import {
@@ -64,7 +67,7 @@ type UsePayjoinReceiverParams = {
   signPsbt?: (psbtBase64: string) => Promise<string> | string
 }
 
-const RECEIVER_POLL_INTERVAL_MS = 8_000
+const RECEIVER_POLL_INTERVAL_MS = 8000
 const START_SESSION_LOCK_MS = 45_000
 
 function isNativeSessionMissingError(message: string): boolean {
@@ -235,15 +238,17 @@ function usePayjoinReceiver({
     if (!receiveAddress) {
       return null
     }
-    clearReceiverSessionsForAccount(id)
+    const deps = getPayjoinDeps()
+    clearReceiverSessionsForAccount(id, deps.sessions)
     const created = await createReceivePayjoinSession({
       accountId: id,
       address: receiveAddress,
       amountSats: paramsRef.current.amountSats,
       board: paramsRef.current.board,
+      deps,
       label: paramsRef.current.label,
       network: currentNetwork,
-      ttlMs: paramsRef.current.ttlMs ?? getPayjoinSessionTtlMs()
+      ttlMs: paramsRef.current.ttlMs
     })
     setReceiverSession(created)
     return created
@@ -364,9 +369,13 @@ function usePayjoinReceiver({
         status: target.status
       })
       const finalized = target.board
-        ? await finalizeBoardReceiverPayjoin({ session: target })
+        ? await finalizeBoardReceiverPayjoin({
+            deps: getPayjoinDeps(),
+            session: target
+          })
         : await finalizeReceiverPayjoin({
             callbacks: buildCallbacks(),
+            deps: getPayjoinDeps(),
             session: target
           })
       if (finalized.status === 'error') {
@@ -479,6 +488,7 @@ function usePayjoinReceiver({
       const { session: updated, originalPsbtBase64 } =
         await pollReceiverSession({
           callbacks: buildCallbacks(),
+          deps: getPayjoinDeps(),
           session: current
         })
 

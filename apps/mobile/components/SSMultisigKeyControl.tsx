@@ -220,20 +220,25 @@ function SSMultisigKeyControl({
     action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
     switch (action) {
-      case 'dropSeed':
+      case 'dropSeed': {
         setDropSeedModalVisible(true)
         break
-      case 'shareXpub':
+      }
+      case 'shareXpub': {
         onShareXpub()
         break
-      case 'shareDescriptor':
+      }
+      case 'shareDescriptor': {
         onShareDescriptor()
         break
-      case 'resetKey':
+      }
+      case 'resetKey': {
         setResetKeyModalVisible(true)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
   }
 
@@ -465,7 +470,7 @@ function SSMultisigKeyControl({
             opacity: 0,
             position: 'absolute',
             right: 0,
-            top: -10000 // Move off-screen
+            top: -10_000 // Move off-screen
           }}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout

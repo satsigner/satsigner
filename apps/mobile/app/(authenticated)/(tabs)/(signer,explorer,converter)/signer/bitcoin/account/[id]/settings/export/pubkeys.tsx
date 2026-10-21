@@ -1,15 +1,14 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
-import { toast } from 'sonner-native'
 
-import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
+import { useAccountPublicKeys } from '@/hooks/useAccountPublicKeys'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -17,10 +16,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { appNetworkToBdkNetwork, convertKeyFormat } from '@/utils/bitcoin'
-import { getAccountWithDecryptedKeys } from '@/utils/decryption'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -31,64 +28,20 @@ export default function ExportPubkeys() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const [exportContent, setExportContent] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<View>(null)
   const [pubkeyFormat, setPubkeyFormat] = useState<'xpub' | 'zpub' | 'vpub'>(
     'xpub'
   )
-  const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
-
-  useEffect(() => {
-    if (!rawPubkeys.length) {
-      return
-    }
-    const formattedPubkeys =
-      pubkeyFormat === 'xpub'
-        ? rawPubkeys
-        : rawPubkeys.map((key) => convertKeyFormat(key, pubkeyFormat, network))
-    setExportContent(formattedPubkeys.join('\n'))
-  }, [pubkeyFormat, rawPubkeys, network])
-
-  useEffect(() => {
-    async function getPubkeys() {
-      if (!account) {
-        return
-      }
-      setIsLoading(true)
-      try {
-        const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const tmpAccount = await getAccountWithDecryptedKeys(account)
-        const walletData = !isImportAddress
-          ? await getWalletData(tmpAccount, appNetworkToBdkNetwork(network))
-          : undefined
-
-        const pubkeys = await Promise.all(
-          tmpAccount.keys.map((key) => {
-            if (isImportAddress) {
-              return key.secret.extendedPublicKey || 'N/A'
-            }
-            if (!walletData?.externalDescriptor) {
-              return 'N/A'
-            }
-            const extendedKey = getExtendedKeyFromDescriptor(
-              walletData.externalDescriptor
-            )
-            return extendedKey || 'N/A'
-          })
-        )
-
-        setRawPubkeys(pubkeys)
-        setExportContent(pubkeys.join('\n'))
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'unknown reason'
-        toast.error(`Failed to get account public keys: ${reason}`)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    getPubkeys()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const {
+    data: rawPubkeys = [],
+    isError,
+    isLoading
+  } = useAccountPublicKeys(account, network)
+  const exportContent = (
+    pubkeyFormat === 'xpub'
+      ? rawPubkeys
+      : rawPubkeys.map((key) => convertKeyFormat(key, pubkeyFormat, network))
+  ).join('\n')
 
   function exportPubkeys() {
     if (!account) {
@@ -156,6 +109,11 @@ export default function ExportPubkeys() {
               style={{ flex: 1 }}
             />
           </SSHStack>
+        )}
+        {isError && (
+          <SSText center color="muted">
+            {t('account.export.pubkeysFailed')}
+          </SSText>
         )}
         <View style={{ alignItems: 'center', marginVertical: 20 }}>
           {isLoading ? (

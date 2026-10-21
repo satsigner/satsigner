@@ -1,67 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import ElectrumClient, { ElectrumServerVersionSchema } from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import BitcoinRpc from '@/api/rpc'
+import { CONNECTION_TEST_COOLDOWN_MS } from '@/constants/connectionTest'
+import {
+  probeConnection,
+  toConnectionTestFailure
+} from '@/services/connectionTest'
+import { type ConnectionTestResult } from '@/types/models/ConnectionTest'
 import {
   type Backend,
   type Network,
   type ProxyConfig,
   type RpcCredentials
 } from '@/types/settings/blockchain'
-import { formatCoreVersion, formatRpcBanner } from '@/utils/rpcBanner'
-import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
-
-type NodeInfo = {
-  version?: string
-  blockHeight?: number
-  responseTime?: number
-  network?: string
-  software?: string
-  mempoolSize?: number
-  chainWork?: string
-  medianFee?: number
-  hashRate?: string
-}
-
-export type ConnectionTestResult =
-  | {
-      success: true
-      blockHeight?: number
-      tipTimestampSec?: number
-      /**
-       * Free-form server banner: Electrum `server.banner`, or for RPC a
-       * Sparrow-style line built from `getnetworkinfo.subversion` (+ status).
-       */
-      banner?: string
-      /** True when blockfilterindex=1 is missing — wallet sync will be slow */
-      blockFilterIndexMissing?: boolean
-    }
-  | {
-      success: false
-      error?: string
-    }
 
 export function useConnectionTest() {
   const [testing, setTesting] = useState(false)
-  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null)
-  const [currentClient, setCurrentClient] = useState<
-    ElectrumClient | Esplora | null
-  >(null)
-  const [lastTestTime, setLastTestTime] = useState<number>(0)
-
-  const cleanupPreviousConnection = useCallback(() => {
-    if (!currentClient) {
-      return
-    }
-
-    // close TLS connection. Apply only to Electrum Client
-    if ('close' in currentClient && typeof currentClient.close === 'function') {
-      currentClient.close()
-    }
-
-    setCurrentClient(null)
-  }, [currentClient])
+  const [lastTestTime, setLastTestTime] = useState(0)
 
   async function testConnection(
     url: string,
@@ -71,7 +25,7 @@ export function useConnectionTest() {
     rpcCredentials?: RpcCredentials
   ): Promise<ConnectionTestResult> {
     const now = Date.now()
-    if (now - lastTestTime < 2000) {
+    if (now - lastTestTime < CONNECTION_TEST_COOLDOWN_MS) {
       return {
         error: 'Please wait before testing another connection',
         success: false
@@ -79,245 +33,18 @@ export function useConnectionTest() {
     }
 
     setLastTestTime(now)
-    cleanupPreviousConnection()
     setTesting(true)
-    setNodeInfo(null)
-
-    const startTime = Date.now()
-    const connectionTimeout = 10_000
-
-    async function testPromise(): Promise<ConnectionTestResult> {
-      if (backend === 'electrum') {
-        const client = ElectrumClient.fromUrl(url, network)
-
-        setCurrentClient(client)
-
-        const serverInfo = await client.client.initElectrum(
-          { client: 'satsigner', version: '1.4' },
-          { callback: null, maxRetry: 0 }
-        )
-
-        const responseTime = Date.now() - startTime
-
-        let blockHeight = 0
-        try {
-          const tip = await client.client.blockchainHeaders_subscribe()
-          if (tip?.height) {
-            blockHeight = tip.height
-          }
-        } catch {
-          // optional — not all servers support headers subscribe
-        }
-
-        let tipTimestampSec: number | undefined
-        if (blockHeight > 0) {
-          try {
-            tipTimestampSec = await client.getBlockTimestamp(blockHeight)
-          } catch {
-            // optional — not all servers expose block headers reliably
-          }
-        }
-
-        // Electrum server.banner — free-form server message (often ASCII art)
-        let banner: string | undefined
-        try {
-          const rawBanner = await client.client.server_banner()
-          if (typeof rawBanner === 'string' && rawBanner.trim()) {
-            banner = rawBanner.trim()
-          }
-        } catch {
-          // optional — not all servers implement banner
-        }
-
-        const serverVersion = ElectrumServerVersionSchema.safeParse(serverInfo)
-
-        setNodeInfo({
-          blockHeight,
-          network,
-          responseTime,
-          software: serverVersion.data?.[0] || 'Electrum',
-          version: serverVersion.data?.[1] || 'Unknown'
-        })
-
-        try {
-          client.close()
-        } catch {
-          /* silently ignored */
-        }
-
-        return {
-          banner,
-          blockHeight: blockHeight > 0 ? blockHeight : undefined,
-          success: true,
-          tipTimestampSec
-        }
-      } else if (backend === 'esplora') {
-        const client = new Esplora(url)
-
-        setCurrentClient(client)
-
-        const rawHeight = await client.getLatestBlockHeight()
-        const blockHeight =
-          typeof rawHeight === 'number' ? rawHeight : Number(rawHeight)
-        const responseTime = Date.now() - startTime
-
-        const mempoolInfo = await client._call('/mempool')
-        const mempoolSize = mempoolInfo?.count || undefined
-
-        const feeEstimates = await client.getFeeEstimates()
-        const medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
-
-        let tipTimestampSec: number | undefined
-        if (Number.isFinite(blockHeight) && blockHeight > 0) {
-          try {
-            const tipHash = await client.getBlockAtHeight(blockHeight)
-            const block = await client.getBlockInfo(tipHash)
-            tipTimestampSec = block.timestamp
-          } catch {
-            // optional
-          }
-        }
-
-        setNodeInfo({
-          blockHeight,
-          medianFee,
-          mempoolSize,
-          network,
-          responseTime,
-          software: 'Esplora'
-        })
-
-        return {
-          blockHeight: Number.isFinite(blockHeight) ? blockHeight : undefined,
-          success: true,
-          tipTimestampSec
-        }
-      } else if (backend === 'rpc') {
-        const rpc = new BitcoinRpc(
-          url,
-          rpcCredentials?.username ?? '',
-          rpcCredentials?.password ?? ''
-        )
-
-        const [chainInfo, networkInfo, mempoolInfo, feeResult, hasFilterIndex] =
-          await Promise.all([
-            rpc.getBlockchainInfo(),
-            rpc.getNetworkInfo().catch(() => null),
-            rpc.getMempoolInfo().catch(() => null),
-            rpc.estimateSmartFee(6).catch(() => null),
-            rpc.hasBlockFilterIndex().catch(() => false)
-          ])
-
-        const blockHeight = chainInfo.blocks
-        const responseTime = Date.now() - startTime
-
-        const expectedChain = expectedCoreChain(network)
-        if (chainInfo.chain !== expectedChain) {
-          throw new Error(
-            formatChainMismatchError(network, chainInfo.chain, url)
-          )
-        }
-
-        const banner = networkInfo
-          ? formatRpcBanner(networkInfo, chainInfo)
-          : undefined
-
-        setNodeInfo({
-          blockHeight,
-          chainWork: chainInfo.chainwork,
-          medianFee: feeResult?.feerate
-            ? Math.round(feeResult.feerate * 1e5)
-            : undefined,
-          mempoolSize: mempoolInfo?.size,
-          network: chainInfo.chain,
-          responseTime,
-          software: networkInfo?.subversion?.trim() || 'Bitcoin Core',
-          version: networkInfo
-            ? formatCoreVersion(networkInfo.version)
-            : undefined
-        })
-
-        return {
-          banner,
-          blockFilterIndexMissing: !hasFilterIndex,
-          blockHeight,
-          success: true,
-          tipTimestampSec: chainInfo.mediantime
-        }
-      }
-      throw new Error('Unknown backend')
-    }
-
-    function timeoutPromise(): Promise<never> {
-      return new Promise((_resolve, reject) => {
-        setTimeout(
-          () => reject(new Error('Connection test timeout')),
-          connectionTimeout
-        )
-      })
-    }
 
     try {
-      const result = await Promise.race([testPromise(), timeoutPromise()])
-
-      if (result && result.success) {
-        return result
-      }
-
-      const errorMessage = proxy?.enabled
-        ? 'Proxy connection failed. Ensure Tor/Orbot is running.'
-        : 'Connection test failed'
-
-      return {
-        error: errorMessage,
-        success: false
-      }
+      return await probeConnection({ backend, network, rpcCredentials, url })
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown connection error'
-
-      const responseTime = Date.now() - startTime
-      const softwareLabel =
-        backend === 'electrum'
-          ? 'Electrum'
-          : backend === 'rpc'
-            ? 'Bitcoin Core'
-            : 'Esplora'
-      setNodeInfo({
-        network,
-        responseTime,
-        software: softwareLabel
-      })
-
-      // Surface the full user-facing message (may be multi-line with tips)
-      const displayMessage =
-        error instanceof Error ? error.message : errorMessage
-
-      return {
-        error: displayMessage,
-        success: false
-      }
+      return toConnectionTestFailure(error, proxy)
     } finally {
       setTesting(false)
     }
   }
 
-  function resetTest() {
-    cleanupPreviousConnection()
-    setTesting(false)
-    setNodeInfo(null)
-  }
-
-  useEffect(
-    () => () => {
-      cleanupPreviousConnection()
-    },
-    [cleanupPreviousConnection]
-  )
-
   return {
-    nodeInfo,
-    resetTest,
     testConnection,
     testing
   }

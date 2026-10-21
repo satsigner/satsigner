@@ -5,13 +5,13 @@ const PEM_END = '-----END CERTIFICATE-----'
 const PEM_LINE_LENGTH = 64
 
 function decodeBase64Url(value: string): Buffer {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const normalized = value.replaceAll('-', '+').replaceAll('_', '/')
   const padLen = (4 - (normalized.length % 4)) % 4
   return Buffer.from(normalized + '='.repeat(padLen), 'base64')
 }
 
 function wrapDerBase64AsPem(b64: string): string {
-  const compact = b64.replace(/\s+/g, '')
+  const compact = b64.replaceAll(/\s+/g, '')
   const lines = compact.match(new RegExp(`.{1,${PEM_LINE_LENGTH}}`, 'g')) ?? [
     compact
   ]
@@ -31,7 +31,7 @@ export function pairingCertToPem(raw: string): string {
     return trimmed.endsWith('\n') ? trimmed : `${trimmed}\n`
   }
 
-  const compact = trimmed.replace(/\s+/g, '')
+  const compact = trimmed.replaceAll(/\s+/g, '')
   const decoded = decodeBase64Url(compact)
   const asText = decoded.toString('utf8').trim()
   if (asText.includes(PEM_BEGIN)) {
@@ -43,5 +43,5 @@ export function pairingCertToPem(raw: string): string {
     return wrapDerBase64AsPem(decoded.toString('base64'))
   }
 
-  return wrapDerBase64AsPem(asText.replace(/\s+/g, ''))
+  return wrapDerBase64AsPem(asText.replaceAll(/\s+/g, ''))
 }

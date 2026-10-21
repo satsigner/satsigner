@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -75,14 +76,14 @@ export default function NostrComposePage() {
 
   function validateAmounts(): string | null {
     if (amountMode === 'fixed') {
-      const val = parseInt(fixedAmount, 10)
+      const val = Number.parseInt(fixedAmount, 10)
       if (!val || val <= 0) {
         return t('nostrIdentity.compose.invalidAmount')
       }
     }
     if (amountMode === 'range') {
-      const min = parseInt(minAmount, 10)
-      const max = parseInt(maxAmount, 10)
+      const min = Number.parseInt(minAmount, 10)
+      const max = Number.parseInt(maxAmount, 10)
       if (!min || min <= 0) {
         return t('nostrIdentity.compose.invalidMin')
       }
@@ -94,14 +95,14 @@ export default function NostrComposePage() {
       }
     }
     if (goalAmount) {
-      const val = parseInt(goalAmount, 10)
-      if (isNaN(val) || val <= 0) {
+      const val = Number.parseInt(goalAmount, 10)
+      if (Number.isNaN(val) || val <= 0) {
         return t('nostrIdentity.compose.invalidGoal')
       }
     }
     if (maxUses) {
-      const val = parseInt(maxUses, 10)
-      if (isNaN(val) || val <= 0) {
+      const val = Number.parseInt(maxUses, 10)
+      if (Number.isNaN(val) || val <= 0) {
         return t('nostrIdentity.compose.invalidUses')
       }
     }
@@ -122,22 +123,22 @@ export default function NostrComposePage() {
   function buildTags(): string[][] {
     const zapMin =
       amountMode === 'fixed'
-        ? parseInt(fixedAmount, 10)
-        : parseInt(minAmount, 10)
+        ? Number.parseInt(fixedAmount, 10)
+        : Number.parseInt(minAmount, 10)
     const zapMax =
       amountMode === 'fixed'
-        ? parseInt(fixedAmount, 10)
-        : parseInt(maxAmount, 10)
+        ? Number.parseInt(fixedAmount, 10)
+        : Number.parseInt(maxAmount, 10)
 
     const zapTags =
       amountMode === 'none'
         ? []
         : buildEnhancedZapTags({
-            zapGoal: goalAmount ? parseInt(goalAmount, 10) : undefined,
+            zapGoal: goalAmount ? Number.parseInt(goalAmount, 10) : undefined,
             zapLnurl: customLnurl || undefined,
             zapMax: zapMax || undefined,
             zapMin: zapMin || undefined,
-            zapUses: maxUses ? parseInt(maxUses, 10) : undefined
+            zapUses: maxUses ? Number.parseInt(maxUses, 10) : undefined
           })
 
     return [...baseTags, ...zapTags]
@@ -230,7 +231,7 @@ export default function NostrComposePage() {
   const draftEventJson = JSON.stringify(
     {
       content: content.trim(),
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: buildTags()
     },
     null,
@@ -322,7 +323,7 @@ export default function NostrComposePage() {
               content: content.trim(),
               created_at: Math.floor(Date.now() / MS_PER_SECOND),
               id: eventId,
-              kind: 1,
+              kind: nostrKinds.ShortTextNote,
               pubkey: hexPk,
               tags
             }

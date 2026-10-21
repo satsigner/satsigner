@@ -76,16 +76,21 @@ function bip321NetworkToAppNetwork(
     return undefined
   }
   switch (network) {
-    case 'mainnet':
+    case 'mainnet': {
       return 'bitcoin'
-    case 'testnet':
+    }
+    case 'testnet': {
       return 'testnet'
-    case 'signet':
+    }
+    case 'signet': {
       return 'signet'
-    case 'regtest':
+    }
+    case 'regtest': {
       return 'testnet'
-    default:
+    }
+    default: {
       return undefined
+    }
   }
 }
 
@@ -96,14 +101,18 @@ function appNetworkToBip321Network(
     return undefined
   }
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return 'mainnet'
-    case 'testnet':
+    }
+    case 'testnet': {
       return 'testnet'
-    case 'signet':
+    }
+    case 'signet': {
       return 'signet'
-    default:
+    }
+    default: {
       return undefined
+    }
   }
 }
 

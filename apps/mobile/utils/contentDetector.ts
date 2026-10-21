@@ -1,6 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NOSTR_BECH32_ID_MIN_LENGTH } from '@/constants/nostr'
 import { isBBQRFragment } from '@/utils/bbqr'
@@ -490,8 +491,12 @@ function detectNostrContent(data: string): DetectedContent | null {
     if (!isRecord(parsed)) {
       return null
     }
-    const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
-    if (kind !== 1 || typeof parsed.content !== 'string') {
+    const kind =
+      typeof parsed.kind === 'number' ? parsed.kind : nostrKinds.ShortTextNote
+    if (
+      kind !== nostrKinds.ShortTextNote ||
+      typeof parsed.content !== 'string'
+    ) {
       return null
     }
     if (
@@ -598,7 +603,7 @@ export function detectContentByContext(
   let detected: DetectedContent | null = null
 
   switch (context) {
-    case 'bitcoin':
+    case 'bitcoin': {
       detected = detectBitcoinContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
@@ -607,7 +612,8 @@ export function detectContentByContext(
         }
       }
       break
-    case 'lightning':
+    }
+    case 'lightning': {
       detected =
         detectLndRestConfigConnectionString(data) ||
         detectLightningContent(data)
@@ -618,7 +624,8 @@ export function detectContentByContext(
         }
       }
       break
-    case 'ark':
+    }
+    case 'ark': {
       detected = detectArkContent(data) || detectLightningContent(data)
       if (!detected) {
         const bitcoinDetected = detectBitcoinContent(data)
@@ -638,7 +645,8 @@ export function detectContentByContext(
         }
       }
       break
-    case 'ecash':
+    }
+    case 'ecash': {
       detected = detectEcashContent(data) || detectLightningContent(data)
       if (!detected) {
         detected = detectBitcoinContent(data)
@@ -647,17 +655,21 @@ export function detectContentByContext(
         }
       }
       break
-    case 'nostr':
+    }
+    case 'nostr': {
       detected = detectNostrContent(data)
       if (!detected) {
         detected = detectLightningContent(data) || detectEcashContent(data)
       }
       break
-    case 'developer_recover':
+    }
+    case 'developer_recover': {
       detected = detectEncryptedBackupPayload(data)
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 
   if (!detected && context !== 'developer_recover') {
@@ -681,7 +693,7 @@ export function isContentTypeSupportedInContext(
   context: ContentContext
 ): boolean {
   switch (context) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return [
         'bitcoin_address',
         'bitcoin_uri',
@@ -690,7 +702,8 @@ export function isContentTypeSupportedInContext(
         'extended_public_key',
         'master_fingerprint'
       ].includes(contentType)
-    case 'lightning':
+    }
+    case 'lightning': {
       return [
         'lightning_invoice',
         'lnurl',
@@ -698,7 +711,8 @@ export function isContentTypeSupportedInContext(
         'lightning_node',
         'lnd_rest_config'
       ].includes(contentType)
-    case 'ark':
+    }
+    case 'ark': {
       return [
         'ark_address',
         'lightning_invoice',
@@ -707,9 +721,11 @@ export function isContentTypeSupportedInContext(
         'bitcoin_address',
         'bitcoin_uri'
       ].includes(contentType)
-    case 'ecash':
+    }
+    case 'ecash': {
       return ['ecash_token', 'lightning_invoice', 'lnurl'].includes(contentType)
-    case 'nostr':
+    }
+    case 'nostr': {
       return [
         'nostr_connect',
         'nostr_npub',
@@ -719,68 +735,98 @@ export function isContentTypeSupportedInContext(
         'nostr_nprofile',
         'nostr_json'
       ].includes(contentType)
-    case 'developer_recover':
+    }
+    case 'developer_recover': {
       return contentType === 'encrypted_backup'
-    default:
+    }
+    default: {
       return false
+    }
   }
 }
 
 export function getContentTypeDescription(contentType: ContentType): string {
   switch (contentType) {
-    case 'bitcoin_address':
+    case 'bitcoin_address': {
       return 'Bitcoin Address'
-    case 'bitcoin_uri':
+    }
+    case 'bitcoin_uri': {
       return 'Bitcoin Payment Request'
-    case 'psbt':
+    }
+    case 'psbt': {
       return 'Partially Signed Bitcoin Transaction'
-    case 'bitcoin_descriptor':
+    }
+    case 'bitcoin_descriptor': {
       return 'Bitcoin Descriptor'
-    case 'extended_public_key':
+    }
+    case 'extended_public_key': {
       return 'Extended Public Key'
-    case 'master_fingerprint':
+    }
+    case 'master_fingerprint': {
       return 'Master Fingerprint'
-    case 'incompatible':
+    }
+    case 'incompatible': {
       return 'Incompatible Content'
-    case 'lightning_invoice':
+    }
+    case 'lightning_invoice': {
       return 'Lightning Network Invoice'
-    case 'lightning_address':
+    }
+    case 'lightning_address': {
       return 'Lightning Address'
-    case 'lightning_node':
+    }
+    case 'lightning_node': {
       return 'Lightning Node URI'
-    case 'lnurl':
+    }
+    case 'lnurl': {
       return 'LNURL Payment Request'
-    case 'lnd_rest_config':
+    }
+    case 'lnd_rest_config': {
       return 'LND REST API Config'
-    case 'ark_address':
+    }
+    case 'ark_address': {
       return 'Ark Address'
-    case 'ecash_token':
+    }
+    case 'ecash_token': {
       return 'Ecash Token'
-    case 'encrypted_backup':
+    }
+    case 'encrypted_backup': {
       return 'Encrypted Backup'
-    case 'bbqr_fragment':
+    }
+    case 'bbqr_fragment': {
       return 'BBQR Fragment'
-    case 'seed_qr':
+    }
+    case 'seed_qr': {
       return 'Seed Phrase QR Code'
-    case 'ur':
+    }
+    case 'ur': {
       return 'Universal Resource'
-    case 'nostr_npub':
+    }
+    case 'nostr_npub': {
       return 'Nostr Public Key'
-    case 'nostr_nsec':
+    }
+    case 'nostr_nsec': {
       return 'Nostr Private Key'
-    case 'nostr_note':
+    }
+    case 'nostr_note': {
       return 'Nostr Note'
-    case 'nostr_nevent':
+    }
+    case 'nostr_nevent': {
       return 'Nostr Event'
-    case 'nostr_nprofile':
+    }
+    case 'nostr_nprofile': {
       return 'Nostr Profile'
-    case 'nostr_connect':
+    }
+    case 'nostr_connect': {
       return 'Nostr Connect Request'
-    case 'nostr_json':
+    }
+    case 'nostr_json': {
       return 'Nostr JSON Note'
-    case 'unknown':
+    }
+    case 'unknown': {
       return 'Unknown Content'
-    default:
+    }
+    default: {
       return 'Unknown Content'
+    }
   }
 }

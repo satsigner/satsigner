@@ -115,7 +115,7 @@ function normalizeStonewallPreview(
     excludedUtxoOutpoints: preview.excludedUtxoOutpoints ?? [],
     fakeMixValues: preview.fakeMixValues ?? [],
     fee: preview.fee ?? null,
-    labelOverrides: { ...(preview.labelOverrides ?? {}) }
+    labelOverrides: { ...preview.labelOverrides }
   }
 }
 
@@ -230,7 +230,7 @@ const useTransactionBuilderStore = create<
       drafts: {},
       fee: 0,
       feeRate: 0,
-      getInputs: () => Array.from(get().inputs.values()),
+      getInputs: () => [...get().inputs.values()],
       hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
       outputs: [],

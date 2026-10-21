@@ -120,8 +120,9 @@ export default function SingleSig() {
           })
           break
         }
-        default:
+        default: {
           break
+        }
       }
     } else if (type === 'importMnemonic') {
       router.navigate('/signer/bitcoin/account/add/import/mnemonic/0')

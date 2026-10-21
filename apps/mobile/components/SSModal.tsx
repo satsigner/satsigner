@@ -8,7 +8,7 @@ import { Colors, Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
 
-const TOAST_LAYER_Z_INDEX = 999999
+const TOAST_LAYER_Z_INDEX = 999_999
 
 type SSModalProps = {
   visible: boolean

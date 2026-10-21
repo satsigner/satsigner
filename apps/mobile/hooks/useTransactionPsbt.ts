@@ -245,8 +245,8 @@ export function useTransactionPsbt({
       }
 
       try {
-        const inputArray = Array.from(inputs.values())
-        const outputArray = Array.from(outputs.values())
+        const inputArray = [...inputs.values()]
+        const outputArray = [...outputs.values()]
 
         const transaction = await buildPsbt(wallet, server, account, {
           fee,

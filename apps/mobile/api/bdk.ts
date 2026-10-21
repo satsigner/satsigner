@@ -1,20 +1,25 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
+  type AddressInfo,
   BdkRpcClient,
-  BdkWallet,
   BdkTxBuilder,
+  BdkWallet,
   createPublicDescriptor,
   DescriptorTemplate,
   KeychainKind,
   type Network,
   Psbt,
   type PsbtLike,
-  walletNameFromDescriptor,
-  type AddressInfo
+  walletNameFromDescriptor
 } from 'react-native-bdk-sdk'
 
 import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BTC_DECIMALS,
+  SATS_PER_BITCOIN,
+  SEQUENCE_FINAL,
+  SEQUENCE_RBF
+} from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -231,24 +236,29 @@ async function getWalletData(
 
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'P2SH':
+        case 'P2SH': {
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2SH-P2WSH':
+        }
+        case 'P2SH-P2WSH': {
           finalDescriptor = `sh(wsh(sortedmulti(${account.keysRequired},${keySection})))`
           break
-        case 'P2WSH':
+        }
+        case 'P2WSH': {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        case 'P2TR':
+        }
+        case 'P2TR': {
           finalDescriptor = `tr(sortedmulti(${account.keysRequired},${keySection}))`
           break
-        default:
+        }
+        default: {
           finalDescriptor = `wsh(sortedmulti(${account.keysRequired},${keySection}))`
+        }
       }
 
-      const externalDescriptor = finalDescriptor.replace(/<0;1>/g, '0')
-      const internalDescriptor = finalDescriptor.replace(/<0;1>/g, '1')
+      const externalDescriptor = finalDescriptor.replaceAll('<0;1>', '0')
+      const internalDescriptor = finalDescriptor.replaceAll('<0;1>', '1')
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
@@ -346,8 +356,9 @@ async function getWalletData(
 
       break
     }
-    default:
+    default: {
       break
+    }
   }
 }
 
@@ -355,22 +366,28 @@ function mapScriptVersionToBipTemplate(
   scriptVersion: NonNullable<Key['scriptVersion']>
 ): DescriptorTemplate {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return DescriptorTemplate.Bip44
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return DescriptorTemplate.Bip49
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return DescriptorTemplate.Bip84
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return DescriptorTemplate.Bip86
+    }
     case 'P2WSH':
     case 'P2SH-P2WSH':
-    case 'P2SH':
+    case 'P2SH': {
       throw new Error(
         `Manual descriptor creation required for ${scriptVersion}`
       )
-    default:
+    }
+    default: {
       return DescriptorTemplate.Bip84
+    }
   }
 }
 
@@ -391,14 +408,18 @@ function getDescriptorMultiSig(
   const keyPart = baseString.replace(/^wpkh\(/, '').replace(/\)$/, '')
 
   switch (scriptVersion) {
-    case 'P2WSH':
+    case 'P2WSH': {
       return `wsh(${keyPart})`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(${keyPart}))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(${keyPart})`
-    default:
+    }
+    default: {
       throw new Error(`Unsupported script version: ${scriptVersion}`)
+    }
   }
 }
 
@@ -493,7 +514,7 @@ function parseDescriptor(descriptorString: string) {
 }
 
 function normalizeWalletDescriptor(descriptor: string) {
-  return descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  return descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
 }
 
 function splitCombinedWalletDescriptors(
@@ -508,8 +529,8 @@ function splitCombinedWalletDescriptors(
     return { ext, int }
   }
   return {
-    ext: ext.replace(/<0[,;]1>/g, '0'),
-    int: ext.replace(/<0[,;]1>/g, '1')
+    ext: ext.replaceAll(/<0[,;]1>/g, '0'),
+    int: ext.replaceAll(/<0[,;]1>/g, '1')
   }
 }
 
@@ -725,7 +746,7 @@ async function getTransactionInputValues(
 
   for (const [index, vinItem] of vin.entries()) {
     vin[index] = {
-      ...(tx.vin[index] || {}),
+      ...tx.vin[index],
       ...vinItem
     }
   }
@@ -752,7 +773,7 @@ function getLastUnusedAddressFromWallet(wallet: BdkWallet): AddressInfo {
 // rounding to 8 decimal places to avoid binary floating-point drift
 // (e.g. avoids values like 0.1 + 0.2 style representation errors).
 function satsToBtc(sats: number): number {
-  return Number((sats / SATS_PER_BITCOIN).toFixed(8))
+  return Number((sats / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS))
 }
 
 // Resolves the Bitcoin Core wallet name to use for an account. Prefers the
@@ -789,7 +810,7 @@ async function buildTransactionWithRpc(
   )
 
   const rpcInputs = data.inputs.map((u) => ({
-    sequence: data.options.rbf ? 0xfffffffd : 0xffffffff,
+    sequence: data.options.rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
     txid: u.txid,
     vout: u.vout
   }))

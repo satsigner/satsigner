@@ -23,7 +23,7 @@ function baseTx(overrides: Partial<EsploraTx> = {}): EsploraTx {
           value: 100_000
         },
         scriptsig: '',
-        sequence: 0xffff_ffff,
+        sequence: 0xff_ff_ff_ff,
         txid: 'bb'.repeat(32),
         vout: 0
       }
@@ -66,7 +66,7 @@ describe('mapEsploraTxToAddressTransaction', () => {
               value: 50_000
             },
             scriptsig: '',
-            sequence: 0xffff_ffff,
+            sequence: 0xff_ff_ff_ff,
             txid: 'cc'.repeat(32),
             vout: 1
           }

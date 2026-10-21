@@ -3,7 +3,10 @@ import { __resetPayjoinMock } from 'react-native-payjoin'
 
 import { createReceivePayjoinSession } from '@/api/payjoin'
 import { PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR } from '@/constants/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 
 const RECEIVE_ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
 const MAINNET_ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
@@ -25,6 +28,7 @@ describe('receiver session receive script', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'acct-1',
       address: RECEIVE_ADDRESS,
+      deps: getPayjoinDeps(),
       network: 'signet'
     })
 
@@ -43,6 +47,7 @@ describe('receiver session receive script', () => {
       createReceivePayjoinSession({
         accountId: 'acct-1',
         address: MAINNET_ADDRESS,
+        deps: getPayjoinDeps(),
         network: 'signet'
       })
     ).rejects.toThrow(PAYJOIN_MISSING_RECEIVE_SCRIPT_ERROR)

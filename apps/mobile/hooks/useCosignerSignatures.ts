@@ -151,10 +151,9 @@ export function useCosignerSignatures({
   // Combines every collected signature into the PSBT under review and
   // finalizes it. Returns the transaction hex, or null when it can't yet.
   function finalize() {
-    const result = combineAndFinalizePsbts(
-      txBuilderResult?.toBase64(),
-      Array.from(getCollectedSignedPsbts(signedPsbts).values())
-    )
+    const result = combineAndFinalizePsbts(txBuilderResult?.toBase64(), [
+      ...getCollectedSignedPsbts(signedPsbts).values()
+    ])
     if ('errorKey' in result) {
       onNotice({
         key: result.errorKey,

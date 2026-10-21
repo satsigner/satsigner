@@ -3,8 +3,11 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import {
   HEX_PATTERN,
+  LEGACY_INPUT_BYTES,
+  LEGACY_OUTPUT_BYTES,
+  LEGACY_TX_BASE_BYTES,
   PSBT_MAGIC_HEX,
-  TXID_HEX_REGEX,
+  TXID_HEX_PATTERN,
   WITNESS_SCALE_FACTOR
 } from '@/constants/btc'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
@@ -111,21 +114,22 @@ export function getOutputVbytes(scriptType: ScriptVersionType): number {
   return OUTPUT_SIZES[scriptType]
 }
 
+export function weightToVsize(weight: number) {
+  return Math.ceil(weight / WITNESS_SCALE_FACTOR)
+}
+
 // TODO: To be removed
 export function legacyEstimateTransactionSize(
   inputCount: number,
   outputCount: number
 ) {
-  // Base transaction size (version + locktime)
-  const baseSize = 10
-  // Each input is roughly 148 bytes (outpoint[36] + script[~108] + sequence[4])
-  const inputSize = inputCount * 148
-  // Each output is roughly 34 bytes (value[8] + script[~26])
-  const outputSize = outputCount * 34
-
-  const totalSize = baseSize + inputSize + outputSize
-  // Virtual size is weight/4
-  const vsize = Math.ceil(totalSize * 0.25)
+  const totalSize =
+    LEGACY_TX_BASE_BYTES +
+    inputCount * LEGACY_INPUT_BYTES +
+    outputCount * LEGACY_OUTPUT_BYTES
+  // totalSize is in bytes, not weight units, so this under-reports a legacy
+  // vsize. Kept as on master; the estimate is due for removal.
+  const vsize = Math.ceil(totalSize / WITNESS_SCALE_FACTOR)
 
   return { size: totalSize, vsize }
 }
@@ -172,7 +176,7 @@ export function estimateTransactionSize(
   const size = hasWitness
     ? baseSize + inputWitness + SEGWIT_MARKER_FLAG_WEIGHT
     : baseSize
-  const vsize = hasWitness ? Math.ceil(weight / WITNESS_SCALE_FACTOR) : size
+  const vsize = hasWitness ? weightToVsize(weight) : size
 
   return { size, vsize }
 }
@@ -264,7 +268,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         tx.vout &&
         tx.vout.length > 0 &&
         tx.vout.some((output, idx) =>
-          Array.from(selectedInputs.entries()).some(([key, input]) => {
+          [...selectedInputs.entries()].some(([key, input]) => {
             const colon = key.lastIndexOf(':')
             const keyTxid = colon !== -1 ? key.slice(0, colon) : key
             const keyVout =
@@ -292,9 +296,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
         )
 
       // Check if this transaction is not an input to any other transaction in our set
-      const isNotConnectedToOtherTx = Array.from(
-        updatedTransactions.values()
-      ).every(
+      const isNotConnectedToOtherTx = [...updatedTransactions.values()].every(
         (otherTx) =>
           !otherTx.vin.some((input) => input.previousOutput.txid === txid)
       )
@@ -323,7 +325,7 @@ export function buildPreviewTransactionHex(
   const bitcoinjsNet = bitcoinjsNetwork(network)
 
   for (const input of inputs.values()) {
-    if (!input.txid || !TXID_HEX_REGEX.test(input.txid)) {
+    if (!input.txid || !TXID_HEX_PATTERN.test(input.txid)) {
       continue
     }
     // bitcoinjs expects the hash in internal (little-endian) byte order.
@@ -356,7 +358,7 @@ export function buildChartTransactionFromBuilder(
   outputs: Output[],
   id: string
 ): Transaction {
-  const inputArray = Array.from(inputs.values())
+  const inputArray = [...inputs.values()]
   const { size, vsize } = estimateBuilderTransactionSize(inputs, outputs)
 
   return {
@@ -392,7 +394,7 @@ export function estimateBuilderTransactionSize(
   inputs: Map<string, Utxo>,
   outputs: Output[]
 ) {
-  const inputArray = Array.from(inputs.values())
+  const inputArray = [...inputs.values()]
   return inputArray.length > 0
     ? estimateTransactionSize(inputArray, outputs)
     : legacyEstimateTransactionSize(inputs.size, outputs.length)

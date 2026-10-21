@@ -65,6 +65,7 @@
     "export.noLabels.description": "Once you add labels to your transactions, utxos, and addresses, you will be able to export them.",
     "export.noLabels.title": "No labels",
     "export.pubkeys": "Public Keys",
+    "export.pubkeysFailed": "Failed to get account public keys",
     "export.vpubFormat": "VPUB",
     "export.xpubFormat": "XPUB",
     "export.zpubFormat": "ZPUB",

@@ -14,7 +14,7 @@ import {
   BDK_RESCAN_STOP_POLL_MAX_ATTEMPTS,
   BDK_SECONDS_PER_BLOCK
 } from '@/constants/bdk'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { HASH_HEX_LENGTH, SATS_PER_BITCOIN } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
@@ -25,6 +25,7 @@ import {
   type RpcCredentials
 } from '@/types/settings/blockchain'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
+import { sleep } from '@/utils/time'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -82,18 +83,12 @@ const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
-
 function btcToSats(btc: number) {
   return Math.round(btc * SATS_PER_BITCOIN)
 }
 
 function hexToBytes(value: string) {
-  return Array.from(hex.decode(value))
+  return [...hex.decode(value)]
 }
 
 function toUnixSec(date?: Date) {
@@ -633,7 +628,7 @@ async function syncWithCoreWallet(
   }
 
   const priorHash = account.rpcLastBlockHash ?? ''
-  const isIncremental = priorHash.length === 64
+  const isIncremental = priorHash.length === HASH_HEX_LENGTH
   const [sinceResult, unspent, listedDescriptors] = await Promise.all([
     coreWallet.listSinceBlock(priorHash),
     coreWallet.listUnspent(),

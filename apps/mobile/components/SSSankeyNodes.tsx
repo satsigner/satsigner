@@ -32,6 +32,10 @@ import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
+import {
+  getNodeParagraphLayoutWidth,
+  getNodeParagraphOffsetX
+} from '@/utils/sankeyNodeTextLayout'
 import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
@@ -57,8 +61,6 @@ const PADDING_LEFT = 8
 const ICON_SIZE = 8
 const RECT_PADDING = 5
 const NODE_MARGIN_LEFT = 1
-/** Extra layout width so amount + unit can paint past the sankey node band. */
-const NODE_TEXT_OVERFLOW_WIDTH = 220
 /** Keeps the sats amount and unit on one line in Skia paragraphs. */
 const NBSP = '\u00A0'
 /** NBSP belongs on the unit run — trailing NBSP on the amount run can drop the first "s". */
@@ -438,6 +440,12 @@ function NodeText({
     ioData?.txId,
     isBlock
   ])
+
+  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(
+    width,
+    PADDING_LEFT,
+    isBlock
+  )
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -847,12 +855,7 @@ function NodeText({
       para = buildSpentParagraph()
     }
 
-    // Wide layout so value + "sats" stay on one line and can overflow the node band.
-    para.layout(
-      isBlock
-        ? width * 0.6
-        : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
-    )
+    para.layout(paragraphLayoutWidth)
     return para
   }, [
     customFontManager,
@@ -861,7 +864,7 @@ function NodeText({
     isInput,
     isUnspent,
     isNeutralOutput,
-    width,
+    paragraphLayoutWidth,
     ioData?.txSize,
     ioData.vSize,
     ioData?.feeRate,
@@ -886,7 +889,7 @@ function NodeText({
     showUnspentLabel
   ])
 
-  const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
+  const paragraphX = x + getNodeParagraphOffsetX(width, PADDING_LEFT, isBlock)
   const paragraphY = isBlock
     ? y + 4
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
@@ -924,9 +927,6 @@ function NodeText({
     return null
   }
 
-  const paragraphLayoutWidth = isBlock
-    ? width * 0.6
-    : Math.max(width - PADDING_LEFT, NODE_TEXT_OVERFLOW_WIDTH)
   const paragraphActualWidth = isBlock
     ? paragraphLayoutWidth
     : Math.max(width - PADDING_LEFT, mainParagraph.getLongestLine())

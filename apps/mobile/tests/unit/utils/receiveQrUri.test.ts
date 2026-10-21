@@ -9,13 +9,13 @@ describe('shouldIncludePayjoinInUri', () => {
   })
 
   it('includes payjoin at or above the floor', () => {
-    expect(shouldIncludePayjoinInUri({ amountSats: 5_000 })).toBe(true)
+    expect(shouldIncludePayjoinInUri({ amountSats: 5000 })).toBe(true)
     expect(shouldIncludePayjoinInUri({ amountSats: 50_000 })).toBe(true)
   })
 
   it('omits payjoin when amount is below the floor', () => {
-    expect(shouldIncludePayjoinInUri({ amountSats: 4_999 })).toBe(false)
-    expect(shouldIncludePayjoinInUri({ amountSats: 1_000 })).toBe(false)
+    expect(shouldIncludePayjoinInUri({ amountSats: 4999 })).toBe(false)
+    expect(shouldIncludePayjoinInUri({ amountSats: 1000 })).toBe(false)
   })
 })
 
@@ -43,7 +43,7 @@ describe('buildReceiveQrUri', () => {
 
   it('omits pj= when amount is below the anti-probing floor', () => {
     const uri = buildReceiveQrUri({
-      amountSats: 1_000,
+      amountSats: 1000,
       includeBitcoinPrefix: true,
       includeLabel: false,
       includePayjoin: true,

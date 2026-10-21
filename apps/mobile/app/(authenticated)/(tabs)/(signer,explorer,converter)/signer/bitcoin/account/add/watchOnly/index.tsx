@@ -361,7 +361,7 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -389,7 +389,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -675,10 +675,10 @@ export default function WatchOnly() {
 
       const text = nfcData.text
         .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        .replaceAll(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replaceAll(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
         // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .replaceAll(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
         .normalize('NFKC') // Normalize unicode characters
         .replace(/^en/, '')
 
@@ -957,23 +957,19 @@ export default function WatchOnly() {
                 </SSVStack>
               )}
               {selectedOption === 'importDescriptor' && (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText center>
-                      {t('watchonly.importDescriptor.internal')}
-                    </SSText>
-                    <SSTextInput
-                      value={internalDescriptor}
-                      style={
-                        isValidInternalDescriptor
-                          ? styles.valid
-                          : styles.invalid
-                      }
-                      multiline
-                      onChangeText={updateInternalDescriptor}
-                    />
-                  </SSVStack>
-                </>
+                <SSVStack gap="xxs">
+                  <SSText center>
+                    {t('watchonly.importDescriptor.internal')}
+                  </SSText>
+                  <SSTextInput
+                    value={internalDescriptor}
+                    style={
+                      isValidInternalDescriptor ? styles.valid : styles.invalid
+                    }
+                    multiline
+                    onChangeText={updateInternalDescriptor}
+                  />
+                </SSVStack>
               )}
             </SSVStack>
           </SSVStack>

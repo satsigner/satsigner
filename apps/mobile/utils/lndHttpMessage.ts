@@ -23,7 +23,7 @@ function indexOfBytes(
     (_, i) => i + from
   )
   const found = startIndexes.find((start) =>
-    Array.from(needle).every((byte, j) => haystack[start + j] === byte)
+    [...needle].every((byte, j) => haystack[start + j] === byte)
   )
   return found ?? -1
 }
@@ -108,8 +108,8 @@ export function tryParseHttp1Response(
   }
   const headerText = asBuffer(view.subarray(0, sep.index))
     .toString('latin1')
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
   const rest = asBuffer(view.subarray(sep.index + sep.length))
   const lines = headerText.split('\n')
   const statusLine = lines[0] ?? ''
@@ -178,7 +178,7 @@ function findHeaderSeparator(
 function throwInvalidHttp1(view: Buffer): never {
   const preview = asBuffer(view.subarray(0, 48))
     .toString('latin1')
-    .replace(/[^\x20-\x7E]/g, '.')
+    .replaceAll(/[^\u0020-\u007E]/g, '.')
   throw new Error(
     preview
       ? `Invalid HTTP response from LND (${preview})`

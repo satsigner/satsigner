@@ -1,4 +1,12 @@
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  DAYS_PER_MONTH,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  HOURS_PER_DAY,
+  MINUTES_PER_HOUR,
+  MS_PER_SECOND,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import { t } from '@/locales'
 import { formatDate as formatDateUtil } from '@/utils/format'
 
@@ -10,12 +18,12 @@ export const formatRelativeTime = (timestamp: number | undefined): string => {
   const now = Math.floor(Date.now() / MS_PER_SECOND)
   const diff = now - timestamp
 
-  const minutes = Math.floor(diff / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-  const weeks = Math.floor(days / 7)
-  const months = Math.floor(days / 30)
-  const years = Math.floor(days / 365)
+  const minutes = Math.floor(diff / SECONDS_PER_MINUTE)
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR)
+  const days = Math.floor(hours / HOURS_PER_DAY)
+  const weeks = Math.floor(days / DAYS_PER_WEEK)
+  const months = Math.floor(days / DAYS_PER_MONTH)
+  const years = Math.floor(days / DAYS_PER_YEAR)
 
   if (years > 1) {
     return `(${t('time.yearsAgo', { value: years })})`
@@ -98,7 +106,7 @@ export function formatAccountCreationDate(
     return formatDateUtil(createdAt)
   }
   const date = new Date(createdAt)
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return 'Invalid date'
   }
   return formatDateUtil(date)

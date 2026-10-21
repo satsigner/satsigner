@@ -1,4 +1,5 @@
 import { nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NOSTR_EVENT_REF_RE } from '@/constants/nostr'
 import type { NostrFeedNoteLike } from '@/types/models/Nostr'
@@ -71,7 +72,7 @@ export function hasEmbeddedEventRef(content: string): boolean {
 export function stripNostrEventRefs(content: string): string {
   return content
     .replace(NOSTR_EVENT_REF_RE, '')
-    .replace(/[ \t]{2,}/g, ' ')
+    .replaceAll(/[ \t]{2,}/g, ' ')
     .trim()
 }
 
@@ -98,7 +99,10 @@ export function collectUnresolvedEventIds(
   const ids = new Set<string>()
 
   for (const note of notes) {
-    if (note.kind === 6 || note.kind === 16) {
+    if (
+      note.kind === nostrKinds.Repost ||
+      note.kind === nostrKinds.GenericRepost
+    ) {
       const parsed = parseRepostOriginalEvent(note.content)
       if (parsed) {
         continue
@@ -110,7 +114,7 @@ export function collectUnresolvedEventIds(
       continue
     }
 
-    if (note.kind !== 1) {
+    if (note.kind !== nostrKinds.ShortTextNote) {
       continue
     }
 
@@ -135,26 +139,29 @@ export function collectUnresolvedEventIds(
     }
   }
 
-  return Array.from(ids)
+  return [...ids]
 }
 
 export function isNoteQuotePost(note: NostrFeedNoteLike): boolean {
   return (
-    note.kind === 1 &&
+    note.kind === nostrKinds.ShortTextNote &&
     (getQuoteTagEventIds(note.tags).length > 0 ||
       hasEmbeddedEventRef(note.content))
   )
 }
 
 export function getResolvedEventId(note: NostrFeedNoteLike): string | null {
-  if (note.kind === 6 || note.kind === 16) {
+  if (
+    note.kind === nostrKinds.Repost ||
+    note.kind === nostrKinds.GenericRepost
+  ) {
     const parsed = parseRepostOriginalEvent(note.content)
     if (parsed) {
       return null
     }
     return getRepostETagEventId(note.tags)
   }
-  if (note.kind === 1) {
+  if (note.kind === nostrKinds.ShortTextNote) {
     const qIds = getQuoteTagEventIds(note.tags)
     if (qIds.length > 0) {
       return qIds[0]

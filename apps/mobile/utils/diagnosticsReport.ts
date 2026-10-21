@@ -4,7 +4,10 @@ import { nip19 } from 'nostr-tools'
 import { Platform } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
+import {
+  NOSTR_SECRET_KEY_BYTE_LENGTH,
+  NOSTR_SECURITY_REPORT_NPUB
+} from '@/constants/nostr'
 import { randomKey } from '@/utils/crypto'
 import {
   type CheckResults,
@@ -77,7 +80,9 @@ export async function submitDiagnosticsReport(
   }
 
   const relays = resolveLiveRoundtripRelays(relayUrls)
-  const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+  const secretKey = new Uint8Array(
+    Buffer.from(await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH), 'hex')
+  )
   const nsec = nip19.nsecEncode(secretKey)
 
   const api = new NostrAPI(relays)

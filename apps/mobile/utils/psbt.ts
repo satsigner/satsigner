@@ -4,8 +4,10 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import {
   HEX_PATTERN,
+  MAX_PARTIAL_SIGNATURE_BYTES,
   MIN_MULTISIG_SCRIPT_LENGTH,
-  OP_N_VALUE_OFFSET,
+  MIN_PARTIAL_SIGNATURE_BYTES,
+  OP_N_OFFSET,
   PSBT_MAGIC_BASE64,
   PSBT_MAGIC_HEX
 } from '@/constants/btc'
@@ -241,19 +243,21 @@ export function signPSBTWithSeed(
     const inputData = psbt.data.inputs[derivation.inputIndex]
 
     switch (scriptType) {
-      case 'P2WSH':
+      case 'P2WSH': {
         if (!inputData.witnessScript) {
           continue
         }
         break
+      }
 
-      case 'P2SH':
+      case 'P2SH': {
         if (!inputData.redeemScript) {
           continue
         }
         break
+      }
 
-      case 'P2SH-P2WSH':
+      case 'P2SH-P2WSH': {
         if (!inputData.redeemScript) {
           continue
         }
@@ -261,6 +265,7 @@ export function signPSBTWithSeed(
           continue
         }
         break
+      }
 
       default:
     }
@@ -651,10 +656,10 @@ export function getMultisigInfoFromPsbt(psbtBase64: string) {
   const nOp = decompiled.at(-2)!
 
   const m = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - OP_N_VALUE_OFFSET])
+    Buffer.isBuffer(mOp) ? mOp : Buffer.from([mOp - OP_N_OFFSET])
   )
   const n = bitcoinjs.script.number.decode(
-    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - OP_N_VALUE_OFFSET])
+    Buffer.isBuffer(nOp) ? nOp : Buffer.from([nOp - OP_N_OFFSET])
   )
 
   return { required: m, total: n }
@@ -687,7 +692,7 @@ export function extractIndividualSignedPsbts(
   const individualSignedPsbts: Record<number, string> = {}
 
   const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-  const signerPubkeyArray = Array.from(signerPubkeys)
+  const signerPubkeyArray = [...signerPubkeys]
 
   for (const [index, pubkey] of signerPubkeyArray.entries()) {
     const individualPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
@@ -936,7 +941,7 @@ export function parseWitnessScript(witnessScript: Buffer) {
     return null
   }
 
-  const threshold = op - OP_N_VALUE_OFFSET
+  const threshold = op - OP_N_OFFSET
   const totalKeys = countPublicKeysInScript(script)
 
   return { threshold, totalKeys }
@@ -999,7 +1004,10 @@ function isValidSignature(
   }
 
   const sigLength = sig.signature.length
-  return sigLength >= 64 && sigLength <= 72
+  return (
+    sigLength >= MIN_PARTIAL_SIGNATURE_BYTES &&
+    sigLength <= MAX_PARTIAL_SIGNATURE_BYTES
+  )
 }
 
 function validateCosignerSignature(
@@ -1241,7 +1249,7 @@ export function buildPubkeyToCosignerIndex(
 // Keeps only the cosigners that have a non-empty signed PSBT.
 export function getCollectedSignedPsbts(signedPsbts: Map<number, string>) {
   return new Map(
-    Array.from(signedPsbts).filter(([, psbt]) => psbt && psbt.trim().length > 0)
+    [...signedPsbts].filter(([, psbt]) => psbt && psbt.trim().length > 0)
   )
 }
 
@@ -1254,9 +1262,7 @@ export function hasAllRequiredSignatures(
     return false
   }
   const requiredSignatures = account.keysRequired || account.keys.length
-  const validSignatures = Array.from(validationResults.values()).filter(
-    Boolean
-  ).length
+  const validSignatures = [...validationResults.values()].filter(Boolean).length
   return validSignatures >= requiredSignatures
 }
 

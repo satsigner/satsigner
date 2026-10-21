@@ -105,16 +105,16 @@ function detectQRType(data: string): QRInfo {
   const rawMatch = data.match(/^p(\d+)of(\d+)\s/i)
   if (rawMatch) {
     return {
-      content: data.substring(rawMatch[0].length),
-      current: parseInt(rawMatch[1], 10) - 1,
-      total: parseInt(rawMatch[2], 10),
+      content: data.slice(rawMatch[0].length),
+      current: Number.parseInt(rawMatch[1], 10) - 1,
+      total: Number.parseInt(rawMatch[2], 10),
       type: 'raw'
     }
   }
 
   if (isBBQRFragment(data)) {
-    const total = parseInt(data.slice(4, 6), 36)
-    const current = parseInt(data.slice(6, 8), 36)
+    const total = Number.parseInt(data.slice(4, 6), 36)
+    const current = Number.parseInt(data.slice(6, 8), 36)
     return {
       content: data,
       current,
@@ -135,7 +135,7 @@ function assembleRawMultiPart(
   chunks: Map<number, string>,
   context: SSCameraModalProps['context']
 ): string | null {
-  const sortedChunks = Array.from(chunks.entries())
+  const sortedChunks = [...chunks.entries()]
     .toSorted(([a], [b]) => a - b)
     .map(([, content]) => content)
 
@@ -450,7 +450,7 @@ function SSCameraModal({
 
       state.scanned.add(current)
       state.chunks.set(current, content)
-      const scannedIndices = Array.from(state.scanned)
+      const scannedIndices = [...state.scanned]
       const receivedCount = state.scanned.size
       setProgress((prev) => {
         if (

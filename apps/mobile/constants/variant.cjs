@@ -14,8 +14,8 @@ const APP_VARIANT_PRODUCTION = 'production'
 function sanitizePackageSegment(raw) {
   const segment = raw
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
+    .replaceAll(/[^a-z0-9]+/g, '_')
+    .replaceAll(/^_+|_+$/g, '')
     .slice(0, VARIANT_SUFFIX_MAX_LENGTH)
 
   if (!segment) {
@@ -28,7 +28,7 @@ function sanitizePackageSegment(raw) {
 function sanitizeSchemeSegment(raw) {
   return raw
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
+    .replaceAll(/[^a-z0-9]/g, '')
     .slice(0, VARIANT_SUFFIX_MAX_LENGTH)
 }
 

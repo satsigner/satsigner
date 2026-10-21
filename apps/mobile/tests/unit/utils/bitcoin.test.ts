@@ -4,6 +4,7 @@ import {
   bip21decode,
   getAccountDerivationPath,
   getAddressDerivationPath,
+  getScriptTypeFromAddress,
   isBip21,
   privateKeyHexToWif
 } from '@/utils/bitcoin'
@@ -108,7 +109,7 @@ describe('bitcoin utils', () => {
       expect(result).toStrictEqual({
         address: 'bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26',
         options: {
-          amount: 0.02587175,
+          amount: 0.025_871_75,
           label: undefined,
           message: undefined
         }
@@ -245,5 +246,21 @@ describe('bitcoin utils', () => {
         privateKeyHexToWif(privateKeyHex, 'testnet')
       )
     })
+  })
+})
+
+describe('getScriptTypeFromAddress', () => {
+  it.each([
+    ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2', 'p2pkh'],
+    ['3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'p2sh'],
+    ['bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', 'p2wpkh'],
+    ['bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3', 'p2wsh'],
+    ['bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr', 'p2tr']
+  ])('classifies %s as %s', (address, expected) => {
+    expect(getScriptTypeFromAddress(address, 'bitcoin')).toBe(expected)
+  })
+
+  it('returns null for an invalid address', () => {
+    expect(getScriptTypeFromAddress('not-an-address', 'bitcoin')).toBeNull()
   })
 })

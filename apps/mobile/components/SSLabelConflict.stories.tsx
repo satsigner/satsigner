@@ -46,7 +46,7 @@ const meta = {
         }
       ]
     ],
-    // eslint-disable-next-line
+    // oxlint-disable-next-line no-console
     onResolve: (labels) => console.log(labels) // useful for debugging
   },
   component: SSLabelConflict,

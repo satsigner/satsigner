@@ -75,9 +75,7 @@ function SSPreviewMultisigSection({
       <SSSignatureRequiredDisplay
         requiredNumber={account.keysRequired || 1}
         totalNumber={account.keyCount || 1}
-        collectedSignatures={Array.from(
-          getCollectedSignedPsbts(signedPsbts).keys()
-        )}
+        collectedSignatures={[...getCollectedSignedPsbts(signedPsbts).keys()]}
         validationResults={validationResults}
       />
 

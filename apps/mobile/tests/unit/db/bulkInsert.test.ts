@@ -2,7 +2,7 @@ import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { bulkInsert } from '@/db/bulkInsert'
 
-const MAX_SQL_VARIABLES = 32766
+const MAX_SQL_VARIABLES = 32_766
 
 type Call = { sql: string; params: unknown[] }
 

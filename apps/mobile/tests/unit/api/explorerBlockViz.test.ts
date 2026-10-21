@@ -13,12 +13,12 @@ describe('fetchExplorerBlockVizFromMempool', () => {
             matchRate: 98,
             medianFee: 3,
             pool: { id: 1, name: 'ExamplePool', slug: 'example' },
-            reward: 312500000,
+            reward: 312_500_000,
             segwitTotalTxs: 8,
-            totalFees: 50000,
+            totalFees: 50_000,
             totalInputs: 20,
             totalOutputs: 22,
-            virtualSize: 900000
+            virtualSize: 900_000
           },
           height: 100,
           id: 'ab'.repeat(32),
@@ -45,7 +45,7 @@ describe('fetchExplorerBlockVizFromMempool', () => {
     expect(result.height).toBe(100)
     expect(result.extras.pool?.name).toBe('ExamplePool')
     expect(result.extras.feeRange).toHaveLength(7)
-    expect(result.extras.totalFees).toBe(50000)
+    expect(result.extras.totalFees).toBe(50_000)
     expect(result.sampleTxs).toHaveLength(2)
     expect(result.sampleTxs[0]?.feeRate).toBe(4)
     expect(result.sampleTxs[1]?.feeRate).toBe(4)

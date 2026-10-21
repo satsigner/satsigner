@@ -197,7 +197,7 @@ export default function PublicKeyPage() {
       return
     }
     const accountData = getAccountData()
-    const keyIndexNum = parseInt(keyIndex, 10)
+    const keyIndexNum = Number.parseInt(keyIndex, 10)
     const key = accountData.keys[keyIndexNum]
     if (!key) {
       toast.error('Key not found')
@@ -244,7 +244,7 @@ export default function PublicKeyPage() {
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKey_${accountData.name}_Key${
-      parseInt(keyIndex || '0', 10) + 1
+      Number.parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
       dialogTitle: t('export.file.save'),

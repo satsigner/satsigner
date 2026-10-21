@@ -25,6 +25,7 @@ import {
   getLNURLType,
   handleLNURLPay
 } from '@/utils/lnurl'
+import { sleep } from '@/utils/time'
 import { getURBytesFragments } from '@/utils/ur'
 
 const ANIMATED_QR_FRAGMENT_SIZE = 200
@@ -89,8 +90,8 @@ export function useEcashSend() {
       return
     }
 
-    const amountNum = parseInt(amount, 10)
-    if (isNaN(amountNum) || amountNum <= 0) {
+    const amountNum = Number.parseInt(amount, 10)
+    if (Number.isNaN(amountNum) || amountNum <= 0) {
       toast.error(t('ecash.error.invalidAmount'))
       return
     }
@@ -157,8 +158,8 @@ export function useEcashSend() {
       return
     }
 
-    const amountSats = parseInt(amount, 10)
-    if (isNaN(amountSats) || amountSats <= 0) {
+    const amountSats = Number.parseInt(amount, 10)
+    if (Number.isNaN(amountSats) || amountSats <= 0) {
       toast.error(t('ecash.error.pleaseEnterValidAmount'))
       setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
       return
@@ -205,8 +206,8 @@ export function useEcashSend() {
         return null
       }
 
-      const amountSats = parseInt(amount, 10)
-      if (isNaN(amountSats) || amountSats <= 0) {
+      const amountSats = Number.parseInt(amount, 10)
+      if (Number.isNaN(amountSats) || amountSats <= 0) {
         toast.error(t('ecash.error.pleaseEnterValidAmount'))
         setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
         return null
@@ -220,9 +221,7 @@ export function useEcashSend() {
       )
       setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, LNURL_PAY_DELAY_MS)
-      })
+      await sleep(LNURL_PAY_DELAY_MS)
       return bolt11
     }
 
@@ -384,14 +383,14 @@ export function useEcashSend() {
     return generatedToken
   }
 
-  const amountNum = parseInt(amount, 10)
+  const amountNum = Number.parseInt(amount, 10)
   const mintBalances = mints.map((mint) => ({
     balance: getMintBalance(mint.url, proofs),
     mintUrl: mint.url,
     supportsMpp: false
   }))
   const tokenRoute =
-    !isNaN(amountNum) && amountNum > 0
+    !Number.isNaN(amountNum) && amountNum > 0
       ? selectMintRoute({
           allowMpp: false,
           amountSats: amountNum,

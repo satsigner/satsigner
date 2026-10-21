@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
+import { NFC_AVAILABILITY_RETRY_MS } from '@/constants/nfc'
 import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
 import { NfcDisabledError } from '@/utils/nfcError'
 import { toNfcSessionError } from '@/utils/nfcSession'
@@ -33,7 +34,7 @@ export function useNFCReader() {
 
     const retryTimer = setTimeout(() => {
       checkNFCAvailability()
-    }, 400)
+    }, NFC_AVAILABILITY_RETRY_MS)
 
     const onAppState = (next: AppStateStatus) => {
       if (next === 'active') {
