@@ -3,4 +3,6 @@
 // before a real index is computed for the in-progress account.
 const INITIAL_DISPLAY_INDEX = 0
 
-export { INITIAL_DISPLAY_INDEX }
+const MISSING_PUBKEY_PLACEHOLDER = 'N/A'
+
+export { INITIAL_DISPLAY_INDEX, MISSING_PUBKEY_PLACEHOLDER }
