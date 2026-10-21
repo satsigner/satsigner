@@ -199,12 +199,12 @@ type ElectrumDefaultPorts = {
 
 function defaultElectrumPorts(network: Network): ElectrumDefaultPorts {
   if (network === 'testnet') {
-    return { ssl: 51002, tcp: 51001 }
+    return { ssl: 51_002, tcp: 51_001 }
   }
   if (network === 'signet') {
-    return { ssl: 60002, tcp: 60001 }
+    return { ssl: 60_002, tcp: 60_001 }
   }
-  return { ssl: 50002, tcp: 50001 }
+  return { ssl: 50_002, tcp: 50_001 }
 }
 
 export { defaultElectrumPorts, defaultRpcPort, parseCustomBackendPaste }

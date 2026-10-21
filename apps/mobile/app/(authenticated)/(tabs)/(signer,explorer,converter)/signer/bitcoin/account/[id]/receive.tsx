@@ -539,7 +539,7 @@ export default function Receive() {
   }
 
   function getFiatAmount(sats: string): string {
-    if (!sats || isNaN(Number(sats)) || Number(sats) <= 0) {
+    if (!sats || Number.isNaN(Number(sats)) || Number(sats) <= 0) {
       return ''
     }
     const fiatAmount = satsToFiat(Number(sats))
@@ -547,7 +547,7 @@ export default function Receive() {
   }
 
   function getSatsFromFiat(fiat: string): number | null {
-    if (!fiat || isNaN(Number(fiat)) || Number(fiat) <= 0) {
+    if (!fiat || Number.isNaN(Number(fiat)) || Number(fiat) <= 0) {
       return null
     }
     if (!btcPrice || btcPrice <= 0) {
@@ -588,7 +588,7 @@ export default function Receive() {
   function handleFiatAmountChange(text: string) {
     // Allow digits and a single decimal point
     const cleaned = text
-      .replace(/[^0-9.]/g, '')
+      .replaceAll(/[^0-9.]/g, '')
       .replace(/^(\d*\.?\d*).*$/, '$1')
     setLocalFiatAmount(cleaned)
     const sats = getSatsFromFiat(cleaned)
@@ -605,7 +605,7 @@ export default function Receive() {
 
   async function handlePasteAmount() {
     const text = await Clipboard.getStringAsync()
-    if (text && !isNaN(Number(text))) {
+    if (text && !Number.isNaN(Number(text))) {
       setLocalCustomAmount(text)
     }
   }

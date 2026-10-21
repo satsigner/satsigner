@@ -9,14 +9,13 @@ function getConfirmWordCandidates(
   seedWords: NonNullable<Secret['mnemonic']>
 ) {
   const seedWordsArray = seedWords.split(' ')
-  const uniqueSeedWords = Array.from(new Set(seedWordsArray))
+  const uniqueSeedWords = [...new Set(seedWordsArray)]
 
   if (!currentWord || uniqueSeedWords.length < 3) {
     return [currentWord, '', ''].slice(0, 3)
   }
 
-  const candidates: string[] = []
-  candidates.push(currentWord)
+  const candidates: string[] = [currentWord]
 
   while (candidates.length < 3) {
     const newCandidate =

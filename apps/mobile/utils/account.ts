@@ -260,7 +260,7 @@ export function checkWalletNeedsSync(
     } else {
       lastSync = new Date(lastSyncedAtValue)
 
-      if (isNaN(lastSync.getTime())) {
+      if (Number.isNaN(lastSync.getTime())) {
         return true
       }
     }

@@ -32,16 +32,16 @@ import { getNostrTagValue } from '@/utils/nostrEvent'
 import { isRecord } from '@/utils/object'
 
 // NDK connect timeout (ms) used by the main zap-sending path.
-const NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS = 10000
+const NOSTR_ZAP_NDK_CONNECT_TIMEOUT_MS = 10_000
 // Timeout (ms) for collecting zap receipts via subscribeAndCollect on the
 // main zap-sending path.
-const NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS = 15000
+const NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS = 15_000
 // NDK connect timeout (ms) used only when refreshing stale sender/recipient
 // profiles for already-fetched zap receipts.
 const NOSTR_ZAP_PROFILE_REFRESH_CONNECT_TIMEOUT_MS = 8000
 // Timeout (ms) for collecting kind-0 profile events during stale-profile
 // refresh.
-const NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS = 10000
+const NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS = 10_000
 
 /**
  * Subscribe-based multi-event fetch. Keeps the subscription open so events
@@ -142,7 +142,7 @@ export function parseZapReceiptFromTags(
       const amountMillisats = getNostrTagValue(zapRequest.tags, 'amount')
       if (amountMillisats) {
         amountSats = Math.floor(
-          parseInt(amountMillisats, 10) / MILLISATS_PER_SAT
+          Number.parseInt(amountMillisats, 10) / MILLISATS_PER_SAT
         )
       }
     }

@@ -20,7 +20,7 @@ function lineHeightForSize(fontSize: number) {
 }
 
 function compactHexCandidate(value: string) {
-  return value.replace(/\s+/g, '')
+  return value.replaceAll(/\s+/g, '')
 }
 
 function chunkString(value: string, chunkSize: number): string[] {

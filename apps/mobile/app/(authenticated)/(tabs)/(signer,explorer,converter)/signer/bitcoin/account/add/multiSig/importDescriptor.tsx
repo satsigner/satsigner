@@ -179,7 +179,7 @@ export default function ImportDescriptor() {
       }
 
       const [requiredStr, keysStr] = multiMatch.slice(2)
-      const keysRequired = parseInt(requiredStr, 10)
+      const keysRequired = Number.parseInt(requiredStr, 10)
       const keys = keysStr.split(',').map((key) => key.trim())
 
       const keyData = keys.map((key, index) => {
@@ -251,7 +251,7 @@ export default function ImportDescriptor() {
 
       setExternalDescriptor(descriptor)
 
-      const internalDescriptor = descriptor.replace(/\/0\/\*/g, '/1/*')
+      const internalDescriptor = descriptor.replaceAll('/0/*', '/1/*')
       setInternalDescriptor(internalDescriptor)
 
       for (let i = 0; i < parsedData.keyData.length; i += 1) {

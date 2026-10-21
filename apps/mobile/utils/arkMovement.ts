@@ -223,47 +223,62 @@ export function truncateArkCounterparty(
 
 export function getArkMovementStatusColor(status: string): string {
   switch (status) {
-    case 'pending':
+    case 'pending': {
       return Colors.warning
-    case 'successful':
+    }
+    case 'successful': {
       return Colors.softBarGreen
+    }
     case 'failed':
-    case 'canceled':
+    case 'canceled': {
       return Colors.error
-    default:
+    }
+    default: {
       return Colors.gray[400]
+    }
   }
 }
 
 export function getArkMovementStatusLabel(status: string): string {
   switch (status) {
-    case 'pending':
+    case 'pending': {
       return t('ark.movement.status.pending')
-    case 'successful':
+    }
+    case 'successful': {
       return t('ark.movement.status.successful')
-    case 'failed':
+    }
+    case 'failed': {
       return t('ark.movement.status.failed')
-    case 'canceled':
+    }
+    case 'canceled': {
       return t('ark.movement.status.canceled')
-    default:
+    }
+    default: {
       return status.toUpperCase()
+    }
   }
 }
 
 export function getArkMovementKindLabel(kind: ArkMovementKind): string {
   switch (kind) {
-    case 'board':
+    case 'board': {
       return t('ark.movement.kind.board')
-    case 'offboard':
+    }
+    case 'offboard': {
       return t('ark.movement.kind.offboard')
-    case 'receive':
+    }
+    case 'receive': {
       return t('ark.movement.kind.receive')
-    case 'send':
+    }
+    case 'send': {
       return t('ark.movement.kind.send')
-    case 'refresh':
+    }
+    case 'refresh': {
       return t('ark.movement.kind.refresh')
-    default:
+    }
+    default: {
       return ''
+    }
   }
 }
 

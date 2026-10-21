@@ -121,9 +121,9 @@ function formatReleaseDescription(rawDescription: string) {
 
   const EMOJI_REGEX =
     /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]+/gu
-  description = description.replace(EMOJI_REGEX, '').replace(/[ \t]+$/gm, '')
+  description = description.replace(EMOJI_REGEX, '').replaceAll(/[ \t]+$/gm, '')
 
-  description = description.replace(/^#+/gm, '####')
+  description = description.replaceAll(/^#+/gm, '####')
 
   return description
 }

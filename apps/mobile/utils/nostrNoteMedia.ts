@@ -36,7 +36,7 @@ export function stripImageUrlsFromContent(
   const withoutBare = withoutMarkdown.replace(BARE_URL_RE, (match) =>
     urlSet.has(match.trim().replace(/\)+$/, '')) ? '' : match
   )
-  return withoutBare.replace(/\n{3,}/g, '\n\n').trim()
+  return withoutBare.replaceAll(/\n{3,}/g, '\n\n').trim()
 }
 
 /**

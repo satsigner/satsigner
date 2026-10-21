@@ -48,7 +48,7 @@ function trimLabel(rawLabel: string | undefined): string {
     return t('transaction.noLabel')
   }
   return text.length > LABEL_TRUNCATE_CHARS
-    ? `${text.substring(0, LABEL_TRUNCATE_CHARS)}...`
+    ? `${text.slice(0, LABEL_TRUNCATE_CHARS)}...`
     : text
 }
 

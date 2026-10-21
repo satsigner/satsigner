@@ -235,19 +235,21 @@ export function signPSBTWithSeed(
     const inputData = psbt.data.inputs[derivation.inputIndex]
 
     switch (scriptType) {
-      case 'P2WSH':
+      case 'P2WSH': {
         if (!inputData.witnessScript) {
           continue
         }
         break
+      }
 
-      case 'P2SH':
+      case 'P2SH': {
         if (!inputData.redeemScript) {
           continue
         }
         break
+      }
 
-      case 'P2SH-P2WSH':
+      case 'P2SH-P2WSH': {
         if (!inputData.redeemScript) {
           continue
         }
@@ -255,6 +257,7 @@ export function signPSBTWithSeed(
           continue
         }
         break
+      }
 
       default:
     }
@@ -664,7 +667,7 @@ export function extractIndividualSignedPsbts(
   const individualSignedPsbts: Record<number, string> = {}
 
   const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-  const signerPubkeyArray = Array.from(signerPubkeys)
+  const signerPubkeyArray = [...signerPubkeys]
 
   for (const [index, pubkey] of signerPubkeyArray.entries()) {
     const individualPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)

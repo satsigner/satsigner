@@ -24,12 +24,15 @@ import {
 
 function toAppNetwork(network: Network): BlockchainNetwork {
   switch (network) {
-    case 0:
+    case 0: {
       return 'bitcoin'
-    case 2:
+    }
+    case 2: {
       return 'signet'
-    default:
+    }
+    default: {
       return 'testnet'
+    }
   }
 }
 
@@ -387,21 +390,21 @@ function parseTxDetailsToTransaction(
   } = txDetails
 
   const txHex = wallet.getTx(txid)
-  const raw = txHex ? Array.from(hex.decode(txHex)) : []
+  const raw = txHex ? [...hex.decode(txHex)] : []
 
   const vin: Transaction['vin'] = inputs.map((input) => ({
     previousOutput: {
       txid: input.previousTxid,
       vout: input.previousVout
     },
-    scriptSig: Array.from(hex.decode(input.scriptSigHex)),
+    scriptSig: [...hex.decode(input.scriptSigHex)],
     sequence: input.sequence,
-    witness: input.witness.map((w) => Array.from(hex.decode(w)))
+    witness: input.witness.map((w) => [...hex.decode(w)])
   }))
 
   const vout: Transaction['vout'] = outputs.map((output) => ({
     address: output.address || '',
-    script: Array.from(hex.decode(output.scriptPubkeyHex)),
+    script: [...hex.decode(output.scriptPubkeyHex)],
     value: output.value
   }))
 
@@ -452,7 +455,7 @@ function parseLocalOutputToUtxo(
   }
   const transactionId = localOutput.outpoint.txid
   const txDetails = txDetailsList.find((td) => td.txid === transactionId)
-  const script = Array.from(hex.decode(localOutput.txout.scriptPubkeyHex))
+  const script = [...hex.decode(localOutput.txout.scriptPubkeyHex)]
 
   return {
     addressTo,

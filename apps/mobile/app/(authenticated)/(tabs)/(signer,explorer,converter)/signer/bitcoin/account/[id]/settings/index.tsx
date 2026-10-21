@@ -112,14 +112,18 @@ export default function AccountSettings() {
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
-      case 'singlesig':
+      case 'singlesig': {
         return t('account.policy.singleSignature.title')
-      case 'multisig':
+      }
+      case 'multisig': {
         return t('account.policy.multiSignature.title')
-      case 'watchonly':
+      }
+      case 'watchonly': {
         return t('account.policy.watchOnly.title')
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 

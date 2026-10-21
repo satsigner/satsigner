@@ -10,7 +10,7 @@ describe('getExplorerExampleBlock', () => {
   })
 
   it('returns the pizza day example for height 57043', () => {
-    expect(getExplorerExampleBlock(57043)?.label).toBe('Pizza Day')
+    expect(getExplorerExampleBlock(57_043)?.label).toBe('Pizza Day')
   })
 
   it('accepts string heights', () => {

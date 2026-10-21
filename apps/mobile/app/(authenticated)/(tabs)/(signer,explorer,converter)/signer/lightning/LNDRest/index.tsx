@@ -74,7 +74,10 @@ export default function LNDRestPage() {
         }, LND_SUCCESS_NAVIGATE_DELAY_MS)
       } else {
         const responseText = await response.text()
-        const errBody = responseText.replace(/\s+/g, ' ').trim().slice(0, 180)
+        const errBody = responseText
+          .replaceAll(/\s+/g, ' ')
+          .trim()
+          .slice(0, 180)
         throw new Error(
           errBody
             ? `getinfo failed (${response.status}): ${errBody}`

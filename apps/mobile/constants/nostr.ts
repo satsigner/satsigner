@@ -17,12 +17,12 @@ import type {
 export const NOSTR_DEFAULT_RETRY_CONFIG = {
   baseDelayMs: 1000,
   jitterFactor: 0.2,
-  maxDelayMs: 60000,
+  maxDelayMs: 60_000,
   maxRetries: 5
 } as const
 
 // NETWORK
-export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15000
+export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15_000
 export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
@@ -30,7 +30,7 @@ export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
 export const NOSTR_CHAT_THREAD_PAGE_SIZE = 200
 // NIP-59 gift wraps backdate created_at by up to two days.
 export const NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC = 2 * SECONDS_PER_DAY
-export const NOSTR_EOSE_TIMEOUT_MS = 15000
+export const NOSTR_EOSE_TIMEOUT_MS = 15_000
 export const NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS = 12_000
 export const NOSTR_RELAY_POLL_INTERVAL_MS = 250
 export const NOSTR_PUBLISH_RETRY_DEADLINE_MS = 4000
@@ -41,7 +41,7 @@ export const NOSTR_FLUSH_QUEUE_DELAY_MS = 50
 export const NOSTR_MAX_PROCESSED_ITEMS = 2000
 export const NOSTR_MAX_PROCESSED_RAW_IDS = 5000
 export const NOSTR_MAX_QUEUE_SIZE = 300
-export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20000
+export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20_000
 // Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
 // doesn't specify one.
 export const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
@@ -49,15 +49,15 @@ export const NOSTR_PROCESSING_INTERVAL_MS = 350
 export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = DAYS_PER_WEEK * SECONDS_PER_DAY
 export const NOSTR_PROFILE_CACHE_TTL_SECS = SECONDS_PER_HOUR
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
-export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
-export const NOSTR_PUBLISH_TIMEOUT_MS = 10000
-export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20000
-export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
+export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10_000
+export const NOSTR_PUBLISH_TIMEOUT_MS = 10_000
+export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20_000
+export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10_000
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 // NDK connect timeout (ms) for short-lived, temporary NDK instances used to
 // fetch a single event from an explicit relay list.
 export const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
-export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
+export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15_000
 
 // UI
 export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
@@ -333,7 +333,7 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
 // BLOSSOM
 export const NOSTR_BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
 export const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
-export const NOSTR_BLOSSOM_AUTH_KIND = 24242
+export const NOSTR_BLOSSOM_AUTH_KIND = 24_242
 export const NOSTR_BLOSSOM_AUTH_EXPIRY_SECS = 300
 
 export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
@@ -348,7 +348,7 @@ export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
 // ZAP
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
-export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15000
+export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15_000
 export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
 export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-goal',

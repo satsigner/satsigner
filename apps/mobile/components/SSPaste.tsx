@@ -167,35 +167,47 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
   function getContextTitle() {
     switch (context) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return t('paste.title.bitcoin')
-      case 'lightning':
+      }
+      case 'lightning': {
         return t('paste.title.lightning')
-      case 'ecash':
+      }
+      case 'ecash': {
         return t('paste.title.ecash')
-      case 'nostr':
+      }
+      case 'nostr': {
         return t('paste.title.nostr')
-      case 'ark':
+      }
+      case 'ark': {
         return t('paste.title.ark')
-      default:
+      }
+      default: {
         return t('paste.title.default')
+      }
     }
   }
 
   function getContextDescription() {
     switch (context) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return t('paste.description.bitcoin')
-      case 'lightning':
+      }
+      case 'lightning': {
         return t('paste.description.lightning')
-      case 'ecash':
+      }
+      case 'ecash': {
         return t('paste.description.ecash')
-      case 'nostr':
+      }
+      case 'nostr': {
         return t('paste.description.nostr')
-      case 'ark':
+      }
+      case 'ark': {
         return t('paste.description.ark')
-      default:
+      }
+      default: {
         return t('paste.description.default')
+      }
     }
   }
 
@@ -219,43 +231,58 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
 
     if (isValidContent && detectedContentType) {
       switch (detectedContentType) {
-        case 'psbt':
+        case 'psbt': {
           return t('paste.button.previewPsbt')
+        }
         case 'bitcoin_address':
-        case 'bitcoin_uri':
+        case 'bitcoin_uri': {
           return t('paste.button.sendToAddress')
-        case 'bitcoin_transaction':
+        }
+        case 'bitcoin_transaction': {
           return t('paste.button.processTransaction')
-        case 'ark_address':
+        }
+        case 'ark_address': {
           return t('paste.button.sendToArk')
-        case 'lightning_address':
+        }
+        case 'lightning_address': {
           return t('paste.button.payLightningAddress')
-        case 'lightning_invoice':
+        }
+        case 'lightning_invoice': {
           if (context === 'ecash') {
             return t('paste.button.payLightningInvoice')
           }
           return t('paste.button.payInvoice')
-        case 'lnurl':
+        }
+        case 'lnurl': {
           return t('paste.button.processLnurl')
-        case 'ecash_token':
+        }
+        case 'ecash_token': {
           return t('paste.button.processEcashToken')
-        case 'bbqr_fragment':
+        }
+        case 'bbqr_fragment': {
           return t('paste.button.processBBQR')
-        case 'seed_qr':
+        }
+        case 'seed_qr': {
           return t('paste.button.processSeed')
-        case 'ur':
+        }
+        case 'ur': {
           return t('paste.button.processUR')
+        }
         case 'nostr_note':
-        case 'nostr_nevent':
+        case 'nostr_nevent': {
           return t('paste.button.loadNote')
+        }
         case 'nostr_npub':
-        case 'nostr_nprofile':
+        case 'nostr_nprofile': {
           return t('paste.button.loadProfile')
+        }
         case 'nostr_nsec':
-        case 'nostr_json':
+        case 'nostr_json': {
           return t('paste.button.processNostr')
-        default:
+        }
+        default: {
           return t('paste.button.processContent')
+        }
       }
     } else {
       return t('paste.button.default')

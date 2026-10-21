@@ -47,7 +47,7 @@ import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 const bip32 = BIP32Factory(ecc)
 const SIGNET_NETWORK = bitcoinjs.networks.testnet
-const PAYMENT_SATS = 5_555
+const PAYMENT_SATS = 5555
 const LABEL = 'Payjoin signet integration'
 
 const noopFetch: FetchLike = () =>
@@ -104,7 +104,7 @@ function buildOriginalPsbt(params: {
   psbt.addInput({
     hash: TXID,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: inputValue
@@ -126,7 +126,7 @@ function buildProposalPsbt(params: {
   psbt.addInput({
     hash: TXID_A,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: 100_000
@@ -135,7 +135,7 @@ function buildProposalPsbt(params: {
   psbt.addInput({
     hash: TXID_B,
     index: 1,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'44'.repeat(20)}`, 'hex'),
       value: 100_000
@@ -298,7 +298,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       outputScriptsHex: [wallet.receiveScript.toString('hex')],
       payjoinUri: receiver.uri,
       paymentAmountSats: PAYMENT_SATS,
-      timeoutMs: 2_000
+      timeoutMs: 2000
     })
 
     expect(sendResult.ok).toBe(true)

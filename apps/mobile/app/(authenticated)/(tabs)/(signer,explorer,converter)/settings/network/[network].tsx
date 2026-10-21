@@ -183,11 +183,11 @@ export default function CustomNetwork() {
         return false
       }
 
-      if (!formData.port.match(/^[0-9]+$/)) {
+      if (!/^[0-9]+$/.test(formData.port)) {
         toast.warning(t('error.invalid.port'))
         return false
       }
-    } else if (formData.port.trim() && !formData.port.match(/^[0-9]+$/)) {
+    } else if (formData.port.trim() && !/^[0-9]+$/.test(formData.port)) {
       toast.warning(t('error.invalid.port'))
       return false
     }
@@ -217,7 +217,7 @@ export default function CustomNetwork() {
     }
     if (formData.backend === 'rpc') {
       const scanHeight = formData.rpcScanFromHeight.trim()
-        ? parseInt(formData.rpcScanFromHeight.trim(), 10)
+        ? Number.parseInt(formData.rpcScanFromHeight.trim(), 10)
         : undefined
       return {
         ...base,
@@ -226,7 +226,7 @@ export default function CustomNetwork() {
           username: formData.rpcUsername
         },
         rpcScanFromHeight:
-          scanHeight !== undefined && !isNaN(scanHeight)
+          scanHeight !== undefined && !Number.isNaN(scanHeight)
             ? scanHeight
             : undefined,
         rpcWalletName: formData.rpcWalletName.trim() || undefined

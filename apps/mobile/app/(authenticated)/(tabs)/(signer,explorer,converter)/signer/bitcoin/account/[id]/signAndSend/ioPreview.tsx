@@ -345,11 +345,11 @@ export default function IOPreview() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const utxosSelectedValue = utxosValue([...inputs.values()])
 
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs
     )
     return { size, vsize }
@@ -367,7 +367,7 @@ export default function IOPreview() {
   const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
 
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
-  const orphanedInputs = Array.from(inputs.values()).filter(
+  const orphanedInputs = [...inputs.values()].filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
@@ -500,7 +500,7 @@ export default function IOPreview() {
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs,
       hasChange
     )
@@ -555,7 +555,7 @@ export default function IOPreview() {
     committedOutputSats,
     feeRate: localFeeRate,
     fundingOutputs: fundingOutputsForSize,
-    inputs: Array.from(inputs.values()),
+    inputs: [...inputs.values()],
     totalInputSats: utxosSelectedValue
   })
 
@@ -941,7 +941,7 @@ export default function IOPreview() {
     setAccountUtxos(stonewallResult.inputs)
     setStonewallPreview({
       changeValues,
-      excludedUtxoOutpoints: Array.from(excluded),
+      excludedUtxoOutpoints: [...excluded],
       fakeMixValues,
       fee: stonewallResult.fee
     })
@@ -977,8 +977,7 @@ export default function IOPreview() {
 
     if (selectedAutoSelectUtxos === 'privacy') {
       const outpoint = getUtxoOutpoint(inputToRemove)
-      const nextExcluded = new Set(excludedUtxoOutpoints)
-      nextExcluded.add(outpoint)
+      const nextExcluded = new Set([...excludedUtxoOutpoints, outpoint])
 
       if (applyStonewallSelection(nextExcluded)) {
         setRemoveInputModalVisible(false)
@@ -1094,8 +1093,9 @@ export default function IOPreview() {
 
         break
       }
-      default:
+      default: {
         break
+      }
     }
 
     if (selectionSucceeded) {

@@ -679,7 +679,7 @@ export class BitcoinCoreWallet {
   listUnspent(): Promise<CoreUnspent[]> {
     return this._walletCall<CoreUnspent[]>('listunspent', [
       0, // minconf
-      9999999 // maxconf
+      9_999_999 // maxconf
     ])
   }
 

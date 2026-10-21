@@ -106,7 +106,7 @@ export function formatAccountCreationDate(
     return formatDateUtil(createdAt)
   }
   const date = new Date(createdAt)
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return 'Invalid date'
   }
   return formatDateUtil(date)

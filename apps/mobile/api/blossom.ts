@@ -226,7 +226,7 @@ function putBinary(
     xhr.open('PUT', url)
     xhr.setRequestHeader('Authorization', authHeader)
     xhr.setRequestHeader('Content-Type', mimeType)
-    xhr.onload = () => {
+    xhr.addEventListener('load', () => {
       if (isSuccessfulHttpStatus(xhr.status)) {
         resolve(xhr.responseText)
       } else {
@@ -236,9 +236,11 @@ function putBinary(
           )
         )
       }
-    }
-    xhr.onerror = () => reject(new Error('Network error during upload'))
-    xhr.ontimeout = () => reject(new Error('Upload timed out'))
+    })
+    xhr.addEventListener('error', () =>
+      reject(new Error('Network error during upload'))
+    )
+    xhr.addEventListener('timeout', () => reject(new Error('Upload timed out')))
     xhr.send(data)
   })
 }

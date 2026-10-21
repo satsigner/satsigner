@@ -116,7 +116,7 @@ function buildSignTransactionChartModel(
     return null
   }
 
-  const inputArray = Array.from(inputs.values())
+  const inputArray = [...inputs.values()]
   let size: number
   let vsize: number
 
@@ -216,16 +216,14 @@ function buildSignTransactionChartModel(
     }
   }
 
-  const vin: Transaction['vin'] = Array.from(inputs.values()).map(
-    (input: Utxo) => ({
-      label: input.label || '',
-      previousOutput: { txid: input.txid, vout: input.vout },
-      scriptSig: '',
-      sequence: 0,
-      value: input.value,
-      witness: []
-    })
-  )
+  const vin: Transaction['vin'] = [...inputs.values()].map((input: Utxo) => ({
+    label: input.label || '',
+    previousOutput: { txid: input.txid, vout: input.vout },
+    scriptSig: '',
+    sequence: 0,
+    value: input.value,
+    witness: []
+  }))
 
   const vout: Transaction['vout'] = outputs.map((output: Output) => ({
     address: output.to,
@@ -570,7 +568,7 @@ export default function SignTransaction() {
         ...outputs.filter((o) => o.kind === 'change').map((o) => o.to)
       ],
       signPsbt: (proposalBase64) => {
-        const utxos = Array.from(inputs.values())
+        const utxos = [...inputs.values()]
         const prepared = preparePayjoinPsbtForWalletSign({
           getPrevTxHex: (txid) => wallet.getTx(txid),
           psbtBase64: proposalBase64,
@@ -581,7 +579,7 @@ export default function SignTransaction() {
         return proposal.toBase64()
       },
       transactions: account.transactions ?? [],
-      utxos: Array.from(inputs.values())
+      utxos: [...inputs.values()]
     })
   }
 
@@ -830,7 +828,7 @@ export default function SignTransaction() {
         outputScriptsHex: callbacks.outputScriptsHex,
         payjoinUri,
         paymentAmountSats,
-        quickPollMs: 3_000
+        quickPollMs: 3000
       })
       payjoinLog('ui startBip77Send result', {
         kind: started.kind,
@@ -901,274 +899,269 @@ export default function SignTransaction() {
   }
 
   return (
-    <>
-      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
-        <ScrollView>
-          <SSVStack justifyBetween style={{ minHeight: '100%' }}>
-            <SSVStack itemsCenter>
-              {showPayjoinWait ? (
-                <SSVStack gap="lg" itemsCenter>
-                  <SSText size="md" uppercase weight="light">
-                    {t('transaction.payjoin.send')}
-                  </SSText>
-                  <SSLoader size={160} />
-                  <SSVStack gap="sm" itemsCenter>
-                    <SSText testID="send-payjoin-status" size="md" center>
-                      {payjoinStatus}
-                    </SSText>
-                    <SSText color="muted" size="sm" center>
-                      {t(senderHintKey)}
-                    </SSText>
-                    {payjoinExpiringLabel ? (
-                      <SSText
-                        testID="send-payjoin-expiring"
-                        color="muted"
-                        size="xs"
-                        center
-                      >
-                        {payjoinExpiringLabel}
-                      </SSText>
-                    ) : null}
-                  </SSVStack>
-                </SSVStack>
-              ) : !signed && payjoinStatus ? (
+    <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
+      <ScrollView>
+        <SSVStack justifyBetween style={{ minHeight: '100%' }}>
+          <SSVStack itemsCenter>
+            {showPayjoinWait ? (
+              <SSVStack gap="lg" itemsCenter>
+                <SSText size="md" uppercase weight="light">
+                  {t('transaction.payjoin.send')}
+                </SSText>
+                <SSLoader size={160} />
                 <SSVStack gap="sm" itemsCenter>
-                  <SSHStack
-                    gap="sm"
-                    style={{ alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <SSLoader size={18} />
-                    <SSText
-                      testID="send-payjoin-status"
-                      color="muted"
-                      size="sm"
-                      center
-                    >
-                      {payjoinStatus}
-                    </SSText>
-                  </SSHStack>
+                  <SSText testID="send-payjoin-status" size="md" center>
+                    {payjoinStatus}
+                  </SSText>
                   <SSText color="muted" size="sm" center>
                     {t(senderHintKey)}
                   </SSText>
+                  {payjoinExpiringLabel ? (
+                    <SSText
+                      testID="send-payjoin-expiring"
+                      color="muted"
+                      size="xs"
+                      center
+                    >
+                      {payjoinExpiringLabel}
+                    </SSText>
+                  ) : null}
                 </SSVStack>
-              ) : (
-                <SSText
-                  testID="send-payjoin-status"
-                  size="md"
-                  uppercase
-                  weight="light"
+              </SSVStack>
+            ) : !signed && payjoinStatus ? (
+              <SSVStack gap="sm" itemsCenter>
+                <SSHStack
+                  gap="sm"
+                  style={{ alignItems: 'center', justifyContent: 'center' }}
                 >
-                  {broadcasted
-                    ? t('sent.broadcasted')
-                    : account?.policyType === 'multisig' && signedTx
-                      ? tn('readyToBroadcast')
-                      : tn(signed ? 'signed' : 'signing')}
-                </SSText>
-              )}
-
-              {signed && !broadcasted && (
-                <SSIconSuccess width={159} height={159} variant="outline" />
-              )}
-              {signed && !broadcasted && payjoinStatus ? (
-                <SSVStack gap="xs" itemsCenter>
+                  <SSLoader size={18} />
                   <SSText
-                    testID="send-payjoin-ready"
+                    testID="send-payjoin-status"
                     color="muted"
                     size="sm"
                     center
                   >
                     {payjoinStatus}
                   </SSText>
-                  <SSText
-                    testID="send-payjoin-review-hint"
-                    color="muted"
-                    size="sm"
-                    center
-                  >
-                    {t('transaction.build.payjoin.reviewHint')}
-                  </SSText>
-                </SSVStack>
-              ) : null}
-              {!signed && !broadcasted && !payjoinStatus ? (
-                <SSLoader size={160} />
-              ) : null}
-              {broadcasted && <SSSuccessCheckAnimation />}
-            </SSVStack>
-
-            {showPayjoinWait ? null : (
-              <SSVStack>
-                <SSVStack gap="xxs">
-                  <SSText color="muted" size="sm" uppercase>
-                    {t('transaction.id')}
-                  </SSText>
-                  <SSTransactionIdFormatted size="lg" value={displayTxid} />
-                </SSVStack>
-
-                <SSVStack gap="xxs">
-                  <SSText color="muted" size="sm" uppercase>
-                    {t('transaction.build.preview.contents')}
-                  </SSText>
-                  {transaction ? (
-                    <View style={{ overflow: 'hidden', width: '100%' }}>
-                      <SSTransactionChart
-                        transaction={transaction}
-                        ownAddresses={ownAddresses}
-                        txLabelsById={txLabelsById}
-                        knownTxIds={knownTxIds}
-                        outpointLabelsByRef={outpointLabelsByRef}
-                        scale={0.9}
-                        showUnspentLabel={false}
-                        onOpenLinkedTx={(linkedTxId) =>
-                          router.push(
-                            `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
-                          )
-                        }
-                      />
-                    </View>
-                  ) : null}
-                </SSVStack>
-                <SSVStack gap="xxs">
-                  <SSText color="muted" size="sm" uppercase>
-                    {tn('transaction')}
-                  </SSText>
-                  {rawTx !== '' && !suppressTransactionChart ? (
-                    <>
-                      {(() => {
-                        const isValidHex =
-                          /^[a-fA-F0-9]+$/.test(rawTx) && rawTx.length >= 8
-
-                        if (!isValidHex) {
-                          return (
-                            <SSText color="muted" size="sm">
-                              Invalid transaction format:{' '}
-                              {rawTx.substring(0, 100)}
-                              ...
-                            </SSText>
-                          )
-                        }
-
-                        const isPossiblyPSBT = rawTx
-                          .toLowerCase()
-                          .startsWith('70736274')
-
-                        if (isPossiblyPSBT) {
-                          return (
-                            <SSText color="muted" size="sm">
-                              PSBT format detected - Cannot display raw
-                              transaction view. Transaction will be processed
-                              for broadcasting.
-                            </SSText>
-                          )
-                        }
-
-                        try {
-                          return <SSTransactionDecoded txHex={rawTx} />
-                        } catch {
-                          return (
-                            <SSText color="muted" size="sm">
-                              Unable to decode transaction format. Data will be
-                              processed for broadcasting.
-                            </SSText>
-                          )
-                        }
-                      })()}
-                    </>
-                  ) : null}
-                </SSVStack>
-              </SSVStack>
-            )}
-
-            {manualOriginalPsbt && !signed ? (
-              <SSVStack>
+                </SSHStack>
                 <SSText color="muted" size="sm" center>
-                  {t('transaction.build.payjoin.manual.hint')}
+                  {t(senderHintKey)}
                 </SSText>
-                <SSText size="sm" uppercase center>
-                  {t('transaction.build.payjoin.manual.copyOriginal')}
-                </SSText>
-                <SSPsbtTransport
-                  mode="export"
-                  testIDPrefix="send-payjoin-export"
-                  psbtBase64={manualOriginalPsbt}
-                  disabled={manualBusy}
-                  copyLabel={t('common.copy')}
-                />
-                <SSText size="sm" uppercase center>
-                  {t('transaction.build.payjoin.manual.pasteProposal')}
-                </SSText>
-                <SSPsbtTransport
-                  mode="import"
-                  testIDPrefix="send-payjoin-import"
-                  loading={manualBusy}
-                  pasteLabel={t('common.paste')}
-                  onImport={handleImportManualProposal}
-                />
-                <SSButton
-                  testID="send-payjoin-skip"
-                  variant="ghost"
-                  label={t('transaction.build.payjoin.skip')}
-                  disabled={manualBusy}
-                  onPress={skipPayjoinAndSign}
-                />
-              </SSVStack>
-            ) : showPayjoinWait ? (
-              <SSVStack>
-                <SSButton
-                  testID="send-payjoin-open-accounts"
-                  variant="secondary"
-                  label={t('transaction.build.payjoin.openAccounts')}
-                  disabled={checkingPayjoin}
-                  onPress={handleOpenAccounts}
-                />
-                <SSButton
-                  testID="send-payjoin-check"
-                  variant="ghost"
-                  label={t('transaction.build.payjoin.checkResponse')}
-                  disabled={!waitingForReceiver}
-                  loading={checkingPayjoin}
-                  onPress={handleCheckPayjoinResponse}
-                />
-                <SSButton
-                  testID="send-payjoin-skip"
-                  variant="ghost"
-                  label={t('transaction.build.payjoin.skip')}
-                  disabled={checkingPayjoin}
-                  onPress={skipPayjoinAndSign}
-                />
               </SSVStack>
             ) : (
-              <SSButton
-                testID="send-broadcast"
-                variant="secondary"
-                label={
-                  broadcasted ? t('sent.broadcasted') : t('send.broadcast')
-                }
-                disabled={!signed || (!psbt && !signedTx) || broadcasted}
-                loading={broadcasting}
-                onPress={handleBroadcastTransaction}
-              />
+              <SSText
+                testID="send-payjoin-status"
+                size="md"
+                uppercase
+                weight="light"
+              >
+                {broadcasted
+                  ? t('sent.broadcasted')
+                  : account?.policyType === 'multisig' && signedTx
+                    ? tn('readyToBroadcast')
+                    : tn(signed ? 'signed' : 'signing')}
+              </SSText>
             )}
-            {signed && (
+
+            {signed && !broadcasted && (
+              <SSIconSuccess width={159} height={159} variant="outline" />
+            )}
+            {signed && !broadcasted && payjoinStatus ? (
+              <SSVStack gap="xs" itemsCenter>
+                <SSText
+                  testID="send-payjoin-ready"
+                  color="muted"
+                  size="sm"
+                  center
+                >
+                  {payjoinStatus}
+                </SSText>
+                <SSText
+                  testID="send-payjoin-review-hint"
+                  color="muted"
+                  size="sm"
+                  center
+                >
+                  {t('transaction.build.payjoin.reviewHint')}
+                </SSText>
+              </SSVStack>
+            ) : null}
+            {!signed && !broadcasted && !payjoinStatus ? (
+              <SSLoader size={160} />
+            ) : null}
+            {broadcasted && <SSSuccessCheckAnimation />}
+          </SSVStack>
+
+          {showPayjoinWait ? null : (
+            <SSVStack>
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {t('transaction.id')}
+                </SSText>
+                <SSTransactionIdFormatted size="lg" value={displayTxid} />
+              </SSVStack>
+
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {t('transaction.build.preview.contents')}
+                </SSText>
+                {transaction ? (
+                  <View style={{ overflow: 'hidden', width: '100%' }}>
+                    <SSTransactionChart
+                      transaction={transaction}
+                      ownAddresses={ownAddresses}
+                      txLabelsById={txLabelsById}
+                      knownTxIds={knownTxIds}
+                      outpointLabelsByRef={outpointLabelsByRef}
+                      scale={0.9}
+                      showUnspentLabel={false}
+                      onOpenLinkedTx={(linkedTxId) =>
+                        router.push(
+                          `/signer/bitcoin/account/${id}/transaction/${linkedTxId}`
+                        )
+                      }
+                    />
+                  </View>
+                ) : null}
+              </SSVStack>
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {tn('transaction')}
+                </SSText>
+                {rawTx !== '' && !suppressTransactionChart ? (
+                  <>
+                    {(() => {
+                      const isValidHex =
+                        /^[a-fA-F0-9]+$/.test(rawTx) && rawTx.length >= 8
+
+                      if (!isValidHex) {
+                        return (
+                          <SSText color="muted" size="sm">
+                            Invalid transaction format: {rawTx.slice(0, 100)}
+                            ...
+                          </SSText>
+                        )
+                      }
+
+                      const isPossiblyPSBT = rawTx
+                        .toLowerCase()
+                        .startsWith('70736274')
+
+                      if (isPossiblyPSBT) {
+                        return (
+                          <SSText color="muted" size="sm">
+                            PSBT format detected - Cannot display raw
+                            transaction view. Transaction will be processed for
+                            broadcasting.
+                          </SSText>
+                        )
+                      }
+
+                      try {
+                        return <SSTransactionDecoded txHex={rawTx} />
+                      } catch {
+                        return (
+                          <SSText color="muted" size="sm">
+                            Unable to decode transaction format. Data will be
+                            processed for broadcasting.
+                          </SSText>
+                        )
+                      }
+                    })()}
+                  </>
+                ) : null}
+              </SSVStack>
+            </SSVStack>
+          )}
+
+          {manualOriginalPsbt && !signed ? (
+            <SSVStack>
+              <SSText color="muted" size="sm" center>
+                {t('transaction.build.payjoin.manual.hint')}
+              </SSText>
+              <SSText size="sm" uppercase center>
+                {t('transaction.build.payjoin.manual.copyOriginal')}
+              </SSText>
+              <SSPsbtTransport
+                mode="export"
+                testIDPrefix="send-payjoin-export"
+                psbtBase64={manualOriginalPsbt}
+                disabled={manualBusy}
+                copyLabel={t('common.copy')}
+              />
+              <SSText size="sm" uppercase center>
+                {t('transaction.build.payjoin.manual.pasteProposal')}
+              </SSText>
+              <SSPsbtTransport
+                mode="import"
+                testIDPrefix="send-payjoin-import"
+                loading={manualBusy}
+                pasteLabel={t('common.paste')}
+                onImport={handleImportManualProposal}
+              />
+              <SSButton
+                testID="send-payjoin-skip"
+                variant="ghost"
+                label={t('transaction.build.payjoin.skip')}
+                disabled={manualBusy}
+                onPress={skipPayjoinAndSign}
+              />
+            </SSVStack>
+          ) : showPayjoinWait ? (
+            <SSVStack>
+              <SSButton
+                testID="send-payjoin-open-accounts"
+                variant="secondary"
+                label={t('transaction.build.payjoin.openAccounts')}
+                disabled={checkingPayjoin}
+                onPress={handleOpenAccounts}
+              />
+              <SSButton
+                testID="send-payjoin-check"
+                variant="ghost"
+                label={t('transaction.build.payjoin.checkResponse')}
+                disabled={!waitingForReceiver}
+                loading={checkingPayjoin}
+                onPress={handleCheckPayjoinResponse}
+              />
+              <SSButton
+                testID="send-payjoin-skip"
+                variant="ghost"
+                label={t('transaction.build.payjoin.skip')}
+                disabled={checkingPayjoin}
+                onPress={skipPayjoinAndSign}
+              />
+            </SSVStack>
+          ) : (
+            <SSButton
+              testID="send-broadcast"
+              variant="secondary"
+              label={broadcasted ? t('sent.broadcasted') : t('send.broadcast')}
+              disabled={!signed || (!psbt && !signedTx) || broadcasted}
+              loading={broadcasting}
+              onPress={handleBroadcastTransaction}
+            />
+          )}
+          {signed && (
+            <SSButton
+              variant="ghost"
+              disabled={!canCopySignedTx || broadcasting}
+              label={tn('copySignedTx')}
+              onPress={handleCopySignedTx}
+            />
+          )}
+          {signed &&
+            account?.nostr?.autoSync &&
+            (psbt?.toBase64() ?? signedTx) && (
               <SSButton
                 variant="ghost"
-                disabled={!canCopySignedTx || broadcasting}
-                label={tn('copySignedTx')}
-                onPress={handleCopySignedTx}
+                label={t('account.nostrSync.shareWithGroup')}
+                disabled={broadcasting}
+                onPress={handleShareWithNostrGroup}
               />
             )}
-            {signed &&
-              account?.nostr?.autoSync &&
-              (psbt?.toBase64() ?? signedTx) && (
-                <SSButton
-                  variant="ghost"
-                  label={t('account.nostrSync.shareWithGroup')}
-                  disabled={broadcasting}
-                  onPress={handleShareWithNostrGroup}
-                />
-              )}
-          </SSVStack>
-        </ScrollView>
-      </SSMainLayout>
-    </>
+        </SSVStack>
+      </ScrollView>
+    </SSMainLayout>
   )
 }

@@ -48,9 +48,9 @@ export type DiagnosticCheckId =
   | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
-const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
+const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3000
 const LIVE_RETRIEVE_ATTEMPTS = 4
-const LIVE_RETRIEVE_DELAY_MS = 2_500
+const LIVE_RETRIEVE_DELAY_MS = 2500
 
 // Sized to run in ~1s on-device while still catching weak-RNG classes:
 // any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)
@@ -460,22 +460,30 @@ export function runDiagnosticCheck(
   ctx: { relayUrls?: string[] } = {}
 ): Promise<DiagnosticResult> {
   switch (id) {
-    case 'crypto':
+    case 'crypto': {
       return checkCryptoRoundtrip()
-    case 'entropy':
+    }
+    case 'entropy': {
       return checkEntropyCollisions()
-    case 'nip17':
+    }
+    case 'nip17': {
       return checkNip17Roundtrip()
-    case 'nip17Live':
+    }
+    case 'nip17Live': {
       return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
-    case 'pinKdf':
+    }
+    case 'pinKdf': {
       return checkPinKdf()
-    case 'relayPersistence':
+    }
+    case 'relayPersistence': {
       return checkRelayPersistence(ctx.relayUrls ?? [])
-    case 'secureStore':
+    }
+    case 'secureStore': {
       return checkSecureStore()
-    case 'sqlite':
+    }
+    case 'sqlite': {
       return checkSqlite()
+    }
     default: {
       const _exhaustive: never = id
       throw new Error(`unknown diagnostic check: ${_exhaustive}`)

@@ -306,7 +306,7 @@ describe('updateAccountObjectLabels', () => {
           keychain: 'external',
           label: '',
           txid: 'tx-1',
-          value: 50000,
+          value: 50_000,
           vout: 0
         }
       ]
@@ -326,7 +326,7 @@ describe('updateAccountObjectLabels', () => {
           keychain: 'external',
           label: '',
           txid: 'tx-1',
-          value: 50000,
+          value: 50_000,
           vout: 0
         }
       ]
@@ -346,7 +346,7 @@ describe('updateAccountObjectLabels', () => {
           label: '',
           lockTimeEnabled: false,
           prices: {},
-          received: 50000,
+          received: 50_000,
           sent: 0,
           type: 'receive',
           vin: [],
@@ -369,11 +369,11 @@ describe('updateAccountObjectLabels', () => {
           label: '',
           lockTimeEnabled: false,
           prices: {},
-          received: 50000,
+          received: 50_000,
           sent: 0,
           type: 'receive',
           vin: [],
-          vout: [{ address: 'bc1qaddr', script: '', value: 50000 }]
+          vout: [{ address: 'bc1qaddr', script: '', value: 50_000 }]
         }
       ]
     })
@@ -410,7 +410,7 @@ describe('updateAccountObjectLabels', () => {
           keychain: 'external',
           label: '',
           txid: 'tx-1',
-          value: 50000,
+          value: 50_000,
           vout: 0
         }
       ]
@@ -440,17 +440,17 @@ describe('updateAccountObjectLabels', () => {
           lockTimeEnabled: false,
           prices: {},
           received: 0,
-          sent: 50000,
+          sent: 50_000,
           type: 'send',
           vin: [
             {
               previousOutput: { txid: 'prev-tx', vout: 0 },
               scriptSig: '',
-              sequence: 4294967295,
+              sequence: 4_294_967_295,
               witness: []
             }
           ],
-          vout: [{ address: 'bc1qout', script: '', value: 49750 }]
+          vout: [{ address: 'bc1qout', script: '', value: 49_750 }]
         }
       ]
     })

@@ -82,7 +82,7 @@ function formatBlockHash(hash?: string) {
   if (!hash) {
     return ''
   }
-  return hash.startsWith('0000') ? hash : hash.split('').toReversed().join('')
+  return hash.startsWith('0000') ? hash : [...hash].toReversed().join('')
 }
 
 type CapacityRowProps = {

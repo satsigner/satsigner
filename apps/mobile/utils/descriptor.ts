@@ -82,7 +82,7 @@ export function parseJsonDescriptor(text: string) {
 
     const original = jsonData.descriptor
     const withoutChecksum = original.replace(/#[a-z0-9]+$/, '')
-    const internal = withoutChecksum.replace(/\/0\/\*/g, '/1/*')
+    const internal = withoutChecksum.replaceAll('/0/*', '/1/*')
 
     return {
       external: original,
@@ -128,8 +128,8 @@ export function parseImportedDescriptorPayload(text: string) {
   if (jsonResult) {
     if (isCombinedDescriptor(jsonResult.original)) {
       const withoutChecksum = removeChecksum(jsonResult.original)
-      const external = withoutChecksum.replace(/<0[,;]1>/g, '0')
-      const internal = withoutChecksum.replace(/<0[,;]1>/g, '1')
+      const external = withoutChecksum.replaceAll(/<0[,;]1>/g, '0')
+      const internal = withoutChecksum.replaceAll(/<0[,;]1>/g, '1')
       if (
         !validateDescriptorFormat(external.trim()) ||
         !validateDescriptorFormat(internal.trim())
@@ -164,8 +164,8 @@ export function parseImportedDescriptorPayload(text: string) {
       combined: trimmed,
       derivedExternal: true,
       derivedInternal: true,
-      external: withoutChecksum.replace(/<0[,;]1>/g, '0'),
-      internal: withoutChecksum.replace(/<0[,;]1>/g, '1')
+      external: withoutChecksum.replaceAll(/<0[,;]1>/g, '0'),
+      internal: withoutChecksum.replaceAll(/<0[,;]1>/g, '1')
     }
   }
 

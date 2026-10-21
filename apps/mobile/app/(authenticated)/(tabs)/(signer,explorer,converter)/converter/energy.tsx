@@ -53,8 +53,8 @@ const networks = {
     ...bitcoin.networks.testnet,
     bech32: 'bcrt',
     bip32: {
-      private: 0x04358394,
-      public: 0x043587cf
+      private: 0x04_35_83_94,
+      public: 0x04_35_87_cf
     },
     pubKeyHash: 0x6f, // Same as testnet
     scriptHash: 0xc4, // Same as testnet
@@ -215,7 +215,7 @@ export default function Energy() {
       const method = 'POST'
       const body = JSON.stringify(requestBody)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 10_000)
 
       try {
         const response = await fetch(adjustedUrl, {
@@ -296,7 +296,7 @@ export default function Energy() {
     }
 
     const now = Date.now()
-    if (now - lastTemplateUpdateRef.current < 30000) {
+    if (now - lastTemplateUpdateRef.current < 30_000) {
       return
     }
 
@@ -345,13 +345,13 @@ export default function Energy() {
 
       if (data.error) {
         let errorMessage = `RPC Error: ${data.error.message}`
-        if (data.error.code === -32601) {
+        if (data.error.code === -32_601) {
           errorMessage =
             'getblocktemplate RPC method not found. Make sure your node supports mining.'
-        } else if (data.error.code === -32603) {
+        } else if (data.error.code === -32_603) {
           errorMessage =
             'Node is not ready for mining. Check if your node is fully synced.'
-        } else if (data.error.code === -32602) {
+        } else if (data.error.code === -32_602) {
           errorMessage =
             'Invalid parameters. Check if your node supports the requested rules.'
         }
@@ -417,7 +417,7 @@ export default function Energy() {
 
       intervalId = setInterval(() => {
         fetchBlockchainInfo()
-      }, 30000) // 30 seconds
+      }, 30_000) // 30 seconds
     }
 
     return () => {
@@ -445,7 +445,7 @@ export default function Energy() {
 
       templateUpdateIntervalRef.current = setInterval(() => {
         fetchBlockTemplate()
-      }, 120000)
+      }, 120_000)
     }
 
     return () => {
@@ -516,7 +516,7 @@ export default function Energy() {
       if (data.error) {
         if (data.error.code === -28) {
           throw new Error('Bitcoin node is still starting up')
-        } else if (data.error.code === -32601) {
+        } else if (data.error.code === -32_601) {
           throw new Error('RPC method not found')
         } else {
           throw new Error(`RPC error: ${data.error.message}`)
@@ -559,9 +559,9 @@ export default function Energy() {
     }
 
     // For other networks, calculate target from bits
-    const bitsNum = parseInt(bits, 16)
+    const bitsNum = Number.parseInt(bits, 16)
     const exponent = bitsNum >>> 24
-    const mantissa = bitsNum & 0xffffff
+    const mantissa = bitsNum & 0xff_ff_ff
     const target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
     mantissaBuf.writeUInt32BE(mantissa, 0)
@@ -758,11 +758,11 @@ export default function Energy() {
       header.writeUInt32LE(blockTime, 68)
 
       // Bits (4 bytes) - little endian
-      const bitsNum = parseInt(template.bits, 16)
+      const bitsNum = Number.parseInt(template.bits, 16)
       header.writeUInt32LE(bitsNum, 72)
 
       // Nonce (4 bytes) - little endian
-      header.writeUInt32LE(nonce & 0xffffffff, 76)
+      header.writeUInt32LE(nonce & 0xff_ff_ff_ff, 76)
       return header
     },
     []
@@ -1010,7 +1010,7 @@ export default function Energy() {
           const now = Date.now()
           const elapsed = (now - startTime) / MS_PER_SECOND
           const hashesPerSecond = Math.floor(hashes / elapsed)
-          const powerConsumption = isNaN(hashesPerSecond)
+          const powerConsumption = Number.isNaN(hashesPerSecond)
             ? '0'
             : (hashesPerSecond * 0.0001).toFixed(2)
 
@@ -1069,7 +1069,7 @@ export default function Energy() {
               }
 
               // Check if we need to increment extra nonce
-              if (nonce >= 0xffffffff) {
+              if (nonce >= 0xff_ff_ff_ff) {
                 nonce = 0
                 if (!useExtraNonce) {
                   // Only recreate coinbase and merkle root when we need to start using extra nonce
@@ -1379,7 +1379,7 @@ export default function Energy() {
                 <Slider
                   style={styles.slider}
                   minimumValue={1}
-                  maximumValue={10000}
+                  maximumValue={10_000}
                   step={1}
                   value={miningIntervalTime}
                   onValueChange={setMiningIntervalTime}

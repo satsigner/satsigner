@@ -129,73 +129,71 @@ export default function Home() {
   )
 
   return (
-    <>
-      <Animated.View style={containerStyle}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <SSMainLayout style={styles.mainLayout}>
-            <StaggerItem index={0} progress={progress} totalItems={totalItems}>
-              <SSHStack>
-                <View style={styles.headerContainer}>
-                  <SSText
-                    uppercase
-                    size="2xl"
-                    weight="light"
-                    style={styles.headerText}
-                  >
-                    {tab}
-                  </SSText>
-                </View>
-              </SSHStack>
-            </StaggerItem>
-            <SSVStack>
-              {pages?.map((page, index) => (
-                <StaggerItem
-                  key={`${index}-${tab}/${page.title}`}
-                  index={index + 1}
-                  progress={progress}
-                  totalItems={totalItems}
+    <Animated.View style={containerStyle}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSMainLayout style={styles.mainLayout}>
+          <StaggerItem index={0} progress={progress} totalItems={totalItems}>
+            <SSHStack>
+              <View style={styles.headerContainer}>
+                <SSText
+                  uppercase
+                  size="2xl"
+                  weight="light"
+                  style={styles.headerText}
                 >
-                  <SSHStack>
-                    <View style={styles.buttonContainer}>
-                      <SSButton
-                        icon={
-                          <View style={styles.buttonContent}>
-                            <View
-                              style={[
-                                styles.buttonIcon,
-                                page.isSoon && styles.buttonIconSoon
-                              ]}
-                            >
-                              <page.icon
-                                width={BUTTON_ICON_SIZE}
-                                height={BUTTON_ICON_SIZE}
-                              />
-                            </View>
-                            <SSText
-                              uppercase
-                              style={[
-                                styles.buttonText,
-                                page.isSoon && styles.buttonTextSoon
-                              ]}
-                            >
-                              {page.title}
-                            </SSText>
+                  {tab}
+                </SSText>
+              </View>
+            </SSHStack>
+          </StaggerItem>
+          <SSVStack>
+            {pages?.map((page, index) => (
+              <StaggerItem
+                key={`${index}-${tab}/${page.title}`}
+                index={index + 1}
+                progress={progress}
+                totalItems={totalItems}
+              >
+                <SSHStack>
+                  <View style={styles.buttonContainer}>
+                    <SSButton
+                      icon={
+                        <View style={styles.buttonContent}>
+                          <View
+                            style={[
+                              styles.buttonIcon,
+                              page.isSoon && styles.buttonIconSoon
+                            ]}
+                          >
+                            <page.icon
+                              width={BUTTON_ICON_SIZE}
+                              height={BUTTON_ICON_SIZE}
+                            />
                           </View>
-                        }
-                        onPress={() => handlePress(page)}
-                        variant="elevated"
-                        verticalIndex={index}
-                        totalButtonsVertical={pages.length}
-                      />
-                    </View>
-                  </SSHStack>
-                </StaggerItem>
-              ))}
-            </SSVStack>
-          </SSMainLayout>
-        </ScrollView>
-      </Animated.View>
-    </>
+                          <SSText
+                            uppercase
+                            style={[
+                              styles.buttonText,
+                              page.isSoon && styles.buttonTextSoon
+                            ]}
+                          >
+                            {page.title}
+                          </SSText>
+                        </View>
+                      }
+                      onPress={() => handlePress(page)}
+                      variant="elevated"
+                      verticalIndex={index}
+                      totalButtonsVertical={pages.length}
+                    />
+                  </View>
+                </SSHStack>
+              </StaggerItem>
+            ))}
+          </SSVStack>
+        </SSMainLayout>
+      </ScrollView>
+    </Animated.View>
   )
 }
 

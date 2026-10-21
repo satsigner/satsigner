@@ -131,8 +131,8 @@ export function extractPubpayTags(tags: string[][]): PubpayTag[] {
   const results: PubpayTag[] = []
   for (const tag of tags) {
     if (tag[0] === 'amount') {
-      const msats = parseInt(tag[1], 10)
-      if (!isNaN(msats)) {
+      const msats = Number.parseInt(tag[1], 10)
+      if (!Number.isNaN(msats)) {
         results.push({
           amount: Math.floor(msats / MILLISATS_PER_SAT),
           currency: 'sats',
@@ -149,8 +149,8 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
   if (!tag || !tag[1]) {
     return undefined
   }
-  const val = parseInt(tag[1], 10)
-  return isNaN(val) || val <= 0
+  const val = Number.parseInt(tag[1], 10)
+  return Number.isNaN(val) || val <= 0
     ? undefined
     : Math.floor(val / MILLISATS_PER_SAT)
 }
@@ -167,14 +167,14 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   }
 
   if (zapGoalRaw?.[1]) {
-    const val = parseInt(zapGoalRaw[1], 10)
-    if (!isNaN(val) && val > 0) {
+    const val = Number.parseInt(zapGoalRaw[1], 10)
+    if (!Number.isNaN(val) && val > 0) {
       result.zapGoal = Math.floor(val / MILLISATS_PER_SAT)
     }
   }
   if (zapUsesRaw?.[1]) {
-    const val = parseInt(zapUsesRaw[1], 10)
-    if (!isNaN(val) && val > 0) {
+    const val = Number.parseInt(zapUsesRaw[1], 10)
+    if (!Number.isNaN(val) && val > 0) {
       result.zapUses = val
     }
   }

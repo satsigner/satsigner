@@ -863,7 +863,7 @@ export default function NostrNotePage() {
   }
 
   function handleCustomAmountSubmit() {
-    const sats = parseInt(customAmount, 10)
+    const sats = Number.parseInt(customAmount, 10)
     if (!sats || sats <= 0) {
       return
     }
@@ -886,7 +886,7 @@ export default function NostrNotePage() {
   }
 
   function handleSheetCustomSubmit() {
-    const sats = parseInt(sheetCustomAmount, 10)
+    const sats = Number.parseInt(sheetCustomAmount, 10)
     if (!sats || sats <= 0) {
       return
     }
@@ -1565,8 +1565,9 @@ export default function NostrNotePage() {
                         />
                         <SSButton
                           label={
-                            customAmount && parseInt(customAmount, 10) > 0
-                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(customAmount, 10).toLocaleString()} sats`
+                            customAmount &&
+                            Number.parseInt(customAmount, 10) > 0
+                              ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : Number.parseInt(customAmount, 10).toLocaleString()} sats`
                               : t('nostrIdentity.note.zap')
                           }
                           variant="secondary"
@@ -1574,9 +1575,9 @@ export default function NostrNotePage() {
                             zapLoading ||
                             !effectiveLud16 ||
                             !customAmount ||
-                            parseInt(customAmount, 10) <
+                            Number.parseInt(customAmount, 10) <
                               (enhancedZap.zapMin ?? 1) ||
-                            parseInt(customAmount, 10) >
+                            Number.parseInt(customAmount, 10) >
                               (enhancedZap.zapMax ?? Infinity)
                           }
                           onPress={handleCustomAmountSubmit}
@@ -2028,14 +2029,14 @@ export default function NostrNotePage() {
           />
           <SSButton
             label={
-              sheetCustomAmount && parseInt(sheetCustomAmount, 10) > 0
-                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
+              sheetCustomAmount && Number.parseInt(sheetCustomAmount, 10) > 0
+                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : Number.parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
                 : t('nostrIdentity.note.zap')
             }
             variant="gradient"
             gradientType="special"
             disabled={
-              !sheetCustomAmount || parseInt(sheetCustomAmount, 10) <= 0
+              !sheetCustomAmount || Number.parseInt(sheetCustomAmount, 10) <= 0
             }
             onPress={handleSheetCustomSubmit}
           />

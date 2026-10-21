@@ -72,18 +72,22 @@ export function estimateArkExitFeeSats(
 
 export function normalizeArkFeeRequest(request: ArkFeeRequest): ArkFeeRequest {
   switch (request.kind) {
-    case 'onchain':
+    case 'onchain': {
       return { ...request, address: request.address.trim() }
-    case 'offboard':
+    }
+    case 'offboard': {
       return {
         ...request,
         address: request.address.trim(),
         vtxoIds: request.vtxoIds.toSorted()
       }
-    case 'refresh':
+    }
+    case 'refresh': {
       return { ...request, vtxoIds: request.vtxoIds.toSorted() }
-    default:
+    }
+    default: {
       return request
+    }
   }
 }
 

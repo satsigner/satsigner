@@ -219,46 +219,61 @@ export default function EcashTransactionDetailPage() {
 
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return <SSIconOutgoing height={32} width={32} />
-      case 'receive':
+      }
+      case 'receive': {
         return <SSIconIncoming height={32} width={32} />
-      case 'mint':
+      }
+      case 'mint': {
         return <SSIconIncomingLightning height={32} width={32} />
-      case 'melt':
+      }
+      case 'melt': {
         return <SSIconOutgoingLightning height={32} width={32} />
-      default:
+      }
+      default: {
         return <SSText size="2xl">•</SSText>
+      }
     }
   }
 
   function getTransactionLabel(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return t('ecash.transaction.send')
-      case 'receive':
+      }
+      case 'receive': {
         return t('ecash.transaction.receive')
-      case 'mint':
+      }
+      case 'mint': {
         return t('ecash.transaction.mint')
-      case 'melt':
+      }
+      case 'melt': {
         return t('ecash.transaction.melt')
-      default:
+      }
+      default: {
         return type
+      }
     }
   }
 
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
-      case 'unspent':
+      case 'unspent': {
         return Colors.error
-      case 'spent':
+      }
+      case 'spent': {
         return Colors.softBarRed
-      case 'invalid':
+      }
+      case 'invalid': {
         return Colors.error
-      case 'pending':
+      }
+      case 'pending': {
         return Colors.warning
-      default:
+      }
+      default: {
         return Colors.white
+      }
     }
   }
 
@@ -332,35 +347,46 @@ export default function EcashTransactionDetailPage() {
                     style={{
                       color: (() => {
                         switch (transaction.status) {
-                          case 'pending':
+                          case 'pending': {
                             return Colors.warning
-                          case 'completed':
+                          }
+                          case 'completed': {
                             return Colors.success
+                          }
                           case 'failed':
-                          case 'expired':
+                          case 'expired': {
                             return Colors.error
-                          case 'settled':
+                          }
+                          case 'settled': {
                             return Colors.softBarRed
-                          default:
+                          }
+                          default: {
                             return Colors.gray[700]
+                          }
                         }
                       })()
                     }}
                   >
                     {(() => {
                       switch (transaction.status) {
-                        case 'pending':
+                        case 'pending': {
                           return t('ecash.quote.pending')
-                        case 'completed':
+                        }
+                        case 'completed': {
                           return t('ecash.quote.completed')
-                        case 'failed':
+                        }
+                        case 'failed': {
                           return t('ecash.quote.failed')
-                        case 'expired':
+                        }
+                        case 'expired': {
                           return t('ecash.quote.expired')
-                        case 'settled':
+                        }
+                        case 'settled': {
                           return t('ecash.quote.settled')
-                        default:
+                        }
+                        default: {
                           return String(transaction.status).toUpperCase()
+                        }
                       }
                     })()}
                   </SSText>
@@ -539,9 +565,7 @@ export default function EcashTransactionDetailPage() {
             {t('ecash.transactionDetail.lightningInvoice')}
           </SSText>
           {lightningInvoice && (
-            <>
-              <SSShareableQR value={lightningInvoice} size={250} />
-            </>
+            <SSShareableQR value={lightningInvoice} size={250} />
           )}
         </SSVStack>
       </SSModal>

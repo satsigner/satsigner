@@ -484,7 +484,7 @@ export class NostrAPI {
       return null
     }
 
-    const [latest] = Array.from(events).toSorted(
+    const [latest] = [...events].toSorted(
       (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
     )
     if (!latest) {
@@ -586,7 +586,7 @@ export class NostrAPI {
       return { ...empty, connectedRelayCount }
     }
 
-    const sorted = Array.from(events).toSorted(
+    const sorted = [...events].toSorted(
       (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
     )
     const [latest] = sorted
@@ -691,7 +691,7 @@ export class NostrAPI {
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
-    const fresh = Array.from(events)
+    const fresh = [...events]
       .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
       .map((e) => ({
         id: e.id,
@@ -765,7 +765,7 @@ export class NostrAPI {
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
 
-    const results = Array.from(events)
+    const results = [...events]
       .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
       .map((e) => ({
         id: e.id,
@@ -1202,7 +1202,7 @@ export class NostrAPI {
 
         if (rawId) {
           if (this.processedRawEventIds.size >= NOSTR_MAX_PROCESSED_RAW_IDS) {
-            const entries = Array.from(this.processedRawEventIds)
+            const entries = [...this.processedRawEventIds]
             for (const id of entries.slice(0, Math.floor(entries.length / 2))) {
               this.processedRawEventIds.delete(id)
             }
@@ -1567,9 +1567,9 @@ export class NostrAPI {
       throw new Error('Invalid nsec')
     }
 
-    const publishRelays = Array.from(
-      new Set([...this.relays, ...pollRelays].filter(Boolean))
-    )
+    const publishRelays = [
+      ...new Set([...this.relays, ...pollRelays].filter(Boolean))
+    ]
     const signer = new NDKPrivateKeySigner(secretKey)
     const tempNdk = createMobileNdk(
       publishRelays.length > 0 ? publishRelays : this.relays
@@ -1590,7 +1590,7 @@ export class NostrAPI {
 
       await event.sign(signer)
 
-      const allRelayUrls = Array.from(tempNdk.pool?.relays.keys() ?? [])
+      const allRelayUrls = [...(tempNdk.pool?.relays.keys() ?? [])]
       if (allRelayUrls.length === 0) {
         throw new Error('No relays in pool')
       }
@@ -1646,7 +1646,7 @@ export class NostrAPI {
    * period lets more join for redundancy.
    */
   private async waitForConnectedRelays(
-    deadlineMs = 8_000,
+    deadlineMs = 8000,
     graceMs = 750
   ): Promise<
     { publish: (event: NDKEvent) => Promise<unknown>; url: string }[]
@@ -1682,7 +1682,7 @@ export class NostrAPI {
    * reports whether any relay answered (EOSE) before the deadline. Sockets
    * can rot silently — "connected" in the pool does not prove liveness.
    */
-  async probeLiveness(timeoutMs = 8_000): Promise<boolean> {
+  async probeLiveness(timeoutMs = 8000): Promise<boolean> {
     await this.connect()
     if (!this.ndk) {
       return false

@@ -25,9 +25,9 @@ const QUEUE_FLUSH_AT = 100
 const MAX_ATTEMPTS_PER_PUBKEY = 2
 // EOSE closes the fetch as soon as relays finish; the timeout is only a
 // backstop, so cache hits return as fast as relays answer.
-const FETCH_EOSE_TIMEOUT_MS = 5_000
+const FETCH_EOSE_TIMEOUT_MS = 5000
 // Longer cap for cold ephemeral connections to the indexer tier.
-const EPHEMERAL_CONNECT_TIMEOUT_MS = 8_000
+const EPHEMERAL_CONNECT_TIMEOUT_MS = 8000
 
 type ProfileBatch = Map<string, NostrKind0Profile>
 type BatchCallback = (batch: ProfileBatch) => void

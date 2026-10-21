@@ -182,8 +182,7 @@ export default function NetworkSettings() {
                 </SSVStack>
                 <SSVStack gap="md">
                   <SSVStack gap="sm">
-                    {servers
-                      .concat(customServers)
+                    {[...servers, ...customServers]
                       .filter((server) => server.network === network)
                       .map((server, index) => (
                         <SSHStack

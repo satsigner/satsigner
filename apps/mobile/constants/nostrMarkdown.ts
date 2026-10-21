@@ -21,6 +21,6 @@ export const NOSTR_MARKDOWN_HEADING_LINE_HEIGHT = {
 } as const
 
 export const NOSTR_LONG_FORM_NOTE_KIND = {
-  CONTENT: 30023,
-  DRAFT: 30024
+  CONTENT: 30_023,
+  DRAFT: 30_024
 } as const

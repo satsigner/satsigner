@@ -131,7 +131,7 @@ export function isLNURL(input: string): boolean {
 export function decodeLNURL(input: string): string {
   let cleanInput = input.trim().toLowerCase()
   if (cleanInput.toLowerCase().startsWith('lightning:')) {
-    cleanInput = cleanInput.substring('lightning:'.length)
+    cleanInput = cleanInput.slice('lightning:'.length)
   }
 
   if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
