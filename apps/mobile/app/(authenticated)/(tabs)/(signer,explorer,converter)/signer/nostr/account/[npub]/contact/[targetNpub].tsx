@@ -57,15 +57,16 @@ export default function NostrContactProfile() {
   const effectiveRelays = owner?.relays ?? globalRelays
 
   const [openedAt] = useState(Date.now)
-  const canLoadContact = Boolean(targetNpub) && effectiveRelays.length > 0
   const relayConnected = owner?.relayConnected === true
   const { data: contactProfile, isLoading: isProfileLoading } =
     useNostrContactProfile(targetNpub, effectiveRelays, relayConnected)
-  const targetIdentity = canLoadContact
-    ? buildContactIdentity(targetNpub, contactProfile, openedAt)
-    : null
+  const targetIdentity = buildContactIdentity(
+    targetNpub,
+    contactProfile,
+    openedAt
+  )
 
-  const nip05 = targetIdentity?.nip05?.trim()
+  const nip05 = targetIdentity.nip05?.trim()
   const { data: nip05Valid } = useQuery({
     enabled: !!targetPubkeyHex && !!nip05,
     queryFn: () => validateNip05(targetPubkeyHex!, nip05!),
@@ -105,17 +106,17 @@ export default function NostrContactProfile() {
   )
 
   const showZapButton = Boolean(
-    targetIdentity?.lud16 && availablePaymentMethods.length > 0 && owner?.nsec
+    targetIdentity.lud16 && availablePaymentMethods.length > 0 && owner?.nsec
   )
 
   const contactNprofile = targetPubkeyHex
     ? encodeContactNprofile(targetPubkeyHex, effectiveRelays)
     : null
 
-  const lud16Value = targetIdentity?.lud16?.trim()
+  const lud16Value = targetIdentity.lud16?.trim()
 
   const shareProfileName = getContactShareProfileName(
-    targetIdentity?.displayName,
+    targetIdentity.displayName,
     privacyMode
   )
 
@@ -132,7 +133,7 @@ export default function NostrContactProfile() {
     if (availablePaymentMethods.length === 0) {
       return
     }
-    if (!targetIdentity?.lud16) {
+    if (!targetIdentity.lud16) {
       return
     }
     if (!owner?.nsec) {
@@ -277,7 +278,7 @@ export default function NostrContactProfile() {
         }}
       />
 
-      {isProfileLoading || !targetIdentity ? (
+      {isProfileLoading ? (
         <SSVStack itemsCenter gap="md" style={styles.centered}>
           <ActivityIndicator color={Colors.white} size="large" />
         </SSVStack>
