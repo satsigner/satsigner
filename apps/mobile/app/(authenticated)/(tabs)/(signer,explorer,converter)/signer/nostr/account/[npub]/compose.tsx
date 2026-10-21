@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -230,7 +231,7 @@ export default function NostrComposePage() {
   const draftEventJson = JSON.stringify(
     {
       content: content.trim(),
-      kind: 1,
+      kind: nostrKinds.ShortTextNote,
       tags: buildTags()
     },
     null,
@@ -322,7 +323,7 @@ export default function NostrComposePage() {
               content: content.trim(),
               created_at: Math.floor(Date.now() / MS_PER_SECOND),
               id: eventId,
-              kind: 1,
+              kind: nostrKinds.ShortTextNote,
               pubkey: hexPk,
               tags
             }

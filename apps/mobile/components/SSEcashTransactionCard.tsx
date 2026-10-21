@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { ActivityIndicator, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -34,14 +34,9 @@ function SSEcashTransactionCard({
   transaction,
   onPress
 }: SSEcashTransactionCardProps) {
-  const [checkingTransactionIds, activeAccountId, allMints] = useEcashStore(
-    useShallow((state) => [
-      state.checkingTransactionIds,
-      state.activeAccountId,
-      state.mints
-    ])
+  const [activeAccountId, allMints] = useEcashStore(
+    useShallow((state) => [state.activeAccountId, state.mints])
   )
-  const isChecking = checkingTransactionIds.includes(transaction.id)
   const accountMints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
   const mintLabel =
     accountMints.find((m) => m.url === transaction.mintUrl)?.name ??
@@ -177,16 +172,6 @@ function SSEcashTransactionCard({
             )}
             {transaction.type === 'send' && (
               <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                {isChecking && (
-                  <ActivityIndicator
-                    size={10}
-                    color={
-                      transaction.tokenStatus
-                        ? getTokenStatusColor(transaction.tokenStatus)
-                        : Colors.white
-                    }
-                  />
-                )}
                 <SSText
                   uppercase
                   size="xs"

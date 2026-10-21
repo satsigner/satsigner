@@ -1,6 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NOSTR_BECH32_ID_MIN_LENGTH } from '@/constants/nostr'
 import { isBBQRFragment } from '@/utils/bbqr'
@@ -487,8 +488,12 @@ function detectNostrContent(data: string): DetectedContent | null {
     if (!isRecord(parsed)) {
       return null
     }
-    const kind = typeof parsed.kind === 'number' ? parsed.kind : 1
-    if (kind !== 1 || typeof parsed.content !== 'string') {
+    const kind =
+      typeof parsed.kind === 'number' ? parsed.kind : nostrKinds.ShortTextNote
+    if (
+      kind !== nostrKinds.ShortTextNote ||
+      typeof parsed.content !== 'string'
+    ) {
       return null
     }
     if (

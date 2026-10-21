@@ -22,7 +22,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors, Layout, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { isToday } from '@/utils/date'
-import { formatLargeNumber } from '@/utils/format'
+import { formatBtc, formatLargeNumber } from '@/utils/format'
 import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 const MUTED_OPACITY = 0.35
@@ -329,9 +329,7 @@ export default function Converter() {
                   style={styles.inputContainer}
                 >
                   <SSCurrencyInput
-                    value={currencyValues.bitcoin
-                      .toFixed(8)
-                      .replace(/\.?0+$/, '')}
+                    value={formatBtc(currencyValues.bitcoin)}
                     size="large"
                     onChangeValue={(value) =>
                       handleValueChange('bitcoin', value)

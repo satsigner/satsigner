@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { NOSTR_HIDDEN_KEY_MASK_LONG } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -24,7 +25,7 @@ export default function CreateNostrIdentity() {
   const [qrModalValue, setQrModalValue] = useState<string | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
-  const [mnemonic] = useState(() => generateMnemonic(12))
+  const [mnemonic] = useState(() => generateMnemonic(SHORT_MNEMONIC_WORD_COUNT))
   const words = mnemonic.split(' ')
   const keys = deriveNostrKeysFromMnemonic(mnemonic)
 

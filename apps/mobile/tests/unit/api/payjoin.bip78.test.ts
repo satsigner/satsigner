@@ -7,6 +7,7 @@ import {
   sendPayjoin,
   type FetchLike
 } from '@/api/payjoin'
+import { getPayjoinDeps } from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 
 function buildPsbt(params: {
@@ -132,6 +133,7 @@ describe('payjoin BIP78 send (phase 2)', () => {
 
     const result = await sendPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [paymentScript.toString('hex')],
@@ -160,6 +162,7 @@ describe('payjoin BIP78 send (phase 2)', () => {
 
     const result = await sendPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [paymentScript.toString('hex')],
@@ -181,6 +184,7 @@ describe('payjoin BIP78 send (phase 2)', () => {
         ...callbacks,
         isScriptOwned: () => true
       },
+      deps: getPayjoinDeps(),
       fetchImpl: () => Promise.reject(new Error('should not fetch')),
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [changeScript.toString('hex')],

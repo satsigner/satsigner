@@ -42,7 +42,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrStore } from '@/store/nostr'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Output } from '@/types/models/Output'
@@ -628,6 +631,7 @@ export default function SignTransaction() {
       const pollCallbacks = buildCallbacks()
       const result = await pollBip77Send({
         callbacks: pollCallbacks,
+        deps: getPayjoinDeps(),
         disableOutputSubstitution,
         outputScriptsHex: pollCallbacks.outputScriptsHex,
         paymentAmountSats: session.amountSats ?? paymentAmountSats,
@@ -787,6 +791,7 @@ export default function SignTransaction() {
         const result = await sendPayjoin({
           accountId: id,
           callbacks,
+          deps: getPayjoinDeps(),
           originalPsbtBase64: originalBase64,
           outputScriptsHex: callbacks.outputScriptsHex,
           payjoinUri,
@@ -816,6 +821,7 @@ export default function SignTransaction() {
       const started = await startBip77Send({
         accountId: id,
         callbacks,
+        deps: getPayjoinDeps(),
         disableOutputSubstitution:
           (parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0,
         originalPsbtBase64: originalBase64,

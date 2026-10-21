@@ -1,9 +1,9 @@
 import NDK, { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
 import { finalizeEvent, nip57 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
-  NOSTR_KIND_ZAP_RECEIPT,
   NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS,
   NOSTR_ZAP_INVOICE_TIMEOUT_MS,
@@ -96,7 +96,7 @@ function zapReceiptEventToRawJson(event: NDKEvent): string {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
+      kind: event.kind ?? nostrKinds.Zap,
       pubkey: event.pubkey,
       sig: event.sig,
       tags
@@ -361,7 +361,7 @@ export async function fetchZapReceipts(
 
     const filter: NDKFilter = {
       '#e': [eventIdHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT],
+      kinds: [nostrKinds.Zap],
       limit: NOSTR_ZAP_RECEIPT_FETCH_LIMIT
     }
     const newestTs =
@@ -399,7 +399,7 @@ export async function fetchZapReceipts(
           content: event.content,
           created_at: event.created_at ?? 0,
           id: event.id,
-          kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
+          kind: event.kind ?? nostrKinds.Zap,
           pubkey: event.pubkey,
           tags
         })
@@ -505,13 +505,13 @@ export async function fetchZapsByPubkey(
 
     const filter: NDKFilter = {
       '#p': [pubkeyHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT],
+      kinds: [nostrKinds.Zap],
       limit
     }
     if (until) {
       filter.until = until
     } else {
-      const newestTs = getNewestCachedTimestamp(NOSTR_KIND_ZAP_RECEIPT)
+      const newestTs = getNewestCachedTimestamp(nostrKinds.Zap)
       if (newestTs) {
         filter.since = newestTs + 1
       }
@@ -547,7 +547,7 @@ export async function fetchZapsByPubkey(
           content: event.content,
           created_at: event.created_at ?? 0,
           id: event.id,
-          kind: event.kind ?? NOSTR_KIND_ZAP_RECEIPT,
+          kind: event.kind ?? nostrKinds.Zap,
           pubkey: event.pubkey,
           tags
         })
@@ -591,7 +591,7 @@ export async function fetchZapsSentByPubkey(
 
     const filter: NDKFilter = {
       authors: [pubkeyHex],
-      kinds: [NOSTR_KIND_ZAP_RECEIPT],
+      kinds: [nostrKinds.Zap],
       limit
     }
     if (until) {
@@ -686,7 +686,7 @@ export async function enrichZapReceipts(
         ndk,
         {
           authors: stalePubkeys,
-          kinds: [0],
+          kinds: [nostrKinds.Metadata],
           limit: stalePubkeys.length
         },
         NOSTR_ZAP_PROFILE_REFRESH_COLLECT_TIMEOUT_MS
@@ -777,7 +777,7 @@ export async function fetchZapReceiptById(
       ndk,
       {
         ids: [zapReceiptId],
-        kinds: [NOSTR_KIND_ZAP_RECEIPT],
+        kinds: [nostrKinds.Zap],
         limit: 1
       },
       NOSTR_ZAP_RECEIPT_COLLECT_TIMEOUT_MS

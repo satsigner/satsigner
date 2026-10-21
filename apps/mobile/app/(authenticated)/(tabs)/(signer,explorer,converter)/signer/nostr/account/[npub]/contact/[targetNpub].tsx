@@ -2,10 +2,9 @@ import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/typ
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 
-import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSContactProfileQrOverlay from '@/components/SSContactProfileQrOverlay'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
@@ -13,22 +12,23 @@ import SSNostrHeroCard from '@/components/SSNostrHeroCard'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
-import { useEcash } from '@/hooks/useEcash'
+import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
+import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
-import { type NostrIdentity } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
+  buildContactIdentity,
   encodeContactNprofile,
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
@@ -56,18 +56,23 @@ export default function NostrContactProfile() {
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = owner?.relays ?? globalRelays
 
-  const [targetIdentity, setTargetIdentity] = useState<NostrIdentity | null>(
-    null
+  const [openedAt] = useState(Date.now)
+  const relayConnected = owner?.relayConnected === true
+  const { data: contactProfile, isLoading: isProfileLoading } =
+    useNostrContactProfile(targetNpub, effectiveRelays, relayConnected)
+  const targetIdentity = buildContactIdentity(
+    targetNpub,
+    contactProfile,
+    openedAt
   )
 
-  const nip05 = targetIdentity?.nip05?.trim()
+  const nip05 = targetIdentity.nip05?.trim()
   const { data: nip05Valid } = useQuery({
     enabled: !!targetPubkeyHex && !!nip05,
     queryFn: () => validateNip05(targetPubkeyHex!, nip05!),
     queryKey: ['nostr', 'nip05-valid', targetNpub, nip05],
     staleTime: 5 * 60_000
   })
-  const [loading, setLoading] = useState(true)
   const [zapLoading, setZapLoading] = useState(false)
   const [qrOverlayVisible, setQrOverlayVisible] = useState(false)
   const [qrOverlayKey, setQrOverlayKey] = useState(0)
@@ -81,11 +86,11 @@ export default function NostrContactProfile() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-  const {
-    accounts: ecashAccounts,
-    allMints: ecashAllMints,
-    setActiveAccountId: setEcashActiveAccountId
-  } = useEcash()
+  const ecashAccounts = useEcashStore((state) => state.accounts)
+  const ecashAllMints = useEcashStore((state) => state.mints)
+  const setEcashActiveAccountId = useEcashStore(
+    (state) => state.setActiveAccountId
+  )
   const arkAccounts = useArkStore((state) => state.accounts)
 
   const pendingInvoice = useState<{
@@ -101,17 +106,17 @@ export default function NostrContactProfile() {
   )
 
   const showZapButton = Boolean(
-    targetIdentity?.lud16 && availablePaymentMethods.length > 0 && owner?.nsec
+    targetIdentity.lud16 && availablePaymentMethods.length > 0 && owner?.nsec
   )
 
   const contactNprofile = targetPubkeyHex
     ? encodeContactNprofile(targetPubkeyHex, effectiveRelays)
     : null
 
-  const lud16Value = targetIdentity?.lud16?.trim()
+  const lud16Value = targetIdentity.lud16?.trim()
 
   const shareProfileName = getContactShareProfileName(
-    targetIdentity?.displayName,
+    targetIdentity.displayName,
     privacyMode
   )
 
@@ -124,56 +129,11 @@ export default function NostrContactProfile() {
     setQrOverlayVisible(false)
   }
 
-  async function loadProfile() {
-    if (!targetNpub || effectiveRelays.length === 0) {
-      setLoading(false)
-      return
-    }
-
-    if (owner?.relayConnected !== true) {
-      setTargetIdentity({
-        createdAt: Date.now(),
-        isWatchOnly: true,
-        npub: targetNpub
-      })
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
-    try {
-      const api = new NostrAPI(effectiveRelays)
-      const profile = await api.fetchKind0(targetNpub)
-      setTargetIdentity({
-        banner: profile?.banner,
-        createdAt: Date.now(),
-        displayName: profile?.displayName,
-        isWatchOnly: true,
-        lud16: profile?.lud16,
-        nip05: profile?.nip05,
-        npub: targetNpub,
-        picture: profile?.picture
-      })
-    } catch {
-      setTargetIdentity({
-        createdAt: Date.now(),
-        isWatchOnly: true,
-        npub: targetNpub
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadProfile()
-  }, [effectiveRelays, owner?.relayConnected, targetNpub]) // eslint-disable-line react-hooks/exhaustive-deps
-
   async function handleZap() {
     if (availablePaymentMethods.length === 0) {
       return
     }
-    if (!targetIdentity?.lud16) {
+    if (!targetIdentity.lud16) {
       return
     }
     if (!owner?.nsec) {
@@ -318,7 +278,7 @@ export default function NostrContactProfile() {
         }}
       />
 
-      {loading || !targetIdentity ? (
+      {isProfileLoading ? (
         <SSVStack itemsCenter gap="md" style={styles.centered}>
           <ActivityIndicator color={Colors.white} size="large" />
         </SSVStack>
@@ -366,7 +326,7 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
-              relayConnected={owner?.relayConnected === true}
+              relayConnected={relayConnected}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
               onZapPress={(receipt) => {

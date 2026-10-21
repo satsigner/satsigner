@@ -3,7 +3,11 @@ import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useState } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import {
+  NOSTR_CHAT_PROFILE_RETRY_DELAY_MS,
+  NOSTR_CHAT_THREAD_PAGE_SIZE,
+  NOSTR_PROFILE_CACHE_TTL_SECS
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { markChatThreadRead } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
@@ -150,7 +154,7 @@ export function useNostrChatProfiles(
         }
         if (attempt === 0) {
           await new Promise((resolve) => {
-            setTimeout(resolve, 5000)
+            setTimeout(resolve, NOSTR_CHAT_PROFILE_RETRY_DELAY_MS)
           })
         }
       }
@@ -221,7 +225,14 @@ export function useNostrChatThread(
       setMessages([])
       return
     }
-    setMessages(listChatThread(identity.npub, protocol, peerPubkey, 200))
+    setMessages(
+      listChatThread(
+        identity.npub,
+        protocol,
+        peerPubkey,
+        NOSTR_CHAT_THREAD_PAGE_SIZE
+      )
+    )
   }, [identity, protocol, peerPubkey])
 
   // Initial load + mark incoming as read while the thread is open.

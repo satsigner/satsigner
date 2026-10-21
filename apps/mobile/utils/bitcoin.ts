@@ -1,8 +1,23 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
+import {
+  address as bjsAddress,
+  initEccLib,
+  networks,
+  opcodes
+} from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
+import {
+  P2PKH_SCRIPT_BYTES,
+  P2SH_SCRIPT_BYTES,
+  P2TR_PROGRAM_BYTES,
+  P2TR_SCRIPT_BYTES,
+  P2WPKH_PROGRAM_BYTES,
+  P2WPKH_SCRIPT_BYTES,
+  P2WSH_PROGRAM_BYTES,
+  P2WSH_SCRIPT_BYTES
+} from '@/constants/btc'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -36,24 +51,40 @@ export function getScriptTypeFromAddress(
   try {
     const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
     if (
-      script.length === 25 &&
-      script[0] === 0x76 &&
-      script[1] === 0xa9 &&
-      script[23] === 0x88 &&
-      script[24] === 0xac
+      script.length === P2PKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_DUP &&
+      script[1] === opcodes.OP_HASH160 &&
+      script.at(-2) === opcodes.OP_EQUALVERIFY &&
+      script.at(-1) === opcodes.OP_CHECKSIG
     ) {
       return 'p2pkh'
     }
-    if (script.length === 23 && script[0] === 0xa9 && script[22] === 0x87) {
+    if (
+      script.length === P2SH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_HASH160 &&
+      script.at(-1) === opcodes.OP_EQUAL
+    ) {
       return 'p2sh'
     }
-    if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+    if (
+      script.length === P2WPKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === P2WPKH_PROGRAM_BYTES
+    ) {
       return 'p2wpkh'
     }
-    if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+    if (
+      script.length === P2WSH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === P2WSH_PROGRAM_BYTES
+    ) {
       return 'p2wsh'
     }
-    if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+    if (
+      script.length === P2TR_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_1 &&
+      script[1] === P2TR_PROGRAM_BYTES
+    ) {
       return 'p2tr'
     }
     return null

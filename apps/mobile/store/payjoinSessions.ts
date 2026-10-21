@@ -2,8 +2,12 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { getPayjoinSessionTtlMs } from '@/store/settings'
-import { type PayjoinSession, type PayjoinSessionStatus } from '@/types/payjoin'
+import { getPayjoinSettings } from '@/store/settings'
+import {
+  type PayjoinDeps,
+  type PayjoinSession,
+  type PayjoinSessionStore
+} from '@/types/payjoin'
 import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 
 // Cap `seenInputs` growth: once it exceeds SEEN_INPUTS_MAX, trim back down
@@ -17,25 +21,11 @@ type PayjoinSessionsState = {
   seenInputs: string[]
 }
 
-type PayjoinSessionsAction = {
-  upsertSession: (session: PayjoinSession) => void
-  updateSessionStatus: (
-    id: string,
-    status: PayjoinSessionStatus,
-    patch?: Partial<PayjoinSession>
-  ) => void
-  getSession: (id: string) => PayjoinSession | undefined
+type PayjoinSessionsAction = Omit<PayjoinSessionStore, 'getSessions'> & {
   getActiveReceiverSession: (accountId: string) => PayjoinSession | undefined
   getActiveSenderSession: (accountId: string) => PayjoinSession | undefined
-  removeSession: (id: string) => void
   clearExpiredSessions: (now?: number) => void
-  markInputSeen: (outpoint: string) => void
-  hasSeenInput: (outpoint: string) => boolean
   clearAll: () => void
-}
-
-function createSessionId(): string {
-  return `pj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
 /** Drop PSBT / native blobs once a session is terminal — keeps MMKV + heap lean. */
@@ -179,23 +169,27 @@ const usePayjoinSessionsStore = create<
   )
 )
 
-function buildNewSession(
-  partial: Omit<
-    PayjoinSession,
-    'id' | 'createdAt' | 'updatedAt' | 'expiresAt'
-  > & {
-    ttlMs?: number
-  }
-): PayjoinSession {
-  const now = Date.now()
-  const ttl = partial.ttlMs ?? getPayjoinSessionTtlMs()
+/** Live session store, for `@/api/payjoin` calls that need no settings. */
+const payjoinSessionStore: PayjoinSessionStore = {
+  getSession: (id) => usePayjoinSessionsStore.getState().getSession(id),
+  getSessions: () => usePayjoinSessionsStore.getState().sessions,
+  hasSeenInput: (outpoint) =>
+    usePayjoinSessionsStore.getState().hasSeenInput(outpoint),
+  markInputSeen: (outpoint) =>
+    usePayjoinSessionsStore.getState().markInputSeen(outpoint),
+  removeSession: (id) => usePayjoinSessionsStore.getState().removeSession(id),
+  updateSessionStatus: (id, status, patch) =>
+    usePayjoinSessionsStore.getState().updateSessionStatus(id, status, patch),
+  upsertSession: (session) =>
+    usePayjoinSessionsStore.getState().upsertSession(session)
+}
+
+/** Live session store and current settings, for passing into `@/api/payjoin`. */
+function getPayjoinDeps(): PayjoinDeps {
   return {
-    ...partial,
-    createdAt: now,
-    expiresAt: now + ttl,
-    id: createSessionId(),
-    updatedAt: now
+    sessions: payjoinSessionStore,
+    settings: getPayjoinSettings()
   }
 }
 
-export { buildNewSession, usePayjoinSessionsStore }
+export { getPayjoinDeps, payjoinSessionStore, usePayjoinSessionsStore }

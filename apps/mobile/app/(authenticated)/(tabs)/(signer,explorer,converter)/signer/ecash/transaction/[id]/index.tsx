@@ -19,7 +19,8 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import { MS_PER_SECOND } from '@/constants/time'
-import { useEcash, useQuotePolling } from '@/hooks/useEcash'
+import { useEcash } from '@/hooks/useEcash'
+import { useEcashMintQuotePolling } from '@/hooks/useEcashMintQuotePolling'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -68,8 +69,6 @@ export default function EcashTransactionDetailPage() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
-
-  const { startPolling, stopPolling, isPolling } = useQuotePolling()
 
   const transaction = transactions.find((t) => t.id === id)
   const mint = transaction
@@ -176,45 +175,25 @@ export default function EcashTransactionDetailPage() {
     router
   ])
 
-  useEffect(() => {
-    if (
-      !transaction ||
-      transaction.status !== 'pending' ||
-      !transaction.quoteId ||
-      !mint
-    ) {
-      return
-    }
-
-    startPolling(async () => {
-      try {
-        const status = await checkMintQuote(mint.url, transaction.quoteId!)
-
-        if (status === 'PAID' || status === 'ISSUED') {
-          await mintProofs(mint.url, transaction.amount, transaction.quoteId!)
-
-          updateTransaction(transaction.id, { status: 'completed' })
-
-          setQrModalVisible(false)
-
-          return true // Stop polling
-        } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          updateTransaction(transaction.id, { status: 'failed' })
-          return true // Stop polling
-        }
-
-        // Continue polling for PENDING, UNPAID, and unknown statuses
-        return false
-      } catch {
-        return false
+  const { isPolling } = useEcashMintQuotePolling({
+    checkMintQuote,
+    enabled: transaction?.status === 'pending',
+    mintUrl: mint?.url,
+    onQuoteExpiredOrCancelled: () => {
+      if (transaction) {
+        updateTransaction(transaction.id, { status: 'failed' })
       }
-    })
-
-    return () => {
-      stopPolling()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transaction?.id, transaction?.status, transaction?.quoteId, mint?.url])
+    },
+    onQuotePaid: async () => {
+      if (!transaction?.quoteId || !mint) {
+        return
+      }
+      await mintProofs(mint.url, transaction.amount, transaction.quoteId)
+      updateTransaction(transaction.id, { status: 'completed' })
+      setQrModalVisible(false)
+    },
+    quoteId: transaction?.quoteId
+  })
 
   if (!transaction) {
     return (

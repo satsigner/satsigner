@@ -15,6 +15,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as BlockchainNetwork } from '@/types/settings/blockchain'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import { weightToVsize } from '@/utils/transaction'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -413,7 +414,7 @@ function parseTxDetailsToTransaction(
   if (raw.length) {
     size = raw.length
     weight = size * WITNESS_SCALE_FACTOR
-    vsize = Math.ceil(weight / WITNESS_SCALE_FACTOR)
+    vsize = weightToVsize(weight)
   }
 
   return {

@@ -1,6 +1,7 @@
 import { ZodError } from 'zod'
 
 import {
+  formatNetworkHashRate,
   parseBlockchainInfoResponse,
   parseBlockTemplateResponse,
   parseChainInfoResponse
@@ -139,5 +140,22 @@ describe('energyRpc', () => {
         ZodError
       )
     })
+  })
+})
+
+describe('formatNetworkHashRate', () => {
+  it('formats hash rate in EH/s', () => {
+    expect(formatNetworkHashRate('main', 812_340_000_000_000_000_000)).toBe(
+      '812.34'
+    )
+  })
+
+  it('has no label on regtest', () => {
+    expect(formatNetworkHashRate('regtest', 1e18)).toBeUndefined()
+  })
+
+  it('falls back to zero before the chain or rate is known', () => {
+    expect(formatNetworkHashRate(undefined, 1e18)).toBe('0')
+    expect(formatNetworkHashRate('signet', undefined)).toBe('0')
   })
 })

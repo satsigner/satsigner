@@ -95,11 +95,7 @@ export default function CustomNetwork() {
   const [connectionStatus, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
-  const {
-    testing: connectionTesting,
-    testConnection,
-    resetTest
-  } = useConnectionTest()
+  const { testing: connectionTesting, testConnection } = useConnectionTest()
 
   const [editingServer, setEditingServer] = useState<Server | null>(null)
   const [oldNetwork] = useState<Network>(selectedNetwork)
@@ -248,8 +244,6 @@ export default function CustomNetwork() {
     setLastBanner(null)
 
     const server = buildServer()
-
-    await resetTest()
 
     try {
       const result = await testConnection(

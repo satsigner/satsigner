@@ -2,6 +2,7 @@ import { nip19 } from 'nostr-tools'
 
 import { NOSTR_CONTACT_QR_SLIDE_KEYS } from '@/constants/nostr'
 import {
+  buildContactIdentity,
   buildContactQrSlides,
   encodeContactNprofile,
   getContactShareProfileName
@@ -72,5 +73,43 @@ describe('getContactShareProfileName', () => {
     expect(getContactShareProfileName(undefined, false)).toBe(
       'nostrIdentity.contact.unnamed'
     )
+  })
+})
+
+describe('buildContactIdentity', () => {
+  const npub = 'npub1contact'
+  const createdAt = 1_700_000_000_000
+
+  it('fills a watch-only identity with the kind 0 profile', () => {
+    expect(
+      buildContactIdentity(
+        npub,
+        {
+          banner: 'https://example.com/banner.png',
+          displayName: 'Alice',
+          lud16: 'alice@example.com',
+          nip05: 'alice@example.com',
+          picture: 'https://example.com/alice.png'
+        },
+        createdAt
+      )
+    ).toStrictEqual({
+      banner: 'https://example.com/banner.png',
+      createdAt,
+      displayName: 'Alice',
+      isWatchOnly: true,
+      lud16: 'alice@example.com',
+      nip05: 'alice@example.com',
+      npub,
+      picture: 'https://example.com/alice.png'
+    })
+  })
+
+  it('keeps only the npub when the profile is unknown', () => {
+    const identity = buildContactIdentity(npub, null, createdAt)
+
+    expect(identity).toMatchObject({ createdAt, isWatchOnly: true, npub })
+    expect(identity.displayName).toBeUndefined()
+    expect(identity.picture).toBeUndefined()
   })
 })
