@@ -3,7 +3,7 @@ import z from 'zod'
 import {
   HASHES_PER_EXAHASH,
   NO_HASH_RATE_LABEL,
-  REGTEST_HASH_RATE_LABEL
+  REGTEST_CORE_CHAIN
 } from '@/constants/energy'
 import { BlockchainInfoSchema, BlockTemplateSchema } from '@/types/models/Rpc'
 
@@ -88,13 +88,16 @@ function parseBlockTemplateResponse(body: unknown) {
   return BlockTemplateResponseSchema.parse(body)
 }
 
-/** Network hash rate label in EH/s for the energy screen. */
+/**
+ * Network hash rate label in EH/s for the energy screen. Undefined on regtest,
+ * which has no network hash rate.
+ */
 function formatNetworkHashRate(
   chain: string | undefined,
   hashRate: number | undefined
 ) {
-  if (chain === 'regtest') {
-    return REGTEST_HASH_RATE_LABEL
+  if (chain === REGTEST_CORE_CHAIN) {
+    return undefined
   }
   if (!chain || hashRate === undefined) {
     return NO_HASH_RATE_LABEL

@@ -1,11 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 
 import { getWalletData } from '@/api/bdk'
-import {
-  ACCOUNT_PUBLIC_KEYS_DECRYPT_ONCE_STALE_TIME_MS,
-  ACCOUNT_PUBLIC_KEYS_DROP_ON_UNMOUNT_GC_TIME_MS,
-  MISSING_PUBKEY_PLACEHOLDER
-} from '@/constants/account'
+import { MISSING_PUBKEY_PLACEHOLDER } from '@/constants/account'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
@@ -34,21 +30,21 @@ async function fetchAccountPublicKeys(account: Account, network: Network) {
   return decrypted.keys.map(() => extendedKey || MISSING_PUBKEY_PLACEHOLDER)
 }
 
+/**
+ * Public keys of an account for export. Decrypts once per mount and drops the
+ * cache on unmount, so keys never outlive the screen.
+ */
 export function useAccountPublicKeys(
   account: Account | undefined,
   network: Network
 ) {
   return useQuery({
-    enabled: Boolean(account),
-    gcTime: ACCOUNT_PUBLIC_KEYS_DROP_ON_UNMOUNT_GC_TIME_MS,
-    queryFn: () => {
-      if (!account) {
-        throw new Error('Account is required')
-      }
-      return fetchAccountPublicKeys(account, network)
-    },
+    gcTime: 0,
+    queryFn: account
+      ? () => fetchAccountPublicKeys(account, network)
+      : skipToken,
     queryKey: ['bitcoin', 'account-public-keys', account?.id, network],
     retry: false,
-    staleTime: ACCOUNT_PUBLIC_KEYS_DECRYPT_ONCE_STALE_TIME_MS
+    staleTime: Infinity
   })
 }

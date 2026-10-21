@@ -1,5 +1,3 @@
-import type { NotifyOnChangeProps } from '@tanstack/react-query'
-
 import type { MintQuoteState } from '@/types/models/Ecash'
 
 // Number of proofs restored per counter-batch during a mint restore scan.
@@ -22,8 +20,3 @@ export const ECASH_MINT_QUOTE_FAILED_STATES = new Set<MintQuoteState>([
   'EXPIRED',
   'CANCELLED'
 ])
-export const RERENDER_ON_EVERY_POLL_ATTEMPT: NotifyOnChangeProps = [
-  'data',
-  'dataUpdatedAt',
-  'errorUpdatedAt'
-]

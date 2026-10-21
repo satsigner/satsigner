@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { skipToken, useQuery } from '@tanstack/react-query'
 
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_CONTACT_PROFILE_STALE_TIME_MS } from '@/constants/nostr'
+import { time } from '@/utils/time'
 
 /** Kind 0 profile of a contact, fetched from the given relays. */
 export function useNostrContactProfile(
@@ -9,11 +9,11 @@ export function useNostrContactProfile(
   relays: string[],
   enabled: boolean
 ) {
+  const canFetch = enabled && !!npub && relays.length > 0
   return useQuery({
-    enabled: enabled && Boolean(npub) && relays.length > 0,
-    queryFn: () => new NostrAPI(relays).fetchKind0(npub ?? ''),
+    queryFn: canFetch ? () => new NostrAPI(relays).fetchKind0(npub) : skipToken,
     queryKey: ['nostr', 'contact-profile', npub, relays],
     retry: false,
-    staleTime: NOSTR_CONTACT_PROFILE_STALE_TIME_MS
+    staleTime: time.minutes(1)
   })
 }

@@ -57,17 +57,13 @@ export default function NostrContactProfile() {
   const effectiveRelays = owner?.relays ?? globalRelays
 
   const [openedAt] = useState(Date.now)
-  const hasRelays = Boolean(targetNpub) && effectiveRelays.length > 0
+  const canLoadContact = Boolean(targetNpub) && effectiveRelays.length > 0
   const relayConnected = owner?.relayConnected === true
-  const profileQuery = useNostrContactProfile(
-    targetNpub,
-    effectiveRelays,
-    relayConnected
-  )
-  const targetIdentity = hasRelays
-    ? buildContactIdentity(targetNpub, profileQuery.data, openedAt)
+  const { data: contactProfile, isLoading: isProfileLoading } =
+    useNostrContactProfile(targetNpub, effectiveRelays, relayConnected)
+  const targetIdentity = canLoadContact
+    ? buildContactIdentity(targetNpub, contactProfile, openedAt)
     : null
-  const loading = profileQuery.isLoading
 
   const nip05 = targetIdentity?.nip05?.trim()
   const { data: nip05Valid } = useQuery({
@@ -281,7 +277,7 @@ export default function NostrContactProfile() {
         }}
       />
 
-      {loading || !targetIdentity ? (
+      {isProfileLoading || !targetIdentity ? (
         <SSVStack itemsCenter gap="md" style={styles.centered}>
           <ActivityIndicator color={Colors.white} size="large" />
         </SSVStack>
@@ -329,7 +325,7 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
-              relayConnected={owner?.relayConnected === true}
+              relayConnected={relayConnected}
               relays={effectiveRelays}
               onNotePress={handleNotePress}
               onZapPress={(receipt) => {

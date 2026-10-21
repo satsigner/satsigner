@@ -1543,9 +1543,9 @@ export default function Energy() {
                 </SSVStack>
                 <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                   <SSText size="xl">
-                    {networkHashRate === 'no data'
-                      ? 'n/a'
-                      : tn('networkHashRate', { rate: networkHashRate })}
+                    {networkHashRate
+                      ? tn('networkHashRate', { rate: networkHashRate })
+                      : 'n/a'}
                   </SSText>
                   <SSText size="xs" color="muted">
                     {tn('hashRate')}

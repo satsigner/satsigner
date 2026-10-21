@@ -1105,54 +1105,6 @@ export function useEcash() {
     }
   }
 
-  function resumePollingForTransaction(
-    transactionId: string,
-    startPolling: (pollFunction: () => Promise<boolean>) => void
-  ) {
-    if (!activeAccountId) {
-      return
-    }
-    const transaction = transactions.find((txn) => txn.id === transactionId)
-    if (
-      !transaction ||
-      transaction.status !== 'pending' ||
-      !transaction.quoteId
-    ) {
-      return
-    }
-
-    const mint = mints.find((m) => m.url === transaction.mintUrl)
-    if (!mint) {
-      return
-    }
-
-    startPolling(async () => {
-      try {
-        const status = await checkMintQuoteHandler(
-          mint.url,
-          transaction.quoteId!
-        )
-
-        if (status === 'PAID' || status === 'ISSUED') {
-          await mintProofsHandler(
-            mint.url,
-            transaction.amount,
-            transaction.quoteId!
-          )
-          return true
-        } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          updateTransactionAction(activeAccountId, transactionId, {
-            status: 'failed'
-          })
-          return true
-        }
-        return false
-      } catch {
-        return false
-      }
-    })
-  }
-
   return {
     accounts,
     activeAccount,
@@ -1183,7 +1135,6 @@ export function useEcash() {
     restoreAllAccountMintsFromSeed,
     restoreFromBackup: restoreFromBackupHandler,
     restoreFromSeed: restoreFromSeedHandler,
-    resumePollingForTransaction,
     sendEcash: sendEcashHandler,
     setActiveAccountId,
     transactions,

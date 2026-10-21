@@ -1,5 +1,7 @@
 import {
+  type NotifyOnChangeProps,
   type QueryState,
+  skipToken,
   useQuery,
   useQueryClient
 } from '@tanstack/react-query'
@@ -8,8 +10,7 @@ import {
   ECASH_MINT_QUOTE_FAILED_STATES,
   ECASH_MINT_QUOTE_PAID_STATES,
   ECASH_QUOTE_POLL_INTERVAL_MS,
-  ECASH_QUOTE_POLL_MAX_ATTEMPTS,
-  RERENDER_ON_EVERY_POLL_ATTEMPT
+  ECASH_QUOTE_POLL_MAX_ATTEMPTS
 } from '@/constants/ecash'
 import type { MintQuoteState } from '@/types/models/Ecash'
 
@@ -29,6 +30,12 @@ type MintQuotePollingParams = Omit<
   mintUrl: string | undefined
   quoteId: string | undefined
 }
+
+const RERENDER_ON_EVERY_POLL_ATTEMPT: NotifyOnChangeProps = [
+  'data',
+  'dataUpdatedAt',
+  'errorUpdatedAt'
+]
 
 const quoteIdsBeingClaimed = new Set<string>()
 
@@ -88,20 +95,21 @@ export function useEcashMintQuotePolling({
   onQuotePaid,
   onQuoteExpiredOrCancelled
 }: MintQuotePollingParams) {
-  const isEnabled = enabled && Boolean(mintUrl && quoteId)
+  const isEnabled = enabled && !!mintUrl && !!quoteId
   const queryClient = useQueryClient()
   const queryKey = ['ecash', 'mint-quote', mintUrl, quoteId]
   useQuery({
-    enabled: isEnabled,
     notifyOnChangeProps: RERENDER_ON_EVERY_POLL_ATTEMPT,
-    queryFn: () =>
-      checkMintQuoteOnce({
-        checkMintQuote,
-        mintUrl: mintUrl ?? '',
-        onQuoteExpiredOrCancelled,
-        onQuotePaid,
-        quoteId: quoteId ?? ''
-      }),
+    queryFn: isEnabled
+      ? () =>
+          checkMintQuoteOnce({
+            checkMintQuote,
+            mintUrl,
+            onQuoteExpiredOrCancelled,
+            onQuotePaid,
+            quoteId
+          })
+      : skipToken,
     queryKey,
     refetchInterval: ({ state }) =>
       shouldKeepPolling(state) ? ECASH_QUOTE_POLL_INTERVAL_MS : false,
