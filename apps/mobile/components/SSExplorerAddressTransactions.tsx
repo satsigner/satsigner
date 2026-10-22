@@ -4,9 +4,8 @@ import SSButton from '@/components/SSButton'
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
-import SSTransactionCard, {
-  type SSTransactionCardDisplayProps
-} from '@/components/SSTransactionCard'
+import SSTransactionCard from '@/components/SSTransactionCard'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useExplorerAddressTxDetails } from '@/hooks/useExplorerAddressTxDetails'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
@@ -33,7 +32,7 @@ function TxRow({ txid, onPress }: TxRowProps) {
   )
 }
 
-type SSExplorerAddressTransactionsProps = SSTransactionCardDisplayProps & {
+type SSExplorerAddressTransactionsProps = DisplayPreferences & {
   address: string
   txids: string[]
   heightByTxid?: Record<string, number>

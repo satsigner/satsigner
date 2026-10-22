@@ -76,19 +76,7 @@ function HistoricalFiatUnavailable({
   )
 }
 
-/** Display settings a screen passes through to every transaction card. */
-type SSTransactionCardDisplayProps = Pick<
-  DisplayPreferences,
-  | 'btcPrice'
-  | 'currencyUnit'
-  | 'fiatCurrency'
-  | 'fiatEnabled'
-  | 'historicalFiatEnabled'
-  | 'privacyMode'
-  | 'useZeroPadding'
->
-
-type SSTransactionCardProps = SSTransactionCardDisplayProps & {
+type SSTransactionCardProps = DisplayPreferences & {
   transaction: Transaction
   blockHeight: number
   walletBalance?: number
@@ -453,5 +441,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export type { SSTransactionCardDisplayProps }
 export default SSTransactionCard
