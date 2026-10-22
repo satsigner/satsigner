@@ -6,6 +6,7 @@ import { immer } from 'zustand/middleware/immer'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import { type FeeReplacementDraft } from '@/types/models/FeeReplacement'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { randomUuid } from '@/utils/crypto'
@@ -102,6 +103,7 @@ type TransactionBuilderAction = {
   setSignedPsbts: (signedPsbts: TransactionBuilderState['signedPsbts']) => void
   setBroadcasted: (broadcasted: boolean) => void
   setPayjoinUri: (payjoinUri: string | undefined) => void
+  replaceDraft: (accountId: string, draft: FeeReplacementDraft) => void
 }
 
 function normalizeStonewallPreview(
@@ -268,6 +270,32 @@ const useTransactionBuilderStore = create<
             clearSignedDraftFields(state)
             state.outputs.splice(index, 1)
           }
+          syncDraft(state)
+        })
+      },
+      replaceDraft: (accountId, draft) => {
+        set((state) => {
+          state.accountId = accountId
+          state.broadcasted = false
+          state.fee = draft.fee
+          state.feeRate = draft.feeRate
+          state.inputs.clear()
+          for (const utxo of draft.inputs) {
+            state.inputs.set(getUtxoOutpoint(utxo), utxo)
+          }
+          state.outputs = draft.outputs.map((output) => ({
+            ...output,
+            localId: randomUuid()
+          }))
+          state.payjoinUri = undefined
+          state.psbt = undefined
+          state.rbf = true
+          state.selectedAutoSelectUtxos = 'user'
+          state.signedPsbtBase64 = undefined
+          state.signedPsbts = new Map<number, string>()
+          state.signedTx = undefined
+          state.stonewallPreview = normalizeStonewallPreview()
+          state.timeLock = 0
           syncDraft(state)
         })
       },

@@ -30,6 +30,7 @@ export type AccountSearchParams = {
 export type IoPreviewSearchParams = AccountSearchParams & {
   autoSelectFromUri?: string
   dustWarning?: string
+  feeRateFloor?: string
 }
 
 export type PreviewTransactionSearchParams = AccountSearchParams & {

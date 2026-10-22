@@ -81,6 +81,11 @@ import {
 } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
 import {
+  getPreviewReplacementFlags,
+  parseFeeRateFloor,
+  spendsUnconfirmedParent
+} from '@/utils/feeReplacement'
+import {
   estimateTargetBlocks,
   getFeeRateInputMax,
   getFeeRateSliderMax,
@@ -135,8 +140,12 @@ import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
   const router = useRouter()
-  const { id, autoSelectFromUri, dustWarning } =
-    useLocalSearchParams<IoPreviewSearchParams>()
+  const {
+    id,
+    autoSelectFromUri,
+    dustWarning,
+    feeRateFloor: feeRateFloorParam
+  } = useLocalSearchParams<IoPreviewSearchParams>()
   const isFocused = useIsFocused()
   const insets = useSafeAreaInsets()
 
@@ -160,6 +169,7 @@ export default function IOPreview() {
     outputs,
     getInputs,
     feeRate,
+    rbf,
     addOutput,
     updateOutput,
     removeOutput,
@@ -183,6 +193,7 @@ export default function IOPreview() {
       state.outputs,
       state.getInputs,
       state.feeRate,
+      state.rbf,
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
@@ -268,7 +279,19 @@ export default function IOPreview() {
 
   const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
     useState<Utxo[]>()
-  const [localFeeRate, setLocalFeeRate] = useState(feeRate)
+  const feeRateFloor = parseFeeRateFloor(
+    Array.isArray(feeRateFloorParam) ? feeRateFloorParam[0] : feeRateFloorParam
+  )
+  const previewFlags = getPreviewReplacementFlags({
+    rbf,
+    spendsUnconfirmedParent: spendsUnconfirmedParent(
+      Array.from(inputs.values()),
+      account?.transactions ?? []
+    )
+  })
+  const [localFeeRate, setLocalFeeRate] = useState(() =>
+    Math.max(feeRate, feeRateFloor)
+  )
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
@@ -645,8 +668,8 @@ export default function IOPreview() {
   }, [deferUnderfundedWarning, isUnderfunded])
 
   useEffect(() => {
-    if (feeRate === 0) {
-      setFeeRate(1)
+    if (feeRate < feeRateFloor) {
+      setFeeRate(feeRateFloor)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -665,13 +688,13 @@ export default function IOPreview() {
     if (recommendedFeeRate === null) {
       return
     }
-    if (feeRate > 1) {
+    if (feeRateFloor > 1 || feeRate > 1) {
       hasHydratedRecommendedFeeRate.current = true
       return
     }
     setFeeRate(recommendedFeeRate)
     hasHydratedRecommendedFeeRate.current = true
-  }, [feeRate, nextBlockFee, setFeeRate])
+  }, [feeRate, feeRateFloor, nextBlockFee, setFeeRate])
 
   useEffect(() => {
     if (selectedAutoSelectUtxos === 'privacy') {
@@ -1523,6 +1546,20 @@ export default function IOPreview() {
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
           <SSVStack gap="xs">
+            {previewFlags.showRbf || previewFlags.showCpfp ? (
+              <SSHStack gap="sm">
+                {previewFlags.showRbf ? (
+                  <SSText uppercase color="muted" size="xs">
+                    {t('transaction.feeReplacement.flag.rbf')}
+                  </SSText>
+                ) : null}
+                {previewFlags.showCpfp ? (
+                  <SSText uppercase color="muted" size="xs">
+                    {t('transaction.feeReplacement.flag.cpfp')}
+                  </SSText>
+                ) : null}
+              </SSHStack>
+            ) : null}
             <SSHStack gap="xs">
               <SSButton
                 variant="outline"
@@ -1939,6 +1976,7 @@ export default function IOPreview() {
             onValueChange={setLocalFeeRate}
             vbytes={transactionSize.vsize}
             max={feeRateSliderMax}
+            min={feeRateFloor}
             inputMax={feeRateInputMax}
             estimatedBlock={estimatedTargetBlocks}
             fiatCurrency={fiatCurrency}
