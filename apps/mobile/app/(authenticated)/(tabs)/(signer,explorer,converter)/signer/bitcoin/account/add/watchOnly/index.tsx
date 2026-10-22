@@ -674,39 +674,7 @@ export default function WatchOnly() {
         const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
-          // Validate the combined descriptor and get separated descriptors
-          const combinedValidation = await processCombinedDescriptor(
-            text,
-            scriptVersion
-          )
-
-          if (combinedValidation.success) {
-            setLocalExternalDescriptor(combinedValidation.external)
-            setLocalInternalDescriptor(combinedValidation.internal)
-            setIsValidExternalDescriptor(true)
-            setIsValidInternalDescriptor(true)
-
-            const externalWithoutChecksum = combinedValidation.external.replace(
-              /#[a-z0-9]+$/,
-              ''
-            )
-            const internalWithoutChecksum = combinedValidation.internal.replace(
-              /#[a-z0-9]+$/,
-              ''
-            )
-            setExternalDescriptor(externalWithoutChecksum)
-            setInternalDescriptor(internalWithoutChecksum)
-
-            extractAndSetFingerprint(combinedValidation.external)
-
-            await updateExternalDescriptor(externalWithoutChecksum, true)
-            await updateInternalDescriptor(internalWithoutChecksum, true)
-          } else {
-            setLocalExternalDescriptor(combinedValidation.external)
-            setLocalInternalDescriptor(combinedValidation.internal)
-            setIsValidExternalDescriptor(false)
-            setIsValidInternalDescriptor(false)
-          }
+          await handleCombinedDescriptor(text)
         } else {
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
