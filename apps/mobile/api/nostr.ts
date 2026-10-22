@@ -51,6 +51,7 @@ import type {
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
+import { NostrNoRelaysError } from '@/utils/errors'
 import {
   extractInboxRelayUrls,
   getPubKeyHexFromNpub,
@@ -1592,7 +1593,7 @@ export class NostrAPI {
 
       const allRelayUrls = [...(tempNdk.pool?.relays.keys() ?? [])]
       if (allRelayUrls.length === 0) {
-        throw new Error('No relays in pool')
+        throw new NostrNoRelaysError('No relays in pool')
       }
 
       const publishPromises = allRelayUrls.map(async (url) => {
@@ -1739,7 +1740,7 @@ export class NostrAPI {
     const connectedRelays = await this.waitForConnectedRelays()
     if (connectedRelays.length === 0) {
       const total = this.ndk.pool.relays.size
-      throw new Error(
+      throw new NostrNoRelaysError(
         `No relay connections established (0/${total}) — check network or VPN`
       )
     }

@@ -1,6 +1,7 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
 import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
+import { AppError } from '@/utils/errors'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -21,8 +22,8 @@ export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
 // Thrown when a descriptor contains private key material that must not be
 // silently dropped. Callers rethrow it so a catch-all never turns it into a
 // plain derivation failure.
-export class PrivateKeyDescriptorError extends Error {
-  name = 'PrivateKeyDescriptorError'
+export class PrivateKeyDescriptorError extends AppError {
+  override name = 'PrivateKeyDescriptorError'
 }
 
 export function getCleanXpub(xpubWithPrefix: string): string {

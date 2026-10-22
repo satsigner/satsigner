@@ -19,6 +19,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
+import { NostrNoRelaysError } from '@/utils/errors'
 
 export default function DeviceAliasPage() {
   const { id: accountId, npub } =
@@ -144,13 +145,8 @@ export default function DeviceAliasPage() {
       updateAccountNostr(accountId, payload)
       toast.success(t('account.nostrSync.fetchKind0Success'))
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      const isNoRelay =
-        message.includes('No relay') ||
-        message.includes('relays could be connected') ||
-        message.includes('relays are responding')
       toast.error(
-        isNoRelay
+        error instanceof NostrNoRelaysError
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )

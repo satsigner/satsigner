@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 
 import BitcoinRpc, { adjustRpcUrl, BitcoinCoreWallet } from '@/api/rpc'
 import { RPC_DEFAULT_TIMEOUT_MS } from '@/constants/rpc'
+import { HttpStatusError } from '@/utils/errors'
 
 jest.mock<typeof import('react-native')>('react-native', () => ({
   Platform: { OS: 'ios' }
@@ -23,8 +24,11 @@ function rpcResult<T>(result: T): Response {
   return jsonResponse({ error: null, id: 'x', result })
 }
 
-function rpcError(code: number, message: string): Response {
-  return jsonResponse({ error: { code, message }, id: 'x', result: null })
+function rpcError(code: number, message: string, status = 200): Response {
+  return jsonResponse(
+    { error: { code, message }, id: 'x', result: null },
+    status
+  )
 }
 
 describe('adjustRpcUrl', () => {
@@ -176,6 +180,61 @@ describe('bitcoinRpc', () => {
     await expect(rpc.getBlockCount()).rejects.toThrow(/HTTP 401/)
   })
 
+  it('throws HttpStatusError with the status for HTTP 401', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({}, 401))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toBeInstanceOf(HttpStatusError)
+  })
+
+  it('throws RpcError with the code for JSON-RPC errors', async () => {
+    mockFetch.mockResolvedValueOnce(rpcError(-8, 'Block height out of range'))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -8,
+      name: 'RpcError'
+    })
+  })
+
+  it('reads the JSON-RPC error from an HTTP 500 legacy response', async () => {
+    mockFetch.mockResolvedValueOnce(
+      rpcError(
+        -4,
+        'Wallet is currently rescanning. Abort existing rescan or wait.',
+        500
+      )
+    )
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -4,
+      name: 'RpcError'
+    })
+  })
+
+  it('reads the JSON-RPC error from an HTTP 404 method-not-found response', async () => {
+    mockFetch.mockResolvedValueOnce(rpcError(-32_601, 'Method not found', 404))
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      code: -32_601,
+      name: 'RpcError'
+    })
+  })
+
+  it('throws HttpStatusError when a failed response has no JSON body', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response('Bad Gateway', { status: 502 })
+    )
+    const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
+
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      name: 'HttpStatusError',
+      status: 502
+    })
+  })
+
   it('maps HTTP 403 to an rpcallowip hint', async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 403))
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
@@ -203,7 +262,10 @@ describe('bitcoinRpc', () => {
     mockFetch.mockRejectedValueOnce(abortError)
     const rpc = new BitcoinRpc(NODE_URL, USER, PASS)
 
-    await expect(rpc.getBlockCount()).rejects.toThrow(/timed out/)
+    await expect(rpc.getBlockCount()).rejects.toMatchObject({
+      message: expect.stringMatching(/timed out/),
+      name: 'RequestTimeoutError'
+    })
   })
 
   describe('hasBlockFilterIndex', () => {

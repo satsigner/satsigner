@@ -32,6 +32,7 @@ import type {
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
+import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
 import { withTimeout } from '@/utils/time'
 
@@ -274,7 +275,7 @@ export async function mintSupportsBolt11Mpp(
   )
 }
 
-export class EcashSpentProofsError extends Error {
+export class EcashSpentProofsError extends AppError {
   readonly spentProofSecrets: string[]
 
   constructor(spentProofSecrets: string[]) {

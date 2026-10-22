@@ -24,6 +24,7 @@ import {
   type Network as BlockchainNetwork,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import { sleep } from '@/utils/time'
 import {
@@ -79,6 +80,8 @@ type CoreWalletSyncResult = Pick<
 // Core: "Wallet is currently rescanning. Abort existing rescan or wait."
 const RESCAN_IN_PROGRESS_ERROR = 'currently rescanning'
 const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
+// Bitcoin Core RPC_WALLET_ERROR, used for both conditions above.
+const RPC_WALLET_ERROR_CODE = -4
 
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
@@ -95,16 +98,20 @@ function toUnixSec(date?: Date) {
   return date ? Math.floor(date.getTime() / MS_PER_SECOND) : undefined
 }
 
-function isListDescriptorsError(error: unknown) {
+function isWalletRpcError(error: unknown, detail: string) {
   return (
-    error instanceof Error && error.message.includes(LIST_DESCRIPTORS_METHOD)
+    error instanceof RpcError &&
+    error.code === RPC_WALLET_ERROR_CODE &&
+    error.message.includes(detail)
   )
 }
 
+function isListDescriptorsError(error: unknown) {
+  return isWalletRpcError(error, LIST_DESCRIPTORS_METHOD)
+}
+
 function isRescanInProgress(error: unknown) {
-  return (
-    error instanceof Error && error.message.includes(RESCAN_IN_PROGRESS_ERROR)
-  )
+  return isWalletRpcError(error, RESCAN_IN_PROGRESS_ERROR)
 }
 
 /**
@@ -771,6 +778,8 @@ async function syncWithCoreWallet(
 }
 
 export {
+  isListDescriptorsError,
+  isRescanInProgress,
   mergeWalletTxEntries,
   reorgedOutTxids,
   scanProgressHeight,

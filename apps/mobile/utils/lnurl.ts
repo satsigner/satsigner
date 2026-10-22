@@ -8,6 +8,7 @@ import type {
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
 } from '@/types/models/Lightning'
+import { HttpStatusError } from '@/utils/errors'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 import { isRecord } from '@/utils/object'
 import { optionalLenient } from '@/utils/schema'
@@ -204,7 +205,10 @@ export async function fetchLNURLPayDetails(
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`)
+    throw new HttpStatusError(
+      response.status,
+      `HTTP error! Status: ${response.status}`
+    )
   }
 
   const data: unknown = await response.json()
@@ -245,7 +249,10 @@ export async function requestLNURLPayInvoice(
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`)
+    throw new HttpStatusError(
+      response.status,
+      `HTTP error! Status: ${response.status} - ${errorText}`
+    )
   }
 
   const data: unknown = await response.json()

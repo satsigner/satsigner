@@ -1,4 +1,6 @@
 import {
+  isListDescriptorsError,
+  isRescanInProgress,
   mergeWalletTxEntries,
   reorgedOutTxids,
   scanProgressHeight,
@@ -13,9 +15,10 @@ import {
   type CoreWalletListTx
 } from '@/api/rpc'
 import { BDK_RESCAN_START_RACE_TIMEOUT_MS } from '@/constants/bdk'
+import { RpcError } from '@/utils/errors'
 
 const RESCAN_IN_PROGRESS_MESSAGE =
-  'RPC error -4: Wallet is currently rescanning. Abort existing rescan or wait.'
+  'Wallet is currently rescanning. Abort existing rescan or wait.'
 
 const IDLE_WALLET_INFO: CoreWalletInfo = {
   balance: 0,
@@ -179,7 +182,7 @@ describe('startRescanFrom', () => {
     jest.spyOn(coreWallet, 'getWalletInfo').mockResolvedValue(IDLE_WALLET_INFO)
     const rescan = jest
       .spyOn(coreWallet, 'rescanBlockchain')
-      .mockRejectedValueOnce(new Error(RESCAN_IN_PROGRESS_MESSAGE))
+      .mockRejectedValueOnce(new RpcError(-4, RESCAN_IN_PROGRESS_MESSAGE))
       .mockResolvedValueOnce({ start_height: 0, stop_height: 10 })
 
     await expect(startRescanFrom(coreWallet, 0)).resolves.toBeUndefined()
@@ -190,11 +193,40 @@ describe('startRescanFrom', () => {
     const coreWallet = makeCoreWallet()
     const rescan = jest
       .spyOn(coreWallet, 'rescanBlockchain')
-      .mockRejectedValue(new Error('RPC error -8: Invalid start_height'))
+      .mockRejectedValue(new RpcError(-8, 'Invalid start_height'))
 
     await expect(startRescanFrom(coreWallet, 0)).rejects.toThrow(
       'Invalid start_height'
     )
     expect(rescan).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('core wallet RPC error matchers', () => {
+  const LEGACY_WALLET_MESSAGE =
+    'listdescriptors is not available for non-descriptor wallets'
+
+  it('detects a rescan already in progress by code and text', () => {
+    expect(
+      isRescanInProgress(new RpcError(-4, RESCAN_IN_PROGRESS_MESSAGE))
+    ).toBe(true)
+    expect(
+      isRescanInProgress(new RpcError(-1, RESCAN_IN_PROGRESS_MESSAGE))
+    ).toBe(false)
+    expect(isRescanInProgress(new Error(RESCAN_IN_PROGRESS_MESSAGE))).toBe(
+      false
+    )
+  })
+
+  it('detects a legacy wallet listdescriptors failure by code and text', () => {
+    expect(
+      isListDescriptorsError(new RpcError(-4, LEGACY_WALLET_MESSAGE))
+    ).toBe(true)
+    expect(
+      isListDescriptorsError(new RpcError(-1, LEGACY_WALLET_MESSAGE))
+    ).toBe(false)
+    expect(isListDescriptorsError(new RpcError(-4, 'Wallet not found'))).toBe(
+      false
+    )
   })
 })
