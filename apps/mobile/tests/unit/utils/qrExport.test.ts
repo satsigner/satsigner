@@ -10,8 +10,10 @@ import {
   RAW_CHUNK_BASE_SIZE
 } from '@/constants/qr'
 import {
+  createBbqrPsbtChunks,
   createPsbtQrChunks,
   createRawQrChunks,
+  createUrPsbtFragments,
   getQrAnimationIntervalMs,
   getQrDisplayModeDescription,
   getQrValue
@@ -121,5 +123,34 @@ describe('getQrDisplayModeDescription', () => {
     expect(
       getQrDisplayModeDescription({ ...base, chunkCount: 0 })
     ).toStrictEqual({ key: 'error.psbt.notAvailable' })
+  })
+})
+
+describe('max density QR frames', () => {
+  // Bytes that neither zlib nor base32 can shrink, just under the size limit.
+  function incompressibleBytes(length: number) {
+    const xorshift = { state: 0x9e_37_79_b9 }
+    return Uint8Array.from({ length }, () => {
+      xorshift.state ^= xorshift.state << 13
+      xorshift.state ^= xorshift.state >>> 17
+      xorshift.state ^= xorshift.state << 5
+      return xorshift.state & 0xff
+    })
+  }
+
+  it('splits a UR whose single frame would not fit one QR', () => {
+    const psbtBase64 = Buffer.from(incompressibleBytes(740)).toString('base64')
+    const fragments = createUrPsbtFragments(psbtBase64, QR_COMPLEXITY_MAX)
+    expect(
+      fragments.every((fragment) => fragment.length <= QR_MAX_DATA_SIZE)
+    ).toBe(true)
+  })
+
+  it('splits a BBQR whose single frame would not fit one QR', () => {
+    const chunks = createBbqrPsbtChunks(
+      incompressibleBytes(950),
+      QR_COMPLEXITY_MAX
+    )
+    expect(chunks.every((chunk) => chunk.length <= QR_MAX_DATA_SIZE)).toBe(true)
   })
 })

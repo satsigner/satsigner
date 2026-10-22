@@ -5,12 +5,13 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import {
   HEX_PATTERN,
   MAX_PARTIAL_SIGNATURE_BYTES,
-  MIN_WITNESS_SCRIPT_CHUNKS_TO_PARSE,
+  MIN_MULTISIG_SCRIPT_CHUNKS,
   MIN_PARTIAL_SIGNATURE_BYTES,
   OP_N_OFFSET,
   PSBT_MAGIC_BASE64,
   PSBT_MAGIC_HEX
 } from '@/constants/btc'
+import { UNDECODABLE_OUTPUT_ADDRESS_PREFIX } from '@/constants/transaction'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import {
   type MockPsbt,
@@ -467,7 +468,7 @@ export function extractTransactionDataFromPSBT(
         network
       )
     } catch {
-      address = `Unknown Address ${index + 1}`
+      address = `${UNDECODABLE_OUTPUT_ADDRESS_PREFIX} ${index + 1}`
     }
 
     return {
@@ -932,7 +933,7 @@ function isValidNonWitnessUtxo(nonWitnessUtxo: Buffer): boolean {
 // Reads the m-of-n of a multisig witness script; null when it is not one.
 export function parseWitnessScript(witnessScript: Buffer) {
   const script = bitcoinjs.script.decompile(witnessScript)
-  if (!script || script.length < MIN_WITNESS_SCRIPT_CHUNKS_TO_PARSE) {
+  if (!script || script.length < MIN_MULTISIG_SCRIPT_CHUNKS) {
     return null
   }
 

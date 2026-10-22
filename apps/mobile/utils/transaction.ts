@@ -15,7 +15,8 @@ import {
   BDK_DUST_ERROR_MARKER,
   BDK_UTXO_NOT_FOUND_ERROR_MARKER,
   MIN_RAW_TRANSACTION_HEX_LENGTH,
-  TRANSACTION_ID_PLACEHOLDER
+  TRANSACTION_ID_PLACEHOLDER,
+  UNDECODABLE_OUTPUT_ADDRESS_PREFIX
 } from '@/constants/transaction'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
@@ -362,6 +363,7 @@ export function findFirstInvalidOutputAddress(
   const bitcoinjsNet = bitcoinjsNetwork(network)
   const invalidOutput = outputs.find(
     (output) =>
+      !output.to.startsWith(UNDECODABLE_OUTPUT_ADDRESS_PREFIX) &&
       output.to.trim().length >= MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE &&
       !validateAddress(output.to, bitcoinjsNet)
   )

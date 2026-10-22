@@ -742,6 +742,15 @@ describe('findFirstInvalidOutputAddress', () => {
     ).toBe(testnetAddress)
   })
 
+  it('skips outputs whose script has no address', () => {
+    expect(
+      findFirstInvalidOutputAddress(
+        [{ ...output, to: 'Unknown Address 1' }],
+        'bitcoin'
+      )
+    ).toBeUndefined()
+  })
+
   it('skips addresses still too short to validate', () => {
     expect(
       findFirstInvalidOutputAddress([{ ...output, to: 'bc1q' }], 'bitcoin')

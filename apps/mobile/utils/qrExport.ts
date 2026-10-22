@@ -59,29 +59,51 @@ export function createRawQrChunks(data: string, complexity: number) {
   )
 }
 
+function everyFrameFitsInQr(frames: string[]) {
+  return frames.every((frame) => frame.length <= QR_MAX_DATA_SIZE)
+}
+
 // Encodes PSBT bytes as BBQR frames sized by complexity.
 export function createBbqrPsbtChunks(
   psbtBytes: Uint8Array,
   complexity: number
 ) {
-  const chunkSize = isSingleStaticQr(
-    complexity,
-    psbtBytes.length * QR_ENCODING_OVERHEAD
+  const multiPartChunks = () =>
+    createBBQRChunks(
+      psbtBytes,
+      BBQRFileTypes.PSBT,
+      Math.max(BBQR_CHUNK_MIN_SIZE, BBQR_CHUNK_BASE_SIZE * complexity)
+    )
+  if (!isSingleStaticQr(complexity, psbtBytes.length * QR_ENCODING_OVERHEAD)) {
+    return multiPartChunks()
+  }
+  const singleChunk = createBBQRChunks(
+    psbtBytes,
+    BBQRFileTypes.PSBT,
+    psbtBytes.length * BBQR_SINGLE_CHUNK_MULTIPLIER
   )
-    ? psbtBytes.length * BBQR_SINGLE_CHUNK_MULTIPLIER
-    : Math.max(BBQR_CHUNK_MIN_SIZE, BBQR_CHUNK_BASE_SIZE * complexity)
-  return createBBQRChunks(psbtBytes, BBQRFileTypes.PSBT, chunkSize)
+  return everyFrameFitsInQr(singleChunk) ? singleChunk : multiPartChunks()
 }
 
 // Encodes a base64 PSBT as UR (crypto-psbt) fragments sized by complexity.
 export function createUrPsbtFragments(psbtBase64: string, complexity: number) {
-  const fragmentSize = isSingleStaticQr(
-    complexity,
-    psbtBase64.length * QR_ENCODING_OVERHEAD
+  const multiPartFragments = () =>
+    getURFragmentsFromPSBT(
+      psbtBase64,
+      'base64',
+      Math.max(UR_FRAGMENT_MIN_SIZE, UR_FRAGMENT_BASE_SIZE * complexity)
+    )
+  if (!isSingleStaticQr(complexity, psbtBase64.length * QR_ENCODING_OVERHEAD)) {
+    return multiPartFragments()
+  }
+  const singleFragment = getURFragmentsFromPSBT(
+    psbtBase64,
+    'base64',
+    psbtBase64.length
   )
-    ? psbtBase64.length
-    : Math.max(UR_FRAGMENT_MIN_SIZE, UR_FRAGMENT_BASE_SIZE * complexity)
-  return getURFragmentsFromPSBT(psbtBase64, 'base64', fragmentSize)
+  return everyFrameFitsInQr(singleFragment)
+    ? singleFragment
+    : multiPartFragments()
 }
 
 // Frame interval for an animated QR: speed min → slowest, speed max → fastest.

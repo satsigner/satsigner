@@ -189,6 +189,15 @@ describe('multisig witness script helpers', () => {
     expect(parseWitnessScript(Buffer.from('6a', 'hex'))).toBeNull()
   })
 
+  it('returns null for a multisig script missing OP_n', () => {
+    const truncated = bitcoinjs.script.compile([
+      bitcoinjs.opcodes.OP_1,
+      pubkeys[0],
+      bitcoinjs.opcodes.OP_CHECKMULTISIG
+    ])
+    expect(parseWitnessScript(truncated)).toBeNull()
+  })
+
   it('treats inputs without a witness script as ready', () => {
     expect(hasEnoughSignatures({})).toBe(true)
   })

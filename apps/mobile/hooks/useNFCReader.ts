@@ -56,7 +56,7 @@ export function useNFCReader() {
     try {
       return await NfcManager.getTag()
     } catch (tagError) {
-      NfcManager.cancelTechnologyRequest()
+      await Promise.allSettled([NfcManager.cancelTechnologyRequest()])
       setIsReading(false)
       throw toNfcSessionError(tagError)
     }

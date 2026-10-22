@@ -103,6 +103,37 @@ describe('useNFCReader readNFCTag', () => {
     expect(hook.current?.isReading).toBe(false)
   })
 
+  it('waits for the failed session to close before ending the read', async () => {
+    mockGetTag.mockRejectedValue(new Error('tag lost'))
+    const sessionClosed = { resolve: () => {} }
+    mockCancelTechnologyRequest.mockReturnValue(
+      new Promise<void>((resolve) => {
+        sessionClosed.resolve = resolve
+      })
+    )
+    const hook = await renderReader()
+    const read = { settled: false }
+
+    await act(async () => {
+      const pendingRead = hook.current
+        ?.readNFCTag()
+        .catch(() => null)
+        .finally(() => {
+          read.settled = true
+        })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0)
+      })
+      expect(read.settled).toBe(false)
+
+      sessionClosed.resolve()
+      await pendingRead
+    })
+
+    expect(read.settled).toBe(true)
+    expect(hook.current?.isReading).toBe(false)
+  })
+
   it('passes other session failures through and stops reading', async () => {
     const failure = new Error('tag lost')
     mockRequestTechnology.mockRejectedValue(failure)

@@ -299,18 +299,19 @@ export function useTransactionPsbt({
     })
   })
 
+  const accountNetwork = account?.network
   useEffect(() => {
-    if (!account || !txBuilderResult) {
+    if (!accountNetwork || !txBuilderResult) {
       return
     }
     const invalidAddress = findFirstInvalidOutputAddress(
       outputs,
-      account.network
+      accountNetwork
     )
     if (invalidAddress) {
       reportInvalidOutputAddress(invalidAddress)
     }
-  }, [account, outputs, txBuilderResult])
+  }, [accountNetwork, outputs, txBuilderResult])
 
   const psbtBase64 = txBuilderResult?.toBase64()
   const serializedPsbt = psbtBase64

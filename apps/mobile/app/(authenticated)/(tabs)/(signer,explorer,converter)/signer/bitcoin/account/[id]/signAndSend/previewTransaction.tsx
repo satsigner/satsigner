@@ -512,10 +512,14 @@ function getCameraModalTitle(
   decryptedKeys: Key[],
   selectedCosignerIndex: number | null
 ) {
-  if (selectedCosignerIndex === null) {
+  const selectedDecryptedKey =
+    selectedCosignerIndex === null
+      ? undefined
+      : decryptedKeys[selectedCosignerIndex]
+  if (!selectedDecryptedKey) {
     return t('camera.scanQRCode')
   }
-  return hasStoredMnemonic(decryptedKeys[selectedCosignerIndex])
+  return hasStoredMnemonic(selectedDecryptedKey)
     ? t('camera.scanQRCode')
     : t('transaction.preview.scanSeedQR')
 }

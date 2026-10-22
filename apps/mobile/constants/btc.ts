@@ -54,7 +54,8 @@ export const PSBT_MAGIC_HEX = '70736274ff'
 // BIP174 PSBT magic bytes as they appear at the start of a base64 PSBT.
 export const PSBT_MAGIC_BASE64 = 'cHNidP'
 
-export const MIN_WITNESS_SCRIPT_CHUNKS_TO_PARSE = 3
+// OP_m <pubkey> OP_n OP_CHECKMULTISIG
+export const MIN_MULTISIG_SCRIPT_CHUNKS = 4
 export const BITCOIN_URI_SCHEME = 'bitcoin:'
 // Output amount placeholder the user fills in on ioPreview.
 export const UNSET_OUTPUT_AMOUNT_SATS = 1

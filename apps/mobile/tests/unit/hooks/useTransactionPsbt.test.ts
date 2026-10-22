@@ -159,6 +159,36 @@ describe('useTransactionPsbt', () => {
     )
   })
 
+  it('reports an invalid output address once, not on every account update', async () => {
+    fillBuilder()
+    const testnetAddress = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    useTransactionBuilderStore
+      .getState()
+      .addOutput({ amount: 1000, label: '', to: testnetAddress })
+    mockBuildPsbt.mockResolvedValue(
+      createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    )
+
+    const { onNotice, rerender } = await renderTransactionPsbt({
+      account: makeAccount(),
+      importedPsbtBase64: undefined
+    })
+    await rerender({ account: makeAccount(), importedPsbtBase64: undefined })
+
+    const invalidAddressNotices = onNotice.mock.calls.filter(
+      ([notice]) => notice.key === 'transaction.preview.invalidAddressFormat'
+    )
+    expect(invalidAddressNotices).toStrictEqual([
+      [
+        {
+          key: 'transaction.preview.invalidAddressFormat',
+          params: { address: testnetAddress },
+          type: 'error'
+        }
+      ]
+    ])
+  })
+
   it('fails the build when the account has no wallet', async () => {
     fillBuilder()
     mockUseWallet.mockReturnValue(undefined)
