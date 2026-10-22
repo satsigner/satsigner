@@ -7,12 +7,20 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
-import { historicalFiatLineControl } from '@/utils/historyChart'
+import { missingHistoricalFiatData } from '@/utils/fiat'
+
+const FIAT_DATA_LINK_LABELS = {
+  currentPrices:
+    'settings.features.charts.historyChart.layers.turnOnCurrentPrices',
+  historicalPrices:
+    'settings.features.charts.historyChart.layers.turnOnHistoricalPrices'
+}
 
 export default function Charts() {
   const router = useRouter()
@@ -92,10 +100,11 @@ export default function Charts() {
   const [selectedShowUtxoFlowChart, setSelectedShowUtxoFlowChart] =
     useState(showUtxoFlowChart)
 
-  const fiatLineControl = historicalFiatLineControl({
+  const missingFiatData = missingHistoricalFiatData({
     fetchCurrentPrices: showCurrentFiat,
     fetchHistoricalPrices: showHistoricalFiat
   })
+  const historicalFiatDisabled = missingFiatData !== null
 
   function handleOnSave() {
     setLockZoomToXAxis(selectedLockZoomToXAxis)
@@ -186,54 +195,45 @@ export default function Charts() {
                     'settings.features.charts.historyChart.layers.showFiatAtTxTime'
                   )}
                   selected={selectedShowFiatAtTxTime}
-                  disabled={
-                    !showCurrentFiat ||
-                    !showHistoricalFiat ||
-                    !selectedShowFiatOnChart
-                  }
+                  disabled={historicalFiatDisabled || !selectedShowFiatOnChart}
                   onPress={
-                    !showCurrentFiat ||
-                    !showHistoricalFiat ||
-                    !selectedShowFiatOnChart
+                    historicalFiatDisabled || !selectedShowFiatOnChart
                       ? undefined
                       : () => setSelectedShowFiatAtTxTime((prev) => !prev)
                   }
                 />
                 <SSCheckbox
                   label={t(
-                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine.label'
+                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine'
                   )}
                   selected={selectedShowHistoricalFiatLine}
-                  disabled={fiatLineControl.disabled}
+                  disabled={historicalFiatDisabled}
                   onPress={
-                    fiatLineControl.disabled
+                    historicalFiatDisabled
                       ? undefined
                       : () => setSelectedShowHistoricalFiatLine((prev) => !prev)
                   }
                 />
-                {fiatLineControl.disabled ? (
-                  <SSText
-                    color="muted"
-                    onPress={() =>
-                      router.navigate(fiatLineControl.settingsPath)
-                    }
-                  >
-                    {t(fiatLineControl.linkLabelKey)}
-                  </SSText>
-                ) : null}
                 <SSCheckbox
                   label={t(
                     'settings.features.charts.historyChart.layers.showFiatPercentageChange'
                   )}
                   selected={selectedShowFiatPercentageChange}
-                  disabled={!showCurrentFiat || !showHistoricalFiat}
+                  disabled={historicalFiatDisabled}
                   onPress={
-                    !showCurrentFiat || !showHistoricalFiat
+                    historicalFiatDisabled
                       ? undefined
                       : () =>
                           setSelectedShowFiatPercentageChange((prev) => !prev)
                   }
                 />
+                {missingFiatData ? (
+                  <SSButton
+                    label={t(FIAT_DATA_LINK_LABELS[missingFiatData])}
+                    variant="outline"
+                    onPress={() => router.navigate(FIAT_DATA_SETTINGS_ROUTE)}
+                  />
+                ) : null}
               </SSVStack>
               <SSVStack>
                 <SSText>

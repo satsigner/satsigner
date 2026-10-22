@@ -10,9 +10,7 @@ import {
   fiatDomainMax,
   fiatYDomain,
   hexToRgba,
-  historicalFiatLineControl,
   historyChartMargin,
-  isHistoricalFiatLineVisible,
   maxFiatChartValue,
   projectFiatOntoChart
 } from '@/utils/historyChart'
@@ -312,58 +310,6 @@ describe('buildFiatStepPath', () => {
         (value) => value
       )
     ).toBeNull()
-  })
-})
-
-describe('historical fiat line visibility', () => {
-  it('is visible only when the setting and both fiat fetches are on', () => {
-    expect(
-      isHistoricalFiatLineVisible({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: true,
-        showHistoricalFiatLine: true
-      })
-    ).toBe(true)
-    expect(
-      isHistoricalFiatLineVisible({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: true,
-        showHistoricalFiatLine: false
-      })
-    ).toBe(false)
-  })
-
-  it('links to fiat currency settings when current prices are off', () => {
-    expect(
-      historicalFiatLineControl({
-        fetchCurrentPrices: false,
-        fetchHistoricalPrices: true
-      })
-    ).toMatchObject({
-      disabled: true,
-      settingsPath: '/settings/fiat'
-    })
-  })
-
-  it('links to fiat data settings when historical prices are off', () => {
-    expect(
-      historicalFiatLineControl({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: false
-      })
-    ).toMatchObject({
-      disabled: true,
-      settingsPath: '/settings/features/fiatData'
-    })
-  })
-
-  it('leaves the control enabled when both fetches are on', () => {
-    expect(
-      historicalFiatLineControl({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: true
-      })
-    ).toStrictEqual({ disabled: false })
   })
 })
 

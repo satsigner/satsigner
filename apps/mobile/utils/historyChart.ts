@@ -511,25 +511,10 @@ const HISTORY_CHART_Y_HEADROOM = 1.2
 const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
 const FIAT_AXIS_RIGHT_MARGIN = 52
 
-const FIAT_CURRENCY_SETTINGS_PATH = '/settings/fiat'
-const FIAT_DATA_SETTINGS_PATH = '/settings/features/fiatData'
-
 type FiatChartPoint = {
   date: Date
   value: number | null
 }
-
-type HistoricalFiatLineControl =
-  | { disabled: false }
-  | {
-      disabled: true
-      linkLabelKey:
-        | 'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatCurrencyLink'
-        | 'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatDataLink'
-      settingsPath:
-        | typeof FIAT_CURRENCY_SETTINGS_PATH
-        | typeof FIAT_DATA_SETTINGS_PATH
-    }
 
 function transactionBalanceChange(transaction: Transaction) {
   if (transaction.type === 'receive') {
@@ -661,41 +646,6 @@ function buildFiatStepPath(
   return generator(series)
 }
 
-function isHistoricalFiatLineVisible(input: {
-  fetchCurrentPrices: boolean
-  fetchHistoricalPrices: boolean
-  showHistoricalFiatLine: boolean
-}) {
-  return (
-    input.showHistoricalFiatLine &&
-    input.fetchCurrentPrices &&
-    input.fetchHistoricalPrices
-  )
-}
-
-function historicalFiatLineControl(input: {
-  fetchCurrentPrices: boolean
-  fetchHistoricalPrices: boolean
-}): HistoricalFiatLineControl {
-  if (!input.fetchCurrentPrices) {
-    return {
-      disabled: true,
-      linkLabelKey:
-        'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatCurrencyLink',
-      settingsPath: FIAT_CURRENCY_SETTINGS_PATH
-    }
-  }
-  if (!input.fetchHistoricalPrices) {
-    return {
-      disabled: true,
-      linkLabelKey:
-        'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatDataLink',
-      settingsPath: FIAT_DATA_SETTINGS_PATH
-    }
-  }
-  return { disabled: false }
-}
-
 function historyChartMargin(showFiatAxis: boolean) {
   if (!showFiatAxis) {
     return HISTORY_CHART_MARGIN
@@ -709,9 +659,7 @@ export {
   fiatDomainMax,
   fiatYDomain,
   projectFiatOntoChart,
-  historicalFiatLineControl,
   historyChartMargin,
-  isHistoricalFiatLineVisible,
   maxFiatChartValue,
   type FiatChartPoint
 }

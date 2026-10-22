@@ -33,6 +33,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import { type HistoryChartData } from '@/types/ui/historyChart'
+import { isHistoricalFiatAvailable } from '@/utils/fiat'
 import {
   buildBalanceHistory,
   buildChartData,
@@ -42,7 +43,6 @@ import {
   fiatDomainMax,
   fiatYDomain,
   historyChartMargin,
-  isHistoricalFiatLineVisible,
   maxFiatChartValue,
   projectFiatOntoChart,
   buildTxInfoLabels,
@@ -161,11 +161,12 @@ function SSHistoryChart({
     [chartData, lockZoomToXAxis, startDate, endDate]
   )
 
-  const showFiatLine = isHistoricalFiatLineVisible({
-    fetchCurrentPrices: showCurrentFiat,
-    fetchHistoricalPrices: showHistoricalFiat,
-    showHistoricalFiatLine
-  })
+  const showFiatLine =
+    showHistoricalFiatLine &&
+    isHistoricalFiatAvailable({
+      fetchCurrentPrices: showCurrentFiat,
+      fetchHistoricalPrices: showHistoricalFiat
+    })
   const fiatSeries = useMemo(
     () =>
       showFiatLine
