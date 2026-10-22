@@ -6,10 +6,17 @@ import {
   LEGACY_INPUT_BYTES,
   LEGACY_OUTPUT_BYTES,
   LEGACY_TX_BASE_BYTES,
+  MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE,
   PSBT_MAGIC_HEX,
   TXID_HEX_PATTERN,
   WITNESS_SCALE_FACTOR
 } from '@/constants/btc'
+import {
+  BDK_DUST_ERROR_MARKER,
+  BDK_UTXO_NOT_FOUND_ERROR_MARKER,
+  MIN_RAW_TRANSACTION_HEX_LENGTH,
+  TRANSACTION_ID_PLACEHOLDER
+} from '@/constants/transaction'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
 import { type PsbtBuildStatus } from '@/types/models/Psbt'
@@ -21,9 +28,6 @@ import { type Message, type Notice } from '@/types/ui/notice'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { validateAddress } from '@/utils/validation'
-
-// Shorter hex cannot be a raw transaction worth parsing.
-const MIN_RAW_TRANSACTION_HEX_LENGTH = 20
 
 function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
   return (
@@ -351,6 +355,19 @@ export function buildPreviewTransactionHex(
   return transaction.toHex()
 }
 
+export function findFirstInvalidOutputAddress(
+  outputs: Output[],
+  network: AppNetwork
+) {
+  const bitcoinjsNet = bitcoinjsNetwork(network)
+  const invalidOutput = outputs.find(
+    (output) =>
+      output.to.trim().length >= MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE &&
+      !validateAddress(output.to, bitcoinjsNet)
+  )
+  return invalidOutput?.to
+}
+
 // Builds the chart model (SSTransactionChart) of a not-yet-signed transaction
 // from the transaction builder inputs and outputs.
 export function buildChartTransactionFromBuilder(
@@ -422,13 +439,6 @@ export function getFinalizedTransactionSize(transactionHex: string) {
   }
 }
 
-// Shown instead of a transaction id that is not available.
-const TRANSACTION_ID_PLACEHOLDER = '—'
-
-// Error text markers BDK uses for preview build failures.
-const DUST_ERROR_MARKER = 'dust'
-const UTXO_NOT_FOUND_ERROR_MARKER = 'UTXO not found'
-
 type BuildTransactionErrorDisplay = {
   isDust: boolean
   // Shown under the transaction id.
@@ -443,14 +453,14 @@ export function mapBuildTransactionError(
   error: unknown
 ): BuildTransactionErrorDisplay {
   const errorMessage = error instanceof Error ? error.message : String(error)
-  if (errorMessage.toLowerCase().includes(DUST_ERROR_MARKER)) {
+  if (errorMessage.toLowerCase().includes(BDK_DUST_ERROR_MARKER)) {
     return {
       isDust: true,
       message: { key: 'transaction.error.previewBuildFailedDust' },
       notice: null
     }
   }
-  if (errorMessage.includes(UTXO_NOT_FOUND_ERROR_MARKER)) {
+  if (errorMessage.includes(BDK_UTXO_NOT_FOUND_ERROR_MARKER)) {
     return {
       isDust: false,
       message: { text: errorMessage },

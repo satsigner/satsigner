@@ -9,20 +9,14 @@ import {
   withTiming
 } from 'react-native-reanimated'
 
+import { NFC_PULSE_DURATION_MS, NFC_PULSE_SIZE } from '@/constants/nfc'
 import { Colors } from '@/styles'
 
-const NFC_PULSE_SIZE = 200
-const NFC_PULSE_DURATION_MS = 1000
-
-/**
- * Style for the pulsing circle shown while an NFC read/emit is in progress.
- * The pulse runs only while `active` is true.
- */
-export function useNfcPulse(active: boolean) {
+export function useNfcPulseStyle(isNfcTransferInProgress: boolean) {
   const pulse = useSharedValue(0)
 
   useEffect(() => {
-    if (!active) {
+    if (!isNfcTransferInProgress) {
       return
     }
     pulse.set(
@@ -38,7 +32,7 @@ export function useNfcPulse(active: boolean) {
       cancelAnimation(pulse)
       pulse.set(0)
     }
-  }, [active, pulse])
+  }, [isNfcTransferInProgress, pulse])
 
   return useAnimatedStyle(() => ({
     alignItems: 'center',

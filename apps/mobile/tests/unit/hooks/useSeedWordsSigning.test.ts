@@ -1,11 +1,11 @@
 import { createElement, useState } from 'react'
 import { act, create } from 'react-test-renderer'
 
-import { useSeedSigning } from '@/hooks/useSeedSigning'
+import { useSeedWordsSigning } from '@/hooks/useSeedWordsSigning'
 
 const MNEMONIC = `${'abandon '.repeat(11)}about`
 
-type SeedSigning = ReturnType<typeof useSeedSigning>
+type SeedSigning = ReturnType<typeof useSeedWordsSigning>
 
 // Renders the hook with the cosigner index held in state, as the page does.
 async function renderSeedSigning() {
@@ -18,10 +18,10 @@ async function renderSeedSigning() {
   function Harness() {
     const [cosignerIndex, setCosignerIndex] = useState<number | null>(null)
     hook.cosignerIndex = cosignerIndex
-    hook.current = useSeedSigning({
-      cosignerIndex,
+    hook.current = useSeedWordsSigning({
       onNotice,
-      setCosignerIndex,
+      selectedCosignerIndex: cosignerIndex,
+      setSelectedCosignerIndex: setCosignerIndex,
       signWithMnemonic
     })
     return null
@@ -32,7 +32,7 @@ async function renderSeedSigning() {
   return { hook, onNotice, signWithMnemonic }
 }
 
-describe('useSeedSigning', () => {
+describe('useSeedWordsSigning', () => {
   it('signs for the selected cosigner with the entered mnemonic', async () => {
     const { hook, signWithMnemonic } = await renderSeedSigning()
 

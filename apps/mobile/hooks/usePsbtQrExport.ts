@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { type View } from 'react-native'
 
 import {
@@ -10,13 +10,13 @@ import {
   QR_COMPLEXITY_MIN,
   QRDisplayMode
 } from '@/constants/qr'
-import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
+import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'
+import { type PsbtQrChunks } from '@/types/models/Psbt'
 import {
   createPsbtQrChunks,
   getQrAnimationIntervalMs,
   getQrDisplayModeDescription,
-  getQrValue,
-  type PsbtQrChunks
+  getQrValue
 } from '@/utils/qrExport'
 
 const EMPTY_CHUNKS: PsbtQrChunks = {
@@ -25,8 +25,10 @@ const EMPTY_CHUNKS: PsbtQrChunks = {
   [QRDisplayMode.UR]: []
 }
 
-// Encodes the PSBT in every format, or returns the i18n key of the error.
-function generateQrChunks(psbtBase64: string | undefined, complexity: number) {
+function encodePsbtInEveryQrFormat(
+  psbtBase64: string | undefined,
+  complexity: number
+) {
   if (!psbtBase64) {
     return { chunks: EMPTY_CHUNKS, errorKey: 'error.psbt.notAvailable' }
   }
@@ -40,44 +42,38 @@ function generateQrChunks(psbtBase64: string | undefined, complexity: number) {
   }
 }
 
-/**
- * Encodes a PSBT as RAW, UR or BBQR QR frames and cycles through them when
- * the selected format needs more than one QR. Density (`qrComplexity`) and
- * cycling speed (`animationSpeed`) are user adjustable. Nothing is encoded
- * until `active` first turns true (e.g. the export modal opens), and frames
- * only cycle while it is true. The frames are kept once encoded, so a closing
- * modal keeps showing them while it fades out.
- */
 export function usePsbtQrExport(
   psbtBase64: string | undefined,
   initialDisplayMode = QRDisplayMode.RAW,
-  active = true
+  isExportVisible = true
 ) {
   const [displayMode, setDisplayModeState] = useState(initialDisplayMode)
   const [frameIndex, setFrameIndex] = useState(0)
   const [qrComplexity, setQrComplexityState] = useState(QR_COMPLEXITY_DEFAULT)
   const [animationSpeed, setAnimationSpeed] = useState(ANIMATION_SPEED_DEFAULT)
-  const [hasBeenActive, setHasBeenActive] = useState(active)
+  const [hasExportBeenVisible, setHasExportBeenVisible] =
+    useState(isExportVisible)
 
-  if (active && !hasBeenActive) {
-    setHasBeenActive(true)
+  if (isExportVisible && !hasExportBeenVisible) {
+    setHasExportBeenVisible(true)
   }
 
   const qrRef = useRef<View>(null)
 
-  const { chunks, errorKey } = generateQrChunks(
-    hasBeenActive ? psbtBase64 : undefined,
-    qrComplexity
+  const psbtToEncodeOnceVisible = hasExportBeenVisible ? psbtBase64 : undefined
+  const { chunks, errorKey } = useMemo(
+    () => encodePsbtInEveryQrFormat(psbtToEncodeOnceVisible, qrComplexity),
+    [psbtToEncodeOnceVisible, qrComplexity]
   )
   const modeChunks = chunks[displayMode]
   const isMultiPartQR = modeChunks.length > 1
   const currentChunk =
     modeChunks.length > 0 ? frameIndex % modeChunks.length : 0
 
-  useAnimationFrameInterval(
+  useAnimatedQrFrameCycle(
     () => setFrameIndex((prev) => prev + 1),
     getQrAnimationIntervalMs(animationSpeed),
-    active && isMultiPartQR
+    isExportVisible && isMultiPartQR
   )
 
   function setDisplayMode(mode: QRDisplayMode) {
@@ -97,11 +93,11 @@ export function usePsbtQrExport(
     displayMode,
     qrComplexity
   })
-  // Max density asks for one static QR; the data was too large for one.
-  const showMaxDensityNote = qrComplexity === QR_COMPLEXITY_MAX && isMultiPartQR
-  // A format can fail to encode on its own (e.g. BBQR) while others work.
+  const isTooLargeForOneQrAtMaxDensity =
+    qrComplexity === QR_COMPLEXITY_MAX && isMultiPartQR
+  const hasSelectedModeFailedToEncode = modeChunks.length === 0
   const qrErrorKey =
-    errorKey ?? (modeChunks.length === 0 ? 'error.qr.generation' : null)
+    errorKey ?? (hasSelectedModeFailedToEncode ? 'error.qr.generation' : null)
 
   function decreaseComplexity() {
     setQrComplexity(Math.max(QR_COMPLEXITY_MIN, qrComplexity - 1))
@@ -133,6 +129,6 @@ export function usePsbtQrExport(
     qrRef,
     qrValue,
     setDisplayMode,
-    showMaxDensityNote
+    showMaxDensityNote: isTooLargeForOneQrAtMaxDensity
   }
 }

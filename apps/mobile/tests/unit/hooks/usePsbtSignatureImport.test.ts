@@ -52,11 +52,13 @@ describe('usePsbtSignatureImport importFromNfc', () => {
   })
 
   it('binds the NFC transaction to the PSBT under review', async () => {
-    mockReadNFCTag.mockResolvedValue({ txData: new Uint8Array([0xab, 0xcd]) })
-    const importSignedData = jest.fn(() => true)
+    mockReadNFCTag.mockResolvedValue({
+      txnRecordPayload: new Uint8Array([0xab, 0xcd])
+    })
+    const importSignedDataMatchingPsbt = jest.fn(() => true)
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData,
+      importSignedDataMatchingPsbt,
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -65,7 +67,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
       await hook.current?.importFromNfc(1)
     })
 
-    expect(importSignedData).toHaveBeenCalledWith(1, 'abcd')
+    expect(importSignedDataMatchingPsbt).toHaveBeenCalledWith(1, 'abcd')
     expect(onNotice).toHaveBeenCalledWith({
       key: 'transaction.preview.nfcImported',
       type: 'success'
@@ -73,10 +75,12 @@ describe('usePsbtSignatureImport importFromNfc', () => {
   })
 
   it('does not report success when the binding rejects the data', async () => {
-    mockReadNFCTag.mockResolvedValue({ txData: new Uint8Array([0xab]) })
+    mockReadNFCTag.mockResolvedValue({
+      txnRecordPayload: new Uint8Array([0xab])
+    })
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData: () => false,
+      importSignedDataMatchingPsbt: () => false,
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -92,7 +96,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
     mockReadNFCTag.mockRejectedValue(new NfcCancelledError())
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData: jest.fn(() => true),
+      importSignedDataMatchingPsbt: jest.fn(() => true),
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -109,7 +113,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
     mockReadNFCTag.mockRejectedValue(new NfcDisabledError())
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData: jest.fn(() => true),
+      importSignedDataMatchingPsbt: jest.fn(() => true),
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -128,7 +132,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
     mockReadNFCTag.mockRejectedValue(new Error('tag lost'))
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData: jest.fn(() => true),
+      importSignedDataMatchingPsbt: jest.fn(() => true),
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -144,11 +148,14 @@ describe('usePsbtSignatureImport importFromNfc', () => {
   })
 
   it('binds a signed transaction text record to the PSBT under review', async () => {
-    mockReadNFCTag.mockResolvedValue({ signedTxHex: 'abcd', text: 'x' })
-    const importSignedData = jest.fn(() => true)
+    mockReadNFCTag.mockResolvedValue({
+      text: 'x',
+      textRecordSignedTxHex: 'abcd'
+    })
+    const importSignedDataMatchingPsbt = jest.fn(() => true)
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData,
+      importSignedDataMatchingPsbt,
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -157,7 +164,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
       await hook.current?.importFromNfc(0)
     })
 
-    expect(importSignedData).toHaveBeenCalledWith(0, 'abcd')
+    expect(importSignedDataMatchingPsbt).toHaveBeenCalledWith(0, 'abcd')
     expect(onNotice).toHaveBeenCalledWith({
       key: 'transaction.preview.nfcImported',
       type: 'success'
@@ -166,10 +173,10 @@ describe('usePsbtSignatureImport importFromNfc', () => {
 
   it('reports a tag without signed data', async () => {
     mockReadNFCTag.mockResolvedValue({ text: 'hello' })
-    const importSignedData = jest.fn(() => true)
+    const importSignedDataMatchingPsbt = jest.fn(() => true)
     const onNotice = jest.fn()
     const hook = await renderSignatureImport({
-      importSignedData,
+      importSignedDataMatchingPsbt,
       onNotice,
       signWithMnemonic: jest.fn()
     })
@@ -178,7 +185,7 @@ describe('usePsbtSignatureImport importFromNfc', () => {
       await hook.current?.importFromNfc(0)
     })
 
-    expect(importSignedData).not.toHaveBeenCalled()
+    expect(importSignedDataMatchingPsbt).not.toHaveBeenCalled()
     expect(onNotice).toHaveBeenCalledWith({
       key: 'watchonly.read.nfcErrorNoData',
       type: 'error'

@@ -2,14 +2,14 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
-import { buildPsbt } from '@/api/bdk'
+import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
 
 jest.mock<Partial<typeof import('@/api/bdk')>>('@/api/bdk', () => ({
-  buildPsbt: jest.fn()
+  buildPsbtWithRpcOrBdkWallet: jest.fn()
 }))
 
 const mockUseWallet = jest.fn()
@@ -21,7 +21,7 @@ jest.mock<typeof import('@/hooks/useGetAccountWallet')>(
   })
 )
 
-const mockBuildPsbt = jest.mocked(buildPsbt)
+const mockBuildPsbt = jest.mocked(buildPsbtWithRpcOrBdkWallet)
 
 const ADDRESS = bitcoinjs.payments.p2wpkh({
   pubkey: Buffer.from(
@@ -92,18 +92,18 @@ const mounted: ReactTestRenderer[] = []
 type TransactionPsbt = ReturnType<typeof useTransactionPsbt>
 type HarnessProps = {
   account: Account | undefined
-  routePsbt: string | undefined
+  importedPsbtBase64: string | undefined
 }
 
 async function renderTransactionPsbt(props: HarnessProps) {
   const onNotice = jest.fn()
   const hook: { current: TransactionPsbt | null } = { current: null }
-  function Harness({ account, routePsbt }: HarnessProps) {
+  function Harness({ account, importedPsbtBase64 }: HarnessProps) {
     hook.current = useTransactionPsbt({
       account,
       accountId: 'acc-1',
-      onNotice,
-      routePsbt
+      importedPsbtBase64,
+      onNotice
     })
     return null
   }
@@ -141,7 +141,7 @@ describe('useTransactionPsbt', () => {
 
     const { hook } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt: undefined
+      importedPsbtBase64: undefined
     })
 
     expect(mockBuildPsbt).toHaveBeenCalledTimes(1)
@@ -165,7 +165,7 @@ describe('useTransactionPsbt', () => {
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt: undefined
+      importedPsbtBase64: undefined
     })
 
     expect(hook.current?.psbtBuildStatus).toBe('error')
@@ -181,7 +181,7 @@ describe('useTransactionPsbt', () => {
   it('fails the build when there are no inputs', async () => {
     const { hook } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt: undefined
+      importedPsbtBase64: undefined
     })
 
     expect(hook.current?.psbtBuildError).toStrictEqual({
@@ -196,7 +196,7 @@ describe('useTransactionPsbt', () => {
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt: undefined
+      importedPsbtBase64: undefined
     })
 
     expect(hook.current?.isDustError).toBe(true)
@@ -212,7 +212,7 @@ describe('useTransactionPsbt', () => {
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt: undefined
+      importedPsbtBase64: undefined
     })
 
     expect(hook.current?.isDustError).toBe(false)
@@ -223,16 +223,16 @@ describe('useTransactionPsbt', () => {
   })
 
   it('imports the route PSBT instead of building one', async () => {
-    const routePsbt = routePsbtBase64()
+    const importedPsbtBase64 = routePsbtBase64()
 
     const { hook, onNotice } = await renderTransactionPsbt({
       account: undefined,
-      routePsbt
+      importedPsbtBase64
     })
 
     expect(mockBuildPsbt).not.toHaveBeenCalled()
     expect(useTransactionBuilderStore.getState().psbt?.toBase64()).toBe(
-      routePsbt
+      importedPsbtBase64
     )
     expect(hook.current?.transactionId).not.toBe('')
     expect(hook.current?.isLoadingPSBT).toBe(false)
@@ -243,23 +243,29 @@ describe('useTransactionPsbt', () => {
   })
 
   it('re-imports the route PSBT only when the account id changes', async () => {
-    const routePsbt = routePsbtBase64()
+    const importedPsbtBase64 = routePsbtBase64()
     const { rerender } = await renderTransactionPsbt({
       account: makeAccount(),
-      routePsbt
+      importedPsbtBase64
     })
     expect(useTransactionBuilderStore.getState().psbt?.toBase64()).toBe(
-      routePsbt
+      importedPsbtBase64
     )
     // A re-import clears the signed transaction.
     act(() => {
       useTransactionBuilderStore.getState().setSignedTx('signed-hex')
     })
 
-    await rerender({ account: makeAccount({ name: 'Renamed' }), routePsbt })
+    await rerender({
+      account: makeAccount({ name: 'Renamed' }),
+      importedPsbtBase64
+    })
     expect(useTransactionBuilderStore.getState().signedTx).toBe('signed-hex')
 
-    await rerender({ account: makeAccount({ id: 'acc-2' }), routePsbt })
+    await rerender({
+      account: makeAccount({ id: 'acc-2' }),
+      importedPsbtBase64
+    })
     expect(useTransactionBuilderStore.getState().signedTx).toBeFalsy()
   })
 })

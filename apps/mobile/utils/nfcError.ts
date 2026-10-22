@@ -1,6 +1,5 @@
+import { NFC_DISABLED_MESSAGE_KEY } from '@/constants/nfc'
 import { t } from '@/locales'
-
-const NFC_DISABLED_MESSAGE_KEY = 'watchonly.read.nfcTurnOnInSettings'
 
 // Thrown by the NFC hooks when the user (or the app) cancels the NFC session.
 export class NfcCancelledError extends Error {

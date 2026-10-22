@@ -1,14 +1,13 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildPsbt } from '@/api/bdk'
+import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type PsbtBuildStatus } from '@/types/models/Psbt'
 import { type Message, type Notice } from '@/types/ui/notice'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   createMockPsbt,
   createPlaceholderTransactionId,
@@ -18,29 +17,24 @@ import {
   generateTransactionId,
   getPsbtExtractionNotice
 } from '@/utils/psbt'
-import { mapBuildTransactionError } from '@/utils/transaction'
-import { validateAddress } from '@/utils/validation'
+import {
+  findFirstInvalidOutputAddress,
+  mapBuildTransactionError
+} from '@/utils/transaction'
 
-// Shorter output addresses are likely still being typed.
-const MIN_VALID_ADDRESS_LENGTH = 10
+type PreviewBuildRun = { isCancelled: boolean }
 
 type UseTransactionPsbtParams = {
   account: Account | undefined
   accountId: Account['id']
-  /** A PSBT (base64) to review instead of building one, e.g. from the route. */
-  routePsbt: string | undefined
+  importedPsbtBase64: string | undefined
   onNotice: (notice: Notice) => void
 }
 
-/**
- * The PSBT under review: imports `routePsbt` into the transaction builder, or
- * builds a PSBT from the builder's inputs, outputs and fee. Reports progress
- * and problems through `onNotice` and the returned build status.
- */
 export function useTransactionPsbt({
   account,
   accountId,
-  routePsbt,
+  importedPsbtBase64,
   onNotice
 }: UseTransactionPsbtParams) {
   const [
@@ -87,7 +81,9 @@ export function useTransactionPsbt({
   const [psbtBuildError, setPsbtBuildError] = useState<Message | null>(null)
   const [isDustError, setIsDustError] = useState(false)
 
-  function processExtractedPsbtData(extractedData: ExtractedTransactionData) {
+  function addExtractedPsbtDataToBuilder(
+    extractedData: ExtractedTransactionData
+  ) {
     for (const input of extractedData.inputs) {
       addInput({
         addressTo: input.address,
@@ -115,10 +111,10 @@ export function useTransactionPsbt({
     setRbf(true)
   }
 
-  function processBasicPsbt(psbtBase64: string) {
+  function importPsbtWithoutAccountContext(psbtBase64: string) {
     const extractedData = extractTransactionDataFromPSBT(psbtBase64, network)
     if (extractedData) {
-      processExtractedPsbtData(extractedData)
+      addExtractedPsbtDataToBuilder(extractedData)
     }
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
@@ -127,11 +123,13 @@ export function useTransactionPsbt({
     setIsLoadingPSBT(false)
   }
 
-  // Loads a PSBT without account context, reporting `successKey` on success.
-  function loadBasicPsbt(psbtBase64: string, successKey: string) {
+  function importPsbtWithoutAccountContextAndNotify(
+    psbtBase64: string,
+    successNoticeKey: string
+  ) {
     try {
-      processBasicPsbt(psbtBase64)
-      onNotice({ key: successKey, type: 'info' })
+      importPsbtWithoutAccountContext(psbtBase64)
+      onNotice({ key: successNoticeKey, type: 'info' })
     } catch {
       setIsLoadingPSBT(false)
       onNotice({ key: 'common.error.processPSBT', type: 'error' })
@@ -139,8 +137,7 @@ export function useTransactionPsbt({
     }
   }
 
-  // Account-aware PSBT data, or null (after a warning) when it doesn't match.
-  function readAccountPsbtData(
+  function extractAccountPsbtDataOrWarn(
     psbtBase64: string,
     accountData: NonNullable<typeof account>
   ) {
@@ -162,65 +159,67 @@ export function useTransactionPsbt({
     }
   }
 
-  function processPsbtWithAccount(
+  function importPsbtWithAccount(
     psbtBase64: string,
     accountData: NonNullable<typeof account>
   ) {
-    const extractedData = readAccountPsbtData(psbtBase64, accountData)
+    const extractedData = extractAccountPsbtDataOrWarn(psbtBase64, accountData)
     if (!extractedData) {
-      loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedBasic')
+      importPsbtWithoutAccountContextAndNotify(
+        psbtBase64,
+        'transaction.preview.psbtLoadedBasic'
+      )
       return
     }
 
-    processExtractedPsbtData(extractedData)
+    addExtractedPsbtDataToBuilder(extractedData)
     const txid = generateTransactionId(psbtBase64)
     setTransactionId(txid)
     setPsbt(createMockPsbt(psbtBase64, txid, extractedData.fee))
     setIsLoadingPSBT(false)
   }
 
-  function processPsbtWithoutAccount(psbtBase64: string) {
-    loadBasicPsbt(psbtBase64, 'transaction.preview.psbtLoadedLimited')
-  }
-
-  // Reads the latest account without making every account update re-import
-  // the PSBT (which would clear the transaction and any signatures).
-  const loadRoutePsbt = useEffectEvent((psbtBase64: string) => {
+  const importPsbtWithLatestAccount = useEffectEvent((psbtBase64: string) => {
     setIsLoadingPSBT(true)
     clearTransaction()
     setSignedTx('')
 
-    if (account) {
-      processPsbtWithAccount(psbtBase64, account)
-    } else {
-      processPsbtWithoutAccount(psbtBase64)
-    }
-  })
-
-  // Re-import once the account loads, not on every account update.
-  const loadedAccountId = account?.id
-  useEffect(() => {
-    if (!routePsbt) {
+    if (!account) {
+      importPsbtWithoutAccountContextAndNotify(
+        psbtBase64,
+        'transaction.preview.psbtLoadedLimited'
+      )
       return
     }
-    loadRoutePsbt(routePsbt)
-  }, [routePsbt, loadedAccountId])
+    importPsbtWithAccount(psbtBase64, account)
+  })
+
+  const loadedAccountIdToReimportOn = account?.id
+  useEffect(() => {
+    if (!importedPsbtBase64) {
+      return
+    }
+    importPsbtWithLatestAccount(importedPsbtBase64)
+  }, [importedPsbtBase64, loadedAccountIdToReimportOn])
 
   function failBuild(key: string) {
     setPsbtBuildStatus('error')
     setPsbtBuildError({ key })
   }
 
-  // Builds the preview PSBT from the builder state. Reads account and server
-  // at build time, so their updates do not trigger a rebuild loop.
-  const buildPreviewPsbt = useEffectEvent(
-    async (request: { cancelled: boolean }) => {
-      if (routePsbt) {
-        setPsbtBuildStatus('idle')
-        setPsbtBuildError(null)
-        if (txBuilderResult?.txid()) {
-          setTransactionId(txBuilderResult.txid())
-        }
+  function markImportedPsbtAsBuilt() {
+    setPsbtBuildStatus('idle')
+    setPsbtBuildError(null)
+    const importedTxid = txBuilderResult?.txid()
+    if (importedTxid) {
+      setTransactionId(importedTxid)
+    }
+  }
+
+  const buildPreviewPsbtFromBuilderState = useEffectEvent(
+    async (buildRun: PreviewBuildRun) => {
+      if (importedPsbtBase64) {
+        markImportedPsbtAsBuilt()
         return
       }
 
@@ -229,7 +228,6 @@ export function useTransactionPsbt({
       setPsbtBuildStatus('building')
       setPsbtBuildError(null)
 
-      // Checked before any await, so the request cannot be cancelled yet.
       if (!wallet) {
         failBuild('transaction.error.previewMissingWallet')
         onNotice({ key: 'error.notFound.wallet', type: 'error' })
@@ -248,14 +246,19 @@ export function useTransactionPsbt({
         const inputArray = [...inputs.values()]
         const outputArray = [...outputs.values()]
 
-        const transaction = await buildPsbt(wallet, server, account, {
-          fee,
-          inputs: inputArray,
-          options: { rbf },
-          outputs: outputArray
-        })
+        const transaction = await buildPsbtWithRpcOrBdkWallet(
+          wallet,
+          server,
+          account,
+          {
+            fee,
+            inputs: inputArray,
+            options: { rbf },
+            outputs: outputArray
+          }
+        )
 
-        if (request.cancelled) {
+        if (buildRun.isCancelled) {
           return
         }
 
@@ -265,7 +268,7 @@ export function useTransactionPsbt({
         setPsbtBuildError(null)
         setIsDustError(false)
       } catch (error) {
-        if (request.cancelled) {
+        if (buildRun.isCancelled) {
           return
         }
 
@@ -281,14 +284,14 @@ export function useTransactionPsbt({
   )
 
   useEffect(() => {
-    const request = { cancelled: false }
-    void buildPreviewPsbt(request)
+    const buildRun: PreviewBuildRun = { isCancelled: false }
+    void buildPreviewPsbtFromBuilderState(buildRun)
     return () => {
-      request.cancelled = true
+      buildRun.isCancelled = true
     }
-  }, [wallet, inputs, outputs, fee, rbf, network, routePsbt])
+  }, [wallet, inputs, outputs, fee, rbf, network, importedPsbtBase64])
 
-  const reportInvalidAddress = useEffectEvent((address: string) => {
+  const reportInvalidOutputAddress = useEffectEvent((address: string) => {
     onNotice({
       key: 'transaction.preview.invalidAddressFormat',
       params: { address },
@@ -296,21 +299,16 @@ export function useTransactionPsbt({
     })
   })
 
-  // Reports the first output address that is invalid for the account's
-  // network once a PSBT is built. Short addresses are likely still being typed.
   useEffect(() => {
-    if (!account || !outputs.length || !txBuilderResult) {
+    if (!account || !txBuilderResult) {
       return
     }
-
-    const network = bitcoinjsNetwork(account.network)
-    const invalidOutput = outputs.find(
-      (output) =>
-        output.to.trim().length >= MIN_VALID_ADDRESS_LENGTH &&
-        !validateAddress(output.to, network)
+    const invalidAddress = findFirstInvalidOutputAddress(
+      outputs,
+      account.network
     )
-    if (invalidOutput) {
-      reportInvalidAddress(invalidOutput.to)
+    if (invalidAddress) {
+      reportInvalidOutputAddress(invalidAddress)
     }
   }, [account, outputs, txBuilderResult])
 

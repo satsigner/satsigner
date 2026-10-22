@@ -38,8 +38,6 @@ type SSPsbtQRExportModalProps = {
   initialDisplayMode?: QRDisplayMode
 }
 
-// Modal showing a PSBT as a (possibly animated) RAW, UR or BBQR QR code, with
-// density and animation speed controls.
 function SSPsbtQRExportModal({
   visible,
   onClose,

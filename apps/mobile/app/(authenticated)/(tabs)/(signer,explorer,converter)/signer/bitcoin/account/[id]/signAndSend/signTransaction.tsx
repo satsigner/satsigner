@@ -288,7 +288,7 @@ export default function SignTransaction() {
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
   )
-  const shareWithNostrGroup = useNostrShareTransaction(account)
+  const shareInDevicesGroupChat = useNostrShareTransaction(account)
   const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -470,7 +470,7 @@ export default function SignTransaction() {
   }
 
   function handleShareWithNostrGroup() {
-    const errorKey = shareWithNostrGroup(psbt?.toBase64() ?? signedTx)
+    const { errorKey } = shareInDevicesGroupChat(psbt?.toBase64() ?? signedTx)
     if (errorKey) {
       toast.error(t(errorKey))
     }

@@ -5,25 +5,19 @@ import { type Notice } from '@/types/ui/notice'
 import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtNfcExportParams = {
-  /** The PSBT under review, hex encoded. */
-  serializedPsbt: string
+  psbtHex: string
   onNotice: (notice: Notice) => void
 }
 
-/**
- * Emits the PSBT under review over NFC. Pressing export again while emitting
- * cancels it. A failed write keeps the modal open with the error until it is
- * dismissed; a cancelled one closes it silently.
- */
 export function usePsbtNfcExport({
-  serializedPsbt,
+  psbtHex,
   onNotice
 }: UsePsbtNfcExportParams) {
   const { isEmitting, emitNFCTag, cancelNFCScan } = useNFCEmitter()
   const [nfcExportModalVisible, setNfcExportModalVisible] = useState(false)
   const [nfcErrorKey, setNfcErrorKey] = useState<string | null>(null)
 
-  async function exportToNfc() {
+  async function startOrCancelNfcExport() {
     if (isEmitting) {
       await cancelNFCScan()
       setNfcExportModalVisible(false)
@@ -31,7 +25,7 @@ export function usePsbtNfcExport({
       return
     }
 
-    if (!serializedPsbt) {
+    if (!psbtHex) {
       onNotice({ key: 'error.psbt.notAvailable', type: 'error' })
       return
     }
@@ -39,12 +33,13 @@ export function usePsbtNfcExport({
     setNfcExportModalVisible(true)
     setNfcErrorKey(null)
     try {
-      await emitNFCTag(serializedPsbt)
+      await emitNFCTag(psbtHex)
       onNotice({ key: 'transaction.preview.nfcExported', type: 'success' })
       setNfcExportModalVisible(false)
     } catch (error) {
       const errorKey = getNfcErrorKey(error, 'nfc.error.writeFailed')
-      if (!errorKey) {
+      const wasCancelled = errorKey === null
+      if (wasCancelled) {
         setNfcExportModalVisible(false)
         return
       }
@@ -63,9 +58,9 @@ export function usePsbtNfcExport({
 
   return {
     closeNfcExportModal,
-    exportToNfc,
     isEmitting,
     nfcErrorKey,
-    nfcExportModalVisible
+    nfcExportModalVisible,
+    startOrCancelNfcExport
   }
 }

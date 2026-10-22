@@ -866,9 +866,7 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
-// Builds a PSBT through the account's RPC wallet when the server is a Bitcoin
-// Core node, otherwise with the BDK wallet (also when the account is unknown).
-function buildPsbt(
+function buildPsbtWithRpcOrBdkWallet(
   wallet: BdkWallet,
   server: Server,
   account: Account | undefined,
@@ -1045,7 +1043,7 @@ async function deleteWalletDb(dbPath: string): Promise<void> {
 
 export {
   broadcastTransaction,
-  buildPsbt,
+  buildPsbtWithRpcOrBdkWallet,
   buildTransactionWithRpc,
   deleteWalletDb,
   getDescriptorString,

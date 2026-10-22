@@ -1,24 +1,21 @@
 import { useEffect, useState } from 'react'
 
 import { type Account, type Key } from '@/types/models/Account'
+import { haveSameKeys } from '@/utils/account'
 import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 const NO_KEYS: Key[] = []
 
-/**
- * Decrypts the account's key secrets for signing. Keys that fail to decrypt
- * are returned unchanged (still encrypted). Decrypts again only when the
- * account or its keys change, not on every account update. Empty until the
- * current account's keys are decrypted.
- */
+type DecryptedAccountKeys = {
+  accountId: string
+  sourceKeys: Key[]
+  keys: Key[]
+}
+
 export function useDecryptedKeys(
   account: Pick<Account, 'id' | 'keys'> | undefined
 ) {
-  const [decrypted, setDecrypted] = useState<{
-    accountId: string
-    sourceKeys: Key[]
-    keys: Key[]
-  }>()
+  const [decrypted, setDecrypted] = useState<DecryptedAccountKeys>()
   const accountId = account?.id
   const keys = account?.keys
 
@@ -26,30 +23,28 @@ export function useDecryptedKeys(
     if (!accountId || !keys || keys.length === 0) {
       return
     }
-    // Drops a result that arrives after the account or keys changed.
-    const request = { stale: false }
+    const decryptionRun = { isOutdated: false }
     async function decryptKeys(id: string, accountKeys: Key[]) {
       const result = await decryptAccountKeysOrFallback({
         id,
         keys: accountKeys
       })
-      if (!request.stale) {
+      if (!decryptionRun.isOutdated) {
         setDecrypted({ accountId: id, keys: result, sourceKeys: accountKeys })
       }
     }
     void decryptKeys(accountId, keys)
     return () => {
-      request.stale = true
+      decryptionRun.isOutdated = true
     }
   }, [accountId, keys])
 
-  // Never hands out another account's or key list's secrets while decrypting.
-  if (
-    !keys?.length ||
-    !decrypted ||
-    decrypted.accountId !== accountId ||
-    decrypted.sourceKeys !== keys
-  ) {
+  const isDecryptedForCurrentKeys =
+    !!keys?.length &&
+    !!decrypted &&
+    decrypted.accountId === accountId &&
+    haveSameKeys(decrypted.sourceKeys, keys)
+  if (!isDecryptedForCurrentKeys) {
     return NO_KEYS
   }
   return decrypted.keys

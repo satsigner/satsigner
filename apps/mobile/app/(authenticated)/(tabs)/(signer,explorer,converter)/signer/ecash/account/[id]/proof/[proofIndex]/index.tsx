@@ -13,7 +13,7 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useAnimationFrameInterval } from '@/hooks/useAnimationFrameInterval'
+import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import SSHStack from '@/layouts/SSHStack'
@@ -83,7 +83,7 @@ export default function EcashProofDetailPage() {
   const totalChunks = chunks.length
   const isMultiPart = totalChunks > 1
 
-  useAnimationFrameInterval(
+  useAnimatedQrFrameCycle(
     () => setCurrentChunkIndex((prev) => (prev + 1) % totalChunks),
     ANIMATED_QR_INTERVAL_MS,
     animatedQR && isMultiPart

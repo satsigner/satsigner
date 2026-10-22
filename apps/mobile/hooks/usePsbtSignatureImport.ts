@@ -1,35 +1,29 @@
 import { hex } from '@scure/base'
 import { useState } from 'react'
 
-import { WATCH_ONLY_INDEX } from '@/constants/account'
+import { WATCH_ONLY_COSIGNER_INDEX } from '@/constants/account'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { type NFCReadResult, useNFCReader } from '@/hooks/useNFCReader'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import { type Notice } from '@/types/ui/notice'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtSignatureImportParams = {
-  /** Binds data to the PSBT under review and stores it; false if rejected. */
-  importSignedData: (cosignerIndex: number, data: string) => boolean
+  importSignedDataMatchingPsbt: (cosignerIndex: number, data: string) => boolean
   signWithMnemonic: (cosignerIndex: number, mnemonic: string) => void
   onNotice: (notice: Notice) => void
 }
 
-// The signed data an NFC tag carries, still to be bound to the PSBT under
-// review: a `bitcoin.org:txn` record, or a "Signed Transaction:" text record.
-function getNfcSignedData(result: NFCReadResult | null) {
-  if (result?.txData) {
-    return hex.encode(result.txData)
+function getSignedDataFromNfcRecords(result: NFCReadResult | null) {
+  if (result?.txnRecordPayload) {
+    return hex.encode(result.txnRecordPayload)
   }
-  return result?.signedTxHex
+  return result?.textRecordSignedTxHex
 }
 
-/**
- * Imports signed PSBTs or transactions for the PSBT under review from the
- * clipboard, NFC or a scanned QR (a scanned SeedQR signs directly).
- */
 export function usePsbtSignatureImport({
-  importSignedData,
+  importSignedDataMatchingPsbt,
   signWithMnemonic,
   onNotice
 }: UsePsbtSignatureImportParams) {
@@ -49,17 +43,14 @@ export function usePsbtSignatureImport({
       return
     }
 
-    if (!importSignedData(cosignerIndex, text)) {
+    if (!importSignedDataMatchingPsbt(cosignerIndex, text)) {
       return
     }
 
     onNotice({ key: 'common.success.dataPasted', type: 'success' })
   }
 
-  // Routes a scanned QR: a SeedQR signs for the selected cosigner, a PSBT or
-  // signed transaction is stored as that cosigner's signature (or the
-  // watch-only import when no cosigner is selected).
-  function handleScannedContent(
+  function signOrImportScannedContent(
     content: DetectedContent,
     cosignerIndex: number | null
   ) {
@@ -78,7 +69,12 @@ export function usePsbtSignatureImport({
       return
     }
 
-    if (!importSignedData(cosignerIndex ?? WATCH_ONLY_INDEX, content.cleaned)) {
+    if (
+      !importSignedDataMatchingPsbt(
+        cosignerIndex ?? WATCH_ONLY_COSIGNER_INDEX,
+        content.cleaned
+      )
+    ) {
       return
     }
     onNotice({ key: 'common.success.qrScanned', type: 'success' })
@@ -103,12 +99,12 @@ export function usePsbtSignatureImport({
       return
     }
 
-    const signedData = getNfcSignedData(read.value)
+    const signedData = getSignedDataFromNfcRecords(read.value)
     if (!signedData) {
       onNotice({ key: 'watchonly.read.nfcErrorNoData', type: 'error' })
       return
     }
-    if (!importSignedData(cosignerIndex, signedData)) {
+    if (!importSignedDataMatchingPsbt(cosignerIndex, signedData)) {
       return
     }
     onNotice({ key: 'transaction.preview.nfcImported', type: 'success' })
@@ -123,11 +119,11 @@ export function usePsbtSignatureImport({
 
   return {
     closeNfcScanModal,
-    handleScannedContent,
     importFromNfc,
     isNfcSupported,
     isReading,
     nfcScanModalVisible,
-    pasteFromClipboard
+    pasteFromClipboard,
+    signOrImportScannedContent
   }
 }

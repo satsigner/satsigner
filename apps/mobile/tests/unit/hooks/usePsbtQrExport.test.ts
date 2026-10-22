@@ -2,12 +2,13 @@ import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
 import { QR_COMPLEXITY_MAX, QRDisplayMode } from '@/constants/qr'
+import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'
 import { usePsbtQrExport } from '@/hooks/usePsbtQrExport'
 import { createPsbtQrChunks } from '@/utils/qrExport'
 
-jest.mock<Partial<typeof import('@/hooks/useAnimationFrameInterval')>>(
-  '@/hooks/useAnimationFrameInterval',
-  () => ({ useAnimationFrameInterval: jest.fn() })
+jest.mock<Partial<typeof import('@/hooks/useAnimatedQrFrameCycle')>>(
+  '@/hooks/useAnimatedQrFrameCycle',
+  () => ({ useAnimatedQrFrameCycle: jest.fn() })
 )
 jest.mock<typeof import('@/utils/qrExport')>('@/utils/qrExport', () => ({
   ...jest.requireActual<typeof import('@/utils/qrExport')>('@/utils/qrExport'),
@@ -16,6 +17,7 @@ jest.mock<typeof import('@/utils/qrExport')>('@/utils/qrExport', () => ({
 }))
 
 const mockCreateChunks = jest.mocked(createPsbtQrChunks)
+const mockFrameCycle = jest.mocked(useAnimatedQrFrameCycle)
 
 type QrExport = ReturnType<typeof usePsbtQrExport>
 
@@ -99,6 +101,23 @@ describe('usePsbtQrExport', () => {
       expect.any(Number)
     )
     expect(hook.current?.qrValue).toBe('raw')
+  })
+
+  it('cycles frames without encoding the PSBT again', async () => {
+    mockCreateChunks.mockReturnValue({
+      [QRDisplayMode.BBQR]: ['b1'],
+      [QRDisplayMode.RAW]: ['p1of2 a', 'p2of2 b'],
+      [QRDisplayMode.UR]: ['u1']
+    })
+    const { hook } = await renderQrExport(QRDisplayMode.RAW)
+    const [advanceFrame] = mockFrameCycle.mock.lastCall ?? []
+
+    act(() => {
+      advanceFrame?.()
+    })
+
+    expect(hook.current?.qrValue).toBe('p2of2 b')
+    expect(mockCreateChunks).toHaveBeenCalledTimes(1)
   })
 
   it('keeps showing the frames while the modal closes', async () => {

@@ -287,6 +287,12 @@ export function checkWalletNeedsSync(
   return daysSinceLastSync > maxDaysWithoutSyncing
 }
 
+export function haveSameKeys(keys: Key[], otherKeys: Key[]) {
+  return (
+    keys === otherKeys || JSON.stringify(keys) === JSON.stringify(otherKeys)
+  )
+}
+
 // True when the (decrypted) key keeps its mnemonic on this device.
 export function hasStoredMnemonic(key: Key | undefined) {
   const secret = key?.secret

@@ -29,7 +29,7 @@ import { ensureBitcoinPrefix, parseUriParameters } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
   buildPubkeyToCosignerIndex,
-  combinePsbts,
+  combineSignedPsbtsPerCosigner,
   extractIndividualSignedPsbts,
   extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
@@ -305,27 +305,20 @@ export function mapSignedPsbtsToCosigners(
     keyFingerprints
   )
 
-  const psbtsByCosigner = new Map<number, string[]>()
-  for (const psbtStr of Object.values(individualSignedPsbts)) {
-    const pubkey = getCollectedSignerPubkeys(psbtStr).values().next().value
-    const cosignerIndex = pubkey ? pubkeyToCosignerIndex.get(pubkey) : undefined
-    if (cosignerIndex === undefined) {
-      continue
+  const cosignerSignedPsbts = Object.values(individualSignedPsbts).flatMap(
+    (signedPsbtBase64) => {
+      const pubkey = getCollectedSignerPubkeys(signedPsbtBase64)
+        .values()
+        .next().value
+      const cosignerIndex = pubkey
+        ? pubkeyToCosignerIndex.get(pubkey)
+        : undefined
+      return cosignerIndex === undefined
+        ? []
+        : [{ cosignerIndex, signedPsbtBase64 }]
     }
-    psbtsByCosigner.set(cosignerIndex, [
-      ...(psbtsByCosigner.get(cosignerIndex) ?? []),
-      psbtStr
-    ])
-  }
-
-  const signedPsbts = new Map<number, string>()
-  for (const [cosignerIndex, psbts] of psbtsByCosigner.entries()) {
-    signedPsbts.set(
-      cosignerIndex,
-      psbts.length > 1 ? combinePsbts(psbts) : psbts[0]
-    )
-  }
-  return signedPsbts
+  )
+  return combineSignedPsbtsPerCosigner(cosignerSignedPsbts)
 }
 
 export function applyScannedPsbt(

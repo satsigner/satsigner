@@ -10,21 +10,18 @@ import {
   QR_COMPLEXITY_MAX,
   QR_ENCODING_OVERHEAD,
   QR_MAX_DATA_SIZE,
+  QR_VALUE_NO_DATA,
+  QR_VALUE_TOO_LARGE,
   QRDisplayMode,
   RAW_CHUNK_BASE_SIZE,
   RAW_CHUNK_MAX_MULTIPLIER,
   UR_FRAGMENT_BASE_SIZE,
   UR_FRAGMENT_MIN_SIZE
 } from '@/constants/qr'
+import { type PsbtQrChunks } from '@/types/models/Psbt'
 import { type Message } from '@/types/ui/notice'
 import { BBQRFileTypes, createBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
-
-export type PsbtQrChunks = Record<QRDisplayMode, string[]>
-
-// Placeholder values shown in the QR when there is nothing valid to encode.
-const QR_VALUE_NO_DATA = 'NO_DATA'
-const QR_VALUE_TOO_LARGE = 'DATA_TOO_LARGE_FOR_QR'
 
 const STATIC_QR_DESCRIPTION_KEYS: Record<QRDisplayMode, string> = {
   [QRDisplayMode.BBQR]: 'transaction.preview.staticQrBbqr',

@@ -97,8 +97,8 @@ async function renderCosignerSignatures() {
     hook.current = useCosignerSignatures({
       account,
       decryptedKeys: account.keys,
-      onNotice,
-      routePsbt: undefined
+      importedPsbtBase64: undefined,
+      onNotice
     })
     return null
   }
@@ -133,7 +133,9 @@ describe('useCosignerSignatures', () => {
     const { hook } = await renderCosignerSignatures()
 
     act(() => {
-      expect(hook.current?.importSignedData(0, signAs(0, original))).toBe(true)
+      expect(
+        hook.current?.importSignedDataMatchingPsbt(0, signAs(0, original))
+      ).toBe(true)
     })
 
     const stored = hook.current?.signedPsbts.get(0) ?? ''
@@ -148,7 +150,10 @@ describe('useCosignerSignatures', () => {
 
     act(() => {
       expect(
-        hook.current?.importSignedData(0, signAs(0, buildMultisigPsbt(80_000)))
+        hook.current?.importSignedDataMatchingPsbt(
+          0,
+          signAs(0, buildMultisigPsbt(80_000))
+        )
       ).toBe(false)
     })
 
@@ -165,7 +170,10 @@ describe('useCosignerSignatures', () => {
 
     act(() => {
       expect(
-        hook.current?.importSignedData(0, signAs(0, buildMultisigPsbt()))
+        hook.current?.importSignedDataMatchingPsbt(
+          0,
+          signAs(0, buildMultisigPsbt())
+        )
       ).toBe(false)
     })
 
@@ -182,12 +190,12 @@ describe('useCosignerSignatures', () => {
     const { hook, onNotice } = await renderCosignerSignatures()
 
     act(() => {
-      hook.current?.importSignedData(0, signAs(0, original))
-      hook.current?.importSignedData(1, signAs(1, original))
+      hook.current?.importSignedDataMatchingPsbt(0, signAs(0, original))
+      hook.current?.importSignedDataMatchingPsbt(1, signAs(1, original))
     })
     const result: { hex: string | null | undefined } = { hex: undefined }
     act(() => {
-      result.hex = hook.current?.finalize()
+      result.hex = hook.current?.combineAndFinalizeSignatures()
     })
 
     expect(result.hex).toMatch(/^[0-9a-f]+$/)
@@ -204,11 +212,11 @@ describe('useCosignerSignatures', () => {
     const { hook, onNotice } = await renderCosignerSignatures()
 
     act(() => {
-      hook.current?.importSignedData(0, signAs(0, original))
+      hook.current?.importSignedDataMatchingPsbt(0, signAs(0, original))
     })
     const result: { hex: string | null | undefined } = { hex: undefined }
     act(() => {
-      result.hex = hook.current?.finalize()
+      result.hex = hook.current?.combineAndFinalizeSignatures()
     })
 
     expect(result.hex).toBeNull()
@@ -225,9 +233,9 @@ describe('useCosignerSignatures', () => {
     const { hook } = await renderCosignerSignatures()
 
     act(() => {
-      hook.current?.importSignedData(1, signAs(1, original))
+      hook.current?.importSignedDataMatchingPsbt(1, signAs(1, original))
     })
-    const combined = hook.current?.combineCollectedSignatures() ?? ''
+    const combined = hook.current?.combineCollectedSignaturesForSharing() ?? ''
 
     expect(
       bitcoinjs.Psbt.fromBase64(combined).data.inputs[0].partialSig?.[0].pubkey
@@ -237,7 +245,7 @@ describe('useCosignerSignatures', () => {
   it('reports that there is nothing to share without a PSBT', async () => {
     const { hook, onNotice } = await renderCosignerSignatures()
 
-    expect(hook.current?.combineCollectedSignatures()).toBeNull()
+    expect(hook.current?.combineCollectedSignaturesForSharing()).toBeNull()
     expect(onNotice).toHaveBeenCalledWith({
       key: 'account.nostrSync.transactionDataNotAvailable',
       type: 'error'

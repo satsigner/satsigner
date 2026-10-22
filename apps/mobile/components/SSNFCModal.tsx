@@ -7,7 +7,7 @@ import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
-import { useNfcPulse } from '@/hooks/useNfcPulse'
+import { useNfcPulseStyle } from '@/hooks/useNfcPulseStyle'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -106,7 +106,7 @@ function SSNFCModal({
     }
   }, [isEmitting, cancelNFCEmitterScan, emitNFCTag, dataToWrite, onClose])
 
-  const pulseCircleStyle = useNfcPulse(visible)
+  const pulseCircleStyle = useNfcPulseStyle(visible)
 
   const getModeTitle = () =>
     mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')

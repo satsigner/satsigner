@@ -19,11 +19,11 @@ jest.mock<Partial<typeof import('@/hooks/useNFCEmitter')>>(
 
 type NfcExport = ReturnType<typeof usePsbtNfcExport>
 
-async function renderNfcExport(serializedPsbt: string) {
+async function renderNfcExport(psbtHex: string) {
   const onNotice = jest.fn()
   const hook: { current: NfcExport | null } = { current: null }
   function Harness() {
-    hook.current = usePsbtNfcExport({ onNotice, serializedPsbt })
+    hook.current = usePsbtNfcExport({ onNotice, psbtHex })
     return null
   }
   await act(async () => {
@@ -43,7 +43,7 @@ describe('usePsbtNfcExport', () => {
     const { hook, onNotice } = await renderNfcExport('70736274ff01')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(mockEmitter.emitNFCTag).toHaveBeenCalledWith('70736274ff01')
@@ -60,7 +60,7 @@ describe('usePsbtNfcExport', () => {
     const { hook, onNotice } = await renderNfcExport('70736274ff01')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(hook.current?.nfcExportModalVisible).toBe(true)
@@ -82,7 +82,7 @@ describe('usePsbtNfcExport', () => {
     const { hook, onNotice } = await renderNfcExport('70736274ff01')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(onNotice).not.toHaveBeenCalled()
@@ -95,7 +95,7 @@ describe('usePsbtNfcExport', () => {
     const { hook, onNotice } = await renderNfcExport('70736274ff01')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(hook.current?.nfcExportModalVisible).toBe(true)
@@ -110,7 +110,7 @@ describe('usePsbtNfcExport', () => {
     const { hook, onNotice } = await renderNfcExport('')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(mockEmitter.emitNFCTag).not.toHaveBeenCalled()
@@ -126,7 +126,7 @@ describe('usePsbtNfcExport', () => {
     const { hook } = await renderNfcExport('70736274ff01')
 
     await act(async () => {
-      await hook.current?.exportToNfc()
+      await hook.current?.startOrCancelNfcExport()
     })
 
     expect(mockEmitter.cancelNFCScan).toHaveBeenCalledTimes(1)

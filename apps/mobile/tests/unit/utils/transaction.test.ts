@@ -9,6 +9,7 @@ import {
   buildPreviewTransactionHex,
   estimateBuilderTransactionSize,
   estimateTransactionSize,
+  findFirstInvalidOutputAddress,
   getFinalizedTransactionSize,
   getTransactionIdDisplay,
   legacyEstimateTransactionSize,
@@ -715,6 +716,36 @@ describe('transaction builder previews', () => {
       label: 'rent',
       value: 90_000
     })
+  })
+})
+
+describe('findFirstInvalidOutputAddress', () => {
+  const validAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  const output: Output = {
+    amount: 1000,
+    label: '',
+    localId: 'out-1',
+    to: validAddress
+  }
+
+  it('returns undefined when every address is valid', () => {
+    expect(findFirstInvalidOutputAddress([output], 'bitcoin')).toBeUndefined()
+  })
+
+  it('returns the first invalid address for the network', () => {
+    const testnetAddress = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    expect(
+      findFirstInvalidOutputAddress(
+        [output, { ...output, to: testnetAddress }],
+        'bitcoin'
+      )
+    ).toBe(testnetAddress)
+  })
+
+  it('skips addresses still too short to validate', () => {
+    expect(
+      findFirstInvalidOutputAddress([{ ...output, to: 'bc1q' }], 'bitcoin')
+    ).toBeUndefined()
   })
 })
 

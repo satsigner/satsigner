@@ -32,3 +32,5 @@ export const BBQR_SINGLE_CHUNK_MULTIPLIER = 10
 export const UR_FRAGMENT_BASE_SIZE = 15
 export const UR_FRAGMENT_MIN_SIZE = 50
 export const QR_ENCODING_OVERHEAD = 1.5 // BBQR/UR add ~50% over the raw payload
+export const QR_VALUE_NO_DATA = 'NO_DATA'
+export const QR_VALUE_TOO_LARGE = 'DATA_TOO_LARGE_FOR_QR'

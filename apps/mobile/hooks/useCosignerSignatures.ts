@@ -1,62 +1,50 @@
 import { useEffect, useEffectEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { WATCH_ONLY_INDEX } from '@/constants/account'
+import { WATCH_ONLY_COSIGNER_INDEX } from '@/constants/account'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
+import { findSignedPsbtsPerCosignerInPsbt } from '@/services/cosignerSignatures'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account, type Key } from '@/types/models/Account'
 import { type Notice } from '@/types/ui/notice'
-import { getKeyFingerprint } from '@/utils/account'
 import {
   bindImportedSignature,
-  buildPubkeyToCosignerIndex,
   combineAndFinalizePsbts,
   combineSignaturesForSharing,
-  extractIndividualSignedPsbts,
   getCollectedSignedPsbts,
-  getCollectedSignerPubkeys,
   hasAllRequiredSignatures,
-  matchSignedPsbtsToCosigners,
-  readPartiallySignedPsbt,
   validateCosignerSignatures
 } from '@/utils/psbt'
+
+type SignedPsbts = Map<number, string>
 
 type UseCosignerSignaturesParams = {
   account: Account | undefined
   decryptedKeys: Key[]
-  /** A PSBT (base64) under review that may already carry signatures. */
-  routePsbt: string | undefined
+  importedPsbtBase64: string | undefined
   onNotice: (notice: Notice) => void
 }
 
-type SignedPsbts = Map<number, string>
-
-type UseSignatureDetectionParams = {
+type UseImportedPsbtSignatureDetectionParams = {
   account: Account | undefined
   decryptedKeys: Key[]
-  routePsbt: string | undefined
+  importedPsbtBase64: string | undefined
   signedPsbts: SignedPsbts
   updateSignedPsbt: (cosignerIndex: number, signedPsbt: string) => void
-  onDetected: (cosignerIndex: number) => void
+  onSignatureDetected: (cosignerIndex: number) => void
 }
 
-type UseSignatureValidationParams = {
+type UseCosignerSignatureValidationParams = {
   account: Account | undefined
   decryptedKeys: Key[]
   signedPsbts: SignedPsbts
-  onValidationError: () => void
+  onCosignerValidationFailed: () => void
 }
 
-/**
- * Collects the cosigner signatures of the PSBT under review (multisig and
- * watch-only): signs with local keys or a mnemonic, imports signed data bound
- * to the PSBT, detects signatures already in `routePsbt`, validates each
- * cosigner and finalizes once enough signatures are collected.
- */
 export function useCosignerSignatures({
   account,
   decryptedKeys,
-  routePsbt,
+  importedPsbtBase64,
   onNotice
 }: UseCosignerSignaturesParams) {
   const [txBuilderResult, setSignedTx, signedPsbtsFromStore] =
@@ -78,10 +66,10 @@ export function useCosignerSignatures({
     psbt: txBuilderResult
   })
 
-  const validationResults = useSignatureValidation({
+  const validationResults = useCosignerSignatureValidation({
     account,
     decryptedKeys,
-    onValidationError: () =>
+    onCosignerValidationFailed: () =>
       onNotice({
         key: 'common.error.validatingCosignerSignature',
         type: 'error'
@@ -89,16 +77,16 @@ export function useCosignerSignatures({
     signedPsbts
   })
 
-  useSignatureDetection({
+  useImportedPsbtSignatureDetection({
     account,
     decryptedKeys,
-    onDetected: (cosignerIndex) =>
+    importedPsbtBase64,
+    onSignatureDetected: (cosignerIndex) =>
       onNotice({
         key: 'transaction.build.preview.detectedSignature',
         params: { cosigner: cosignerIndex + 1 },
         type: 'success'
       }),
-    routePsbt,
     signedPsbts,
     updateSignedPsbt
   })
@@ -115,15 +103,11 @@ export function useCosignerSignatures({
     }
   }, [signedPsbt, setSignedTx])
 
-  // Stores scanned/pasted data as a cosigner's signature (or the watch-only
-  // import) once it is bound to the PSBT under review. False (after reporting
-  // why) when rejected: broadcasting it would execute a different transaction
-  // than the one displayed to the user.
-  function importSignedData(cosignerIndex: number, data: string) {
+  function importSignedDataMatchingPsbt(cosignerIndex: number, data: string) {
     const result = bindImportedSignature(
       data,
       txBuilderResult?.toBase64(),
-      cosignerIndex === WATCH_ONLY_INDEX,
+      cosignerIndex === WATCH_ONLY_COSIGNER_INDEX,
       convertPsbtToFinalTransaction
     )
     if ('errorKey' in result) {
@@ -134,9 +118,7 @@ export function useCosignerSignatures({
     return true
   }
 
-  // The PSBT under review combined with every signature collected so far (to
-  // share with other cosigners), or null after reporting why it could not be.
-  function combineCollectedSignatures() {
+  function combineCollectedSignaturesForSharing() {
     const result = combineSignaturesForSharing(
       txBuilderResult?.toBase64(),
       signedPsbts
@@ -148,9 +130,7 @@ export function useCosignerSignatures({
     return result.psbtBase64
   }
 
-  // Combines every collected signature into the PSBT under review and
-  // finalizes it. Returns the transaction hex, or null when it can't yet.
-  function finalize() {
+  function combineAndFinalizeSignatures() {
     const result = combineAndFinalizePsbts(txBuilderResult?.toBase64(), [
       ...getCollectedSignedPsbts(signedPsbts).values()
     ])
@@ -168,13 +148,13 @@ export function useCosignerSignatures({
   }
 
   return {
-    combineCollectedSignatures,
-    finalize,
+    combineAndFinalizeSignatures,
+    combineCollectedSignaturesForSharing,
     hasAllRequiredSignatures: hasAllRequiredSignatures(
       account,
       validationResults
     ),
-    importSignedData,
+    importSignedDataMatchingPsbt,
     signWithLocalKey: handleSignWithLocalKey,
     signWithMnemonic: handleSignWithSeedQR,
     signedPsbt,
@@ -183,104 +163,77 @@ export function useCosignerSignatures({
   }
 }
 
-function useSignatureValidation({
+function useCosignerSignatureValidation({
   account,
   decryptedKeys,
   signedPsbts,
-  onValidationError
-}: UseSignatureValidationParams) {
+  onCosignerValidationFailed
+}: UseCosignerSignatureValidationParams) {
   const validation = validateCosignerSignatures(
     signedPsbts,
     account,
     decryptedKeys
   )
 
-  // One error per cosigner signature that could not be validated, each time
-  // the signatures, account or keys change and are validated again.
-  const reportValidationErrors = useEffectEvent(() => {
+  const reportEachFailedCosigner = useEffectEvent(() => {
     for (const _cosignerIndex of validation.failedCosigners) {
-      onValidationError()
+      onCosignerValidationFailed()
     }
   })
 
   useEffect(() => {
-    reportValidationErrors()
+    reportEachFailedCosigner()
   }, [signedPsbts, account, decryptedKeys])
 
   return validation.results
 }
 
-function useSignatureDetection({
+function useImportedPsbtSignatureDetection({
   account,
   decryptedKeys,
-  routePsbt,
+  importedPsbtBase64,
   signedPsbts,
   updateSignedPsbt,
-  onDetected
-}: UseSignatureDetectionParams) {
-  const reportDetected = useEffectEvent(onDetected)
+  onSignatureDetected
+}: UseImportedPsbtSignatureDetectionParams) {
+  const reportSignatureDetected = useEffectEvent(onSignatureDetected)
 
-  // Detects signatures already present in the route PSBT, once both the PSBT
-  // and the decrypted keys are ready.
   useEffect(() => {
-    if (!routePsbt || !account || decryptedKeys.length === 0 || !account.keys) {
+    const areKeysReady = !!account?.keys && decryptedKeys.length > 0
+    if (!importedPsbtBase64 || !account || !areKeysReady) {
       return
     }
 
-    const currentAccount = account
-    const combinedPsbtBase64 = routePsbt
-    // Drops a detection that finishes after its inputs changed, so a
-    // signature is not stored and reported twice.
-    const request = { stale: false }
+    const detectionRun = { isOutdated: false }
 
-    async function detectSignatures() {
-      const signed = readPartiallySignedPsbt(combinedPsbtBase64)
-      if (!signed) {
-        return
-      }
-      const { originalPsbtBase64, psbt: psbtObj } = signed
-
-      const keyFingerprints = await Promise.all(
-        currentAccount.keys.map((key) => getKeyFingerprint(key))
-      )
-      if (request.stale) {
-        return
-      }
-      const pubkeyToCosignerIndex = buildPubkeyToCosignerIndex(
-        psbtObj,
-        keyFingerprints
-      )
-
-      const signerPubkeys = getCollectedSignerPubkeys(combinedPsbtBase64)
-      if (signerPubkeys.size === 0) {
-        return
-      }
-
-      const bySigner = extractIndividualSignedPsbts(
-        combinedPsbtBase64,
-        originalPsbtBase64
-      )
-      if (Object.keys(bySigner).length === 0) {
-        return
-      }
-
-      const matches = matchSignedPsbtsToCosigners(
-        bySigner,
-        pubkeyToCosignerIndex,
-        currentAccount,
+    async function storeDetectedSignatures(
+      currentAccount: Account,
+      psbtBase64: string
+    ) {
+      const signedPsbtsPerCosigner = await findSignedPsbtsPerCosignerInPsbt({
+        account: currentAccount,
         decryptedKeys,
-        signedPsbts
-      )
-
-      for (const match of matches) {
-        updateSignedPsbt(match.cosignerIndex, match.signedPsbtBase64)
-        reportDetected(match.cosignerIndex)
+        existingSignedPsbts: signedPsbts,
+        partiallySignedPsbtBase64: psbtBase64
+      })
+      if (detectionRun.isOutdated) {
+        return
+      }
+      for (const [cosignerIndex, signedPsbtBase64] of signedPsbtsPerCosigner) {
+        updateSignedPsbt(cosignerIndex, signedPsbtBase64)
+        reportSignatureDetected(cosignerIndex)
       }
     }
 
-    void detectSignatures()
+    void storeDetectedSignatures(account, importedPsbtBase64)
     return () => {
-      request.stale = true
+      detectionRun.isOutdated = true
     }
-  }, [routePsbt, account, decryptedKeys, updateSignedPsbt, signedPsbts])
+  }, [
+    importedPsbtBase64,
+    account,
+    decryptedKeys,
+    updateSignedPsbt,
+    signedPsbts
+  ])
 }

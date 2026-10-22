@@ -5,7 +5,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import {
   HEX_PATTERN,
   MAX_PARTIAL_SIGNATURE_BYTES,
-  MIN_MULTISIG_SCRIPT_LENGTH,
+  MIN_WITNESS_SCRIPT_CHUNKS_TO_PARSE,
   MIN_PARTIAL_SIGNATURE_BYTES,
   OP_N_OFFSET,
   PSBT_MAGIC_BASE64,
@@ -932,7 +932,7 @@ function isValidNonWitnessUtxo(nonWitnessUtxo: Buffer): boolean {
 // Reads the m-of-n of a multisig witness script; null when it is not one.
 export function parseWitnessScript(witnessScript: Buffer) {
   const script = bitcoinjs.script.decompile(witnessScript)
-  if (!script || script.length < MIN_MULTISIG_SCRIPT_LENGTH) {
+  if (!script || script.length < MIN_WITNESS_SCRIPT_CHUNKS_TO_PARSE) {
     return null
   }
 
@@ -1128,6 +1128,24 @@ type SignedPsbtMatch = {
   cosignerIndex: number
   signedPsbtBase64: string
   matchMethod: 'pubkey' | 'validation'
+}
+
+export function combineSignedPsbtsPerCosigner(
+  signedPsbts: Pick<SignedPsbtMatch, 'cosignerIndex' | 'signedPsbtBase64'>[]
+) {
+  const psbtsByCosigner = new Map<number, string[]>()
+  for (const { cosignerIndex, signedPsbtBase64 } of signedPsbts) {
+    psbtsByCosigner.set(cosignerIndex, [
+      ...(psbtsByCosigner.get(cosignerIndex) ?? []),
+      signedPsbtBase64
+    ])
+  }
+  return new Map<number, string>(
+    [...psbtsByCosigner].map(([cosignerIndex, psbts]) => [
+      cosignerIndex,
+      psbts.length > 1 ? combinePsbts(psbts) : psbts[0]
+    ])
+  )
 }
 
 export function matchSignedPsbtsToCosigners(
