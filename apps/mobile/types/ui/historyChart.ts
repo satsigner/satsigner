@@ -100,3 +100,22 @@ export type TxInfoLabelsParams = {
   satsToFiat: (sats: number) => number
   fiatCurrency: Currency
 }
+
+export type FiatChartPoint = {
+  date: Date
+  value: number | null
+}
+
+export type FiatValueByIdParams = {
+  bundledPriceAt: (timestamp: number) => number | null
+  chartData: HistoryChartData[]
+  currency: Currency
+  transactionsMap: Map<string, Transaction>
+}
+
+export type FiatChartPointsParams = {
+  chartData: HistoryChartData[]
+  fiatValueById: Map<string, number>
+  startDate: Date
+  validChartData: HistoryChartData[]
+}

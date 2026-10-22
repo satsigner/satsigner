@@ -3,16 +3,17 @@ import { type Utxo } from '@/types/models/Utxo'
 import {
   buildBalanceHistory,
   buildChartData,
-  buildFiatChartSeries,
+  buildFiatChartPoints,
   buildFiatStepPath,
+  buildFiatValueById,
+  buildTransactionsMap,
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
   fiatYDomain,
   hexToRgba,
   historyChartMargin,
-  maxFiatChartValue,
-  projectFiatOntoChart
+  maxFiatValue
 } from '@/utils/historyChart'
 
 function makeTx(
@@ -144,12 +145,23 @@ describe('computeValidChartData', () => {
   })
 })
 
-describe('buildFiatChartSeries', () => {
+describe('buildFiatValueById', () => {
   const now = new Date('2026-01-10T00:00:00Z')
-  const bundled = () => 50_000
+
+  function fiatValues(
+    transactions: Transaction[],
+    bundledPriceAt: (timestamp: number) => number | null
+  ) {
+    return buildFiatValueById({
+      bundledPriceAt,
+      chartData: buildChartData(transactions, now),
+      currency: 'USD',
+      transactionsMap: buildTransactionsMap(transactions)
+    })
+  }
 
   it('converts the running balance with the price saved on the transaction', () => {
-    const series = buildFiatChartSeries(
+    const values = fiatValues(
       [
         makeTx({
           id: 'a',
@@ -159,15 +171,13 @@ describe('buildFiatChartSeries', () => {
           type: 'receive'
         })
       ],
-      'USD',
-      now,
-      bundled
+      () => 50_000
     )
-    expect(series[0].value).toBe(40_000)
+    expect(values.get('a')).toBe(40_000)
   })
 
   it('uses the bundled price when the transaction has no saved price', () => {
-    const series = buildFiatChartSeries(
+    const values = fiatValues(
       [
         makeTx({
           id: 'a',
@@ -176,15 +186,38 @@ describe('buildFiatChartSeries', () => {
           type: 'receive'
         })
       ],
-      'USD',
-      now,
       () => 60_000
     )
-    expect(series[0].value).toBe(30_000)
+    expect(values.get('a')).toBe(30_000)
+  })
+
+  it('looks up the bundled price for a persisted string timestamp', () => {
+    const bundledPriceAt = jest.fn(() => 60_000)
+    const persisted = {
+      ...makeTx({ id: 'a', received: 50_000_000, type: 'receive' }),
+      timestamp: '2026-01-02T00:00:00.000Z'
+    }
+    const values = buildFiatValueById({
+      bundledPriceAt,
+      chartData: [
+        {
+          amount: 50_000_000,
+          balance: 50_000_000,
+          date: new Date('2026-01-02T00:00:00Z'),
+          id: 'a',
+          memo: '',
+          type: 'receive'
+        }
+      ],
+      currency: 'USD',
+      transactionsMap: new Map([['a', persisted]])
+    })
+    expect(bundledPriceAt).toHaveBeenCalledWith(1_767_312_000)
+    expect(values.get('a')).toBe(30_000)
   })
 
   it('leaves a gap when neither the transaction nor the bundle has a price', () => {
-    const series = buildFiatChartSeries(
+    const values = fiatValues(
       [
         makeTx({
           id: 'a',
@@ -200,16 +233,15 @@ describe('buildFiatChartSeries', () => {
           type: 'receive'
         })
       ],
-      'USD',
-      now,
       () => null
     )
-    expect(series.map((point) => point.value)).toStrictEqual([40_000, null])
-    expect(maxFiatChartValue(series)).toBe(40_000)
+    expect(values.get('a')).toBe(40_000)
+    expect(values.has('b')).toBe(false)
+    expect(maxFiatValue(values.values())).toBe(40_000)
   })
 
   it('does not use the bundled price when a saved price exists', () => {
-    const series = buildFiatChartSeries(
+    const values = fiatValues(
       [
         makeTx({
           id: 'a',
@@ -218,63 +250,141 @@ describe('buildFiatChartSeries', () => {
           type: 'receive'
         })
       ],
-      'USD',
-      now,
       () => 99_000
     )
-    expect(series[0].value).toBe(10_000)
+    expect(values.get('a')).toBe(10_000)
+  })
+
+  it('values the balance left after a send', () => {
+    const values = fiatValues(
+      [
+        makeTx({
+          id: 'a',
+          prices: { USD: 40_000 },
+          received: 100_000_000,
+          timestamp: new Date('2026-01-02T00:00:00Z'),
+          type: 'receive'
+        }),
+        makeTx({
+          id: 'b',
+          prices: { USD: 50_000 },
+          received: 10_000_000,
+          sent: 60_000_000,
+          timestamp: new Date('2026-01-03T00:00:00Z'),
+          type: 'send'
+        })
+      ],
+      () => null
+    )
+    expect(values.get('b')).toBe(25_000)
+  })
+
+  it('leaves an unconfirmed transaction without a saved price unpriced', () => {
+    const bundledPriceAt = jest.fn(() => 60_000)
+    const values = fiatValues(
+      [makeTx({ id: 'a', received: 100_000_000, type: 'receive' })],
+      bundledPriceAt
+    )
+    expect(values.has('a')).toBe(false)
+    expect(bundledPriceAt).not.toHaveBeenCalled()
   })
 })
 
-describe('projectFiatOntoChart', () => {
-  it('carries the last priced balance across window edges and keeps gaps', () => {
-    const now = new Date('2026-01-10T00:00:00Z')
-    const transactions = [
-      makeTx({
-        id: 'a',
-        received: 1,
-        timestamp: new Date('2026-01-01T00:00:00Z'),
-        type: 'receive'
-      }),
-      makeTx({
-        id: 'b',
-        received: 1,
-        timestamp: new Date('2026-01-04T00:00:00Z'),
-        type: 'receive'
-      })
-    ]
-    const chartData = buildChartData(transactions, now)
-    const fiatSeries = buildFiatChartSeries(
-      transactions,
-      'USD',
-      now,
-      () => null
-    )
-    fiatSeries[0].value = 10
-    fiatSeries[1].value = null
-    const [, valid] = computeValidChartData(
+describe('buildFiatChartPoints', () => {
+  const now = new Date('2026-01-10T00:00:00Z')
+  const transactions = [
+    makeTx({
+      id: 'a',
+      received: 1,
+      timestamp: new Date('2026-01-01T00:00:00Z'),
+      type: 'receive'
+    }),
+    makeTx({
+      id: 'b',
+      received: 1,
+      timestamp: new Date('2026-01-04T00:00:00Z'),
+      type: 'receive'
+    })
+  ]
+  const chartData = buildChartData(transactions, now)
+
+  function pointValues(
+    fiatValueById: Map<string, number>,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const [, validChartData] = computeValidChartData(
       chartData,
-      new Date('2026-01-03T00:00:00Z'),
-      new Date('2026-01-06T00:00:00Z'),
+      startDate,
+      endDate,
       now,
       true
     )
-    const projected = projectFiatOntoChart(chartData, fiatSeries, valid)
-    expect(projected.map((point) => point.value)).toStrictEqual([
-      10,
-      null,
-      null
-    ])
+    return buildFiatChartPoints({
+      chartData,
+      fiatValueById,
+      startDate,
+      validChartData
+    }).map((point) => point.value)
+  }
+
+  it('carries the last priced balance across window edges and keeps gaps', () => {
+    expect(
+      pointValues(
+        new Map([['a', 10]]),
+        new Date('2026-01-03T00:00:00Z'),
+        new Date('2026-01-06T00:00:00Z')
+      )
+    ).toStrictEqual([10, null, null])
+  })
+
+  it('carries the value before the window to both edges of an empty window', () => {
+    expect(
+      pointValues(
+        new Map([
+          ['a', 10],
+          ['b', 20]
+        ]),
+        new Date('2026-01-05T00:00:00Z'),
+        new Date('2026-01-06T00:00:00Z')
+      )
+    ).toStrictEqual([20, 20])
+  })
+
+  it('starts with a gap when the window opens before the first transaction', () => {
+    expect(
+      pointValues(
+        new Map([['a', 10]]),
+        new Date('2025-12-30T00:00:00Z'),
+        new Date('2026-01-02T00:00:00Z')
+      )
+    ).toStrictEqual([null, 10, 10])
+  })
+})
+
+describe('maxFiatValue', () => {
+  it('ignores gaps and never drops below zero', () => {
+    expect(maxFiatValue([null, 5, 12, null])).toBe(12)
+    expect(maxFiatValue([])).toBe(0)
   })
 })
 
 describe('fiatDomainMax', () => {
+  const fiatChartPoints = [
+    { date: new Date('2026-01-01T00:00:00Z'), value: 20 },
+    { date: new Date('2026-01-02T00:00:00Z'), value: null }
+  ]
+
   it('uses the full series when the y axis can pan', () => {
-    expect(fiatDomainMax(false, 80, 20)).toBe(80)
+    expect(
+      fiatDomainMax({ fiatChartPoints, lockZoomToXAxis: false, seriesMax: 80 })
+    ).toBe(80)
   })
 
   it('uses the visible window when zoom is locked to the x axis', () => {
-    expect(fiatDomainMax(true, 80, 20)).toBe(20)
+    expect(
+      fiatDomainMax({ fiatChartPoints, lockZoomToXAxis: true, seriesMax: 80 })
+    ).toBe(20)
   })
 })
 

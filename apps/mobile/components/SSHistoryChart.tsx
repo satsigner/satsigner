@@ -37,20 +37,20 @@ import { isHistoricalFiatAvailable } from '@/utils/fiat'
 import {
   buildBalanceHistory,
   buildChartData,
-  buildFiatChartSeries,
+  buildFiatChartPoints,
   buildFiatStepPath,
+  buildFiatValueById,
   buildTransactionsMap,
-  fiatDomainMax,
-  fiatYDomain,
-  historyChartMargin,
-  maxFiatChartValue,
-  projectFiatOntoChart,
   buildTxInfoLabels,
   buildTxXAxisLabels,
   buildUtxoLabels,
   buildUtxoRectangles,
   buildWalletAddresses,
-  computeValidChartData
+  computeValidChartData,
+  fiatDomainMax,
+  fiatYDomain,
+  historyChartMargin,
+  maxFiatValue
 } from '@/utils/historyChart'
 
 type SSHistoryChartProps = {
@@ -167,31 +167,42 @@ function SSHistoryChart({
       fetchCurrentPrices: showCurrentFiat,
       fetchHistoricalPrices: showHistoricalFiat
     })
-  const fiatSeries = useMemo(
+  const transactionsMap = useMemo(
+    () => buildTransactionsMap(transactions),
+    [transactions]
+  )
+
+  const fiatValueById = useMemo(
     () =>
       showFiatLine
-        ? buildFiatChartSeries(
-            transactions,
-            fiatCurrency,
-            currentDate.current,
-            (timestamp) => getLocalPriceAt(fiatCurrency, timestamp)
-          )
-        : [],
-    [fiatCurrency, showFiatLine, transactions]
+        ? buildFiatValueById({
+            bundledPriceAt: (timestamp) =>
+              getLocalPriceAt(fiatCurrency, timestamp),
+            chartData,
+            currency: fiatCurrency,
+            transactionsMap
+          })
+        : new Map<string, number>(),
+    [chartData, fiatCurrency, showFiatLine, transactionsMap]
   )
   const fiatChartPoints = useMemo(
     () =>
       showFiatLine
-        ? projectFiatOntoChart(chartData, fiatSeries, validChartData)
+        ? buildFiatChartPoints({
+            chartData,
+            fiatValueById,
+            startDate,
+            validChartData
+          })
         : [],
-    [chartData, fiatSeries, showFiatLine, validChartData]
+    [chartData, fiatValueById, showFiatLine, startDate, validChartData]
   )
-  const maxFiatAll = maxFiatChartValue(fiatSeries)
-  const maxFiat = fiatDomainMax(
+  const maxFiatAll = maxFiatValue(fiatValueById.values())
+  const maxFiat = fiatDomainMax({
+    fiatChartPoints,
     lockZoomToXAxis,
-    maxFiatAll,
-    maxFiatChartValue(fiatChartPoints)
-  )
+    seriesMax: maxFiatAll
+  })
   const showFiatAxis = showFiatLine && maxFiatAll > 0
   const margin = historyChartMargin(showFiatAxis)
 
@@ -229,11 +240,7 @@ function SSHistoryChart({
   const fiatLinePath = useMemo(
     () =>
       showFiatAxis
-        ? buildFiatStepPath(
-            fiatChartPoints,
-            (date) => xScale(date),
-            (value) => fiatYScale(value)
-          )
+        ? buildFiatStepPath(fiatChartPoints, xScale, fiatYScale)
         : null,
     [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
   )
@@ -340,11 +347,6 @@ function SSHistoryChart({
       zeroPadding,
       blockchainHeight
     ]
-  )
-
-  const transactionsMap = useMemo(
-    () => buildTransactionsMap(transactions),
-    [transactions]
   )
 
   const txInfoLabels = useMemo(

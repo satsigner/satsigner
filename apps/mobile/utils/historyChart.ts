@@ -9,6 +9,9 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
   type BalanceHistory,
+  type FiatChartPoint,
+  type FiatChartPointsParams,
+  type FiatValueByIdParams,
   type HistoryChartData,
   type TxInfoLabel,
   type TxInfoLabelsParams,
@@ -512,18 +515,6 @@ const HISTORY_CHART_Y_HEADROOM = 1.2
 const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
 const FIAT_AXIS_RIGHT_MARGIN = 52
 
-type FiatChartPoint = {
-  date: Date
-  value: number | null
-}
-
-function transactionBalanceChange(transaction: Transaction) {
-  if (transaction.type === 'receive') {
-    return transaction.received ?? 0
-  }
-  return (transaction.received ?? 0) - (transaction.sent ?? 0)
-}
-
 function historicalBtcPrice(
   transaction: Transaction,
   currency: Currency,
@@ -544,75 +535,85 @@ function historicalBtcPrice(
   return bundled
 }
 
-function buildFiatChartSeries(
-  transactions: Transaction[],
-  currency: Currency,
-  currentDate: Date,
-  bundledPriceAt: (timestamp: number) => number | null
-): FiatChartPoint[] {
-  let balance = 0
-  return transactions.map((transaction) => {
-    balance += transactionBalanceChange(transaction)
+export function buildFiatValueById({
+  bundledPriceAt,
+  chartData,
+  currency,
+  transactionsMap
+}: FiatValueByIdParams) {
+  const fiatValueById = new Map<string, number>()
+  for (const point of chartData) {
+    const transaction = transactionsMap.get(point.id)
+    if (!transaction) {
+      continue
+    }
     const price = historicalBtcPrice(transaction, currency, bundledPriceAt)
-    const date = new Date(transaction.timestamp ?? currentDate)
-    return {
-      date,
-      value: price === null ? null : (balance * price) / SATS_PER_BITCOIN
-    }
-  })
-}
-
-function projectFiatOntoChart(
-  chartData: HistoryChartData[],
-  fiatSeries: FiatChartPoint[],
-  validChartData: HistoryChartData[]
-): FiatChartPoint[] {
-  const fiatById = new Map<string, number | null>()
-  for (const [index, point] of chartData.entries()) {
-    fiatById.set(point.id, fiatSeries[index]?.value ?? null)
-  }
-  const startDate = validChartData[0]?.date
-  let carried: number | null = null
-  if (startDate) {
-    for (const [index, point] of chartData.entries()) {
-      if (point.date >= startDate) {
-        break
-      }
-      carried = fiatSeries[index]?.value ?? null
+    if (price !== null) {
+      fiatValueById.set(point.id, (point.balance * price) / SATS_PER_BITCOIN)
     }
   }
-  return validChartData.map((point) => {
-    if (point.type === 'end' && point.id === '') {
-      return { date: point.date, value: carried }
-    }
-    const value = fiatById.get(point.id) ?? null
-    carried = value
-    return { date: point.date, value }
-  })
+  return fiatValueById
 }
 
-function fiatDomainMax(
-  lockZoomToXAxis: boolean,
-  seriesMax: number,
-  windowMax: number
+function fiatValueOf(
+  point: HistoryChartData | undefined,
+  fiatValueById: Map<string, number>
 ) {
+  if (!point) {
+    return null
+  }
+  return fiatValueById.get(point.id) ?? null
+}
+
+export function buildFiatChartPoints({
+  chartData,
+  fiatValueById,
+  startDate,
+  validChartData
+}: FiatChartPointsParams): FiatChartPoint[] {
+  const pointBeforeWindow = chartData.findLast(
+    (point) => point.date < startDate
+  )
+  const lastPointInWindow =
+    validChartData.findLast((point) => point.type !== 'end') ??
+    pointBeforeWindow
+
+  function sourcePoint(point: HistoryChartData, index: number) {
+    if (point.type !== 'end') {
+      return point
+    }
+    if (index === 0) {
+      return pointBeforeWindow
+    }
+    return lastPointInWindow
+  }
+
+  return validChartData.map((point, index) => ({
+    date: point.date,
+    value: fiatValueOf(sourcePoint(point, index), fiatValueById)
+  }))
+}
+
+export function maxFiatValue(values: Iterable<number | null>) {
+  return Math.max(0, ...Array.from(values, (value) => value ?? 0))
+}
+
+export function fiatDomainMax({
+  fiatChartPoints,
+  lockZoomToXAxis,
+  seriesMax
+}: {
+  fiatChartPoints: FiatChartPoint[]
+  lockZoomToXAxis: boolean
+  seriesMax: number
+}) {
   if (lockZoomToXAxis) {
-    return windowMax
+    return maxFiatValue(fiatChartPoints.map((point) => point.value))
   }
   return seriesMax
 }
 
-function maxFiatChartValue(series: FiatChartPoint[]) {
-  let max = 0
-  for (const point of series) {
-    if (point.value !== null && point.value > max) {
-      max = point.value
-    }
-  }
-  return max
-}
-
-function fiatYDomain(
+export function fiatYDomain(
   maxFiat: number,
   maxBalance: number,
   scale: number,
@@ -628,7 +629,7 @@ function fiatYDomain(
   return [fiatStart, fiatStart + fiatSpan / scale]
 }
 
-function buildFiatStepPath(
+export function buildFiatStepPath(
   series: FiatChartPoint[],
   x: (date: Date) => number,
   y: (value: number) => number
@@ -641,20 +642,9 @@ function buildFiatStepPath(
   return generator(series)
 }
 
-function historyChartMargin(showFiatAxis: boolean) {
+export function historyChartMargin(showFiatAxis: boolean) {
   if (!showFiatAxis) {
     return HISTORY_CHART_MARGIN
   }
   return { ...HISTORY_CHART_MARGIN, right: FIAT_AXIS_RIGHT_MARGIN }
-}
-
-export {
-  buildFiatChartSeries,
-  buildFiatStepPath,
-  fiatDomainMax,
-  fiatYDomain,
-  projectFiatOntoChart,
-  historyChartMargin,
-  maxFiatChartValue,
-  type FiatChartPoint
 }
