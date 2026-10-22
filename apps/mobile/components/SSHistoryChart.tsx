@@ -39,6 +39,7 @@ import {
   buildFiatChartSeries,
   buildFiatStepPath,
   buildTransactionsMap,
+  fiatDomainMax,
   fiatYDomain,
   historyChartMargin,
   isHistoricalFiatLineVisible,
@@ -184,8 +185,13 @@ function SSHistoryChart({
         : [],
     [chartData, fiatSeries, showFiatLine, validChartData]
   )
-  const maxFiat = maxFiatChartValue(fiatChartPoints)
-  const showFiatAxis = showFiatLine && maxFiat > 0
+  const maxFiatAll = maxFiatChartValue(fiatSeries)
+  const maxFiat = fiatDomainMax(
+    lockZoomToXAxis,
+    maxFiatAll,
+    maxFiatChartValue(fiatChartPoints)
+  )
+  const showFiatAxis = showFiatLine && maxFiatAll > 0
   const margin = historyChartMargin(showFiatAxis)
 
   const chartWidth = containerSize.width - margin.left - margin.right

@@ -611,6 +611,17 @@ function projectFiatOntoChart(
   })
 }
 
+function fiatDomainMax(
+  lockZoomToXAxis: boolean,
+  seriesMax: number,
+  windowMax: number
+) {
+  if (lockZoomToXAxis) {
+    return windowMax
+  }
+  return seriesMax
+}
+
 function maxFiatChartValue(series: FiatChartPoint[]) {
   let max = 0
   for (const point of series) {
@@ -695,6 +706,7 @@ function historyChartMargin(showFiatAxis: boolean) {
 export {
   buildFiatChartSeries,
   buildFiatStepPath,
+  fiatDomainMax,
   fiatYDomain,
   projectFiatOntoChart,
   historicalFiatLineControl,

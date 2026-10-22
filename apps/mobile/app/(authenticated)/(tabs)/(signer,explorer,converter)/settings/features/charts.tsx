@@ -201,7 +201,7 @@ export default function Charts() {
                 />
                 <SSCheckbox
                   label={t(
-                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine'
+                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine.label'
                   )}
                   selected={selectedShowHistoricalFiatLine}
                   disabled={fiatLineControl.disabled}

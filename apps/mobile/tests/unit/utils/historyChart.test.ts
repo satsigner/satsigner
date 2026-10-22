@@ -7,6 +7,7 @@ import {
   buildFiatStepPath,
   buildWalletAddresses,
   computeValidChartData,
+  fiatDomainMax,
   fiatYDomain,
   hexToRgba,
   historicalFiatLineControl,
@@ -266,6 +267,16 @@ describe('projectFiatOntoChart', () => {
       null,
       null
     ])
+  })
+})
+
+describe('fiatDomainMax', () => {
+  it('uses the full series when the y axis can pan', () => {
+    expect(fiatDomainMax(false, 80, 20)).toBe(80)
+  })
+
+  it('uses the visible window when zoom is locked to the x axis', () => {
+    expect(fiatDomainMax(true, 80, 20)).toBe(20)
   })
 })
 
