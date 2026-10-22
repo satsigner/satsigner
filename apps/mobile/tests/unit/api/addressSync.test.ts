@@ -79,7 +79,7 @@ function esploraTx(txid: string, blockHeight?: number): EsploraTx {
         is_coinbase: false,
         prevout: { scriptpubkey_address: ADDRESS, value: 100_000 },
         scriptsig: '',
-        sequence: 0xffff_ffff,
+        sequence: 0xff_ff_ff_ff,
         txid: 'bb'.repeat(32),
         vout: 0
       }

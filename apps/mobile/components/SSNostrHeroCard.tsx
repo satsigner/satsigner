@@ -32,16 +32,21 @@ function disconnectReasonLabel(
   reason?: NostrRelayConnectionInfo['reason']
 ): string {
   switch (reason) {
-    case 'no_internet':
+    case 'no_internet': {
       return t('nostrIdentity.account.relayNoInternet')
-    case 'no_relays':
+    }
+    case 'no_relays': {
       return t('nostrIdentity.account.relayNoRelays')
-    case 'all_failed':
+    }
+    case 'all_failed': {
       return t('nostrIdentity.account.relayAllFailed')
-    case 'user_disabled':
+    }
+    case 'user_disabled': {
       return t('nostrIdentity.account.relayUserDisabled')
-    default:
+    }
+    default: {
       return t('nostrIdentity.account.relayDisconnected')
+    }
   }
 }
 

@@ -51,7 +51,7 @@ function validateDescriptorChecksum(descriptor: string) {
     return true
   }
   // Fall back: normalize ' → h and strip checksum (for '-notation descriptors)
-  const normalized = descriptor.replace(/#\w+$/, '').replace(/'/g, 'h')
+  const normalized = descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
   return (
     bdkValidateDescriptor(normalized, Network.Bitcoin) ||
     bdkValidateDescriptor(normalized, Network.Testnet)

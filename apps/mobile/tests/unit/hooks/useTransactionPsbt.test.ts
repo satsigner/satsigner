@@ -1,0 +1,301 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+import { createElement } from 'react'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+
+import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
+import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { type Account } from '@/types/models/Account'
+import { createMockPsbt } from '@/utils/psbt'
+
+jest.mock<Partial<typeof import('@/api/bdk')>>('@/api/bdk', () => ({
+  buildPsbtWithRpcOrBdkWallet: jest.fn()
+}))
+
+const mockUseWallet = jest.fn()
+jest.mock<typeof import('@/hooks/useGetAccountWallet')>(
+  '@/hooks/useGetAccountWallet',
+  () => ({
+    __esModule: true,
+    default: () => mockUseWallet()
+  })
+)
+
+const mockBuildPsbt = jest.mocked(buildPsbtWithRpcOrBdkWallet)
+
+const ADDRESS = bitcoinjs.payments.p2wpkh({
+  pubkey: Buffer.from(
+    '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+    'hex'
+  )
+}).address
+
+function routePsbtBase64() {
+  const psbt = new bitcoinjs.Psbt()
+  psbt.addInput({ hash: Buffer.alloc(32, 0x11), index: 0 })
+  psbt.addOutput({ address: ADDRESS ?? '', value: 90_000 })
+  return psbt.toBase64()
+}
+
+function makeAccount(overrides: Partial<Account> = {}): Account {
+  return {
+    addresses: [],
+    createdAt: new Date('2024-01-01'),
+    displayIndex: 0,
+    id: 'acc-1',
+    keyCount: 1,
+    keys: [],
+    keysRequired: 1,
+    labels: {},
+    name: 'Test',
+    network: 'bitcoin',
+    nostr: {
+      autoSync: false,
+      commonNpub: '',
+      commonNsec: '',
+      dms: [],
+      lastUpdated: new Date(),
+      relays: [],
+      syncStart: new Date(),
+      trustedMemberDevices: []
+    },
+    policyType: 'singlesig',
+    summary: {
+      balance: 0,
+      numberOfAddresses: 0,
+      numberOfTransactions: 0,
+      numberOfUtxos: 0,
+      satsInMempool: 0
+    },
+    syncStatus: 'synced',
+    transactions: [],
+    utxos: [],
+    ...overrides
+  }
+}
+
+function fillBuilder() {
+  const store = useTransactionBuilderStore.getState()
+  store.addInput({
+    addressTo: ADDRESS,
+    keychain: 'external',
+    label: '',
+    txid: 'aa'.repeat(32),
+    value: 100_000,
+    vout: 0
+  })
+  store.addOutput({ amount: 90_000, label: '', to: ADDRESS ?? '' })
+}
+
+const mounted: ReactTestRenderer[] = []
+
+type TransactionPsbt = ReturnType<typeof useTransactionPsbt>
+type HarnessProps = {
+  account: Account | undefined
+  importedPsbtBase64: string | undefined
+}
+
+async function renderTransactionPsbt(props: HarnessProps) {
+  const onNotice = jest.fn()
+  const hook: { current: TransactionPsbt | null } = { current: null }
+  function Harness({ account, importedPsbtBase64 }: HarnessProps) {
+    hook.current = useTransactionPsbt({
+      account,
+      accountId: 'acc-1',
+      importedPsbtBase64,
+      onNotice
+    })
+    return null
+  }
+  await act(async () => {
+    mounted.push(create(createElement(Harness, props)))
+  })
+  const renderer = mounted.at(-1)
+  async function rerender(nextProps: HarnessProps) {
+    await act(async () => {
+      renderer?.update(createElement(Harness, nextProps))
+    })
+  }
+  return { hook, onNotice, rerender }
+}
+
+describe('useTransactionPsbt', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useTransactionBuilderStore.getState().clearTransaction()
+    mockUseWallet.mockReturnValue({ wallet: 'stub' })
+  })
+
+  afterEach(() => {
+    act(() => {
+      for (const renderer of mounted.splice(0)) {
+        renderer.unmount()
+      }
+    })
+  })
+
+  it('builds the preview PSBT from the builder state', async () => {
+    fillBuilder()
+    const built = createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    mockBuildPsbt.mockResolvedValue(built)
+
+    const { hook } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64: undefined
+    })
+
+    expect(mockBuildPsbt).toHaveBeenCalledTimes(1)
+    expect(mockBuildPsbt).toHaveBeenCalledWith(
+      { wallet: 'stub' },
+      expect.anything(),
+      undefined,
+      expect.objectContaining({ fee: expect.any(Number) })
+    )
+    expect(hook.current?.psbtBuildStatus).toBe('idle')
+    expect(hook.current?.transactionId).toBe('built-txid')
+    expect(useTransactionBuilderStore.getState().psbt).toBe(built)
+    expect(hook.current?.serializedPsbt).toBe(
+      Buffer.from(routePsbtBase64(), 'base64').toString('hex')
+    )
+  })
+
+  it('reports an invalid output address once, not on every account update', async () => {
+    fillBuilder()
+    const testnetAddress = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    useTransactionBuilderStore
+      .getState()
+      .addOutput({ amount: 1000, label: '', to: testnetAddress })
+    mockBuildPsbt.mockResolvedValue(
+      createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    )
+
+    const { onNotice, rerender } = await renderTransactionPsbt({
+      account: makeAccount(),
+      importedPsbtBase64: undefined
+    })
+    await rerender({ account: makeAccount(), importedPsbtBase64: undefined })
+
+    const invalidAddressNotices = onNotice.mock.calls.filter(
+      ([notice]) => notice.key === 'transaction.preview.invalidAddressFormat'
+    )
+    expect(invalidAddressNotices).toStrictEqual([
+      [
+        {
+          key: 'transaction.preview.invalidAddressFormat',
+          params: { address: testnetAddress },
+          type: 'error'
+        }
+      ]
+    ])
+  })
+
+  it('fails the build when the account has no wallet', async () => {
+    fillBuilder()
+    mockUseWallet.mockReturnValue(undefined)
+
+    const { hook, onNotice } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64: undefined
+    })
+
+    expect(hook.current?.psbtBuildStatus).toBe('error')
+    expect(hook.current?.psbtBuildError).toStrictEqual({
+      key: 'transaction.error.previewMissingWallet'
+    })
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'error.notFound.wallet',
+      type: 'error'
+    })
+  })
+
+  it('fails the build when there are no inputs', async () => {
+    const { hook } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64: undefined
+    })
+
+    expect(hook.current?.psbtBuildError).toStrictEqual({
+      key: 'transaction.error.previewMissingInputs'
+    })
+    expect(mockBuildPsbt).not.toHaveBeenCalled()
+  })
+
+  it('flags a dust output without a toast', async () => {
+    fillBuilder()
+    mockBuildPsbt.mockRejectedValue(new Error('Output below the dust limit'))
+
+    const { hook, onNotice } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64: undefined
+    })
+
+    expect(hook.current?.isDustError).toBe(true)
+    expect(hook.current?.psbtBuildError).toStrictEqual({
+      key: 'transaction.error.previewBuildFailedDust'
+    })
+    expect(onNotice).not.toHaveBeenCalled()
+  })
+
+  it("reports other build errors with the library's message", async () => {
+    fillBuilder()
+    mockBuildPsbt.mockRejectedValue(new Error('Insufficient funds'))
+
+    const { hook, onNotice } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64: undefined
+    })
+
+    expect(hook.current?.isDustError).toBe(false)
+    expect(onNotice).toHaveBeenCalledWith({
+      text: 'Insufficient funds',
+      type: 'error'
+    })
+  })
+
+  it('imports the route PSBT instead of building one', async () => {
+    const importedPsbtBase64 = routePsbtBase64()
+
+    const { hook, onNotice } = await renderTransactionPsbt({
+      account: undefined,
+      importedPsbtBase64
+    })
+
+    expect(mockBuildPsbt).not.toHaveBeenCalled()
+    expect(useTransactionBuilderStore.getState().psbt?.toBase64()).toBe(
+      importedPsbtBase64
+    )
+    expect(hook.current?.transactionId).not.toBe('')
+    expect(hook.current?.isLoadingPSBT).toBe(false)
+    expect(onNotice).toHaveBeenCalledWith({
+      key: 'transaction.preview.psbtLoadedLimited',
+      type: 'info'
+    })
+  })
+
+  it('re-imports the route PSBT only when the account id changes', async () => {
+    const importedPsbtBase64 = routePsbtBase64()
+    const { rerender } = await renderTransactionPsbt({
+      account: makeAccount(),
+      importedPsbtBase64
+    })
+    expect(useTransactionBuilderStore.getState().psbt?.toBase64()).toBe(
+      importedPsbtBase64
+    )
+    // A re-import clears the signed transaction.
+    act(() => {
+      useTransactionBuilderStore.getState().setSignedTx('signed-hex')
+    })
+
+    await rerender({
+      account: makeAccount({ name: 'Renamed' }),
+      importedPsbtBase64
+    })
+    expect(useTransactionBuilderStore.getState().signedTx).toBe('signed-hex')
+
+    await rerender({
+      account: makeAccount({ id: 'acc-2' }),
+      importedPsbtBase64
+    })
+    expect(useTransactionBuilderStore.getState().signedTx).toBeFalsy()
+  })
+})

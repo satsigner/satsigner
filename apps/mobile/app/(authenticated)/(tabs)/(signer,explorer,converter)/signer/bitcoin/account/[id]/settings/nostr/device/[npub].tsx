@@ -128,7 +128,7 @@ export default function DeviceAliasPage() {
         return
       }
       const updated = {
-        ...(account.nostr.npubProfiles || {}),
+        ...account.nostr.npubProfiles,
         [npub]: {
           displayName: profile.displayName,
           picture: profile.picture
@@ -159,7 +159,7 @@ export default function DeviceAliasPage() {
     if (!accountId || !account?.nostr || !npub) {
       return
     }
-    const profiles = { ...(account.nostr.npubProfiles || {}) }
+    const profiles = { ...account.nostr.npubProfiles }
     delete profiles[npub]
     const payload: Parameters<typeof updateAccountNostr>[1] = {
       lastUpdated: new Date(),
@@ -187,7 +187,7 @@ export default function DeviceAliasPage() {
     }
 
     const updatedAliases = {
-      ...(account.nostr.npubAliases || {}),
+      ...account.nostr.npubAliases,
       ...(alias.trim() ? { [npub]: alias.trim() } : {})
     }
 

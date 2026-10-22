@@ -32,24 +32,24 @@ describe('jsonl to labels', () => {
   it('reads an ISO-8601 time and typed BIP-329 fields', () => {
     const line = JSON.stringify({
       fee: 164,
-      height: 776112,
+      height: 776_112,
       label: 'Transaction',
-      rate: { USD: 23012.12 },
+      rate: { USD: 23_012.12 },
       ref: TXID,
       time: '2023-02-22T20:31:26Z',
       type: 'tx',
-      value: -4500000
+      value: -4_500_000
     })
     expect(JSONLtoLabels(line)).toStrictEqual([
       {
         fee: 164,
-        height: 776112,
+        height: 776_112,
         label: 'Transaction',
-        rate: { USD: 23012.12 },
+        rate: { USD: 23_012.12 },
         ref: TXID,
         time: new Date('2023-02-22T20:31:26Z'),
         type: 'tx',
-        value: -4500000
+        value: -4_500_000
       }
     ])
   })

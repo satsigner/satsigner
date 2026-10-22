@@ -82,3 +82,9 @@ export const MempoolServers: Record<Network, Server['url']> = {
   signet: 'https://mempool.space/signet/api',
   testnet: 'https://mempool.space/testnet4/api'
 }
+
+export const MEMPOOL_SERVER_BY_CORE_CHAIN: Record<string, Server['url']> = {
+  main: MempoolServers.bitcoin,
+  signet: MempoolServers.signet,
+  test: MempoolServers.testnet
+}

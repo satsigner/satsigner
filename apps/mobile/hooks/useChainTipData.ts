@@ -9,7 +9,7 @@ import {
 } from '@/api/explorerMempool'
 import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
-import { MS_PER_SECOND } from '@/constants/time'
+import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Block, MemPoolFees } from '@/types/models/Blockchain'
@@ -211,8 +211,6 @@ export function useChainTipMempoolStats(
     staleTime: time.minutes(5)
   })
 }
-
-const SECONDS_PER_DAY = 86_400
 
 function windowPriceHistory(series: { price: number; time: number }[]) {
   const cutoff =

@@ -102,6 +102,12 @@ export type EcashMeltResult = {
   spentProofs?: EcashProof[]
 }
 
+export type EcashTokenValidation = {
+  isValid: boolean
+  isSpent?: boolean
+  details?: string
+}
+
 export type EcashMintResult = {
   proofs: EcashProof[]
   totalAmount: number
@@ -122,3 +128,17 @@ export type EcashTransaction = {
   quoteId?: string // For mint/melt transactions
   expiry?: number // Expiration timestamp for mint/melt transactions
 }
+
+export type EcashAccountStore = {
+  getMints: () => EcashMint[]
+  getProofs: () => EcashProof[]
+  getCounters: () => EcashKeysetCounter[]
+  addMint: (mint: EcashMint) => void
+  addProofs: (proofs: EcashProof[]) => void
+  updateMintBalance: (mintUrl: string, balance: number) => void
+  advanceKeysetCounter: (keysetId: string, nextCounter: number) => void
+}
+
+export type EcashPaymentFailure =
+  | { reason: 'insufficientProofs' | 'insufficientForFees' | 'mintsLackMpp' }
+  | { reason: 'mppPartialPayment'; settled: number; total: number }

@@ -87,7 +87,7 @@ describe('shouldFullScan', () => {
     expect(
       shouldFullScan({
         account: makeAccount({ addresses: [addressAt(4, 'external')] }),
-        checkpoint: { height: 1_052 },
+        checkpoint: { height: 1052 },
         forceFullScan: false
       })
     ).toBe(false)

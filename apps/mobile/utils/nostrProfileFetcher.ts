@@ -1,5 +1,6 @@
 import type NDK from '@nostr-dev-kit/ndk'
 import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import {
   createEphemeralNdk,
@@ -24,9 +25,9 @@ const QUEUE_FLUSH_AT = 100
 const MAX_ATTEMPTS_PER_PUBKEY = 2
 // EOSE closes the fetch as soon as relays finish; the timeout is only a
 // backstop, so cache hits return as fast as relays answer.
-const FETCH_EOSE_TIMEOUT_MS = 5_000
+const FETCH_EOSE_TIMEOUT_MS = 5000
 // Longer cap for cold ephemeral connections to the indexer tier.
-const EPHEMERAL_CONNECT_TIMEOUT_MS = 8_000
+const EPHEMERAL_CONNECT_TIMEOUT_MS = 8000
 
 type ProfileBatch = Map<string, NostrKind0Profile>
 type BatchCallback = (batch: ProfileBatch) => void
@@ -100,7 +101,7 @@ function fetchKind0Events(
     const newest: FetchResult = new Map()
     const filter: NDKFilter = {
       authors: hexPubkeys,
-      kinds: [0],
+      kinds: [nostrKinds.Metadata],
       limit: hexPubkeys.length
     }
     const sub = ndk.subscribe(filter, { closeOnEose: false })

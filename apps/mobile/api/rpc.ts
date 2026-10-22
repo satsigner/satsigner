@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import z from 'zod'
 
+import { HTTP_STATUS } from '@/constants/http'
 import {
   RPC_DEFAULT_TIMEOUT_MS,
   RPC_LIST_TRANSACTIONS_COUNT,
@@ -173,7 +174,7 @@ async function rpcFetch<T>(
   }
 
   // Wrong username or password.
-  if (response.status === 401) {
+  if (response.status === HTTP_STATUS.UNAUTHORIZED) {
     throw new HttpStatusError(
       response.status,
       'Authentication failed (HTTP 401).\n' +
@@ -182,7 +183,7 @@ async function rpcFetch<T>(
   }
 
   // Device IP not in rpcallowip.
-  if (response.status === 403) {
+  if (response.status === HTTP_STATUS.FORBIDDEN) {
     throw new HttpStatusError(
       response.status,
       'Node refused the connection (HTTP 403).\n' +
@@ -679,7 +680,7 @@ export class BitcoinCoreWallet {
   listUnspent(): Promise<CoreUnspent[]> {
     return this._walletCall<CoreUnspent[]>('listunspent', [
       0, // minconf
-      9999999 // maxconf
+      9_999_999 // maxconf
     ])
   }
 

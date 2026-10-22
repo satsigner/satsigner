@@ -2,6 +2,7 @@ import { bech32 } from 'bech32'
 import z from 'zod'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { HTTP_STATUS } from '@/constants/http'
 import type {
   LNURLPayResponse,
   LNURLWithdrawDetails,
@@ -131,7 +132,7 @@ export function isLNURL(input: string): boolean {
 export function decodeLNURL(input: string): string {
   let cleanInput = input.trim().toLowerCase()
   if (cleanInput.toLowerCase().startsWith('lightning:')) {
-    cleanInput = cleanInput.substring('lightning:'.length)
+    cleanInput = cleanInput.slice('lightning:'.length)
   }
 
   if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
@@ -181,7 +182,7 @@ export async function fetchLNURLPayDetails(
   assertHttpsUrl(url)
   let response = await fetch(url)
 
-  if (response.status === 404) {
+  if (response.status === HTTP_STATUS.NOT_FOUND) {
     const apiUrl = new URL(url)
     const pathParts = apiUrl.pathname.split('/')
     const lastPart = pathParts.at(-1)!

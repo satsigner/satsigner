@@ -27,12 +27,14 @@ import type {
   EcashProof,
   EcashReceiveResult,
   EcashSendResult,
+  EcashTokenValidation,
   MeltQuote,
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
 import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
+import { withTimeout } from '@/utils/time'
 
 type KeysetResponse = {
   id: string
@@ -479,7 +481,7 @@ export async function validateEcashToken(
   accountId: string,
   mintUrl: string,
   options?: WalletOptions
-): Promise<{ isValid: boolean; isSpent?: boolean; details?: string }> {
+): Promise<EcashTokenValidation> {
   try {
     const decodedToken = getDecodedToken(token)
 
@@ -629,15 +631,6 @@ export async function restoreProofsFromSeed(
     lastCounter,
     proofs: unspentProofs
   }
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_resolve, reject) => {
-      setTimeout(() => reject(new Error('Operation timed out')), ms)
-    })
-  ])
 }
 
 export function clearWalletCache(accountId?: string, mintUrl?: string): void {

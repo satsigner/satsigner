@@ -49,7 +49,10 @@ export function restBaseUrlFromPairingUri(rawUrl: string): string {
   if (parsed.port === LND_GRPC_LISTEN_PORT) {
     parsed.port = LNDCONNECT_DEFAULT_REST_PORT
   }
-  parsed.pathname = parsed.pathname.replace(/\/lnd-grpc(?=\/|$)/gi, '/lnd-rest')
+  parsed.pathname = parsed.pathname.replaceAll(
+    /\/lnd-grpc(?=\/|$)/gi,
+    '/lnd-rest'
+  )
   return normalizeLndRestBaseUrl(parsed.toString())
 }
 
@@ -91,12 +94,12 @@ export function getLndConfigFileUrlFromConnectionInput(
 }
 
 function compactUri(raw: string): string {
-  return raw.replace(/\s+/g, '')
+  return raw.replaceAll(/\s+/g, '')
 }
 
 function decodeLndConnectQueryValue(raw: string): string {
   try {
-    return decodeURIComponent(raw.replace(/\+/g, '%2B'))
+    return decodeURIComponent(raw.replaceAll('+', '%2B'))
   } catch {
     return raw
   }
@@ -248,7 +251,7 @@ export async function resolveLndConfigFromConnectionInput(
  * hexadecimal. Hosts often ship base64 or base64url in JSON.
  */
 export function macaroonToLndRestHexHeader(raw: string): string {
-  const normalized = raw.trim().replace(/\s+/g, '')
+  const normalized = raw.trim().replaceAll(/\s+/g, '')
   const s =
     normalized.startsWith('0x') || normalized.startsWith('0X')
       ? normalized.slice(2)
@@ -261,7 +264,7 @@ export function macaroonToLndRestHexHeader(raw: string): string {
   }
 
   const decodeBase64Padded = (input: string): Buffer | null => {
-    const normalized = input.replace(/-/g, '+').replace(/_/g, '/')
+    const normalized = input.replaceAll('-', '+').replaceAll('_', '/')
     const padLen = (4 - (normalized.length % 4)) % 4
     const padded = normalized + '='.repeat(padLen)
     try {
@@ -419,7 +422,7 @@ async function fetchLndConfig(configUrl: string): Promise<LNDConfig> {
   const response = await fetch(configUrl)
   const text = await response.text()
   if (!response.ok) {
-    const hint = text.replace(/\s+/g, ' ').trim().slice(0, 140)
+    const hint = text.replaceAll(/\s+/g, ' ').trim().slice(0, 140)
     throw new Error(
       hint
         ? `Config fetch failed (${response.status}): ${hint}`

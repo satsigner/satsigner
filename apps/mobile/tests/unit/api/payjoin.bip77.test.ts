@@ -14,7 +14,10 @@ import {
   sendPayjoin,
   type FetchLike
 } from '@/api/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
@@ -28,7 +31,7 @@ function buildPsbt(params: {
     psbt.addInput({
       hash: input.txid,
       index: input.vout,
-      sequence: 0xfffffffd,
+      sequence: 0xff_ff_ff_fd,
       witnessUtxo: {
         script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
         value: 100_000
@@ -103,7 +106,9 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 50_000
+      amountSats: 50_000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     expect(session.status).toBe('ready')
@@ -111,6 +116,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
 
     const polled = await pollReceiverSession({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session
     })
@@ -121,7 +127,9 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 50_000
+      amountSats: 50_000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     const withProposal = {
@@ -132,6 +140,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
 
     const polled = await pollReceiverSession({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: withProposal
     })
@@ -144,7 +153,9 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 50_000
+      amountSats: 50_000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     const withProposal = {
@@ -154,6 +165,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
 
     const polled = await pollReceiverSession({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: withProposal
     })
@@ -164,11 +176,14 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
   it('receiver finalizes after directory-bridged BIP78 original', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     const finalized = await processDirectoryBridgedBip78Proposal({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
       session
@@ -184,7 +199,9 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
   it('prefers unseen contribute inputs over seen ones', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     usePayjoinSessionsStore.getState().markInputSeen(`${TXID_B}:1`)
 
@@ -212,6 +229,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
           }
         ]
       },
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: withProposal
     })
@@ -225,7 +243,9 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
   it('reuses an unspent seen input when it is the only candidate', async () => {
     const session = await createReceivePayjoinSession({
       accountId: 'a1',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     usePayjoinSessionsStore.getState().markInputSeen(`${TXID_B}:1`)
 
@@ -247,6 +267,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
           }
         ]
       },
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: withProposal
     })
@@ -275,6 +296,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
         ...callbacks,
         signPsbt: (psbt) => `SIGNED:${psbt}`
       },
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [paymentScript.toString('hex')],
@@ -297,6 +319,7 @@ describe('payjoin BIP77 + directory BIP78 bridge (phases 3–5)', () => {
   it('times out BIP77 send to fallback when no proposal', async () => {
     const result = await sendPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [paymentScript.toString('hex')],

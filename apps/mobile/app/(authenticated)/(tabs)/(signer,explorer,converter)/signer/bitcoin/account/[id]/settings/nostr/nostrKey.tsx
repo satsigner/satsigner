@@ -162,7 +162,7 @@ function NostrKeys() {
       if (profile && (profile.displayName || profile.picture)) {
         setKind0Profile(profile)
         const npubProfiles = {
-          ...(account.nostr.npubProfiles || {}),
+          ...account.nostr.npubProfiles,
           [derivedNpub]: {
             displayName: profile.displayName,
             picture: profile.picture
@@ -358,7 +358,7 @@ function NostrKeys() {
     if (nsecChanged) {
       updates.deviceDisplayName = undefined
       updates.devicePicture = undefined
-      const profiles = { ...(base.npubProfiles || {}) }
+      const profiles = { ...base.npubProfiles }
       if (base.deviceNpub) {
         delete profiles[base.deviceNpub]
       }
@@ -379,7 +379,7 @@ function NostrKeys() {
       return
     }
     setKind0Profile(null)
-    const profiles = { ...(account.nostr.npubProfiles || {}) }
+    const profiles = { ...account.nostr.npubProfiles }
     if (derivedNpub) {
       delete profiles[derivedNpub]
     }

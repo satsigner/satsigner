@@ -11,8 +11,8 @@ import {
   PAYJOIN_DEFAULT_PJOS
 } from '@/constants/payjoin'
 import { t } from '@/locales'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import {
+  type PayjoinDeps,
   type PayjoinSession,
   type PayjoinWalletCallbacks
 } from '@/types/payjoin'
@@ -113,6 +113,7 @@ type PayjoinRoundtripEnv = {
   ) => Promise<string>
   /** Broadcast the final Payjoin PSBT via the configured Signet backend. */
   broadcast: (payjoinPsbtBase64: string) => Promise<string>
+  payjoinDeps: PayjoinDeps
 }
 
 type PayjoinRoundtripResult =
@@ -122,6 +123,7 @@ type PayjoinRoundtripResult =
 async function pollForOriginal(params: {
   session: PayjoinSession
   callbacks: PayjoinWalletCallbacks
+  deps: PayjoinDeps
   signal?: AbortSignal
 }): Promise<PayjoinSession> {
   let current = params.session
@@ -129,6 +131,7 @@ async function pollForOriginal(params: {
     throwIfAborted(params.signal)
     const polled = await pollReceiverSession({
       callbacks: params.callbacks,
+      deps: params.deps,
       session: current
     })
     current = polled.session
@@ -145,6 +148,7 @@ async function pollForProposal(params: {
   paymentAmountSats: number
   callbacks: PayjoinWalletCallbacks
   outputScriptsHex: string[]
+  deps: PayjoinDeps
   signal?: AbortSignal
 }): Promise<string> {
   let current = params.session
@@ -152,6 +156,7 @@ async function pollForProposal(params: {
     throwIfAborted(params.signal)
     const result = await pollBip77Send({
       callbacks: params.callbacks,
+      deps: params.deps,
       disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
       outputScriptsHex: params.outputScriptsHex,
       paymentAmountSats: params.paymentAmountSats,
@@ -181,6 +186,7 @@ async function runPayjoinLiveRoundtrip(params: {
   signal?: AbortSignal
 }): Promise<PayjoinRoundtripResult> {
   const { env, onStep, signal } = params
+  const { sessions } = env.payjoinDeps
   try {
     onStep(payjoinRoundtripStepLabel('preconditions'))
     if (env.network === 'bitcoin') {
@@ -196,6 +202,7 @@ async function runPayjoinLiveRoundtrip(params: {
       accountId: env.receiverAccountId,
       address: env.receiverAddress,
       amountSats: env.paymentAmountSats,
+      deps: env.payjoinDeps,
       network: env.network
     })
     if (receiverSession.error || !receiverSession.nativeState) {
@@ -219,6 +226,7 @@ async function runPayjoinLiveRoundtrip(params: {
     const started = await startBip77Send({
       accountId: env.senderAccountId,
       callbacks: env.senderCallbacks,
+      deps: env.payjoinDeps,
       disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
       originalPsbtBase64,
       outputScriptsHex: env.senderOutputScriptsHex,
@@ -226,13 +234,14 @@ async function runPayjoinLiveRoundtrip(params: {
       paymentAmountSats: env.paymentAmountSats
     })
     if (started.kind === 'fallback') {
-      clearReceiverSessionsForAccount(env.receiverAccountId)
+      clearReceiverSessionsForAccount(env.receiverAccountId, sessions)
       return { error: started.reason, ok: false }
     }
 
     onStep(payjoinRoundtripStepLabel('pollReceiver'))
     const receiverWithOriginal = await pollForOriginal({
       callbacks: env.receiverCallbacks,
+      deps: env.payjoinDeps,
       session: receiverSession,
       signal
     })
@@ -240,10 +249,11 @@ async function runPayjoinLiveRoundtrip(params: {
     onStep(payjoinRoundtripStepLabel('finalizeReceiver'))
     const finalized = await finalizeReceiverPayjoin({
       callbacks: env.receiverCallbacks,
+      deps: env.payjoinDeps,
       session: receiverWithOriginal
     })
     if (finalized.status === 'error') {
-      clearReceiverSessionsForAccount(env.receiverAccountId)
+      clearReceiverSessionsForAccount(env.receiverAccountId, sessions)
       return {
         error:
           finalized.error ??
@@ -258,6 +268,7 @@ async function runPayjoinLiveRoundtrip(params: {
         ? started.result.psbtBase64
         : await pollForProposal({
             callbacks: env.senderCallbacks,
+            deps: env.payjoinDeps,
             outputScriptsHex: env.senderOutputScriptsHex,
             paymentAmountSats: env.paymentAmountSats,
             session: started.session,
@@ -268,20 +279,19 @@ async function runPayjoinLiveRoundtrip(params: {
     throwIfAborted(signal)
     const txid = await env.broadcast(payjoinPsbtBase64)
 
-    clearReceiverSessionsForAccount(env.receiverAccountId)
-    const store = usePayjoinSessionsStore.getState()
-    for (const session of store.sessions) {
+    clearReceiverSessionsForAccount(env.receiverAccountId, sessions)
+    for (const session of sessions.getSessions()) {
       if (
         session.accountId === env.senderAccountId &&
         session.role === 'sender'
       ) {
-        store.updateSessionStatus(session.id, 'completed')
+        sessions.updateSessionStatus(session.id, 'completed')
       }
     }
 
     return { ok: true, txid }
   } catch (error) {
-    clearReceiverSessionsForAccount(env.receiverAccountId)
+    clearReceiverSessionsForAccount(env.receiverAccountId, sessions)
     return { error: mapPayjoinRoundtripError(error), ok: false }
   }
 }

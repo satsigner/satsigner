@@ -456,7 +456,6 @@ function applyStoreRestore(
     useEcashStore.setState({
       accounts: data.ecash.accounts ?? [],
       activeAccountId: data.ecash.activeAccountId ?? null,
-      checkingTransactionIds: [],
       counters: data.ecash.counters ?? {},
       mints: data.ecash.mints ?? {},
       proofs: data.ecash.proofs ?? {},

@@ -96,7 +96,7 @@ function useSyncAccountWithAddress() {
           continue
         }
 
-        if (!isNaN(date.getTime())) {
+        if (!Number.isNaN(date.getTime())) {
           transaction.timestamp = date
           timestamps.push(formatTimestamp(date))
         } else {
@@ -181,13 +181,12 @@ function useSyncAccountWithAddress() {
       account
 
     const addressDescriptors = await decryptAccountAddressDescriptors(latest)
-    let updatedAccount: Account = { ...latest }
-
-    updatedAccount.syncProgress = {
-      tasksDone: 0,
-      totalTasks: 0
+    const initialSyncProgress = { tasksDone: 0, totalTasks: 0 }
+    let updatedAccount: Account = {
+      ...latest,
+      syncProgress: initialSyncProgress
     }
-    setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
+    setSyncProgress(updatedAccount.id, initialSyncProgress)
 
     updatedAccount.summary = {
       ...updatedAccount.summary,
