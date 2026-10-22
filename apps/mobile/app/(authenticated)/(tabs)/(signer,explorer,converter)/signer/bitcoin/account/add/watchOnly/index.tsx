@@ -671,11 +671,7 @@ export default function WatchOnly() {
       const text = sanitizeScannedText(nfcData.text)
 
       if (selectedOption === 'importDescriptor') {
-        let externalDescriptor = text
-        let internalDescriptor = ''
-        if (text.includes('\n')) {
-          ;[externalDescriptor, internalDescriptor] = text.split('\n')
-        }
+        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
           // Validate the combined descriptor and get separated descriptors

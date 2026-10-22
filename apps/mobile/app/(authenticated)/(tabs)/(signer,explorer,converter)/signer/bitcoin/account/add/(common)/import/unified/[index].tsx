@@ -445,12 +445,7 @@ export default function UnifiedImport() {
       const text = sanitizeScannedText(nfcData.text)
 
       if (importType === 'descriptor') {
-        let externalDescriptor = text
-        let internalDescriptor = ''
-        const originalDescriptor = ''
-        if (text.includes('\n')) {
-          ;[externalDescriptor, internalDescriptor] = text.split('\n')
-        }
+        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
           const combinedValidation = validateCombinedDescriptor(
@@ -484,9 +479,7 @@ export default function UnifiedImport() {
           }
         } else {
           if (externalDescriptor) {
-            const descriptorToValidate =
-              originalDescriptor || externalDescriptor
-            updateExternalDescriptor(descriptorToValidate)
+            updateExternalDescriptor(externalDescriptor)
           }
           if (internalDescriptor) {
             updateInternalDescriptor(internalDescriptor)
