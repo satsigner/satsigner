@@ -326,6 +326,33 @@ export default function UnifiedImport() {
     }
   }
 
+  function handleCombinedDescriptorImport(combinedDescriptor: string) {
+    const combinedValidation = validateCombinedDescriptor(
+      combinedDescriptor,
+      scriptVersion,
+      network
+    )
+
+    setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+    setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+    setValidExternalDescriptor(combinedValidation.isValid)
+    setValidInternalDescriptor(combinedValidation.isValid)
+
+    if (!combinedValidation.isValid) {
+      const errorMessage = combinedValidation.error
+        ? t(`account.import.error.${combinedValidation.error}`)
+        : t('account.import.error.descriptorFormat')
+      setExternalDescriptorError(errorMessage)
+      setInternalDescriptorError(errorMessage)
+      return
+    }
+
+    setExternalDescriptor(combinedValidation.externalDescriptor)
+    setInternalDescriptor(combinedValidation.internalDescriptor)
+    setExternalDescriptorError('')
+    setInternalDescriptorError('')
+  }
+
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
     if (!text) {
@@ -362,35 +389,7 @@ export default function UnifiedImport() {
       }
 
       if (isCombinedDescriptor(text)) {
-        const combinedValidation = validateCombinedDescriptor(
-          text,
-          scriptVersion,
-          network
-        )
-
-        if (combinedValidation.isValid) {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-        } else {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-        }
+        handleCombinedDescriptorImport(text)
       } else {
         if (externalDescriptor) {
           const descriptorToValidate = originalDescriptor || externalDescriptor
@@ -448,35 +447,7 @@ export default function UnifiedImport() {
         const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
-          const combinedValidation = validateCombinedDescriptor(
-            text,
-            scriptVersion,
-            network
-          )
-
-          if (combinedValidation.isValid) {
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-            setValidExternalDescriptor(true)
-            setValidInternalDescriptor(true)
-
-            setExternalDescriptor(combinedValidation.externalDescriptor)
-            setInternalDescriptor(combinedValidation.internalDescriptor)
-
-            setExternalDescriptorError('')
-            setInternalDescriptorError('')
-          } else {
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-            setValidExternalDescriptor(false)
-            setValidInternalDescriptor(false)
-
-            const errorMessage = combinedValidation.error
-              ? t(`account.import.error.${combinedValidation.error}`)
-              : t('account.import.error.descriptorFormat')
-            setExternalDescriptorError(errorMessage)
-            setInternalDescriptorError(errorMessage)
-          }
+          handleCombinedDescriptorImport(text)
         } else {
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
