@@ -179,16 +179,12 @@ export default function Charts() {
                   )}
                   selected={selectedShowFiatOnChart}
                   disabled={!showCurrentFiat}
-                  onPress={
-                    !showCurrentFiat
-                      ? undefined
-                      : () => {
-                          setSelectedShowFiatOnChart((prev) => !prev)
-                          if (selectedShowFiatOnChart) {
-                            setSelectedShowFiatAtTxTime(false)
-                          }
-                        }
-                  }
+                  onPress={() => {
+                    setSelectedShowFiatOnChart((prev) => !prev)
+                    if (selectedShowFiatOnChart) {
+                      setSelectedShowFiatAtTxTime(false)
+                    }
+                  }}
                 />
                 <SSCheckbox
                   label={t(
@@ -196,11 +192,7 @@ export default function Charts() {
                   )}
                   selected={selectedShowFiatAtTxTime}
                   disabled={historicalFiatDisabled || !selectedShowFiatOnChart}
-                  onPress={
-                    historicalFiatDisabled || !selectedShowFiatOnChart
-                      ? undefined
-                      : () => setSelectedShowFiatAtTxTime((prev) => !prev)
-                  }
+                  onPress={() => setSelectedShowFiatAtTxTime((prev) => !prev)}
                 />
                 <SSCheckbox
                   label={t(
@@ -208,10 +200,8 @@ export default function Charts() {
                   )}
                   selected={selectedShowHistoricalFiatLine}
                   disabled={historicalFiatDisabled}
-                  onPress={
-                    historicalFiatDisabled
-                      ? undefined
-                      : () => setSelectedShowHistoricalFiatLine((prev) => !prev)
+                  onPress={() =>
+                    setSelectedShowHistoricalFiatLine((prev) => !prev)
                   }
                 />
                 <SSCheckbox
@@ -220,11 +210,8 @@ export default function Charts() {
                   )}
                   selected={selectedShowFiatPercentageChange}
                   disabled={historicalFiatDisabled}
-                  onPress={
-                    historicalFiatDisabled
-                      ? undefined
-                      : () =>
-                          setSelectedShowFiatPercentageChange((prev) => !prev)
+                  onPress={() =>
+                    setSelectedShowFiatPercentageChange((prev) => !prev)
                   }
                 />
                 {missingFiatData ? (
