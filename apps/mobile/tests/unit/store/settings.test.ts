@@ -7,7 +7,7 @@ import {
 
 const initialState = useSettingsStore.getState()
 
-describe('settings fiat helpers', () => {
+describe('settings store', () => {
   afterEach(() => {
     useSettingsStore.setState(initialState, true)
   })
