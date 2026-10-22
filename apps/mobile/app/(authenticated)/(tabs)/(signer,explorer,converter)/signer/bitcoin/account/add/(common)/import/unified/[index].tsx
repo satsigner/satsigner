@@ -344,6 +344,10 @@ export default function UnifiedImport() {
         : t('account.import.error.descriptorFormat')
       setExternalDescriptorError(errorMessage)
       setInternalDescriptorError(errorMessage)
+      updateDescriptorValidationState({
+        validExternalDescriptor: false,
+        validInternalDescriptor: false
+      })
       return
     }
 
@@ -351,6 +355,12 @@ export default function UnifiedImport() {
     setInternalDescriptor(combinedValidation.internalDescriptor)
     setExternalDescriptorError('')
     setInternalDescriptorError('')
+    updateDescriptorValidationState({
+      externalDescriptor: combinedValidation.externalDescriptor,
+      internalDescriptor: combinedValidation.internalDescriptor,
+      validExternalDescriptor: true,
+      validInternalDescriptor: true
+    })
   }
 
   async function pasteFromClipboard() {
@@ -489,41 +499,7 @@ export default function UnifiedImport() {
         return
       }
       if (parsed.combined) {
-        const combinedValidation = validateCombinedDescriptor(
-          parsed.combined,
-          scriptVersion,
-          network
-        )
-        if (combinedValidation.isValid) {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-          updateDescriptorValidationState({
-            externalDescriptor: combinedValidation.externalDescriptor,
-            internalDescriptor: combinedValidation.internalDescriptor,
-            validExternalDescriptor: true,
-            validInternalDescriptor: true
-          })
-        } else {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-          updateDescriptorValidationState({
-            validExternalDescriptor: false,
-            validInternalDescriptor: false
-          })
-        }
+        handleCombinedDescriptorImport(parsed.combined)
       } else {
         const externalValidation = updateExternalDescriptor(
           parsed.external,
