@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { Label } from '@/types/bips/329'
@@ -41,7 +42,7 @@ function useNostrLabelSync() {
     }
 
     if (labels.length === 0) {
-      toast.error(t('account.nostrSync.errorMissingData'))
+      toast.error(t('account.nostrSync.noLabels'))
       return
     }
 
@@ -50,7 +51,7 @@ function useNostrLabelSync() {
     // — matching Bitcoin Safe's on_labels_updated which only sends changed refs.
     // For full syncs, chunk all labels at MAX_CHUNK_BYTES per message.
     const MAX_CHUNK_BYTES = 60_000
-    const nowTimestamp = Date.now() / 1000
+    const nowTimestamp = Date.now() / MS_PER_SECOND
 
     // Build the wire-format entry for a label.
     // Bitcoin Safe v1.7.1 calls import_dumps_data() → Label.from_dump() which
@@ -64,7 +65,7 @@ function useNostrLabelSync() {
         : typeof label.time === 'number'
           ? label.time
           : label.time instanceof Date
-            ? label.time.getTime() / 1000
+            ? label.time.getTime() / MS_PER_SECOND
             : nowTimestamp
       const entry: Record<string, unknown> = {
         VERSION: '0.0.3',
@@ -108,7 +109,7 @@ function useNostrLabelSync() {
 
     const buildMessage = (jsonl: string) =>
       JSON.stringify({
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: Math.floor(Date.now() / MS_PER_SECOND),
         data: { data: jsonl, data_type: 'LabelsBip329' },
         description: '',
         label: 1

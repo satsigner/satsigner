@@ -1,5 +1,6 @@
 import {
   Redirect,
+  router,
   Stack,
   useFocusEffect,
   useLocalSearchParams
@@ -18,6 +19,8 @@ import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
+import { MS_PER_SECOND } from '@/constants/time'
+import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
@@ -86,6 +89,8 @@ export default function DevicesGroupChat() {
         state.markDmsAsRead
       ])
     )
+  const { data: keyFingerprintsByAccount = {} } =
+    useAccountKeyFingerprints(accounts)
 
   useFocusEffect(
     useCallback(() => {
@@ -185,7 +190,7 @@ export default function DevicesGroupChat() {
         toast.error(t('common.error.missingRequiredNostrConfig'))
         return
       }
-      const created_at = Math.floor(Date.now() / 1000)
+      const created_at = Math.floor(Date.now() / MS_PER_SECOND)
       pendingId = `pending-${Date.now()}`
       const optimisticMessage: NostrDM = {
         author: devicePubkeyHex,
@@ -201,7 +206,7 @@ export default function DevicesGroupChat() {
         label: 1,
         pending: true
       }
-      updateAccountNostr(accountId!, {
+      updateAccountNostr(accountId, {
         dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
           (a, b) => a.created_at - b.created_at
         )
@@ -505,10 +510,23 @@ export default function DevicesGroupChat() {
                   item={item}
                   account={account}
                   accounts={accounts}
+                  keyFingerprintsByAccount={keyFingerprintsByAccount}
                   formattedNpubs={formattedNpubs}
                   visibleComponents={visibleComponents}
                   onToggleVisibility={handleToggleVisibility}
                   onGoToSignFlow={handleGoToSignFlowClick}
+                  onAuthorPress={(npub) =>
+                    router.push({
+                      params: { id: accountId, npub },
+                      pathname:
+                        '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
+                    })
+                  }
+                  onOpenLinkedTx={(matchedAccountId, linkedTxId) =>
+                    router.push(
+                      `/signer/bitcoin/account/${matchedAccountId}/transaction/${linkedTxId}`
+                    )
+                  }
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -574,6 +592,7 @@ export default function DevicesGroupChat() {
                   transactionData={transactionDataForModal}
                   account={account}
                   accounts={accounts}
+                  keyFingerprintsByAccount={keyFingerprintsByAccount}
                 />
               ) : (
                 <SSText style={styles.modalMessageText}>

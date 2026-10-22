@@ -1,6 +1,12 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { MS_PER_SECOND } from '@/constants/time'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
-import type { Account, Key, Secret } from '@/types/models/Account'
+import {
+  type Account,
+  type Key,
+  type Secret,
+  SecretSchema
+} from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
 import { getPin } from '@/utils/pin'
@@ -137,7 +143,7 @@ export async function dropSeedFromKey(
   }
 
   const decryptedString = await aesDecrypt(stored.secret, pin, stored.iv)
-  const decryptedSecret = JSON.parse(decryptedString) as Secret
+  const decryptedSecret = SecretSchema.parse(JSON.parse(decryptedString))
   const secretWithoutSeed: Secret = {
     extendedPublicKey: decryptedSecret.extendedPublicKey,
     externalDescriptor: decryptedSecret.externalDescriptor,
@@ -167,6 +173,23 @@ export function dropSeedFromKeyInMemory(key: Key): Key {
       fingerprint: secret.fingerprint,
       internalDescriptor: secret.internalDescriptor
     }
+  }
+}
+
+/**
+ * Key slot the user reset: source and secret are cleared, so the key controls
+ * show it as unfilled ("select key source") until a new key is set.
+ */
+export function createResetKey(index: Key['index']): Key {
+  return {
+    creationType: undefined,
+    fingerprint: undefined,
+    index,
+    iv: '',
+    mnemonicWordCount: undefined,
+    name: '',
+    scriptVersion: undefined,
+    secret: ''
   }
 }
 
@@ -256,7 +279,7 @@ export function checkWalletNeedsSync(
     lastSync.getDate()
   )
 
-  const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+  const MILISECONDS_PER_DAY = MS_PER_SECOND * 60 * 60 * 24
   const daysSinceLastSync = Math.floor(
     (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
   )

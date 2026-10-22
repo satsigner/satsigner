@@ -15,6 +15,7 @@ import {
   HEADER_CHROME_ICON_SIZE
 } from '@/constants/headerChrome'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
@@ -39,7 +40,7 @@ function formatUnixTimestamp(unixSeconds: number): string {
   if (!unixSeconds) {
     return '—'
   }
-  return new Date(unixSeconds * 1000).toLocaleString('en-US', {
+  return new Date(unixSeconds * MS_PER_SECOND).toLocaleString('en-US', {
     day: 'numeric',
     hour: 'numeric',
     hour12: true,
@@ -661,13 +662,10 @@ export default function LndTransactionDetailPage() {
           }
         })
       )
-      return Object.fromEntries(entries) as Record<
-        string,
-        LNDGraphNodeInfo | null
-      >
+      return Object.fromEntries(entries)
     },
     queryKey: ['lnd', 'nodeInfo', ...hopPubkeys],
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * MS_PER_SECOND
   })
 
   const satsAbs = tx ? Math.abs(tx.amount) : 0

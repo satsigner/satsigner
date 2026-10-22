@@ -11,6 +11,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -42,8 +43,8 @@ import {
   LND_NODE_CARD_PUBKEY_TAIL_CHARS
 } from '@/constants/lightning'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useContentHandler } from '@/hooks/useContentHandler'
-import { useLightningContentHandler } from '@/hooks/useLightningContentHandler'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
@@ -149,13 +150,11 @@ export default function NodeDetailPage() {
   const { channels, isConnecting, isConnected } = useLND()
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const lightningContentHandler = useLightningContentHandler()
-
   const contentHandler = useContentHandler({
     context: 'lightning',
-    onContentScanned: lightningContentHandler.handleContentScanned,
-    onReceive: lightningContentHandler.handleReceive,
-    onSend: lightningContentHandler.handleSend
+    onError: toast.error,
+    receiveHref: '/signer/lightning/invoice',
+    sendHref: '/signer/lightning/pay'
   })
 
   const [currentPage, setCurrentPage] = useState(0)
@@ -501,7 +500,7 @@ export default function NodeDetailPage() {
 
   function renderTxRow(tx: LNDCombinedTransaction) {
     const nowMs = Date.now()
-    const timestamp = new Date(tx.timestamp * 1000)
+    const timestamp = new Date(tx.timestamp * MS_PER_SECOND)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
     const isReceive = tx.amount > 0
     const statusBadge = getTxStatusBadge(tx, nowMs)

@@ -7,6 +7,7 @@ import {
   NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT,
   NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useNostrStore } from '@/store/nostr'
 import { type Account } from '@/types/models/Account'
 
@@ -39,7 +40,7 @@ function useNostrSubscriptionManager() {
     (account: Account, nsec: string): void => {
       // NIP-17 compliance: The 2-day time uncertainty is already handled in api/nostr.ts
       // when constructing the subscription filter. We store the current timestamp here.
-      const timestamp = Math.floor(Date.now() / 1000)
+      const timestamp = Math.floor(Date.now() / MS_PER_SECOND)
       if (nsec === account.nostr.commonNsec) {
         setLastProtocolEOSE(account.id, timestamp)
       } else if (nsec === account.nostr.deviceNsec) {
@@ -71,8 +72,8 @@ function useNostrSubscriptionManager() {
         ? NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN
         : NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT
       await nostrApi.subscribeToKind1059(
-        commonNsec as string,
-        commonNpub as string,
+        commonNsec,
+        commonNpub,
         (messages) => messageProcessor.processEventBatch(account, messages),
         limit,
         lastProtocolEOSE,
@@ -101,8 +102,8 @@ function useNostrSubscriptionManager() {
       }
       await nostrApi.connect()
       await nostrApi.subscribeToKind1059(
-        deviceNsec as string,
-        deviceNpub as string,
+        deviceNsec,
+        deviceNpub,
         (messages) => messageProcessor.processEventBatch(account, messages),
         undefined,
         lastDataExchangeEOSE,

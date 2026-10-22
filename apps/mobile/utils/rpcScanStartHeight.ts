@@ -1,3 +1,6 @@
+import { TARGET_BLOCK_TIME_SECONDS } from '@/constants/consensus'
+import { MS_PER_SECOND } from '@/constants/time'
+
 /** ~2 weeks of blocks — safety buffer around birthday/checkpoint estimates. */
 const RPC_SCAN_BUFFER_BLOCKS = 2016
 
@@ -11,7 +14,7 @@ function estimateBirthHeight(birthday: Date, currentTip: number): number {
   if (currentTip <= 0) {
     return 0
   }
-  const MS_PER_BLOCK = 10 * 60 * 1000 // ~10 minutes
+  const MS_PER_BLOCK = TARGET_BLOCK_TIME_SECONDS * MS_PER_SECOND
   const ageMs = Math.max(0, Date.now() - birthday.getTime())
   const blocksFromTip = Math.round(ageMs / MS_PER_BLOCK)
   return Math.max(0, currentTip - blocksFromTip - RPC_SCAN_BUFFER_BLOCKS)
@@ -25,13 +28,12 @@ function estimateBirthHeight(birthday: Date, currentTip: number): number {
 function estimateDateFromHeight(
   height: number,
   currentTip: number,
-  tipMediantimeSec = Math.floor(Date.now() / 1000)
+  tipMediantimeSec = Math.floor(Date.now() / MS_PER_SECOND)
 ): Date {
-  const SECONDS_PER_BLOCK = 10 * 60
   const unix =
     tipMediantimeSec -
-    Math.max(0, currentTip - Math.max(0, height)) * SECONDS_PER_BLOCK
-  return new Date(Math.max(0, unix) * 1000)
+    Math.max(0, currentTip - Math.max(0, height)) * TARGET_BLOCK_TIME_SECONDS
+  return new Date(Math.max(0, unix) * MS_PER_SECOND)
 }
 
 /**

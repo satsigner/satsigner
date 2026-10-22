@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { Colors } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { bytes } from '@/utils/bytes'
@@ -97,7 +98,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
     const result = mempoolStatistics
       .map((entry, i) => {
-        const date = new Date(entry.added * 1000)
+        const date = new Date(entry.added * MS_PER_SECOND)
         let timestamp
         if (timeRange === 'week') {
           timestamp = date.toLocaleDateString('en-US', {
@@ -238,10 +239,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
                       ) {
                         return null
                       }
-                      const last = pts.at(-1) as {
-                        x: number
-                        y: number
-                      }
+                      const last = pts.at(-1)
                       const y = last?.y ?? 0
                       return { key, top: y - LABEL_FONT_SIZE }
                     })

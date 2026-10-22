@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { getCachedProfile } from '@/db/nostrCache'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -40,7 +41,7 @@ export function useNostrLandingKind0Sync({
       fetchedRef.current.add(i.npub)
     }
 
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / MS_PER_SECOND)
 
     // Apply cache hits immediately; collect misses for a batch relay fetch
     const missIdentities: NostrIdentity[] = []

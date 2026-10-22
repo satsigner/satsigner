@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -26,6 +26,7 @@ type SSExploreBlockProps = {
   block: Block | null
   sourceLabel?: string
   canViewTransactions?: boolean
+  onOpenTransactions?: () => void
 }
 
 /** Consensus weight limit (BIP141). */
@@ -71,8 +72,8 @@ function formatBlockDate(timestamp?: number) {
   if (!timestamp) {
     return ''
   }
-  const date = formatDate(timestamp * 1000)
-  const time = formatTime(new Date(timestamp * 1000))
+  const date = formatDate(timestamp * MS_PER_SECOND)
+  const time = formatTime(new Date(timestamp * MS_PER_SECOND))
   return `${date} ${time}`
 }
 
@@ -110,9 +111,9 @@ function CapacityRow({ label, hint, value }: CapacityRowProps) {
 function SSExploreBlock({
   block,
   sourceLabel,
-  canViewTransactions = false
+  canViewTransactions = false,
+  onOpenTransactions
 }: SSExploreBlockProps) {
-  const router = useRouter()
   const weight = block?.weight || 0
   const size = block?.size || 0
   const vsize = blockVirtualSize(weight)
@@ -131,7 +132,7 @@ function SSExploreBlock({
     if (!canOpenTransactions || !block?.id) {
       return
     }
-    router.push(`/explorer/block/${block.id}/transactions`)
+    onOpenTransactions?.()
   }
 
   return (
