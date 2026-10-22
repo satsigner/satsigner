@@ -104,42 +104,39 @@ function SSTimeAgoText({
     <TimeAgo
       date={date}
       live={live}
-      component={
-        ((props: { children: React.ReactNode }) => {
-          if (suffix) {
-            return (
-              <SSHStack gap="none" style={[{ flex: 1 }, style]}>
-                {renderDateText(props.children)}
-                {renderSuffixText()}
-              </SSHStack>
-            )
-          }
-
-          if (displayRef.current.isOld) {
-            return (
-              <SSText color="muted" size={size} style={style} {...textProps}>
-                {props.children}
-                <SSText size={size} style={{ color: Colors.gray[500] }}>
-                  {` · ${displayRef.current.agoText}`}
-                </SSText>
-              </SSText>
-            )
-          }
-
+      component={(props: { children?: React.ReactNode }) => {
+        if (suffix) {
           return (
-            <SSText
-              color="muted"
-              size={size}
-              style={style}
-              numberOfLines={numberOfLines}
-              {...textProps}
-            >
+            <SSHStack gap="none" style={[{ flex: 1 }, style]}>
+              {renderDateText(props.children)}
+              {renderSuffixText()}
+            </SSHStack>
+          )
+        }
+
+        if (displayRef.current.isOld) {
+          return (
+            <SSText color="muted" size={size} style={style} {...textProps}>
               {props.children}
+              <SSText size={size} style={{ color: Colors.gray[500] }}>
+                {` · ${displayRef.current.agoText}`}
+              </SSText>
             </SSText>
           )
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        }) as any
-      }
+        }
+
+        return (
+          <SSText
+            color="muted"
+            size={size}
+            style={style}
+            numberOfLines={numberOfLines}
+            {...textProps}
+          >
+            {props.children}
+          </SSText>
+        )
+      }}
       formatter={timeFormatter}
     />
   )

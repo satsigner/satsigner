@@ -6,9 +6,8 @@ import {
   ARK_ADDRESS_SCAN_BATCH_SIZE,
   ARK_QUERY_STALE_TIME_MS
 } from '@/constants/ark'
-import { useArkStore } from '@/store/ark'
+import { useArkStore, getArkAccountOrThrow } from '@/store/ark'
 import type { ArkAddress } from '@/types/models/Ark'
-import { getArkAccountOrThrow } from '@/utils/ark'
 import {
   buildArkReceiveInfo,
   countUsedArkAddresses,

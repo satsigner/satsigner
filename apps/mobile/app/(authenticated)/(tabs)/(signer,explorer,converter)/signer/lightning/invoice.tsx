@@ -19,7 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
-import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -138,7 +138,7 @@ export default function InvoicePage() {
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!isNaN(fiat) && btcPrice && btcPrice > 0) {
-      const sats = Math.round((fiat / btcPrice) * 1e8)
+      const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
       setInvoiceAmount(sats > 0 ? sats.toString() : '')
     }
   }
@@ -189,7 +189,9 @@ export default function InvoicePage() {
         setIsLNURLMode(true)
 
         if (details.maxWithdrawable) {
-          const maxSats = Math.floor(details.maxWithdrawable / 1000)
+          const maxSats = Math.floor(
+            details.maxWithdrawable / MILLISATS_PER_SAT
+          )
           setInvoiceAmount(maxSats.toString())
         }
 
@@ -213,7 +215,9 @@ export default function InvoicePage() {
         setIsLNURLMode(true)
 
         if (details.maxWithdrawable) {
-          const maxSats = Math.floor(details.maxWithdrawable / 1000)
+          const maxSats = Math.floor(
+            details.maxWithdrawable / MILLISATS_PER_SAT
+          )
           setInvoiceAmount(maxSats.toString())
         }
 
@@ -486,7 +490,9 @@ export default function InvoicePage() {
                     <SSText color="muted" size="sm">
                       {t('lightning.invoice.availableWithdraw', {
                         amount: formatNumber(
-                          Math.floor(lnurlDetails.maxWithdrawable / 1000)
+                          Math.floor(
+                            lnurlDetails.maxWithdrawable / MILLISATS_PER_SAT
+                          )
                         )
                       })}
                     </SSText>

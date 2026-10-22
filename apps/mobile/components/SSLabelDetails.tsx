@@ -1,4 +1,3 @@
-import { router, type Href } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -13,18 +12,14 @@ import SSText from './SSText'
 
 type SSLabelDetailsProps = {
   label: string
-  link: Href
+  onPress: () => void
   header: string
   privacyMode?: boolean
 }
 
-function openLabelEditor(link: Href) {
-  router.navigate(link)
-}
-
 function SSLabelDetails({
   label: originalLabel,
-  link,
+  onPress,
   header,
   privacyMode = false
 }: SSLabelDetailsProps) {
@@ -37,7 +32,7 @@ function SSLabelDetails({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={header}
-      onPress={() => openLabelEditor(link)}
+      onPress={onPress}
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
       <SSHStack justifyBetween style={styles.row}>

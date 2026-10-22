@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -286,7 +287,9 @@ export function useEcashSend() {
         const details = await fetchLNURLPayDetails(url)
         setLNURLDetails(details)
         if (details.minSendable) {
-          setAmount(Math.ceil(details.minSendable / 1000).toString())
+          setAmount(
+            Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString()
+          )
         }
       } catch {
         setLNURLDetails(null)

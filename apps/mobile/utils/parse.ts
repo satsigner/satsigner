@@ -1,9 +1,18 @@
+import { BITCOIN_URI_SCHEME } from '@/constants/btc'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
-import type { Account } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
 import { type Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './outpoint'
+
+type AccountAddressesSource = Pick<
+  Account,
+  'addresses' | 'transactions' | 'utxos'
+> & {
+  keys: Pick<Key, 'scriptVersion'>[]
+}
 
 function parseAccountAddressesDetails({
   addresses,
@@ -12,25 +21,27 @@ function parseAccountAddressesDetails({
   keys: {
     0: { scriptVersion }
   }
-}: Account): Account['addresses'] {
+}: AccountAddressesSource): Account['addresses'] {
   const labelsBackup: Record<string, string> = {}
 
   for (const addr of addresses) {
     labelsBackup[addr.address] = addr.label
   }
 
-  const addressesDetailed = addresses.map((addr) => ({
-    ...addr,
-    scriptVersion,
-    summary: {
-      balance: 0,
-      satsInMempool: 0,
-      transactions: 0,
-      utxos: 0
-    },
-    transactions: [] as string[],
-    utxos: [] as string[]
-  }))
+  const addressesDetailed = addresses.map(
+    (addr): Address => ({
+      ...addr,
+      scriptVersion,
+      summary: {
+        balance: 0,
+        satsInMempool: 0,
+        transactions: 0,
+        utxos: 0
+      },
+      transactions: [],
+      utxos: []
+    })
+  )
 
   const addrDictionary: Record<string, number> = {}
 
@@ -251,11 +262,19 @@ export function parseDescriptor(descriptor: string) {
   return parseSinglesigDescriptor(d)
 }
 
+function hasBitcoinPrefix(text: string): boolean {
+  return text.toLowerCase().startsWith(BITCOIN_URI_SCHEME)
+}
+
 function stripBitcoinPrefix(text: string): string {
-  if (text.toLowerCase().startsWith('bitcoin:')) {
-    return text.substring(8)
-  }
-  return text
+  return hasBitcoinPrefix(text)
+    ? text.substring(BITCOIN_URI_SCHEME.length)
+    : text
+}
+
+function ensureBitcoinPrefix(text: string): string {
+  const trimmed = text.trim()
+  return hasBitcoinPrefix(trimmed) ? trimmed : `${BITCOIN_URI_SCHEME}${trimmed}`
 }
 
 /** Resolves an explorer `[address]` route param, stripping any `bitcoin:` URI wrapper. */
@@ -345,6 +364,8 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 }
 
 export {
+  ensureBitcoinPrefix,
+  hasBitcoinPrefix,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseLabel,

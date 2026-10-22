@@ -2,6 +2,10 @@
 // TODO: figure out custom server per page
 export const ESPLORA_ADDRESS_TXS_PER_REQUEST = 50
 
+// Confirmed txs per address history page: Blockstream's esplora returns 25,
+// mempool.space 50. A page holding at least this many may have more after it.
+export const ESPLORA_MIN_CHAIN_TXS_PER_PAGE = 25
+
 export const ESPLORA_ERROR_MESSAGES = [
   {
     error: 'timeout',

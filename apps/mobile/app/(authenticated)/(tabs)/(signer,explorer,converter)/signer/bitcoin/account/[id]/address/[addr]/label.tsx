@@ -29,11 +29,11 @@ function AddressLabel() {
   )
 
   function updateLabel(label: string) {
-    const updatedAccount = setAddrLabel(accountId!, addr!, label)
+    const updatedAccount = setAddrLabel(accountId, addr, label)
 
     const singleLabelData: Label = {
       label,
-      ref: addr!,
+      ref: addr,
       spendable: true,
       type: 'addr'
     }
@@ -66,7 +66,11 @@ function AddressLabel() {
             <SSAddressDisplay address={addr} />
           </SSVStack>
         </SSVStack>
-        <SSLabelInput label={address.label} onUpdateLabel={updateLabel} />
+        <SSLabelInput
+          label={address.label}
+          onUpdateLabel={updateLabel}
+          onCancel={() => router.back()}
+        />
       </SSVStack>
     </SSScrollView>
   )

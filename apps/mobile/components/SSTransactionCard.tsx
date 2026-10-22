@@ -1,12 +1,5 @@
-import { useRouter, type Href } from 'expo-router'
 import { useState } from 'react'
-import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useFiatData } from '@/hooks/useFiatData'
@@ -28,16 +21,23 @@ import { parseLabel } from '@/utils/parse'
 import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
+import SSAmountDisplay from './SSAmountDisplay'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
+import SSPressable from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
-function HistoricalFiatUnavailable() {
+type HistoricalFiatUnavailableProps = {
+  onOpenFiatSettings: () => void
+}
+
+function HistoricalFiatUnavailable({
+  onOpenFiatSettings
+}: HistoricalFiatUnavailableProps) {
   const [visible, setVisible] = useState(false)
-  const router = useRouter()
 
   function closeModal() {
     setVisible(false)
@@ -49,7 +49,7 @@ function HistoricalFiatUnavailable() {
 
   function goToFiatDataSettings() {
     setVisible(false)
-    router.navigate('/settings/features/fiatData')
+    onOpenFiatSettings()
   }
 
   return (
@@ -85,7 +85,8 @@ type SSTransactionCardProps = {
   fiatCurrency: Currency
   btcPrice: number
   walletBalance?: number
-  link: Href
+  onPress: () => void
+  onOpenFiatSettings: () => void
   expand: boolean
   style?: StyleProp<ViewStyle>
 }
@@ -98,7 +99,8 @@ function SSTransactionCard({
   fiatCurrency,
   btcPrice,
   walletBalance,
-  link,
+  onPress,
+  onOpenFiatSettings,
   expand,
   style = DEFAULT_STYLE
 }: SSTransactionCardProps) {
@@ -165,12 +167,10 @@ function SSTransactionCard({
     historicalFiatPrice !== '' ||
     (showHistoricalFiat && Boolean(transaction.timestamp))
 
-  const router = useRouter()
-
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)}>
+    <SSPressable onPress={onPress}>
       <SSVStack
         style={[
           {
@@ -244,37 +244,20 @@ function SSTransactionCard({
                   />
                 )}
                 <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                  {privacyMode ? (
-                    <SSText
-                      size={smallView ? 'xl' : '4xl'}
-                      weight="light"
-                      style={{
-                        letterSpacing: smallView ? 0 : -0.5,
-                        lineHeight:
-                          Sizes.text.fontSize[smallView ? 'xl' : '4xl']
-                      }}
-                    >
-                      ••••
-                    </SSText>
-                  ) : (
-                    <SSStyledSatText
-                      amount={Math.abs(amount)}
-                      decimals={0}
-                      useZeroPadding={useZeroPadding}
-                      currency={currencyUnit}
-                      type={type}
-                      textSize={smallView ? 'xl' : '4xl'}
-                      noColor={false}
-                      showSign={false}
-                      weight="light"
-                      letterSpacing={smallView ? 0 : -0.5}
-                    />
-                  )}
-                  <SSText color="muted" size={smallView ? 'xs' : 'sm'}>
-                    {currencyUnit === 'btc'
-                      ? t('bitcoin.btc')
-                      : t('bitcoin.sats')}
-                  </SSText>
+                  <SSAmountDisplay
+                    privacyMode={privacyMode}
+                    amount={Math.abs(amount)}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    currency={currencyUnit}
+                    type={type}
+                    textSize={smallView ? 'xl' : '4xl'}
+                    noColor={false}
+                    showSign={false}
+                    weight="light"
+                    letterSpacing={smallView ? 0 : -0.5}
+                    unitSize={smallView ? 'xs' : 'sm'}
+                  />
                 </SSHStack>
               </SSHStack>
               {hasPriceDisplay ? (
@@ -316,7 +299,9 @@ function SSTransactionCard({
                           ({historicalFiatPrice})
                         </SSText>
                       ) : showHistoricalFiat && transaction.timestamp ? (
-                        <HistoricalFiatUnavailable />
+                        <HistoricalFiatUnavailable
+                          onOpenFiatSettings={onOpenFiatSettings}
+                        />
                       ) : null}
                       {!privacyMode && percentChange !== '' ? (
                         <SSText
@@ -441,7 +426,7 @@ function SSTransactionCard({
           </SSVStack>
         </SSHStack>
       </SSVStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

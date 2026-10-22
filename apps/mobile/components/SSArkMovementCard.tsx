@@ -1,10 +1,9 @@
-import { type Href, useRouter } from 'expo-router'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
 import SSLabelTags from '@/components/SSLabelTags'
-import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import SSHStack from '@/layouts/SSHStack'
@@ -27,9 +26,11 @@ import {
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
 
+import SSPressable from './SSPressable'
+
 type SSArkMovementCardProps = {
   movement: ArkMovement
-  link: Href
+  onPress: () => void
   label?: string
 }
 
@@ -38,11 +39,9 @@ const AMOUNT_CLUSTER_OFFSET_Y = 3
 
 function SSArkMovementCard({
   movement,
-  link,
+  onPress,
   label = ''
 }: SSArkMovementCardProps) {
-  const router = useRouter()
-
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
       state.currencyUnit,
@@ -78,8 +77,8 @@ function SSArkMovementCard({
         : ''
 
   return (
-    <TouchableOpacity
-      onPress={() => router.navigate(link)}
+    <SSPressable
+      onPress={onPress}
       activeOpacity={0.7}
       style={isMuted ? styles.mutedContainer : undefined}
     >
@@ -92,20 +91,13 @@ function SSArkMovementCard({
               size={ICON_SIZE}
             />
             <SSHStack gap="xs" style={styles.amountCluster}>
-              {privacyMode ? (
-                <SSText
-                  size="xl"
-                  weight="light"
-                  style={{ letterSpacing: -0.5 }}
-                >
-                  ••••
-                </SSText>
-              ) : showRefreshLabel ? (
+              {showRefreshLabel ? (
                 <SSText size="xl" weight="light" color="muted">
                   {t('ark.movement.refreshLabel')}
                 </SSText>
               ) : (
-                <SSStyledSatText
+                <SSAmountDisplay
+                  privacyMode={privacyMode}
                   amount={amountSats}
                   decimals={0}
                   useZeroPadding={useZeroPadding}
@@ -117,13 +109,6 @@ function SSArkMovementCard({
                   weight="light"
                   letterSpacing={-0.5}
                 />
-              )}
-              {!showRefreshLabel && (
-                <SSText color="muted" size="sm">
-                  {currencyUnit === 'btc'
-                    ? t('bitcoin.btc')
-                    : t('bitcoin.sats')}
-                </SSText>
               )}
             </SSHStack>
           </SSHStack>
@@ -161,7 +146,7 @@ function SSArkMovementCard({
           )}
         </SSVStack>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

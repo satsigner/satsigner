@@ -20,6 +20,7 @@ import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MAX_SUPPLY_SATS } from '@/constants/consensus'
 import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
@@ -127,7 +128,7 @@ export default function Receive() {
       state.setAddrLabel
     ])
   )
-  const wallet = useGetAccountWallet(id!)
+  const wallet = useGetAccountWallet(id)
   const { sendLabelsToNostr } = useNostrSync()
   const existingPayjoinSession = id
     ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
@@ -234,7 +235,7 @@ export default function Receive() {
     includeAmount &&
     localCustomAmount &&
     Number(localCustomAmount) > 0 &&
-    Number(localCustomAmount) <= 2_100_000_000_000_000
+    Number(localCustomAmount) <= MAX_SUPPLY_SATS
       ? Number(localCustomAmount)
       : undefined
 
@@ -260,7 +261,7 @@ export default function Receive() {
     negotiating: payjoinNegotiating
   } = usePayjoinReceiver({
     account,
-    accountId: id!,
+    accountId: id,
     address:
       !isManualPayjoin &&
       includePayjoin &&
@@ -504,7 +505,7 @@ export default function Receive() {
 
     saveLabelTimeoutRef.current = setTimeout(() => {
       if (localAddress && text.trim()) {
-        const updatedAccount = setAddrLabel(id!, localAddress, text.trim())
+        const updatedAccount = setAddrLabel(id, localAddress, text.trim())
         if (updatedAccount?.nostr?.autoSync) {
           const singleLabelData: Label = {
             label: text.trim(),
@@ -552,7 +553,7 @@ export default function Receive() {
     if (!btcPrice || btcPrice <= 0) {
       return null
     }
-    return Math.round((Number(fiat) / btcPrice) * 1e8)
+    return Math.round((Number(fiat) / btcPrice) * SATS_PER_BITCOIN)
   }
 
   function getSatsDisplay(fiat: string): string {
@@ -914,7 +915,7 @@ export default function Receive() {
                     <>
                       <SSNumberInput
                         min={0}
-                        max={2_100_000_000_000_000}
+                        max={MAX_SUPPLY_SATS}
                         value={localCustomAmount}
                         placeholder={t('receive.placeholder.sats')}
                         align="center"
