@@ -15,8 +15,10 @@ import {
 } from '@/constants/derivation'
 import { Account, Key } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
+import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
+import { hasBitcoinPrefix } from '@/utils/parse'
 
 initEccLib(ecc)
 
@@ -90,7 +92,7 @@ function isBip21(uri: string): boolean {
   }
   const trimmed = uri.trim()
 
-  if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+  if (hasBitcoinPrefix(trimmed)) {
     return isBitcoinUri(trimmed)
   }
 
@@ -113,7 +115,7 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
     }
     const trimmed = uri.trim()
 
-    if (trimmed.toLowerCase().startsWith('bitcoin:')) {
+    if (hasBitcoinPrefix(trimmed)) {
       const parsed = parseBitcoinUri(trimmed)
       if (parsed.isValid) {
         return {
@@ -346,9 +348,9 @@ export function getAccountDerivationPath(
 
 /**
  * Full derivation path for a specific address. Addresses built from BDK's
- * peekAddress() (see api/bdk.ts#getWalletAddresses) don't carry their own
- * derivationPath, so this reconstructs it from the account path plus the
- * change level (0=external, 1=internal) and index. IMPORTANT: the change
+ * peekAddress() (see api/bdkWalletMappers.ts#getWalletAddresses) don't carry
+ * their own derivationPath, so this reconstructs it from the account path plus
+ * the change level (0=external, 1=internal) and index. IMPORTANT: the change
  * level must be included - `${accountPath}/${index}` alone derives a
  * completely different (wrong) key, since it's missing a whole path level.
  */
@@ -405,7 +407,7 @@ export function getMultisigDerivationPathFromScriptVersion(
 
 export function getMultisigScriptTypeFromScriptVersion(
   scriptVersion: string
-): string {
+): MultisigScriptType {
   switch (scriptVersion) {
     case 'P2PKH':
       return 'P2SH'
