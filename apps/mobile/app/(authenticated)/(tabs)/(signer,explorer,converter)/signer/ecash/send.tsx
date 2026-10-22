@@ -29,7 +29,8 @@ import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
 export default function EcashSendPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -75,7 +76,6 @@ export default function EcashSendPage() {
   } = useEcashSend()
 
   const satsToFiat = usePriceStore((state) => state.satsToFiat)
-  const { fiatCurrency, privacyMode } = display
   const { width } = useWindowDimensions()
   const qrSize = Math.floor(width * 0.88)
   const routeLabel = describeTokenRoute(tokenRoute, mints)
@@ -170,10 +170,10 @@ export default function EcashSendPage() {
                   {t('ecash.send.amount')}
                 </SSText>
                 <SSAmountInput
-                  btcPrice={display.btcPrice}
-                  fiatCurrency={display.fiatCurrency}
-                  fiatEnabled={display.fiatEnabled}
-                  privacyMode={display.privacyMode}
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
+                  fiatEnabled={fiatEnabled}
+                  privacyMode={privacyMode}
                   value={Number.parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}

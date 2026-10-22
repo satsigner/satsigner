@@ -110,7 +110,8 @@ function readPubkeyParam(pubkey: string | string[] | undefined): string {
 }
 
 export default function OpenChannelPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { back } = useRouter()
   const params = useLocalSearchParams<{ pubkey?: string }>()
   const {
@@ -381,10 +382,10 @@ export default function OpenChannelPage() {
                   </SSFormLayout.Item>
                   <SSFormLayout.Item>
                     <SSAmountInput
-                      btcPrice={display.btcPrice}
-                      fiatCurrency={display.fiatCurrency}
-                      fiatEnabled={display.fiatEnabled}
-                      privacyMode={display.privacyMode}
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       max={amountMax}
                       min={LND_OPEN_CHANNEL_MIN_FUNDING_SAT}
                       onValueChange={handleLocalAmountChange}

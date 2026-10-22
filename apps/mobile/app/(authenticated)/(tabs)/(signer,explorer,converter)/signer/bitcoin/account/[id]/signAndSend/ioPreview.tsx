@@ -131,7 +131,14 @@ import {
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
-  const display = useDisplayPreferences()
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
   const router = useRouter()
   const { id, autoSelectFromUri, dustWarning } =
     useLocalSearchParams<IoPreviewSearchParams>()
@@ -144,7 +151,6 @@ export default function IOPreview() {
   const defaultAutoSelectUtxos = useSettingsStore(
     (state) => state.defaultAutoSelectUtxos
   )
-  const { btcPrice, currencyUnit, fiatCurrency, useZeroPadding } = display
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -1564,10 +1570,10 @@ export default function IOPreview() {
                     }
                   >
                     <SSAmountInput
-                      btcPrice={display.btcPrice}
-                      fiatCurrency={display.fiatCurrency}
-                      fiatEnabled={display.fiatEnabled}
-                      privacyMode={display.privacyMode}
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       key={`amount-input-${outputsCount}`}
                       min={DUST_LIMIT}
                       max={

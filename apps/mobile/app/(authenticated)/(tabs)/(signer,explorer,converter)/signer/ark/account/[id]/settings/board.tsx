@@ -54,7 +54,8 @@ const VALIDATION_ERROR_KEYS: Record<ArkBoardValidationReason, string> = {
 }
 
 export default function ArkBoardPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const account = useArkStore(
@@ -501,10 +502,10 @@ export default function ArkBoardPage() {
               {canEnterAmount ? (
                 <SSVStack gap="sm">
                   <SSAmountInput
-                    btcPrice={display.btcPrice}
-                    fiatCurrency={display.fiatCurrency}
-                    fiatEnabled={display.fiatEnabled}
-                    privacyMode={display.privacyMode}
+                    btcPrice={btcPrice}
+                    fiatCurrency={fiatCurrency}
+                    fiatEnabled={fiatEnabled}
+                    privacyMode={privacyMode}
                     min={minAmountSats}
                     max={confirmedSats}
                     value={amountSats}

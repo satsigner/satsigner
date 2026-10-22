@@ -98,7 +98,8 @@ type ArkTabRoute = { key: ArkTabKey }
 type ArkVtxosView = 'list' | 'bubbles'
 
 export default function ArkAccountDetailPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
+    useDisplayPreferences()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
@@ -131,9 +132,6 @@ export default function ArkAccountDetailPage() {
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
-
-  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
-    display
 
   const balance = balanceQuery.data ?? cachedBalance
   const total = balance ? getArkTotalSats(balance) : 0
@@ -362,7 +360,7 @@ export default function ArkAccountDetailPage() {
   function renderRefreshItem({ item }: { item: ArkMovement }) {
     return (
       <SSArkRefreshCard
-        {...display}
+        privacyMode={privacyMode}
         movement={item}
         onPress={() =>
           router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)
@@ -411,7 +409,9 @@ export default function ArkAccountDetailPage() {
     }
     return (
       <SSArkVtxoCard
-        {...display}
+        currencyUnit={currencyUnit}
+        privacyMode={privacyMode}
+        useZeroPadding={useZeroPadding}
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
@@ -594,7 +594,7 @@ export default function ArkAccountDetailPage() {
       const refreshing = syncMutation.isPending || addressesResult.isLoading
       return renderListWithLoader(
         <SSArkAddressesView
-          {...display}
+          privacyMode={privacyMode}
           addresses={addresses}
           labels={labels}
           expand={expand}

@@ -54,7 +54,8 @@ const TAB_WIDTH = '50%'
 const tabs = [{ key: 'transactions' }, { key: 'proofs' }]
 
 export default function EcashAccountDetailPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
+    useDisplayPreferences()
   const router = useRouter()
   const { width } = useWindowDimensions()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -64,9 +65,6 @@ export default function EcashAccountDetailPage() {
   const [proofsView, setProofsView] = useState<'list' | 'bubbles'>('list')
 
   const setActiveAccountId = useEcashStore((state) => state.setActiveAccountId)
-
-  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
-    display
 
   const handleSettingsPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings`)
@@ -230,7 +228,9 @@ export default function EcashAccountDetailPage() {
                   ) : (
                     proofs.map((proof, index) => (
                       <SSEcashProofCard
-                        {...display}
+                        currencyUnit={currencyUnit}
+                        privacyMode={privacyMode}
+                        useZeroPadding={useZeroPadding}
                         key={`${proof.id}-${proof.secret.slice(0, 8)}`}
                         proof={proof}
                         proofIndex={index}

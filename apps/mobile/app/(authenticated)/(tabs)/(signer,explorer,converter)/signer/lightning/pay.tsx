@@ -79,7 +79,8 @@ function onchainValidationMessage(
 }
 
 export default function PayPage() {
-  const display = useDisplayPreferences()
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const router = useRouter()
   const { paymentRequest: paymentRequestParam, invoice: invoiceParam } =
     useLocalSearchParams()
@@ -106,7 +107,6 @@ export default function PayPage() {
   const [satsToFiat, fetchPrices] = usePriceStore(
     useShallow((state) => [state.satsToFiat, state.fetchPrices])
   )
-  const { fiatCurrency, privacyMode } = display
   const { fiatPriceApiUrl } = useFiatData()
   useQuery({
     queryFn: () => fetchPrices(fiatPriceApiUrl),
@@ -633,10 +633,10 @@ export default function PayPage() {
                       label={t('lightning.pay.amount')}
                     />
                     <SSAmountInput
-                      btcPrice={display.btcPrice}
-                      fiatCurrency={display.fiatCurrency}
-                      fiatEnabled={display.fiatEnabled}
-                      privacyMode={display.privacyMode}
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       max={onchainAmountMax}
                       min={DUST_LIMIT}
                       onValueChange={handleOnchainAmountChange}
