@@ -451,6 +451,18 @@ describe('fiatYDomain', () => {
       })
     ).toStrictEqual([20, 80])
   })
+
+  it('keeps the top at exactly the fiat headroom so the top tick stays', () => {
+    expect(
+      fiatYDomain({
+        lockZoomToXAxis: true,
+        maxBalance: 13_501_427_264,
+        maxFiat: 500,
+        scale: 1,
+        startY: 0
+      })
+    ).toStrictEqual([0, 600])
+  })
 })
 
 describe('buildFiatStepPath', () => {

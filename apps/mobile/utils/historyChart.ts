@@ -645,12 +645,19 @@ export function satsYDomain({
 }
 
 export function fiatYDomain({
+  lockZoomToXAxis,
+  maxBalance,
   maxFiat,
-  ...satsParams
+  scale,
+  startY
 }: YDomainParams & { maxFiat: number }): [number, number] {
-  const [satsStart, satsEnd] = satsYDomain(satsParams)
-  const axisRatio = maxFiat / satsParams.maxBalance
-  return [satsStart * axisRatio, satsEnd * axisRatio]
+  const fiatSpan = maxFiat * HISTORY_CHART_Y_HEADROOM
+  if (lockZoomToXAxis) {
+    return [0, fiatSpan]
+  }
+  const satsSpan = maxBalance * HISTORY_CHART_Y_HEADROOM
+  const fiatStart = (startY / satsSpan) * fiatSpan
+  return [fiatStart, fiatStart + fiatSpan / scale]
 }
 
 export function buildFiatStepPath(
