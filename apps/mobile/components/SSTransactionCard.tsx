@@ -101,8 +101,8 @@ function SSTransactionCard({
   currencyUnit,
   privacyMode,
   useZeroPadding,
-  fiatEnabled: showCurrentFiat,
-  historicalFiatEnabled: showHistoricalFiat
+  fiatEnabled,
+  historicalFiatEnabled
 }: SSTransactionCardProps) {
   const confirmedAtBlockHeight =
     typeof transaction.blockHeight === 'number' && transaction.blockHeight > 0
@@ -121,12 +121,12 @@ function SSTransactionCard({
   const { label, tags } = parseLabel(transaction.label || '')
 
   const { prices } = transaction
-  const oldPrice = showHistoricalFiat && prices ? prices[fiatCurrency] : null
-  const historicalPrice = showHistoricalFiat
+  const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null
+  const historicalPrice = historicalFiatEnabled
     ? prices?.[fiatCurrency]
     : undefined
   const currentFiatPrice =
-    showCurrentFiat && btcPrice && btcPrice > 0
+    fiatEnabled && btcPrice && btcPrice > 0
       ? formatFiatPrice(Math.abs(amount), btcPrice)
       : ''
   const historicalFiatPrice =
@@ -134,8 +134,8 @@ function SSTransactionCard({
       ? formatFiatPrice(Math.abs(amount), historicalPrice)
       : ''
   const percentChange =
-    showCurrentFiat &&
-    showHistoricalFiat &&
+    fiatEnabled &&
+    historicalFiatEnabled &&
     btcPrice &&
     btcPrice > 0 &&
     oldPrice &&
@@ -156,7 +156,7 @@ function SSTransactionCard({
   const hasPriceDisplay =
     currentFiatPrice !== '' ||
     historicalFiatPrice !== '' ||
-    (showHistoricalFiat && Boolean(transaction.timestamp))
+    (historicalFiatEnabled && Boolean(transaction.timestamp))
 
   const smallView = expand || `${amount}`.length > 10
 
@@ -289,7 +289,7 @@ function SSTransactionCard({
                         >
                           ({historicalFiatPrice})
                         </SSText>
-                      ) : showHistoricalFiat && transaction.timestamp ? (
+                      ) : historicalFiatEnabled && transaction.timestamp ? (
                         <HistoricalFiatUnavailable
                           onOpenFiatSettings={onOpenFiatSettings}
                         />
