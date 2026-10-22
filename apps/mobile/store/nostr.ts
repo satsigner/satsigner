@@ -60,34 +60,16 @@ function pruneProcessedIds(
 }
 
 type NostrState = {
-  members: {
-    [accountId: string]: Member[]
-  }
-  profiles: {
-    [npub: string]: NostrProfile
-  }
-  processedMessageIds: {
-    [accountId: string]: ProcessedIdsMap
-  }
-  processedEvents: {
-    [accountId: string]: ProcessedIdsMap
-  }
-  lastProtocolEOSE: {
-    [accountId: string]: number
-  }
-  lastDataExchangeEOSE: {
-    [accountId: string]: number
-  }
-  trustedDevices: {
-    [accountId: string]: string[]
-  }
-  syncStatus: {
-    [accountId: string]: NostrSyncStatus
-  }
+  members: Record<string, Member[]>
+  profiles: Record<string, NostrProfile>
+  processedMessageIds: Record<string, ProcessedIdsMap>
+  processedEvents: Record<string, ProcessedIdsMap>
+  lastProtocolEOSE: Record<string, number>
+  lastDataExchangeEOSE: Record<string, number>
+  trustedDevices: Record<string, string[]>
+  syncStatus: Record<string, NostrSyncStatus>
   activeSubscriptions: Set<NostrAPI>
-  syncingAccounts: {
-    [accountId: string]: boolean
-  }
+  syncingAccounts: Record<string, boolean>
   transactionToShare: {
     transaction: string
     transactionData: TransactionData
@@ -225,11 +207,12 @@ const useNostrStore = create<NostrState & NostrAction>()(
         })
       },
       addSubscription: (subscription: NostrAPI) => {
-        set((state) => {
-          const newSubscriptions = new Set(state.activeSubscriptions)
-          newSubscriptions.add(subscription)
-          return { activeSubscriptions: newSubscriptions }
-        })
+        set((state) => ({
+          activeSubscriptions: new Set([
+            ...state.activeSubscriptions,
+            subscription
+          ])
+        }))
       },
       addTrustedDevice: (accountId, deviceNpub) => {
         set((state) => {

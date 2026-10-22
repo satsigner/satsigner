@@ -155,7 +155,7 @@ export default function ImportDescriptor() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -354,8 +354,8 @@ export default function ImportDescriptor() {
           /#[a-z0-9]+$/,
           ''
         )
-        internalDescriptor = descriptorWithoutChecksum.replace(
-          /\/0\/\*/g,
+        internalDescriptor = descriptorWithoutChecksum.replaceAll(
+          '/0/*',
           '/1/*'
         )
         const checksum = originalDescriptor.match(/#[a-z0-9]+$/)

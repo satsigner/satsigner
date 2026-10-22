@@ -182,7 +182,7 @@ function groupUtxos(utxos: Utxo[], mode: UtxoGroupMode): UtxoGroup[] {
     }
   }
 
-  return Array.from(groups.values()).toSorted((a, b) => {
+  return [...groups.values()].toSorted((a, b) => {
     if (!a.title && b.title) {
       return 1
     }

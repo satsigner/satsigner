@@ -1,9 +1,11 @@
 import NetInfo from '@react-native-community/netinfo'
 import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
 import {
   NOSTR_LIVE_CHECK_FALLBACK_RELAYS,
+  NOSTR_SECRET_KEY_BYTE_LENGTH,
   NOSTR_SECURITY_REPORT_NPUB
 } from '@/constants/nostr'
 import { getDb } from '@/db/connection'
@@ -46,15 +48,19 @@ export type DiagnosticCheckId =
   | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
-const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3_000
+const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3000
 const LIVE_RETRIEVE_ATTEMPTS = 4
-const LIVE_RETRIEVE_DELAY_MS = 2_500
+const LIVE_RETRIEVE_DELAY_MS = 2500
 
 // Sized to run in ~1s on-device while still catching weak-RNG classes:
 // any collision among 50k UUIDs (122 random bits each) or 20k IVs (128 bits)
 // indicates a broken CSPRNG — expected collisions are ~2^-98 and ~2^-103.
 const ENTROPY_UUID_SAMPLES = 50_000
 const ENTROPY_IV_SAMPLES = 20_000
+const ENTROPY_SANITY_KEY_BYTES = 32
+const ENTROPY_SANITY_KEY_PATTERN = new RegExp(
+  `^[0-9a-f]{${ENTROPY_SANITY_KEY_BYTES * 2}}$`
+)
 
 async function runGuarded(
   lines: string[],
@@ -185,16 +191,20 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
   const ok = await runGuarded(lines, async () => {
     // Same generation path as NostrAPI.generateNostrKeys (randomKey), since
     // nostr-tools' react-native build does not export generateSecretKey.
-    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+    const secretKey = new Uint8Array(
+      Buffer.from(await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH), 'hex')
+    )
     const publicKey = getPublicKey(secretKey)
     lines.push(`ephemeral keypair ${publicKey.slice(0, 12)}…`)
 
     const content = 'satsigner diagnostic 🔐'
     const wrap = nip17.wrapEvent(secretKey, { publicKey }, content)
-    if (wrap.kind !== 1059) {
-      throw new Error(`expected gift wrap kind 1059, got ${wrap.kind}`)
+    if (wrap.kind !== nostrKinds.GiftWrap) {
+      throw new Error(
+        `expected gift wrap kind ${nostrKinds.GiftWrap}, got ${wrap.kind}`
+      )
     }
-    lines.push('gift wrap created (kind 1059)')
+    lines.push(`gift wrap created (kind ${nostrKinds.GiftWrap})`)
 
     const unwrapped = nip59.unwrapEvent(wrap, secretKey)
     if (unwrapped.content !== content) {
@@ -252,8 +262,8 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
     if (!/^[0-9a-f]{32}$/.test(sample)) {
       throw new Error('randomIv output malformed')
     }
-    const key = await randomKey(32)
-    if (!/^[0-9a-f]{64}$/.test(key)) {
+    const key = await randomKey(ENTROPY_SANITY_KEY_BYTES)
+    if (!ENTROPY_SANITY_KEY_PATTERN.test(key)) {
       throw new Error('randomKey output malformed')
     }
     lines.push('output format sanity ok')
@@ -356,7 +366,9 @@ async function checkNip17LiveRoundtrip(
         : 'no relays configured — using well-known defaults'
     )
 
-    const secretKey = new Uint8Array(Buffer.from(await randomKey(32), 'hex'))
+    const secretKey = new Uint8Array(
+      Buffer.from(await randomKey(NOSTR_SECRET_KEY_BYTE_LENGTH), 'hex')
+    )
     const publicKey = getPublicKey(secretKey)
     const nsec = nip19.nsecEncode(secretKey)
     const npub = nip19.npubEncode(publicKey)
@@ -448,22 +460,30 @@ export function runDiagnosticCheck(
   ctx: { relayUrls?: string[] } = {}
 ): Promise<DiagnosticResult> {
   switch (id) {
-    case 'crypto':
+    case 'crypto': {
       return checkCryptoRoundtrip()
-    case 'entropy':
+    }
+    case 'entropy': {
       return checkEntropyCollisions()
-    case 'nip17':
+    }
+    case 'nip17': {
       return checkNip17Roundtrip()
-    case 'nip17Live':
+    }
+    case 'nip17Live': {
       return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
-    case 'pinKdf':
+    }
+    case 'pinKdf': {
       return checkPinKdf()
-    case 'relayPersistence':
+    }
+    case 'relayPersistence': {
       return checkRelayPersistence(ctx.relayUrls ?? [])
-    case 'secureStore':
+    }
+    case 'secureStore': {
       return checkSecureStore()
-    case 'sqlite':
+    }
+    case 'sqlite': {
       return checkSqlite()
+    }
     default: {
       const _exhaustive: never = id
       throw new Error(`unknown diagnostic check: ${_exhaustive}`)

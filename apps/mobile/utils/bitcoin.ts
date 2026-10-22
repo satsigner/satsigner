@@ -1,8 +1,23 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { address as bjsAddress, initEccLib, networks } from 'bitcoinjs-lib'
+import {
+  address as bjsAddress,
+  initEccLib,
+  networks,
+  opcodes
+} from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 import { Network as BdkNetwork } from 'react-native-bdk-sdk'
 
+import {
+  P2PKH_SCRIPT_BYTES,
+  P2SH_SCRIPT_BYTES,
+  P2TR_PROGRAM_BYTES,
+  P2TR_SCRIPT_BYTES,
+  P2WPKH_PROGRAM_BYTES,
+  P2WPKH_SCRIPT_BYTES,
+  P2WSH_PROGRAM_BYTES,
+  P2WSH_SCRIPT_BYTES
+} from '@/constants/btc'
 import {
   BIP44_PURPOSE,
   BIP45_PURPOSE,
@@ -19,6 +34,7 @@ import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 import { hasBitcoinPrefix } from '@/utils/parse'
+import { validateAddress } from '@/utils/validation'
 
 initEccLib(ecc)
 
@@ -36,24 +52,40 @@ export function getScriptTypeFromAddress(
   try {
     const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
     if (
-      script.length === 25 &&
-      script[0] === 0x76 &&
-      script[1] === 0xa9 &&
-      script[23] === 0x88 &&
-      script[24] === 0xac
+      script.length === P2PKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_DUP &&
+      script[1] === opcodes.OP_HASH160 &&
+      script.at(-2) === opcodes.OP_EQUALVERIFY &&
+      script.at(-1) === opcodes.OP_CHECKSIG
     ) {
       return 'p2pkh'
     }
-    if (script.length === 23 && script[0] === 0xa9 && script[22] === 0x87) {
+    if (
+      script.length === P2SH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_HASH160 &&
+      script.at(-1) === opcodes.OP_EQUAL
+    ) {
       return 'p2sh'
     }
-    if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+    if (
+      script.length === P2WPKH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === P2WPKH_PROGRAM_BYTES
+    ) {
       return 'p2wpkh'
     }
-    if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+    if (
+      script.length === P2WSH_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_0 &&
+      script[1] === P2WSH_PROGRAM_BYTES
+    ) {
       return 'p2wsh'
     }
-    if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+    if (
+      script.length === P2TR_SCRIPT_BYTES &&
+      script[0] === opcodes.OP_1 &&
+      script[1] === P2TR_PROGRAM_BYTES
+    ) {
       return 'p2tr'
     }
     return null
@@ -65,25 +97,19 @@ export function getScriptTypeFromAddress(
 /** Convert app string network to BDK numeric Network enum */
 export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return BdkNetwork.Bitcoin
-    case 'signet':
+    }
+    case 'signet': {
       return BdkNetwork.Signet
-    case 'testnet':
+    }
+    case 'testnet': {
       return BdkNetwork.Testnet
-    default:
+    }
+    default: {
       return BdkNetwork.Testnet
+    }
   }
-}
-
-// TODO: delete this and replace all of its references with bitcoinjs-lib,
-// since it provides more reliable validation function
-// from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet and regtest
-// bc1=mainnet, tb1=testnet, bcrt1=regtest (Bech32/Bech32m)
-function isBitcoinAddress(address: string): boolean {
-  return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1|bcrt1)[a-z0-9]{39,59})$/i.test(
-    address
-  )
 }
 
 function isBip21(uri: string): boolean {
@@ -96,7 +122,7 @@ function isBip21(uri: string): boolean {
     return isBitcoinUri(trimmed)
   }
 
-  return isBitcoinAddress(trimmed)
+  return validateAddress(trimmed)
 }
 
 type Bip21DecodeResult = {
@@ -130,7 +156,7 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
       return undefined
     }
 
-    if (isBitcoinAddress(trimmed)) {
+    if (validateAddress(trimmed)) {
       return trimmed
     }
 
@@ -144,14 +170,18 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
 // to the network interface used by bitcoinjs-lib
 export function bitcoinjsNetwork(network: AppNetwork): networks.Network {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return networks['bitcoin']
-    case 'signet':
+    }
+    case 'signet': {
       return networks['testnet']
-    case 'testnet':
+    }
+    case 'testnet': {
       return networks['testnet']
-    default:
+    }
+    default: {
       return networks['bitcoin']
+    }
   }
 }
 
@@ -223,32 +253,37 @@ export function convertKeyFormat(
     let version: Uint8Array
 
     switch (targetFormat) {
-      case 'xpub':
+      case 'xpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.xpub
             : KEY_VERSION_BYTES.tpub
         break
-      case 'ypub':
+      }
+      case 'ypub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.ypub
             : KEY_VERSION_BYTES.upub
         break
-      case 'zpub':
+      }
+      case 'zpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.zpub
             : KEY_VERSION_BYTES.vpub_testnet
         break
-      case 'vpub':
+      }
+      case 'vpub': {
         version =
           network === 'bitcoin'
             ? KEY_VERSION_BYTES.vpub_mainnet
             : KEY_VERSION_BYTES.vpub_testnet
         break
-      default:
+      }
+      default: {
         return key
+      }
     }
 
     const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
@@ -308,22 +343,30 @@ export function getDerivationPathFromScriptVersion(
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `${BIP44_PURPOSE}'/${coinType}'/0'`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `${BIP49_PURPOSE}'/${coinType}'/0'`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `${BIP84_PURPOSE}'/${coinType}'/0'`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `${BIP86_PURPOSE}'/${coinType}'/0'`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    default:
+    }
+    default: {
       return `${BIP84_PURPOSE}'/${coinType}'/0'`
+    }
   }
 }
 
@@ -379,29 +422,37 @@ export function getMultisigDerivationPathFromScriptVersion(
   const coinType = network === 'bitcoin' ? '0' : '1'
 
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       // For multisig P2PKH, use P2SH derivation path (m/45'/0'/0')
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       // For multisig P2SH-P2WPKH, use P2SH-P2WSH derivation path (m/48'/0'/0'/1')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       // For multisig P2WPKH, use P2WSH derivation path (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       // For multisig P2TR, use P2TR derivation path (m/86'/0'/0')
       return `${BIP86_PURPOSE}'/${coinType}'/0'`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       // Native SegWit multisig (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2SH_P2WSH}'`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `${BIP45_PURPOSE}'/${coinType}'/0'`
-    default:
+    }
+    default: {
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
       return `${BIP48_PURPOSE}'/${coinType}'/0'/${BIP48_SCRIPT_TYPE_P2WSH}'`
+    }
   }
 }
 
@@ -409,23 +460,31 @@ export function getMultisigScriptTypeFromScriptVersion(
   scriptVersion: string
 ): MultisigScriptType {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return 'P2SH'
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return 'P2SH-P2WSH'
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return 'P2WSH'
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return 'P2TR'
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return 'P2WSH'
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return 'P2SH-P2WSH'
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return 'P2SH'
-    default:
+    }
+    default: {
       return 'P2WSH'
+    }
   }
 }
 
-export { bip21decode, isBip21, isBitcoinAddress }
+export { bip21decode, isBip21 }

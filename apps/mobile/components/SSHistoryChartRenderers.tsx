@@ -681,7 +681,7 @@ function formatAmountWithLeadingZeros(
     }
 
     if (part.startsWith('Fee: ')) {
-      const feePart = part.substring(5)
+      const feePart = part.slice(5)
       segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
       currentX += font.measureText('Fee: ').width
 
@@ -693,23 +693,23 @@ function formatAmountWithLeadingZeros(
         if (firstNonZeroIndex > 0) {
           segments.push({
             color: '#666666',
-            text: feePart.substring(0, firstNonZeroIndex),
+            text: feePart.slice(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
-            feePart.substring(0, firstNonZeroIndex)
+            feePart.slice(0, firstNonZeroIndex)
           ).width
         }
         segments.push({
           color: '#999999',
-          text: feePart.substring(firstNonZeroIndex),
+          text: feePart.slice(firstNonZeroIndex),
           x: currentX
         })
-        currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
+        currentX += font.measureText(feePart.slice(firstNonZeroIndex)).width
       }
     } else {
       const sign = part.startsWith('+') || part.startsWith('-') ? part[0] : ''
-      const numberPart = sign ? part.substring(1) : part
+      const numberPart = sign ? part.slice(1) : part
 
       if (sign) {
         segments.push({ color: baseColor, text: sign, x: currentX })
@@ -728,21 +728,19 @@ function formatAmountWithLeadingZeros(
         if (firstNonZeroIndex > 0) {
           segments.push({
             color: hexToRgba(baseColor, 0.4),
-            text: numberPart.substring(0, firstNonZeroIndex),
+            text: numberPart.slice(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
-            numberPart.substring(0, firstNonZeroIndex)
+            numberPart.slice(0, firstNonZeroIndex)
           ).width
         }
         segments.push({
           color: baseColor,
-          text: numberPart.substring(firstNonZeroIndex),
+          text: numberPart.slice(firstNonZeroIndex),
           x: currentX
         })
-        currentX += font.measureText(
-          numberPart.substring(firstNonZeroIndex)
-        ).width
+        currentX += font.measureText(numberPart.slice(firstNonZeroIndex)).width
       }
     }
   }

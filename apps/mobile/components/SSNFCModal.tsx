@@ -1,25 +1,17 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { StyleSheet } from 'react-native'
-import Animated, {
-  cancelAnimation,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import { useNfcPulseStyle } from '@/hooks/useNfcPulseStyle'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
 import { sanitizeScannedText } from '@/utils/parse'
 
 type SSNFCModalProps = {
@@ -51,8 +43,6 @@ function SSNFCModal({
     isEnabled: emitterNfcEnabled,
     isHardwareSupported: emitterHardware
   } = useNFCEmitter()
-
-  const nfcPulseAnim = useSharedValue(0)
 
   const handleNFCRead = useCallback(async () => {
     if (isReading) {
@@ -111,32 +101,7 @@ function SSNFCModal({
     }
   }, [isEmitting, cancelNFCEmitterScan, emitNFCTag, dataToWrite, onClose])
 
-  useEffect(() => {
-    if (visible) {
-      nfcPulseAnim.set(
-        withRepeat(
-          withSequence(
-            withTiming(1, { duration: 1000 }),
-            withTiming(0, { duration: 1000 })
-          ),
-          -1
-        )
-      )
-
-      return () => {
-        cancelAnimation(nfcPulseAnim)
-        nfcPulseAnim.set(0)
-      }
-    }
-  }, [visible, nfcPulseAnim])
-
-  const pulseCircleStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      nfcPulseAnim.value,
-      [0, 1],
-      [Colors.gray[800], Colors.gray[400]]
-    )
-  }))
+  const pulseCircleStyle = useNfcPulseStyle(visible)
 
   const getModeTitle = () =>
     mode === 'read' ? t('nfc.mode.read') : t('nfc.mode.write')
@@ -171,7 +136,7 @@ function SSNFCModal({
         <SSText center style={styles.descriptionText}>
           {getModeDescription()}
         </SSText>
-        <Animated.View style={[styles.nfcCircle, pulseCircleStyle]}>
+        <Animated.View style={pulseCircleStyle}>
           <SSText uppercase>
             {isActive
               ? mode === 'read'
@@ -216,13 +181,6 @@ function SSNFCModal({
 const styles = StyleSheet.create({
   descriptionText: {
     maxWidth: 300
-  },
-  nfcCircle: {
-    alignItems: 'center',
-    borderRadius: 100,
-    height: 200,
-    justifyContent: 'center',
-    width: 200
   }
 })
 

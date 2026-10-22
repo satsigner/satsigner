@@ -77,7 +77,7 @@ export function detectElectrumSeed(mnemonic: string): string | null {
     .normalize('NFKD')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
   try {
     const result = hmac(
       sha512,
@@ -85,8 +85,8 @@ export function detectElectrumSeed(mnemonic: string): string | null {
       enc.encode(normalized)
     )
     const hmacHex = Buffer.from(result).toString('hex')
-    const firstDigit = parseInt(hmacHex[0], 16)
-    if (isNaN(firstDigit)) {
+    const firstDigit = Number.parseInt(hmacHex[0], 16)
+    if (Number.isNaN(firstDigit)) {
       return null
     }
     const prefixLength = firstDigit + 2
@@ -106,7 +106,7 @@ export function mnemonicToSeedElectrum(
     .normalize('NFKD')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
   const salt = `electrum${passphrase}`.normalize('NFKD')
   return pbkdf2Async(sha512, enc.encode(normalizedMnemonic), enc.encode(salt), {
     c: 2048,
@@ -196,7 +196,7 @@ export function generateMnemonic(
 function binaryStringToBytes(binary: string): number[] {
   const bytes: number[] = []
   for (let i = 0; i < binary.length; i += 8) {
-    bytes.push(parseInt(binary.slice(i, i + 8), 2))
+    bytes.push(Number.parseInt(binary.slice(i, i + 8), 2))
   }
   return bytes
 }
@@ -292,11 +292,11 @@ function parsePath(path: string): number[] {
     throw new Error('Derivation path must start with "m"')
   }
 
-  const HARDENED_OFFSET = 0x80000000 // replace HDKey.HARDENED_OFFSET
+  const HARDENED_OFFSET = 0x80_00_00_00 // replace HDKey.HARDENED_OFFSET
 
   const items = parts.slice(1).map((p: string) => {
     const hardened = /('|h|H)$/.test(p)
-    const index = parseInt(p.replace(/['hH]/, ''), 10)
+    const index = Number.parseInt(p.replace(/['hH]/, ''), 10)
     if (Number.isNaN(index)) {
       throw new TypeError(`Invalid path segment: ${p}`)
     }
@@ -412,21 +412,26 @@ function getExtendedPublicKeyFromMnemonicCustom(
   if (!path && !isMultisig) {
     const coinType = networkString === 'mainnet' ? '0' : '1'
     switch (scriptVersion) {
-      case 'P2PKH':
+      case 'P2PKH': {
         derivationPath = `m/${BIP44_PURPOSE}'/${coinType}'/0'` // BIP44
         break
-      case 'P2SH-P2WPKH':
+      }
+      case 'P2SH-P2WPKH': {
         derivationPath = `m/${BIP49_PURPOSE}'/${coinType}'/0'` // BIP49
         break
-      case 'P2WPKH':
+      }
+      case 'P2WPKH': {
         derivationPath = `m/${BIP84_PURPOSE}'/${coinType}'/0'` // BIP84
         break
-      case 'P2TR':
+      }
+      case 'P2TR': {
         derivationPath = `m/${BIP86_PURPOSE}'/${coinType}'/0'` // BIP86
         break
+      }
       // P2WSH, P2SH-P2WSH, P2SH are typically multisig only
-      default:
+      default: {
         break
+      }
     }
   }
 

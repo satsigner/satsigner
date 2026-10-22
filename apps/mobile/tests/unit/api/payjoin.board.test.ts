@@ -8,7 +8,10 @@ import {
   pollReceiverSession,
   type FetchLike
 } from '@/api/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { resolveReceiverPollMode } from '@/utils/payjoinReceiverPoll'
 
@@ -39,7 +42,7 @@ function buildOriginalPsbt(boardSats = 50_000): string {
   psbt.addInput({
     hash: TXID_A,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: 100_000
@@ -79,7 +82,9 @@ async function createBoardSessionWithOriginal() {
   const session = await createReceivePayjoinSession({
     accountId: 'ark1',
     address: BOARD_ADDRESS,
-    board: BOARD_DESTINATION
+    board: BOARD_DESTINATION,
+    deps: getPayjoinDeps(),
+    network: 'signet'
   })
   // A sender posting into the mailbox is what delivers the original PSBT.
   await createSenderSession({
@@ -89,6 +94,7 @@ async function createBoardSessionWithOriginal() {
   })
   const polled = await pollReceiverSession({
     callbacks,
+    deps: getPayjoinDeps(),
     fetchImpl: trackingFetch([]),
     session
   })
@@ -107,7 +113,9 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'ark1',
       address: BOARD_ADDRESS,
-      board: BOARD_DESTINATION
+      board: BOARD_DESTINATION,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     expect(session.status).toBe('ready')
     expect(session.board).toStrictEqual(BOARD_DESTINATION)
@@ -128,6 +136,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     })
 
     const finalized = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: (url) => {
         order.push(`post:${url}`)
         return Promise.resolve({
@@ -160,6 +169,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     const postCalls: string[] = []
 
     const failed = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: trackingFetch(postCalls),
       session
     })
@@ -175,6 +185,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     ).toStrictEqual({ kind: 'off' })
 
     const retried = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: trackingFetch(postCalls),
       session: failed
     })
@@ -189,7 +200,11 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     const postCalls: string[] = []
     const fetchImpl = failingOnceFetch(postCalls)
 
-    const failed = await finalizeBoardReceiverPayjoin({ fetchImpl, session })
+    const failed = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
+      fetchImpl,
+      session
+    })
     expect(failed.status).toBe('error')
     expect(failed.error).toBe('directory unreachable')
     expect(failed.txid).toBe(PENDING_BOARD.txid)
@@ -200,6 +215,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     ).toStrictEqual({ kind: 'retry_poll', sessionId: failed.id })
 
     const completed = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl,
       session: { ...failed, error: undefined, status: 'proposal_received' }
     })
@@ -214,6 +230,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     const postCalls: string[] = []
 
     const stopped = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: trackingFetch(postCalls),
       session: {
         ...session,
@@ -232,6 +249,7 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
   it('errors when the session has no board destination', async () => {
     const session = await createBoardSessionWithOriginal()
     const finalized = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: trackingFetch([]),
       session: { ...session, board: undefined }
     })
@@ -244,9 +262,12 @@ describe('payjoin ark boarding (zero-input receiver)', () => {
     const session = await createReceivePayjoinSession({
       accountId: 'ark1',
       address: BOARD_ADDRESS,
-      board: BOARD_DESTINATION
+      board: BOARD_DESTINATION,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const finalized = await finalizeBoardReceiverPayjoin({
+      deps: getPayjoinDeps(),
       fetchImpl: trackingFetch([]),
       session
     })

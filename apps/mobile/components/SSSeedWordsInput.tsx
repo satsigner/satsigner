@@ -347,7 +347,7 @@ export default function SSSeedWordsInput({
     const newSeedWordsInfo = [...seedWordsInfo]
     const seedWord = newSeedWordsInfo[index]
 
-    if (!value.match(/^[a-z]*$/)) {
+    if (!/^[a-z]*$/.test(value)) {
       seedWord.valid = false
       seedWord.dirty = true
       setSeedWordsInfo(newSeedWordsInfo)

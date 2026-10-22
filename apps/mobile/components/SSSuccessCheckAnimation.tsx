@@ -128,7 +128,7 @@ function SSSuccessCheckAnimation({
   height,
   width
 }: SSSuccessCheckAnimationProps) {
-  const gradientId = useId().replace(/:/g, '')
+  const gradientId = useId().replaceAll(':', '')
   const outerGlowId = `ssSuccessOuterGlow-${gradientId}`
   const discFillId = `ssSuccessDiscFill-${gradientId}`
   const volumeShadeId = `ssSuccessVolumeShade-${gradientId}`

@@ -73,7 +73,7 @@ function SSNumberInput({
     if (value === undefined || value === '') {
       return
     }
-    if (!value.match(NUMBER_REGEX)) {
+    if (!NUMBER_REGEX.test(value)) {
       setInvalid(true)
       if (onValidate) {
         onValidate(false)
@@ -105,7 +105,7 @@ function SSNumberInput({
   }
 
   function handleTextChange(text: string) {
-    if (!text.match(NUMBER_REGEX)) {
+    if (!NUMBER_REGEX.test(text)) {
       return
     }
 
@@ -134,7 +134,7 @@ function SSNumberInput({
   }
 
   function handleSubmitText() {
-    if (localValue.match(/^[0-9]+$/)) {
+    if (/^[0-9]+$/.test(localValue)) {
       let numericVal = Number(localValue)
       if (numericVal < min) {
         numericVal = min
@@ -178,7 +178,7 @@ function SSNumberInput({
         <SSText>
           {localValue === ''
             ? t('validation.required')
-            : !localValue.match(/^[0-9]+$/)
+            : !/^[0-9]+$/.test(localValue)
               ? t('validation.invalid')
               : Number(localValue) < min
                 ? t('validation.number.greater', { value: min })

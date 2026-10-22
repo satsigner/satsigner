@@ -4,6 +4,7 @@ import TcpSocket from 'react-native-tcp-socket'
 
 import { LND_REST_TIMEOUT_MS } from '@/constants/lightning'
 import type { LNDConfig } from '@/types/models/Lightning'
+import { isSuccessfulHttpStatus } from '@/utils/http'
 import {
   buildHttp2HeadersEndStream,
   buildHttp2Post,
@@ -317,7 +318,7 @@ export async function lndRestFetch(
   const text = result.body.toString('utf8')
   return {
     json: () => Promise.resolve<unknown>(JSON.parse(text)),
-    ok: result.status >= 200 && result.status < 300,
+    ok: isSuccessfulHttpStatus(result.status),
     status: result.status,
     text: () => Promise.resolve(text)
   }

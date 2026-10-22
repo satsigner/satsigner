@@ -71,13 +71,16 @@ export function getScriptVersionType(
     switch (address[0]) {
       case '1':
       case 'm':
-      case 'n':
+      case 'n': {
         return 'P2PKH'
+      }
       case '3':
-      case '2':
+      case '2': {
         return 'P2SH'
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
@@ -85,9 +88,10 @@ export function getScriptVersionType(
   const data = address.toLowerCase().slice(prefix.length)
 
   switch (data[0]) {
-    case 'p':
+    case 'p': {
       return 'P2TR'
-    case 'q':
+    }
+    case 'q': {
       if (
         address.length >= P2WPKH_ADDRESS_MIN_LENGTH &&
         address.length <= P2WPKH_ADDRESS_MAX_LENGTH
@@ -101,8 +105,10 @@ export function getScriptVersionType(
         return 'P2WSH'
       }
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 
   return null

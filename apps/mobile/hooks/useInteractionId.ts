@@ -13,7 +13,7 @@ export const useInteractionId = () => {
   )
 
   const updateInteractionId = useCallback(() => {
-    interactionId.set(`${new Date().valueOf()}`)
+    interactionId.set(`${Date.now()}`)
   }, [interactionId])
 
   return { getInteractionId, updateInteractionId }

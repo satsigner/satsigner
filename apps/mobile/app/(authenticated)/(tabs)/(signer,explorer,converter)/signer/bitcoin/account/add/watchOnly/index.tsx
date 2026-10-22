@@ -361,7 +361,7 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -389,7 +389,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -950,23 +950,19 @@ export default function WatchOnly() {
                 </SSVStack>
               )}
               {selectedOption === 'importDescriptor' && (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText center>
-                      {t('watchonly.importDescriptor.internal')}
-                    </SSText>
-                    <SSTextInput
-                      value={internalDescriptor}
-                      style={
-                        isValidInternalDescriptor
-                          ? styles.valid
-                          : styles.invalid
-                      }
-                      multiline
-                      onChangeText={updateInternalDescriptor}
-                    />
-                  </SSVStack>
-                </>
+                <SSVStack gap="xxs">
+                  <SSText center>
+                    {t('watchonly.importDescriptor.internal')}
+                  </SSText>
+                  <SSTextInput
+                    value={internalDescriptor}
+                    style={
+                      isValidInternalDescriptor ? styles.valid : styles.invalid
+                    }
+                    multiline
+                    onChangeText={updateInternalDescriptor}
+                  />
+                </SSVStack>
               )}
             </SSVStack>
           </SSVStack>

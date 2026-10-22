@@ -156,7 +156,7 @@ export default function ImportNostrIdentity() {
     route
   }: SceneRendererProps & { route: { key: string } }) {
     switch (route.key) {
-      case 'nsec':
+      case 'nsec': {
         return (
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -202,7 +202,8 @@ export default function ImportNostrIdentity() {
             </SSVStack>
           </ScrollView>
         )
-      case 'seedWords':
+      }
+      case 'seedWords': {
         return (
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -227,7 +228,8 @@ export default function ImportNostrIdentity() {
             />
           </ScrollView>
         )
-      case 'npub':
+      }
+      case 'npub': {
         return (
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -275,8 +277,10 @@ export default function ImportNostrIdentity() {
             </SSVStack>
           </ScrollView>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

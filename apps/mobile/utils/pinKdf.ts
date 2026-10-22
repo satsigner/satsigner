@@ -58,7 +58,7 @@ const ARGON2ID_CONFIG: PinKdfConfig = {
 }
 
 // scrypt N=2^15, r=8, p=1 (~32 MiB) — memory-hard fallback.
-const SCRYPT_CONFIG = { n: 32768, name: 'scrypt', p: 1, r: 8 } as const
+const SCRYPT_CONFIG = { n: 32_768, name: 'scrypt', p: 1, r: 8 } as const
 
 // Cheap availability probes — never run production cost just to see if
 // the native API exists.
@@ -183,7 +183,7 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
   }
   try {
     switch (config.name) {
-      case 'argon2id':
+      case 'argon2id': {
         QuickCrypto.argon2Sync('argon2id', {
           memory: ARGON2_PROBE_MEMORY_KIB,
           message: 'probe',
@@ -193,7 +193,8 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
           tagLength: DIGEST_BYTES
         })
         break
-      case 'scrypt':
+      }
+      case 'scrypt': {
         QuickCrypto.scryptSync('probe', '0123456789abcdef', DIGEST_BYTES, {
           N: SCRYPT_PROBE_N,
           maxmem: SCRYPT_MAXMEM_BYTES,
@@ -201,9 +202,11 @@ function isKdfAvailable(config: PinKdfConfig): boolean {
           r: SCRYPT_CONFIG.r
         })
         break
-      case 'pbkdf2':
+      }
+      case 'pbkdf2': {
         QuickCrypto.pbkdf2Sync('probe', '0123456789abcdef', 1, 1, 'sha256')
         break
+      }
       default: {
         const _exhaustive: never = config
         throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)
@@ -252,12 +255,15 @@ async function deriveWithBestProductionKdf(
 
 export function serializeKdf(config: PinKdfConfig): string {
   switch (config.name) {
-    case 'argon2id':
+    case 'argon2id': {
       return `argon2id:m=${config.memoryKiB},t=${config.passes},p=${config.parallelism}`
-    case 'scrypt':
+    }
+    case 'scrypt': {
       return `scrypt:N=${config.n},r=${config.r},p=${config.p}`
-    case 'pbkdf2':
+    }
+    case 'pbkdf2': {
       return `pbkdf2:i=${config.iterations}`
+    }
     default: {
       const _exhaustive: never = config
       throw new Error(`Unsupported KDF: ${JSON.stringify(_exhaustive)}`)

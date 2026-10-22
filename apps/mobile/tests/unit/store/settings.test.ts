@@ -1,34 +1,15 @@
 import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
-import { migrateFiatPriceSettings, useSettingsStore } from '@/store/settings'
 import {
-  getFiatDataSettings,
   getFiatPriceApiUrl,
-  normalizeFiatPriceApiUrl
-} from '@/utils/fiatData'
+  migrateFiatPriceSettings,
+  useSettingsStore
+} from '@/store/settings'
 
 const initialState = useSettingsStore.getState()
 
-describe('fiat data helpers', () => {
+describe('settings store', () => {
   afterEach(() => {
     useSettingsStore.setState(initialState, true)
-  })
-
-  describe('normalizeFiatPriceApiUrl', () => {
-    it('trims surrounding whitespace', () => {
-      expect(normalizeFiatPriceApiUrl('  https://example.com  ')).toBe(
-        'https://example.com'
-      )
-    })
-
-    it('strips trailing slashes', () => {
-      expect(normalizeFiatPriceApiUrl('https://example.com///')).toBe(
-        'https://example.com'
-      )
-    })
-
-    it('returns an empty string for blank input', () => {
-      expect(normalizeFiatPriceApiUrl('   ')).toBe('')
-    })
   })
 
   describe('getFiatPriceApiUrl', () => {
@@ -54,24 +35,6 @@ describe('fiat data helpers', () => {
         fiatPriceProvider: 'custom'
       })
       expect(getFiatPriceApiUrl()).toBe(DEFAULT_FIAT_PRICE_API_URL)
-    })
-  })
-
-  describe('getFiatDataSettings', () => {
-    it('resolves the api url alongside the fetch toggles', () => {
-      useSettingsStore.setState({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: false,
-        fiatPriceApiUrl: 'https://custom.example.com',
-        fiatPriceProvider: 'custom'
-      })
-      expect(getFiatDataSettings()).toStrictEqual({
-        fetchCurrentPrices: true,
-        fetchHistoricalPrices: false,
-        fetchHistoricalPricesFromNetwork: false,
-        fiatPriceApiUrl: 'https://custom.example.com',
-        fiatPriceProvider: 'custom'
-      })
     })
   })
 

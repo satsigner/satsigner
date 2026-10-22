@@ -2,11 +2,13 @@ import { bech32 } from 'bech32'
 import z from 'zod'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { HTTP_STATUS } from '@/constants/http'
 import type {
   LNURLPayResponse,
   LNURLWithdrawDetails,
   LNURLWithdrawResponse
 } from '@/types/models/Lightning'
+import { HttpStatusError } from '@/utils/errors'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 import { isRecord } from '@/utils/object'
 import { optionalLenient } from '@/utils/schema'
@@ -130,7 +132,7 @@ export function isLNURL(input: string): boolean {
 export function decodeLNURL(input: string): string {
   let cleanInput = input.trim().toLowerCase()
   if (cleanInput.toLowerCase().startsWith('lightning:')) {
-    cleanInput = cleanInput.substring('lightning:'.length)
+    cleanInput = cleanInput.slice('lightning:'.length)
   }
 
   if (!cleanInput.startsWith('lnurl') || cleanInput.length < 6) {
@@ -180,7 +182,7 @@ export async function fetchLNURLPayDetails(
   assertHttpsUrl(url)
   let response = await fetch(url)
 
-  if (response.status === 404) {
+  if (response.status === HTTP_STATUS.NOT_FOUND) {
     const apiUrl = new URL(url)
     const pathParts = apiUrl.pathname.split('/')
     const lastPart = pathParts.at(-1)!
@@ -203,7 +205,10 @@ export async function fetchLNURLPayDetails(
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`)
+    throw new HttpStatusError(
+      response.status,
+      `HTTP error! Status: ${response.status}`
+    )
   }
 
   const data: unknown = await response.json()
@@ -244,7 +249,10 @@ export async function requestLNURLPayInvoice(
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`)
+    throw new HttpStatusError(
+      response.status,
+      `HTTP error! Status: ${response.status} - ${errorText}`
+    )
   }
 
   const data: unknown = await response.json()

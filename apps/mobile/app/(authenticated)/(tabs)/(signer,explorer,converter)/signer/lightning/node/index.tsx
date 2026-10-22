@@ -84,62 +84,82 @@ const TRANSACTIONS_PER_PAGE = 30
 
 function getTxRowStyle(badge: TxStatusBadge | null) {
   switch (badge) {
-    case 'expired':
+    case 'expired': {
       return styles.transactionItemExpired
-    case 'canceled':
+    }
+    case 'canceled': {
       return styles.transactionItemCanceled
-    case 'failed':
+    }
+    case 'failed': {
       return styles.transactionItemFailed
+    }
     case 'pending':
-    case 'in_flight':
+    case 'in_flight': {
       return styles.transactionItemPending
-    default:
+    }
+    default: {
       return null
+    }
   }
 }
 
 function getTxBadgeStyle(badge: TxStatusBadge) {
   switch (badge) {
-    case 'expired':
+    case 'expired': {
       return styles.badgeExpired
-    case 'canceled':
+    }
+    case 'canceled': {
       return styles.badgeCanceled
-    case 'failed':
+    }
+    case 'failed': {
       return styles.badgeFailed
-    case 'in_flight':
+    }
+    case 'in_flight': {
       return styles.badgeInFlight
-    default:
+    }
+    default: {
       return styles.badgePending
+    }
   }
 }
 
 function getTxBadgeTextStyle(badge: TxStatusBadge) {
   switch (badge) {
-    case 'expired':
+    case 'expired': {
       return styles.badgeExpiredText
-    case 'canceled':
+    }
+    case 'canceled': {
       return styles.badgeCanceledText
-    case 'failed':
+    }
+    case 'failed': {
       return styles.badgeFailedText
-    case 'in_flight':
+    }
+    case 'in_flight': {
       return styles.badgeInFlightText
-    default:
+    }
+    default: {
       return styles.badgePendingText
+    }
   }
 }
 
 function getTxBadgeLabel(badge: TxStatusBadge): string {
   switch (badge) {
-    case 'expired':
+    case 'expired': {
       return t('lightning.node.txBadge.expired').toUpperCase()
-    case 'canceled':
+    }
+    case 'canceled': {
       return t('lightning.node.txBadge.canceled').toUpperCase()
-    case 'failed':
+    }
+    case 'failed': {
       return t('lightning.node.txBadge.failed').toUpperCase()
-    case 'in_flight':
+    }
+    case 'in_flight': {
       return t('lightning.node.txBadge.inFlight').toUpperCase()
-    default:
+    }
+    default: {
       return t('lightning.node.txBadge.pending').toUpperCase()
+    }
   }
 }
 
@@ -1016,7 +1036,7 @@ export default function NodeDetailPage() {
     route
   }: SceneRendererProps & { route: { key: string } }) {
     switch (route.key) {
-      case 'transactions':
+      case 'transactions': {
         return (
           <View style={[styles.section, styles.tabContent]}>
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
@@ -1054,7 +1074,8 @@ export default function NodeDetailPage() {
             </ScrollView>
           </View>
         )
-      case 'onchain':
+      }
+      case 'onchain': {
         return (
           <View style={[styles.section, styles.tabContent]}>
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
@@ -1082,7 +1103,8 @@ export default function NodeDetailPage() {
             </ScrollView>
           </View>
         )
-      case 'channels':
+      }
+      case 'channels': {
         return (
           <View style={[styles.section, styles.tabContent]}>
             <SSHStack justifyBetween style={styles.tabSceneToolbar}>
@@ -1134,8 +1156,10 @@ export default function NodeDetailPage() {
             {renderOpenChannelCta()}
           </View>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

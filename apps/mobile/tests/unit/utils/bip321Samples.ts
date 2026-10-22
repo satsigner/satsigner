@@ -172,10 +172,10 @@ export const amountConversions = {
   btcToSats: [
     { btc: '0.00000001', sats: 1 },
     { btc: '0.00000546', sats: 546 },
-    { btc: '0.001', sats: 100000 },
-    { btc: '1', sats: 100000000 },
+    { btc: '0.001', sats: 100_000 },
+    { btc: '1', sats: 100_000_000 },
     { btc: '21000000', sats: 21_000_000 * 100_000_000 },
-    { btc: '0.12345678', sats: 12345678 }
+    { btc: '0.12345678', sats: 12_345_678 }
   ],
   // Edge cases
   edgeCases: [

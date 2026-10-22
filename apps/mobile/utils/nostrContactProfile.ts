@@ -5,7 +5,11 @@ import {
   NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
 import { t } from '@/locales'
-import { type NostrContactQrSlide } from '@/types/models/Nostr'
+import {
+  type NostrContactQrSlide,
+  type NostrIdentity,
+  type NostrKind0Profile
+} from '@/types/models/Nostr'
 
 type BuildContactQrSlidesOptions = {
   contactNprofile: string | null
@@ -77,4 +81,22 @@ export function getContactShareProfileName(
   }
 
   return displayName?.trim() || t('nostrIdentity.contact.unnamed')
+}
+
+/** Watch-only identity for a contact, filled with their kind 0 profile when known. */
+export function buildContactIdentity(
+  npub: string,
+  profile: NostrKind0Profile | null | undefined,
+  createdAt: number
+): NostrIdentity {
+  return {
+    banner: profile?.banner,
+    createdAt,
+    displayName: profile?.displayName,
+    isWatchOnly: true,
+    lud16: profile?.lud16,
+    nip05: profile?.nip05,
+    npub,
+    picture: profile?.picture
+  }
 }

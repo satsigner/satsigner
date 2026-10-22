@@ -18,13 +18,13 @@ const TAG_SORTED_MULTISIG = 407
 const TAG_RAW = 408
 const TAG_TAPROOT = 409
 const TAG_COSIGNER = 410
-const TAG_HDKEY_V2 = 40303
-const TAG_ECKEY_V2 = 40306
-const TAG_ADDRESS_V2 = 40307
-const TAG_OUTPUT_DESCRIPTOR_V3 = 40308
+const TAG_HDKEY_V2 = 40_303
+const TAG_ECKEY_V2 = 40_306
+const TAG_ADDRESS_V2 = 40_307
+const TAG_OUTPUT_DESCRIPTOR_V3 = 40_308
 
-const MAINNET_VERSIONS = { private: 0x0488ade4, public: 0x0488b21e }
-const TESTNET_VERSIONS = { private: 0x04358394, public: 0x043587cf }
+const MAINNET_VERSIONS = { private: 0x04_88_ad_e4, public: 0x04_88_b2_1e }
+const TESTNET_VERSIONS = { private: 0x04_35_83_94, public: 0x04_35_87_cf }
 
 type CborMap = Map<CborValue, CborValue>
 
@@ -107,7 +107,7 @@ function readUint(cursor: Cursor, additional: number) {
     if (high === 0) {
       return low
     }
-    return high * 0x1_0000_0000 + low
+    return high * 0x1_00_00_00_00 + low
   }
   throw new Error('Unsupported CBOR integer')
 }
@@ -306,7 +306,7 @@ function keypathFromValue(value: CborValue | undefined) {
   const last = components.at(-2)
   const lastHardened = components.at(-1) === true
   const lastIndex =
-    typeof last === 'number' ? (lastHardened ? last + 0x80000000 : last) : 0
+    typeof last === 'number' ? (lastHardened ? last + 0x80_00_00_00 : last) : 0
   return {
     depth: depth ?? Math.floor(components.length / 2),
     fingerprint,
@@ -406,10 +406,13 @@ function encodeOutputDescriptorV3(value: CborValue) {
   if (!keys || keys.length === 0) {
     return source
   }
-  const descriptor = source.replace(/@(\d+)/g, (_match, indexStr: string) => {
-    const key = keys[Number(indexStr)]
-    return key ? (encodeKeyExp(key) ?? '') : ''
-  })
+  const descriptor = source.replaceAll(
+    /@(\d+)/g,
+    (_match, indexStr: string) => {
+      const key = keys[Number(indexStr)]
+      return key ? (encodeKeyExp(key) ?? '') : ''
+    }
+  )
   if (!descriptor || descriptor.includes('@')) {
     return null
   }

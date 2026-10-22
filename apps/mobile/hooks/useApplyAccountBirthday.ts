@@ -1,5 +1,9 @@
 import { toast } from 'sonner-native'
 
+import {
+  SYNC_IDLE_POLL_ATTEMPTS,
+  SYNC_IDLE_POLL_INTERVAL_MS
+} from '@/constants/sync'
 import useSyncAccountWithWallet, {
   cancelAccountSync,
   isAccountSyncing
@@ -47,12 +51,12 @@ function useApplyAccountBirthday() {
 
     toast.success(t('account.birthdayDate.rescanQueued'))
 
-    for (let i = 0; i < 60; i += 1) {
+    for (let i = 0; i < SYNC_IDLE_POLL_ATTEMPTS; i += 1) {
       if (!isAccountSyncing(accountId)) {
         break
       }
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, 100)
+        setTimeout(resolve, SYNC_IDLE_POLL_INTERVAL_MS)
       })
     }
 

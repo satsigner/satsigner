@@ -87,6 +87,7 @@ import {
 import { MS_PER_SECOND } from '@/constants/time'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -120,7 +121,6 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
   formatAddress,
   formatDate,
@@ -515,13 +515,13 @@ function lastSyncedLabel(
     lastSyncedAt instanceof Date
       ? lastSyncedAt.getTime()
       : new Date(lastSyncedAt).getTime()
-  if (isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
+  if (Number.isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
     return t('account.sync.status.unsynced')
   }
   // formatRelativeTime wraps chart labels in parentheses — strip for prose.
   const relative = formatRelativeTime(
     Math.floor(syncedMs / MS_PER_SECOND)
-  ).replace(/^\(|\)$/g, '')
+  ).replaceAll(/^\(|\)$/g, '')
   return t('account.lastSynced', { time: relative })
 }
 
@@ -683,6 +683,7 @@ function TotalTransactions({
   currentBlockTimeSec,
   scanFromTimeSec
 }: TotalTransactionsProps) {
+  const display = useDisplayPreferences()
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
   const [sortField, setSortField] = useState<TransactionSortField>('date')
@@ -732,10 +733,6 @@ function TotalTransactions({
   const showDraft = hasDraft && !hasActiveSenderPayjoin
   const hasActivityHeader = showDraft || activePayjoinSessions.length > 0
   const router = useRouter()
-
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
 
   const annotatedTransactions = useMemo(
     () =>
@@ -920,8 +917,7 @@ function TotalTransactions({
                     maxBalance={maxBalance}
                   />
                   <SSTransactionCard
-                    btcPrice={btcPrice}
-                    fiatCurrency={fiatCurrency}
+                    {...display}
                     transaction={item}
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
@@ -1173,7 +1169,7 @@ function DerivedAddresses({
     if (!label) {
       return t('transaction.noLabel')
     }
-    return label.length > 14 ? `${label.substring(0, 14)}...` : label
+    return label.length > 14 ? `${label.slice(0, 14)}...` : label
   }
 
   async function refreshAddresses() {
@@ -1756,10 +1752,8 @@ function SatsInMempool({
   account: Account
   blockchainHeight: number
 }) {
+  const display = useDisplayPreferences()
   const router = useRouter()
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
 
   const mempoolTransactions = useMemo(
     () =>
@@ -1789,10 +1783,9 @@ function SatsInMempool({
         renderItem={({ item }) => (
           <SSVStack gap="sm" style={{ paddingBottom: 16 }}>
             <SSTransactionCard
+              {...display}
               transaction={item}
               blockHeight={blockchainHeight}
-              btcPrice={btcPrice}
-              fiatCurrency={fiatCurrency}
               expand={false}
               onPress={() =>
                 router.navigate(
@@ -1881,7 +1874,7 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const { showCurrentFiat } = useFiatData()
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
@@ -2059,7 +2052,7 @@ export default function AccountView() {
     route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case 'totalTransactions':
+      case 'totalTransactions': {
         return (
           <TotalTransactions
             account={account}
@@ -2077,7 +2070,8 @@ export default function AccountView() {
             scanFromTimeSec={scanFromTimeSec}
           />
         )
-      case 'derivedAddresses':
+      }
+      case 'derivedAddresses': {
         return (
           <DerivedAddresses
             account={account}
@@ -2089,7 +2083,8 @@ export default function AccountView() {
             sortDirection={sortDirectionDerivedAddresses}
           />
         )
-      case 'spendableOutputs':
+      }
+      case 'spendableOutputs': {
         return (
           <SpendableOutputs
             account={account}
@@ -2106,15 +2101,18 @@ export default function AccountView() {
             scanFromTimeSec={scanFromTimeSec}
           />
         )
-      case 'satsInMempool':
+      }
+      case 'satsInMempool': {
         return (
           <SatsInMempool
             account={account}
             blockchainHeight={blockchainHeight}
           />
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
@@ -2173,7 +2171,7 @@ export default function AccountView() {
 
   async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(getFiatPriceApiUrl())
+    await fetchPrices(fiatPriceApiUrl)
     await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
@@ -2207,120 +2205,120 @@ export default function AccountView() {
     const tabWidth =
       isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
 
+    if (expand) {
+      return null
+    }
+
     return (
-      <>
-        {!expand && (
-          <SSHStack
-            gap="none"
-            style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
-          >
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(0)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfTransactions}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.totalTransactions')}
-                </SSText>
-                {tabIndex === 0 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            {(!isImportAddress || account.keys.length > 1) && (
-              <SSActionButton
-                style={{ width: tabWidth }}
-                onPress={() => handleTabIndexChange(1)}
-              >
-                <SSVStack gap="none">
-                  <SSText center size="lg">
-                    {account.summary.numberOfAddresses}
-                  </SSText>
-                  <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {isMultiAddressWatchOnly
-                      ? t('accounts.watchedAddresses')
-                      : t('accounts.derivedAddresses')}
-                  </SSText>
-                  {tabIndex === 1 && (
-                    <View
-                      style={{
-                        alignSelf: 'center',
-                        backgroundColor: Colors.white,
-                        bottom: -12,
-                        height: 2,
-                        position: 'absolute',
-                        width: '100%'
-                      }}
-                    />
-                  )}
-                </SSVStack>
-              </SSActionButton>
+      <SSHStack
+        gap="none"
+        style={{ paddingHorizontal: '6%', paddingVertical: 8 }}
+      >
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(0)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {account.summary.numberOfTransactions}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.totalTransactions')}
+            </SSText>
+            {tabIndex === 0 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
             )}
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(2)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfUtxos}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.spendableOutputs')}
-                </SSText>
-                {tabIndex === 2 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            <SSActionButton
-              style={{ width: tabWidth }}
-              onPress={() => handleTabIndexChange(3)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {formatNumber(account.summary.satsInMempool, 0, false, ',')}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.satsInMempool')}
-                </SSText>
-                {tabIndex === 3 && (
-                  <View
-                    style={{
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white,
-                      bottom: -12,
-                      height: 2,
-                      position: 'absolute',
-                      width: '100%'
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-          </SSHStack>
+          </SSVStack>
+        </SSActionButton>
+        {(!isImportAddress || account.keys.length > 1) && (
+          <SSActionButton
+            style={{ width: tabWidth }}
+            onPress={() => handleTabIndexChange(1)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.numberOfAddresses}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {isMultiAddressWatchOnly
+                  ? t('accounts.watchedAddresses')
+                  : t('accounts.derivedAddresses')}
+              </SSText>
+              {tabIndex === 1 && (
+                <View
+                  style={{
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white,
+                    bottom: -12,
+                    height: 2,
+                    position: 'absolute',
+                    width: '100%'
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
         )}
-      </>
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(2)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {account.summary.numberOfUtxos}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.spendableOutputs')}
+            </SSText>
+            {tabIndex === 2 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+        <SSActionButton
+          style={{ width: tabWidth }}
+          onPress={() => handleTabIndexChange(3)}
+        >
+          <SSVStack gap="none">
+            <SSText center size="lg">
+              {formatNumber(account.summary.satsInMempool, 0, false, ',')}
+            </SSText>
+            <SSText center color="muted" style={{ lineHeight: 12 }}>
+              {t('accounts.satsInMempool')}
+            </SSText>
+            {tabIndex === 3 && (
+              <View
+                style={{
+                  alignSelf: 'center',
+                  backgroundColor: Colors.white,
+                  bottom: -12,
+                  height: 2,
+                  position: 'absolute',
+                  width: '100%'
+                }}
+              />
+            )}
+          </SSVStack>
+        </SSActionButton>
+      </SSHStack>
     )
   }
 

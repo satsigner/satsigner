@@ -1,6 +1,6 @@
 import { MS_PER_SECOND } from '@/constants/time'
-import { type ConnectionTestResult } from '@/hooks/useConnectionTest'
 import { tn as _tn } from '@/locales'
+import { type ConnectionTestSuccess } from '@/types/models/ConnectionTest'
 import { formatDate } from '@/utils/date'
 
 const tnServer = _tn('settings.network.server')
@@ -23,9 +23,7 @@ export function formatBannerForToast(banner: string): string {
   return `${joined.slice(0, TOAST_BANNER_MAX_CHARS - 1)}…`
 }
 
-export function successProbeDescription(
-  result: Extract<ConnectionTestResult, { success: true }>
-): string {
+export function successProbeDescription(result: ConnectionTestSuccess): string {
   const dateSec =
     result.tipTimestampSec ?? Math.floor(Date.now() / MS_PER_SECOND)
   const dateStr = formatDate(dateSec)
@@ -42,9 +40,7 @@ export function successProbeDescription(
   return tnServer('tester.successNoHeight', { date: dateStr })
 }
 
-export function successToastDescription(
-  result: Extract<ConnectionTestResult, { success: true }>
-): string {
+export function successToastDescription(result: ConnectionTestSuccess): string {
   const probeLine = successProbeDescription(result)
   const base = `${tnServer('tester.success')} — ${probeLine}`
   if (!result.banner) {

@@ -1,4 +1,4 @@
-import { satsToFiat } from '@/utils/fiat'
+import { normalizeFiatPriceApiUrl, satsToFiat } from '@/utils/fiat'
 
 describe('satsToFiat', () => {
   it('converts sats at the given bitcoin price', () => {
@@ -14,5 +14,23 @@ describe('satsToFiat', () => {
     expect(satsToFiat(-1, 60_000, true)).toBe(0)
     expect(satsToFiat(Number.NaN, 60_000, true)).toBe(0)
     expect(satsToFiat(1000, 0, true)).toBe(0)
+  })
+})
+
+describe('normalizeFiatPriceApiUrl', () => {
+  it('trims surrounding whitespace', () => {
+    expect(normalizeFiatPriceApiUrl('  https://example.com  ')).toBe(
+      'https://example.com'
+    )
+  })
+
+  it('strips trailing slashes', () => {
+    expect(normalizeFiatPriceApiUrl('https://example.com///')).toBe(
+      'https://example.com'
+    )
+  })
+
+  it('returns an empty string for blank input', () => {
+    expect(normalizeFiatPriceApiUrl('   ')).toBe('')
   })
 })
