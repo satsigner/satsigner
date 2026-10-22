@@ -476,8 +476,18 @@ await sleep(LNURL_PAY_DELAY_MS)
 
 ### Names over comments
 
-Do not explain a variable, function or prop with a comment. Give it a name that
-makes the comment unnecessary.
+Write a comment only when it is strictly necessary. When the code speaks for
+itself, do not add one. Do not explain a variable, function or prop with a
+comment: give it a name that makes the comment unnecessary.
+
+A comment is necessary when the code cannot say it: why a non-obvious choice
+was made, or a constraint that comes from outside the code, such as a protocol
+rule or a library or platform quirk:
+
+```typescript
+// bitcoinjs expects the hash in internal (little-endian) byte order.
+const hash = Buffer.from(hex.decode(input.txid)).reverse()
+```
 
 Instead of:
 
