@@ -11,7 +11,7 @@
 - Build and support Bitcoin and related FOSS projects
 - Participate in Bitcoin history
 
-Git collaboration also works over [ngit](https://ngit.dev/). A pull request is a branch whose name starts with `pr/`. Push that branch with the release page (`pnpm --filter @satsigner/release dev`).
+Git collaboration also works over [ngit](https://ngit.dev/). A pull request is a branch whose name starts with `pr/`. Push that branch from the release page (`pnpm --dir apps/release dev`). See the [README](README.md#clone-with-ngit).
 
 If you're serious about contributing, reach out via Twitter [@satsigner](https://twitter.com/satsigner) to get looped in.
 

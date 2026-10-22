@@ -42,19 +42,24 @@ Read more about Satsigner [here](ABOUT.md) and check out the [features](FEATURES
 
 ## Clone with ngit
 
-Pushes and Zapstore releases go through the local release page:
+Pushes, pull requests, and Zapstore releases go through the local release page. It listens on `127.0.0.1`. The Nostr key stays in a NIP-07 browser extension.
 
 ```bash
-pnpm --filter @satsigner/release dev
+pnpm --dir apps/release install
+pnpm --dir apps/release dev
 ```
 
-Open the page, connect a NIP-07 browser extension, and publish from there. The key stays in the extension. After the first publish the page prints the `nostr://` clone URL. The repository identifier is `satsigner`.
+Open http://127.0.0.1:4717 and sign in (Alby or nos2x). The signer relay uses port `4718`.
+
+**Sync with ngit** publishes the repository when `origin` is not a `nostr://` remote yet, then pushes the current branch. After the first publish the page prints the clone URL. The repository identifier is `satsigner`.
 
 ```bash
 git clone nostr://<npub>/satsigner
 ```
 
-Pull requests are branches whose names start with `pr/`.
+A pull request is a branch whose name starts with `pr/`. Push that branch from the same page.
+
+**Build and publish** sends the current Android release APK to Zapstore. **Build APK** saves a copy under `apps/mobile/dist/apks`. Details, including the tools each action expects, are in [apps/release/README.md](apps/release/README.md).
 
 ## Contributing
 
