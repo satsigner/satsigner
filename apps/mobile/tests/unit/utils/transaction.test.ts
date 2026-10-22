@@ -1,9 +1,19 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
+  buildChartTransactionFromBuilder,
+  buildPreviewTransactionHex,
+  estimateBuilderTransactionSize,
   estimateTransactionSize,
+  findFirstInvalidOutputAddress,
+  getFinalizedTransactionSize,
+  getTransactionIdDisplay,
+  legacyEstimateTransactionSize,
+  mapBuildTransactionError,
   recalculateDepthH,
   weightToVsize
 } from '../../../utils/transaction'
@@ -626,6 +636,214 @@ describe('recalculateDepthH', () => {
     ])
     const result = recalculateDepthH(transactions)
     expect(result.get('txA')?.depthH).toBe(1)
+  })
+})
+
+describe('transaction builder previews', () => {
+  const address = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  const utxo: Utxo = {
+    addressTo: address,
+    keychain: 'external',
+    label: 'coffee',
+    txid: `${'aa'.repeat(31)}bb`,
+    value: 100_000,
+    vout: 1
+  }
+  const output: Output = {
+    amount: 90_000,
+    label: 'rent',
+    localId: 'out-1',
+    to: address
+  }
+
+  it('builds a hex whose inputs spend the builder txids', () => {
+    const txHex = buildPreviewTransactionHex(
+      new Map([['a', utxo]]),
+      [output],
+      'bitcoin'
+    )
+    const [input] = bitcoinjs.Transaction.fromHex(txHex).ins
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    expect(Buffer.from(input.hash).reverse().toString('hex')).toBe(utxo.txid)
+    expect(input.index).toBe(utxo.vout)
+  })
+
+  it('skips inputs with an invalid txid', () => {
+    const txHex = buildPreviewTransactionHex(
+      new Map([['a', { ...utxo, txid: 'not-a-txid' }]]),
+      [output],
+      'bitcoin'
+    )
+    expect(txHex).toBe(
+      buildPreviewTransactionHex(new Map(), [output], 'bitcoin')
+    )
+  })
+
+  it('returns empty hex when an output address is invalid', () => {
+    expect(
+      buildPreviewTransactionHex(
+        new Map([['a', utxo]]),
+        [{ ...output, to: 'invalid' }],
+        'bitcoin'
+      )
+    ).toBe('')
+  })
+
+  it('returns empty hex when an output amount is not whole sats', () => {
+    expect(
+      buildPreviewTransactionHex(
+        new Map([['a', utxo]]),
+        [{ ...output, amount: 1.5 }],
+        'bitcoin'
+      )
+    ).toBe('')
+  })
+
+  it('builds the chart transaction from builder data', () => {
+    const transaction = buildChartTransactionFromBuilder(
+      new Map([['a', utxo]]),
+      [output],
+      'txid-1'
+    )
+    expect(transaction.id).toBe('txid-1')
+    expect(transaction.vin).toHaveLength(1)
+    expect(transaction.vin[0].previousOutput).toStrictEqual({
+      txid: utxo.txid,
+      vout: utxo.vout
+    })
+    expect(transaction.vout[0]).toMatchObject({
+      address,
+      label: 'rent',
+      value: 90_000
+    })
+  })
+})
+
+describe('findFirstInvalidOutputAddress', () => {
+  const validAddress = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  const output: Output = {
+    amount: 1000,
+    label: '',
+    localId: 'out-1',
+    to: validAddress
+  }
+
+  it('returns undefined when every address is valid', () => {
+    expect(findFirstInvalidOutputAddress([output], 'bitcoin')).toBeUndefined()
+  })
+
+  it('returns the first invalid address for the network', () => {
+    const testnetAddress = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+    expect(
+      findFirstInvalidOutputAddress(
+        [output, { ...output, to: testnetAddress }],
+        'bitcoin'
+      )
+    ).toBe(testnetAddress)
+  })
+
+  it('skips outputs whose script has no address', () => {
+    expect(
+      findFirstInvalidOutputAddress(
+        [{ ...output, to: 'Unknown Address 1' }],
+        'bitcoin'
+      )
+    ).toBeUndefined()
+  })
+
+  it('skips addresses still too short to validate', () => {
+    expect(
+      findFirstInvalidOutputAddress([{ ...output, to: 'bc1q' }], 'bitcoin')
+    ).toBeUndefined()
+  })
+})
+
+describe('estimateBuilderTransactionSize', () => {
+  it('falls back to the legacy estimate without inputs', () => {
+    expect(estimateBuilderTransactionSize(new Map(), [])).toStrictEqual(
+      legacyEstimateTransactionSize(0, 0)
+    )
+  })
+})
+
+describe('getFinalizedTransactionSize', () => {
+  it('returns null for empty, PSBT or invalid hex', () => {
+    expect(getFinalizedTransactionSize('')).toBeNull()
+    expect(
+      getFinalizedTransactionSize(`70736274ff${'00'.repeat(20)}`)
+    ).toBeNull()
+    expect(getFinalizedTransactionSize('zz'.repeat(20))).toBeNull()
+  })
+
+  it('reads size and vsize of a raw transaction', () => {
+    const transaction = new bitcoinjs.Transaction()
+    transaction.addInput(Buffer.alloc(32), 0)
+    transaction.addOutput(Buffer.from(`0014${'00'.repeat(20)}`, 'hex'), 1000)
+    expect(getFinalizedTransactionSize(transaction.toHex())).toStrictEqual({
+      size: transaction.byteLength(true),
+      vsize: transaction.virtualSize()
+    })
+  })
+})
+
+describe('mapBuildTransactionError', () => {
+  it('shows a dust message without a toast', () => {
+    expect(
+      mapBuildTransactionError(new Error('Output below the dust limit'))
+    ).toStrictEqual({
+      isDust: true,
+      message: { key: 'transaction.error.previewBuildFailedDust' },
+      notice: null
+    })
+  })
+
+  it('asks to sync when a UTXO is missing', () => {
+    const result = mapBuildTransactionError(new Error('UTXO not found: abc:0'))
+    expect(result.message).toStrictEqual({ text: 'UTXO not found: abc:0' })
+    expect(result.notice).toStrictEqual({
+      key: 'transaction.preview.utxoNotFound',
+      type: 'error'
+    })
+  })
+
+  it('shows the library message for other errors', () => {
+    expect(mapBuildTransactionError('Insufficient funds')).toStrictEqual({
+      isDust: false,
+      message: { text: 'Insufficient funds' },
+      notice: { text: 'Insufficient funds', type: 'error' }
+    })
+  })
+})
+
+describe('getTransactionIdDisplay', () => {
+  const ready = {
+    isLoadingPSBT: false,
+    psbtBuildStatus: 'idle',
+    transactionId: 'ab'.repeat(32)
+  } satisfies Parameters<typeof getTransactionIdDisplay>[0]
+
+  it('shows the transaction id once built', () => {
+    expect(getTransactionIdDisplay(ready)).toStrictEqual({
+      text: 'ab'.repeat(32)
+    })
+  })
+
+  it('shows progress while loading or building', () => {
+    expect(
+      getTransactionIdDisplay({ ...ready, isLoadingPSBT: true })
+    ).toStrictEqual({ key: 'common.loading' })
+    expect(
+      getTransactionIdDisplay({ ...ready, psbtBuildStatus: 'building' })
+    ).toStrictEqual({ key: 'transaction.preview.buildingTransaction' })
+  })
+
+  it('shows a placeholder after a failed build or without an id', () => {
+    expect(
+      getTransactionIdDisplay({ ...ready, psbtBuildStatus: 'error' })
+    ).toStrictEqual({ text: '—' })
+    expect(
+      getTransactionIdDisplay({ ...ready, transactionId: '' })
+    ).toStrictEqual({ text: '—' })
   })
 })
 

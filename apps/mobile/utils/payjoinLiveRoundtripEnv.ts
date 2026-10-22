@@ -2,7 +2,7 @@ import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 
 import {
   broadcastTransaction,
-  buildPsbt,
+  buildPsbtWithRpcOrBdkWallet,
   getWalletData,
   signTransaction
 } from '@/api/bdk'
@@ -185,26 +185,31 @@ async function buildPayjoinLiveRoundtripEnv(
         })
       )
     }
-    const psbt = await buildPsbt(senderWallet, server, sender, {
-      fee: feeSats,
-      inputs: [fundingUtxo],
-      options: { rbf: false },
-      outputs: [
-        {
-          amount: amountSats,
-          label: '',
-          localId: 'payjoin-roundtrip-payment',
-          to: toAddress
-        },
-        {
-          amount: changeSats,
-          kind: 'change',
-          label: '',
-          localId: 'payjoin-roundtrip-change',
-          to: changeAddress
-        }
-      ]
-    })
+    const psbt = await buildPsbtWithRpcOrBdkWallet(
+      senderWallet,
+      server,
+      sender,
+      {
+        fee: feeSats,
+        inputs: [fundingUtxo],
+        options: { rbf: false },
+        outputs: [
+          {
+            amount: amountSats,
+            label: '',
+            localId: 'payjoin-roundtrip-payment',
+            to: toAddress
+          },
+          {
+            amount: changeSats,
+            kind: 'change',
+            label: '',
+            localId: 'payjoin-roundtrip-change',
+            to: changeAddress
+          }
+        ]
+      }
+    )
     // Match the send UI: post the built original (witness UTXO filled) without
     // finalizing sender inputs — PDK rejects finalized originals.
     return psbt.toBase64()

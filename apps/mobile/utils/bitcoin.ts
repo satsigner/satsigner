@@ -34,6 +34,7 @@ import { type MultisigScriptType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isBitcoinUri, parseBitcoinUri } from '@/utils/bip321'
 import { hasBitcoinPrefix } from '@/utils/parse'
+import { validateAddress } from '@/utils/validation'
 
 initEccLib(ecc)
 
@@ -111,16 +112,6 @@ export function appNetworkToBdkNetwork(network: AppNetwork): BdkNetwork {
   }
 }
 
-// TODO: delete this and replace all of its references with bitcoinjs-lib,
-// since it provides more reliable validation function
-// from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet and regtest
-// bc1=mainnet, tb1=testnet, bcrt1=regtest (Bech32/Bech32m)
-function isBitcoinAddress(address: string): boolean {
-  return /^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{25,34}|(bc1|tb1|bcrt1)[a-z0-9]{39,59})$/i.test(
-    address
-  )
-}
-
 function isBip21(uri: string): boolean {
   if (!uri) {
     return false
@@ -131,7 +122,7 @@ function isBip21(uri: string): boolean {
     return isBitcoinUri(trimmed)
   }
 
-  return isBitcoinAddress(trimmed)
+  return validateAddress(trimmed)
 }
 
 type Bip21DecodeResult = {
@@ -165,7 +156,7 @@ function bip21decode(uri: string): Bip21DecodeResult | string | undefined {
       return undefined
     }
 
-    if (isBitcoinAddress(trimmed)) {
+    if (validateAddress(trimmed)) {
       return trimmed
     }
 
@@ -496,4 +487,4 @@ export function getMultisigScriptTypeFromScriptVersion(
   }
 }
 
-export { bip21decode, isBip21, isBitcoinAddress }
+export { bip21decode, isBip21 }

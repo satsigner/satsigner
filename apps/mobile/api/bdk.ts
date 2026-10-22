@@ -866,10 +866,10 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
-function buildPsbt(
+function buildPsbtWithRpcOrBdkWallet(
   wallet: BdkWallet,
   server: Server,
-  account: Account,
+  account: Account | undefined,
   data: {
     fee: number
     inputs: Utxo[]
@@ -879,7 +879,7 @@ function buildPsbt(
 ): Promise<PsbtLike> {
   const { backend, url, rpcCredentials, rpcWalletName } = server
 
-  if (backend === 'rpc' && url && rpcCredentials) {
+  if (backend === 'rpc' && url && rpcCredentials && account) {
     const walletName = resolveRpcWalletName(account, rpcWalletName)
     return buildTransactionWithRpc(url, rpcCredentials, walletName, {
       inputs: data.inputs,
@@ -1043,8 +1043,7 @@ async function deleteWalletDb(dbPath: string): Promise<void> {
 
 export {
   broadcastTransaction,
-  buildPsbt,
-  buildTransaction,
+  buildPsbtWithRpcOrBdkWallet,
   buildTransactionWithRpc,
   deleteWalletDb,
   getDescriptorString,

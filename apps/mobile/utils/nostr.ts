@@ -5,6 +5,7 @@ import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import pako from 'pako'
 
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
@@ -118,7 +119,7 @@ export function parseNostrTransaction(message: string): TransactionData | null {
 }
 
 function parseNostrTransactionMessage(message: string): TransactionData | null {
-  if (message.trim().startsWith('cHNidP')) {
+  if (message.trim().startsWith(PSBT_MAGIC_BASE64)) {
     const transactionData: TransactionData = {
       combinedPsbt: message.trim()
     }

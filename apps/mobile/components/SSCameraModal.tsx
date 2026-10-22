@@ -14,6 +14,7 @@ import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -288,7 +289,7 @@ function SSCameraModal({
             toast.error(t('camera.error.bbqrDecodeFailed'))
             return
           }
-        } else if (data.startsWith('cHNidP')) {
+        } else if (data.startsWith(PSBT_MAGIC_BASE64)) {
           finalContent = Buffer.from(data, 'base64').toString('hex')
         } else if (data.toLowerCase().startsWith('ur:')) {
           const decoded = decodeSingleUR(data)

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -181,25 +182,13 @@ export default function MultiSigKeySettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
+      <SSMnemonicWordCountSelectModal
         visible={mnemonicWordCountModalVisible}
-        title={t('account.mnemonic.title')}
-        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        selectedWordCount={localMnemonicWordCount}
+        onChange={setLocalMnemonicWordCount}
         onSelect={handleOnSelectMnemonicWordCount}
         onCancel={() => setMnemonicWordCountModalVisibile(false)}
-      >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
-          <SSRadioButton
-            key={count}
-            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localMnemonicWordCount === count}
-            onPress={() =>
-              setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
-            }
-          />
-        ))}
-      </SSSelectModal>
+      />
       <SSSelectModal
         visible={entropyModalVisible}
         title={t('account.entropy.title')}

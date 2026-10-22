@@ -7,6 +7,7 @@ import {
   getAccountFingerprint,
   getAccountTotalBalance,
   getNextDisplayIndex,
+  hasStoredMnemonic,
   updateAccountObjectLabels
 } from '@/utils/account'
 
@@ -458,5 +459,21 @@ describe('updateAccountObjectLabels', () => {
 
     expect(result.transactions[0].vin[0].label).toBe('payment (input 0)')
     expect(result.transactions[0].vout[0].label).toBe('payment (output 0)')
+  })
+})
+
+describe('hasStoredMnemonic', () => {
+  it('is true for a decrypted key that keeps its mnemonic', () => {
+    expect(
+      hasStoredMnemonic(makeKey({ secret: { mnemonic: 'abandon ability' } }))
+    ).toBe(true)
+  })
+
+  it('is false without a mnemonic, for an encrypted key or no key', () => {
+    expect(
+      hasStoredMnemonic(makeKey({ secret: { extendedPublicKey: 'xpub' } }))
+    ).toBe(false)
+    expect(hasStoredMnemonic(makeKey({ secret: 'encrypted' }))).toBe(false)
+    expect(hasStoredMnemonic(undefined)).toBe(false)
   })
 })

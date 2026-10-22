@@ -15,6 +15,7 @@ import {
   senderExtractRequest,
   senderProcessResponse
 } from '@/api/payjoinNative'
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import {
   PAYJOIN_BIP77_SEND_TIMEOUT_MS,
   PAYJOIN_BIP78_TIMEOUT_MS,
@@ -325,7 +326,7 @@ async function postBip78OriginalPsbt(params: {
       const err = parseBip78ErrorBody(trimmed)
       return { error: `${err.errorCode}: ${err.message}`, ok: false }
     }
-    if (!trimmed.startsWith('cHNidP')) {
+    if (!trimmed.startsWith(PSBT_MAGIC_BASE64)) {
       return { error: 'response is not a PSBT', ok: false }
     }
     return { ok: true, proposalBase64: trimmed }
@@ -453,7 +454,7 @@ async function sendBip78(params: {
         const processed = await senderProcessResponse(session.state, res.bytes)
         if (
           processed.kind === 'proposal' &&
-          processed.psbtBase64.startsWith('cHNidP')
+          processed.psbtBase64.startsWith(PSBT_MAGIC_BASE64)
         ) {
           const validation = validatePayjoinProposal({
             disableOutputSubstitution: params.disableOutputSubstitution,

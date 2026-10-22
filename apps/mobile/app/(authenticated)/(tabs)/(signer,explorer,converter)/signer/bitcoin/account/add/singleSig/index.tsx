@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -230,25 +231,13 @@ export default function SingleSig() {
         }}
         onCancel={() => setScriptVersionModalVisible(false)}
       />
-      <SSSelectModal
+      <SSMnemonicWordCountSelectModal
         visible={mnemonicWordCountModalVisible}
-        title={t('account.mnemonic.title')}
-        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        selectedWordCount={localMnemonicWordCount}
+        onChange={setLocalMnemonicWordCount}
         onSelect={handleOnSelectMnemonicWordCount}
         onCancel={() => setMnemonicWordCountModalVisible(false)}
-      >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
-          <SSRadioButton
-            key={count}
-            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localMnemonicWordCount === count}
-            onPress={() =>
-              setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
-            }
-          />
-        ))}
-      </SSSelectModal>
+      />
       <SSSelectModal
         visible={mnemonicWordListModalVisible}
         title={t('account.mnemonic.wordList')}
