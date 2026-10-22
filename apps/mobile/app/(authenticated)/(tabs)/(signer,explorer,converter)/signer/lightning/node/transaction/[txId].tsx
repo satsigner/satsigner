@@ -24,7 +24,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
   LNDInvoice,
@@ -621,7 +621,7 @@ export default function LndTransactionDetailPage() {
       if (!fetchHistoricalPricesFromNetwork) {
         return null
       }
-      const oracle = new MempoolOracle(getFiatPriceApiUrl())
+      const oracle = new MempoolOracle(fiatPriceApiUrl)
       const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
       return prices[fiatCurrency] ?? null
     },

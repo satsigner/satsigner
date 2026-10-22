@@ -15,7 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
-import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
@@ -58,7 +58,7 @@ function SSEcashTransactionCard({
   const { fiatPriceApiUrl } = useFiatData()
 
   useEffect(() => {
-    fetchPrices(getFiatPriceApiUrl())
+    fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
   const priceDisplay =

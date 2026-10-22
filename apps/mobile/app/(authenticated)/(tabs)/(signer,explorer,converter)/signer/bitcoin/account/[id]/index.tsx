@@ -105,7 +105,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
-import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Sizes } from '@/styles'
@@ -1874,7 +1874,7 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const { showCurrentFiat } = useFiatData()
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
@@ -2171,7 +2171,7 @@ export default function AccountView() {
 
   async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(getFiatPriceApiUrl())
+    await fetchPrices(fiatPriceApiUrl)
     await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()
