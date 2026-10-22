@@ -187,10 +187,16 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
   })
 }
 
+const INLINE_WHITESPACE = /[^\S\n]+/g
+const ZERO_WIDTH_CHARACTERS = /[\u200B-\u200D\uFEFF]/g
+const CONTROL_CHARACTERS_EXCEPT_NEWLINE =
+  // oxlint-disable-next-line no-control-regex
+  /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g
+
 function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
-    .replaceAll(/[\u200B-\u200D\uFEFF]/g, '')
+    .replaceAll(ZERO_WIDTH_CHARACTERS, '')
     .trim()
 }
 
@@ -254,6 +260,16 @@ function parseSinglesigDescriptor(descriptor: string) {
   const xpubs = extractSortedDescriptorXpubs(descriptor)
 
   return { hardenedPath, xpubs }
+}
+
+/** Strips spaces and invisible characters that NFC tags add to their text. */
+export function sanitizeScannedText(text: string) {
+  return text
+    .replaceAll(INLINE_WHITESPACE, '')
+    .replaceAll(ZERO_WIDTH_CHARACTERS, '')
+    .replaceAll(CONTROL_CHARACTERS_EXCEPT_NEWLINE, '')
+    .normalize('NFKC')
+    .trim()
 }
 
 export function parseDescriptor(descriptor: string) {

@@ -16,23 +16,25 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { recalculateDepthH, weightToVsize } from '@/utils/transaction'
+import {
+  assignOutputDepthOrder,
+  recalculateDepthH,
+  weightToVsize
+} from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 type ExtendedVin = Transaction['vin'][number] & {
   address: string
-  index?: number // Add optional index
 }
 
 type ExtendedVout = Transaction['vout'][number] & {
-  index?: number
-  vout?: number // Add optional vout index
+  depthOrder?: number
 }
 
 export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   depthH: number
   vin: ExtendedVin[]
-  vout: ExtendedVout[] // Use ExtendedVout
+  vout: ExtendedVout[]
 }
 
 type EsploraTxFetchResult =
@@ -66,63 +68,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-
-  const assignIOIndex = (transactions: Map<string, ExtendedTransaction>) => {
-    if (transactions.size === 0) {
-      return transactions
-    }
-
-    const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
-    const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
-
-    for (const [txid, tx] of transactions.entries()) {
-      if (tx.vin) {
-        for (const [index] of tx.vin.entries()) {
-          if (!vinsByDepth.has(tx.depthH)) {
-            vinsByDepth.set(tx.depthH, [])
-          }
-          vinsByDepth.get(tx.depthH)?.push({ index, txid })
-        }
-      }
-
-      if (tx.vout) {
-        for (const [index] of tx.vout.entries()) {
-          if (!voutsByDepth.has(tx.depthH)) {
-            voutsByDepth.set(tx.depthH, [])
-          }
-          voutsByDepth.get(tx.depthH)?.push({ index, txid })
-        }
-      }
-    }
-
-    for (const [_depthH, vins] of vinsByDepth.entries()) {
-      let currentIndex = 0
-      for (const { txid, index } of vins) {
-        const tx = transactions.get(txid)
-        if (tx?.vin?.[index]) {
-          tx.vin[index] = { ...tx.vin[index], index: currentIndex }
-          currentIndex += 1
-        }
-      }
-    }
-
-    for (const [_depthH, vouts] of voutsByDepth.entries()) {
-      let currentIndex = 0
-      for (const { txid, index } of vouts) {
-        const tx = transactions.get(txid)
-        if (tx?.vout?.[index]) {
-          tx.vout[index] = {
-            ...tx.vout[index],
-            index: currentIndex,
-            vout: index // Set vout to the original array index
-          }
-          currentIndex += 1
-        }
-      }
-    }
-
-    return transactions
-  }
 
   const fetchInputTransactions = useCallback(async () => {
     if (inputs.size === 0) {
@@ -160,7 +105,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     const allOutputAddresses = new Set<string>()
     const transactionInputAddresses = new Map<string, Set<string>>()
 
-    let electrumClient: ElectrumClient | null = null // Declare client variable
+    let electrumClient: ElectrumClient | null = null
 
     async function fetchElectrumTxRaw(
       txId: string
@@ -474,7 +419,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       )
                       if (txEntry && txEntry.height) {
                         blockHeight = txEntry.height
-                        break // Found the height, no need to check other addresses
+                        break
                       }
                     } catch {
                       /* silently ignored */
@@ -545,7 +490,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       const prevTxid = outpointHashBytesToTxid(input.hash)
                       const prevVout = input.index
                       const prevTx = prevTxsMap.get(prevTxid)
-                      const value = prevTx?.outs[prevVout]?.value // Get value from prev tx output
+                      const value = prevTx?.outs[prevVout]?.value
 
                       let address = 'unknown'
                       if (prevTx) {
@@ -753,9 +698,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           mappedInputs
         )
 
-        const transactionsWithIOIndex = assignIOIndex(transactionsWithDepthH)
-
-        setTransactions(transactionsWithIOIndex)
+        setTransactions(assignOutputDepthOrder(transactionsWithDepthH))
       } else {
         setTransactions(new Map())
       }

@@ -123,7 +123,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
             (m) => (typeof m === 'string' ? m : m.npub) === npub
           )
           if (alreadyExists) {
-            return // Skip color generation for existing members
+            return
           }
 
           const color = generateColorFromNpub(npub)

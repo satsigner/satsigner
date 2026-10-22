@@ -69,10 +69,7 @@ export function getURFragmentsFromPSBT(
 
   const ur = new UR(Buffer.from([...cborData]), 'crypto-psbt')
 
-  // Use appropriate fragment size for reliable camera scanning
-  const finalFragmentSize = fragmentSize // Use the specified fragment size for multiple chunks
-
-  const encoder = new UREncoder(ur, finalFragmentSize)
+  const encoder = new UREncoder(ur, fragmentSize)
 
   const fragments: string[] = []
   for (let i = 0; i < encoder.fragments.length; i += 1) {

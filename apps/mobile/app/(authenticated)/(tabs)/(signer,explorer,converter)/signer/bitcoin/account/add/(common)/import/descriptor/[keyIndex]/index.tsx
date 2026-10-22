@@ -41,6 +41,7 @@ import {
   getFingerprint,
   parseImportedDescriptorPayload
 } from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -390,30 +391,14 @@ export default function ImportDescriptor() {
     try {
       const nfcData = await readNFCTag()
 
-      if (!nfcData) {
+      if (!nfcData?.text) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
-      if (!nfcData.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
+      const text = sanitizeScannedText(nfcData.text)
 
-      const text = nfcData.text
-        .trim()
-        .replaceAll(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replaceAll(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        // eslint-disable-next-line no-control-regex
-        .replaceAll(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
-        .replace(/^en/, '')
-
-      let externalDescriptor = text
-      let internalDescriptor = ''
-      if (text.includes('\n')) {
-        ;[externalDescriptor, internalDescriptor] = text.split('\n')
-      }
+      const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
       if (isCombinedDescriptor(text)) {
         handleCombinedDescriptorImport(text)

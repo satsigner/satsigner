@@ -318,6 +318,31 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   return updatedTransactions
 }
 
+export function assignOutputDepthOrder(
+  transactions: Map<string, ExtendedTransaction>
+) {
+  const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
+
+  for (const [txid, tx] of transactions.entries()) {
+    for (const [index] of (tx.vout ?? []).entries()) {
+      const vouts = voutsByDepth.get(tx.depthH) ?? []
+      vouts.push({ index, txid })
+      voutsByDepth.set(tx.depthH, vouts)
+    }
+  }
+
+  for (const vouts of voutsByDepth.values()) {
+    for (const [depthOrder, { txid, index }] of vouts.entries()) {
+      const tx = transactions.get(txid)
+      if (tx?.vout?.[index]) {
+        tx.vout[index] = { ...tx.vout[index], depthOrder }
+      }
+    }
+  }
+
+  return transactions
+}
+
 // Builds an unsigned transaction hex from the transaction builder inputs and
 // outputs, for decoding/preview only. Inputs with an invalid txid are skipped;
 // returns '' when any output address is invalid for the network.

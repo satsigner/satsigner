@@ -149,10 +149,10 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
   if (!tag || !tag[1]) {
     return undefined
   }
-  const val = Number.parseInt(tag[1], 10)
-  return Number.isNaN(val) || val <= 0
+  const msats = Number.parseInt(tag[1], 10)
+  return Number.isNaN(msats) || msats <= 0
     ? undefined
-    : Math.floor(val / MILLISATS_PER_SAT)
+    : Math.floor(msats / MILLISATS_PER_SAT)
 }
 
 export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
@@ -167,15 +167,15 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   }
 
   if (zapGoalRaw?.[1]) {
-    const val = Number.parseInt(zapGoalRaw[1], 10)
-    if (!Number.isNaN(val) && val > 0) {
-      result.zapGoal = Math.floor(val / MILLISATS_PER_SAT)
+    const goalMsats = Number.parseInt(zapGoalRaw[1], 10)
+    if (!Number.isNaN(goalMsats) && goalMsats > 0) {
+      result.zapGoal = Math.floor(goalMsats / MILLISATS_PER_SAT)
     }
   }
   if (zapUsesRaw?.[1]) {
-    const val = Number.parseInt(zapUsesRaw[1], 10)
-    if (!Number.isNaN(val) && val > 0) {
-      result.zapUses = val
+    const uses = Number.parseInt(zapUsesRaw[1], 10)
+    if (!Number.isNaN(uses) && uses > 0) {
+      result.zapUses = uses
     }
   }
   const [, zapPayerVal] = zapPayerRaw ?? []

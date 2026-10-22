@@ -357,7 +357,7 @@ export default function ExportDescriptors() {
                     }
                   }
                 } else {
-                  const [singleKey] = keySection.split(',') // Use first (and only) key
+                  const [singleKey] = keySection.split(',')
                   switch (scriptVersion) {
                     case 'P2PKH': {
                       finalDescriptor = `pkh(${singleKey.replace(

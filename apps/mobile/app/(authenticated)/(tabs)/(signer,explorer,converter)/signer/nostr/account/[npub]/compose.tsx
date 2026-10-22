@@ -76,8 +76,8 @@ export default function NostrComposePage() {
 
   function validateAmounts(): string | null {
     if (amountMode === 'fixed') {
-      const val = Number.parseInt(fixedAmount, 10)
-      if (!val || val <= 0) {
+      const fixedSats = Number.parseInt(fixedAmount, 10)
+      if (!fixedSats || fixedSats <= 0) {
         return t('nostrIdentity.compose.invalidAmount')
       }
     }
@@ -95,14 +95,14 @@ export default function NostrComposePage() {
       }
     }
     if (goalAmount) {
-      const val = Number.parseInt(goalAmount, 10)
-      if (Number.isNaN(val) || val <= 0) {
+      const goalSats = Number.parseInt(goalAmount, 10)
+      if (Number.isNaN(goalSats) || goalSats <= 0) {
         return t('nostrIdentity.compose.invalidGoal')
       }
     }
     if (maxUses) {
-      const val = Number.parseInt(maxUses, 10)
-      if (Number.isNaN(val) || val <= 0) {
+      const uses = Number.parseInt(maxUses, 10)
+      if (Number.isNaN(uses) || uses <= 0) {
         return t('nostrIdentity.compose.invalidUses')
       }
     }

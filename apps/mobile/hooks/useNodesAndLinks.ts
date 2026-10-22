@@ -470,7 +470,7 @@ export const useNodesAndLinks = ({
 
             const node = {
               depthH: outputDepth,
-              id: `vout-${outputDepth}-${output.index}`,
+              id: `vout-${outputDepth}-${output.depthOrder}`,
               inputOutpoint: matchingInput
                 ? getUtxoOutpoint(matchingInput)
                 : undefined,
