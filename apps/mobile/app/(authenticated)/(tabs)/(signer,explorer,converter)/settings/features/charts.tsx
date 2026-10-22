@@ -12,6 +12,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
+import { historicalFiatLineControl } from '@/utils/historyChart'
 
 export default function Charts() {
   const router = useRouter()
@@ -33,6 +34,8 @@ export default function Charts() {
     setShowFiatAtTxTime,
     showFiatPercentageChange,
     setShowFiatPercentageChange,
+    showHistoricalFiatLine,
+    setShowHistoricalFiatLine,
     showTransactionFlowChart,
     setShowTransactionFlowChart,
     showUtxoFlowChart,
@@ -55,6 +58,8 @@ export default function Charts() {
       state.setShowFiatAtTxTime,
       state.showFiatPercentageChange,
       state.setShowFiatPercentageChange,
+      state.showHistoricalFiatLine,
+      state.setShowHistoricalFiatLine,
       state.showTransactionFlowChart,
       state.setShowTransactionFlowChart,
       state.showUtxoFlowChart,
@@ -76,6 +81,8 @@ export default function Charts() {
     selectedShowFiatPercentageChange,
     setSelectedShowFiatPercentageChange
   ] = useState(showFiatPercentageChange)
+  const [selectedShowHistoricalFiatLine, setSelectedShowHistoricalFiatLine] =
+    useState(showHistoricalFiatLine)
   const [selectedLockZoomToXAxis, setSelectedLockZoomToXAxis] =
     useState(lockZoomToXAxis)
   const [
@@ -85,12 +92,18 @@ export default function Charts() {
   const [selectedShowUtxoFlowChart, setSelectedShowUtxoFlowChart] =
     useState(showUtxoFlowChart)
 
+  const fiatLineControl = historicalFiatLineControl({
+    fetchCurrentPrices: showCurrentFiat,
+    fetchHistoricalPrices: showHistoricalFiat
+  })
+
   function handleOnSave() {
     setLockZoomToXAxis(selectedLockZoomToXAxis)
     setShowAmount(selectedShowAmount)
     setShowFiatAtTxTime(selectedShowFiatAtTxTime)
     setShowFiatOnChart(selectedShowFiatOnChart)
     setShowFiatPercentageChange(selectedShowFiatPercentageChange)
+    setShowHistoricalFiatLine(selectedShowHistoricalFiatLine)
     setShowLabel(selectedShowLabel)
     setShowOutputField(selectedShowOutputField)
     setShowTransactionFlowChart(selectedShowTransactionFlowChart)
@@ -186,6 +199,28 @@ export default function Charts() {
                       : () => setSelectedShowFiatAtTxTime((prev) => !prev)
                   }
                 />
+                <SSCheckbox
+                  label={t(
+                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine'
+                  )}
+                  selected={selectedShowHistoricalFiatLine}
+                  disabled={fiatLineControl.disabled}
+                  onPress={
+                    fiatLineControl.disabled
+                      ? undefined
+                      : () => setSelectedShowHistoricalFiatLine((prev) => !prev)
+                  }
+                />
+                {fiatLineControl.disabled ? (
+                  <SSText
+                    color="muted"
+                    onPress={() =>
+                      router.navigate(fiatLineControl.settingsPath)
+                    }
+                  >
+                    {t(fiatLineControl.linkLabelKey)}
+                  </SSText>
+                ) : null}
                 <SSCheckbox
                   label={t(
                     'settings.features.charts.historyChart.layers.showFiatPercentageChange'

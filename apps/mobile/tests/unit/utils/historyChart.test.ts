@@ -3,9 +3,17 @@ import { type Utxo } from '@/types/models/Utxo'
 import {
   buildBalanceHistory,
   buildChartData,
+  buildFiatChartSeries,
+  buildFiatStepPath,
   buildWalletAddresses,
   computeValidChartData,
-  hexToRgba
+  fiatYDomain,
+  hexToRgba,
+  historicalFiatLineControl,
+  historyChartMargin,
+  isHistoricalFiatLineVisible,
+  maxFiatChartValue,
+  projectFiatOntoChart
 } from '@/utils/historyChart'
 
 function makeTx(
@@ -134,5 +142,223 @@ describe('computeValidChartData', () => {
     expect(valid[0].balance).toBe(1000)
     expect(valid.at(-1)!.type).toBe('end')
     expect(maxBalance).toBe(1500)
+  })
+})
+
+describe('buildFiatChartSeries', () => {
+  const now = new Date('2026-01-10T00:00:00Z')
+  const bundled = () => 50_000
+
+  it('converts the running balance with the price saved on the transaction', () => {
+    const series = buildFiatChartSeries(
+      [
+        makeTx({
+          id: 'a',
+          prices: { USD: 40_000 },
+          received: 100_000_000,
+          timestamp: new Date('2026-01-02T00:00:00Z'),
+          type: 'receive'
+        })
+      ],
+      'USD',
+      now,
+      bundled
+    )
+    expect(series[0].value).toBe(40_000)
+  })
+
+  it('uses the bundled price when the transaction has no saved price', () => {
+    const series = buildFiatChartSeries(
+      [
+        makeTx({
+          id: 'a',
+          received: 50_000_000,
+          timestamp: new Date('2026-01-02T00:00:00Z'),
+          type: 'receive'
+        })
+      ],
+      'USD',
+      now,
+      () => 60_000
+    )
+    expect(series[0].value).toBe(30_000)
+  })
+
+  it('leaves a gap when neither the transaction nor the bundle has a price', () => {
+    const series = buildFiatChartSeries(
+      [
+        makeTx({
+          id: 'a',
+          prices: { USD: 40_000 },
+          received: 100_000_000,
+          timestamp: new Date('2026-01-02T00:00:00Z'),
+          type: 'receive'
+        }),
+        makeTx({
+          id: 'b',
+          received: 100_000_000,
+          timestamp: new Date('2026-06-02T00:00:00Z'),
+          type: 'receive'
+        })
+      ],
+      'USD',
+      now,
+      () => null
+    )
+    expect(series.map((point) => point.value)).toStrictEqual([40_000, null])
+    expect(maxFiatChartValue(series)).toBe(40_000)
+  })
+
+  it('does not use the bundled price when a saved price exists', () => {
+    const series = buildFiatChartSeries(
+      [
+        makeTx({
+          id: 'a',
+          prices: { USD: 10_000 },
+          received: 100_000_000,
+          type: 'receive'
+        })
+      ],
+      'USD',
+      now,
+      () => 99_000
+    )
+    expect(series[0].value).toBe(10_000)
+  })
+})
+
+describe('projectFiatOntoChart', () => {
+  it('carries the last priced balance across window edges and keeps gaps', () => {
+    const now = new Date('2026-01-10T00:00:00Z')
+    const transactions = [
+      makeTx({
+        id: 'a',
+        received: 1,
+        timestamp: new Date('2026-01-01T00:00:00Z'),
+        type: 'receive'
+      }),
+      makeTx({
+        id: 'b',
+        received: 1,
+        timestamp: new Date('2026-01-04T00:00:00Z'),
+        type: 'receive'
+      })
+    ]
+    const chartData = buildChartData(transactions, now)
+    const fiatSeries = buildFiatChartSeries(
+      transactions,
+      'USD',
+      now,
+      () => null
+    )
+    fiatSeries[0].value = 10
+    fiatSeries[1].value = null
+    const [, valid] = computeValidChartData(
+      chartData,
+      new Date('2026-01-03T00:00:00Z'),
+      new Date('2026-01-06T00:00:00Z'),
+      now,
+      true
+    )
+    const projected = projectFiatOntoChart(chartData, fiatSeries, valid)
+    expect(projected.map((point) => point.value)).toStrictEqual([
+      10,
+      null,
+      null
+    ])
+  })
+})
+
+describe('fiatYDomain', () => {
+  it('starts at zero when zoom is locked to the x axis', () => {
+    expect(fiatYDomain(100, 200, 2, 40, true)).toStrictEqual([0, 120])
+  })
+
+  it('shifts with the sats pan and shares the pinch scale', () => {
+    expect(fiatYDomain(100, 200, 2, 40, false)).toStrictEqual([20, 80])
+  })
+})
+
+describe('buildFiatStepPath', () => {
+  it('breaks the step line where a point has no fiat value', () => {
+    const path = buildFiatStepPath(
+      [
+        { date: new Date('2026-01-01T00:00:00Z'), value: 10 },
+        { date: new Date('2026-01-02T00:00:00Z'), value: null },
+        { date: new Date('2026-01-03T00:00:00Z'), value: 30 }
+      ],
+      () => 0,
+      (value) => value
+    )
+    expect(path?.match(/M/g)?.length).toBe(2)
+  })
+
+  it('returns null when every point is a gap', () => {
+    expect(
+      buildFiatStepPath(
+        [{ date: new Date('2026-01-01T00:00:00Z'), value: null }],
+        () => 0,
+        (value) => value
+      )
+    ).toBeNull()
+  })
+})
+
+describe('historical fiat line visibility', () => {
+  it('is visible only when the setting and both fiat fetches are on', () => {
+    expect(
+      isHistoricalFiatLineVisible({
+        fetchCurrentPrices: true,
+        fetchHistoricalPrices: true,
+        showHistoricalFiatLine: true
+      })
+    ).toBe(true)
+    expect(
+      isHistoricalFiatLineVisible({
+        fetchCurrentPrices: true,
+        fetchHistoricalPrices: true,
+        showHistoricalFiatLine: false
+      })
+    ).toBe(false)
+  })
+
+  it('links to fiat currency settings when current prices are off', () => {
+    expect(
+      historicalFiatLineControl({
+        fetchCurrentPrices: false,
+        fetchHistoricalPrices: true
+      })
+    ).toMatchObject({
+      disabled: true,
+      settingsPath: '/settings/fiat'
+    })
+  })
+
+  it('links to fiat data settings when historical prices are off', () => {
+    expect(
+      historicalFiatLineControl({
+        fetchCurrentPrices: true,
+        fetchHistoricalPrices: false
+      })
+    ).toMatchObject({
+      disabled: true,
+      settingsPath: '/settings/features/fiatData'
+    })
+  })
+
+  it('leaves the control enabled when both fetches are on', () => {
+    expect(
+      historicalFiatLineControl({
+        fetchCurrentPrices: true,
+        fetchHistoricalPrices: true
+      })
+    ).toStrictEqual({ disabled: false })
+  })
+})
+
+describe('historyChartMargin', () => {
+  it('reserves the right edge only while the fiat axis is shown', () => {
+    expect(historyChartMargin(false).right).toBe(10)
+    expect(historyChartMargin(true).right).toBe(52)
   })
 })

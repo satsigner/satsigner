@@ -1,5 +1,9 @@
 import { format } from 'd3-format'
+import { curveStepAfter, line } from 'd3-shape'
 
+import { isUsablePrice } from '@/api/localPrices'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
@@ -14,7 +18,7 @@ import {
   type UtxoLabel,
   type UtxoRectangle
 } from '@/types/ui/historyChart'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 
 export function hexToRgba(hex: string, opacity: number): string {
@@ -501,4 +505,201 @@ export function buildTxInfoLabels({
     }
   }
   return initialLabels
+}
+
+const HISTORY_CHART_Y_HEADROOM = 1.2
+const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
+const FIAT_AXIS_RIGHT_MARGIN = 52
+
+const FIAT_CURRENCY_SETTINGS_PATH = '/settings/fiat'
+const FIAT_DATA_SETTINGS_PATH = '/settings/features/fiatData'
+
+type FiatChartPoint = {
+  date: Date
+  value: number | null
+}
+
+type HistoricalFiatLineControl =
+  | { disabled: false }
+  | {
+      disabled: true
+      linkLabelKey:
+        | 'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatCurrencyLink'
+        | 'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatDataLink'
+      settingsPath:
+        | typeof FIAT_CURRENCY_SETTINGS_PATH
+        | typeof FIAT_DATA_SETTINGS_PATH
+    }
+
+function transactionBalanceChange(transaction: Transaction) {
+  if (transaction.type === 'receive') {
+    return transaction.received ?? 0
+  }
+  return (transaction.received ?? 0) - (transaction.sent ?? 0)
+}
+
+function historicalBtcPrice(
+  transaction: Transaction,
+  currency: Currency,
+  bundledPriceAt: (timestamp: number) => number | null
+) {
+  const saved = transaction.prices?.[currency]
+  if (isUsablePrice(saved)) {
+    return saved
+  }
+  if (!transaction.timestamp) {
+    return null
+  }
+  const timestamp =
+    transaction.timestamp instanceof Date
+      ? transaction.timestamp
+      : new Date(transaction.timestamp)
+  if (Number.isNaN(timestamp.getTime())) {
+    return null
+  }
+  const bundled = bundledPriceAt(formatTimestamp(timestamp))
+  if (!isUsablePrice(bundled)) {
+    return null
+  }
+  return bundled
+}
+
+function buildFiatChartSeries(
+  transactions: Transaction[],
+  currency: Currency,
+  currentDate: Date,
+  bundledPriceAt: (timestamp: number) => number | null
+): FiatChartPoint[] {
+  let balance = 0
+  return transactions.map((transaction) => {
+    balance += transactionBalanceChange(transaction)
+    const price = historicalBtcPrice(transaction, currency, bundledPriceAt)
+    const date = new Date(transaction.timestamp ?? currentDate)
+    return {
+      date,
+      value: price === null ? null : (balance * price) / SATS_PER_BITCOIN
+    }
+  })
+}
+
+function projectFiatOntoChart(
+  chartData: HistoryChartData[],
+  fiatSeries: FiatChartPoint[],
+  validChartData: HistoryChartData[]
+): FiatChartPoint[] {
+  const fiatById = new Map<string, number | null>()
+  for (const [index, point] of chartData.entries()) {
+    fiatById.set(point.id, fiatSeries[index]?.value ?? null)
+  }
+  const startDate = validChartData[0]?.date
+  let carried: number | null = null
+  if (startDate) {
+    for (const [index, point] of chartData.entries()) {
+      if (point.date >= startDate) {
+        break
+      }
+      carried = fiatSeries[index]?.value ?? null
+    }
+  }
+  return validChartData.map((point) => {
+    if (point.type === 'end' && point.id === '') {
+      return { date: point.date, value: carried }
+    }
+    const value = fiatById.get(point.id) ?? null
+    carried = value
+    return { date: point.date, value }
+  })
+}
+
+function maxFiatChartValue(series: FiatChartPoint[]) {
+  let max = 0
+  for (const point of series) {
+    if (point.value !== null && point.value > max) {
+      max = point.value
+    }
+  }
+  return max
+}
+
+function fiatYDomain(
+  maxFiat: number,
+  maxBalance: number,
+  scale: number,
+  startY: number,
+  lockZoomToXAxis: boolean
+): [number, number] {
+  const fiatSpan = maxFiat * HISTORY_CHART_Y_HEADROOM
+  if (lockZoomToXAxis || maxBalance <= 0) {
+    return [0, fiatSpan]
+  }
+  const satsSpan = maxBalance * HISTORY_CHART_Y_HEADROOM
+  const fiatStart = (startY / satsSpan) * fiatSpan
+  return [fiatStart, fiatStart + fiatSpan / scale]
+}
+
+function buildFiatStepPath(
+  series: FiatChartPoint[],
+  x: (date: Date) => number,
+  y: (value: number) => number
+) {
+  const generator = line<FiatChartPoint>()
+    .defined((point) => point.value !== null)
+    .x((point) => x(point.date))
+    .y((point) => y(point.value ?? 0))
+    .curve(curveStepAfter)
+  return generator(series)
+}
+
+function isHistoricalFiatLineVisible(input: {
+  fetchCurrentPrices: boolean
+  fetchHistoricalPrices: boolean
+  showHistoricalFiatLine: boolean
+}) {
+  return (
+    input.showHistoricalFiatLine &&
+    input.fetchCurrentPrices &&
+    input.fetchHistoricalPrices
+  )
+}
+
+function historicalFiatLineControl(input: {
+  fetchCurrentPrices: boolean
+  fetchHistoricalPrices: boolean
+}): HistoricalFiatLineControl {
+  if (!input.fetchCurrentPrices) {
+    return {
+      disabled: true,
+      linkLabelKey:
+        'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatCurrencyLink',
+      settingsPath: FIAT_CURRENCY_SETTINGS_PATH
+    }
+  }
+  if (!input.fetchHistoricalPrices) {
+    return {
+      disabled: true,
+      linkLabelKey:
+        'settings.features.charts.historyChart.layers.showHistoricalFiatLine.fiatDataLink',
+      settingsPath: FIAT_DATA_SETTINGS_PATH
+    }
+  }
+  return { disabled: false }
+}
+
+function historyChartMargin(showFiatAxis: boolean) {
+  if (!showFiatAxis) {
+    return HISTORY_CHART_MARGIN
+  }
+  return { ...HISTORY_CHART_MARGIN, right: FIAT_AXIS_RIGHT_MARGIN }
+}
+
+export {
+  buildFiatChartSeries,
+  buildFiatStepPath,
+  fiatYDomain,
+  projectFiatOntoChart,
+  historicalFiatLineControl,
+  historyChartMargin,
+  isHistoricalFiatLineVisible,
+  maxFiatChartValue,
+  type FiatChartPoint
 }

@@ -18,6 +18,7 @@ import { timeFormat } from 'd3-time-format'
 import { Fragment, memo, useMemo } from 'react'
 
 import { useSFProFonts } from '@/hooks/useSFProFonts'
+import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
@@ -180,6 +181,60 @@ function YScaleRenderer({
 }
 
 export const MemoizedYScaleRenderer = memo(YScaleRenderer)
+
+type FiatYScaleRendererProps = {
+  chartHeight: number
+  chartWidth: number
+  currency: string
+  customFontManager: ReturnType<typeof useSFProFonts>
+  fontStyle: { fontFamily: string; fontSize: number }
+  yAxisFormatter: (value: number) => string
+  yScale: ScaleLinear<number, number>
+}
+
+function FiatYScaleRenderer({
+  chartHeight,
+  chartWidth,
+  currency,
+  customFontManager,
+  fontStyle,
+  yAxisFormatter,
+  yScale
+}: FiatYScaleRendererProps) {
+  if (!customFontManager) {
+    return null
+  }
+  const font = matchFont(fontStyle, customFontManager)
+  return (
+    <>
+      <Text
+        x={chartWidth + 4}
+        y={12}
+        text={currency}
+        font={font}
+        color={Colors.warning}
+      />
+      {yScale.ticks(4).map((tick) => {
+        const yPosition = yScale(tick)
+        if (yPosition > chartHeight || yPosition < 0) {
+          return null
+        }
+        return (
+          <Text
+            key={tick.toString()}
+            x={chartWidth + 4}
+            y={yPosition + 6}
+            text={yAxisFormatter(tick)}
+            font={font}
+            color={Colors.warning}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+export { FiatYScaleRenderer }
 
 function XScaleRenderer({
   customFontManager,

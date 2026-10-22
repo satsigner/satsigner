@@ -7,10 +7,12 @@ import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getLocalPriceAt } from '@/api/localPrices'
 import {
   MemoizedCursorRenderer,
   MemoizedHistoryChartAreaSeries,
   MemoizedHistoryChartUtxoSeries,
+  FiatYScaleRenderer,
   MemoizedTransactionInfoRenderer,
   MemoizedXAxisRenderer,
   MemoizedXScaleRenderer,
@@ -26,6 +28,7 @@ import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
@@ -33,7 +36,14 @@ import { type HistoryChartData } from '@/types/ui/historyChart'
 import {
   buildBalanceHistory,
   buildChartData,
+  buildFiatChartSeries,
+  buildFiatStepPath,
   buildTransactionsMap,
+  fiatYDomain,
+  historyChartMargin,
+  isHistoricalFiatLineVisible,
+  maxFiatChartValue,
+  projectFiatOntoChart,
   buildTxInfoLabels,
   buildTxXAxisLabels,
   buildUtxoLabels,
@@ -67,7 +77,8 @@ function SSHistoryChart({
     lockZoomToXAxis,
     showFiatOnChart,
     showFiatAtTxTime,
-    showFiatPercentageChange
+    showFiatPercentageChange,
+    showHistoricalFiatLine
   ] = useChartSettingStore(
     useShallow((state) => [
       state.showLabel,
@@ -77,7 +88,8 @@ function SSHistoryChart({
       state.lockZoomToXAxis,
       state.showFiatOnChart,
       state.showFiatAtTxTime,
-      state.showFiatPercentageChange
+      state.showFiatPercentageChange,
+      state.showHistoricalFiatLine
     ])
   )
 
@@ -125,8 +137,6 @@ function SSHistoryChart({
           currentDate.current.getDate() + 10
         ) - chartData[0].date.getTime()
       : 0
-  const margin = { bottom: 80, left: 40, right: 10, top: 30 }
-
   const startDate = useMemo<Date>(
     () => new Date(endDate.getTime() - timeOffset / scale),
     [endDate, scale, timeOffset]
@@ -150,6 +160,34 @@ function SSHistoryChart({
     [chartData, lockZoomToXAxis, startDate, endDate]
   )
 
+  const showFiatLine = isHistoricalFiatLineVisible({
+    fetchCurrentPrices: showCurrentFiat,
+    fetchHistoricalPrices: showHistoricalFiat,
+    showHistoricalFiatLine
+  })
+  const fiatSeries = useMemo(
+    () =>
+      showFiatLine
+        ? buildFiatChartSeries(
+            transactions,
+            fiatCurrency,
+            currentDate.current,
+            (timestamp) => getLocalPriceAt(fiatCurrency, timestamp)
+          )
+        : [],
+    [fiatCurrency, showFiatLine, transactions]
+  )
+  const fiatChartPoints = useMemo(
+    () =>
+      showFiatLine
+        ? projectFiatOntoChart(chartData, fiatSeries, validChartData)
+        : [],
+    [chartData, fiatSeries, showFiatLine, validChartData]
+  )
+  const maxFiat = maxFiatChartValue(fiatChartPoints)
+  const showFiatAxis = showFiatLine && maxFiat > 0
+  const margin = historyChartMargin(showFiatAxis)
+
   const chartWidth = containerSize.width - margin.left - margin.right
   const chartHeight = containerSize.height - margin.top - margin.bottom
 
@@ -169,6 +207,28 @@ function SSHistoryChart({
         ])
         .range([chartHeight, 0]),
     [chartHeight, lockZoomToXAxis, maxBalance, scale, startY]
+  )
+
+  const fiatYScale = useMemo(
+    () =>
+      scaleLinear()
+        .domain(
+          fiatYDomain(maxFiat, maxBalance, scale, startY, lockZoomToXAxis)
+        )
+        .range([chartHeight, 0]),
+    [chartHeight, lockZoomToXAxis, maxBalance, maxFiat, scale, startY]
+  )
+
+  const fiatLinePath = useMemo(
+    () =>
+      showFiatAxis
+        ? buildFiatStepPath(
+            fiatChartPoints,
+            (date) => xScale(date),
+            (value) => fiatYScale(value)
+          )
+        : null,
+    [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
   )
 
   const utxoRectangleData = useMemo(
@@ -369,6 +429,17 @@ function SSHistoryChart({
               chartWidth={chartWidth}
               yAxisFormatter={yAxisFormatter}
             />
+            {showFiatAxis ? (
+              <FiatYScaleRenderer
+                chartHeight={chartHeight}
+                chartWidth={chartWidth}
+                currency={fiatCurrency}
+                customFontManager={customFontManager}
+                fontStyle={fontStyle}
+                yAxisFormatter={yAxisFormatter}
+                yScale={fiatYScale}
+              />
+            ) : null}
             <MemoizedXScaleRenderer
               customFontManager={customFontManager}
               fontStyle={fontStyle}
@@ -408,6 +479,14 @@ function SSHistoryChart({
                 strokeWidth={2}
                 style="stroke"
               />
+              {showFiatAxis ? (
+                <Path
+                  path={fiatLinePath ?? ''}
+                  color={Colors.warning}
+                  strokeWidth={2}
+                  style="stroke"
+                />
+              ) : null}
               <MemoizedHistoryChartAreaSeries
                 areaPath={areaPath}
                 showOutputField={showOutputField}
