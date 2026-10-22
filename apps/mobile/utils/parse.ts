@@ -265,11 +265,11 @@ const CONTROL_CHARACTERS_EXCEPT_NEWLINE =
 /** Strips spaces and invisible characters that NFC tags and QR codes add to scanned text. */
 export function sanitizeScannedText(text: string) {
   return text
-    .trim()
     .replaceAll(INLINE_WHITESPACE, '')
     .replaceAll(ZERO_WIDTH_CHARACTERS, '')
     .replaceAll(CONTROL_CHARACTERS_EXCEPT_NEWLINE, '')
     .normalize('NFKC')
+    .trim()
 }
 
 export function parseDescriptor(descriptor: string) {

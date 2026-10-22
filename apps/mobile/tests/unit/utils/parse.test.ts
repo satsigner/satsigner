@@ -214,6 +214,10 @@ describe('sanitizeScannedText', () => {
     expect(sanitizeScannedText('\nxpub\n')).toBe('xpub')
   })
 
+  it('trims newlines left behind by stripped invisible characters', () => {
+    expect(sanitizeScannedText('​\nxpub\n\u0007')).toBe('xpub')
+  })
+
   it('folds compatibility characters with NFKC', () => {
     expect(sanitizeScannedText('\uFF58\uFF50\uFF55\uFF42')).toBe('xpub')
   })
