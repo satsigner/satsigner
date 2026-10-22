@@ -42,6 +42,7 @@ import {
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
@@ -130,6 +131,14 @@ import {
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
   const router = useRouter()
   const { id, autoSelectFromUri, dustWarning } =
     useLocalSearchParams<IoPreviewSearchParams>()
@@ -139,14 +148,9 @@ export default function IOPreview() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const [currencyUnit, defaultAutoSelectUtxos, useZeroPadding] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.defaultAutoSelectUtxos,
-        state.useZeroPadding
-      ])
-    )
+  const defaultAutoSelectUtxos = useSettingsStore(
+    (state) => state.defaultAutoSelectUtxos
+  )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -241,13 +245,7 @@ export default function IOPreview() {
     }, [changeAddress, secondChangeAddress, decoyAddress])
   )
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
+  const satsToFiat = usePriceStore((state) => state.satsToFiat)
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
@@ -1572,6 +1570,10 @@ export default function IOPreview() {
                     }
                   >
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       key={`amount-input-${outputsCount}`}
                       min={DUST_LIMIT}
                       max={

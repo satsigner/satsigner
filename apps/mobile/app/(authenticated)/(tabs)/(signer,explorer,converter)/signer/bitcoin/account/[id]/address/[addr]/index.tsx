@@ -17,13 +17,12 @@ import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { Address, type AddressKeyPair } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
@@ -40,6 +39,7 @@ import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function AddressDetails() {
+  const display = useDisplayPreferences()
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
   const [script, setScript] = useState('')
 
@@ -63,13 +63,9 @@ function AddressDetails() {
   )
   const allAccountUtxos = account?.utxos || []
 
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const addressUtxoInputs = useMemo(() => addressUtxos || [], [addressUtxos])
   const blockchainHeight = useBlockchainStore(
     (state) => state.lastKnownBlockHeight
-  )
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
 
   // TODO: move graph logic elsewhere
@@ -182,7 +178,7 @@ function AddressDetails() {
                   `/signer/bitcoin/account/${accountId}/address/${addr}/label`
                 )
               }
-              privacyMode={privacyMode}
+              privacyMode={display.privacyMode}
             />
             <SSSeparator />
             <SSVStack gap="sm">
@@ -215,6 +211,7 @@ function AddressDetails() {
                   <SSVStack gap="none">
                     {transactions.map((tx, index) => (
                       <SSTransactionCard
+                        {...display}
                         style={{
                           borderColor: Colors.gray[700],
                           borderTopWidth: index > 0 ? 1 : 0,
@@ -224,8 +221,6 @@ function AddressDetails() {
                         transaction={tx}
                         key={tx.id}
                         blockHeight={blockchainHeight}
-                        fiatCurrency={fiatCurrency}
-                        btcPrice={btcPrice}
                         onPress={() =>
                           router.navigate(
                             `/signer/bitcoin/account/${accountId}/transaction/${tx.id}`

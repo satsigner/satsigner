@@ -87,6 +87,7 @@ import {
 import { MS_PER_SECOND } from '@/constants/time'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -683,6 +684,7 @@ function TotalTransactions({
   currentBlockTimeSec,
   scanFromTimeSec
 }: TotalTransactionsProps) {
+  const display = useDisplayPreferences()
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
   const [sortField, setSortField] = useState<TransactionSortField>('date')
@@ -732,10 +734,6 @@ function TotalTransactions({
   const showDraft = hasDraft && !hasActiveSenderPayjoin
   const hasActivityHeader = showDraft || activePayjoinSessions.length > 0
   const router = useRouter()
-
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
 
   const annotatedTransactions = useMemo(
     () =>
@@ -920,8 +918,7 @@ function TotalTransactions({
                     maxBalance={maxBalance}
                   />
                   <SSTransactionCard
-                    btcPrice={btcPrice}
-                    fiatCurrency={fiatCurrency}
+                    {...display}
                     transaction={item}
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
@@ -1756,10 +1753,8 @@ function SatsInMempool({
   account: Account
   blockchainHeight: number
 }) {
+  const display = useDisplayPreferences()
   const router = useRouter()
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
 
   const mempoolTransactions = useMemo(
     () =>
@@ -1789,10 +1784,9 @@ function SatsInMempool({
         renderItem={({ item }) => (
           <SSVStack gap="sm" style={{ paddingBottom: 16 }}>
             <SSTransactionCard
+              {...display}
               transaction={item}
               blockHeight={blockchainHeight}
-              btcPrice={btcPrice}
-              fiatCurrency={fiatCurrency}
               expand={false}
               onPress={() =>
                 router.navigate(

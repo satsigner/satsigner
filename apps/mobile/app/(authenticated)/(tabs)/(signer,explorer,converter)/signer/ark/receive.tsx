@@ -22,6 +22,7 @@ import {
   useArkAddress,
   useArkBolt11InvoiceMutation
 } from '@/hooks/useArkReceive'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -46,6 +47,8 @@ function handleBoarded() {
 }
 
 export default function ArkReceivePage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
@@ -185,6 +188,10 @@ export default function ArkReceivePage() {
                       {t('ark.receive.amount')} ({t('bitcoin.sats')})
                     </SSText>
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       min={DUST_LIMIT}
                       max={LIGHTNING_CHANNEL_THRESHOLD}
                       value={Number(amount)}
