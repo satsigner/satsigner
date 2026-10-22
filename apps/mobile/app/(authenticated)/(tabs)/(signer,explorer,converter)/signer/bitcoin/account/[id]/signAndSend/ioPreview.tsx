@@ -285,7 +285,7 @@ export default function IOPreview() {
   const previewFlags = getPreviewReplacementFlags({
     rbf,
     spendsUnconfirmedParent: spendsUnconfirmedParent(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       account?.transactions ?? []
     )
   })
