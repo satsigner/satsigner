@@ -1,7 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 
-import { useSettingsStore } from '@/store/settings'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
+import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 
 export function useFiatData() {
   const [

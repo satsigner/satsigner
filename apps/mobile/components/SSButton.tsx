@@ -192,7 +192,7 @@ function SSButton({
               style={[styles.buttonLabelSingleLine, textStyles]}
               uppercase={uppercase}
             >
-              {typeof label === 'string' ? label.replace(/\n/g, ' ') : label}
+              {typeof label === 'string' ? label.replaceAll('\n', ' ') : label}
             </SSText>
           </View>
         )

@@ -48,8 +48,8 @@ describe('lndRestRemoteConfig', () => {
       const macHex = 'cafebabe'
       const macB64Url = Buffer.from(macHex, 'hex')
         .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
+        .replaceAll('+', '-')
+        .replaceAll('/', '_')
         .replace(/=+$/, '')
       const uri =
         'lndconnect://abcdefghijklmnopqrstuvwxyz012345abcdefghijklmnop.onion:8080' +
@@ -204,8 +204,8 @@ describe('lndRestRemoteConfig', () => {
       const buf = Buffer.from('0102030405', 'hex')
       const url = buf
         .toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
+        .replaceAll('+', '-')
+        .replaceAll('/', '_')
         .replace(/=+$/, '')
       expect(macaroonToLndRestHexHeader(url)).toBe('0102030405')
     })

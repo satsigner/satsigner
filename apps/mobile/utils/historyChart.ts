@@ -22,9 +22,9 @@ import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 
 export function hexToRgba(hex: string, opacity: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
+  const r = Number.parseInt(hex.slice(1, 3), 16)
+  const g = Number.parseInt(hex.slice(3, 5), 16)
+  const b = Number.parseInt(hex.slice(5, 7), 16)
   return `rgba(${r}, ${g}, ${b}, ${opacity})`
 }
 
@@ -202,7 +202,7 @@ export function buildUtxoRectangles({
   chartWidth,
   currentDate
 }: UtxoGeometryParams): UtxoRectangle[] {
-  return Array.from(balanceHistory.entries())
+  return [...balanceHistory.entries()]
     .flatMap(([index, balances]) => {
       const x1 = xScale(
         new Date(transactions.at(index)?.timestamp ?? currentDate)
@@ -216,7 +216,7 @@ export function buildUtxoRectangles({
         return []
       }
       let totalBalance = 0
-      return Array.from(balances.entries()).map(([, utxo]) => {
+      return [...balances.entries()].map(([, utxo]) => {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.value)
         let gradientType = 0
@@ -350,7 +350,7 @@ export function buildTxXAxisLabels({
       x: xScale(new Date(t.timestamp ?? new Date()))
     }
   })
-  const boundaryBoxes: { [key: string]: Rectangle } = {}
+  const boundaryBoxes: Record<string, Rectangle> = {}
   for (const t of xAxisLabels) {
     boundaryBoxes[t.index] = {
       bottom: chartHeight + 50,
@@ -361,7 +361,7 @@ export function buildTxXAxisLabels({
       width: 60
     }
   }
-  const visible: { [key: string]: boolean } = {}
+  const visible: Record<string, boolean> = {}
   for (let i = 0; i < length; i += 1) {
     visible[xScaleTransactions[i].index] = true
   }
@@ -456,7 +456,7 @@ export function buildTxInfoLabels({
           : undefined
       const historicalFiatValue =
         historicalPrice && d.amount !== undefined
-          ? parseFloat(formatFiatPrice(d.amount, historicalPrice))
+          ? Number.parseFloat(formatFiatPrice(d.amount, historicalPrice))
           : undefined
 
       initialLabels.push({

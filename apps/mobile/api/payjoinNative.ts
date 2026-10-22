@@ -50,6 +50,7 @@ import {
   receiverManualFinalize as nativeReceiverManualFinalize
 } from 'react-native-payjoin'
 
+import { SEQUENCE_FINAL } from '@/constants/btc'
 import {
   PAYJOIN_BOARD_TXID_UNSTABLE_ERROR,
   PAYJOIN_MIN_SESSION_EXPIRE_SECONDS,
@@ -582,7 +583,7 @@ function buildInputPair(input: ReceiverInput): InputPairLike {
     {
       previousOutput: { txid: input.txid, vout: input.vout },
       scriptSig: new ArrayBuffer(0),
-      sequence: 0xff_ff_ff_ff,
+      sequence: SEQUENCE_FINAL,
       witness: []
     },
     { witnessUtxo: { scriptPubkey, valueSat: BigInt(input.value) } },

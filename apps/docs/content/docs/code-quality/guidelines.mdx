@@ -83,6 +83,45 @@ an API function or hook, not a utility one.
 If a utility executes async code, it likely should be API function. Exceptions
 to the rules must be discussed.
 
+## Services
+
+Services are functions located under `@/services` that hold domain logic: they
+know what a wallet, a payjoin session or a server connection is, and combine
+API calls into one operation. They do not depend on React.
+
+| Layer       | Imports React? | Imports stores? | Does I/O?                                | Knows the domain? |
+| ----------- | -------------- | --------------- | ---------------------------------------- | ----------------- |
+| `utils/`    | No             | No              | No                                       | Pure rules only   |
+| `api/`      | No             | No              | Yes                                      | Wire format only  |
+| `services/` | No             | No (injected)   | Via `api/`                               | Yes               |
+| `hooks/`    | Yes            | Yes             | Via `services/`, or a single `api/` call | Yes               |
+
+To place a function, ask two questions. Does it do I/O? If not, it is a
+utility; a utility may still encode a domain rule, such as which Core chain
+matches a network, as long as it stays pure. Does it know more than the wire
+format, such as what an account, a payjoin session or a server connection is?
+If so, it is a service, not an API function.
+
+Services may:
+
+- call API functions
+- call utility functions
+- execute asynchronous code
+- receive store state and setters as arguments (dependency injection)
+- throw errors for the caller to handle
+
+Services **shall not**:
+
+- import React or use hooks
+- import stores (pass what they need as arguments instead)
+- use `toast` or display errors
+- use `i18n` for error messages
+
+Hooks call services and keep the React side: component state, effects and
+store subscriptions. A hook may call a single API function directly, for
+example as a TanStack Query `queryFn`. As soon as it combines API calls or
+decides something about the domain, move that flow to a service.
+
 ## Hooks
 
 Hooks are functions meant to be reusable pieces of logic that deal with
@@ -91,7 +130,7 @@ component state and/or access external data, and are located under `@/hooks`.
 They may:
 
 - make use of both native and custom hooks
-- make network requests
+- make network requests through a service or a single API function
 - access the store
 - access the clipboard
 - access the camera
@@ -325,11 +364,9 @@ Instead of:
 ```typescript
 // services/connectionTest.ts
 const CONNECTION_TEST_TIMEOUT_MS = 10_000
-const SOFTWARE_LABELS: Record<Backend, string> = {
-  electrum: 'Electrum',
-  esplora: 'Esplora',
-  rpc: 'Bitcoin Core'
-}
+
+// hooks/useConnectionTest.ts
+const CONNECTION_TEST_COOLDOWN_MS = 2000
 ```
 
 Do:
@@ -337,11 +374,7 @@ Do:
 ```typescript
 // constants/connectionTest.ts
 export const CONNECTION_TEST_TIMEOUT_MS = 10_000
-export const SOFTWARE_LABELS: Record<Backend, string> = {
-  electrum: 'Electrum',
-  esplora: 'Esplora',
-  rpc: 'Bitcoin Core'
-}
+export const CONNECTION_TEST_COOLDOWN_MS = 2000
 ```
 
 ### Types
@@ -357,7 +390,7 @@ type ProbeParams = {
   url: string
   backend: Backend
   network: Network
-  onElectrumClientOpened?: (client: ElectrumClient) => void
+  rpcCredentials?: RpcCredentials
 }
 ```
 
@@ -369,7 +402,7 @@ export type ProbeParams = {
   url: string
   backend: Backend
   network: Network
-  onElectrumClientOpened?: (client: ElectrumClient) => void
+  rpcCredentials?: RpcCredentials
 }
 ```
 
@@ -377,9 +410,9 @@ Instead of:
 
 ```typescript
 // services/connectionTest.ts
-type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
+type ConnectionTestFailure = {
+  success: false
+  error?: string
 }
 ```
 
@@ -387,9 +420,9 @@ Do:
 
 ```typescript
 // types/models/ConnectionTest.ts
-export type ConnectionProbe = {
-  result: ConnectionTestSuccess
-  nodeInfo: NodeInfo
+export type ConnectionTestFailure = {
+  success: false
+  error?: string
 }
 ```
 
@@ -421,9 +454,9 @@ export { toError }
 Instead of:
 
 ```typescript
-// services/ecash/tokenStatus.ts
+// hooks/useEcashSend.ts
 await new Promise((resolve) => {
-  setTimeout(resolve, TOKEN_STATUS_CHECK_THROTTLE_MS)
+  setTimeout(resolve, LNURL_PAY_DELAY_MS)
 })
 ```
 
@@ -432,19 +465,29 @@ Do:
 ```typescript
 // utils/time.ts
 export function sleep(ms: number) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
 }
 
-// services/ecash/tokenStatus.ts
-await sleep(TOKEN_STATUS_CHECK_THROTTLE_MS)
+// hooks/useEcashSend.ts
+await sleep(LNURL_PAY_DELAY_MS)
 ```
 
 ### Names over comments
 
-Do not explain a variable, function or prop with a comment. Give it a name that
-makes the comment unnecessary.
+Write a comment only when it is strictly necessary. When the code speaks for
+itself, do not add one. Do not explain a variable, function or prop with a
+comment: give it a name that makes the comment unnecessary.
+
+A comment is necessary when the code cannot say it: why a non-obvious choice
+was made, or a constraint that comes from outside the code, such as a protocol
+rule or a library or platform quirk:
+
+```typescript
+// bitcoinjs expects the hash in internal (little-endian) byte order.
+const hash = Buffer.from(hex.decode(input.txid)).reverse()
+```
 
 Instead of:
 

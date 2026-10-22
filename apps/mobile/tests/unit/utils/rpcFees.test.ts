@@ -3,7 +3,7 @@ import { feesFromBtcPerKb, feesFromSmartFeeTargets } from '@/utils/rpcFees'
 describe('feesFromBtcPerKb', () => {
   it('converts BTC/kB to sat/vB fee tiers', () => {
     // 0.00001 BTC/kB = 1 sat/vB
-    expect(feesFromBtcPerKb(0.00001)).toStrictEqual({
+    expect(feesFromBtcPerKb(0.000_01)).toStrictEqual({
       high: 1,
       low: 1,
       medium: 1,
@@ -27,9 +27,9 @@ describe('feesFromSmartFeeTargets', () => {
     expect(
       feesFromSmartFeeTargets({
         highBtcPerKb: 0.0002,
-        lowBtcPerKb: 0.00005,
+        lowBtcPerKb: 0.000_05,
         mediumBtcPerKb: 0.0001,
-        minBtcPerKb: 0.00001
+        minBtcPerKb: 0.000_01
       })
     ).toStrictEqual({
       high: 20,
@@ -42,7 +42,7 @@ describe('feesFromSmartFeeTargets', () => {
   it('returns null without a next-block estimate', () => {
     expect(
       feesFromSmartFeeTargets({
-        lowBtcPerKb: 0.00005,
+        lowBtcPerKb: 0.000_05,
         mediumBtcPerKb: 0.0001
       })
     ).toBeNull()

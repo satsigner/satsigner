@@ -1,5 +1,4 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
-import { MS_PER_SECOND } from '@/constants/time'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import {
   type Account,
@@ -10,6 +9,7 @@ import {
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
 import { getPin } from '@/utils/pin'
+import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const MAX_DAYS_WITHOUT_SYNCING = 3
@@ -260,7 +260,7 @@ export function checkWalletNeedsSync(
     } else {
       lastSync = new Date(lastSyncedAtValue)
 
-      if (isNaN(lastSync.getTime())) {
+      if (Number.isNaN(lastSync.getTime())) {
         return true
       }
     }
@@ -279,11 +279,22 @@ export function checkWalletNeedsSync(
     lastSync.getDate()
   )
 
-  const MILISECONDS_PER_DAY = MS_PER_SECOND * 60 * 60 * 24
   const daysSinceLastSync = Math.floor(
-    (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+    (currentUtc - lastSyncedUtc) / time.days(1)
   )
 
   // Account updated too long ago.
   return daysSinceLastSync > maxDaysWithoutSyncing
+}
+
+export function haveSameKeys(keys: Key[], otherKeys: Key[]) {
+  return (
+    keys === otherKeys || JSON.stringify(keys) === JSON.stringify(otherKeys)
+  )
+}
+
+// True when the (decrypted) key keeps its mnemonic on this device.
+export function hasStoredMnemonic(key: Key | undefined) {
+  const secret = key?.secret
+  return typeof secret === 'object' && !!secret.mnemonic
 }

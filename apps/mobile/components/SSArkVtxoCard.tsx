@@ -1,20 +1,22 @@
 import { Pressable, StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { ArkVtxo } from '@/types/models/Ark'
 import { formatTxId } from '@/utils/format'
 
 const CHECKBOX_SIZE = 18
 
-type SSArkVtxoCardProps = {
+type SSArkVtxoCardProps = Pick<
+  DisplayPreferences,
+  'currencyUnit' | 'privacyMode' | 'useZeroPadding'
+> & {
   vtxo: ArkVtxo
   selected?: boolean
   onToggle?: (id: string) => void
@@ -23,16 +25,11 @@ type SSArkVtxoCardProps = {
 function SSArkVtxoCard({
   vtxo,
   selected = false,
-  onToggle
+  onToggle,
+  currencyUnit,
+  privacyMode,
+  useZeroPadding
 }: SSArkVtxoCardProps) {
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-
   const selectable = onToggle !== undefined
 
   const content = (

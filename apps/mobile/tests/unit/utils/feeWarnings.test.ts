@@ -21,7 +21,7 @@ describe('getFeePercentage', () => {
   it('uses explicit total outputs when provided', () => {
     expect(
       getFeePercentage({
-        minerFeeSats: 5_000,
+        minerFeeSats: 5000,
         totalOutputSats: 50_000
       })
     ).toBe(0.1)
@@ -41,7 +41,7 @@ describe('isHighMinerFee', () => {
   it('is false below 10% of total value out', () => {
     expect(
       isHighMinerFee({
-        minerFeeSats: 9_999,
+        minerFeeSats: 9999,
         totalInputSats: 110_000
       })
     ).toBe(false)
@@ -80,7 +80,7 @@ describe('shouldHighlightElevatedFeeRate', () => {
       shouldHighlightElevatedFeeRate({
         deferWarning: true,
         feeRate: 20,
-        fundingMinerFeeSats: 1_000,
+        fundingMinerFeeSats: 1000,
         inputsCount: 1,
         nextBlockFee: 10,
         totalInputSats: 100_000
@@ -93,7 +93,7 @@ describe('shouldHighlightElevatedFeeRate', () => {
       shouldHighlightElevatedFeeRate({
         deferWarning: false,
         feeRate: 20,
-        fundingMinerFeeSats: 1_000,
+        fundingMinerFeeSats: 1000,
         inputsCount: 0,
         nextBlockFee: 10,
         totalInputSats: 100_000
@@ -119,7 +119,7 @@ describe('shouldHighlightElevatedFeeRate', () => {
       shouldHighlightElevatedFeeRate({
         deferWarning: false,
         feeRate: 20,
-        fundingMinerFeeSats: 1_000,
+        fundingMinerFeeSats: 1000,
         inputsCount: 1,
         nextBlockFee: 10,
         totalInputSats: 100_000

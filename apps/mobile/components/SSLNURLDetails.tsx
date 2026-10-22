@@ -116,7 +116,7 @@ function SSLNURLDetails({
               keyboardType="numeric"
               editable={!isFetching}
             />
-            {amount && !isNaN(Number(amount)) && (
+            {amount && !Number.isNaN(Number(amount)) && (
               <SSHStack gap="xs" style={styles.fiatAmount}>
                 <SSText color="muted" size="sm">
                   {privacyMode

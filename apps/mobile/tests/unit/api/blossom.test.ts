@@ -8,7 +8,7 @@ const blob = {
   sha256: BLOB_HASH,
   size: 1024,
   type: 'image/png',
-  uploaded: 1700000000,
+  uploaded: 1_700_000_000,
   url: `${SERVER_URL}/${BLOB_HASH}.png`
 }
 

@@ -188,20 +188,25 @@ export default function ExportDescriptors() {
 
                 let singleSigDescriptor = ''
                 switch (scriptVersion) {
-                  case 'P2PKH':
+                  case 'P2PKH': {
                     singleSigDescriptor = `pkh(${keyPart}/0/*)`
                     break
-                  case 'P2SH-P2WPKH':
+                  }
+                  case 'P2SH-P2WPKH': {
                     singleSigDescriptor = `sh(wpkh(${keyPart}/0/*))`
                     break
-                  case 'P2WPKH':
+                  }
+                  case 'P2WPKH': {
                     singleSigDescriptor = `wpkh(${keyPart}/0/*)`
                     break
-                  case 'P2TR':
+                  }
+                  case 'P2TR': {
                     singleSigDescriptor = `tr(${keyPart}/0/*)`
                     break
-                  default:
+                  }
+                  default: {
                     singleSigDescriptor = `wpkh(${keyPart}/0/*)`
+                  }
                 }
 
                 const checksum =
@@ -331,53 +336,63 @@ export default function ExportDescriptors() {
                 let finalDescriptor = ''
                 if (temporaryAccount.policyType === 'multisig') {
                   switch (multisigScriptType) {
-                    case 'P2SH':
+                    case 'P2SH': {
                       finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
                       break
-                    case 'P2SH-P2WSH':
+                    }
+                    case 'P2SH-P2WSH': {
                       finalDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
                       break
-                    case 'P2WSH':
+                    }
+                    case 'P2WSH': {
                       finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
                       break
-                    case 'P2TR':
+                    }
+                    case 'P2TR': {
                       finalDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
                       break
-                    default:
+                    }
+                    default: {
                       finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                    }
                   }
                 } else {
-                  const [singleKey] = keySection.split(',') // Use first (and only) key
+                  const [singleKey] = keySection.split(',')
                   switch (scriptVersion) {
-                    case 'P2PKH':
+                    case 'P2PKH': {
                       finalDescriptor = `pkh(${singleKey.replace(
                         '/<0;1>/*',
                         '/0/*'
                       )})`
                       break
-                    case 'P2SH-P2WPKH':
+                    }
+                    case 'P2SH-P2WPKH': {
                       finalDescriptor = `sh(wpkh(${singleKey.replace(
                         '/<0;1>/*',
                         '/0/*'
                       )}))`
                       break
-                    case 'P2WPKH':
+                    }
+                    case 'P2WPKH': {
                       finalDescriptor = `wpkh(${singleKey.replace(
                         '/<0;1>/*',
                         '/0/*'
                       )})`
                       break
-                    case 'P2TR':
+                    }
+                    case 'P2TR': {
                       finalDescriptor = `tr(${singleKey.replace(
                         '/<0;1>/*',
                         '/0/*'
                       )})`
                       break
-                    default:
+                    }
+                    default: {
                       finalDescriptor = `wpkh(${singleKey.replace(
                         '/<0;1>/*',
                         '/0/*'
                       )})`
+                    }
                   }
                 }
 
@@ -429,20 +444,25 @@ export default function ExportDescriptors() {
 
                 let descriptor = ''
                 switch (scriptVersion) {
-                  case 'P2PKH':
+                  case 'P2PKH': {
                     descriptor = `pkh(${keyPart}/0/*)`
                     break
-                  case 'P2SH-P2WPKH':
+                  }
+                  case 'P2SH-P2WPKH': {
                     descriptor = `sh(wpkh(${keyPart}/0/*))`
                     break
-                  case 'P2WPKH':
+                  }
+                  case 'P2WPKH': {
                     descriptor = `wpkh(${keyPart}/0/*)`
                     break
-                  case 'P2TR':
+                  }
+                  case 'P2TR': {
                     descriptor = `tr(${keyPart}/0/*)`
                     break
-                  default:
+                  }
+                  default: {
                     descriptor = `wpkh(${keyPart}/0/*)`
+                  }
                 }
 
                 const checksum = calculateDescriptorChecksum(descriptor)

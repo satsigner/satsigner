@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* oxlint-disable no-empty-function, no-useless-constructor, typescript/no-extraneous-class -- mirrors the native classes, whose constructors take arguments */
 // Jest mock for react-native-bdk-sdk (native TurboModule can't load in Jest)
 // Uses the bip39 JS package to produce real crypto output for test verification.
 import * as bip39Js from 'bip39'
@@ -168,7 +168,7 @@ export class Mnemonic {
     return this._mnemonic
   }
 
-  words(): Array<string> {
+  words(): string[] {
     return this._mnemonic.split(' ')
   }
 

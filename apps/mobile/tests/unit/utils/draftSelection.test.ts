@@ -57,7 +57,7 @@ describe('getDraftIoCounts', () => {
         fee: 200,
         inputs: {
           'a:0': { value: 10_000 },
-          'b:1': { value: 5_000 }
+          'b:1': { value: 5000 }
         },
         outputs: [{ amount: 14_800, kind: undefined }]
       })
@@ -80,7 +80,7 @@ describe('getDraftIoCounts', () => {
   it('includes stonewall preview outputs for privacy drafts', () => {
     expect(
       getDraftIoCounts({
-        fee: 1_000,
+        fee: 1000,
         inputs: {
           'a:0': { value: 50_000 },
           'b:0': { value: 40_000 },
@@ -100,7 +100,7 @@ describe('getDraftIoCounts', () => {
   it('does not double-count materialized stonewall outputs', () => {
     expect(
       getDraftIoCounts({
-        fee: 1_000,
+        fee: 1000,
         inputs: {
           'a:0': { value: 50_000 }
         },

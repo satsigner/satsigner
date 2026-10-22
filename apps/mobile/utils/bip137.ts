@@ -14,7 +14,7 @@ import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
 initEccLib(ecc)
 
 const MESSAGE_MAGIC_PREFIX = Buffer.from(
-  '\x18Bitcoin Signed Message:\n',
+  '\u0018Bitcoin Signed Message:\n',
   'utf8'
 )
 

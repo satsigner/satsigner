@@ -22,8 +22,8 @@ jest.mock<typeof import('@/api/esplora')>('@/api/esplora', () => ({
         [20, 600_000],
         [5, 500_000]
       ],
-      total_fee: 34000,
-      vsize: 250000
+      total_fee: 34_000,
+      vsize: 250_000
     })
   })
 }))
@@ -34,12 +34,12 @@ jest.mock<typeof import('@/api/rpc')>('@/api/rpc', () => ({
     estimateSmartFee: jest.fn().mockImplementation((target: number) =>
       Promise.resolve({
         blocks: target,
-        feerate: target === 1 ? 0.0002 : target === 3 ? 0.0001 : 0.00005
+        feerate: target === 1 ? 0.0002 : target === 3 ? 0.0001 : 0.000_05
       })
     ),
     getMempoolInfo: jest.fn().mockResolvedValue({
-      bytes: 180000,
-      mempoolminfee: 0.00001,
+      bytes: 180_000,
+      mempoolminfee: 0.000_01,
       size: 8
     })
   })
@@ -54,8 +54,8 @@ describe('fetchMempoolBasicData', () => {
     )
     expect(result.source).toBe('backend')
     expect(result.count).toBe(12)
-    expect(result.vsize).toBe(250000)
-    expect(result.totalFee).toBe(34000)
+    expect(result.vsize).toBe(250_000)
+    expect(result.totalFee).toBe(34_000)
     expect(result.fees).toStrictEqual({
       high: 20,
       low: 4,
@@ -76,7 +76,7 @@ describe('fetchMempoolBasicData', () => {
     )
     expect(result.source).toBe('backend')
     expect(result.count).toBe(8)
-    expect(result.vsize).toBe(180000)
+    expect(result.vsize).toBe(180_000)
     expect(result.minFeeRate).toBe(1)
     expect(result.fees).toStrictEqual({
       high: 20,

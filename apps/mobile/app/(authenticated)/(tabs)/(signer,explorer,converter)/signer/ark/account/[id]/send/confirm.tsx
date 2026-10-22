@@ -133,7 +133,7 @@ export default function ArkSendConfirmPage() {
     (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
 
   function handleAmountChange(text: string) {
-    setAmountInput(text.replace(/[^0-9]/g, ''))
+    setAmountInput(text.replaceAll(/[^0-9]/g, ''))
   }
 
   const lnurlDetailsLoading =

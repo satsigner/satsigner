@@ -32,7 +32,6 @@ import type {
   LNDPayment,
   LNDGraphNodeInfo
 } from '@/types/models/Lightning'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice, formatLnKey, formatNumber } from '@/utils/format'
 import { formatLightningTxTimeAgo } from '@/utils/lndTransactionDisplay'
 
@@ -622,7 +621,7 @@ export default function LndTransactionDetailPage() {
       if (!fetchHistoricalPricesFromNetwork) {
         return null
       }
-      const oracle = new MempoolOracle(getFiatPriceApiUrl())
+      const oracle = new MempoolOracle(fiatPriceApiUrl)
       const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
       return prices[fiatCurrency] ?? null
     },

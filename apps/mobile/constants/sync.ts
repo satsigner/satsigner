@@ -7,4 +7,12 @@ const SYNC_CANCELLED_ERROR = 'sync-cancelled'
 // scanned (genesis-adjacent). History on the account still forces incremental.
 const MIN_USABLE_CHECKPOINT_HEIGHT = 10_000
 
-export { MIN_USABLE_CHECKPOINT_HEIGHT, SYNC_CANCELLED_ERROR }
+const SYNC_IDLE_POLL_ATTEMPTS = 60
+const SYNC_IDLE_POLL_INTERVAL_MS = 100
+
+export {
+  MIN_USABLE_CHECKPOINT_HEIGHT,
+  SYNC_CANCELLED_ERROR,
+  SYNC_IDLE_POLL_ATTEMPTS,
+  SYNC_IDLE_POLL_INTERVAL_MS
+}

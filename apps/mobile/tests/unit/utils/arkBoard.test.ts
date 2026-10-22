@@ -61,7 +61,7 @@ describe('validateBoardAmount', () => {
 
   it('rejects an amount below the minimum', () => {
     const result = validateBoardAmount({
-      amountSats: 9_999,
+      amountSats: 9999,
       availableSats: 100_000,
       minBoardAmountSats: 10_000
     })
@@ -164,7 +164,7 @@ describe('getArkAutoBoardStatus', () => {
   it('reports belowMinimum when confirmed funds are under the minimum', () => {
     const status = getArkAutoBoardStatus({
       ...baseState,
-      confirmedSats: 9_999
+      confirmedSats: 9999
     })
     expect(status).toBe('belowMinimum')
   })

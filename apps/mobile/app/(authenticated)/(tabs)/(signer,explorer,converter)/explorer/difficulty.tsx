@@ -34,6 +34,7 @@ import {
 } from '@/utils/explorerCapabilities'
 import { formatDate, formatNumber, formatTimeFromNow } from '@/utils/format'
 import { time } from '@/utils/time'
+import { weightToVsize } from '@/utils/transaction'
 
 const SCREEN_HEIGHT = Dimensions.get('screen').height
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
@@ -416,7 +417,7 @@ function BlockDetails({ block, onClose }: BlockDetailsProps) {
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted">{tn('vsize')}</SSText>
-          <SSText weight="bold">{Math.ceil(block.weight / 4)}</SSText>
+          <SSText weight="bold">{weightToVsize(block.weight)}</SSText>
         </SSVStack>
       </SSHStack>
       <SSVStack gap="none">

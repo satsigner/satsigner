@@ -634,7 +634,7 @@ export default function LightningChannelDetailPage() {
                   </SSText>
                 ) : historyError ? (
                   <SSText color="muted" size="xs" style={styles.historyPad}>
-                    {isLndPermissionError(historyError)
+                    {isLndPermissionError(historyQuery.error)
                       ? `${t('lightning.channelDetail.historyError')}: ${t('lightning.nodeSettings.permissionDenied')}`
                       : `${t('lightning.channelDetail.historyError')}: ${historyError}`}
                   </SSText>

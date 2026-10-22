@@ -1,6 +1,7 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
 import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
+import { AppError } from '@/utils/errors'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -21,8 +22,8 @@ export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
 // Thrown when a descriptor contains private key material that must not be
 // silently dropped. Callers rethrow it so a catch-all never turns it into a
 // plain derivation failure.
-export class PrivateKeyDescriptorError extends Error {
-  name = 'PrivateKeyDescriptorError'
+export class PrivateKeyDescriptorError extends AppError {
+  override name = 'PrivateKeyDescriptorError'
 }
 
 export function getCleanXpub(xpubWithPrefix: string): string {
@@ -82,7 +83,7 @@ export function parseJsonDescriptor(text: string) {
 
     const original = jsonData.descriptor
     const withoutChecksum = original.replace(/#[a-z0-9]+$/, '')
-    const internal = withoutChecksum.replace(/\/0\/\*/g, '/1/*')
+    const internal = withoutChecksum.replaceAll('/0/*', '/1/*')
 
     return {
       external: original,
@@ -128,8 +129,8 @@ export function parseImportedDescriptorPayload(text: string) {
   if (jsonResult) {
     if (isCombinedDescriptor(jsonResult.original)) {
       const withoutChecksum = removeChecksum(jsonResult.original)
-      const external = withoutChecksum.replace(/<0[,;]1>/g, '0')
-      const internal = withoutChecksum.replace(/<0[,;]1>/g, '1')
+      const external = withoutChecksum.replaceAll(/<0[,;]1>/g, '0')
+      const internal = withoutChecksum.replaceAll(/<0[,;]1>/g, '1')
       if (
         !validateDescriptorFormat(external.trim()) ||
         !validateDescriptorFormat(internal.trim())
@@ -164,8 +165,8 @@ export function parseImportedDescriptorPayload(text: string) {
       combined: trimmed,
       derivedExternal: true,
       derivedInternal: true,
-      external: withoutChecksum.replace(/<0[,;]1>/g, '0'),
-      internal: withoutChecksum.replace(/<0[,;]1>/g, '1')
+      external: withoutChecksum.replaceAll(/<0[,;]1>/g, '0'),
+      internal: withoutChecksum.replaceAll(/<0[,;]1>/g, '1')
     }
   }
 

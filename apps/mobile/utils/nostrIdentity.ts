@@ -1,6 +1,7 @@
 import { HDKey } from '@scure/bip32'
 import { getPublicKey, nip19 } from 'nostr-tools'
 
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
 import type {
@@ -30,7 +31,7 @@ export function deriveNostrKeysFromMnemonic(
 
 /** New personal device keys: BIP39 seed → NIP-06 nsec/npub. */
 export function generateDeviceNostrKeysFromSeed(): NostrDerivedKeys {
-  const mnemonic = generateMnemonic(12)
+  const mnemonic = generateMnemonic(SHORT_MNEMONIC_WORD_COUNT)
   return deriveNostrKeysFromMnemonic(mnemonic)
 }
 
@@ -130,8 +131,8 @@ export function extractPubpayTags(tags: string[][]): PubpayTag[] {
   const results: PubpayTag[] = []
   for (const tag of tags) {
     if (tag[0] === 'amount') {
-      const msats = parseInt(tag[1], 10)
-      if (!isNaN(msats)) {
+      const msats = Number.parseInt(tag[1], 10)
+      if (!Number.isNaN(msats)) {
         results.push({
           amount: Math.floor(msats / MILLISATS_PER_SAT),
           currency: 'sats',
@@ -148,10 +149,10 @@ function parseMsatsTag(tags: string[][], name: string): number | undefined {
   if (!tag || !tag[1]) {
     return undefined
   }
-  const val = parseInt(tag[1], 10)
-  return isNaN(val) || val <= 0
+  const msats = Number.parseInt(tag[1], 10)
+  return Number.isNaN(msats) || msats <= 0
     ? undefined
-    : Math.floor(val / MILLISATS_PER_SAT)
+    : Math.floor(msats / MILLISATS_PER_SAT)
 }
 
 export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
@@ -166,15 +167,15 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   }
 
   if (zapGoalRaw?.[1]) {
-    const val = parseInt(zapGoalRaw[1], 10)
-    if (!isNaN(val) && val > 0) {
-      result.zapGoal = Math.floor(val / MILLISATS_PER_SAT)
+    const goalMsats = Number.parseInt(zapGoalRaw[1], 10)
+    if (!Number.isNaN(goalMsats) && goalMsats > 0) {
+      result.zapGoal = Math.floor(goalMsats / MILLISATS_PER_SAT)
     }
   }
   if (zapUsesRaw?.[1]) {
-    const val = parseInt(zapUsesRaw[1], 10)
-    if (!isNaN(val) && val > 0) {
-      result.zapUses = val
+    const uses = Number.parseInt(zapUsesRaw[1], 10)
+    if (!Number.isNaN(uses) && uses > 0) {
+      result.zapUses = uses
     }
   }
   const [, zapPayerVal] = zapPayerRaw ?? []
