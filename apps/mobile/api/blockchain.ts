@@ -144,6 +144,15 @@ export class MempoolOracle implements BlockchainOracle {
     return hashRate.currentHashrate
   }
 
+  /** Average hash rate of the most recent day in the last month (H/s). */
+  async getLatestAverageHashRate() {
+    const data = await this.get('/v1/mining/hashrate/1m')
+    const { hashrates } = z
+      .object({ hashrates: z.array(z.object({ avgHashrate: z.number() })) })
+      .parse(data)
+    return hashrates.at(-1)?.avgHashrate ?? 0
+  }
+
   async getDifficultyAdjustment() {
     const data = await this.get(`/v1/difficulty-adjustment`)
     return DifficultyAdjustmentSchema.parse(data)

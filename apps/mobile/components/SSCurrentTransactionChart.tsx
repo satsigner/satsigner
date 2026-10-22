@@ -87,7 +87,7 @@ function SSCurrentTransactionChart({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
+  const inputArray = useMemo(() => [...inputMap.values()], [inputMap])
   const totalInputValue = useMemo(
     () => inputArray.reduce((sum, input) => sum + input.value, 0),
     [inputArray]
@@ -98,7 +98,7 @@ function SSCurrentTransactionChart({
   )
 
   const baseSize = estimateTransactionSize(
-    Array.from(inputMap.values()),
+    [...inputMap.values()],
     outputArray.map((o) => ({ ...o, to: o.to || '' }))
   )
 
@@ -107,7 +107,7 @@ function SSCurrentTransactionChart({
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
-    Array.from(inputMap.values()),
+    [...inputMap.values()],
     outputArray.map((o) => ({ ...o, to: o.to || '' })),
     hasChange
   )
@@ -335,7 +335,7 @@ function SSCurrentTransactionChart({
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
           elevatedFeeRate,
-          feePercentage: Math.round(feePercentage * 10000) / 100,
+          feePercentage: Math.round(feePercentage * 10_000) / 100,
           feeRate: feeRateProp,
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),

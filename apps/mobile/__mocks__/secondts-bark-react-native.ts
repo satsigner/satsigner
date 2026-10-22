@@ -78,7 +78,7 @@ export function __emitWalletNotification(event: unknown): void {
 }
 
 export function __countWalletNotificationListeners(): number {
-  return Array.from(notificationInstances).reduce(
+  return [...notificationInstances].reduce(
     (sum, instance) => sum + instance.listenerCount,
     0
   )

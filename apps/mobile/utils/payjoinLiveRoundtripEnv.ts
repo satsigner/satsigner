@@ -2,7 +2,7 @@ import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 
 import {
   broadcastTransaction,
-  buildPsbt,
+  buildPsbtWithRpcOrBdkWallet,
   getWalletData,
   signTransaction
 } from '@/api/bdk'
@@ -16,7 +16,7 @@ import {
 } from '@/constants/payjoin'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import { getPayjoinDeps } from '@/store/payjoinSessions'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { appNetworkToBdkNetwork, bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -124,7 +124,8 @@ async function buildPayjoinLiveRoundtripEnv(
     0
   ).address
   const { server } = configs[selectedNetwork]
-  const sessions = usePayjoinSessionsStore.getState()
+  const payjoinDeps = getPayjoinDeps()
+  const { sessions } = payjoinDeps
   const network = bitcoinjsNetwork(selectedNetwork)
 
   function buildSenderCallbacks() {
@@ -184,26 +185,31 @@ async function buildPayjoinLiveRoundtripEnv(
         })
       )
     }
-    const psbt = await buildPsbt(senderWallet, server, sender, {
-      fee: feeSats,
-      inputs: [fundingUtxo],
-      options: { rbf: false },
-      outputs: [
-        {
-          amount: amountSats,
-          label: '',
-          localId: 'payjoin-roundtrip-payment',
-          to: toAddress
-        },
-        {
-          amount: changeSats,
-          kind: 'change',
-          label: '',
-          localId: 'payjoin-roundtrip-change',
-          to: changeAddress
-        }
-      ]
-    })
+    const psbt = await buildPsbtWithRpcOrBdkWallet(
+      senderWallet,
+      server,
+      sender,
+      {
+        fee: feeSats,
+        inputs: [fundingUtxo],
+        options: { rbf: false },
+        outputs: [
+          {
+            amount: amountSats,
+            label: '',
+            localId: 'payjoin-roundtrip-payment',
+            to: toAddress
+          },
+          {
+            amount: changeSats,
+            kind: 'change',
+            label: '',
+            localId: 'payjoin-roundtrip-change',
+            to: changeAddress
+          }
+        ]
+      }
+    )
     // Match the send UI: post the built original (witness UTXO filled) without
     // finalizing sender inputs — PDK rejects finalized originals.
     return psbt.toBase64()
@@ -230,6 +236,7 @@ async function buildPayjoinLiveRoundtripEnv(
     broadcast,
     buildAndSignOriginal,
     network: selectedNetwork,
+    payjoinDeps,
     paymentAmountSats,
     receiverAccountId: receiver.id,
     receiverAddress,

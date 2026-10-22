@@ -19,7 +19,8 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import { MS_PER_SECOND } from '@/constants/time'
-import { useEcash, useQuotePolling } from '@/hooks/useEcash'
+import { useEcash } from '@/hooks/useEcash'
+import { useEcashMintQuotePolling } from '@/hooks/useEcashMintQuotePolling'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -68,8 +69,6 @@ export default function EcashTransactionDetailPage() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [qrModalVisible, setQrModalVisible] = useState(false)
-
-  const { startPolling, stopPolling, isPolling } = useQuotePolling()
 
   const transaction = transactions.find((t) => t.id === id)
   const mint = transaction
@@ -176,45 +175,25 @@ export default function EcashTransactionDetailPage() {
     router
   ])
 
-  useEffect(() => {
-    if (
-      !transaction ||
-      transaction.status !== 'pending' ||
-      !transaction.quoteId ||
-      !mint
-    ) {
-      return
-    }
-
-    startPolling(async () => {
-      try {
-        const status = await checkMintQuote(mint.url, transaction.quoteId!)
-
-        if (status === 'PAID' || status === 'ISSUED') {
-          await mintProofs(mint.url, transaction.amount, transaction.quoteId!)
-
-          updateTransaction(transaction.id, { status: 'completed' })
-
-          setQrModalVisible(false)
-
-          return true // Stop polling
-        } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-          updateTransaction(transaction.id, { status: 'failed' })
-          return true // Stop polling
-        }
-
-        // Continue polling for PENDING, UNPAID, and unknown statuses
-        return false
-      } catch {
-        return false
+  const { isPolling } = useEcashMintQuotePolling({
+    checkMintQuote,
+    enabled: transaction?.status === 'pending',
+    mintUrl: mint?.url,
+    onQuoteExpiredOrCancelled: () => {
+      if (transaction) {
+        updateTransaction(transaction.id, { status: 'failed' })
       }
-    })
-
-    return () => {
-      stopPolling()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transaction?.id, transaction?.status, transaction?.quoteId, mint?.url])
+    },
+    onQuotePaid: async () => {
+      if (!transaction?.quoteId || !mint) {
+        return
+      }
+      await mintProofs(mint.url, transaction.amount, transaction.quoteId)
+      updateTransaction(transaction.id, { status: 'completed' })
+      setQrModalVisible(false)
+    },
+    quoteId: transaction?.quoteId
+  })
 
   if (!transaction) {
     return (
@@ -240,46 +219,61 @@ export default function EcashTransactionDetailPage() {
 
   function getTransactionIcon(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return <SSIconOutgoing height={32} width={32} />
-      case 'receive':
+      }
+      case 'receive': {
         return <SSIconIncoming height={32} width={32} />
-      case 'mint':
+      }
+      case 'mint': {
         return <SSIconIncomingLightning height={32} width={32} />
-      case 'melt':
+      }
+      case 'melt': {
         return <SSIconOutgoingLightning height={32} width={32} />
-      default:
+      }
+      default: {
         return <SSText size="2xl">•</SSText>
+      }
     }
   }
 
   function getTransactionLabel(type: EcashTransaction['type']) {
     switch (type) {
-      case 'send':
+      case 'send': {
         return t('ecash.transaction.send')
-      case 'receive':
+      }
+      case 'receive': {
         return t('ecash.transaction.receive')
-      case 'mint':
+      }
+      case 'mint': {
         return t('ecash.transaction.mint')
-      case 'melt':
+      }
+      case 'melt': {
         return t('ecash.transaction.melt')
-      default:
+      }
+      default: {
         return type
+      }
     }
   }
 
   function getTokenStatusColor(tokenStatus: EcashTransaction['tokenStatus']) {
     switch (tokenStatus) {
-      case 'unspent':
+      case 'unspent': {
         return Colors.error
-      case 'spent':
+      }
+      case 'spent': {
         return Colors.softBarRed
-      case 'invalid':
+      }
+      case 'invalid': {
         return Colors.error
-      case 'pending':
+      }
+      case 'pending': {
         return Colors.warning
-      default:
+      }
+      default: {
         return Colors.white
+      }
     }
   }
 
@@ -353,35 +347,46 @@ export default function EcashTransactionDetailPage() {
                     style={{
                       color: (() => {
                         switch (transaction.status) {
-                          case 'pending':
+                          case 'pending': {
                             return Colors.warning
-                          case 'completed':
+                          }
+                          case 'completed': {
                             return Colors.success
+                          }
                           case 'failed':
-                          case 'expired':
+                          case 'expired': {
                             return Colors.error
-                          case 'settled':
+                          }
+                          case 'settled': {
                             return Colors.softBarRed
-                          default:
+                          }
+                          default: {
                             return Colors.gray[700]
+                          }
                         }
                       })()
                     }}
                   >
                     {(() => {
                       switch (transaction.status) {
-                        case 'pending':
+                        case 'pending': {
                           return t('ecash.quote.pending')
-                        case 'completed':
+                        }
+                        case 'completed': {
                           return t('ecash.quote.completed')
-                        case 'failed':
+                        }
+                        case 'failed': {
                           return t('ecash.quote.failed')
-                        case 'expired':
+                        }
+                        case 'expired': {
                           return t('ecash.quote.expired')
-                        case 'settled':
+                        }
+                        case 'settled': {
                           return t('ecash.quote.settled')
-                        default:
+                        }
+                        default: {
                           return String(transaction.status).toUpperCase()
+                        }
                       }
                     })()}
                   </SSText>
@@ -560,9 +565,7 @@ export default function EcashTransactionDetailPage() {
             {t('ecash.transactionDetail.lightningInvoice')}
           </SSText>
           {lightningInvoice && (
-            <>
-              <SSShareableQR value={lightningInvoice} size={250} />
-            </>
+            <SSShareableQR value={lightningInvoice} size={250} />
           )}
         </SSVStack>
       </SSModal>

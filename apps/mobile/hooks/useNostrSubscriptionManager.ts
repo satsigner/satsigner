@@ -115,7 +115,7 @@ function useNostrSubscriptionManager() {
   )
 
   const cleanup = useCallback(async () => {
-    const apisToCleanup = Array.from(getActiveSubscriptions())
+    const apisToCleanup = [...getActiveSubscriptions()]
     clearSubscriptions()
 
     const cleanupPromises = apisToCleanup.map(async (api) => {
@@ -142,7 +142,7 @@ function useNostrSubscriptionManager() {
       }
       isSubscribingRef.current = true
       try {
-        const existingApis = Array.from(getActiveSubscriptions())
+        const existingApis = [...getActiveSubscriptions()]
         const currentRelays = account?.nostr?.relays || []
 
         // Check if we already have valid subscriptions for this account

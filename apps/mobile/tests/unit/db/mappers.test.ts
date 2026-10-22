@@ -24,7 +24,7 @@ import { isRecord } from '@/utils/object'
 
 function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
   return {
-    balance: 100000,
+    balance: 100_000,
     birthday_date: null,
     created_at: '2024-01-01T00:00:00.000Z',
     display_index: 0,
@@ -74,15 +74,15 @@ function makeTransactionRow(
   return {
     account_id: 'acc-1',
     address: 'bc1qaddr',
-    block_height: 840000,
+    block_height: 840_000,
     fee: 250,
     id: 'tx-1',
     label: 'payment',
     lock_time: 0,
     lock_time_enabled: 0,
-    prices: JSON.stringify({ usd: 60000 }),
+    prices: JSON.stringify({ usd: 60_000 }),
     raw: JSON.stringify([1, 0, 0, 0]),
-    received: 50000,
+    received: 50_000,
     sent: 0,
     size: 225,
     timestamp: '2024-06-01T10:00:00.000Z',
@@ -101,8 +101,8 @@ function makeTxInputRow(overrides: Partial<TxInputRow> = {}): TxInputRow {
     prev_txid: 'prev-tx-1',
     prev_vout: 0,
     script_sig: null,
-    sequence: 4294967295,
-    value: 50000,
+    sequence: 4_294_967_295,
+    value: 50_000,
     witness: JSON.stringify([
       [1, 2],
       [3, 4]
@@ -117,7 +117,7 @@ function makeTxOutputRow(overrides: Partial<TxOutputRow> = {}): TxOutputRow {
     label: 'change',
     output_index: 0,
     script: JSON.stringify([0, 20, 1, 2, 3]),
-    value: 49750,
+    value: 49_750,
     ...overrides
   }
 }
@@ -131,7 +131,7 @@ function makeUtxoRow(overrides: Partial<UtxoRow> = {}): UtxoRow {
     script: JSON.stringify([0, 20, 1, 2]),
     timestamp: '2024-06-01T10:00:00.000Z',
     txid: 'utxo-tx-1',
-    value: 50000,
+    value: 50_000,
     vout: 0,
     ...overrides
   }
@@ -142,7 +142,7 @@ function makeAddressRow(overrides: Partial<AddressRow> = {}): AddressRow {
     account_id: 'acc-1',
     addr_index: 0,
     address: 'bc1qaddr',
-    balance: 50000,
+    balance: 50_000,
     derivation_path: "m/84'/0'/0'/0/0",
     keychain: 'external',
     label: 'main',
@@ -159,18 +159,18 @@ function makeLabelRow(overrides: Partial<LabelRow> = {}): LabelRow {
   return {
     account_id: 'acc-1',
     fee: 250,
-    fmv: JSON.stringify({ usd: 60000 }),
-    height: 840000,
-    heights: JSON.stringify([839999, 840000]),
+    fmv: JSON.stringify({ usd: 60_000 }),
+    height: 840_000,
+    heights: JSON.stringify([839_999, 840_000]),
     keypath: "m/84'/0'/0'/0/0",
     label: 'donation',
     origin: 'user',
-    rate: JSON.stringify({ usd: 60000 }),
+    rate: JSON.stringify({ usd: 60_000 }),
     ref: 'tx-1',
     spendable: 1,
     time: '2024-06-01T10:00:00.000Z',
     type: 'tx',
-    value: 50000,
+    value: 50_000,
     ...overrides
   }
 }
@@ -179,10 +179,10 @@ function makeNostrDmRow(overrides: Partial<NostrDmRow> = {}): NostrDmRow {
   return {
     account_id: 'acc-1',
     author: 'npub1sender',
-    content_created_at: 1700000001,
+    content_created_at: 1_700_000_001,
     content_description: 'encrypted content',
     content_pubkey: 'npub1content',
-    created_at: 1700000000,
+    created_at: 1_700_000_000,
     description: 'backup request',
     event: '{"kind":4}',
     id: 'dm-1',
@@ -393,7 +393,7 @@ describe('rowToAccount', () => {
 
   it('maps summary fields', () => {
     const row = makeAccountRow({
-      balance: 200000,
+      balance: 200_000,
       num_addresses: 5,
       num_transactions: 10,
       num_utxos: 3,
@@ -402,7 +402,7 @@ describe('rowToAccount', () => {
     const result = rowToAccount(row, [], [], [], {}, [], [], [])
 
     expect(result.summary).toStrictEqual({
-      balance: 200000,
+      balance: 200_000,
       numberOfAddresses: 5,
       numberOfTransactions: 10,
       numberOfUtxos: 3,
@@ -518,8 +518,8 @@ describe('rowToTransaction', () => {
     expect(result.id).toBe('tx-1')
     expect(result.type).toBe('receive')
     expect(result.sent).toBe(0)
-    expect(result.received).toBe(50000)
-    expect(result.blockHeight).toBe(840000)
+    expect(result.received).toBe(50_000)
+    expect(result.blockHeight).toBe(840_000)
     expect(result.fee).toBe(250)
     expect(result.label).toBe('payment')
     expect(result.timestamp).toStrictEqual(new Date('2024-06-01T10:00:00.000Z'))
@@ -530,7 +530,7 @@ describe('rowToTransaction', () => {
     const result = rowToTransaction(row, [], [])
 
     expect(result.lockTimeEnabled).toBe(false)
-    expect(result.prices).toStrictEqual({ usd: 60000 })
+    expect(result.prices).toStrictEqual({ usd: 60_000 })
     expect(result.raw).toStrictEqual([1, 0, 0, 0])
   })
 
@@ -547,10 +547,10 @@ describe('rowToTransaction', () => {
       txid: 'prev-tx-1',
       vout: 0
     })
-    expect(result.vin[0].sequence).toBe(4294967295)
+    expect(result.vin[0].sequence).toBe(4_294_967_295)
     expect(result.vin[0].witness).toStrictEqual([[10, 20], [30]])
     expect(result.vin[0].scriptSig).toStrictEqual([1, 2, 3])
-    expect(result.vin[0].value).toBe(50000)
+    expect(result.vin[0].value).toBe(50_000)
     expect(result.vin[0].label).toBe('input-label')
   })
 
@@ -559,7 +559,7 @@ describe('rowToTransaction', () => {
     const result = rowToTransaction(makeTransactionRow(), [], [output])
 
     expect(result.vout).toHaveLength(1)
-    expect(result.vout[0].value).toBe(49750)
+    expect(result.vout[0].value).toBe(49_750)
     expect(result.vout[0].address).toBe('bc1qout')
     expect(result.vout[0].script).toStrictEqual([0, 20, 1, 2, 3])
     expect(result.vout[0].label).toBe('change')
@@ -640,7 +640,7 @@ describe('rowToUtxo', () => {
 
     expect(result.txid).toBe('utxo-tx-1')
     expect(result.vout).toBe(0)
-    expect(result.value).toBe(50000)
+    expect(result.value).toBe(50_000)
     expect(result.label).toBe('savings')
     expect(result.addressTo).toBe('bc1qaddr')
     expect(result.keychain).toBe('external')
@@ -692,7 +692,7 @@ describe('rowToAddress', () => {
 
   it('maps summary fields', () => {
     const row = makeAddressRow({
-      balance: 75000,
+      balance: 75_000,
       sats_in_mempool: 500,
       tx_count: 5,
       utxo_count: 3
@@ -700,7 +700,7 @@ describe('rowToAddress', () => {
     const result = rowToAddress(row, [], [])
 
     expect(result.summary).toStrictEqual({
-      balance: 75000,
+      balance: 75_000,
       satsInMempool: 500,
       transactions: 5,
       utxos: 3
@@ -736,19 +736,19 @@ describe('rowToLabel', () => {
     expect(result.type).toBe('tx')
     expect(result.label).toBe('donation')
     expect(result.fee).toBe(250)
-    expect(result.height).toBe(840000)
+    expect(result.height).toBe(840_000)
     expect(result.keypath).toBe("m/84'/0'/0'/0/0")
     expect(result.origin).toBe('user')
-    expect(result.value).toBe(50000)
+    expect(result.value).toBe(50_000)
   })
 
   it('maps label JSON and derived fields', () => {
     const row = makeLabelRow()
     const result = rowToLabel(row)
 
-    expect(result.fmv).toStrictEqual({ usd: 60000 })
-    expect(result.heights).toStrictEqual([839999, 840000])
-    expect(result.rate).toStrictEqual({ usd: 60000 })
+    expect(result.fmv).toStrictEqual({ usd: 60_000 })
+    expect(result.heights).toStrictEqual([839_999, 840_000])
+    expect(result.rate).toStrictEqual({ usd: 60_000 })
     expect(result.spendable).toBe(true)
     expect(result.time).toStrictEqual(new Date('2024-06-01T10:00:00.000Z'))
   })
@@ -813,12 +813,12 @@ describe('rowToNostrDm', () => {
 
     expect(result.id).toBe('dm-1')
     expect(result.author).toBe('npub1sender')
-    expect(result.created_at).toBe(1700000000)
+    expect(result.created_at).toBe(1_700_000_000)
     expect(result.description).toBe('backup request')
     expect(result.event).toBe('{"kind":4}')
     expect(result.label).toBe(1)
     expect(result.content.description).toBe('encrypted content')
-    expect(result.content.created_at).toBe(1700000001)
+    expect(result.content.created_at).toBe(1_700_000_001)
     expect(result.content.pubkey).toBe('npub1content')
   })
 

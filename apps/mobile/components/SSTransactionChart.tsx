@@ -533,7 +533,7 @@ function SSTransactionChartCanvas({
         depthH: 2,
         id: String(inputs.length + outputs.length + 2),
         ioData: {
-          feePercentage: Math.round(feePercentage * 10000) / 100,
+          feePercentage: Math.round(feePercentage * 10_000) / 100,
           feeRate,
           ...fiatFields(minerFee),
           higherFee,

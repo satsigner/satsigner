@@ -11,3 +11,7 @@ export function satsToFiat(sats: number, btcPrice: number, enabled: boolean) {
   }
   return (sats / SATS_PER_BITCOIN) * btcPrice
 }
+
+export function normalizeFiatPriceApiUrl(url: string) {
+  return url.trim().replace(/\/+$/, '')
+}

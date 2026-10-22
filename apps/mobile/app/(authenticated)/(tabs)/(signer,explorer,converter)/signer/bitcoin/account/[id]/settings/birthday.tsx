@@ -52,7 +52,7 @@ export default function AccountBirthdayPage() {
   const [saving, setSaving] = useState(false)
 
   const estimatedBlockDate = useMemo(() => {
-    const height = parseInt(blockInput.trim(), 10)
+    const height = Number.parseInt(blockInput.trim(), 10)
     if (!Number.isFinite(height) || height < 0 || tip <= 0) {
       return null
     }
@@ -74,7 +74,7 @@ export default function AccountBirthdayPage() {
   }
 
   async function handleSaveBlock() {
-    const height = parseInt(blockInput.trim(), 10)
+    const height = Number.parseInt(blockInput.trim(), 10)
     if (!Number.isFinite(height) || height < 0 || (tip > 0 && height > tip)) {
       setBlockError(true)
       return

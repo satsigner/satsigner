@@ -99,9 +99,7 @@ function SSMultipleSankeyDiagram({
       depthCounts.set(node.depthH, count + 1)
     }
 
-    return depthCounts.size > 0
-      ? Math.max(...Array.from(depthCounts.values()))
-      : 0
+    return depthCounts.size > 0 ? Math.max(...depthCounts.values()) : 0
   }, [sankeyNodes])
 
   const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)

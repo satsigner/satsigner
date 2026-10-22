@@ -1,4 +1,4 @@
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
 import {
   ADDRESS_TRUNCATE_CHARS,
   ADDRESS_TRUNCATE_CHARS_COMPACT,
@@ -32,7 +32,15 @@ import {
   NPUB_TRUNCATE_CHARS_XS
 } from '@/constants/nostr'
 import { PRIVACY_MASK } from '@/constants/privacy'
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  DAYS_PER_MONTH,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  HOURS_PER_DAY,
+  MINUTES_PER_HOUR,
+  MS_PER_SECOND,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import { i18n, t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -68,12 +76,15 @@ function truncate(value: string, headChars: number, tailChars = headChars) {
  */
 function formatAddress(address: string, size?: AddressSize) {
   switch (size) {
-    case 'compact':
+    case 'compact': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_COMPACT)
-    case 'default':
+    }
+    case 'default': {
       return truncate(address, ADDRESS_TRUNCATE_CHARS)
-    default:
+    }
+    default: {
       return truncate(address, ADDRESS_TRUNCATE_CHARS_DEFAULT)
+    }
   }
 }
 
@@ -84,14 +95,14 @@ function formatNumber(
   separator = ' '
 ) {
   const formatted = padding
-    ? (n / SATS_PER_BITCOIN).toFixed(8)
+    ? (n / SATS_PER_BITCOIN).toFixed(BTC_DECIMALS)
     : n.toLocaleString(undefined, {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals
       })
 
   const [integerPart, decimalPart] = formatted.split('.')
-  const formattedInteger = integerPart.replace(
+  const formattedInteger = integerPart.replaceAll(
     /(\d)(?=(\d{3})+(?!\d))/g,
     `$1${separator}`
   )
@@ -188,12 +199,12 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 }
 
 function formatConfirmationCount(confirmations: number) {
-  if (confirmations < 1_000) {
+  if (confirmations < 1000) {
     return `${confirmations}`
   }
 
   if (confirmations < 1_000_000) {
-    const roundedValue = Math.round(confirmations / 1_000)
+    const roundedValue = Math.round(confirmations / 1000)
     return `~${roundedValue}k`
   }
 
@@ -237,12 +248,12 @@ type TimeFromNow = [
 
 function formatTimeFromNow(milliseconds: number): TimeFromNow {
   const seconds = milliseconds / MS_PER_SECOND
-  const minutes = seconds / 60
-  const hours = minutes / 60
-  const days = hours / 24
-  const weeks = days / 7
-  const months = days / 30 // Approximate
-  const years = days / 365 // Approximate
+  const minutes = seconds / SECONDS_PER_MINUTE
+  const hours = minutes / MINUTES_PER_HOUR
+  const days = hours / HOURS_PER_DAY
+  const weeks = days / DAYS_PER_WEEK
+  const months = days / DAYS_PER_MONTH
+  const years = days / DAYS_PER_YEAR
 
   if (years >= 1) {
     return [years, 'year']
@@ -267,14 +278,18 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
 
 function txIdTruncateChars(size: TxIdSize): number {
   switch (size) {
-    case 'tiny':
+    case 'tiny': {
       return TXID_TRUNCATE_CHARS_TINY
-    case 'compact':
+    }
+    case 'compact': {
       return TXID_TRUNCATE_CHARS_COMPACT
-    case 'wide':
+    }
+    case 'wide': {
       return TXID_TRUNCATE_CHARS_WIDE
-    default:
+    }
+    default: {
       return TXID_TRUNCATE_CHARS
+    }
   }
 }
 
@@ -287,8 +302,8 @@ function formatTxId(txid: string, size: TxIdSize = 'default') {
     return txid
   }
 
-  const beginning = txid.substring(0, character)
-  const end = txid.substring(txid.length - character, txid.length)
+  const beginning = txid.slice(0, character)
+  const end = txid.slice(txid.length - character)
   return `${beginning}...${end}`
 }
 
@@ -302,22 +317,28 @@ function formatShortPubkey(pubkey: string) {
  */
 function formatNpub(npub: string, size?: NpubSize) {
   switch (size) {
-    case 'xs':
+    case 'xs': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XS)
-    case 'sm':
+    }
+    case 'sm': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_SM)
-    case 'md':
+    }
+    case 'md': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_MD)
-    case 'lg':
+    }
+    case 'lg': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_LG)
-    case 'xl':
+    }
+    case 'xl': {
       return truncate(npub, NPUB_TRUNCATE_CHARS_XL)
-    default:
+    }
+    default: {
       return truncate(
         npub,
         NOSTR_NPUB_SHORT_HEAD_CHARS,
         NOSTR_NPUB_SHORT_TAIL_CHARS
       )
+    }
   }
 }
 
@@ -382,7 +403,7 @@ function formatLargeNumber(
   european = false,
   locale = i18n.locale
 ): string {
-  if (!isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
+  if (!Number.isFinite(num) || num === 0 || Math.abs(num) < 1e3) {
     return ''
   }
 
@@ -423,16 +444,27 @@ function trimOnionAddress(url: string): string {
   const port = matchedPort || ''
 
   const onionPart = fullOnion.replace('.onion', '')
-  const first5 = onionPart.substring(0, 5)
-  const last5 = onionPart.substring(onionPart.length - 5)
+  const first5 = onionPart.slice(0, 5)
+  const last5 = onionPart.slice(-5)
 
   const trimmedOnion = `${first5}...${last5}.onion${port}`
 
   return url.replace(onionMatch[0], trimmedOnion)
 }
 
+/** BTC as a decimal string without trailing zeros, e.g. 0.00150000 → "0.0015". */
+function formatBtc(btc: number) {
+  return btc.toFixed(BTC_DECIMALS).replace(/\.?0+$/, '')
+}
+
+/** Sats as a BTC decimal string without trailing zeros, e.g. 150000 → "0.0015". */
+function formatSatsAsBtc(sats: number) {
+  return formatBtc(sats / SATS_PER_BITCOIN)
+}
+
 export {
   formatAddress,
+  formatBtc,
   formatBytes,
   formatConfirmations,
   formatConfirmationsWithBlock,
@@ -447,6 +479,7 @@ export {
   formatNumber,
   formatPageUrl,
   formatPercentualChange,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTimeFromNow,

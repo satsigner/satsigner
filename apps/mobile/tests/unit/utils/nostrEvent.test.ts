@@ -13,7 +13,7 @@ const SIG = 'c'.repeat(128)
 
 const template = {
   content: 'hello',
-  created_at: 1700000000,
+  created_at: 1_700_000_000,
   kind: 1,
   tags: [['p', PUBKEY]]
 }
@@ -52,7 +52,7 @@ describe('nostrEvent', () => {
     })
 
     it('returns undefined without a string value for the tag', () => {
-      expect(getNostrTagValue([['amount', 21000]], 'amount')).toBeUndefined()
+      expect(getNostrTagValue([['amount', 21_000]], 'amount')).toBeUndefined()
       expect(getNostrTagValue([['p']], 'p')).toBeUndefined()
       expect(getNostrTagValue([['e', EVENT_ID]], 'p')).toBeUndefined()
       expect(getNostrTagValue(undefined, 'p')).toBeUndefined()

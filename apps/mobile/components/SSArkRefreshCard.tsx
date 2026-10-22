@@ -4,10 +4,10 @@ import SSLabelTags from '@/components/SSLabelTags'
 import SSText from '@/components/SSText'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { ArkMovement } from '@/types/models/Ark'
 import {
@@ -20,7 +20,7 @@ import { formatNumber } from '@/utils/format'
 
 import SSPressable from './SSPressable'
 
-type SSArkRefreshCardProps = {
+type SSArkRefreshCardProps = Pick<DisplayPreferences, 'privacyMode'> & {
   movement: ArkMovement
   onPress: () => void
   label?: string
@@ -29,10 +29,9 @@ type SSArkRefreshCardProps = {
 function SSArkRefreshCard({
   movement,
   onPress,
-  label = ''
+  label = '',
+  privacyMode
 }: SSArkRefreshCardProps) {
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
-
   const isMuted = isMutedArkMovement(movement)
   const fee = movement.offchainFeeSats
   const timestamp = new Date(movement.createdAt)
@@ -58,7 +57,7 @@ function SSArkRefreshCard({
               })}
             </SSText>
           )}
-          <SSLabelTags label={label} size="xs" />
+          <SSLabelTags label={label} privacyMode={privacyMode} size="xs" />
         </SSVStack>
         <SSVStack gap="xxs" style={styles.rightColumn}>
           <SSTimeAgoText date={timestamp} size="xs" />

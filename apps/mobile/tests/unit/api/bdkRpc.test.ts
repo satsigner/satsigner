@@ -319,7 +319,7 @@ describe('buildTransactionWithRpc', () => {
     // otherwise the second amount would silently clobber the first.
     expect(outputs).toStrictEqual([
       { [sameAddress]: 0.0005 },
-      { [sameAddress]: 0.00025 }
+      { [sameAddress]: 0.000_25 }
     ])
   })
 
@@ -338,7 +338,7 @@ describe('buildTransactionWithRpc', () => {
     })
 
     const [[, outputs]] = createPsbtSpy.mock.calls
-    expect(outputs).toStrictEqual([{ addr1: 0.00000001 }])
+    expect(outputs).toStrictEqual([{ addr1: 0.000_000_01 }])
   })
 
   it('marks inputs with the RBF sequence number when rbf is enabled', async () => {
@@ -357,7 +357,7 @@ describe('buildTransactionWithRpc', () => {
     })
 
     const [[inputs]] = createPsbtSpy.mock.calls
-    expect(inputs).toStrictEqual([{ sequence: 0xfffffffd, txid, vout: 2 }])
+    expect(inputs).toStrictEqual([{ sequence: 0xff_ff_ff_fd, txid, vout: 2 }])
   })
 
   it('enriches the PSBT via walletprocesspsbt without attempting to sign it', async () => {

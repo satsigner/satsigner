@@ -117,7 +117,7 @@ describe('bip321 utils', () => {
     it('should parse URI with 1 sat amount', () => {
       const result = parseBitcoinUri(bip321Uris.valid.amountManyDecimals)
       expect(result.isValid).toBe(true)
-      expect(result.amount).toBe(0.00000001)
+      expect(result.amount).toBe(0.000_000_01)
     })
 
     it('should parse URI with whole number amount', () => {
@@ -148,7 +148,7 @@ describe('bip321 utils', () => {
     it('should convert BTC amount to sats', () => {
       const result = parseBitcoinUriWithSats(bip321Uris.valid.withAmount)
       expect(result.isValid).toBe(true)
-      expect(result.amountSats).toBe(100000) // 0.001 BTC = 100,000 sats
+      expect(result.amountSats).toBe(100_000) // 0.001 BTC = 100,000 sats
     })
 
     it('should convert 1 sat correctly', () => {
@@ -220,7 +220,7 @@ describe('bip321 utils', () => {
 
   describe('encodeBitcoinUriFromSats', () => {
     it('should encode sats to BTC amount', () => {
-      const result = encodeBitcoinUriFromSats(addresses.mainnet.p2wpkh, 100000)
+      const result = encodeBitcoinUriFromSats(addresses.mainnet.p2wpkh, 100_000)
       expect(result.isValid).toBe(true)
       expect(result.uri).toContain('amount=0.001')
     })
@@ -234,7 +234,7 @@ describe('bip321 utils', () => {
     it('should encode with label', () => {
       const result = encodeBitcoinUriFromSats(
         addresses.mainnet.p2wpkh,
-        100000,
+        100_000,
         'Test'
       )
       expect(result.isValid).toBe(true)
@@ -375,10 +375,10 @@ describe('bip321 utils', () => {
     it('should roundtrip with amount', () => {
       const encoded = encodeBitcoinUri({
         address: addresses.mainnet.p2wpkh,
-        amount: 0.12345678
+        amount: 0.123_456_78
       })
       const parsed = parseBitcoinUri(encoded.uri)
-      expect(parsed.amount).toBe(0.12345678)
+      expect(parsed.amount).toBe(0.123_456_78)
     })
 
     it('should roundtrip with label', () => {

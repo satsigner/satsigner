@@ -5,6 +5,7 @@ import SSDetailsList from '@/components/SSDetailsList'
 import SSIconButton from '@/components/SSIconButton'
 import SSLabelTags from '@/components/SSLabelTags'
 import SSText from '@/components/SSText'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -15,7 +16,7 @@ import { SSIconEditPencil } from './icons'
 
 const EDIT_ICON_SIZE = 16
 
-type SSArkAddressCardProps = {
+type SSArkAddressCardProps = Pick<DisplayPreferences, 'privacyMode'> & {
   address: ArkAddress
   label?: string
   onEditLabel?: (address: string) => void
@@ -24,7 +25,8 @@ type SSArkAddressCardProps = {
 function SSArkAddressCard({
   address,
   label = '',
-  onEditLabel
+  onEditLabel,
+  privacyMode
 }: SSArkAddressCardProps) {
   return (
     <SSVStack gap="sm" style={address.used ? undefined : styles.unused}>
@@ -46,7 +48,7 @@ function SSArkAddressCard({
           )}
         </SSHStack>
       </SSHStack>
-      <SSLabelTags label={label} />
+      <SSLabelTags label={label} privacyMode={privacyMode} />
       <SSAddressDisplay address={address.address} />
       <SSDetailsList
         columns={2}

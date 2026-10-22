@@ -33,13 +33,8 @@ const HISTORICAL_PRICE_RESPONSE = `GET /v1/historical-price?currency=USD&timesta
   }
 }`
 
-function normalizeFiatPriceApiUrl(url: string) {
-  return url.trim().replace(/\/+$/, '')
-}
-
 export {
   CURRENT_PRICES_RESPONSE,
   DEFAULT_FIAT_PRICE_API_URL,
-  HISTORICAL_PRICE_RESPONSE,
-  normalizeFiatPriceApiUrl
+  HISTORICAL_PRICE_RESPONSE
 }

@@ -12,7 +12,7 @@ export function useAsyncEffect(
     let active = true
     let cleanup: CleanupOptional
 
-    // oxlint-disable-next-line promise/prefer-await-to-callbacks promise/prefer-await-to-then
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks, promise/prefer-await-to-then
     callback().then((result) => {
       if (active) {
         cleanup = result

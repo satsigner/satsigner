@@ -178,6 +178,20 @@ describe('ecash store', () => {
       expect(useEcashStore.getState().counters['acc-1'][0].counter).toBe(10)
       expect(useEcashStore.getState().counters['acc-2'][0].counter).toBe(20)
     })
+
+    it('advances keyset counters from the latest state', () => {
+      useEcashStore.getState().addAccount(makeAccount('acc-1'))
+      const { advanceKeysetCounter } = useEcashStore.getState()
+
+      advanceKeysetCounter('acc-1', 'ks-A', 10)
+      advanceKeysetCounter('acc-1', 'ks-B', 4)
+      advanceKeysetCounter('acc-1', 'ks-A', 6)
+
+      expect(useEcashStore.getState().counters['acc-1']).toStrictEqual([
+        { counter: 4, keysetId: 'ks-B' },
+        { counter: 10, keysetId: 'ks-A' }
+      ])
+    })
   })
 
   describe('clearAccountData', () => {

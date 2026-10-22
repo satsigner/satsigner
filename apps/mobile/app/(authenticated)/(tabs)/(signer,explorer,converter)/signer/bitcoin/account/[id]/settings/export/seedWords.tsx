@@ -34,7 +34,7 @@ export default function SeedWordsPage() {
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
-  const keyIndexNum = parseInt(keyIndex || '0', 10)
+  const keyIndexNum = Number.parseInt(keyIndex || '0', 10)
   const key = account?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {

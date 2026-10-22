@@ -237,7 +237,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         next.add(outpoint)
       }
       const excludedUtxoOutpoints = pruneExcludedOutpoints(
-        Array.from(next),
+        [...next],
         account.utxos
       )
       const updatedAccount: Account = {
