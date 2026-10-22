@@ -447,7 +447,7 @@ export default function UnifiedImport() {
         return
       }
 
-      const text = sanitizeScannedText(nfcData.text).replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       if (importType === 'descriptor') {
         let externalDescriptor = text

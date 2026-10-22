@@ -284,7 +284,7 @@ export default function ImportExtendedPub() {
         return
       }
 
-      const text = sanitizeScannedText(nfcData.text).replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       updateXpub(text)
       toast.success(t('watchonly.success.nfcRead'))

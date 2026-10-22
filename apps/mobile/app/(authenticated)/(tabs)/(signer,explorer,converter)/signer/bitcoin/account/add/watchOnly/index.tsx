@@ -673,7 +673,7 @@ export default function WatchOnly() {
         return
       }
 
-      const text = sanitizeScannedText(nfcData.text).replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       if (selectedOption === 'importDescriptor') {
         let externalDescriptor = text

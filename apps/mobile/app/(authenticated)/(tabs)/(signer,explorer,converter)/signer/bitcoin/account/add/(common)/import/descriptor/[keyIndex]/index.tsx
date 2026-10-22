@@ -401,7 +401,7 @@ export default function ImportDescriptor() {
         return
       }
 
-      const text = sanitizeScannedText(nfcData.text).replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       let externalDescriptor = text
       let internalDescriptor = ''
