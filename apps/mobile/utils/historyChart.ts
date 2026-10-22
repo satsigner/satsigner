@@ -619,8 +619,12 @@ export function fiatDomainMax({
   lockZoomToXAxis: boolean
   seriesMax: number
 }) {
-  if (lockZoomToXAxis) {
-    return maxFiatValue(fiatChartPoints.map((point) => point.value))
+  if (!lockZoomToXAxis) {
+    return seriesMax
+  }
+  const windowMax = maxFiatValue(fiatChartPoints.map((point) => point.value))
+  if (windowMax > 0) {
+    return windowMax
   }
   return seriesMax
 }

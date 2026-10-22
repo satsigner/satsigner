@@ -388,6 +388,19 @@ describe('fiatDomainMax', () => {
       fiatDomainMax({ fiatChartPoints, lockZoomToXAxis: true, seriesMax: 80 })
     ).toBe(20)
   })
+
+  it('falls back to the full series when the window has no fiat value', () => {
+    expect(
+      fiatDomainMax({
+        fiatChartPoints: [
+          { date: new Date('2026-01-01T00:00:00Z'), value: null },
+          { date: new Date('2026-01-02T00:00:00Z'), value: 0 }
+        ],
+        lockZoomToXAxis: true,
+        seriesMax: 80
+      })
+    ).toBe(80)
+  })
 })
 
 describe('satsYDomain', () => {
