@@ -11,6 +11,7 @@ import {
   computeValidChartData,
   fiatDomainMax,
   fiatYDomain,
+  formatFiatAxisTick,
   hexToRgba,
   historyChartMargin,
   maxFiatValue,
@@ -468,5 +469,20 @@ describe('historyChartMargin', () => {
   it('reserves the right edge only while the fiat axis is shown', () => {
     expect(historyChartMargin(false).right).toBe(10)
     expect(historyChartMargin(true).right).toBe(52)
+  })
+})
+
+describe('formatFiatAxisTick', () => {
+  it('writes values below a thousand without SI prefixes', () => {
+    expect(formatFiatAxisTick(0)).toBe('0')
+    expect(formatFiatAxisTick(0.2)).toBe('0.2')
+    expect(formatFiatAxisTick(0.1 + 0.2)).toBe('0.3')
+    expect(formatFiatAxisTick(120)).toBe('120')
+  })
+
+  it('abbreviates thousands and millions', () => {
+    expect(formatFiatAxisTick(1000)).toBe('1k')
+    expect(formatFiatAxisTick(1500)).toBe('1.5k')
+    expect(formatFiatAxisTick(12_345_678)).toBe('12.3M')
   })
 })

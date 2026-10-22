@@ -49,6 +49,7 @@ import {
   computeValidChartData,
   fiatDomainMax,
   fiatYDomain,
+  formatFiatAxisTick,
   historyChartMargin,
   maxFiatValue,
   satsYDomain
@@ -441,7 +442,7 @@ function SSHistoryChart({
                 currency={fiatCurrency}
                 customFontManager={customFontManager}
                 fontStyle={fontStyle}
-                yAxisFormatter={yAxisFormatter}
+                yAxisFormatter={formatFiatAxisTick}
                 yScale={fiatYScale}
               />
             ) : null}

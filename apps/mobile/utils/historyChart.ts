@@ -515,6 +515,17 @@ export function buildTxInfoLabels({
 export const HISTORY_CHART_Y_HEADROOM = 1.2
 const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
 const FIAT_AXIS_RIGHT_MARGIN = 52
+const FIAT_AXIS_SI_PREFIX_MIN = 1000
+
+const formatFiatAxisPlain = format('~r')
+const formatFiatAxisWithSiPrefix = format('.3~s')
+
+export function formatFiatAxisTick(value: number) {
+  if (Math.abs(value) < FIAT_AXIS_SI_PREFIX_MIN) {
+    return formatFiatAxisPlain(value)
+  }
+  return formatFiatAxisWithSiPrefix(value)
+}
 
 function historicalBtcPrice(
   transaction: Transaction,
