@@ -12,7 +12,6 @@ import {
   MemoizedCursorRenderer,
   MemoizedHistoryChartAreaSeries,
   MemoizedHistoryChartUtxoSeries,
-  FiatYScaleRenderer,
   MemoizedTransactionInfoRenderer,
   MemoizedXAxisRenderer,
   MemoizedXScaleRenderer,
@@ -51,7 +50,9 @@ import {
   fiatYDomain,
   formatFiatAxisTick,
   historyChartMargin,
+  FIAT_AXIS_LABEL_GAP,
   maxFiatValue,
+  SATS_AXIS_LABEL_X,
   satsYDomain
 } from '@/utils/historyChart'
 
@@ -434,16 +435,22 @@ function SSHistoryChart({
               chartHeight={chartHeight}
               chartWidth={chartWidth}
               yAxisFormatter={yAxisFormatter}
+              color={Colors.white}
+              labelX={SATS_AXIS_LABEL_X}
+              showGridLines
             />
             {showFiatAxis ? (
-              <FiatYScaleRenderer
-                chartHeight={chartHeight}
-                chartWidth={chartWidth}
-                currency={fiatCurrency}
+              <MemoizedYScaleRenderer
                 customFontManager={customFontManager}
                 fontStyle={fontStyle}
-                yAxisFormatter={formatFiatAxisTick}
                 yScale={fiatYScale}
+                chartHeight={chartHeight}
+                chartWidth={chartWidth}
+                yAxisFormatter={formatFiatAxisTick}
+                color={Colors.gold}
+                labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
+                showGridLines={false}
+                title={fiatCurrency}
               />
             ) : null}
             <MemoizedXScaleRenderer

@@ -515,6 +515,8 @@ export function buildTxInfoLabels({
 export const HISTORY_CHART_Y_HEADROOM = 1.2
 const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
 const FIAT_AXIS_RIGHT_MARGIN = 52
+export const SATS_AXIS_LABEL_X = -30
+export const FIAT_AXIS_LABEL_GAP = 4
 const FIAT_AXIS_SI_PREFIX_MIN = 1000
 
 const formatFiatAxisPlain = format('~r')

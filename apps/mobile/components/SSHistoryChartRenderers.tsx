@@ -18,13 +18,16 @@ import { timeFormat } from 'd3-time-format'
 import { Fragment, memo, useMemo } from 'react'
 
 import { useSFProFonts } from '@/hooks/useSFProFonts'
-import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
 import { formatNumber, formatTxId } from '@/utils/format'
 import { hexToRgba } from '@/utils/historyChart'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+const Y_AXIS_TICK_COUNT = 4
+const Y_AXIS_LABEL_BASELINE_OFFSET = 6
+const Y_AXIS_TITLE_Y = 12
 
 type YScaleRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
@@ -33,6 +36,10 @@ type YScaleRendererProps = {
   chartHeight: number
   chartWidth: number
   yAxisFormatter: (value: number) => string
+  color: string
+  labelX: number
+  showGridLines: boolean
+  title?: string
 }
 
 type XScaleRendererProps = {
@@ -142,7 +149,11 @@ function YScaleRenderer({
   yScale,
   chartHeight,
   chartWidth,
-  yAxisFormatter
+  yAxisFormatter,
+  color,
+  labelX,
+  showGridLines,
+  title
 }: YScaleRendererProps) {
   if (!customFontManager) {
     return null
@@ -150,28 +161,39 @@ function YScaleRenderer({
   const font = matchFont(fontStyle, customFontManager)
   return (
     <>
-      {yScale.ticks(4).map((tick) => {
+      {title ? (
+        <Text
+          x={labelX}
+          y={Y_AXIS_TITLE_Y}
+          text={title}
+          font={font}
+          color={color}
+        />
+      ) : null}
+      {yScale.ticks(Y_AXIS_TICK_COUNT).map((tick) => {
         const yPosition = yScale(tick)
         if (yPosition > chartHeight) {
           return null
         }
         return (
           <Fragment key={tick.toString()}>
-            <Line
-              p1={vec(0, yPosition)}
-              p2={vec(chartWidth, yPosition)}
-              color="#FFFFFF29"
-              style="stroke"
-              strokeWidth={1}
-            >
-              <DashPathEffect intervals={[2, 2]} phase={0} />
-            </Line>
+            {showGridLines ? (
+              <Line
+                p1={vec(0, yPosition)}
+                p2={vec(chartWidth, yPosition)}
+                color="#FFFFFF29"
+                style="stroke"
+                strokeWidth={1}
+              >
+                <DashPathEffect intervals={[2, 2]} phase={0} />
+              </Line>
+            ) : null}
             <Text
-              x={-30}
-              y={yPosition + 6}
+              x={labelX}
+              y={yPosition + Y_AXIS_LABEL_BASELINE_OFFSET}
               text={yAxisFormatter(tick)}
               font={font}
-              color="white"
+              color={color}
             />
           </Fragment>
         )
@@ -181,60 +203,6 @@ function YScaleRenderer({
 }
 
 export const MemoizedYScaleRenderer = memo(YScaleRenderer)
-
-type FiatYScaleRendererProps = {
-  chartHeight: number
-  chartWidth: number
-  currency: string
-  customFontManager: ReturnType<typeof useSFProFonts>
-  fontStyle: { fontFamily: string; fontSize: number }
-  yAxisFormatter: (value: number) => string
-  yScale: ScaleLinear<number, number>
-}
-
-function FiatYScaleRenderer({
-  chartHeight,
-  chartWidth,
-  currency,
-  customFontManager,
-  fontStyle,
-  yAxisFormatter,
-  yScale
-}: FiatYScaleRendererProps) {
-  if (!customFontManager) {
-    return null
-  }
-  const font = matchFont(fontStyle, customFontManager)
-  return (
-    <>
-      <Text
-        x={chartWidth + 4}
-        y={12}
-        text={currency}
-        font={font}
-        color={Colors.gold}
-      />
-      {yScale.ticks(4).map((tick) => {
-        const yPosition = yScale(tick)
-        if (yPosition > chartHeight || yPosition < 0) {
-          return null
-        }
-        return (
-          <Text
-            key={tick.toString()}
-            x={chartWidth + 4}
-            y={yPosition + 6}
-            text={yAxisFormatter(tick)}
-            font={font}
-            color={Colors.gold}
-          />
-        )
-      })}
-    </>
-  )
-}
-
-export { FiatYScaleRenderer }
 
 function XScaleRenderer({
   customFontManager,
