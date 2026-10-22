@@ -84,7 +84,7 @@ export default function SelectUtxoList() {
   const excludedOutpoints = account.excludedUtxoOutpoints
   const excludedCount = excludedOutpoints?.length ?? 0
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
-  const orphanedInputs = Array.from(inputs.values()).filter(
+  const orphanedInputs = [...inputs.values()].filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
 
@@ -156,7 +156,7 @@ export default function SelectUtxoList() {
   }
 
   const utxosTotalValue = utxosValue(selectableUtxos)
-  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const utxosSelectedValue = utxosValue([...inputs.values()])
 
   function handleSelectAllUtxos() {
     for (const utxo of selectableUtxos) {

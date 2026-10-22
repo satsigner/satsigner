@@ -44,6 +44,7 @@ import type {
   LNURLPayResponse
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { HttpStatusError } from '@/utils/errors'
 import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
@@ -282,10 +283,7 @@ export default function PayPage() {
         toast.error(fallback)
         return
       }
-      if (
-        error.message.includes('404') ||
-        error.message.includes('Not Found')
-      ) {
+      if (error instanceof HttpStatusError && error.status === 404) {
         toast.error(t('lightning.pay.paymentExpired'))
         return
       }

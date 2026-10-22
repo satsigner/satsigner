@@ -1,4 +1,5 @@
 import { finalizeEvent, type NostrEvent, type VerifiedEvent } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import {
   getConversationKey,
   decrypt as nip44Decrypt,
@@ -6,7 +7,6 @@ import {
 } from 'nostr-tools/nip44'
 
 import {
-  NOSTR_NIP46_EVENT_KIND,
   NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_WS_CONNECT_TIMEOUT_MS
@@ -155,7 +155,7 @@ export class Nip46BunkerService {
 
     const filter = {
       '#p': [signerPubkeyHex],
-      kinds: [NOSTR_NIP46_EVENT_KIND],
+      kinds: [nostrKinds.NostrConnect],
       since:
         Math.floor(Date.now() / MS_PER_SECOND) -
         NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
@@ -202,7 +202,7 @@ export class Nip46BunkerService {
       {
         content: encrypted,
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
-        kind: NOSTR_NIP46_EVENT_KIND,
+        kind: nostrKinds.NostrConnect,
         tags: [['p', clientPubkey]]
       },
       signerSecretKey

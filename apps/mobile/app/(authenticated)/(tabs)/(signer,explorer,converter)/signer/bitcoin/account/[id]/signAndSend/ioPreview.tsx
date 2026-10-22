@@ -46,7 +46,7 @@ import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import { useNow } from '@/hooks/useNow'
+import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -95,10 +95,6 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
-import {
-  formatPayjoinExpiryLabel,
-  parsePayjoinExpiresAtMs
-} from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
@@ -287,36 +283,7 @@ export default function IOPreview() {
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
   const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
-  const nowMs = useNow()
-
-  const payjoinInvoice = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? bitcoinAmountBtcToSats(parsed.params.amountBtc)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label,
-      pj: parsed.params.pj,
-      pjos: parsed.params.pjos,
-      uri: payjoinUri
-    }
-  }, [payjoinUri])
-
-  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
-    payjoinInvoice?.expiresAt,
-    nowMs
-  )
+  const { payjoinExpiryLabel, payjoinInvoice } = usePayjoinInvoice()
 
   function handleOpenPayjoinData() {
     payjoinDataBottomSheetRef.current?.expand()
@@ -337,11 +304,11 @@ export default function IOPreview() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const utxosSelectedValue = utxosValue([...inputs.values()])
 
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs
     )
     return { size, vsize }
@@ -359,7 +326,7 @@ export default function IOPreview() {
   const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
 
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
-  const orphanedInputs = Array.from(inputs.values()).filter(
+  const orphanedInputs = [...inputs.values()].filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
@@ -492,7 +459,7 @@ export default function IOPreview() {
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs,
       hasChange
     )
@@ -547,7 +514,7 @@ export default function IOPreview() {
     committedOutputSats,
     feeRate: localFeeRate,
     fundingOutputs: fundingOutputsForSize,
-    inputs: Array.from(inputs.values()),
+    inputs: [...inputs.values()],
     totalInputSats: utxosSelectedValue
   })
 
@@ -933,7 +900,7 @@ export default function IOPreview() {
     setAccountUtxos(stonewallResult.inputs)
     setStonewallPreview({
       changeValues,
-      excludedUtxoOutpoints: Array.from(excluded),
+      excludedUtxoOutpoints: [...excluded],
       fakeMixValues,
       fee: stonewallResult.fee
     })
@@ -969,8 +936,7 @@ export default function IOPreview() {
 
     if (selectedAutoSelectUtxos === 'privacy') {
       const outpoint = getUtxoOutpoint(inputToRemove)
-      const nextExcluded = new Set(excludedUtxoOutpoints)
-      nextExcluded.add(outpoint)
+      const nextExcluded = new Set([...excludedUtxoOutpoints, outpoint])
 
       if (applyStonewallSelection(nextExcluded)) {
         setRemoveInputModalVisible(false)
@@ -1086,8 +1052,9 @@ export default function IOPreview() {
 
         break
       }
-      default:
+      default: {
         break
+      }
     }
 
     if (selectionSucceeded) {

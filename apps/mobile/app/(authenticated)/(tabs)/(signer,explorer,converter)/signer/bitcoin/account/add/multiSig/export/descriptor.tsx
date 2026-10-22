@@ -50,7 +50,7 @@ export default function DescriptorPage() {
       setIsLoading(true)
 
       const accountData = getAccountData()
-      const keyIndexNum = parseInt(keyIndex, 10)
+      const keyIndexNum = Number.parseInt(keyIndex, 10)
       const key = accountData.keys[keyIndexNum]
 
       if (!key) {
@@ -99,29 +99,37 @@ export default function DescriptorPage() {
 
             let externalDescriptor = ''
             switch (key.scriptVersion) {
-              case 'P2PKH':
+              case 'P2PKH': {
                 externalDescriptor = `pkh(${keyPart})`
                 break
-              case 'P2SH-P2WPKH':
+              }
+              case 'P2SH-P2WPKH': {
                 externalDescriptor = `sh(wpkh(${keyPart}))`
                 break
-              case 'P2WPKH':
+              }
+              case 'P2WPKH': {
                 externalDescriptor = `wpkh(${keyPart})`
                 break
-              case 'P2TR':
+              }
+              case 'P2TR': {
                 externalDescriptor = `tr(${keyPart})`
                 break
-              case 'P2WSH':
+              }
+              case 'P2WSH': {
                 externalDescriptor = `wsh(${keyPart})`
                 break
-              case 'P2SH-P2WSH':
+              }
+              case 'P2SH-P2WSH': {
                 externalDescriptor = `sh(wsh(${keyPart}))`
                 break
-              case 'P2SH':
+              }
+              case 'P2SH': {
                 externalDescriptor = `sh(${keyPart})`
                 break
-              default:
+              }
+              default: {
                 externalDescriptor = `wpkh(${keyPart})`
+              }
             }
 
             try {

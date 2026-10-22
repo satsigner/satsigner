@@ -1,5 +1,5 @@
-import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
+import { formatSatsAsBtc } from '@/utils/format'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
 
@@ -87,8 +87,7 @@ function buildPlainBip21Uri(params: {
 
   const queryParts: string[] = []
   if (params.amountSats !== undefined && params.amountSats > 0) {
-    const amountInBtc = params.amountSats / SATS_PER_BITCOIN
-    const formattedAmount = amountInBtc.toFixed(8).replace(/\.?0+$/, '')
+    const formattedAmount = formatSatsAsBtc(params.amountSats)
     queryParts.push(`amount=${encodeURIComponent(formattedAmount)}`)
   }
   if (params.includeLabel && params.label) {

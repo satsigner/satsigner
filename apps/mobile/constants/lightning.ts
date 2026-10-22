@@ -14,7 +14,7 @@ export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
 /** Default LND `--minchansize` (sats) for new channel funding. */
 export const LND_OPEN_CHANNEL_MIN_FUNDING_SAT = 20_000
 export const LND_OPEN_CHANNEL_DEFAULT_MIN_CONFS = 1
-export const LND_OPEN_CHANNEL_MAX_MIN_CONFS = 1_000
+export const LND_OPEN_CHANNEL_MAX_MIN_CONFS = 1000
 export const LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE = 10_000
 /** LND `AddressType` unused p2wpkh — reuse until funded. */
 export const LND_NEW_ADDRESS_TYPE_UNUSED_WITNESS_PUBKEY_HASH = 2
@@ -36,8 +36,8 @@ export const LNDCONNECT_DEFAULT_REST_PORT = '8080'
 export const LND_GRPC_LISTEN_PORT = '10009'
 /** TLS + HTTP timeout for LND REST (self-signed pairing cert). */
 export const LND_REST_TIMEOUT_MS = 30_000
-export const LND_INVOICE_POLL_MS = 3_000
-export const LND_SUCCESS_NAVIGATE_DELAY_MS = 2_000
+export const LND_INVOICE_POLL_MS = 3000
+export const LND_SUCCESS_NAVIGATE_DELAY_MS = 2000
 export const LND_SETTINGS_PEERS_MAX = 32
 export const LND_REST = {
   BALANCE_BLOCKCHAIN: '/v1/balance/blockchain',

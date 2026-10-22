@@ -1,4 +1,5 @@
 import { nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 
@@ -80,7 +81,7 @@ const DEFAULT_KIND_FILTER_ID = NOSTR_NOTE_FILTER_OPTIONS[0].id
 
 function kindsForNoteKindFilterId(id: string): number[] {
   const opt = NOSTR_NOTE_FILTER_OPTIONS.find((o) => o.id === id)
-  return opt?.kinds.length ? opt.kinds : [1]
+  return opt?.kinds.length ? opt.kinds : [nostrKinds.ShortTextNote]
 }
 
 type FeedTab = 'feed' | 'notes' | 'zaps'
@@ -762,7 +763,7 @@ function SSNostrFeedTabs({
                     const target = resolvedNote?.id === id ? resolvedNote : null
                     onNotePress?.({
                       id,
-                      kind: target?.kind ?? 1,
+                      kind: target?.kind ?? nostrKinds.ShortTextNote,
                       pubkey: target?.pubkey ?? ''
                     })
                   }}
@@ -841,7 +842,7 @@ function SSNostrFeedTabs({
                     const target = resolvedNote?.id === id ? resolvedNote : null
                     onNotePress?.({
                       id,
-                      kind: target?.kind ?? 1,
+                      kind: target?.kind ?? nostrKinds.ShortTextNote,
                       pubkey: target?.pubkey ?? ''
                     })
                   }}

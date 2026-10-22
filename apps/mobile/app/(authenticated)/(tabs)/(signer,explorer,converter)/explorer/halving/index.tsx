@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSHalvingProgress from '@/components/SSHalvingProgress'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { SATS_PER_BITCOIN, ZERO_BTC_LABEL } from '@/constants/btc'
 import {
   HALVING_INTERVAL,
   INITIAL_SUBSIDY_SATS,
@@ -29,7 +29,7 @@ import {
   percentIssued,
   totalMinedSats
 } from '@/utils/bitcoin/consensus'
-import { formatDate } from '@/utils/format'
+import { formatDate, formatSatsAsBtc } from '@/utils/format'
 
 const tn = _tn('explorer.halving')
 
@@ -235,10 +235,8 @@ export default function ExplorerHalving() {
                       </SSText>
                       <SSText size="xs" style={[styles.colSubsidy, textStyle]}>
                         {h.subsidySats === 0
-                          ? '0.00000000'
-                          : (h.subsidySats / SATS_PER_BITCOIN)
-                              .toFixed(8)
-                              .replace(/\.?0+$/, '')}
+                          ? ZERO_BTC_LABEL
+                          : formatSatsAsBtc(h.subsidySats)}
                       </SSText>
                       <View style={styles.colCircle}>
                         <View

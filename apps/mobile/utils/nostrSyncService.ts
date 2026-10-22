@@ -413,7 +413,7 @@ async function restartSync(
 }
 
 function stopAll(): void {
-  const accountIds = Array.from(nostrSubscriptions.keys())
+  const accountIds = [...nostrSubscriptions.keys()]
   for (const accountId of accountIds) {
     stopSync(accountId)
   }
@@ -430,7 +430,7 @@ function hasActiveSubscription(accountId: string): boolean {
 }
 
 function getActiveAccountIds(): string[] {
-  return Array.from(nostrSubscriptions.keys())
+  return [...nostrSubscriptions.keys()]
 }
 
 function getActiveSubscriptionCount(): number {

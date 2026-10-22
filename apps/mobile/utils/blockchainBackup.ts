@@ -104,7 +104,7 @@ export function restoreBlockchainFromBackup(
       ...incoming.config
     })
   }
-  const existingServers = store.customServers.slice()
+  const existingServers = [...store.customServers]
   for (const old of existingServers) {
     store.removeCustomServer(old)
   }

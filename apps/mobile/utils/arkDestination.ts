@@ -21,12 +21,13 @@ export async function parseArkDestination(
   const { destination, metadata } = decoded
 
   switch (destination.type) {
-    case 'ark-address':
+    case 'ark-address': {
       return {
         draft: { address: destination.value, kind: 'arkoor' },
         ok: true
       }
-    case 'bolt11':
+    }
+    case 'bolt11': {
       return {
         draft: {
           amountSatsFromInvoice: metadata?.amount,
@@ -36,22 +37,27 @@ export async function parseArkDestination(
         },
         ok: true
       }
-    case 'lnaddress':
+    }
+    case 'lnaddress': {
       return {
         draft: { address: destination.value, kind: 'lnaddress' },
         ok: true
       }
-    case 'lnurl':
+    }
+    case 'lnurl': {
       return {
         draft: { kind: 'lnurl', lnurl: destination.value },
         ok: true
       }
-    case 'bitcoin-address':
+    }
+    case 'bitcoin-address': {
       return {
         draft: { address: destination.value, kind: 'onchain' },
         ok: true
       }
-    default:
+    }
+    default: {
       return { ok: false, reason: 'unsupported' }
+    }
   }
 }

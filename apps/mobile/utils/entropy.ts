@@ -5,7 +5,7 @@ import { type MnemonicWordCount } from '@/types/bips/39'
 const DICE_FACES = 6
 const COIN_SIDES = 2
 const BITS_PER_BYTE = 8
-const UINT32_RANGE = 0x100000000
+const UINT32_RANGE = 0x1_00_00_00_00
 const SHA512_BITS = 512
 const MAX_PATTERN_PERIOD = 12
 
@@ -41,7 +41,7 @@ function hashToBits(domain: string, input: string, bits: number): string {
     .update(`${domain}:${input}`)
     .digest()
 
-  return Array.from(digest.subarray(0, bits / BITS_PER_BYTE))
+  return [...digest.subarray(0, bits / BITS_PER_BYTE)]
     .map((byte) => byte.toString(2).padStart(BITS_PER_BYTE, '0'))
     .join('')
 }

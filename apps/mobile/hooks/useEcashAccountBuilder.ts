@@ -1,6 +1,7 @@
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { t } from '@/locales'
 import { storeEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
@@ -36,7 +37,7 @@ export function useEcashAccountBuilder() {
   )
 
   function generateNewMnemonic(): string {
-    const words = generateMnemonic(12)
+    const words = generateMnemonic(SHORT_MNEMONIC_WORD_COUNT)
     setMnemonic(words)
     return words
   }
@@ -44,7 +45,7 @@ export function useEcashAccountBuilder() {
   function validateImportedMnemonic(words: string): boolean {
     const trimmed = words.trim()
     const wordCount = trimmed.split(/\s+/).length
-    if (wordCount !== 12) {
+    if (wordCount !== SHORT_MNEMONIC_WORD_COUNT) {
       return false
     }
     return validateMnemonic(trimmed)

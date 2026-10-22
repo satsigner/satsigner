@@ -29,7 +29,7 @@ function createCryptoPsbtCBOR(psbtBytes: Buffer): Uint8Array {
   } else if (dataLength < 256) {
     // Byte string with 1-byte length: 0x58 + length byte
     cborHeader = [0x58, dataLength]
-  } else if (dataLength < 65536) {
+  } else if (dataLength < 65_536) {
     // Byte string with 2-byte length: 0x59 + length bytes (big endian)
     cborHeader = [0x59, (dataLength >> 8) & 0xff, dataLength & 0xff]
   } else {
@@ -67,7 +67,7 @@ export function getURFragmentsFromPSBT(
   // Create manual CBOR structure to avoid @ngraveio/bc-ur library encoding issues
   const cborData = createCryptoPsbtCBOR(psbtBytes)
 
-  const ur = new UR(Buffer.from(Array.from(cborData)), 'crypto-psbt')
+  const ur = new UR(Buffer.from([...cborData]), 'crypto-psbt')
 
   // Use appropriate fragment size for reliable camera scanning
   const finalFragmentSize = fragmentSize // Use the specified fragment size for multiple chunks
@@ -80,7 +80,7 @@ export function getURFragmentsFromPSBT(
 
     if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
       throw new Error(
-        `Invalid UR fragment at index ${i}: ${fragment.substring(0, 100)}`
+        `Invalid UR fragment at index ${i}: ${fragment.slice(0, 100)}`
       )
     }
 
@@ -115,7 +115,7 @@ export function createURBytesEncoder(payload: string, fragmentSize = 200) {
   // CBOR-encode the UTF-8 bytes as a CBOR byte string. This matches what
   // `decodeURGeneric`/`processURGenericBytes` expects for `ur:bytes`.
   const cborData = createCryptoPsbtCBOR(payloadBytes)
-  const ur = new UR(Buffer.from(Array.from(cborData)), 'bytes')
+  const ur = new UR(Buffer.from([...cborData]), 'bytes')
   const encoder = new UREncoder(ur, Math.max(20, fragmentSize))
 
   return {
@@ -153,7 +153,7 @@ export function decodeURToPSBT(ur: string): string {
     const result = decoder.resultUR()
     const cborData = result.cbor
     const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-    const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+    const psbtHex = Buffer.from([...psbtBytes]).toString('hex')
 
     // For UR format, return the PSBT hex directly instead of trying to extract final transaction
     // This ensures we preserve all the witness data and signatures
@@ -224,7 +224,7 @@ function isCBORByteStringLike(cborData: Uint8Array): boolean {
 
 function normalizeCashuTokenString(decodedString: string): string {
   if (decodedString.includes('cashuA') || decodedString.includes('cashuB')) {
-    return decodedString.replace(/[^\x20-\x7E]/g, '').trim()
+    return decodedString.replaceAll(/[^\u0020-\u007E]/g, '').trim()
   }
 
   return decodedString
@@ -286,8 +286,8 @@ export function createURStreamDecoder(): URStreamDecoder {
       urType = typeStr.toLowerCase()
     }
     if (seqStr && totalStr) {
-      const seq = parseInt(seqStr, 10)
-      const total = parseInt(totalStr, 10)
+      const seq = Number.parseInt(seqStr, 10)
+      const total = Number.parseInt(totalStr, 10)
       if (!Number.isNaN(seq)) {
         receivedIndices.add(seq)
       }
@@ -375,8 +375,8 @@ export async function decodeMultiPartURToPSBT(
     const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
 
     if (aMatch && bMatch) {
-      const aSeq = parseInt(aMatch[1], 10)
-      const bSeq = parseInt(bMatch[1], 10)
+      const aSeq = Number.parseInt(aMatch[1], 10)
+      const bSeq = Number.parseInt(bMatch[1], 10)
       return aSeq - bSeq
     }
 
@@ -419,7 +419,7 @@ export async function decodeMultiPartURToPSBT(
     if (result && result.cbor) {
       const cborData = result.cbor
       const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-      const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+      const psbtHex = Buffer.from([...psbtBytes]).toString('hex')
 
       // For UR format, return the PSBT hex directly instead of trying to extract final transaction
       // This ensures we preserve all the witness data and signatures
@@ -442,7 +442,7 @@ export async function decodeMultiPartURToPSBT(
   if (result && result.cbor) {
     const cborData = result.cbor
     const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-    const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+    const psbtHex = Buffer.from([...psbtBytes]).toString('hex')
 
     if (psbtHex.toLowerCase().startsWith('70736274')) {
       return psbtHex
@@ -486,10 +486,10 @@ function processURGenericResult(result: UR) {
 
   if (isCBORByteStringLike(cborData)) {
     const parsedBytes = parseCBORByteString(cborData)
-    return Buffer.from(Array.from(parsedBytes)).toString('hex')
+    return Buffer.from([...parsedBytes]).toString('hex')
   }
 
-  return Buffer.from(Array.from(cborData)).toString('hex')
+  return Buffer.from([...cborData]).toString('hex')
 }
 
 /**

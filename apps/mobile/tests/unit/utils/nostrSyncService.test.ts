@@ -221,7 +221,7 @@ describe('nostrSyncService', () => {
 
       nostrSyncService.stopSync(mockAccount.id)
 
-      jest.advanceTimersByTime(60000)
+      jest.advanceTimersByTime(60_000)
 
       expect(nostrSyncService.hasActiveSubscription(mockAccount.id)).toBe(false)
     })

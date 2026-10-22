@@ -105,7 +105,7 @@ describe('lndOpenChannel', () => {
           localFundingSat: 100_000,
           minConfs: 1,
           privateChannel: true,
-          pushSat: 1_000
+          pushSat: 1000
         })
       ).toStrictEqual({
         local_funding_amount: '100000',

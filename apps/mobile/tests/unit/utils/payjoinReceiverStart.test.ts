@@ -1,7 +1,10 @@
 import { __resetPayjoinMock } from 'react-native-payjoin'
 
 import { createReceivePayjoinSession } from '@/api/payjoin'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { resolveReceiverSessionOnStart } from '@/utils/payjoinReceiverStart'
 
 describe('resolveReceiverSessionOnStart', () => {
@@ -14,7 +17,9 @@ describe('resolveReceiverSessionOnStart', () => {
     const created = await createReceivePayjoinSession({
       accountId: 'acct-1',
       address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
-      amountSats: 1000
+      amountSats: 1000,
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
 
     const resolved = await resolveReceiverSessionOnStart({
@@ -37,7 +42,9 @@ describe('resolveReceiverSessionOnStart', () => {
   it('mints fresh when resume fails for legacy id-only nativeState', async () => {
     const created = await createReceivePayjoinSession({
       accountId: 'acct-keep',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     usePayjoinSessionsStore.getState().upsertSession({
       ...created,
@@ -55,7 +62,9 @@ describe('resolveReceiverSessionOnStart', () => {
   it('soft-keeps a durable event-log session when native resume fails', async () => {
     const created = await createReceivePayjoinSession({
       accountId: 'acct-durable',
-      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+      address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      deps: getPayjoinDeps(),
+      network: 'signet'
     })
     const durableState = Buffer.from(
       JSON.stringify({

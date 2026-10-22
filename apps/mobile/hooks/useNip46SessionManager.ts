@@ -49,24 +49,33 @@ function executeHandler(
   expectedSecret: string | undefined
 ): string {
   switch (method) {
-    case 'ping':
+    case 'ping': {
       return handlePing()
-    case 'get_public_key':
+    }
+    case 'get_public_key': {
       return handleGetPublicKey(signerPubkeyHex)
-    case 'connect':
+    }
+    case 'connect': {
       return handleConnect(params, expectedSecret, signerPubkeyHex)
-    case 'sign_event':
+    }
+    case 'sign_event': {
       return handleSignEvent(params[0], signerSecretKey)
-    case 'nip04_encrypt':
+    }
+    case 'nip04_encrypt': {
       return handleNip04Encrypt(params[0], params[1], signerSecretKey)
-    case 'nip04_decrypt':
+    }
+    case 'nip04_decrypt': {
       return handleNip04Decrypt(params[0], params[1], signerSecretKey)
-    case 'nip44_encrypt':
+    }
+    case 'nip44_encrypt': {
       return handleNip44Encrypt(params[0], params[1], signerSecretKey)
-    case 'nip44_decrypt':
+    }
+    case 'nip44_decrypt': {
       return handleNip44Decrypt(params[0], params[1], signerSecretKey)
-    default:
+    }
+    default: {
       throw new Error(`Unsupported method: ${method}`)
+    }
   }
 }
 

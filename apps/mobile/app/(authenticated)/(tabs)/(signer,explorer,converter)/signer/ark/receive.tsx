@@ -268,24 +268,22 @@ export default function ArkReceivePage() {
                 </SSText>
               )}
               {onchainAddressQuery.data && (
-                <>
-                  <SSShareableQR
-                    value={onchainAddressQuery.data}
-                    size={280}
-                    containerStyle={styles.qrContainer}
-                  >
-                    <View style={styles.addressBox}>
-                      <SSText size="sm" style={styles.monospace}>
-                        {onchainAddressQuery.data}
-                      </SSText>
-                    </View>
-                    <SSButton
-                      label={t('common.copy')}
-                      onPress={handleCopyOnchainAddress}
-                      variant="outline"
-                    />
-                  </SSShareableQR>
-                </>
+                <SSShareableQR
+                  value={onchainAddressQuery.data}
+                  size={280}
+                  containerStyle={styles.qrContainer}
+                >
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" style={styles.monospace}>
+                      {onchainAddressQuery.data}
+                    </SSText>
+                  </View>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyOnchainAddress}
+                    variant="outline"
+                  />
+                </SSShareableQR>
               )}
               {autoBoard.minAmountSats !== undefined && (
                 <SSText color="muted" size="xs" center>

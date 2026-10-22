@@ -19,12 +19,12 @@ describe('nostr chat queries', () => {
         .mockReturnValueOnce(
           mockQueryResult([
             {
-              last_message_at: 1700000002,
+              last_message_at: 1_700_000_002,
               peer_pubkey: 'peer-1',
               unread_count: 2
             },
             {
-              last_message_at: 1700000001,
+              last_message_at: 1_700_000_001,
               peer_pubkey: 'peer-2',
               unread_count: null
             }
@@ -34,13 +34,13 @@ describe('nostr chat queries', () => {
 
       expect(listChatConversations('npub1me', 'nip17')).toStrictEqual([
         {
-          lastMessageAt: 1700000002,
+          lastMessageAt: 1_700_000_002,
           lastMessagePreview: 'latest',
           peerPubkey: 'peer-1',
           unreadCount: 2
         },
         {
-          lastMessageAt: 1700000001,
+          lastMessageAt: 1_700_000_001,
           lastMessagePreview: '',
           peerPubkey: 'peer-2',
           unreadCount: 0
@@ -55,7 +55,7 @@ describe('nostr chat queries', () => {
         mockQueryResult([
           {
             content: 'hi',
-            created_at: 1700000001,
+            created_at: 1_700_000_001,
             direction: 'out',
             id: 'msg-2',
             identity_npub: 'npub1me',
@@ -66,7 +66,7 @@ describe('nostr chat queries', () => {
           },
           {
             content: 'hello',
-            created_at: 1700000000,
+            created_at: 1_700_000_000,
             direction: 'in',
             id: 'msg-1',
             identity_npub: 'npub1me',
@@ -81,7 +81,7 @@ describe('nostr chat queries', () => {
       expect(listChatThread('npub1me', 'nip04', 'peer-1')).toStrictEqual([
         {
           content: 'hello',
-          created_at: 1700000000,
+          created_at: 1_700_000_000,
           direction: 'in',
           id: 'msg-1',
           identityNpub: 'npub1me',
@@ -92,7 +92,7 @@ describe('nostr chat queries', () => {
         },
         {
           content: 'hi',
-          created_at: 1700000001,
+          created_at: 1_700_000_001,
           direction: 'out',
           id: 'msg-2',
           identityNpub: 'npub1me',

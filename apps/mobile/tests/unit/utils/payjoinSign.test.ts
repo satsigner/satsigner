@@ -18,7 +18,7 @@ describe('preparePayjoinPsbtForWalletSign', () => {
     psbt.addInput({
       hash: fundingTxid,
       index: 0,
-      sequence: 0xfffffffd
+      sequence: 0xff_ff_ff_fd
     })
     psbt.addOutput({
       script: Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),

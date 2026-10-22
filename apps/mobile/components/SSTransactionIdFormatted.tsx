@@ -1,9 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import SSText, { type SSTextProps } from '@/components/SSText'
+import { TXID_HEX_PATTERN } from '@/constants/btc'
 import { Colors, Sizes, Typography } from '@/styles'
-
-const TXID_HEX_64 = /^[0-9a-fA-F]{64}$/
 
 /** Fallback tracking for non-hex / placeholder txid text */
 const TXID_LETTER_SPACING = 0.5
@@ -21,7 +20,7 @@ function lineHeightForSize(fontSize: number) {
 }
 
 function compactHexCandidate(value: string) {
-  return value.replace(/\s+/g, '')
+  return value.replaceAll(/\s+/g, '')
 }
 
 function chunkString(value: string, chunkSize: number): string[] {
@@ -42,7 +41,7 @@ function SSTransactionIdFormatted({
   value
 }: SSTransactionIdFormattedProps) {
   const compact = compactHexCandidate(value)
-  const isTxidHex = TXID_HEX_64.test(compact)
+  const isTxidHex = TXID_HEX_PATTERN.test(compact)
 
   const fontSize = Sizes.text.fontSize[size]
   const lineHeight = lineHeightForSize(fontSize)

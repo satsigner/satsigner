@@ -299,33 +299,40 @@ export function estimateArkFee(
   request: ArkFeeRequest
 ): Promise<ArkFeeEstimate> {
   switch (request.kind) {
-    case 'arkoor':
+    case 'arkoor': {
       return estimateArkArkoorFee(serverId, accountId, request.amountSats)
-    case 'lightning':
+    }
+    case 'lightning': {
       return estimateArkLightningSendFee(
         serverId,
         accountId,
         request.amountSats
       )
-    case 'board':
+    }
+    case 'board': {
       return estimateArkBoardFee(serverId, accountId, request.amountSats)
-    case 'onchain':
+    }
+    case 'onchain': {
       return estimateArkSendOnchainFee(
         serverId,
         accountId,
         request.address,
         request.amountSats
       )
-    case 'offboard':
+    }
+    case 'offboard': {
       return estimateArkOffboardFee(
         serverId,
         accountId,
         request.address,
         request.vtxoIds
       )
-    case 'refresh':
+    }
+    case 'refresh': {
       return estimateArkRefreshFee(serverId, accountId, request.vtxoIds)
-    default:
+    }
+    default: {
       throw new Error('Unsupported Ark fee request')
+    }
   }
 }

@@ -124,7 +124,7 @@ function SSNostrRelaysSelection() {
                 label={tl('addCustomRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
-                disabled={!customRelayUrl.match(/^[a-z0-9-]+\.[a-z0-9.-]+$/i)}
+                disabled={!/^[a-z0-9-]+\.[a-z0-9.-]+$/i.test(customRelayUrl)}
               />
             </SSVStack>
           </SSVStack>

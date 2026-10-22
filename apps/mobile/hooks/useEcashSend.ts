@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
@@ -25,6 +25,7 @@ import {
   getLNURLType,
   handleLNURLPay
 } from '@/utils/lnurl'
+import { sleep } from '@/utils/time'
 import { getURBytesFragments } from '@/utils/ur'
 
 const ANIMATED_QR_FRAGMENT_SIZE = 200
@@ -54,8 +55,6 @@ export function useEcashSend() {
   const [animatedQR, setAnimatedQR] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [tokenVersion, setTokenVersion] = useState<'v3' | 'v4'>('v4')
-  const animationRef = useRef<number | null>(null)
-  const lastUpdateRef = useRef<number>(0)
 
   const { activeAccount, mints, payLightningInvoice, proofs, sendEcash } =
     useEcash()
@@ -91,8 +90,8 @@ export function useEcashSend() {
       return
     }
 
-    const amountNum = parseInt(amount, 10)
-    if (isNaN(amountNum) || amountNum <= 0) {
+    const amountNum = Number.parseInt(amount, 10)
+    if (Number.isNaN(amountNum) || amountNum <= 0) {
       toast.error(t('ecash.error.invalidAmount'))
       return
     }
@@ -159,8 +158,8 @@ export function useEcashSend() {
       return
     }
 
-    const amountSats = parseInt(amount, 10)
-    if (isNaN(amountSats) || amountSats <= 0) {
+    const amountSats = Number.parseInt(amount, 10)
+    if (Number.isNaN(amountSats) || amountSats <= 0) {
       toast.error(t('ecash.error.pleaseEnterValidAmount'))
       setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
       return
@@ -207,8 +206,8 @@ export function useEcashSend() {
         return null
       }
 
-      const amountSats = parseInt(amount, 10)
-      if (isNaN(amountSats) || amountSats <= 0) {
+      const amountSats = Number.parseInt(amount, 10)
+      if (Number.isNaN(amountSats) || amountSats <= 0) {
         toast.error(t('ecash.error.pleaseEnterValidAmount'))
         setStatusMessage(`Error: ${t('ecash.error.pleaseEnterValidAmount')}`)
         return null
@@ -222,9 +221,7 @@ export function useEcashSend() {
       )
       setStatusMessage(t('ecash.status.lnurlInvoiceReceived'))
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, LNURL_PAY_DELAY_MS)
-      })
+      await sleep(LNURL_PAY_DELAY_MS)
       return bolt11
     }
 
@@ -386,14 +383,14 @@ export function useEcashSend() {
     return generatedToken
   }
 
-  const amountNum = parseInt(amount, 10)
+  const amountNum = Number.parseInt(amount, 10)
   const mintBalances = mints.map((mint) => ({
     balance: getMintBalance(mint.url, proofs),
     mintUrl: mint.url,
     supportsMpp: false
   }))
   const tokenRoute =
-    !isNaN(amountNum) && amountNum > 0
+    !Number.isNaN(amountNum) && amountNum > 0
       ? selectMintRoute({
           allowMpp: false,
           amountSats: amountNum,
@@ -406,7 +403,6 @@ export function useEcashSend() {
     activeAccount,
     amount,
     animatedQR,
-    animationRef,
     comment,
     currentChunkIndex,
     decodedInvoice,
@@ -422,7 +418,6 @@ export function useEcashSend() {
     isGenerating,
     isLNURLMode,
     isMelting,
-    lastUpdateRef,
     lnurlDetails,
     meltTokens,
     memo,

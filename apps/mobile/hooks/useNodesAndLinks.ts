@@ -13,7 +13,7 @@ import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
   classifyChartOutputs
 } from '@/utils/stonewall'
-import { estimateTransactionSize } from '@/utils/transaction'
+import { estimateTransactionSize, weightToVsize } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import type { ExtendedTransaction } from './useInputTransactions'
@@ -119,14 +119,14 @@ export const useNodesAndLinks = ({
 
   const maxExistingDepth =
     transactions.size > 0
-      ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
+      ? Math.max(...[...transactions.values()].map((tx) => tx.depthH))
       : 0
   const outputNodesCurrentTransaction: TxNode[] = useMemo(() => {
     if (inputs.size > 0 && transactions.size > 0) {
       const blockDepth = maxExistingDepth + 2
 
       const { size, vsize } = estimateTransactionSize(
-        Array.from(inputs.values()),
+        [...inputs.values()],
         outputs,
         true
       )
@@ -136,7 +136,7 @@ export const useNodesAndLinks = ({
           : Math.round(feeRate * vsize)
       const displayFeeRate = vsize > 0 ? minerFee / vsize : feeRate
 
-      const totalInputValue = Array.from(inputs.values()).reduce(
+      const totalInputValue = [...inputs.values()].reduce(
         (sum, input) => sum + input.value,
         0
       )
@@ -233,7 +233,7 @@ export const useNodesAndLinks = ({
           indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
           ioData: {
             elevatedFeeRate: elevatedFeeRateForCurrentTx,
-            feePercentage: Math.round(feePercentageForCurrentTx * 10000) / 100,
+            feePercentage: Math.round(feePercentageForCurrentTx * 10_000) / 100,
             feeRate: displayFeeRate,
             fiatCurrency,
             fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -288,7 +288,7 @@ export const useNodesAndLinks = ({
     if (transactions.size === 0) {
       return []
     }
-    return Array.from(transactions.values()).flatMap(
+    return [...transactions.values()].flatMap(
       (tx) => tx.vout?.map((output) => output.address) ?? []
     )
   }, [transactions])
@@ -297,14 +297,14 @@ export const useNodesAndLinks = ({
     if (transactions.size === 0) {
       return []
     }
-    return Array.from(transactions.values()).flatMap(
+    return [...transactions.values()].flatMap(
       (tx) => tx.vout?.map((output) => output.value) ?? []
     )
   }, [transactions])
 
   const incomingAndOutgoingVinTxId = useMemo(
     () =>
-      Array.from(transactions.values()).flatMap((tx) =>
+      [...transactions.values()].flatMap((tx) =>
         tx.vin.map((input) => ({
           inputTxId: input.previousOutput.txid,
           prevValue: input.value,
@@ -342,7 +342,7 @@ export const useNodesAndLinks = ({
     if (transactions.size > 0 && inputs.size > 0) {
       const depthIndices = new Map<number, number>()
       const blockDepthIndices = new Map<number, number>()
-      const previousConfirmedNodes = Array.from(transactions.entries()).flatMap(
+      const previousConfirmedNodes = [...transactions.entries()].flatMap(
         ([, tx]) => {
           if (!tx.vin || !tx.vout) {
             return []
@@ -403,7 +403,7 @@ export const useNodesAndLinks = ({
             return nodes
           }, [])
 
-          const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
+          const vsize = weightToVsize(tx?.weight ?? 0)
           const blockDepth = tx.depthH
           const blockIndex = blockDepthIndices.get(blockDepth) || 0
           const blockHeight = `${tx.blockHeight}`
@@ -443,7 +443,7 @@ export const useNodesAndLinks = ({
                   vinTx.prevValue === output.value
               )?.txid || ''
 
-            const matchingInput = Array.from(inputs.values()).find((input) => {
+            const matchingInput = [...inputs.values()].find((input) => {
               if (input.txid !== tx.id || input.vout !== idx) {
                 return false
               }
@@ -521,7 +521,8 @@ export const useNodesAndLinks = ({
               depthH: feeOutputDepth,
               id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               ioData: {
-                feePercentage: Math.round(feePercentageForPastTx * 10000) / 100,
+                feePercentage:
+                  Math.round(feePercentageForPastTx * 10_000) / 100,
                 feeRate: minerFeeRate,
                 fiatCurrency,
                 fiatValue: formatNumber(satsToFiat(minerFee), 2),
@@ -620,10 +621,10 @@ export const useNodesAndLinks = ({
         } else if (
           node.type === 'text' &&
           node.id.includes('vout') &&
-          Array.from(inputs.values())
+          [...inputs.values()]
             .map((input) => input.value)
             .includes(node?.value ?? 0) &&
-          Array.from(inputs.values())
+          [...inputs.values()]
             .map((input) => input.vout)
             .includes(node?.vout ?? 0)
         ) {

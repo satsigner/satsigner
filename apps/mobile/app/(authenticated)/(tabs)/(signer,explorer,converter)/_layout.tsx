@@ -155,7 +155,7 @@ export default function StackLayout(params: { segment?: string }) {
 
   const homeScreen = useMemo(() => {
     switch (params?.segment) {
-      case '(signer)':
+      case '(signer)': {
         return (
           <Stack.Screen
             name="index"
@@ -166,7 +166,8 @@ export default function StackLayout(params: { segment?: string }) {
             options={{ title: 'Signer' }}
           />
         )
-      case '(explorer)':
+      }
+      case '(explorer)': {
         return (
           <Stack.Screen
             name="index"
@@ -177,7 +178,8 @@ export default function StackLayout(params: { segment?: string }) {
             options={{ title: 'Explore' }}
           />
         )
-      case '(converter)':
+      }
+      case '(converter)': {
         return (
           <Stack.Screen
             name="index"
@@ -188,7 +190,8 @@ export default function StackLayout(params: { segment?: string }) {
             options={{ title: 'Converter' }}
           />
         )
-      default:
+      }
+      default: {
         return (
           <Stack.Screen
             name="index"
@@ -199,6 +202,7 @@ export default function StackLayout(params: { segment?: string }) {
             options={{ title: 'Signer' }}
           />
         )
+      }
     }
   }, [params])
 

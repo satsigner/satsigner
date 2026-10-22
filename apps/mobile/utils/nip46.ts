@@ -104,18 +104,23 @@ export function buildNip46ResponsePayload(
 
 export function getMethodLabel(method: string): string {
   switch (method) {
-    case 'sign_event':
+    case 'sign_event': {
       return t('nip46.approval.signEvent')
-    case 'get_public_key':
+    }
+    case 'get_public_key': {
       return t('nip46.approval.getPublicKey')
+    }
     case 'nip04_encrypt':
-    case 'nip44_encrypt':
+    case 'nip44_encrypt': {
       return t('nip46.approval.encrypt')
+    }
     case 'nip04_decrypt':
-    case 'nip44_decrypt':
+    case 'nip44_decrypt': {
       return t('nip46.approval.decrypt')
-    default:
+    }
+    default: {
       return method
+    }
   }
 }
 

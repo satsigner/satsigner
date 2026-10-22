@@ -6,9 +6,9 @@ import {
 } from '@/constants/lightning'
 import type { LNDSendCoinsRequest } from '@/types/models/Lightning'
 import { parseBitcoinUri } from '@/utils/bip321'
-import { isBitcoinAddress } from '@/utils/bitcoin'
 import { parseOptionalSatPerVbyte } from '@/utils/lndOpenChannel'
 import { hasBitcoinPrefix } from '@/utils/parse'
+import { validateAddress } from '@/utils/validation'
 
 export type LndOnchainSendValidationReason =
   | 'address'
@@ -49,12 +49,12 @@ export function parseBitcoinUriAddress(input: string): string | null {
   }
   if (hasBitcoinPrefix(trimmed)) {
     const parsed = parseBitcoinUri(trimmed)
-    if (parsed.isValid && isBitcoinAddress(parsed.address)) {
+    if (parsed.isValid && validateAddress(parsed.address)) {
       return parsed.address
     }
     return null
   }
-  if (isBitcoinAddress(trimmed)) {
+  if (validateAddress(trimmed)) {
     return trimmed
   }
   return null
