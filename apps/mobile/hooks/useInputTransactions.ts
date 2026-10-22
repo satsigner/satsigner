@@ -16,19 +16,19 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { recalculateDepthH, weightToVsize } from '@/utils/transaction'
+import {
+  assignOutputDepthOrder,
+  recalculateDepthH,
+  weightToVsize
+} from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 type ExtendedVin = Transaction['vin'][number] & {
   address: string
-  index?: number
 }
 
 type ExtendedVout = Transaction['vout'][number] & {
-  /** Display order within its depth. */
-  index?: number
-  /** Position in the transaction's original output list. */
-  vout?: number
+  depthOrder?: number
 }
 
 export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
@@ -68,63 +68,6 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-
-  const assignIOIndex = (transactions: Map<string, ExtendedTransaction>) => {
-    if (transactions.size === 0) {
-      return transactions
-    }
-
-    const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
-    const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
-
-    for (const [txid, tx] of transactions.entries()) {
-      if (tx.vin) {
-        for (const [index] of tx.vin.entries()) {
-          if (!vinsByDepth.has(tx.depthH)) {
-            vinsByDepth.set(tx.depthH, [])
-          }
-          vinsByDepth.get(tx.depthH)?.push({ index, txid })
-        }
-      }
-
-      if (tx.vout) {
-        for (const [index] of tx.vout.entries()) {
-          if (!voutsByDepth.has(tx.depthH)) {
-            voutsByDepth.set(tx.depthH, [])
-          }
-          voutsByDepth.get(tx.depthH)?.push({ index, txid })
-        }
-      }
-    }
-
-    for (const [_depthH, vins] of vinsByDepth.entries()) {
-      let currentIndex = 0
-      for (const { txid, index } of vins) {
-        const tx = transactions.get(txid)
-        if (tx?.vin?.[index]) {
-          tx.vin[index] = { ...tx.vin[index], index: currentIndex }
-          currentIndex += 1
-        }
-      }
-    }
-
-    for (const [_depthH, vouts] of voutsByDepth.entries()) {
-      let currentIndex = 0
-      for (const { txid, index } of vouts) {
-        const tx = transactions.get(txid)
-        if (tx?.vout?.[index]) {
-          tx.vout[index] = {
-            ...tx.vout[index],
-            index: currentIndex,
-            vout: index
-          }
-          currentIndex += 1
-        }
-      }
-    }
-
-    return transactions
-  }
 
   const fetchInputTransactions = useCallback(async () => {
     if (inputs.size === 0) {
@@ -755,9 +698,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
           mappedInputs
         )
 
-        const transactionsWithIOIndex = assignIOIndex(transactionsWithDepthH)
-
-        setTransactions(transactionsWithIOIndex)
+        setTransactions(assignOutputDepthOrder(transactionsWithDepthH))
       } else {
         setTransactions(new Map())
       }

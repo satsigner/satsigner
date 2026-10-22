@@ -5,6 +5,7 @@ import { type Utxo } from '@/types/models/Utxo'
 
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
+  assignOutputDepthOrder,
   buildChartTransactionFromBuilder,
   buildPreviewTransactionHex,
   estimateBuilderTransactionSize,
@@ -636,6 +637,56 @@ describe('recalculateDepthH', () => {
     ])
     const result = recalculateDepthH(transactions)
     expect(result.get('txA')?.depthH).toBe(1)
+  })
+})
+
+describe('assignOutputDepthOrder', () => {
+  function buildTransaction(id: string, depthH: number, outputCount: number) {
+    return {
+      ...minimalTxProps,
+      depthH,
+      id,
+      vin: [] as unknown as ExtendedTransaction['vin'],
+      vout: Array.from({ length: outputCount }, (_, index) => ({
+        address: `${id}-out-${index}`,
+        value: 1000
+      })) as unknown as ExtendedTransaction['vout']
+    }
+  }
+
+  function getDepthOrders(
+    transactions: Map<string, ExtendedTransaction>,
+    txid: string
+  ) {
+    return transactions.get(txid)?.vout.map((output) => output.depthOrder)
+  }
+
+  it('numbers outputs across transactions sharing a depth', () => {
+    const transactions = new Map<string, ExtendedTransaction>([
+      ['txA', buildTransaction('txA', 1, 2)],
+      ['txB', buildTransaction('txB', 1, 1)]
+    ])
+    const result = assignOutputDepthOrder(transactions)
+    expect(getDepthOrders(result, 'txA')).toStrictEqual([0, 1])
+    expect(getDepthOrders(result, 'txB')).toStrictEqual([2])
+  })
+
+  it('restarts the numbering at each depth', () => {
+    const transactions = new Map<string, ExtendedTransaction>([
+      ['txA', buildTransaction('txA', 1, 2)],
+      ['txC', buildTransaction('txC', 3, 2)]
+    ])
+    const result = assignOutputDepthOrder(transactions)
+    expect(getDepthOrders(result, 'txA')).toStrictEqual([0, 1])
+    expect(getDepthOrders(result, 'txC')).toStrictEqual([0, 1])
+  })
+
+  it('keeps the rest of each output', () => {
+    const transactions = new Map<string, ExtendedTransaction>([
+      ['txA', buildTransaction('txA', 1, 1)]
+    ])
+    const [output] = assignOutputDepthOrder(transactions).get('txA')?.vout ?? []
+    expect(output).toMatchObject({ address: 'txA-out-0', value: 1000 })
   })
 })
 
