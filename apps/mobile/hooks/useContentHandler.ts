@@ -1,86 +1,78 @@
+import { type Href, useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
+import { t } from '@/locales'
 import {
   type ContentContext,
   detectContentByContext,
   type DetectedContent,
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
+import { getContentHref } from '@/utils/contentProcessor'
 
 type UseContentHandlerProps = {
   context: ContentContext
-  onContentScanned: (content: DetectedContent) => void
-  onSend: () => void
-  onReceive: () => void
+  sendHref: Href
+  receiveHref: Href
+  onContentScanned?: (content: DetectedContent) => void | Promise<void>
+  onError?: (message: string) => void
 }
 
 export function useContentHandler({
   context,
+  sendHref,
+  receiveHref,
   onContentScanned,
-  onSend,
-  onReceive
+  onError
 }: UseContentHandlerProps) {
+  const router = useRouter()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [pasteModalVisible, setPasteModalVisible] = useState(false)
 
   const { isHardwareSupported: nfcAvailable } = useNFCReader()
 
-  const handleContentPasted = useCallback(
-    (content: DetectedContent) => {
-      onContentScanned(content)
-    },
-    [onContentScanned]
-  )
+  // Stable identities: consumers list these as focus-effect deps, and a new
+  // reference would run the effect cleanup and close the modals mid-use.
+  const closeCameraModal = useCallback(() => setCameraModalVisible(false), [])
+  const closeNFCModal = useCallback(() => setNfcModalVisible(false), [])
+  const closePasteModal = useCallback(() => setPasteModalVisible(false), [])
 
-  const handleNFCContentRead = useCallback(
-    (content: string) => {
-      const normalized =
-        context === 'ecash' ? prepareEcashTokenInput(content) : content
-      const detectedContent = detectContentByContext(normalized, context)
-      onContentScanned(detectedContent)
-    },
-    [context, onContentScanned]
-  )
+  function navigateToContent(content: DetectedContent) {
+    if (!content.isValid) {
+      onError?.(t('camera.invalidContent', { context }))
+      return
+    }
+    const href = getContentHref(content, context)
+    if (!href) {
+      onError?.(t('paste.error.incompatibleContent'))
+      return
+    }
+    router.navigate(href)
+  }
 
-  const handlePaste = useCallback(() => {
-    setPasteModalVisible(true)
-  }, [])
+  const handleContentScanned = onContentScanned ?? navigateToContent
 
-  const handleCamera = useCallback(() => {
-    setCameraModalVisible(true)
-  }, [])
-
-  const handleNFC = useCallback(() => {
-    setNfcModalVisible(true)
-  }, [])
-
-  const closeCameraModal = useCallback(() => {
-    setCameraModalVisible(false)
-  }, [])
-
-  const closeNFCModal = useCallback(() => {
-    setNfcModalVisible(false)
-  }, [])
-
-  const closePasteModal = useCallback(() => {
-    setPasteModalVisible(false)
-  }, [])
+  function handleNFCContentRead(content: string) {
+    const normalized =
+      context === 'ecash' ? prepareEcashTokenInput(content) : content
+    handleContentScanned(detectContentByContext(normalized, context))
+  }
 
   return {
     cameraModalVisible,
     closeCameraModal,
     closeNFCModal,
     closePasteModal,
-    handleCamera,
-    handleContentPasted,
-    handleContentScanned: onContentScanned,
-    handleNFC,
+    handleCamera: () => setCameraModalVisible(true),
+    handleContentPasted: handleContentScanned,
+    handleContentScanned,
+    handleNFC: () => setNfcModalVisible(true),
     handleNFCContentRead,
-    handlePaste,
-    handleReceive: onReceive,
-    handleSend: onSend,
+    handlePaste: () => setPasteModalVisible(true),
+    handleReceive: () => router.push(receiveHref),
+    handleSend: () => router.push(sendHref),
     nfcAvailable,
     nfcModalVisible,
     pasteModalVisible
