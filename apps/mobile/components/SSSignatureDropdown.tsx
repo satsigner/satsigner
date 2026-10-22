@@ -159,7 +159,11 @@ function SSSignatureDropdown({
               validationResult === true ? (
                 <SSIconGreen width={24} height={24} />
               ) : validationResult === false ? (
-                <SSIconCircleX width={24} height={24} stroke="#FF6B6B" />
+                <SSIconCircleX
+                  width={24}
+                  height={24}
+                  stroke={Colors.invalidRed}
+                />
               ) : (
                 <SSIconGreen width={24} height={24} />
               )
