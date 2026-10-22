@@ -225,7 +225,6 @@ function getPayjoinSettings(): PayjoinSettings {
   }
 }
 
-/** Price API the app should call: the custom URL when set, else the default. */
 function getFiatPriceApiUrl() {
   const { fiatPriceApiUrl, fiatPriceProvider } = useSettingsStore.getState()
   if (fiatPriceProvider !== 'custom') {
