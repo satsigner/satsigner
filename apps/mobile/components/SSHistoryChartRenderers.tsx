@@ -27,7 +27,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 const Y_AXIS_TICK_COUNT = 4
 const Y_AXIS_LABEL_BASELINE_OFFSET = 6
-const Y_AXIS_TITLE_Y = 12
+const Y_AXIS_TITLE_Y = -10
 
 type YScaleRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
