@@ -50,7 +50,8 @@ import {
   fiatDomainMax,
   fiatYDomain,
   historyChartMargin,
-  maxFiatValue
+  maxFiatValue,
+  satsYDomain
 } from '@/utils/historyChart'
 
 type SSHistoryChartProps = {
@@ -217,12 +218,7 @@ function SSHistoryChart({
   const yScale = useMemo(
     () =>
       scaleLinear()
-        .domain([
-          lockZoomToXAxis ? 0 : startY,
-          lockZoomToXAxis
-            ? maxBalance * 1.2
-            : startY + (maxBalance * 1.2) / scale
-        ])
+        .domain(satsYDomain({ lockZoomToXAxis, maxBalance, scale, startY }))
         .range([chartHeight, 0]),
     [chartHeight, lockZoomToXAxis, maxBalance, scale, startY]
   )
@@ -231,7 +227,7 @@ function SSHistoryChart({
     () =>
       scaleLinear()
         .domain(
-          fiatYDomain(maxFiat, maxBalance, scale, startY, lockZoomToXAxis)
+          fiatYDomain({ lockZoomToXAxis, maxBalance, maxFiat, scale, startY })
         )
         .range([chartHeight, 0]),
     [chartHeight, lockZoomToXAxis, maxBalance, maxFiat, scale, startY]

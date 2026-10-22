@@ -119,3 +119,10 @@ export type FiatChartPointsParams = {
   startDate: Date
   validChartData: HistoryChartData[]
 }
+
+export type YDomainParams = {
+  lockZoomToXAxis: boolean
+  maxBalance: number
+  scale: number
+  startY: number
+}

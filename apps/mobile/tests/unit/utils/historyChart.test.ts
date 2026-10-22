@@ -13,7 +13,8 @@ import {
   fiatYDomain,
   hexToRgba,
   historyChartMargin,
-  maxFiatValue
+  maxFiatValue,
+  satsYDomain
 } from '@/utils/historyChart'
 
 function makeTx(
@@ -388,13 +389,53 @@ describe('fiatDomainMax', () => {
   })
 })
 
+describe('satsYDomain', () => {
+  it('starts at zero with headroom when zoom is locked to the x axis', () => {
+    expect(
+      satsYDomain({
+        lockZoomToXAxis: true,
+        maxBalance: 200,
+        scale: 2,
+        startY: 40
+      })
+    ).toStrictEqual([0, 240])
+  })
+
+  it('follows the pan offset and pinch scale', () => {
+    expect(
+      satsYDomain({
+        lockZoomToXAxis: false,
+        maxBalance: 200,
+        scale: 2,
+        startY: 40
+      })
+    ).toStrictEqual([40, 160])
+  })
+})
+
 describe('fiatYDomain', () => {
   it('starts at zero when zoom is locked to the x axis', () => {
-    expect(fiatYDomain(100, 200, 2, 40, true)).toStrictEqual([0, 120])
+    expect(
+      fiatYDomain({
+        lockZoomToXAxis: true,
+        maxBalance: 200,
+        maxFiat: 100,
+        scale: 2,
+        startY: 40
+      })
+    ).toStrictEqual([0, 120])
   })
 
   it('shifts with the sats pan and shares the pinch scale', () => {
-    expect(fiatYDomain(100, 200, 2, 40, false)).toStrictEqual([20, 80])
+    expect(
+      fiatYDomain({
+        lockZoomToXAxis: false,
+        maxBalance: 200,
+        maxFiat: 100,
+        scale: 2,
+        startY: 40
+      })
+    ).toStrictEqual([20, 80])
   })
 })
 

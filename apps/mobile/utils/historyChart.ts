@@ -19,7 +19,8 @@ import {
   type TxXAxisLabelsParams,
   type UtxoGeometryParams,
   type UtxoLabel,
-  type UtxoRectangle
+  type UtxoRectangle,
+  type YDomainParams
 } from '@/types/ui/historyChart'
 import { toValidDate } from '@/utils/date'
 import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
@@ -511,7 +512,7 @@ export function buildTxInfoLabels({
   return initialLabels
 }
 
-const HISTORY_CHART_Y_HEADROOM = 1.2
+export const HISTORY_CHART_Y_HEADROOM = 1.2
 const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
 const FIAT_AXIS_RIGHT_MARGIN = 52
 
@@ -613,20 +614,26 @@ export function fiatDomainMax({
   return seriesMax
 }
 
-export function fiatYDomain(
-  maxFiat: number,
-  maxBalance: number,
-  scale: number,
-  startY: number,
-  lockZoomToXAxis: boolean
-): [number, number] {
-  const fiatSpan = maxFiat * HISTORY_CHART_Y_HEADROOM
-  if (lockZoomToXAxis || maxBalance <= 0) {
-    return [0, fiatSpan]
+export function satsYDomain({
+  lockZoomToXAxis,
+  maxBalance,
+  scale,
+  startY
+}: YDomainParams): [number, number] {
+  const span = maxBalance * HISTORY_CHART_Y_HEADROOM
+  if (lockZoomToXAxis) {
+    return [0, span]
   }
-  const satsSpan = maxBalance * HISTORY_CHART_Y_HEADROOM
-  const fiatStart = (startY / satsSpan) * fiatSpan
-  return [fiatStart, fiatStart + fiatSpan / scale]
+  return [startY, startY + span / scale]
+}
+
+export function fiatYDomain({
+  maxFiat,
+  ...satsParams
+}: YDomainParams & { maxFiat: number }): [number, number] {
+  const [satsStart, satsEnd] = satsYDomain(satsParams)
+  const axisRatio = maxFiat / satsParams.maxBalance
+  return [satsStart * axisRatio, satsEnd * axisRatio]
 }
 
 export function buildFiatStepPath(
