@@ -71,9 +71,8 @@ type SSSeedWordsInputProps = {
 }
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
-const PREFIX_WORD_DELAY_MS = 1500 // 1.5 seconds delay for prefix words
+const PREFIX_WORD_DELAY_MS = 1500
 
-// Check if a word is a prefix of other words in the BIP39 word list
 function isPrefixWord(word: string, wordList: string[]): boolean {
   return wordList.some((w) => w.startsWith(word) && w !== word)
 }

@@ -105,7 +105,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     const allOutputAddresses = new Set<string>()
     const transactionInputAddresses = new Map<string, Set<string>>()
 
-    let electrumClient: ElectrumClient | null = null // Declare client variable
+    let electrumClient: ElectrumClient | null = null
 
     async function fetchElectrumTxRaw(
       txId: string
@@ -419,7 +419,7 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
                       )
                       if (txEntry && txEntry.height) {
                         blockHeight = txEntry.height
-                        break // Found the height, no need to check other addresses
+                        break
                       }
                     } catch {
                       /* silently ignored */
