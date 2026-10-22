@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native'
 
+import { PRIVACY_MASK } from '@/constants/privacy'
 import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
@@ -27,7 +28,7 @@ function SSLabelTags({
   if (privacyMode) {
     return (
       <SSText size={size} style={styles.label}>
-        ••••
+        {PRIVACY_MASK}
       </SSText>
     )
   }

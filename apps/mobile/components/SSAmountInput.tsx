@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -113,7 +114,7 @@ function SSAmountInput({
             }
           >
             {privacyMode
-              ? `•••• ${fiatCurrency}`
+              ? `${PRIVACY_MASK} ${fiatCurrency}`
               : `${formatNumber(satsToFiat(localValue), 2)} ${fiatCurrency}`}
           </SSText>
         ) : (
@@ -124,14 +125,14 @@ function SSAmountInput({
             style={privacyMode ? undefined : styles.switchable}
           >
             {privacyMode
-              ? `•••• ${t('bitcoin.sats')}`
+              ? `${PRIVACY_MASK} ${t('bitcoin.sats')}`
               : `${formatNumber(localValue, 0)} ${t('bitcoin.sats')}`}
           </SSText>
         )}
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode && min > 0 ? '••••' : min}</SSText>
+          <SSText>{privacyMode && min > 0 ? PRIVACY_MASK : min}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
         {remainingSats !== undefined && (
@@ -139,14 +140,14 @@ function SSAmountInput({
             <SSText color="muted">
               {t('common.remaining')}{' '}
               {privacyMode
-                ? '••••'
+                ? PRIVACY_MASK
                 : formatNumber(remainingSats - localValue, 0)}{' '}
               {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
         )}
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode ? '••••' : max}</SSText>
+          <SSText>{privacyMode ? PRIVACY_MASK : max}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
       </SSHStack>
