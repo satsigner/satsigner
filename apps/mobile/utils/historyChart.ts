@@ -18,6 +18,7 @@ import {
   type UtxoLabel,
   type UtxoRectangle
 } from '@/types/ui/historyChart'
+import { toValidDate } from '@/utils/date'
 import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 
@@ -532,17 +533,11 @@ function historicalBtcPrice(
   if (isUsablePrice(saved)) {
     return saved
   }
-  if (!transaction.timestamp) {
+  const date = toValidDate(transaction.timestamp)
+  if (!date) {
     return null
   }
-  const timestamp =
-    transaction.timestamp instanceof Date
-      ? transaction.timestamp
-      : new Date(transaction.timestamp)
-  if (Number.isNaN(timestamp.getTime())) {
-    return null
-  }
-  const bundled = bundledPriceAt(formatTimestamp(timestamp))
+  const bundled = bundledPriceAt(formatTimestamp(date))
   if (!isUsablePrice(bundled)) {
     return null
   }
