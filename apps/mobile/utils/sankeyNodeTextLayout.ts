@@ -19,10 +19,6 @@ function getNodeParagraphLayoutWidth(nodeWidth: number, isBlock: boolean) {
   )
 }
 
-/**
- * Width of the box drawn around a sankey node paragraph (selection shadow,
- * dust border). Non-block boxes grow to fit the longest laid-out line.
- */
 function getNodeParagraphBoxWidth(
   nodeWidth: number,
   isBlock: boolean,

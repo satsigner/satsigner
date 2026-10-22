@@ -9,7 +9,6 @@ import type { TxNode } from '@/hooks/useNodesAndLinks'
  */
 export type Node = SankeyNode<TxNode, object>
 
-/** Wallet role of a sankey output node, from `getSankeyOutputRole`. */
 export type SankeyOutputRole = {
   isChange: boolean
   isFakeMix: boolean

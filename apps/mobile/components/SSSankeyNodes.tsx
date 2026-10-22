@@ -28,15 +28,14 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
 import type { Node, SankeyOutputRole } from '@/types/ui/sankey'
-import { formatFeeRateSatPerVb } from '@/utils/format'
+import { formatFeeRateSatPerVb, formatNumber } from '@/utils/format'
 import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
 import {
-  formatSatsAmount,
   getInputOwnershipTag,
-  getSankeyNodeTextKind,
+  getSankeyNodeParagraphKind,
   getSankeyOutputRole,
   getSpentOutputTag,
   getUnspentOutputTag,
@@ -95,7 +94,6 @@ const BLOCK_INFO_OFFSET_X = 6
 const BLOCK_INFO_OFFSET_Y = -62
 const BLOCK_INFO_WIDTH = 87
 const MAX_LINES = 5
-/** Self-send, receive and fake mix outputs show their role and label. */
 const MAX_LINES_WITH_ROLE_AND_LABEL = 6
 const DIMMED_NODE_OPACITY = 0.3
 const DUST_BORDER_WIDTH = 1.5
@@ -342,7 +340,7 @@ function NodeText({
   const showsRoleAndLabel = isSelfSend || isReceive || isFakeMix
   const usePrivacyOutputLayout =
     !isNeutralOutput && (isUnspent || isPrivacyOwnedOutput)
-  const textKind = getSankeyNodeTextKind({
+  const paragraphKind = getSankeyNodeParagraphKind({
     isBlock,
     isInput,
     isMiningFee,
@@ -513,7 +511,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE
         })
 
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -583,8 +581,8 @@ function NodeText({
         })
         .addText(
           showUnspentLabel
-            ? `\n${formatSatsAmount(ioData?.value)}`
-            : formatSatsAmount(ioData?.value)
+            ? `\n${formatNumber(ioData?.value ?? 0)}`
+            : formatNumber(ioData?.value ?? 0)
         )
         .pushStyle({
           ...baseTextStyle,
@@ -653,7 +651,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -698,7 +696,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -764,7 +762,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${formatSatsAmount(ioData?.value)}`)
+        .addText(`\n${formatNumber(ioData?.value ?? 0)}`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -811,12 +809,12 @@ function NodeText({
       spentOutput: buildSpentParagraph,
       unspentOutput: buildUnspentParagraph
     }
-    const para = buildParagraphByKind[textKind]()
+    const para = buildParagraphByKind[paragraphKind]()
     para.layout(paragraphLayoutWidth)
     return para
   }, [
     customFontManager,
-    textKind,
+    paragraphKind,
     showsRoleAndLabel,
     isBlock,
     isMiningFee,
@@ -849,7 +847,7 @@ function NodeText({
   const paragraphX = x + getNodeParagraphOffsetX(width, isBlock)
   const paragraphY = isBlock ? y + BLOCK_TEXT_OFFSET_Y : y
 
-  const isSpentOutput = textKind === 'spentOutput'
+  const isSpentOutput = paragraphKind === 'spentOutput'
   const groupBaseX =
     usePrivacyOutputLayout || isSpentOutput
       ? paragraphX + NODE_MARGIN_LEFT

@@ -2,9 +2,8 @@ import { NODE_LABEL_MAX_LENGTH } from '@/constants/sankey'
 import { t } from '@/locales'
 import { mainGreen, mainRed } from '@/styles/colors'
 import {
-  formatSatsAmount,
   getInputOwnershipTag,
-  getSankeyNodeTextKind,
+  getSankeyNodeParagraphKind,
   getSankeyOutputRole,
   getSpentOutputTag,
   getUnspentOutputTag,
@@ -19,7 +18,7 @@ const NO_ROLE = {
   isSelfSend: false
 }
 
-const NO_KIND_FLAGS = {
+const NO_PARAGRAPH_KIND_FLAGS = {
   isBlock: false,
   isInput: false,
   isMiningFee: false,
@@ -27,16 +26,6 @@ const NO_KIND_FLAGS = {
   isPrivacyOwnedOutput: false,
   isUnspent: false
 }
-
-describe('formatSatsAmount', () => {
-  it('adds thousands separators', () => {
-    expect(formatSatsAmount(250_000)).toBe('250,000')
-  })
-
-  it('shows zero for a missing amount', () => {
-    expect(formatSatsAmount(undefined)).toBe('0')
-  })
-})
 
 describe('trimNodeLabel', () => {
   it('keeps short labels', () => {
@@ -95,11 +84,11 @@ describe('getSankeyOutputRole', () => {
   })
 })
 
-describe('getSankeyNodeTextKind', () => {
+describe('getSankeyNodeParagraphKind', () => {
   it('checks block before every other kind', () => {
     expect(
-      getSankeyNodeTextKind({
-        ...NO_KIND_FLAGS,
+      getSankeyNodeParagraphKind({
+        ...NO_PARAGRAPH_KIND_FLAGS,
         isBlock: true,
         isInput: true,
         isMiningFee: true
@@ -109,8 +98,8 @@ describe('getSankeyNodeTextKind', () => {
 
   it('checks mining fee before input', () => {
     expect(
-      getSankeyNodeTextKind({
-        ...NO_KIND_FLAGS,
+      getSankeyNodeParagraphKind({
+        ...NO_PARAGRAPH_KIND_FLAGS,
         isInput: true,
         isMiningFee: true
       })
@@ -119,8 +108,8 @@ describe('getSankeyNodeTextKind', () => {
 
   it('checks neutral output before unspent output', () => {
     expect(
-      getSankeyNodeTextKind({
-        ...NO_KIND_FLAGS,
+      getSankeyNodeParagraphKind({
+        ...NO_PARAGRAPH_KIND_FLAGS,
         isNeutralOutput: true,
         isUnspent: true
       })
@@ -129,12 +118,17 @@ describe('getSankeyNodeTextKind', () => {
 
   it('keeps wallet-owned outputs unspent until the UTXO set catches up', () => {
     expect(
-      getSankeyNodeTextKind({ ...NO_KIND_FLAGS, isPrivacyOwnedOutput: true })
+      getSankeyNodeParagraphKind({
+        ...NO_PARAGRAPH_KIND_FLAGS,
+        isPrivacyOwnedOutput: true
+      })
     ).toBe('unspentOutput')
   })
 
   it('falls back to spent output', () => {
-    expect(getSankeyNodeTextKind(NO_KIND_FLAGS)).toBe('spentOutput')
+    expect(getSankeyNodeParagraphKind(NO_PARAGRAPH_KIND_FLAGS)).toBe(
+      'spentOutput'
+    )
   })
 })
 
