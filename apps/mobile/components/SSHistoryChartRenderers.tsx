@@ -212,7 +212,7 @@ function FiatYScaleRenderer({
         y={12}
         text={currency}
         font={font}
-        color={Colors.warning}
+        color={Colors.gold}
       />
       {yScale.ticks(4).map((tick) => {
         const yPosition = yScale(tick)
@@ -226,7 +226,7 @@ function FiatYScaleRenderer({
             y={yPosition + 6}
             text={yAxisFormatter(tick)}
             font={font}
-            color={Colors.warning}
+            color={Colors.gold}
           />
         )
       })}

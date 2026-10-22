@@ -488,7 +488,7 @@ function SSHistoryChart({
               {showFiatAxis ? (
                 <Path
                   path={fiatLinePath ?? ''}
-                  color={Colors.warning}
+                  color={Colors.gold}
                   strokeWidth={2}
                   style="stroke"
                 />

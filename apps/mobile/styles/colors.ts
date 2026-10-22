@@ -36,6 +36,7 @@ export const gray = {
 
 export const success = '#237C3C'
 export const warning = '#DCBB13'
+export const gold = '#DCBB13'
 export const error = '#C13939'
 export const softGreen = '#A7FFAF4F'
 export const mainGreen = '#A7FFAF'
