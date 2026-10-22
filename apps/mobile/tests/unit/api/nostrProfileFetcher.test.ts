@@ -21,15 +21,15 @@ jest.mock<typeof import('@/db/nostrCache')>('@/db/nostrCache', () => ({
 
 import { createEphemeralNdk, getOrCreateNdk } from '@/api/ndkRegistry'
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_INDEXER_RELAYS } from '@/constants/nostr'
-import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
 import {
   fetchProfileCoalesced,
   fetchProfilesCoalesced,
   forceProfileFetch,
   queueProfileFetch,
   resetProfileFetcher
-} from '@/utils/nostrProfileFetcher'
+} from '@/api/nostrProfileFetcher'
+import { NOSTR_INDEXER_RELAYS } from '@/constants/nostr'
+import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
 
 const PK_A = 'a'.repeat(64)
 const PK_B = 'b'.repeat(64)

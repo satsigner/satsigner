@@ -121,7 +121,6 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import {
   formatAddress,
   formatDate,
@@ -1875,7 +1874,7 @@ export default function AccountView() {
       state.btcPrice
     ])
   )
-  const { showCurrentFiat } = useFiatData()
+  const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
       useShallow((state) => [
@@ -2172,7 +2171,7 @@ export default function AccountView() {
 
   async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(getFiatPriceApiUrl())
+    await fetchPrices(fiatPriceApiUrl)
     await refreshAccount(forceFullScan)
     // Fire-and-forget - don't block refresh completion for Nostr sync
     refreshAccountLabels()

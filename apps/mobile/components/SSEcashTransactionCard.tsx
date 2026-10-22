@@ -18,7 +18,6 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSAmountDisplay from './SSAmountDisplay'
@@ -59,7 +58,7 @@ function SSEcashTransactionCard({
   const { fiatPriceApiUrl } = useFiatData()
 
   useEffect(() => {
-    fetchPrices(getFiatPriceApiUrl())
+    fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
 
   const priceDisplay =

@@ -12,6 +12,11 @@ import {
 import { finalizeEvent } from 'nostr-tools/pure'
 
 import {
+  fetchProfileCoalesced,
+  fetchProfilesCoalesced,
+  queueProfileFetches
+} from '@/api/nostrProfileFetcher'
+import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_FLUSH_QUEUE_DELAY_MS,
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
@@ -63,11 +68,6 @@ import {
   parseNostrRumor
 } from '@/utils/nostrEvent'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
-import {
-  fetchProfileCoalesced,
-  fetchProfilesCoalesced,
-  queueProfileFetches
-} from '@/utils/nostrProfileFetcher'
 
 import {
   createMobileNdk,

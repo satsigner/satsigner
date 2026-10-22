@@ -61,7 +61,6 @@ import {
   getFingerprintFromMnemonic
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { getFiatPriceApiUrl } from '@/utils/fiatData'
 import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
@@ -239,7 +238,7 @@ export default function AccountList() {
     if (!showCurrentFiat) {
       return
     }
-    fetchPrices(getFiatPriceApiUrl())
+    fetchPrices(fiatPriceApiUrl)
   }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
 
   function handleOnNavigateToAddAccount() {
