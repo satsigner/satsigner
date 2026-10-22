@@ -24,6 +24,7 @@ import {
   LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_OPEN_CHANNEL_MIN_FUNDING_SAT
 } from '@/constants/lightning'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLND } from '@/hooks/useLND'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -109,6 +110,8 @@ function readPubkeyParam(pubkey: string | string[] | undefined): string {
 }
 
 export default function OpenChannelPage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { back } = useRouter()
   const params = useLocalSearchParams<{ pubkey?: string }>()
   const {
@@ -379,6 +382,10 @@ export default function OpenChannelPage() {
                   </SSFormLayout.Item>
                   <SSFormLayout.Item>
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       max={amountMax}
                       min={LND_OPEN_CHANNEL_MIN_FUNDING_SAT}
                       onValueChange={handleLocalAmountChange}

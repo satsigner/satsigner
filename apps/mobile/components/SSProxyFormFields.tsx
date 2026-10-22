@@ -26,8 +26,8 @@ function SSProxyFormFields({ proxy, onProxyChange }: SSProxyFormFieldsProps) {
   }
 
   function handlePortChange(port: string) {
-    const portNum = parseInt(port, 10)
-    if (!isNaN(portNum)) {
+    const portNum = Number.parseInt(port, 10)
+    if (!Number.isNaN(portNum)) {
       onProxyChange({
         ...proxy,
         port: portNum

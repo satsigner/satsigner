@@ -47,7 +47,7 @@ describe('isConfirmedUtxo', () => {
 describe('filterPayjoinContributeUtxos', () => {
   it('keeps confirmed coins above the min contribute floor', () => {
     const utxos = [
-      utxo({ txid: 'dust', value: 5_000 }),
+      utxo({ txid: 'dust', value: 5000 }),
       utxo({ txid: 'unconfirmed', value: 50_000 }),
       utxo({ txid: 'ok', value: 50_000 })
     ]
@@ -73,7 +73,7 @@ describe('walletCanContributeToPayjoin', () => {
     ).toBe(false)
     expect(
       walletCanContributeToPayjoin(
-        [utxo({ txid: 'a', value: 5_000 })],
+        [utxo({ txid: 'a', value: 5000 })],
         [tx({ blockHeight: 10, id: 'a' })]
       )
     ).toBe(false)
@@ -82,7 +82,7 @@ describe('walletCanContributeToPayjoin', () => {
   it('is true when a confirmed coin clears the floor', () => {
     expect(
       walletCanContributeToPayjoin(
-        [utxo({ txid: 'a', value: 5_001 })],
+        [utxo({ txid: 'a', value: 5001 })],
         [tx({ blockHeight: 10, id: 'a' })]
       )
     ).toBe(true)

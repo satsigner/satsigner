@@ -19,7 +19,7 @@ describe('extractPollInfo', () => {
     ])
 
     expect(info).toStrictEqual({
-      endsAt: 1719888496,
+      endsAt: 1_719_888_496,
       options: [
         { id: 'abc123', label: 'Yes' },
         { id: 'def456', label: 'No' }

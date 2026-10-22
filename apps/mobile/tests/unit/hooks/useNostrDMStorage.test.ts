@@ -21,7 +21,7 @@ jest.mock<typeof import('@/store/nostr')>('@/store/nostr', () => ({
   }
 }))
 
-const CREATED_AT = 1704067200
+const CREATED_AT = 1_704_067_200
 
 const unwrappedEvent: NostrUnwrappedEvent = {
   content: '',

@@ -3,6 +3,7 @@ import { hex } from '@scure/base'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type EsploraTx } from '@/types/models/Esplora'
 import { type Transaction } from '@/types/models/Transaction'
+import { weightToVsize } from '@/utils/transaction'
 
 function mapEsploraTxToAddressTransaction(
   tx: EsploraTx,
@@ -13,19 +14,15 @@ function mapEsploraTxToAddressTransaction(
       txid: input.txid,
       vout: input.vout
     },
-    scriptSig: Array.from(hex.decode(input.scriptsig ?? '')),
+    scriptSig: [...hex.decode(input.scriptsig ?? '')],
     sequence: input.sequence,
     value: input.prevout?.value,
-    witness: input.witness
-      ? input.witness.map((w) => Array.from(hex.decode(w)))
-      : []
+    witness: input.witness ? input.witness.map((w) => [...hex.decode(w)]) : []
   }))
 
   const vout: Transaction['vout'] = tx.vout.map((output) => ({
     address: output.scriptpubkey_address || '',
-    script: output.scriptpubkey
-      ? Array.from(hex.decode(output.scriptpubkey))
-      : [],
+    script: output.scriptpubkey ? [...hex.decode(output.scriptpubkey)] : [],
     value: output.value
   }))
 
@@ -62,7 +59,7 @@ function mapEsploraTxToAddressTransaction(
     version: tx.version,
     vin,
     vout,
-    vsize: Math.ceil(tx.weight / 4),
+    vsize: weightToVsize(tx.weight),
     weight: tx.weight
   }
 }

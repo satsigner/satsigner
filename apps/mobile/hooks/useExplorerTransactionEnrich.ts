@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import { HASH_HEX_LENGTH } from '@/constants/btc'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { TxOutspend, TxStatus } from '@/types/models/Blockchain'
@@ -71,7 +72,7 @@ export function useExplorerTransactionEnrich(txid: string | null) {
   const normalizedTxid = txid?.trim().toLowerCase() ?? null
   const enabled =
     normalizedTxid !== null &&
-    normalizedTxid.length === 64 &&
+    normalizedTxid.length === HASH_HEX_LENGTH &&
     enabledForTxid === normalizedTxid
 
   const query = useQuery({
@@ -94,7 +95,7 @@ export function useExplorerTransactionEnrich(txid: string | null) {
   })
 
   function loadFromMempool() {
-    if (!normalizedTxid || normalizedTxid.length !== 64) {
+    if (!normalizedTxid || normalizedTxid.length !== HASH_HEX_LENGTH) {
       return
     }
     setEnabledForTxid(normalizedTxid)

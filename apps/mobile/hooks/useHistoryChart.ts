@@ -383,7 +383,7 @@ export function useHistoryChartLabels({
           amountString.startsWith('+') || amountString.startsWith('-')
             ? amountString[0]
             : ''
-        const numberPart = sign ? amountString.substring(1) : amountString
+        const numberPart = sign ? amountString.slice(1) : amountString
 
         if (sign) {
           para.pushStyle(baseStyle).addText(sign).pop()
@@ -399,15 +399,15 @@ export function useHistoryChartLabels({
             .addText(numberPart)
             .pop()
         } else {
-          const leadingZeros = numberPart.substring(0, firstNonZeroIndex)
-          const significantDigits = numberPart.substring(firstNonZeroIndex)
+          const leadingZeros = numberPart.slice(0, firstNonZeroIndex)
+          const significantDigits = numberPart.slice(firstNonZeroIndex)
           if (leadingZeros.length > 0) {
             const baseColorRgb = baseColor.match(
               /#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i
             )
             const opacityColor = baseColorRgb
               ? Skia.Color(
-                  `rgba(${parseInt(baseColorRgb[1], 16)}, ${parseInt(baseColorRgb[2], 16)}, ${parseInt(baseColorRgb[3], 16)}, 0.4)`
+                  `rgba(${Number.parseInt(baseColorRgb[1], 16)}, ${Number.parseInt(baseColorRgb[2], 16)}, ${Number.parseInt(baseColorRgb[3], 16)}, 0.4)`
                 )
               : Skia.Color('#999999')
             para
@@ -501,7 +501,7 @@ export function useHistoryChartLabels({
       }
 
       const builtPara = para.build()
-      builtPara.layout(10000)
+      builtPara.layout(10_000)
       paragraphs.set(label.index, builtPara)
     }
 

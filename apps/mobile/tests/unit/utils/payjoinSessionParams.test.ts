@@ -47,7 +47,7 @@ describe('withReceiverSessionBip21Params', () => {
 
   it('clears amount from session when the form amount is removed', () => {
     const withAmount = withReceiverSessionBip21Params(baseSession(), {
-      amountSats: 5_000
+      amountSats: 5000
     })
     const cleared = withReceiverSessionBip21Params(withAmount, {
       amountSats: undefined

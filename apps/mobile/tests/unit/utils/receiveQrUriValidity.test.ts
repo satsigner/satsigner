@@ -35,7 +35,7 @@ describe('receive QR bitcoin URI validity', () => {
     const parsed = parseBIP321(uri)
     expect(parsed.valid).toBe(true)
     expect(parsed.address).toBe(ADDRESS)
-    expect(parsed.amount).toBeCloseTo(0.00123456, 12)
+    expect(parsed.amount).toBeCloseTo(0.001_234_56, 12)
   })
 
   it('address + label with special chars round-trips', () => {

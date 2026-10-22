@@ -84,7 +84,7 @@ export function parseBIP321(uri: string): BIP321ParseResult {
     const params = new URLSearchParams(query)
     const amountStr = params.get('amount')
     if (amountStr) {
-      result.amount = parseFloat(amountStr)
+      result.amount = Number.parseFloat(amountStr)
     }
     result.label = params.get('label') ?? undefined
     result.message = params.get('message') ?? undefined

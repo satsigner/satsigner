@@ -121,7 +121,7 @@ export function collisionCount(buffers: Iterable<Uint8Array>): number {
 export function bitsToBytes(bits: string): Uint8Array {
   const bytes = new Uint8Array(bits.length / 8)
   for (let i = 0; i < bytes.length; i += 1) {
-    bytes[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2)
+    bytes[i] = Number.parseInt(bits.slice(i * 8, i * 8 + 8), 2)
   }
   return bytes
 }

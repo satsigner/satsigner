@@ -1,11 +1,13 @@
 import { Platform } from 'react-native'
 import z from 'zod'
 
+import { HTTP_STATUS } from '@/constants/http'
 import {
   RPC_DEFAULT_TIMEOUT_MS,
   RPC_LIST_TRANSACTIONS_COUNT,
   RPC_RESCAN_TIMEOUT_MS
 } from '@/constants/rpc'
+import { HttpStatusError, RpcError, RequestTimeoutError } from '@/utils/errors'
 
 let androidIsEmulator: boolean | null = null
 
@@ -82,23 +84,6 @@ function toUserFacingError(err: unknown, url: string): Error {
     )
   }
 
-  // HTTP 401 — wrong username or password
-  if (raw.includes('401') || raw.includes('Unauthorized')) {
-    return new Error(
-      'Authentication failed (HTTP 401).\n' +
-        'Check that the RPC username and password match bitcoin.conf (rpcuser / rpcpassword).'
-    )
-  }
-
-  // HTTP 403 — IP not in rpcallowip
-  if (raw.includes('403') || raw.includes('Forbidden')) {
-    return new Error(
-      'Node refused the connection (HTTP 403).\n' +
-        'Add your device IP to bitcoin.conf: rpcallowip=192.168.0.0/16\n' +
-        'Then restart Bitcoin Core.'
-    )
-  }
-
   // Timeout — AbortController-triggered aborts surface the "AbortError" name
   // on the DOMException/Error itself, not necessarily in the message text
   // (e.g. "The operation was aborted."), so check both.
@@ -108,7 +93,7 @@ function toUserFacingError(err: unknown, url: string): Error {
     raw.includes('AbortError') ||
     (err instanceof Error && err.name === 'AbortError')
   ) {
-    return new Error(
+    return new RequestTimeoutError(
       `Connection to ${url} timed out.\n` +
         'Check that the host and port are correct and that no firewall is blocking the connection.'
     )
@@ -188,31 +173,48 @@ async function rpcFetch<T>(
     throw toUserFacingError(error, url)
   }
 
-  if (response.status === 401) {
-    throw toUserFacingError(new Error('401 Unauthorized'), url)
+  // Wrong username or password.
+  if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+    throw new HttpStatusError(
+      response.status,
+      'Authentication failed (HTTP 401).\n' +
+        'Check that the RPC username and password match bitcoin.conf (rpcuser / rpcpassword).'
+    )
   }
 
-  if (response.status === 403) {
-    throw toUserFacingError(new Error('403 Forbidden'), url)
+  // Device IP not in rpcallowip.
+  if (response.status === HTTP_STATUS.FORBIDDEN) {
+    throw new HttpStatusError(
+      response.status,
+      'Node refused the connection (HTTP 403).\n' +
+        'Add your device IP to bitcoin.conf: rpcallowip=192.168.0.0/16\n' +
+        'Then restart Bitcoin Core.'
+    )
+  }
+
+  // Legacy (1.0) JSON-RPC errors arrive as HTTP 500/404 with the error
+  // envelope in the body, so read it before falling back to the status.
+  const envelope = RpcResponseSchema.safeParse(
+    await response.json().catch(() => null)
+  )
+  if (envelope.success && envelope.data.error) {
+    throw new RpcError(envelope.data.error.code, envelope.data.error.message)
   }
 
   if (!response.ok) {
-    throw new Error(`Node returned HTTP ${response.status}`)
+    throw new HttpStatusError(
+      response.status,
+      `Node returned HTTP ${response.status}`
+    )
   }
 
-  const envelope = RpcResponseSchema.safeParse(await response.json())
   if (!envelope.success) {
     throw new Error('Node returned an invalid JSON-RPC response', {
       cause: envelope.error
     })
   }
 
-  const { data } = envelope
-  if (data.error) {
-    throw new Error(`RPC error ${data.error.code}: ${data.error.message}`)
-  }
-
-  return data.result as T
+  return envelope.data.result as T
 }
 
 export type BlockchainInfo = {
@@ -678,7 +680,7 @@ export class BitcoinCoreWallet {
   listUnspent(): Promise<CoreUnspent[]> {
     return this._walletCall<CoreUnspent[]>('listunspent', [
       0, // minconf
-      9999999 // maxconf
+      9_999_999 // maxconf
     ])
   }
 

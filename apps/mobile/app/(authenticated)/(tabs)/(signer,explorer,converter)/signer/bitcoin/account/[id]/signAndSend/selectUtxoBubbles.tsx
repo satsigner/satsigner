@@ -86,7 +86,7 @@ function SelectUtxoBubbles() {
   }
 
   const utxosTotalValue = utxosValue(selectableUtxos)
-  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const utxosSelectedValue = utxosValue([...inputs.values()])
   const controlsActive =
     filter.keychain !== 'all' ||
     filter.label !== 'all' ||
@@ -237,7 +237,7 @@ function SelectUtxoBubbles() {
       <SSBubbleChart
         utxos={selectableUtxos}
         canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
-        inputs={Array.from(inputs.values())}
+        inputs={[...inputs.values()]}
         onPress={handleOnToggleSelected}
         groupMode={groupMode}
         style={{ position: 'absolute', top: 40 }}

@@ -27,7 +27,7 @@ export function isSafeHttpUrl(url: string): boolean {
 }
 
 export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
-  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const lines = content.replaceAll('\r\n', '\n').split('\n')
   const blocks: MarkdownBlock[] = []
   let index = 0
 

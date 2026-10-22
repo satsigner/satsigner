@@ -376,34 +376,39 @@ export default function AccountList() {
         setMnemonic(sampleSignetWalletSeed)
         break
       }
-      case 'watchonlyXpub':
+      case 'watchonlyXpub': {
         setScriptVersion('P2PKH')
         setPolicyType('watchonly')
         setCreationType('importExtendedPub')
         setExtendedPublicKey(sampleSignetXpub)
         setFingerprint(sampleSignetXpubFingerprint)
         break
-      case 'watchonlyAddress':
+      }
+      case 'watchonlyAddress': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
-      case 'watchonlySalvador':
+      }
+      case 'watchonlySalvador': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
-      case 'watchonlySegwit':
+      }
+      case 'watchonlySegwit': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSegwitAddress})`)
         break
-      case 'watchonlyTestnet4':
+      }
+      case 'watchonlyTestnet4': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleTestnet4Address})`)
         break
-      case 'watchonlyTether':
+      }
+      case 'watchonlyTether': {
         setPolicyType('watchonly')
         setCreationType('importAddress')
         for (const [index, address] of sampleMultiAddressTether.entries()) {
@@ -411,6 +416,7 @@ export default function AccountList() {
           setKey(index)
         }
         break
+      }
       case 'multisig': {
         setPolicyType('multisig')
         setScriptVersion('P2WSH')
@@ -455,8 +461,9 @@ export default function AccountList() {
         setKey(2)
         break
       }
-      default:
+      default: {
         break
+      }
     }
 
     if (type !== 'watchonlyTether' && type !== 'multisig') {
@@ -525,7 +532,7 @@ export default function AccountList() {
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       setTimeout(
         () => reject(new Error('Wallet creation timed out after 30 seconds')),
-        30000
+        30_000
       )
     })
 
@@ -610,7 +617,7 @@ export default function AccountList() {
 
   const renderSamplewallets = () => {
     switch (network) {
-      case 'bitcoin':
+      case 'bitcoin': {
         return (
           <SSVStack
             itemsCenter
@@ -645,7 +652,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
-      case 'testnet':
+      }
+      case 'testnet': {
         return (
           <SSVStack
             itemsCenter
@@ -666,7 +674,8 @@ export default function AccountList() {
             />
           </SSVStack>
         )
-      case 'signet':
+      }
+      case 'signet': {
         return (
           <SSVStack
             itemsCenter
@@ -715,8 +724,10 @@ export default function AccountList() {
             />
           </SSVStack>
         )
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 

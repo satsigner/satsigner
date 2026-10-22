@@ -1,3 +1,11 @@
+import * as nostrKinds from 'nostr-tools/kinds'
+
+import {
+  DAYS_PER_WEEK,
+  SECONDS_PER_DAY,
+  SECONDS_PER_HOUR,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 import type {
   Nip46Method,
   Nip46PermissionPolicy,
@@ -9,38 +17,47 @@ import type {
 export const NOSTR_DEFAULT_RETRY_CONFIG = {
   baseDelayMs: 1000,
   jitterFactor: 0.2,
-  maxDelayMs: 60000,
+  maxDelayMs: 60_000,
   maxRetries: 5
 } as const
 
 // NETWORK
-export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15000
+export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15_000
 export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
-export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 48 * 60 * 60
-export const NOSTR_EOSE_TIMEOUT_MS = 15000
-export const NOSTR_EVENT_CACHE_MAX_AGE = 259200
+export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
+export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
+export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
+export const NOSTR_CHAT_THREAD_PAGE_SIZE = 200
+// NIP-59 gift wraps backdate created_at by up to two days.
+export const NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC = 2 * SECONDS_PER_DAY
+export const NOSTR_EOSE_TIMEOUT_MS = 15_000
+export const NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS = 12_000
+export const NOSTR_RELAY_POLL_INTERVAL_MS = 250
+export const NOSTR_PUBLISH_RETRY_DEADLINE_MS = 4000
+export const NOSTR_RELAY_PROBE_COUNT = 3
+export const NOSTR_EVENT_CACHE_MAX_AGE = 3 * SECONDS_PER_DAY
 export const NOSTR_EVENT_CACHE_MAX_ROWS = 5000
 export const NOSTR_FLUSH_QUEUE_DELAY_MS = 50
 export const NOSTR_MAX_PROCESSED_ITEMS = 2000
 export const NOSTR_MAX_PROCESSED_RAW_IDS = 5000
 export const NOSTR_MAX_QUEUE_SIZE = 300
-export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20000
+export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20_000
 // Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
 // doesn't specify one.
 export const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
 export const NOSTR_PROCESSING_INTERVAL_MS = 350
-export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = 604800
-export const NOSTR_PROFILE_CACHE_TTL_SECS = 3600
+export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = DAYS_PER_WEEK * SECONDS_PER_DAY
+export const NOSTR_PROFILE_CACHE_TTL_SECS = SECONDS_PER_HOUR
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
-export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10000
-export const NOSTR_PUBLISH_TIMEOUT_MS = 10000
-export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20000
-export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10000
+export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT_FULL_SCAN = 10_000
+export const NOSTR_PUBLISH_TIMEOUT_MS = 10_000
+export const NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS = 20_000
+export const NOSTR_RELAY_REACHABILITY_TEST_MS = 10_000
 export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 // NDK connect timeout (ms) for short-lived, temporary NDK instances used to
 // fetch a single event from an explicit relay list.
 export const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
-export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15000
+export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15_000
 
 // UI
 export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
@@ -175,8 +192,6 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 // NIPS
 export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
-export const NOSTR_NIP17_SEAL_KIND = 13
-export const NOSTR_NIP46_EVENT_KIND = 24133
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
 export const NOSTR_NIP46_SUPPORTED_METHODS: Nip46Method[] = [
@@ -215,16 +230,14 @@ export const NOSTR_NIP46_NEVER_AUTO_ALLOW_METHODS: Nip46Method[] = [
 // requires explicit approval, since a stored permission would otherwise let
 // the client silently overwrite the user's identity and lists.
 export const NOSTR_NIP46_AUTO_ALLOW_SIGN_EVENT_KINDS: number[] = [
-  1, // short text note
-  6, // repost
-  7, // reaction
-  16, // generic repost
-  9734 // zap request
+  nostrKinds.ShortTextNote,
+  nostrKinds.Repost,
+  nostrKinds.Reaction,
+  nostrKinds.GenericRepost,
+  nostrKinds.ZapRequest
 ]
 
 // REGEX & FILTERS
-export const NOSTR_POLL_KIND = 1068
-export const NOSTR_POLL_RESPONSE_KIND = 1018
 export const NOSTR_KIND_FILTER_HIT_SLOP = 6
 export const NOSTR_KIND_FILTER_TRIGGER_MAX_WIDTH = '72%'
 export const NOSTR_EVENT_REF_RE = /nostr:(note1|nevent1)[a-zA-Z0-9]+/g
@@ -232,22 +245,24 @@ export const NOSTR_MENTION_RE =
   /(?:nostr:)?(npub1[a-z0-9]{6,}|nprofile1[a-z0-9]{6,})/gi
 export const NOSTR_EVENT_ID_RE = /^[0-9a-fA-F]{64}$/
 export const NOSTR_EVENT_ID_HEX_LENGTH = 64
+export const NOSTR_PUBKEY_HEX_LENGTH = 64
+export const NOSTR_SECRET_KEY_BYTE_LENGTH = 32
 // Shortest plausible bech32 length for npub1/nsec1/note1/nevent1/nprofile1.
 export const NOSTR_BECH32_ID_MIN_LENGTH = 60
 export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
   {
     id: 'short_text',
-    kinds: [1],
+    kinds: [nostrKinds.ShortTextNote],
     labelKey: 'nostrIdentity.feed.kindShortTextNote'
   },
   {
     id: 'long_form',
-    kinds: [30023],
+    kinds: [nostrKinds.LongFormArticle],
     labelKey: 'nostrIdentity.feed.kindLongFormContent'
   },
   {
     id: 'draft_long_form',
-    kinds: [30024],
+    kinds: [nostrKinds.DraftLong],
     labelKey: 'nostrIdentity.feed.kindDraftLongFormContent'
   },
   {
@@ -262,47 +277,47 @@ export const NOSTR_NOTE_FILTER_OPTIONS: NostrNoteKindFilterOption[] = [
   },
   {
     id: 'reposts',
-    kinds: [6, 16],
+    kinds: [nostrKinds.Repost, nostrKinds.GenericRepost],
     labelKey: 'nostrIdentity.feed.kindReposts'
   },
   {
     id: 'reactions',
-    kinds: [7],
+    kinds: [nostrKinds.Reaction],
     labelKey: 'nostrIdentity.feed.kindReaction'
   },
   {
     id: 'picture',
-    kinds: [20],
+    kinds: [nostrKinds.Photo],
     labelKey: 'nostrIdentity.feed.kindPicture'
   },
   {
     id: 'video',
-    kinds: [21, 22],
+    kinds: [nostrKinds.NormalVideo, nostrKinds.ShortVideo],
     labelKey: 'nostrIdentity.feed.kindVideoEvents'
   },
   {
     id: 'file_metadata',
-    kinds: [1063],
+    kinds: [nostrKinds.FileMetadata],
     labelKey: 'nostrIdentity.feed.kindFileMetadata'
   },
   {
     id: 'poll',
-    kinds: [NOSTR_POLL_KIND],
+    kinds: [nostrKinds.Poll],
     labelKey: 'nostrIdentity.feed.kindPoll'
   },
   {
     id: 'poll_response',
-    kinds: [NOSTR_POLL_RESPONSE_KIND],
+    kinds: [nostrKinds.PollResponse],
     labelKey: 'nostrIdentity.feed.kindPollResponse'
   },
   {
     id: 'label',
-    kinds: [1985],
+    kinds: [nostrKinds.Label],
     labelKey: 'nostrIdentity.feed.kindLabel'
   },
   {
     id: 'thread',
-    kinds: [11],
+    kinds: [nostrKinds.ForumThread],
     labelKey: 'nostrIdentity.feed.kindThread'
   }
 ]
@@ -317,9 +332,8 @@ export const NOSTR_BOOKMARKS_FILTER_IDS = new Set([
 
 // BLOSSOM
 export const NOSTR_BLOSSOM_DEFAULT_SERVER = 'https://blossom.primal.net'
-export const NOSTR_BLOSSOM_SERVER_LIST_KIND = 10063
 export const NOSTR_FILES_FETCH_TIMEOUT_MS = 8000
-export const NOSTR_BLOSSOM_AUTH_KIND = 24242
+export const NOSTR_BLOSSOM_AUTH_KIND = 24_242
 export const NOSTR_BLOSSOM_AUTH_EXPIRY_SECS = 300
 
 export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
@@ -332,10 +346,9 @@ export const NOSTR_BLOSSOM_POPULAR_SERVERS: { name: string; url: string }[] = [
 ]
 
 // ZAP
-export const NOSTR_KIND_ZAP_RECEIPT = 9735
 export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
-export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15000
+export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15_000
 export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
 export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-goal',

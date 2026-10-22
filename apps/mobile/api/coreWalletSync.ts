@@ -14,7 +14,7 @@ import {
   BDK_RESCAN_STOP_POLL_MAX_ATTEMPTS,
   BDK_SECONDS_PER_BLOCK
 } from '@/constants/bdk'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { HASH_HEX_LENGTH, SATS_PER_BITCOIN } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
@@ -24,7 +24,9 @@ import {
   type Network as BlockchainNetwork,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
+import { sleep } from '@/utils/time'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -78,38 +80,38 @@ type CoreWalletSyncResult = Pick<
 // Core: "Wallet is currently rescanning. Abort existing rescan or wait."
 const RESCAN_IN_PROGRESS_ERROR = 'currently rescanning'
 const LIST_DESCRIPTORS_METHOD = 'listdescriptors'
+// Bitcoin Core RPC_WALLET_ERROR, used for both conditions above.
+const RPC_WALLET_ERROR_CODE = -4
 
 const DESCRIPTOR_CHECKSUM_REGEX = /#[a-z0-9]{8}$/
 const MULTIPATH_DESCRIPTOR_REGEX = /^(.+?)<(\d+);(\d+)>(.+?)(?:#.*)?$/
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
 
 function btcToSats(btc: number) {
   return Math.round(btc * SATS_PER_BITCOIN)
 }
 
 function hexToBytes(value: string) {
-  return Array.from(hex.decode(value))
+  return [...hex.decode(value)]
 }
 
 function toUnixSec(date?: Date) {
   return date ? Math.floor(date.getTime() / MS_PER_SECOND) : undefined
 }
 
-function isListDescriptorsError(error: unknown) {
+function isWalletRpcError(error: unknown, detail: string) {
   return (
-    error instanceof Error && error.message.includes(LIST_DESCRIPTORS_METHOD)
+    error instanceof RpcError &&
+    error.code === RPC_WALLET_ERROR_CODE &&
+    error.message.includes(detail)
   )
 }
 
+function isListDescriptorsError(error: unknown) {
+  return isWalletRpcError(error, LIST_DESCRIPTORS_METHOD)
+}
+
 function isRescanInProgress(error: unknown) {
-  return (
-    error instanceof Error && error.message.includes(RESCAN_IN_PROGRESS_ERROR)
-  )
+  return isWalletRpcError(error, RESCAN_IN_PROGRESS_ERROR)
 }
 
 /**
@@ -633,7 +635,7 @@ async function syncWithCoreWallet(
   }
 
   const priorHash = account.rpcLastBlockHash ?? ''
-  const isIncremental = priorHash.length === 64
+  const isIncremental = priorHash.length === HASH_HEX_LENGTH
   const [sinceResult, unspent, listedDescriptors] = await Promise.all([
     coreWallet.listSinceBlock(priorHash),
     coreWallet.listUnspent(),
@@ -776,6 +778,8 @@ async function syncWithCoreWallet(
 }
 
 export {
+  isListDescriptorsError,
+  isRescanInProgress,
   mergeWalletTxEntries,
   reorgedOutTxids,
   scanProgressHeight,

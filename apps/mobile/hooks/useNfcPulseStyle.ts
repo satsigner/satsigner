@@ -1,0 +1,49 @@
+import { useEffect } from 'react'
+import {
+  cancelAnimation,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated'
+
+import { NFC_PULSE_DURATION_MS, NFC_PULSE_SIZE } from '@/constants/nfc'
+import { Colors } from '@/styles'
+
+export function useNfcPulseStyle(isNfcTransferInProgress: boolean) {
+  const pulse = useSharedValue(0)
+
+  useEffect(() => {
+    if (!isNfcTransferInProgress) {
+      return
+    }
+    pulse.set(
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: NFC_PULSE_DURATION_MS }),
+          withTiming(0, { duration: NFC_PULSE_DURATION_MS })
+        ),
+        -1
+      )
+    )
+    return () => {
+      cancelAnimation(pulse)
+      pulse.set(0)
+    }
+  }, [isNfcTransferInProgress, pulse])
+
+  return useAnimatedStyle(() => ({
+    alignItems: 'center',
+    backgroundColor: interpolateColor(
+      pulse.value,
+      [0, 1],
+      [Colors.gray[800], Colors.gray[400]]
+    ),
+    borderRadius: NFC_PULSE_SIZE / 2,
+    height: NFC_PULSE_SIZE,
+    justifyContent: 'center',
+    width: NFC_PULSE_SIZE
+  }))
+}

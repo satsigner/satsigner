@@ -51,15 +51,15 @@ export function isBBQRFragment(part: string): boolean {
   let totalParts: number | undefined
   let partNumber: number | undefined
   try {
-    totalParts = parseInt(seqTotal, 36)
-    partNumber = parseInt(seqNumber, 36)
+    totalParts = Number.parseInt(seqTotal, 36)
+    partNumber = Number.parseInt(seqNumber, 36)
   } catch {
     return false
   }
 
   if (
-    isNaN(totalParts) ||
-    isNaN(partNumber) ||
+    Number.isNaN(totalParts) ||
+    Number.isNaN(partNumber) ||
     totalParts < 1 ||
     partNumber >= totalParts
   ) {
@@ -199,9 +199,7 @@ export function createBBQRChunks(
   // This ensures we never return empty and the UI doesn't break
   const chunkSize = Math.max(BBQR_FALLBACK_MIN_CHUNK_SIZE, maxChunkSize)
   const chunks: string[] = []
-  const dataStr = Array.from(data)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+  const dataStr = [...data].map((b) => b.toString(16).padStart(2, '0')).join('')
 
   for (let i = 0; i < dataStr.length; i += chunkSize) {
     const chunk = dataStr.slice(i, i + chunkSize)

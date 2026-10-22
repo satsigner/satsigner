@@ -28,6 +28,7 @@ import {
   LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_SUCCESS_NAVIGATE_DELAY_MS
 } from '@/constants/lightning'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -36,7 +37,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Typography } from '@/styles'
 import type {
@@ -44,6 +44,7 @@ import type {
   LNURLPayResponse
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { HttpStatusError } from '@/utils/errors'
 import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
@@ -78,6 +79,8 @@ function onchainValidationMessage(
 }
 
 export default function PayPage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const router = useRouter()
   const { paymentRequest: paymentRequestParam, invoice: invoiceParam } =
     useLocalSearchParams()
@@ -101,20 +104,14 @@ export default function PayPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const detailsRequestId = useRef(0)
-  const [fiatCurrency, satsToFiat, fetchPrices, _btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.fetchPrices,
-      state.btcPrice
-    ])
+  const [satsToFiat, fetchPrices] = usePriceStore(
+    useShallow((state) => [state.satsToFiat, state.fetchPrices])
   )
   const { fiatPriceApiUrl } = useFiatData()
   useQuery({
     queryFn: () => fetchPrices(fiatPriceApiUrl),
     queryKey: ['prices', fiatCurrency, fiatPriceApiUrl]
   })
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLNURLDetails] = useState<LNURLPayResponse | null>(
@@ -286,10 +283,7 @@ export default function PayPage() {
         toast.error(fallback)
         return
       }
-      if (
-        error.message.includes('404') ||
-        error.message.includes('Not Found')
-      ) {
+      if (error instanceof HttpStatusError && error.status === 404) {
         toast.error(t('lightning.pay.paymentExpired'))
         return
       }
@@ -639,6 +633,10 @@ export default function PayPage() {
                       label={t('lightning.pay.amount')}
                     />
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       max={onchainAmountMax}
                       min={DUST_LIMIT}
                       onValueChange={handleOnchainAmountChange}

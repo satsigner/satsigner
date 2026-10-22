@@ -2,8 +2,10 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
 import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import pako from 'pako'
 
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
@@ -117,7 +119,7 @@ export function parseNostrTransaction(message: string): TransactionData | null {
 }
 
 function parseNostrTransactionMessage(message: string): TransactionData | null {
-  if (message.trim().startsWith('cHNidP')) {
+  if (message.trim().startsWith(PSBT_MAGIC_BASE64)) {
     const transactionData: TransactionData = {
       combinedPsbt: message.trim()
     }
@@ -183,13 +185,16 @@ export function extractInboxRelayUrls(
   const sorted = [...events].toSorted(
     (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
   )
-  const dmInbox = sorted.find((e) => e.kind === 10050)
-  const relayList = sorted.find((e) => e.kind === 10002)
+  const dmInbox = sorted.find(
+    (e) => e.kind === nostrKinds.DirectMessageRelaysList
+  )
+  const relayList = sorted.find((e) => e.kind === nostrKinds.RelayList)
   const pick = dmInbox ?? relayList
   if (!pick) {
     return []
   }
-  const tagName = pick.kind === 10050 ? 'relay' : 'r'
+  const tagName =
+    pick.kind === nostrKinds.DirectMessageRelaysList ? 'relay' : 'r'
   const urls = pick.tags
     .filter((tag) => tag[0] === tagName && typeof tag[1] === 'string')
     .map((tag) => tag[1])

@@ -22,7 +22,7 @@ Security is very important for Satsigner. Audit the code you write for possible 
 ## Taste
 
 - Complexity belongs at the adapter boundary. Orchestration stays pure, UI stays dumb.
-- Comments describe how a thing is used, and move when the code moves. To be used mostly to describe functions, not to annotate every line of behavior.
+- Write comments only when strictly necessary. When the code speaks for itself, don't add one; give things clear names instead. Keep comments for what the code can't say: why a non-obvious choice was made, or a constraint from outside the code (protocol rule, library or platform quirk).
 - If a rule here fights the task in front of you, say so loudly and get a human sign-off before breaking it.
 
 ## Code best practices

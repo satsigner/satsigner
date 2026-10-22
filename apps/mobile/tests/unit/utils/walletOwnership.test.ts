@@ -52,7 +52,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     const annotated = annotateTransactionsWithWalletOwnership(
       [
         makeTx({
-          fee: 1_000,
+          fee: 1000,
           received: 10_000,
           sent: 100_000,
           vout: [
@@ -77,7 +77,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
       [
         makeTx({
           fee: 500,
-          received: 9_500,
+          received: 9500,
           sent: 10_000,
           vout: [
             {
@@ -85,7 +85,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
               script: '',
               value: 0
             },
-            { address: 'bc1qchange', script: '', value: 9_500 }
+            { address: 'bc1qchange', script: '', value: 9500 }
           ]
         })
       ],
@@ -93,14 +93,14 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     )
 
     expect(annotated[0]?.vout[1]?.kind).toBe('change')
-    expect(annotated[0]?.received).toBe(9_500)
+    expect(annotated[0]?.received).toBe(9500)
   })
 
   it('reconstructs Core-style net payment sent so delta is payment + fee', () => {
     const annotated = annotateTransactionsWithWalletOwnership(
       [
         makeTx({
-          fee: 1_000,
+          fee: 1000,
           // Core listtransactions: sent ≈ external payment only
           received: 19_000,
           sent: 40_000,
@@ -124,7 +124,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     const annotated = annotateTransactionsWithWalletOwnership(
       [
         makeTx({
-          fee: 1_000,
+          fee: 1000,
           received: 90_000,
           sent: 100_000,
           vout: [
@@ -144,21 +144,21 @@ describe('annotateTransactionsWithWalletOwnership', () => {
   it('treats receive Payjoin as net-positive from own inputs/outputs only', () => {
     const funding = makeTx({
       id: 'funding',
-      received: 2_500,
+      received: 2500,
       sent: 0,
       type: 'receive',
-      vout: [{ address: 'bc1qchange', script: '', value: 2_500 }]
+      vout: [{ address: 'bc1qchange', script: '', value: 2500 }]
     })
     const payjoin = makeTx({
       fee: 868,
       id: 'payjoin',
-      received: 4_500,
+      received: 4500,
       sent: 180_207,
       type: 'send',
       vin: [
         {
           previousOutput: { txid: 'funding', vout: 0 },
-          value: 2_500
+          value: 2500
         },
         {
           previousOutput: { txid: 'counterparty', vout: 1 },
@@ -166,7 +166,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
         }
       ],
       vout: [
-        { address: 'bc1qchange', script: '', value: 4_500 },
+        { address: 'bc1qchange', script: '', value: 4500 },
         { address: 'bc1qpay', script: '', value: 174_839 }
       ]
     })
@@ -178,9 +178,9 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     const pj = annotated.find((tx) => tx.id === 'payjoin')
 
     expect(pj?.type).toBe('receive')
-    expect(pj?.sent).toBe(2_500)
-    expect(pj?.received).toBe(4_500)
-    expect(getWalletTransactionEffect(pj!).amount).toBe(2_000)
+    expect(pj?.sent).toBe(2500)
+    expect(pj?.received).toBe(4500)
+    expect(getWalletTransactionEffect(pj!).amount).toBe(2000)
     expect(getWalletTransactionEffect(pj!).type).toBe('receive')
   })
 
@@ -189,15 +189,15 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     // transaction detail screen calls getTransactionInputValues.
     const funding = makeTx({
       id: 'funding',
-      received: 2_500,
+      received: 2500,
       sent: 0,
       type: 'receive',
-      vout: [{ address: 'bc1qchange', script: '', value: 2_500 }]
+      vout: [{ address: 'bc1qchange', script: '', value: 2500 }]
     })
     const payjoin = makeTx({
       fee: 868,
       id: 'payjoin',
-      received: 4_500,
+      received: 4500,
       sent: 180_207,
       type: 'send',
       vin: [
@@ -209,7 +209,7 @@ describe('annotateTransactionsWithWalletOwnership', () => {
         }
       ],
       vout: [
-        { address: 'bc1qchange', script: '', value: 4_500 },
+        { address: 'bc1qchange', script: '', value: 4500 },
         { address: 'bc1qpay', script: '', value: 174_839 }
       ]
     })
@@ -221,9 +221,9 @@ describe('annotateTransactionsWithWalletOwnership', () => {
     const pj = annotated.find((tx) => tx.id === 'payjoin')
 
     expect(pj?.type).toBe('receive')
-    expect(pj?.sent).toBe(2_500)
-    expect(pj?.received).toBe(4_500)
-    expect(getWalletTransactionEffect(pj!).amount).toBe(2_000)
+    expect(pj?.sent).toBe(2500)
+    expect(pj?.received).toBe(4500)
+    expect(getWalletTransactionEffect(pj!).amount).toBe(2000)
     expect(getWalletTransactionEffect(pj!).type).toBe('receive')
   })
 })
@@ -239,7 +239,7 @@ describe('getTransactionRunningBalances', () => {
       vout: [{ address: 'bc1qchange', script: '', value: 100_000 }]
     })
     const send = makeTx({
-      fee: 1_000,
+      fee: 1000,
       id: 'send',
       received: 19_000,
       sent: 40_000,

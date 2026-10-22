@@ -117,11 +117,7 @@ export function usePSBTManagement({
     if (index === -1) {
       setSignedPsbt(psbt)
     } else {
-      setSignedPsbts((prev) => {
-        const newMap = new Map(prev)
-        newMap.set(index, psbt)
-        return newMap
-      })
+      setSignedPsbts((prev) => new Map([...prev, [index, psbt]]))
     }
   }, [])
 

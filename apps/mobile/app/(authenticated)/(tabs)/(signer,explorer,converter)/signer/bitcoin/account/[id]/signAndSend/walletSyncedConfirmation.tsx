@@ -52,59 +52,56 @@ export default function WalletSyncedConfirmation() {
   const lastSyncedDate = account?.lastSyncedAt || null
 
   return (
-    <>
-      <SSMainLayout>
-        <SSVStack justifyBetween style={{ flexGrow: 1 }}>
-          <SSVStack>
-            <SSText size="3xl" uppercase center weight="bold">
-              Ensure wallet data is updated
+    <SSMainLayout>
+      <SSVStack justifyBetween style={{ flexGrow: 1 }}>
+        <SSVStack>
+          <SSText size="3xl" uppercase center weight="bold">
+            Ensure wallet data is updated
+          </SSText>
+          <SSVStack gap="none">
+            <SSText size="lg" weight="bold">
+              Incorret information can lead to invalid transaction
             </SSText>
-            <SSVStack gap="none">
-              <SSText size="lg" weight="bold">
-                Incorret information can lead to invalid transaction
-              </SSText>
-              <SSText>
-                Funds which you spent elsewhere but are still flagged as UTXOs
-                by this wallet could lead to a transaction with invalid inputs.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="lg" weight="bold">
-                Missing information can result in privacy leaks
-              </SSText>
-              <SSText>
-                Missing transactions may lead to reuse of internal change
-                address, which links two distinct transactions sending to the
-                same address.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText>
-                Wallet last synced at{' '}
-                {lastSyncedDate ? (
-                  <SSText>
-                    {formatDate(lastSyncedDate)} {formatTime(lastSyncedDate)}
-                  </SSText>
-                ) : (
-                  <SSText>Never</SSText>
-                )}
-                .
-              </SSText>
-              <SSText>Update your wallet to avoid these issues.</SSText>
-            </SSVStack>
+            <SSText>
+              Funds which you spent elsewhere but are still flagged as UTXOs by
+              this wallet could lead to a transaction with invalid inputs.
+            </SSText>
           </SSVStack>
-          <SSVStack gap="sm">
-            <SSButton
-              label="SYNC NOW"
-              variant="secondary"
-              onPress={syncWallet}
-              loading={isSyncing}
-            />
-            <SSButton label="IGNORE" variant="danger" onPress={goToNextStep} />
-            <SSButton label="PROCEED" onPress={goToNextStep} />
+          <SSVStack gap="none">
+            <SSText size="lg" weight="bold">
+              Missing information can result in privacy leaks
+            </SSText>
+            <SSText>
+              Missing transactions may lead to reuse of internal change address,
+              which links two distinct transactions sending to the same address.
+            </SSText>
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText>
+              Wallet last synced at{' '}
+              {lastSyncedDate ? (
+                <SSText>
+                  {formatDate(lastSyncedDate)} {formatTime(lastSyncedDate)}
+                </SSText>
+              ) : (
+                <SSText>Never</SSText>
+              )}
+              .
+            </SSText>
+            <SSText>Update your wallet to avoid these issues.</SSText>
           </SSVStack>
         </SSVStack>
-      </SSMainLayout>
-    </>
+        <SSVStack gap="sm">
+          <SSButton
+            label="SYNC NOW"
+            variant="secondary"
+            onPress={syncWallet}
+            loading={isSyncing}
+          />
+          <SSButton label="IGNORE" variant="danger" onPress={goToNextStep} />
+          <SSButton label="PROCEED" onPress={goToNextStep} />
+        </SSVStack>
+      </SSVStack>
+    </SSMainLayout>
   )
 }

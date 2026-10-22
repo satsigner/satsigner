@@ -57,14 +57,13 @@ import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import { useArkSync } from '@/hooks/useArkSync'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
@@ -99,6 +98,8 @@ type ArkTabRoute = { key: ArkTabKey }
 type ArkVtxosView = 'list' | 'bubbles'
 
 export default function ArkAccountDetailPage() {
+  const { btcPrice, currencyUnit, fiatCurrency, privacyMode, useZeroPadding } =
+    useDisplayPreferences()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
@@ -131,17 +132,6 @@ export default function ArkAccountDetailPage() {
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
-
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-  const [fiatCurrency, btcPrice] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.btcPrice])
-  )
 
   const balance = balanceQuery.data ?? cachedBalance
   const total = balance ? getArkTotalSats(balance) : 0
@@ -370,6 +360,7 @@ export default function ArkAccountDetailPage() {
   function renderRefreshItem({ item }: { item: ArkMovement }) {
     return (
       <SSArkRefreshCard
+        privacyMode={privacyMode}
         movement={item}
         onPress={() =>
           router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)
@@ -418,6 +409,9 @@ export default function ArkAccountDetailPage() {
     }
     return (
       <SSArkVtxoCard
+        currencyUnit={currencyUnit}
+        privacyMode={privacyMode}
+        useZeroPadding={useZeroPadding}
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
@@ -600,6 +594,7 @@ export default function ArkAccountDetailPage() {
       const refreshing = syncMutation.isPending || addressesResult.isLoading
       return renderListWithLoader(
         <SSArkAddressesView
+          privacyMode={privacyMode}
           addresses={addresses}
           labels={labels}
           expand={expand}
