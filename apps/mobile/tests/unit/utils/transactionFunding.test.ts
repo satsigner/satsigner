@@ -16,11 +16,11 @@ describe('getTransactionRemainingBalance', () => {
 
 describe('isTransactionUnderfunded', () => {
   it('is true when outputs and fee exceed inputs', () => {
-    expect(isTransactionUnderfunded(50_000, 49_000, 2_000)).toBe(true)
+    expect(isTransactionUnderfunded(50_000, 49_000, 2000)).toBe(true)
   })
 
   it('is false when inputs cover outputs and fee', () => {
-    expect(isTransactionUnderfunded(50_000, 40_000, 1_000)).toBe(false)
+    expect(isTransactionUnderfunded(50_000, 40_000, 1000)).toBe(false)
   })
 })
 
@@ -28,7 +28,7 @@ describe('getOutputMaxAllowedSats', () => {
   it('returns the max this output can be given other outputs', () => {
     expect(
       getOutputMaxAllowedSats({
-        minerFeeSats: 1_000,
+        minerFeeSats: 1000,
         outputAmountSats: 60_000,
         outputsTotalSats: 120_000,
         totalInputSats: 100_000
@@ -39,7 +39,7 @@ describe('getOutputMaxAllowedSats', () => {
   it('never returns a negative max', () => {
     expect(
       getOutputMaxAllowedSats({
-        minerFeeSats: 5_000,
+        minerFeeSats: 5000,
         outputAmountSats: 20_000,
         outputsTotalSats: 30_000,
         totalInputSats: 10_000
@@ -50,9 +50,7 @@ describe('getOutputMaxAllowedSats', () => {
 
 describe('getCommittedTransactionOutputSats', () => {
   it('includes stonewall preview output amounts', () => {
-    expect(getCommittedTransactionOutputSats(50_000, [4_687, 1_000])).toBe(
-      55_687
-    )
+    expect(getCommittedTransactionOutputSats(50_000, [4687, 1000])).toBe(55_687)
   })
 })
 
@@ -60,15 +58,15 @@ describe('getFundingMinerFeeSats', () => {
   it('uses the projected fee when no stonewall fee is available', () => {
     expect(
       getFundingMinerFeeSats({
-        projectedMinerFeeSats: 1_500
+        projectedMinerFeeSats: 1500
       })
-    ).toBe(1_500)
+    ).toBe(1500)
   })
 
   it('uses the stonewall fee when privacy selection is active', () => {
     expect(
       getFundingMinerFeeSats({
-        projectedMinerFeeSats: 2_500,
+        projectedMinerFeeSats: 2500,
         stonewallMinerFeeSats: 678
       })
     ).toBe(678)

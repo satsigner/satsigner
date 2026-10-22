@@ -21,15 +21,19 @@ type SSNoteInlineVideosProps = {
 
 function labelForProvider(provider: NostrVideoEmbed['provider']): string {
   switch (provider) {
-    case 'youtube':
+    case 'youtube': {
       return t('nostrIdentity.feed.videoYoutube')
-    case 'vimeo':
+    }
+    case 'vimeo': {
       return t('nostrIdentity.feed.videoVimeo')
+    }
     case 'twitch_clip':
-    case 'twitch_vod':
+    case 'twitch_vod': {
       return t('nostrIdentity.feed.videoTwitch')
-    default:
+    }
+    default: {
       return t('nostrIdentity.feed.videoFile')
+    }
   }
 }
 

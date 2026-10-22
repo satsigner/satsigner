@@ -4,6 +4,7 @@ import {
   type PayjoinEndpointKind,
   type PayjoinUriParams
 } from '@/types/payjoin'
+import { formatSatsAsBtc } from '@/utils/format'
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -44,7 +45,7 @@ function isHttpPjEndpoint(pj: string): boolean {
  * not treated as the outer bitcoin: URI fragment (PDK / BIP77 style).
  */
 function encodePjEndpointForQuery(pjEndpoint: string): string {
-  return normalizePjEndpoint(pjEndpoint).replace(/#/g, '%23')
+  return normalizePjEndpoint(pjEndpoint).replaceAll('#', '%23')
 }
 
 function normalizeBip77FragmentDelimiters(pjUrl: string): string {
@@ -55,7 +56,7 @@ function normalizeBip77FragmentDelimiters(pjUrl: string): string {
   const base = pjUrl.slice(0, hashIndex)
   let fragment = pjUrl.slice(hashIndex + 1)
   // Accept legacy `+` separators by normalizing to `-` for comparisons.
-  fragment = fragment.replace(/\+/g, '-')
+  fragment = fragment.replaceAll('+', '-')
   return `${base}#${fragment}`
 }
 
@@ -155,7 +156,7 @@ function parsePayjoinUri(uri: string): ParsePayjoinUriResult {
       }
     } else if (keyLower === 'label' && value) {
       try {
-        label = decodeURIComponent(value).replace(/(^["“]|["”]$)/g, '')
+        label = decodeURIComponent(value).replaceAll(/(^["“]|["”]$)/g, '')
       } catch {
         label = value
       }
@@ -213,9 +214,7 @@ function buildPayjoinUri(params: {
   const queryParts: string[] = []
 
   if (params.amountSats !== undefined && params.amountSats > 0) {
-    const amountBtc = params.amountSats / SATS_PER_BITCOIN
-    const formatted = amountBtc.toFixed(8).replace(/\.?0+$/, '')
-    queryParts.push(`amount=${formatted}`)
+    queryParts.push(`amount=${formatSatsAsBtc(params.amountSats)}`)
   }
 
   if (params.label) {

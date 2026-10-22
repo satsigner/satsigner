@@ -164,7 +164,7 @@ export default function RootLayout() {
                 borderColor: Colors.gray[800],
                 borderRadius: 8,
                 borderWidth: 1,
-                zIndex: 999999
+                zIndex: 999_999
               }}
             />
           </KeyboardProvider>

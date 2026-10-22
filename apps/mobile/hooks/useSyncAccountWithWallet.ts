@@ -247,12 +247,14 @@ function useSyncAccountWithWallet() {
         }
       }
 
-      let updatedAccount: Account = { ...latest }
+      let updatedAccount: Account = {
+        ...latest,
+        addresses: walletSummary.addresses,
+        summary: walletSummary.summary,
+        transactions: walletSummary.transactions,
+        utxos: walletSummary.utxos
+      }
 
-      updatedAccount.transactions = walletSummary.transactions
-      updatedAccount.utxos = walletSummary.utxos
-      updatedAccount.addresses = walletSummary.addresses
-      updatedAccount.summary = walletSummary.summary
       if (newRpcLastBlockHash) {
         updatedAccount.rpcLastBlockHash = newRpcLastBlockHash
       }

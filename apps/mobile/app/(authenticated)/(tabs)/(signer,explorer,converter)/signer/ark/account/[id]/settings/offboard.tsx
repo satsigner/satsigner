@@ -76,7 +76,7 @@ export default function ArkSendOffboardPage() {
     setSelectedIds(new Set(vtxos.map((vtxo) => vtxo.id)))
     setDidAutoSelectAll(true)
   }
-  const selectedArray = Array.from(selectedIds)
+  const selectedArray = [...selectedIds]
   const selectedAmount = sumVtxoSats(vtxos, selectedIds)
   const trimmedAddress = address.trim()
   const addressValid =

@@ -3,7 +3,7 @@ import { parseZapReceiptFromTags, requestZapInvoice } from '@/utils/nostrZap'
 const RECEIPT_ID = 'r'.repeat(64)
 const ZAPPER = 'a'.repeat(64)
 const RECIPIENT = 'b'.repeat(64)
-const CREATED_AT = 1700000000
+const CREATED_AT = 1_700_000_000
 const CALLBACK_URL = 'https://ln.example/callback'
 
 function receiptTags(zapRequest: unknown): string[][] {

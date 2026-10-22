@@ -1,11 +1,13 @@
 import {
   formatAddress,
+  formatBtc,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
   formatNostrCardDate,
   formatNpub,
   formatNumber,
+  formatSatsAsBtc,
   formatShortPubkey,
   formatTime,
   formatTxId,
@@ -79,7 +81,7 @@ describe('format utils', () => {
   describe('formatNumber', () => {
     it('should return the correct localized number with no decimals', () => {
       expect(formatNumber(3000)).toBe('3,000')
-      expect(formatNumber(1000000)).toBe('1,000,000')
+      expect(formatNumber(1_000_000)).toBe('1,000,000')
     })
 
     it('should return the correct localized number with decimals', () => {
@@ -117,7 +119,7 @@ describe('format utils', () => {
 
   describe('formatTime', () => {
     it('should return the correct formatted time', () => {
-      expect(formatTime(new Date(1231006505000))).toBe('6:15pm')
+      expect(formatTime(new Date(1_231_006_505_000))).toBe('6:15pm')
     })
   })
 
@@ -135,7 +137,7 @@ describe('format utils', () => {
 
   describe('formatDate', () => {
     it('should return the correct formatted date', () => {
-      expect(formatDate(new Date(1231006505000))).toBe('Jan 3, 2009')
+      expect(formatDate(new Date(1_231_006_505_000))).toBe('Jan 3, 2009')
     })
 
     it('should work with string date', () => {
@@ -143,7 +145,7 @@ describe('format utils', () => {
     })
 
     it('should work with number date', () => {
-      expect(formatDate(1711639918000)).toBe('Mar 28, 2024')
+      expect(formatDate(1_711_639_918_000)).toBe('Mar 28, 2024')
     })
   })
 
@@ -170,13 +172,13 @@ describe('format utils', () => {
   describe('formatLargeNumber', () => {
     it('should return empty for zero, non-finite, and values under one thousand', () => {
       expect(formatLargeNumber(0)).toBe('')
-      expect(formatLargeNumber(NaN)).toBe('')
+      expect(formatLargeNumber(Number.NaN)).toBe('')
       expect(formatLargeNumber(42)).toBe('')
       expect(formatLargeNumber(999)).toBe('')
     })
 
     it('should use Intl compact long for short-scale values', () => {
-      expect(formatLargeNumber(1_000)).toBe('1 thousand')
+      expect(formatLargeNumber(1000)).toBe('1 thousand')
       expect(formatLargeNumber(1_000_000)).toBe('1 million')
       expect(formatLargeNumber(30_000_000_000)).toBe('30 billion')
       expect(formatLargeNumber(1_500_000_000)).toBe('~2 billion')
@@ -195,5 +197,36 @@ describe('format utils', () => {
       expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
       expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
+  })
+})
+
+describe('formatSatsAsBtc', () => {
+  it('drops trailing zeros', () => {
+    expect(formatSatsAsBtc(150_000)).toBe('0.0015')
+    expect(formatSatsAsBtc(100_000_000)).toBe('1')
+  })
+
+  it('keeps all eight decimals when needed', () => {
+    expect(formatSatsAsBtc(1)).toBe('0.00000001')
+  })
+
+  it('keeps zeros in the integer part', () => {
+    expect(formatSatsAsBtc(1_000_000_000)).toBe('10')
+    expect(formatSatsAsBtc(5_000_000_000)).toBe('50')
+  })
+
+  it('formats zero sats as "0"', () => {
+    expect(formatSatsAsBtc(0)).toBe('0')
+  })
+})
+
+describe('formatBtc', () => {
+  it('drops trailing zeros', () => {
+    expect(formatBtc(0.0015)).toBe('0.0015')
+    expect(formatBtc(21)).toBe('21')
+  })
+
+  it('rounds to eight decimals', () => {
+    expect(formatBtc(0.123_456_789)).toBe('0.12345679')
   })
 })

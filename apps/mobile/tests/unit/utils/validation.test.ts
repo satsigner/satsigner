@@ -16,12 +16,21 @@ describe('validates addresses', () => {
     'mwvMdapX5gJZguRqoEudnCob1KTmxSxP9p', // P2PKH:
     '2N9edKpA1S1h3CkHCsuDizrwTWCMxPsB1Qr', // P2SH:
     'tb1qmj3dcj45tugree3f87mrxvc5aqm4hkz4x3t9np', // P2WPKH:
-    'tb1pptev7vzxjvlpnazg6zk4l9j3qw6990kwfmz43ppyms79525qzf8qd8rpup' // P2TR:
+    'tb1pptev7vzxjvlpnazg6zk4l9j3qw6990kwfmz43ppyms79525qzf8qd8rpup', // P2TR:
+    'n3GNqMveyvaPvUbH469vDRadqpJMPc84JA', // P2PKH (n prefix):
+    // BITCOIN REGTEST ADDRESSES
+    'bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x', // P2WPKH:
+    // UPPERCASE BECH32 (QR alphanumeric mode)
+    'BC1Q8D968EG8UA3DK8MKQL9D0VJ35NZPLSD4ZMULUS'
   ]
 
   const invalidAddresses = [
     'bc1p11111111111111111111111111111111111111',
-    'bc5p5cyxnuxmeuwuvkwfem96l8z2f8g8g8g8g8g8g8'
+    'bc5p5cyxnuxmeuwuvkwfem96l8z2f8g8g8g8g8g8g8',
+    'myqtdq5wcy9vcm6z2muxla0y0eg94h06jgkcqnhhy4f',
+    // Address shape with a broken checksum
+    '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb',
+    ''
   ]
 
   it('recognizes valid addresses', () => {

@@ -1,0 +1,2 @@
+export const SHORT_MNEMONIC_WORD_COUNT = 12
+export const LONG_MNEMONIC_WORD_COUNT = 24

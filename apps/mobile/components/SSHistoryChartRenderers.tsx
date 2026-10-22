@@ -25,6 +25,10 @@ import { formatNumber, formatTxId } from '@/utils/format'
 import { hexToRgba } from '@/utils/historyChart'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+const Y_AXIS_TICK_COUNT = 4
+const Y_AXIS_LABEL_BASELINE_OFFSET = 6
+const Y_AXIS_TITLE_Y = -10
+
 type YScaleRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
@@ -32,6 +36,10 @@ type YScaleRendererProps = {
   chartHeight: number
   chartWidth: number
   yAxisFormatter: (value: number) => string
+  color: string
+  labelX: number
+  showGridLines: boolean
+  title?: string
 }
 
 type XScaleRendererProps = {
@@ -141,7 +149,11 @@ function YScaleRenderer({
   yScale,
   chartHeight,
   chartWidth,
-  yAxisFormatter
+  yAxisFormatter,
+  color,
+  labelX,
+  showGridLines,
+  title
 }: YScaleRendererProps) {
   if (!customFontManager) {
     return null
@@ -149,28 +161,39 @@ function YScaleRenderer({
   const font = matchFont(fontStyle, customFontManager)
   return (
     <>
-      {yScale.ticks(4).map((tick) => {
+      {title ? (
+        <Text
+          x={labelX}
+          y={Y_AXIS_TITLE_Y}
+          text={title}
+          font={font}
+          color={color}
+        />
+      ) : null}
+      {yScale.ticks(Y_AXIS_TICK_COUNT).map((tick) => {
         const yPosition = yScale(tick)
         if (yPosition > chartHeight) {
           return null
         }
         return (
           <Fragment key={tick.toString()}>
-            <Line
-              p1={vec(0, yPosition)}
-              p2={vec(chartWidth, yPosition)}
-              color="#FFFFFF29"
-              style="stroke"
-              strokeWidth={1}
-            >
-              <DashPathEffect intervals={[2, 2]} phase={0} />
-            </Line>
+            {showGridLines ? (
+              <Line
+                p1={vec(0, yPosition)}
+                p2={vec(chartWidth, yPosition)}
+                color="#FFFFFF29"
+                style="stroke"
+                strokeWidth={1}
+              >
+                <DashPathEffect intervals={[2, 2]} phase={0} />
+              </Line>
+            ) : null}
             <Text
-              x={-30}
-              y={yPosition + 6}
+              x={labelX}
+              y={yPosition + Y_AXIS_LABEL_BASELINE_OFFSET}
               text={yAxisFormatter(tick)}
               font={font}
-              color="white"
+              color={color}
             />
           </Fragment>
         )
@@ -681,7 +704,7 @@ function formatAmountWithLeadingZeros(
     }
 
     if (part.startsWith('Fee: ')) {
-      const feePart = part.substring(5)
+      const feePart = part.slice(5)
       segments.push({ color: '#666666', text: 'Fee: ', x: currentX })
       currentX += font.measureText('Fee: ').width
 
@@ -693,23 +716,23 @@ function formatAmountWithLeadingZeros(
         if (firstNonZeroIndex > 0) {
           segments.push({
             color: '#666666',
-            text: feePart.substring(0, firstNonZeroIndex),
+            text: feePart.slice(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
-            feePart.substring(0, firstNonZeroIndex)
+            feePart.slice(0, firstNonZeroIndex)
           ).width
         }
         segments.push({
           color: '#999999',
-          text: feePart.substring(firstNonZeroIndex),
+          text: feePart.slice(firstNonZeroIndex),
           x: currentX
         })
-        currentX += font.measureText(feePart.substring(firstNonZeroIndex)).width
+        currentX += font.measureText(feePart.slice(firstNonZeroIndex)).width
       }
     } else {
       const sign = part.startsWith('+') || part.startsWith('-') ? part[0] : ''
-      const numberPart = sign ? part.substring(1) : part
+      const numberPart = sign ? part.slice(1) : part
 
       if (sign) {
         segments.push({ color: baseColor, text: sign, x: currentX })
@@ -728,21 +751,19 @@ function formatAmountWithLeadingZeros(
         if (firstNonZeroIndex > 0) {
           segments.push({
             color: hexToRgba(baseColor, 0.4),
-            text: numberPart.substring(0, firstNonZeroIndex),
+            text: numberPart.slice(0, firstNonZeroIndex),
             x: currentX
           })
           currentX += font.measureText(
-            numberPart.substring(0, firstNonZeroIndex)
+            numberPart.slice(0, firstNonZeroIndex)
           ).width
         }
         segments.push({
           color: baseColor,
-          text: numberPart.substring(firstNonZeroIndex),
+          text: numberPart.slice(firstNonZeroIndex),
           x: currentX
         })
-        currentX += font.measureText(
-          numberPart.substring(firstNonZeroIndex)
-        ).width
+        currentX += font.measureText(numberPart.slice(firstNonZeroIndex)).width
       }
     }
   }

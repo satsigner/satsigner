@@ -290,7 +290,7 @@ export default function Design() {
                 />
                 <SSNumberInput
                   min={1}
-                  max={21000000}
+                  max={21_000_000}
                   placeholder="Sats (decimal)"
                   allowDecimal
                   variant="outline"

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { type LayoutChangeEvent, View } from 'react-native'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
+import { Colors } from '@/styles'
+
 const RADIUS_INDICATOR = 8
 const RADIUS_OUTER_RECT = 16
 const MIN_CONTAINER_WIDTH = 80
@@ -15,6 +17,16 @@ type SSSignatureRequiredDisplayProps = {
 }
 
 const DEFAULT_COLLECTED_SIGNATURES: number[] = []
+
+function getSignatureIndicatorFill(
+  isCollected: boolean,
+  isValid: boolean | undefined
+) {
+  if (!isCollected) {
+    return Colors.transparent
+  }
+  return isValid === false ? Colors.invalidRed : Colors.mainGreen
+}
 
 function SSSignatureRequiredDisplay({
   requiredNumber,
@@ -130,17 +142,6 @@ function SSSignatureRequiredDisplay({
               const cosignerIndex = collectedSignatures[count]
               const isValid = validationResults?.get(cosignerIndex)
 
-              let fillColor = 'transparent'
-              if (isCollected) {
-                if (isValid === true) {
-                  fillColor = '#A7FFAF' // Green for valid
-                } else if (isValid === false) {
-                  fillColor = '#FF6B6B' // Red for invalid
-                } else {
-                  fillColor = '#A7FFAF' // Default to green if no validation result
-                }
-              }
-
               return (
                 <Circle
                   key={count}
@@ -150,7 +151,7 @@ function SSSignatureRequiredDisplay({
                   strokeWidth={2}
                   stroke={isRequired ? 'white' : '#4F4F4F'}
                   opacity={0.9}
-                  fill={fillColor}
+                  fill={getSignatureIndicatorFill(isCollected, isValid)}
                 />
               )
             })}

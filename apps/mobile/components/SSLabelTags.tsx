@@ -1,20 +1,24 @@
 import { StyleSheet } from 'react-native'
 
+import { PRIVACY_MASK } from '@/constants/privacy'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { parseLabel } from '@/utils/parse'
 
 import SSTagChip from './SSTagChip'
 import SSText from './SSText'
 
-type SSLabelTagsProps = {
+type SSLabelTagsProps = Pick<DisplayPreferences, 'privacyMode'> & {
   label?: string
   size?: 'xs' | 'xxs'
 }
 
-function SSLabelTags({ label = '', size = 'xs' }: SSLabelTagsProps) {
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+function SSLabelTags({
+  label = '',
+  privacyMode,
+  size = 'xs'
+}: SSLabelTagsProps) {
   const parsedLabel = parseLabel(label)
 
   if (parsedLabel.label === '' && parsedLabel.tags.length === 0) {
@@ -24,7 +28,7 @@ function SSLabelTags({ label = '', size = 'xs' }: SSLabelTagsProps) {
   if (privacyMode) {
     return (
       <SSText size={size} style={styles.label}>
-        ••••
+        {PRIVACY_MASK}
       </SSText>
     )
   }

@@ -42,10 +42,11 @@ import {
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import { useNow } from '@/hooks/useNow'
+import { usePayjoinInvoice } from '@/hooks/usePayjoinInvoice'
 import { useTransactionFeeWarnings } from '@/hooks/useTransactionFeeWarnings'
 import { useUriAutoSelectUtxos } from '@/hooks/useUriAutoSelectUtxos'
 import SSHStack from '@/layouts/SSHStack'
@@ -99,10 +100,6 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
-import {
-  formatPayjoinExpiryLabel,
-  parsePayjoinExpiresAtMs
-} from '@/utils/payjoinExpiry'
 import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
@@ -139,6 +136,14 @@ import {
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
 export default function IOPreview() {
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
   const router = useRouter()
   const {
     id,
@@ -152,14 +157,9 @@ export default function IOPreview() {
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
   )
-  const [currencyUnit, defaultAutoSelectUtxos, useZeroPadding] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.currencyUnit,
-        state.defaultAutoSelectUtxos,
-        state.useZeroPadding
-      ])
-    )
+  const defaultAutoSelectUtxos = useSettingsStore(
+    (state) => state.defaultAutoSelectUtxos
+  )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -256,13 +256,7 @@ export default function IOPreview() {
     }, [changeAddress, secondChangeAddress, decoyAddress])
   )
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
+  const satsToFiat = usePriceStore((state) => state.satsToFiat)
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
@@ -318,36 +312,7 @@ export default function IOPreview() {
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
   const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
-  const nowMs = useNow()
-
-  const payjoinInvoice = useMemo(() => {
-    if (!payjoinUri || !hasPayjoinParam(payjoinUri)) {
-      return undefined
-    }
-    const parsed = parsePayjoinUri(payjoinUri)
-    if (!parsed.isValid || !parsed.params) {
-      return undefined
-    }
-    const amountSats =
-      parsed.params.amountBtc !== undefined && parsed.params.amountBtc > 0
-        ? bitcoinAmountBtcToSats(parsed.params.amountBtc)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats,
-      endpointKind: parsed.endpointKind,
-      expiresAt: parsePayjoinExpiresAtMs(parsed.params.pj),
-      label: parsed.params.label,
-      pj: parsed.params.pj,
-      pjos: parsed.params.pjos,
-      uri: payjoinUri
-    }
-  }, [payjoinUri])
-
-  const payjoinExpiryLabel = formatPayjoinExpiryLabel(
-    payjoinInvoice?.expiresAt,
-    nowMs
-  )
+  const { payjoinExpiryLabel, payjoinInvoice } = usePayjoinInvoice()
 
   function handleOpenPayjoinData() {
     payjoinDataBottomSheetRef.current?.expand()
@@ -368,11 +333,11 @@ export default function IOPreview() {
     () => utxosValue(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(Array.from(inputs.values()))
+  const utxosSelectedValue = utxosValue([...inputs.values()])
 
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs
     )
     return { size, vsize }
@@ -390,7 +355,7 @@ export default function IOPreview() {
   const hasChange = utxosSelectedValue > totalOutputValue + baseMinerFee
 
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
-  const orphanedInputs = Array.from(inputs.values()).filter(
+  const orphanedInputs = [...inputs.values()].filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
@@ -523,7 +488,7 @@ export default function IOPreview() {
 
   const transactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
-      Array.from(inputs.values()),
+      [...inputs.values()],
       outputs,
       hasChange
     )
@@ -578,7 +543,7 @@ export default function IOPreview() {
     committedOutputSats,
     feeRate: localFeeRate,
     fundingOutputs: fundingOutputsForSize,
-    inputs: Array.from(inputs.values()),
+    inputs: [...inputs.values()],
     totalInputSats: utxosSelectedValue
   })
 
@@ -964,7 +929,7 @@ export default function IOPreview() {
     setAccountUtxos(stonewallResult.inputs)
     setStonewallPreview({
       changeValues,
-      excludedUtxoOutpoints: Array.from(excluded),
+      excludedUtxoOutpoints: [...excluded],
       fakeMixValues,
       fee: stonewallResult.fee
     })
@@ -1000,8 +965,7 @@ export default function IOPreview() {
 
     if (selectedAutoSelectUtxos === 'privacy') {
       const outpoint = getUtxoOutpoint(inputToRemove)
-      const nextExcluded = new Set(excludedUtxoOutpoints)
-      nextExcluded.add(outpoint)
+      const nextExcluded = new Set([...excludedUtxoOutpoints, outpoint])
 
       if (applyStonewallSelection(nextExcluded)) {
         setRemoveInputModalVisible(false)
@@ -1117,8 +1081,9 @@ export default function IOPreview() {
 
         break
       }
-      default:
+      default: {
         break
+      }
     }
 
     if (selectionSucceeded) {
@@ -1642,6 +1607,10 @@ export default function IOPreview() {
                     }
                   >
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       key={`amount-input-${outputsCount}`}
                       min={DUST_LIMIT}
                       max={

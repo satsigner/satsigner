@@ -242,7 +242,7 @@ export default function PublicKeyPage() {
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
     const filename = `PublicKey_${account.name}_Key${
-      parseInt(keyIndex || '0', 10) + 1
+      Number.parseInt(keyIndex || '0', 10) + 1
     }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
       dialogTitle: t('export.file.save'),

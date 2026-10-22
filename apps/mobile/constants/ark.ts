@@ -19,7 +19,7 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   lnurl: 'ark.send.kind.lnurl',
   onchain: 'ark.send.kind.onchain'
 }
-export const ARK_LNURL_DETAILS_STALE_MS = 60000
+export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 // `false` disables waiting for lightning-send confirmation before returning.
 export const ARK_LIGHTNING_SEND_WAIT = false
 export const ARK_NO_HTLC_VTXOS_LOCKED = 0

@@ -1,4 +1,8 @@
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  MS_PER_SECOND,
+  SECONDS_PER_HOUR,
+  SECONDS_PER_MINUTE
+} from '@/constants/time'
 
 type ScanSample = {
   at: number
@@ -12,7 +16,7 @@ type ScanThroughput = {
 }
 
 const SAMPLE_WINDOW_MS = 20_000
-const MIN_SAMPLE_SPAN_MS = 1_000
+const MIN_SAMPLE_SPAN_MS = 1000
 
 /**
  * Derive scan throughput from successive block-height progress samples.
@@ -75,12 +79,12 @@ function createScanThroughputTracker() {
 
 function formatScanDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds))
-  if (total < 60) {
+  if (total < SECONDS_PER_MINUTE) {
     return `${total}s`
   }
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const secs = total % 60
+  const hours = Math.floor(total / SECONDS_PER_HOUR)
+  const minutes = Math.floor((total % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
+  const secs = total % SECONDS_PER_MINUTE
   if (hours > 0) {
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
   }

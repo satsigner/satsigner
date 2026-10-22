@@ -1,3 +1,4 @@
+import { HttpStatusError } from '@/utils/errors'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
 
 describe('lndHttpError', () => {
@@ -17,6 +18,23 @@ describe('lndHttpError', () => {
         false
       )
       expect(isLndPermissionError(null)).toBe(false)
+    })
+
+    it('uses the status of an HttpStatusError', () => {
+      expect(
+        isLndPermissionError(new HttpStatusError(403, 'LND API error: 403'))
+      ).toBe(true)
+      expect(
+        isLndPermissionError(
+          new HttpStatusError(500, 'LND API error: 500 peer 403 unreachable')
+        )
+      ).toBe(false)
+    })
+
+    it('ignores 401 or 403 that only appear in the error body', () => {
+      expect(
+        isLndPermissionError('LND API error: 500 peer 403 unreachable')
+      ).toBe(false)
     })
 
     it('accepts a plain message string', () => {

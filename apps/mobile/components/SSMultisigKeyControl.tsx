@@ -10,9 +10,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconAdd, SSIconGreen, SSIconGreenNoSecret } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSModal from '@/components/SSModal'
-import SSRadioButton from '@/components/SSRadioButton'
-import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useKeySourceLabel } from '@/hooks/useKeySourceLabel'
@@ -221,20 +220,25 @@ function SSMultisigKeyControl({
     action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
     switch (action) {
-      case 'dropSeed':
+      case 'dropSeed': {
         setDropSeedModalVisible(true)
         break
-      case 'shareXpub':
+      }
+      case 'shareXpub': {
         onShareXpub()
         break
-      case 'shareDescriptor':
+      }
+      case 'shareDescriptor': {
         onShareDescriptor()
         break
-      case 'resetKey':
+      }
+      case 'resetKey': {
         setResetKeyModalVisible(true)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
   }
 
@@ -466,7 +470,7 @@ function SSMultisigKeyControl({
             opacity: 0,
             position: 'absolute',
             right: 0,
-            top: -10000 // Move off-screen
+            top: -10_000 // Move off-screen
           }}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout
@@ -665,23 +669,13 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
-      <SSSelectModal
+      <SSMnemonicWordCountSelectModal
         visible={wordCountModalVisible}
-        title={t('account.mnemonic.title')}
-        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        selectedWordCount={localMnemonicWordCount}
+        onChange={setLocalMnemonicWordCount}
         onSelect={handleWordCountSelection}
         onCancel={() => setWordCountModalVisible(false)}
-      >
-        {([24, 21, 18, 15, 12] as const).map((count) => (
-          <SSRadioButton
-            key={count}
-            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localMnemonicWordCount === count}
-            onPress={() => setLocalMnemonicWordCount(count)}
-          />
-        ))}
-      </SSSelectModal>
+      />
     </View>
   )
 }

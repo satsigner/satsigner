@@ -22,7 +22,7 @@ function decodeStandardSeedQR(seedQR: string): string {
 
   for (let i = 0; i < seedQR.length; i += 4) {
     const chunk = seedQR.slice(i, i + 4)
-    const index = parseInt(chunk, 10)
+    const index = Number.parseInt(chunk, 10)
     if (index < 0 || index >= wordList.length) {
       throw new Error(`Invalid word index: ${index}`)
     }
@@ -42,7 +42,7 @@ function decodeCompactSeedQR(seedQR: string): string {
     const start = i * 11
     const end = start + 11
     const binaryChunk = seedQR.slice(start, end)
-    const index = parseInt(binaryChunk, 2)
+    const index = Number.parseInt(binaryChunk, 2)
     if (index < 0 || index >= wordList.length) {
       throw new Error(`Invalid word index: ${index}`)
     }

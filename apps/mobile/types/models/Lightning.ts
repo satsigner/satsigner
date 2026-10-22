@@ -19,12 +19,13 @@ export type LightningChannelHistoryRow = {
 }
 
 export type LNDBlockchainBalanceResponse = {
-  account_balance?: {
-    [key: string]: {
+  account_balance?: Record<
+    string,
+    {
       confirmed_balance: string
       unconfirmed_balance: string
     }
-  }
+  >
   confirmed_balance: string
   locked_balance: string
   reserved_balance_anchor_chan: string

@@ -2,7 +2,10 @@ import { nip19 } from 'nostr-tools'
 import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner-native'
 
-import { NOSTR_DM_FUTURE_TOLERANCE_SEC } from '@/constants/nostr'
+import {
+  NOSTR_DM_FUTURE_TOLERANCE_SEC,
+  NOSTR_DM_NOTIFY_MAX_AGE_SECS
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
@@ -138,7 +141,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / MS_PER_SECOND - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - NOSTR_DM_NOTIFY_MAX_AGE_SECS
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = newMessage.description.slice(0, TOAST_CONTENT_MAX)
@@ -171,7 +174,7 @@ function useNostrDMStorage() {
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
         if (pendingIdx !== -1) {
-          currentDms = currentDms.slice()
+          currentDms = [...currentDms]
           currentDms[pendingIdx] = newMessage
           const updatedDms = currentDms.toSorted(
             (a, b) => a.created_at - b.created_at
@@ -211,7 +214,7 @@ function useNostrDMStorage() {
       return
     }
 
-    let currentDms = [...(currentAccount.nostr.dms || [])]
+    const currentDms = [...(currentAccount.nostr.dms || [])]
     const existingIds = new Set(currentDms.map((m) => m.id))
     const syncStartSec = getSyncStartSeconds(currentAccount)
     const deviceHex = getDevicePubkeyHex(currentAccount)
@@ -249,7 +252,7 @@ function useNostrDMStorage() {
               PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
         )
         if (pendingIdx !== -1) {
-          currentDms = currentDms.slice()
+          // currentDms is already a local copy of the stored list.
           currentDms[pendingIdx] = newMessage
         } else {
           currentDms.push(newMessage)
@@ -264,7 +267,7 @@ function useNostrDMStorage() {
         created_at >= syncStartSec &&
         currentAccount.nostr?.deviceNpub !==
           nip19.npubEncode(unwrappedEvent.pubkey) &&
-        created_at > Date.now() / MS_PER_SECOND - 60 * 5
+        created_at > Date.now() / MS_PER_SECOND - NOSTR_DM_NOTIFY_MAX_AGE_SECS
       ) {
         const author = getAuthorDisplayName(unwrappedEvent.pubkey)
         const preview = description.slice(0, TOAST_CONTENT_MAX)

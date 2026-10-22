@@ -303,7 +303,7 @@ describe('buildStonewallMaterializationPlan', () => {
   it('returns decoy and change outputs ready for the store', () => {
     const plan = buildStonewallMaterializationPlan({
       changeAddress: 'bc1qchange1',
-      changeValues: [1_000],
+      changeValues: [1000],
       decoyAddress: 'bc1qdecoy',
       fakeMixLabel: 'Coffee shop',
       fakeMixValues: [500],
@@ -321,7 +321,7 @@ describe('buildStonewallMaterializationPlan', () => {
           to: 'bc1qdecoy'
         },
         {
-          amount: 1_000,
+          amount: 1000,
           kind: 'change',
           label: 'Change',
           to: 'bc1qchange1'

@@ -10,7 +10,7 @@ const signerSecretKey = new Uint8Array(32).fill(7)
 
 const template = {
   content: 'hello',
-  created_at: 1700000000,
+  created_at: 1_700_000_000,
   kind: 1,
   tags: [['t', 'satsigner']]
 }

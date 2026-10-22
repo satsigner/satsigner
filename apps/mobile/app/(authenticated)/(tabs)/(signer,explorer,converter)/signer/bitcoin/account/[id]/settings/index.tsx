@@ -29,6 +29,7 @@ import {
   HEADER_CHROME_SETTINGS_ICON_SIZE
 } from '@/constants/headerChrome'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
+import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -43,10 +44,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { formatAccountCreationDate } from '@/utils/date'
-import {
-  decryptAccountKeySecret,
-  decryptAccountKeySecrets
-} from '@/utils/decryption'
+import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
@@ -73,7 +71,7 @@ export default function AccountSettings() {
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
   const [localMnemonic, setLocalMnemonic] = useState('')
-  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
+  const decryptedKeys = useDecryptedKeys(account)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [rescanModalVisible, setRescanModalVisible] = useState(false)
@@ -112,14 +110,18 @@ export default function AccountSettings() {
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
-      case 'singlesig':
+      case 'singlesig': {
         return t('account.policy.singleSignature.title')
-      case 'multisig':
+      }
+      case 'multisig': {
         return t('account.policy.multiSignature.title')
-      case 'watchonly':
+      }
+      case 'watchonly': {
         return t('account.policy.watchOnly.title')
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 
@@ -217,30 +219,6 @@ export default function AccountSettings() {
       toast.error(t('account.seed.unableToDecrypt'))
     }
   }
-
-  useEffect(() => {
-    async function decryptCurrentAccountKeys() {
-      if (!account) {
-        return
-      }
-      const secrets = await decryptAccountKeySecrets(account)
-      const decryptedKeyData = account.keys.map((key, index) => {
-        const newKey: Key = {
-          ...key,
-          secret: secrets[index]
-        }
-        return newKey
-      })
-      setDecryptedKeys(decryptedKeyData)
-    }
-
-    try {
-      decryptCurrentAccountKeys()
-    } catch (error: unknown) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`Failed to decrypt account keys: ${reason}`)
-    }
-  }, [account])
 
   useEffect(() => {
     const accountKeys = account?.keys

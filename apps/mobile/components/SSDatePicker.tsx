@@ -119,19 +119,23 @@ function SSDatePicker({
     const newDate = new Date(date)
 
     switch (type) {
-      case 'day':
+      case 'day': {
         newDate.setDate(digit)
         break
-      case 'month':
+      }
+      case 'month': {
         setSelectedMonth(digit)
         newDate.setMonth(digit - 1)
         break
-      case 'year':
+      }
+      case 'year': {
         setSelectedYear(digit)
         newDate.setFullYear(digit)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     const now = new Date()
@@ -186,7 +190,7 @@ function SSDatePicker({
 
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
-        case 'dd':
+        case 'dd': {
           return {
             digits: filteredDays,
             formatter: undefined,
@@ -194,7 +198,8 @@ function SSDatePicker({
             renderItem: renderDayItem,
             value: date.getDate()
           }
-        case 'mm':
+        }
+        case 'mm': {
           return {
             digits: filteredMonths,
             formatter: formatMonth,
@@ -202,7 +207,8 @@ function SSDatePicker({
             renderItem: undefined,
             value: selectedMonth
           }
-        case 'yyyy':
+        }
+        case 'yyyy': {
           return {
             digits: years,
             formatter: undefined,
@@ -210,6 +216,7 @@ function SSDatePicker({
             renderItem: undefined,
             value: selectedYear
           }
+        }
         default: {
           const colName = ['day', 'month', 'year'][index]
           return {
@@ -372,19 +379,19 @@ function DateBlock({
 const hex2rgba = (hex: string, alpha: number): string => {
   const cleanHex = hex.replace('#', '')
 
-  const r: number = parseInt(
+  const r: number = Number.parseInt(
     cleanHex.length === 3
       ? cleanHex.slice(0, 1).repeat(2)
       : cleanHex.slice(0, 2),
     16
   )
-  const g: number = parseInt(
+  const g: number = Number.parseInt(
     cleanHex.length === 3
       ? cleanHex.slice(1, 2).repeat(2)
       : cleanHex.slice(2, 4),
     16
   )
-  const b: number = parseInt(
+  const b: number = Number.parseInt(
     cleanHex.length === 3
       ? cleanHex.slice(2, 3).repeat(2)
       : cleanHex.slice(4, 6),

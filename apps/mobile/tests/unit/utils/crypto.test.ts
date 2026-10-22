@@ -2,10 +2,10 @@ import QuickCrypto from 'react-native-quick-crypto'
 
 import { javaSeededRandom, randomUuid } from '@/utils/crypto'
 
-const JAVA_RANDOM_MULTIPLIER = 0x5deece66dn
+const JAVA_RANDOM_MULTIPLIER = 0x5_de_ec_e6_6dn
 const JAVA_RANDOM_ADDEND = 0xbn
 const JAVA_RANDOM_MASK = (1n << 48n) - 1n
-const INT32_MAX = 2147483647
+const INT32_MAX = 2_147_483_647
 
 // Reference java.util.Random.nextInt(bound). Java's rejection sampling
 // condition `bits - val + (bound - 1) < 0` relies on signed 32-bit overflow;
@@ -39,7 +39,7 @@ function javaReferenceRandom(seed: number) {
 }
 
 describe('javaSeededRandom', () => {
-  const seeds = [0, 1, 42, 999, 2147483647]
+  const seeds = [0, 1, 42, 999, 2_147_483_647]
 
   it('matches java.util.Random for small bounds', () => {
     for (const seed of seeds) {
@@ -55,7 +55,7 @@ describe('javaSeededRandom', () => {
   it('matches java.util.Random when rejection sampling triggers', () => {
     // With this bound ~33% of draws fall in the truncated tail of 2^31 and
     // must be rejected and redrawn, exercising the overflow condition.
-    const bound = 1431655766
+    const bound = 1_431_655_766
 
     for (const seed of seeds) {
       const actual = javaSeededRandom(seed)
@@ -70,7 +70,7 @@ describe('javaSeededRandom', () => {
     for (const seed of seeds) {
       const actual = javaSeededRandom(seed)
       const expected = javaReferenceRandom(seed)
-      for (const bound of [2, 8, 1024, 1073741824]) {
+      for (const bound of [2, 8, 1024, 1_073_741_824]) {
         for (let i = 0; i < 100; i += 1) {
           expect(actual.nextInt(bound)).toBe(expected.nextInt(bound))
         }
