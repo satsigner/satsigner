@@ -262,7 +262,7 @@ function parseSinglesigDescriptor(descriptor: string) {
   return { hardenedPath, xpubs }
 }
 
-/** Strips spaces and invisible characters that NFC tags and QR codes add to scanned text. */
+/** Strips spaces and invisible characters that NFC tags add to their text. */
 export function sanitizeScannedText(text: string) {
   return text
     .replaceAll(INLINE_WHITESPACE, '')
