@@ -1,4 +1,9 @@
-import { DUST_LIMIT } from '@/constants/btc'
+import {
+  BIP125_REPLACEABLE_SEQUENCE_BELOW,
+  DUST_LIMIT,
+  FINAL_SEQUENCE,
+  RBF_SIGNAL_SEQUENCE
+} from '@/constants/btc'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   assessAccountTransaction,
@@ -35,19 +40,23 @@ function owned(txid: string, vout: number): string {
 }
 
 describe('transactionSignalsRbf', () => {
-  it('signals when any sequence is below 0xfffffffe', () => {
-    expect(transactionSignalsRbf([{ sequence: 0xfffffffd }])).toBe(true)
+  it('signals when any sequence is below 0xff_ff_ff_fe', () => {
+    expect(transactionSignalsRbf([{ sequence: RBF_SIGNAL_SEQUENCE }])).toBe(
+      true
+    )
     expect(
       transactionSignalsRbf([
-        { sequence: 0xffffffff },
-        { sequence: 0xfffffffd }
+        { sequence: FINAL_SEQUENCE },
+        { sequence: RBF_SIGNAL_SEQUENCE }
       ])
     ).toBe(true)
   })
 
   it('does not signal when every sequence is final', () => {
-    expect(transactionSignalsRbf([{ sequence: 0xffffffff }])).toBe(false)
-    expect(transactionSignalsRbf([{ sequence: 0xfffffffe }])).toBe(false)
+    expect(transactionSignalsRbf([{ sequence: FINAL_SEQUENCE }])).toBe(false)
+    expect(
+      transactionSignalsRbf([{ sequence: BIP125_REPLACEABLE_SEQUENCE_BELOW }])
+    ).toBe(false)
   })
 })
 
@@ -57,7 +66,7 @@ describe('assessAccountTransaction', () => {
   const vin = [
     {
       previousOutput: { txid: previous, vout: 1 },
-      sequence: 0xfffffffd
+      sequence: RBF_SIGNAL_SEQUENCE
     }
   ]
 
@@ -81,7 +90,10 @@ describe('assessAccountTransaction', () => {
       txid,
       unspentOutpoints: new Set([owned(txid, 0)]),
       vin: [
-        { previousOutput: { txid: previous, vout: 0 }, sequence: 0xffffffff }
+        {
+          previousOutput: { txid: previous, vout: 0 },
+          sequence: FINAL_SEQUENCE
+        }
       ],
       vout: [{ address: PAYMENT }]
     })
@@ -187,7 +199,7 @@ describe('fee floors', () => {
     expect(
       minimumChildFee({
         childVsize: 110,
-        parentFee: 50000,
+        parentFee: 50_000,
         parentVsize: 200,
         targetFeeRate: 2
       })
@@ -202,7 +214,7 @@ describe('fee floors', () => {
 })
 
 describe('replacement drafts', () => {
-  const spend = utxo(100000, 0, PAYMENT)
+  const spend = utxo(100_000, 0, PAYMENT)
 
   it('shrinks change to pay a higher fee and keeps the payment', () => {
     const result = buildFeeBumpDraft({
@@ -212,8 +224,8 @@ describe('replacement drafts', () => {
       originalFee: 200,
       originalVsize: 140,
       outputs: [
-        { amount: 50000, label: 'Pay', to: PAYMENT },
-        { amount: 49800, kind: 'change', label: 'Change', to: CHANGE }
+        { amount: 50_000, label: 'Pay', to: PAYMENT },
+        { amount: 49_800, kind: 'change', label: 'Change', to: CHANGE }
       ],
       resolvedInputs: [spend],
       targetFeeRate: 1
@@ -223,7 +235,7 @@ describe('replacement drafts', () => {
       return
     }
     expect(result.draft.outputs).toStrictEqual([
-      expect.objectContaining({ amount: 50000, to: PAYMENT })
+      expect.objectContaining({ amount: 50_000, to: PAYMENT })
     ])
     expect(result.draft.fee).toBeGreaterThan(200)
     expect(result.draft.rbf).toBe(true)
@@ -232,15 +244,15 @@ describe('replacement drafts', () => {
   it('adds a wallet input when change cannot cover the bump', () => {
     const result = buildFeeBumpDraft({
       changeAddress: FRESH,
-      extraUtxos: [utxo(20000, 1, CHANGE)],
+      extraUtxos: [utxo(20_000, 1, CHANGE)],
       internalAddresses: new Set([CHANGE]),
       originalFee: 100,
       originalVsize: 110,
       outputs: [
-        { amount: 99000, label: 'Pay', to: PAYMENT },
+        { amount: 99_000, label: 'Pay', to: PAYMENT },
         { amount: 200, kind: 'change', label: 'Change', to: CHANGE }
       ],
-      resolvedInputs: [utxo(99300, 0, PAYMENT)],
+      resolvedInputs: [utxo(99_300, 0, PAYMENT)],
       targetFeeRate: 50
     })
     expect(result.ok).toBe(true)
@@ -260,8 +272,8 @@ describe('replacement drafts', () => {
       internalAddresses: new Set([CHANGE]),
       originalFee: 100,
       originalVsize: 110,
-      outputs: [{ amount: 99000, label: 'Pay', to: PAYMENT }],
-      resolvedInputs: [utxo(99100, 0, PAYMENT)],
+      outputs: [{ amount: 99_000, label: 'Pay', to: PAYMENT }],
+      resolvedInputs: [utxo(99_100, 0, PAYMENT)],
       targetFeeRate: 80
     })
     expect(result).toStrictEqual({ ok: false, reason: 'insufficient' })
@@ -282,7 +294,7 @@ describe('replacement drafts', () => {
     }
     expect(result.draft.outputs).toHaveLength(1)
     expect(result.draft.outputs[0].to).toBe(FRESH)
-    expect(result.draft.outputs[0].amount + result.draft.fee).toBe(100000)
+    expect(result.draft.outputs[0].amount + result.draft.fee).toBe(100_000)
   })
 
   it('builds a child that spends one owned output', () => {
@@ -292,7 +304,7 @@ describe('replacement drafts', () => {
       parentFee: 200,
       parentVsize: 140,
       targetFeeRate: 8,
-      utxo: utxo(50000, 1, CHANGE)
+      utxo: utxo(50_000, 1, CHANGE)
     })
     expect(result.ok).toBe(true)
     if (!result.ok) {
@@ -308,11 +320,16 @@ describe('resolveReplacementInputs', () => {
   it('rebuilds inputs from the parent output this account created', () => {
     const parent = 'ee'.repeat(32)
     const inputs = resolveReplacementInputs(
-      [{ previousOutput: { txid: parent, vout: 0 }, sequence: 0xfffffffd }],
+      [
+        {
+          previousOutput: { txid: parent, vout: 0 },
+          sequence: RBF_SIGNAL_SEQUENCE
+        }
+      ],
       [
         {
           id: parent,
-          vout: [{ address: PAYMENT, value: 80000 }]
+          vout: [{ address: PAYMENT, value: 80_000 }]
         }
       ],
       [{ address: PAYMENT, keychain: 'external' }]
@@ -320,7 +337,7 @@ describe('resolveReplacementInputs', () => {
     expect(inputs?.[0]).toMatchObject({
       addressTo: PAYMENT,
       txid: parent,
-      value: 80000,
+      value: 80_000,
       vout: 0
     })
   })
