@@ -54,12 +54,7 @@ function SSNFCModal({
     try {
       const nfcData = await readNFCTag()
 
-      if (!nfcData) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      if (!nfcData.text) {
+      if (!nfcData?.text) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
