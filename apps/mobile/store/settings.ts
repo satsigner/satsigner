@@ -1,10 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import {
-  DEFAULT_FIAT_PRICE_API_URL,
-  normalizeFiatPriceApiUrl
-} from '@/constants/fiatPriceApi'
+import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
 import {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_SESSION_TTL_MS
@@ -16,6 +13,7 @@ import {
   type PayjoinCoordinationMode,
   type PayjoinSettings
 } from '@/types/payjoin'
+import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {
   hasCustomPayjoinDirectoryUrl,

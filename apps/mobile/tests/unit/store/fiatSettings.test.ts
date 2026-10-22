@@ -1,7 +1,4 @@
-import {
-  DEFAULT_FIAT_PRICE_API_URL,
-  normalizeFiatPriceApiUrl
-} from '@/constants/fiatPriceApi'
+import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
 import {
   getFiatPriceApiUrl,
   migrateFiatPriceSettings,
@@ -13,24 +10,6 @@ const initialState = useSettingsStore.getState()
 describe('settings fiat helpers', () => {
   afterEach(() => {
     useSettingsStore.setState(initialState, true)
-  })
-
-  describe('normalizeFiatPriceApiUrl', () => {
-    it('trims surrounding whitespace', () => {
-      expect(normalizeFiatPriceApiUrl('  https://example.com  ')).toBe(
-        'https://example.com'
-      )
-    })
-
-    it('strips trailing slashes', () => {
-      expect(normalizeFiatPriceApiUrl('https://example.com///')).toBe(
-        'https://example.com'
-      )
-    })
-
-    it('returns an empty string for blank input', () => {
-      expect(normalizeFiatPriceApiUrl('   ')).toBe('')
-    })
   })
 
   describe('getFiatPriceApiUrl', () => {
