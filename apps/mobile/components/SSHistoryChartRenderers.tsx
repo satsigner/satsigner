@@ -25,6 +25,10 @@ import { formatNumber, formatTxId } from '@/utils/format'
 import { hexToRgba } from '@/utils/historyChart'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+const Y_AXIS_TICK_COUNT = 4
+const Y_AXIS_LABEL_BASELINE_OFFSET = 6
+const Y_AXIS_TITLE_Y = -10
+
 type YScaleRendererProps = {
   customFontManager: ReturnType<typeof useSFProFonts>
   fontStyle: { fontFamily: string; fontSize: number }
@@ -32,6 +36,10 @@ type YScaleRendererProps = {
   chartHeight: number
   chartWidth: number
   yAxisFormatter: (value: number) => string
+  color: string
+  labelX: number
+  showGridLines: boolean
+  title?: string
 }
 
 type XScaleRendererProps = {
@@ -141,7 +149,11 @@ function YScaleRenderer({
   yScale,
   chartHeight,
   chartWidth,
-  yAxisFormatter
+  yAxisFormatter,
+  color,
+  labelX,
+  showGridLines,
+  title
 }: YScaleRendererProps) {
   if (!customFontManager) {
     return null
@@ -149,28 +161,39 @@ function YScaleRenderer({
   const font = matchFont(fontStyle, customFontManager)
   return (
     <>
-      {yScale.ticks(4).map((tick) => {
+      {title ? (
+        <Text
+          x={labelX}
+          y={Y_AXIS_TITLE_Y}
+          text={title}
+          font={font}
+          color={color}
+        />
+      ) : null}
+      {yScale.ticks(Y_AXIS_TICK_COUNT).map((tick) => {
         const yPosition = yScale(tick)
         if (yPosition > chartHeight) {
           return null
         }
         return (
           <Fragment key={tick.toString()}>
-            <Line
-              p1={vec(0, yPosition)}
-              p2={vec(chartWidth, yPosition)}
-              color="#FFFFFF29"
-              style="stroke"
-              strokeWidth={1}
-            >
-              <DashPathEffect intervals={[2, 2]} phase={0} />
-            </Line>
+            {showGridLines ? (
+              <Line
+                p1={vec(0, yPosition)}
+                p2={vec(chartWidth, yPosition)}
+                color="#FFFFFF29"
+                style="stroke"
+                strokeWidth={1}
+              >
+                <DashPathEffect intervals={[2, 2]} phase={0} />
+              </Line>
+            ) : null}
             <Text
-              x={-30}
-              y={yPosition + 6}
+              x={labelX}
+              y={yPosition + Y_AXIS_LABEL_BASELINE_OFFSET}
               text={yAxisFormatter(tick)}
               font={font}
-              color="white"
+              color={color}
             />
           </Fragment>
         )

@@ -7,11 +7,20 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
+import { missingHistoricalFiatData } from '@/utils/fiat'
+
+const FIAT_DATA_LINK_LABELS = {
+  currentPrices:
+    'settings.features.charts.historyChart.layers.turnOnCurrentPrices',
+  historicalPrices:
+    'settings.features.charts.historyChart.layers.turnOnHistoricalPrices'
+}
 
 export default function Charts() {
   const router = useRouter()
@@ -33,6 +42,8 @@ export default function Charts() {
     setShowFiatAtTxTime,
     showFiatPercentageChange,
     setShowFiatPercentageChange,
+    showHistoricalFiatLine,
+    setShowHistoricalFiatLine,
     showTransactionFlowChart,
     setShowTransactionFlowChart,
     showUtxoFlowChart,
@@ -55,6 +66,8 @@ export default function Charts() {
       state.setShowFiatAtTxTime,
       state.showFiatPercentageChange,
       state.setShowFiatPercentageChange,
+      state.showHistoricalFiatLine,
+      state.setShowHistoricalFiatLine,
       state.showTransactionFlowChart,
       state.setShowTransactionFlowChart,
       state.showUtxoFlowChart,
@@ -76,6 +89,8 @@ export default function Charts() {
     selectedShowFiatPercentageChange,
     setSelectedShowFiatPercentageChange
   ] = useState(showFiatPercentageChange)
+  const [selectedShowHistoricalFiatLine, setSelectedShowHistoricalFiatLine] =
+    useState(showHistoricalFiatLine)
   const [selectedLockZoomToXAxis, setSelectedLockZoomToXAxis] =
     useState(lockZoomToXAxis)
   const [
@@ -85,12 +100,19 @@ export default function Charts() {
   const [selectedShowUtxoFlowChart, setSelectedShowUtxoFlowChart] =
     useState(showUtxoFlowChart)
 
+  const missingFiatData = missingHistoricalFiatData({
+    fetchCurrentPrices: showCurrentFiat,
+    fetchHistoricalPrices: showHistoricalFiat
+  })
+  const historicalFiatDisabled = missingFiatData !== null
+
   function handleOnSave() {
     setLockZoomToXAxis(selectedLockZoomToXAxis)
     setShowAmount(selectedShowAmount)
     setShowFiatAtTxTime(selectedShowFiatAtTxTime)
     setShowFiatOnChart(selectedShowFiatOnChart)
     setShowFiatPercentageChange(selectedShowFiatPercentageChange)
+    setShowHistoricalFiatLine(selectedShowHistoricalFiatLine)
     setShowLabel(selectedShowLabel)
     setShowOutputField(selectedShowOutputField)
     setShowTransactionFlowChart(selectedShowTransactionFlowChart)
@@ -157,33 +179,29 @@ export default function Charts() {
                   )}
                   selected={selectedShowFiatOnChart}
                   disabled={!showCurrentFiat}
-                  onPress={
-                    !showCurrentFiat
-                      ? undefined
-                      : () => {
-                          setSelectedShowFiatOnChart((prev) => !prev)
-                          if (selectedShowFiatOnChart) {
-                            setSelectedShowFiatAtTxTime(false)
-                          }
-                        }
-                  }
+                  onPress={() => {
+                    setSelectedShowFiatOnChart((prev) => !prev)
+                    if (selectedShowFiatOnChart) {
+                      setSelectedShowFiatAtTxTime(false)
+                    }
+                  }}
                 />
                 <SSCheckbox
                   label={t(
                     'settings.features.charts.historyChart.layers.showFiatAtTxTime'
                   )}
                   selected={selectedShowFiatAtTxTime}
-                  disabled={
-                    !showCurrentFiat ||
-                    !showHistoricalFiat ||
-                    !selectedShowFiatOnChart
-                  }
-                  onPress={
-                    !showCurrentFiat ||
-                    !showHistoricalFiat ||
-                    !selectedShowFiatOnChart
-                      ? undefined
-                      : () => setSelectedShowFiatAtTxTime((prev) => !prev)
+                  disabled={historicalFiatDisabled || !selectedShowFiatOnChart}
+                  onPress={() => setSelectedShowFiatAtTxTime((prev) => !prev)}
+                />
+                <SSCheckbox
+                  label={t(
+                    'settings.features.charts.historyChart.layers.showHistoricalFiatLine'
+                  )}
+                  selected={selectedShowHistoricalFiatLine}
+                  disabled={historicalFiatDisabled}
+                  onPress={() =>
+                    setSelectedShowHistoricalFiatLine((prev) => !prev)
                   }
                 />
                 <SSCheckbox
@@ -191,14 +209,18 @@ export default function Charts() {
                     'settings.features.charts.historyChart.layers.showFiatPercentageChange'
                   )}
                   selected={selectedShowFiatPercentageChange}
-                  disabled={!showCurrentFiat || !showHistoricalFiat}
-                  onPress={
-                    !showCurrentFiat || !showHistoricalFiat
-                      ? undefined
-                      : () =>
-                          setSelectedShowFiatPercentageChange((prev) => !prev)
+                  disabled={historicalFiatDisabled}
+                  onPress={() =>
+                    setSelectedShowFiatPercentageChange((prev) => !prev)
                   }
                 />
+                {missingFiatData ? (
+                  <SSButton
+                    label={t(FIAT_DATA_LINK_LABELS[missingFiatData])}
+                    variant="outline"
+                    onPress={() => router.navigate(FIAT_DATA_SETTINGS_ROUTE)}
+                  />
+                ) : null}
               </SSVStack>
               <SSVStack>
                 <SSText>
