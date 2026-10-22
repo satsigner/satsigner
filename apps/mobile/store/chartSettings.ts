@@ -9,6 +9,7 @@ type ChartSettingState = {
   showFiatAtTxTime: boolean
   showFiatOnChart: boolean
   showFiatPercentageChange: boolean
+  showHistoricalFiatLine: boolean
   showLabel: boolean
   showOutputField: boolean
   showTransactionFlowChart: boolean
@@ -29,6 +30,9 @@ type ChartSettingAction = {
   ) => void
   setShowFiatPercentageChange: (
     showFiatPercentageChange: ChartSettingState['showFiatPercentageChange']
+  ) => void
+  setShowHistoricalFiatLine: (
+    showHistoricalFiatLine: ChartSettingState['showHistoricalFiatLine']
   ) => void
   setShowLabel: (showLabel: ChartSettingState['showLabel']) => void
   setShowOutputField: (
@@ -67,6 +71,9 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       setShowFiatPercentageChange: (showFiatPercentageChange) => {
         set({ showFiatPercentageChange })
       },
+      setShowHistoricalFiatLine: (showHistoricalFiatLine) => {
+        set({ showHistoricalFiatLine })
+      },
       setShowLabel: (showLabel) => {
         set({ showLabel })
       },
@@ -86,6 +93,7 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showFiatAtTxTime: false,
       showFiatOnChart: false,
       showFiatPercentageChange: false,
+      showHistoricalFiatLine: true,
       showLabel: true,
       showOutputField: false,
       showTransactionFlowChart: true,

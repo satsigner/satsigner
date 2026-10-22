@@ -1,4 +1,9 @@
-import { formatDate, formatRelativeTime, isToday } from '../../../utils/date'
+import {
+  formatDate,
+  formatRelativeTime,
+  isToday,
+  toValidDate
+} from '../../../utils/date'
 
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
   t: jest.fn((key, params) => {
@@ -172,5 +177,19 @@ describe('date utils', () => {
     it('should return false for a different calendar day', () => {
       expect(isToday(new Date('2023-12-31T12:00:00Z'))).toBe(false)
     })
+  })
+})
+
+describe('toValidDate', () => {
+  it('returns a date for a Date or an ISO string', () => {
+    const date = new Date('2024-01-02T00:00:00.000Z')
+    expect(toValidDate(date)).toStrictEqual(date)
+    expect(toValidDate('2024-01-02T00:00:00.000Z')).toStrictEqual(date)
+  })
+
+  it('returns null for a missing or unparseable value', () => {
+    expect(toValidDate(undefined)).toBeNull()
+    expect(toValidDate('')).toBeNull()
+    expect(toValidDate('not a date')).toBeNull()
   })
 })

@@ -3,22 +3,15 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
+import { toValidDate } from '@/utils/date'
 import { formatTimestamp } from '@/utils/format'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 
-function txNeedsHistoricalPrice(
-  tx: Transaction,
-  currency: Currency
-): tx is Transaction & { timestamp: Date } {
-  if (!tx.timestamp) {
-    return false
+function dateNeedingHistoricalPrice(tx: Transaction, currency: Currency) {
+  if (tx.prices?.[currency] !== undefined) {
+    return null
   }
-  const timestamp =
-    tx.timestamp instanceof Date ? tx.timestamp : new Date(tx.timestamp)
-  if (Number.isNaN(timestamp.getTime())) {
-    return false
-  }
-  return tx.prices?.[currency] === undefined
+  return toValidDate(tx.timestamp)
 }
 
 /**
@@ -36,12 +29,11 @@ async function backfillHistoricalPrices(): Promise<void> {
   const timestamps: number[] = []
   for (const account of accounts) {
     for (const tx of account.transactions) {
-      if (!txNeedsHistoricalPrice(tx, fiatCurrency)) {
+      const date = dateNeedingHistoricalPrice(tx, fiatCurrency)
+      if (!date) {
         continue
       }
-      const timestamp =
-        tx.timestamp instanceof Date ? tx.timestamp : new Date(tx.timestamp)
-      timestamps.push(formatTimestamp(timestamp))
+      timestamps.push(formatTimestamp(date))
     }
   }
 
@@ -58,12 +50,11 @@ async function backfillHistoricalPrices(): Promise<void> {
   for (const account of accounts) {
     let changed = false
     const transactions = account.transactions.map((tx) => {
-      if (!txNeedsHistoricalPrice(tx, fiatCurrency)) {
+      const date = dateNeedingHistoricalPrice(tx, fiatCurrency)
+      if (!date) {
         return tx
       }
-      const timestamp =
-        tx.timestamp instanceof Date ? tx.timestamp : new Date(tx.timestamp)
-      const price = priceByTimestamp[formatTimestamp(timestamp)]
+      const price = priceByTimestamp[formatTimestamp(date)]
       if (price === undefined) {
         return tx
       }
@@ -71,7 +62,7 @@ async function backfillHistoricalPrices(): Promise<void> {
       return {
         ...tx,
         prices: { ...tx.prices, [fiatCurrency]: price },
-        timestamp
+        timestamp: date
       }
     })
 

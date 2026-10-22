@@ -119,3 +119,11 @@ export function isToday(date: Date): boolean {
 export function futureDate(from: Date, days: number): Date {
   return new Date(new Date(from).setDate(from.getDate() + days))
 }
+
+export function toValidDate(value: Date | string | undefined) {
+  if (!value) {
+    return null
+  }
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}

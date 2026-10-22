@@ -26,7 +26,7 @@ import {
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
-import { hexToRgba } from '@/utils/historyChart'
+import { HISTORY_CHART_Y_HEADROOM, hexToRgba } from '@/utils/historyChart'
 
 const DAYS_AHEAD = 5
 const LABEL_FONT = ['SF Pro Text']
@@ -196,11 +196,12 @@ export function useHistoryChartGestures({
         )
       )
       if (!lockZoomToXAxis) {
+        const ySpan = maxBalance * HISTORY_CHART_Y_HEADROOM
         startYRef.current = Math.max(
           Math.min(
             prevStartY.current +
-              (((maxBalance * 1.2) / scale) * event.translationY) / chartHeight,
-            maxBalance * 1.2 - (maxBalance * 1.2) / scale
+              ((ySpan / scale) * event.translationY) / chartHeight,
+            ySpan - ySpan / scale
           ),
           0
         )
