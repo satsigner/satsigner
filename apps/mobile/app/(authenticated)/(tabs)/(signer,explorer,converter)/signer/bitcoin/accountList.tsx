@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { View, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
 import {
   NestableDraggableFlatList,
   NestableScrollContainer,
@@ -17,6 +17,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
+import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import {
@@ -173,7 +174,11 @@ export default function AccountList() {
     | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
-  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  const tabs: { key: Network }[] = [
+    { key: 'bitcoin' },
+    { key: 'testnet' },
+    { key: 'signet' }
+  ]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
     return Math.max(index, 0)
@@ -220,7 +225,7 @@ export default function AccountList() {
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
   useEffect(() => {
-    const currentNetwork = tabs[tabIndex].key as Network
+    const currentNetwork = tabs[tabIndex].key
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
     }
@@ -327,7 +332,7 @@ export default function AccountList() {
     setKeyCount(1)
     setKeysRequired(1)
 
-    const currentNetwork = tabs[tabIndex].key as Network
+    const currentNetwork = tabs[tabIndex].key
 
     const bdkNetwork = appNetworkToBdkNetwork(currentNetwork)
 
@@ -733,7 +738,7 @@ export default function AccountList() {
             gap="none"
             style={{ alignItems: 'center', marginBottom: 24 }}
           >
-            <TouchableOpacity
+            <SSPressable
               onPress={() => router.navigate('/settings/network/server')}
             >
               <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
@@ -764,13 +769,14 @@ export default function AccountList() {
                   {connectionParts.url}
                 </SSText>
               </SSHStack>
-            </TouchableOpacity>
+            </SSPressable>
             <SSBlockFeePriceRow
               blockHeight={blockHeight}
               btcPrice={btcPrice}
               fiatCurrency={fiatCurrency}
               nextBlockFee={nextBlockFee}
               blockHeightSource={blockHeightSource}
+              onPress={() => router.navigate('/explorer/chaintip')}
             />
             <SSHStack
               gap="xxs"

@@ -5,7 +5,6 @@ import {
   type StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
@@ -23,6 +22,8 @@ import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
 import type { WordListName } from '@/types/bips/39'
 import { getWordList } from '@/utils/bip39'
+
+import SSPressable from './SSPressable'
 
 type WordInfo = {
   index: number
@@ -127,14 +128,14 @@ function SSKeyboardWordSelector({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingHorizontal: 0 }}
           renderItem={({ item }) => (
-            <TouchableOpacity
+            <SSPressable
               key={item.index}
               onPress={() => onWordSelected(item.word)}
             >
               <View style={styles.wordContainerBase}>
                 <Text style={styles.wordText}>{item.word}</Text>
               </View>
-            </TouchableOpacity>
+            </SSPressable>
           )}
           removeClippedSubviews
         />

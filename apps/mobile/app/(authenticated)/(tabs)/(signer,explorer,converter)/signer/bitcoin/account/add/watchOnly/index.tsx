@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Keyboard, StyleSheet, TouchableOpacity } from 'react-native'
+import { Keyboard, StyleSheet } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
@@ -20,6 +20,7 @@ import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCollapsible from '@/components/SSCollapsible'
+import SSPressable from '@/components/SSPressable'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -41,7 +42,6 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import {
   appNetworkToBdkNetwork,
@@ -158,12 +158,12 @@ export default function WatchOnly() {
   useEffect(() => {
     async function handleScannerParams() {
       if (params.descriptor) {
-        const descriptorFromScanner = params.descriptor as string
+        const descriptorFromScanner = params.descriptor
 
         setCreationType('importDescriptor')
         await handleSingleDescriptor(descriptorFromScanner)
       } else if (params.extendedPublicKey) {
-        const xpubFromScanner = params.extendedPublicKey as string
+        const xpubFromScanner = params.extendedPublicKey
         setCreationType('importExtendedPub')
         updateXpub(xpubFromScanner)
       }
@@ -621,10 +621,7 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await processCombinedDescriptor(
-      descriptor,
-      scriptVersion as ScriptVersionType
-    )
+    const result = await processCombinedDescriptor(descriptor, scriptVersion)
 
     if (result.success) {
       setLocalExternalDescriptor(result.external)
@@ -696,7 +693,7 @@ export default function WatchOnly() {
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await processCombinedDescriptor(
             text,
-            scriptVersion as ScriptVersionType
+            scriptVersion
           )
 
           if (combinedValidation.success) {
@@ -745,7 +742,7 @@ export default function WatchOnly() {
         updateAddress(text)
       }
     } catch (error) {
-      const errorMessage = (error as Error).message
+      const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
         toast.error(errorMessage)
       }
@@ -775,7 +772,7 @@ export default function WatchOnly() {
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
             const combinedValidation = await processCombinedDescriptor(
               externalDescriptor,
-              scriptVersion as ScriptVersionType
+              scriptVersion
             )
 
             if (!combinedValidation.success) {
@@ -889,11 +886,9 @@ export default function WatchOnly() {
                             <SSText uppercase weight="bold">
                               {`${t('bitcoin.address')} #${index + 1}`}
                             </SSText>
-                            <TouchableOpacity
-                              onPress={() => deleteAddress(address)}
-                            >
+                            <SSPressable onPress={() => deleteAddress(address)}>
                               <SSIconTrash height={12} width={12} />
-                            </TouchableOpacity>
+                            </SSPressable>
                           </SSHStack>
                           <SSAddressDisplay
                             address={address}

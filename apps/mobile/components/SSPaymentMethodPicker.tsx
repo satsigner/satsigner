@@ -1,6 +1,6 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { type RefObject } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
@@ -11,6 +11,8 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatFiatPrice } from '@/utils/format'
+
+import SSPressable from './SSPressable'
 
 type SSPaymentMethodPickerProps = {
   ref: RefObject<BottomSheetMethods | null>
@@ -34,7 +36,7 @@ function SSPaymentMethodPicker({
     <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
       <SSVStack gap="md" style={styles.content}>
         {methods.map((method) => (
-          <TouchableOpacity
+          <SSPressable
             key={method.id}
             style={styles.methodRow}
             onPress={() => onSelect(method)}
@@ -65,7 +67,7 @@ function SSPaymentMethodPicker({
                 </SSText>
               )}
             </SSVStack>
-          </TouchableOpacity>
+          </SSPressable>
         ))}
         <SSButton
           label={t('common.cancel')}

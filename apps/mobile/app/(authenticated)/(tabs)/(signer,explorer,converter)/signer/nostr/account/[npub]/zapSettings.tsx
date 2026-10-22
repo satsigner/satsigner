@@ -1,10 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -133,7 +134,7 @@ export default function ZapSettingsPage() {
             </SSVStack>
             <SSHStack gap="sm" style={styles.chipRow}>
               {presets.map((amount) => (
-                <TouchableOpacity
+                <SSPressable
                   key={amount}
                   style={styles.chip}
                   activeOpacity={0.6}
@@ -143,7 +144,7 @@ export default function ZapSettingsPage() {
                   <SSText size="xs" color="muted" style={styles.chipX}>
                     x
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
               ))}
             </SSHStack>
             <SSTextInput
@@ -203,7 +204,7 @@ export default function ZapSettingsPage() {
                     wallets.map((w) => {
                       const isSelected = autoApproveWalletId === w.id
                       return (
-                        <TouchableOpacity
+                        <SSPressable
                           key={w.id}
                           style={[
                             styles.walletRow,
@@ -222,7 +223,7 @@ export default function ZapSettingsPage() {
                               </SSText>
                             ) : null}
                           </SSVStack>
-                        </TouchableOpacity>
+                        </SSPressable>
                       )
                     })
                   )}

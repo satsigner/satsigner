@@ -5,7 +5,7 @@ import {
   DrawerContentScrollView,
   useDrawerStatus
 } from 'expo-router/build/react-navigation/drawer'
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 
 import { SSIconAbout, SSIconSettings } from '@/components/icons'
 import { navMenuGroups } from '@/constants/navItems'
@@ -14,9 +14,10 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { PLATFORM } from '@/types/navigation/navMenu'
+import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
 
 import SSNavMenuGroup from './SSNavMenuGroup'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSNavMenuProps = DrawerContentComponentProps
@@ -24,8 +25,11 @@ type SSNavMenuProps = DrawerContentComponentProps
 function SSNavMenu(props: SSNavMenuProps) {
   const drawerStatus = useDrawerStatus()
   const router = useRouter()
-  const currentPlatform: PLATFORM = Platform.OS as PLATFORM
-  const filteredNavMenuGroups = navMenuGroups.reduce(
+  const currentPlatform = Platform.select({
+    android: PLATFORM.ANDROID,
+    ios: PLATFORM.IOS
+  })
+  const filteredNavMenuGroups = navMenuGroups.reduce<NavMenuGroup[]>(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
         const filteredItems = group.items.filter(
@@ -39,7 +43,7 @@ function SSNavMenu(props: SSNavMenuProps) {
       }
       return acc
     },
-    [] as typeof navMenuGroups
+    []
   )
 
   return (
@@ -72,7 +76,7 @@ function SSNavMenu(props: SSNavMenuProps) {
         </SSVStack>
         <SSVStack style={styles.footerWrapper}>
           <SSVStack gap="md" style={styles.footerLinks}>
-            <TouchableOpacity
+            <SSPressable
               activeOpacity={0.5}
               onPress={() => router.navigate('/settings')}
             >
@@ -82,8 +86,8 @@ function SSNavMenu(props: SSNavMenuProps) {
                   {t('navigation.item.settings')}
                 </SSText>
               </SSHStack>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </SSPressable>
+            <SSPressable
               activeOpacity={0.5}
               onPress={() => router.navigate('/settings/about')}
             >
@@ -93,7 +97,7 @@ function SSNavMenu(props: SSNavMenuProps) {
                   {t('navigation.item.about')}
                 </SSText>
               </SSHStack>
-            </TouchableOpacity>
+            </SSPressable>
           </SSVStack>
           <SSText size="sm" color="muted" style={styles.versionText}>
             {`v${APP_VERSION} (${BUILD_NUMBER})`}

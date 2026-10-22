@@ -1,13 +1,7 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
+import { sankey } from 'd3-sankey'
 import { useMemo } from 'react'
-import {
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
@@ -38,6 +32,7 @@ import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
+import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
   classifyChartOutputs
@@ -50,23 +45,10 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPressable from './SSPressable'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 import SSText from './SSText'
-
-interface Node extends SankeyNodeMinimal<object, object> {
-  id: string
-  depth?: number
-  depthH: number
-  address?: string
-  type: string
-  value?: number
-  txId?: string
-  ioData: TxNode['ioData']
-  nextTx?: string
-  localId?: string
-  inputOutpoint?: string
-}
 
 type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
@@ -228,18 +210,15 @@ function SSCurrentTransactionChart({
   )
 
   const sankeyGenerator = useMemo(() => {
-    const gen = sankey()
+    const gen = sankey<TxNode, object>()
       .nodeWidth(NODE_WIDTH)
       .nodePadding(SANKEY_CURRENT_TX_NODE_PADDING_PX)
       .extent([
         [SANKEY_CURRENT_TX_EXTENT_X_INSET_PX, extentTop],
         [extentX1, sankeyExtentBottomY]
       ])
-      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-    gen.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-      const { depthH } = node as Node
-      return depthH ?? 0
-    })
+      .nodeId((node) => node.id)
+    gen.nodeAlign((node) => node.depthH)
     return gen
   }, [extentTop, extentX1, sankeyExtentBottomY])
 
@@ -370,7 +349,7 @@ function SSCurrentTransactionChart({
       })
     }
 
-    return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
+    return [...inputNodes, ...blockNode, ...outputNodes]
   }, [
     inputArray,
     outputArray,
@@ -442,7 +421,7 @@ function SSCurrentTransactionChart({
   })
 
   equalizeSankeyColumnsByDepthH(
-    layoutResult.nodes as Node[],
+    layoutResult.nodes,
     extentTop,
     sankeyExtentBottomY,
     SANKEY_CURRENT_TX_NODE_PADDING_PX,
@@ -454,11 +433,9 @@ function SSCurrentTransactionChart({
   const nodeStyles = useMemo(
     () =>
       nodes.map((node) => {
-        const isBlock = (node as Node).type === 'block'
+        const isBlock = node.type === 'block'
         const blockNodeHeight =
-          isBlock && (node as Node).ioData?.txSize
-            ? ((node as Node).ioData?.txSize ?? 0) * 0.1
-            : 0
+          isBlock && node.ioData?.txSize ? (node.ioData?.txSize ?? 0) * 0.1 : 0
 
         const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
         const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
@@ -469,7 +446,7 @@ function SSCurrentTransactionChart({
           height: isBlock
             ? Math.max(blockNodeHeight, LINK_MAX_WIDTH)
             : Math.max(slotHeight, 1),
-          localId: (node as Node).localId,
+          localId: node.localId,
           width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
           x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
           y: safeY0
@@ -479,16 +456,16 @@ function SSCurrentTransactionChart({
   )
 
   const transformedLinks = links.map((link) => ({
-    source: (link.source as Node).id,
-    target: (link.target as Node).id,
+    source: getSankeyLinkEndId(link.source),
+    target: getSankeyLinkEndId(link.target),
     value: link.value
   }))
 
   const ribbonPlan = buildSankeyRibbonPlan(
     nodes.map((node) => ({
-      id: (node as Node).id,
-      type: (node as Node).type,
-      value: (node as Node).value
+      id: node.id,
+      type: node.type,
+      value: node.value
     })),
     transformedLinks
   )
@@ -535,13 +512,13 @@ function SSCurrentTransactionChart({
           >
             <SSSankeyLinks
               links={transformedLinks}
-              nodes={nodes as Node[]}
+              nodes={nodes}
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               BLOCK_WIDTH={BLOCK_WIDTH}
             />
             <SSSankeyNodes
-              nodes={nodes as Node[]}
+              nodes={nodes}
               ribbonPlan={ribbonPlan}
               sankeyGenerator={sankeyGenerator}
               selectedOutputNode={currentOutputLocalId}
@@ -560,11 +537,11 @@ function SSCurrentTransactionChart({
             ]}
           >
             {nodeStyles.map((style, index) => {
-              const node = nodes[index] as Node
+              const node = nodes[index]
               const { inputOutpoint } = node
 
               return (
-                <TouchableOpacity
+                <SSPressable
                   key={style.localId ?? inputOutpoint ?? index}
                   style={[
                     styles.node,

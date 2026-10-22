@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,6 +10,7 @@ import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import {
   type ExplorerExampleBlock,
@@ -53,7 +54,7 @@ function ExampleBlockCard({ example, onSelect }: ExampleBlockCardProps) {
   }
 
   return (
-    <TouchableOpacity style={styles.exampleCard} onPress={handlePress}>
+    <SSPressable style={styles.exampleCard} onPress={handlePress}>
       <SSVStack gap="xxs" style={styles.exampleCardContent}>
         <SSText size="sm" weight="medium">
           {example.label}
@@ -66,7 +67,7 @@ function ExampleBlockCard({ example, onSelect }: ExampleBlockCardProps) {
         </SSText>
       </SSVStack>
       <SSIconChevronRight width={12} height={12} stroke={Colors.gray['600']} />
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

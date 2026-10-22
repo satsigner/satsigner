@@ -1,5 +1,4 @@
-import { type Href, useRouter } from 'expo-router'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSLabelTags from '@/components/SSLabelTags'
 import SSText from '@/components/SSText'
@@ -19,18 +18,19 @@ import {
 } from '@/utils/arkMovement'
 import { formatNumber } from '@/utils/format'
 
+import SSPressable from './SSPressable'
+
 type SSArkRefreshCardProps = {
   movement: ArkMovement
-  link: Href
+  onPress: () => void
   label?: string
 }
 
 function SSArkRefreshCard({
   movement,
-  link,
+  onPress,
   label = ''
 }: SSArkRefreshCardProps) {
-  const router = useRouter()
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const isMuted = isMutedArkMovement(movement)
@@ -40,8 +40,8 @@ function SSArkRefreshCard({
   const feeDisplay = privacyMode ? PRIVACY_MASK : formatNumber(fee)
 
   return (
-    <TouchableOpacity
-      onPress={() => router.navigate(link)}
+    <SSPressable
+      onPress={onPress}
       activeOpacity={0.7}
       style={isMuted ? styles.mutedContainer : undefined}
     >
@@ -72,7 +72,7 @@ function SSArkRefreshCard({
           )}
         </SSVStack>
       </SSHStack>
-    </TouchableOpacity>
+    </SSPressable>
   )
 }
 

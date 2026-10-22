@@ -1,11 +1,6 @@
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  DimensionValue,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { DimensionValue, StyleSheet, View } from 'react-native'
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -19,6 +14,7 @@ import { hStack, type HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
 import { SSIconDelete, SSIconTrash } from './icons'
+import SSPressable from './SSPressable'
 import SSText from './SSText'
 
 type SSKeyboardProps = {
@@ -222,7 +218,7 @@ function SSKeyboardCell({
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          <TouchableOpacity
+          <SSPressable
             onPress={() => onKeyPress(item)}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
@@ -254,7 +250,7 @@ function SSKeyboardCell({
                 height={Sizes.text.fontSize['2xl']}
               />
             )}
-          </TouchableOpacity>
+          </SSPressable>
         </View>
       </LinearGradient>
     </View>
@@ -276,9 +272,14 @@ function getKeyBorderLight(
     KEY_LIGHT_MIN_INTENSITY,
     1 - rowBlock * KEY_LIGHT_INTENSITY_DROP_PER_ROW
   )
-  const colors = KEY_LIGHT_ALPHAS.map(
-    (a) => `rgba(255,255,255,${Math.min(0.24, a * intensity).toFixed(3)})`
-  ) as [string, string, string]
+  const toLightColor = (alpha: number) =>
+    `rgba(255,255,255,${Math.min(0.24, alpha * intensity).toFixed(3)})`
+  const [startAlpha, midAlpha, endAlpha] = KEY_LIGHT_ALPHAS
+  const colors: [string, string, string] = [
+    toLightColor(startAlpha),
+    toLightColor(midAlpha),
+    toLightColor(endAlpha)
+  ]
 
   const cx = 0.5 + Math.sin(index * 0.65) * KEY_LIGHT_CENTER_WOBBLE * 0.45
 

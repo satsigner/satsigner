@@ -1,12 +1,6 @@
 import { nip19 } from 'nostr-tools'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import {
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSIconLock from '@/components/icons/SSIconLock'
@@ -65,12 +59,14 @@ import {
   sortZapReceipts
 } from '@/utils/nostrZap'
 
+import SSPressable from './SSPressable'
+
 type SSNostrFeedTabsProps = {
   npub: string
   onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
   onZapPress?: (receipt: ZapReceiptInfo) => void
-  /** When viewing another profile, pass the signed-in identity npub so author taps open `/account/{this}/contact/{author}`. */
-  profileLinkContextNpub?: string
+  /** Called with the author npub when an author row is pressed. */
+  onAuthorPress?: (authorNpub: string) => void
   relayConnected: boolean
   relays: string[]
 }
@@ -108,7 +104,7 @@ function SSNostrFeedTabs({
   npub,
   onNotePress,
   onZapPress,
-  profileLinkContextNpub,
+  onAuthorPress,
   relayConnected,
   relays
 }: SSNostrFeedTabsProps) {
@@ -161,10 +157,7 @@ function SSNostrFeedTabs({
 
   const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
   const ownPubkeyLower = hexPubkey.toLowerCase()
-  const [ownPubkeys] = useState(() =>
-    hexPubkey ? [hexPubkey] : ([] as string[])
-  )
-  const authorNavNpub = profileLinkContextNpub ?? npub
+  const [ownPubkeys] = useState<string[]>(() => (hexPubkey ? [hexPubkey] : []))
 
   const apiRef = useRef<NostrAPI | null>(null)
   const relaysKey = JSON.stringify(relays)
@@ -614,7 +607,7 @@ function SSNostrFeedTabs({
 
     return (
       <SSNostrFeedAuthorRow
-        contextNpub={authorNavNpub}
+        onPress={onAuthorPress ? () => onAuthorPress(npubBech) : undefined}
         loading={loading}
         npubBech={npubBech}
         displayName={displayName}
@@ -895,7 +888,7 @@ function SSNostrFeedTabs({
           <>
             {zaps.length > 0 && (
               <SSHStack gap="sm" style={styles.zapSortBar}>
-                <TouchableOpacity
+                <SSPressable
                   onPress={() => {
                     if (zapSortField === 'date') {
                       setZapSortAsc((v) => !v)
@@ -913,8 +906,8 @@ function SSNostrFeedTabs({
                     {t('nostrIdentity.zapSort.date')}
                     {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
                   </SSText>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </SSPressable>
+                <SSPressable
                   onPress={() => {
                     if (zapSortField === 'amount') {
                       setZapSortAsc((v) => !v)
@@ -936,7 +929,7 @@ function SSNostrFeedTabs({
                         : ' ↓'
                       : ''}
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
               </SSHStack>
             )}
             {sortZapReceipts(zaps, zapSortField, zapSortAsc).map((receipt) => {
@@ -1004,14 +997,14 @@ function SSNostrFeedTabs({
               )
 
               return onZapPress ? (
-                <TouchableOpacity
+                <SSPressable
                   key={receipt.id}
                   accessibilityRole="button"
                   activeOpacity={0.7}
                   onPress={() => onZapPress(receipt)}
                 >
                   {row}
-                </TouchableOpacity>
+                </SSPressable>
               ) : (
                 <Fragment key={receipt.id}>{row}</Fragment>
               )

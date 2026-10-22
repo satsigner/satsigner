@@ -1,7 +1,6 @@
 import { setStringAsync } from 'expo-clipboard'
-import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -24,6 +23,8 @@ import {
   validateNormalizedPsbt
 } from '@/utils/psbt'
 
+import SSPressable from './SSPressable'
+
 type SSSignatureDropdownProps = {
   index: number
   totalKeys: number
@@ -38,7 +39,6 @@ type SSSignatureDropdownProps = {
   isReading: boolean
   decryptedKey?: Key
   account: Account
-  accountId: string
   signedPsbts: Map<number, string>
   onShowQR: () => void
   onNFCExport: () => void
@@ -48,6 +48,8 @@ type SSSignatureDropdownProps = {
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
   onSignWithSeedWords: () => void
+  /** Navigate to the devices group chat to share the transaction. */
+  onNavigateToGroupChat: () => void
   validationResult?: boolean
 }
 
@@ -64,7 +66,6 @@ function SSSignatureDropdown({
   isReading,
   decryptedKey,
   account,
-  accountId,
   signedPsbts,
   onShowQR,
   onNFCExport,
@@ -74,11 +75,10 @@ function SSSignatureDropdown({
   onSignWithLocalKey,
   onSignWithSeedQR,
   onSignWithSeedWords,
+  onNavigateToGroupChat,
   validationResult
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  const router = useRouter()
   const setTransactionToShare = useNostrStore(
     (state) => state.setTransactionToShare
   )
@@ -133,10 +133,7 @@ function SSSignatureDropdown({
         transactionData
       })
 
-      router.push({
-        params: { id: accountId },
-        pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
-      })
+      onNavigateToGroupChat()
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
     }
@@ -145,8 +142,7 @@ function SSSignatureDropdown({
     transactionId,
     txBuilderResult,
     signedPsbts,
-    router,
-    accountId,
+    onNavigateToGroupChat,
     setTransactionToShare
   ])
 
@@ -198,7 +194,7 @@ function SSSignatureDropdown({
     <View
       style={[styles.container, index === totalKeys - 1 && styles.lastItem]}
     >
-      <TouchableOpacity
+      <SSPressable
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!transactionId}
         style={[styles.header, !transactionId && styles.headerDisabled]}
@@ -267,7 +263,7 @@ function SSSignatureDropdown({
             </SSText>
           </SSVStack>
         </SSHStack>
-      </TouchableOpacity>
+      </SSPressable>
 
       {isExpanded && (
         <SSVStack style={{ paddingBottom: 28, paddingHorizontal: 0 }} gap="sm">

@@ -1,6 +1,4 @@
-import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -17,17 +15,24 @@ import { classifySpecialOutput, specialOutputTag } from '@/utils/specialOutput'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
+import SSPressable from './SSPressable'
 
 type SSTransactionVoutListProps = {
   txid?: Transaction['id']
   vout?: Transaction['vout']
   accountId?: string
+  /** Called with the output index when a known UTXO output is pressed. */
+  onOpenUtxo?: (index: number) => void
+  /** Called with the address when a known account address is pressed. */
+  onOpenAddress?: (address: string) => void
 }
 
 function SSTransactionVoutList({
   txid,
   vout,
-  accountId
+  accountId,
+  onOpenUtxo,
+  onOpenAddress
 }: SSTransactionVoutListProps) {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => accountId && account.id === accountId)
@@ -83,13 +88,11 @@ function SSTransactionVoutList({
         )
 
         return (
-          <TouchableOpacity
+          <SSPressable
             key={`${txid}:${index}`}
             onPress={() => {
               if (utxoDict[`${txid}:${index}`]) {
-                router.navigate(
-                  `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${index}`
-                )
+                onOpenUtxo?.(index)
               }
             }}
           >
@@ -111,12 +114,10 @@ function SSTransactionVoutList({
                 </SSText>
               </SSVStack>
               {output.address ? (
-                <TouchableOpacity
+                <SSPressable
                   onPress={() => {
                     if (addressDict[output.address]) {
-                      router.navigate(
-                        `/signer/bitcoin/account/${accountId}/address/${output.address}`
-                      )
+                      onOpenAddress?.(output.address)
                     } else {
                       setClipboard(output.address)
                     }
@@ -132,7 +133,7 @@ function SSTransactionVoutList({
                       size="sm"
                     />
                   </SSVStack>
-                </TouchableOpacity>
+                </SSPressable>
               ) : null}
               {labelsDict[index] ? (
                 <SSVStack gap="none">
@@ -147,7 +148,7 @@ function SSTransactionVoutList({
                 <SSScriptDecoded script={output.script || []} />
               </SSVStack>
             </SSVStack>
-          </TouchableOpacity>
+          </SSPressable>
         )
       })}
     </SSVStack>

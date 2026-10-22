@@ -1,8 +1,9 @@
 import { Stack, useRouter } from 'expo-router'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import { SSIconChevronRight, SSIconNostr, SSIconX } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { APP_LICENSE, APP_VERSION, BUILD_NUMBER } from '@/constants/version'
@@ -42,7 +43,7 @@ export default function About() {
               <SSText uppercase>{t('settings.about.license')}</SSText>
               <SSText>{APP_LICENSE}</SSText>
             </SSHStack>
-            <TouchableOpacity
+            <SSPressable
               activeOpacity={0.5}
               onPress={() => router.navigate('/settings/about/changelog')}
             >
@@ -50,8 +51,8 @@ export default function About() {
                 <SSText uppercase>{t('settings.about.changelog.title')}</SSText>
                 <SSIconChevronRight height={11.6} width={6} />
               </SSHStack>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </SSPressable>
+            <SSPressable
               activeOpacity={0.5}
               onPress={() => router.navigate('/settings/securityReport')}
             >
@@ -61,7 +62,7 @@ export default function About() {
                 </SSText>
                 <SSIconChevronRight height={11.6} width={6} />
               </SSHStack>
-            </TouchableOpacity>
+            </SSPressable>
             <SSSeparator />
             <SSText
               size="xs"
@@ -86,7 +87,7 @@ export default function About() {
               {t('settings.about.followProject')}
             </SSText>
             <SSHStack gap="lg">
-              <TouchableOpacity
+              <SSPressable
                 activeOpacity={0.5}
                 onPress={() => openUrl(NOSTR_PROFILE_URL)}
               >
@@ -94,8 +95,8 @@ export default function About() {
                   <SSIconNostr width={16} height={16} />
                   <SSText>{t('settings.about.nostr')}</SSText>
                 </SSHStack>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </SSPressable>
+              <SSPressable
                 activeOpacity={0.5}
                 onPress={() => openUrl(X_PROFILE_URL)}
               >
@@ -103,7 +104,7 @@ export default function About() {
                   <SSIconX width={16} height={16} />
                   <SSText>{t('settings.about.x')}</SSText>
                 </SSHStack>
-              </TouchableOpacity>
+              </SSPressable>
             </SSHStack>
           </SSVStack>
         </SSVStack>

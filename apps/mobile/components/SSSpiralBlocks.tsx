@@ -14,9 +14,7 @@ import { memo, useCallback, useMemo } from 'react'
 import {
   Dimensions,
   Platform,
-  type StyleProp,
   StyleSheet,
-  TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
@@ -28,6 +26,8 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
+
+import SSPressable from './SSPressable'
 
 const SCREEN_HEIGHT = Dimensions.get('screen').height
 const FACTOR_BLOCK_DISTANCE = 0.055
@@ -143,7 +143,7 @@ function SSSpiralBlocks({
     const maxIterations = Math.min(maxBlocksPerSpiral, data.length)
 
     for (let i = 0; i < maxIterations; i += 1) {
-      const currentBlock = data[i] as BlockDifficulty
+      const currentBlock = data[i]
       const timeDifference = currentBlock?.timeDifference ?? 0
       const size = currentBlock?.size ?? 0
       const block_distance =
@@ -209,7 +209,7 @@ function SSSpiralBlocks({
 
   const invisibleOverlayBlocks = useMemo(
     () =>
-      spiralBlocks.map((block) => {
+      spiralBlocks.map((block): ViewStyle => {
         const overlaySize = BLOCK_SIZE + 3 // Define overlay size
         return {
           backgroundColor: 'rgba(255, 255, 255, 0)',
@@ -219,7 +219,7 @@ function SSSpiralBlocks({
           position: 'absolute',
           top: canvasHeight / 2 + block.y - overlaySize / 2,
           width: overlaySize
-        } as StyleProp<ViewStyle>
+        }
       }),
     [spiralBlocks, canvasHeight, canvasWidth]
   )
@@ -250,16 +250,14 @@ function SSSpiralBlocks({
   const touchableBlocks = useMemo(
     () =>
       spiralBlocks.map((_, index) => (
-        <TouchableOpacity
+        <SSPressable
           key={spiralBlocks[index]?.height ?? index}
           style={invisibleOverlayBlocks[index]}
-          delayPressIn={0}
-          delayPressOut={0}
           onPress={() => onBlockPress(data[index])}
           activeOpacity={0.7}
         >
           <Animated.View />
-        </TouchableOpacity>
+        </SSPressable>
       )),
     [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress]
   )
@@ -331,7 +329,7 @@ function SSSpiralBlocks({
             ]}
             onLayout={onCanvasLayout}
           >
-            {/* Render TouchableOpacity components with pre-calculated handlers */}
+            {/* Render SSPressable components with pre-calculated handlers */}
             {touchableBlocks}
           </Animated.View>
         </View>

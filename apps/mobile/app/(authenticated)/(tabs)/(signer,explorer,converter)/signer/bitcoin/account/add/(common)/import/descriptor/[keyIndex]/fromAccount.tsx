@@ -1,12 +1,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView } from 'react-native'
 import { KeychainKind } from 'react-native-bdk-sdk'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getDescriptorString } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -109,14 +110,12 @@ function ImportDescriptorFromAccount() {
     )
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
-    updateKeyFingerprint(
-      Number(keyIndex),
-      chosenAccount.keys[0].fingerprint as string
-    )
-    setKeyDerivationPath(
-      Number(keyIndex),
-      chosenAccount.keys[0].derivationPath as string
-    )
+    if (firstKey.fingerprint) {
+      updateKeyFingerprint(Number(keyIndex), firstKey.fingerprint)
+    }
+    if (firstKey.derivationPath) {
+      setKeyDerivationPath(Number(keyIndex), firstKey.derivationPath)
+    }
     setKey(Number(keyIndex))
     clearKeyState()
     router.dismiss(3)
@@ -141,16 +140,14 @@ function ImportDescriptorFromAccount() {
                   selected={selectedAccountId === account.id}
                   onPress={() => setSelectedAccountId(account.id)}
                 />
-                <TouchableOpacity
-                  onPress={() => setSelectedAccountId(account.id)}
-                >
+                <SSPressable onPress={() => setSelectedAccountId(account.id)}>
                   <SSVStack gap="none">
                     <SSText size="xxs">{account.keys[0].fingerprint}</SSText>
                     <SSText style={{ lineHeight: 19 }} size="2xl">
                       {account.name}
                     </SSText>
                   </SSVStack>
-                </TouchableOpacity>
+                </SSPressable>
               </SSHStack>
             ))}
           </SSVStack>

@@ -5,7 +5,6 @@ import {
   type GestureResponderEvent,
   Platform,
   type StyleProp,
-  TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
@@ -22,6 +21,7 @@ import { type UtxoGroupMode } from '@/utils/utxoList'
 
 import SSBubble from './SSBubble'
 import SSBubbleGroup from './SSBubbleGroup'
+import SSPressable from './SSPressable'
 
 type SSBubbleChartProps = {
   canvasSize: {
@@ -82,7 +82,7 @@ function SSBubbleChart({
     if (showOnlySelected && inputs.length > 0) {
       const inputOutpoints = new Set(inputs.map(getUtxoOutpoint))
       return {
-        groups: [] as HierarchyCircularNode<BubblePackNode>[],
+        groups: [],
         leaves: allLeaves.filter(({ utxo }) =>
           inputOutpoints.has(getUtxoOutpoint(utxo))
         )
@@ -200,15 +200,13 @@ function SSBubbleChart({
               }
 
               return (
-                <TouchableOpacity
+                <SSPressable
                   key={leaf.data.id}
                   style={hitStyle}
-                  delayPressIn={0}
-                  delayPressOut={0}
                   onPress={(event) => handleOnPressCircle(event, leaf)}
                 >
                   <Animated.View />
-                </TouchableOpacity>
+                </SSPressable>
               )
             })}
           </Animated.View>

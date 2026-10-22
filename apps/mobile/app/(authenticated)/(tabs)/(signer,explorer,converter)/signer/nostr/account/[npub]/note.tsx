@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -37,6 +36,7 @@ import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
+import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
@@ -71,16 +71,16 @@ import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
+  getDecodedContentRelays,
+  getDecodedContentTags
+} from '@/utils/nostrDecodedContent'
+import {
   decodeNostrContent,
   extractEnhancedZapTags,
   extractPubpayTags
 } from '@/utils/nostrIdentity'
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
-import {
-  nostrAccountProfileHref,
-  nostrContactProfileHref,
-  nostrNoteHref
-} from '@/utils/nostrNavigation'
+import { nostrAuthorProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
@@ -113,11 +113,7 @@ export default function NostrNotePage() {
     if (!npub) {
       return
     }
-    if (authorNpubBech === npub) {
-      router.navigate(nostrAccountProfileHref(npub))
-    } else {
-      router.navigate(nostrContactProfileHref(npub, authorNpubBech))
-    }
+    router.navigate(nostrAuthorProfileHref(npub, authorNpubBech))
   }
 
   const identity = useNostrIdentityStore((state) =>
@@ -208,8 +204,8 @@ export default function NostrNotePage() {
   )
 
   const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
-  const [ownPubkeys] = useState(() =>
-    ownPubkeyHex ? [ownPubkeyHex] : ([] as string[])
+  const [ownPubkeys] = useState<string[]>(() =>
+    ownPubkeyHex ? [ownPubkeyHex] : []
   )
   const ownPubkeysRef = useRef(ownPubkeys)
   ownPubkeysRef.current = ownPubkeys
@@ -232,11 +228,7 @@ export default function NostrNotePage() {
   }
 
   const relayHints =
-    decoded?.kind === 'nevent' &&
-    Array.isArray(decoded.metadata?.relays) &&
-    (decoded.metadata.relays as string[]).length > 0
-      ? (decoded.metadata.relays as string[])
-      : undefined
+    decoded?.kind === 'nevent' ? getDecodedContentRelays(decoded) : undefined
 
   async function loadQuotedNote(quotedEventId: string) {
     const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
@@ -383,9 +375,7 @@ export default function NostrNotePage() {
         kind:
           typeof decoded.metadata.kind === 'number' ? decoded.metadata.kind : 1,
         pubkey: '',
-        tags: Array.isArray(decoded.metadata.tags)
-          ? (decoded.metadata.tags as string[][])
-          : []
+        tags: getDecodedContentTags(decoded)
       })
       setIsLoading(false)
       setProfileLoading(false)
@@ -1005,7 +995,7 @@ export default function NostrNotePage() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack gap="md" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
-              <TouchableOpacity
+              <SSPressable
                 activeOpacity={0.7}
                 disabled={!npub}
                 onPress={() =>
@@ -1083,7 +1073,7 @@ export default function NostrNotePage() {
                     )}
                   </SSVStack>
                 </SSHStack>
-              </TouchableOpacity>
+              </SSPressable>
             ) : null}
 
             {showMarkdownToggle ? (
@@ -1141,7 +1131,14 @@ export default function NostrNotePage() {
                 authorPreview={
                   noteAuthorFeedProps ? (
                     <SSNostrFeedAuthorRow
-                      contextNpub={npub || undefined}
+                      onPress={
+                        npub
+                          ? () =>
+                              navigateToNostrProfile(
+                                noteAuthorFeedProps.authorNpubBech
+                              )
+                          : undefined
+                      }
                       loading={noteAuthorFeedProps.loading}
                       npubBech={noteAuthorFeedProps.authorNpubBech}
                       displayName={noteAuthorFeedProps.displayName}
@@ -1281,7 +1278,7 @@ export default function NostrNotePage() {
 
             {fetched ? (
               <SSVStack gap="xxs">
-                <TouchableOpacity
+                <SSPressable
                   activeOpacity={0.7}
                   onPress={() => setShowMeta((v) => !v)}
                   style={styles.metaToggle}
@@ -1294,7 +1291,7 @@ export default function NostrNotePage() {
                   ) : (
                     <SSIconChevronDown width={10} height={10} />
                   )}
-                </TouchableOpacity>
+                </SSPressable>
                 {showMeta ? (
                   <SSVStack gap="xxs">
                     <SSHStack gap="xs" style={styles.metaRow}>
@@ -1398,7 +1395,7 @@ export default function NostrNotePage() {
                         </SSText>
                       </SSHStack>
                     ))}
-                    <TouchableOpacity
+                    <SSPressable
                       activeOpacity={0.7}
                       onPress={() => setShowJson((v) => !v)}
                       style={styles.metaToggle}
@@ -1411,7 +1408,7 @@ export default function NostrNotePage() {
                       ) : (
                         <SSIconChevronDown width={10} height={10} />
                       )}
-                    </TouchableOpacity>
+                    </SSPressable>
                     {showJson ? (
                       <SSClipboardCopy text={eventJson}>
                         <SSText size="xxs" type="mono" style={styles.jsonText}>
@@ -1536,7 +1533,7 @@ export default function NostrNotePage() {
                             ),
                             enhancedZap.zapMax!
                           ].map((sats) => (
-                            <TouchableOpacity
+                            <SSPressable
                               key={sats}
                               style={styles.presetButton}
                               disabled={zapLoading || !effectiveLud16}
@@ -1548,7 +1545,7 @@ export default function NostrNotePage() {
                                   ? NOSTR_PRIVACY_MASK
                                   : sats.toLocaleString()}
                               </SSText>
-                            </TouchableOpacity>
+                            </SSPressable>
                           ))}
                         </SSHStack>
                         <TextInput
@@ -1680,7 +1677,7 @@ export default function NostrNotePage() {
                   <SSText size="xs" color="muted" uppercase style={{ flex: 1 }}>
                     {t('nostrIdentity.note.zapReceipts')} ({zapReceipts.length})
                   </SSText>
-                  <TouchableOpacity
+                  <SSPressable
                     onPress={() => handleZapSortPress('date')}
                     hitSlop={8}
                   >
@@ -1695,8 +1692,8 @@ export default function NostrNotePage() {
                           : ' ↓'
                         : ''}
                     </SSText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
+                  </SSPressable>
+                  <SSPressable
                     onPress={() => handleZapSortPress('amount')}
                     hitSlop={8}
                   >
@@ -1711,11 +1708,11 @@ export default function NostrNotePage() {
                           : ' ↓'
                         : ''}
                     </SSText>
-                  </TouchableOpacity>
+                  </SSPressable>
                 </SSHStack>
                 {sortedZapReceipts.map((receipt) => (
                   <SSHStack key={receipt.id} gap="sm" style={styles.receiptRow}>
-                    <TouchableOpacity
+                    <SSPressable
                       activeOpacity={0.7}
                       disabled={!npub}
                       onPress={() =>
@@ -1767,7 +1764,7 @@ export default function NostrNotePage() {
                           ) : null}
                         </SSVStack>
                       </SSHStack>
-                    </TouchableOpacity>
+                    </SSPressable>
                     <SSVStack gap="xxs" style={styles.receiptAmountCol}>
                       {receipt.createdAt > 0 && (
                         <SSText size="xxs" color="muted">
@@ -1846,7 +1843,7 @@ export default function NostrNotePage() {
 
             {replyParentId && fetched && noteLooksLikeReply(fetched.tags) ? (
               <SSVStack gap="sm" style={styles.replyParentSection}>
-                <TouchableOpacity
+                <SSPressable
                   activeOpacity={0.6}
                   disabled={!npub}
                   onPress={() => {
@@ -1861,7 +1858,7 @@ export default function NostrNotePage() {
                   <SSText size="xs" color="muted" uppercase>
                     {t('nostrIdentity.note.replyingTo')}
                   </SSText>
-                </TouchableOpacity>
+                </SSPressable>
                 {replyParentLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
@@ -1874,7 +1871,7 @@ export default function NostrNotePage() {
                     {t('nostrIdentity.note.parentNotOnRelays')}
                   </SSText>
                 ) : replyParentNoteLike ? (
-                  <TouchableOpacity
+                  <SSPressable
                     activeOpacity={0.6}
                     disabled={!npub}
                     style={styles.replyParentNoteRow}
@@ -1910,7 +1907,7 @@ export default function NostrNotePage() {
                         }
                       />
                     </View>
-                  </TouchableOpacity>
+                  </SSPressable>
                 ) : null}
               </SSVStack>
             ) : null}
