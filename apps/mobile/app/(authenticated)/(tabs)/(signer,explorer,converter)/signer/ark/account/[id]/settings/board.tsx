@@ -13,7 +13,6 @@ import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
-  useArkBoardFeeEstimate,
   useArkBoardMutation,
   useArkOnchainAddress,
   useArkOnchainBalance,
@@ -22,6 +21,7 @@ import {
 } from '@/hooks/useArkBoard'
 import { useArkBoardDeposit } from '@/hooks/useArkBoardDeposit'
 import { useArkBoardPayjoin } from '@/hooks/useArkBoardPayjoin'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -126,10 +126,10 @@ export default function ArkBoardPage() {
   })
   const boardAll = validation.valid && amountSats >= confirmedSats
 
-  const feeQuery = useArkBoardFeeEstimate({
+  const feeQuery = useArkFeeEstimate({
     accountId: id,
-    amountSats,
-    enabled: validation.valid && !showPayjoin
+    enabled: validation.valid && !showPayjoin,
+    request: { amountSats, kind: 'board' }
   })
   const feeSats = feeQuery.data?.feeSats
   const canBoard =

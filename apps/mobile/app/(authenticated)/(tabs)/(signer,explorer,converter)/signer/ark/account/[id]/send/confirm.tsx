@@ -14,9 +14,9 @@ import {
   ARK_KIND_LABEL_KEYS
 } from '@/constants/ark'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
-import { useArkSendFeeEstimate } from '@/hooks/useArkSendFeeEstimate'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -27,11 +27,11 @@ import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type {
-  ArkSendFeeKind,
   ArkSendInput,
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
+import { arkSendFeeRequest } from '@/utils/ark'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -107,14 +107,11 @@ export default function ArkSendConfirmPage() {
     lnurlMaxSats === undefined ||
     (amountSats >= lnurlMinSats && amountSats <= lnurlMaxSats)
 
-  const feeKind: ArkSendFeeKind | null = draft ? feeKindFromDraft(draft) : null
-  const onchainAddress = draft?.kind === 'onchain' ? draft.address : undefined
   const debouncedAmountSats = useDebouncedValue(amountSats)
-  const feeEstimateQuery = useArkSendFeeEstimate({
+  const feeEstimateQuery = useArkFeeEstimate({
     accountId: id,
-    amountSats: debouncedAmountSats,
-    bitcoinAddress: onchainAddress,
-    kind: feeKind
+    keepPrevious: true,
+    request: draft ? arkSendFeeRequest(draft, debouncedAmountSats) : null
   })
   const feeSats = feeEstimateQuery.data
     ? feeEstimateQuery.data.feeSats
@@ -409,16 +406,6 @@ function successToastKey(outcome: ArkSendOutcome): string {
     return 'ark.send.success.onchain'
   }
   return 'ark.send.success.lightning'
-}
-
-function feeKindFromDraft(draft: ArkDestinationDraft): ArkSendFeeKind {
-  if (draft.kind === 'arkoor') {
-    return 'arkoor'
-  }
-  if (draft.kind === 'onchain') {
-    return 'onchain'
-  }
-  return 'lightning'
 }
 
 function destinationSource(draft: ArkDestinationDraft): string {

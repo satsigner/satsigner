@@ -8,7 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { useArkBalance } from '@/hooks/useArkBalance'
-import { useArkSendFeeEstimate } from '@/hooks/useArkSendFeeEstimate'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import { useArkZapPay } from '@/hooks/useArkZapPay'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -55,10 +55,10 @@ export default function ArkPayInvoicePage() {
   )
 
   const debouncedAmountSats = useDebouncedValue(amountSats)
-  const feeEstimateQuery = useArkSendFeeEstimate({
+  const feeEstimateQuery = useArkFeeEstimate({
     accountId: id,
-    amountSats: debouncedAmountSats,
-    kind: 'lightning'
+    keepPrevious: true,
+    request: { amountSats: debouncedAmountSats, kind: 'lightning' }
   })
 
   const spendableSats = balanceQuery.data?.spendableSats ?? 0

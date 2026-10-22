@@ -19,8 +19,8 @@ import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
 import { useArkExportDatadir } from '@/hooks/useArkExportDatadir'
+import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
-import { useArkRefreshFeeEstimate } from '@/hooks/useArkRefreshFeeEstimate'
 import { useArkSpendableVtxos } from '@/hooks/useArkSpendableVtxos'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -55,10 +55,10 @@ export default function ArkAccountSettingsPage() {
   const allVtxos = vtxosQuery.data ?? []
   const spendableVtxoIds = spendableVtxos.map((vtxo) => vtxo.id)
 
-  const refreshFeeQuery = useArkRefreshFeeEstimate({
+  const refreshFeeQuery = useArkFeeEstimate({
     accountId: id,
     enabled: refreshModalVisible,
-    vtxoIds: spendableVtxoIds
+    request: { kind: 'refresh', vtxoIds: spendableVtxoIds }
   })
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,
