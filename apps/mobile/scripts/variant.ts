@@ -15,7 +15,8 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -59,7 +60,10 @@ function removeNativeDir(path: string) {
   }
 }
 
+const ABI_ARM64 = 'arm64-v8a'
+
 type VariantArgs = {
+  abi: string | undefined
   apk: boolean
   device: string[]
   ios: boolean
@@ -72,6 +76,7 @@ type VariantArgs = {
 
 function parseArgs(argv: string[]) {
   const args: VariantArgs = {
+    abi: undefined,
     apk: false,
     device: [],
     ios: false,
@@ -92,6 +97,15 @@ function parseArgs(argv: string[]) {
     }
 
     switch (arg) {
+      case '--abi': {
+        const abi = remaining.shift()
+        if (abi !== ABI_ARM64) {
+          console.error(`unsupported abi: ${abi ?? '(missing)'}`)
+          process.exit(1)
+        }
+        args.abi = abi
+        break
+      }
       case '--apk':
         args.apk = true
         break
@@ -171,13 +185,33 @@ function run(
   }
 }
 
+function androidSdkDir() {
+  const fromEnv = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT
+  if (fromEnv && existsSync(fromEnv)) return fromEnv
+  const macSdk = join(homedir(), 'Library', 'Android', 'sdk')
+  if (existsSync(macSdk)) return macSdk
+  return ''
+}
+
+function withAndroidSdk(androidDir: string, env: NodeJS.ProcessEnv) {
+  const sdk = androidSdkDir()
+  if (!sdk) return env
+  writeFileSync(
+    join(androidDir, 'local.properties'),
+    `sdk.dir=${sdk.replaceAll('\\', '\\\\')}\n`
+  )
+  return { ...env, ANDROID_HOME: sdk, ANDROID_SDK_ROOT: sdk }
+}
+
 function buildApk({
+  abi,
   buildType,
   env,
   packageId,
   segment,
   variant
 }: {
+  abi: string | undefined
   buildType: 'debug' | 'release'
   env: NodeJS.ProcessEnv
   packageId: string
@@ -187,9 +221,12 @@ function buildApk({
   const androidDir = join(MOBILE_DIR, 'android')
   const gradleTask =
     buildType === 'release' ? 'assembleRelease' : 'assembleDebug'
+  const gradleArgs = abi
+    ? [gradleTask, `-PreactNativeArchitectures=${abi}`]
+    : [gradleTask]
 
   const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
-  run(gradlew, [gradleTask], env, androidDir)
+  run(gradlew, gradleArgs, withAndroidSdk(androidDir, env), androidDir)
 
   const builtApk = join(
     androidDir,
@@ -206,9 +243,10 @@ function buildApk({
 
   const variantLabel = variant === APP_VARIANT_PRODUCTION ? 'prod' : 'dev'
   const suffixLabel = segment || 'plain'
+  const abiLabel = abi === ABI_ARM64 ? '-arm64' : ''
   const outApk = join(
     outDir,
-    `satsigner-${variantLabel}-${suffixLabel}-${buildType}.apk`
+    `satsigner-${variantLabel}-${suffixLabel}-${buildType}${abiLabel}.apk`
   )
 
   copyFileSync(builtApk, outApk)
@@ -258,7 +296,7 @@ function main() {
       console.error('\n--apk is Android-only.')
       process.exit(1)
     }
-    buildApk({ buildType, env, packageId, segment, variant })
+    buildApk({ abi: args.abi, buildType, env, packageId, segment, variant })
     return
   }
 

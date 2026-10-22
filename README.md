@@ -40,6 +40,22 @@ Read more about Satsigner [here](ABOUT.md) and check out the [features](FEATURES
 - [Mempool.space](https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualizations
 - [Zeus](https://github.com/ZeusLN/zeus) - pretty, increasingly powerful remote LN node management app
 
+## Clone with ngit
+
+Pushes and Zapstore releases go through the local release page:
+
+```bash
+pnpm --filter @satsigner/release dev
+```
+
+Open the page, connect a NIP-07 browser extension, and publish from there. The key stays in the extension. After the first publish the page prints the `nostr://` clone URL. The repository identifier is `satsigner`.
+
+```bash
+git clone nostr://<npub>/satsigner
+```
+
+Pull requests are branches whose names start with `pr/`.
+
 ## Contributing
 
 Thinking about contributing to Satsigner? Read more about it [here](CONTRIBUTING.md).
