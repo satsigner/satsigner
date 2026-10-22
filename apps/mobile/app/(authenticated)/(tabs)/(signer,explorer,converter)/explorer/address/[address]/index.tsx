@@ -23,6 +23,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { getExplorerExampleAddress } from '@/constants/explorerExamples'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useExplorerAddress } from '@/hooks/useExplorerAddress'
 import SSHStack from '@/layouts/SSHStack'
@@ -319,7 +320,7 @@ export default function ExplorerAddressDetail() {
                 router.push(`/explorer/transaction/${txid}`)
               }
               onOpenFiatSettings={() =>
-                router.navigate('/settings/features/fiatData')
+                router.navigate(FIAT_DATA_SETTINGS_ROUTE)
               }
             />
           </>

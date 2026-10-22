@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -61,7 +62,7 @@ export default function FiatCurrency() {
             <SSButton
               label={tl('openFiatDataSettings')}
               variant="outline"
-              onPress={() => router.navigate('/settings/features/fiatData')}
+              onPress={() => router.navigate(FIAT_DATA_SETTINGS_ROUTE)}
             />
           </SSVStack>
         )}
