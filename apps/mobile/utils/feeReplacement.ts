@@ -90,6 +90,26 @@ function parseFeeRateFloor(value: string | undefined): number {
   return Math.ceil(parsed)
 }
 
+function parseReplacementFeeFloor(
+  value: string | undefined
+): number | undefined {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined
+  }
+  return Math.floor(parsed)
+}
+
+function feeWithReplacementFloor(
+  ratedFee: number,
+  absoluteFloor: number | undefined
+): number {
+  if (absoluteFloor === undefined) {
+    return ratedFee
+  }
+  return Math.max(ratedFee, absoluteFloor)
+}
+
 function pickFreshReceiveAddress(
   addresses: FreshAddress[]
 ): string | undefined {
@@ -189,6 +209,31 @@ function resolveInputUtxo(
     value,
     vout: vin.previousOutput.vout
   }
+}
+
+function selectConfirmedExtraUtxos(input: {
+  excludedOutpoints: Iterable<string>
+  replacementTxid: string
+  spentOutpoints: Set<string>
+  transactions: Pick<Transaction, 'blockHeight' | 'id'>[]
+  utxos: Utxo[]
+}): Utxo[] {
+  const confirmedIds = new Set(
+    input.transactions
+      .filter((tx) => !isTransactionUnconfirmed(tx.blockHeight))
+      .map((tx) => tx.id)
+  )
+  const excluded = new Set(input.excludedOutpoints)
+  return input.utxos.filter((utxo) => {
+    const outpoint = getUtxoOutpoint(utxo)
+    if (utxo.txid === input.replacementTxid) {
+      return false
+    }
+    if (input.spentOutpoints.has(outpoint) || excluded.has(outpoint)) {
+      return false
+    }
+    return confirmedIds.has(utxo.txid)
+  })
 }
 
 function resolveReplacementInputs(
@@ -412,13 +457,16 @@ export {
   buildCancelToSelfDraft,
   buildCpfpDraft,
   buildFeeBumpDraft,
+  feeWithReplacementFloor,
   getPreviewReplacementFlags,
   getReplacementActions,
   minimumChildFee,
   minimumReplacementFee,
   parseFeeRateFloor,
+  parseReplacementFeeFloor,
   pickFreshReceiveAddress,
   resolveReplacementInputs,
+  selectConfirmedExtraUtxos,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 }

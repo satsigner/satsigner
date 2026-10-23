@@ -10,13 +10,16 @@ import {
   buildCancelToSelfDraft,
   buildCpfpDraft,
   buildFeeBumpDraft,
+  feeWithReplacementFloor,
   getPreviewReplacementFlags,
   getReplacementActions,
   minimumChildFee,
   minimumReplacementFee,
   parseFeeRateFloor,
+  parseReplacementFeeFloor,
   pickFreshReceiveAddress,
   resolveReplacementInputs,
+  selectConfirmedExtraUtxos,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 } from '@/utils/feeReplacement'
@@ -211,6 +214,15 @@ describe('fee floors', () => {
     expect(parseFeeRateFloor('3.2')).toBe(4)
     expect(parseFeeRateFloor('0')).toBe(1)
   })
+
+  it('keeps a replacement fee at the initial absolute floor', () => {
+    expect(parseReplacementFeeFloor(undefined)).toBeUndefined()
+    expect(parseReplacementFeeFloor('0')).toBeUndefined()
+    expect(parseReplacementFeeFloor('250.9')).toBe(250)
+    expect(feeWithReplacementFloor(180, undefined)).toBe(180)
+    expect(feeWithReplacementFloor(180, 250)).toBe(250)
+    expect(feeWithReplacementFloor(400, 250)).toBe(400)
+  })
 })
 
 describe('replacement drafts', () => {
@@ -263,6 +275,32 @@ describe('replacement drafts', () => {
     expect(
       result.draft.outputs.some((output) => output.amount >= DUST_LIMIT)
     ).toBe(true)
+  })
+
+  it('adds only confirmed utxos that are not excluded', () => {
+    const confirmedId = 'dd'.repeat(32)
+    const unconfirmedId = 'ee'.repeat(32)
+    const unknownId = 'ff'.repeat(32)
+    const replacementId = '11'.repeat(32)
+    const confirmed = { ...utxo(20_000, 1, CHANGE), txid: confirmedId }
+    const unconfirmed = { ...utxo(30_000, 2, CHANGE), txid: unconfirmedId }
+    const unknown = { ...utxo(40_000, 3, CHANGE), txid: unknownId }
+    const excluded = { ...utxo(50_000, 4, CHANGE), txid: confirmedId }
+    const sameTx = { ...utxo(60_000, 0, CHANGE), txid: replacementId }
+    const spent = { ...utxo(70_000, 5, CHANGE), txid: confirmedId }
+    expect(
+      selectConfirmedExtraUtxos({
+        excludedOutpoints: [`${confirmedId}:4`],
+        replacementTxid: replacementId,
+        spentOutpoints: new Set([`${confirmedId}:5`]),
+        transactions: [
+          { blockHeight: 10, id: confirmedId },
+          { blockHeight: 0, id: unconfirmedId },
+          { id: replacementId }
+        ],
+        utxos: [confirmed, unconfirmed, unknown, excluded, sameTx, spent]
+      })
+    ).toStrictEqual([confirmed])
   })
 
   it('refuses a bump that still cannot pay the fee', () => {
