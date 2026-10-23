@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
 import { createReadStream } from 'node:fs'
-import { createServer } from 'node:http'
 import { readdir, readFile, stat } from 'node:fs/promises'
+import { createServer } from 'node:http'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import { WebSocketServer } from 'ws'
 
 import {
@@ -55,8 +56,8 @@ const signWaiters = new Map()
 function send(res, status, body, type = 'application/json') {
   const payload = typeof body === 'string' ? body : JSON.stringify(body)
   res.writeHead(status, {
-    'content-type': type,
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
+    'content-type': type
   })
   res.end(payload)
 }
@@ -127,14 +128,21 @@ function run(command, args, env = {}) {
     })
     child = proc
     const finish = (code) => {
-      if (child === proc) child = null
-      if (code === 0) resolve()
-      else reject(new Error(`${command} exited with code ${code}`))
+      if (child === proc) {
+        child = null
+      }
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`${command} exited with code ${code}`))
+      }
     }
     proc.stdout.on('data', (chunk) => log(chunk.toString()))
     proc.stderr.on('data', (chunk) => log(chunk.toString()))
     proc.on('error', (error) => {
-      if (child === proc) child = null
+      if (child === proc) {
+        child = null
+      }
       reject(error)
     })
     proc.on('close', finish)
@@ -142,7 +150,9 @@ function run(command, args, env = {}) {
 }
 
 function abortChild() {
-  if (!child) return
+  if (!child) {
+    return
+  }
   child.kill('SIGTERM')
   child = null
   log('aborted\n')
@@ -165,11 +175,11 @@ function gitLine(args) {
   })
 }
 
-async function gitOrigin() {
+function gitOrigin() {
   return gitLine(['remote', 'get-url', 'origin'])
 }
 
-async function gitBranch() {
+function gitBranch() {
   return gitLine(['rev-parse', '--abbrev-ref', 'HEAD'])
 }
 
@@ -203,7 +213,9 @@ async function publishZapstore(notes, only, channel) {
     '--channel',
     releaseChannel(channel)
   ]
-  if (only) args.push('--only', only)
+  if (only) {
+    args.push('--only', only)
+  }
   await run('node', args, { SIGN_WITH: bunkerUrl })
 }
 
@@ -236,9 +248,13 @@ async function listApks() {
   }
   const files = []
   for (const name of names) {
-    if (!isApkName(name)) continue
+    if (!isApkName(name)) {
+      continue
+    }
     const info = await stat(path.join(APK_DIR, name))
-    if (!info.isFile()) continue
+    if (!info.isFile()) {
+      continue
+    }
     files.push({
       bytes: info.size,
       modifiedAt: info.mtime.toISOString(),
@@ -252,7 +268,9 @@ async function listApks() {
 async function releaseApk() {
   try {
     const info = await stat(RELEASE_APK)
-    if (!info.isFile()) return null
+    if (!info.isFile()) {
+      return null
+    }
     return {
       bytes: info.size,
       modifiedAt: info.mtime.toISOString(),
@@ -268,6 +286,12 @@ function buildLocalApk(profile) {
 }
 
 const actions = {
+  announce: (body) =>
+    publishZapstore(
+      typeof body.notes === 'string' ? body.notes : '',
+      'announce',
+      body.channel
+    ),
   apk: (body) =>
     buildLocalApk(typeof body.profile === 'string' ? body.profile : 'branch'),
   publish: () => publishRepo(),
@@ -282,12 +306,6 @@ const actions = {
     publishZapstore(
       typeof body.notes === 'string' ? body.notes : '',
       'zapstore',
-      body.channel
-    ),
-  announce: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'announce',
       body.channel
     )
 }
@@ -306,7 +324,9 @@ function requireLocal(req, res) {
 }
 
 const server = createServer(async (req, res) => {
-  if (!requireLocal(req, res)) return
+  if (!requireLocal(req, res)) {
+    return
+  }
   const url = new URL(req.url ?? '/', `http://${HOST}`)
 
   if (req.method === 'GET' && url.pathname === '/') {
@@ -368,21 +388,21 @@ const server = createServer(async (req, res) => {
     const branch = await gitBranch()
     send(res, 200, {
       branch,
+      busy: child !== null,
+      channels: await releaseChannels(),
       connected: bunkerUrl.startsWith('bunker://'),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
-      channels: await releaseChannels(),
-      releaseApk: await releaseApk(),
-      busy: child !== null
+      releaseApk: await releaseApk()
     })
     return
   }
 
   if (req.method === 'GET' && url.pathname === '/api/logs') {
     res.writeHead(200, {
-      'content-type': 'text/event-stream',
       'cache-control': 'no-store',
-      connection: 'keep-alive'
+      connection: 'keep-alive',
+      'content-type': 'text/event-stream'
     })
     res.write('\n')
     listeners.add(res)
@@ -445,12 +465,12 @@ function requestSignature(eventJson) {
       return
     }
     const id = `${Date.now()}`
-    signWaiters.set(id, { resolve, reject })
-    pageSocket.send(JSON.stringify({ type: 'sign', id, event: eventJson }))
+    signWaiters.set(id, { reject, resolve })
+    pageSocket.send(JSON.stringify({ event: eventJson, id, type: 'sign' }))
   })
 }
 
-const pageSockets = new WebSocketServer({ server, path: '/api/signer' })
+const pageSockets = new WebSocketServer({ path: '/api/signer', server })
 pageSockets.on('connection', (socket) => {
   pageSocket = socket
   socket.on('message', async (raw) => {
@@ -460,11 +480,11 @@ pageSockets.on('connection', (socket) => {
       const bunker = createBunker(SIGNER_RELAY)
       bunkerUrl = bunker.bunkerUrl
       bridge = startBridge({
-        relayUrl: SIGNER_RELAY,
         bunker,
-        userPubkey: message.userPubkey,
+        log,
         onSign: requestSignature,
-        log
+        relayUrl: SIGNER_RELAY,
+        userPubkey: message.userPubkey
       })
       await bridge.ready
       log('signer connected\n')
@@ -473,14 +493,23 @@ pageSockets.on('connection', (socket) => {
     }
     if (message.type === 'signed' || message.type === 'rejected') {
       const waiter = signWaiters.get(message.id)
-      if (!waiter) return
+      if (!waiter) {
+        return
+      }
       signWaiters.delete(message.id)
-      if (message.type === 'signed') waiter.resolve(message.event)
-      else waiter.reject(new Error(message.error || 'extension rejected the signature'))
+      if (message.type === 'signed') {
+        waiter.resolve(message.event)
+      } else {
+        waiter.reject(
+          new Error(message.error || 'extension rejected the signature')
+        )
+      }
     }
   })
   socket.on('close', () => {
-    if (pageSocket === socket) pageSocket = null
+    if (pageSocket === socket) {
+      pageSocket = null
+    }
   })
 })
 

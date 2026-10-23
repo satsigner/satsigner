@@ -29,9 +29,14 @@ import path from 'path'
 import readline from 'readline'
 import { fileURLToPath } from 'url'
 
-import { nip19, getPublicKey, finalizeEvent, generateSecretKey } from 'nostr-tools'
-import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
+import {
+  nip19,
+  getPublicKey,
+  finalizeEvent,
+  generateSecretKey
+} from 'nostr-tools'
 import * as nip06 from 'nostr-tools/nip06'
+import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -39,9 +44,10 @@ const MOBILE_DIR = path.resolve(__dirname, '..')
 const REPO_ROOT = path.resolve(MOBILE_DIR, '../..')
 const require = createRequire(import.meta.url)
 const { version: APP_VERSION } = require('../package.json')
-const { getVariantPackageId, sanitizePackageSegment } = require(
-  '../constants/variant.cjs'
-)
+const {
+  getVariantPackageId,
+  sanitizePackageSegment
+} = require('../constants/variant.cjs')
 
 const args = process.argv.slice(2)
 const blossomFlagIdx = args.indexOf('--blossom')

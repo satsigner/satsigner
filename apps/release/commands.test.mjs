@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { acceptConnect } from './nip46-bridge.mjs'
-
 import {
   buildApkArgs,
   buildInitArgs,
@@ -12,6 +10,7 @@ import {
   isNostrRemote,
   redactSecrets
 } from './commands.mjs'
+import { acceptConnect } from './nip46-bridge.mjs'
 
 test('redacts bunker urls and secret keys', () => {
   const raw =
@@ -25,7 +24,10 @@ test('redacts bunker urls and secret keys', () => {
 
 test('detects a nostr remote', () => {
   assert.equal(isNostrRemote('nostr://npub1example/satsigner\n'), true)
-  assert.equal(isNostrRemote('https://github.com/satsigner/satsigner.git'), false)
+  assert.equal(
+    isNostrRemote('https://github.com/satsigner/satsigner.git'),
+    false
+  )
 })
 
 test('login and init commands keep the key out of the argument names', () => {

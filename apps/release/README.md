@@ -23,20 +23,20 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 
-| Option | What it builds |
-|---|---|
-| Branch | Dev package id for the current branch, all CPU architectures |
-| Production | Production package id, no branch suffix |
-| Pixel 8, 9, or 10 | `arm64-v8a` only |
+| Option            | What it builds                                               |
+| ----------------- | ------------------------------------------------------------ |
+| Branch            | Dev package id for the current branch, all CPU architectures |
+| Production        | Production package id, no branch suffix                      |
+| Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
 ## Tools the actions expect
 
-| Action | Needs |
-|---|---|
-| Sign in | A NIP-07 extension in the browser |
-| Sync with ngit | `ngit` on `PATH` |
-| Build APK | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
-| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set) |
+| Action            | Needs                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------- |
+| Sign in           | A NIP-07 extension in the browser                                                                        |
+| Sync with ngit    | `ngit` on `PATH`                                                                                         |
+| Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
+| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set)                                 |
 
 ## Tests
 

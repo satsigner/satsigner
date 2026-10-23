@@ -1,8 +1,12 @@
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  nip44
+} from 'nostr-tools'
 import { WebSocket } from 'ws'
-import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
-import { nip44 } from 'nostr-tools'
 
-const KIND_NIP46 = 24133
+const KIND_NIP46 = 24_133
 
 function randomSecret() {
   const bytes = new Uint8Array(18)
@@ -17,7 +21,7 @@ function createBunker(relayUrl) {
   const pubkey = getPublicKey(secretKey)
   const secret = randomSecret()
   const bunkerUrl = `bunker://${pubkey}?relay=${encodeURIComponent(relayUrl)}&secret=${secret}`
-  return { secretKey, pubkey, secret, bunkerUrl }
+  return { bunkerUrl, pubkey, secret, secretKey }
 }
 
 function conversationKey(secretKey, peer) {
@@ -34,48 +38,58 @@ function connectRelay(relayUrl) {
 
 function acceptConnect(params, secret, alreadyPaired) {
   const values = Array.isArray(params) ? params : []
-  if (values.includes(secret)) return true
+  if (values.includes(secret)) {
+    return true
+  }
   return alreadyPaired
 }
 
 function startBridge({ relayUrl, bunker, userPubkey, onSign, log }) {
   let socket
   let paired = false
-  const started = connectRelay(relayUrl).then((open) => {
-    socket = open
-    open.send(
+
+  async function open() {
+    socket = await connectRelay(relayUrl)
+    socket.send(
       JSON.stringify([
         'REQ',
         'bridge',
         {
-          kinds: [KIND_NIP46],
           '#p': [bunker.pubkey],
+          kinds: [KIND_NIP46],
           since: Math.floor(Date.now() / 1000) - 30
         }
       ])
     )
-    open.on('message', (raw) => {
-      const frame = JSON.parse(raw.toString())
-      if (frame[0] === 'EVENT' && frame[2]) {
-        handleEvent(frame[2]).catch((error) => {
-          log(`signer bridge: ${error.message}\n`)
-        })
-      }
+    socket.on('message', (raw) => {
+      void onMessage(raw)
     })
     log('signer bridge listening\n')
-  })
+  }
 
-  async function reply(peer, payload) {
+  async function onMessage(raw) {
+    try {
+      const frame = JSON.parse(raw.toString())
+      if (frame[0] !== 'EVENT' || !frame[2]) {
+        return
+      }
+      await handleEvent(frame[2])
+    } catch (error) {
+      log(`signer bridge: ${error.message}\n`)
+    }
+  }
+
+  function reply(peer, payload) {
     const content = nip44.v2.encrypt(
       JSON.stringify(payload),
       conversationKey(bunker.secretKey, peer)
     )
     const signed = finalizeEvent(
       {
-        kind: KIND_NIP46,
+        content,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [['p', peer]],
-        content
+        kind: KIND_NIP46,
+        tags: [['p', peer]]
       },
       bunker.secretKey
     )
@@ -83,7 +97,9 @@ function startBridge({ relayUrl, bunker, userPubkey, onSign, log }) {
   }
 
   async function handleEvent(event) {
-    if (event.pubkey === bunker.pubkey || event.kind !== KIND_NIP46) return
+    if (event.pubkey === bunker.pubkey || event.kind !== KIND_NIP46) {
+      return
+    }
     const plain = nip44.v2.decrypt(
       event.content,
       conversationKey(bunker.secretKey, event.pubkey)
@@ -96,9 +112,9 @@ function startBridge({ relayUrl, bunker, userPubkey, onSign, log }) {
     log(`signer bridge: ${request.method}\n`)
     try {
       const result = await answer(request.method, params)
-      await reply(event.pubkey, { id: request.id, result })
+      reply(event.pubkey, { id: request.id, result })
     } catch (error) {
-      await reply(event.pubkey, { id: request.id, error: error.message })
+      reply(event.pubkey, { error: error.message, id: request.id })
     }
   }
 
@@ -115,8 +131,12 @@ function startBridge({ relayUrl, bunker, userPubkey, onSign, log }) {
       paired = true
       return 'ack'
     }
-    if (method === 'ping') return 'pong'
-    if (method === 'get_public_key') return userPubkey
+    if (method === 'ping') {
+      return 'pong'
+    }
+    if (method === 'get_public_key') {
+      return userPubkey
+    }
     if (method === 'sign_event') {
       const signed = await onSign(params[0])
       return typeof signed === 'string' ? signed : JSON.stringify(signed)
@@ -125,10 +145,10 @@ function startBridge({ relayUrl, bunker, userPubkey, onSign, log }) {
   }
 
   return {
-    ready: started,
     close() {
       socket?.close()
-    }
+    },
+    ready: open()
   }
 }
 

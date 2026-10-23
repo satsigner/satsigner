@@ -64,7 +64,9 @@ function buildApkArgs(profile = 'branch') {
 }
 
 function isApkName(name) {
-  return name === pathBasename(name) && name.endsWith('.apk') && !name.includes('/')
+  return (
+    name === pathBasename(name) && name.endsWith('.apk') && !name.includes('/')
+  )
 }
 
 function pathBasename(name) {

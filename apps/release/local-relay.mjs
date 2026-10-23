@@ -2,22 +2,39 @@ import { WebSocketServer } from 'ws'
 
 const HOST = '127.0.0.1'
 const PORT = 4718
+const MAX_STORED_EVENTS = 200
+
+function parseFrame(raw) {
+  try {
+    return JSON.parse(raw.toString())
+  } catch {
+    return null
+  }
+}
 
 function matches(filter, event) {
-  if (filter.kinds && !filter.kinds.includes(event.kind)) return false
-  if (filter.authors && !filter.authors.includes(event.pubkey)) return false
-  if (filter.since && event.created_at < filter.since) return false
+  if (filter.kinds && !filter.kinds.includes(event.kind)) {
+    return false
+  }
+  if (filter.authors && !filter.authors.includes(event.pubkey)) {
+    return false
+  }
+  if (filter.since && event.created_at < filter.since) {
+    return false
+  }
   const tags = filter['#p']
   if (tags) {
     const found = event.tags.some(
       (tag) => tag[0] === 'p' && tags.includes(tag[1])
     )
-    if (!found) return false
+    if (!found) {
+      return false
+    }
   }
   return true
 }
 
-function startLocalRelay(log = () => {}) {
+function startLocalRelay(log) {
   const events = []
   const sockets = new Set()
   const subscriptions = new Map()
@@ -28,16 +45,16 @@ function startLocalRelay(log = () => {}) {
     sockets.add(socket)
     log('signer relay: client connected\n')
     socket.on('message', (raw) => {
-      let frame
-      try {
-        frame = JSON.parse(raw.toString())
-      } catch {
+      const frame = parseFrame(raw)
+      if (!frame) {
         return
       }
       if (frame[0] === 'EVENT' && frame[1]) {
-        const event = frame[1]
+        const [, event] = frame
         events.push(event)
-        if (events.length > 200) events.shift()
+        if (events.length > MAX_STORED_EVENTS) {
+          events.shift()
+        }
         log(`signer relay: event kind ${event.kind}\n`)
         for (const peer of sockets) {
           for (const [id, filters] of subscriptions.get(peer) ?? []) {
@@ -61,7 +78,9 @@ function startLocalRelay(log = () => {}) {
         socket.send(JSON.stringify(['EOSE', frame[1]]))
         return
       }
-      if (frame[0] === 'CLOSE') subs.delete(frame[1])
+      if (frame[0] === 'CLOSE') {
+        subs.delete(frame[1])
+      }
     })
     socket.on('close', () => {
       sockets.delete(socket)

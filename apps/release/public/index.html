@@ -9,7 +9,12 @@
         color-scheme: dark;
         background: #0a0a0a;
         color: #ffffff;
-        font-family: 'SF Pro Text', 'SF Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family:
+          'SF Pro Text',
+          'SF Pro',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
       }
       * {
         box-sizing: border-box;
@@ -411,81 +416,160 @@
     </header>
     <div class="workspace">
       <div class="controls">
-    <div class="tabs" role="tablist">
-      <button id="ngit-title" type="button" role="tab" aria-selected="true" aria-controls="ngit">
-        Sync with ngit
-      </button>
-      <button type="button" role="tab" aria-selected="false" aria-controls="zap">
-        Build and publish
-      </button>
-      <button type="button" role="tab" aria-selected="false" aria-controls="apk-panel">
-        Build APK
-      </button>
-    </div>
-    <div class="panels">
-      <section id="ngit">
-        <p class="hint" id="ngit-hint">Publish this repository over Nostr, then push the current branch.</p>
-        <ol>
-          <li class="step" id="publish-step">
-            <span class="step-title">Publish the repository</span>
-            <button id="publish" type="button" disabled>Publish repository</button>
-          </li>
-          <li class="step">
-            <span class="step-title" id="push-title">Push the branch</span>
-            <button id="push" type="button" disabled>Push branch</button>
-          </li>
-        </ol>
-      </section>
-      <section id="zap" hidden>
-        <p class="hint">Rebuild the current Android project and announce that APK on Zapstore.</p>
-        <p class="hint">
-          <a id="zapstore-link" href="https://zapstore.dev/apps/com.satsigner.satsigner.dev" target="_blank" rel="noopener">Latest Zapstore release</a>
-        </p>
-        <p class="hint" id="zapstore-target"></p>
-        <ol class="plain">
-          <li class="step">
-            <span class="step-title">Release channel</span>
-            <div class="channel" id="channel">
-              <button type="button" data-channel="primary" aria-pressed="false">Primary release</button>
-              <button type="button" data-channel="dev" aria-pressed="true">Dev release</button>
-            </div>
-            <p class="hint" id="channel-hint">Dev keeps the branch in the name and package id, so it installs beside the primary app.</p>
-            <ul id="zapstore-preview"></ul>
-            <textarea id="notes" placeholder="Optional note for the Zapstore announcement"></textarea>
-            <div class="actions">
-              <button id="zapstore" class="primary" type="button" disabled>Build, publish, and announce</button>
-              <button id="zapstore-only" class="ghost" type="button" disabled>Publish to Zapstore</button>
-              <button id="announce" class="ghost" type="button" disabled>Send announcement</button>
-            </div>
-          </li>
-        </ol>
-        <ul id="releases"></ul>
-        <h2 class="manager">Published apps</h2>
-        <p class="hint">Replace a listing by publishing a newer app event with the same package id. The APK already on Zapstore stays.</p>
-        <div id="apps"></div>
-      </section>
-      <section id="apk-panel" hidden>
-        <p class="hint">Each option runs a clean prebuild, which deletes the android folder, then saves a copy under dist/apks.</p>
-        <div class="choices">
-          <div class="choice">
-            <h3>Branch</h3>
-            <p class="hint">Includes every CPU architecture, so the file is large. The package id follows this branch, so the install sits beside the Zapstore app and will not replace it.</p>
-            <button type="button" data-apk="branch">Build branch APK</button>
-          </div>
-          <div class="choice danger">
-            <h3>Production</h3>
-            <p class="hint warn">Uses the production package id with no branch suffix, so installing it replaces the real Satsigner app. A later store update can fail if this APK was signed with the local test key.</p>
-            <button class="danger" type="button" data-apk="prod">Build production APK</button>
-          </div>
-          <div class="choice">
-            <h3>Pixel 8, 9, or 10</h3>
-            <p class="hint">arm64-v8a only, which those Pixels use. Smaller and faster to build. It will not install on x86 emulators or 32-bit phones. The package id still follows this branch.</p>
-            <button type="button" data-apk="pixel">Build for Pixel 8, 9, 10</button>
-          </div>
+        <div class="tabs" role="tablist">
+          <button
+            id="ngit-title"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="ngit"
+          >
+            Sync with ngit
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="zap"
+          >
+            Build and publish
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="apk-panel"
+          >
+            Build APK
+          </button>
         </div>
-        <ul id="apks"></ul>
-      </section>
-    </div>
+        <div class="panels">
+          <section id="ngit">
+            <p class="hint" id="ngit-hint">
+              Publish this repository over Nostr, then push the current branch.
+            </p>
+            <ol>
+              <li class="step" id="publish-step">
+                <span class="step-title">Publish the repository</span>
+                <button id="publish" type="button" disabled>
+                  Publish repository
+                </button>
+              </li>
+              <li class="step">
+                <span class="step-title" id="push-title">Push the branch</span>
+                <button id="push" type="button" disabled>Push branch</button>
+              </li>
+            </ol>
+          </section>
+          <section id="zap" hidden>
+            <p class="hint">
+              Rebuild the current Android project and announce that APK on
+              Zapstore.
+            </p>
+            <p class="hint">
+              <a
+                id="zapstore-link"
+                href="https://zapstore.dev/apps/com.satsigner.satsigner.dev"
+                target="_blank"
+                rel="noopener"
+                >Latest Zapstore release</a
+              >
+            </p>
+            <p class="hint" id="zapstore-target"></p>
+            <ol class="plain">
+              <li class="step">
+                <span class="step-title">Release channel</span>
+                <div class="channel" id="channel">
+                  <button
+                    type="button"
+                    data-channel="primary"
+                    aria-pressed="false"
+                  >
+                    Primary release
+                  </button>
+                  <button type="button" data-channel="dev" aria-pressed="true">
+                    Dev release
+                  </button>
+                </div>
+                <p class="hint" id="channel-hint">
+                  Dev keeps the branch in the name and package id, so it
+                  installs beside the primary app.
+                </p>
+                <ul id="zapstore-preview"></ul>
+                <textarea
+                  id="notes"
+                  placeholder="Optional note for the Zapstore announcement"
+                ></textarea>
+                <div class="actions">
+                  <button id="zapstore" class="primary" type="button" disabled>
+                    Build, publish, and announce
+                  </button>
+                  <button
+                    id="zapstore-only"
+                    class="ghost"
+                    type="button"
+                    disabled
+                  >
+                    Publish to Zapstore
+                  </button>
+                  <button id="announce" class="ghost" type="button" disabled>
+                    Send announcement
+                  </button>
+                </div>
+              </li>
+            </ol>
+            <ul id="releases"></ul>
+            <h2 class="manager">Published apps</h2>
+            <p class="hint">
+              Replace a listing by publishing a newer app event with the same
+              package id. The APK already on Zapstore stays.
+            </p>
+            <div id="apps"></div>
+          </section>
+          <section id="apk-panel" hidden>
+            <p class="hint">
+              Each option runs a clean prebuild, which deletes the android
+              folder, then saves a copy under dist/apks.
+            </p>
+            <div class="choices">
+              <div class="choice">
+                <h3>Branch</h3>
+                <p class="hint">
+                  Includes every CPU architecture, so the file is large. The
+                  package id follows this branch, so the install sits beside the
+                  Zapstore app and will not replace it.
+                </p>
+                <button type="button" data-apk="branch">
+                  Build branch APK
+                </button>
+              </div>
+              <div class="choice danger">
+                <h3>Production</h3>
+                <p class="hint warn">
+                  Uses the production package id with no branch suffix, so
+                  installing it replaces the real Satsigner app. A later store
+                  update can fail if this APK was signed with the local test
+                  key.
+                </p>
+                <button class="danger" type="button" data-apk="prod">
+                  Build production APK
+                </button>
+              </div>
+              <div class="choice">
+                <h3>Pixel 8, 9, or 10</h3>
+                <p class="hint">
+                  arm64-v8a only, which those Pixels use. Smaller and faster to
+                  build. It will not install on x86 emulators or 32-bit phones.
+                  The package id still follows this branch.
+                </p>
+                <button type="button" data-apk="pixel">
+                  Build for Pixel 8, 9, 10
+                </button>
+              </div>
+            </div>
+            <ul id="apks"></ul>
+          </section>
+        </div>
       </div>
       <pre id="log" aria-label="Command output"></pre>
     </div>
@@ -504,7 +588,8 @@
         for (const tab of tabs) {
           const selected = tab.getAttribute('aria-controls') === id
           tab.setAttribute('aria-selected', selected ? 'true' : 'false')
-          document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected
+          document.getElementById(tab.getAttribute('aria-controls')).hidden =
+            !selected
         }
       }
 
@@ -732,12 +817,14 @@
           button.type = 'button'
           button.dataset.replace = event.id
           button.textContent = 'Replace listing'
-          button.disabled = !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
+          button.disabled =
+            !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           const remove = document.createElement('button')
           remove.type = 'button'
           remove.dataset.removeApp = event.id
           remove.textContent = 'Delete listing'
-          remove.disabled = !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
+          remove.disabled =
+            !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           actions.append(button, remove)
           card.append(title, name, content, actions)
           if (readDeletedIds(DELETED_APPS_KEY).has(packageId)) {
@@ -834,7 +921,8 @@
             return
           }
           rememberDeleted(packageId, DELETED_APPS_KEY)
-          statusEl.textContent = 'Deletion requested. Zapstore may still show the page.'
+          statusEl.textContent =
+            'Deletion requested. Zapstore may still show the page.'
           writeLog(`delete request ${packageId}\n`)
           await loadApps()
         } catch (error) {
@@ -1001,7 +1089,8 @@
       function safePicture(url) {
         try {
           const parsed = new URL(url)
-          if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return url
+          if (parsed.protocol === 'https:' || parsed.protocol === 'http:')
+            return url
         } catch {
           return ''
         }
@@ -1083,8 +1172,10 @@
           avatarEl.removeAttribute('src')
           avatarEl.hidden = true
         }
-        publishButton.disabled = busy || !connected || publishButton.dataset.hidden === '1'
-        pushButton.disabled = busy || !connected || pushButton.dataset.ready !== '1'
+        publishButton.disabled =
+          busy || !connected || publishButton.dataset.hidden === '1'
+        pushButton.disabled =
+          busy || !connected || pushButton.dataset.ready !== '1'
         zapstoreButton.disabled = busy || !connected
         zapstoreOnlyButton.disabled = busy || !connected
         announceButton.disabled = busy || !connected
@@ -1130,8 +1221,11 @@
         const item = document.createElement('li')
         const name = document.createElement('span')
         name.textContent = label
-        const isUrl = value.startsWith('https://') || value.startsWith('http://')
-        const meta = isUrl ? document.createElement('a') : document.createElement('span')
+        const isUrl =
+          value.startsWith('https://') || value.startsWith('http://')
+        const meta = isUrl
+          ? document.createElement('a')
+          : document.createElement('span')
         meta.className = 'preview-value'
         meta.textContent = value
         if (isUrl) {
@@ -1152,10 +1246,14 @@
           'Primary publishes a clean name and the production package id. The prebuild deletes the android folder, and installing the APK replaces the store app.'
         const devHint =
           'Dev keeps the branch in the name and package id, so it installs beside the primary app.'
-        channelHint.textContent = releaseChannel === 'primary' ? primaryHint : devHint
+        channelHint.textContent =
+          releaseChannel === 'primary' ? primaryHint : devHint
         channelHint.classList.toggle('warn', releaseChannel === 'primary')
         for (const button of channelButtons) {
-          button.classList.toggle('danger', button.dataset.channel === 'primary')
+          button.classList.toggle(
+            'danger',
+            button.dataset.channel === 'primary'
+          )
         }
         zapstoreButton.classList.toggle('danger', releaseChannel === 'primary')
         zapstoreButton.classList.toggle('primary', releaseChannel !== 'primary')
@@ -1190,8 +1288,12 @@
         ngitHint.textContent = status.published
           ? `Checked out ${branch}. Sync sends only that branch to ${status.origin}.`
           : `Checked out ${branch}. Publish this repository over Nostr, then push only that branch.`
-        pushTitle.textContent = status.published ? `Sync ${branch}` : `Push ${branch}`
-        pushButton.textContent = status.published ? `Sync ${branch}` : `Push ${branch}`
+        pushTitle.textContent = status.published
+          ? `Sync ${branch}`
+          : `Push ${branch}`
+        pushButton.textContent = status.published
+          ? `Sync ${branch}`
+          : `Push ${branch}`
         if (status.origin) {
           writeLog(`origin ${status.origin}\n`)
         }
@@ -1200,7 +1302,7 @@
         const release = status.releaseApk
         zapstoreTargetEl.textContent = release
           ? `Release APK from the Android project on disk, all CPU architectures. Current app-release.apk: ${formatBytes(release.bytes)} · ${release.modifiedAt.slice(0, 16).replace('T', ' ')}.`
-          : 'Release APK from the Android project on disk, all CPU architectures. It keeps that project\'s package id. No release APK is on disk yet.'
+          : "Release APK from the Android project on disk, all CPU architectures. It keeps that project's package id. No release APK is on disk yet."
         setBusy(status.busy)
         await refreshApks()
       }
@@ -1214,7 +1316,8 @@
         socket.addEventListener('message', async (message) => {
           const request = JSON.parse(message.data)
           if (request.type === 'ok') {
-            statusEl.textContent = 'Signed in. Signatures still need approval in the extension.'
+            statusEl.textContent =
+              'Signed in. Signatures still need approval in the extension.'
             await refreshStatus()
             return
           }
@@ -1295,16 +1398,23 @@
         button.addEventListener('click', () => {
           releaseChannel = button.dataset.channel
           for (const item of channelButtons) {
-            item.setAttribute('aria-pressed', item === button ? 'true' : 'false')
+            item.setAttribute(
+              'aria-pressed',
+              item === button ? 'true' : 'false'
+            )
           }
           showChannel()
         })
       }
       zapstoreButton.addEventListener('click', () => runAction('zapstore'))
-      zapstoreOnlyButton.addEventListener('click', () => runAction('zapstoreOnly'))
+      zapstoreOnlyButton.addEventListener('click', () =>
+        runAction('zapstoreOnly')
+      )
       announceButton.addEventListener('click', () => runAction('announce'))
       for (const button of apkButtons) {
-        button.addEventListener('click', () => runAction('apk', button.dataset.apk))
+        button.addEventListener('click', () =>
+          runAction('apk', button.dataset.apk)
+        )
       }
 
       const logs = new EventSource('/api/logs')
