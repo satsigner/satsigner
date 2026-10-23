@@ -55,8 +55,8 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
-import { payeesFromOutputs } from '@/utils/brantaPayee'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { payeesFromOutputs } from '@/utils/brantaPayee'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
   compactError,
