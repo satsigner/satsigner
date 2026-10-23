@@ -1,6 +1,7 @@
 import { ZodError } from 'zod'
 
 import {
+  formatNetworkHashRate,
   parseBlockchainInfoResponse,
   parseBlockTemplateResponse,
   parseChainInfoResponse
@@ -49,7 +50,7 @@ const coreBlockchainInfo = {
   blocks: 100,
   chain: 'regtest',
   chainwork: '00000000000000000000000000000000000000000000000000000000000000ca',
-  difficulty: 4.656542373906925e-10,
+  difficulty: 4.656_542_373_906_925e-10,
   headers: 100,
   initialblockdownload: false,
   mediantime: 1_699_999_000,
@@ -76,13 +77,13 @@ describe('energyRpc', () => {
 
     it('accepts an error response without a result', () => {
       const data = parseBlockTemplateResponse({
-        error: { code: -32601, message: 'Method not found' },
+        error: { code: -32_601, message: 'Method not found' },
         id: '1',
         result: null
       })
 
       expect(data.error).toStrictEqual({
-        code: -32601,
+        code: -32_601,
         message: 'Method not found'
       })
       expect(data.result).toBeNull()
@@ -139,5 +140,22 @@ describe('energyRpc', () => {
         ZodError
       )
     })
+  })
+})
+
+describe('formatNetworkHashRate', () => {
+  it('formats hash rate in EH/s', () => {
+    expect(formatNetworkHashRate('main', 812_340_000_000_000_000_000)).toBe(
+      '812.34'
+    )
+  })
+
+  it('has no label on regtest', () => {
+    expect(formatNetworkHashRate('regtest', 1e18)).toBeUndefined()
+  })
+
+  it('falls back to zero before the chain or rate is known', () => {
+    expect(formatNetworkHashRate(undefined, 1e18)).toBe('0')
+    expect(formatNetworkHashRate('signet', undefined)).toBe('0')
   })
 })

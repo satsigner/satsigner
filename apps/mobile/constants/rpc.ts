@@ -2,8 +2,8 @@ import { MS_PER_SECOND } from '@/constants/time'
 
 // Default well-known Bitcoin Core RPC ports per network.
 export const RPC_DEFAULT_PORT_MAINNET = 8332
-export const RPC_DEFAULT_PORT_SIGNET = 38332
-export const RPC_DEFAULT_PORT_TESTNET = 18332
+export const RPC_DEFAULT_PORT_SIGNET = 38_332
+export const RPC_DEFAULT_PORT_TESTNET = 18_332
 
 // Default timeout for a single RPC call. A hung/unreachable node must not
 // stall sync or the UI indefinitely — see RPC_RESCAN_TIMEOUT_MS for the one

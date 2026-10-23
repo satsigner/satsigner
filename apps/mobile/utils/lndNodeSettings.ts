@@ -2,7 +2,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import type { LNDPendingChannelsResponse } from '@/types/models/Lightning'
 
 export function formatLndVersion(version: string): string {
-  const cleanVersion = version.replace(/[^0-9.]/g, '')
+  const cleanVersion = version.replaceAll(/[^0-9.]/g, '')
   const parts = cleanVersion.split('.').filter(Boolean)
 
   if (parts.length >= 3) {

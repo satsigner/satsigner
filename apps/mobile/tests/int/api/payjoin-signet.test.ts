@@ -36,14 +36,18 @@ import {
   sampleSignetWalletSeed,
   sampleSignetXpubFingerprint
 } from '@/constants/samples'
-import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
+import {
+  getPayjoinDeps,
+  payjoinSessionStore,
+  usePayjoinSessionsStore
+} from '@/store/payjoinSessions'
 import { type PayjoinWalletCallbacks } from '@/types/payjoin'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 const bip32 = BIP32Factory(ecc)
 const SIGNET_NETWORK = bitcoinjs.networks.testnet
-const PAYMENT_SATS = 5_555
+const PAYMENT_SATS = 5555
 const LABEL = 'Payjoin signet integration'
 
 const noopFetch: FetchLike = () =>
@@ -100,7 +104,7 @@ function buildOriginalPsbt(params: {
   psbt.addInput({
     hash: TXID,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: inputValue
@@ -122,7 +126,7 @@ function buildProposalPsbt(params: {
   psbt.addInput({
     hash: TXID_A,
     index: 0,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
       value: 100_000
@@ -131,7 +135,7 @@ function buildProposalPsbt(params: {
   psbt.addInput({
     hash: TXID_B,
     index: 1,
-    sequence: 0xfffffffd,
+    sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'44'.repeat(20)}`, 'hex'),
       value: 100_000
@@ -163,7 +167,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     expect(session.status).toBe('ready')
@@ -186,10 +192,12 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
-    const resumed = await tryResumeReceiverSession(created)
+    const resumed = await tryResumeReceiverSession(created, payjoinSessionStore)
     expect(resumed).not.toBeNull()
     expect(resumed?.amountSats).toBe(PAYMENT_SATS)
     expect(resumed?.label).toBe(LABEL)
@@ -207,7 +215,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     const dead = {
@@ -216,7 +226,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     }
     usePayjoinSessionsStore.getState().upsertSession(dead)
 
-    const resumed = await tryResumeReceiverSession(dead)
+    const resumed = await tryResumeReceiverSession(dead, payjoinSessionStore)
     expect(resumed).toBeNull()
     expect(
       usePayjoinSessionsStore.getState().getSession(created.id)
@@ -226,7 +236,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'sample-segwit-signet',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
     expect(renewed.status).toBe('ready')
     expect(renewed.amountSats).toBe(PAYMENT_SATS)
@@ -238,7 +250,9 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
       accountId: 'receiver-sample',
       address: wallet.receiveAddress,
       amountSats: PAYMENT_SATS,
-      label: LABEL
+      deps: getPayjoinDeps(),
+      label: LABEL,
+      network: 'signet'
     })
 
     const original = buildOriginalPsbt({
@@ -278,12 +292,13 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const sendResult = await sendPayjoin({
       accountId: 'sender-sample',
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [wallet.receiveScript.toString('hex')],
       payjoinUri: receiver.uri,
       paymentAmountSats: PAYMENT_SATS,
-      timeoutMs: 2_000
+      timeoutMs: 2000
     })
 
     expect(sendResult.ok).toBe(true)
@@ -301,6 +316,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const { session: withOriginal, originalPsbtBase64 } =
       await pollReceiverSession({
         callbacks,
+        deps: getPayjoinDeps(),
         fetchImpl: noopFetch,
         session: receiver
       })
@@ -315,6 +331,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
 
     const finalized = await finalizeReceiverPayjoin({
       callbacks,
+      deps: getPayjoinDeps(),
       fetchImpl: noopFetch,
       session: toFinalize
     })
@@ -348,6 +365,7 @@ describe('payjoin Sample (segwit) Signet wallet secret', () => {
     const started = await startBip77Send({
       accountId: 'sender-sample',
       callbacks,
+      deps: getPayjoinDeps(),
       disableOutputSubstitution: true,
       fetchImpl: noopFetch,
       originalPsbtBase64: original.toBase64(),

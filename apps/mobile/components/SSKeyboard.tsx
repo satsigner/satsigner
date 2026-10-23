@@ -95,20 +95,23 @@ export default function SSKeyboard({
 
   function handleOnPress(item: string) {
     switch (item) {
-      case KEY_DELETE:
+      case KEY_DELETE: {
         if (onDelete) {
           onDelete()
         }
         break
-      case KEY_CLEAR:
+      }
+      case KEY_CLEAR: {
         if (onClear) {
           onClear()
         }
         break
-      default:
+      }
+      default: {
         if (onPress) {
           onPress(item)
         }
+      }
     }
   }
 

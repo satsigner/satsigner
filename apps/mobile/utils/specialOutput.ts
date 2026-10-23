@@ -56,7 +56,7 @@ function asmOpReturnToBytes(asm: string): Uint8Array {
 
   const pushMatch = rest.match(/^OP_PUSHBYTES_(\d+)\s+/i)
   const hexPart = pushMatch ? rest.slice(pushMatch[0].length) : rest
-  const hex = hexPart.toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
+  const hex = hexPart.toLowerCase().replace(/^0x/, '').replaceAll(/\s+/g, '')
   if (hex.length === 0 || hex.length % 2 !== 0 || !/^[0-9a-f]*$/.test(hex)) {
     return new Uint8Array([OP_RETURN])
   }

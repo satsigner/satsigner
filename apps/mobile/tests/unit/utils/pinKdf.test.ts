@@ -43,7 +43,7 @@ const ARGON2_CONFIG = {
   parallelism: 1,
   passes: 2
 } as const
-const SCRYPT_CONFIG = { n: 32768, name: 'scrypt', p: 1, r: 8 } as const
+const SCRYPT_CONFIG = { n: 32_768, name: 'scrypt', p: 1, r: 8 } as const
 const PBKDF2_600K = { iterations: 600_000, name: 'pbkdf2' } as const
 
 const SALT = '00112233445566778899aabbccddeeff'
@@ -142,7 +142,7 @@ describe('pinKdf', () => {
         SALT,
         32,
         expect.objectContaining({
-          N: 32768,
+          N: 32_768,
           maxmem: 64 * 1024 * 1024,
           p: 1,
           r: 8

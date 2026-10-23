@@ -134,7 +134,7 @@ describe('payjoinUri', () => {
       const withLabel =
         'bitcoin:tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx?label=keep-me&pjos=0&pj=https://payjo.in/mb%23RK1-x'
       const withAmount = appendParamsToPayjoinUri(withLabel, {
-        amountSats: 5_000
+        amountSats: 5000
       })
       expect(withAmount).toContain('label=keep-me')
       expect(withAmount).toContain('amount=0.00005')

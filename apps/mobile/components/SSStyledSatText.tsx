@@ -31,7 +31,7 @@ function SSStyledSatText({
 }: SSStyledSatTextProps) {
   const zeroPadding = useZeroPadding || currency === 'btc'
   const formatted = formatNumber(amount, decimals, zeroPadding)
-  const spacedFormatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  const spacedFormatted = formatted.replaceAll(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
 
   const firstNonZeroIndex =
     spacedFormatted.search(/[1-9]/) === -1

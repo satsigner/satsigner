@@ -1,12 +1,13 @@
+import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { isPSBT } from '@/utils/bitcoinContent'
 
 /** Normalize hex or base64 PSBT payload to base64 (`cHNidP…`). */
 export function normalizePsbtToBase64(input: string): string | null {
-  const trimmed = input.trim().replace(/\s+/g, '')
+  const trimmed = input.trim().replaceAll(/\s+/g, '')
   if (!trimmed || !isPSBT(trimmed)) {
     return null
   }
-  if (trimmed.startsWith('cHNidP')) {
+  if (trimmed.startsWith(PSBT_MAGIC_BASE64)) {
     return trimmed
   }
   try {

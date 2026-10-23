@@ -15,22 +15,30 @@ function singlesigDescriptorFromKeyPart(
   scriptVersion: ScriptVersionType | undefined
 ): string {
   switch (scriptVersion) {
-    case 'P2PKH':
+    case 'P2PKH': {
       return `pkh(${keyPart})`
-    case 'P2SH-P2WPKH':
+    }
+    case 'P2SH-P2WPKH': {
       return `sh(wpkh(${keyPart}))`
-    case 'P2WPKH':
+    }
+    case 'P2WPKH': {
       return `wpkh(${keyPart})`
-    case 'P2TR':
+    }
+    case 'P2TR': {
       return `tr(${keyPart})`
-    case 'P2WSH':
+    }
+    case 'P2WSH': {
       return `wsh(${keyPart})`
-    case 'P2SH-P2WSH':
+    }
+    case 'P2SH-P2WSH': {
       return `sh(wsh(${keyPart}))`
-    case 'P2SH':
+    }
+    case 'P2SH': {
       return `sh(${keyPart})`
-    default:
+    }
+    default: {
       return `wpkh(${keyPart})`
+    }
   }
 }
 

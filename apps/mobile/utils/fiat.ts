@@ -11,3 +11,29 @@ export function satsToFiat(sats: number, btcPrice: number, enabled: boolean) {
   }
   return (sats / SATS_PER_BITCOIN) * btcPrice
 }
+
+export function normalizeFiatPriceApiUrl(url: string) {
+  return url.trim().replace(/\/+$/, '')
+}
+
+type FiatPriceFetching = {
+  fetchCurrentPrices: boolean
+  fetchHistoricalPrices: boolean
+}
+
+export function missingHistoricalFiatData({
+  fetchCurrentPrices,
+  fetchHistoricalPrices
+}: FiatPriceFetching) {
+  if (!fetchCurrentPrices) {
+    return 'currentPrices'
+  }
+  if (!fetchHistoricalPrices) {
+    return 'historicalPrices'
+  }
+  return null
+}
+
+export function isHistoricalFiatAvailable(fetching: FiatPriceFetching) {
+  return missingHistoricalFiatData(fetching) === null
+}

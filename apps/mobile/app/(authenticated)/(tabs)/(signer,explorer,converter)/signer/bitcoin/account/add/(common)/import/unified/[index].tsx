@@ -31,6 +31,7 @@ import {
   parseImportedDescriptorPayload,
   parseXpubInput
 } from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -162,7 +163,7 @@ export default function UnifiedImport() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -196,7 +197,7 @@ export default function UnifiedImport() {
     setLocalExternalDescriptor(descriptor)
     if (isValid) {
       setExternalDescriptor(descriptor)
-      setExternalDescriptorError('') // Clear error when valid
+      setExternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -250,7 +251,7 @@ export default function UnifiedImport() {
     setLocalInternalDescriptor(descriptor)
     if (isValid) {
       setInternalDescriptor(descriptor)
-      setInternalDescriptorError('') // Clear error when valid
+      setInternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -308,7 +309,7 @@ export default function UnifiedImport() {
         setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
       }
 
-      const keyIndex = parseInt(index, 10)
+      const keyIndex = Number.parseInt(index, 10)
       setKey(keyIndex)
 
       toast.success(t('account.import.success'))
@@ -323,6 +324,43 @@ export default function UnifiedImport() {
     } finally {
       setLoadingWallet(false)
     }
+  }
+
+  function handleCombinedDescriptorImport(combinedDescriptor: string) {
+    const combinedValidation = validateCombinedDescriptor(
+      combinedDescriptor,
+      scriptVersion,
+      network
+    )
+
+    setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+    setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+    setValidExternalDescriptor(combinedValidation.isValid)
+    setValidInternalDescriptor(combinedValidation.isValid)
+
+    if (!combinedValidation.isValid) {
+      const errorMessage = combinedValidation.error
+        ? t(`account.import.error.${combinedValidation.error}`)
+        : t('account.import.error.descriptorFormat')
+      setExternalDescriptorError(errorMessage)
+      setInternalDescriptorError(errorMessage)
+      updateDescriptorValidationState({
+        validExternalDescriptor: false,
+        validInternalDescriptor: false
+      })
+      return
+    }
+
+    setExternalDescriptor(combinedValidation.externalDescriptor)
+    setInternalDescriptor(combinedValidation.internalDescriptor)
+    setExternalDescriptorError('')
+    setInternalDescriptorError('')
+    updateDescriptorValidationState({
+      externalDescriptor: combinedValidation.externalDescriptor,
+      internalDescriptor: combinedValidation.internalDescriptor,
+      validExternalDescriptor: true,
+      validInternalDescriptor: true
+    })
   }
 
   async function pasteFromClipboard() {
@@ -349,8 +387,8 @@ export default function UnifiedImport() {
             /#[a-z0-9]+$/,
             ''
           )
-          internalDescriptor = descriptorWithoutChecksum.replace(
-            /\/0\/\*/g,
+          internalDescriptor = descriptorWithoutChecksum.replaceAll(
+            '/0/*',
             '/1/*'
           )
         }
@@ -361,35 +399,7 @@ export default function UnifiedImport() {
       }
 
       if (isCombinedDescriptor(text)) {
-        const combinedValidation = validateCombinedDescriptor(
-          text,
-          scriptVersion,
-          network
-        )
-
-        if (combinedValidation.isValid) {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-        } else {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-        }
+        handleCombinedDescriptorImport(text)
       } else {
         if (externalDescriptor) {
           const descriptorToValidate = originalDescriptor || externalDescriptor
@@ -436,68 +446,21 @@ export default function UnifiedImport() {
     try {
       const nfcData = await readNFCTag()
 
-      if (!nfcData) {
+      if (!nfcData?.text) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
-      if (!nfcData.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = nfcData.text
-        .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
-        .replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       if (importType === 'descriptor') {
-        let externalDescriptor = text
-        let internalDescriptor = ''
-        const originalDescriptor = ''
-        if (text.includes('\n')) {
-          ;[externalDescriptor, internalDescriptor] = text.split('\n')
-        }
+        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
-          const combinedValidation = validateCombinedDescriptor(
-            text,
-            scriptVersion,
-            network
-          )
-
-          if (combinedValidation.isValid) {
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-            setValidExternalDescriptor(true)
-            setValidInternalDescriptor(true)
-
-            setExternalDescriptor(combinedValidation.externalDescriptor)
-            setInternalDescriptor(combinedValidation.internalDescriptor)
-
-            setExternalDescriptorError('')
-            setInternalDescriptorError('')
-          } else {
-            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-            setValidExternalDescriptor(false)
-            setValidInternalDescriptor(false)
-
-            const errorMessage = combinedValidation.error
-              ? t(`account.import.error.${combinedValidation.error}`)
-              : t('account.import.error.descriptorFormat')
-            setExternalDescriptorError(errorMessage)
-            setInternalDescriptorError(errorMessage)
-          }
+          handleCombinedDescriptorImport(text)
         } else {
           if (externalDescriptor) {
-            const descriptorToValidate =
-              originalDescriptor || externalDescriptor
-            updateExternalDescriptor(descriptorToValidate)
+            updateExternalDescriptor(externalDescriptor)
           }
           if (internalDescriptor) {
             updateInternalDescriptor(internalDescriptor)
@@ -536,41 +499,7 @@ export default function UnifiedImport() {
         return
       }
       if (parsed.combined) {
-        const combinedValidation = validateCombinedDescriptor(
-          parsed.combined,
-          scriptVersion,
-          network
-        )
-        if (combinedValidation.isValid) {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-          updateDescriptorValidationState({
-            externalDescriptor: combinedValidation.externalDescriptor,
-            internalDescriptor: combinedValidation.internalDescriptor,
-            validExternalDescriptor: true,
-            validInternalDescriptor: true
-          })
-        } else {
-          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
-          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-          updateDescriptorValidationState({
-            validExternalDescriptor: false,
-            validInternalDescriptor: false
-          })
-        }
+        handleCombinedDescriptorImport(parsed.combined)
       } else {
         const externalValidation = updateExternalDescriptor(
           parsed.external,
@@ -615,16 +544,21 @@ export default function UnifiedImport() {
       return t('watchonly.importDescriptor.title')
     }
     switch (scriptVersion) {
-      case 'P2PKH':
+      case 'P2PKH': {
         return t('account.import.xpub')
-      case 'P2SH-P2WPKH':
+      }
+      case 'P2SH-P2WPKH': {
         return t('account.import.ypub')
-      case 'P2WPKH':
+      }
+      case 'P2WPKH': {
         return t('account.import.zpub')
-      case 'P2TR':
+      }
+      case 'P2TR': {
         return t('account.import.vpub')
-      default:
+      }
+      default: {
         return t('account.import.xpub')
+      }
     }
   }
 

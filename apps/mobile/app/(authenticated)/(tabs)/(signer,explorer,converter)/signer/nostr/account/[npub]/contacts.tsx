@@ -1,6 +1,7 @@
-import { NDKEvent, NDKKind, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { useMemo, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -109,7 +110,7 @@ export default function NostrContacts() {
       const signer = new NDKPrivateKeySigner(secretKey)
       const event = new NDKEvent(undefined, {
         content: '',
-        kind: NDKKind.Contacts,
+        kind: nostrKinds.Contacts,
         tags
       })
       await event.sign(signer)

@@ -23,6 +23,8 @@ import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { getExplorerExampleAddress } from '@/constants/explorerExamples'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useExplorerAddress } from '@/hooks/useExplorerAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -85,6 +87,7 @@ function UtxoRow({ utxo }: UtxoRowProps) {
 }
 
 export default function ExplorerAddressDetail() {
+  const display = useDisplayPreferences()
   const { address: addressParam } = useLocalSearchParams<{
     address: string
   }>()
@@ -308,6 +311,7 @@ export default function ExplorerAddressDetail() {
             </SSVStack>
 
             <SSExplorerAddressTransactions
+              {...display}
               address={data.address}
               txids={data.txids}
               heightByTxid={data.heightByTxid}
@@ -316,7 +320,7 @@ export default function ExplorerAddressDetail() {
                 router.push(`/explorer/transaction/${txid}`)
               }
               onOpenFiatSettings={() =>
-                router.navigate('/settings/features/fiatData')
+                router.navigate(FIAT_DATA_SETTINGS_ROUTE)
               }
             />
           </>

@@ -24,7 +24,7 @@ type RibbonLink = {
 }
 
 export function linkRibbonKey(source: string, target: string): string {
-  return `${source}\x1E${target}`
+  return `${source}\u001E${target}`
 }
 
 export function totalThroughputToBandHeight(totalValue: number): number {

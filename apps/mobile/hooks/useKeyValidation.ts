@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import { type Key } from '@/types/models/Account'
+import { hasStoredMnemonic } from '@/utils/account'
 
 type UseKeyValidationParams = {
   keyDetails: Key | undefined
@@ -64,16 +65,7 @@ function useKeyValidation({
     [isKeyCompleted, keyDetails]
   )
 
-  const hasLocalSeed = useMemo(
-    () =>
-      Boolean(
-        decryptedKey?.secret &&
-        typeof decryptedKey.secret === 'object' &&
-        'mnemonic' in decryptedKey.secret &&
-        decryptedKey.secret.mnemonic
-      ),
-    [decryptedKey]
-  )
+  const hasLocalSeed = hasStoredMnemonic(decryptedKey)
 
   const isSignatureCompleted = useMemo(
     () => Boolean(signedPsbt && signedPsbt.trim().length > 0),

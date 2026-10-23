@@ -53,13 +53,13 @@ const PAYJOIN_NATIVE_HTTP_TIMEOUT_MS = 45_000
 const PAYJOIN_BIP77_SEND_TIMEOUT_MS = 60_000
 
 /** Default deadline for the sender's initial quick-poll loop. */
-const PAYJOIN_QUICK_POLL_DEFAULT_MS = 3_000
+const PAYJOIN_QUICK_POLL_DEFAULT_MS = 3000
 
 /** Delay between quick-poll attempts while awaiting the receiver's response. */
 const PAYJOIN_QUICK_POLL_INTERVAL_MS = 400
 
 /** Upper bound applied to the quick-poll deadline derived from a caller timeout. */
-const PAYJOIN_QUICK_POLL_MAX_MS = 5_000
+const PAYJOIN_QUICK_POLL_MAX_MS = 5000
 
 /** Default timeout for resuming and polling a persisted receiver session. */
 const PAYJOIN_RESUME_POLL_DEFAULT_TIMEOUT_MS = 15_000
@@ -75,16 +75,16 @@ const PAYJOIN_DEFAULT_PJOS: 0 | 1 = 0
  * Below this floor the QR stays plain BIP21 while the mailbox can remain alive
  * (anti-probing / Bull Bitcoin parity).
  */
-const PAYJOIN_MIN_RECEIVE_SATS = 5_000
+const PAYJOIN_MIN_RECEIVE_SATS = 5000
 
 /**
  * Minimum UTXO value (sats) a receiver must have to contribute an input.
  * Empty / dust-only wallets cannot complete a Payjoin as receiver.
  */
-const PAYJOIN_MIN_CONTRIBUTE_SATS = 5_000
+const PAYJOIN_MIN_CONTRIBUTE_SATS = 5000
 
 /** Payment amount (sats) used by the in-app Signet BIP77 diagnostics roundtrip. */
-const PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS = 5_000
+const PAYJOIN_LIVE_ROUNDTRIP_PAYMENT_SATS = 5000
 
 /** Absolute fee (sats) for the diagnostics original PSBT on Signet. */
 const PAYJOIN_LIVE_ROUNDTRIP_FEE_SATS = 500

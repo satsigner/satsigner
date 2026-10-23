@@ -58,7 +58,7 @@ import {
   processCombinedDescriptor,
   removeChecksum
 } from '@/utils/descriptor'
-import { stripBitcoinPrefix } from '@/utils/parse'
+import { sanitizeScannedText, stripBitcoinPrefix } from '@/utils/parse'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 import {
   isCombinedDescriptor,
@@ -361,7 +361,7 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -389,7 +389,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -663,66 +663,18 @@ export default function WatchOnly() {
     try {
       const nfcData = await readNFCTag()
 
-      if (!nfcData) {
+      if (!nfcData?.text) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
-      if (!nfcData.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = nfcData.text
-        .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
-        .replace(/^en/, '')
+      const text = sanitizeScannedText(nfcData.text)
 
       if (selectedOption === 'importDescriptor') {
-        let externalDescriptor = text
-        let internalDescriptor = ''
-        if (text.includes('\n')) {
-          ;[externalDescriptor, internalDescriptor] = text.split('\n')
-        }
+        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
         if (isCombinedDescriptor(text)) {
-          // Validate the combined descriptor and get separated descriptors
-          const combinedValidation = await processCombinedDescriptor(
-            text,
-            scriptVersion
-          )
-
-          if (combinedValidation.success) {
-            setLocalExternalDescriptor(combinedValidation.external)
-            setLocalInternalDescriptor(combinedValidation.internal)
-            setIsValidExternalDescriptor(true)
-            setIsValidInternalDescriptor(true)
-
-            const externalWithoutChecksum = combinedValidation.external.replace(
-              /#[a-z0-9]+$/,
-              ''
-            )
-            const internalWithoutChecksum = combinedValidation.internal.replace(
-              /#[a-z0-9]+$/,
-              ''
-            )
-            setExternalDescriptor(externalWithoutChecksum)
-            setInternalDescriptor(internalWithoutChecksum)
-
-            extractAndSetFingerprint(combinedValidation.external)
-
-            await updateExternalDescriptor(externalWithoutChecksum, true)
-            await updateInternalDescriptor(internalWithoutChecksum, true)
-          } else {
-            setLocalExternalDescriptor(combinedValidation.external)
-            setLocalInternalDescriptor(combinedValidation.internal)
-            setIsValidExternalDescriptor(false)
-            setIsValidInternalDescriptor(false)
-          }
+          await handleCombinedDescriptor(text)
         } else {
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
@@ -957,23 +909,19 @@ export default function WatchOnly() {
                 </SSVStack>
               )}
               {selectedOption === 'importDescriptor' && (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText center>
-                      {t('watchonly.importDescriptor.internal')}
-                    </SSText>
-                    <SSTextInput
-                      value={internalDescriptor}
-                      style={
-                        isValidInternalDescriptor
-                          ? styles.valid
-                          : styles.invalid
-                      }
-                      multiline
-                      onChangeText={updateInternalDescriptor}
-                    />
-                  </SSVStack>
-                </>
+                <SSVStack gap="xxs">
+                  <SSText center>
+                    {t('watchonly.importDescriptor.internal')}
+                  </SSText>
+                  <SSTextInput
+                    value={internalDescriptor}
+                    style={
+                      isValidInternalDescriptor ? styles.valid : styles.invalid
+                    }
+                    multiline
+                    onChangeText={updateInternalDescriptor}
+                  />
+                </SSVStack>
               )}
             </SSVStack>
           </SSVStack>

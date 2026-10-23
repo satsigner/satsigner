@@ -1,7 +1,7 @@
 const HEX_BYTE_REGEX = /^[0-9a-f]{2}$/
 
 function normalizeHex(hex: string): string {
-  return hex.trim().toLowerCase().replace(/^0x/, '').replace(/\s+/g, '')
+  return hex.trim().toLowerCase().replace(/^0x/, '').replaceAll(/\s+/g, '')
 }
 
 function byteAscii(byte: number): string {
