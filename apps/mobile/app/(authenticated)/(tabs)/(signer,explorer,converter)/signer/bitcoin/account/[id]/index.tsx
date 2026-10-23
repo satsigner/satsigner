@@ -115,7 +115,7 @@ import { type Address } from '@/types/models/Address'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
-import { getAccountTotalBalance } from '@/utils/account'
+import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
@@ -138,7 +138,6 @@ import {
   type ScanThroughput
 } from '@/utils/scanThroughput'
 import { sortTransactions, type TransactionSortField } from '@/utils/sort'
-import { time } from '@/utils/time'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
@@ -1965,12 +1964,7 @@ export default function AccountView() {
       return
     }
 
-    const { lastSyncedAt } = account
-    const now = time.now()
-    if (
-      lastSyncedAt &&
-      now > time.minutesAfter(lastSyncedAt, autoConnectDelay)
-    ) {
+    if (!isAutoSyncDue(account, autoConnectDelay)) {
       return
     }
 
