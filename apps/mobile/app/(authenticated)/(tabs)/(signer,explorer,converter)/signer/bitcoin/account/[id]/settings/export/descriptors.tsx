@@ -524,6 +524,7 @@ export default function ExportDescriptors() {
               font-family: 'Courier New', monospace;
               font-size: 11px;
               word-break: break-all;
+              white-space: pre-wrap;
               background-color: #f8f8f8;
               padding: 20px;
               border: 1px solid #ddd;
