@@ -2683,6 +2683,7 @@
     "developer.backupPassphraseAllowed": "Allowed: letters (A–Z, a–z), digits (0–9), space, and symbols: ! \" # $ % & ' ( ) * + , - . / : ; < = > ? @ [ ] ^ _ ` { | } ~",
     "developer.backupPassphraseInvalid": "Passphrase must be non-empty and use only allowed characters",
     "developer.backupPassphraseLabel": "Passphrase",
+    "developer.backupPassphraseRequirements": "Passphrase must be at least %{min} characters long and use only allowed characters",
     "developer.backupPassphrasePlaceholder": "Enter passphrase",
     "developer.backupPreviewWarning": "This backup includes seed words. Keep it secure and private.",
     "developer.backupSuccess": "Data backup created",
