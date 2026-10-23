@@ -478,6 +478,12 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
+  apps/release:
+    dependencies:
+      ws:
+        specifier: 8.20.0
+        version: 8.20.0
+
 packages:
 
   '@adobe/css-tools@4.4.4':
