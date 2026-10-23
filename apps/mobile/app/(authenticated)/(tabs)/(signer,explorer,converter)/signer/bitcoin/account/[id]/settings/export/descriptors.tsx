@@ -32,38 +32,8 @@ import {
   appNetworkToBdkNetwork
 } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
+import { addDescriptorChecksum } from '@/utils/descriptor'
 import { shareFile } from '@/utils/filesystem'
-
-function calculateDescriptorChecksum(descriptor: string): string {
-  try {
-    // Simple checksum calculation for React Native
-    // This is a simplified version that creates a basic checksum
-    let hash = 0
-    for (let i = 0; i < descriptor.length; i += 1) {
-      const char = descriptor.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash &= hash // Convert to 32-bit integer
-    }
-
-    const base58Chars =
-      '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-    let num = Math.abs(hash)
-    let result = ''
-
-    while (num > 0) {
-      result = base58Chars[num % 58] + result
-      num = Math.floor(num / 58)
-    }
-
-    while (result.length < 8) {
-      result = `1${result}`
-    }
-
-    return result
-  } catch {
-    return ''
-  }
-}
 
 type DescriptorQrItemProps = {
   descriptor: string
@@ -209,11 +179,7 @@ export default function ExportDescriptors() {
                   }
                 }
 
-                const checksum =
-                  calculateDescriptorChecksum(singleSigDescriptor)
-                descriptorString = checksum
-                  ? `${singleSigDescriptor}#${checksum}`
-                  : singleSigDescriptor
+                descriptorString = addDescriptorChecksum(singleSigDescriptor)
               } else {
                 descriptorString =
                   'No descriptor available - missing fingerprint or extended public key'
@@ -396,17 +362,10 @@ export default function ExportDescriptors() {
                   }
                 }
 
-                if (
-                  !finalDescriptor ||
-                  keySection.split(',').length !== keyCount
-                ) {
-                  descriptorString = finalDescriptor
-                } else {
-                  const checksum = calculateDescriptorChecksum(finalDescriptor)
-                  descriptorString = checksum
-                    ? `${finalDescriptor}#${checksum}`
-                    : finalDescriptor
-                }
+                descriptorString =
+                  !finalDescriptor || keySection.split(',').length !== keyCount
+                    ? finalDescriptor
+                    : addDescriptorChecksum(finalDescriptor)
               }
             }
           } else {
@@ -420,16 +379,9 @@ export default function ExportDescriptors() {
                 key.creationType === 'importDescriptor' &&
                 secret.externalDescriptor
               ) {
-                const descriptor = secret.externalDescriptor
-
-                if (!descriptor.includes('#')) {
-                  const checksum = calculateDescriptorChecksum(descriptor)
-                  descriptorString = checksum
-                    ? `${descriptor}#${checksum}`
-                    : descriptor
-                } else {
-                  descriptorString = descriptor
-                }
+                descriptorString = addDescriptorChecksum(
+                  secret.externalDescriptor
+                )
               } else if (
                 key.creationType === 'importExtendedPub' &&
                 secret.extendedPublicKey &&
@@ -465,24 +417,14 @@ export default function ExportDescriptors() {
                   }
                 }
 
-                const checksum = calculateDescriptorChecksum(descriptor)
-                descriptorString = checksum
-                  ? `${descriptor}#${checksum}`
-                  : descriptor
+                descriptorString = addDescriptorChecksum(descriptor)
               } else if (
                 key.creationType === 'importAddress' &&
                 secret.externalDescriptor
               ) {
-                const descriptor = secret.externalDescriptor
-
-                if (!descriptor.includes('#')) {
-                  const checksum = calculateDescriptorChecksum(descriptor)
-                  descriptorString = checksum
-                    ? `${descriptor}#${checksum}`
-                    : descriptor
-                } else {
-                  descriptorString = descriptor
-                }
+                descriptorString = addDescriptorChecksum(
+                  secret.externalDescriptor
+                )
               } else {
                 descriptorString =
                   'No descriptor available for watch-only account - missing required data'
@@ -496,21 +438,9 @@ export default function ExportDescriptors() {
           } else {
             const { secret } = key
 
-            if (secret.externalDescriptor) {
-              const descriptor = secret.externalDescriptor
-
-              if (!descriptor.includes('#')) {
-                const checksum = calculateDescriptorChecksum(descriptor)
-                descriptorString = checksum
-                  ? `${descriptor}#${checksum}`
-                  : descriptor
-              } else {
-                descriptorString = descriptor
-              }
-            } else {
-              descriptorString =
-                'No descriptor available for imported address - missing address data'
-            }
+            descriptorString = secret.externalDescriptor
+              ? addDescriptorChecksum(secret.externalDescriptor)
+              : 'No descriptor available for imported address - missing address data'
           }
         }
 

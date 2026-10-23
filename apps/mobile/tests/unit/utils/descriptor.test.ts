@@ -1,7 +1,9 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
+  addDescriptorChecksum,
   descriptorHasPrivateKeyMaterial,
+  getDescriptorChecksum,
   getDescriptorDerivationPath,
   getFingerprint,
   getXpubFingerprint,
@@ -179,5 +181,46 @@ describe('descriptorHasPrivateKeyMaterial', () => {
 
   it('accepts watch-only descriptors', () => {
     expect(descriptorHasPrivateKeyMaterial(SPARROW_DESCRIPTOR)).toBe(false)
+  })
+})
+
+// Vectors from BIP-380 and Bitcoin Core's descriptor_tests.cpp.
+const CORE_MULTI_XPUB_DESCRIPTOR =
+  "sh(multi(2,[00000000/111'/222]xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL,xpub68NZiKmJWnxxS6aaHmn81bvJeTESw724CRDs6HbuccFQN9Ku14VQrADWgqbhhTHBaohPX4CjNLf9fq9MYo6oDaPPLPxSb7gwQN3ih19Zm4Y/0))"
+
+const CORE_MULTI_XPRV_DESCRIPTOR =
+  "sh(multi(2,[00000000/111'/222]xprvA1RpRA33e1JQ7ifknakTFpgNXPmW2YvmhqLQYMmrj4xJXXWYpDPS3xz7iAxn8L39njGVyuoseXzU6rcxFLJ8HFsTjSyQbLYnMpCqE2VbFWc,xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L/0))"
+
+describe('getDescriptorChecksum', () => {
+  it('matches the BIP-380 test vectors', () => {
+    expect(getDescriptorChecksum('raw(deadbeef)')).toBe('89f8spxm')
+    expect(getDescriptorChecksum(CORE_MULTI_XPUB_DESCRIPTOR)).toBe('tjg09x5t')
+    expect(getDescriptorChecksum(CORE_MULTI_XPRV_DESCRIPTOR)).toBe('ggrsrxfy')
+  })
+
+  it('rejects characters outside the descriptor charset', () => {
+    expect(() => getDescriptorChecksum('raw(deadbeef)é')).toThrow(
+      'Invalid descriptor character'
+    )
+  })
+})
+
+describe('addDescriptorChecksum', () => {
+  it('appends the checksum', () => {
+    expect(addDescriptorChecksum('raw(deadbeef)')).toBe(
+      'raw(deadbeef)#89f8spxm'
+    )
+  })
+
+  it('replaces an invalid checksum', () => {
+    expect(
+      addDescriptorChecksum(`${CORE_MULTI_XPUB_DESCRIPTOR}#112g5xnC`)
+    ).toBe(`${CORE_MULTI_XPUB_DESCRIPTOR}#tjg09x5t`)
+  })
+
+  it('keeps a valid checksum', () => {
+    expect(addDescriptorChecksum('raw(deadbeef)#89f8spxm')).toBe(
+      'raw(deadbeef)#89f8spxm'
+    )
   })
 })
