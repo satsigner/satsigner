@@ -11,12 +11,16 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
+// Keys start the descriptor or follow `(`, `,` or a `[origin]`. Matching only
+// there keeps base58 noise inside an xpub from looking like a prefix.
+const PRIVATE_EXTENDED_KEY_PATTERN = new RegExp(
+  String.raw`(?:^|[(,\]])\s*(?:${BDK_PRIVATE_EXTENDED_KEY_PREFIXES.join('|')})`,
+  'i'
+)
+
 /** True when a descriptor holds an extended private key (xprv, tprv, ...). */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
-  const lower = descriptor.toLowerCase()
-  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
-    lower.includes(prefix)
-  )
+  return PRIVATE_EXTENDED_KEY_PATTERN.test(descriptor)
 }
 
 // Thrown when a descriptor contains private key material that must not be

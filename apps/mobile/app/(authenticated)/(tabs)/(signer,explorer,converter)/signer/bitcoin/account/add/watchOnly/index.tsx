@@ -50,6 +50,7 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  descriptorHasPrivateKeyMaterial,
   getFingerprint,
   parseImportedDescriptorPayload,
   parseJsonDescriptor,
@@ -361,7 +362,7 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -389,7 +390,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true

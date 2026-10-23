@@ -177,7 +177,28 @@ describe('descriptorHasPrivateKeyMaterial', () => {
     )
   })
 
+  it('flags private keys after a key origin or inside multisig', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'tr([e5eda689/86h/1h/0h]tprv8ZgxMBicQKsP/<0;1>/*)#abcdefgh'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wsh(sortedmulti(2,[aaaaaaaa/48h/1h/0h/2h]tpubD6NzVbkrYhZ4X/0/*,[bbbbbbbb/48h/1h/0h/2h]tprv8ZgxMBicQKsP/0/*))'
+      )
+    ).toBe(true)
+  })
+
   it('accepts watch-only descriptors', () => {
     expect(descriptorHasPrivateKeyMaterial(SPARROW_DESCRIPTOR)).toBe(false)
+  })
+
+  it('ignores prefix-like characters inside a public key', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh([e5eda689/84h/1h/0h]tpubDCXPRVtprvZz/0/*)'
+      )
+    ).toBe(false)
   })
 })
