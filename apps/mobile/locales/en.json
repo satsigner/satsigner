@@ -3140,7 +3140,7 @@
     "fee": "Fee",
     "feeBytes": "Fee sat/b",
     "feeReplacement.bump": "Increase fee",
-    "feeReplacement.cancel": "Cancel to self",
+    "feeReplacement.cancel.action": "Cancel to self",
     "feeReplacement.cancel.confirm": "Replace payment",
     "feeReplacement.cancel.message": "This spends the same inputs again. The original payment will not be sent, and the sats return to a new address of this account.",
     "feeReplacement.cancel.title": "Cancel this payment?",

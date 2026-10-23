@@ -42,7 +42,8 @@ import {
   buildFeeBumpDraft,
   getReplacementActions,
   pickFreshReceiveAddress,
-  resolveReplacementInputs
+  resolveReplacementInputs,
+  selectConfirmedExtraUtxos
 } from '@/utils/feeReplacement'
 import {
   formatConfirmations,
@@ -265,7 +266,7 @@ export default function TxDetails() {
     }
     replaceDraft(accountId, result.draft)
     router.navigate(
-      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?feeRateFloor=${result.draft.feeRate}`
+      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?feeRateFloor=${result.draft.feeRate}&feeFloor=${result.draft.fee}`
     )
   }
 
@@ -278,17 +279,20 @@ export default function TxDetails() {
       account.transactions,
       account.addresses
     )
-    if (!resolvedInputs) {
+    const spent = new Set((resolvedInputs ?? []).map(getUtxoOutpoint))
+    const estimatedVsize = resolvedInputs
+      ? resolvedInputs.length * 68 + displayTx.vout.length * 31 + 10
+      : undefined
+    const originalVsize =
+      displayTx.vsize && displayTx.vsize > 0 ? displayTx.vsize : estimatedVsize
+    if (!originalVsize) {
       return undefined
     }
-    const spent = new Set(resolvedInputs.map(getUtxoOutpoint))
-    const originalVsize =
-      displayTx.vsize && displayTx.vsize > 0
-        ? displayTx.vsize
-        : resolvedInputs.length * 68 + displayTx.vout.length * 31 + 10
-    const originalFee = displayTx.fee ?? 0
+    const originalFee = displayTx.fee
     const targetFeeRate =
-      Math.floor(originalFee / Math.max(originalVsize, 1)) + 1
+      originalFee === undefined
+        ? 1
+        : Math.floor(originalFee / Math.max(originalVsize, 1)) + 1
     const destination =
       pickFreshReceiveAddress(account.addresses) ??
       account.addresses.find((address) => address.keychain === 'external')
@@ -296,10 +300,13 @@ export default function TxDetails() {
       ''
     return {
       destination,
-      extraUtxos: account.utxos.filter(
-        (utxo) =>
-          utxo.txid !== displayTx.id && !spent.has(getUtxoOutpoint(utxo))
-      ),
+      extraUtxos: selectConfirmedExtraUtxos({
+        excludedOutpoints: account.excludedUtxoOutpoints ?? [],
+        replacementTxid: displayTx.id,
+        spentOutpoints: spent,
+        transactions: account.transactions,
+        utxos: account.utxos
+      }),
       originalFee,
       originalVsize,
       outputs: displayTx.vout.map((output) => ({
@@ -320,7 +327,7 @@ export default function TxDetails() {
         ?.address ??
       context?.destination ??
       ''
-    if (!context) {
+    if (!context?.resolvedInputs || context.originalFee === undefined) {
       toast.error(t('transaction.feeReplacement.error.failed'))
       return
     }
@@ -341,14 +348,14 @@ export default function TxDetails() {
   function handleConfirmCancel() {
     setCancelVisible(false)
     const context = replacementContext()
-    if (!context) {
+    if (!context?.resolvedInputs || context.originalFee === undefined) {
       toast.error(t('transaction.feeReplacement.error.failed'))
       return
     }
     openReplacement(
       buildCancelToSelfDraft({
         destination: context.destination,
-        destinationLabel: t('transaction.feeReplacement.cancel'),
+        destinationLabel: t('transaction.feeReplacement.cancel.action'),
         originalFee: context.originalFee,
         originalVsize: context.originalVsize,
         resolvedInputs: context.resolvedInputs,
@@ -370,7 +377,7 @@ export default function TxDetails() {
       buildCpfpDraft({
         destination: context.destination,
         destinationLabel: t('transaction.feeReplacement.cpfp'),
-        parentFee: context.originalFee,
+        parentFee: context.originalFee ?? 0,
         parentVsize: context.originalVsize,
         targetFeeRate: Math.max(context.targetFeeRate, 2),
         utxo: child
@@ -433,7 +440,7 @@ export default function TxDetails() {
             {replacementActions.cancel ? (
               <SSButton
                 variant="danger"
-                label={t('transaction.feeReplacement.cancel')}
+                label={t('transaction.feeReplacement.cancel.action')}
                 onPress={handleOpenCancel}
               />
             ) : null}
