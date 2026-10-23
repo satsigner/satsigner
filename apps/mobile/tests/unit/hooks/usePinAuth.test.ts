@@ -16,7 +16,7 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
-import { finalizePinAuthSuccess } from '@/utils/pinUnlock'
+import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
 import { secureWipeAllWalletData } from '@/utils/secureWipe'
 
 jest.mock<typeof import('expo-router')>('expo-router', () => ({
@@ -37,7 +37,8 @@ jest.mock<typeof import('@/utils/pinKdf')>('@/utils/pinKdf', () => ({
   safeEqualHex: jest.fn()
 }))
 jest.mock<typeof import('@/utils/pinUnlock')>('@/utils/pinUnlock', () => ({
-  finalizePinAuthSuccess: jest.fn()
+  finalizePinAuthSuccess: jest.fn(),
+  promoteDuressPin: jest.fn()
 }))
 jest.mock<typeof import('@/utils/secureWipe')>('@/utils/secureWipe', () => ({
   secureWipeAllWalletData: jest.fn()
@@ -56,6 +57,7 @@ const mock = {
   getStoredKdfConfig: jest.mocked(getStoredKdfConfig),
   loadAuthenticatedSession: jest.mocked(loadAuthenticatedSession),
   pinMatchesDuressDigest: jest.mocked(pinMatchesDuressDigest),
+  promoteDuressPin: jest.mocked(promoteDuressPin),
   safeEqualHex: jest.mocked(safeEqualHex),
   secureWipeAllWalletData: jest.mocked(secureWipeAllWalletData)
 }
@@ -89,6 +91,7 @@ describe('verifyPin', () => {
     mock.derivePinDigest.mockResolvedValue('hashed-input')
     mock.secureWipeAllWalletData.mockResolvedValue(undefined)
     mock.finalizePinAuthSuccess.mockResolvedValue(undefined)
+    mock.promoteDuressPin.mockResolvedValue(undefined)
     stubStorage({ duress: 'hashed-duress-pin', salt: 'salt' })
   })
 
@@ -126,6 +129,7 @@ describe('verifyPin', () => {
 
     expect(result).toBe('duress')
     expect(mock.secureWipeAllWalletData).toHaveBeenCalledTimes(1)
+    expect(mock.promoteDuressPin).toHaveBeenCalledWith('0000')
     expect(mock.loadAuthenticatedSession).not.toHaveBeenCalled()
     expect(router.replace).not.toHaveBeenCalled()
     expect(onSuccess).not.toHaveBeenCalled()
@@ -139,6 +143,13 @@ describe('verifyPin', () => {
     const result = await verifyPin('0000', true, jest.fn())
 
     expect(result).toBe('duress')
+  })
+
+  it('still returns duress when promoting the duress PIN throws', async () => {
+    mock.pinMatchesDuressDigest.mockResolvedValue(true)
+    mock.promoteDuressPin.mockRejectedValue(new Error('keystore unavailable'))
+
+    await expect(verifyPin('0000', true, jest.fn())).resolves.toBe('duress')
   })
 
   it('does not treat the duress PIN as duress when the feature is disabled', async () => {
@@ -228,6 +239,7 @@ describe('usePinAuth', () => {
     mock.safeEqualHex.mockReturnValue(false)
     mock.secureWipeAllWalletData.mockResolvedValue(undefined)
     mock.finalizePinAuthSuccess.mockResolvedValue(undefined)
+    mock.promoteDuressPin.mockResolvedValue(undefined)
     stubStorage({ duress: 'hashed-duress-pin', salt: 'salt' })
   })
 
