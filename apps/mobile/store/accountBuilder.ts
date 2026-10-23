@@ -156,29 +156,14 @@ const useAccountBuilderStore = create<
       })
     },
     clearKeyState: () => {
-      const { policyType, creationType, keys, scriptVersion } = get()
-      const extendedPublicKey =
-        keys[0]?.secret && typeof keys[0].secret === 'object'
-          ? keys[0].secret.extendedPublicKey
-          : undefined
-
-      const externalDescriptor =
-        keys[0]?.secret && typeof keys[0].secret === 'object'
-          ? keys[0].secret.externalDescriptor
-          : undefined
-
-      const internalDescriptor =
-        keys[0]?.secret && typeof keys[0].secret === 'object'
-          ? keys[0].secret.internalDescriptor
-          : undefined
-
+      const { policyType, creationType, scriptVersion } = get()
       set({
         creationType,
         entropy: 'none',
-        extendedPublicKey,
-        externalDescriptor,
+        extendedPublicKey: undefined,
+        externalDescriptor: undefined,
         fingerprint: undefined,
-        internalDescriptor,
+        internalDescriptor: undefined,
         keyName: '',
         mnemonic: '',
         mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
