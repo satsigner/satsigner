@@ -28,6 +28,23 @@ type BrantaLookupClient = Pick<
 
 let service: BrantaService | undefined
 let serviceKey = ''
+let lookupPermits = 0
+
+function allowBrantaLookup() {
+  lookupPermits += 1
+}
+
+function resetBrantaLookupPermits() {
+  lookupPermits = 0
+}
+
+function takeBrantaLookupPermit() {
+  if (lookupPermits === 0) {
+    return false
+  }
+  lookupPermits -= 1
+  return true
+}
 
 function isProductionBranta(extra: unknown): boolean {
   if (!extra || typeof extra !== 'object') {
@@ -90,7 +107,10 @@ async function lookupBrantaPayee(
   source: BrantaLookupSource,
   client?: BrantaLookupClient
 ): Promise<BrantaPayee | null> {
-  if (!useSettingsStore.getState().brantaLookupEnabled) {
+  if (useSettingsStore.getState().brantaLookupMode === 'off') {
+    return null
+  }
+  if (!takeBrantaLookupPermit()) {
     return null
   }
 
@@ -131,4 +151,9 @@ async function lookupBrantaPayee(
   }
 }
 
-export { getBrantaService, lookupBrantaPayee }
+export {
+  allowBrantaLookup,
+  getBrantaService,
+  lookupBrantaPayee,
+  resetBrantaLookupPermits
+}

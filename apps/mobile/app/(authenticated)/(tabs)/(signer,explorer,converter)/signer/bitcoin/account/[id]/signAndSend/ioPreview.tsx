@@ -19,6 +19,7 @@ import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
+import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -349,8 +350,10 @@ export default function IOPreview() {
   const {
     adopt: adoptBrantaPayee,
     lookup: lookupBrantaPayeeForOutput,
+    mode: brantaLookupMode,
     payee: brantaPayee,
-    settled: settledBrantaPayee
+    settled: settledBrantaPayee,
+    verifyLatest: verifyBrantaDestination
   } = useBrantaPayeeLookup()
   const addingOutputRef = useRef(false)
   const [savingOutput, setSavingOutput] = useState(false)
@@ -1705,7 +1708,18 @@ export default function IOPreview() {
                     </SSHStack>
                   ) : null}
                 </SSVStack>
+                <SSBrantaLookupModal />
                 {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+                {brantaLookupMode === 'manual' ? (
+                  <SSButton
+                    label={t('settings.branta.verify')}
+                    variant="outline"
+                    disabled={savingOutput || !outputTo}
+                    onPress={() => {
+                      void verifyBrantaDestination(outputTo)
+                    }}
+                  />
+                ) : null}
                 <SSTextInput
                   testID="send-output-label"
                   multiline

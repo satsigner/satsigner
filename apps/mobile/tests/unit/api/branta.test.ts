@@ -1,4 +1,8 @@
-import { lookupBrantaPayee } from '@/api/branta'
+import {
+  allowBrantaLookup,
+  lookupBrantaPayee,
+  resetBrantaLookupPermits
+} from '@/api/branta'
 import { useSettingsStore } from '@/store/settings'
 import { type BrantaPayee } from '@/types/models/Branta'
 
@@ -24,19 +28,39 @@ function clientWith(result: { payments: unknown[]; verifyUrl: string }) {
 
 describe('lookupBrantaPayee', () => {
   beforeEach(() => {
-    useSettingsStore.setState({ brantaLookupEnabled: true })
+    useSettingsStore.setState({
+      brantaLookupMode: 'always',
+      brantaLookupWarningDismissed: true
+    })
+    allowBrantaLookup()
   })
 
   afterEach(() => {
+    resetBrantaLookupPermits()
     useSettingsStore.setState({
       brantaLabelSyncEnabled: false,
-      brantaLookupEnabled: false,
+      brantaLookupMode: 'off',
+      brantaLookupWarningDismissed: false,
       brantaTorEnabled: false
     })
   })
 
+  it('does not contact Branta without a confirmed lookup', async () => {
+    resetBrantaLookupPermits()
+    const client = clientWith({
+      payments: [payment],
+      verifyUrl: payee.verifyUrl
+    })
+
+    await expect(
+      lookupBrantaPayee('bc1qexample', 'paste', client)
+    ).resolves.toBeNull()
+    expect(client.getPayments).not.toHaveBeenCalled()
+    expect(client.getPaymentsByQrCode).not.toHaveBeenCalled()
+  })
+
   it('does not contact Branta while lookup is off', async () => {
-    useSettingsStore.setState({ brantaLookupEnabled: false })
+    useSettingsStore.setState({ brantaLookupMode: 'off' })
     const client = clientWith({
       payments: [payment],
       verifyUrl: payee.verifyUrl

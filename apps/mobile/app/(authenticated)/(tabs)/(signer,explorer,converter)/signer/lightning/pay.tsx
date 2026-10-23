@@ -14,6 +14,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
+import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -127,7 +128,9 @@ export default function PayPage() {
   const {
     adopt: adoptBrantaPayee,
     lookup: lookupBrantaDestination,
-    payee: brantaPayee
+    mode: brantaLookupMode,
+    payee: brantaPayee,
+    verifyLatest: verifyBrantaDestination
   } = useBrantaPayeeLookup()
   const [onchainAmountSat, setOnchainAmountSat] = useState(0)
   const [satPerVbyteText, setSatPerVbyteText] = useState('')
@@ -483,7 +486,19 @@ export default function PayPage() {
                 label: t('lightning.pay.onchainTab')
               }}
             />
+            <SSBrantaLookupModal />
             {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+            {brantaLookupMode === 'manual' ? (
+              <SSButton
+                label={t('settings.branta.verify')}
+                variant="outline"
+                onPress={() => {
+                  const destination =
+                    activeTab === 'onchain' ? onchainAddress : paymentRequest
+                  void verifyBrantaDestination(destination)
+                }}
+              />
+            ) : null}
             {activeTab === 'lightning' ? (
               <View>
                 <SSVStack>
