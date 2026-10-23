@@ -8,7 +8,8 @@ import {
   getFingerprint,
   getXpubFingerprint,
   parseImportedDescriptorPayload,
-  parseXpubInput
+  parseXpubInput,
+  splitMultipathDescriptor
 } from '@/utils/descriptor'
 
 const SPARROW_ORIGIN_XPUB =
@@ -222,5 +223,23 @@ describe('addDescriptorChecksum', () => {
     expect(addDescriptorChecksum('raw(deadbeef)#89f8spxm')).toBe(
       'raw(deadbeef)#89f8spxm'
     )
+  })
+})
+
+describe('splitMultipathDescriptor', () => {
+  it('splits a multipath descriptor into receive and change with checksums', () => {
+    const multipath = SPARROW_DESCRIPTOR.replace('/0/*', '/<0;1>/*')
+    const change = SPARROW_DESCRIPTOR.replace('/0/*', '/1/*')
+
+    expect(splitMultipathDescriptor(`${multipath}#slp835ch`)).toStrictEqual([
+      `${SPARROW_DESCRIPTOR}#yvl3yusl`,
+      `${change}#4c6sefq8`
+    ])
+  })
+
+  it('returns a single-path descriptor as is', () => {
+    expect(
+      splitMultipathDescriptor(`${SPARROW_DESCRIPTOR}#yvl3yusl`)
+    ).toStrictEqual([`${SPARROW_DESCRIPTOR}#yvl3yusl`])
   })
 })

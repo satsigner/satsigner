@@ -17,6 +17,10 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
+const MULTIPATH_CHAINS_PATTERN = /<0[,;]1>/g
+const RECEIVE_CHAIN = '0'
+const CHANGE_CHAIN = '1'
+
 /** True when a descriptor holds an extended private key (xprv, tprv, ...). */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
   const lower = descriptor.toLowerCase()
@@ -125,6 +129,20 @@ export function getDescriptorChecksum(descriptor: string): string {
 export function addDescriptorChecksum(descriptor: string): string {
   const [body] = descriptor.split('#')
   return `${body}#${getDescriptorChecksum(body)}`
+}
+
+/**
+ * Receive (`/0/*`) and change (`/1/*`) descriptors of a `<0;1>` multipath
+ * descriptor, each with its own checksum. Other descriptors are returned as is.
+ */
+export function splitMultipathDescriptor(descriptor: string): string[] {
+  const [body] = descriptor.split('#')
+  if (!isCombinedDescriptor(body)) {
+    return [descriptor]
+  }
+  return [RECEIVE_CHAIN, CHANGE_CHAIN].map((chain) =>
+    addDescriptorChecksum(body.replaceAll(MULTIPATH_CHAINS_PATTERN, chain))
+  )
 }
 
 export function swapDescriptorChain(

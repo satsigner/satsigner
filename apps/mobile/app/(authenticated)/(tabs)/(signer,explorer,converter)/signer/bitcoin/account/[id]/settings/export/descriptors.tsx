@@ -32,8 +32,12 @@ import {
   appNetworkToBdkNetwork
 } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
-import { addDescriptorChecksum } from '@/utils/descriptor'
+import {
+  addDescriptorChecksum,
+  splitMultipathDescriptor
+} from '@/utils/descriptor'
 import { shareFile } from '@/utils/filesystem'
+import { singlesigDescriptorFromKeyPart } from '@/utils/getOutputDescriptorForKey'
 
 type DescriptorQrItemProps = {
   descriptor: string
@@ -75,9 +79,11 @@ export default function ExportDescriptors() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [exportContent, setExportContent] = useState('')
+  const [separateExportContent, setSeparateExportContent] = useState('')
   const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<View>(null)
+  const shownContent = showSeparate ? separateExportContent : exportContent
 
   useEffect(() => {
     async function getDescriptors() {
@@ -149,37 +155,15 @@ export default function ExportDescriptors() {
               }
 
               if (fingerprint && extendedPublicKey) {
-                const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
+                const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}/<0;1>/*`
 
-                let singleSigDescriptor = ''
-                switch (scriptVersion) {
-                  case 'P2PKH': {
-                    singleSigDescriptor = `pkh(${keyPart}/0/*)`
-                    break
-                  }
-                  case 'P2SH-P2WPKH': {
-                    singleSigDescriptor = `sh(wpkh(${keyPart}/0/*))`
-                    break
-                  }
-                  case 'P2WPKH': {
-                    singleSigDescriptor = `wpkh(${keyPart}/0/*)`
-                    break
-                  }
-                  case 'P2TR': {
-                    singleSigDescriptor = `tr(${keyPart}/0/*)`
-                    break
-                  }
-                  default: {
-                    singleSigDescriptor = `wpkh(${keyPart}/0/*)`
-                  }
-                }
-
-                descriptorString = addDescriptorChecksum(singleSigDescriptor)
+                descriptorString = addDescriptorChecksum(
+                  singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
+                )
               } else {
                 descriptorString =
                   'No descriptor available - missing fingerprint or extended public key'
@@ -387,37 +371,15 @@ export default function ExportDescriptors() {
                 secret.extendedPublicKey &&
                 secret.fingerprint
               ) {
-                const scriptVersion = key.scriptVersion || 'P2WPKH'
                 const derivationPath = key.derivationPath || ''
 
                 const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-                const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
+                const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}/<0;1>/*`
 
-                let descriptor = ''
-                switch (scriptVersion) {
-                  case 'P2PKH': {
-                    descriptor = `pkh(${keyPart}/0/*)`
-                    break
-                  }
-                  case 'P2SH-P2WPKH': {
-                    descriptor = `sh(wpkh(${keyPart}/0/*))`
-                    break
-                  }
-                  case 'P2WPKH': {
-                    descriptor = `wpkh(${keyPart}/0/*)`
-                    break
-                  }
-                  case 'P2TR': {
-                    descriptor = `tr(${keyPart}/0/*)`
-                    break
-                  }
-                  default: {
-                    descriptor = `wpkh(${keyPart}/0/*)`
-                  }
-                }
-
-                descriptorString = addDescriptorChecksum(descriptor)
+                descriptorString = addDescriptorChecksum(
+                  singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
+                )
               } else if (
                 key.creationType === 'importAddress' &&
                 secret.externalDescriptor
@@ -445,10 +407,18 @@ export default function ExportDescriptors() {
         }
 
         const exportString = descriptorString || 'No descriptor available'
+        const separateExportString = exportString
+          .split('\n')
+          .filter(Boolean)
+          .flatMap(splitMultipathDescriptor)
+          .join('\n')
         setExportContent(exportString)
+        setSeparateExportContent(separateExportString)
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'unknown reason'
-        setExportContent(`Error generating descriptors: ${reason}`)
+        const errorMessage = `Error generating descriptors: ${reason}`
+        setExportContent(errorMessage)
+        setSeparateExportContent(errorMessage)
       } finally {
         setIsLoading(false)
       }
@@ -467,7 +437,7 @@ export default function ExportDescriptors() {
     )}_${accountId}_${date}.${ext}`
     shareFile({
       dialogTitle: t('export.file.save'),
-      fileContent: exportContent,
+      fileContent: shownContent,
       filename,
       mimeType: `text/plain`
     })
@@ -575,7 +545,7 @@ export default function ExportDescriptors() {
               : ''
           }
 
-          <div class="descriptor-text">${exportContent}</div>
+          <div class="descriptor-text">${shownContent}</div>
         </body>
       </html>
     `
@@ -602,7 +572,7 @@ export default function ExportDescriptors() {
     return <Redirect href="/" />
   }
 
-  const descriptors = (exportContent || '').split('\n').filter(Boolean)
+  const separateDescriptors = separateExportContent.split('\n').filter(Boolean)
 
   return (
     <ScrollView style={{ width: '100%' }}>
@@ -654,7 +624,7 @@ export default function ExportDescriptors() {
             </SSHStack>
             {showSeparate ? (
               <SSVStack gap="md">
-                {descriptors.map((descriptor, index) => (
+                {separateDescriptors.map((descriptor, index) => (
                   <DescriptorQrItem
                     key={descriptor}
                     descriptor={descriptor}
@@ -687,10 +657,10 @@ export default function ExportDescriptors() {
               }}
             >
               <SSText color="white" size="md" type="mono">
-                {exportContent}
+                {shownContent}
               </SSText>
             </View>
-            <SSClipboardCopy text={exportContent}>
+            <SSClipboardCopy text={shownContent}>
               <SSButton
                 label={t('common.copyToClipboard')}
                 onPress={() => true}
