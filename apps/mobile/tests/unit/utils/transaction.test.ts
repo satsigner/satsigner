@@ -12,6 +12,7 @@ import {
   estimateTransactionSize,
   findFirstInvalidOutputAddress,
   getFinalizedTransactionSize,
+  getRawTransactionSizes,
   getTransactionIdDisplay,
   legacyEstimateTransactionSize,
   mapBuildTransactionError,
@@ -902,5 +903,45 @@ describe('weightToVsize', () => {
   it('rounds weight units up to whole vbytes', () => {
     expect(weightToVsize(400)).toBe(100)
     expect(weightToVsize(401)).toBe(101)
+  })
+})
+
+describe('getRawTransactionSizes', () => {
+  const P2WPKH_OUTPUT = Buffer.concat([
+    Buffer.from([0x00, 0x14]),
+    Buffer.alloc(20, 2)
+  ])
+
+  function oneInOneOutTransaction() {
+    const transaction = new bitcoinjs.Transaction()
+    transaction.version = 2
+    transaction.addInput(Buffer.alloc(32, 1), 0)
+    transaction.addOutput(P2WPKH_OUTPUT, 1000)
+    return transaction
+  }
+
+  it('applies the witness discount to a segwit transaction', () => {
+    const transaction = oneInOneOutTransaction()
+    transaction.setWitness(0, [Buffer.alloc(72, 3), Buffer.alloc(33, 4)])
+
+    expect(getRawTransactionSizes(transaction.toHex())).toStrictEqual({
+      size: 192,
+      vsize: 110,
+      weight: 438
+    })
+  })
+
+  it('counts every byte four times for a legacy transaction', () => {
+    expect(
+      getRawTransactionSizes(oneInOneOutTransaction().toHex())
+    ).toStrictEqual({ size: 82, vsize: 82, weight: 328 })
+  })
+
+  it('returns zero sizes without a raw transaction', () => {
+    expect(getRawTransactionSizes('')).toStrictEqual({
+      size: 0,
+      vsize: 0,
+      weight: 0
+    })
   })
 })
