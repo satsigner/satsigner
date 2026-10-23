@@ -54,6 +54,10 @@ type AccountBuilderAction = {
     mnemonicWordList: AccountBuilderState['mnemonicWordList']
   ) => void
   setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
+  setGeneratedMnemonic: (
+    mnemonic: AccountBuilderState['mnemonic'],
+    fingerprint: NonNullable<AccountBuilderState['fingerprint']>
+  ) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
 
   setExternalDescriptor: (
@@ -277,6 +281,9 @@ const useAccountBuilderStore = create<
     },
     setFingerprint: (fingerprint) => {
       set({ fingerprint })
+    },
+    setGeneratedMnemonic: (mnemonic, fingerprint) => {
+      set({ fingerprint, mnemonic, passphrase: undefined })
     },
     setInternalDescriptor: (internalDescriptor) => {
       set({ internalDescriptor })

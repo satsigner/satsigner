@@ -54,6 +54,19 @@ describe('account builder keys', () => {
     })
   })
 
+  it('drops a passphrase left from an earlier seed when a new one is generated', () => {
+    const store = useAccountBuilderStore.getState()
+    store.setCreationType('generateMnemonic')
+    store.setPassphrase('qa')
+    store.setGeneratedMnemonic(MNEMONIC, 'f280ded8')
+    const key = useAccountBuilderStore.getState().setKey(0)
+
+    expect(key.secret).toStrictEqual({
+      fingerprint: 'f280ded8',
+      mnemonic: MNEMONIC
+    })
+  })
+
   it('resets only the chosen key slot', () => {
     addMnemonicKey(0)
     addMnemonicKey(1)
