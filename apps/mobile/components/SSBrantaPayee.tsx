@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import * as WebBrowser from 'expo-web-browser'
 import { StyleSheet, View } from 'react-native'
 
@@ -7,8 +6,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type BrantaPayee } from '@/types/models/Branta'
-import { brantaHttpsUrl, brantaLogoUrl } from '@/utils/brantaUrl'
+import { brantaHttpsUrl } from '@/utils/brantaUrl'
 
+import SSBrantaLogo from './SSBrantaLogo'
 import SSPressable from './SSPressable'
 import SSText from './SSText'
 
@@ -26,8 +26,6 @@ function openBrantaVerify(url: string) {
 
 function SSBrantaPayee({ payee, interactive = true }: SSBrantaPayeeProps) {
   const torEnabled = useSettingsStore((state) => state.brantaTorEnabled)
-  const logoUrl = brantaLogoUrl(payee.logoUrl, torEnabled)
-  const parentLogoUrl = brantaLogoUrl(payee.parentLogoUrl, torEnabled)
   const verifyUrl = torEnabled ? undefined : brantaHttpsUrl(payee.verifyUrl)
 
   function handlePress() {
@@ -39,22 +37,10 @@ function SSBrantaPayee({ payee, interactive = true }: SSBrantaPayeeProps) {
 
   const body = (
     <SSHStack gap="sm" style={styles.row}>
-      {logoUrl ? (
-        <View>
-          <Image
-            contentFit="contain"
-            source={{ uri: logoUrl }}
-            style={styles.logo}
-          />
-          {parentLogoUrl ? (
-            <Image
-              contentFit="contain"
-              source={{ uri: parentLogoUrl }}
-              style={styles.parentLogo}
-            />
-          ) : null}
-        </View>
-      ) : null}
+      <View>
+        <SSBrantaLogo uri={payee.logoUrl} style={styles.logo} />
+        <SSBrantaLogo uri={payee.parentLogoUrl} style={styles.parentLogo} />
+      </View>
       <SSVStack gap="none" style={styles.copy}>
         <SSText numberOfLines={1} weight="medium">
           {payee.name}

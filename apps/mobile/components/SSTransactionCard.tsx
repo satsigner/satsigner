@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import { useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 
@@ -6,10 +5,8 @@ import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
-import { brantaLogoUrl } from '@/utils/brantaUrl'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,
@@ -22,6 +19,7 @@ import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSAmountDisplay from './SSAmountDisplay'
+import SSBrantaLogo from './SSBrantaLogo'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
@@ -127,11 +125,6 @@ function SSTransactionCard({
     label || payeeName || t('transaction.noLabel').toUpperCase()
   const historyLabelMuted = !label && !payeeName
 
-  const brantaTorEnabled = useSettingsStore((state) => state.brantaTorEnabled)
-  const payeeLogoUrl = brantaLogoUrl(
-    transaction.branta?.logoUrl,
-    brantaTorEnabled
-  )
   const { prices } = transaction
   const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null
   const historicalPrice = historicalFiatEnabled
@@ -325,13 +318,10 @@ function SSTransactionCard({
               ) : null}
             </SSVStack>
             <SSHStack gap="xs" style={{ alignItems: 'center', marginTop: 4 }}>
-              {payeeLogoUrl ? (
-                <Image
-                  contentFit="contain"
-                  source={{ uri: payeeLogoUrl }}
-                  style={styles.payeeLogo}
-                />
-              ) : null}
+              <SSBrantaLogo
+                uri={transaction.branta?.logoUrl}
+                style={styles.payeeLogo}
+              />
               <SSText
                 size={smallView ? 'xxs' : 'xs'}
                 style={[
