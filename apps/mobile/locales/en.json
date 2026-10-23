@@ -671,6 +671,7 @@
   "auth": {
     "confirmDuressPin": "Confirm duress pin number",
     "confirmPin": "Confirm pin number",
+    "duressPinClearedPinLength": "The PIN length changed, so the duress PIN was removed. Set a new one in App Security.",
     "enterPinTitle": "Enter your PIN",
     "noPin": "No pin",
     "pinChangeError": "Could not re-encrypt your data. Your PIN was not changed.",

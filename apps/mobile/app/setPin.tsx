@@ -25,19 +25,10 @@ import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
-import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
-import { commitPinMaterial, preparePinMaterial } from '@/utils/pinKdf'
+import { clampPinLength, emptyPin } from '@/utils/pin'
+import { changePin } from '@/utils/pinChange'
 
 type Stage = 'verify' | 'set' | 're-enter'
-
-/** Returns null on first-time setup, where no PIN exists yet. */
-async function getCurrentPin(): Promise<string | null> {
-  try {
-    return await getPin()
-  } catch {
-    return null
-  }
-}
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -170,26 +161,24 @@ export default function SetPin() {
       return
     }
     setLoading(true)
+    const result = await changePin(pinArray.join(''), reEncryptAccounts)
+    setLoading(false)
+
+    if (result === 'matchesDuress') {
+      toast.error(t('auth.pinMatchDuressPin'))
+      handleGoBack()
+      return
+    }
+    if (result === 'reEncryptFailed') {
+      toast.error(t('auth.pinChangeError'))
+      return
+    }
+    if (result === 'duressCleared') {
+      toast.warning(t('auth.duressPinClearedPinLength'))
+    }
 
     setSkipPin(false)
     setRequirePinMigration(false)
-
-    // First-ever PIN set has no stored digest; getCurrentPin() returns null
-    // there. Only an existing digest means accounts may need re-encrypting.
-    const currentPinEncrypted = await getCurrentPin()
-    const material = await preparePinMaterial(pinArray.join(''))
-    if (currentPinEncrypted && currentPinEncrypted !== material.digest) {
-      try {
-        await reEncryptAccounts(currentPinEncrypted, material.digest)
-      } catch {
-        toast.error(t('auth.pinChangeError'))
-        setLoading(false)
-        return
-      }
-    }
-    await commitPinMaterial(material)
-
-    setLoading(false)
 
     if (fromSettings) {
       router.back()

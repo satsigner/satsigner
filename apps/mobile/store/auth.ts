@@ -64,6 +64,7 @@ type AuthAction = {
   setLockTriggered: (lockTriggered: boolean) => void
   setPin: (pin: string) => Promise<void>
   setDuressPin: (pin: string) => Promise<void>
+  clearDuressPin: () => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   setDuressPinEnabled: (duressPinEnabled: boolean) => void
   /**
@@ -87,6 +88,12 @@ type AuthAction = {
 const useAuthStore = create<AuthState & AuthAction>()(
   persist(
     (set, get) => ({
+      clearDuressPin: async () => {
+        set({ duressPinEnabled: false })
+        await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
+        await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
+        await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+      },
       clearPageHistory() {
         set({ pageHistory: [] })
       },

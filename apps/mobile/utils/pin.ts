@@ -1,6 +1,7 @@
 import {
   DURESS_PIN_KEY,
   PIN_KEY,
+  PIN_LENGTH_KEY,
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
   PIN_SIZE,
@@ -65,6 +66,11 @@ function clampPinLength(length: number): number {
   return Math.min(PIN_MAX_LENGTH, Math.max(PIN_MIN_LENGTH, length))
 }
 
+async function getStoredPinLength(): Promise<number> {
+  const stored = await getItem(PIN_LENGTH_KEY)
+  return clampPinLength(stored ? Number(stored) : Number.NaN)
+}
+
 function getPinCursorIndex(pin: string[]): number {
   const firstEmptyIndex = pin.indexOf('')
   return firstEmptyIndex === -1 ? pin.length : firstEmptyIndex
@@ -102,5 +108,6 @@ export {
   fillPinDigit,
   getPin,
   getPinCursorIndex,
+  getStoredPinLength,
   isPinFilled
 }

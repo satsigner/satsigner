@@ -1,11 +1,9 @@
-import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
-  deleteEcashMnemonic,
-  deleteItem
+  deleteEcashMnemonic
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
@@ -86,11 +84,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 
-  const { setDuressPinEnabled, setSkipPin } = useAuthStore.getState()
-  setDuressPinEnabled(false)
+  const { clearDuressPin, setSkipPin } = useAuthStore.getState()
   setSkipPin(false)
-
-  await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
-  await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
-  await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+  await clearDuressPin()
 }
