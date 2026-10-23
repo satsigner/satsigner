@@ -739,7 +739,9 @@ export default function WatchOnly() {
         }
 
         setNetwork(network)
-        setKey(0)
+        if (selectedOption !== 'importAddress') {
+          setKey(0)
+        }
 
         const account = getAccountData()
 
