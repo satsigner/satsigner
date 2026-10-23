@@ -52,6 +52,7 @@ import { type DetectedContent } from '@/utils/contentDetector'
 import {
   descriptorHasPrivateKeyMaterial,
   getFingerprint,
+  getScriptVersionFromDescriptor,
   parseImportedDescriptorPayload,
   parseJsonDescriptor,
   parseLegacyDescriptor,
@@ -622,7 +623,10 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await processCombinedDescriptor(descriptor, scriptVersion)
+    const result = await processCombinedDescriptor(
+      descriptor,
+      getScriptVersionFromDescriptor(descriptor) ?? scriptVersion
+    )
 
     if (result.success) {
       setLocalExternalDescriptor(result.external)
@@ -647,10 +651,7 @@ export default function WatchOnly() {
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(false)
       setIsValidInternalDescriptor(false)
-
-      if (result.error) {
-        toast.error(result.error)
-      }
+      toast.error(t('account.import.error.descriptorFormat'))
     }
   }
 
@@ -722,10 +723,12 @@ export default function WatchOnly() {
             setKey(index)
           }
         } else if (selectedOption === 'importDescriptor') {
+          const descriptorScriptVersion =
+            getScriptVersionFromDescriptor(externalDescriptor) ?? scriptVersion
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
             const combinedValidation = await processCombinedDescriptor(
               externalDescriptor,
-              scriptVersion
+              descriptorScriptVersion
             )
 
             if (!combinedValidation.success) {
@@ -735,6 +738,7 @@ export default function WatchOnly() {
           }
 
           extractAndSetFingerprint(externalDescriptor)
+          setScriptVersion(descriptorScriptVersion)
 
           setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
         }

@@ -220,6 +220,23 @@ export function parseImportedDescriptorPayload(text: string) {
   }
 }
 
+const DESCRIPTOR_SCRIPT_VERSIONS: [string, ScriptVersionType][] = [
+  ['sh(wpkh(', 'P2SH-P2WPKH'],
+  ['sh(wsh(', 'P2SH-P2WSH'],
+  ['sh(', 'P2SH'],
+  ['pkh(', 'P2PKH'],
+  ['wpkh(', 'P2WPKH'],
+  ['wsh(', 'P2WSH'],
+  ['tr(', 'P2TR']
+]
+
+export function getScriptVersionFromDescriptor(descriptor: string) {
+  const trimmed = descriptor.trim()
+  return DESCRIPTOR_SCRIPT_VERSIONS.find(([prefix]) =>
+    trimmed.startsWith(prefix)
+  )?.[1]
+}
+
 export async function processCombinedDescriptor(
   descriptor: string,
   scriptVersion: ScriptVersionType

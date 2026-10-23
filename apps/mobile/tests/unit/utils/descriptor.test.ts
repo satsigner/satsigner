@@ -4,9 +4,11 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  getScriptVersionFromDescriptor,
   getXpubFingerprint,
   parseImportedDescriptorPayload,
-  parseXpubInput
+  parseXpubInput,
+  processCombinedDescriptor
 } from '@/utils/descriptor'
 
 const SPARROW_ORIGIN_XPUB =
@@ -200,5 +202,39 @@ describe('descriptorHasPrivateKeyMaterial', () => {
         'wpkh([e5eda689/84h/1h/0h]tpubDCXPRVtprvZz/0/*)'
       )
     ).toBe(false)
+  })
+})
+
+describe('getScriptVersionFromDescriptor', () => {
+  it.each([
+    ['pkh([d34db33f/44h/0h/0h]xpub/0/*)', 'P2PKH'],
+    ['sh(wpkh([d34db33f/49h/0h/0h]xpub/0/*))', 'P2SH-P2WPKH'],
+    ['wpkh([d34db33f/84h/0h/0h]xpub/0/*)', 'P2WPKH'],
+    ['tr([d34db33f/86h/0h/0h]xpub/<0;1>/*)', 'P2TR'],
+    ['sh(sortedmulti(2,xpubA/0/*,xpubB/0/*))', 'P2SH'],
+    ['sh(wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*)))', 'P2SH-P2WSH'],
+    ['wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*))', 'P2WSH']
+  ])('reads %s as %s', (descriptor, scriptVersion) => {
+    expect(getScriptVersionFromDescriptor(descriptor)).toBe(scriptVersion)
+  })
+
+  it('returns undefined for an unknown script', () => {
+    expect(getScriptVersionFromDescriptor('combo(xpub/0/*)')).toBeUndefined()
+  })
+})
+
+describe('processCombinedDescriptor', () => {
+  const TAPROOT_COMBINED =
+    "tr([d34db33f/86'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/<0;1>/*)"
+
+  it('accepts a combined taproot descriptor with its own script version', async () => {
+    const result = await processCombinedDescriptor(
+      TAPROOT_COMBINED,
+      getScriptVersionFromDescriptor(TAPROOT_COMBINED) ?? 'P2WPKH'
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.external).toContain('/0/*')
+    expect(result.internal).toContain('/1/*')
   })
 })
