@@ -242,21 +242,21 @@ function SSMultisigKeyControl({
     }
   }
 
-  function handleDropSeed() {
+  async function handleDropSeed() {
     if (!keyDetails) {
       return
     }
 
-    try {
-      if (isSettingsMode && accountId) {
-        dropSeedFromKeyExisting(accountId, index)
-      } else {
-        dropSeedFromKey(index)
-      }
-      setSeedDropped(true)
-    } catch {
+    const result =
+      isSettingsMode && accountId
+        ? await dropSeedFromKeyExisting(accountId, index)
+        : dropSeedFromKey(index)
+
+    if (!result.success) {
       toast.error(t('account.seed.dropSeedError'))
+      return
     }
+    setSeedDropped(true)
   }
 
   function handleResetKey() {
