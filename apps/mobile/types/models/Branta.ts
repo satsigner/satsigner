@@ -1,3 +1,5 @@
+export type BrantaLookupMode = 'always' | 'manual' | 'off'
+
 export type BrantaLookupSource = 'qr' | 'paste'
 
 export type BrantaPayee = {

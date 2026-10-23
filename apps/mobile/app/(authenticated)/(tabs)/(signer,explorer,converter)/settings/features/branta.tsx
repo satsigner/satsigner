@@ -8,29 +8,40 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
+import { type BrantaLookupMode } from '@/types/models/Branta'
+
+const LOOKUP_MODES: BrantaLookupMode[] = ['off', 'manual', 'always']
+
+const MODE_LABELS: Record<BrantaLookupMode, string> = {
+  always: 'settings.branta.modeAlways',
+  manual: 'settings.branta.modeManual',
+  off: 'settings.branta.modeOff'
+}
+
+const MODE_DESCRIPTIONS: Record<BrantaLookupMode, string> = {
+  always: 'settings.branta.modeAlwaysDescription',
+  manual: 'settings.branta.modeManualDescription',
+  off: 'settings.branta.modeOffDescription'
+}
 
 export default function BrantaSettings() {
   const [
-    brantaLookupEnabled,
-    setBrantaLookupEnabled,
+    brantaLookupMode,
+    setBrantaLookupMode,
     brantaLabelSyncEnabled,
     setBrantaLabelSyncEnabled,
     brantaTorEnabled,
     setBrantaTorEnabled
   ] = useSettingsStore(
     useShallow((state) => [
-      state.brantaLookupEnabled,
-      state.setBrantaLookupEnabled,
+      state.brantaLookupMode,
+      state.setBrantaLookupMode,
       state.brantaLabelSyncEnabled,
       state.setBrantaLabelSyncEnabled,
       state.brantaTorEnabled,
       state.setBrantaTorEnabled
     ])
   )
-
-  function handleToggleLookup() {
-    setBrantaLookupEnabled(!brantaLookupEnabled)
-  }
 
   function handleToggleLabels() {
     setBrantaLabelSyncEnabled(!brantaLabelSyncEnabled)
@@ -54,12 +65,15 @@ export default function BrantaSettings() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack gap="lg">
             <SSText color="muted">{t('settings.branta.description')}</SSText>
-            <SSCheckbox
-              description={t('settings.branta.lookupDescription')}
-              label={t('settings.branta.lookup')}
-              selected={brantaLookupEnabled}
-              onPress={handleToggleLookup}
-            />
+            {LOOKUP_MODES.map((mode) => (
+              <SSCheckbox
+                key={mode}
+                description={t(MODE_DESCRIPTIONS[mode])}
+                label={t(MODE_LABELS[mode])}
+                selected={brantaLookupMode === mode}
+                onPress={() => setBrantaLookupMode(mode)}
+              />
+            ))}
             <SSCheckbox
               description={t('settings.branta.labelsDescription')}
               label={t('settings.branta.labels')}

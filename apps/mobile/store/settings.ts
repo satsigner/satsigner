@@ -9,6 +9,7 @@ import {
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import { type BrantaLookupMode } from '@/types/models/Branta'
 import {
   type PayjoinCoordinationMode,
   type PayjoinSettings
@@ -25,10 +26,14 @@ import { normalizePayjoinSessionTtlMs } from '@/utils/payjoinTtl'
 type FiatPriceProvider = 'custom' | 'mempool'
 
 type SettingsState = {
+  /** When true, clearnet payee logos load without asking again. Off by default. */
+  brantaClearnetLogoAllowed: boolean
   /** When true, payee names are written into transaction, output, and change labels. */
   brantaLabelSyncEnabled: boolean
-  /** When true, scan and paste may contact Branta. Off by default. */
-  brantaLookupEnabled: boolean
+  /** Off until the user picks a lookup mode. */
+  brantaLookupMode: BrantaLookupMode
+  /** When true, the third-party lookup warning is skipped. Off by default. */
+  brantaLookupWarningDismissed: boolean
   /** When true, Branta lookups use Orbot and do not use the clearnet. */
   brantaTorEnabled: boolean
   mnemonicWordList: WordListName
@@ -54,11 +59,17 @@ type SettingsState = {
 }
 
 type SettingsAction = {
+  setBrantaClearnetLogoAllowed: (
+    brantaClearnetLogoAllowed: SettingsState['brantaClearnetLogoAllowed']
+  ) => void
   setBrantaLabelSyncEnabled: (
     brantaLabelSyncEnabled: SettingsState['brantaLabelSyncEnabled']
   ) => void
-  setBrantaLookupEnabled: (
-    brantaLookupEnabled: SettingsState['brantaLookupEnabled']
+  setBrantaLookupMode: (
+    brantaLookupMode: SettingsState['brantaLookupMode']
+  ) => void
+  setBrantaLookupWarningDismissed: (
+    brantaLookupWarningDismissed: SettingsState['brantaLookupWarningDismissed']
   ) => void
   setBrantaTorEnabled: (
     brantaTorEnabled: SettingsState['brantaTorEnabled']
@@ -127,8 +138,10 @@ function migrateFiatPriceSettings(
 const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
+      brantaClearnetLogoAllowed: false,
       brantaLabelSyncEnabled: false,
-      brantaLookupEnabled: false,
+      brantaLookupMode: 'off',
+      brantaLookupWarningDismissed: false,
       brantaTorEnabled: false,
       currencyUnit: 'sats',
       defaultAutoSelectUtxos: 'privacy',
@@ -143,11 +156,17 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       payjoinEnabled: true,
       payjoinSessionTtlMs: PAYJOIN_SESSION_TTL_MS,
       privacyMode: false,
+      setBrantaClearnetLogoAllowed: (brantaClearnetLogoAllowed) => {
+        set({ brantaClearnetLogoAllowed })
+      },
       setBrantaLabelSyncEnabled: (brantaLabelSyncEnabled) => {
         set({ brantaLabelSyncEnabled })
       },
-      setBrantaLookupEnabled: (brantaLookupEnabled) => {
-        set({ brantaLookupEnabled })
+      setBrantaLookupMode: (brantaLookupMode) => {
+        set({ brantaLookupMode })
+      },
+      setBrantaLookupWarningDismissed: (brantaLookupWarningDismissed) => {
+        set({ brantaLookupWarningDismissed })
       },
       setBrantaTorEnabled: (brantaTorEnabled) => {
         set({ brantaTorEnabled })
@@ -231,6 +250,12 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         merged.payjoinCoordinationMode = normalizePayjoinCoordinationMode(
           merged.payjoinCoordinationMode
         )
+        if (
+          persisted?.brantaLookupEnabled === true ||
+          persisted?.brantaLookupMode === 'ask'
+        ) {
+          merged.brantaLookupMode = 'always'
+        }
         return merged
       },
       name: 'settings-store',

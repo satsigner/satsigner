@@ -323,8 +323,10 @@ export default function Developer() {
         skipPin: false
       })
       useSettingsStore.setState({
+        brantaClearnetLogoAllowed: false,
         brantaLabelSyncEnabled: false,
-        brantaLookupEnabled: false,
+        brantaLookupMode: 'off',
+        brantaLookupWarningDismissed: false,
         brantaTorEnabled: false,
         currencyUnit: 'sats',
         mnemonicWordList: DEFAULT_WORD_LIST,
