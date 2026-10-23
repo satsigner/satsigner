@@ -74,18 +74,28 @@ function uriToPath(uri: string): string {
   return uri.startsWith('file://') ? uri.slice('file://'.length) : uri
 }
 
-async function getWalletDbPath(
+async function fileExists(uri: string) {
+  const info = await FileSystem.getInfoAsync(uri)
+  return info.exists
+}
+
+// The BDK wallet name only hashes the descriptors, and testnet and signet
+// share tpub keys, so the database file name also carries the network.
+async function getWalletDbUris(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
   network: Network
-): Promise<string> {
+) {
   await ensureWalletsDir()
   const name = walletNameFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
   )
-  return uriToPath(`${WALLETS_DIR}${name}.sqlite`)
+  return {
+    legacyUri: `${WALLETS_DIR}${name}.sqlite`,
+    uri: `${WALLETS_DIR}${name}-${toAppNetwork(network)}.sqlite`
+  }
 }
 
 type WalletData = {
@@ -543,8 +553,32 @@ async function getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor
   )
-  const dbPath = await getWalletDbPath(ext, int, network)
+  const { legacyUri, uri } = await getWalletDbUris(ext, int, network)
+  const legacyWallet = await openLegacyWallet(ext, int, network, legacyUri, uri)
+  if (legacyWallet) {
+    return legacyWallet
+  }
+  const dbPath = uriToPath(uri)
   return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
+}
+
+// Databases created before the network was part of the file name.
+async function openLegacyWallet(
+  ext: string,
+  int: string | undefined,
+  network: Network,
+  legacyUri: string,
+  uri: string
+) {
+  if ((await fileExists(uri)) || !(await fileExists(legacyUri))) {
+    return
+  }
+  const dbPath = uriToPath(legacyUri)
+  try {
+    return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
+  } catch {
+    // BDK refuses to load a database created for another network.
+  }
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
@@ -1052,6 +1086,7 @@ export {
   getPublicDescriptorsForAccount,
   getTransactionInputValues,
   getWalletData,
+  getWalletFromDescriptor,
   parseDescriptor,
   resolveRpcWalletName,
   signTransaction,
