@@ -4,13 +4,12 @@ import { useShallow } from 'zustand/react/shallow'
 import SSPinAuth from '@/components/SSPinAuth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { error, gray, warning } from '@/styles/colors'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
+import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 void loadAuthenticatedSession()
 
@@ -20,8 +19,6 @@ export default function Unlock() {
     setLockTriggered,
     resetPinTries,
     incrementPinTries,
-    setFirstTime,
-    setRequiresAuth,
     setJustUnlocked,
     pinTries,
     pinMaxTries
@@ -30,18 +27,12 @@ export default function Unlock() {
       state.setLockTriggered,
       state.resetPinTries,
       state.incrementPinTries,
-      state.setFirstTime,
-      state.setRequiresAuth,
       state.setJustUnlocked,
       state.pinTries,
       state.pinMaxTries
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
-  const [deleteAccounts, deleteTags] = useAccountsStore(
-    useShallow((state) => [state.deleteAccounts, state.deleteTags])
-  )
-  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
   const triesLeft = pinMaxTries - pinTries
 
   function getWarningColor() {
@@ -83,19 +74,9 @@ export default function Unlock() {
   function handleFailure() {
     const remainingTries = incrementPinTries()
     if (remainingTries <= 0) {
-      handleTriesOver()
+      secureWipeAfterMaxPinTries()
+      router.replace('/')
     }
-  }
-
-  function handleTriesOver() {
-    deleteAccounts()
-    deleteWallets()
-    deleteTags()
-    setFirstTime(true)
-    setRequiresAuth(false)
-    setLockTriggered(false)
-    router.replace('/')
-    resetPinTries()
   }
 
   return (

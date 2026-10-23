@@ -94,3 +94,18 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
   await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
 }
+
+/** Resets the app to a fresh install after the last wrong PIN. */
+export function secureWipeAfterMaxPinTries() {
+  const { deleteAccounts, deleteTags } = useAccountsStore.getState()
+  deleteAccounts()
+  useWalletsStore.getState().deleteWallets()
+  deleteTags()
+
+  const { resetPinTries, setFirstTime, setLockTriggered, setRequiresAuth } =
+    useAuthStore.getState()
+  setFirstTime(true)
+  setRequiresAuth(false)
+  setLockTriggered(false)
+  resetPinTries()
+}
