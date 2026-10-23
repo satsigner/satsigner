@@ -20,6 +20,13 @@ export const NULL_PREVOUT_INDEX = 0xff_ff_ff_ff
 export const UNKNOWN_MASTER_FINGERPRINT = '00000000'
 export const MILLISATS_PER_SAT = 1000
 export const DUST_LIMIT = 546
+// BIP125: a transaction signals replaceability when any input sequence is
+// below 0xfffffffe. Wallets use 0xfffffffd. 0xffffffff is final.
+export const BIP125_REPLACEABLE_SEQUENCE_BELOW = 0xff_ff_ff_fe
+export const RBF_SIGNAL_SEQUENCE = 0xff_ff_ff_fd
+export const FINAL_SEQUENCE = 0xff_ff_ff_ff
+// Bitcoin Core default incremental relay fee: 1 sat/vB on the replacement size.
+export const INCREMENTAL_RELAY_FEE_RATE = 1
 export const UNUSED_INTERNAL_ADDRESSES_NEEDED = 3
 
 export const P2PKH_SCRIPT_BYTES = 25
