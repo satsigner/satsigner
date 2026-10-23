@@ -88,3 +88,25 @@ export async function secureWipeAllWalletData(): Promise<void> {
   setSkipPin(false)
   await clearDuressPin().catch(() => undefined)
 }
+
+/**
+ * Wipe after the last wrong PIN, back to a fresh install. Unlike the duress
+ * wipe, the main PIN material goes too: setting the next PIN would otherwise
+ * re-encrypt any secret that survived to the new owner's PIN.
+ */
+export async function secureWipeAfterMaxPinTries(): Promise<void> {
+  await secureWipeAllWalletData().catch(() => undefined)
+
+  const {
+    clearPin,
+    resetPinTries,
+    setFirstTime,
+    setLockTriggered,
+    setRequiresAuth
+  } = useAuthStore.getState()
+  await clearPin().catch(() => undefined)
+  setFirstTime(true)
+  setRequiresAuth(false)
+  setLockTriggered(false)
+  resetPinTries()
+}

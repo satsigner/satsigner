@@ -266,6 +266,38 @@ describe('usePinAuth', () => {
     expect(onTriesOver).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps the pad disabled until onFail settles', async () => {
+    const failGate: { open?: () => void } = {}
+    const failStarted: { resolve?: () => void } = {}
+    const onFailStarted = new Promise<void>((resolve) => {
+      failStarted.resolve = resolve
+    })
+    const onFail = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          failGate.open = resolve
+          failStarted.resolve?.()
+        })
+    )
+    const hook = await renderPinAuth({ onFail, onSuccess: jest.fn() })
+    act(() => {
+      hook.current?.setPin([...'9999'])
+    })
+
+    const submission: { done?: Promise<void> } = {}
+    await act(async () => {
+      submission.done = hook.current?.handleFillEnded('9999')
+      await onFailStarted
+    })
+    expect(hook.current?.verifying).toBe(true)
+
+    await act(async () => {
+      failGate.open?.()
+      await submission.done
+    })
+    expect(hook.current?.verifying).toBe(false)
+  })
+
   it('never calls onTriesOver without maxTries', async () => {
     const onTriesOver = jest.fn()
     const hook = await renderPinAuth({ onSuccess: jest.fn(), onTriesOver })

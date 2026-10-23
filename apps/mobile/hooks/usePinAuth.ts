@@ -21,7 +21,7 @@ import { secureWipeAllWalletData } from '@/utils/secureWipe'
 type PinAuthResult = 'error' | 'duress' | 'fail' | 'success'
 
 type UsePinAuthProps = {
-  onFail?: () => void
+  onFail?: () => void | Promise<void>
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
@@ -157,7 +157,6 @@ function usePinAuth({
     }
 
     if (result === 'fail') {
-      setVerifying(false)
       setPin((current) => (current ? emptyPin(current.length) : current))
 
       const newTries = tries + 1
@@ -166,8 +165,12 @@ function usePinAuth({
         onTriesOver()
       }
 
-      if (onFail) {
-        onFail()
+      // The pad stays disabled until onFail settles: after the last try it
+      // wipes the app, and no PIN may be checked while that runs.
+      try {
+        await onFail?.()
+      } finally {
+        setVerifying(false)
       }
     }
     // 'success' finalized the unlock; nothing to do.
