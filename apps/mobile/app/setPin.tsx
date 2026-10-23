@@ -141,7 +141,7 @@ export default function SetPin() {
     // Shares the persisted unlock tries, so the PIN cannot be guessed here.
     const remainingTries = incrementPinTries()
     if (remainingTries <= 0) {
-      secureWipeAfterMaxPinTries()
+      await secureWipeAfterMaxPinTries()
       router.replace('/')
     }
   }

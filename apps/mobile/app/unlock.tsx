@@ -71,10 +71,10 @@ export default function Unlock() {
   }
 
   // Counts against the persisted tries so restarting the app cannot reset them.
-  function handleFailure() {
+  async function handleFailure() {
     const remainingTries = incrementPinTries()
     if (remainingTries <= 0) {
-      secureWipeAfterMaxPinTries()
+      await secureWipeAfterMaxPinTries()
       router.replace('/')
     }
   }

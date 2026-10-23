@@ -236,11 +236,11 @@ export default function Developer() {
 
   // Shares the persisted unlock tries, so reopening the modal cannot be used
   // to guess the PIN without limit.
-  function handleBackupPinFail() {
+  async function handleBackupPinFail() {
     const remainingTries = incrementPinTries()
     if (remainingTries <= 0) {
       setBackupPinVisible(false)
-      secureWipeAfterMaxPinTries()
+      await secureWipeAfterMaxPinTries()
       router.replace('/')
     }
   }

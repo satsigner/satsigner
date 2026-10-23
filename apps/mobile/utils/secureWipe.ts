@@ -95,8 +95,13 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
 }
 
-/** Resets the app to a fresh install after the last wrong PIN. */
-export function secureWipeAfterMaxPinTries() {
+/**
+ * Resets the app to a fresh install after the last wrong PIN. The secrets go
+ * too, so whoever sets the next PIN cannot reach Ark, ecash or Nostr funds.
+ */
+export async function secureWipeAfterMaxPinTries(): Promise<void> {
+  await secureWipeAllWalletData().catch(() => undefined)
+
   const { deleteAccounts, deleteTags } = useAccountsStore.getState()
   deleteAccounts()
   useWalletsStore.getState().deleteWallets()
