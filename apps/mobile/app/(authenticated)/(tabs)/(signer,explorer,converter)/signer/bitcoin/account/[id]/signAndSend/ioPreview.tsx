@@ -82,8 +82,10 @@ import {
 } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
 import {
+  feeWithReplacementFloor,
   getPreviewReplacementFlags,
   parseFeeRateFloor,
+  parseReplacementFeeFloor,
   spendsUnconfirmedParent
 } from '@/utils/feeReplacement'
 import {
@@ -149,6 +151,7 @@ export default function IOPreview() {
     id,
     autoSelectFromUri,
     dustWarning,
+    feeFloor: feeFloorParam,
     feeRateFloor: feeRateFloorParam
   } = useLocalSearchParams<IoPreviewSearchParams>()
   const isFocused = useIsFocused()
@@ -276,6 +279,9 @@ export default function IOPreview() {
   const feeRateFloor = parseFeeRateFloor(
     Array.isArray(feeRateFloorParam) ? feeRateFloorParam[0] : feeRateFloorParam
   )
+  const replacementFeeFloor = parseReplacementFeeFloor(
+    Array.isArray(feeFloorParam) ? feeFloorParam[0] : feeFloorParam
+  )
   const previewFlags = getPreviewReplacementFlags({
     rbf,
     spendsUnconfirmedParent: spendsUnconfirmedParent(
@@ -344,8 +350,12 @@ export default function IOPreview() {
   }, [inputs, outputs])
 
   const baseMinerFee = useMemo(
-    () => Math.round(localFeeRate * baseTransactionSize.vsize),
-    [localFeeRate, baseTransactionSize.vsize]
+    () =>
+      feeWithReplacementFloor(
+        Math.round(localFeeRate * baseTransactionSize.vsize),
+        replacementFeeFloor
+      ),
+    [localFeeRate, baseTransactionSize.vsize, replacementFeeFloor]
   )
 
   const totalOutputValue = useMemo(
@@ -496,8 +506,12 @@ export default function IOPreview() {
   }, [inputs, outputs, hasChange])
 
   const minerFee = useMemo(
-    () => Math.round(localFeeRate * transactionSize.vsize),
-    [localFeeRate, transactionSize.vsize]
+    () =>
+      feeWithReplacementFloor(
+        Math.round(localFeeRate * transactionSize.vsize),
+        replacementFeeFloor
+      ),
+    [localFeeRate, replacementFeeFloor, transactionSize.vsize]
   )
 
   const stonewallPaymentContext = getStonewallPaymentContext({
@@ -665,8 +679,19 @@ export default function IOPreview() {
     if (selectedAutoSelectUtxos === 'privacy') {
       return
     }
-    setFee(Math.round(localFeeRate * transactionSize.vsize))
-  }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
+    setFee(
+      feeWithReplacementFloor(
+        Math.round(localFeeRate * transactionSize.vsize),
+        replacementFeeFloor
+      )
+    )
+  }, [
+    localFeeRate,
+    replacementFeeFloor,
+    transactionSize,
+    selectedAutoSelectUtxos,
+    setFee
+  ])
 
   useEffect(() => {
     setLocalFeeRate(feeRate)
