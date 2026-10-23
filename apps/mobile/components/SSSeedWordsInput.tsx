@@ -39,7 +39,11 @@ type SSSeedWordsInputProps = {
   wordCount: MnemonicWordCount
   wordListName: WordListName
   network: Network
-  onMnemonicValid?: (mnemonic: string, fingerprint: string) => void
+  onMnemonicValid?: (
+    mnemonic: string,
+    fingerprint: string,
+    passphrase: string
+  ) => void
   onMnemonicInvalid?: () => void
   showPassphrase?: boolean
   showChecksum?: boolean
@@ -187,7 +191,7 @@ export default function SSSeedWordsInput({
             passphrase
           )
           setFingerprint(fingerprintResult)
-          onMnemonicValid?.(mnemonic, fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
         } else {
           const electrumType = detectElectrumSeed(mnemonic)
           setElectrumSeedType(electrumType)
@@ -197,7 +201,7 @@ export default function SSSeedWordsInput({
               new Uint8Array(seed)
             )
             setFingerprint(fingerprintResult)
-            onMnemonicValid?.(mnemonic, fingerprintResult)
+            onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
           } else {
             setFingerprint('')
             onMnemonicInvalid?.()
@@ -272,7 +276,7 @@ export default function SSSeedWordsInput({
           passphrase
         )
         setFingerprint(fingerprintResult)
-        onMnemonicValid?.(mnemonic, fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
       } else {
         const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
@@ -282,7 +286,7 @@ export default function SSSeedWordsInput({
             new Uint8Array(seedBytes)
           )
           setFingerprint(fingerprintResult)
-          onMnemonicValid?.(mnemonic, fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
         } else {
           setFingerprint('')
           onMnemonicInvalid?.()
@@ -406,7 +410,7 @@ export default function SSSeedWordsInput({
           passphrase
         )
         setFingerprint(fingerprintResult)
-        onMnemonicValid?.(mnemonic, fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
       } else {
         const electrumType = detectElectrumSeed(mnemonic)
         setElectrumSeedType(electrumType)
@@ -414,7 +418,7 @@ export default function SSSeedWordsInput({
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
           const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
           setFingerprint(fingerprintResult)
-          onMnemonicValid?.(mnemonic, fingerprintResult)
+          onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
         } else {
           setFingerprint('')
           onMnemonicInvalid?.()
@@ -436,12 +440,12 @@ export default function SSSeedWordsInput({
       if (checksumValid) {
         const fingerprintResult = getFingerprintFromMnemonic(mnemonic, text)
         setFingerprint(fingerprintResult)
-        onMnemonicValid?.(mnemonic, fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult, text)
       } else if (electrumSeedType) {
         const seed = await mnemonicToSeedElectrum(mnemonic, text)
         const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
         setFingerprint(fingerprintResult)
-        onMnemonicValid?.(mnemonic, fingerprintResult)
+        onMnemonicValid?.(mnemonic, fingerprintResult, text)
       }
     }
   }
