@@ -5,6 +5,7 @@ import {
   parseLabel,
   parseLabelTags,
   parseUriParameters,
+  sanitizeScannedText,
   stripBitcoinPrefix
 } from '@/utils/parse'
 
@@ -194,6 +195,34 @@ describe('parse utils', () => {
       const { hardenedPath, xpubs } = parseDescriptor(d)
       expect(hardenedPath).toBe('m/0h')
       expect(xpubs).toHaveLength(1)
+    })
+  })
+
+  describe('sanitizeScannedText', () => {
+    it('drops spaces, zero-width and control characters but keeps newlines', () => {
+      expect(sanitizeScannedText(' wpkh( xpub\u200B )\u0007\nnext ')).toBe(
+        'wpkh(xpub)\nnext'
+      )
+    })
+
+    it('drops tabs, carriage returns, no-break spaces and the byte order mark', () => {
+      expect(sanitizeScannedText('\uFEFFxp\tub\r\u00A0key')).toBe('xpubkey')
+    })
+
+    it('trims surrounding newlines', () => {
+      expect(sanitizeScannedText('\nxpub\n')).toBe('xpub')
+    })
+
+    it('trims newlines left behind by stripped invisible characters', () => {
+      expect(sanitizeScannedText('\u200B\nxpub\n\u0007')).toBe('xpub')
+    })
+
+    it('folds compatibility characters with NFKC', () => {
+      expect(sanitizeScannedText('\uFF58\uFF50\uFF55\uFF42')).toBe('xpub')
+    })
+
+    it('returns an empty string for blank input', () => {
+      expect(sanitizeScannedText('  \t ')).toBe('')
     })
   })
 })

@@ -40,7 +40,7 @@ function sumOutputs(outputs: { value: number }[]): number {
 
 describe('efficiency UTXO Selection Algorithm', () => {
   it('should select a single changeless UTXO and absorb dust change into the fee', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000])
+    const utxos = createMockUtxos([10_000, 20_000, 30_000])
     // Branch and Bound lands the 10000 UTXO (effective value 9933, i.e.
     // 10000 - floor(67.75)) inside the [actualTarget, actualTarget +
     // costOfChange] window, so it is chosen changeless. The 10 sat leftover is
@@ -51,13 +51,13 @@ describe('efficiency UTXO Selection Algorithm', () => {
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
 
     expect(result.error).toBeUndefined()
-    expect(result.inputs.map((i) => i.value)).toStrictEqual([10000])
+    expect(result.inputs.map((i) => i.value)).toStrictEqual([10_000])
     expect(result.change).toBe(0)
     expect(result.fee).toBe(150) // 10000 - 9850, the absorbed leftover
   })
 
   it('should keep a change output when the leftover exceeds the cost of change', () => {
-    const utxos = createMockUtxos([10000])
+    const utxos = createMockUtxos([10_000])
     const targetAmount = 5000
     const feeRate = 1
 
@@ -66,7 +66,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
     // Single input, fee includes one recipient + one change output:
     // floor((10 + 0.5 segwit + 67.75 input + 31 recipient + 31 change)) = 140.
     expect(result.error).toBeUndefined()
-    expect(result.inputs.map((i) => i.value)).toStrictEqual([10000])
+    expect(result.inputs.map((i) => i.value)).toStrictEqual([10_000])
     expect(result.fee).toBe(140)
     expect(result.change).toBe(4860) // 10000 - 5000 - 140
     expect(sumInputs(result.inputs)).toBe(
@@ -76,7 +76,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
 
   it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
-    const targetAmount = 10000
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
@@ -103,8 +103,8 @@ describe('efficiency UTXO Selection Algorithm', () => {
   })
 
   it('should conserve value at high fee rates', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000])
-    const targetAmount = 25000
+    const utxos = createMockUtxos([10_000, 20_000, 30_000])
+    const targetAmount = 25_000
     const feeRate = 50
 
     const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
@@ -130,7 +130,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
   })
 
   it('should still fund the target when negative-value dust UTXOs are present', () => {
-    const utxos = createMockUtxos([1, 2, 10000])
+    const utxos = createMockUtxos([1, 2, 10_000])
     const targetAmount = 100
     const feeRate = 2
 
@@ -145,7 +145,7 @@ describe('efficiency UTXO Selection Algorithm', () => {
   })
 
   it('privacy strategy skips BnB and still funds the target via knapsack', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000])
+    const utxos = createMockUtxos([10_000, 20_000, 30_000])
     const targetAmount = 9850
     const feeRate = 1
 
@@ -236,8 +236,10 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should create a valid STONEWALL transaction with sufficient funds', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
-    const targetAmount = 75000
+    const utxos = createMockUtxos([
+      10_000, 20_000, 30_000, 40_000, 50_000, 60_000
+    ])
+    const targetAmount = 75_000
     const feeRate = 2
 
     const result = selectStonewallUtxos(
@@ -272,7 +274,7 @@ describe('stonewall utxo selection algorithm', () => {
 
   it('should return error when there are insufficient funds', () => {
     const utxos = createMockUtxos([1000, 2000])
-    const targetAmount = 10000
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(
@@ -286,8 +288,8 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should produce one change output per input set', () => {
-    const utxos = createMockUtxos([100000, 200000, 150000, 250000])
-    const targetAmount = 50000
+    const utxos = createMockUtxos([100_000, 200_000, 150_000, 250_000])
+    const targetAmount = 50_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(
@@ -308,8 +310,8 @@ describe('stonewall utxo selection algorithm', () => {
     // Each set lands a single 10500 UTXO; change (~365) falls below the 546
     // dust floor, so Sparrow keeps the recipient + fake-mix structure and folds
     // the surplus into the fee rather than aborting.
-    const utxos = createMockUtxos([10500, 10500, 10500, 10500])
-    const targetAmount = 10000
+    const utxos = createMockUtxos([10_500, 10_500, 10_500, 10_500])
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(
@@ -331,8 +333,8 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should still succeed when mixed-size sets include dust-sized change', () => {
-    const utxos = createMockUtxos([120000, 10500, 10500, 10500, 10500])
-    const targetAmount = 10000
+    const utxos = createMockUtxos([120_000, 10_500, 10_500, 10_500, 10_500])
+    const targetAmount = 10_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(
@@ -354,8 +356,10 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should satisfy fee equals inputs minus outputs in privacy mode', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
-    const targetAmount = 75000
+    const utxos = createMockUtxos([
+      10_000, 20_000, 30_000, 40_000, 50_000, 60_000
+    ])
+    const targetAmount = 75_000
     const feeRate = 2
 
     const result = selectStonewallUtxos(
@@ -390,8 +394,8 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should fail cleanly when sets cannot balance target and fee', () => {
-    const utxos = createMockUtxos([35000, 15000])
-    const targetAmount = 20000
+    const utxos = createMockUtxos([35_000, 15_000])
+    const targetAmount = 20_000
     const feeRate = 1
 
     const result = selectStonewallUtxos(
@@ -406,8 +410,10 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should produce deterministic inputs for a fixed seed', () => {
-    const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000])
-    const targetAmount = 75000
+    const utxos = createMockUtxos([
+      10_000, 20_000, 30_000, 40_000, 50_000, 60_000
+    ])
+    const targetAmount = 75_000
     const feeRate = 2
 
     const first = selectStonewallUtxos(
@@ -431,10 +437,10 @@ describe('stonewall utxo selection algorithm', () => {
   })
 
   it('should handle large UTXO sets efficiently', () => {
-    const values = Array.from({ length: 100 }, (_, i) => 10000 + i * 1000)
+    const values = Array.from({ length: 100 }, (_, i) => 10_000 + i * 1000)
     const utxos = createMockUtxos(values)
 
-    const targetAmount = 500000
+    const targetAmount = 500_000
     const feeRate = 2
 
     const result = selectStonewallUtxos(

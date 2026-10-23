@@ -26,7 +26,7 @@ const LOADER_SIZE = 80
 const HEX_HASH_LENGTH = 64
 const HEX_REGEX = /^[0-9a-f]+$/i
 /** Keep the page usable; full blocks can be multi-MB as hex. */
-const HEX_PREVIEW_CHARS = 8_192
+const HEX_PREVIEW_CHARS = 8192
 const HEX_DUMP_BYTES_PER_LINE = 16
 
 type HexViewMode = 'raw' | 'dump' | 'decoded'

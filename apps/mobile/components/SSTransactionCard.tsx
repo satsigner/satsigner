@@ -1,15 +1,13 @@
 import { Image } from 'expo-image'
 import { useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
-import { useFiatData } from '@/hooks/useFiatData'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { brantaLogoUrl } from '@/utils/brantaUrl'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
@@ -81,11 +79,9 @@ function HistoricalFiatUnavailable({
   )
 }
 
-type SSTransactionCardProps = {
+type SSTransactionCardProps = DisplayPreferences & {
   transaction: Transaction
   blockHeight: number
-  fiatCurrency: Currency
-  btcPrice: number
   walletBalance?: number
   onPress: () => void
   onOpenFiatSettings: () => void
@@ -104,7 +100,12 @@ function SSTransactionCard({
   onPress,
   onOpenFiatSettings,
   expand,
-  style = DEFAULT_STYLE
+  style = DEFAULT_STYLE,
+  currencyUnit,
+  privacyMode,
+  useZeroPadding,
+  fiatEnabled,
+  historicalFiatEnabled
 }: SSTransactionCardProps) {
   const confirmedAtBlockHeight =
     typeof transaction.blockHeight === 'number' && transaction.blockHeight > 0
@@ -126,28 +127,18 @@ function SSTransactionCard({
     label || payeeName || t('transaction.noLabel').toUpperCase()
   const historyLabelMuted = !label && !payeeName
 
-  const [brantaTorEnabled, currencyUnit, useZeroPadding, privacyMode] =
-    useSettingsStore(
-      useShallow((state) => [
-        state.brantaTorEnabled,
-        state.currencyUnit,
-        state.useZeroPadding,
-        state.privacyMode
-      ])
-    )
+  const brantaTorEnabled = useSettingsStore((state) => state.brantaTorEnabled)
   const payeeLogoUrl = brantaLogoUrl(
     transaction.branta?.logoUrl,
     brantaTorEnabled
   )
-  const { showCurrentFiat, showHistoricalFiat } = useFiatData()
-
   const { prices } = transaction
-  const oldPrice = showHistoricalFiat && prices ? prices[fiatCurrency] : null
-  const historicalPrice = showHistoricalFiat
+  const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null
+  const historicalPrice = historicalFiatEnabled
     ? prices?.[fiatCurrency]
     : undefined
   const currentFiatPrice =
-    showCurrentFiat && btcPrice && btcPrice > 0
+    fiatEnabled && btcPrice && btcPrice > 0
       ? formatFiatPrice(Math.abs(amount), btcPrice)
       : ''
   const historicalFiatPrice =
@@ -155,8 +146,8 @@ function SSTransactionCard({
       ? formatFiatPrice(Math.abs(amount), historicalPrice)
       : ''
   const percentChange =
-    showCurrentFiat &&
-    showHistoricalFiat &&
+    fiatEnabled &&
+    historicalFiatEnabled &&
     btcPrice &&
     btcPrice > 0 &&
     oldPrice &&
@@ -177,7 +168,7 @@ function SSTransactionCard({
   const hasPriceDisplay =
     currentFiatPrice !== '' ||
     historicalFiatPrice !== '' ||
-    (showHistoricalFiat && Boolean(transaction.timestamp))
+    (historicalFiatEnabled && Boolean(transaction.timestamp))
 
   const smallView = expand || `${amount}`.length > 10
 
@@ -310,7 +301,7 @@ function SSTransactionCard({
                         >
                           ({historicalFiatPrice})
                         </SSText>
-                      ) : showHistoricalFiat && transaction.timestamp ? (
+                      ) : historicalFiatEnabled && transaction.timestamp ? (
                         <HistoricalFiatUnavailable
                           onOpenFiatSettings={onOpenFiatSettings}
                         />

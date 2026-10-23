@@ -30,13 +30,13 @@ describe('getEventContent', () => {
   it('parses JSON object content', () => {
     const content = '{"created_at":1704067200,"description":"hello"}'
     expect(getEventContent(unwrappedEvent(content))).toStrictEqual({
-      created_at: 1704067200,
+      created_at: 1_704_067_200,
       description: 'hello'
     })
   })
 
   it('decodes compressed content', () => {
-    const payload = { created_at: 1704067200, description: 'hello' }
+    const payload = { created_at: 1_704_067_200, description: 'hello' }
     expect(
       getEventContent(unwrappedEvent(compressMessage(payload)))
     ).toStrictEqual(payload)

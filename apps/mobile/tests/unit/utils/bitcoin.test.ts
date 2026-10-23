@@ -4,8 +4,8 @@ import {
   bip21decode,
   getAccountDerivationPath,
   getAddressDerivationPath,
+  getScriptTypeFromAddress,
   isBip21,
-  isBitcoinAddress,
   privateKeyHexToWif
 } from '@/utils/bitcoin'
 
@@ -68,32 +68,6 @@ function makeAddress(overrides: Partial<Address> = {}): Address {
 }
 
 describe('bitcoin utils', () => {
-  describe('isBitcoinAddress', () => {
-    it('should return a valid bitcoin address', () => {
-      expect(
-        isBitcoinAddress('myqtdq5wcy9vcm6z2muxla0y0eg94h06jgkcqnhhy4f')
-      ).toBeFalsy()
-      expect(
-        isBitcoinAddress('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
-      ).toBeTruthy() // P2PKH address
-      expect(
-        isBitcoinAddress('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
-      ).toBeTruthy() // P2SH address
-      expect(
-        isBitcoinAddress('bc1q8d968eg8ua3dk8mkql9d0vj35nzplsd4zmulus')
-      ).toBeTruthy() // Bech32 address
-      expect(
-        isBitcoinAddress('tb1qlj64u6fqutr0xue85kl55fx0gt4m4urun25p7q')
-      ).toBeTruthy() // Testnet Bech32 address
-    })
-
-    it('should validate regtest addresses', () => {
-      expect(
-        isBitcoinAddress('bcrt1q6rhpng9evdsfnn833a4f4vej0asu6dk5srld6x')
-      ).toBeTruthy() // Regtest Bech32 address
-    })
-  })
-
   describe('isBip21', () => {
     it('should return true for valid BIP21 URI', () => {
       expect(
@@ -135,7 +109,7 @@ describe('bitcoin utils', () => {
       expect(result).toStrictEqual({
         address: 'bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26',
         options: {
-          amount: 0.02587175,
+          amount: 0.025_871_75,
           label: undefined,
           message: undefined
         }
@@ -272,5 +246,21 @@ describe('bitcoin utils', () => {
         privateKeyHexToWif(privateKeyHex, 'testnet')
       )
     })
+  })
+})
+
+describe('getScriptTypeFromAddress', () => {
+  it.each([
+    ['1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2', 'p2pkh'],
+    ['3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy', 'p2sh'],
+    ['bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq', 'p2wpkh'],
+    ['bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3', 'p2wsh'],
+    ['bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr', 'p2tr']
+  ])('classifies %s as %s', (address, expected) => {
+    expect(getScriptTypeFromAddress(address, 'bitcoin')).toBe(expected)
+  })
+
+  it('returns null for an invalid address', () => {
+    expect(getScriptTypeFromAddress('not-an-address', 'bitcoin')).toBeNull()
   })
 })

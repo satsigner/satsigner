@@ -1,3 +1,4 @@
+import { HASH_HEX_LENGTH, TXID_HEX_PATTERN } from '@/constants/btc'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -20,8 +21,7 @@ const STALE_EXIT_SUBSYSTEM_KIND = 'start'
 
 const MUTED_STATUSES = new Set(['failed', 'canceled'])
 
-const BITCOIN_TXID_HEX = /^[0-9a-fA-F]{64}$/
-const BITCOIN_OUTPOINT = /^([0-9a-fA-F]{64}):\d+$/
+const BITCOIN_OUTPOINT = new RegExp(`^([0-9a-fA-F]{${HASH_HEX_LENGTH}}):\\d+$`)
 
 const METADATA_TXID_KEYS = [
   'chain_anchor',
@@ -34,7 +34,7 @@ function txidFromHexOrOutpoint(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null
   }
-  if (BITCOIN_TXID_HEX.test(value)) {
+  if (TXID_HEX_PATTERN.test(value)) {
     return value.toLowerCase()
   }
   const match = BITCOIN_OUTPOINT.exec(value)
@@ -223,47 +223,62 @@ export function truncateArkCounterparty(
 
 export function getArkMovementStatusColor(status: string): string {
   switch (status) {
-    case 'pending':
+    case 'pending': {
       return Colors.warning
-    case 'successful':
+    }
+    case 'successful': {
       return Colors.softBarGreen
+    }
     case 'failed':
-    case 'canceled':
+    case 'canceled': {
       return Colors.error
-    default:
+    }
+    default: {
       return Colors.gray[400]
+    }
   }
 }
 
 export function getArkMovementStatusLabel(status: string): string {
   switch (status) {
-    case 'pending':
+    case 'pending': {
       return t('ark.movement.status.pending')
-    case 'successful':
+    }
+    case 'successful': {
       return t('ark.movement.status.successful')
-    case 'failed':
+    }
+    case 'failed': {
       return t('ark.movement.status.failed')
-    case 'canceled':
+    }
+    case 'canceled': {
       return t('ark.movement.status.canceled')
-    default:
+    }
+    default: {
       return status.toUpperCase()
+    }
   }
 }
 
 export function getArkMovementKindLabel(kind: ArkMovementKind): string {
   switch (kind) {
-    case 'board':
+    case 'board': {
       return t('ark.movement.kind.board')
-    case 'offboard':
+    }
+    case 'offboard': {
       return t('ark.movement.kind.offboard')
-    case 'receive':
+    }
+    case 'receive': {
       return t('ark.movement.kind.receive')
-    case 'send':
+    }
+    case 'send': {
       return t('ark.movement.kind.send')
-    case 'refresh':
+    }
+    case 'refresh': {
       return t('ark.movement.kind.refresh')
-    default:
+    }
+    default: {
       return ''
+    }
   }
 }
 

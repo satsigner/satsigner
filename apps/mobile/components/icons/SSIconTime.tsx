@@ -13,9 +13,9 @@ export default function SSIconTime({
     <Svg width={width} height={height} viewBox="0 0 16 16" fill="none">
       <G filter="url(#filter0_i_8288_24237)">
         <Circle
-          cx={8.28557}
-          cy={8.28547}
-          r={7.21429}
+          cx={8.285_57}
+          cy={8.285_47}
+          r={7.214_29}
           transform="rotate(-90 8.28557 8.28547)"
           stroke="#DCDCDC"
         />

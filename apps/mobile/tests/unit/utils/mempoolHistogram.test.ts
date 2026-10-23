@@ -76,12 +76,12 @@ describe('feesFromProjectedBlocks', () => {
     // Electrum-style power-of-2 outlier: tiny high-fee dust + bulk at 1 sat/vB.
     // Old midpoint math → ~8192 sat/vB and multi-million sat fees on small txs.
     const blocks = projectedBlocksFromHistogram([
-      [16384, 100],
+      [16_384, 100],
       [1, 999_900]
     ])
 
     expect(blocks[0]?.feeRange[0]).toBe(1)
-    expect(blocks[0]?.feeRange[1]).toBe(16384)
+    expect(blocks[0]?.feeRange[1]).toBe(16_384)
     expect(blocks[0]?.medianFee).toBeLessThan(10)
 
     const fees = feesFromProjectedBlocks(blocks, 1)

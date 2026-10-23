@@ -34,7 +34,9 @@ function mapBolt11DecodeToDecodedInvoice(
   )
 
   const amountValue = amountSection?.value
-  const parsedMsats = amountValue ? parseInt(amountValue.toString(), 10) : 0
+  const parsedMsats = amountValue
+    ? Number.parseInt(amountValue.toString(), 10)
+    : 0
   const numMsats =
     Number.isNaN(parsedMsats) || parsedMsats <= 0 ? 0 : parsedMsats
   const numSatoshis =
@@ -62,15 +64,15 @@ export function bolt11AmountSats(invoice: {
   num_satoshis?: string
   value?: string
 }) {
-  const fromSatField = parseInt(invoice.num_satoshis ?? '', 10)
+  const fromSatField = Number.parseInt(invoice.num_satoshis ?? '', 10)
   if (!Number.isNaN(fromSatField) && fromSatField > 0) {
     return fromSatField
   }
-  const msat = parseInt(invoice.num_msat ?? '', 10)
+  const msat = Number.parseInt(invoice.num_msat ?? '', 10)
   if (!Number.isNaN(msat) && msat > 0) {
     return Math.ceil(msat / MILLISATS_PER_SAT)
   }
-  const fromValue = parseInt(invoice.value ?? '', 10)
+  const fromValue = Number.parseInt(invoice.value ?? '', 10)
   if (!Number.isNaN(fromValue) && fromValue > 0) {
     return fromValue
   }

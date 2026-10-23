@@ -204,7 +204,7 @@ export default function Developer() {
   }
 
   /** Printable ASCII (space through tilde): letters, digits, space, symbols */
-  const PASSPHRASE_ALLOWED_REGEX = /^[\x20-\x7E]+$/
+  const PASSPHRASE_ALLOWED_REGEX = /^[\u0020-\u007E]+$/
 
   async function handleEncryptAndShare() {
     if (!backupPreviewPayload) {

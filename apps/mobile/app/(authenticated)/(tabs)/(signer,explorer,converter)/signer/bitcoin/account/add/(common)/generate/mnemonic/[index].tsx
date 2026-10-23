@@ -122,7 +122,7 @@ export default function GenerateMnemonic() {
             fingerprint,
             scriptVersion,
             appNetworkToBdkNetwork(network),
-            policyType === 'multisig' // Pass multisig flag
+            policyType === 'multisig'
           )
 
           setExtendedPublicKey(extendedPublicKey)
@@ -136,9 +136,9 @@ export default function GenerateMnemonic() {
       try {
         const externalDescriptor = await getDescriptorString(
           mnemonic,
-          scriptVersion, // Use the script version from store
+          scriptVersion,
           KeychainKind.External,
-          passphrase || '', // Use passphrase from store
+          passphrase || '',
           appNetworkToBdkNetwork(network)
         )
         const parsedDescriptor = parseDescriptor(externalDescriptor)

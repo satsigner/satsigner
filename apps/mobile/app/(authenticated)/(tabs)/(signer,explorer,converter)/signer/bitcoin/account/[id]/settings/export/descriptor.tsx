@@ -42,7 +42,7 @@ export default function DescriptorPage() {
     if (!account || !keyIndex) {
       return
     }
-    const keyIndexNum = parseInt(keyIndex, 10)
+    const keyIndexNum = Number.parseInt(keyIndex, 10)
     const key = account.keys[keyIndexNum]
     if (!key) {
       toast.error('Key not found')

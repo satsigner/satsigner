@@ -7,7 +7,7 @@ import {
  * SQLite compiled with SQLITE_MAX_VARIABLE_NUMBER = 32766. Chunking keeps each
  * multi-row INSERT under that ceiling.
  */
-const MAX_SQL_VARIABLES = 32766
+const MAX_SQL_VARIABLES = 32_766
 
 /**
  * Insert many rows using multi-row VALUES statements instead of one statement

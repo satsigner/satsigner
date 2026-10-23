@@ -122,10 +122,10 @@ export function applyBookmarkUpdate(
     privSet.delete(action.eventId)
   }
 
-  const tags = Array.from(pubSet).map((id) => ['e', id])
+  const tags = [...pubSet].map((id) => ['e', id])
   const content =
     privSet.size > 0 && secretKey
-      ? encryptPrivateBookmarks(Array.from(privSet), secretKey, pubkeyHex)
+      ? encryptPrivateBookmarks([...privSet], secretKey, pubkeyHex)
       : ''
 
   return { content, tags }

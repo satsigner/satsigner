@@ -73,7 +73,7 @@ function parsePayjoinExpiresAtMs(pjOrUri: string): number | undefined {
     return undefined
   }
 
-  const fragment = pjEndpoint.slice(hashIndex + 1).replace(/\+/g, '-')
+  const fragment = pjEndpoint.slice(hashIndex + 1).replaceAll('+', '-')
   const exParam = fragment
     .split('-')
     .find((part) => part.toUpperCase().startsWith('EX1'))

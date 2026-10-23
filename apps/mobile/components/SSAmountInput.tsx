@@ -1,25 +1,28 @@
 import { Slider } from '@miblanchard/react-native-slider'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { PRIVACY_MASK } from '@/constants/privacy'
+import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { satsToFiat as convertSatsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
 
-type SSAmountInputProps = {
+type SSAmountInputProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'fiatEnabled' | 'privacyMode'
+> & {
   min?: number
   max: number
   value: number
   remainingSats?: number
-  privacyMode?: boolean
   onValueChange: (value: number) => void
 }
 
@@ -28,19 +31,18 @@ function SSAmountInput({
   max,
   value,
   remainingSats,
-  privacyMode = false,
-  onValueChange
+  privacyMode,
+  onValueChange,
+  btcPrice,
+  fiatCurrency,
+  fiatEnabled
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(value)
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
+  function satsToFiat(sats: number) {
+    return convertSatsToFiat(sats, btcPrice, fiatEnabled)
+  }
 
   const [localFiatValue, setLocalFiatValue] = useState(() => satsToFiat(value))
 
@@ -53,7 +55,7 @@ function SSAmountInput({
 
   function handleFiatChange(text: string) {
     const fiat = Number(text)
-    if (isNaN(fiat) || !btcPrice || btcPrice <= 0) {
+    if (Number.isNaN(fiat) || !btcPrice || btcPrice <= 0) {
       return
     }
     const sats = Math.max(
@@ -112,7 +114,7 @@ function SSAmountInput({
             }
           >
             {privacyMode
-              ? `•••• ${fiatCurrency}`
+              ? `${PRIVACY_MASK} ${fiatCurrency}`
               : `${formatNumber(satsToFiat(localValue), 2)} ${fiatCurrency}`}
           </SSText>
         ) : (
@@ -123,14 +125,14 @@ function SSAmountInput({
             style={privacyMode ? undefined : styles.switchable}
           >
             {privacyMode
-              ? `•••• ${t('bitcoin.sats')}`
+              ? `${PRIVACY_MASK} ${t('bitcoin.sats')}`
               : `${formatNumber(localValue, 0)} ${t('bitcoin.sats')}`}
           </SSText>
         )}
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode && min > 0 ? '••••' : min}</SSText>
+          <SSText>{privacyMode && min > 0 ? PRIVACY_MASK : min}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
         {remainingSats !== undefined && (
@@ -138,14 +140,14 @@ function SSAmountInput({
             <SSText color="muted">
               {t('common.remaining')}{' '}
               {privacyMode
-                ? '••••'
+                ? PRIVACY_MASK
                 : formatNumber(remainingSats - localValue, 0)}{' '}
               {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
         )}
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode ? '••••' : max}</SSText>
+          <SSText>{privacyMode ? PRIVACY_MASK : max}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
       </SSHStack>

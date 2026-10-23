@@ -68,7 +68,6 @@ export const useGestures = ({
   }
   const isZoomedIn = useSharedValue(false)
 
-  // Use useAnimatedReaction to update translation when initialTranslation prop changes
   useAnimatedReaction(
     () => ({ x: initialTranslation.x, y: initialTranslation.y }),
     (currentData) => {
@@ -81,7 +80,7 @@ export const useGestures = ({
         savedTranslate.y.value = currentData.y
       }
     },
-    [initialTranslation.x, initialTranslation.y] // Dependencies for the preparer
+    [initialTranslation.x, initialTranslation.y]
   )
 
   const { getInteractionId, updateInteractionId } = useInteractionId()
@@ -222,13 +221,13 @@ export const useGestures = ({
   }
 
   const panGesture = Gesture.Pan()
-    .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
-    .minPointers(minPanPointers) // Set the minimum number of pointers required to recognize the gesture
-    .maxPointers(maxPanPointers) // Set the maximum number of pointers allowed
+    .enabled(isPanEnabled)
+    .minPointers(minPanPointers)
+    .maxPointers(maxPanPointers)
     .onStart((event) => {
-      runOnJS(onPanStarted)(event) // Call the onPanStarted function when the pan starts
-      savedTranslate.x.value = translate.x.value // Save the current x translation
-      savedTranslate.y.value = translate.y.value // Save the current y translation
+      runOnJS(onPanStarted)(event)
+      savedTranslate.x.value = translate.x.value
+      savedTranslate.y.value = translate.y.value
     })
     .onUpdate((event) => {
       translate.x.value = savedTranslate.x.value + event.translationX
@@ -240,7 +239,6 @@ export const useGestures = ({
       const bottomLimit = limits.bottom(height, scale)
       const topLimit = -bottomLimit
 
-      // When shouldResetOnInteractionEnd is false, apply decay regardless of scale
       if (!shouldResetOnInteractionEnd || scale.value > 1) {
         translate.x.value =
           shouldResetOnInteractionEnd && scale.value > 1
@@ -300,15 +298,14 @@ export const useGestures = ({
                 }
               )
       } else {
-        // End the pan gesture immediately if the scale is not greater than 1 and shouldResetOnInteractionEnd is true
         runOnJS(onPanEnded)(event, success)
       }
     })
 
   const pinchGesture = Gesture.Pinch()
-    .enabled(isPinchEnabled) // Enable pinch gesture based on isPinchEnabled flag
+    .enabled(isPinchEnabled)
     .onStart((event) => {
-      runOnJS(onPinchStarted)(event) // Trigger the pinch start event
+      runOnJS(onPinchStarted)(event)
       savedScale.value = scale.value
       savedFocal.x.value = focal.x.value
       savedFocal.y.value = focal.y.value
@@ -328,7 +325,7 @@ export const useGestures = ({
     })
     .onEnd((...args) => {
       isZoomedIn.value = args[0].scale > 1
-      runOnJS(onPinchEnded)(...args) // Trigger the pinch end event
+      runOnJS(onPinchEnded)(...args)
     })
 
   const doubleTapGesture = Gesture.Tap()

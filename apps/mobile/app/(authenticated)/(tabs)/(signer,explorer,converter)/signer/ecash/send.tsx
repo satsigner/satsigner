@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSButton from '@/components/SSButton'
@@ -16,6 +15,8 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { ANIMATED_QR_INTERVAL_MS, useEcashSend } from '@/hooks/useEcashSend'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,12 +24,13 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
 export default function EcashSendPage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -38,7 +40,6 @@ export default function EcashSendPage() {
     activeAccount,
     amount,
     animatedQR,
-    animationRef,
     comment,
     currentChunkIndex,
     decodedInvoice,
@@ -54,7 +55,6 @@ export default function EcashSendPage() {
     isGenerating,
     isLNURLMode,
     isMelting,
-    lastUpdateRef,
     lnurlDetails,
     meltTokens,
     memo,
@@ -75,10 +75,7 @@ export default function EcashSendPage() {
     tokenVersion
   } = useEcashSend()
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const satsToFiat = usePriceStore((state) => state.satsToFiat)
   const { width } = useWindowDimensions()
   const qrSize = Math.floor(width * 0.88)
   const routeLabel = describeTokenRoute(tokenRoute, mints)
@@ -100,40 +97,11 @@ export default function EcashSendPage() {
   const totalChunks = chunks.length
   const isMultiPart = totalChunks > 1
 
-  useEffect(() => {
-    if (!animatedQR || !isMultiPart) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-      setCurrentChunkIndex(0)
-      return
-    }
-
-    const animate = (timestamp: number) => {
-      if (timestamp - lastUpdateRef.current >= ANIMATED_QR_INTERVAL_MS) {
-        setCurrentChunkIndex((prev) => (prev + 1) % totalChunks)
-        lastUpdateRef.current = timestamp
-      }
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-        animationRef.current = null
-      }
-    }
-  }, [
-    animatedQR,
-    isMultiPart,
-    totalChunks,
-    animationRef,
-    lastUpdateRef,
-    setCurrentChunkIndex
-  ])
+  useAnimatedQrFrameCycle(
+    () => setCurrentChunkIndex((prev) => (prev + 1) % totalChunks),
+    ANIMATED_QR_INTERVAL_MS,
+    animatedQR && isMultiPart
+  )
 
   async function handlePasteInvoice() {
     try {
@@ -202,12 +170,15 @@ export default function EcashSendPage() {
                   {t('ecash.send.amount')}
                 </SSText>
                 <SSAmountInput
-                  value={parseInt(amount, 10) || 0}
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
+                  fiatEnabled={fiatEnabled}
+                  privacyMode={privacyMode}
+                  value={Number.parseInt(amount, 10) || 0}
                   onValueChange={(value) => setAmount(value.toString())}
                   min={0}
                   max={spendableSats}
                   remainingSats={spendableSats}
-                  privacyMode={privacyMode}
                 />
               </SSVStack>
               {routeLabel ? (
@@ -294,7 +265,7 @@ export default function EcashSendPage() {
                     />
                     <SSText color="muted" size="xs" style={styles.chunkCounter}>
                       {animatedQR && isMultiPart
-                        ? `${currentChunkIndex + 1} / ${totalChunks}`
+                        ? `${(currentChunkIndex % totalChunks) + 1} / ${totalChunks}`
                         : ''}
                     </SSText>
                     {isMultiPart && (

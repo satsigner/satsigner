@@ -1,10 +1,17 @@
 import { format } from 'd3-format'
+import { curveStepAfter, line } from 'd3-shape'
 
+import { isUsablePrice } from '@/api/localPrices'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import {
   type BalanceHistory,
+  type FiatChartPoint,
+  type FiatChartPointsParams,
+  type FiatValueByIdParams,
   type HistoryChartData,
   type TxInfoLabel,
   type TxInfoLabelsParams,
@@ -12,15 +19,17 @@ import {
   type TxXAxisLabelsParams,
   type UtxoGeometryParams,
   type UtxoLabel,
-  type UtxoRectangle
+  type UtxoRectangle,
+  type YDomainParams
 } from '@/types/ui/historyChart'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
+import { toValidDate } from '@/utils/date'
+import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 
 export function hexToRgba(hex: string, opacity: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
+  const r = Number.parseInt(hex.slice(1, 3), 16)
+  const g = Number.parseInt(hex.slice(3, 5), 16)
+  const b = Number.parseInt(hex.slice(5, 7), 16)
   return `rgba(${r}, ${g}, ${b}, ${opacity})`
 }
 
@@ -198,7 +207,7 @@ export function buildUtxoRectangles({
   chartWidth,
   currentDate
 }: UtxoGeometryParams): UtxoRectangle[] {
-  return Array.from(balanceHistory.entries())
+  return [...balanceHistory.entries()]
     .flatMap(([index, balances]) => {
       const x1 = xScale(
         new Date(transactions.at(index)?.timestamp ?? currentDate)
@@ -212,7 +221,7 @@ export function buildUtxoRectangles({
         return []
       }
       let totalBalance = 0
-      return Array.from(balances.entries()).map(([, utxo]) => {
+      return [...balances.entries()].map(([, utxo]) => {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.value)
         let gradientType = 0
@@ -346,7 +355,7 @@ export function buildTxXAxisLabels({
       x: xScale(new Date(t.timestamp ?? new Date()))
     }
   })
-  const boundaryBoxes: { [key: string]: Rectangle } = {}
+  const boundaryBoxes: Record<string, Rectangle> = {}
   for (const t of xAxisLabels) {
     boundaryBoxes[t.index] = {
       bottom: chartHeight + 50,
@@ -357,7 +366,7 @@ export function buildTxXAxisLabels({
       width: 60
     }
   }
-  const visible: { [key: string]: boolean } = {}
+  const visible: Record<string, boolean> = {}
   for (let i = 0; i < length; i += 1) {
     visible[xScaleTransactions[i].index] = true
   }
@@ -452,7 +461,7 @@ export function buildTxInfoLabels({
           : undefined
       const historicalFiatValue =
         historicalPrice && d.amount !== undefined
-          ? parseFloat(formatFiatPrice(d.amount, historicalPrice))
+          ? Number.parseFloat(formatFiatPrice(d.amount, historicalPrice))
           : undefined
 
       initialLabels.push({
@@ -501,4 +510,172 @@ export function buildTxInfoLabels({
     }
   }
   return initialLabels
+}
+
+export const HISTORY_CHART_Y_HEADROOM = 1.2
+const HISTORY_CHART_MARGIN = { bottom: 80, left: 40, right: 10, top: 30 }
+const FIAT_AXIS_RIGHT_MARGIN = 52
+export const SATS_AXIS_LABEL_X = -30
+export const FIAT_AXIS_LABEL_GAP = 4
+const FIAT_AXIS_SI_PREFIX_MIN = 1000
+
+const formatFiatAxisPlain = format('~r')
+const formatFiatAxisWithSiPrefix = format('.3~s')
+
+export function formatFiatAxisTick(value: number) {
+  if (Math.abs(value) < FIAT_AXIS_SI_PREFIX_MIN) {
+    return formatFiatAxisPlain(value)
+  }
+  return formatFiatAxisWithSiPrefix(value)
+}
+
+function historicalBtcPrice(
+  transaction: Transaction,
+  currency: Currency,
+  bundledPriceAt: (timestamp: number) => number | null
+) {
+  const saved = transaction.prices?.[currency]
+  if (isUsablePrice(saved)) {
+    return saved
+  }
+  const date = toValidDate(transaction.timestamp)
+  if (!date) {
+    return null
+  }
+  const bundled = bundledPriceAt(formatTimestamp(date))
+  if (!isUsablePrice(bundled)) {
+    return null
+  }
+  return bundled
+}
+
+export function buildFiatValueById({
+  bundledPriceAt,
+  chartData,
+  currency,
+  transactionsMap
+}: FiatValueByIdParams) {
+  const fiatValueById = new Map<string, number>()
+  for (const point of chartData) {
+    const transaction = transactionsMap.get(point.id)
+    if (!transaction) {
+      continue
+    }
+    const price = historicalBtcPrice(transaction, currency, bundledPriceAt)
+    if (price !== null) {
+      fiatValueById.set(point.id, (point.balance * price) / SATS_PER_BITCOIN)
+    }
+  }
+  return fiatValueById
+}
+
+function fiatValueOf(
+  point: HistoryChartData | undefined,
+  fiatValueById: Map<string, number>
+) {
+  if (!point) {
+    return null
+  }
+  return fiatValueById.get(point.id) ?? null
+}
+
+export function buildFiatChartPoints({
+  chartData,
+  fiatValueById,
+  startDate,
+  validChartData
+}: FiatChartPointsParams): FiatChartPoint[] {
+  const pointBeforeWindow = chartData.findLast(
+    (point) => point.date < startDate
+  )
+  const lastPointInWindow =
+    validChartData.findLast((point) => point.type !== 'end') ??
+    pointBeforeWindow
+
+  function sourcePoint(point: HistoryChartData, index: number) {
+    if (point.type !== 'end') {
+      return point
+    }
+    if (index === 0) {
+      return pointBeforeWindow
+    }
+    return lastPointInWindow
+  }
+
+  return validChartData.map((point, index) => ({
+    date: point.date,
+    value: fiatValueOf(sourcePoint(point, index), fiatValueById)
+  }))
+}
+
+export function maxFiatValue(values: Iterable<number | null>) {
+  return Math.max(0, ...Array.from(values, (value) => value ?? 0))
+}
+
+export function fiatDomainMax({
+  fiatChartPoints,
+  lockZoomToXAxis,
+  seriesMax
+}: {
+  fiatChartPoints: FiatChartPoint[]
+  lockZoomToXAxis: boolean
+  seriesMax: number
+}) {
+  if (!lockZoomToXAxis) {
+    return seriesMax
+  }
+  const windowMax = maxFiatValue(fiatChartPoints.map((point) => point.value))
+  if (windowMax > 0) {
+    return windowMax
+  }
+  return seriesMax
+}
+
+export function satsYDomain({
+  lockZoomToXAxis,
+  maxBalance,
+  scale,
+  startY
+}: YDomainParams): [number, number] {
+  const span = maxBalance * HISTORY_CHART_Y_HEADROOM
+  if (lockZoomToXAxis) {
+    return [0, span]
+  }
+  return [startY, startY + span / scale]
+}
+
+export function fiatYDomain({
+  lockZoomToXAxis,
+  maxBalance,
+  maxFiat,
+  scale,
+  startY
+}: YDomainParams & { maxFiat: number }): [number, number] {
+  const fiatSpan = maxFiat * HISTORY_CHART_Y_HEADROOM
+  if (lockZoomToXAxis) {
+    return [0, fiatSpan]
+  }
+  const satsSpan = maxBalance * HISTORY_CHART_Y_HEADROOM
+  const fiatStart = (startY / satsSpan) * fiatSpan
+  return [fiatStart, fiatStart + fiatSpan / scale]
+}
+
+export function buildFiatStepPath(
+  series: FiatChartPoint[],
+  x: (date: Date) => number,
+  y: (value: number) => number
+) {
+  const generator = line<FiatChartPoint>()
+    .defined((point) => point.value !== null)
+    .x((point) => x(point.date))
+    .y((point) => y(point.value ?? 0))
+    .curve(curveStepAfter)
+  return generator(series)
+}
+
+export function historyChartMargin(showFiatAxis: boolean) {
+  if (!showFiatAxis) {
+    return HISTORY_CHART_MARGIN
+  }
+  return { ...HISTORY_CHART_MARGIN, right: FIAT_AXIS_RIGHT_MARGIN }
 }

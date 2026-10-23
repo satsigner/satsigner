@@ -2,7 +2,7 @@ import {
   SANKEY_BAND_HEIGHT_MAX_PX,
   SANKEY_BAND_HEIGHT_MIN_PX,
   SANKEY_RIBBON_DUST_MIN_PX
-} from '@/types/ui/sankey'
+} from '@/constants/sankey'
 import {
   buildSankeyRibbonPlan,
   linearShareWidths,
@@ -36,7 +36,7 @@ describe('linearShareWidths', () => {
 describe('totalThroughputToBandHeight', () => {
   it('clamps to sankey band range', () => {
     expect(totalThroughputToBandHeight(0)).toBe(SANKEY_BAND_HEIGHT_MIN_PX)
-    const mid = totalThroughputToBandHeight(50000)
+    const mid = totalThroughputToBandHeight(50_000)
     expect(mid).toBeGreaterThanOrEqual(SANKEY_BAND_HEIGHT_MIN_PX)
     expect(mid).toBeLessThanOrEqual(SANKEY_BAND_HEIGHT_MAX_PX)
   })

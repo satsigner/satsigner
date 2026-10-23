@@ -1,10 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import {
-  DEFAULT_FIAT_PRICE_API_URL,
-  normalizeFiatPriceApiUrl
-} from '@/constants/fiatPriceApi'
+import { DEFAULT_FIAT_PRICE_API_URL } from '@/constants/fiatPriceApi'
 import {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_SESSION_TTL_MS
@@ -12,9 +9,14 @@ import {
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import {
+  type PayjoinCoordinationMode,
+  type PayjoinSettings
+} from '@/types/payjoin'
+import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {
+  hasCustomPayjoinDirectoryUrl,
   normalizePayjoinCoordinationMode,
   resolvePayjoinDirectoryUrl
 } from '@/utils/payjoinMode'
@@ -239,16 +241,23 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
 
 export { migrateFiatPriceSettings, useSettingsStore }
 
-function getPayjoinSessionTtlMs(): number {
-  return normalizePayjoinSessionTtlMs(
-    useSettingsStore.getState().payjoinSessionTtlMs
-  )
+/** Current payjoin settings, read once, for `PayjoinDeps`. */
+function getPayjoinSettings(): PayjoinSettings {
+  const { payjoinDirectoryUrl, payjoinSessionTtlMs } =
+    useSettingsStore.getState()
+  return {
+    directoryUrl: resolvePayjoinDirectoryUrl(payjoinDirectoryUrl),
+    hasCustomDirectory: hasCustomPayjoinDirectoryUrl(payjoinDirectoryUrl),
+    sessionTtlMs: normalizePayjoinSessionTtlMs(payjoinSessionTtlMs)
+  }
 }
 
-function getResolvedPayjoinDirectoryUrl(): string {
-  return resolvePayjoinDirectoryUrl(
-    useSettingsStore.getState().payjoinDirectoryUrl
-  )
+function getFiatPriceApiUrl() {
+  const { fiatPriceApiUrl, fiatPriceProvider } = useSettingsStore.getState()
+  if (fiatPriceProvider !== 'custom') {
+    return DEFAULT_FIAT_PRICE_API_URL
+  }
+  return normalizeFiatPriceApiUrl(fiatPriceApiUrl) || DEFAULT_FIAT_PRICE_API_URL
 }
 
-export { getPayjoinSessionTtlMs, getResolvedPayjoinDirectoryUrl }
+export { getFiatPriceApiUrl, getPayjoinSettings }

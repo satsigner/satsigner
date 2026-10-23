@@ -41,6 +41,7 @@ import {
   getFingerprint,
   parseImportedDescriptorPayload
 } from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -154,7 +155,7 @@ export default function ImportDescriptor() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !descriptor.match(/[txyz]priv/)
+      descriptorValidation && !/[txyz]priv/.test(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -353,8 +354,8 @@ export default function ImportDescriptor() {
           /#[a-z0-9]+$/,
           ''
         )
-        internalDescriptor = descriptorWithoutChecksum.replace(
-          /\/0\/\*/g,
+        internalDescriptor = descriptorWithoutChecksum.replaceAll(
+          '/0/*',
           '/1/*'
         )
         const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
@@ -390,30 +391,14 @@ export default function ImportDescriptor() {
     try {
       const nfcData = await readNFCTag()
 
-      if (!nfcData) {
+      if (!nfcData?.text) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
-      if (!nfcData.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
+      const text = sanitizeScannedText(nfcData.text)
 
-      const text = nfcData.text
-        .trim()
-        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
-        .normalize('NFKC') // Normalize unicode characters
-        .replace(/^en/, '')
-
-      let externalDescriptor = text
-      let internalDescriptor = ''
-      if (text.includes('\n')) {
-        ;[externalDescriptor, internalDescriptor] = text.split('\n')
-      }
+      const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
       if (isCombinedDescriptor(text)) {
         handleCombinedDescriptorImport(text)

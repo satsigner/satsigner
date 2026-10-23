@@ -9,6 +9,11 @@ import Animated from 'react-native-reanimated'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
+import {
+  BLOCK_WIDTH,
+  NODE_WIDTH,
+  SANKEY_DIAGRAM_NODE_PADDING_PX
+} from '@/constants/sankey'
 import { useGestures } from '@/hooks/useGestures'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
@@ -17,11 +22,7 @@ import { t } from '@/locales'
 import { Layout } from '@/styles'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
-import {
-  BLOCK_WIDTH,
-  getSankeyExtentTopPx,
-  SANKEY_DIAGRAM_NODE_PADDING_PX
-} from '@/types/ui/sankey'
+import { getSankeyExtentTopPx } from '@/utils/sankeyExtent'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 
@@ -30,7 +31,6 @@ import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
 const LINK_MAX_WIDTH = 100
-const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
   onPressInput?: (outpoint: string) => void
@@ -99,9 +99,7 @@ function SSMultipleSankeyDiagram({
       depthCounts.set(node.depthH, count + 1)
     }
 
-    return depthCounts.size > 0
-      ? Math.max(...Array.from(depthCounts.values()))
-      : 0
+    return depthCounts.size > 0 ? Math.max(...depthCounts.values()) : 0
   }, [sankeyNodes])
 
   const sankeyExtentTopPx = getSankeyExtentTopPx(overlayHeaderHeight)

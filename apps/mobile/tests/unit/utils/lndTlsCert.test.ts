@@ -15,8 +15,8 @@ describe('pairingCertToPem', () => {
     const body = 'MIIBpjCCAQ+gAwIBAgIRA'
     const encoded = Buffer.from(body)
       .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
       .replace(/=+$/, '')
     const pem = pairingCertToPem(encoded)
     expect(pem.startsWith('-----BEGIN CERTIFICATE-----')).toBe(true)
@@ -28,8 +28,8 @@ describe('pairingCertToPem', () => {
     const der = Buffer.from([0x30, 0x03, 0x02, 0x01, 0x00])
     const encoded = der
       .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
       .replace(/=+$/, '')
     const pem = pairingCertToPem(encoded)
     expect(pem).toContain(der.toString('base64'))

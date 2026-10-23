@@ -11,6 +11,7 @@ import { saveBrantaPayee } from '@/db/mutations/brantaPayees'
 import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
+import { SEQUENCE_FINAL } from '@/constants/btc'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -241,7 +242,7 @@ export default function TransactionConfirmation() {
       return
     }
 
-    const inputsList = Array.from(inputs.values())
+    const inputsList = [...inputs.values()]
     const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
 
     const ownAddresses = new Set(account.addresses.map((a) => a.address))
@@ -277,7 +278,7 @@ export default function TransactionConfirmation() {
         label: u.label,
         previousOutput: { txid: u.txid, vout: u.vout },
         scriptSig: [],
-        sequence: 0xffffffff,
+        sequence: SEQUENCE_FINAL,
         value: u.value,
         witness: []
       })),

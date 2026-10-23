@@ -62,6 +62,25 @@ describe('contentDetector', () => {
         expect(result.type).toBe('bitcoin_address')
         expect(result.isValid).toBe(true)
       })
+
+      it('should detect testnet P2PKH and P2SH addresses', async () => {
+        for (const address of [
+          addresses.testnet.p2pkh,
+          addresses.testnet.p2sh
+        ]) {
+          const result = await detectContentByContext(address, 'bitcoin')
+          expect(result.type).toBe('bitcoin_address')
+          expect(result.isValid).toBe(true)
+        }
+      })
+
+      it('should not detect an address with a wrong checksum', async () => {
+        const result = await detectContentByContext(
+          addresses.invalid.wrongChecksum,
+          'bitcoin'
+        )
+        expect(result.type).not.toBe('bitcoin_address')
+      })
     })
 
     describe('bip-321 URIs', () => {

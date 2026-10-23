@@ -113,7 +113,7 @@
     "expo-web-browser": "~57.0.1",
     "i18n-js": "^4.4.3",
     "immer": "^11.1.4",
-    "nostr-tools": "^2.17.2",
+    "nostr-tools": "^2.23.3",
     "pako": "^2.1.0",
     "process": "^0.11.0",
     "promise": "^8.3.0",
@@ -180,7 +180,7 @@
     "typescript": "~6.0.3"
   },
   "engines": {
-    "node": ">=22.4.0"
+    "node": "^22.23.4 || ^24.22.1 || >=26.12.1"
   },
   "expo": {
     "autolinking": {

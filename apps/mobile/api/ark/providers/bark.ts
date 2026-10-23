@@ -59,14 +59,18 @@ const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
 
 function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   switch (network) {
-    case 'bitcoin':
+    case 'bitcoin': {
       return BarkNetwork.Bitcoin
-    case 'signet':
+    }
+    case 'signet': {
       return BarkNetwork.Signet
-    case 'testnet':
+    }
+    case 'testnet': {
       return BarkNetwork.Testnet
-    default:
+    }
+    default: {
       return BarkNetwork.Signet
+    }
   }
 }
 

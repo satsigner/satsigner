@@ -122,7 +122,7 @@ describe('esplora tests', () => {
   })
 
   it('get block hash at height', async () => {
-    const height = 123456
+    const height = 123_456
     const resp = await esplora.getBlockAtHeight(height)
     expect(typeof resp).toBe('string')
   })
@@ -134,11 +134,11 @@ describe('esplora tests', () => {
 
   it('get latest block height', async () => {
     const resp = await esplora.getLatestBlockHeight()
-    expect(!isNaN(resp)).toBe(true)
+    expect(!Number.isNaN(resp)).toBe(true)
   })
 
   it('get blocks starting from a height', async () => {
-    const startHeight = 123450
+    const startHeight = 123_450
     const resp = await esplora.getBlocks(startHeight)
     expect(Array.isArray(resp)).toBe(true)
     expect(resp[0]).toHaveProperty('height')
@@ -155,7 +155,7 @@ describe('esplora tests', () => {
   it('get mempool txids', async () => {
     const resp = await esplora.getMempoolTxIds()
     expect(Array.isArray(resp)).toBe(true)
-  }, 15000)
+  }, 15_000)
 
   it('get last 10 mempool txns', async () => {
     const resp = await esplora.getRecentMempool()

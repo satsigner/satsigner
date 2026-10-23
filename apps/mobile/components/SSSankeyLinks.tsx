@@ -1,12 +1,12 @@
 import { Group, Path, Skia, vec } from '@shopify/react-native-skia'
 
-import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { gray, white } from '@/styles/colors'
 import {
   SANKEY_LINK_CURVE_CONTROL_MAX_PX,
   SANKEY_OUTGOING_UNSPENT_RIBBON_COLOR,
   SANKEY_OUTGOING_UNSPENT_RIBBON_RED_PLATEAU_STOP
-} from '@/types/ui/sankey'
+} from '@/constants/sankey'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { gray, white } from '@/styles/colors'
 import {
   type SankeyRibbonPlan,
   ribbonWidthForLink,

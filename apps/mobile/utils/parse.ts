@@ -179,16 +179,24 @@ function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
 
     return {
       amount: amount ? Number(amount) : 0,
-      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel'),
+      label: label
+        ? label.replaceAll(/(^["“]|["”]$)/g, '')
+        : t('common.noLabel'),
       to: address
     }
   })
 }
 
+const INLINE_WHITESPACE = /[^\S\n]+/g
+const ZERO_WIDTH_CHARACTERS = /[\u200B-\u200D\uFEFF]/g
+const CONTROL_CHARACTERS_EXCEPT_NEWLINE =
+  // oxlint-disable-next-line no-control-regex
+  /[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g
+
 function normalizeDescriptorForParsing(descriptor: string): string {
   return descriptor
     .normalize('NFC')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replaceAll(ZERO_WIDTH_CHARACTERS, '')
     .trim()
 }
 
@@ -233,7 +241,7 @@ function parseMultisigDescriptor(descriptor: string) {
 }
 
 function normalizePathSegment(segment: string): string {
-  return segment.replace(/['H]/g, 'h')
+  return segment.replaceAll(/['H]/g, 'h')
 }
 
 /**
@@ -254,6 +262,16 @@ function parseSinglesigDescriptor(descriptor: string) {
   return { hardenedPath, xpubs }
 }
 
+/** Strips spaces and invisible characters that NFC tags add to their text. */
+export function sanitizeScannedText(text: string) {
+  return text
+    .replaceAll(INLINE_WHITESPACE, '')
+    .replaceAll(ZERO_WIDTH_CHARACTERS, '')
+    .replaceAll(CONTROL_CHARACTERS_EXCEPT_NEWLINE, '')
+    .normalize('NFKC')
+    .trim()
+}
+
 export function parseDescriptor(descriptor: string) {
   const d = normalizeDescriptorForParsing(descriptor)
   if (isSortedMultiDescriptor(d)) {
@@ -267,9 +285,7 @@ function hasBitcoinPrefix(text: string): boolean {
 }
 
 function stripBitcoinPrefix(text: string): string {
-  return hasBitcoinPrefix(text)
-    ? text.substring(BITCOIN_URI_SCHEME.length)
-    : text
+  return hasBitcoinPrefix(text) ? text.slice(BITCOIN_URI_SCHEME.length) : text
 }
 
 function ensureBitcoinPrefix(text: string): string {
@@ -323,7 +339,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
     return { address: addressPart }
   }
 
-  const rawQuery = queryString.substring(1)
+  const rawQuery = queryString.slice(1)
   const params = new URLSearchParams(rawQuery)
   const amountParam = params.get('amount')
   const labelParam = params.get('label')
@@ -356,7 +372,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   return {
     address: addressPart,
-    amount: amountParam ? parseFloat(amountParam) : undefined,
+    amount: amountParam ? Number.parseFloat(amountParam) : undefined,
     label: labelParam ? decodeURIComponent(labelParam) : undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})

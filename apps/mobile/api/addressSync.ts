@@ -110,7 +110,7 @@ async function fetchEsploraSnapshot(
 
   const transactions: Transaction[] = newTxs.map((tx) => ({
     ...mapEsploraTxToAddressTransaction(tx, address),
-    raw: Array.from(hex.decode(hexByTxid[tx.txid]))
+    raw: [...hex.decode(hexByTxid[tx.txid])]
   }))
   for (const { status, txid } of esploraTxs) {
     const moved = movedTransaction(knownById, txid, status.block_height)
@@ -213,7 +213,7 @@ async function readElectrumSnapshot(
       lockTime: parsed.locktime,
       lockTimeEnabled: parsed.locktime > 0,
       prices: {},
-      raw: Array.from(hex.decode(rawTx)),
+      raw: [...hex.decode(rawTx)],
       received: 0,
       sent: 0,
       size: parsed.byteLength(),

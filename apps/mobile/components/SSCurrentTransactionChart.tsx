@@ -6,12 +6,6 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useGestures } from '@/hooks/useGestures'
-import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import type { Output } from '@/types/models/Output'
-import type { Utxo } from '@/types/models/Utxo'
 import {
   BLOCK_WIDTH,
   LINK_MAX_WIDTH,
@@ -21,15 +15,21 @@ import {
   SANKEY_CURRENT_TX_EXTENT_X_INSET_PX,
   SANKEY_CURRENT_TX_EQUAL_ROW_MIN_SLOT_PX,
   SANKEY_CURRENT_TX_NODE_PADDING_PX,
-  SAFE_LIMIT_OF_INPUTS_OUTPUTS,
-  getSankeyExtentTopPx
-} from '@/types/ui/sankey'
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/constants/sankey'
+import { useGestures } from '@/hooks/useGestures'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   equalizeSankeyColumnsByDepthH,
   minSankeyStackedColumnInnerHeightPx
 } from '@/utils/equalizeSankeyColumnLayout'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
+import { getSankeyExtentTopPx } from '@/utils/sankeyExtent'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
@@ -87,7 +87,7 @@ function SSCurrentTransactionChart({
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
+  const inputArray = useMemo(() => [...inputMap.values()], [inputMap])
   const totalInputValue = useMemo(
     () => inputArray.reduce((sum, input) => sum + input.value, 0),
     [inputArray]
@@ -98,7 +98,7 @@ function SSCurrentTransactionChart({
   )
 
   const baseSize = estimateTransactionSize(
-    Array.from(inputMap.values()),
+    [...inputMap.values()],
     outputArray.map((o) => ({ ...o, to: o.to || '' }))
   )
 
@@ -107,7 +107,7 @@ function SSCurrentTransactionChart({
   const hasChange = totalInputValue > totalOutputValue + baseFee
 
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
-    Array.from(inputMap.values()),
+    [...inputMap.values()],
     outputArray.map((o) => ({ ...o, to: o.to || '' })),
     hasChange
   )
@@ -335,7 +335,7 @@ function SSCurrentTransactionChart({
         id: String(inputArray.length + outputArray.length + 2),
         ioData: {
           elevatedFeeRate,
-          feePercentage: Math.round(feePercentage * 10000) / 100,
+          feePercentage: Math.round(feePercentage * 10_000) / 100,
           feeRate: feeRateProp,
           fiatCurrency,
           fiatValue: formatNumber(satsToFiat(minerFee), 2),

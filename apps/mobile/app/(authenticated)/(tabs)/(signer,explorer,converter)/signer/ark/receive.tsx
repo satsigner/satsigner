@@ -22,6 +22,7 @@ import {
   useArkAddress,
   useArkBolt11InvoiceMutation
 } from '@/hooks/useArkReceive'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -46,6 +47,8 @@ function handleBoarded() {
 }
 
 export default function ArkReceivePage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<ReceiveTab>('ark')
   const [amount, setAmount] = useState('')
@@ -185,6 +188,10 @@ export default function ArkReceivePage() {
                       {t('ark.receive.amount')} ({t('bitcoin.sats')})
                     </SSText>
                     <SSAmountInput
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      fiatEnabled={fiatEnabled}
+                      privacyMode={privacyMode}
                       min={DUST_LIMIT}
                       max={LIGHTNING_CHANNEL_THRESHOLD}
                       value={Number(amount)}
@@ -262,24 +269,22 @@ export default function ArkReceivePage() {
                 </SSText>
               )}
               {onchainAddressQuery.data && (
-                <>
-                  <SSShareableQR
-                    value={onchainAddressQuery.data}
-                    size={280}
-                    containerStyle={styles.qrContainer}
-                  >
-                    <View style={styles.addressBox}>
-                      <SSText size="sm" style={styles.monospace}>
-                        {onchainAddressQuery.data}
-                      </SSText>
-                    </View>
-                    <SSButton
-                      label={t('common.copy')}
-                      onPress={handleCopyOnchainAddress}
-                      variant="outline"
-                    />
-                  </SSShareableQR>
-                </>
+                <SSShareableQR
+                  value={onchainAddressQuery.data}
+                  size={280}
+                  containerStyle={styles.qrContainer}
+                >
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" style={styles.monospace}>
+                      {onchainAddressQuery.data}
+                    </SSText>
+                  </View>
+                  <SSButton
+                    label={t('common.copy')}
+                    onPress={handleCopyOnchainAddress}
+                    variant="outline"
+                  />
+                </SSShareableQR>
               )}
               {autoBoard.minAmountSats !== undefined && (
                 <SSText color="muted" size="xs" center>

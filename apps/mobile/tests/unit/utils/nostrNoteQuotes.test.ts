@@ -32,7 +32,7 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
 function note(overrides: Partial<NostrFeedNoteLike> = {}): NostrFeedNoteLike {
   return {
     content: '',
-    created_at: 1700000000,
+    created_at: 1_700_000_000,
     id: EVENT_ID_A,
     kind: 1,
     pubkey: EVENT_ID_B,
@@ -46,7 +46,7 @@ describe('nostrNoteQuotes', () => {
     it('returns parsed event for valid JSON payload', () => {
       const payload = {
         content: 'hello',
-        created_at: 1700000000,
+        created_at: 1_700_000_000,
         id: EVENT_ID_A,
         kind: 1,
         pubkey: EVENT_ID_B,

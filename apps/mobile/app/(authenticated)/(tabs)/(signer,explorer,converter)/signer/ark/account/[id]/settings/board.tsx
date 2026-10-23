@@ -22,6 +22,7 @@ import {
 import { useArkBoardDeposit } from '@/hooks/useArkBoardDeposit'
 import { useArkBoardPayjoin } from '@/hooks/useArkBoardPayjoin'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -53,6 +54,8 @@ const VALIDATION_ERROR_KEYS: Record<ArkBoardValidationReason, string> = {
 }
 
 export default function ArkBoardPage() {
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const account = useArkStore(
@@ -499,6 +502,10 @@ export default function ArkBoardPage() {
               {canEnterAmount ? (
                 <SSVStack gap="sm">
                   <SSAmountInput
+                    btcPrice={btcPrice}
+                    fiatCurrency={fiatCurrency}
+                    fiatEnabled={fiatEnabled}
+                    privacyMode={privacyMode}
                     min={minAmountSats}
                     max={confirmedSats}
                     value={amountSats}

@@ -160,7 +160,7 @@ export default function ArkSendConfirmPage() {
     !(brantaLookupEnabled && payeeQuery.isPending)
 
   function handleAmountChange(text: string) {
-    setAmountInput(text.replace(/[^0-9]/g, ''))
+    setAmountInput(text.replaceAll(/[^0-9]/g, ''))
   }
 
   const lnurlDetailsLoading =

@@ -11,6 +11,7 @@ import {
 } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -61,7 +62,7 @@ export default function Features() {
                 description={t('settings.features.fiatData.description')}
                 icon={<SSIconFiat width={24} height={16} />}
                 onPress={() => {
-                  router.navigate('/settings/features/fiatData')
+                  router.navigate(FIAT_DATA_SETTINGS_ROUTE)
                 }}
               />
               <SSSettingsCards
