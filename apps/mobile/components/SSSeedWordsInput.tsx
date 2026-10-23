@@ -132,6 +132,9 @@ export default function SSSeedWordsInput({
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const handleWordSelectedRef =
     useRef<(word?: string) => Promise<void>>(undefined)
+  // Electrum seed derivation is async and a newer edit can report first, so
+  // only the latest evaluation may set the fingerprint or call onMnemonicValid.
+  const mnemonicEvaluationRef = useRef(0)
 
   useEffect(() => {
     const initialSeedWordsInfo = Array.from({ length: wordCount }, () => ({
@@ -180,6 +183,8 @@ export default function SSSeedWordsInput({
         setSeedWordsInfo(newSeedWordsInfo)
       }
 
+      mnemonicEvaluationRef.current += 1
+      const evaluation = mnemonicEvaluationRef.current
       const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
       if (mnemonic.trim().length > 0) {
         const checksumValid = validateMnemonic(mnemonic, wordListName)
@@ -197,6 +202,9 @@ export default function SSSeedWordsInput({
           setElectrumSeedType(electrumType)
           if (electrumType) {
             const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+            if (evaluation !== mnemonicEvaluationRef.current) {
+              return
+            }
             const fingerprintResult = getFingerprintFromSeed(
               new Uint8Array(seed)
             )
@@ -265,6 +273,8 @@ export default function SSSeedWordsInput({
 
       setSeedWordsInfo(newSeedWordsInfo)
 
+      mnemonicEvaluationRef.current += 1
+      const evaluation = mnemonicEvaluationRef.current
       const mnemonic = seed.join(' ')
       const checksumValid = validateMnemonic(mnemonic, wordListName)
       setChecksumValid(checksumValid)
@@ -282,6 +292,9 @@ export default function SSSeedWordsInput({
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seedBytes = await mnemonicToSeedElectrum(mnemonic, passphrase)
+          if (evaluation !== mnemonicEvaluationRef.current) {
+            return
+          }
           const fingerprintResult = getFingerprintFromSeed(
             new Uint8Array(seedBytes)
           )
@@ -398,6 +411,8 @@ export default function SSSeedWordsInput({
 
     setSeedWordsInfo(newSeedWordsInfo)
 
+    mnemonicEvaluationRef.current += 1
+    const evaluation = mnemonicEvaluationRef.current
     const mnemonic = newSeedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       const checksumValid = validateMnemonic(mnemonic, wordListName)
@@ -416,6 +431,9 @@ export default function SSSeedWordsInput({
         setElectrumSeedType(electrumType)
         if (electrumType) {
           const seed = await mnemonicToSeedElectrum(mnemonic, passphrase)
+          if (evaluation !== mnemonicEvaluationRef.current) {
+            return
+          }
           const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
           setFingerprint(fingerprintResult)
           onMnemonicValid?.(mnemonic, fingerprintResult, passphrase)
@@ -435,6 +453,8 @@ export default function SSSeedWordsInput({
   const handlePassphraseChange = async (text: string) => {
     setPassphrase(text)
 
+    mnemonicEvaluationRef.current += 1
+    const evaluation = mnemonicEvaluationRef.current
     const mnemonic = seedWordsInfo.map((info) => info.value).join(' ')
     if (mnemonic.trim().length > 0) {
       if (checksumValid) {
@@ -443,6 +463,9 @@ export default function SSSeedWordsInput({
         onMnemonicValid?.(mnemonic, fingerprintResult, text)
       } else if (electrumSeedType) {
         const seed = await mnemonicToSeedElectrum(mnemonic, text)
+        if (evaluation !== mnemonicEvaluationRef.current) {
+          return
+        }
         const fingerprintResult = getFingerprintFromSeed(new Uint8Array(seed))
         setFingerprint(fingerprintResult)
         onMnemonicValid?.(mnemonic, fingerprintResult, text)
