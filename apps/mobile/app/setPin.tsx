@@ -176,6 +176,9 @@ export default function SetPin() {
     if (result === 'duressCleared') {
       toast.warning(t('auth.duressPinClearedPinLength'))
     }
+    if (result === 'duressClearFailed') {
+      toast.error(t('auth.duressPinClearError'))
+    }
 
     setSkipPin(false)
     setRequirePinMigration(false)

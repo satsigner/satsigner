@@ -1,5 +1,6 @@
 import * as nodeCrypto from 'node:crypto'
 
+import * as SecureStore from 'expo-secure-store'
 import { __store as secureStore } from 'expo-secure-store'
 import QuickCrypto from 'react-native-quick-crypto'
 
@@ -21,6 +22,12 @@ describe('changePin', () => {
     for (const key of Object.keys(secureStore)) {
       delete secureStore[key]
     }
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockImplementation((key: string) => {
+        delete secureStore[key]
+        return Promise.resolve()
+      })
     jest
       .mocked(QuickCrypto.pbkdf2Sync)
       .mockImplementation(
@@ -74,6 +81,27 @@ describe('changePin', () => {
     expect(secureStore[sk(PIN_LENGTH_KEY)]).toBe('6')
     expect(secureStore[sk(DURESS_PIN_KEY)]).toBeUndefined()
     expect(secureStore[sk(DURESS_KDF_KEY)]).toBeUndefined()
+    expect(useAuthStore.getState().duressPinEnabled).toBe(false)
+    await expect(useAuthStore.getState().validatePin('135791')).resolves.toBe(
+      true
+    )
+  })
+
+  it('reports a failed duress cleanup instead of a cleared duress PIN', async () => {
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockImplementation((key: string) => {
+        if (key === sk(DURESS_PIN_KEY)) {
+          return Promise.reject(new Error('keystore unavailable'))
+        }
+        delete secureStore[key]
+        return Promise.resolve()
+      })
+
+    await expect(
+      changePin('135791', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('duressClearFailed')
+
     expect(useAuthStore.getState().duressPinEnabled).toBe(false)
     await expect(useAuthStore.getState().validatePin('135791')).resolves.toBe(
       true

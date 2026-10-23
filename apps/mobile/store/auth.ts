@@ -90,9 +90,14 @@ const useAuthStore = create<AuthState & AuthAction>()(
     (set, get) => ({
       clearDuressPin: async () => {
         set({ duressPinEnabled: false })
-        await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
-        await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
-        await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+        const results = await Promise.allSettled([
+          deleteItem(DURESS_PIN_KEY),
+          deleteItem(DURESS_KDF_KEY),
+          deleteItem(SALT_KEY_DURESS)
+        ])
+        if (results.some((result) => result.status === 'rejected')) {
+          throw new Error('Failed to clear duress PIN')
+        }
       },
       clearPageHistory() {
         set({ pageHistory: [] })

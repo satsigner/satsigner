@@ -86,5 +86,5 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   const { clearDuressPin, setSkipPin } = useAuthStore.getState()
   setSkipPin(false)
-  await clearDuressPin()
+  await clearDuressPin().catch(() => undefined)
 }

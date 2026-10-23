@@ -11,6 +11,7 @@ import {
 type PinChangeResult =
   | 'changed'
   | 'duressCleared'
+  | 'duressClearFailed'
   | 'matchesDuress'
   | 'reEncryptFailed'
 
@@ -54,11 +55,15 @@ async function changePin(
   }
   await commitPinMaterial(material)
 
-  if (duressDigest && material.length !== currentLength) {
-    await useAuthStore.getState().clearDuressPin()
-    return 'duressCleared'
+  if (!duressDigest || material.length === currentLength) {
+    return 'changed'
   }
-  return 'changed'
+  try {
+    await useAuthStore.getState().clearDuressPin()
+  } catch {
+    return 'duressClearFailed'
+  }
+  return 'duressCleared'
 }
 
 export { changePin }
