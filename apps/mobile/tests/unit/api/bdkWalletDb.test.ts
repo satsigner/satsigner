@@ -27,6 +27,7 @@ const mockGetInfo = jest.mocked(FileSystem.getInfoAsync)
 const MockBdkWallet = jest.mocked(BdkWallet)
 
 const DESCRIPTOR = 'wpkh([00000000/84h/1h/0h]tpubD6NzVbkrYhZ4X/0/*)'
+const CHANGE_DESCRIPTOR = 'wpkh([00000000/84h/1h/0h]tpubD6NzVbkrYhZ4X/1/*)'
 const WALLETS_PATH = '/doc/wallets/'
 const LEGACY_PATH = `${WALLETS_PATH}mock-wallet-name.sqlite`
 const SIGNET_PATH = `${WALLETS_PATH}mock-wallet-name-signet.sqlite`
@@ -87,7 +88,7 @@ describe('getWalletFromDescriptor', () => {
     expect(dbPath).toBe(TESTNET_PATH)
     expect(MockBdkWallet).toHaveBeenLastCalledWith(
       DESCRIPTOR,
-      undefined,
+      CHANGE_DESCRIPTOR,
       Network.Testnet,
       TESTNET_PATH
     )
@@ -104,5 +105,32 @@ describe('getWalletFromDescriptor', () => {
 
     expect(dbPath).toBe(SIGNET_PATH)
     expect(MockBdkWallet).toHaveBeenCalledTimes(1)
+  })
+
+  it('derives the change descriptor when only the receive one is given', async () => {
+    mockExistingFiles([WALLETS_PATH])
+
+    await getWalletFromDescriptor(`${DESCRIPTOR}#abcdefgh`, '', Network.Signet)
+
+    expect(MockBdkWallet).toHaveBeenCalledWith(
+      DESCRIPTOR,
+      CHANGE_DESCRIPTOR,
+      Network.Signet,
+      SIGNET_PATH
+    )
+  })
+
+  it('keeps the given change descriptor', async () => {
+    mockExistingFiles([WALLETS_PATH])
+    const changeDescriptor = 'wpkh([00000000/84h/1h/0h]tpubD6NzVbkrYhZ4X/5/*)'
+
+    await getWalletFromDescriptor(DESCRIPTOR, changeDescriptor, Network.Signet)
+
+    expect(MockBdkWallet).toHaveBeenCalledWith(
+      DESCRIPTOR,
+      changeDescriptor,
+      Network.Signet,
+      SIGNET_PATH
+    )
   })
 })

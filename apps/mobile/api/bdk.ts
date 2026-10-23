@@ -46,6 +46,7 @@ import {
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
 import {
+  deriveChangeDescriptor,
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
@@ -527,14 +528,14 @@ function normalizeWalletDescriptor(descriptor: string) {
   return descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
 }
 
-function splitCombinedWalletDescriptors(
+function resolveWalletDescriptors(
   externalDescriptor: string,
   internalDescriptor: string | undefined
 ) {
   const ext = normalizeWalletDescriptor(externalDescriptor)
   const int = internalDescriptor
     ? normalizeWalletDescriptor(internalDescriptor)
-    : undefined
+    : deriveChangeDescriptor(ext)
   if (!isCombinedDescriptor(ext)) {
     return { ext, int }
   }
@@ -549,7 +550,7 @@ async function getWalletFromDescriptor(
   internalDescriptor: string | undefined,
   network: Network
 ): Promise<{ wallet: BdkWallet; dbPath: string }> {
-  const { ext, int } = splitCombinedWalletDescriptors(
+  const { ext, int } = resolveWalletDescriptors(
     externalDescriptor,
     internalDescriptor
   )

@@ -1,6 +1,7 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
+  deriveChangeDescriptor,
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
@@ -236,5 +237,17 @@ describe('processCombinedDescriptor', () => {
     expect(result.success).toBe(true)
     expect(result.external).toContain('/0/*')
     expect(result.internal).toContain('/1/*')
+  })
+})
+
+describe('deriveChangeDescriptor', () => {
+  it('switches every receive chain to the change chain', () => {
+    expect(
+      deriveChangeDescriptor('wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*))#abcdefgh')
+    ).toBe('wsh(sortedmulti(2,xpubA/1/*,xpubB/1/*))')
+  })
+
+  it('returns undefined without a receive chain', () => {
+    expect(deriveChangeDescriptor('wpkh(xpubA/*)')).toBeUndefined()
   })
 })

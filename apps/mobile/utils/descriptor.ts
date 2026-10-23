@@ -78,6 +78,14 @@ export function swapDescriptorChain(
   return withoutChecksum.replaceAll(`/${fromChain}/*`, `/${toChain}/*`)
 }
 
+// BDK refuses a wallet whose change descriptor equals the receive one.
+export function deriveChangeDescriptor(external: string) {
+  if (!external.includes('/0/*')) {
+    return
+  }
+  return swapDescriptorChain(external, 0, 1)
+}
+
 export function parseJsonDescriptor(text: string) {
   try {
     const jsonData = JSON.parse(text)
