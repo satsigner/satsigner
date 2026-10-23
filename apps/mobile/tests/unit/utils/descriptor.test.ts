@@ -9,7 +9,8 @@ import {
   getXpubFingerprint,
   parseImportedDescriptorPayload,
   parseXpubInput,
-  processCombinedDescriptor
+  processCombinedDescriptor,
+  wrapBareScriptKey
 } from '@/utils/descriptor'
 
 const SPARROW_ORIGIN_XPUB =
@@ -249,5 +250,27 @@ describe('deriveChangeDescriptor', () => {
 
   it('returns undefined without a receive chain', () => {
     expect(deriveChangeDescriptor('wpkh(xpubA/*)')).toBeUndefined()
+  })
+})
+
+describe('wrapBareScriptKey', () => {
+  it.each([
+    [
+      'wsh([e5eda689/48h/1h/0h/2h]tpubA/0/*)',
+      'wsh(pk([e5eda689/48h/1h/0h/2h]tpubA/0/*))'
+    ],
+    ['sh(wsh(tpubA/0/*))#abcdefgh', 'sh(wsh(pk(tpubA/0/*)))'],
+    ['sh(tpubA/0/*)', 'sh(pk(tpubA/0/*))']
+  ])('wraps %s', (descriptor, expected) => {
+    expect(wrapBareScriptKey(descriptor)).toBe(expected)
+  })
+
+  it.each([
+    'wsh(pk(tpubA/0/*))#abcdefgh',
+    'sh(wpkh(tpubA/0/*))',
+    'wsh(sortedmulti(2,tpubA/0/*,tpubB/0/*))',
+    'wpkh(tpubA/0/*)'
+  ])('keeps %s', (descriptor) => {
+    expect(wrapBareScriptKey(descriptor)).toBe(descriptor)
   })
 })

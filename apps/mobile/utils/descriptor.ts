@@ -69,6 +69,20 @@ export function removeChecksum(descriptor: string): string {
   return descriptor.replace(/#[a-z0-9]+$/, '')
 }
 
+const BARE_SCRIPT_KEY_PATTERN = /^(sh\(wsh\(|wsh\(|sh\()([^()]+)(\)+)$/
+
+/**
+ * Older builds saved multisig keys as `wsh(KEY)`, `sh(wsh(KEY))` or `sh(KEY)`,
+ * which are not valid descriptors. Wraps the key in `pk()`.
+ */
+export function wrapBareScriptKey(descriptor: string) {
+  const body = removeChecksum(descriptor)
+  if (!BARE_SCRIPT_KEY_PATTERN.test(body)) {
+    return descriptor
+  }
+  return body.replace(BARE_SCRIPT_KEY_PATTERN, '$1pk($2)$3')
+}
+
 export function swapDescriptorChain(
   descriptor: string,
   fromChain: 0 | 1,
