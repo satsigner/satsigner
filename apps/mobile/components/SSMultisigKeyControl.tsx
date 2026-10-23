@@ -376,6 +376,20 @@ function SSMultisigKeyControl({
     )
   }
 
+  function renderKeyActions() {
+    if (isKeyCompleted) {
+      return renderCompletedKeyActions()
+    }
+    if (isSettingsMode) {
+      return (
+        <SSText center color="muted">
+          {t('account.seed.emptyKeyExistingAccount')}
+        </SSText>
+      )
+    }
+    return renderIncompleteKeyActions()
+  }
+
   return (
     <View
       style={[
@@ -499,11 +513,7 @@ function SSMultisigKeyControl({
                 </SSFormLayout.Item>
               </SSFormLayout>
             )}
-            <SSVStack gap="sm">
-              {isKeyCompleted
-                ? renderCompletedKeyActions()
-                : renderIncompleteKeyActions()}
-            </SSVStack>
+            <SSVStack gap="sm">{renderKeyActions()}</SSVStack>
           </SSVStack>
         </View>
         {/* Visible content - same as hidden measurement content */}
@@ -528,11 +538,7 @@ function SSMultisigKeyControl({
             </SSFormLayout>
           )}
 
-          <SSVStack gap="sm">
-            {isKeyCompleted
-              ? renderCompletedKeyActions()
-              : renderIncompleteKeyActions()}
-          </SSVStack>
+          <SSVStack gap="sm">{renderKeyActions()}</SSVStack>
         </SSVStack>
       </Animated.View>
 
@@ -643,7 +649,9 @@ function SSMultisigKeyControl({
               maxWidth: 260
             }}
           >
-            {t('account.seed.resetKeyConfirm.message')}
+            {isSettingsMode
+              ? t('account.seed.resetKeyConfirm.messageExisting')
+              : t('account.seed.resetKeyConfirm.message')}
           </SSText>
           <SSHStack gap="sm" style={{ width: '100%' }}>
             <SSButton

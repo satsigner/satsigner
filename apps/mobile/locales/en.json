@@ -357,8 +357,10 @@
     "entropy.drawing.label": "Drawing",
     "entropy.drawing.title": "Generate Entropy by Drawing",
     "seed.resetKey": "Reset Key",
+    "seed.emptyKeyExistingAccount": "This key is empty. Keys cannot be added to an existing account.",
     "seed.resetKeyConfirm.confirm": "Reset Key",
     "seed.resetKeyConfirm.message": "Are you sure you want to reset this key? This will clear all key data including the seed, name, and settings. This action cannot be undone.",
+    "seed.resetKeyConfirm.messageExisting": "Are you sure you want to reset this key? This will clear all key data including the seed, name, and settings. A reset key cannot be added back to an existing account. This action cannot be undone.",
     "seed.resetKeyConfirm.title": "Reset Key"
   },
   "accounts": {
