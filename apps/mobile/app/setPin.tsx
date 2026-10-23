@@ -190,6 +190,7 @@ export default function SetPin() {
     await commitPinMaterial(material)
 
     setLoading(false)
+    setRequiresAuth(true)
 
     if (fromSettings) {
       router.back()
@@ -203,7 +204,6 @@ export default function SetPin() {
     }
 
     setFirstTime(false)
-    setRequiresAuth(true)
   }
 
   function handleGoBack() {
