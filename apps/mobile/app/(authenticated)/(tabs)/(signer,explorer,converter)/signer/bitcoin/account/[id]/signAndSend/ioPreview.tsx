@@ -1764,28 +1764,15 @@ export default function IOPreview() {
             </SSText>
           </SSVStack>
           <SSVStack>
-            <SSHStack>
-              <SSButton
-                label={t('transaction.build.options.feeControl')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
-                  )
-                }
-                style={{ flexGrow: 1, width: '45%' }}
-              />
-              <SSButton
-                label={t('transaction.build.options.timelock')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/signAndSend/timeLock`
-                  )
-                }
-                style={{ flexGrow: 1, width: '45%' }}
-              />
-            </SSHStack>
+            <SSButton
+              label={t('transaction.build.options.feeControl')}
+              variant="outline"
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
+                )
+              }
+            />
             <SSButton
               label={t('transaction.build.options.importOutputs.title')}
               variant="outline"
