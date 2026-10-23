@@ -4,6 +4,7 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type ArkDestinationDraft } from '@/types/models/Ark'
+import { type BrantaLookupSource } from '@/types/models/Branta'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getLNURLType } from '@/utils/lnurl'
@@ -21,7 +22,11 @@ export function useArkSendNavigation(accountId: string | undefined) {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  function goToConfirm(cleanedDestination: string, draft: ArkDestinationDraft) {
+  function goToConfirm(
+    cleanedDestination: string,
+    draft: ArkDestinationDraft,
+    source: BrantaLookupSource = 'paste'
+  ) {
     if (!accountId) {
       return
     }
@@ -30,7 +35,11 @@ export function useArkSendNavigation(accountId: string | undefined) {
       draft
     )
     router.navigate({
-      params: { destination: cleanedDestination, id: accountId },
+      params: {
+        brantaSource: source,
+        destination: cleanedDestination,
+        id: accountId
+      },
       pathname: '/signer/ark/account/[id]/send/confirm'
     })
   }
@@ -45,7 +54,10 @@ export function useArkSendNavigation(accountId: string | undefined) {
     })
   }
 
-  async function processDestination(raw: string): Promise<boolean> {
+  async function processDestination(
+    raw: string,
+    source: BrantaLookupSource = 'paste'
+  ): Promise<boolean> {
     const trimmed = raw.trim()
     if (!trimmed) {
       return false
@@ -60,13 +72,16 @@ export function useArkSendNavigation(accountId: string | undefined) {
       toast.error(t('ark.send.error.invalidDestination'))
       return false
     }
-    goToConfirm(trimmed, parsed.draft)
+    goToConfirm(trimmed, parsed.draft, source)
     return true
   }
 
-  function handleContentReady(content: DetectedContent): Promise<boolean> {
+  function handleContentReady(
+    content: DetectedContent,
+    source: BrantaLookupSource
+  ): Promise<boolean> {
     const raw = content.raw ?? content.cleaned
-    return processDestination(raw)
+    return processDestination(raw, source)
   }
 
   return {

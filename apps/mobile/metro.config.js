@@ -29,4 +29,28 @@ defaultConfig.transformer.babelTransformerPath =
 
 const { withStorybook } = require('@storybook/react-native/metro/withStorybook')
 
-module.exports = withStorybook(defaultConfig)
+const config = withStorybook(defaultConfig)
+
+// @branta-ops/branta/v2 is only listed under the package "import" export.
+// Metro resolves with the "require" condition, then looks for a v2 file that
+// does not exist. Point that specifier at the built entry.
+const brantaV2Entry = path.resolve(
+  __dirname,
+  '../../node_modules/@branta-ops/branta/dist/v2/index.js'
+)
+const previousResolveRequest = config.resolver.resolveRequest
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === '@branta-ops/branta/v2') {
+    return {
+      filePath: brantaV2Entry,
+      type: 'sourceFile'
+    }
+  }
+  if (previousResolveRequest) {
+    return previousResolveRequest(context, moduleName, platform)
+  }
+  return context.resolveRequest(context, moduleName, platform)
+}
+
+module.exports = config

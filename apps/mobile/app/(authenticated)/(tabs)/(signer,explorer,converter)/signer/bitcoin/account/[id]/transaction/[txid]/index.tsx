@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
@@ -241,6 +242,7 @@ export default function TxDetails() {
               : undefined
           }
         />
+        {displayTx.branta ? <SSBrantaPayee payee={displayTx.branta} /> : null}
         <SSSeparator color="gradient" />
         <SSLabelDetails
           label={displayTx.label || ''}
