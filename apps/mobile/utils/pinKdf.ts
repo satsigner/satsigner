@@ -13,6 +13,7 @@ import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { type EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
+import { setSessionPinDigest } from '@/utils/pinSession'
 
 /* oxlint-disable promise/prefer-await-to-callbacks -- QuickCrypto KDF APIs are callback-only */
 
@@ -399,10 +400,14 @@ export async function preparePinMaterial(pin: string): Promise<PinMaterial> {
   return { digest, kdf, length: pin.length, salt }
 }
 
-/** Commits PIN material after secrets have been re-encrypted to `digest`. */
+/**
+ * Commits PIN material after secrets have been re-encrypted to `digest`, and
+ * makes `digest` this session's AES key so new secrets use the new PIN too.
+ */
 export async function commitPinMaterial(material: PinMaterial): Promise<void> {
   await setItem(SALT_KEY, material.salt)
   await persistPinDigestAndKdf(material.digest, material.kdf)
+  setSessionPinDigest(material.digest)
   await setItem(PIN_LENGTH_KEY, String(material.length))
 }
 

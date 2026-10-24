@@ -31,8 +31,7 @@ export default function SingleSig() {
     setEntropy,
     setMnemonicWordCount,
     setMnemonicWordList,
-    setMnemonic,
-    setFingerprint,
+    setGeneratedMnemonic,
     setKeyCount,
     setKeysRequired,
     setCreationType,
@@ -44,8 +43,7 @@ export default function SingleSig() {
       state.setEntropy,
       state.setMnemonicWordCount,
       state.setMnemonicWordList,
-      state.setMnemonic,
-      state.setFingerprint,
+      state.setGeneratedMnemonic,
       state.setKeyCount,
       state.setKeysRequired,
       state.setCreationType,
@@ -90,10 +88,7 @@ export default function SingleSig() {
             localMnemonicWordCount,
             localMnemonicWordList
           )
-          setMnemonic(mnemonic)
-
-          const fingerprint = getFingerprintFromMnemonic(mnemonic)
-          setFingerprint(fingerprint)
+          setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
 
           setLoading(false)
           router.navigate('/signer/bitcoin/account/add/generate/mnemonic/0')

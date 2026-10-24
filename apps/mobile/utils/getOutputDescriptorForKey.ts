@@ -10,7 +10,7 @@ import {
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 
-function singlesigDescriptorFromKeyPart(
+export function singlesigDescriptorFromKeyPart(
   keyPart: string,
   scriptVersion: ScriptVersionType | undefined
 ): string {

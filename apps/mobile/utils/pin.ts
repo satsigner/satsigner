@@ -1,6 +1,7 @@
 import {
   DURESS_PIN_KEY,
   PIN_KEY,
+  PIN_LENGTH_KEY,
   PIN_MAX_LENGTH,
   PIN_MIN_LENGTH,
   PIN_SIZE,
@@ -65,6 +66,19 @@ function clampPinLength(length: number): number {
   return Math.min(PIN_MAX_LENGTH, Math.max(PIN_MIN_LENGTH, length))
 }
 
+/** Null when no length was stored. Callers must not assume the default length. */
+async function getStoredPinLength(): Promise<number | null> {
+  const stored = await getItem(PIN_LENGTH_KEY)
+  if (!stored) {
+    return null
+  }
+  const length = Number(stored)
+  if (!Number.isInteger(length)) {
+    return null
+  }
+  return clampPinLength(length)
+}
+
 function getPinCursorIndex(pin: string[]): number {
   const firstEmptyIndex = pin.indexOf('')
   return firstEmptyIndex === -1 ? pin.length : firstEmptyIndex
@@ -102,5 +116,6 @@ export {
   fillPinDigit,
   getPin,
   getPinCursorIndex,
+  getStoredPinLength,
   isPinFilled
 }

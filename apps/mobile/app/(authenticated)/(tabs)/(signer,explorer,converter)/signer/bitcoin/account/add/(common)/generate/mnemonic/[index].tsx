@@ -186,6 +186,7 @@ export default function GenerateMnemonic() {
                 label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
               />
               <SSTextInput
+                value={passphrase ?? ''}
                 onChangeText={(text) => handleUpdatePassphrase(text)}
               />
             </SSFormLayout.Item>
