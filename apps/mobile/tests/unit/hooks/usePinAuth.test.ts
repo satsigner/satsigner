@@ -20,7 +20,7 @@ import {
 import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
 import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
-jest.mock('expo-router', () => ({
+jest.mock<typeof import('expo-router')>('expo-router', () => ({
   router: { dismissAll: jest.fn(), replace: jest.fn() }
 }))
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
