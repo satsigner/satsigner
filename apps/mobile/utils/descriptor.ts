@@ -19,17 +19,27 @@ import {
 
 // Keys start the descriptor or follow `(`, `,` or a `[origin]`. Matching only
 // there keeps base58 noise inside an xpub from looking like a prefix.
+const PRIVATE_KEY_BOUNDARY = String.raw`(?:^|[(,\]])\s*`
 const PRIVATE_EXTENDED_KEY_PATTERN = new RegExp(
-  String.raw`(?:^|[(,\]])\s*(?:${BDK_PRIVATE_EXTENDED_KEY_PREFIXES.join('|')})`,
+  `${PRIVATE_KEY_BOUNDARY}(?:${BDK_PRIVATE_EXTENDED_KEY_PREFIXES.join('|')})`,
   'i'
+)
+const BASE58_CHARACTER = '[1-9A-HJ-NP-Za-km-z]'
+const WIF_COMPRESSED_BODY_LENGTH = 51
+const WIF_UNCOMPRESSED_BODY_LENGTH = 50
+const WIF_KEY_PATTERN = new RegExp(
+  `${PRIVATE_KEY_BOUNDARY}(?:[KLc]${BASE58_CHARACTER}{${WIF_COMPRESSED_BODY_LENGTH}}|[59]${BASE58_CHARACTER}{${WIF_UNCOMPRESSED_BODY_LENGTH}})(?!${BASE58_CHARACTER})`
 )
 const MULTIPATH_CHAINS_PATTERN = /<0[,;]1>/g
 const RECEIVE_CHAIN = '0'
 const CHANGE_CHAIN = '1'
 
-/** True when a descriptor holds an extended private key (xprv, tprv, ...). */
+/** True when a descriptor holds an extended private key or a WIF private key. */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
-  return PRIVATE_EXTENDED_KEY_PATTERN.test(descriptor)
+  return (
+    PRIVATE_EXTENDED_KEY_PATTERN.test(descriptor) ||
+    WIF_KEY_PATTERN.test(descriptor)
+  )
 }
 
 // Thrown when a descriptor contains private key material that must not be

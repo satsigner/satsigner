@@ -208,6 +208,32 @@ describe('descriptorHasPrivateKeyMaterial', () => {
       )
     ).toBe(false)
   })
+
+  it('flags WIF private keys', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(L4rK1yDtCWekvXuE6oXD9jCYfFNV2cWRpVuPLBcCU2z8TrisoyY1)'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'pkh(5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ)'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA)'
+      )
+    ).toBe(true)
+  })
+
+  it('ignores WIF-like text inside an extended public key', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(xpub6CUGRL4rK1yDtCWekvXuE6oXD9jCYfFNV2cWRpVuPLBcCU2z8TrisoyY15HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ/0/*)'
+      )
+    ).toBe(false)
+  })
 })
 
 describe('getScriptVersionFromDescriptor', () => {
