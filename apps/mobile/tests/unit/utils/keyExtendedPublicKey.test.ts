@@ -1,7 +1,10 @@
 import { Network } from 'react-native-bdk-sdk'
 
 import { type DecryptedKey } from '@/types/models/Account'
-import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
+import {
+  getExtendedPublicKeyFromMnemonic,
+  getExtendedPublicKeyFromMnemonicCustom
+} from '@/utils/bip39'
 import { getKeyExtendedPublicKey } from '@/utils/key'
 
 const MNEMONIC =
@@ -35,6 +38,28 @@ describe('getKeyExtendedPublicKey', () => {
       mnemonic: MNEMONIC
     })
     await expect(getKeyExtendedPublicKey(key, Network.Signet)).resolves.toBe(
+      getExtendedPublicKeyFromMnemonic(MNEMONIC, '', Network.Signet, 'P2WPKH')
+    )
+  })
+
+  it('derives from the stored path instead of the script default', async () => {
+    const derivationPath = "m/84'/1'/1'"
+    const key = makeKey(
+      { mnemonic: MNEMONIC },
+      { derivationPath }
+    )
+    const expected = getExtendedPublicKeyFromMnemonicCustom(
+      MNEMONIC,
+      '',
+      Network.Signet,
+      'P2WPKH',
+      derivationPath
+    )
+
+    await expect(getKeyExtendedPublicKey(key, Network.Signet)).resolves.toBe(
+      expected
+    )
+    expect(expected).not.toBe(
       getExtendedPublicKeyFromMnemonic(MNEMONIC, '', Network.Signet, 'P2WPKH')
     )
   })

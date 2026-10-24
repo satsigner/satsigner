@@ -15,6 +15,7 @@ import {
 } from '@/utils/bip32'
 import {
   detectElectrumSeed,
+  getExtendedPublicKeyFromMnemonicCustom,
   getPublicDescriptorFromMnemonic,
   mnemonicToSeed
 } from '@/utils/bip39'
@@ -98,6 +99,15 @@ export async function getKeyExtendedPublicKey(
   if (extendedPublicKey || !mnemonic || !key.scriptVersion) {
     return extractPublicKeyFromObjectSecret(key.secret)
   }
+  if (key.derivationPath) {
+    return getExtendedPublicKeyFromMnemonicCustom(
+      mnemonic,
+      passphrase ?? '',
+      network,
+      key.scriptVersion,
+      toMasterDerivationPath(key.derivationPath)
+    )
+  }
   const descriptor = await getPublicDescriptorFromMnemonic(
     mnemonic,
     key.scriptVersion,
@@ -106,6 +116,13 @@ export async function getKeyExtendedPublicKey(
     network
   )
   return getExtendedKeyFromDescriptor(descriptor)
+}
+
+function toMasterDerivationPath(path: string) {
+  if (path === 'm' || path.startsWith('m/')) {
+    return path
+  }
+  return `m/${path.replace(/^\//, '')}`
 }
 
 export function extractPublicKeyFromKey(
