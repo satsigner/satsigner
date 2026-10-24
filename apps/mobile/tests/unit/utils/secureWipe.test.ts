@@ -96,14 +96,14 @@ describe('secureWipeAfterMaxPinTries', () => {
   })
 
   it('stays locked when the wallet wipe rejects', async () => {
-    const originalGetState = useEcashStore.getState
-    jest.spyOn(useEcashStore, 'getState').mockImplementation(() => ({
-      ...originalGetState(),
+    const ecashState = useEcashStore.getState()
+    jest.spyOn(useEcashStore, 'getState').mockReturnValue({
+      ...ecashState,
       accounts: [],
       clearAllData: () => {
         throw new Error(PERSIST_FAILED)
       }
-    }))
+    })
 
     await expect(secureWipeAfterMaxPinTries()).resolves.toBe(false)
 
