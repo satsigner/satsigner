@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -87,6 +87,8 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
+  const [verifyPending, setVerifyPending] = useState(false)
+  const verifyingPin = useRef(false)
   const [pinLength, setPinLength] = useState(PIN_SIZE)
 
   // The verify stage (changing an existing PIN) must match the stored length.
@@ -129,27 +131,39 @@ export default function SetPin() {
   }
 
   async function handleVerifyPin() {
-    const isValid = await validatePin(currentPinArray.join(''))
-    if (isValid) {
-      resetPinTries()
-      setStage('set')
-      setCurrentPinWrong(false)
+    if (verifyingPin.current) {
       return
     }
-    setCurrentPinArray(emptyPin(currentPinArray.length))
-    setCurrentPinWrong(true)
-    // Shares the persisted unlock tries, so the PIN cannot be guessed here.
-    const remainingTries = incrementPinTries()
-    if (remainingTries > 0) {
-      return
-    }
+    verifyingPin.current = true
+    setVerifyPending(true)
     try {
-      await secureWipeAfterMaxPinTries()
-    } catch {
-      toast.error(t('auth.wipeFailed'))
-      return
+      const isValid = await validatePin(currentPinArray.join(''))
+      if (isValid) {
+        resetPinTries()
+        setStage('set')
+        setCurrentPinWrong(false)
+        return
+      }
+      setCurrentPinArray(emptyPin(currentPinArray.length))
+      setCurrentPinWrong(true)
+      // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+      const remainingTries = incrementPinTries()
+      if (remainingTries > 0) {
+        return
+      }
+      const wiped = await secureWipeAfterMaxPinTries().then(
+        () => true,
+        () => false
+      )
+      if (!wiped) {
+        toast.error(t('auth.wipeFailed'))
+        return
+      }
+      router.replace('/')
+    } finally {
+      verifyingPin.current = false
+      setVerifyPending(false)
     }
-    router.replace('/')
   }
 
   async function handleSetPinLater() {
@@ -352,7 +366,8 @@ export default function SetPin() {
             <SSButton
               label={t('auth.confirmPin')}
               variant="secondary"
-              onPress={() => handleVerifyPin()}
+              loading={verifyPending}
+              onPress={handleVerifyPin}
             />
           )}
           {stage === 'set' && pinFilled && (
