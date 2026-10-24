@@ -82,19 +82,27 @@ async function fileExists(uri: string) {
 
 // The BDK wallet name only hashes the descriptors, and testnet and signet
 // share tpub keys, so the database file name also carries the network.
+// legacyInternalDescriptor is the change descriptor that was stored, so a
+// change descriptor derived for the new file does not rename an old database.
 async function getWalletDbUris(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
+  legacyInternalDescriptor: string | undefined,
   network: Network
 ) {
   await ensureWalletsDir()
+  const legacyName = walletNameFromDescriptor(
+    externalDescriptor,
+    legacyInternalDescriptor,
+    network
+  )
   const name = walletNameFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
   )
   return {
-    legacyUri: `${WALLETS_DIR}${name}.sqlite`,
+    legacyUri: `${WALLETS_DIR}${legacyName}.sqlite`,
     uri: `${WALLETS_DIR}${name}-${toAppNetwork(network)}.sqlite`
   }
 }
@@ -533,16 +541,36 @@ function resolveWalletDescriptors(
   internalDescriptor: string | undefined
 ) {
   const ext = normalizeWalletDescriptor(externalDescriptor)
-  const int = internalDescriptor
+  const givenInt = internalDescriptor
     ? normalizeWalletDescriptor(internalDescriptor)
-    : deriveChangeDescriptor(ext)
+    : undefined
   if (!isCombinedDescriptor(ext)) {
-    return { ext, int }
+    return {
+      ext,
+      int: givenInt ?? deriveChangeDescriptor(ext),
+      legacyInt: givenInt
+    }
   }
-  return {
-    ext: ext.replaceAll(/<0[,;]1>/g, '0'),
-    int: ext.replaceAll(/<0[,;]1>/g, '1')
+  const receive = ext.replaceAll(/<0[,;]1>/g, '0')
+  const change = ext.replaceAll(/<0[,;]1>/g, '1')
+  return { ext: receive, int: change, legacyInt: change }
+}
+
+const FOREIGN_NETWORK_WALLET_MESSAGES = [
+  'network mismatch',
+  'network does not match',
+  "network doesn't match"
+]
+
+/** True when BDK refused a database because it belongs to another network. */
+function isForeignNetworkWalletError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
   }
+  const message = error.message.toLowerCase()
+  return FOREIGN_NETWORK_WALLET_MESSAGES.some((fragment) =>
+    message.includes(fragment)
+  )
 }
 
 async function getWalletFromDescriptor(
@@ -550,11 +578,11 @@ async function getWalletFromDescriptor(
   internalDescriptor: string | undefined,
   network: Network
 ): Promise<{ wallet: BdkWallet; dbPath: string }> {
-  const { ext, int } = resolveWalletDescriptors(
+  const { ext, int, legacyInt } = resolveWalletDescriptors(
     externalDescriptor,
     internalDescriptor
   )
-  const { legacyUri, uri } = await getWalletDbUris(ext, int, network)
+  const { legacyUri, uri } = await getWalletDbUris(ext, int, legacyInt, network)
   const legacyWallet = await openLegacyWallet(ext, int, network, legacyUri, uri)
   if (legacyWallet) {
     return legacyWallet
@@ -577,8 +605,11 @@ async function openLegacyWallet(
   const dbPath = uriToPath(legacyUri)
   try {
     return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
-  } catch {
-    // BDK refuses to load a database created for another network.
+  } catch (error) {
+    if (isForeignNetworkWalletError(error)) {
+      return
+    }
+    throw error
   }
 }
 
