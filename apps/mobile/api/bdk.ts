@@ -583,7 +583,13 @@ async function getWalletFromDescriptor(
     internalDescriptor
   )
   const { legacyUri, uri } = await getWalletDbUris(ext, int, legacyInt, network)
-  const legacyWallet = await openLegacyWallet(ext, int, network, legacyUri, uri)
+  const legacyWallet = await openLegacyWallet(
+    ext,
+    legacyInt,
+    network,
+    legacyUri,
+    uri
+  )
   if (legacyWallet) {
     return legacyWallet
   }

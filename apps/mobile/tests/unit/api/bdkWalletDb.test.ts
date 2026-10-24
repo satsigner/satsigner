@@ -107,7 +107,12 @@ describe('getWalletFromDescriptor', () => {
       undefined,
       Network.Signet
     )
-    expect(MockBdkWallet).toHaveBeenCalledTimes(1)
+    expect(MockBdkWallet).toHaveBeenCalledWith(
+      DESCRIPTOR,
+      undefined,
+      Network.Signet,
+      LEGACY_PATH
+    )
   })
 
   it('rethrows a legacy database error that is not a network mismatch', async () => {
