@@ -378,3 +378,57 @@ describe('bip322 utils - dispatcher', () => {
     ).toBe(false)
   })
 })
+
+describe('bip322 utils - runtime without TypedArray species', () => {
+  // Hermes ignores Symbol.species, so Buffer#subarray returns a plain
+  // Uint8Array there. The `buffer` polyfill's slice resets the prototype.
+  function plainSubarray(buffer: Buffer, start?: number, end?: number) {
+    return new Uint8Array(
+      buffer.buffer,
+      buffer.byteOffset,
+      buffer.length
+    ).subarray(start, end)
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(Buffer.prototype, 'subarray')
+      .mockImplementation(function subarray(start, end) {
+        return plainSubarray(this, start, end)
+      })
+    jest
+      .spyOn(Buffer.prototype, 'slice')
+      .mockImplementation(function slice(start, end) {
+        return Object.setPrototypeOf(
+          plainSubarray(this, start, end),
+          Buffer.prototype
+        )
+      })
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('verifies the official P2WPKH test vector', () => {
+    expect(
+      verifyMessageBip322SegwitV0(
+        bip322P2wpkh.address,
+        'Hello World',
+        bip322P2wpkh.signatures['Hello World'],
+        'bitcoin'
+      )
+    ).toBe(true)
+  })
+
+  it('verifies the official taproot test vector', () => {
+    expect(
+      verifyMessageBip322Taproot(
+        bip322Taproot.address,
+        bip322Taproot.message,
+        bip322Taproot.signatureWithPrefix,
+        'bitcoin'
+      )
+    ).toBe(true)
+  })
+})

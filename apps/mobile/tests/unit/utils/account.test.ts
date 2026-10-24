@@ -8,8 +8,10 @@ import {
   getAccountTotalBalance,
   getNextDisplayIndex,
   hasStoredMnemonic,
+  isAutoSyncDue,
   updateAccountObjectLabels
 } from '@/utils/account'
+import { time } from '@/utils/time'
 
 function makeKey(overrides: Partial<Key> = {}): Key {
   return {
@@ -293,6 +295,45 @@ describe('checkWalletNeedsSync', () => {
 
     expect(checkWalletNeedsSync(account, 1)).toBe(true)
     expect(checkWalletNeedsSync(account, 3)).toBe(false)
+  })
+})
+
+describe('isAutoSyncDue', () => {
+  const lastSyncedAt = new Date('2026-01-01T12:00:00Z')
+  const delayMinutes = 5
+  const synced: Pick<Account, 'lastSyncedAt' | 'syncStatus'> = {
+    lastSyncedAt,
+    syncStatus: 'synced'
+  }
+
+  it('returns true when never synced', () => {
+    expect(
+      isAutoSyncDue(
+        { lastSyncedAt: undefined, syncStatus: 'unsynced' },
+        delayMinutes
+      )
+    ).toBe(true)
+  })
+
+  it('returns true for a new account created moments ago', () => {
+    const now = lastSyncedAt.getTime() + time.minutes(1)
+    expect(
+      isAutoSyncDue({ lastSyncedAt, syncStatus: 'unsynced' }, delayMinutes, now)
+    ).toBe(true)
+  })
+
+  it('returns false while the delay has not passed', () => {
+    const now = lastSyncedAt.getTime() + time.minutes(1)
+    expect(isAutoSyncDue(synced, delayMinutes, now)).toBe(false)
+  })
+
+  it('returns true once the delay has passed', () => {
+    const now = lastSyncedAt.getTime() + time.minutes(10)
+    expect(isAutoSyncDue(synced, delayMinutes, now)).toBe(true)
+  })
+
+  it('returns true when the delay is zero', () => {
+    expect(isAutoSyncDue(synced, 0, lastSyncedAt.getTime())).toBe(true)
   })
 })
 

@@ -27,6 +27,7 @@ import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor } from '@/styles/colors'
 import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
 import { commitPinMaterial, preparePinMaterial } from '@/utils/pinKdf'
+import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -55,7 +56,9 @@ export default function SetPin() {
     skipPin,
     validatePin,
     requirePinMigration,
-    setRequirePinMigration
+    setRequirePinMigration,
+    incrementPinTries,
+    resetPinTries
   ] = useAuthStore(
     useShallow((state) => [
       state.setFirstTime,
@@ -65,7 +68,9 @@ export default function SetPin() {
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
-      state.setRequirePinMigration
+      state.setRequirePinMigration,
+      state.incrementPinTries,
+      state.resetPinTries
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -126,11 +131,18 @@ export default function SetPin() {
   async function handleVerifyPin() {
     const isValid = await validatePin(currentPinArray.join(''))
     if (isValid) {
+      resetPinTries()
       setStage('set')
       setCurrentPinWrong(false)
-    } else {
-      setCurrentPinArray(emptyPin(currentPinArray.length))
-      setCurrentPinWrong(true)
+      return
+    }
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+    setCurrentPinWrong(true)
+    // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+    const remainingTries = incrementPinTries()
+    if (remainingTries <= 0) {
+      await secureWipeAfterMaxPinTries()
+      router.replace('/')
     }
   }
 
@@ -190,6 +202,7 @@ export default function SetPin() {
     await commitPinMaterial(material)
 
     setLoading(false)
+    setRequiresAuth(true)
 
     if (fromSettings) {
       router.back()
@@ -203,7 +216,6 @@ export default function SetPin() {
     }
 
     setFirstTime(false)
-    setRequiresAuth(true)
   }
 
   function handleGoBack() {

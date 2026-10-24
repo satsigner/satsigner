@@ -15,8 +15,8 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
-import { finalizePinAuthSuccess } from '@/utils/pinUnlock'
-import { secureWipeAllWalletData } from '@/utils/secureWipe'
+import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
+import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type PinAuthResult = 'error' | 'duress' | 'fail' | 'success'
 
@@ -77,6 +77,13 @@ async function checkPin(
       await secureWipeAllWalletData()
     } catch {
       // Duress wipe is best-effort; always proceed to unlock the app.
+    }
+    try {
+      if (await isDuressPinRemoved()) {
+        await promoteDuressPin(inputPin)
+      }
+    } catch {
+      // Same as the wipe: a failure must not reveal the duress unlock.
     }
     return 'duress'
   }

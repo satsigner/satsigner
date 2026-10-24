@@ -351,18 +351,18 @@ export function getDescriptorsFromKey(
       break
     }
     case 'P2WSH': {
-      externalDescriptor = `wsh(${keyPart}/0/*)`
-      internalDescriptor = `wsh(${keyPart}/1/*)`
+      externalDescriptor = `wsh(pk(${keyPart}/0/*))`
+      internalDescriptor = `wsh(pk(${keyPart}/1/*))`
       break
     }
     case 'P2SH-P2WSH': {
-      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
-      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
+      externalDescriptor = `sh(wsh(pk(${keyPart}/0/*)))`
+      internalDescriptor = `sh(wsh(pk(${keyPart}/1/*)))`
       break
     }
     case 'P2SH': {
-      externalDescriptor = `sh(${keyPart}/0/*)`
-      internalDescriptor = `sh(${keyPart}/1/*)`
+      externalDescriptor = `sh(pk(${keyPart}/0/*))`
+      internalDescriptor = `sh(pk(${keyPart}/1/*))`
       break
     }
     default: {

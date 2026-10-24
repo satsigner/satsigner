@@ -22,15 +22,21 @@ export default function Add() {
   const router = useRouter()
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const accounts = useAccountsStore((state) => state.accounts)
-  const [name, setAccountName, setAccountPolicyType, setDisplayIndex] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.setName,
-        state.setPolicyType,
-        state.setDisplayIndex
-      ])
-    )
+  const [
+    name,
+    setAccountName,
+    setAccountPolicyType,
+    setDisplayIndex,
+    setAccountNetwork
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.setName,
+      state.setPolicyType,
+      state.setDisplayIndex,
+      state.setNetwork
+    ])
+  )
 
   const [localPolicyType, setLocalPolicyType] =
     useState<NonNullable<Account['policyType']>>('singlesig')
@@ -46,6 +52,7 @@ export default function Add() {
     setAccountName(localAccountName)
     setAccountPolicyType(localPolicyType)
     setDisplayIndex(getNextDisplayIndex(accounts))
+    setAccountNetwork(network)
 
     if (localPolicyType === 'singlesig') {
       router.navigate('/signer/bitcoin/account/add/singleSig')

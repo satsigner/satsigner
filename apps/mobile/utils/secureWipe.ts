@@ -5,7 +5,8 @@ import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
-  deleteItem
+  deleteItem,
+  getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
@@ -93,4 +94,34 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
   await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
   await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+}
+
+/** True once the duress PIN, its KDF, and its salt are gone from storage. */
+export async function isDuressPinRemoved(): Promise<boolean> {
+  const [pin, kdf, salt] = await Promise.all([
+    getItem(DURESS_PIN_KEY),
+    getItem(DURESS_KDF_KEY),
+    getItem(SALT_KEY_DURESS)
+  ])
+  return !pin && !kdf && !salt
+}
+
+/**
+ * Resets the app to a fresh install after the last wrong PIN. The secrets go
+ * too, so whoever sets the next PIN cannot reach Ark, ecash or Nostr funds.
+ */
+export async function secureWipeAfterMaxPinTries(): Promise<void> {
+  await secureWipeAllWalletData().catch(() => undefined)
+
+  const { deleteAccounts, deleteTags } = useAccountsStore.getState()
+  deleteAccounts()
+  useWalletsStore.getState().deleteWallets()
+  deleteTags()
+
+  const { resetPinTries, setFirstTime, setLockTriggered, setRequiresAuth } =
+    useAuthStore.getState()
+  setFirstTime(true)
+  setRequiresAuth(false)
+  setLockTriggered(false)
+  resetPinTries()
 }

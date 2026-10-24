@@ -27,6 +27,30 @@ describe('getOutputDescriptorStringForKey', () => {
     ).resolves.toStrictEqual(DESCRIPTOR)
   })
 
+  it('wraps a stored bare multisig key in pk()', async () => {
+    const key = baseKey({
+      creationType: 'generateMnemonic',
+      scriptVersion: 'P2WSH'
+    })
+    const keyExpression =
+      "[e5eda689/48'/1'/0'/2']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*"
+    const secret: Secret = { externalDescriptor: `wsh(${keyExpression})` }
+    await expect(
+      getOutputDescriptorStringForKey(key, secret, 'testnet')
+    ).resolves.toBe(`wsh(pk(${keyExpression}))`)
+  })
+
+  it('builds a pk() descriptor for a multisig extended public key', async () => {
+    const key = baseKey({
+      creationType: 'importExtendedPub',
+      scriptVersion: 'P2SH-P2WSH'
+    })
+    const secret: Secret = { extendedPublicKey: 'tpubKEY' }
+    await expect(
+      getOutputDescriptorStringForKey(key, secret, 'testnet')
+    ).resolves.toBe('sh(wsh(pk(tpubKEY/0/*)))')
+  })
+
   it('returns empty for unsupported creation types', async () => {
     const key = baseKey({ creationType: 'importAddress' })
     const secret: Secret = {}

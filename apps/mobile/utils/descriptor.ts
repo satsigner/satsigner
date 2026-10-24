@@ -11,12 +11,16 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
+// Keys start the descriptor or follow `(`, `,` or a `[origin]`. Matching only
+// there keeps base58 noise inside an xpub from looking like a prefix.
+const PRIVATE_EXTENDED_KEY_PATTERN = new RegExp(
+  String.raw`(?:^|[(,\]])\s*(?:${BDK_PRIVATE_EXTENDED_KEY_PREFIXES.join('|')})`,
+  'i'
+)
+
 /** True when a descriptor holds an extended private key (xprv, tprv, ...). */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
-  const lower = descriptor.toLowerCase()
-  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
-    lower.includes(prefix)
-  )
+  return PRIVATE_EXTENDED_KEY_PATTERN.test(descriptor)
 }
 
 // Thrown when a descriptor contains private key material that must not be
@@ -65,6 +69,20 @@ export function removeChecksum(descriptor: string): string {
   return descriptor.replace(/#[a-z0-9]+$/, '')
 }
 
+const BARE_SCRIPT_KEY_PATTERN = /^(sh\(wsh\(|wsh\(|sh\()([^()]+)(\)+)$/
+
+/**
+ * Older builds saved multisig keys as `wsh(KEY)`, `sh(wsh(KEY))` or `sh(KEY)`,
+ * which are not valid descriptors. Wraps the key in `pk()`.
+ */
+export function wrapBareScriptKey(descriptor: string) {
+  const body = removeChecksum(descriptor)
+  if (!BARE_SCRIPT_KEY_PATTERN.test(body)) {
+    return descriptor
+  }
+  return body.replace(BARE_SCRIPT_KEY_PATTERN, '$1pk($2)$3')
+}
+
 export function swapDescriptorChain(
   descriptor: string,
   fromChain: 0 | 1,
@@ -72,6 +90,14 @@ export function swapDescriptorChain(
 ) {
   const withoutChecksum = removeChecksum(descriptor)
   return withoutChecksum.replaceAll(`/${fromChain}/*`, `/${toChain}/*`)
+}
+
+// BDK refuses a wallet whose change descriptor equals the receive one.
+export function deriveChangeDescriptor(external: string) {
+  if (!external.includes('/0/*')) {
+    return
+  }
+  return swapDescriptorChain(external, 0, 1)
 }
 
 export function parseJsonDescriptor(text: string) {
@@ -214,6 +240,23 @@ export function parseImportedDescriptorPayload(text: string) {
     external: trimmed,
     internal: ''
   }
+}
+
+const DESCRIPTOR_SCRIPT_VERSIONS: [string, ScriptVersionType][] = [
+  ['sh(wpkh(', 'P2SH-P2WPKH'],
+  ['sh(wsh(', 'P2SH-P2WSH'],
+  ['sh(', 'P2SH'],
+  ['pkh(', 'P2PKH'],
+  ['wpkh(', 'P2WPKH'],
+  ['wsh(', 'P2WSH'],
+  ['tr(', 'P2TR']
+]
+
+export function getScriptVersionFromDescriptor(descriptor: string) {
+  const trimmed = descriptor.trim()
+  return DESCRIPTOR_SCRIPT_VERSIONS.find(([prefix]) =>
+    trimmed.startsWith(prefix)
+  )?.[1]
 }
 
 export async function processCombinedDescriptor(
