@@ -1,5 +1,11 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
-import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
+import {
+  DESCRIPTOR_CHECKSUM_CHARSET,
+  DESCRIPTOR_CHECKSUM_GENERATOR,
+  DESCRIPTOR_CHECKSUM_INPUT_CHARSET,
+  DESCRIPTOR_CHECKSUM_LENGTH,
+  KEY_ORIGIN_FINGERPRINT_PATTERN
+} from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { AppError } from '@/utils/errors'
 import {
@@ -10,6 +16,10 @@ import {
 
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
+
+const MULTIPATH_CHAINS_PATTERN = /<0[,;]1>/g
+const RECEIVE_CHAIN = '0'
+const CHANGE_CHAIN = '1'
 
 /** True when a descriptor holds an extended private key (xprv, tprv, ...). */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
@@ -63,6 +73,76 @@ export function getXpubFingerprint(xpubWithPrefix: string) {
 
 export function removeChecksum(descriptor: string): string {
   return descriptor.replace(/#[a-z0-9]+$/, '')
+}
+
+// Port of the BIP-380 reference implementation (descsum_expand/polymod).
+function expandDescriptorSymbols(descriptor: string): number[] {
+  const symbols: number[] = []
+  const groups: number[] = []
+  for (const char of descriptor) {
+    const position = DESCRIPTOR_CHECKSUM_INPUT_CHARSET.indexOf(char)
+    if (position === -1) {
+      throw new Error(`Invalid descriptor character: ${char}`)
+    }
+    symbols.push(position & 31)
+    groups.push(position >> 5)
+    if (groups.length === 3) {
+      symbols.push(groups[0] * 9 + groups[1] * 3 + groups[2])
+      groups.length = 0
+    }
+  }
+  if (groups.length === 1) {
+    symbols.push(groups[0])
+  }
+  if (groups.length === 2) {
+    symbols.push(groups[0] * 3 + groups[1])
+  }
+  return symbols
+}
+
+function descriptorPolymod(symbols: number[]): bigint {
+  return symbols.reduce((checksum, value) => {
+    const top = checksum >> 35n
+    const shifted = ((checksum & 0x7_ff_ff_ff_ffn) << 5n) ^ BigInt(value)
+    return DESCRIPTOR_CHECKSUM_GENERATOR.reduce(
+      (result, generator, index) =>
+        (top >> BigInt(index)) & 1n ? result ^ generator : result,
+      shifted
+    )
+  }, 1n)
+}
+
+/** BIP-380 checksum of a descriptor without its `#checksum` suffix. */
+export function getDescriptorChecksum(descriptor: string): string {
+  const padding = Array.from<number>({
+    length: DESCRIPTOR_CHECKSUM_LENGTH
+  }).fill(0)
+  const checksum =
+    descriptorPolymod([...expandDescriptorSymbols(descriptor), ...padding]) ^ 1n
+  return Array.from({ length: DESCRIPTOR_CHECKSUM_LENGTH }, (_, index) => {
+    const shift = BigInt(5 * (DESCRIPTOR_CHECKSUM_LENGTH - 1 - index))
+    return DESCRIPTOR_CHECKSUM_CHARSET[Number((checksum >> shift) & 31n)]
+  }).join('')
+}
+
+/** Replaces any existing `#checksum` suffix with the BIP-380 checksum. */
+export function addDescriptorChecksum(descriptor: string): string {
+  const [body] = descriptor.split('#')
+  return `${body}#${getDescriptorChecksum(body)}`
+}
+
+/**
+ * Receive (`/0/*`) and change (`/1/*`) descriptors of a `<0;1>` multipath
+ * descriptor, each with its own checksum. Other descriptors are returned as is.
+ */
+export function splitMultipathDescriptor(descriptor: string): string[] {
+  const [body] = descriptor.split('#')
+  if (!isCombinedDescriptor(body)) {
+    return [descriptor]
+  }
+  return [RECEIVE_CHAIN, CHANGE_CHAIN].map((chain) =>
+    addDescriptorChecksum(body.replaceAll(MULTIPATH_CHAINS_PATTERN, chain))
+  )
 }
 
 export function swapDescriptorChain(

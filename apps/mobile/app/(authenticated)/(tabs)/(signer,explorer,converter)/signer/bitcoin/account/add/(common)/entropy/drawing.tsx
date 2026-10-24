@@ -30,13 +30,12 @@ export default function DrawingEntropy() {
   const { index } = useLocalSearchParams()
   const completedRef = useRef(false)
 
-  const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
+  const [mnemonicWordCount, mnemonicWordList, setGeneratedMnemonic] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.mnemonicWordCount,
         state.mnemonicWordList,
-        state.setMnemonic,
-        state.setFingerprint
+        state.setGeneratedMnemonic
       ])
     )
 
@@ -64,9 +63,7 @@ export default function DrawingEntropy() {
 
     const bits = drawingPointsToBinary(nextPoints, bitLength)
     const mnemonic = generateMnemonicFromEntropy(bits, mnemonicWordList)
-    setMnemonic(mnemonic)
-    const fingerprint = getFingerprintFromMnemonic(mnemonic)
-    setFingerprint(fingerprint)
+    setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
     router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
   }
 

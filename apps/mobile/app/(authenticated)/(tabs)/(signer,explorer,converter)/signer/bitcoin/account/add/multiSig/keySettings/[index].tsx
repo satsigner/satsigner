@@ -29,8 +29,7 @@ export default function MultiSigKeySettings() {
     setEntropy,
     setMnemonicWordCount,
     setMnemonicWordList,
-    setMnemonic,
-    setFingerprint,
+    setGeneratedMnemonic,
     setCreationType,
     setNetwork
   ] = useAccountBuilderStore(
@@ -40,8 +39,7 @@ export default function MultiSigKeySettings() {
       state.setEntropy,
       state.setMnemonicWordCount,
       state.setMnemonicWordList,
-      state.setMnemonic,
-      state.setFingerprint,
+      state.setGeneratedMnemonic,
       state.setCreationType,
       state.setNetwork
     ])
@@ -73,10 +71,7 @@ export default function MultiSigKeySettings() {
 
           // Multisig generate currently always uses the English wordlist.
           const mnemonic = generateMnemonic(localMnemonicWordCount, 'english')
-          setMnemonic(mnemonic)
-
-          const fingerprint = getFingerprintFromMnemonic(mnemonic)
-          setFingerprint(fingerprint)
+          setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
 
           setLoading(false)
           router.navigate(

@@ -26,7 +26,7 @@ export default function ImportMnemonic() {
     clearAccount,
     setMnemonic,
     setKey,
-    passphrase,
+    setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     getAccountData,
@@ -41,7 +41,7 @@ export default function ImportMnemonic() {
       state.clearAccount,
       state.setMnemonic,
       state.setKey,
-      state.passphrase,
+      state.setPassphrase,
       state.setFingerprint,
       state.setExtendedPublicKey,
       state.getAccountData,
@@ -52,10 +52,16 @@ export default function ImportMnemonic() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const [currentMnemonic, setCurrentMnemonic] = useState('')
   const [currentFingerprint, setCurrentFingerprint] = useState('')
+  const [currentPassphrase, setCurrentPassphrase] = useState('')
 
-  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+  const handleMnemonicValid = (
+    mnemonic: string,
+    fingerprint: string,
+    passphrase: string
+  ) => {
     setCurrentMnemonic(mnemonic)
     setCurrentFingerprint(fingerprint)
+    setCurrentPassphrase(passphrase)
   }
 
   const handleMnemonicInvalid = () => {
@@ -65,6 +71,7 @@ export default function ImportMnemonic() {
 
   async function handleOnPressImportSeed() {
     setMnemonic(currentMnemonic)
+    setPassphrase(currentPassphrase)
     setFingerprint(currentFingerprint)
     setKey(Number(keyIndex))
 
@@ -90,12 +97,13 @@ export default function ImportMnemonic() {
 
   function handleOnPressImportSeedMultisig() {
     setMnemonic(currentMnemonic)
+    setPassphrase(currentPassphrase)
     setFingerprint(currentFingerprint)
 
     if (currentMnemonic && currentFingerprint) {
       const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
         currentMnemonic,
-        passphrase || '',
+        currentPassphrase,
         appNetworkToBdkNetwork(network),
         scriptVersion
       )
