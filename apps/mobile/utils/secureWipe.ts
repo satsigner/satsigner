@@ -111,7 +111,7 @@ export async function isDuressPinRemoved(): Promise<boolean> {
  * too, so whoever sets the next PIN cannot reach Ark, ecash or Nostr funds.
  */
 export async function secureWipeAfterMaxPinTries(): Promise<void> {
-  await secureWipeAllWalletData().catch(() => undefined)
+  await secureWipeAllWalletData()
 
   const { deleteAccounts, deleteTags } = useAccountsStore.getState()
   deleteAccounts()

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSPinAuth from '@/components/SSPinAuth'
@@ -73,10 +74,16 @@ export default function Unlock() {
   // Counts against the persisted tries so restarting the app cannot reset them.
   async function handleFailure() {
     const remainingTries = incrementPinTries()
-    if (remainingTries <= 0) {
-      await secureWipeAfterMaxPinTries()
-      router.replace('/')
+    if (remainingTries > 0) {
+      return
     }
+    try {
+      await secureWipeAfterMaxPinTries()
+    } catch {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
   }
 
   return (

@@ -140,10 +140,16 @@ export default function SetPin() {
     setCurrentPinWrong(true)
     // Shares the persisted unlock tries, so the PIN cannot be guessed here.
     const remainingTries = incrementPinTries()
-    if (remainingTries <= 0) {
-      await secureWipeAfterMaxPinTries()
-      router.replace('/')
+    if (remainingTries > 0) {
+      return
     }
+    try {
+      await secureWipeAfterMaxPinTries()
+    } catch {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
   }
 
   async function handleSetPinLater() {

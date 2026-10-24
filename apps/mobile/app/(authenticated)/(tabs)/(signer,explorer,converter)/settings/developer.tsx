@@ -238,11 +238,17 @@ export default function Developer() {
   // to guess the PIN without limit.
   async function handleBackupPinFail() {
     const remainingTries = incrementPinTries()
-    if (remainingTries <= 0) {
-      setBackupPinVisible(false)
-      await secureWipeAfterMaxPinTries()
-      router.replace('/')
+    if (remainingTries > 0) {
+      return
     }
+    setBackupPinVisible(false)
+    try {
+      await secureWipeAfterMaxPinTries()
+    } catch {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
   }
 
   function showBackupPassphraseError() {

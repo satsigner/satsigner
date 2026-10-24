@@ -695,6 +695,7 @@
     "unlocking": "Unlocking…",
     "verifyPinTitle": "Enter current pin number",
     "warningKeysErase": "Too many wrong attempts\n will erase all keys",
+    "wipeFailed": "Could not erase wallet data. The PIN is still required.",
     "wrongPin": "Wrong pin number"
   },
   "bitcoin": {
