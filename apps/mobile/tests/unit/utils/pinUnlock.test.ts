@@ -1,10 +1,16 @@
 import { getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { migratePinKdfIfNeeded, recoverWorkingPinDigest } from '@/utils/pinKdf'
+import {
+  commitPinMaterial,
+  migratePinKdfIfNeeded,
+  preparePinMaterial,
+  recoverWorkingPinDigest
+} from '@/utils/pinKdf'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import {
   finalizePinAuthSuccess,
-  getFirstEncryptedKeyProbe
+  getFirstEncryptedKeyProbe,
+  promoteDuressPin
 } from '@/utils/pinUnlock'
 
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
@@ -18,7 +24,9 @@ jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
 }))
 
 jest.mock<typeof import('@/utils/pinKdf')>('@/utils/pinKdf', () => ({
+  commitPinMaterial: jest.fn(),
   migratePinKdfIfNeeded: jest.fn(),
+  preparePinMaterial: jest.fn(),
   recoverWorkingPinDigest: jest.fn()
 }))
 
@@ -119,5 +127,27 @@ describe('finalizePinAuthSuccess', () => {
       null
     )
     expect(onSuccess).toHaveBeenCalledWith()
+  })
+})
+
+describe('promoteDuressPin', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('stores the duress PIN as the main PIN and binds the session to it', async () => {
+    const material = {
+      digest: 'duress-digest',
+      kdf: { iterations: 1, name: 'pbkdf2' },
+      length: 4,
+      salt: 'salt'
+    }
+    jest.mocked(preparePinMaterial).mockResolvedValue(material)
+
+    await promoteDuressPin('9999')
+
+    expect(preparePinMaterial).toHaveBeenCalledWith('9999')
+    expect(commitPinMaterial).toHaveBeenCalledWith(material)
+    expect(setSessionPinDigest).toHaveBeenCalledWith('duress-digest')
   })
 })

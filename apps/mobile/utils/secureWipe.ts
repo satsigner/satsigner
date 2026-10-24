@@ -1,9 +1,11 @@
+import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
-  deleteEcashMnemonic
+  deleteEcashMnemonic,
+  getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
@@ -98,7 +100,11 @@ export async function secureWipeAllWalletData(): Promise<void> {
  * so the next PIN setup cannot re-encrypt leftovers.
  */
 export async function secureWipeAfterMaxPinTries(): Promise<boolean> {
-  await secureWipeAllWalletData().catch(() => undefined)
+  try {
+    await secureWipeAllWalletData()
+  } catch {
+    return false
+  }
 
   const {
     clearPin,
@@ -117,4 +123,14 @@ export async function secureWipeAfterMaxPinTries(): Promise<boolean> {
   setLockTriggered(false)
   resetPinTries()
   return true
+}
+
+/** True once the duress PIN, its KDF, and its salt are gone from storage. */
+export async function isDuressPinRemoved(): Promise<boolean> {
+  const [pin, kdf, salt] = await Promise.all([
+    getItem(DURESS_PIN_KEY),
+    getItem(DURESS_KDF_KEY),
+    getItem(SALT_KEY_DURESS)
+  ])
+  return !pin && !kdf && !salt
 }

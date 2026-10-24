@@ -9,6 +9,7 @@ import {
   appNetworkToBdkNetwork,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import { wrapBareScriptKey } from '@/utils/descriptor'
 
 export function singlesigDescriptorFromKeyPart(
   keyPart: string,
@@ -28,13 +29,13 @@ export function singlesigDescriptorFromKeyPart(
       return `tr(${keyPart})`
     }
     case 'P2WSH': {
-      return `wsh(${keyPart})`
+      return `wsh(pk(${keyPart}))`
     }
     case 'P2SH-P2WSH': {
-      return `sh(wsh(${keyPart}))`
+      return `sh(wsh(pk(${keyPart})))`
     }
     case 'P2SH': {
-      return `sh(${keyPart})`
+      return `sh(pk(${keyPart}))`
     }
     default: {
       return `wpkh(${keyPart})`
@@ -90,7 +91,7 @@ export async function getOutputDescriptorStringForKey(
   ) {
     const stored = secret.externalDescriptor?.trim()
     if (stored) {
-      return stored
+      return wrapBareScriptKey(stored)
     }
     if (secret.mnemonic && key.scriptVersion) {
       return await getPublicDescriptorFromMnemonic(
@@ -105,7 +106,9 @@ export async function getOutputDescriptorStringForKey(
   }
 
   if (key.creationType === 'importDescriptor') {
-    let descriptorString = secret.externalDescriptor?.trim() || ''
+    let descriptorString = wrapBareScriptKey(
+      secret.externalDescriptor?.trim() || ''
+    )
     if (!descriptorString && secret.extendedPublicKey) {
       const fingerprint = secret.fingerprint || ''
       const derivationPath = getDerivationPathFromScriptVersion(

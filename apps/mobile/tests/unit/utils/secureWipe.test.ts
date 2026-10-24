@@ -12,6 +12,7 @@ import {
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { useAuthStore } from '@/store/auth'
+import { useEcashStore } from '@/store/ecash'
 import { getPin } from '@/utils/pin'
 import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
@@ -28,6 +29,8 @@ const PIN_BOUND_KEYS = [
   DURESS_KDF_KEY,
   SALT_KEY_DURESS
 ]
+
+const PERSIST_FAILED = 'persist failed'
 
 describe('secureWipeAfterMaxPinTries', () => {
   beforeEach(() => {
@@ -48,6 +51,7 @@ describe('secureWipeAfterMaxPinTries', () => {
   })
 
   afterEach(() => {
+    jest.restoreAllMocks()
     jest
       .mocked(SecureStore.deleteItemAsync)
       .mockImplementation((key: string) => {
@@ -82,6 +86,28 @@ describe('secureWipeAfterMaxPinTries', () => {
 
     expect(secureStore[sk(PIN_KEY)]).toBe(`stored-${PIN_KEY}`)
     expect(getSessionPinDigest()).toBe('session-digest')
+    expect(useAuthStore.getState()).toStrictEqual(
+      expect.objectContaining({
+        firstTime: false,
+        lockTriggered: true,
+        requiresAuth: true
+      })
+    )
+  })
+
+  it('stays locked when the wallet wipe rejects', async () => {
+    const ecashState = useEcashStore.getState()
+    jest.spyOn(useEcashStore, 'getState').mockReturnValue({
+      ...ecashState,
+      accounts: [],
+      clearAllData: () => {
+        throw new Error(PERSIST_FAILED)
+      }
+    })
+
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(false)
+
+    expect(secureStore[sk(PIN_KEY)]).toBe(`stored-${PIN_KEY}`)
     expect(useAuthStore.getState()).toStrictEqual(
       expect.objectContaining({
         firstTime: false,
