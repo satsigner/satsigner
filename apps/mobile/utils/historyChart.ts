@@ -1,7 +1,6 @@
 import { format } from 'd3-format'
-import { curveStepAfter, line } from 'd3-shape'
+import { curveLinear, line } from 'd3-shape'
 
-import { isUsablePrice } from '@/api/localPrices'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
@@ -11,7 +10,6 @@ import {
   type BalanceHistory,
   type FiatChartPoint,
   type FiatChartPointsParams,
-  type FiatValueByIdParams,
   type HistoryChartData,
   type TxInfoLabel,
   type TxInfoLabelsParams,
@@ -22,8 +20,7 @@ import {
   type UtxoRectangle,
   type YDomainParams
 } from '@/types/ui/historyChart'
-import { toValidDate } from '@/utils/date'
-import { formatFiatPrice, formatNumber, formatTimestamp } from '@/utils/format'
+import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
 
 export function hexToRgba(hex: string, opacity: number): string {
@@ -529,83 +526,66 @@ export function formatFiatAxisTick(value: number) {
   return formatFiatAxisWithSiPrefix(value)
 }
 
-function historicalBtcPrice(
-  transaction: Transaction,
-  currency: Currency,
-  bundledPriceAt: (timestamp: number) => number | null
-) {
-  const saved = transaction.prices?.[currency]
-  if (isUsablePrice(saved)) {
-    return saved
-  }
-  const date = toValidDate(transaction.timestamp)
-  if (!date) {
-    return null
-  }
-  const bundled = bundledPriceAt(formatTimestamp(date))
-  if (!isUsablePrice(bundled)) {
-    return null
-  }
-  return bundled
+const FIAT_SERIES_COLOR: Record<Currency, string> = {
+  AUD: '#6f9a74',
+  CAD: '#a56b6b',
+  CHF: '#a56b6b',
+  EUR: '#6a9aaa',
+  GBP: '#a56b6b',
+  JPY: '#a56b6b',
+  USD: '#6f9a74'
 }
 
-export function buildFiatValueById({
-  bundledPriceAt,
-  chartData,
-  currency,
-  transactionsMap
-}: FiatValueByIdParams) {
-  const fiatValueById = new Map<string, number>()
-  for (const point of chartData) {
-    const transaction = transactionsMap.get(point.id)
-    if (!transaction) {
-      continue
-    }
-    const price = historicalBtcPrice(transaction, currency, bundledPriceAt)
-    if (price !== null) {
-      fiatValueById.set(point.id, (point.balance * price) / SATS_PER_BITCOIN)
-    }
-  }
-  return fiatValueById
+export function fiatSeriesColor(currency: Currency) {
+  return FIAT_SERIES_COLOR[currency]
 }
 
-function fiatValueOf(
-  point: HistoryChartData | undefined,
-  fiatValueById: Map<string, number>
-) {
-  if (!point) {
-    return null
-  }
-  return fiatValueById.get(point.id) ?? null
+function balanceMarkedToClose(balance: number, price: number) {
+  return (balance * price) / SATS_PER_BITCOIN
 }
 
 export function buildFiatChartPoints({
   chartData,
-  fiatValueById,
-  startDate,
-  validChartData
+  closes,
+  endDate,
+  startDate
 }: FiatChartPointsParams): FiatChartPoint[] {
-  const pointBeforeWindow = chartData.findLast(
-    (point) => point.date < startDate
+  const ordered = chartData.toSorted(
+    (left, right) => left.date.getTime() - right.date.getTime()
   )
-  const lastPointInWindow =
-    validChartData.findLast((point) => point.type !== 'end') ??
-    pointBeforeWindow
+  const orderedCloses = closes.toSorted(
+    (left, right) => left.time - right.time
+  )
+  const start = startDate.getTime()
+  const end = endDate.getTime()
+  const points: FiatChartPoint[] = []
+  let balance = 0
+  let transactionIndex = 0
 
-  function sourcePoint(point: HistoryChartData, index: number) {
-    if (point.type !== 'end') {
-      return point
+  for (const close of orderedCloses) {
+    const time = close.time * 1000
+    if (time < start) {
+      continue
     }
-    if (index === 0) {
-      return pointBeforeWindow
+    if (time > end) {
+      break
     }
-    return lastPointInWindow
+    while (
+      transactionIndex < ordered.length &&
+      ordered[transactionIndex].date.getTime() <= time
+    ) {
+      balance = ordered[transactionIndex].balance
+      transactionIndex += 1
+    }
+    points.push({
+      date: new Date(time),
+      value:
+        close.price === null
+          ? null
+          : balanceMarkedToClose(balance, close.price)
+    })
   }
-
-  return validChartData.map((point, index) => ({
-    date: point.date,
-    value: fiatValueOf(sourcePoint(point, index), fiatValueById)
-  }))
+  return points
 }
 
 export function maxFiatValue(values: Iterable<number | null>) {
@@ -660,7 +640,7 @@ export function fiatYDomain({
   return [fiatStart, fiatStart + fiatSpan / scale]
 }
 
-export function buildFiatStepPath(
+export function buildFiatLinePath(
   series: FiatChartPoint[],
   x: (date: Date) => number,
   y: (value: number) => number
@@ -669,7 +649,7 @@ export function buildFiatStepPath(
     .defined((point) => point.value !== null)
     .x((point) => x(point.date))
     .y((point) => y(point.value ?? 0))
-    .curve(curveStepAfter)
+    .curve(curveLinear)
   return generator(series)
 }
 
