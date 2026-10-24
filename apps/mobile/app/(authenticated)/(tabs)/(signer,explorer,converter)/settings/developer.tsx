@@ -242,9 +242,8 @@ export default function Developer() {
       return
     }
     setBackupPinVisible(false)
-    try {
-      await secureWipeAfterMaxPinTries()
-    } catch {
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
       toast.error(t('auth.wipeFailed'))
       return
     }

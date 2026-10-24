@@ -49,15 +49,9 @@ const appTheme = {
 }
 
 export default function RootLayout() {
-  const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
-    useAuthStore(
-      useShallow((state) => [
-        state.firstTime,
-        state.setLockTriggered,
-        state.requiresAuth,
-        state.lockDeltaTime
-      ])
-    )
+  const [firstTime, setLockTriggered] = useAuthStore(
+    useShallow((state) => [state.firstTime, state.setLockTriggered])
+  )
 
   const [introVisible, introForceFirstTime, hideIntro] = useIntroStore(
     useShallow((state) => [
@@ -110,7 +104,10 @@ export default function RootLayout() {
     initNfc()
   }, [])
 
+  // Registered once on mount, so auth settings are read from the store at
+  // event time; render-time values would stay frozen at the first render.
   function handleAppStateChanged(nextAppState: AppStateStatus) {
+    const { requiresAuth, lockDeltaTime } = useAuthStore.getState()
     if (nextAppState === 'background' && requiresAuth) {
       setPrivacyScreenVisible(true)
       setLastBackgroundTimestamp(Date.now())

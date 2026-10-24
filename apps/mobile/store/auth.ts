@@ -6,6 +6,10 @@ import {
   DEFAULT_PIN_MAX_TRIES,
   DURESS_KDF_KEY,
   DURESS_PIN_KEY,
+  PIN_KDF_COMMIT_KEY,
+  PIN_KDF_KEY,
+  PIN_KEY,
+  PIN_LENGTH_KEY,
   RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
@@ -64,6 +68,8 @@ type AuthAction = {
   setLockTriggered: (lockTriggered: boolean) => void
   setPin: (pin: string) => Promise<void>
   setDuressPin: (pin: string) => Promise<void>
+  clearPin: () => Promise<void>
+  clearDuressPin: () => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   setDuressPinEnabled: (duressPinEnabled: boolean) => void
   /**
@@ -87,8 +93,32 @@ type AuthAction = {
 const useAuthStore = create<AuthState & AuthAction>()(
   persist(
     (set, get) => ({
+      clearDuressPin: async () => {
+        const results = await Promise.allSettled([
+          deleteItem(DURESS_PIN_KEY),
+          deleteItem(DURESS_KDF_KEY),
+          deleteItem(SALT_KEY_DURESS)
+        ])
+        if (results.some((result) => result.status === 'rejected')) {
+          throw new Error('Failed to clear duress PIN')
+        }
+        set({ duressPinEnabled: false })
+      },
       clearPageHistory() {
         set({ pageHistory: [] })
+      },
+      clearPin: async () => {
+        const results = await Promise.allSettled([
+          deleteItem(PIN_KDF_COMMIT_KEY),
+          deleteItem(PIN_KEY),
+          deleteItem(PIN_KDF_KEY),
+          deleteItem(PIN_LENGTH_KEY),
+          deleteItem(SALT_KEY)
+        ])
+        if (results.some((result) => result.status === 'rejected')) {
+          throw new Error('Failed to clear PIN')
+        }
+        setSessionPinDigest(null)
       },
       duressPinEnabled: false,
       enableDevSkipPin: async () => {

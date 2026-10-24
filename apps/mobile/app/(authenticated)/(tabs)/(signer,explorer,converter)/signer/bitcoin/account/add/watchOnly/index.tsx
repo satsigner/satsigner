@@ -744,7 +744,9 @@ export default function WatchOnly() {
         }
 
         setNetwork(network)
-        setKey(0)
+        if (selectedOption !== 'importAddress') {
+          setKey(0)
+        }
 
         const account = getAccountData()
 
@@ -796,6 +798,9 @@ export default function WatchOnly() {
       connectionMode
     ]
   )
+
+  const isConfirmDisabled =
+    isDisabled || (selectedOption === 'importAddress' && addresses.length === 0)
 
   return (
     <SSMainLayout style={styles.mainContainer}>
@@ -965,7 +970,7 @@ export default function WatchOnly() {
                 label={t('common.confirm')}
                 variant="secondary"
                 loading={isLoadingWallet}
-                disabled={isDisabled}
+                disabled={isConfirmDisabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton

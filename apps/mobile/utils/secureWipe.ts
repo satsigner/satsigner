@@ -5,7 +5,6 @@ import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
-  deleteItem,
   getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
@@ -87,13 +86,43 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 
-  const { setDuressPinEnabled, setSkipPin } = useAuthStore.getState()
-  setDuressPinEnabled(false)
+  const { clearDuressPin, setSkipPin } = useAuthStore.getState()
   setSkipPin(false)
+  await clearDuressPin().catch(() => undefined)
+}
 
-  await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
-  await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
-  await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+/**
+ * Wipe after the last wrong PIN, back to a fresh install. Unlike the duress
+ * wipe, the main PIN material goes too: setting the next PIN would otherwise
+ * re-encrypt any secret that survived to the new owner's PIN.
+ *
+ * Returns false when that PIN material is still stored. The app stays locked
+ * so the next PIN setup cannot re-encrypt leftovers.
+ */
+export async function secureWipeAfterMaxPinTries(): Promise<boolean> {
+  try {
+    await secureWipeAllWalletData()
+  } catch {
+    return false
+  }
+
+  const {
+    clearPin,
+    resetPinTries,
+    setFirstTime,
+    setLockTriggered,
+    setRequiresAuth
+  } = useAuthStore.getState()
+  try {
+    await clearPin()
+  } catch {
+    return false
+  }
+  setFirstTime(true)
+  setRequiresAuth(false)
+  setLockTriggered(false)
+  resetPinTries()
+  return true
 }
 
 /** True once the duress PIN, its KDF, and its salt are gone from storage. */
@@ -104,24 +133,4 @@ export async function isDuressPinRemoved(): Promise<boolean> {
     getItem(SALT_KEY_DURESS)
   ])
   return !pin && !kdf && !salt
-}
-
-/**
- * Resets the app to a fresh install after the last wrong PIN. The secrets go
- * too, so whoever sets the next PIN cannot reach Ark, ecash or Nostr funds.
- */
-export async function secureWipeAfterMaxPinTries(): Promise<void> {
-  await secureWipeAllWalletData()
-
-  const { deleteAccounts, deleteTags } = useAccountsStore.getState()
-  deleteAccounts()
-  useWalletsStore.getState().deleteWallets()
-  deleteTags()
-
-  const { resetPinTries, setFirstTime, setLockTriggered, setRequiresAuth } =
-    useAuthStore.getState()
-  setFirstTime(true)
-  setRequiresAuth(false)
-  setLockTriggered(false)
-  resetPinTries()
 }

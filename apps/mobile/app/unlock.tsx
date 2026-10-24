@@ -77,9 +77,8 @@ export default function Unlock() {
     if (remainingTries > 0) {
       return
     }
-    try {
-      await secureWipeAfterMaxPinTries()
-    } catch {
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
       toast.error(t('auth.wipeFailed'))
       return
     }
