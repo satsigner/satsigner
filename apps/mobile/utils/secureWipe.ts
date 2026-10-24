@@ -5,7 +5,8 @@ import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
-  deleteItem
+  deleteItem,
+  getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
@@ -93,6 +94,16 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
   await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
   await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+}
+
+/** True once the duress PIN, its KDF, and its salt are gone from storage. */
+export async function isDuressPinRemoved(): Promise<boolean> {
+  const [pin, kdf, salt] = await Promise.all([
+    getItem(DURESS_PIN_KEY),
+    getItem(DURESS_KDF_KEY),
+    getItem(SALT_KEY_DURESS)
+  ])
+  return !pin && !kdf && !salt
 }
 
 /**
