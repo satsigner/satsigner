@@ -74,8 +74,10 @@ export default function Unlock() {
   async function handleFailure() {
     const remainingTries = incrementPinTries()
     if (remainingTries <= 0) {
-      await secureWipeAfterMaxPinTries()
-      router.replace('/')
+      const wiped = await secureWipeAfterMaxPinTries()
+      if (wiped) {
+        router.replace('/')
+      }
     }
   }
 

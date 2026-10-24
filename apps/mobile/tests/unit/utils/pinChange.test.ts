@@ -102,10 +102,21 @@ describe('changePin', () => {
       changePin('135791', jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('duressClearFailed')
 
-    expect(useAuthStore.getState().duressPinEnabled).toBe(false)
+    expect(useAuthStore.getState().duressPinEnabled).toBe(true)
     await expect(useAuthStore.getState().validatePin('135791')).resolves.toBe(
       true
     )
+  })
+
+  it('keeps the duress PIN when the stored length is missing', async () => {
+    delete secureStore[sk(PIN_LENGTH_KEY)]
+
+    await expect(
+      changePin('135791', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('changed')
+
+    expect(secureStore[sk(DURESS_PIN_KEY)]).toBeDefined()
+    expect(useAuthStore.getState().duressPinEnabled).toBe(true)
   })
 
   it('keeps the current PIN when re-encryption fails', async () => {

@@ -671,7 +671,7 @@
   "auth": {
     "confirmDuressPin": "Confirm duress pin number",
     "confirmPin": "Confirm pin number",
-    "duressPinClearError": "Your PIN was changed, but the old duress PIN could not be removed. Duress is off. Set a new duress PIN in App Security.",
+    "duressPinClearError": "Your PIN was changed, but the old duress PIN is still stored. Duress protection stays on until it can be removed in App Security.",
     "duressPinClearedPinLength": "The PIN length changed, so the duress PIN was removed. Set a new one in App Security.",
     "enterPinTitle": "Enter your PIN",
     "noPin": "No pin",

@@ -1,3 +1,4 @@
+import * as SecureStore from 'expo-secure-store'
 import { __store as secureStore } from 'expo-secure-store'
 
 import {
@@ -47,11 +48,17 @@ describe('secureWipeAfterMaxPinTries', () => {
   })
 
   afterEach(() => {
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockImplementation((key: string) => {
+        delete secureStore[key]
+        return Promise.resolve()
+      })
     useAuthStore.setState(useAuthStore.getInitialState(), true)
   })
 
   it('leaves no PIN, duress PIN or session key for the next PIN to inherit', async () => {
-    await secureWipeAfterMaxPinTries()
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(true)
 
     for (const key of PIN_BOUND_KEYS) {
       expect(secureStore[sk(key)]).toBeUndefined()
@@ -60,8 +67,32 @@ describe('secureWipeAfterMaxPinTries', () => {
     await expect(getPin()).rejects.toThrow('PIN unavailable')
   })
 
+  it('stays locked when the PIN material cannot be deleted', async () => {
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockImplementation((key: string) => {
+        if (key === sk(PIN_KEY)) {
+          return Promise.reject(new Error('keystore unavailable'))
+        }
+        delete secureStore[key]
+        return Promise.resolve()
+      })
+
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(false)
+
+    expect(secureStore[sk(PIN_KEY)]).toBe(`stored-${PIN_KEY}`)
+    expect(getSessionPinDigest()).toBe('session-digest')
+    expect(useAuthStore.getState()).toStrictEqual(
+      expect.objectContaining({
+        firstTime: false,
+        lockTriggered: true,
+        requiresAuth: true
+      })
+    )
+  })
+
   it('resets the app to a fresh install', async () => {
-    await secureWipeAfterMaxPinTries()
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(true)
 
     expect(useAuthStore.getState()).toStrictEqual(
       expect.objectContaining({

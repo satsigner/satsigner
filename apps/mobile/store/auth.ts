@@ -94,7 +94,6 @@ const useAuthStore = create<AuthState & AuthAction>()(
   persist(
     (set, get) => ({
       clearDuressPin: async () => {
-        set({ duressPinEnabled: false })
         const results = await Promise.allSettled([
           deleteItem(DURESS_PIN_KEY),
           deleteItem(DURESS_KDF_KEY),
@@ -103,12 +102,12 @@ const useAuthStore = create<AuthState & AuthAction>()(
         if (results.some((result) => result.status === 'rejected')) {
           throw new Error('Failed to clear duress PIN')
         }
+        set({ duressPinEnabled: false })
       },
       clearPageHistory() {
         set({ pageHistory: [] })
       },
       clearPin: async () => {
-        setSessionPinDigest(null)
         const results = await Promise.allSettled([
           deleteItem(PIN_KDF_COMMIT_KEY),
           deleteItem(PIN_KEY),
@@ -119,6 +118,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
         if (results.some((result) => result.status === 'rejected')) {
           throw new Error('Failed to clear PIN')
         }
+        setSessionPinDigest(null)
       },
       duressPinEnabled: false,
       enableDevSkipPin: async () => {

@@ -66,9 +66,17 @@ function clampPinLength(length: number): number {
   return Math.min(PIN_MAX_LENGTH, Math.max(PIN_MIN_LENGTH, length))
 }
 
-async function getStoredPinLength(): Promise<number> {
+/** Null when no length was stored. Callers must not assume the default length. */
+async function getStoredPinLength(): Promise<number | null> {
   const stored = await getItem(PIN_LENGTH_KEY)
-  return clampPinLength(stored ? Number(stored) : Number.NaN)
+  if (!stored) {
+    return null
+  }
+  const length = Number(stored)
+  if (!Number.isInteger(length)) {
+    return null
+  }
+  return clampPinLength(length)
 }
 
 function getPinCursorIndex(pin: string[]): number {

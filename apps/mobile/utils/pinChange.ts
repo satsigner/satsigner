@@ -55,7 +55,13 @@ async function changePin(
   }
   await commitPinMaterial(material)
 
-  if (!duressDigest || material.length === currentLength) {
+  // A missing length belongs to an older install. Clearing duress here would
+  // drop it on an equal-length change, because the stored length is unknown.
+  if (
+    !duressDigest ||
+    currentLength === null ||
+    material.length === currentLength
+  ) {
     return 'changed'
   }
   try {
