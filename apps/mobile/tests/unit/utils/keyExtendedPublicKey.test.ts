@@ -44,10 +44,7 @@ describe('getKeyExtendedPublicKey', () => {
 
   it('derives from the stored path instead of the script default', async () => {
     const derivationPath = "m/84'/1'/1'"
-    const key = makeKey(
-      { mnemonic: MNEMONIC },
-      { derivationPath }
-    )
+    const key = makeKey({ mnemonic: MNEMONIC }, { derivationPath })
     const expected = getExtendedPublicKeyFromMnemonicCustom(
       MNEMONIC,
       '',

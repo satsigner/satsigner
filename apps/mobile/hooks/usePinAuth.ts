@@ -16,10 +16,7 @@ import {
   safeEqualHex
 } from '@/utils/pinKdf'
 import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
-import {
-  isDuressPinRemoved,
-  secureWipeAllWalletData
-} from '@/utils/secureWipe'
+import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type PinAuthResult = 'error' | 'duress' | 'fail' | 'success'
 
