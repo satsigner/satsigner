@@ -46,6 +46,7 @@ import {
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
+  fiatPointsInWindow,
   fiatSeriesColor,
   fiatYDomain,
   formatFiatAxisTick,
@@ -191,10 +192,7 @@ function SSHistoryChart({
     })
   }, [chartData, fiatCurrency, showFiatLine])
   const fiatChartPoints = useMemo(
-    () =>
-      fiatSeries.filter(
-        (point) => point.date >= startDate && point.date <= endDate
-      ),
+    () => fiatPointsInWindow(fiatSeries, startDate, endDate),
     [endDate, fiatSeries, startDate]
   )
   const fiatColor = fiatSeriesColor(fiatCurrency)

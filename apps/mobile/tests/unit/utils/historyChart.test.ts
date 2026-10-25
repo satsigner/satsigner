@@ -1,4 +1,4 @@
-import { type Currency } from '@/types/models/Blockchain'
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import {
@@ -9,6 +9,7 @@ import {
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
+  fiatPointsInWindow,
   fiatSeriesColor,
   fiatYDomain,
   formatFiatAxisTick,
@@ -221,17 +222,12 @@ describe('buildFiatChartPoints', () => {
     ]
     const chartData = buildChartData(transactions, now)
     const times = unixDays('2026-01-01T00:00:00Z', 2)
-    const bundles: Record<Currency, number[]> = {
-      AUD: [90_000, 91_000],
-      CAD: [70_000, 71_000],
-      CHF: [60_000, 61_000],
+    const bundles = {
       EUR: [40_000, 42_000],
-      GBP: [30_000, 31_000],
-      JPY: [6_000_000, 6_100_000],
       USD: [50_000, 55_000]
     }
 
-    function series(currency: Currency) {
+    function series(currency: keyof typeof bundles) {
       return buildFiatChartPoints({
         chartData,
         closes: times.map((time, index) => ({
@@ -245,13 +241,6 @@ describe('buildFiatChartPoints', () => {
 
     expect(series('USD')).toStrictEqual([50_000, 55_000])
     expect(series('EUR')).toStrictEqual([40_000, 42_000])
-    expect(fiatSeriesColor('USD')).toBe('#6f9a74')
-    expect(fiatSeriesColor('EUR')).toBe('#6a9aaa')
-    expect(fiatSeriesColor('GBP')).toBe('#a56b6b')
-    expect(fiatSeriesColor('CAD')).toBe('#a56b6b')
-    expect(fiatSeriesColor('CHF')).toBe('#a56b6b')
-    expect(fiatSeriesColor('AUD')).toBe('#6f9a74')
-    expect(fiatSeriesColor('JPY')).toBe('#a56b6b')
   })
 
   it('leaves a gap where a bundled timestamp has no close', () => {
@@ -292,6 +281,51 @@ describe('buildFiatChartPoints', () => {
       defaultRange
     )
     expect(values).toStrictEqual([40_000, 25_000])
+  })
+})
+
+describe('fiatPointsInWindow', () => {
+  const series = [
+    { date: new Date('2026-01-01T00:00:00Z'), value: 10 },
+    { date: new Date('2026-01-02T00:00:00Z'), value: 20 },
+    { date: new Date('2026-01-03T00:00:00Z'), value: 30 },
+    { date: new Date('2026-01-04T00:00:00Z'), value: 40 }
+  ]
+
+  function windowValues(start: string, end: string) {
+    return fiatPointsInWindow(series, new Date(start), new Date(end)).map(
+      (point) => point.value
+    )
+  }
+
+  it('keeps one close beyond each edge so the line reaches the edges', () => {
+    expect(
+      windowValues('2026-01-02T12:00:00Z', '2026-01-03T12:00:00Z')
+    ).toStrictEqual([20, 30, 40])
+  })
+
+  it('keeps the surrounding closes when the window falls between two', () => {
+    expect(
+      windowValues('2026-01-02T06:00:00Z', '2026-01-02T18:00:00Z')
+    ).toStrictEqual([20, 30])
+  })
+
+  it('stops at the series ends', () => {
+    expect(
+      windowValues('2025-12-01T00:00:00Z', '2026-02-01T00:00:00Z')
+    ).toStrictEqual([10, 20, 30, 40])
+  })
+})
+
+describe('fiatSeriesColor', () => {
+  it('colors each currency from its group', () => {
+    expect(fiatSeriesColor('USD')).toBe(Colors.mutedGreen)
+    expect(fiatSeriesColor('AUD')).toBe(Colors.mutedGreen)
+    expect(fiatSeriesColor('EUR')).toBe(Colors.mutedCyan)
+    expect(fiatSeriesColor('GBP')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('CAD')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('CHF')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('JPY')).toBe(Colors.mutedRed)
   })
 })
 

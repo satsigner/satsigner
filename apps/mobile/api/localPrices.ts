@@ -115,9 +115,7 @@ function getLocalPriceSeries(
 }
 
 /** Every bundled timestamp, including days whose close is missing. */
-function getLocalPriceCloses(
-  currency: Currency
-): { price: number | null; time: number }[] {
+function getLocalPriceCloses(currency: Currency) {
   const bundle = loadPriceBundle(currency)
   return bundle.times.map((time, index) => {
     const price = bundle.prices[index]

@@ -2,6 +2,7 @@ import { format } from 'd3-format'
 import { curveLinear, line } from 'd3-shape'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { Colors } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -527,13 +528,13 @@ export function formatFiatAxisTick(value: number) {
 }
 
 const FIAT_SERIES_COLOR: Record<Currency, string> = {
-  AUD: '#6f9a74',
-  CAD: '#a56b6b',
-  CHF: '#a56b6b',
-  EUR: '#6a9aaa',
-  GBP: '#a56b6b',
-  JPY: '#a56b6b',
-  USD: '#6f9a74'
+  AUD: Colors.mutedGreen,
+  CAD: Colors.mutedRed,
+  CHF: Colors.mutedRed,
+  EUR: Colors.mutedCyan,
+  GBP: Colors.mutedRed,
+  JPY: Colors.mutedRed,
+  USD: Colors.mutedGreen
 }
 
 export function fiatSeriesColor(currency: Currency) {
@@ -582,6 +583,23 @@ export function buildFiatChartPoints({
     })
   }
   return points
+}
+
+/** Keeps the closes just outside the window so the line reaches both edges. */
+export function fiatPointsInWindow(
+  series: FiatChartPoint[],
+  startDate: Date,
+  endDate: Date
+) {
+  const firstIndex = Math.max(
+    series.findLastIndex((point) => point.date < startDate),
+    0
+  )
+  const afterIndex = series.findIndex((point) => point.date > endDate)
+  return series.slice(
+    firstIndex,
+    afterIndex === -1 ? series.length : afterIndex + 1
+  )
 }
 
 export function maxFiatValue(values: Iterable<number | null>) {
