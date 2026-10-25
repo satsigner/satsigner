@@ -83,8 +83,11 @@ function startLocalRelay(log) {
         if (!Array.isArray(frame)) {
           return
         }
-        if (frame[0] === 'EVENT' && isEvent(frame[1])) {
-          const event = frame[1]
+        if (frame[0] === 'EVENT') {
+          const [, event] = frame
+          if (!isEvent(event)) {
+            return
+          }
           events.push(event)
           if (events.length > MAX_STORED_EVENTS) {
             events.shift()
