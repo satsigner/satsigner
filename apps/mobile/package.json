@@ -118,7 +118,7 @@
     "promise": "^8.3.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
-    "react-native-bdk-sdk": "0.7.0",
+    "react-native-bdk-sdk": "0.8.0",
     "react-native-bouncy-checkbox": "^4.1.4",
     "react-native-device-info": "^15.0.2",
     "react-native-draggable-flatlist": "^4.0.3",
