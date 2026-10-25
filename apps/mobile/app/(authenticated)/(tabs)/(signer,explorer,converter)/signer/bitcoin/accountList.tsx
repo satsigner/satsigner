@@ -54,7 +54,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
-import { getAccountTotalBalance } from '@/utils/account'
+import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom,
@@ -264,10 +264,7 @@ export default function AccountList() {
       if (account.syncStatus === 'syncing') {
         return false
       }
-      if (
-        account.lastSyncedAt &&
-        now > time.minutesAfter(account.lastSyncedAt, autoConnectDelay)
-      ) {
+      if (!isAutoSyncDue(account, autoConnectDelay, now)) {
         return false
       }
       const isImportAddress = account.keys[0].creationType === 'importAddress'

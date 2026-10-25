@@ -1,4 +1,11 @@
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { KeychainKind, type Network as BDKNetwork } from 'react-native-bdk-sdk'
+
+import {
+  type Account,
+  type DecryptedKey,
+  type Key,
+  type Secret
+} from '@/types/models/Account'
 import { type Address, type AddressKeyPair } from '@/types/models/Address'
 import {
   getAddressKeyPairFromExtendedKey,
@@ -6,7 +13,12 @@ import {
   getExtendedKeyFromDescriptor,
   getExtendedPrivateKeyFromDescriptor
 } from '@/utils/bip32'
-import { detectElectrumSeed, mnemonicToSeed } from '@/utils/bip39'
+import {
+  detectElectrumSeed,
+  getExtendedPublicKeyFromMnemonicCustom,
+  getPublicDescriptorFromMnemonic,
+  mnemonicToSeed
+} from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 
 export function isSeedDropped(
@@ -73,6 +85,44 @@ export function hasMultisigDuplicateXpubs(
  */
 export function hasEncryptedSecret(key: Key | undefined): boolean {
   return typeof key?.secret === 'string' && key.secret !== ''
+}
+
+/**
+ * Extended public key of a decrypted key. Seed keys may only store a private
+ * descriptor, so the key is derived from the mnemonic then.
+ */
+export async function getKeyExtendedPublicKey(
+  key: DecryptedKey,
+  network: BDKNetwork
+) {
+  const { extendedPublicKey, mnemonic, passphrase } = key.secret
+  if (extendedPublicKey || !mnemonic || !key.scriptVersion) {
+    return extractPublicKeyFromObjectSecret(key.secret)
+  }
+  if (key.derivationPath) {
+    return getExtendedPublicKeyFromMnemonicCustom(
+      mnemonic,
+      passphrase ?? '',
+      network,
+      key.scriptVersion,
+      toMasterDerivationPath(key.derivationPath)
+    )
+  }
+  const descriptor = await getPublicDescriptorFromMnemonic(
+    mnemonic,
+    key.scriptVersion,
+    KeychainKind.External,
+    passphrase,
+    network
+  )
+  return getExtendedKeyFromDescriptor(descriptor)
+}
+
+function toMasterDerivationPath(path: string) {
+  if (path === 'm' || path.startsWith('m/')) {
+    return path
+  }
+  return `m/${path.replace(/^\//, '')}`
 }
 
 export function extractPublicKeyFromKey(

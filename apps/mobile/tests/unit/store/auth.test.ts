@@ -11,7 +11,9 @@ import {
   SALT_KEY
 } from '@/config/auth'
 import { applyColdStartLock, useAuthStore } from '@/store/auth'
-import { parseKdf } from '@/utils/pinKdf'
+import { getPin } from '@/utils/pin'
+import { commitPinMaterial, parseKdf, preparePinMaterial } from '@/utils/pinKdf'
+import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
 
 const sk = (key: string) => `1_${key}`
 
@@ -21,6 +23,7 @@ function legacyDigest(pin: string, salt: string): string {
 
 describe('auth store PIN handling', () => {
   beforeEach(() => {
+    setSessionPinDigest(null)
     for (const key of Object.keys(secureStore)) {
       delete secureStore[key]
     }
@@ -92,6 +95,24 @@ describe('auth store PIN handling', () => {
 
     expect(secureStore[sk(SALT_KEY)]).toBe(saltAfterMainPin)
     expect(secureStore[sk(DURESS_PIN_KEY)]).toBe(duressDigest)
+    await expect(useAuthStore.getState().validatePin('5678')).resolves.toBe(
+      true
+    )
+    await expect(useAuthStore.getState().validatePin('1234')).resolves.toBe(
+      false
+    )
+  })
+
+  it('changing the PIN in an unlocked session rebinds the session key', async () => {
+    await useAuthStore.getState().setPin('1234')
+    const oldDigest = secureStore[sk(PIN_KEY)]
+    setSessionPinDigest(oldDigest)
+
+    const material = await preparePinMaterial('5678')
+    await commitPinMaterial(material)
+
+    expect(getSessionPinDigest()).toBe(material.digest)
+    await expect(getPin()).resolves.toBe(secureStore[sk(PIN_KEY)])
     await expect(useAuthStore.getState().validatePin('5678')).resolves.toBe(
       true
     )

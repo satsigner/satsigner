@@ -292,6 +292,8 @@ export default function IOPreview() {
   const [localFeeRate, setLocalFeeRate] = useState(() =>
     Math.max(feeRate, feeRateFloor)
   )
+  const [feeRateDraft, setFeeRateDraft] = useState<number>()
+  const sheetFeeRate = feeRateDraft ?? localFeeRate
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
@@ -589,7 +591,7 @@ export default function IOPreview() {
 
   const feeRateSliderMax = getFeeRateSliderMax(nextBlockFee)
   const feeRateInputMax = getFeeRateInputMax(nextBlockFee)
-  const estimatedTargetBlocks = estimateTargetBlocks(localFeeRate, nextBlockFee)
+  const estimatedTargetBlocks = estimateTargetBlocks(sheetFeeRate, nextBlockFee)
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
@@ -798,8 +800,34 @@ export default function IOPreview() {
     resetLocalOutput()
   }
 
+  // The Stonewall fee is computed from localFeeRate, so privacy mode previews
+  // the typed rate live. Otherwise the rate stays in the sheet until Set fee.
+  function handleFeeRateChange(value: number) {
+    if (selectedAutoSelectUtxos === 'privacy') {
+      setLocalFeeRate(value)
+      return
+    }
+    setFeeRateDraft(value)
+  }
+
+  function discardFeeRateEdit() {
+    setFeeRateDraft(undefined)
+    setLocalFeeRate(feeRate)
+  }
+
+  function openFeeSheet() {
+    discardFeeRateEdit()
+    changeFeeBottomSheetRef.current?.expand()
+  }
+
+  function handleCancelFeeRate() {
+    discardFeeRateEdit()
+    changeFeeBottomSheetRef.current?.close()
+  }
+
   function handleSetFeeRate() {
-    setFeeRate(localFeeRate)
+    setFeeRateDraft(undefined)
+    setFeeRate(sheetFeeRate)
 
     if (
       selectedAutoSelectUtxos === 'privacy' &&
@@ -849,7 +877,7 @@ export default function IOPreview() {
   function handleOnPressOutput(localId?: string) {
     if (localId === 'current-minerFee') {
       setCurrentOutputLocalId(localId)
-      changeFeeBottomSheetRef.current?.expand()
+      openFeeSheet()
       return
     }
 
@@ -1571,7 +1599,7 @@ export default function IOPreview() {
                 variant="outline"
                 label={t('transaction.build.toolbar.fee')}
                 style={styles.toolbarButton}
-                onPress={() => changeFeeBottomSheetRef.current?.expand()}
+                onPress={openFeeSheet}
               />
               <SSButton
                 variant="outline"
@@ -1826,28 +1854,15 @@ export default function IOPreview() {
             </SSText>
           </SSVStack>
           <SSVStack>
-            <SSHStack>
-              <SSButton
-                label={t('transaction.build.options.feeControl')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
-                  )
-                }
-                style={{ flexGrow: 1, width: '45%' }}
-              />
-              <SSButton
-                label={t('transaction.build.options.timelock')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate(
-                    `/signer/bitcoin/account/${id}/signAndSend/timeLock`
-                  )
-                }
-                style={{ flexGrow: 1, width: '45%' }}
-              />
-            </SSHStack>
+            <SSButton
+              label={t('transaction.build.options.feeControl')}
+              variant="outline"
+              onPress={() =>
+                router.navigate(
+                  `/signer/bitcoin/account/${id}/signAndSend/feeManagement`
+                )
+              }
+            />
             <SSButton
               label={t('transaction.build.options.importOutputs.title')}
               variant="outline"
@@ -1966,8 +1981,8 @@ export default function IOPreview() {
             timeRange="2hours"
           />
           <SSFeeInput
-            value={localFeeRate}
-            onValueChange={setLocalFeeRate}
+            value={sheetFeeRate}
+            onValueChange={handleFeeRateChange}
             vbytes={transactionSize.vsize}
             max={feeRateSliderMax}
             min={feeRateFloor}
@@ -1985,7 +2000,7 @@ export default function IOPreview() {
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={() => changeFeeBottomSheetRef.current?.close()}
+            onPress={handleCancelFeeRate}
           />
         </SSVStack>
       </SSBottomSheet>

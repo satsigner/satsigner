@@ -30,9 +30,9 @@ const sampleMainnetExternalDescriptors = [
   `pkh([${fingerprint}/44'/${coinTypeMainnet}'/${account}']${xpub}/0/*)`,
   `sh(wpkh([${fingerprint}/49'/${coinTypeMainnet}'/${account}']${ypub}/0/*))`,
   `wpkh([${fingerprint}/84'/${coinTypeMainnet}'/${account}']${zpub}/0/*)`,
-  `sh([${fingerprint}/45'/${coinTypeMainnet}'/${account}']${xpub}/0/*)`,
-  `sh(wsh([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/1']${ypub}/0/*))`,
-  `wsh([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/2']${zpub}/0/*)`,
+  `sh(pk([${fingerprint}/45'/${coinTypeMainnet}'/${account}']${xpub}/0/*))`,
+  `sh(wsh(pk([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/1']${ypub}/0/*)))`,
+  `wsh(pk([${fingerprint}/48'/${coinTypeMainnet}'/${account}'/2']${zpub}/0/*))`,
   `tr([${fingerprint}/86'/${coinTypeMainnet}'/${account}']${zpub}/0/*)`
 ]
 
@@ -46,9 +46,9 @@ const sampleTestnetExternalDescriptors = [
   `pkh([${fingerprint}/44'/${coinTypeTestnet}'/${account}']${tpub}/0/*)`,
   `sh(wpkh([${fingerprint}/49'/${coinTypeTestnet}'/${account}']${upub}/0/*))`,
   `wpkh([${fingerprint}/84'/${coinTypeTestnet}'/${account}']${vpub}/0/*)`,
-  `sh([${fingerprint}/45'/${coinTypeTestnet}'/${account}']${tpub}/0/*)`,
-  `sh(wsh([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/1']${upub}/0/*))`,
-  `wsh([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/2']${vpub}/0/*)`,
+  `sh(pk([${fingerprint}/45'/${coinTypeTestnet}'/${account}']${tpub}/0/*))`,
+  `sh(wsh(pk([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/1']${upub}/0/*)))`,
+  `wsh(pk([${fingerprint}/48'/${coinTypeTestnet}'/${account}'/2']${vpub}/0/*))`,
   `tr([${fingerprint}/86'/${coinTypeTestnet}'/${account}']${vpub}/0/*)`
 ]
 

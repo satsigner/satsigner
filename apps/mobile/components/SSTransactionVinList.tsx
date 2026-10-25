@@ -1,10 +1,10 @@
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSText from '@/components/SSText'
+import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/constants/sankey'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
-import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/types/ui/sankey'
 
 import { withPerformanceWarning } from './SSPerformanceWarning'
 import SSSeparator from './SSSeparator'

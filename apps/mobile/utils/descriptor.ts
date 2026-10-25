@@ -1,5 +1,11 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
-import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
+import {
+  DESCRIPTOR_CHECKSUM_CHARSET,
+  DESCRIPTOR_CHECKSUM_GENERATOR,
+  DESCRIPTOR_CHECKSUM_INPUT_CHARSET,
+  DESCRIPTOR_CHECKSUM_LENGTH,
+  KEY_ORIGIN_FINGERPRINT_PATTERN
+} from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { AppError } from '@/utils/errors'
 import {
@@ -11,11 +17,28 @@ import {
 // TODO: refactor this entire file and use @bitcoinerlab/descriptors instead of
 // we implement it ourselves.
 
-/** True when a descriptor holds an extended private key (xprv, tprv, ...). */
+// Keys start the descriptor or follow `(`, `,` or a `[origin]`. Matching only
+// there keeps base58 noise inside an xpub from looking like a prefix.
+const PRIVATE_KEY_BOUNDARY = String.raw`(?:^|[(,\]])\s*`
+const PRIVATE_EXTENDED_KEY_PATTERN = new RegExp(
+  `${PRIVATE_KEY_BOUNDARY}(?:${BDK_PRIVATE_EXTENDED_KEY_PREFIXES.join('|')})`,
+  'i'
+)
+const BASE58_CHARACTER = '[1-9A-HJ-NP-Za-km-z]'
+const WIF_COMPRESSED_BODY_LENGTH = 51
+const WIF_UNCOMPRESSED_BODY_LENGTH = 50
+const WIF_KEY_PATTERN = new RegExp(
+  `${PRIVATE_KEY_BOUNDARY}(?:[KLc]${BASE58_CHARACTER}{${WIF_COMPRESSED_BODY_LENGTH}}|[59]${BASE58_CHARACTER}{${WIF_UNCOMPRESSED_BODY_LENGTH}})(?!${BASE58_CHARACTER})`
+)
+const MULTIPATH_CHAINS_PATTERN = /<0[,;]1>/g
+const RECEIVE_CHAIN = '0'
+const CHANGE_CHAIN = '1'
+
+/** True when a descriptor holds an extended private key or a WIF private key. */
 export function descriptorHasPrivateKeyMaterial(descriptor: string): boolean {
-  const lower = descriptor.toLowerCase()
-  return BDK_PRIVATE_EXTENDED_KEY_PREFIXES.some((prefix) =>
-    lower.includes(prefix)
+  return (
+    PRIVATE_EXTENDED_KEY_PATTERN.test(descriptor) ||
+    WIF_KEY_PATTERN.test(descriptor)
   )
 }
 
@@ -65,6 +88,90 @@ export function removeChecksum(descriptor: string): string {
   return descriptor.replace(/#[a-z0-9]+$/, '')
 }
 
+const BARE_SCRIPT_KEY_PATTERN = /^(sh\(wsh\(|wsh\(|sh\()([^()]+)(\)+)$/
+
+/**
+ * Older builds saved multisig keys as `wsh(KEY)`, `sh(wsh(KEY))` or `sh(KEY)`,
+ * which are not valid descriptors. Wraps the key in `pk()`.
+ */
+export function wrapBareScriptKey(descriptor: string) {
+  const body = removeChecksum(descriptor)
+  if (!BARE_SCRIPT_KEY_PATTERN.test(body)) {
+    return descriptor
+  }
+  return body.replace(BARE_SCRIPT_KEY_PATTERN, '$1pk($2)$3')
+}
+
+// Port of the BIP-380 reference implementation (descsum_expand/polymod).
+function expandDescriptorSymbols(descriptor: string): number[] {
+  const symbols: number[] = []
+  const groups: number[] = []
+  for (const char of descriptor) {
+    const position = DESCRIPTOR_CHECKSUM_INPUT_CHARSET.indexOf(char)
+    if (position === -1) {
+      throw new Error(`Invalid descriptor character: ${char}`)
+    }
+    symbols.push(position & 31)
+    groups.push(position >> 5)
+    if (groups.length === 3) {
+      symbols.push(groups[0] * 9 + groups[1] * 3 + groups[2])
+      groups.length = 0
+    }
+  }
+  if (groups.length === 1) {
+    symbols.push(groups[0])
+  }
+  if (groups.length === 2) {
+    symbols.push(groups[0] * 3 + groups[1])
+  }
+  return symbols
+}
+
+function descriptorPolymod(symbols: number[]): bigint {
+  return symbols.reduce((checksum, value) => {
+    const top = checksum >> 35n
+    const shifted = ((checksum & 0x7_ff_ff_ff_ffn) << 5n) ^ BigInt(value)
+    return DESCRIPTOR_CHECKSUM_GENERATOR.reduce(
+      (result, generator, index) =>
+        (top >> BigInt(index)) & 1n ? result ^ generator : result,
+      shifted
+    )
+  }, 1n)
+}
+
+/** BIP-380 checksum of a descriptor without its `#checksum` suffix. */
+export function getDescriptorChecksum(descriptor: string): string {
+  const padding = Array.from<number>({
+    length: DESCRIPTOR_CHECKSUM_LENGTH
+  }).fill(0)
+  const checksum =
+    descriptorPolymod([...expandDescriptorSymbols(descriptor), ...padding]) ^ 1n
+  return Array.from({ length: DESCRIPTOR_CHECKSUM_LENGTH }, (_, index) => {
+    const shift = BigInt(5 * (DESCRIPTOR_CHECKSUM_LENGTH - 1 - index))
+    return DESCRIPTOR_CHECKSUM_CHARSET[Number((checksum >> shift) & 31n)]
+  }).join('')
+}
+
+/** Replaces any existing `#checksum` suffix with the BIP-380 checksum. */
+export function addDescriptorChecksum(descriptor: string): string {
+  const [body] = descriptor.split('#')
+  return `${body}#${getDescriptorChecksum(body)}`
+}
+
+/**
+ * Receive (`/0/*`) and change (`/1/*`) descriptors of a `<0;1>` multipath
+ * descriptor, each with its own checksum. Other descriptors are returned as is.
+ */
+export function splitMultipathDescriptor(descriptor: string): string[] {
+  const [body] = descriptor.split('#')
+  if (!isCombinedDescriptor(body)) {
+    return [descriptor]
+  }
+  return [RECEIVE_CHAIN, CHANGE_CHAIN].map((chain) =>
+    addDescriptorChecksum(body.replaceAll(MULTIPATH_CHAINS_PATTERN, chain))
+  )
+}
+
 export function swapDescriptorChain(
   descriptor: string,
   fromChain: 0 | 1,
@@ -72,6 +179,14 @@ export function swapDescriptorChain(
 ) {
   const withoutChecksum = removeChecksum(descriptor)
   return withoutChecksum.replaceAll(`/${fromChain}/*`, `/${toChain}/*`)
+}
+
+// BDK refuses a wallet whose change descriptor equals the receive one.
+export function deriveChangeDescriptor(external: string) {
+  if (!external.includes('/0/*')) {
+    return
+  }
+  return swapDescriptorChain(external, 0, 1)
 }
 
 export function parseJsonDescriptor(text: string) {
@@ -214,6 +329,23 @@ export function parseImportedDescriptorPayload(text: string) {
     external: trimmed,
     internal: ''
   }
+}
+
+const DESCRIPTOR_SCRIPT_VERSIONS: [string, ScriptVersionType][] = [
+  ['sh(wpkh(', 'P2SH-P2WPKH'],
+  ['sh(wsh(', 'P2SH-P2WSH'],
+  ['sh(', 'P2SH'],
+  ['pkh(', 'P2PKH'],
+  ['wpkh(', 'P2WPKH'],
+  ['wsh(', 'P2WSH'],
+  ['tr(', 'P2TR']
+]
+
+export function getScriptVersionFromDescriptor(descriptor: string) {
+  const trimmed = descriptor.trim()
+  return DESCRIPTOR_SCRIPT_VERSIONS.find(([prefix]) =>
+    trimmed.startsWith(prefix)
+  )?.[1]
 }
 
 export async function processCombinedDescriptor(

@@ -37,6 +37,7 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
   parseImportedDescriptorPayload
@@ -155,7 +156,7 @@ export default function ImportDescriptor() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
@@ -205,7 +206,8 @@ export default function ImportDescriptor() {
     const descriptorValidation = skipChecksumValidation
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
-    const basicValidation = descriptorValidation
+    const basicValidation =
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input

@@ -2,7 +2,7 @@ import {
   SANKEY_BAND_HEIGHT_MAX_PX,
   SANKEY_BAND_HEIGHT_MIN_PX,
   SANKEY_RIBBON_DUST_MIN_PX
-} from '@/types/ui/sankey'
+} from '@/constants/sankey'
 
 import { logAttenuation } from './math'
 

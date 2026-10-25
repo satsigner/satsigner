@@ -8,14 +8,13 @@ import {
   type TxDetailsN
 } from 'react-native-bdk-sdk'
 
-import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as BlockchainNetwork } from '@/types/settings/blockchain'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { weightToVsize } from '@/utils/transaction'
+import { getRawTransactionSizes } from '@/utils/transaction'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -408,14 +407,7 @@ function parseTxDetailsToTransaction(
     value: output.value
   }))
 
-  let size = 0
-  let vsize = 0
-  let weight = 0
-  if (raw.length) {
-    size = raw.length
-    weight = size * WITNESS_SCALE_FACTOR
-    vsize = weightToVsize(weight)
-  }
+  const { size, vsize, weight } = getRawTransactionSizes(txHex ?? '')
 
   return {
     address,

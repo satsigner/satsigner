@@ -122,7 +122,9 @@ function decodeWitness(buffer: Buffer): Buffer[] {
   for (let i = 0; i < count; i += 1) {
     const length = varuint.decode(buffer, offset)
     offset += varuint.decode.bytes
-    items.push(buffer.subarray(offset, offset + length))
+    // Hermes ignores Symbol.species, so subarray returns a plain Uint8Array
+    // that bitcoinjs-lib's Buffer methods (readUInt8, ...) reject.
+    items.push(Buffer.from(buffer.subarray(offset, offset + length)))
     offset += length
   }
   return items

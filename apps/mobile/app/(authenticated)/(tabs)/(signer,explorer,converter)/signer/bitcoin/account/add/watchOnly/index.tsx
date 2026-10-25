@@ -50,7 +50,9 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  descriptorHasPrivateKeyMaterial,
   getFingerprint,
+  getScriptVersionFromDescriptor,
   parseImportedDescriptorPayload,
   parseJsonDescriptor,
   parseLegacyDescriptor,
@@ -361,7 +363,7 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -389,7 +391,7 @@ export default function WatchOnly() {
     const descriptorValidation = await validateDescriptor(descriptor)
 
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -621,7 +623,10 @@ export default function WatchOnly() {
   }
 
   async function handleCombinedDescriptor(descriptor: string) {
-    const result = await processCombinedDescriptor(descriptor, scriptVersion)
+    const result = await processCombinedDescriptor(
+      descriptor,
+      getScriptVersionFromDescriptor(descriptor) ?? scriptVersion
+    )
 
     if (result.success) {
       setLocalExternalDescriptor(result.external)
@@ -646,10 +651,7 @@ export default function WatchOnly() {
       setLocalInternalDescriptor(result.internal)
       setIsValidExternalDescriptor(false)
       setIsValidInternalDescriptor(false)
-
-      if (result.error) {
-        toast.error(result.error)
-      }
+      toast.error(t('account.import.error.descriptorFormat'))
     }
   }
 
@@ -721,10 +723,12 @@ export default function WatchOnly() {
             setKey(index)
           }
         } else if (selectedOption === 'importDescriptor') {
+          const descriptorScriptVersion =
+            getScriptVersionFromDescriptor(externalDescriptor) ?? scriptVersion
           if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
             const combinedValidation = await processCombinedDescriptor(
               externalDescriptor,
-              scriptVersion
+              descriptorScriptVersion
             )
 
             if (!combinedValidation.success) {
@@ -734,12 +738,15 @@ export default function WatchOnly() {
           }
 
           extractAndSetFingerprint(externalDescriptor)
+          setScriptVersion(descriptorScriptVersion)
 
           setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
         }
 
         setNetwork(network)
-        setKey(0)
+        if (selectedOption !== 'importAddress') {
+          setKey(0)
+        }
 
         const account = getAccountData()
 
@@ -791,6 +798,9 @@ export default function WatchOnly() {
       connectionMode
     ]
   )
+
+  const isConfirmDisabled =
+    isDisabled || (selectedOption === 'importAddress' && addresses.length === 0)
 
   return (
     <SSMainLayout style={styles.mainContainer}>
@@ -960,7 +970,7 @@ export default function WatchOnly() {
                 label={t('common.confirm')}
                 variant="secondary"
                 loading={isLoadingWallet}
-                disabled={isDisabled}
+                disabled={isConfirmDisabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
