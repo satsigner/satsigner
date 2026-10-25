@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -330,7 +330,7 @@ function isTrustedLocalRequest(req) {
   if (!ALLOWED_HOSTS.has(host)) {
     return false
   }
-  const origin = req.headers.origin
+  const {origin} = req.headers
   if (typeof origin !== 'string' || origin.length === 0) {
     return true
   }
