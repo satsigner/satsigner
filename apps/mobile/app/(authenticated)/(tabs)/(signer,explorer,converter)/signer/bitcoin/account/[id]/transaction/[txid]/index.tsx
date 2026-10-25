@@ -259,14 +259,18 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function openReplacement(result: FeeReplacementDraftResult) {
+  function openReplacement(
+    result: FeeReplacementDraftResult,
+    remainder?: 'cancel' | 'cpfp'
+  ) {
     if (!accountId || !result.ok) {
       toast.error(t('transaction.feeReplacement.error.failed'))
       return
     }
     replaceDraft(accountId, result.draft)
+    const remainderQuery = remainder ? `&remainder=${remainder}` : ''
     router.navigate(
-      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?feeRateFloor=${result.draft.feeRate}&feeFloor=${result.draft.fee}`
+      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?feeRateFloor=${result.draft.feeRate}&feeFloor=${result.draft.fee}${remainderQuery}`
     )
   }
 
@@ -360,7 +364,8 @@ export default function TxDetails() {
         originalVsize: context.originalVsize,
         resolvedInputs: context.resolvedInputs,
         targetFeeRate: context.targetFeeRate
-      })
+      }),
+      'cancel'
     )
   }
 
@@ -381,7 +386,8 @@ export default function TxDetails() {
         parentVsize: context.originalVsize,
         targetFeeRate: Math.max(context.targetFeeRate, 2),
         utxo: child
-      })
+      }),
+      'cpfp'
     )
   }
 

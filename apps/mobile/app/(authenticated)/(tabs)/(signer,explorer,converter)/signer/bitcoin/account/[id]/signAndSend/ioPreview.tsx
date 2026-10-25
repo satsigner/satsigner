@@ -85,6 +85,7 @@ import {
   feeWithReplacementFloor,
   getPreviewReplacementFlags,
   parseFeeRateFloor,
+  parseRemainderKind,
   parseReplacementFeeFloor,
   spendsUnconfirmedParent
 } from '@/utils/feeReplacement'
@@ -152,7 +153,8 @@ export default function IOPreview() {
     autoSelectFromUri,
     dustWarning,
     feeFloor: feeFloorParam,
-    feeRateFloor: feeRateFloorParam
+    feeRateFloor: feeRateFloorParam,
+    remainder: remainderParam
   } = useLocalSearchParams<IoPreviewSearchParams>()
   const isFocused = useIsFocused()
   const insets = useSafeAreaInsets()
@@ -289,6 +291,10 @@ export default function IOPreview() {
       account?.transactions ?? []
     )
   })
+  const remainderKind = parseRemainderKind(
+    Array.isArray(remainderParam) ? remainderParam[0] : remainderParam
+  )
+  const acceptedFeeRateRef = useRef(feeRate)
   const [localFeeRate, setLocalFeeRate] = useState(() =>
     Math.max(feeRate, feeRateFloor)
   )
@@ -681,18 +687,44 @@ export default function IOPreview() {
     if (selectedAutoSelectUtxos === 'privacy') {
       return
     }
-    setFee(
-      feeWithReplacementFloor(
-        Math.round(localFeeRate * transactionSize.vsize),
-        replacementFeeFloor
-      )
+    const nextFee = feeWithReplacementFloor(
+      Math.round(localFeeRate * transactionSize.vsize),
+      replacementFeeFloor
     )
+    const remainderOutput = outputs.length === 1 ? outputs[0] : undefined
+    if (remainderKind && remainderOutput) {
+      const inputValue = [...inputs.values()].reduce(
+        (total, utxo) => total + utxo.value,
+        0
+      )
+      const amount = inputValue - nextFee
+      if (amount < DUST_LIMIT) {
+        if (localFeeRate !== acceptedFeeRateRef.current) {
+          setFeeRate(acceptedFeeRateRef.current)
+          setLocalFeeRate(acceptedFeeRateRef.current)
+          toast.error(t('transaction.feeReplacement.error.feeTooHigh'))
+        }
+        return
+      }
+      if (remainderOutput.amount !== amount) {
+        const { localId, ...output } = remainderOutput
+        updateOutput(localId, { ...output, amount })
+      }
+    }
+    acceptedFeeRateRef.current = localFeeRate
+    setFee(nextFee)
   }, [
+    inputs,
     localFeeRate,
+    outputs,
+    remainderKind,
     replacementFeeFloor,
-    transactionSize,
     selectedAutoSelectUtxos,
-    setFee
+    setFee,
+    setFeeRate,
+    setLocalFeeRate,
+    transactionSize,
+    updateOutput
   ])
 
   useEffect(() => {
@@ -1564,6 +1596,15 @@ export default function IOPreview() {
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
           <SSVStack gap="xs">
+            {remainderKind ? (
+              <SSText color="muted" size="sm">
+                {t(
+                  remainderKind === 'cancel'
+                    ? 'transaction.feeReplacement.note.cancel'
+                    : 'transaction.feeReplacement.note.cpfp'
+                )}
+              </SSText>
+            ) : null}
             {previewFlags.showRbf || previewFlags.showCpfp ? (
               <SSHStack gap="sm">
                 {previewFlags.showRbf ? (

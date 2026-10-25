@@ -110,6 +110,39 @@ function feeWithReplacementFloor(
   return Math.max(ratedFee, absoluteFloor)
 }
 
+type RemainderKind = 'cancel' | 'cpfp'
+
+function parseRemainderKind(
+  value: string | undefined
+): RemainderKind | undefined {
+  if (value === 'cancel' || value === 'cpfp') {
+    return value
+  }
+  return undefined
+}
+
+function alignRemainderFee(input: {
+  fee: number
+  inputValue: number
+  vsize: number
+}): { amount: number; fee: number; feeRate: number } | undefined {
+  const vsize = Math.max(input.vsize, 1)
+  const firstRate = Math.max(1, Math.floor(input.fee / vsize))
+  const lastRate = Math.ceil((input.fee + vsize) / vsize) + 1
+  for (let feeRate = firstRate; feeRate <= lastRate; feeRate += 1) {
+    const fee = Math.round(feeRate * vsize)
+    if (fee < input.fee) {
+      continue
+    }
+    const amount = input.inputValue - fee
+    if (amount < DUST_LIMIT) {
+      return undefined
+    }
+    return { amount, fee, feeRate }
+  }
+  return undefined
+}
+
 function pickFreshReceiveAddress(
   addresses: FreshAddress[]
 ): string | undefined {
@@ -347,18 +380,22 @@ function buildCancelToSelfDraft(input: {
     floor,
     Math.ceil(Math.max(input.targetFeeRate, 1) * vsize)
   )
-  const amount = sumValues(input.resolvedInputs.map((utxo) => utxo.value)) - fee
+  const inputValue = sumValues(input.resolvedInputs.map((utxo) => utxo.value))
+  const settled = alignRemainderFee({ fee, inputValue, vsize })
+  if (!settled) {
+    return { ok: false, reason: 'insufficient' }
+  }
   return draftResult(
     input.resolvedInputs,
     [
       {
-        amount,
+        amount: settled.amount,
         label: input.destinationLabel,
         to: input.destination
       }
     ],
-    fee,
-    Math.ceil(fee / vsize)
+    settled.fee,
+    settled.feeRate
   )
 }
 
@@ -387,18 +424,25 @@ function buildCpfpDraft(input: {
     parentVsize: input.parentVsize,
     targetFeeRate: Math.max(input.targetFeeRate, 1)
   })
-  const amount = input.utxo.value - fee
+  const settled = alignRemainderFee({
+    fee,
+    inputValue: input.utxo.value,
+    vsize: childVsize
+  })
+  if (!settled) {
+    return { ok: false, reason: 'insufficient' }
+  }
   return draftResult(
     [input.utxo],
     [
       {
-        amount,
+        amount: settled.amount,
         label: input.destinationLabel,
         to: input.destination
       }
     ],
-    fee,
-    Math.ceil(fee / childVsize)
+    settled.fee,
+    settled.feeRate
   )
 }
 
@@ -453,6 +497,7 @@ function assessAccountTransaction(input: {
 }
 
 export {
+  alignRemainderFee,
   assessAccountTransaction,
   buildCancelToSelfDraft,
   buildCpfpDraft,
@@ -463,6 +508,7 @@ export {
   minimumChildFee,
   minimumReplacementFee,
   parseFeeRateFloor,
+  parseRemainderKind,
   parseReplacementFeeFloor,
   pickFreshReceiveAddress,
   resolveReplacementInputs,

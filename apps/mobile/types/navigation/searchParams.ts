@@ -32,6 +32,7 @@ export type IoPreviewSearchParams = AccountSearchParams & {
   dustWarning?: string
   feeFloor?: string
   feeRateFloor?: string
+  remainder?: string
 }
 
 export type PreviewTransactionSearchParams = AccountSearchParams & {

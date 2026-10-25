@@ -6,6 +6,7 @@ import {
 } from '@/constants/btc'
 import { type Utxo } from '@/types/models/Utxo'
 import {
+  alignRemainderFee,
   assessAccountTransaction,
   buildCancelToSelfDraft,
   buildCpfpDraft,
@@ -351,6 +352,28 @@ describe('replacement drafts', () => {
     expect(result.draft.inputs).toHaveLength(1)
     expect(result.draft.outputs[0].to).toBe(FRESH)
     expect(result.draft.fee).toBeGreaterThan(result.draft.inputs[0].value / 100)
+  })
+})
+
+describe('alignRemainderFee', () => {
+  it('keeps a fee the preview can recompute from the rate', () => {
+    const settled = alignRemainderFee({
+      fee: 200,
+      inputValue: 10_000,
+      vsize: 141
+    })
+    expect(settled).toStrictEqual({
+      amount: 9718,
+      fee: 282,
+      feeRate: 2
+    })
+    expect(settled && Math.round(settled.feeRate * 141)).toBe(settled?.fee)
+  })
+
+  it('refuses a remainder below the dust limit', () => {
+    expect(
+      alignRemainderFee({ fee: 200, inputValue: 600, vsize: 141 })
+    ).toBeUndefined()
   })
 })
 
