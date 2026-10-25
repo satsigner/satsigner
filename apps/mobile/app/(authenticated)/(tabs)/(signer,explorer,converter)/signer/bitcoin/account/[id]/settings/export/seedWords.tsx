@@ -132,7 +132,9 @@ export default function SeedWordsPage() {
               <SSText center color="muted">
                 {t('account.seed.keepItSecret')}
               </SSText>
-              <SSClipboardCopy text={wif} />
+              <SSClipboardCopy text={wif}>
+                <SSButton label={t('common.copy')} variant="outline" />
+              </SSClipboardCopy>
             </SSVStack>
           ) : mnemonic ? (
             <>
