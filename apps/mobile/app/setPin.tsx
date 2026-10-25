@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -27,6 +27,7 @@ import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor, warning } from '@/styles/colors'
 import { clampPinLength, emptyPin } from '@/utils/pin'
 import { changePin } from '@/utils/pinChange'
+import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
@@ -48,7 +49,9 @@ export default function SetPin() {
     skipPin,
     validatePin,
     requirePinMigration,
-    setRequirePinMigration
+    setRequirePinMigration,
+    incrementPinTries,
+    resetPinTries
   ] = useAuthStore(
     useShallow((state) => [
       state.setFirstTime,
@@ -58,7 +61,9 @@ export default function SetPin() {
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
-      state.setRequirePinMigration
+      state.setRequirePinMigration,
+      state.incrementPinTries,
+      state.resetPinTries
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -77,6 +82,8 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
+  const [verifyPending, setVerifyPending] = useState(false)
+  const verifyingPin = useRef(false)
   const [pinLength, setPinLength] = useState(PIN_SIZE)
 
   // The verify stage (changing an existing PIN) must match the stored length.
@@ -119,13 +126,35 @@ export default function SetPin() {
   }
 
   async function handleVerifyPin() {
-    const isValid = await validatePin(currentPinArray.join(''))
-    if (isValid) {
-      setStage('set')
-      setCurrentPinWrong(false)
-    } else {
+    if (verifyingPin.current) {
+      return
+    }
+    verifyingPin.current = true
+    setVerifyPending(true)
+    try {
+      const isValid = await validatePin(currentPinArray.join(''))
+      if (isValid) {
+        resetPinTries()
+        setStage('set')
+        setCurrentPinWrong(false)
+        return
+      }
       setCurrentPinArray(emptyPin(currentPinArray.length))
       setCurrentPinWrong(true)
+      // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+      const remainingTries = incrementPinTries()
+      if (remainingTries > 0) {
+        return
+      }
+      const wiped = await secureWipeAfterMaxPinTries()
+      if (!wiped) {
+        toast.error(t('auth.wipeFailed'))
+        return
+      }
+      router.replace('/')
+    } finally {
+      verifyingPin.current = false
+      setVerifyPending(false)
     }
   }
 
@@ -347,7 +376,8 @@ export default function SetPin() {
             <SSButton
               label={t('auth.confirmPin')}
               variant="secondary"
-              onPress={() => handleVerifyPin()}
+              loading={verifyPending}
+              onPress={handleVerifyPin}
             />
           )}
           {stage === 'set' && pinFilled && (

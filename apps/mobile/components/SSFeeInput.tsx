@@ -32,8 +32,9 @@ function SSFeeInput({
   satsToFiat,
   onValueChange
 }: SSFeeInputProps) {
-  const [localValue, setLocalValue] = useState(value)
+  const [slidingValue, setSlidingValue] = useState<number>()
   const ghostInputMax = inputMax ?? max
+  const feeRate = slidingValue ?? value
 
   return (
     <SSVStack gap="sm">
@@ -42,8 +43,8 @@ function SSFeeInput({
         max={ghostInputMax}
         suffix={t('bitcoin.satVb')}
         allowDecimal
-        value={String(localValue)}
-        onChangeText={(text) => setLocalValue(Number(text))}
+        value={String(feeRate)}
+        onChangeText={(text) => onValueChange(Number(text))}
       />
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
@@ -54,12 +55,12 @@ function SSFeeInput({
           {vbytes && (
             <SSHStack style={{ alignItems: 'center' }} gap="md">
               <SSHStack style={{ justifyContent: 'center' }} gap="xxs">
-                <SSText>{Math.trunc(vbytes * localValue)}</SSText>
+                <SSText>{Math.trunc(vbytes * feeRate)}</SSText>
                 <SSText color="muted">{t('bitcoin.sats')}</SSText>
               </SSHStack>
               <SSHStack style={{ justifyContent: 'center' }} gap="xxs">
                 <SSText>
-                  {formatNumber(satsToFiat(Math.trunc(vbytes * localValue)), 2)}
+                  {formatNumber(satsToFiat(Math.trunc(vbytes * feeRate)), 2)}
                 </SSText>
                 <SSText color="muted">{fiatCurrency}</SSText>
               </SSHStack>
@@ -81,9 +82,12 @@ function SSFeeInput({
       <Slider
         minimumValue={1}
         maximumValue={max}
-        value={localValue}
-        onValueChange={(value) => setLocalValue(value[0])}
-        onSlidingComplete={() => onValueChange(localValue)}
+        value={feeRate}
+        onValueChange={(value) => setSlidingValue(value[0])}
+        onSlidingComplete={(value) => {
+          onValueChange(value[0])
+          setSlidingValue(undefined)
+        }}
         trackStyle={styles.track}
         thumbStyle={styles.thumb}
         minimumTrackTintColor={Colors.white}

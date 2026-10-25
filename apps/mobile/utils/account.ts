@@ -287,6 +287,19 @@ export function checkWalletNeedsSync(
   return daysSinceLastSync > maxDaysWithoutSyncing
 }
 
+// New accounts start with lastSyncedAt set to their creation time, so an
+// account that never synced is due regardless of the delay.
+export function isAutoSyncDue(
+  { lastSyncedAt, syncStatus }: Pick<Account, 'lastSyncedAt' | 'syncStatus'>,
+  delayMinutes: number,
+  now = time.now()
+) {
+  if (!lastSyncedAt || syncStatus === 'unsynced') {
+    return true
+  }
+  return now >= time.minutesAfter(lastSyncedAt, delayMinutes)
+}
+
 export function haveSameKeys(keys: Key[], otherKeys: Key[]) {
   return (
     keys === otherKeys || JSON.stringify(keys) === JSON.stringify(otherKeys)

@@ -28,6 +28,7 @@ import {
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
+  descriptorHasPrivateKeyMaterial,
   parseImportedDescriptorPayload,
   parseXpubInput
 } from '@/utils/descriptor'
@@ -163,7 +164,7 @@ export default function UnifiedImport() {
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
     const basicValidation =
-      descriptorValidation && !/[txyz]priv/.test(descriptor)
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -218,7 +219,8 @@ export default function UnifiedImport() {
     const descriptorValidation = skipChecksumValidation
       ? validateDescriptorFormat(descriptor)
       : validateDescriptor(descriptor)
-    const basicValidation = descriptorValidation
+    const basicValidation =
+      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -333,12 +335,16 @@ export default function UnifiedImport() {
       network
     )
 
+    const isValid =
+      combinedValidation.isValid &&
+      !descriptorHasPrivateKeyMaterial(combinedDescriptor)
+
     setLocalExternalDescriptor(combinedValidation.externalDescriptor)
     setLocalInternalDescriptor(combinedValidation.internalDescriptor)
-    setValidExternalDescriptor(combinedValidation.isValid)
-    setValidInternalDescriptor(combinedValidation.isValid)
+    setValidExternalDescriptor(isValid)
+    setValidInternalDescriptor(isValid)
 
-    if (!combinedValidation.isValid) {
+    if (!isValid) {
       const errorMessage = combinedValidation.error
         ? t(`account.import.error.${combinedValidation.error}`)
         : t('account.import.error.descriptorFormat')

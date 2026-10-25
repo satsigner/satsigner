@@ -9,6 +9,7 @@ import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
+import SSPinAuth from '@/components/SSPinAuth'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import {
@@ -39,6 +40,10 @@ import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
 import { collectArkBackup } from '@/utils/arkBackup'
 import { getBackupFilename } from '@/utils/backupFilename'
+import {
+  isValidBackupPassphrase,
+  MIN_BACKUP_PASSPHRASE_LENGTH
+} from '@/utils/backupPassphrase'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import {
   aesEncrypt,
@@ -50,17 +55,28 @@ import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
+import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
+
+const BACKUP_PIN_MAX_TRIES = 3
 
 export default function Developer() {
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
+  const [
+    skipPin,
+    setSkipPin,
+    enableDevSkipPin,
+    incrementPinTries,
+    resetPinTries
+  ] = useAuthStore(
     useShallow((state) => [
       state.skipPin,
       state.setSkipPin,
-      state.enableDevSkipPin
+      state.enableDevSkipPin,
+      state.incrementPinTries,
+      state.resetPinTries
     ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
@@ -71,6 +87,7 @@ export default function Developer() {
     useState(false)
   const [clearStorageModalVisible, setClearStorageModalVisible] =
     useState(false)
+  const [backupPinVisible, setBackupPinVisible] = useState(false)
   const [backupPreviewVisible, setBackupPreviewVisible] = useState(false)
   const [backupPreviewPayload, setBackupPreviewPayload] = useState<
     string | null
@@ -193,7 +210,7 @@ export default function Developer() {
     return JSON.stringify(backupData, null, 2)
   }
 
-  async function handleBackupData() {
+  async function openBackupPreview() {
     try {
       const payload = await buildBackupWithSeeds()
       setBackupPreviewPayload(payload)
@@ -203,18 +220,52 @@ export default function Developer() {
     }
   }
 
-  /** Printable ASCII (space through tilde): letters, digits, space, symbols */
-  const PASSPHRASE_ALLOWED_REGEX = /^[\u0020-\u007E]+$/
+  // The backup decrypts every seed, so it asks for the PIN like seed export.
+  // The dev-only skip-PIN mode has no PIN the user knows.
+  async function handleBackupData() {
+    if (skipPin) {
+      await openBackupPreview()
+      return
+    }
+    setBackupPinVisible(true)
+  }
+
+  async function handleBackupPinSuccess() {
+    resetPinTries()
+    setBackupPinVisible(false)
+    await openBackupPreview()
+  }
+
+  // Shares the persisted unlock tries, so reopening the modal cannot be used
+  // to guess the PIN without limit.
+  async function handleBackupPinFail() {
+    const remainingTries = incrementPinTries()
+    if (remainingTries > 0) {
+      return
+    }
+    setBackupPinVisible(false)
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
+  }
+
+  function showBackupPassphraseError() {
+    toast.error(
+      t('settings.developer.backupPassphraseRequirements', {
+        min: MIN_BACKUP_PASSPHRASE_LENGTH
+      })
+    )
+  }
 
   async function handleEncryptAndShare() {
     if (!backupPreviewPayload) {
       return
     }
-    if (
-      backupPassphrase.length === 0 ||
-      !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
-    ) {
-      toast.error(t('settings.developer.backupPassphraseInvalid'))
+    if (!isValidBackupPassphrase(backupPassphrase)) {
+      showBackupPassphraseError()
       return
     }
     try {
@@ -247,11 +298,8 @@ export default function Developer() {
     if (!backupPreviewPayload) {
       return
     }
-    if (
-      backupPassphrase.length === 0 ||
-      !PASSPHRASE_ALLOWED_REGEX.test(backupPassphrase)
-    ) {
-      toast.error(t('settings.developer.backupPassphraseInvalid'))
+    if (!isValidBackupPassphrase(backupPassphrase)) {
+      showBackupPassphraseError()
       return
     }
     const filename = getBackupFilename()
@@ -475,6 +523,19 @@ export default function Developer() {
             />
           </SSVStack>
         </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={backupPinVisible}
+        fullOpacity
+        onClose={() => setBackupPinVisible(false)}
+      >
+        <SSPinAuth
+          title={t('account.enter.pin')}
+          onSuccess={handleBackupPinSuccess}
+          onFail={handleBackupPinFail}
+          onTriesOver={() => setBackupPinVisible(false)}
+          maxTries={BACKUP_PIN_MAX_TRIES}
+        />
       </SSModal>
       <SSModal
         visible={backupPreviewVisible}
