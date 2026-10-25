@@ -553,9 +553,7 @@ export function buildFiatChartPoints({
   const ordered = chartData.toSorted(
     (left, right) => left.date.getTime() - right.date.getTime()
   )
-  const orderedCloses = closes.toSorted(
-    (left, right) => left.time - right.time
-  )
+  const orderedCloses = closes.toSorted((left, right) => left.time - right.time)
   const start = startDate.getTime()
   const end = endDate.getTime()
   const points: FiatChartPoint[] = []
@@ -580,9 +578,7 @@ export function buildFiatChartPoints({
     points.push({
       date: new Date(time),
       value:
-        close.price === null
-          ? null
-          : balanceMarkedToClose(balance, close.price)
+        close.price === null ? null : balanceMarkedToClose(balance, close.price)
     })
   }
   return points

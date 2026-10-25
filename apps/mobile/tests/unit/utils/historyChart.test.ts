@@ -1,6 +1,6 @@
+import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Currency } from '@/types/models/Blockchain'
 import {
   buildBalanceHistory,
   buildChartData,
@@ -158,11 +158,12 @@ describe('buildFiatChartPoints', () => {
   const now = new Date('2026-01-10T00:00:00Z')
   const start = new Date('2026-01-01T00:00:00Z')
   const end = new Date('2026-01-06T00:00:00Z')
+  const defaultRange = { endDate: end, startDate: start }
 
   function pointsFor(
     transactions: Transaction[],
     prices: (number | null)[],
-    range: { endDate: Date; startDate: Date } = { endDate: end, startDate: start }
+    range: { endDate: Date; startDate: Date }
   ) {
     const times = unixDays('2026-01-01T00:00:00Z', prices.length)
     return buildFiatChartPoints({
@@ -184,7 +185,8 @@ describe('buildFiatChartPoints', () => {
           type: 'receive'
         })
       ],
-      [40_000, 50_000, 60_000]
+      [40_000, 50_000, 60_000],
+      defaultRange
     )
     expect(values).toStrictEqual([40_000, 50_000, 60_000])
   })
@@ -262,7 +264,8 @@ describe('buildFiatChartPoints', () => {
           type: 'receive'
         })
       ],
-      [40_000, null, 60_000]
+      [40_000, null, 60_000],
+      defaultRange
     )
     expect(values).toStrictEqual([40_000, null, 60_000])
     expect(maxFiatValue(values)).toBe(60_000)
@@ -285,7 +288,8 @@ describe('buildFiatChartPoints', () => {
           type: 'send'
         })
       ],
-      [40_000, 50_000]
+      [40_000, 50_000],
+      defaultRange
     )
     expect(values).toStrictEqual([40_000, 25_000])
   })
