@@ -15,6 +15,7 @@ import {
   minimumReplacementFeeRate,
   parseFeeReplacementKind,
   pickCpfpUtxo,
+  removeReplacedTransaction,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 } from '@/utils/feeReplacement'
@@ -419,12 +420,13 @@ describe('buildCpfpDraft', () => {
 })
 
 describe('buildDraftFromReplacementPsbt', () => {
-  it('maps the built transaction into a draft with owned keychains and labels', () => {
+  it('maps the built transaction into a draft and marks the new change', () => {
     const draft = buildDraftFromReplacementPsbt({
       addresses: [
         { address: CHANGE, keychain: 'internal' },
         { address: FRESH, keychain: 'external' }
       ],
+      changeLabel: 'Change',
       extracted: {
         fee: 500,
         inputs: [
@@ -459,8 +461,46 @@ describe('buildDraftFromReplacementPsbt', () => {
       ],
       outputs: [
         { amount: 50_000, label: 'Rent', to: PAYMENT },
-        { amount: 40_000, label: '', to: FRESH }
+        { amount: 40_000, kind: 'change', label: 'Change', to: FRESH }
       ]
+    })
+  })
+})
+
+describe('removeReplacedTransaction', () => {
+  const replaced = {
+    ...transaction(),
+    lockTimeEnabled: false,
+    prices: {},
+    received: 40_000,
+    sent: 90_280,
+    type: 'send' as const
+  }
+  const other = { ...replaced, id: PREVIOUS_TXID }
+
+  it('drops the replaced transaction and the outputs it created', () => {
+    const result = removeReplacedTransaction(
+      {
+        transactions: [replaced, other],
+        utxos: [utxo(40_000, 0), utxo(5000, 0, PREVIOUS_TXID)]
+      },
+      TXID
+    )
+    expect(result.replacedNet).toBe(-50_280)
+    expect(result.transactions.map((tx) => tx.id)).toStrictEqual([
+      PREVIOUS_TXID
+    ])
+    expect(result.utxos.map((entry) => entry.txid)).toStrictEqual([
+      PREVIOUS_TXID
+    ])
+  })
+
+  it('keeps everything when nothing is replaced', () => {
+    const source = { transactions: [replaced], utxos: [utxo(40_000)] }
+    expect(removeReplacedTransaction(source, undefined)).toStrictEqual({
+      replacedNet: 0,
+      transactions: source.transactions,
+      utxos: source.utxos
     })
   })
 })

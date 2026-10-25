@@ -1,12 +1,14 @@
 import { useMutation } from '@tanstack/react-query'
 import { router } from 'expo-router'
-import { type BdkWallet } from 'react-native-bdk-sdk'
+import { type BdkWallet, type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildReplacementPsbt } from '@/api/bdk'
+import { buildReplacementPsbt, isUtxoInWallet } from '@/api/bdk'
+import { BDK_FEE_BUMP_TARGET_NOT_FOUND_ERROR_MARKER } from '@/constants/transaction'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -21,6 +23,7 @@ import {
   type PrebuiltReplacement
 } from '@/types/models/FeeReplacement'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Backend } from '@/types/settings/blockchain'
 import { getAccountAddressSets } from '@/utils/address'
 import {
   buildCpfpDraft,
@@ -57,10 +60,36 @@ type FeeReplacementBuild = {
 
 type FeeReplacementBuildInput = {
   account: Account
+  backend: Backend
   feeRate: number
   kind: FeeReplacementKind
+  syncWallet: () => Promise<void>
   tx: Transaction
   wallet: BdkWallet
+}
+
+function isFeeBumpTargetNotFound(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes(BDK_FEE_BUMP_TARGET_NOT_FOUND_ERROR_MARKER)
+  )
+}
+
+async function buildReplacementPsbtAfterSync(
+  input: FeeReplacementBuildInput,
+  data: Parameters<typeof buildReplacementPsbt>[1]
+): Promise<PsbtLike> {
+  try {
+    return await buildReplacementPsbt(input.wallet, data)
+  } catch (error) {
+    if (!isFeeBumpTargetNotFound(error)) {
+      throw error
+    }
+    // Broadcasting does not add the transaction to the BDK wallet; it only
+    // gets there with the next sync.
+    await input.syncWallet()
+    return buildReplacementPsbt(input.wallet, data)
+  }
 }
 
 function getOutputLabels(
@@ -68,7 +97,9 @@ function getOutputLabels(
   destination?: { address: string; label: string }
 ): Map<string, string> {
   const labels = new Map(
-    tx.vout.map((output) => [output.address, output.label ?? ''] as const)
+    tx.vout.map(
+      (output) => [output.address, output.label || tx.label || ''] as const
+    )
   )
   if (destination) {
     labels.set(destination.address, destination.label)
@@ -84,15 +115,23 @@ function getSelfDestination(account: Account, wallet: BdkWallet): string {
   return changeAddress
 }
 
-function buildCpfpReplacement({
-  account,
-  feeRate,
-  tx,
-  wallet
-}: FeeReplacementBuildInput): FeeReplacementBuild {
+async function buildCpfpReplacement(
+  input: FeeReplacementBuildInput
+): Promise<FeeReplacementBuild> {
+  const { account, feeRate, tx, wallet } = input
   const utxo = pickCpfpUtxo(account, tx.id)
   if (!utxo) {
     throw new FeeReplacementError('transaction.feeReplacement.error.failed')
+  }
+  // The child is built by the BDK wallet, which only learns a just-broadcast
+  // parent with the next sync. The Core backend builds it from its own wallet.
+  if (input.backend !== 'rpc' && !isUtxoInWallet(wallet, utxo)) {
+    await input.syncWallet()
+    if (!isUtxoInWallet(wallet, utxo)) {
+      throw new FeeReplacementError(
+        'transaction.feeReplacement.error.notInWallet'
+      )
+    }
   }
   const result = buildCpfpDraft({
     destination: getSelfDestination(account, wallet),
@@ -112,13 +151,10 @@ function buildCpfpReplacement({
   return { draft: result.draft }
 }
 
-async function buildRbfReplacement({
-  account,
-  feeRate,
-  kind,
-  tx,
-  wallet
-}: FeeReplacementBuildInput): Promise<FeeReplacementBuild> {
+async function buildRbfReplacement(
+  input: FeeReplacementBuildInput
+): Promise<FeeReplacementBuild> {
+  const { account, feeRate, kind, tx, wallet } = input
   const sweepTo =
     kind === 'cancel' ? getSelfDestination(account, wallet) : undefined
   const recipients =
@@ -131,7 +167,7 @@ async function buildRbfReplacement({
   if (!recipients) {
     throw new FeeReplacementError('transaction.feeReplacement.error.failed')
   }
-  const psbt = await buildReplacementPsbt(wallet, {
+  const psbt = await buildReplacementPsbtAfterSync(input, {
     feeRate,
     originalTxid: tx.id,
     recipients,
@@ -154,6 +190,7 @@ async function buildRbfReplacement({
   return {
     draft: buildDraftFromReplacementPsbt({
       addresses: account.addresses,
+      changeLabel: t('sign.changeAddressLabelDefault'),
       extracted,
       feeRate,
       labelByAddress: getOutputLabels(tx, destination)
@@ -166,7 +203,7 @@ function buildFeeReplacement(
   input: FeeReplacementBuildInput
 ): Promise<FeeReplacementBuild> {
   if (input.kind === 'cpfp') {
-    return Promise.resolve(buildCpfpReplacement(input))
+    return buildCpfpReplacement(input)
   }
   return buildRbfReplacement(input)
 }
@@ -174,6 +211,10 @@ function buildFeeReplacement(
 function showFeeReplacementError(error: Error) {
   if (error instanceof FeeReplacementError) {
     toast.error(t(error.message))
+    return
+  }
+  if (isFeeBumpTargetNotFound(error)) {
+    toast.error(t('transaction.feeReplacement.error.notInWallet'))
     return
   }
   toast.error(formatMessage(mapBuildTransactionError(error).message))
@@ -195,6 +236,8 @@ export function useTransactionFeeReplacement({
   )
   const tx = account?.transactions.find((entry) => entry.id === txid)
   const wallet = useGetAccountWallet(accountId)
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const backend = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork].server.backend
   )
@@ -235,10 +278,17 @@ export function useTransactionFeeReplacement({
         }
         return buildFeeReplacement({
           account,
+          backend,
           feeRate: Number.isFinite(feeRate)
             ? Math.max(feeRate, minFeeRate)
             : minFeeRate,
           kind,
+          syncWallet: async () => {
+            const synced = await syncAccountWithWallet(account, wallet)
+            if (synced) {
+              updateAccount(synced)
+            }
+          },
           tx,
           wallet
         })

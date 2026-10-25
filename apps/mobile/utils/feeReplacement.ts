@@ -269,8 +269,32 @@ function buildCpfpDraft(input: {
   }
 }
 
+// Drops a transaction that a just-broadcast replacement conflicts with, with
+// the outputs it created, and returns its net effect on the balance.
+function removeReplacedTransaction(
+  account: Pick<Account, 'transactions' | 'utxos'>,
+  replacesTxid: string | undefined
+): { replacedNet: number; transactions: Transaction[]; utxos: Utxo[] } {
+  const replaced = account.transactions.find((tx) => tx.id === replacesTxid)
+  if (!replaced) {
+    return {
+      replacedNet: 0,
+      transactions: account.transactions,
+      utxos: account.utxos
+    }
+  }
+  return {
+    replacedNet: replaced.received - replaced.sent,
+    transactions: account.transactions.filter((tx) => tx.id !== replaced.id),
+    utxos: account.utxos.filter((utxo) => utxo.txid !== replaced.id)
+  }
+}
+
+// Outputs that are neither a kept recipient nor the sweep destination are the
+// change output BDK added, at an address the account may not know yet.
 function buildDraftFromReplacementPsbt(input: {
   addresses: Pick<Address, 'address' | 'keychain'>[]
+  changeLabel: string
   extracted: Pick<ExtractedTransactionData, 'fee' | 'inputs' | 'outputs'>
   feeRate: number
   labelByAddress: Map<string, string>
@@ -292,11 +316,18 @@ function buildDraftFromReplacementPsbt(input: {
       value: entry.value,
       vout: entry.vout
     })),
-    outputs: input.extracted.outputs.map((entry) => ({
-      amount: entry.value,
-      label: input.labelByAddress.get(entry.address) ?? '',
-      to: entry.address
-    }))
+    outputs: input.extracted.outputs.map((entry) => {
+      const label = input.labelByAddress.get(entry.address)
+      if (label === undefined) {
+        return {
+          amount: entry.value,
+          kind: 'change',
+          label: input.changeLabel,
+          to: entry.address
+        }
+      }
+      return { amount: entry.value, label, to: entry.address }
+    })
   }
 }
 
@@ -312,6 +343,7 @@ export {
   minimumReplacementFeeRate,
   parseFeeReplacementKind,
   pickCpfpUtxo,
+  removeReplacedTransaction,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 }

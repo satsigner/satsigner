@@ -3159,6 +3159,7 @@
     "feeReplacement.draftWarning": "Continuing discards the unfinished transaction of this account.",
     "feeReplacement.error.failed": "This transaction cannot be replaced.",
     "feeReplacement.error.feeTooHigh": "This fee is higher than these coins can cover.",
+    "feeReplacement.error.notInWallet": "The wallet does not know this transaction yet. Sync the account, then try again.",
     "feeReplacement.error.rebuild": "Create this replacement again from the transaction details.",
     "feeReplacement.flag.cpfp": "CPFP",
     "feeReplacement.flag.rbf": "RBF",

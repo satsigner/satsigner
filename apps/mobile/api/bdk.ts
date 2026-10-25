@@ -941,6 +941,13 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
+function isUtxoInWallet(
+  wallet: BdkWallet,
+  utxo: Pick<Utxo, 'txid' | 'vout'>
+): boolean {
+  return wallet.getUtxo({ txid: utxo.txid, vout: utxo.vout }) !== undefined
+}
+
 async function buildReplacementPsbt(
   wallet: BdkWallet,
   data: {
@@ -1155,6 +1162,7 @@ export {
   getTransactionInputValues,
   getWalletData,
   getWalletFromDescriptor,
+  isUtxoInWallet,
   parseDescriptor,
   resolveRpcWalletName,
   signTransaction,
