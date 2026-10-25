@@ -1,26 +1,20 @@
 import {
   BIP125_REPLACEABLE_SEQUENCE_BELOW,
   DUST_LIMIT,
-  FINAL_SEQUENCE,
-  RBF_SIGNAL_SEQUENCE
+  SEQUENCE_FINAL,
+  SEQUENCE_RBF
 } from '@/constants/btc'
 import { type Utxo } from '@/types/models/Utxo'
 import {
-  alignRemainderFee,
-  assessAccountTransaction,
-  buildCancelToSelfDraft,
   buildCpfpDraft,
-  buildFeeBumpDraft,
-  feeWithReplacementFloor,
-  getPreviewReplacementFlags,
-  getReplacementActions,
+  buildDraftFromReplacementPsbt,
+  getBumpRecipients,
+  getFeeReplacementOptions,
+  getTransactionFeeRate,
   minimumChildFee,
-  minimumReplacementFee,
-  parseFeeRateFloor,
-  parseReplacementFeeFloor,
-  pickFreshReceiveAddress,
-  resolveReplacementInputs,
-  selectConfirmedExtraUtxos,
+  minimumReplacementFeeRate,
+  parseFeeReplacementKind,
+  pickCpfpUtxo,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 } from '@/utils/feeReplacement'
@@ -28,164 +22,280 @@ import {
 const PAYMENT = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
 const CHANGE = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
 const FRESH = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+const PREVIOUS_TXID = 'bb'.repeat(32)
+const TXID = 'cc'.repeat(32)
 
-function utxo(value: number, vout = 0, address = CHANGE): Utxo {
+function utxo(value: number, vout = 0, txid = TXID): Utxo {
   return {
-    addressTo: address,
-    keychain: 'external',
-    txid: 'aa'.repeat(32),
+    addressTo: CHANGE,
+    keychain: 'internal',
+    txid,
     value,
     vout
   }
 }
 
-function owned(txid: string, vout: number): string {
-  return `${txid}:${vout}`
+type ReplaceableTransaction = Parameters<
+  typeof getFeeReplacementOptions
+>[0]['tx']
+
+function transaction(
+  overrides: Partial<ReplaceableTransaction> = {}
+): ReplaceableTransaction {
+  return {
+    blockHeight: undefined,
+    fee: 280,
+    id: TXID,
+    vin: [
+      {
+        previousOutput: { txid: PREVIOUS_TXID, vout: 1 },
+        scriptSig: [],
+        sequence: SEQUENCE_RBF,
+        witness: []
+      }
+    ],
+    vout: [
+      { address: CHANGE, script: [], value: 40_000 },
+      { address: PAYMENT, script: [], value: 50_000 }
+    ],
+    vsize: 140,
+    ...overrides
+  }
 }
+
+type ReplacementAccount = Parameters<
+  typeof getFeeReplacementOptions
+>[0]['account']
+
+function account(
+  overrides: Partial<ReplacementAccount> = {}
+): ReplacementAccount {
+  return {
+    addresses: [{ address: CHANGE, keychain: 'internal' }],
+    excludedUtxoOutpoints: [],
+    policyType: 'singlesig',
+    transactions: [],
+    utxos: [utxo(40_000)],
+    ...overrides
+  }
+}
+
+const OWNED_PREVIOUS = new Set([`${PREVIOUS_TXID}:1`])
 
 describe('transactionSignalsRbf', () => {
   it('signals when any sequence is below 0xff_ff_ff_fe', () => {
-    expect(transactionSignalsRbf([{ sequence: RBF_SIGNAL_SEQUENCE }])).toBe(
-      true
-    )
+    expect(transactionSignalsRbf([{ sequence: SEQUENCE_RBF }])).toBe(true)
     expect(
       transactionSignalsRbf([
-        { sequence: FINAL_SEQUENCE },
-        { sequence: RBF_SIGNAL_SEQUENCE }
+        { sequence: SEQUENCE_FINAL },
+        { sequence: SEQUENCE_RBF }
       ])
     ).toBe(true)
   })
 
   it('does not signal when every sequence is final', () => {
-    expect(transactionSignalsRbf([{ sequence: FINAL_SEQUENCE }])).toBe(false)
+    expect(transactionSignalsRbf([{ sequence: SEQUENCE_FINAL }])).toBe(false)
     expect(
       transactionSignalsRbf([{ sequence: BIP125_REPLACEABLE_SEQUENCE_BELOW }])
     ).toBe(false)
   })
 })
 
-describe('assessAccountTransaction', () => {
-  const previous = 'bb'.repeat(32)
-  const txid = 'cc'.repeat(32)
-  const vin = [
-    {
-      previousOutput: { txid: previous, vout: 1 },
-      sequence: RBF_SIGNAL_SEQUENCE
-    }
-  ]
-
-  it('allows a bump only when unconfirmed, signaled, and every input is ours', () => {
-    const assessment = assessAccountTransaction({
-      blockHeight: undefined,
-      ownedOutpoints: new Set([owned(previous, 1)]),
-      txid,
-      unspentOutpoints: new Set([owned(txid, 0)]),
-      vin,
-      vout: [{ address: CHANGE }, { address: PAYMENT }]
+describe('getFeeReplacementOptions', () => {
+  it('offers every action for an unconfirmed outgoing transaction that signals RBF', () => {
+    const { actions, assessment } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
     })
-    expect(assessment.canBumpOrCancel).toBe(true)
-    expect(assessment.canCpfp).toBe(true)
-    expect(assessment.signalsRbf).toBe(true)
+    expect(assessment).toStrictEqual({
+      canBumpOrCancel: true,
+      canCpfp: true,
+      signalsRbf: true,
+      unconfirmed: true
+    })
+    expect(actions).toStrictEqual({ bump: true, cancel: true, cpfp: true })
   })
 
-  it('hides the bump for an incoming payment that does not spend our inputs', () => {
-    const assessment = assessAccountTransaction({
+  it('offers only child-pays-for-parent for an incoming payment', () => {
+    const { actions, assessment } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'esplora',
       ownedOutpoints: new Set(),
-      txid,
-      unspentOutpoints: new Set([owned(txid, 0)]),
-      vin: [
-        {
-          previousOutput: { txid: previous, vout: 0 },
-          sequence: FINAL_SEQUENCE
-        }
-      ],
-      vout: [{ address: PAYMENT }]
+      tx: transaction()
     })
     expect(assessment.canBumpOrCancel).toBe(false)
-    expect(assessment.canCpfp).toBe(true)
-    expect(assessment.signalsRbf).toBe(false)
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: true })
   })
 
   it('offers nothing once the transaction is confirmed', () => {
-    const assessment = assessAccountTransaction({
-      blockHeight: 100,
-      ownedOutpoints: new Set([owned(previous, 1)]),
-      txid,
-      unspentOutpoints: new Set([owned(txid, 0)]),
-      vin,
-      vout: [{ address: CHANGE }]
+    const { actions, assessment } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction({ blockHeight: 100 })
     })
     expect(assessment.unconfirmed).toBe(false)
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: false })
+  })
+
+  it('keeps the flags but hides the actions for a watch-only account', () => {
+    const { actions, assessment } = getFeeReplacementOptions({
+      account: account({ policyType: 'watchonly' }),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
+    })
+    expect(assessment.signalsRbf).toBe(true)
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: false })
+  })
+
+  it('hides the replacement for a multisig account', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account({ policyType: 'multisig' }),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
+    })
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: true })
+  })
+
+  it('hides the replacement while a child spends one of its outputs', () => {
+    const child = {
+      vin: [
+        {
+          previousOutput: { txid: TXID, vout: 0 },
+          scriptSig: [],
+          sequence: SEQUENCE_RBF,
+          witness: []
+        }
+      ]
+    }
+    const { actions, assessment } = getFeeReplacementOptions({
+      account: account({
+        transactions: [{ ...transaction({ id: 'dd'.repeat(32) }), ...child }],
+        utxos: []
+      }),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
+    })
     expect(assessment.canBumpOrCancel).toBe(false)
-    expect(assessment.canCpfp).toBe(false)
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: false })
   })
 
-  it('drops child-pays-for-parent after the output is spent', () => {
-    const assessment = assessAccountTransaction({
-      ownedOutpoints: new Set([owned(previous, 1)]),
-      txid,
-      unspentOutpoints: new Set(),
-      vin,
-      vout: [{ address: CHANGE }]
+  it('offers cancel but not bump when there is no payment to keep', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction({
+        vout: [{ address: CHANGE, script: [], value: 90_000 }]
+      })
     })
-    expect(assessment.canCpfp).toBe(false)
-    expect(assessment.canBumpOrCancel).toBe(true)
+    expect(actions).toStrictEqual({ bump: false, cancel: true, cpfp: true })
   })
-})
 
-describe('getReplacementActions', () => {
-  const open = {
-    allInputsOwned: true,
-    canBumpOrCancel: true,
-    canCpfp: true,
-    hasUnspentOwnedOutput: true,
-    signalsRbf: true,
-    unconfirmed: true
-  }
-
-  it('hides actions for a watch-only account', () => {
-    expect(getReplacementActions(open, 'watchonly')).toStrictEqual({
-      bump: false,
-      cancel: false,
-      cpfp: false
+  it('does not offer a bump that would drop an OP_RETURN output', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction({
+        vout: [
+          { address: CHANGE, script: [], value: 40_000 },
+          { address: '', script: [], value: 0 }
+        ]
+      })
     })
+    expect(actions.bump).toBe(false)
   })
 
-  it('keeps actions for a multisig account this device can start', () => {
-    expect(getReplacementActions(open, 'multisig').bump).toBe(true)
-  })
-})
-
-describe('preview flags', () => {
-  it('shows RBF from the draft signal and CPFP from an unconfirmed parent', () => {
-    expect(
-      getPreviewReplacementFlags({ rbf: true, spendsUnconfirmedParent: false })
-    ).toStrictEqual({ showCpfp: false, showRbf: true })
-    expect(
-      getPreviewReplacementFlags({ rbf: false, spendsUnconfirmedParent: true })
-    ).toStrictEqual({ showCpfp: true, showRbf: false })
+  it('hides the replacement on the Bitcoin Core wallet backend', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'rpc',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
+    })
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: true })
   })
 
-  it('treats a missing block height as an unconfirmed parent', () => {
-    const parentId = 'dd'.repeat(32)
+  it('hides the replacement when the original fee is unknown', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction({ fee: undefined })
+    })
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: true })
+  })
+
+  it('offers nothing when the transaction size is unknown', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction({ vsize: undefined })
+    })
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: false })
+  })
+
+  it('drops child-pays-for-parent when the only output is excluded or spent', () => {
     expect(
-      spendsUnconfirmedParent(
-        [{ txid: parentId }],
-        [{ blockHeight: undefined, id: parentId }]
-      )
-    ).toBe(true)
+      getFeeReplacementOptions({
+        account: account({ excludedUtxoOutpoints: [`${TXID}:0`] }),
+        backend: 'electrum',
+        ownedOutpoints: OWNED_PREVIOUS,
+        tx: transaction()
+      }).actions.cpfp
+    ).toBe(false)
     expect(
-      spendsUnconfirmedParent(
-        [{ txid: parentId }],
-        [{ blockHeight: 10, id: parentId }]
-      )
+      getFeeReplacementOptions({
+        account: account({ utxos: [] }),
+        backend: 'electrum',
+        ownedOutpoints: OWNED_PREVIOUS,
+        tx: transaction()
+      }).actions.cpfp
     ).toBe(false)
   })
 })
 
-describe('fee floors', () => {
-  it('raises the replacement by the incremental relay fee and the fee rate', () => {
-    expect(minimumReplacementFee(1000, 100, 100)).toBe(1100)
+describe('spendsUnconfirmedParent', () => {
+  it('treats a missing block height as an unconfirmed parent', () => {
+    expect(
+      spendsUnconfirmedParent(
+        [{ txid: PREVIOUS_TXID }],
+        [{ blockHeight: undefined, id: PREVIOUS_TXID }]
+      )
+    ).toBe(true)
+    expect(
+      spendsUnconfirmedParent(
+        [{ txid: PREVIOUS_TXID }],
+        [{ blockHeight: 10, id: PREVIOUS_TXID }]
+      )
+    ).toBe(false)
+  })
+
+  it('ignores parents the account does not know', () => {
+    expect(spendsUnconfirmedParent([{ txid: PREVIOUS_TXID }], [])).toBe(false)
+  })
+})
+
+describe('fee rates', () => {
+  it('derives the fee rate only when fee and size are known', () => {
+    expect(getTransactionFeeRate({ fee: 280, vsize: 140 })).toBe(2)
+    expect(
+      getTransactionFeeRate({ fee: undefined, vsize: 140 })
+    ).toBeUndefined()
+    expect(getTransactionFeeRate({ fee: 280, vsize: 0 })).toBeUndefined()
+  })
+
+  it('raises the replacement above the original rate by the incremental relay fee', () => {
+    expect(minimumReplacementFeeRate(2)).toBe(3)
+    expect(minimumReplacementFeeRate(2.4)).toBe(4)
+    expect(minimumReplacementFeeRate(undefined)).toBe(1)
   })
 
   it('sets the child fee so the package reaches the target rate', () => {
@@ -209,234 +319,148 @@ describe('fee floors', () => {
       })
     ).toBe(110)
   })
+})
 
-  it('parses a fee-rate floor from the route', () => {
-    expect(parseFeeRateFloor(undefined)).toBe(1)
-    expect(parseFeeRateFloor('3.2')).toBe(4)
-    expect(parseFeeRateFloor('0')).toBe(1)
-  })
-
-  it('keeps a replacement fee at the initial absolute floor', () => {
-    expect(parseReplacementFeeFloor(undefined)).toBeUndefined()
-    expect(parseReplacementFeeFloor('0')).toBeUndefined()
-    expect(parseReplacementFeeFloor('250.9')).toBe(250)
-    expect(feeWithReplacementFloor(180, undefined)).toBe(180)
-    expect(feeWithReplacementFloor(180, 250)).toBe(250)
-    expect(feeWithReplacementFloor(400, 250)).toBe(400)
+describe('parseFeeReplacementKind', () => {
+  it('accepts only the known kinds', () => {
+    expect(parseFeeReplacementKind('bump')).toBe('bump')
+    expect(parseFeeReplacementKind(['cancel'])).toBe('cancel')
+    expect(parseFeeReplacementKind('cpfp')).toBe('cpfp')
+    expect(parseFeeReplacementKind('other')).toBeUndefined()
+    expect(parseFeeReplacementKind(undefined)).toBeUndefined()
   })
 })
 
-describe('replacement drafts', () => {
-  const spend = utxo(100_000, 0, PAYMENT)
-
-  it('shrinks change to pay a higher fee and keeps the payment', () => {
-    const result = buildFeeBumpDraft({
-      changeAddress: FRESH,
-      extraUtxos: [],
-      internalAddresses: new Set([CHANGE]),
-      originalFee: 200,
-      originalVsize: 140,
-      outputs: [
-        { amount: 50_000, label: 'Pay', to: PAYMENT },
-        { amount: 49_800, kind: 'change', label: 'Change', to: CHANGE }
-      ],
-      resolvedInputs: [spend],
-      targetFeeRate: 1
-    })
-    expect(result.ok).toBe(true)
-    if (!result.ok) {
-      return
-    }
-    expect(result.draft.outputs).toStrictEqual([
-      expect.objectContaining({ amount: 50_000, to: PAYMENT })
-    ])
-    expect(result.draft.fee).toBeGreaterThan(200)
-    expect(result.draft.rbf).toBe(true)
-  })
-
-  it('adds a wallet input when change cannot cover the bump', () => {
-    const result = buildFeeBumpDraft({
-      changeAddress: FRESH,
-      extraUtxos: [utxo(20_000, 1, CHANGE)],
-      internalAddresses: new Set([CHANGE]),
-      originalFee: 100,
-      originalVsize: 110,
-      outputs: [
-        { amount: 99_000, label: 'Pay', to: PAYMENT },
-        { amount: 200, kind: 'change', label: 'Change', to: CHANGE }
-      ],
-      resolvedInputs: [utxo(99_300, 0, PAYMENT)],
-      targetFeeRate: 50
-    })
-    expect(result.ok).toBe(true)
-    if (!result.ok) {
-      return
-    }
-    expect(result.draft.inputs).toHaveLength(2)
+describe('getBumpRecipients', () => {
+  it('keeps the payments and drops the change', () => {
     expect(
-      result.draft.outputs.some((output) => output.amount >= DUST_LIMIT)
-    ).toBe(true)
+      getBumpRecipients(transaction().vout, new Set([CHANGE]))
+    ).toStrictEqual([{ address: PAYMENT, amountSats: 50_000 }])
   })
 
-  it('adds only confirmed utxos that are not excluded', () => {
-    const confirmedId = 'dd'.repeat(32)
-    const unconfirmedId = 'ee'.repeat(32)
-    const unknownId = 'ff'.repeat(32)
-    const replacementId = '11'.repeat(32)
-    const confirmed = { ...utxo(20_000, 1, CHANGE), txid: confirmedId }
-    const unconfirmed = { ...utxo(30_000, 2, CHANGE), txid: unconfirmedId }
-    const unknown = { ...utxo(40_000, 3, CHANGE), txid: unknownId }
-    const excluded = { ...utxo(50_000, 4, CHANGE), txid: confirmedId }
-    const sameTx = { ...utxo(60_000, 0, CHANGE), txid: replacementId }
-    const spent = { ...utxo(70_000, 5, CHANGE), txid: confirmedId }
+  it('refuses outputs without an address', () => {
     expect(
-      selectConfirmedExtraUtxos({
-        excludedOutpoints: [`${confirmedId}:4`],
-        replacementTxid: replacementId,
-        spentOutpoints: new Set([`${confirmedId}:5`]),
-        transactions: [
-          { blockHeight: 10, id: confirmedId },
-          { blockHeight: 0, id: unconfirmedId },
-          { id: replacementId }
-        ],
-        utxos: [confirmed, unconfirmed, unknown, excluded, sameTx, spent]
-      })
-    ).toStrictEqual([confirmed])
+      getBumpRecipients([{ address: '', value: 0 }], new Set([CHANGE]))
+    ).toBeUndefined()
+  })
+})
+
+describe('pickCpfpUtxo', () => {
+  it('picks the largest spendable output of the transaction', () => {
+    const picked = pickCpfpUtxo(
+      account({
+        excludedUtxoOutpoints: [`${TXID}:2`],
+        utxos: [
+          utxo(10_000, 0),
+          utxo(30_000, 1),
+          utxo(90_000, 2),
+          utxo(80_000, 0, PREVIOUS_TXID)
+        ]
+      }),
+      TXID
+    )
+    expect(picked?.vout).toBe(1)
   })
 
-  it('refuses a bump that still cannot pay the fee', () => {
-    const result = buildFeeBumpDraft({
-      changeAddress: FRESH,
-      extraUtxos: [],
-      internalAddresses: new Set([CHANGE]),
-      originalFee: 100,
-      originalVsize: 110,
-      outputs: [{ amount: 99_000, label: 'Pay', to: PAYMENT }],
-      resolvedInputs: [utxo(99_100, 0, PAYMENT)],
-      targetFeeRate: 80
-    })
-    expect(result).toStrictEqual({ ok: false, reason: 'insufficient' })
+  it('returns nothing when the transaction has no spendable output', () => {
+    expect(pickCpfpUtxo(account({ utxos: [] }), TXID)).toBeUndefined()
   })
+})
 
-  it('cancels to a single fresh address', () => {
-    const result = buildCancelToSelfDraft({
-      destination: FRESH,
-      destinationLabel: 'Cancel',
-      originalFee: 200,
-      originalVsize: 140,
-      resolvedInputs: [spend],
-      targetFeeRate: 2
-    })
-    expect(result.ok).toBe(true)
-    if (!result.ok) {
-      return
-    }
-    expect(result.draft.outputs).toHaveLength(1)
-    expect(result.draft.outputs[0].to).toBe(FRESH)
-    expect(result.draft.outputs[0].amount + result.draft.fee).toBe(100_000)
-  })
+describe('buildCpfpDraft', () => {
+  const child = utxo(100_000)
 
-  it('builds a child that spends one owned output', () => {
+  it('builds a child that spends one owned output to the destination', () => {
     const result = buildCpfpDraft({
       destination: FRESH,
-      destinationLabel: 'Child',
+      destinationLabel: 'CPFP',
       parentFee: 200,
-      parentVsize: 140,
-      targetFeeRate: 8,
-      utxo: utxo(50_000, 1, CHANGE)
+      parentVsize: 100,
+      targetFeeRate: 5,
+      utxo: child
     })
-    expect(result.ok).toBe(true)
     if (!result.ok) {
-      return
+      throw new Error('expected a draft')
     }
-    expect(result.draft.inputs).toHaveLength(1)
-    expect(result.draft.outputs[0].to).toBe(FRESH)
-    expect(result.draft.fee).toBeGreaterThan(result.draft.inputs[0].value / 100)
-  })
-})
-
-describe('alignRemainderFee', () => {
-  it('keeps a fee the preview can recompute from the rate', () => {
-    const settled = alignRemainderFee({
-      fee: 200,
-      inputValue: 10_000,
-      vsize: 141
-    })
-    expect(settled).toStrictEqual({
-      amount: 9718,
-      fee: 282,
-      feeRate: 2
-    })
-    expect(settled && Math.round(settled.feeRate * 141)).toBe(settled?.fee)
+    const [output] = result.draft.outputs
+    expect(result.draft.inputs).toStrictEqual([child])
+    expect(result.draft.outputs).toHaveLength(1)
+    expect(output.to).toBe(FRESH)
+    expect(output.label).toBe('CPFP')
+    expect(output.amount + result.draft.fee).toBe(child.value)
+    expect(result.draft.fee).toBeGreaterThan(5 * 100 - 200)
   })
 
-  it('refuses a remainder below the dust limit', () => {
+  it('refuses a child whose output would be dust', () => {
     expect(
-      alignRemainderFee({ fee: 200, inputValue: 600, vsize: 141 })
-    ).toBeUndefined()
+      buildCpfpDraft({
+        destination: FRESH,
+        destinationLabel: 'CPFP',
+        parentFee: 0,
+        parentVsize: 100,
+        targetFeeRate: 5,
+        utxo: utxo(DUST_LIMIT + 100)
+      })
+    ).toStrictEqual({ ok: false, reason: 'insufficient' })
+  })
+
+  it('refuses a child without a destination', () => {
+    expect(
+      buildCpfpDraft({
+        destination: '',
+        destinationLabel: 'CPFP',
+        parentFee: 200,
+        parentVsize: 100,
+        targetFeeRate: 5,
+        utxo: child
+      })
+    ).toStrictEqual({ ok: false, reason: 'no-destination' })
   })
 })
 
-describe('resolveReplacementInputs', () => {
-  it('rebuilds inputs from the parent output this account created', () => {
-    const parent = 'ee'.repeat(32)
-    const inputs = resolveReplacementInputs(
-      [
-        {
-          previousOutput: { txid: parent, vout: 0 },
-          sequence: RBF_SIGNAL_SEQUENCE
-        }
+describe('buildDraftFromReplacementPsbt', () => {
+  it('maps the built transaction into a draft with owned keychains and labels', () => {
+    const draft = buildDraftFromReplacementPsbt({
+      addresses: [
+        { address: CHANGE, keychain: 'internal' },
+        { address: FRESH, keychain: 'external' }
       ],
-      [
-        {
-          id: parent,
-          vout: [{ address: PAYMENT, value: 80_000 }]
-        }
-      ],
-      [{ address: PAYMENT, keychain: 'external' }]
-    )
-    expect(inputs?.[0]).toMatchObject({
-      addressTo: PAYMENT,
-      txid: parent,
-      value: 80_000,
-      vout: 0
+      extracted: {
+        fee: 500,
+        inputs: [
+          {
+            address: CHANGE,
+            script: '0014aa',
+            txid: PREVIOUS_TXID,
+            value: 90_500,
+            vout: 1
+          }
+        ],
+        outputs: [
+          { address: PAYMENT, script: '0014bb', value: 50_000 },
+          { address: FRESH, script: '0014cc', value: 40_000 }
+        ]
+      },
+      feeRate: 4,
+      labelByAddress: new Map([[PAYMENT, 'Rent']])
     })
-  })
-
-  it('returns nothing when a previous output is unknown', () => {
-    expect(
-      resolveReplacementInputs(
-        [{ previousOutput: { txid: 'ff'.repeat(32), vout: 0 }, sequence: 1 }],
-        [],
-        []
-      )
-    ).toBeUndefined()
-  })
-})
-
-describe('pickFreshReceiveAddress', () => {
-  it('prefers the lowest-index unused external address', () => {
-    expect(
-      pickFreshReceiveAddress([
+    expect(draft).toStrictEqual({
+      fee: 500,
+      feeRate: 4,
+      inputs: [
         {
-          address: CHANGE,
-          index: 0,
+          addressTo: CHANGE,
           keychain: 'internal',
-          summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 }
-        },
-        {
-          address: PAYMENT,
-          index: 1,
-          keychain: 'external',
-          summary: { balance: 1, satsInMempool: 0, transactions: 2, utxos: 1 }
-        },
-        {
-          address: FRESH,
-          index: 4,
-          keychain: 'external',
-          summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 }
+          script: '0014aa',
+          txid: PREVIOUS_TXID,
+          value: 90_500,
+          vout: 1
         }
-      ])
-    ).toBe(FRESH)
+      ],
+      outputs: [
+        { amount: 50_000, label: 'Rent', to: PAYMENT },
+        { amount: 40_000, label: '', to: FRESH }
+      ]
+    })
   })
 })

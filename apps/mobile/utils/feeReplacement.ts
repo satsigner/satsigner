@@ -3,37 +3,36 @@ import {
   DUST_LIMIT,
   INCREMENTAL_RELAY_FEE_RATE
 } from '@/constants/btc'
+import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import {
   type FeeReplacementActions,
   type FeeReplacementAssessment,
+  type FeeReplacementDraft,
   type FeeReplacementDraftResult,
-  type FeeReplacementOutput,
-  type FeeReplacementPolicy,
-  type PreviewReplacementFlags
+  type FeeReplacementKind,
+  type FeeReplacementRecipient
 } from '@/types/models/FeeReplacement'
-import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { getUtxoOutpoint } from '@/utils/outpoint'
+import { type Backend } from '@/types/settings/blockchain'
+import { getAccountAddressSets } from '@/utils/address'
+import { type ExtractedTransactionData } from '@/utils/psbt'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { filterUtxosByExcludedOutpoints, getUtxoOutpoint } from '@/utils/utxo'
 
-type SequenceInput = {
-  sequence: number
+type ReplaceableTransaction = Pick<
+  Transaction,
+  'blockHeight' | 'fee' | 'id' | 'vin' | 'vout' | 'vsize'
+>
+
+const NO_ACTIONS: FeeReplacementActions = {
+  bump: false,
+  cancel: false,
+  cpfp: false
 }
 
-type OwnedInputSource = {
-  previousOutput: { txid: string; vout: number }
-  value?: number
-}
-
-type ParentTransaction = Pick<Transaction, 'id' | 'vout'>
-
-type FreshAddress = Pick<Address, 'address' | 'index' | 'keychain' | 'summary'>
-
-const DEFAULT_FEE_RATE_FLOOR = 1
-
-function transactionSignalsRbf(inputs: SequenceInput[]): boolean {
+function transactionSignalsRbf(inputs: { sequence: number }[]): boolean {
   return inputs.some(
     (input) => input.sequence < BIP125_REPLACEABLE_SEQUENCE_BELOW
   )
@@ -43,30 +42,6 @@ function isTransactionUnconfirmed(blockHeight?: number): boolean {
   return blockHeight === undefined || blockHeight <= 0
 }
 
-function getReplacementActions(
-  assessment: FeeReplacementAssessment,
-  policyType: FeeReplacementPolicy
-): FeeReplacementActions {
-  if (policyType === 'watchonly') {
-    return { bump: false, cancel: false, cpfp: false }
-  }
-  return {
-    bump: assessment.canBumpOrCancel,
-    cancel: assessment.canBumpOrCancel,
-    cpfp: assessment.canCpfp
-  }
-}
-
-function getPreviewReplacementFlags(input: {
-  rbf: boolean
-  spendsUnconfirmedParent: boolean
-}): PreviewReplacementFlags {
-  return {
-    showCpfp: input.spendsUnconfirmedParent,
-    showRbf: input.rbf
-  }
-}
-
 function spendsUnconfirmedParent(
   inputs: Pick<Utxo, 'txid'>[],
   transactions: Pick<Transaction, 'blockHeight' | 'id'>[]
@@ -74,102 +49,170 @@ function spendsUnconfirmedParent(
   const heightById = new Map(
     transactions.map((tx) => [tx.id, tx.blockHeight] as const)
   )
-  return inputs.some((input) => {
-    if (!heightById.has(input.txid)) {
-      return false
-    }
-    return isTransactionUnconfirmed(heightById.get(input.txid))
-  })
+  return inputs.some(
+    (input) =>
+      heightById.has(input.txid) &&
+      isTransactionUnconfirmed(heightById.get(input.txid))
+  )
 }
 
-function parseFeeRateFloor(value: string | undefined): number {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed < DEFAULT_FEE_RATE_FLOOR) {
-    return DEFAULT_FEE_RATE_FLOOR
-  }
-  return Math.ceil(parsed)
-}
-
-function parseReplacementFeeFloor(
-  value: string | undefined
+function getTransactionFeeRate(
+  tx: Pick<Transaction, 'fee' | 'vsize'>
 ): number | undefined {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed < 1) {
+  if (tx.fee === undefined || !tx.vsize || tx.vsize <= 0) {
     return undefined
   }
-  return Math.floor(parsed)
+  return tx.fee / tx.vsize
 }
 
-function feeWithReplacementFloor(
-  ratedFee: number,
-  absoluteFloor: number | undefined
-): number {
-  if (absoluteFloor === undefined) {
-    return ratedFee
+function minimumReplacementFeeRate(originalFeeRate: number | undefined) {
+  return Math.ceil(originalFeeRate ?? 0) + INCREMENTAL_RELAY_FEE_RATE
+}
+
+function getSpendableUtxos(
+  account: Pick<Account, 'excludedUtxoOutpoints' | 'utxos'>
+): Utxo[] {
+  return filterUtxosByExcludedOutpoints(
+    account.utxos,
+    account.excludedUtxoOutpoints ?? []
+  )
+}
+
+function getExcludedUtxos(
+  account: Pick<Account, 'excludedUtxoOutpoints' | 'utxos'>
+): Utxo[] {
+  const excluded = new Set(account.excludedUtxoOutpoints)
+  return account.utxos.filter((utxo) => excluded.has(getUtxoOutpoint(utxo)))
+}
+
+function assessAccountTransaction(input: {
+  ownedOutpoints: Set<string>
+  spendableOutpoints: Set<string>
+  transactions: Pick<Transaction, 'vin'>[]
+  tx: ReplaceableTransaction
+}): FeeReplacementAssessment {
+  const { tx } = input
+  const unconfirmed = isTransactionUnconfirmed(tx.blockHeight)
+  const signalsRbf = transactionSignalsRbf(tx.vin)
+  const allInputsOwned =
+    tx.vin.length > 0 &&
+    tx.vin.every((vin) =>
+      input.ownedOutpoints.has(getUtxoOutpoint(vin.previousOutput))
+    )
+  const hasSpendableOutput = tx.vout.some((_, vout) =>
+    input.spendableOutpoints.has(getUtxoOutpoint({ txid: tx.id, vout }))
+  )
+  // Replacing a parent evicts its children, and the replacement would not
+  // carry their payments.
+  const hasChildTransaction = input.transactions.some((child) =>
+    child.vin.some((vin) => vin.previousOutput.txid === tx.id)
+  )
+  return {
+    canBumpOrCancel:
+      unconfirmed && signalsRbf && allInputsOwned && !hasChildTransaction,
+    canCpfp: unconfirmed && hasSpendableOutput,
+    signalsRbf,
+    unconfirmed
   }
-  return Math.max(ratedFee, absoluteFloor)
 }
 
-type RemainderKind = 'cancel' | 'cpfp'
+function getReplacementActions(
+  assessment: FeeReplacementAssessment,
+  context: {
+    backend: Backend
+    feeRateKnown: boolean
+    hasBumpRecipients: boolean
+    policyType: Account['policyType']
+    vsizeKnown: boolean
+  }
+): FeeReplacementActions {
+  if (context.policyType === 'watchonly' || !context.vsizeKnown) {
+    return NO_ACTIONS
+  }
+  // The replacement is built from the wallet's own transaction graph, which
+  // the Bitcoin Core wallet backend does not populate. Multisig is left out:
+  // without spending assets BDK plans a single key set and writes only those
+  // derivations, so the other cosigners could not sign.
+  const canReplace =
+    assessment.canBumpOrCancel &&
+    context.feeRateKnown &&
+    context.backend !== 'rpc' &&
+    context.policyType === 'singlesig'
+  return {
+    bump: canReplace && context.hasBumpRecipients,
+    cancel: canReplace,
+    cpfp: assessment.canCpfp
+  }
+}
 
-function parseRemainderKind(
-  value: string | undefined
-): RemainderKind | undefined {
-  if (value === 'cancel' || value === 'cpfp') {
-    return value
+function getFeeReplacementOptions(input: {
+  account: Pick<
+    Account,
+    | 'addresses'
+    | 'excludedUtxoOutpoints'
+    | 'policyType'
+    | 'transactions'
+    | 'utxos'
+  >
+  backend: Backend
+  ownedOutpoints: Set<string>
+  tx: ReplaceableTransaction
+}): { actions: FeeReplacementActions; assessment: FeeReplacementAssessment } {
+  const assessment = assessAccountTransaction({
+    ownedOutpoints: input.ownedOutpoints,
+    spendableOutpoints: new Set(
+      getSpendableUtxos(input.account).map(getUtxoOutpoint)
+    ),
+    transactions: input.account.transactions,
+    tx: input.tx
+  })
+  const bumpRecipients = getBumpRecipients(
+    input.tx.vout,
+    getAccountAddressSets(input.account.addresses).internalAddresses
+  )
+  const actions = getReplacementActions(assessment, {
+    backend: input.backend,
+    feeRateKnown: getTransactionFeeRate(input.tx) !== undefined,
+    hasBumpRecipients: (bumpRecipients?.length ?? 0) > 0,
+    policyType: input.account.policyType,
+    vsizeKnown: (input.tx.vsize ?? 0) > 0
+  })
+  return { actions, assessment }
+}
+
+function parseFeeReplacementKind(
+  value: string | string[] | undefined
+): FeeReplacementKind | undefined {
+  const kind = Array.isArray(value) ? value[0] : value
+  if (kind === 'bump' || kind === 'cancel' || kind === 'cpfp') {
+    return kind
   }
   return undefined
 }
 
-function alignRemainderFee(input: {
-  fee: number
-  inputValue: number
-  vsize: number
-}): { amount: number; fee: number; feeRate: number } | undefined {
-  const vsize = Math.max(input.vsize, 1)
-  const firstRate = Math.max(1, Math.floor(input.fee / vsize))
-  const lastRate = Math.ceil((input.fee + vsize) / vsize) + 1
-  for (let feeRate = firstRate; feeRate <= lastRate; feeRate += 1) {
-    const fee = Math.round(feeRate * vsize)
-    if (fee < input.fee) {
-      continue
-    }
-    const amount = input.inputValue - fee
-    if (amount < DUST_LIMIT) {
-      return undefined
-    }
-    return { amount, fee, feeRate }
+function getBumpRecipients(
+  vout: Pick<Transaction['vout'][number], 'address' | 'value'>[],
+  internalAddresses: Set<string>
+): FeeReplacementRecipient[] | undefined {
+  const payments = vout.filter(
+    (output) => !internalAddresses.has(output.address)
+  )
+  if (payments.some((output) => !output.address)) {
+    return undefined
   }
-  return undefined
+  return payments.map((output) => ({
+    address: output.address,
+    amountSats: output.value
+  }))
 }
 
-function pickFreshReceiveAddress(
-  addresses: FreshAddress[]
-): string | undefined {
-  const external = addresses.filter(
-    (address) => address.keychain === 'external' && address.address.trim()
-  )
-  const unused = external.filter(
-    (address) => (address.summary?.transactions ?? 0) === 0
-  )
-  const pool = unused.length > 0 ? unused : external
-  const sorted = pool.toSorted(
-    (left, right) => (left.index ?? 0) - (right.index ?? 0)
-  )
-  return sorted[0]?.address
-}
-
-function minimumReplacementFee(
-  originalFee: number,
-  originalVsize: number,
-  newVsize: number
-): number {
-  const byIncremental =
-    originalFee + INCREMENTAL_RELAY_FEE_RATE * Math.max(newVsize, 1)
-  const originalRate =
-    originalVsize > 0 ? Math.floor(originalFee / originalVsize) : 0
-  const byHigherRate = (originalRate + INCREMENTAL_RELAY_FEE_RATE) * newVsize
-  return Math.max(byIncremental, byHigherRate, originalFee + 1)
+function pickCpfpUtxo(
+  account: Pick<Account, 'excludedUtxoOutpoints' | 'utxos'>,
+  txid: string
+): Utxo | undefined {
+  return getSpendableUtxos(account)
+    .filter((utxo) => utxo.txid === txid)
+    .toSorted((left, right) => right.value - left.value)[0]
 }
 
 function minimumChildFee(input: {
@@ -182,221 +225,7 @@ function minimumChildFee(input: {
   const packageFee = Math.ceil(input.targetFeeRate * packageVsize)
   const fromPackage = packageFee - input.parentFee
   const relayFloor = INCREMENTAL_RELAY_FEE_RATE * Math.max(input.childVsize, 1)
-  return Math.max(fromPackage, relayFloor, 1)
-}
-
-function estimateVsize(
-  inputs: Utxo[],
-  outputs: FeeReplacementOutput[]
-): number {
-  const sized: Output[] = outputs.map((output, index) => ({
-    ...output,
-    localId: String(index)
-  }))
-  return estimateTransactionSize(inputs, sized).vsize
-}
-
-function sumValues(values: number[]): number {
-  return values.reduce((total, value) => total + value, 0)
-}
-
-function draftResult(
-  inputs: Utxo[],
-  outputs: FeeReplacementOutput[],
-  fee: number,
-  feeRate: number
-): FeeReplacementDraftResult {
-  const amount = sumValues(outputs.map((output) => output.amount))
-  if (amount < DUST_LIMIT || fee < 1) {
-    return { ok: false, reason: 'insufficient' }
-  }
-  return {
-    draft: {
-      fee,
-      feeRate,
-      inputs,
-      outputs,
-      rbf: true
-    },
-    ok: true
-  }
-}
-
-function resolveInputUtxo(
-  vin: OwnedInputSource & { sequence?: number },
-  transactions: ParentTransaction[],
-  addresses: Pick<Address, 'address' | 'keychain'>[]
-): Utxo | undefined {
-  const parent = transactions.find((tx) => tx.id === vin.previousOutput.txid)
-  const output = parent?.vout[vin.previousOutput.vout]
-  const value = output?.value ?? vin.value
-  const address = output?.address
-  if (value === undefined || !address) {
-    return undefined
-  }
-  const tracked = addresses.find((entry) => entry.address === address)
-  return {
-    addressTo: address,
-    keychain: tracked?.keychain === 'internal' ? 'internal' : 'external',
-    txid: vin.previousOutput.txid,
-    value,
-    vout: vin.previousOutput.vout
-  }
-}
-
-function selectConfirmedExtraUtxos(input: {
-  excludedOutpoints: Iterable<string>
-  replacementTxid: string
-  spentOutpoints: Set<string>
-  transactions: Pick<Transaction, 'blockHeight' | 'id'>[]
-  utxos: Utxo[]
-}): Utxo[] {
-  const confirmedIds = new Set(
-    input.transactions
-      .filter((tx) => !isTransactionUnconfirmed(tx.blockHeight))
-      .map((tx) => tx.id)
-  )
-  const excluded = new Set(input.excludedOutpoints)
-  return input.utxos.filter((utxo) => {
-    const outpoint = getUtxoOutpoint(utxo)
-    if (utxo.txid === input.replacementTxid) {
-      return false
-    }
-    if (input.spentOutpoints.has(outpoint) || excluded.has(outpoint)) {
-      return false
-    }
-    return confirmedIds.has(utxo.txid)
-  })
-}
-
-function resolveReplacementInputs(
-  vin: (OwnedInputSource & { sequence?: number })[],
-  transactions: ParentTransaction[],
-  addresses: Pick<Address, 'address' | 'keychain'>[]
-): Utxo[] | undefined {
-  const inputs: Utxo[] = []
-  for (const entry of vin) {
-    const utxo = resolveInputUtxo(entry, transactions, addresses)
-    if (!utxo) {
-      return undefined
-    }
-    inputs.push(utxo)
-  }
-  return inputs
-}
-
-function buildFeeBumpDraft(input: {
-  changeAddress: string
-  extraUtxos: Utxo[]
-  internalAddresses: Set<string>
-  originalFee: number
-  originalVsize: number
-  outputs: FeeReplacementOutput[]
-  resolvedInputs: Utxo[]
-  targetFeeRate: number
-}): FeeReplacementDraftResult {
-  if (!input.changeAddress) {
-    return { ok: false, reason: 'no-destination' }
-  }
-  if (input.resolvedInputs.length === 0) {
-    return { ok: false, reason: 'unresolved-inputs' }
-  }
-
-  const payments = input.outputs.filter(
-    (output) => !input.internalAddresses.has(output.to)
-  )
-
-  const candidates: Utxo[][] = [input.resolvedInputs]
-  const extras = input.extraUtxos.toSorted(
-    (left, right) => left.value - right.value
-  )
-  for (const extra of extras) {
-    candidates.push([...input.resolvedInputs, extra])
-  }
-
-  for (const inputs of candidates) {
-    const sizedPayments: Output[] = payments.map((output, index) => ({
-      ...output,
-      localId: String(index)
-    }))
-    const { vsize } = estimateTransactionSize(inputs, sizedPayments, true)
-    const floor = minimumReplacementFee(
-      input.originalFee,
-      input.originalVsize,
-      vsize
-    )
-    const rated = Math.ceil(Math.max(input.targetFeeRate, 1) * vsize)
-    const fee = Math.max(floor, rated)
-    const changeAmount =
-      sumValues(inputs.map((utxo) => utxo.value)) -
-      sumValues(payments.map((output) => output.amount)) -
-      fee
-    if (changeAmount < DUST_LIMIT) {
-      continue
-    }
-    return {
-      draft: {
-        fee,
-        feeRate: Math.ceil(fee / vsize),
-        inputs,
-        outputs: payments,
-        rbf: true
-      },
-      ok: true
-    }
-  }
-
-  return { ok: false, reason: 'insufficient' }
-}
-
-function buildCancelToSelfDraft(input: {
-  destination: string
-  destinationLabel: string
-  originalFee: number
-  originalVsize: number
-  resolvedInputs: Utxo[]
-  targetFeeRate: number
-}): FeeReplacementDraftResult {
-  if (!input.destination) {
-    return { ok: false, reason: 'no-destination' }
-  }
-  if (input.resolvedInputs.length === 0) {
-    return { ok: false, reason: 'unresolved-inputs' }
-  }
-  const placeholder: FeeReplacementOutput[] = [
-    {
-      amount: 0,
-      label: input.destinationLabel,
-      to: input.destination
-    }
-  ]
-  const vsize = estimateVsize(input.resolvedInputs, placeholder)
-  const floor = minimumReplacementFee(
-    input.originalFee,
-    input.originalVsize,
-    vsize
-  )
-  const fee = Math.max(
-    floor,
-    Math.ceil(Math.max(input.targetFeeRate, 1) * vsize)
-  )
-  const inputValue = sumValues(input.resolvedInputs.map((utxo) => utxo.value))
-  const settled = alignRemainderFee({ fee, inputValue, vsize })
-  if (!settled) {
-    return { ok: false, reason: 'insufficient' }
-  }
-  return draftResult(
-    input.resolvedInputs,
-    [
-      {
-        amount: settled.amount,
-        label: input.destinationLabel,
-        to: input.destination
-      }
-    ],
-    settled.fee,
-    settled.feeRate
-  )
+  return Math.max(fromPackage, relayFloor)
 }
 
 function buildCpfpDraft(input: {
@@ -410,109 +239,79 @@ function buildCpfpDraft(input: {
   if (!input.destination) {
     return { ok: false, reason: 'no-destination' }
   }
-  const placeholder: FeeReplacementOutput[] = [
-    {
-      amount: 0,
-      label: input.destinationLabel,
-      to: input.destination
-    }
-  ]
-  const childVsize = estimateVsize([input.utxo], placeholder)
+  const output = {
+    amount: 0,
+    label: input.destinationLabel,
+    to: input.destination
+  }
+  const childVsize = estimateTransactionSize(
+    [input.utxo],
+    [{ ...output, localId: '0' }]
+  ).vsize
   const fee = minimumChildFee({
     childVsize,
     parentFee: input.parentFee,
     parentVsize: input.parentVsize,
-    targetFeeRate: Math.max(input.targetFeeRate, 1)
+    targetFeeRate: input.targetFeeRate
   })
-  const settled = alignRemainderFee({
-    fee,
-    inputValue: input.utxo.value,
-    vsize: childVsize
-  })
-  if (!settled) {
+  const amount = input.utxo.value - fee
+  if (amount < DUST_LIMIT) {
     return { ok: false, reason: 'insufficient' }
   }
-  return draftResult(
-    [input.utxo],
-    [
-      {
-        amount: settled.amount,
-        label: input.destinationLabel,
-        to: input.destination
-      }
-    ],
-    settled.fee,
-    settled.feeRate
-  )
-}
-
-function ownedOutputIndexes(
-  txid: string,
-  outputs: { address: string }[],
-  unspentOutpoints: Set<string>
-): number[] {
-  const indexes: number[] = []
-  for (let index = 0; index < outputs.length; index += 1) {
-    if (unspentOutpoints.has(getUtxoOutpoint({ txid, vout: index }))) {
-      indexes.push(index)
-    }
-  }
-  return indexes
-}
-
-function assessAccountTransaction(input: {
-  blockHeight?: number
-  ownedOutpoints: Set<string>
-  txid: string
-  unspentOutpoints: Set<string>
-  vin: (OwnedInputSource & SequenceInput)[]
-  vout: { address: string }[]
-}): FeeReplacementAssessment {
-  const unconfirmed = isTransactionUnconfirmed(input.blockHeight)
-  const signalsRbf = transactionSignalsRbf(input.vin)
-  const allInputsOwned =
-    input.vin.length > 0 &&
-    input.vin.every((vin) =>
-      input.ownedOutpoints.has(
-        getUtxoOutpoint({
-          txid: vin.previousOutput.txid,
-          vout: vin.previousOutput.vout
-        })
-      )
-    )
-  const unspentIndexes = ownedOutputIndexes(
-    input.txid,
-    input.vout,
-    input.unspentOutpoints
-  )
-  const hasUnspentOwnedOutput = unspentIndexes.length > 0
   return {
-    allInputsOwned,
-    canBumpOrCancel: unconfirmed && signalsRbf && allInputsOwned,
-    canCpfp: unconfirmed && hasUnspentOwnedOutput,
-    hasUnspentOwnedOutput,
-    signalsRbf,
-    unconfirmed
+    draft: {
+      fee,
+      feeRate: Math.ceil(fee / Math.max(childVsize, 1)),
+      inputs: [input.utxo],
+      outputs: [{ ...output, amount }]
+    },
+    ok: true
+  }
+}
+
+function buildDraftFromReplacementPsbt(input: {
+  addresses: Pick<Address, 'address' | 'keychain'>[]
+  extracted: Pick<ExtractedTransactionData, 'fee' | 'inputs' | 'outputs'>
+  feeRate: number
+  labelByAddress: Map<string, string>
+}): FeeReplacementDraft {
+  const keychainByAddress = new Map(
+    input.addresses.map((entry) => [entry.address, entry.keychain] as const)
+  )
+  return {
+    fee: input.extracted.fee,
+    feeRate: input.feeRate,
+    inputs: input.extracted.inputs.map((entry) => ({
+      addressTo: entry.address,
+      keychain:
+        keychainByAddress.get(entry.address ?? '') === 'internal'
+          ? 'internal'
+          : 'external',
+      script: entry.script,
+      txid: entry.txid,
+      value: entry.value,
+      vout: entry.vout
+    })),
+    outputs: input.extracted.outputs.map((entry) => ({
+      amount: entry.value,
+      label: input.labelByAddress.get(entry.address) ?? '',
+      to: entry.address
+    }))
   }
 }
 
 export {
-  alignRemainderFee,
-  assessAccountTransaction,
-  buildCancelToSelfDraft,
   buildCpfpDraft,
-  buildFeeBumpDraft,
-  feeWithReplacementFloor,
-  getPreviewReplacementFlags,
+  buildDraftFromReplacementPsbt,
+  getBumpRecipients,
+  getExcludedUtxos,
+  getFeeReplacementOptions,
   getReplacementActions,
+  getTransactionFeeRate,
   minimumChildFee,
-  minimumReplacementFee,
-  parseFeeRateFloor,
-  parseRemainderKind,
-  parseReplacementFeeFloor,
-  pickFreshReceiveAddress,
-  resolveReplacementInputs,
-  selectConfirmedExtraUtxos,
+  minimumReplacementFeeRate,
+  parseFeeReplacementKind,
+  pickCpfpUtxo,
   spendsUnconfirmedParent,
   transactionSignalsRbf
 }

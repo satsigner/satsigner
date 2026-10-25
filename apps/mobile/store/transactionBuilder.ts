@@ -6,7 +6,10 @@ import { immer } from 'zustand/middleware/immer'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import { type FeeReplacementDraft } from '@/types/models/FeeReplacement'
+import {
+  type FeeReplacementDraft,
+  type PrebuiltReplacement
+} from '@/types/models/FeeReplacement'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { randomUuid } from '@/utils/crypto'
@@ -49,6 +52,8 @@ type SavedDraft = {
   signedTx?: string
   /** Finalized PSBT base64 for restoring UI/chart after restart. */
   signedPsbtBase64?: string
+  /** Txid this draft replaces (RBF bump or cancel). */
+  replacesTxid?: string
 }
 
 type TransactionBuilderState = {
@@ -65,6 +70,10 @@ type TransactionBuilderState = {
   /** Full BIP21 URI with pj= when sending to a Payjoin invoice. */
   payjoinUri?: string
   psbt?: PsbtLike
+  /** Built outside the preview (fee replacement), so the preview must not rebuild it from inputs. */
+  isPsbtPrebuilt: boolean
+  /** Txid this draft replaces (RBF bump or cancel). */
+  replacesTxid?: string
   signedTx?: string
   /** Finalized PSBT base64 paired with signedTx (draft persistence). */
   signedPsbtBase64?: string
@@ -103,7 +112,11 @@ type TransactionBuilderAction = {
   setSignedPsbts: (signedPsbts: TransactionBuilderState['signedPsbts']) => void
   setBroadcasted: (broadcasted: boolean) => void
   setPayjoinUri: (payjoinUri: string | undefined) => void
-  replaceDraft: (accountId: string, draft: FeeReplacementDraft) => void
+  replaceDraft: (
+    accountId: string,
+    draft: FeeReplacementDraft,
+    replacement?: PrebuiltReplacement
+  ) => void
 }
 
 function normalizeStonewallPreview(
@@ -139,6 +152,7 @@ function syncDraft(state: Draft<TransactionBuilderState>) {
     inputs: Object.fromEntries(current(state.inputs)),
     outputs: current(state.outputs),
     rbf: state.rbf,
+    replacesTxid: state.replacesTxid,
     selectedAutoSelectUtxos: state.selectedAutoSelectUtxos,
     signedPsbtBase64: state.signedPsbtBase64,
     signedTx: state.signedTx,
@@ -183,9 +197,11 @@ const useTransactionBuilderStore = create<
           fee: 0,
           feeRate: 0,
           inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+          isPsbtPrebuilt: false,
           outputs: [],
           psbt: undefined,
           rbf: true,
+          replacesTxid: undefined,
           selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
           signedPsbts: new Map<number, string>(),
           signedTx: undefined,
@@ -194,7 +210,7 @@ const useTransactionBuilderStore = create<
         })
       },
       clearPsbt: () => {
-        set({ psbt: undefined })
+        set({ isPsbtPrebuilt: false, psbt: undefined })
       },
       clearStonewallPreview: () => {
         set((state) => {
@@ -216,10 +232,12 @@ const useTransactionBuilderStore = create<
           fee: 0,
           feeRate: 0,
           inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+          isPsbtPrebuilt: false,
           outputs: [],
           payjoinUri: undefined,
           psbt: undefined,
           rbf: true,
+          replacesTxid: undefined,
           selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
           signedPsbtBase64: undefined,
           signedPsbts: new Map<number, string>(),
@@ -235,10 +253,16 @@ const useTransactionBuilderStore = create<
       getInputs: () => [...get().inputs.values()],
       hasInput: (utxo) => get().inputs.has(getUtxoOutpoint(utxo)),
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+      isPsbtPrebuilt: false,
       outputs: [],
       payjoinUri: undefined,
       rbf: true,
       removeInput: (utxo) => {
+        const { inputs, replacesTxid } = get()
+        if (replacesTxid && inputs.has(getUtxoOutpoint(utxo))) {
+          get().clearTransaction()
+          return
+        }
         set((state) => {
           clearSignedDraftFields(state)
           state.inputs.delete(getUtxoOutpoint(utxo))
@@ -246,8 +270,16 @@ const useTransactionBuilderStore = create<
         })
       },
       removeOrphanedInputs: (accountUtxos) => {
+        const validOutpoints = new Set(accountUtxos.map(getUtxoOutpoint))
+        const { inputs, replacesTxid } = get()
+        if (
+          replacesTxid &&
+          [...inputs.keys()].some((outpoint) => !validOutpoints.has(outpoint))
+        ) {
+          get().clearTransaction()
+          return
+        }
         set((state) => {
-          const validOutpoints = new Set(accountUtxos.map(getUtxoOutpoint))
           let removed = false
           for (const outpoint of state.inputs.keys()) {
             if (!validOutpoints.has(outpoint)) {
@@ -273,7 +305,7 @@ const useTransactionBuilderStore = create<
           syncDraft(state)
         })
       },
-      replaceDraft: (accountId, draft) => {
+      replaceDraft: (accountId, draft, replacement) => {
         set((state) => {
           state.accountId = accountId
           state.broadcasted = false
@@ -283,13 +315,18 @@ const useTransactionBuilderStore = create<
           for (const utxo of draft.inputs) {
             state.inputs.set(getUtxoOutpoint(utxo), utxo)
           }
-          state.outputs = draft.outputs.map((output) => ({
-            ...output,
-            localId: randomUuid()
-          }))
+          // Mutate in place: syncDraft calls current(), which needs a draft.
+          state.outputs.splice(
+            0,
+            state.outputs.length,
+            ...draft.outputs.map((output) => ({
+              ...output,
+              localId: randomUuid()
+            }))
+          )
           state.payjoinUri = undefined
-          state.psbt = undefined
           state.rbf = true
+          state.replacesTxid = replacement?.replacesTxid
           state.selectedAutoSelectUtxos = 'user'
           state.signedPsbtBase64 = undefined
           state.signedPsbts = new Map<number, string>()
@@ -297,6 +334,10 @@ const useTransactionBuilderStore = create<
           state.stonewallPreview = normalizeStonewallPreview()
           state.timeLock = 0
           syncDraft(state)
+        })
+        set({
+          isPsbtPrebuilt: replacement !== undefined,
+          psbt: replacement?.psbt
         })
       },
       selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
@@ -311,6 +352,7 @@ const useTransactionBuilderStore = create<
           rbf,
           cpfp,
           drafts,
+          replacesTxid,
           selectedAutoSelectUtxos,
           signedPsbtBase64,
           signedTx,
@@ -331,6 +373,7 @@ const useTransactionBuilderStore = create<
             inputs: Object.fromEntries(inputs),
             outputs: [...outputs],
             rbf,
+            replacesTxid,
             selectedAutoSelectUtxos,
             signedPsbtBase64,
             signedTx,
@@ -350,9 +393,11 @@ const useTransactionBuilderStore = create<
           inputs: newDraft
             ? new Map(Object.entries(newDraft.inputs))
             : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+          isPsbtPrebuilt: false,
           outputs: newDraft?.outputs ?? [],
           psbt: undefined,
           rbf: newDraft?.rbf ?? true,
+          replacesTxid: newDraft?.replacesTxid,
           selectedAutoSelectUtxos: resolveDraftAlgorithm(newDraft),
           signedPsbtBase64: newDraft?.signedPsbtBase64,
           signedPsbts: new Map<number, string>(),
@@ -463,6 +508,7 @@ const useTransactionBuilderStore = create<
           inputs: new Map(Object.entries(draft.inputs)),
           outputs: draft.outputs,
           rbf: draft.rbf,
+          replacesTxid: draft.replacesTxid,
           selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
           signedPsbtBase64: draft.signedPsbtBase64,
           signedTx: draft.signedTx,
@@ -479,4 +525,19 @@ const useTransactionBuilderStore = create<
   )
 )
 
-export { useTransactionBuilderStore }
+function hasUnfinishedDraft(
+  state: Pick<TransactionBuilderState, 'drafts'>,
+  accountId: string
+): boolean {
+  const draft = state.drafts[accountId]
+  if (!draft) {
+    return false
+  }
+  return (
+    Object.keys(draft.inputs).length > 0 ||
+    draft.outputs.length > 0 ||
+    draft.signedTx !== undefined
+  )
+}
+
+export { hasUnfinishedDraft, useTransactionBuilderStore }

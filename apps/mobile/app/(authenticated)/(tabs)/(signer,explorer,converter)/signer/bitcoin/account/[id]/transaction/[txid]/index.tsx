@@ -2,15 +2,14 @@ import { hex } from '@scure/base'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
-import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSLabelDetails from '@/components/SSLabelDetails'
-import SSModal from '@/components/SSModal'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -28,23 +27,13 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Sizes } from '@/styles'
-import { type FeeReplacementDraftResult } from '@/types/models/FeeReplacement'
+import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
-import {
-  assessAccountTransaction,
-  buildCancelToSelfDraft,
-  buildCpfpDraft,
-  buildFeeBumpDraft,
-  getReplacementActions,
-  pickFreshReceiveAddress,
-  resolveReplacementInputs,
-  selectConfirmedExtraUtxos
-} from '@/utils/feeReplacement'
+import { getFeeReplacementOptions } from '@/utils/feeReplacement'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -125,29 +114,6 @@ export default function TxDetails() {
     () => analyzePossiblePayjoin(displayTx?.vin, ownedOutpoints),
     [displayTx?.vin, ownedOutpoints]
   )
-  const replaceDraft = useTransactionBuilderStore((state) => state.replaceDraft)
-  const [cancelVisible, setCancelVisible] = useState(false)
-  const replacementAssessment = displayTx
-    ? assessAccountTransaction({
-        blockHeight: displayTx.blockHeight,
-        ownedOutpoints,
-        txid: displayTx.id,
-        unspentOutpoints,
-        vin: displayTx.vin,
-        vout: displayTx.vout
-      })
-    : undefined
-  const replacementActions = getReplacementActions(
-    replacementAssessment ?? {
-      allInputsOwned: false,
-      canBumpOrCancel: false,
-      canCpfp: false,
-      hasUnspentOwnedOutput: false,
-      signalsRbf: false,
-      unconfirmed: false
-    },
-    account?.policyType ?? 'watchonly'
-  )
 
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -160,6 +126,16 @@ export default function TxDetails() {
   )
 
   const currentServer = configs[selectedNetwork].server
+
+  const feeReplacement =
+    account && displayTx
+      ? getFeeReplacementOptions({
+          account,
+          backend: currentServer.backend,
+          ownedOutpoints,
+          tx: displayTx
+        })
+      : undefined
 
   const placeholder = '-'
 
@@ -259,144 +235,22 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function openReplacement(
-    result: FeeReplacementDraftResult,
-    remainder?: 'cancel' | 'cpfp'
-  ) {
-    if (!accountId || !result.ok) {
-      toast.error(t('transaction.feeReplacement.error.failed'))
-      return
-    }
-    replaceDraft(accountId, result.draft)
-    const remainderQuery = remainder ? `&remainder=${remainder}` : ''
+  function openFeeReplacement(kind: FeeReplacementKind) {
     router.navigate(
-      `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?feeRateFloor=${result.draft.feeRate}&feeFloor=${result.draft.fee}${remainderQuery}`
+      `/signer/bitcoin/account/${accountId}/transaction/${txid}/feeReplacement?kind=${kind}`
     )
-  }
-
-  function replacementContext() {
-    if (!account || !displayTx) {
-      return undefined
-    }
-    const resolvedInputs = resolveReplacementInputs(
-      displayTx.vin,
-      account.transactions,
-      account.addresses
-    )
-    const spent = new Set((resolvedInputs ?? []).map(getUtxoOutpoint))
-    const estimatedVsize = resolvedInputs
-      ? resolvedInputs.length * 68 + displayTx.vout.length * 31 + 10
-      : undefined
-    const originalVsize =
-      displayTx.vsize && displayTx.vsize > 0 ? displayTx.vsize : estimatedVsize
-    if (!originalVsize) {
-      return undefined
-    }
-    const originalFee = displayTx.fee
-    const targetFeeRate =
-      originalFee === undefined
-        ? 1
-        : Math.floor(originalFee / Math.max(originalVsize, 1)) + 1
-    const destination =
-      pickFreshReceiveAddress(account.addresses) ??
-      account.addresses.find((address) => address.keychain === 'external')
-        ?.address ??
-      ''
-    return {
-      destination,
-      extraUtxos: selectConfirmedExtraUtxos({
-        excludedOutpoints: account.excludedUtxoOutpoints ?? [],
-        replacementTxid: displayTx.id,
-        spentOutpoints: spent,
-        transactions: account.transactions,
-        utxos: account.utxos
-      }),
-      originalFee,
-      originalVsize,
-      outputs: displayTx.vout.map((output) => ({
-        amount: output.value,
-        kind: output.kind,
-        label: output.label ?? '',
-        to: output.address
-      })),
-      resolvedInputs,
-      targetFeeRate: Math.max(targetFeeRate, 1)
-    }
   }
 
   function handleIncreaseFee() {
-    const context = replacementContext()
-    const changeAddress =
-      account?.addresses.find((address) => address.keychain === 'internal')
-        ?.address ??
-      context?.destination ??
-      ''
-    if (!context?.resolvedInputs || context.originalFee === undefined) {
-      toast.error(t('transaction.feeReplacement.error.failed'))
-      return
-    }
-    openReplacement(
-      buildFeeBumpDraft({
-        changeAddress,
-        extraUtxos: context.extraUtxos,
-        internalAddresses,
-        originalFee: context.originalFee,
-        originalVsize: context.originalVsize,
-        outputs: context.outputs,
-        resolvedInputs: context.resolvedInputs,
-        targetFeeRate: context.targetFeeRate
-      })
-    )
+    openFeeReplacement('bump')
   }
 
-  function handleConfirmCancel() {
-    setCancelVisible(false)
-    const context = replacementContext()
-    if (!context?.resolvedInputs || context.originalFee === undefined) {
-      toast.error(t('transaction.feeReplacement.error.failed'))
-      return
-    }
-    openReplacement(
-      buildCancelToSelfDraft({
-        destination: context.destination,
-        destinationLabel: t('transaction.feeReplacement.cancel.action'),
-        originalFee: context.originalFee,
-        originalVsize: context.originalVsize,
-        resolvedInputs: context.resolvedInputs,
-        targetFeeRate: context.targetFeeRate
-      }),
-      'cancel'
-    )
+  function handleCancelToSelf() {
+    openFeeReplacement('cancel')
   }
 
   function handleChildPaysForParent() {
-    const context = replacementContext()
-    const child = account?.utxos
-      .filter((utxo) => utxo.txid === displayTx?.id)
-      .toSorted((left, right) => right.value - left.value)[0]
-    if (!context || !child || !displayTx) {
-      toast.error(t('transaction.feeReplacement.error.failed'))
-      return
-    }
-    openReplacement(
-      buildCpfpDraft({
-        destination: context.destination,
-        destinationLabel: t('transaction.feeReplacement.cpfp'),
-        parentFee: context.originalFee ?? 0,
-        parentVsize: context.originalVsize,
-        targetFeeRate: Math.max(context.targetFeeRate, 2),
-        utxo: child
-      }),
-      'cpfp'
-    )
-  }
-
-  function handleOpenCancel() {
-    setCancelVisible(true)
-  }
-
-  function handleCloseCancel() {
-    setCancelVisible(false)
+    openFeeReplacement('cpfp')
   }
 
   if (!accountId || !txid || !displayTx) {
@@ -419,38 +273,27 @@ export default function TxDetails() {
               : undefined
           }
         />
-        {replacementAssessment?.unconfirmed ? (
+        {feeReplacement?.assessment.unconfirmed ? (
           <SSVStack gap="xs">
-            {replacementAssessment.signalsRbf ||
-            replacementAssessment.canCpfp ? (
-              <SSHStack gap="sm">
-                {replacementAssessment.signalsRbf ? (
-                  <SSText uppercase color="muted">
-                    {t('transaction.feeReplacement.flag.rbf')}
-                  </SSText>
-                ) : null}
-                {replacementAssessment.canCpfp ? (
-                  <SSText uppercase color="muted">
-                    {t('transaction.feeReplacement.flag.cpfp')}
-                  </SSText>
-                ) : null}
-              </SSHStack>
-            ) : null}
-            {replacementActions.bump ? (
+            <SSFeeReplacementFlags
+              rbf={feeReplacement.assessment.signalsRbf}
+              cpfp={feeReplacement.assessment.canCpfp}
+            />
+            {feeReplacement.actions.bump ? (
               <SSButton
                 variant="outline"
                 label={t('transaction.feeReplacement.bump')}
                 onPress={handleIncreaseFee}
               />
             ) : null}
-            {replacementActions.cancel ? (
+            {feeReplacement.actions.cancel ? (
               <SSButton
                 variant="danger"
                 label={t('transaction.feeReplacement.cancel.action')}
-                onPress={handleOpenCancel}
+                onPress={handleCancelToSelf}
               />
             ) : null}
-            {replacementActions.cpfp ? (
+            {feeReplacement.actions.cpfp ? (
               <SSButton
                 variant="outline"
                 label={t('transaction.feeReplacement.cpfp')}
@@ -571,26 +414,6 @@ export default function TxDetails() {
           </>
         )}
       </SSVStack>
-      <SSModal visible={cancelVisible} onClose={handleCloseCancel} label="">
-        <SSVStack gap="md">
-          <SSText uppercase>
-            {t('transaction.feeReplacement.cancel.title')}
-          </SSText>
-          <SSText color="muted">
-            {t('transaction.feeReplacement.cancel.message')}
-          </SSText>
-          <SSButton
-            variant="secondary"
-            label={t('transaction.feeReplacement.cancel.confirm')}
-            onPress={handleConfirmCancel}
-          />
-          <SSButton
-            variant="ghost"
-            label={t('common.cancel')}
-            onPress={handleCloseCancel}
-          />
-        </SSVStack>
-      </SSModal>
     </ScrollView>
   )
 }

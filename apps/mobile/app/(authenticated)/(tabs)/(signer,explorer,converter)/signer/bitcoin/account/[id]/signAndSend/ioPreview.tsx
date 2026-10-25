@@ -27,6 +27,7 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
@@ -81,14 +82,7 @@ import {
   type DetectedContent
 } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
-import {
-  feeWithReplacementFloor,
-  getPreviewReplacementFlags,
-  parseFeeRateFloor,
-  parseRemainderKind,
-  parseReplacementFeeFloor,
-  spendsUnconfirmedParent
-} from '@/utils/feeReplacement'
+import { spendsUnconfirmedParent } from '@/utils/feeReplacement'
 import {
   estimateTargetBlocks,
   getFeeRateInputMax,
@@ -148,14 +142,8 @@ export default function IOPreview() {
     useZeroPadding
   } = useDisplayPreferences()
   const router = useRouter()
-  const {
-    id,
-    autoSelectFromUri,
-    dustWarning,
-    feeFloor: feeFloorParam,
-    feeRateFloor: feeRateFloorParam,
-    remainder: remainderParam
-  } = useLocalSearchParams<IoPreviewSearchParams>()
+  const { id, autoSelectFromUri, dustWarning } =
+    useLocalSearchParams<IoPreviewSearchParams>()
   const isFocused = useIsFocused()
   const insets = useSafeAreaInsets()
 
@@ -278,26 +266,7 @@ export default function IOPreview() {
 
   const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
     useState<Utxo[]>()
-  const feeRateFloor = parseFeeRateFloor(
-    Array.isArray(feeRateFloorParam) ? feeRateFloorParam[0] : feeRateFloorParam
-  )
-  const replacementFeeFloor = parseReplacementFeeFloor(
-    Array.isArray(feeFloorParam) ? feeFloorParam[0] : feeFloorParam
-  )
-  const previewFlags = getPreviewReplacementFlags({
-    rbf,
-    spendsUnconfirmedParent: spendsUnconfirmedParent(
-      [...inputs.values()],
-      account?.transactions ?? []
-    )
-  })
-  const remainderKind = parseRemainderKind(
-    Array.isArray(remainderParam) ? remainderParam[0] : remainderParam
-  )
-  const acceptedFeeRateRef = useRef(feeRate)
-  const [localFeeRate, setLocalFeeRate] = useState(() =>
-    Math.max(feeRate, feeRateFloor)
-  )
+  const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [feeRateDraft, setFeeRateDraft] = useState<number>()
   const sheetFeeRate = feeRateDraft ?? localFeeRate
   const [outputsCount, setOutputsCount] = useState(0)
@@ -358,12 +327,8 @@ export default function IOPreview() {
   }, [inputs, outputs])
 
   const baseMinerFee = useMemo(
-    () =>
-      feeWithReplacementFloor(
-        Math.round(localFeeRate * baseTransactionSize.vsize),
-        replacementFeeFloor
-      ),
-    [localFeeRate, baseTransactionSize.vsize, replacementFeeFloor]
+    () => Math.round(localFeeRate * baseTransactionSize.vsize),
+    [localFeeRate, baseTransactionSize.vsize]
   )
 
   const totalOutputValue = useMemo(
@@ -377,6 +342,10 @@ export default function IOPreview() {
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
+  const spendsUnconfirmedInput = spendsUnconfirmedParent(
+    [...inputs.values()],
+    account.transactions
+  )
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
@@ -514,12 +483,8 @@ export default function IOPreview() {
   }, [inputs, outputs, hasChange])
 
   const minerFee = useMemo(
-    () =>
-      feeWithReplacementFloor(
-        Math.round(localFeeRate * transactionSize.vsize),
-        replacementFeeFloor
-      ),
-    [localFeeRate, replacementFeeFloor, transactionSize.vsize]
+    () => Math.round(localFeeRate * transactionSize.vsize),
+    [localFeeRate, transactionSize.vsize]
   )
 
   const stonewallPaymentContext = getStonewallPaymentContext({
@@ -655,8 +620,8 @@ export default function IOPreview() {
   }, [deferUnderfundedWarning, isUnderfunded])
 
   useEffect(() => {
-    if (feeRate < feeRateFloor) {
-      setFeeRate(feeRateFloor)
+    if (feeRate === 0) {
+      setFeeRate(1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -675,57 +640,20 @@ export default function IOPreview() {
     if (recommendedFeeRate === null) {
       return
     }
-    if (feeRateFloor > 1 || feeRate > 1) {
+    if (feeRate > 1) {
       hasHydratedRecommendedFeeRate.current = true
       return
     }
     setFeeRate(recommendedFeeRate)
     hasHydratedRecommendedFeeRate.current = true
-  }, [feeRate, feeRateFloor, nextBlockFee, setFeeRate])
+  }, [feeRate, nextBlockFee, setFeeRate])
 
   useEffect(() => {
     if (selectedAutoSelectUtxos === 'privacy') {
       return
     }
-    const nextFee = feeWithReplacementFloor(
-      Math.round(localFeeRate * transactionSize.vsize),
-      replacementFeeFloor
-    )
-    const remainderOutput = outputs.length === 1 ? outputs[0] : undefined
-    if (remainderKind && remainderOutput) {
-      const inputValue = [...inputs.values()].reduce(
-        (total, utxo) => total + utxo.value,
-        0
-      )
-      const amount = inputValue - nextFee
-      if (amount < DUST_LIMIT) {
-        if (localFeeRate !== acceptedFeeRateRef.current) {
-          setFeeRate(acceptedFeeRateRef.current)
-          setLocalFeeRate(acceptedFeeRateRef.current)
-          toast.error(t('transaction.feeReplacement.error.feeTooHigh'))
-        }
-        return
-      }
-      if (remainderOutput.amount !== amount) {
-        const { localId, ...output } = remainderOutput
-        updateOutput(localId, { ...output, amount })
-      }
-    }
-    acceptedFeeRateRef.current = localFeeRate
-    setFee(nextFee)
-  }, [
-    inputs,
-    localFeeRate,
-    outputs,
-    remainderKind,
-    replacementFeeFloor,
-    selectedAutoSelectUtxos,
-    setFee,
-    setFeeRate,
-    setLocalFeeRate,
-    transactionSize,
-    updateOutput
-  ])
+    setFee(Math.round(localFeeRate * transactionSize.vsize))
+  }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
 
   useEffect(() => {
     setLocalFeeRate(feeRate)
@@ -1596,29 +1524,11 @@ export default function IOPreview() {
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
           <SSVStack gap="xs">
-            {remainderKind ? (
-              <SSText color="muted" size="sm">
-                {t(
-                  remainderKind === 'cancel'
-                    ? 'transaction.feeReplacement.note.cancel'
-                    : 'transaction.feeReplacement.note.cpfp'
-                )}
-              </SSText>
-            ) : null}
-            {previewFlags.showRbf || previewFlags.showCpfp ? (
-              <SSHStack gap="sm">
-                {previewFlags.showRbf ? (
-                  <SSText uppercase color="muted" size="xs">
-                    {t('transaction.feeReplacement.flag.rbf')}
-                  </SSText>
-                ) : null}
-                {previewFlags.showCpfp ? (
-                  <SSText uppercase color="muted" size="xs">
-                    {t('transaction.feeReplacement.flag.cpfp')}
-                  </SSText>
-                ) : null}
-              </SSHStack>
-            ) : null}
+            <SSFeeReplacementFlags
+              rbf={rbf}
+              cpfp={spendsUnconfirmedInput}
+              size="xs"
+            />
             <SSHStack gap="xs">
               <SSButton
                 variant="outline"
@@ -2026,7 +1936,6 @@ export default function IOPreview() {
             onValueChange={handleFeeRateChange}
             vbytes={transactionSize.vsize}
             max={feeRateSliderMax}
-            min={feeRateFloor}
             inputMax={feeRateInputMax}
             estimatedBlock={estimatedTargetBlocks}
             fiatCurrency={fiatCurrency}

@@ -30,9 +30,6 @@ export type AccountSearchParams = {
 export type IoPreviewSearchParams = AccountSearchParams & {
   autoSelectFromUri?: string
   dustWarning?: string
-  feeFloor?: string
-  feeRateFloor?: string
-  remainder?: string
 }
 
 export type PreviewTransactionSearchParams = AccountSearchParams & {
@@ -47,6 +44,10 @@ export type AddrSearchParams = {
 export type TxSearchParams = {
   txid: string
 } & AccountSearchParams
+
+export type FeeReplacementSearchParams = {
+  kind?: string
+} & TxSearchParams
 
 export type UtxoSearchParams = {
   vout: string
