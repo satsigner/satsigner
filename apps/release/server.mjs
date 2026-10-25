@@ -330,7 +330,7 @@ function isTrustedLocalRequest(req) {
   if (!ALLOWED_HOSTS.has(host)) {
     return false
   }
-  const {origin} = req.headers
+  const { origin } = req.headers
   if (typeof origin !== 'string' || origin.length === 0) {
     return true
   }
