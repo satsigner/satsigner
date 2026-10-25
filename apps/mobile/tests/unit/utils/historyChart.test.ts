@@ -1,15 +1,16 @@
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import {
   buildBalanceHistory,
   buildChartData,
   buildFiatChartPoints,
-  buildFiatStepPath,
-  buildFiatValueById,
-  buildTransactionsMap,
+  buildFiatLinePath,
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
+  fiatPointsInWindow,
+  fiatSeriesColor,
   fiatYDomain,
   formatFiatAxisTick,
   hexToRgba,
@@ -147,220 +148,184 @@ describe('computeValidChartData', () => {
   })
 })
 
-describe('buildFiatValueById', () => {
-  const now = new Date('2026-01-10T00:00:00Z')
+const DAY = 86_400
 
-  function fiatValues(
+function unixDays(start: string, count: number) {
+  const origin = new Date(start).getTime() / 1000
+  return Array.from({ length: count }, (_, index) => origin + index * DAY)
+}
+
+describe('buildFiatChartPoints', () => {
+  const now = new Date('2026-01-10T00:00:00Z')
+  const start = new Date('2026-01-01T00:00:00Z')
+  const end = new Date('2026-01-06T00:00:00Z')
+  const defaultRange = { endDate: end, startDate: start }
+
+  function pointsFor(
     transactions: Transaction[],
-    bundledPriceAt: (timestamp: number) => number | null
+    prices: (number | null)[],
+    range: { endDate: Date; startDate: Date }
   ) {
-    return buildFiatValueById({
-      bundledPriceAt,
+    const times = unixDays('2026-01-01T00:00:00Z', prices.length)
+    return buildFiatChartPoints({
       chartData: buildChartData(transactions, now),
-      currency: 'USD',
-      transactionsMap: buildTransactionsMap(transactions)
-    })
+      closes: times.map((time, index) => ({ price: prices[index], time })),
+      endDate: range.endDate,
+      startDate: range.startDate
+    }).map((point) => point.value)
   }
 
-  it('converts the running balance with the price saved on the transaction', () => {
-    const values = fiatValues(
-      [
-        makeTx({
-          id: 'a',
-          prices: { USD: 40_000 },
-          received: 100_000_000,
-          timestamp: new Date('2026-01-02T00:00:00Z'),
-          type: 'receive'
-        })
-      ],
-      () => 50_000
-    )
-    expect(values.get('a')).toBe(40_000)
-  })
-
-  it('uses the bundled price when the transaction has no saved price', () => {
-    const values = fiatValues(
-      [
-        makeTx({
-          id: 'a',
-          received: 50_000_000,
-          timestamp: new Date('2026-01-02T00:00:00Z'),
-          type: 'receive'
-        })
-      ],
-      () => 60_000
-    )
-    expect(values.get('a')).toBe(30_000)
-  })
-
-  it('looks up the bundled price for a persisted string timestamp', () => {
-    const bundledPriceAt = jest.fn(() => 60_000)
-    const persisted = {
-      ...makeTx({ id: 'a', received: 50_000_000, type: 'receive' }),
-      timestamp: '2026-01-02T00:00:00.000Z'
-    }
-    const values = buildFiatValueById({
-      bundledPriceAt,
-      chartData: [
-        {
-          amount: 50_000_000,
-          balance: 50_000_000,
-          date: new Date('2026-01-02T00:00:00Z'),
-          id: 'a',
-          memo: '',
-          type: 'receive'
-        }
-      ],
-      currency: 'USD',
-      transactionsMap: new Map([['a', persisted]])
-    })
-    expect(bundledPriceAt).toHaveBeenCalledWith(1_767_312_000)
-    expect(values.get('a')).toBe(30_000)
-  })
-
-  it('leaves a gap when neither the transaction nor the bundle has a price', () => {
-    const values = fiatValues(
-      [
-        makeTx({
-          id: 'a',
-          prices: { USD: 40_000 },
-          received: 100_000_000,
-          timestamp: new Date('2026-01-02T00:00:00Z'),
-          type: 'receive'
-        }),
-        makeTx({
-          id: 'b',
-          received: 100_000_000,
-          timestamp: new Date('2026-06-02T00:00:00Z'),
-          type: 'receive'
-        })
-      ],
-      () => null
-    )
-    expect(values.get('a')).toBe(40_000)
-    expect(values.has('b')).toBe(false)
-    expect(maxFiatValue(values.values())).toBe(40_000)
-  })
-
-  it('does not use the bundled price when a saved price exists', () => {
-    const values = fiatValues(
+  it('follows each bundled close while the balance stays constant', () => {
+    const values = pointsFor(
       [
         makeTx({
           id: 'a',
           prices: { USD: 10_000 },
           received: 100_000_000,
+          timestamp: new Date('2026-01-01T00:00:00Z'),
           type: 'receive'
         })
       ],
-      () => 99_000
+      [40_000, 50_000, 60_000],
+      defaultRange
     )
-    expect(values.get('a')).toBe(10_000)
+    expect(values).toStrictEqual([40_000, 50_000, 60_000])
   })
 
-  it('values the balance left after a send', () => {
-    const values = fiatValues(
+  it('keeps moving after a single transaction as later closes arrive', () => {
+    const values = pointsFor(
       [
         makeTx({
           id: 'a',
-          prices: { USD: 40_000 },
+          received: 50_000_000,
+          timestamp: new Date('2026-01-01T00:00:00Z'),
+          type: 'receive'
+        })
+      ],
+      [40_000, 80_000, 20_000],
+      {
+        endDate: new Date('2026-01-03T00:00:00Z'),
+        startDate: new Date('2026-01-01T00:00:00Z')
+      }
+    )
+    expect(values).toStrictEqual([20_000, 40_000, 10_000])
+  })
+
+  it('marks the balance to the selected currency closes', () => {
+    const transactions = [
+      makeTx({
+        id: 'a',
+        received: 100_000_000,
+        timestamp: new Date('2026-01-01T00:00:00Z'),
+        type: 'receive'
+      })
+    ]
+    const chartData = buildChartData(transactions, now)
+    const times = unixDays('2026-01-01T00:00:00Z', 2)
+    const bundles = {
+      EUR: [40_000, 42_000],
+      USD: [50_000, 55_000]
+    }
+
+    function series(currency: keyof typeof bundles) {
+      return buildFiatChartPoints({
+        chartData,
+        closes: times.map((time, index) => ({
+          price: bundles[currency][index],
+          time
+        })),
+        endDate: new Date('2026-01-02T00:00:00Z'),
+        startDate: start
+      }).map((point) => point.value)
+    }
+
+    expect(series('USD')).toStrictEqual([50_000, 55_000])
+    expect(series('EUR')).toStrictEqual([40_000, 42_000])
+  })
+
+  it('leaves a gap where a bundled timestamp has no close', () => {
+    const values = pointsFor(
+      [
+        makeTx({
+          id: 'a',
           received: 100_000_000,
-          timestamp: new Date('2026-01-02T00:00:00Z'),
+          timestamp: new Date('2026-01-01T00:00:00Z'),
+          type: 'receive'
+        })
+      ],
+      [40_000, null, 60_000],
+      defaultRange
+    )
+    expect(values).toStrictEqual([40_000, null, 60_000])
+    expect(maxFiatValue(values)).toBe(60_000)
+  })
+
+  it('uses the balance in effect at each close, including after a send', () => {
+    const values = pointsFor(
+      [
+        makeTx({
+          id: 'a',
+          received: 100_000_000,
+          timestamp: new Date('2026-01-01T00:00:00Z'),
           type: 'receive'
         }),
         makeTx({
           id: 'b',
-          prices: { USD: 50_000 },
           received: 10_000_000,
           sent: 60_000_000,
-          timestamp: new Date('2026-01-03T00:00:00Z'),
+          timestamp: new Date('2026-01-02T00:00:00Z'),
           type: 'send'
         })
       ],
-      () => null
+      [40_000, 50_000],
+      defaultRange
     )
-    expect(values.get('b')).toBe(25_000)
-  })
-
-  it('leaves an unconfirmed transaction without a saved price unpriced', () => {
-    const bundledPriceAt = jest.fn(() => 60_000)
-    const values = fiatValues(
-      [makeTx({ id: 'a', received: 100_000_000, type: 'receive' })],
-      bundledPriceAt
-    )
-    expect(values.has('a')).toBe(false)
-    expect(bundledPriceAt).not.toHaveBeenCalled()
+    expect(values).toStrictEqual([40_000, 25_000])
   })
 })
 
-describe('buildFiatChartPoints', () => {
-  const now = new Date('2026-01-10T00:00:00Z')
-  const transactions = [
-    makeTx({
-      id: 'a',
-      received: 1,
-      timestamp: new Date('2026-01-01T00:00:00Z'),
-      type: 'receive'
-    }),
-    makeTx({
-      id: 'b',
-      received: 1,
-      timestamp: new Date('2026-01-04T00:00:00Z'),
-      type: 'receive'
-    })
+describe('fiatPointsInWindow', () => {
+  const series = [
+    { date: new Date('2026-01-01T00:00:00Z'), value: 10 },
+    { date: new Date('2026-01-02T00:00:00Z'), value: 20 },
+    { date: new Date('2026-01-03T00:00:00Z'), value: 30 },
+    { date: new Date('2026-01-04T00:00:00Z'), value: 40 }
   ]
-  const chartData = buildChartData(transactions, now)
 
-  function pointValues(
-    fiatValueById: Map<string, number>,
-    startDate: Date,
-    endDate: Date
-  ) {
-    const [, validChartData] = computeValidChartData(
-      chartData,
-      startDate,
-      endDate,
-      now,
-      true
+  function windowValues(start: string, end: string) {
+    return fiatPointsInWindow(series, new Date(start), new Date(end)).map(
+      (point) => point.value
     )
-    return buildFiatChartPoints({
-      chartData,
-      fiatValueById,
-      startDate,
-      validChartData
-    }).map((point) => point.value)
   }
 
-  it('carries the last priced balance across window edges and keeps gaps', () => {
+  it('keeps one close beyond each edge so the line reaches the edges', () => {
     expect(
-      pointValues(
-        new Map([['a', 10]]),
-        new Date('2026-01-03T00:00:00Z'),
-        new Date('2026-01-06T00:00:00Z')
-      )
-    ).toStrictEqual([10, null, null])
+      windowValues('2026-01-02T12:00:00Z', '2026-01-03T12:00:00Z')
+    ).toStrictEqual([20, 30, 40])
   })
 
-  it('carries the value before the window to both edges of an empty window', () => {
+  it('keeps the surrounding closes when the window falls between two', () => {
     expect(
-      pointValues(
-        new Map([
-          ['a', 10],
-          ['b', 20]
-        ]),
-        new Date('2026-01-05T00:00:00Z'),
-        new Date('2026-01-06T00:00:00Z')
-      )
-    ).toStrictEqual([20, 20])
+      windowValues('2026-01-02T06:00:00Z', '2026-01-02T18:00:00Z')
+    ).toStrictEqual([20, 30])
   })
 
-  it('starts with a gap when the window opens before the first transaction', () => {
+  it('stops at the series ends', () => {
     expect(
-      pointValues(
-        new Map([['a', 10]]),
-        new Date('2025-12-30T00:00:00Z'),
-        new Date('2026-01-02T00:00:00Z')
-      )
-    ).toStrictEqual([null, 10, 10])
+      windowValues('2025-12-01T00:00:00Z', '2026-02-01T00:00:00Z')
+    ).toStrictEqual([10, 20, 30, 40])
+  })
+})
+
+describe('fiatSeriesColor', () => {
+  it('colors each currency from its group', () => {
+    expect(fiatSeriesColor('USD')).toBe(Colors.mutedGreen)
+    expect(fiatSeriesColor('AUD')).toBe(Colors.mutedGreen)
+    expect(fiatSeriesColor('EUR')).toBe(Colors.mutedCyan)
+    expect(fiatSeriesColor('GBP')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('CAD')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('CHF')).toBe(Colors.mutedRed)
+    expect(fiatSeriesColor('JPY')).toBe(Colors.mutedRed)
   })
 })
 
@@ -465,9 +430,9 @@ describe('fiatYDomain', () => {
   })
 })
 
-describe('buildFiatStepPath', () => {
-  it('breaks the step line where a point has no fiat value', () => {
-    const path = buildFiatStepPath(
+describe('buildFiatLinePath', () => {
+  it('breaks the line where a point has no fiat value', () => {
+    const path = buildFiatLinePath(
       [
         { date: new Date('2026-01-01T00:00:00Z'), value: 10 },
         { date: new Date('2026-01-02T00:00:00Z'), value: null },
@@ -481,7 +446,7 @@ describe('buildFiatStepPath', () => {
 
   it('returns null when every point is a gap', () => {
     expect(
-      buildFiatStepPath(
+      buildFiatLinePath(
         [{ date: new Date('2026-01-01T00:00:00Z'), value: null }],
         () => 0,
         (value) => value

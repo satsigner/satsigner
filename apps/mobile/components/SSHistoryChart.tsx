@@ -7,7 +7,7 @@ import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getLocalPriceAt } from '@/api/localPrices'
+import { getLocalPriceCloses } from '@/api/localPrices'
 import {
   MemoizedCursorRenderer,
   MemoizedHistoryChartAreaSeries,
@@ -37,8 +37,7 @@ import {
   buildBalanceHistory,
   buildChartData,
   buildFiatChartPoints,
-  buildFiatStepPath,
-  buildFiatValueById,
+  buildFiatLinePath,
   buildTransactionsMap,
   buildTxInfoLabels,
   buildTxXAxisLabels,
@@ -47,6 +46,8 @@ import {
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
+  fiatPointsInWindow,
+  fiatSeriesColor,
   fiatYDomain,
   formatFiatAxisTick,
   historyChartMargin,
@@ -175,32 +176,27 @@ function SSHistoryChart({
     [transactions]
   )
 
-  const fiatValueById = useMemo(
-    () =>
-      showFiatLine
-        ? buildFiatValueById({
-            bundledPriceAt: (timestamp) =>
-              getLocalPriceAt(fiatCurrency, timestamp),
-            chartData,
-            currency: fiatCurrency,
-            transactionsMap
-          })
-        : new Map<string, number>(),
-    [chartData, fiatCurrency, showFiatLine, transactionsMap]
-  )
+  const fiatSeries = useMemo(() => {
+    if (!showFiatLine || chartData.length === 0) {
+      return []
+    }
+    const earliest = chartData.reduce(
+      (min, point) => (point.date < min ? point.date : min),
+      chartData[0].date
+    )
+    return buildFiatChartPoints({
+      chartData,
+      closes: getLocalPriceCloses(fiatCurrency),
+      endDate: currentDate.current,
+      startDate: earliest
+    })
+  }, [chartData, fiatCurrency, showFiatLine])
   const fiatChartPoints = useMemo(
-    () =>
-      showFiatLine
-        ? buildFiatChartPoints({
-            chartData,
-            fiatValueById,
-            startDate,
-            validChartData
-          })
-        : [],
-    [chartData, fiatValueById, showFiatLine, startDate, validChartData]
+    () => fiatPointsInWindow(fiatSeries, startDate, endDate),
+    [endDate, fiatSeries, startDate]
   )
-  const maxFiatAll = maxFiatValue(fiatValueById.values())
+  const fiatColor = fiatSeriesColor(fiatCurrency)
+  const maxFiatAll = maxFiatValue(fiatSeries.map((point) => point.value))
   const maxFiat = fiatDomainMax({
     fiatChartPoints,
     lockZoomToXAxis,
@@ -238,7 +234,7 @@ function SSHistoryChart({
   const fiatLinePath = useMemo(
     () =>
       showFiatAxis
-        ? buildFiatStepPath(fiatChartPoints, xScale, fiatYScale)
+        ? buildFiatLinePath(fiatChartPoints, xScale, fiatYScale)
         : null,
     [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
   )
@@ -447,7 +443,7 @@ function SSHistoryChart({
                 chartHeight={chartHeight}
                 chartWidth={chartWidth}
                 yAxisFormatter={formatFiatAxisTick}
-                color={Colors.gold}
+                color={fiatColor}
                 labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
                 showGridLines={false}
                 title={fiatCurrency}
@@ -495,7 +491,7 @@ function SSHistoryChart({
               {showFiatAxis ? (
                 <Path
                   path={fiatLinePath ?? ''}
-                  color={Colors.gold}
+                  color={fiatColor}
                   strokeWidth={2}
                   style="stroke"
                 />
