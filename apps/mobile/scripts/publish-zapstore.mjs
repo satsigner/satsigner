@@ -363,7 +363,7 @@ async function main() {
   console.log('  It is never written to disk.\n')
 
   const secretKey = bunkerUrl ? null : await resolveSecretKey()
-  const signWith = bunkerUrl ?? nip19.nsecEncode(secretKey)
+  const signWith = bunkerUrl ? bunkerUrl : nip19.nsecEncode(secretKey)
   if (secretKey) {
     console.log(`  Pubkey: ${getPublicKey(secretKey)}`)
   }

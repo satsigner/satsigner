@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -310,13 +311,38 @@ const actions = {
     )
 }
 
-function requireLocal(req, res) {
+const ALLOWED_HOSTS = new Set([
+  `${HOST}:${PORT}`,
+  `localhost:${PORT}`,
+  `[::1]:${PORT}`
+])
+
+function isTrustedLocalRequest(req) {
   const address = req.socket.remoteAddress
   const local =
     address === '127.0.0.1' ||
     address === '::1' ||
     address === '::ffff:127.0.0.1'
   if (!local) {
+    return false
+  }
+  const host = req.headers.host ?? ''
+  if (!ALLOWED_HOSTS.has(host)) {
+    return false
+  }
+  const origin = req.headers.origin
+  if (typeof origin !== 'string' || origin.length === 0) {
+    return true
+  }
+  try {
+    return new URL(origin).host === host
+  } catch {
+    return false
+  }
+}
+
+function requireLocal(req, res) {
+  if (!isTrustedLocalRequest(req)) {
     send(res, 403, { error: 'localhost only' })
     return false
   }
@@ -356,8 +382,8 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/apks/')) {
-    const name = decodeURIComponent(url.pathname.slice('/api/apks/'.length))
-    if (!isApkName(name)) {
+    const name = apkNameFromPath(url.pathname)
+    if (!name || !isApkName(name)) {
       send(res, 400, { error: 'invalid apk name' })
       return
     }
@@ -458,52 +484,75 @@ const server = createServer(async (req, res) => {
   }
 })
 
+function apkNameFromPath(pathname) {
+  try {
+    return decodeURIComponent(pathname.slice('/api/apks/'.length))
+  } catch {
+    return ''
+  }
+}
+
 function requestSignature(eventJson) {
   return new Promise((resolve, reject) => {
     if (!pageSocket || pageSocket.readyState !== 1) {
       reject(new Error('extension page is not connected'))
       return
     }
-    const id = `${Date.now()}`
+    const id = randomUUID()
     signWaiters.set(id, { reject, resolve })
     pageSocket.send(JSON.stringify({ event: eventJson, id, type: 'sign' }))
   })
 }
 
-const pageSockets = new WebSocketServer({ path: '/api/signer', server })
+const pageSockets = new WebSocketServer({
+  path: '/api/signer',
+  server,
+  verifyClient: ({ req }) => isTrustedLocalRequest(req)
+})
 pageSockets.on('connection', (socket) => {
   pageSocket = socket
   socket.on('message', async (raw) => {
-    const message = JSON.parse(raw.toString())
-    if (message.type === 'ready' && typeof message.userPubkey === 'string') {
-      bridge?.close()
-      const bunker = createBunker(SIGNER_RELAY)
-      bunkerUrl = bunker.bunkerUrl
-      bridge = startBridge({
-        bunker,
-        log,
-        onSign: requestSignature,
-        relayUrl: SIGNER_RELAY,
-        userPubkey: message.userPubkey
-      })
-      await bridge.ready
-      log('signer connected\n')
-      socket.send(JSON.stringify({ type: 'ok' }))
+    let message
+    try {
+      message = JSON.parse(raw.toString())
+    } catch (error) {
+      log(`signer: bad message ${error.message}\n`)
       return
     }
-    if (message.type === 'signed' || message.type === 'rejected') {
-      const waiter = signWaiters.get(message.id)
-      if (!waiter) {
+    try {
+      if (message.type === 'ready' && typeof message.userPubkey === 'string') {
+        bridge?.close()
+        const bunker = createBunker(SIGNER_RELAY)
+        bunkerUrl = bunker.bunkerUrl
+        bridge = startBridge({
+          bunker,
+          log,
+          onSign: requestSignature,
+          relayUrl: SIGNER_RELAY,
+          userPubkey: message.userPubkey
+        })
+        await bridge.ready
+        log('signer connected\n')
+        socket.send(JSON.stringify({ type: 'ok' }))
         return
       }
-      signWaiters.delete(message.id)
-      if (message.type === 'signed') {
-        waiter.resolve(message.event)
-      } else {
-        waiter.reject(
-          new Error(message.error || 'extension rejected the signature')
-        )
+      if (message.type === 'signed' || message.type === 'rejected') {
+        const waiter = signWaiters.get(message.id)
+        if (!waiter) {
+          return
+        }
+        signWaiters.delete(message.id)
+        if (message.type === 'signed') {
+          waiter.resolve(message.event)
+        } else {
+          waiter.reject(
+            new Error(message.error || 'extension rejected the signature')
+          )
+        }
       }
+    } catch (error) {
+      log(`signer: ${error.message}\n`)
+      socket.send(JSON.stringify({ error: error.message, type: 'error' }))
     }
   })
   socket.on('close', () => {
