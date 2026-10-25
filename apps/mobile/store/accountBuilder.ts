@@ -27,6 +27,8 @@ type AccountBuilderState = {
   externalDescriptor?: Secret['externalDescriptor']
   internalDescriptor?: Secret['internalDescriptor']
   extendedPublicKey?: Secret['extendedPublicKey']
+  privateKey?: Secret['privateKey']
+  privateKeyCompressed?: Secret['privateKeyCompressed']
   fingerprint?: Key['fingerprint']
   scriptVersion: NonNullable<Key['scriptVersion']>
 
@@ -68,6 +70,10 @@ type AccountBuilderAction = {
   ) => void
   setExtendedPublicKey: (
     extendedPublicKey: NonNullable<Secret['extendedPublicKey']>
+  ) => void
+  setPrivateKey: (
+    privateKey: NonNullable<Secret['privateKey']>,
+    privateKeyCompressed: NonNullable<Secret['privateKeyCompressed']>
   ) => void
   setFingerprint: (
     fingerprint: NonNullable<AccountBuilderState['fingerprint']>
@@ -119,6 +125,8 @@ const initialState: AccountBuilderState = {
   network: 'signet',
   passphrase: undefined,
   policyType: 'singlesig',
+  privateKey: undefined,
+  privateKeyCompressed: undefined,
   scriptVersion: 'P2WPKH'
 }
 
@@ -156,6 +164,8 @@ const useAccountBuilderStore = create<
         network,
         passphrase: undefined,
         policyType,
+        privateKey: undefined,
+        privateKeyCompressed: undefined,
         scriptVersion
       })
     },
@@ -173,6 +183,8 @@ const useAccountBuilderStore = create<
         mnemonicWordCount: DEFAULT_MNEMONIC_WORD_COUNT,
         passphrase: undefined,
         policyType,
+        privateKey: undefined,
+        privateKeyCompressed: undefined,
         scriptVersion
       })
     },
@@ -300,11 +312,15 @@ const useAccountBuilderStore = create<
         scriptVersion,
         externalDescriptor,
         internalDescriptor,
-        extendedPublicKey
+        extendedPublicKey,
+        privateKey,
+        privateKeyCompressed
       } = get()
 
       const isWatchOnlyAddress =
         creationType === 'importAddress' && externalDescriptor
+
+      const isWif = creationType === 'importWif' && Boolean(privateKey)
 
       const isImportedPublicKey =
         creationType === 'importExtendedPub' ||
@@ -314,13 +330,14 @@ const useAccountBuilderStore = create<
         fingerprint ||
         (isImportedPublicKey ? UNKNOWN_MASTER_FINGERPRINT : undefined)
 
-      if (!resolvedFingerprint && !isWatchOnlyAddress) {
+      if (!resolvedFingerprint && !isWatchOnlyAddress && !isWif) {
         throw new Error(
           'Fingerprint is required for all keys except watch-only addresses'
         )
       }
 
-      const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
+      const hasPublicKey =
+        extendedPublicKey || externalDescriptor || mnemonic || privateKey
       if (!hasPublicKey) {
         throw new Error(
           'Each key must have either a public key, descriptor, or mnemonic'
@@ -342,6 +359,7 @@ const useAccountBuilderStore = create<
           ...(externalDescriptor && { externalDescriptor }),
           ...(internalDescriptor && { internalDescriptor }),
           ...(extendedPublicKey && { extendedPublicKey }),
+          ...(privateKey && { privateKey, privateKeyCompressed }),
           ...(resolvedFingerprint && { fingerprint: resolvedFingerprint })
         }
       }
@@ -388,6 +406,9 @@ const useAccountBuilderStore = create<
     },
     setPolicyType: (policyType) => {
       set({ policyType })
+    },
+    setPrivateKey: (privateKey, privateKeyCompressed) => {
+      set({ privateKey, privateKeyCompressed })
     },
     setScriptVersion: (scriptVersion) => {
       set({ scriptVersion })

@@ -18,6 +18,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/decryption'
+import { wifFromStoredSecret } from '@/utils/wif'
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -29,6 +30,7 @@ export default function SeedWordsPage() {
   )
 
   const [mnemonic, setMnemonic] = useState('')
+  const [wif, setWif] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
@@ -44,6 +46,12 @@ export default function SeedWordsPage() {
 
     try {
       const secret = await decryptKeySecret(key)
+      if (key.creationType === 'importWif') {
+        const revealed = wifFromStoredSecret(secret, account.network) || ''
+        setWif(revealed)
+        setNoMnemonicAvailable(!revealed)
+        return
+      }
       setMnemonic(secret.mnemonic || '')
       setNoMnemonicAvailable(!secret.mnemonic)
     } catch (error) {
@@ -92,8 +100,10 @@ export default function SeedWordsPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {t('account.seed.viewSeedWords')} -{' '}
-              {key.name || `Key ${keyIndexNum + 1}`}
+              {key.creationType === 'importWif'
+                ? t('account.seed.viewPrivateKey')
+                : t('account.seed.viewSeedWords')}{' '}
+              - {key.name || `Key ${keyIndexNum + 1}`}
             </SSText>
           )
         }}
@@ -113,6 +123,16 @@ export default function SeedWordsPage() {
                 label={t('common.back')}
                 onPress={() => router.back()}
               />
+            </SSVStack>
+          ) : wif ? (
+            <SSVStack gap="md">
+              <SSText center uppercase>
+                {t('account.seed.viewPrivateKey')}
+              </SSText>
+              <SSText center color="muted">
+                {t('account.seed.keepItSecret')}
+              </SSText>
+              <SSClipboardCopy text={wif} />
             </SSVStack>
           ) : mnemonic ? (
             <>

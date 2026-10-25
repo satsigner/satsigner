@@ -480,6 +480,20 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
+          {account.keys[0].creationType === 'importWif' &&
+            account.policyType !== 'multisig' && (
+              <SSHStack>
+                <SSButton
+                  style={styles.button}
+                  label={t('account.viewPrivateKey')}
+                  onPress={() =>
+                    router.navigate(
+                      `/signer/bitcoin/account/${currentAccountId}/settings/export/seedWords?keyIndex=0`
+                    )
+                  }
+                />
+              </SSHStack>
+            )}
           {(account.keys[0].creationType === 'generateMnemonic' ||
             account.keys[0].creationType === 'importMnemonic') &&
             account.policyType !== 'multisig' && (

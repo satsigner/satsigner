@@ -38,6 +38,7 @@ import {
 } from '@/utils/descriptor'
 import { shareFile } from '@/utils/filesystem'
 import { singlesigDescriptorFromKeyPart } from '@/utils/getOutputDescriptorForKey'
+import { publicDescriptorFromPrivateKey } from '@/utils/wif'
 
 type DescriptorQrItemProps = {
   descriptor: string
@@ -116,7 +117,20 @@ export default function ExportDescriptors() {
                 key.fingerprint ||
                 ''
 
-              if (typeof secret === 'object') {
+              if (
+                key.creationType === 'importWif' &&
+                typeof secret === 'object' &&
+                secret.privateKey &&
+                secret.privateKeyCompressed !== undefined &&
+                key.scriptVersion
+              ) {
+                descriptorString =
+                  publicDescriptorFromPrivateKey(
+                    secret.privateKey,
+                    secret.privateKeyCompressed,
+                    key.scriptVersion
+                  ) ?? ''
+              } else if (typeof secret === 'object') {
                 if (secret.extendedPublicKey) {
                   ;({ extendedPublicKey } = secret)
                 } else if (secret.externalDescriptor) {
@@ -154,19 +168,24 @@ export default function ExportDescriptors() {
                 ;({ fingerprint } = key)
               }
 
-              if (fingerprint && extendedPublicKey) {
-                const derivationPath = key.derivationPath || ''
+              if (key.creationType !== 'importWif') {
+                if (fingerprint && extendedPublicKey) {
+                  const derivationPath = key.derivationPath || ''
 
-                const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
+                  const cleanDerivationPath = derivationPath.replace(
+                    /^m\/?/i,
+                    ''
+                  )
 
-                const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}/<0;1>/*`
+                  const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}/<0;1>/*`
 
-                descriptorString = addDescriptorChecksum(
-                  singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
-                )
-              } else {
-                descriptorString =
-                  'No descriptor available - missing fingerprint or extended public key'
+                  descriptorString = addDescriptorChecksum(
+                    singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
+                  )
+                } else {
+                  descriptorString =
+                    'No descriptor available - missing fingerprint or extended public key'
+                }
               }
             }
           } else if (temporaryAccount.policyType === 'multisig') {
