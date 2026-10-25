@@ -106,18 +106,16 @@ export type FiatChartPoint = {
   value: number | null
 }
 
-export type FiatValueByIdParams = {
-  bundledPriceAt: (timestamp: number) => number | null
-  chartData: HistoryChartData[]
-  currency: Currency
-  transactionsMap: Map<string, Transaction>
+export type BundledClose = {
+  price: number | null
+  time: number
 }
 
 export type FiatChartPointsParams = {
   chartData: HistoryChartData[]
-  fiatValueById: Map<string, number>
+  closes: BundledClose[]
+  endDate: Date
   startDate: Date
-  validChartData: HistoryChartData[]
 }
 
 export type YDomainParams = {
