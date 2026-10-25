@@ -15,13 +15,13 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
-import { finalizePinAuthSuccess } from '@/utils/pinUnlock'
-import { secureWipeAllWalletData } from '@/utils/secureWipe'
+import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
+import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
 type PinAuthResult = 'error' | 'duress' | 'fail' | 'success'
 
 type UsePinAuthProps = {
-  onFail?: () => void
+  onFail?: () => void | Promise<void>
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
@@ -77,6 +77,13 @@ async function checkPin(
       await secureWipeAllWalletData()
     } catch {
       // Duress wipe is best-effort; always proceed to unlock the app.
+    }
+    try {
+      if (await isDuressPinRemoved()) {
+        await promoteDuressPin(inputPin)
+      }
+    } catch {
+      // Same as the wipe: a failure must not reveal the duress unlock.
     }
     return 'duress'
   }
@@ -157,7 +164,6 @@ function usePinAuth({
     }
 
     if (result === 'fail') {
-      setVerifying(false)
       setPin((current) => (current ? emptyPin(current.length) : current))
 
       const newTries = tries + 1
@@ -166,8 +172,12 @@ function usePinAuth({
         onTriesOver()
       }
 
-      if (onFail) {
-        onFail()
+      // The pad stays disabled until onFail settles: after the last try it
+      // wipes the app, and no PIN may be checked while that runs.
+      try {
+        await onFail?.()
+      } finally {
+        setVerifying(false)
       }
     }
     // 'success' finalized the unlock; nothing to do.

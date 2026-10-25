@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -24,20 +24,14 @@ import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
-import { error as errorColor } from '@/styles/colors'
-import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
-import { commitPinMaterial, preparePinMaterial } from '@/utils/pinKdf'
+import { error as errorColor, warning } from '@/styles/colors'
+import { clampPinLength, emptyPin } from '@/utils/pin'
+import { changePin } from '@/utils/pinChange'
+import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 type Stage = 'verify' | 'set' | 're-enter'
 
-/** Returns null on first-time setup, where no PIN exists yet. */
-async function getCurrentPin(): Promise<string | null> {
-  try {
-    return await getPin()
-  } catch {
-    return null
-  }
-}
+type PinChangeNotice = 'duressCleared' | 'duressClearFailed'
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
@@ -55,7 +49,9 @@ export default function SetPin() {
     skipPin,
     validatePin,
     requirePinMigration,
-    setRequirePinMigration
+    setRequirePinMigration,
+    incrementPinTries,
+    resetPinTries
   ] = useAuthStore(
     useShallow((state) => [
       state.setFirstTime,
@@ -65,7 +61,9 @@ export default function SetPin() {
       state.skipPin,
       state.validatePin,
       state.requirePinMigration,
-      state.setRequirePinMigration
+      state.setRequirePinMigration,
+      state.incrementPinTries,
+      state.resetPinTries
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -73,6 +71,8 @@ export default function SetPin() {
   const reEncryptAccounts = useReEncryptAccounts()
 
   const [loading, setLoading] = useState(false)
+  const [pinChangeNotice, setPinChangeNotice] =
+    useState<PinChangeNotice | null>(null)
   const [stage, setStage] = useState<Stage>(
     fromSettings && !skipPin && !requirePinMigration ? 'verify' : 'set'
   )
@@ -82,6 +82,8 @@ export default function SetPin() {
   const [confirmationPinArray, setConfirmationPinArray] =
     useState<string[]>(emptyPin)
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
+  const [verifyPending, setVerifyPending] = useState(false)
+  const verifyingPin = useRef(false)
   const [pinLength, setPinLength] = useState(PIN_SIZE)
 
   // The verify stage (changing an existing PIN) must match the stored length.
@@ -124,13 +126,35 @@ export default function SetPin() {
   }
 
   async function handleVerifyPin() {
-    const isValid = await validatePin(currentPinArray.join(''))
-    if (isValid) {
-      setStage('set')
-      setCurrentPinWrong(false)
-    } else {
+    if (verifyingPin.current) {
+      return
+    }
+    verifyingPin.current = true
+    setVerifyPending(true)
+    try {
+      const isValid = await validatePin(currentPinArray.join(''))
+      if (isValid) {
+        resetPinTries()
+        setStage('set')
+        setCurrentPinWrong(false)
+        return
+      }
       setCurrentPinArray(emptyPin(currentPinArray.length))
       setCurrentPinWrong(true)
+      // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+      const remainingTries = incrementPinTries()
+      if (remainingTries > 0) {
+        return
+      }
+      const wiped = await secureWipeAfterMaxPinTries()
+      if (!wiped) {
+        toast.error(t('auth.wipeFailed'))
+        return
+      }
+      router.replace('/')
+    } finally {
+      verifyingPin.current = false
+      setVerifyPending(false)
     }
   }
 
@@ -170,40 +194,44 @@ export default function SetPin() {
       return
     }
     setLoading(true)
+    const result = await changePin(pinArray.join(''), reEncryptAccounts)
+    setLoading(false)
+
+    if (result === 'matchesDuress') {
+      toast.error(t('auth.pinMatchDuressPin'))
+      handleGoBack()
+      return
+    }
+    if (result === 'reEncryptFailed') {
+      toast.error(t('auth.pinChangeError'))
+      return
+    }
 
     setSkipPin(false)
     setRequirePinMigration(false)
-
-    // First-ever PIN set has no stored digest; getCurrentPin() returns null
-    // there. Only an existing digest means accounts may need re-encrypting.
-    const currentPinEncrypted = await getCurrentPin()
-    const material = await preparePinMaterial(pinArray.join(''))
-    if (currentPinEncrypted && currentPinEncrypted !== material.digest) {
-      try {
-        await reEncryptAccounts(currentPinEncrypted, material.digest)
-      } catch {
-        toast.error(t('auth.pinChangeError'))
-        setLoading(false)
-        return
-      }
+    if (!fromSettings) {
+      setFirstTime(false)
+      setRequiresAuth(true)
     }
-    await commitPinMaterial(material)
 
-    setLoading(false)
+    if (result === 'duressCleared' || result === 'duressClearFailed') {
+      setPinChangeNotice(result)
+      return
+    }
 
+    leaveAfterPinChange()
+  }
+
+  function leaveAfterPinChange() {
     if (fromSettings) {
       router.back()
       return
     }
-
     if (showWarning) {
       router.replace('./warning')
-    } else {
-      router.replace('/')
+      return
     }
-
-    setFirstTime(false)
-    setRequiresAuth(true)
+    router.replace('/')
   }
 
   function handleGoBack() {
@@ -227,6 +255,20 @@ export default function SetPin() {
       return (
         <SSText uppercase size="lg" center style={{ color: errorColor }}>
           {t('auth.wrongPin')}
+        </SSText>
+      )
+    }
+    if (pinChangeNotice === 'duressCleared') {
+      return (
+        <SSText uppercase size="lg" center style={{ color: warning }}>
+          {t('auth.duressPinClearedPinLength')}
+        </SSText>
+      )
+    }
+    if (pinChangeNotice === 'duressClearFailed') {
+      return (
+        <SSText uppercase size="lg" center style={{ color: errorColor }}>
+          {t('auth.duressPinClearError')}
         </SSText>
       )
     }
@@ -334,7 +376,8 @@ export default function SetPin() {
             <SSButton
               label={t('auth.confirmPin')}
               variant="secondary"
-              onPress={() => handleVerifyPin()}
+              loading={verifyPending}
+              onPress={handleVerifyPin}
             />
           )}
           {stage === 'set' && pinFilled && (
@@ -344,14 +387,27 @@ export default function SetPin() {
               onPress={() => handleConfirmPin()}
             />
           )}
-          {stage === 're-enter' && confirmationPinFilled && pinsMatch && (
+          {stage === 're-enter' &&
+          confirmationPinFilled &&
+          pinsMatch &&
+          pinChangeNotice ? (
+            <SSButton
+              label={t('common.continue')}
+              variant="secondary"
+              onPress={() => leaveAfterPinChange()}
+            />
+          ) : null}
+          {stage === 're-enter' &&
+          confirmationPinFilled &&
+          pinsMatch &&
+          !pinChangeNotice ? (
             <SSButton
               label={t('auth.setPin')}
               variant="secondary"
               loading={loading}
               onPress={() => handleSetPin()}
             />
-          )}
+          ) : null}
           {stage === 'verify' && !currentPinFilled && (
             <SSButton
               label={t('common.cancel')}
@@ -394,13 +450,13 @@ export default function SetPin() {
               onPress={() => handleGoBack()}
             />
           )}
-          {stage === 're-enter' && confirmationPinFilled && (
+          {stage === 're-enter' && confirmationPinFilled && !pinChangeNotice ? (
             <SSButton
               label={t('common.clear')}
               variant="ghost"
               onPress={() => clearConfirmationPin()}
             />
-          )}
+          ) : null}
         </SSVStack>
       </SSVStack>
     </SSMainLayout>

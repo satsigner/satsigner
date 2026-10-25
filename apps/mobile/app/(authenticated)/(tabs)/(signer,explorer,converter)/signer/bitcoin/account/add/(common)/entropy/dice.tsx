@@ -58,13 +58,12 @@ export default function DiceEntropy() {
   const diceSize = Math.min(screenWidth * 0.25, 120)
   const { index } = useLocalSearchParams()
 
-  const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
+  const [mnemonicWordCount, mnemonicWordList, setGeneratedMnemonic] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.mnemonicWordCount,
         state.mnemonicWordList,
-        state.setMnemonic,
-        state.setFingerprint
+        state.setGeneratedMnemonic
       ])
     )
 
@@ -97,8 +96,7 @@ export default function DiceEntropy() {
 
   function finishWithEntropy(entropy: string) {
     const mnemonic = generateMnemonicFromEntropy(entropy, mnemonicWordList)
-    setMnemonic(mnemonic)
-    setFingerprint(getFingerprintFromMnemonic(mnemonic))
+    setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
     router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
   }
 

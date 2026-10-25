@@ -5,7 +5,7 @@ import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
-  deleteItem
+  getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
@@ -86,11 +86,51 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 
-  const { setDuressPinEnabled, setSkipPin } = useAuthStore.getState()
-  setDuressPinEnabled(false)
+  const { clearDuressPin, setSkipPin } = useAuthStore.getState()
   setSkipPin(false)
+  await clearDuressPin().catch(() => undefined)
+}
 
-  await deleteItem(DURESS_PIN_KEY).catch(() => undefined)
-  await deleteItem(DURESS_KDF_KEY).catch(() => undefined)
-  await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
+/**
+ * Wipe after the last wrong PIN, back to a fresh install. Unlike the duress
+ * wipe, the main PIN material goes too: setting the next PIN would otherwise
+ * re-encrypt any secret that survived to the new owner's PIN.
+ *
+ * Returns false when that PIN material is still stored. The app stays locked
+ * so the next PIN setup cannot re-encrypt leftovers.
+ */
+export async function secureWipeAfterMaxPinTries(): Promise<boolean> {
+  try {
+    await secureWipeAllWalletData()
+  } catch {
+    return false
+  }
+
+  const {
+    clearPin,
+    resetPinTries,
+    setFirstTime,
+    setLockTriggered,
+    setRequiresAuth
+  } = useAuthStore.getState()
+  try {
+    await clearPin()
+  } catch {
+    return false
+  }
+  setFirstTime(true)
+  setRequiresAuth(false)
+  setLockTriggered(false)
+  resetPinTries()
+  return true
+}
+
+/** True once the duress PIN, its KDF, and its salt are gone from storage. */
+export async function isDuressPinRemoved(): Promise<boolean> {
+  const [pin, kdf, salt] = await Promise.all([
+    getItem(DURESS_PIN_KEY),
+    getItem(DURESS_KDF_KEY),
+    getItem(SALT_KEY_DURESS)
+  ])
+  return !pin && !kdf && !salt
 }

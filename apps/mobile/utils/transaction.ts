@@ -123,6 +123,18 @@ export function weightToVsize(weight: number) {
   return Math.ceil(weight / WITNESS_SCALE_FACTOR)
 }
 
+export function getRawTransactionSizes(txHex: string) {
+  if (!txHex) {
+    return { size: 0, vsize: 0, weight: 0 }
+  }
+  const transaction = bitcoinjs.Transaction.fromHex(txHex)
+  return {
+    size: transaction.byteLength(),
+    vsize: transaction.virtualSize(),
+    weight: transaction.weight()
+  }
+}
+
 // TODO: To be removed
 export function legacyEstimateTransactionSize(
   inputCount: number,

@@ -47,7 +47,10 @@ import {
   persistAccountSecretsSafe,
   setCachedAccountSecrets
 } from '@/utils/nostrSecrets'
-import { pruneExcludedOutpoints } from '@/utils/utxoList'
+import {
+  pruneExcludedOutpoints,
+  pruneExcludedOutpointsAfterSync
+} from '@/utils/utxoList'
 
 /**
  * Wallet sync and address refresh call updateAccount with { ...account, ... } from
@@ -433,11 +436,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.nostr
       )
 
-      const excludedUtxoOutpoints = pruneExcludedOutpoints(
+      const excludedUtxoOutpoints = pruneExcludedOutpointsAfterSync(
         currentAccount.excludedUtxoOutpoints ??
           account.excludedUtxoOutpoints ??
           [],
-        account.utxos
+        account
       )
 
       // This value is meant to be updated by setAccounts (upon drag reorder), but a race condition

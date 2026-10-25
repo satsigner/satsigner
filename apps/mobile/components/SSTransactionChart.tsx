@@ -4,20 +4,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import {
+  BLOCK_WIDTH,
+  NODE_WIDTH,
+  SANKEY_DIAGRAM_NODE_PADDING_PX,
+  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
+  SAFE_LIMIT_OF_INPUTS_OUTPUTS
+} from '@/constants/sankey'
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { useTransactionOutspends } from '@/hooks/useTransactionOutspends'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
-import {
-  BLOCK_WIDTH,
-  NODE_WIDTH,
-  type Node,
-  SANKEY_DIAGRAM_NODE_PADDING_PX,
-  SANKEY_EQUAL_ROW_MIN_SLOT_PX,
-  SAFE_LIMIT_OF_INPUTS_OUTPUTS
-} from '@/types/ui/sankey'
+import { type Node } from '@/types/ui/sankey'
 import { isChangeOutputAddress, normalizeAddressSet } from '@/utils/address'
 import {
   equalizeSankeyColumnsByDepthH,

@@ -242,21 +242,21 @@ function SSMultisigKeyControl({
     }
   }
 
-  function handleDropSeed() {
+  async function handleDropSeed() {
     if (!keyDetails) {
       return
     }
 
-    try {
-      if (isSettingsMode && accountId) {
-        dropSeedFromKeyExisting(accountId, index)
-      } else {
-        dropSeedFromKey(index)
-      }
-      setSeedDropped(true)
-    } catch {
+    const result =
+      isSettingsMode && accountId
+        ? await dropSeedFromKeyExisting(accountId, index)
+        : dropSeedFromKey(index)
+
+    if (!result.success) {
       toast.error(t('account.seed.dropSeedError'))
+      return
     }
+    setSeedDropped(true)
   }
 
   function handleResetKey() {
@@ -374,6 +374,20 @@ function SSMultisigKeyControl({
         />
       </>
     )
+  }
+
+  function renderKeyActions() {
+    if (isKeyCompleted) {
+      return renderCompletedKeyActions()
+    }
+    if (isSettingsMode) {
+      return (
+        <SSText center color="muted">
+          {t('account.seed.emptyKeyExistingAccount')}
+        </SSText>
+      )
+    }
+    return renderIncompleteKeyActions()
   }
 
   return (
@@ -499,11 +513,7 @@ function SSMultisigKeyControl({
                 </SSFormLayout.Item>
               </SSFormLayout>
             )}
-            <SSVStack gap="sm">
-              {isKeyCompleted
-                ? renderCompletedKeyActions()
-                : renderIncompleteKeyActions()}
-            </SSVStack>
+            <SSVStack gap="sm">{renderKeyActions()}</SSVStack>
           </SSVStack>
         </View>
         {/* Visible content - same as hidden measurement content */}
@@ -528,11 +538,7 @@ function SSMultisigKeyControl({
             </SSFormLayout>
           )}
 
-          <SSVStack gap="sm">
-            {isKeyCompleted
-              ? renderCompletedKeyActions()
-              : renderIncompleteKeyActions()}
-          </SSVStack>
+          <SSVStack gap="sm">{renderKeyActions()}</SSVStack>
         </SSVStack>
       </Animated.View>
 
@@ -643,7 +649,9 @@ function SSMultisigKeyControl({
               maxWidth: 260
             }}
           >
-            {t('account.seed.resetKeyConfirm.message')}
+            {isSettingsMode
+              ? t('account.seed.resetKeyConfirm.messageExisting')
+              : t('account.seed.resetKeyConfirm.message')}
           </SSText>
           <SSHStack gap="sm" style={{ width: '100%' }}>
             <SSButton

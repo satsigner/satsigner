@@ -1,12 +1,19 @@
 import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import {
+  addDescriptorChecksum,
+  deriveChangeDescriptor,
   descriptorHasPrivateKeyMaterial,
+  getDescriptorChecksum,
   getDescriptorDerivationPath,
   getFingerprint,
+  getScriptVersionFromDescriptor,
   getXpubFingerprint,
   parseImportedDescriptorPayload,
-  parseXpubInput
+  parseXpubInput,
+  processCombinedDescriptor,
+  splitMultipathDescriptor,
+  wrapBareScriptKey
 } from '@/utils/descriptor'
 
 const SPARROW_ORIGIN_XPUB =
@@ -177,7 +184,181 @@ describe('descriptorHasPrivateKeyMaterial', () => {
     )
   })
 
+  it('flags private keys after a key origin or inside multisig', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'tr([e5eda689/86h/1h/0h]tprv8ZgxMBicQKsP/<0;1>/*)#abcdefgh'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wsh(sortedmulti(2,[aaaaaaaa/48h/1h/0h/2h]tpubD6NzVbkrYhZ4X/0/*,[bbbbbbbb/48h/1h/0h/2h]tprv8ZgxMBicQKsP/0/*))'
+      )
+    ).toBe(true)
+  })
+
   it('accepts watch-only descriptors', () => {
     expect(descriptorHasPrivateKeyMaterial(SPARROW_DESCRIPTOR)).toBe(false)
+  })
+
+  it('ignores prefix-like characters inside a public key', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh([e5eda689/84h/1h/0h]tpubDCXPRVtprvZz/0/*)'
+      )
+    ).toBe(false)
+  })
+
+  it('flags WIF private keys', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(L4rK1yDtCWekvXuE6oXD9jCYfFNV2cWRpVuPLBcCU2z8TrisoyY1)'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'pkh(5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ)'
+      )
+    ).toBe(true)
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN87JcbXMTcA)'
+      )
+    ).toBe(true)
+  })
+
+  it('ignores WIF-like text inside an extended public key', () => {
+    expect(
+      descriptorHasPrivateKeyMaterial(
+        'wpkh(xpub6CUGRL4rK1yDtCWekvXuE6oXD9jCYfFNV2cWRpVuPLBcCU2z8TrisoyY15HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ/0/*)'
+      )
+    ).toBe(false)
+  })
+})
+
+describe('getScriptVersionFromDescriptor', () => {
+  it.each([
+    ['pkh([d34db33f/44h/0h/0h]xpub/0/*)', 'P2PKH'],
+    ['sh(wpkh([d34db33f/49h/0h/0h]xpub/0/*))', 'P2SH-P2WPKH'],
+    ['wpkh([d34db33f/84h/0h/0h]xpub/0/*)', 'P2WPKH'],
+    ['tr([d34db33f/86h/0h/0h]xpub/<0;1>/*)', 'P2TR'],
+    ['sh(sortedmulti(2,xpubA/0/*,xpubB/0/*))', 'P2SH'],
+    ['sh(wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*)))', 'P2SH-P2WSH'],
+    ['wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*))', 'P2WSH']
+  ])('reads %s as %s', (descriptor, scriptVersion) => {
+    expect(getScriptVersionFromDescriptor(descriptor)).toBe(scriptVersion)
+  })
+
+  it('returns undefined for an unknown script', () => {
+    expect(getScriptVersionFromDescriptor('combo(xpub/0/*)')).toBeUndefined()
+  })
+})
+
+describe('processCombinedDescriptor', () => {
+  const TAPROOT_COMBINED =
+    "tr([d34db33f/86'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG/<0;1>/*)"
+
+  it('accepts a combined taproot descriptor with its own script version', async () => {
+    const result = await processCombinedDescriptor(
+      TAPROOT_COMBINED,
+      getScriptVersionFromDescriptor(TAPROOT_COMBINED) ?? 'P2WPKH'
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.external).toContain('/0/*')
+    expect(result.internal).toContain('/1/*')
+  })
+})
+
+describe('deriveChangeDescriptor', () => {
+  it('switches every receive chain to the change chain', () => {
+    expect(
+      deriveChangeDescriptor('wsh(sortedmulti(2,xpubA/0/*,xpubB/0/*))#abcdefgh')
+    ).toBe('wsh(sortedmulti(2,xpubA/1/*,xpubB/1/*))')
+  })
+
+  it('returns undefined without a receive chain', () => {
+    expect(deriveChangeDescriptor('wpkh(xpubA/*)')).toBeUndefined()
+  })
+})
+
+describe('wrapBareScriptKey', () => {
+  it.each([
+    [
+      'wsh([e5eda689/48h/1h/0h/2h]tpubA/0/*)',
+      'wsh(pk([e5eda689/48h/1h/0h/2h]tpubA/0/*))'
+    ],
+    ['sh(wsh(tpubA/0/*))#abcdefgh', 'sh(wsh(pk(tpubA/0/*)))'],
+    ['sh(tpubA/0/*)', 'sh(pk(tpubA/0/*))']
+  ])('wraps %s', (descriptor, expected) => {
+    expect(wrapBareScriptKey(descriptor)).toBe(expected)
+  })
+
+  it.each([
+    'wsh(pk(tpubA/0/*))#abcdefgh',
+    'sh(wpkh(tpubA/0/*))',
+    'wsh(sortedmulti(2,tpubA/0/*,tpubB/0/*))',
+    'wpkh(tpubA/0/*)'
+  ])('keeps %s', (descriptor) => {
+    expect(wrapBareScriptKey(descriptor)).toBe(descriptor)
+  })
+})
+
+// Vectors from BIP-380 and Bitcoin Core's descriptor_tests.cpp.
+const CORE_MULTI_XPUB_DESCRIPTOR =
+  "sh(multi(2,[00000000/111'/222]xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL,xpub68NZiKmJWnxxS6aaHmn81bvJeTESw724CRDs6HbuccFQN9Ku14VQrADWgqbhhTHBaohPX4CjNLf9fq9MYo6oDaPPLPxSb7gwQN3ih19Zm4Y/0))"
+
+const CORE_MULTI_XPRV_DESCRIPTOR =
+  "sh(multi(2,[00000000/111'/222]xprvA1RpRA33e1JQ7ifknakTFpgNXPmW2YvmhqLQYMmrj4xJXXWYpDPS3xz7iAxn8L39njGVyuoseXzU6rcxFLJ8HFsTjSyQbLYnMpCqE2VbFWc,xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L/0))"
+
+describe('getDescriptorChecksum', () => {
+  it('matches the BIP-380 test vectors', () => {
+    expect(getDescriptorChecksum('raw(deadbeef)')).toBe('89f8spxm')
+    expect(getDescriptorChecksum(CORE_MULTI_XPUB_DESCRIPTOR)).toBe('tjg09x5t')
+    expect(getDescriptorChecksum(CORE_MULTI_XPRV_DESCRIPTOR)).toBe('ggrsrxfy')
+  })
+
+  it('rejects characters outside the descriptor charset', () => {
+    expect(() => getDescriptorChecksum('raw(deadbeef)é')).toThrow(
+      'Invalid descriptor character'
+    )
+  })
+})
+
+describe('addDescriptorChecksum', () => {
+  it('appends the checksum', () => {
+    expect(addDescriptorChecksum('raw(deadbeef)')).toBe(
+      'raw(deadbeef)#89f8spxm'
+    )
+  })
+
+  it('replaces an invalid checksum', () => {
+    expect(
+      addDescriptorChecksum(`${CORE_MULTI_XPUB_DESCRIPTOR}#112g5xnC`)
+    ).toBe(`${CORE_MULTI_XPUB_DESCRIPTOR}#tjg09x5t`)
+  })
+
+  it('keeps a valid checksum', () => {
+    expect(addDescriptorChecksum('raw(deadbeef)#89f8spxm')).toBe(
+      'raw(deadbeef)#89f8spxm'
+    )
+  })
+})
+
+describe('splitMultipathDescriptor', () => {
+  it('splits a multipath descriptor into receive and change with checksums', () => {
+    const multipath = SPARROW_DESCRIPTOR.replace('/0/*', '/<0;1>/*')
+    const change = SPARROW_DESCRIPTOR.replace('/0/*', '/1/*')
+
+    expect(splitMultipathDescriptor(`${multipath}#slp835ch`)).toStrictEqual([
+      `${SPARROW_DESCRIPTOR}#yvl3yusl`,
+      `${change}#4c6sefq8`
+    ])
+  })
+
+  it('returns a single-path descriptor as is', () => {
+    expect(
+      splitMultipathDescriptor(`${SPARROW_DESCRIPTOR}#yvl3yusl`)
+    ).toStrictEqual([`${SPARROW_DESCRIPTOR}#yvl3yusl`])
   })
 })

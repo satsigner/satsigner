@@ -7,6 +7,7 @@ import {
   isUtxoExcluded,
   prepareUtxoList,
   pruneExcludedOutpoints,
+  pruneExcludedOutpointsAfterSync,
   sortUtxosByField
 } from '@/utils/utxoList'
 
@@ -221,6 +222,24 @@ describe('utxoList', () => {
       const live = getUtxoOutpoint(utxos[1])
       const pruned = pruneExcludedOutpoints([live, 'dead:txid:9'], utxos)
       expect(pruned).toStrictEqual([live])
+    })
+
+    it('prunes the denylist after a completed sync', () => {
+      const live = getUtxoOutpoint(utxos[1])
+      const pruned = pruneExcludedOutpointsAfterSync([live, 'dead:txid:9'], {
+        syncStatus: 'synced',
+        utxos
+      })
+      expect(pruned).toStrictEqual([live])
+    })
+
+    it('keeps the denylist while a rescan has emptied the UTXOs', () => {
+      const excluded = [getUtxoOutpoint(utxos[1])]
+      const kept = pruneExcludedOutpointsAfterSync(excluded, {
+        syncStatus: 'unsynced',
+        utxos: []
+      })
+      expect(kept).toStrictEqual(excluded)
     })
   })
 

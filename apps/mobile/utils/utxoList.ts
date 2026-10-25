@@ -1,4 +1,5 @@
 import { type Direction } from '@/types/logic/sort'
+import { type Account } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/outpoint'
@@ -73,6 +74,18 @@ function pruneExcludedOutpoints(
   }
   const live = new Set(utxos.map(getUtxoOutpoint))
   return excludedOutpoints.filter((outpoint) => live.has(outpoint))
+}
+
+// A rescan empties the UTXOs until the next sync rebuilds them, so the
+// denylist is only pruned against the UTXOs of a completed sync.
+function pruneExcludedOutpointsAfterSync(
+  excludedOutpoints: string[],
+  { syncStatus, utxos }: Pick<Account, 'syncStatus' | 'utxos'>
+): string[] {
+  if (syncStatus !== 'synced') {
+    return excludedOutpoints
+  }
+  return pruneExcludedOutpoints(excludedOutpoints, utxos)
 }
 
 function filterUtxos(
@@ -232,6 +245,7 @@ export {
   isUtxoExcluded,
   prepareUtxoList,
   pruneExcludedOutpoints,
+  pruneExcludedOutpointsAfterSync,
   sortUtxosByField
 }
 

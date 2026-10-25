@@ -41,13 +41,12 @@ export default function CoinEntropy() {
   const coinSize = Math.min(screenWidth * 0.4, 160)
   const { index } = useLocalSearchParams()
 
-  const [mnemonicWordCount, mnemonicWordList, setMnemonic, setFingerprint] =
+  const [mnemonicWordCount, mnemonicWordList, setGeneratedMnemonic] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.mnemonicWordCount,
         state.mnemonicWordList,
-        state.setMnemonic,
-        state.setFingerprint
+        state.setGeneratedMnemonic
       ])
     )
 
@@ -79,8 +78,7 @@ export default function CoinEntropy() {
 
   function finishWithEntropy(entropy: string) {
     const mnemonic = generateMnemonicFromEntropy(entropy, mnemonicWordList)
-    setMnemonic(mnemonic)
-    setFingerprint(getFingerprintFromMnemonic(mnemonic))
+    setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
     router.navigate(`/signer/bitcoin/account/add/generate/mnemonic/${index}`)
   }
 

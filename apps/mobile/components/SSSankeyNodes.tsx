@@ -16,28 +16,37 @@ import {
 import { useEffect, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
+import {
+  BLOCK_WIDTH,
+  SANKEY_BAND_HEIGHT_MIN_PX,
+  SANKEY_BLOCK_TX_STRIP_MAX_PX,
+  SANKEY_BLOCK_TX_STRIP_PX_PER_BYTE
+} from '@/constants/sankey'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
-import {
-  BLOCK_WIDTH,
-  SANKEY_BAND_HEIGHT_MIN_PX,
-  SANKEY_BLOCK_TX_STRIP_MAX_PX,
-  type Node
-} from '@/types/ui/sankey'
-import { formatFeeRateSatPerVb } from '@/utils/format'
+import type { Node, SankeyOutputRole } from '@/types/ui/sankey'
+import { formatFeeRateSatPerVb, formatNumber } from '@/utils/format'
 import {
   type SankeyRibbonPlan,
   totalThroughputToBandHeight
 } from '@/utils/sankeyFlowWidths'
 import {
+  getInputOwnershipTag,
+  getSankeyNodeParagraphKind,
+  getSankeyOutputRole,
+  getSpentOutputTag,
+  getUnspentOutputTag,
+  trimNodeLabel
+} from '@/utils/sankeyNodeText'
+import {
+  getNodeParagraphBoxWidth,
   getNodeParagraphLayoutWidth,
   getNodeParagraphOffsetX
 } from '@/utils/sankeyNodeTextLayout'
 import { getUnspentOutputSatsColor } from '@/utils/sankeyOutputLabel'
-import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 type SSSankeyNodesProps = {
   nodes: Node[]
@@ -51,16 +60,44 @@ type SSSankeyNodesProps = {
   onLabelsReady?: (ready: boolean) => void
 }
 
+type NodeTextProps = {
+  localId: string
+  isBlock: boolean
+  width: number
+  x: number
+  y: number
+  customFontManager: SkTypefaceFontProvider | null
+  ioData: TxNode['ioData']
+  isTransactionChart: boolean
+  selectedOutputNode?: string
+  outputRole: SankeyOutputRole
+  showUnspentLabel?: boolean
+  labelIconSvg: ReturnType<typeof useSVG>
+  changeIconSvg: ReturnType<typeof useSVG>
+  fakeMixIconSvg: ReturnType<typeof useSVG>
+  minerFeeIconSvg: ReturnType<typeof useSVG>
+}
+
 /** Frames after fonts load before labels are considered painted. */
 const LABEL_PAINT_FRAMES = 6
 
 const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
-const PADDING_LEFT = 8
 const ICON_SIZE = 8
 const RECT_PADDING = 5
+const RECT_RADIUS = 3
 const NODE_MARGIN_LEFT = 1
+const NODE_TEXT_OFFSET_Y = -1.6
+const BLOCK_TEXT_OFFSET_Y = 4
+const BLOCK_INFO_OFFSET_X = 6
+const BLOCK_INFO_OFFSET_Y = -62
+const BLOCK_INFO_WIDTH = 87
+const MAX_LINES = 5
+const MAX_LINES_WITH_ROLE_AND_LABEL = 6
+const DIMMED_NODE_OPACITY = 0.3
+const DUST_BORDER_WIDTH = 1.5
+const TRANSACTION_CHART_BLOCK_COLOR = '#818181'
 /** Keeps the sats amount and unit on one line in Skia paragraphs. */
 const NBSP = '\u00A0'
 /** NBSP belongs on the unit run — trailing NBSP on the amount run can drop the first "s". */
@@ -109,21 +146,6 @@ function appendDirectionTarget(
       }
     })
     .addText(target)
-}
-
-function formatSatsAmount(value: number | undefined): string {
-  return (value ?? 0).toLocaleString('en-US')
-}
-
-const MAX_NODE_LABEL_LENGTH = 14
-
-function trimNodeLabel(label: string | undefined): string {
-  if (!label) {
-    return ''
-  }
-  return label.length > MAX_NODE_LABEL_LENGTH
-    ? `${label.slice(0, MAX_NODE_LABEL_LENGTH)}…`
-    : label
 }
 
 function SSSankeyNodes({
@@ -186,7 +208,7 @@ function SSSankeyNodes({
 
     const getBlockNodeHeight = () => {
       if (node?.ioData?.txSize && node?.type === 'block') {
-        return node?.ioData?.txSize * 0.1
+        return node?.ioData?.txSize * SANKEY_BLOCK_TX_STRIP_PX_PER_BYTE
       }
       return 0
     }
@@ -232,7 +254,7 @@ function SSSankeyNodes({
               height={heightBasedOnFlow}
               color={
                 isTransactionChart
-                  ? Skia.Color('#818181')
+                  ? Skia.Color(TRANSACTION_CHART_BLOCK_COLOR)
                   : isCurrentTxBlockNode
                     ? 'white'
                     : gray[400]
@@ -260,37 +282,22 @@ function SSSankeyNodes({
     }
 
     return (
-      <Group key={node.id} opacity={shouldDim ? 0.3 : 1}>
+      <Group key={node.id} opacity={shouldDim ? DIMMED_NODE_OPACITY : 1}>
         {blockNode()}
         {customFontManager ? (
           <NodeText
             isBlock={node.depthH % 2 !== 0}
             width={sankeyGenerator.nodeWidth()}
             x={Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)}
-            y={(Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) - 1.6}
+            y={
+              (Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)) + NODE_TEXT_OFFSET_Y
+            }
             ioData={node.ioData}
             customFontManager={customFontManager}
             localId={node?.localId ?? ''}
             isTransactionChart={isTransactionChart}
             selectedOutputNode={selectedOutputNode}
-            isFakeMix={node.ioData?.isFakeMix === true}
-            isChange={
-              node.ioData?.isChange === true ||
-              node?.localId === CHART_REMAINING_BALANCE_LOCAL_ID
-            }
-            isSelfSend={
-              node.ioData?.isSelfSend === true &&
-              node.ioData?.isChange !== true &&
-              node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID &&
-              node.ioData?.isFakeMix !== true
-            }
-            isReceive={
-              node.ioData?.isReceive === true &&
-              node.ioData?.isChange !== true &&
-              node.ioData?.isSelfSend !== true &&
-              node.ioData?.isFakeMix !== true &&
-              node?.localId !== CHART_REMAINING_BALANCE_LOCAL_ID
-            }
+            outputRole={getSankeyOutputRole(node.ioData, node.localId)}
             showUnspentLabel={showUnspentLabel}
             labelIconSvg={labelIconSvg}
             changeIconSvg={changeIconSvg}
@@ -315,48 +322,32 @@ function NodeText({
   ioData,
   isTransactionChart,
   selectedOutputNode,
-  isFakeMix,
-  isChange: isChangeProp,
-  isSelfSend,
-  isReceive,
+  outputRole,
   showUnspentLabel = true,
   labelIconSvg,
   changeIconSvg,
   fakeMixIconSvg,
   minerFeeIconSvg
-}: {
-  localId: string
-  isBlock: boolean
-  width: number
-  x: number
-  y: number
-  customFontManager: SkTypefaceFontProvider | null
-  ioData: TxNode['ioData']
-  isTransactionChart: boolean
-  selectedOutputNode?: string
-  isFakeMix?: boolean
-  isChange?: boolean
-  isSelfSend?: boolean
-  isReceive?: boolean
-  showUnspentLabel?: boolean
-  labelIconSvg: ReturnType<typeof useSVG>
-  changeIconSvg: ReturnType<typeof useSVG>
-  fakeMixIconSvg: ReturnType<typeof useSVG>
-  minerFeeIconSvg: ReturnType<typeof useSVG>
-}) {
+}: NodeTextProps) {
+  const { isChange, isFakeMix, isReceive, isSelfSend } = outputRole
   const isMiningFee = localId.includes('minerFee')
   const isHigherMinerFee = ioData?.higherFee === true
   const isFeeValueWarning = isHigherMinerFee || ioData?.elevatedFeeRate === true
-  const isChange =
-    isChangeProp === true || localId === CHART_REMAINING_BALANCE_LOCAL_ID
   const isUnspent = ioData?.isUnspent === true
   const isNeutralOutput = ioData?.isNeutralOutput === true
   const isInput = ioData?.isInput === true
-  const isPrivacyOwnedOutput = Boolean(
-    isChange || isSelfSend || isReceive || isFakeMix
-  )
+  const isPrivacyOwnedOutput = isChange || isSelfSend || isReceive || isFakeMix
+  const showsRoleAndLabel = isSelfSend || isReceive || isFakeMix
   const usePrivacyOutputLayout =
     !isNeutralOutput && (isUnspent || isPrivacyOwnedOutput)
+  const paragraphKind = getSankeyNodeParagraphKind({
+    isBlock,
+    isInput,
+    isMiningFee,
+    isNeutralOutput,
+    isPrivacyOwnedOutput,
+    isUnspent
+  })
 
   const shadowPaint = useMemo(() => {
     const paint = Skia.Paint()
@@ -441,11 +432,7 @@ function NodeText({
     isBlock
   ])
 
-  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(
-    width,
-    PADDING_LEFT,
-    isBlock
-  )
+  const paragraphLayoutWidth = getNodeParagraphLayoutWidth(width, isBlock)
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) {
@@ -465,7 +452,9 @@ function NodeText({
       Skia.ParagraphBuilder.Make(
         {
           ellipsis: '…',
-          maxLines: isSelfSend || isReceive || isFakeMix ? 6 : 5,
+          maxLines: showsRoleAndLabel
+            ? MAX_LINES_WITH_ROLE_AND_LABEL
+            : MAX_LINES,
           strutStyle: {
             forceStrutHeight: true,
             heightMultiplier: 1,
@@ -522,7 +511,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE
         })
 
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -566,12 +555,9 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
-      const isGreenOutput = Boolean(
-        isChange || isSelfSend || isReceive || isFakeMix
-      )
       const satsValueColor = getUnspentOutputSatsColor({
         isChange,
-        isGreenOutput,
+        isGreenOutput: isPrivacyOwnedOutput,
         isMiningFee,
         maxAllowedSats: ioData?.maxAllowedSats,
         value: ioData?.value
@@ -595,8 +581,8 @@ function NodeText({
         })
         .addText(
           showUnspentLabel
-            ? `\n${formatSatsAmount(ioData?.value)}`
-            : formatSatsAmount(ioData?.value)
+            ? `\n${formatNumber(ioData?.value ?? 0)}`
+            : formatNumber(ioData?.value ?? 0)
         )
         .pushStyle({
           ...baseTextStyle,
@@ -617,7 +603,7 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          color: Skia.Color(isGreenOutput ? mainGreen : mainRed),
+          color: Skia.Color(isPrivacyOwnedOutput ? mainGreen : mainRed),
           fontSize: XS_FONT_SIZE,
           fontStyle: {
             weight: 800
@@ -632,15 +618,10 @@ function NodeText({
           0
         )
         .addText(
-          isChange
-            ? ` ${t('transaction.build.change')}`
-            : isFakeMix
-              ? ` ${t('transaction.build.fakeMix')}`
-              : isSelfSend
-                ? ` ${t('transaction.build.selfSend')}`
-                : isReceive
-                  ? ` ${t('transaction.build.receive')}`
-                  : ` ${trimNodeLabel(ioData.label)}`
+          ` ${getUnspentOutputTag(
+            { isChange, isFakeMix, isReceive, isSelfSend },
+            ioData.label
+          )}`
         )
         .pushStyle({
           ...baseTextStyle,
@@ -651,7 +632,7 @@ function NodeText({
           }
         })
         .addText(
-          (isSelfSend || isReceive || isFakeMix) && ioData?.label
+          showsRoleAndLabel && ioData?.label
             ? ` ${trimNodeLabel(ioData.label)}`
             : ''
         )
@@ -670,7 +651,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -708,26 +689,14 @@ function NodeText({
       const hasOutpoint =
         Boolean(ioData?.address) && typeof ioData?.vout === 'number'
       const trimmedLabel = trimNodeLabel(ioData?.label)
-      const isOwnInput = ioData?.isOwnInput
-      const ownershipTag =
-        isOwnInput === true
-          ? t('transaction.details.chartInputOurs')
-          : isOwnInput === false
-            ? t('transaction.details.chartInputCounterparty')
-            : undefined
-      const ownershipTagColor =
-        isOwnInput === true
-          ? mainGreen
-          : isOwnInput === false
-            ? mainRed
-            : gray[300]
+      const ownershipTag = getInputOwnershipTag(ioData?.isOwnInput)
       const para = createParagraphBuilder()
       para
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(formatSatsAmount(ioData?.value))
+        .addText(formatNumber(ioData?.value ?? 0))
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -755,13 +724,13 @@ function NodeText({
         para
           .pushStyle({
             ...baseTextStyle,
-            color: Skia.Color(ownershipTagColor),
+            color: Skia.Color(ownershipTag.color),
             fontSize: XS_FONT_SIZE,
             fontStyle: {
               weight: 800
             }
           })
-          .addText(`\n${ownershipTag}`)
+          .addText(`\n${ownershipTag.text}`)
       }
       if (trimmedLabel) {
         para
@@ -781,7 +750,6 @@ function NodeText({
     }
 
     const buildSpentParagraph = () => {
-      const hasLabel = Boolean(ioData?.label)
       const para = createParagraphBuilder()
       para
         .pushStyle({
@@ -794,7 +762,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`\n${formatSatsAmount(ioData?.value)}`)
+        .addText(`\n${formatNumber(ioData?.value ?? 0)}`)
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -827,43 +795,30 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(
-          ioData?.specialTag
-            ? ` ${ioData.specialTag}`
-            : hasLabel
-              ? ` ${trimNodeLabel(ioData.label)}`
-              : ` ${t('common.noLabel')}`
-        )
+        .addText(` ${getSpentOutputTag(ioData?.specialTag, ioData?.label)}`)
         .pop()
 
       return para.build()
     }
 
-    let para
-    if (isBlock) {
-      para = buildBlockParagraph()
-    } else if (isMiningFee) {
-      para = buildMiningFeeParagraph()
-    } else if (isInput) {
-      para = buildInputParagraph()
-    } else if (isNeutralOutput) {
-      para = buildNeutralOutputParagraph()
-    } else if (isUnspent || isPrivacyOwnedOutput) {
-      // Wallet-owned outputs keep green styling if UTXO set has not caught up.
-      para = buildUnspentParagraph()
-    } else {
-      para = buildSpentParagraph()
+    const buildParagraphByKind = {
+      block: buildBlockParagraph,
+      input: buildInputParagraph,
+      miningFee: buildMiningFeeParagraph,
+      neutralOutput: buildNeutralOutputParagraph,
+      spentOutput: buildSpentParagraph,
+      unspentOutput: buildUnspentParagraph
     }
-
+    const para = buildParagraphByKind[paragraphKind]()
     para.layout(paragraphLayoutWidth)
     return para
   }, [
     customFontManager,
+    paragraphKind,
+    showsRoleAndLabel,
     isBlock,
     isMiningFee,
-    isInput,
     isUnspent,
-    isNeutralOutput,
     paragraphLayoutWidth,
     ioData?.txSize,
     ioData.vSize,
@@ -889,19 +844,10 @@ function NodeText({
     showUnspentLabel
   ])
 
-  const paragraphX = x + getNodeParagraphOffsetX(width, PADDING_LEFT, isBlock)
-  const paragraphY = isBlock
-    ? y + 4
-    : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
-      y
+  const paragraphX = x + getNodeParagraphOffsetX(width, isBlock)
+  const paragraphY = isBlock ? y + BLOCK_TEXT_OFFSET_Y : y
 
-  const isSpentOutput =
-    !isBlock &&
-    !isMiningFee &&
-    !isInput &&
-    !isNeutralOutput &&
-    !isUnspent &&
-    !isPrivacyOwnedOutput
+  const isSpentOutput = paragraphKind === 'spentOutput'
   const groupBaseX =
     usePrivacyOutputLayout || isSpentOutput
       ? paragraphX + NODE_MARGIN_LEFT
@@ -919,7 +865,7 @@ function NodeText({
     const paint = Skia.Paint()
     paint.setColor(Skia.Color(warning))
     paint.setStyle(PaintStyle.Stroke)
-    paint.setStrokeWidth(1.5)
+    paint.setStrokeWidth(DUST_BORDER_WIDTH)
     return paint
   }, [])
 
@@ -927,9 +873,11 @@ function NodeText({
     return null
   }
 
-  const paragraphActualWidth = isBlock
-    ? paragraphLayoutWidth
-    : Math.max(width - PADDING_LEFT, mainParagraph.getLongestLine())
+  const paragraphBoxWidth = getNodeParagraphBoxWidth(
+    width,
+    isBlock,
+    mainParagraph.getLongestLine()
+  )
   const paragraphActualHeight = mainParagraph.getHeight()
 
   const outputIconRect = placeholderRectsOutputIcon[0]?.rect
@@ -958,18 +906,18 @@ function NodeText({
         <RoundedRect
           x={groupBaseX - RECT_PADDING}
           y={paragraphY - RECT_PADDING}
-          width={paragraphActualWidth + 2 * RECT_PADDING}
+          width={paragraphBoxWidth + 2 * RECT_PADDING}
           height={paragraphActualHeight + 2 * RECT_PADDING}
-          r={3}
+          r={RECT_RADIUS}
           paint={dustBorderPaint}
         />
       )}
       {isBlock && !isTransactionChart ? (
         <Paragraph
           paragraph={blockNodeParagraph}
-          x={x + 6}
-          y={paragraphY - 62}
-          width={87}
+          x={x + BLOCK_INFO_OFFSET_X}
+          y={paragraphY + BLOCK_INFO_OFFSET_Y}
+          width={BLOCK_INFO_WIDTH}
         />
       ) : null}
       {selectedOutputNode === localId ? (
@@ -977,9 +925,9 @@ function NodeText({
           <RoundedRect
             x={groupBaseX - RECT_PADDING}
             y={paragraphY - RECT_PADDING}
-            width={paragraphActualWidth + 2 * RECT_PADDING}
+            width={paragraphBoxWidth + 2 * RECT_PADDING}
             height={paragraphActualHeight + 2 * RECT_PADDING}
-            r={3}
+            r={RECT_RADIUS}
             paint={shadowPaint}
           />
           <Paragraph

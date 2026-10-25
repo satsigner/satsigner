@@ -1,7 +1,12 @@
 import { getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { type EncryptedKeySecret } from '@/types/models/Account'
-import { migratePinKdfIfNeeded, recoverWorkingPinDigest } from '@/utils/pinKdf'
+import {
+  commitPinMaterial,
+  migratePinKdfIfNeeded,
+  preparePinMaterial,
+  recoverWorkingPinDigest
+} from '@/utils/pinKdf'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import { reEncryptPinBoundSecrets } from '@/utils/reEncryptPinSecrets'
 
@@ -66,4 +71,15 @@ async function finalizePinAuthSuccess(
   await onSuccess()
 }
 
-export { finalizePinAuthSuccess, getFirstEncryptedKeyProbe }
+/**
+ * After a duress unlock the duress PIN becomes the main PIN, as the duress
+ * setup screen tells the user. The wipe already removed the secrets, so there
+ * is nothing to re-encrypt.
+ */
+async function promoteDuressPin(pin: string): Promise<void> {
+  const material = await preparePinMaterial(pin)
+  await commitPinMaterial(material)
+  setSessionPinDigest(material.digest)
+}
+
+export { finalizePinAuthSuccess, getFirstEncryptedKeyProbe, promoteDuressPin }
