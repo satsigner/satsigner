@@ -27,6 +27,7 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
@@ -81,6 +82,7 @@ import {
   type DetectedContent
 } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
+import { spendsUnconfirmedParent } from '@/utils/feeReplacement'
 import {
   estimateTargetBlocks,
   getFeeRateInputMax,
@@ -160,6 +162,7 @@ export default function IOPreview() {
     outputs,
     getInputs,
     feeRate,
+    rbf,
     addOutput,
     updateOutput,
     removeOutput,
@@ -183,6 +186,7 @@ export default function IOPreview() {
       state.outputs,
       state.getInputs,
       state.feeRate,
+      state.rbf,
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
@@ -338,6 +342,10 @@ export default function IOPreview() {
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
+  const spendsUnconfirmedInput = spendsUnconfirmedParent(
+    [...inputs.values()],
+    account.transactions
+  )
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
@@ -1516,6 +1524,11 @@ export default function IOPreview() {
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
           <SSVStack gap="xs">
+            <SSFeeReplacementFlags
+              rbf={rbf}
+              cpfp={spendsUnconfirmedInput}
+              size="xs"
+            />
             <SSHStack gap="xs">
               <SSButton
                 variant="outline"
