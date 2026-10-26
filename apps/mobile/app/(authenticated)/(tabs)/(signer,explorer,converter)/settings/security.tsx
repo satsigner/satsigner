@@ -64,7 +64,10 @@ export default function Security() {
   }
 
   function goSetDuressPin() {
-    router.navigate('/setDuressPin')
+    setDuressPinModalVisible(false)
+    // Setting a duress PIN enables it in the store; show that on return.
+    setLocalDuressPinEnabled(null)
+    router.navigate('/settings/duressPin')
   }
 
   return (
@@ -95,7 +98,7 @@ export default function Security() {
                 onPress={() =>
                   router.navigate({
                     params: { source: 'settings' },
-                    pathname: '/setPin'
+                    pathname: '/settings/changePin'
                   })
                 }
               />

@@ -214,6 +214,14 @@ export default function StackLayout(params: { segment?: string }) {
       }}
     >
       {getHomeScreen(params?.segment)}
+      <Stack.Screen
+        name="settings/changePin"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="settings/duressPin"
+        options={{ headerShown: false }}
+      />
     </Stack>
   )
 }
