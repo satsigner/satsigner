@@ -1,13 +1,14 @@
 import { router } from 'expo-router'
-import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
+import { type SetStateAction, useState } from 'react'
 import { toast } from 'sonner-native'
 
-import { DURESS_PIN_KEY, PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'
+import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
-import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import { emptyPin, getPin } from '@/utils/pin'
 import {
   applyPendingPinKdfCommit,
   derivePinDigest,
@@ -27,19 +28,8 @@ type UsePinAuthProps = {
   maxTries?: number
 }
 
-function applyPinUpdate(
-  update: SetStateAction<string[]>,
-  setPin: Dispatch<SetStateAction<string[] | null>>
-) {
-  setPin((current) => {
-    if (current === null) {
-      return current
-    }
-    if (typeof update === 'function') {
-      return update(current)
-    }
-    return update
-  })
+function applyPinUpdate(update: SetStateAction<string[]>, current: string[]) {
+  return typeof update === 'function' ? update(current) : update
 }
 
 // Unlocks the app into the (now wiped) wallet after a duress PIN.
@@ -127,25 +117,22 @@ function usePinAuth({
   maxTries
 }: UsePinAuthProps) {
   const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
-  const [pin, setPin] = useState<string[] | null>(null)
+  const pinLength = useStoredPinLength()
+  const [enteredPin, setEnteredPin] = useState<string[] | null>(null)
   const [tries, setTries] = useState(0)
   const [verifying, setVerifying] = useState(false)
 
-  useEffect(() => {
-    const load = { cancelled: false }
-    async function loadPinLength() {
-      const stored = await getItem(PIN_LENGTH_KEY)
-      if (load.cancelled) {
-        return
-      }
-      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
-      setPin((current) => current ?? emptyPin(length))
+  const pin =
+    enteredPin ?? (pinLength === undefined ? null : emptyPin(pinLength))
+
+  function setPin(update: SetStateAction<string[]>) {
+    if (pinLength === undefined) {
+      return
     }
-    loadPinLength()
-    return () => {
-      load.cancelled = true
-    }
-  }, [])
+    setEnteredPin((current) =>
+      applyPinUpdate(update, current ?? emptyPin(pinLength))
+    )
+  }
 
   async function handleFillEnded(inputPin: string) {
     setVerifying(true)
@@ -162,13 +149,13 @@ function usePinAuth({
 
     if (result === 'error') {
       setVerifying(false)
-      setPin((current) => (current ? emptyPin(current.length) : current))
+      setEnteredPin(null)
       toast.error(t('auth.pinRetrieveFailed'))
       return
     }
 
     if (result === 'fail') {
-      setPin((current) => (current ? emptyPin(current.length) : current))
+      setEnteredPin(null)
 
       const newTries = tries + 1
       setTries(newTries)
@@ -190,8 +177,7 @@ function usePinAuth({
   return {
     handleFillEnded,
     pin,
-    setPin: (update: SetStateAction<string[]>) =>
-      applyPinUpdate(update, setPin),
+    setPin,
     verifying
   }
 }
