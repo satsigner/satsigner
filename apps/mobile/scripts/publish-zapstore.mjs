@@ -41,6 +41,7 @@ import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'module'
 import path from 'path'
 import readline from 'readline'
+import { parseArgs } from 'util'
 import { fileURLToPath } from 'url'
 
 import {
@@ -63,14 +64,24 @@ const {
   sanitizePackageSegment
 } = require('../constants/variant.cjs')
 
-const args = process.argv.slice(2)
-const blossomFlagIdx = args.indexOf('--blossom')
-const notesFlagIdx = args.indexOf('--notes')
+const { values: flags } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    blossom: { type: 'string' },
+    channel: { type: 'string' },
+    config: { type: 'string' },
+    'dry-run': { type: 'boolean' },
+    notes: { type: 'string' },
+    only: { type: 'string' },
+    yes: { type: 'boolean' }
+  },
+  strict: true
+})
 
 // Agent / CI mode: CI=true or AGENT=true implies --yes and structured output
 const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
-const yes = args.includes('--yes') || isAgent
-const dryRun = args.includes('--dry-run')
+const yes = flags.yes === true || isAgent
+const dryRun = flags['dry-run'] === true
 
 // Key resolution — env takes precedence, interactive prompt is the fallback
 const envSignWith = process.env.SIGN_WITH ?? ''
@@ -83,29 +94,16 @@ const APK_OUTPUT = path.join(
   'app/build/outputs/apk/release/app-release.apk'
 )
 
-// Use util.parseArgs for flags that accept string values to prevent argv injection.
-// --notes and --blossom values could otherwise shadow flag names if they collide.
-const BLOSSOM_URL =
-  blossomFlagIdx !== -1
-    ? (args[blossomFlagIdx + 1] ?? 'https://cdn.zapstore.dev')
-    : 'https://cdn.zapstore.dev'
-// Notes via env (RELEASE_NOTES) or argv. Env is preferred to avoid argv injection
-// (e.g. a notes value of "--channel" would break channel detection if parsed naively).
+const BLOSSOM_URL = flags.blossom ?? 'https://cdn.zapstore.dev'
 const NOTES_ARG =
   process.env.RELEASE_NOTES !== undefined
     ? process.env.RELEASE_NOTES
-    : notesFlagIdx !== -1
-      ? (args[notesFlagIdx + 1] ?? null)
-      : null
-const onlyFlagIdx = args.indexOf('--only')
-const ONLY = onlyFlagIdx !== -1 ? (args[onlyFlagIdx + 1] ?? '') : ''
-const channelFlagIdx = args.indexOf('--channel')
-const CHANNEL = channelFlagIdx !== -1 ? (args[channelFlagIdx + 1] ?? '') : ''
-const configFlagIdx = args.indexOf('--config')
-const CONFIG_YAML =
-  configFlagIdx !== -1
-    ? path.resolve(REPO_ROOT, args[configFlagIdx + 1] ?? 'zapstore.yaml')
-    : path.join(REPO_ROOT, 'zapstore.yaml')
+    : (flags.notes ?? null)
+const ONLY = flags.only ?? ''
+const CHANNEL = flags.channel ?? ''
+const CONFIG_YAML = flags.config
+  ? path.resolve(REPO_ROOT, flags.config)
+  : path.join(REPO_ROOT, 'zapstore.yaml')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
 const EAS_PROFILE = 'development'
@@ -341,6 +339,12 @@ function step(n, label) {
 
 async function buildReleaseApk() {
   if (CHANNEL !== 'primary' && CHANNEL !== 'dev') {
+    if (apkPackageId() === getVariantPackageId(false, '')) {
+      throw new Error(
+        'android/ is prebuilt with the production package id. ' +
+          'Production APKs are disabled until a release keystore is in place.'
+      )
+    }
     console.log('  Running: ./gradlew assembleRelease\n')
     const androidHome =
       process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
@@ -407,7 +411,7 @@ async function main() {
   console.log(`  Zapstore    : ${ZAPSTORE_APP_URL}`)
   console.log(`  Relays      : ${ANNOUNCEMENT_RELAYS.join(', ')}`)
   if (isAgent) console.log('  Mode        : agent/CI (non-interactive)')
-  if (dryRun)  console.log('  Dry-run     : build only, no publish')
+  if (dryRun) console.log('  Dry-run     : build only, no publish')
   console.log('\nWhat will happen:')
   console.log(
     bunkerUrl
@@ -443,7 +447,7 @@ async function main() {
     // When a custom config yaml is specified, zsp fetches the APK from the
     // configured source (GitHub releases etc.) — no local build needed.
     // When using the default zapstore.yaml, we build locally and pass the APK path.
-    const usingCustomConfig = configFlagIdx !== -1
+    const usingCustomConfig = Boolean(flags.config)
 
     let apkPath = null
     if (!usingCustomConfig) {
@@ -452,7 +456,9 @@ async function main() {
       console.log(`\n  APK: ${apkPath}`)
     } else {
       step(2, 'Build APK')
-      console.log(`  Using config yaml — zsp will fetch APK from configured source.`)
+      console.log(
+        '  Using config yaml — zsp will fetch APK from configured source.'
+      )
     }
 
     step(3, 'Publish to Zapstore')
@@ -494,6 +500,10 @@ async function main() {
         })
       } catch {
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
+        if (yes && !ZAPSTORE_ONLY) {
+          secretKey?.fill(0)
+          throw new Error('zsp publish failed; announcement skipped')
+        }
         const next = ZAPSTORE_ONLY
           ? 'stopping after Zapstore.'
           : 'continuing to announcement step.'

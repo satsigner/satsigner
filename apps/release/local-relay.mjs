@@ -71,7 +71,13 @@ function startLocalRelay(log) {
   const events = []
   const sockets = new Set()
   const subscriptions = new Map()
-  const server = new WebSocketServer({ host: HOST, port: PORT })
+  const allowedHosts = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`])
+  const server = new WebSocketServer({
+    host: HOST,
+    port: PORT,
+    verifyClient: ({ req }) =>
+      !req.headers.origin && allowedHosts.has(req.headers.host ?? '')
+  })
   server.on('connection', (socket) => {
     const subs = new Map()
     subscriptions.set(socket, subs)

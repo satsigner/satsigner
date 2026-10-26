@@ -209,15 +209,13 @@ async function publishZapstore(notes, only, channel) {
   const args = [
     'apps/mobile/scripts/publish-zapstore.mjs',
     '--yes',
-    '--notes',
-    notes,
     '--channel',
     releaseChannel(channel)
   ]
   if (only) {
     args.push('--only', only)
   }
-  await run('node', args, { SIGN_WITH: bunkerUrl })
+  await run('node', args, { RELEASE_NOTES: notes, SIGN_WITH: bunkerUrl })
 }
 
 async function releaseChannels() {
@@ -439,6 +437,8 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/abort') {
     abortChild()
     bunkerUrl = ''
+    bridge?.close()
+    bridge = null
     send(res, 200, { ok: true })
     return
   }
@@ -558,6 +558,10 @@ pageSockets.on('connection', (socket) => {
   socket.on('close', () => {
     if (pageSocket === socket) {
       pageSocket = null
+      for (const waiter of signWaiters.values()) {
+        waiter.reject(new Error('extension page disconnected'))
+      }
+      signWaiters.clear()
     }
   })
 })
