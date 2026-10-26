@@ -74,40 +74,37 @@ export default function ImportDescriptor() {
 
     setIsValidating(true)
     setDescriptorError('')
+    try {
+      const error = await getDescriptorInputError(descriptorText)
+      setIsValidDescriptor(!error)
+      setDescriptorError(error)
+    } finally {
+      setIsValidating(false)
+    }
+  }
 
+  async function getDescriptorInputError(descriptorText: string) {
     const descriptorValidation = await validateDescriptor(descriptorText)
-
     if (!descriptorValidation) {
-      setIsValidDescriptor(false)
-      setDescriptorError('Invalid descriptor')
-      return
+      return 'Invalid descriptor'
     }
 
-    if (scriptVersion) {
-      // For multisig descriptors, we need to be more flexible with script version validation
-      // because the default script version might not be set correctly yet
-      let effectiveScriptVersion = scriptVersion
-
-      // If we're in a multisig context and the descriptor uses wsh, use P2WSH
-      if (policyType === 'multisig' && descriptorText.includes('wsh(')) {
-        effectiveScriptVersion = 'P2WSH'
-      }
-
-      const scriptVersionValidation = validateDescriptorScriptVersion(
-        descriptorText,
-        effectiveScriptVersion
-      )
-
-      if (!scriptVersionValidation) {
-        setIsValidDescriptor(false)
-        setDescriptorError('Invalid script version')
-        return
-      }
+    if (!scriptVersion) {
+      return ''
     }
 
-    setIsValidDescriptor(true)
-    setDescriptorError('')
-    setIsValidating(false)
+    // The default script version might not be set yet, so a multisig wsh()
+    // descriptor is checked as P2WSH.
+    const effectiveScriptVersion =
+      policyType === 'multisig' && descriptorText.includes('wsh(')
+        ? 'P2WSH'
+        : scriptVersion
+
+    const scriptVersionValidation = validateDescriptorScriptVersion(
+      descriptorText,
+      effectiveScriptVersion
+    )
+    return scriptVersionValidation ? '' : 'Invalid script version'
   }
 
   function handleDescriptorChange(text: string) {
