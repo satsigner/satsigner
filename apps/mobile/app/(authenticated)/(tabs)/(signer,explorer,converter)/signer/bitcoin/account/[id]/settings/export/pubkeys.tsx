@@ -94,14 +94,14 @@ export default function ExportPubkeys() {
           <SSHStack style={{ gap: 10, justifyContent: 'center' }}>
             <SSButton
               label={t('account.export.xpubFormat')}
-              variant={pubkeyFormat === 'xpub' ? 'outline' : 'subtle'}
+              variant={pubkeyFormat === 'xpub' ? 'secondary' : 'default'}
               onPress={() => setPubkeyFormat('xpub')}
               style={{ flex: 1 }}
             />
             {showSlip132Formats && (
               <SSButton
                 label={t('account.export.zpubFormat')}
-                variant={pubkeyFormat === 'zpub' ? 'outline' : 'subtle'}
+                variant={pubkeyFormat === 'zpub' ? 'secondary' : 'default'}
                 onPress={() => setPubkeyFormat('zpub')}
                 style={{ flex: 1 }}
               />
@@ -109,7 +109,7 @@ export default function ExportPubkeys() {
             {showSlip132Formats && (
               <SSButton
                 label={t('account.export.vpubFormat')}
-                variant={pubkeyFormat === 'vpub' ? 'outline' : 'subtle'}
+                variant={pubkeyFormat === 'vpub' ? 'secondary' : 'default'}
                 onPress={() => setPubkeyFormat('vpub')}
                 style={{ flex: 1 }}
               />
