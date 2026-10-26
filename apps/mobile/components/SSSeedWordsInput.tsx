@@ -319,16 +319,16 @@ export default function SSSeedWordsInput({
         const seed = checkClipboardForSeed(text)
         if (seed.length > 0) {
           await fillOutSeedWords(seed)
-          toast.success('Seed words pasted from clipboard')
+          toast.success(t('account.import.clipboard.seedPasted'))
         } else if (reportMiss) {
-          toast.error('No valid seed found in clipboard')
+          toast.error(t('account.import.clipboard.noSeed'))
         }
       } catch (error) {
         if (!reportMiss) {
           return
         }
         const reason = error instanceof Error ? error.message : String(error)
-        toast.error(`Failed to read clipboard, ${reason}`)
+        toast.error(t('account.import.clipboard.readFailed', { reason }))
       }
     },
     [checkClipboardForSeed, fillOutSeedWords]
