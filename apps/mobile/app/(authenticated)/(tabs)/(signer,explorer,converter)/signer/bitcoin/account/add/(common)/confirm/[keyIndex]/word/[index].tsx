@@ -116,7 +116,7 @@ export default function Confirm() {
       setKey(Number(keyIndex))
 
       setLoadingAccount(false)
-      router.dismiss(Number(index) + 3)
+      router.dismissTo('/signer/bitcoin/account/add/multiSig/manager')
     }
     setLocalMnemonicWordCount(mnemonicWordCount)
     clearKeyState()
