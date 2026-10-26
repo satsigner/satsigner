@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, TextInput, type ViewInstance } from 'react-native'
 import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -189,7 +189,7 @@ export default function Receive() {
   // Distinguishes "user turned Payjoin off" from "we auto-disabled while UTXOs
   // were still empty on first paint" so we can re-enable once coins appear.
   const userSetPayjoinRef = useRef(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   // Master switch is read-only here; per-invoice control is local `includePayjoin`.
   const payjoinEnabled = useSettingsStore((state) => state.payjoinEnabled)

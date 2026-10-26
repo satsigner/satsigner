@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -33,7 +33,7 @@ export default function PublicKeyPage() {
 
   const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
   const [rawPublicKey, setRawPublicKey] = useState('')
   const [scriptVersion, setScriptVersion] = useState('P2WPKH')

@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { StyleProp, TextInput, ViewStyle } from 'react-native'
+import type { StyleProp, TextInputInstance, ViewStyle } from 'react-native'
 import { type Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -126,9 +126,9 @@ export default function SSSeedWordsInput({
       : passphraseStrength?.level === 'fair'
         ? warning
         : error
-  const passphraseRef = useRef<TextInput>(null)
+  const passphraseRef = useRef<TextInputInstance>(null)
   const clipboardCheckedRef = useRef(false)
-  const wordInputRefs = useRef<(TextInput | null)[]>([])
+  const wordInputRefs = useRef<(TextInputInstance | null)[]>([])
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const handleWordSelectedRef =
     useRef<(word?: string) => Promise<void>>(undefined)
@@ -143,7 +143,7 @@ export default function SSSeedWordsInput({
       value: ''
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
-    wordInputRefs.current = Array.from<TextInput | null>({
+    wordInputRefs.current = Array.from<TextInputInstance | null>({
       length: wordCount
     }).fill(null)
   }, [wordCount])

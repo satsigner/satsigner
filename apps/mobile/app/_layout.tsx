@@ -113,7 +113,7 @@ export default function RootLayout() {
       setLastBackgroundTimestamp(Date.now())
     } else if (
       nextAppState === 'active' &&
-      appState.current.match(/background/) &&
+      appState.current?.match(/background/) &&
       requiresAuth
     ) {
       const inactivityStartTime = getLastBackgroundTimestamp()

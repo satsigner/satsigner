@@ -618,7 +618,7 @@ function SSCameraModal({
             <CameraView
               onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
               onAvailableLensesChanged={(event: AvailableLenses) => {
-                const { lenses } = event
+                const lenses = event.lenses.map((lens) => lens.deviceType)
                 if (lenses.length < 2) {
                   return
                 }

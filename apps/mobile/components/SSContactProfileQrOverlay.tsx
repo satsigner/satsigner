@@ -5,7 +5,8 @@ import {
   type NativeSyntheticEvent,
   Pressable,
   StyleSheet,
-  View
+  View,
+  type ViewInstance
 } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -59,7 +60,7 @@ function ContactQrPlaceholder({ label }: { label: string }) {
 
 function ContactQrItem({ label, value }: ContactQrItemProps) {
   const [inverted, setInverted] = useState(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   function handleToggleInvert() {
     setInverted((current) => !current)

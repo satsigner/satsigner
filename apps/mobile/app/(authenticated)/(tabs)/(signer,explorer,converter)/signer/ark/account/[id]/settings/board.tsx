@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -88,7 +88,7 @@ export default function ArkBoardPage() {
 
   const [amountSats, setAmountSats] = useState(0)
   const [fundTab, setFundTab] = useState<FundTab>('address')
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
   const pendingSats = balanceQuery.data?.pendingSats ?? 0

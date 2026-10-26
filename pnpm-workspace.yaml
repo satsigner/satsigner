@@ -12,9 +12,12 @@ onlyBuiltDependencies:
   - workerd
 
 overrides:
-  '@expo/dom-webview': 57.0.1
-  '@expo/metro-runtime': 57.0.6
-  react: 19.2.3
-  react-dom: 19.2.3
+  '@expo/dom-webview': 58.0.2
+  '@expo/metro-runtime': 58.0.15
+  '@types/react': 19.3.0
+  react: 19.3.0
+  react-dom: 19.3.0
 patchedDependencies:
+  '@secondts/bark-react-native@0.25.0': patches/@secondts__bark-react-native@0.25.0.patch
+  react-native-bdk-sdk@0.8.0: patches/react-native-bdk-sdk@0.8.0.patch
   react-native-draggable-flatlist@4.0.3: patches/react-native-draggable-flatlist@4.0.3.patch

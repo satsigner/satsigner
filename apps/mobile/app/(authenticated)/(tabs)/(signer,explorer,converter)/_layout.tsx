@@ -5,10 +5,7 @@ import {
   useRouter,
   useSegments
 } from 'expo-router'
-import {
-  type DrawerNavigationProp,
-  useDrawerStatus
-} from 'expo-router/build/react-navigation/drawer'
+import { type DrawerNavigationProp, useDrawerStatus } from 'expo-router/drawer'
 import { useEffect, useMemo, useState } from 'react'
 import { Platform, type ViewStyle, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -32,14 +29,23 @@ import {
   HEADER_CHROME_SETTINGS_ICON_SIZE,
   HEADER_HEIGHT_TRIM_PX
 } from '@/constants/headerChrome'
+import { TabSegmentContext } from '@/hooks/useTabSegment'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import { type TabSegment } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
+import { toTabSegment } from '@/utils/tabSegment'
 
 const HEADER_ICON_STROKE = '#828282'
 const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
+
+const HOME_SCREEN_TITLES: Record<TabSegment, string> = {
+  '(converter)': 'Converter',
+  '(explorer)': 'Explore',
+  '(signer)': 'Signer'
+}
 
 function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
   const router = useRouter()
@@ -153,90 +159,44 @@ export default function StackLayout(params: { segment?: string }) {
     setShowNav(showNavigation(currentPath, segments.length))
   }, [currentPath, segments])
 
-  const homeScreen = useMemo(() => {
-    switch (params?.segment) {
-      case '(signer)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.signer')
-            }}
-            options={{ title: 'Signer' }}
-          />
-        )
-      }
-      case '(explorer)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.explorer')
-            }}
-            options={{ title: 'Explore' }}
-          />
-        )
-      }
-      case '(converter)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.converter')
-            }}
-            options={{ title: 'Converter' }}
-          />
-        )
-      }
-      default: {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.signer')
-            }}
-            options={{ title: 'Signer' }}
-          />
-        )
-      }
-    }
-  }, [params])
+  const tabSegment = toTabSegment(params?.segment)
 
   return (
-    <Stack
-      screenOptions={{
-        contentStyle: {
-          backgroundColor: Colors.gray[950]
-        },
-        headerBackVisible: false,
-        headerBackground: () => (
-          <View
-            style={{
-              alignItems: 'center',
-              backgroundColor: Colors.gray[950],
-              height: '100%',
-              justifyContent: 'center'
-            }}
-          />
-        ),
-        headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
-        headerRight: () => <HeaderRight />,
-        // Native stack also applies the height; Expo's Stack typings only list backgroundColor.
-        headerStyle: stackHeaderStyle,
-        headerTintColor: Colors.gray[200],
-        headerTitle: () => (
-          <SSText uppercase style={{ letterSpacing: 1 }}>
-            {t('app.name')}
-          </SSText>
-        ),
-        headerTitleAlign: 'center'
-      }}
-    >
-      {homeScreen}
-    </Stack>
+    <TabSegmentContext value={tabSegment}>
+      <Stack
+        screenOptions={{
+          contentStyle: {
+            backgroundColor: Colors.gray[950]
+          },
+          headerBackVisible: false,
+          headerBackground: () => (
+            <View
+              style={{
+                alignItems: 'center',
+                backgroundColor: Colors.gray[950],
+                height: '100%',
+                justifyContent: 'center'
+              }}
+            />
+          ),
+          headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
+          headerRight: () => <HeaderRight />,
+          // Native stack also applies the height; Expo's Stack typings only list backgroundColor.
+          headerStyle: stackHeaderStyle,
+          headerTintColor: Colors.gray[200],
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
+          ),
+          headerTitleAlign: 'center'
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{ title: HOME_SCREEN_TITLES[tabSegment] }}
+        />
+      </Stack>
+    </TabSegmentContext>
   )
 }
