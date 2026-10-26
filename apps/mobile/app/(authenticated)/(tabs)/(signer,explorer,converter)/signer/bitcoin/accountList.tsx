@@ -64,6 +64,10 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { ensurePin } from '@/utils/pin'
 import { time } from '@/utils/time'
 
+function getSampleAccountName(sample: string) {
+  return `Sample (${sample})`
+}
+
 function accountShowsFingerprint(account: Account) {
   return account.keys[0]?.creationType !== 'importAddress'
 }
@@ -308,6 +312,16 @@ export default function AccountList() {
   }
 
   async function handleLoadSampleWallet(type: SampleWallet) {
+    const sampleNetwork = tabs[tabIndex].key
+    const isSampleLoaded = accounts.some(
+      (account) =>
+        account.network === sampleNetwork &&
+        account.name === getSampleAccountName(type)
+    )
+    if (isSampleLoaded) {
+      toast.info(t('accounts.sampleAlreadyLoaded'))
+      return
+    }
     setLoadingWallet(type)
     try {
       await loadSampleWallet(type)
@@ -324,7 +338,7 @@ export default function AccountList() {
     // seeds a random ephemeral key when none exists (never a hardcoded PIN).
     await ensurePin()
 
-    setName(`Sample (${type})`)
+    setName(getSampleAccountName(type))
     setKeyCount(1)
     setKeysRequired(1)
 

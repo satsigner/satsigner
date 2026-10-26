@@ -369,6 +369,7 @@
     "empty": "No keys yet",
     "noSatsOnMempool": "No sats on mempool",
     "receive": "Receive",
+    "sampleAlreadyLoaded": "This sample account is already loaded",
     "samples": "Sample accounts",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
