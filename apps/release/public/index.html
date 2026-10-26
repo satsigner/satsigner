@@ -607,11 +607,14 @@
         manageListingsButton.textContent = open
           ? 'Hide listings and posts'
           : 'Manage listings and posts'
-        if (open) {
-          void loadReleases()
-          void loadApps()
-        }
+        if (open) refreshListings()
       })
+
+      function refreshListings() {
+        if (listingsEl.hidden) return
+        void loadReleases()
+        void loadApps()
+      }
 
       function showTab(id) {
         for (const tab of tabs) {
@@ -1377,8 +1380,7 @@
             )
             setBusy(busy)
             void showProfile(signerPubkey)
-            void loadReleases()
-            void loadApps()
+            refreshListings()
             writeLog('extension connected\n')
             resolve()
           })
@@ -1446,13 +1448,11 @@
         writeLog(JSON.parse(event.data))
         if (event.data.includes('done') || event.data.includes('error:')) {
           refreshStatus()
-          void loadReleases()
-          void loadApps()
+          refreshListings()
         }
       }
       refreshStatus()
-      void loadReleases()
-      void loadApps()
+      refreshListings()
     </script>
   </body>
 </html>

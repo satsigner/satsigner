@@ -500,14 +500,19 @@ async function main() {
         })
       } catch {
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
-        if (yes && !ZAPSTORE_ONLY) {
+        // Interactive combined runs can still continue to the announcement prompt.
+        // Zapstore-only and --yes runs must fail instead of reporting success.
+        if (ZAPSTORE_ONLY || yes) {
           secretKey?.fill(0)
-          throw new Error('zsp publish failed; announcement skipped')
+          throw new Error(
+            ZAPSTORE_ONLY
+              ? 'zsp publish failed'
+              : 'zsp publish failed; announcement skipped'
+          )
         }
-        const next = ZAPSTORE_ONLY
-          ? 'stopping after Zapstore.'
-          : 'continuing to announcement step.'
-        console.log(`\n  zsp exited with errors — ${next}`)
+        console.log(
+          '\n  zsp exited with errors — continuing to announcement step.'
+        )
       }
     }
   }
