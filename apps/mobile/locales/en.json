@@ -3193,7 +3193,7 @@
     "orphanedInputs.remove": "Remove",
     "orphanedInputs.sectionTitle": "UNAVAILABLE INPUTS",
     "orphanedInputs.warning": "%{count} selected input(s) may have been spent and cannot be used.",
-    "output.count": "Total inputs",
+    "output.count": "Total outputs",
     "output.plural": "outputs",
     "output.singular": "output",
     "output.title": "Output",
