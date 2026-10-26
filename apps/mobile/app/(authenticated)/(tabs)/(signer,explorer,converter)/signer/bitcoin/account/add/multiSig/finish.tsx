@@ -65,6 +65,9 @@ export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const { accountBuilderFinish } = useAccountBuilderFinish()
+  // Creation writes encrypted secrets back into the builder, so Retry must
+  // start again from the keys as they were when this screen opened.
+  const [account] = useState(getAccountData)
 
   const [status, setStatus] = useState<CreationStatus>('creating')
   const [accountId, setAccountId] = useState<string>()
@@ -72,7 +75,7 @@ export default function ConfirmScreen() {
   async function createMultisigWallet() {
     setStatus('creating')
     try {
-      const data = await accountBuilderFinish(getAccountData())
+      const data = await accountBuilderFinish(account)
       if (!data) {
         throw new Error('Multisig wallet was not created')
       }
