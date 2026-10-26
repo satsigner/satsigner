@@ -99,6 +99,7 @@ export default function AccountSettings() {
   }
 
   const {
+    accountName,
     localAccountName,
     isValidName,
     isPseudoDuplicatedName,
@@ -157,7 +158,7 @@ export default function AccountSettings() {
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId, localAccountName)
+    updateAccountName(currentAccountId, accountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
