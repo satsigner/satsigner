@@ -12,6 +12,7 @@ import {
   estimateTransactionSize,
   findFirstInvalidOutputAddress,
   getFinalizedTransactionSize,
+  getPreviewTransactionHex,
   getRawTransactionSizes,
   getTransactionIdDisplay,
   legacyEstimateTransactionSize,
@@ -749,6 +750,44 @@ describe('transaction builder previews', () => {
         'bitcoin'
       )
     ).toBe('')
+  })
+
+  it('decodes the PSBT unsigned transaction when a PSBT exists', () => {
+    const psbt = new bitcoinjs.Psbt()
+    psbt.setVersion(2)
+    psbt.setLocktime(327_618)
+    psbt.addInput({
+      hash: utxo.txid,
+      index: utxo.vout,
+      sequence: 0xff_ff_ff_fd
+    })
+    psbt.addOutput({ address, value: output.amount })
+
+    const tx = bitcoinjs.Transaction.fromHex(
+      getPreviewTransactionHex(
+        psbt.toBase64(),
+        new Map([['a', utxo]]),
+        [output],
+        'bitcoin'
+      )
+    )
+
+    expect(tx.version).toBe(2)
+    expect(tx.locktime).toBe(327_618)
+    expect(tx.ins[0].sequence).toBe(0xff_ff_ff_fd)
+  })
+
+  it('rebuilds the preview from builder data without a PSBT', () => {
+    expect(
+      getPreviewTransactionHex(
+        undefined,
+        new Map([['a', utxo]]),
+        [output],
+        'bitcoin'
+      )
+    ).toBe(
+      buildPreviewTransactionHex(new Map([['a', utxo]]), [output], 'bitcoin')
+    )
   })
 
   it('builds the chart transaction from builder data', () => {

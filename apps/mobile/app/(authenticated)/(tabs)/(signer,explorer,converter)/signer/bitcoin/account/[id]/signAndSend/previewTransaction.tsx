@@ -59,7 +59,7 @@ import {
 } from '@/utils/sankeyInputLabel'
 import {
   buildChartTransactionFromBuilder,
-  buildPreviewTransactionHex,
+  getPreviewTransactionHex,
   getTransactionIdDisplay
 } from '@/utils/transaction'
 
@@ -273,7 +273,12 @@ function PreviewTransaction() {
   })
 
   const transactionHex = account
-    ? buildPreviewTransactionHex(inputs, outputs, account.network)
+    ? getPreviewTransactionHex(
+        txBuilderResult?.toBase64(),
+        inputs,
+        outputs,
+        account.network
+      )
     : ''
   const transaction = buildChartTransactionFromBuilder(
     inputs,
