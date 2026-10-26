@@ -21,7 +21,7 @@ import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
 import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
 jest.mock<typeof import('expo-router')>('expo-router', () => ({
-  router: { dismissAll: jest.fn(), replace: jest.fn() }
+  router: { canDismiss: jest.fn(), dismissAll: jest.fn(), replace: jest.fn() }
 }))
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   ...jest.requireActual<typeof import('@/storage/encrypted')>(
@@ -370,6 +370,7 @@ describe('usePinAuth', () => {
   })
 
   it('unlocks and navigates home on a duress PIN', async () => {
+    jest.mocked(router.canDismiss).mockReturnValue(false)
     useAuthStore.setState({ duressPinEnabled: true, lockTriggered: true })
     mock.pinMatchesDuressDigest.mockResolvedValue(true)
     mock.isDuressPinRemoved.mockResolvedValue(true)
@@ -381,6 +382,20 @@ describe('usePinAuth', () => {
     expect(mock.loadAuthenticatedSession).toHaveBeenCalledTimes(1)
     expect(useAuthStore.getState().justUnlocked).toBe(true)
     expect(useAuthStore.getState().lockTriggered).toBe(false)
+    expect(router.dismissAll).not.toHaveBeenCalled()
+    expect(router.replace).toHaveBeenCalledWith('/')
+  })
+
+  it('clears the screen stack on a duress PIN entered in the app', async () => {
+    jest.mocked(router.canDismiss).mockReturnValue(true)
+    useAuthStore.setState({ duressPinEnabled: true, lockTriggered: false })
+    mock.pinMatchesDuressDigest.mockResolvedValue(true)
+    mock.isDuressPinRemoved.mockResolvedValue(true)
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+
+    await enterPin(hook, '0000')
+
+    expect(mock.secureWipeAllWalletData).toHaveBeenCalledTimes(1)
     expect(router.dismissAll).toHaveBeenCalledTimes(1)
     expect(router.replace).toHaveBeenCalledWith('/')
   })

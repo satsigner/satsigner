@@ -50,7 +50,11 @@ async function unlockAfterDuress() {
   setLockTriggered(false)
   setJustUnlocked(true)
   resetPinTries()
-  router.dismissAll()
+  // An in-app PIN prompt sits on a stack of the wiped account's screens. The
+  // root /unlock has nothing to dismiss, and dismissAll() there only warns.
+  if (router.canDismiss()) {
+    router.dismissAll()
+  }
   router.replace('/')
 }
 
