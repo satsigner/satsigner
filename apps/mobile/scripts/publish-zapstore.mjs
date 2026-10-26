@@ -15,6 +15,8 @@
  *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
  *   --yes       Publish the announcement without a second prompt
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
+ *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
+ *               zsp fetches the APK from the configured source — no local build.
  *
  * Non-interactive / agent / CI env vars:
  *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
@@ -85,6 +87,11 @@ const onlyFlagIdx = args.indexOf('--only')
 const ONLY = onlyFlagIdx !== -1 ? (args[onlyFlagIdx + 1] ?? '') : ''
 const channelFlagIdx = args.indexOf('--channel')
 const CHANNEL = channelFlagIdx !== -1 ? (args[channelFlagIdx + 1] ?? '') : ''
+const configFlagIdx = args.indexOf('--config')
+const CONFIG_YAML =
+  configFlagIdx !== -1
+    ? path.resolve(REPO_ROOT, args[configFlagIdx + 1] ?? 'zapstore.yaml')
+    : path.join(REPO_ROOT, 'zapstore.yaml')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
 const EAS_PROFILE = 'development'
@@ -298,10 +305,9 @@ async function publishAnnouncement(secretKey, releaseNotes) {
 // ── pre-flight checks ─────────────────────────────────────────────────────────
 
 function checkPrerequisites() {
-  const zapstoreYaml = path.join(REPO_ROOT, 'zapstore.yaml')
-  if (!existsSync(zapstoreYaml)) {
+  if (!existsSync(CONFIG_YAML)) {
     throw new Error(
-      `zapstore.yaml not found at ${zapstoreYaml}\n` +
+      `${CONFIG_YAML} not found.\n` +
         'Create it first: cp zapstore.yaml.example zapstore.yaml\n' +
         'Then fill in your npub.'
     )
@@ -405,10 +411,20 @@ async function main() {
   }
 
   if (!ANNOUNCE_ONLY) {
-    step(2, 'Build APK')
+    // When a custom config yaml is specified, zsp fetches the APK from the
+    // configured source (GitHub releases etc.) — no local build needed.
+    // When using the default zapstore.yaml, we build locally and pass the APK path.
+    const usingCustomConfig = configFlagIdx !== -1
 
-    const apkPath = await buildReleaseApk()
-    console.log(`\n  APK: ${apkPath}`)
+    let apkPath = null
+    if (!usingCustomConfig) {
+      step(2, 'Build APK')
+      apkPath = await buildReleaseApk()
+      console.log(`\n  APK: ${apkPath}`)
+    } else {
+      step(2, 'Build APK')
+      console.log(`  Using config yaml — zsp will fetch APK from configured source.`)
+    }
 
     step(3, 'Publish to Zapstore')
     console.log(`  Uploading APK to Blossom (${BLOSSOM_URL})`)
@@ -417,10 +433,20 @@ async function main() {
     )
 
     const zspBin = process.env.ZSP_BIN ?? `${process.env.HOME}/go/bin/zsp`
-    const zspFlags = ['publish', '--quiet', '--skip-preview', apkPath]
-    // --indexer-mode: machine-readable JSON output + skips certificate-linking
-    // prompt — required for agents and CI (never needs a browser open)
-    if (isAgent) zspFlags.splice(3, 0, '--indexer-mode')
+    // Pass the yaml config OR the local APK path — never both
+    const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
+    const zspFlags = ['publish', '--quiet', '--skip-preview']
+
+    // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
+    // when we're using the default yaml. For custom configs (--config), use
+    // --json instead for machine-readable output without the override.
+    if (isAgent && !usingCustomConfig) {
+      zspFlags.push('--indexer-mode')
+    } else if (isAgent) {
+      zspFlags.push('--json')
+    }
+
+    zspFlags.push(zspTarget)
 
     if (dryRun) {
       console.log('  [dry-run] Skipping zsp publish.')
