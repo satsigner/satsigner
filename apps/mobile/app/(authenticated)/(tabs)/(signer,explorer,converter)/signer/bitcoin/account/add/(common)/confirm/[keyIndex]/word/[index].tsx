@@ -63,6 +63,7 @@ export default function Confirm() {
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
   const [loadingAccount, setLoadingAccount] = useState(false)
+  const [createdAccountId, setCreatedAccountId] = useState<string>()
 
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
@@ -104,7 +105,8 @@ export default function Confirm() {
     if (policyType === 'singlesig') {
       const account = getAccountData()
 
-      await accountBuilderFinish(account)
+      const data = await accountBuilderFinish(account)
+      setCreatedAccountId(data?.accountWithEncryptedSecret.id)
 
       setLoadingAccount(false)
       setWarningModalVisible(true)
@@ -122,10 +124,11 @@ export default function Confirm() {
 
   function handleCloseWordsWarning() {
     setWarningModalVisible(false)
-    const account = getAccountData()
     clearAccount()
     router.dismissAll()
-    router.navigate(`/signer/bitcoin/account/${account.id}`)
+    if (createdAccountId) {
+      router.navigate(`/signer/bitcoin/account/${createdAccountId}`)
+    }
   }
 
   function handleOnPressCancel() {
