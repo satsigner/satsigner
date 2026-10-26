@@ -274,7 +274,8 @@ function PreviewTransaction() {
 
   const transactionHex = account
     ? getPreviewTransactionHex(
-        txBuilderResult?.toBase64(),
+        // An imported PSBT reaches the builder in an effect, after this render.
+        psbt ?? txBuilderResult?.toBase64(),
         inputs,
         outputs,
         account.network
