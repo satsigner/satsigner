@@ -1226,9 +1226,11 @@ export class NostrAPI {
         }
       } catch (error) {
         // Malformed wrapped events must not crash the subscription, but a
-        // systematic failure (e.g. a missing table) must be visible in logs.
-        // eslint-disable-next-line no-console
-        console.warn('[nostr] kind1059 event processing failed:', error)
+        // systematic failure (e.g. a missing table) must be visible in dev logs.
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.warn('[nostr] kind1059 event processing failed:', error)
+        }
       }
     })
 
@@ -1413,9 +1415,11 @@ export class NostrAPI {
         })
       } catch (error) {
         // Undecryptable or malformed kind-4 events are ignored by design,
-        // but log so real failures are diagnosable.
-        // eslint-disable-next-line no-console
-        console.warn('[nostr] kind4 event processing failed:', error)
+        // but log in dev so real failures are diagnosable.
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.warn('[nostr] kind4 event processing failed:', error)
+        }
       }
     })
   }
@@ -1801,7 +1805,7 @@ export class NostrAPI {
     const attemptedUrls = new Set(results.map((r) => r.url))
     const skippedUrls = intendedUrls.filter((url) => !attemptedUrls.has(url))
 
-    if (failedPublishes.length > 0 || skippedUrls.length > 0) {
+    if (__DEV__ && (failedPublishes.length > 0 || skippedUrls.length > 0)) {
       // eslint-disable-next-line no-console
       console.warn('[nostr] publish incomplete', {
         failed: failedPublishes.map((r) => `${r.url}: ${r.error}`),
