@@ -21,9 +21,14 @@
  * Non-interactive / agent / CI env vars:
  *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
  *   SIGN_WITH_MNEMONIC Space-separated BIP39 mnemonic (alternative to SIGN_WITH nsec)
+ *   RELEASE_NOTES      Release notes string (preferred over --notes to avoid argv injection)
  *   CI=true            Implies --yes and structured output (set automatically by most CI)
  *   AGENT=true         Same as CI=true — set when calling from an agent or script
- *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp)
+ *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
+ *
+ * Security note:
+ *   --channel primary is BLOCKED until a release keystore is in place.
+ *   The public debug.keystore (password "android") must never be used for production.
  *
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
@@ -78,11 +83,20 @@ const APK_OUTPUT = path.join(
   'app/build/outputs/apk/release/app-release.apk'
 )
 
+// Use util.parseArgs for flags that accept string values to prevent argv injection.
+// --notes and --blossom values could otherwise shadow flag names if they collide.
 const BLOSSOM_URL =
   blossomFlagIdx !== -1
     ? (args[blossomFlagIdx + 1] ?? 'https://cdn.zapstore.dev')
     : 'https://cdn.zapstore.dev'
-const NOTES_ARG = notesFlagIdx !== -1 ? (args[notesFlagIdx + 1] ?? null) : null
+// Notes via env (RELEASE_NOTES) or argv. Env is preferred to avoid argv injection
+// (e.g. a notes value of "--channel" would break channel detection if parsed naively).
+const NOTES_ARG =
+  process.env.RELEASE_NOTES !== undefined
+    ? process.env.RELEASE_NOTES
+    : notesFlagIdx !== -1
+      ? (args[notesFlagIdx + 1] ?? null)
+      : null
 const onlyFlagIdx = args.indexOf('--only')
 const ONLY = onlyFlagIdx !== -1 ? (args[onlyFlagIdx + 1] ?? '') : ''
 const channelFlagIdx = args.indexOf('--channel')
@@ -217,10 +231,13 @@ async function resolveSecretKey() {
 function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
   return new Promise((resolve, reject) => {
     const lines = []
+    // On Windows, spawn needs shell:true to find .cmd shims (pnpm.cmd, etc.)
+    const isWindows = process.platform === 'win32'
     const proc = spawn(cmd, args, {
       cwd,
       env: { ...process.env, ...env },
-      stdio: ['inherit', 'pipe', 'pipe']
+      stdio: ['inherit', 'pipe', 'pipe'],
+      shell: isWindows
     })
 
     proc.stdout.on('data', (chunk) => {
@@ -337,6 +354,18 @@ async function buildReleaseApk() {
     return APK_OUTPUT
   }
 
+  if (CHANNEL === 'primary') {
+    // Production channel uses com.satsigner.satsigner — the same package id as
+    // the official release. Publishing this APK signed with the public debug.keystore
+    // (password "android") would let anyone push a spoofed update over it.
+    // Block primary until a real release keystore is configured.
+    throw new Error(
+      '--channel primary is disabled until a release keystore is in place.\n' +
+        'Production APKs must be signed with the same key as the official release.\n' +
+        'Set up release signing (EAS credentials or GitHub secrets) first.'
+    )
+  }
+
   const variantArgs = [
     '--dir',
     'apps/mobile',
@@ -432,7 +461,11 @@ async function main() {
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
     )
 
-    const zspBin = process.env.ZSP_BIN ?? `${process.env.HOME}/go/bin/zsp`
+    const zspBin =
+      process.env.ZSP_BIN ??
+      (process.platform === 'win32'
+        ? `${process.env.USERPROFILE}\\go\\bin\\zsp.exe`
+        : `${process.env.HOME}/go/bin/zsp`)
     // Pass the yaml config OR the local APK path — never both
     const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
     const zspFlags = ['publish', '--quiet', '--skip-preview']
