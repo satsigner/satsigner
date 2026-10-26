@@ -19,7 +19,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Sync with ngit.** If `origin` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
 
-**Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`.
+**Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. Listing and release-post management stays behind **Manage listings and posts**.
 
 **Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 

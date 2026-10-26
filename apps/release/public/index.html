@@ -518,13 +518,24 @@
                 </div>
               </li>
             </ol>
-            <ul id="releases"></ul>
-            <h2 class="manager">Published apps</h2>
-            <p class="hint">
-              Replace a listing by publishing a newer app event with the same
-              package id. The APK already on Zapstore stays.
-            </p>
-            <div id="apps"></div>
+            <button
+              id="manage-listings"
+              class="ghost"
+              type="button"
+              aria-expanded="false"
+              aria-controls="listings"
+            >
+              Manage listings and posts
+            </button>
+            <div id="listings" hidden>
+              <ul id="releases"></ul>
+              <h2 class="manager">Published apps</h2>
+              <p class="hint">
+                Replace a listing by publishing a newer app event with the same
+                package id. The APK already on Zapstore stays.
+              </p>
+              <div id="apps"></div>
+            </div>
           </section>
           <section id="apk-panel" hidden>
             <p class="hint">
@@ -583,6 +594,24 @@
       const publishStep = document.querySelector('#publish-step')
       const ngitTitle = document.querySelector('#ngit-title')
       const tabs = [...document.querySelectorAll('[role="tab"]')]
+      const manageListingsButton = document.querySelector('#manage-listings')
+      const listingsEl = document.querySelector('#listings')
+
+      manageListingsButton.addEventListener('click', () => {
+        const open = listingsEl.hidden
+        listingsEl.hidden = !open
+        manageListingsButton.setAttribute(
+          'aria-expanded',
+          open ? 'true' : 'false'
+        )
+        manageListingsButton.textContent = open
+          ? 'Hide listings and posts'
+          : 'Manage listings and posts'
+        if (open) {
+          void loadReleases()
+          void loadApps()
+        }
+      })
 
       function showTab(id) {
         for (const tab of tabs) {
@@ -595,12 +624,7 @@
 
       for (const tab of tabs) {
         tab.addEventListener('click', () => {
-          const id = tab.getAttribute('aria-controls')
-          showTab(id)
-          if (id === 'zap') {
-            void loadReleases()
-            void loadApps()
-          }
+          showTab(tab.getAttribute('aria-controls'))
         })
       }
 
