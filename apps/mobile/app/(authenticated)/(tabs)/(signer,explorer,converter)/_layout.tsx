@@ -9,7 +9,6 @@ import {
   type DrawerNavigationProp,
   useDrawerStatus
 } from 'expo-router/build/react-navigation/drawer'
-import { useEffect, useMemo, useState } from 'react'
 import { Platform, type ViewStyle, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
@@ -130,81 +129,59 @@ function HeaderRight() {
   )
 }
 
+function getHomeScreen(segment?: string) {
+  switch (segment) {
+    case '(explorer)': {
+      return (
+        <Stack.Screen
+          name="index"
+          initialParams={{
+            segment,
+            tab: t('navigation.label.explorer')
+          }}
+          options={{ title: 'Explore' }}
+        />
+      )
+    }
+    case '(converter)': {
+      return (
+        <Stack.Screen
+          name="index"
+          initialParams={{
+            segment,
+            tab: t('navigation.label.converter')
+          }}
+          options={{ title: 'Converter' }}
+        />
+      )
+    }
+    default: {
+      return (
+        <Stack.Screen
+          name="index"
+          initialParams={{
+            segment,
+            tab: t('navigation.label.signer')
+          }}
+          options={{ title: 'Signer' }}
+        />
+      )
+    }
+  }
+}
+
 export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
-  const [isShowNav, setShowNav] = useState(false)
   const insets = useSafeAreaInsets()
+  const isShowNav = showNavigation(currentPath, segments.length)
 
-  const compactHeaderHeight = useMemo(() => {
-    const toolbar = Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
-    return toolbar - HEADER_HEIGHT_TRIM_PX
-  }, [insets.top])
-
-  const stackHeaderStyle = useMemo<ViewStyle>(
-    () => ({
-      backgroundColor: Colors.gray[950],
-      height: compactHeaderHeight
-    }),
-    [compactHeaderHeight]
-  )
-
-  useEffect(() => {
-    setShowNav(showNavigation(currentPath, segments.length))
-  }, [currentPath, segments])
-
-  const homeScreen = useMemo(() => {
-    switch (params?.segment) {
-      case '(signer)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.signer')
-            }}
-            options={{ title: 'Signer' }}
-          />
-        )
-      }
-      case '(explorer)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.explorer')
-            }}
-            options={{ title: 'Explore' }}
-          />
-        )
-      }
-      case '(converter)': {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.converter')
-            }}
-            options={{ title: 'Converter' }}
-          />
-        )
-      }
-      default: {
-        return (
-          <Stack.Screen
-            name="index"
-            initialParams={{
-              segment: params?.segment,
-              tab: t('navigation.label.signer')
-            }}
-            options={{ title: 'Signer' }}
-          />
-        )
-      }
-    }
-  }, [params])
+  const toolbarHeight =
+    Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
+  const stackHeaderStyle: ViewStyle = {
+    backgroundColor: Colors.gray[950],
+    height: toolbarHeight - HEADER_HEIGHT_TRIM_PX
+  }
 
   return (
     <Stack
@@ -236,7 +213,7 @@ export default function StackLayout(params: { segment?: string }) {
         headerTitleAlign: 'center'
       }}
     >
-      {homeScreen}
+      {getHomeScreen(params?.segment)}
     </Stack>
   )
 }
