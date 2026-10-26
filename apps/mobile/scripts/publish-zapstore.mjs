@@ -9,12 +9,19 @@
  * 4. Publishes a kind 1 nostr announcement
  *
  * Usage:
- *   node scripts/publish-zapstore.mjs [--blossom <url>] [--notes "release notes"] [--yes] [--only zapstore|announce]
+ *   node scripts/publish-zapstore.mjs [--blossom <url>] [--notes "release notes"] [--yes] [--only zapstore|announce] [--dry-run]
  *
- *   --blossom  Blossom server URL (default: https://cdn.zapstore.dev)
- *   --notes    Pre-fill the kind 1 announcement text (skips the interactive prompt)
- *   --yes      Publish the announcement without a second prompt
- *   SIGN_WITH  bunker:// URL from the release console. Skips the nsec prompt.
+ *   --blossom   Blossom server URL (default: https://cdn.zapstore.dev)
+ *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
+ *   --yes       Publish the announcement without a second prompt
+ *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
+ *
+ * Non-interactive / agent / CI env vars:
+ *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
+ *   SIGN_WITH_MNEMONIC Space-separated BIP39 mnemonic (alternative to SIGN_WITH nsec)
+ *   CI=true            Implies --yes and structured output (set automatically by most CI)
+ *   AGENT=true         Same as CI=true — set when calling from an agent or script
+ *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp)
  *
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
@@ -52,10 +59,17 @@ const {
 const args = process.argv.slice(2)
 const blossomFlagIdx = args.indexOf('--blossom')
 const notesFlagIdx = args.indexOf('--notes')
-const yes = args.includes('--yes')
-const bunkerUrl = (process.env.SIGN_WITH ?? '').startsWith('bunker://')
-  ? process.env.SIGN_WITH
-  : ''
+
+// Agent / CI mode: CI=true or AGENT=true implies --yes and structured output
+const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
+const yes = args.includes('--yes') || isAgent
+const dryRun = args.includes('--dry-run')
+
+// Key resolution — env takes precedence, interactive prompt is the fallback
+const envSignWith = process.env.SIGN_WITH ?? ''
+const envMnemonic = process.env.SIGN_WITH_MNEMONIC ?? ''
+const bunkerUrl = envSignWith.startsWith('bunker://') ? envSignWith : ''
+const envNsec = envSignWith.startsWith('nsec1') ? envSignWith : ''
 const ANDROID_DIR = path.join(MOBILE_DIR, 'android')
 const APK_OUTPUT = path.join(
   ANDROID_DIR,
@@ -147,6 +161,26 @@ function prompt(question) {
 // ── key resolution ────────────────────────────────────────────────────────────
 
 async function resolveSecretKey() {
+  // Env-based nsec — no TTY or interactive prompt needed (agent / CI path)
+  if (envNsec) {
+    const decoded = nip19.decode(envNsec)
+    if (decoded.type !== 'nsec') {
+      throw new Error('SIGN_WITH does not decode to a valid nsec')
+    }
+    return Buffer.from(decoded.data)
+  }
+
+  // Env-based mnemonic (SIGN_WITH_MNEMONIC)
+  if (envMnemonic) {
+    const words = envMnemonic.trim()
+    if (words.split(' ').length < 12) {
+      throw new Error('SIGN_WITH_MNEMONIC must be at least 12 words')
+    }
+    const hexKey = nip06.privateKeyFromSeedWords(words)
+    return Buffer.from(hexKey, 'hex')
+  }
+
+  // Interactive fallback (human at a terminal)
   const choice = await prompt('Sign with (1) nsec  (2) mnemonic  [1/2]: ')
 
   if (choice === '2') {
@@ -337,6 +371,8 @@ async function main() {
   console.log(`  Blossom URL : ${BLOSSOM_URL}`)
   console.log(`  Zapstore    : ${ZAPSTORE_APP_URL}`)
   console.log(`  Relays      : ${ANNOUNCEMENT_RELAYS.join(', ')}`)
+  if (isAgent) console.log('  Mode        : agent/CI (non-interactive)')
+  if (dryRun)  console.log('  Dry-run     : build only, no publish')
   console.log('\nWhat will happen:')
   console.log(
     bunkerUrl
@@ -381,20 +417,29 @@ async function main() {
     )
 
     const zspBin = process.env.ZSP_BIN ?? `${process.env.HOME}/go/bin/zsp`
-    try {
-      await run(zspBin, ['publish', '--quiet', '--skip-preview', apkPath], {
-        cwd: REPO_ROOT,
-        env: {
-          BLOSSOM_URL,
-          SIGN_WITH: signWith
-        }
-      })
-    } catch {
-      // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
-      const next = ZAPSTORE_ONLY
-        ? 'stopping after Zapstore.'
-        : 'continuing to announcement step.'
-      console.log(`\n  zsp exited with errors — ${next}`)
+    const zspFlags = ['publish', '--quiet', '--skip-preview', apkPath]
+    // --indexer-mode: machine-readable JSON output + skips certificate-linking
+    // prompt — required for agents and CI (never needs a browser open)
+    if (isAgent) zspFlags.splice(3, 0, '--indexer-mode')
+
+    if (dryRun) {
+      console.log('  [dry-run] Skipping zsp publish.')
+    } else {
+      try {
+        await run(zspBin, zspFlags, {
+          cwd: REPO_ROOT,
+          env: {
+            BLOSSOM_URL,
+            SIGN_WITH: signWith
+          }
+        })
+      } catch {
+        // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
+        const next = ZAPSTORE_ONLY
+          ? 'stopping after Zapstore.'
+          : 'continuing to announcement step.'
+        console.log(`\n  zsp exited with errors — ${next}`)
+      }
     }
   }
 
@@ -405,6 +450,13 @@ async function main() {
   }
 
   step(4, 'Post release announcement')
+
+  if (dryRun) {
+    console.log('  [dry-run] Skipping announcement.')
+    secretKey?.fill(0)
+    console.log('\nDone (dry-run).')
+    process.exit(0)
+  }
 
   const releaseNotes =
     NOTES_ARG !== null
