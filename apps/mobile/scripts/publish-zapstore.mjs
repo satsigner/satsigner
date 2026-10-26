@@ -41,8 +41,8 @@ import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'module'
 import path from 'path'
 import readline from 'readline'
-import { parseArgs } from 'util'
 import { fileURLToPath } from 'url'
+import { parseArgs } from 'util'
 
 import {
   nip19,
