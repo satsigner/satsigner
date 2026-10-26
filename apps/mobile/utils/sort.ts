@@ -140,12 +140,17 @@ function sortTransactions(
   })
 }
 
+// Watch-only address accounts have no derivation index, so their list
+// position stands in for it.
 function sortAddressesByIndex(addresses: Address[], sortDirection: Direction) {
   const sign = sortDirection === 'asc' ? 1 : -1
-  return addresses.toSorted(
-    (address1, address2) =>
-      ((address1.index ?? 0) - (address2.index ?? 0)) * sign
-  )
+  return addresses
+    .map((address, position) => ({
+      address,
+      sortIndex: address.index ?? position
+    }))
+    .toSorted((entry1, entry2) => (entry1.sortIndex - entry2.sortIndex) * sign)
+    .map(({ address }) => address)
 }
 
 export {

@@ -187,6 +187,19 @@ describe('sort utils', () => {
       ).toStrictEqual([0, 1, 2])
     })
 
+    it('reverses addresses without an index on desc', () => {
+      const unindexed = ['first', 'second', 'third'].map((name) => ({
+        ...makeAddress(0),
+        address: name,
+        index: undefined
+      }))
+      expect(
+        sortAddressesByIndex(unindexed, 'desc').map(
+          (address) => address.address
+        )
+      ).toStrictEqual(['third', 'second', 'first'])
+    })
+
     it('sorts by index descending on desc', () => {
       expect(
         sortAddressesByIndex(addresses, 'desc').map((address) => address.index)
