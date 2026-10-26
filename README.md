@@ -45,8 +45,8 @@ Read more about Satsigner [here](ABOUT.md) and check out the [features](FEATURES
 Pushes, pull requests, and Zapstore releases go through the local release page. It listens on `127.0.0.1`. The Nostr key stays in a NIP-07 browser extension.
 
 ```bash
-pnpm --dir apps/release install
-pnpm --dir apps/release dev
+pnpm --dir tools/release install
+pnpm --dir tools/release dev
 ```
 
 Open http://127.0.0.1:4717 and sign in (Alby or nos2x). The signer relay uses port `4718`.
@@ -59,7 +59,7 @@ git clone nostr://<npub>/satsigner
 
 A pull request is a branch whose name starts with `pr/`. Push that branch from the same page.
 
-**Build and publish** sends the current Android release APK to Zapstore. **Build APK** saves a copy under `apps/mobile/dist/apks`. Details, including the tools each action expects, are in [apps/release/README.md](apps/release/README.md).
+**Build and publish** sends the current Android release APK to Zapstore. **Build APK** saves a copy under `apps/mobile/dist/apks`. Details, including the tools each action expects, are in [tools/release/README.md](tools/release/README.md).
 
 ## Contributing
 

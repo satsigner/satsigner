@@ -478,7 +478,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  apps/release:
+  tools/release:
     dependencies:
       ws:
         specifier: 8.20.0
@@ -956,6 +956,7 @@ packages:
   '@cashu/cashu-ts@3.6.2':
     resolution: {integrity: sha512-wdlX1rIFC+cdr+qVnVl2ko6ShKeNSJCGnQFQ1NyeS+EwZ8e0t6BQXF5uLgGnA8DB44RkfCgiH2Iw5RHTDkb6YQ==}
     engines: {node: '>=22.4.0'}
+    deprecated: 'v3 long-term support ends at the v5 release. v3 cannot be brought to current spec without breaking changes: upgrade with npm i @cashu/cashu-ts@^4'
 
   '@clack/core@1.2.0':
     resolution: {integrity: sha512-qfxof/3T3t9DPU/Rj3OmcFyZInceqj/NVtO9rwIuJqCUgh32gwPjpFQQp/ben07qKlhpwq7GzfWpST4qdJ5Drg==}
@@ -11765,7 +11766,9 @@ snapshots:
       metro-runtime: 0.84.4
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
 
   '@react-native/normalize-colors@0.86.0': {}
 

@@ -18,6 +18,8 @@ GitHub is the main host. `origin` and `upstream` both point at `https://github.c
 
 - `apps/mobile` - Satsigner mobile app.
 - `apps/docs` - Documentation website.
+- `tools/release` - Local maintainer console for ngit and Zapstore. It is not a shipped app.
+- `tools/release` - Local maintainer console for ngit and Zapstore. It is not a shipped app.
 
 ## Security
 

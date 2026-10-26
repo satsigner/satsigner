@@ -7,8 +7,8 @@ Local page for publishing this repo over Nostr, building APKs, and sending a rel
 From the repo root:
 
 ```bash
-pnpm --dir apps/release install
-pnpm --dir apps/release dev
+pnpm --dir tools/release install
+pnpm --dir tools/release dev
 ```
 
 Open http://127.0.0.1:4717 and sign in with a NIP-07 extension (for example Alby or nos2x).
@@ -41,5 +41,5 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 ## Tests
 
 ```bash
-pnpm --dir apps/release test
+pnpm --dir tools/release test
 ```
