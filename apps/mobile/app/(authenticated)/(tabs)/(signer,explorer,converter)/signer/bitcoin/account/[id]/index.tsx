@@ -137,7 +137,11 @@ import {
   formatScanDuration,
   type ScanThroughput
 } from '@/utils/scanThroughput'
-import { sortTransactions, type TransactionSortField } from '@/utils/sort'
+import {
+  sortAddressesByIndex,
+  sortTransactions,
+  type TransactionSortField
+} from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
@@ -1128,6 +1132,7 @@ function DerivedAddresses({
   change,
   expand,
   setSortDirection,
+  sortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useGetAccountWallet(account.id)
@@ -1149,6 +1154,16 @@ function DerivedAddresses({
       account.keys.length > 1 &&
       account.keys[0].creationType === 'importAddress',
     [account]
+  )
+  const visibleAddresses = sortAddressesByIndex(
+    account.addresses.filter(
+      (address) =>
+        isMultiAddressWatchOnly ||
+        (change
+          ? address.keychain === 'internal'
+          : address.keychain === 'external')
+    ),
+    sortDirection
   )
 
   function updateDerivationPath() {
@@ -1361,6 +1376,7 @@ function DerivedAddresses({
             )}
           </SSIconButton>
           <SSSortDirectionToggle
+            initialDirection={sortDirection}
             onDirectionChanged={(direction) => setSortDirection(direction)}
           />
         </SSHStack>
@@ -1388,13 +1404,7 @@ function DerivedAddresses({
       )}
       {addressView === 'table' && (
         <SSAddressTable
-          addresses={account?.addresses.filter(
-            (address) =>
-              isMultiAddressWatchOnly ||
-              (change
-                ? address.keychain === 'internal'
-                : address.keychain === 'external')
-          )}
+          addresses={visibleAddresses}
           renderItem={renderItem}
           expand={expand}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
@@ -1404,13 +1414,7 @@ function DerivedAddresses({
       )}
       {addressView === 'list' && (
         <SSAddressList
-          addresses={account?.addresses.filter(
-            (address) =>
-              isMultiAddressWatchOnly ||
-              (change
-                ? address.keychain === 'internal'
-                : address.keychain === 'external')
-          )}
+          addresses={visibleAddresses}
           accountId={account.id}
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
           isLoadingAddresses={isLoadingAddresses}
@@ -1890,7 +1894,7 @@ export default function AccountView() {
   const [expand, setExpand] = useState(false)
   const [change, setChange] = useState(false)
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
-    useState<Direction>('desc')
+    useState<Direction>('asc')
   const blockchainHeight = lastKnownBlockHeight
 
   const tabs = [

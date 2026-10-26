@@ -1,5 +1,11 @@
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
-import { compareAmount, compareTimestamp, sortTransactions } from '@/utils/sort'
+import {
+  compareAmount,
+  compareTimestamp,
+  sortAddressesByIndex,
+  sortTransactions
+} from '@/utils/sort'
 
 function makeTx(
   overrides: Partial<Transaction> & Pick<Transaction, 'id'>
@@ -158,6 +164,33 @@ describe('sort utils', () => {
         'old',
         'mempool'
       ])
+    })
+  })
+
+  describe('sortAddressesByIndex', () => {
+    function makeAddress(index: number): Address {
+      return {
+        address: `addr${index}`,
+        index,
+        keychain: 'external',
+        label: '',
+        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+        transactions: [],
+        utxos: []
+      }
+    }
+    const addresses = [makeAddress(1), makeAddress(0), makeAddress(2)]
+
+    it('sorts by index ascending on asc', () => {
+      expect(
+        sortAddressesByIndex(addresses, 'asc').map((address) => address.index)
+      ).toStrictEqual([0, 1, 2])
+    })
+
+    it('sorts by index descending on desc', () => {
+      expect(
+        sortAddressesByIndex(addresses, 'desc').map((address) => address.index)
+      ).toStrictEqual([2, 1, 0])
     })
   })
 })

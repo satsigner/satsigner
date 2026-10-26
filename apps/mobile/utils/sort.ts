@@ -1,4 +1,5 @@
 import { type Direction } from '@/types/logic/sort'
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 
 type TransactionSortField = 'date' | 'amount' | 'label'
@@ -139,5 +140,19 @@ function sortTransactions(
   })
 }
 
-export { compareAmount, compareLabel, compareTimestamp, sortTransactions }
+function sortAddressesByIndex(addresses: Address[], sortDirection: Direction) {
+  const sign = sortDirection === 'asc' ? 1 : -1
+  return addresses.toSorted(
+    (address1, address2) =>
+      ((address1.index ?? 0) - (address2.index ?? 0)) * sign
+  )
+}
+
+export {
+  compareAmount,
+  compareLabel,
+  compareTimestamp,
+  sortAddressesByIndex,
+  sortTransactions
+}
 export type { TransactionSortField }
