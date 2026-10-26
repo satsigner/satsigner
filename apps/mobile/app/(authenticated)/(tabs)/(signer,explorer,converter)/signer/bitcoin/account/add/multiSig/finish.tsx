@@ -1,6 +1,14 @@
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View } from 'react-native'
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming
+} from 'react-native-reanimated'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { toast } from 'sonner-native'
 
@@ -8,48 +16,72 @@ import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useMountEffect } from '@/hooks/useMountEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 
+const SPINNER_TURN_DURATION_MS = 900
+
+type CreationStatus = 'creating' | 'created' | 'failed'
+
+function CreatingSpinner() {
+  const rotation = useSharedValue(0)
+
+  useEffect(() => {
+    rotation.set(
+      withRepeat(
+        withTiming(360, {
+          duration: SPINNER_TURN_DURATION_MS,
+          easing: Easing.linear
+        }),
+        -1
+      )
+    )
+    return () => cancelAnimation(rotation)
+  }, [rotation])
+
+  const spinnerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }]
+  }))
+
+  return (
+    <Animated.View style={spinnerStyle}>
+      <Svg width="163" height="163" viewBox="0 0 163 163" fill="none">
+        <Circle cx="81.5" cy="81.5" r="79.5" stroke="#343434" strokeWidth="3" />
+        <Path
+          d="M161 81.5C161 125.407 125.407 161 81.5 161"
+          stroke="white"
+          strokeWidth="3"
+        />
+      </Svg>
+    </Animated.View>
+  )
+}
+
 export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const [rotation, setRotation] = useState(0)
-  const [completed, setCompleted] = useState(false)
-
+  const [status, setStatus] = useState<CreationStatus>('creating')
   const [accountId, setAccountId] = useState<string>()
 
-  const createMultisigWallet = useCallback(async () => {
+  async function createMultisigWallet() {
+    setStatus('creating')
     try {
-      const account = getAccountData()
-      setAccountId(account.id)
-
-      const data = await accountBuilderFinish(account)
+      const data = await accountBuilderFinish(getAccountData())
       if (!data) {
-        toast.error(t('multisig.createError'))
-        return
+        throw new Error('Multisig wallet was not created')
       }
-
       setAccountId(data.accountWithEncryptedSecret.id)
-      setCompleted(true)
+      setStatus('created')
     } catch {
       toast.error(t('multisig.createError'))
+      setStatus('failed')
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function rotate() {
-    if (completed) {
-      return
-    }
-    setRotation((prev: number) => (prev + 20) % 360)
-    setTimeout(() => {
-      rotate()
-    }, 50)
   }
 
   function handleGoToWallet() {
@@ -59,17 +91,30 @@ export default function ConfirmScreen() {
     }
   }
 
-  useEffect(() => {
-    rotate()
+  useMountEffect(() => {
     createMultisigWallet()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  })
+
+  function getStatusText() {
+    if (status === 'created') {
+      return t('account.multisig.created')
+    }
+    if (status === 'failed') {
+      return t('multisig.createError')
+    }
+    return t('account.multisig.creating')
+  }
 
   return (
     <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('account.multisig.create')}</SSText>
+            <SSText uppercase>
+              {status === 'created'
+                ? t('account.multisig.created')
+                : t('account.multisig.create')}
+            </SSText>
           )
         }}
       />
@@ -84,35 +129,18 @@ export default function ConfirmScreen() {
       >
         <SSVStack>
           <SSText center size="lg">
-            {completed
-              ? t('account.multisig.created')
-              : t('account.multisig.creating')}
+            {getStatusText()}
           </SSText>
           <SSHStack style={{ alignSelf: 'center', marginTop: 40 }}>
             <View style={{ height: 163, width: 163 }}>
-              {completed ? (
+              {status === 'created' && (
                 <SSIconSuccess width={159} height={159} />
-              ) : (
-                <Svg width="163" height="163" viewBox="0 0 163 163" fill="none">
-                  <Circle
-                    cx="81.5"
-                    cy="81.5"
-                    r="79.5"
-                    stroke="#343434"
-                    strokeWidth="3"
-                  />
-                  <Path
-                    d="M161 81.5C161 125.407 125.407 161 81.5 161"
-                    stroke="white"
-                    strokeWidth="3"
-                    transform={`rotate(${rotation} 81.5 81.5)`}
-                  />
-                </Svg>
               )}
+              {status === 'creating' && <CreatingSpinner />}
             </View>
           </SSHStack>
         </SSVStack>
-        {completed && (
+        {status === 'created' && (
           <SSVStack>
             <SSButton
               label={t('account.multisig.viewAllWallets')}
@@ -125,6 +153,22 @@ export default function ConfirmScreen() {
               uppercase
               variant="secondary"
               onPress={handleGoToWallet}
+            />
+          </SSVStack>
+        )}
+        {status === 'failed' && (
+          <SSVStack>
+            <SSButton
+              label={t('common.back')}
+              variant="outline"
+              uppercase
+              onPress={() => router.back()}
+            />
+            <SSButton
+              label={t('common.retry')}
+              uppercase
+              variant="secondary"
+              onPress={createMultisigWallet}
             />
           </SSVStack>
         )}
