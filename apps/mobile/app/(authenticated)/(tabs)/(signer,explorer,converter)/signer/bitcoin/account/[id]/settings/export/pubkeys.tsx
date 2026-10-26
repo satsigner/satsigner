@@ -37,6 +37,8 @@ export default function ExportPubkeys() {
     isError,
     isLoading
   } = useAccountPublicKeys(account, network)
+  // zpub/vpub are SLIP-132 single-sig versions, so multisig keys stay xpub.
+  const showSlip132Formats = account?.policyType !== 'multisig'
   const exportContent = (
     pubkeyFormat === 'xpub'
       ? rawPubkeys
@@ -96,18 +98,22 @@ export default function ExportPubkeys() {
               onPress={() => setPubkeyFormat('xpub')}
               style={{ flex: 1 }}
             />
-            <SSButton
-              label={t('account.export.zpubFormat')}
-              variant={pubkeyFormat === 'zpub' ? 'outline' : 'subtle'}
-              onPress={() => setPubkeyFormat('zpub')}
-              style={{ flex: 1 }}
-            />
-            <SSButton
-              label={t('account.export.vpubFormat')}
-              variant={pubkeyFormat === 'vpub' ? 'outline' : 'subtle'}
-              onPress={() => setPubkeyFormat('vpub')}
-              style={{ flex: 1 }}
-            />
+            {showSlip132Formats && (
+              <SSButton
+                label={t('account.export.zpubFormat')}
+                variant={pubkeyFormat === 'zpub' ? 'outline' : 'subtle'}
+                onPress={() => setPubkeyFormat('zpub')}
+                style={{ flex: 1 }}
+              />
+            )}
+            {showSlip132Formats && (
+              <SSButton
+                label={t('account.export.vpubFormat')}
+                variant={pubkeyFormat === 'vpub' ? 'outline' : 'subtle'}
+                onPress={() => setPubkeyFormat('vpub')}
+                style={{ flex: 1 }}
+              />
+            )}
           </SSHStack>
         )}
         {isError && (
