@@ -15,7 +15,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useAccountBuilderStore } from '@/store/accountBuilder'
+import {
+  DEFAULT_SCRIPT_VERSION,
+  useAccountBuilderStore
+} from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
@@ -93,10 +96,13 @@ export default function ImportDescriptor() {
       return ''
     }
 
-    // The default script version might not be set yet, so a multisig wsh()
-    // descriptor is checked as P2WSH.
+    // While the builder still holds its default script version, a multisig
+    // wsh() descriptor is checked as P2WSH. A version the user picked is kept,
+    // so sh(wsh()) still matches P2SH-P2WSH and mismatches are reported.
     const effectiveScriptVersion =
-      policyType === 'multisig' && descriptorText.includes('wsh(')
+      policyType === 'multisig' &&
+      scriptVersion === DEFAULT_SCRIPT_VERSION &&
+      descriptorText.includes('wsh(')
         ? 'P2WSH'
         : scriptVersion
 
