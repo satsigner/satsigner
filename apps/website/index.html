@@ -6,6 +6,31 @@
     <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      (function () {
+        var root = document.documentElement;
+        function settle() {
+          root.style.scrollBehavior = '';
+          root.classList.add('is-settled');
+        }
+        if (location.hash) {
+          addEventListener('load', function () { setTimeout(settle, 0); });
+          return;
+        }
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        function pin() {
+          if (location.hash) return;
+          root.style.scrollBehavior = 'auto';
+          scrollTo(0, 0);
+        }
+        pin();
+        addEventListener('pageshow', pin);
+        addEventListener('load', function () {
+          pin();
+          requestAnimationFrame(function () { requestAnimationFrame(settle); });
+        });
+      })();
+    </script>
     <meta name="color-scheme" content="dark light">
     <style>
       html { color-scheme: dark; background: #000; }
@@ -79,7 +104,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="studio/tokens.css">
     <link rel="stylesheet" href="studio/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=85" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=102" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -158,7 +183,16 @@
         <canvas class="hero-logo-light" aria-hidden="true"></canvas>
         <button type="button" class="hero-splash" aria-label="Open the SatSigner demo"></button>
       </div>
-      <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+      <div class="hero-aside">
+        <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="hero-demo">
+          <button type="button" class="hero-demo-link" aria-expanded="false" aria-haspopup="menu" aria-controls="hero-demo-menu">Demo</button>
+          <div class="hero-demo-menu" id="hero-demo-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-flow="send">Send transaction</button>
+            <button type="button" role="menuitem" data-flow="account">Create account</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -178,7 +212,7 @@
 
   <section class="feature-grid-section" id="features">
     <h2 class="feature-grid-title">The full toolkit</h2>
-    <p class="feature-grid-intro">Privacy-first Bitcoin signing with complete UTXO control.</p>
+    <p class="feature-grid-intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
     <div class="feature-grid">
       <article class="feature-grid-card is-span-4" data-screen="coins">
         <h3>UTXO control</h3>
@@ -188,7 +222,7 @@
         <h3>Account types</h3>
         <p>Single-signature, multi-signature, and watch-only on mainnet, testnet, and signet.</p>
       </article>
-      <article class="feature-grid-card" data-screen="builder">
+      <article class="feature-grid-card" data-screen="send">
         <h3>Transaction builder</h3>
         <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
       </article>
@@ -344,14 +378,14 @@
       <ol class="git-commands" id="git-panel-android" role="tabpanel" aria-labelledby="git-tab-android">
         <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
         <li><code>cd satsigner</code></li>
-        <li><code>npm install</code></li>
-        <li><code>npx expo run:android</code></li>
+        <li><code>pnpm install</code></li>
+        <li><code>pnpm expo run:android</code></li>
       </ol>
       <ol class="git-commands" id="git-panel-ios" role="tabpanel" aria-labelledby="git-tab-ios" hidden>
         <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
         <li><code>cd satsigner</code></li>
-        <li><code>npm install</code></li>
-        <li><code>npx expo run:ios</code></li>
+        <li><code>pnpm install</code></li>
+        <li><code>pnpm expo run:ios</code></li>
       </ol>
     </div>
   </section>
@@ -426,7 +460,7 @@
       <button type="button" class="flow-modal-arrow flow-modal-arrow-next" data-flow-next aria-label="Next"></button>
     </div>
   </dialog>
-  <script src="script.js?v=50"></script>
+  <script src="script.js?v=60"></script>
   <script>
     (function () {
       var root = document.documentElement;

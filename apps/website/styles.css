@@ -1,9 +1,10 @@
 html {
   overflow-x: hidden;
+  background-color: #0a0a0a;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  html {
+  html.is-settled {
     scroll-behavior: smooth;
   }
 }
@@ -15,7 +16,7 @@ section[id] {
 body {
   font-family: 'Geist', 'Inter', sans-serif;
   color: #fff;
-  background-color: #000;
+  background-color: #0a0a0a;
   margin: 0;
   overflow-x: hidden;
   text-align: center;
@@ -120,6 +121,8 @@ a{
 }
 .nav-drop {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 .nav-drop::before {
   content: "";
@@ -129,15 +132,18 @@ a{
   width: 11rem;
   height: 0.7rem;
 }
+.nav-drop-label {
+  display: inline-flex;
+  align-items: center;
+}
 .nav-drop-label::after {
   content: "";
-  display: inline-block;
   width: 0.32rem;
   height: 0.32rem;
   margin-left: 0.32rem;
   border-right: 1px solid currentColor;
   border-bottom: 1px solid currentColor;
-  transform: translateY(-0.2rem) rotate(45deg);
+  transform: translateY(0.06rem) rotate(45deg);
   opacity: 0.7;
 }
 .nav-drop-menu {
@@ -243,6 +249,23 @@ a{
   color: #fff;
 }
 
+@property --vt-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) {
+  z-index: 2147483646;
+  -webkit-mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 max(0px, calc(var(--vt-r) - 2.75rem)), transparent var(--vt-r));
+  mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 max(0px, calc(var(--vt-r) - 2.75rem)), transparent var(--vt-r));
+}
+
 /* ----- Hero ----- */
 .hero {
   position: relative;
@@ -250,7 +273,7 @@ a{
   min-height: calc(100svh - 3.4rem);
   display: flex;
   align-items: center;
-  padding: 3rem 2.5rem 2rem;
+  padding: 3rem 0 2rem;
   text-align: left;
   overflow: visible;
 }
@@ -262,7 +285,7 @@ a{
   height: calc(100% + 8rem);
   pointer-events: none;
   z-index: 0;
-  background: #000;
+  background: #0a0a0a;
 }
 .hero-stage {
   position: relative;
@@ -273,8 +296,10 @@ a{
   justify-items: center;
   gap: 1.5rem 2.5rem;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-inline: 1.5rem;
+  box-sizing: border-box;
   min-height: 32rem;
 }
 .hero-copy {
@@ -283,6 +308,7 @@ a{
   justify-self: start;
   width: 100%;
   max-width: 36rem;
+  text-align: left;
 }
 .hero-mark {
   position: relative;
@@ -654,11 +680,20 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   letter-spacing: -0.05em;
   text-transform: none;
 }
+.hero-aside {
+  position: relative;
+  z-index: 2;
+  justify-self: end;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  max-width: 16rem;
+}
 .hero-subline {
   position: relative;
   z-index: 1;
-  justify-self: end;
-  align-self: center;
   font-size: 1.05rem;
   font-weight: 400;
   text-transform: none;
@@ -666,8 +701,58 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   line-height: 1.45;
   color: rgba(255, 255, 255, 0.72);
   margin: 0;
-  max-width: 16rem;
   text-align: left;
+}
+.hero-demo {
+  position: relative;
+}
+.hero-demo-link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.48);
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.hero-demo-link:hover,
+.hero-demo-link[aria-expanded="true"] {
+  color: #fff;
+}
+.hero-demo-menu {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 11.5rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: #111;
+}
+.hero-demo-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  letter-spacing: -0.01em;
+  text-align: left;
+  text-transform: none;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hero-demo-menu button:hover,
+.hero-demo-menu button:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
 }
 .hero-form {
   display: flex;
@@ -994,6 +1079,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   align-items: flex-start;
   gap: 0.45rem;
   padding: 1.35rem 2.75rem 1.4rem 1.25rem;
+  overflow: hidden;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -1001,6 +1087,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   text-decoration: none;
   font-size: 0.95rem;
   line-height: 1.35;
+  isolation: isolate;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .support-action span {
@@ -1020,8 +1107,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
   font-size: 0.72rem;
 }
 .support-action:hover {
-  background: #1e1e1e;
-  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(18rem 7rem at 50% 130%, rgba(255, 255, 255, 0.1), transparent 62%),
+    #1c1c1c;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .studio-entry {
   position: relative;
@@ -1042,13 +1131,25 @@ html[data-theme="light"] .as-seen-in-logo--light {
   color: #fff;
   text-decoration: none;
   text-align: left;
+  isolation: isolate;
   transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.studio-entry-grain,
+.support-action canvas,
+.git-host canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: inherit;
 }
 .studio-entry:hover {
   background:
-    radial-gradient(28rem 10rem at 50% 120%, rgba(255, 255, 255, 0.05), transparent 60%),
-    #070707;
-  border-color: rgba(255, 255, 255, 0.05);
+    radial-gradient(28rem 10rem at 50% 120%, rgba(255, 255, 255, 0.2), transparent 60%),
+    #141414;
+  border-color: rgba(255, 255, 255, 0.16);
 }
 .studio-entry-phone {
   position: relative;
@@ -1152,6 +1253,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   align-items: center;
   gap: 0.85rem;
   padding: 1.15rem 2.75rem 1.15rem 1.15rem;
+  overflow: hidden;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -1159,6 +1261,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   text-decoration: none;
   font-size: 0.95rem;
   line-height: 1.35;
+  isolation: isolate;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .git-host .host-logo {
@@ -1198,8 +1301,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
   font-size: 0.72rem;
 }
 .git-host:hover {
-  background: #1e1e1e;
-  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(18rem 7rem at 50% 130%, rgba(255, 255, 255, 0.1), transparent 62%),
+    #1c1c1c;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .git-build {
   max-width: 52rem;
@@ -1761,7 +1866,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
 @media (max-width: 900px) {
   .hero {
     min-height: 0;
-    padding: 2.5rem 1.25rem 1rem;
+    padding: 2.5rem 0 1rem;
     text-align: center;
   }
   .hero-stage {
@@ -1774,6 +1879,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     order: 2;
     justify-self: center;
     max-width: 36rem;
+    text-align: center;
   }
   .hero-mark {
     order: 1;
@@ -1792,10 +1898,13 @@ html[data-theme="light"] .as-seen-in-logo--light {
     font-size: 1.05rem;
     letter-spacing: 0.06em;
   }
-  .hero-subline {
+  .hero-aside {
     order: 3;
     justify-self: center;
+    align-items: center;
     max-width: 28rem;
+  }
+  .hero-subline {
     text-align: center;
   }
   .hero-form,
@@ -1820,6 +1929,9 @@ html[data-theme="light"] .as-seen-in-logo--light {
     position: relative;
     padding: 0.55rem 1rem;
   }
+  .hero-stage {
+    padding-inline: 1rem;
+  }
   .nav-menu {
     display: inline-flex;
     margin-left: auto;
@@ -1835,11 +1947,12 @@ html[data-theme="light"] .as-seen-in-logo--light {
     align-items: stretch;
     gap: 0;
     padding: 0.4rem;
-    background: rgba(12, 12, 12, 0.82);
+    background: rgba(12, 12, 12, 0.96);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
+    z-index: 2;
   }
   .site-nav.is-open .nav-links {
     display: flex;
@@ -1872,20 +1985,22 @@ html[data-theme="light"] .as-seen-in-logo--light {
     background: rgba(255, 255, 255, 0.08);
   }
   .nav-drop {
+    flex-direction: column;
+    align-items: stretch;
     text-align: left;
   }
   .nav-drop::before {
     display: none;
   }
   .nav-drop-label {
-    display: block;
+    display: flex;
   }
   .nav-drop-menu {
     position: static;
     display: flex;
     min-width: 0;
-    margin: 0 0.35rem 0.25rem 0.85rem;
-    padding: 0;
+    margin: 0 0 0.15rem;
+    padding: 0 0 0 0.85rem;
     background: none;
     border: 0;
     border-radius: 0;
@@ -1909,7 +2024,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     height: 0.85rem;
   }
   html[data-theme="light"] .nav-links {
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.96);
     border-color: rgba(0, 0, 0, 0.08);
   }
   html[data-theme="light"] .nav-menu {
@@ -3210,6 +3325,7 @@ SWIPER
     color: #fff;
 }
 
+html[data-theme="light"],
 html[data-theme="light"] body {
   background-color: #e6e6e6;
   color: #161616;
@@ -3236,6 +3352,24 @@ html[data-theme="light"] .hero-version {
 }
 html[data-theme="light"] .hero-version:hover {
   color: #161616;
+}
+html[data-theme="light"] .hero-demo-link {
+  color: rgba(22, 22, 22, 0.45);
+}
+html[data-theme="light"] .hero-demo-link:hover,
+html[data-theme="light"] .hero-demo-link[aria-expanded="true"] {
+  color: #161616;
+}
+html[data-theme="light"] .hero-demo-menu {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: #fff;
+}
+html[data-theme="light"] .hero-demo-menu button {
+  color: #161616;
+}
+html[data-theme="light"] .hero-demo-menu button:hover,
+html[data-theme="light"] .hero-demo-menu button:focus-visible {
+  background: rgba(0, 0, 0, 0.06);
 }
 html[data-theme="light"] .hero-subline,
 html[data-theme="light"] .section-intro,
@@ -3327,9 +3461,12 @@ html[data-theme="light"] .support-action span {
 html[data-theme="light"] .support-action::after {
   color: rgba(22, 22, 22, 0.38);
 }
-html[data-theme="light"] .support-action:hover {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(0, 0, 0, 0.1);
+html[data-theme="light"] .support-action:hover,
+html[data-theme="light"] .git-host:hover {
+  background:
+    radial-gradient(18rem 7rem at 50% 130%, rgba(0, 0, 0, 0.025), transparent 60%),
+    #fff;
+  border-color: rgba(0, 0, 0, 0.16);
   color: rgba(22, 22, 22, 0.72);
 }
 html[data-theme="light"] .studio-entry {
@@ -3341,8 +3478,8 @@ html[data-theme="light"] .studio-entry {
 }
 html[data-theme="light"] .studio-entry:hover {
   background:
-    radial-gradient(28rem 10rem at 50% 120%, rgba(0, 0, 0, 0.05), transparent 60%),
-    #ececec;
+    radial-gradient(28rem 10rem at 50% 120%, rgba(0, 0, 0, 0.025), transparent 60%),
+    #fff;
   border-color: rgba(0, 0, 0, 0.16);
 }
 html[data-theme="light"] .studio-entry-kicker,
@@ -3386,8 +3523,10 @@ html[data-theme="light"] .git-commands li::before {
   color: rgba(0, 0, 0, 0.4);
 }
 html[data-theme="light"] .git-host:hover {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(0, 0, 0, 0.1);
+  background:
+    radial-gradient(18rem 7rem at 50% 130%, rgba(0, 0, 0, 0.025), transparent 60%),
+    #fff;
+  border-color: rgba(0, 0, 0, 0.16);
   color: rgba(0, 0, 0, 0.72);
 }
 html[data-theme="light"] .git-tab:hover,

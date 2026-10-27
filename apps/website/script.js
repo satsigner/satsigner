@@ -25,7 +25,7 @@
     'uniform float uRadius;',
     'uniform float uTheme;',
     'uniform float uPulse;',
-    'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float hash21(vec2 p){ vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }',
     'float sdCircle(vec2 p, float r){ return length(p) - r; }',
     'float sdRoundBox(vec2 p, vec2 b, float r){',
     '  vec2 q = abs(p) - b + r;',
@@ -61,13 +61,14 @@
     '  float far = exp(-max(sdf, 0.0) / ((36.0 + uPulse * 6.0) * uDpr));',
     '  float light = far * (0.02 + 0.38 * face) * (1.0 + uPulse * 0.22);',
     '  vec2 css = p / max(uDpr, 1.0);',
-    '  float grain = hash21(floor(css * 2.0));',
-    '  grain += hash21(floor(css * 4.24));',
-    '  grain += hash21(floor(css * 6.3));',
-    '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+    '  float grain = hash21(floor(css * 2.17));',
+    '  grain += hash21(floor(css * 5.71 + vec2(19.0, 7.0)));',
+    '  grain += hash21(floor(css * 11.3 + vec2(3.0, 41.0)));',
+    '  grain += hash21(floor(css * 23.9 + vec2(8.0, 2.0)));',
+    '  grain *= 0.25;',
     '  float floorDark = mix(0.055, 0.02, grain);',
     '  float floorLight = mix(0.925, 0.878, grain);',
-    '  float page = 0.902;',
+    '  float page = mix(0.0392, 0.902, uTheme);',
     '  float glow = light * mix(0.62, 1.2, grain);',
     '  float colDark = floorDark + glow;',
     '  float colLight = floorLight + glow * 0.95;',
@@ -78,7 +79,7 @@
     '  col = mix(floorB, col, uReveal);',
     '  float band = uRes.y * 0.22;',
     '  float fade = sqrt(clamp(min(p.y, uRes.y - p.y) / band, 0.0, 1.0));',
-    '  col = mix(mix(page, col, fade), col * fade, 1.0 - uTheme);',
+    '  col = mix(page, col, fade);',
     '  gl_FragColor = vec4(vec3(col), 1.0);',
     '}'
   ].join('\n');
@@ -130,7 +131,7 @@
       'uniform float uPointerOn;',
       'uniform float uDpr;',
       'uniform float uRadius;',
-      'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'float hash21(vec2 p){ vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }',
       'void main(){',
       '  vec2 p = gl_FragCoord.xy;',
       '  p.y = uRes.y - p.y;',
@@ -148,10 +149,11 @@
       '  float far = exp(-max(sdf, 0.0) / (36.0 * fall));',
       '  float light = edge * (0.08 + 1.05 * face) + far * (0.02 + 0.38 * face);',
       '  vec2 css = p / max(uDpr, 1.0);',
-      '  float grain = hash21(floor(css * 2.0));',
-      '  grain += hash21(floor(css * 4.24));',
-      '  grain += hash21(floor(css * 6.3));',
-      '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+      '  float grain = hash21(floor(css * 2.17));',
+      '  grain += hash21(floor(css * 5.71 + vec2(19.0, 7.0)));',
+      '  grain += hash21(floor(css * 11.3 + vec2(3.0, 41.0)));',
+      '  grain += hash21(floor(css * 23.9 + vec2(8.0, 2.0)));',
+      '  grain *= 0.25;',
       '  float bloom = light * mix(0.62, 1.2, grain);',
       '  float rim = smoothstep(-0.2 * uDpr, 1.15 * uDpr, sdf);',
       '  float alpha = clamp(bloom, 0.0, 1.0) * rim;',
@@ -301,7 +303,7 @@
       else pulse = 1 - (pe - attack) / release;
     }
     gl.uniform1f(uPulse, pulse);
-    gl.clearColor(theme ? 0.902 : 0, theme ? 0.902 : 0, theme ? 0.902 : 0, 1);
+    gl.clearColor(theme ? 0.902 : 0.0392, theme ? 0.902 : 0.0392, theme ? 0.902 : 0.0392, 1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (lgl && lu && shape >= 2 && mark) {
       var type = mark.querySelector('.hero-mark-type');
@@ -630,25 +632,119 @@ if (typeof Swiper !== 'undefined') {
   paintClock();
   window.addEventListener('resize', fitPhone);
 
+  function applyTheme(next) {
+    if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  }
+
   document.querySelectorAll('.theme-toggle').forEach(function (button) {
     button.addEventListener('click', function () {
       var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
-      else document.documentElement.removeAttribute('data-theme');
-      try { localStorage.setItem('theme', next); } catch (e) {}
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!document.startViewTransition || reduce) {
+        applyTheme(next);
+        return;
+      }
+      var rect = mark.getBoundingClientRect();
+      var x = rect.left + rect.width / 2;
+      var y = rect.top + rect.height / 2 - rect.height * 0.08;
+      var end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 44;
+      var transition = document.startViewTransition(function () { applyTheme(next); });
+      transition.ready.then(function () {
+        document.documentElement.animate(
+          [
+            { '--vt-x': x + 'px', '--vt-y': y + 'px', '--vt-r': '0px' },
+            { '--vt-x': x + 'px', '--vt-y': y + 'px', '--vt-r': end + 'px' }
+          ],
+          { duration: 340, easing: 'cubic-bezier(0.85, 0, 1, 1)', pseudoElement: '::view-transition-new(root)' }
+        );
+      });
     });
   });
 
-  splash.addEventListener('click', function () {
-    if (hero.classList.contains('is-live')) return;
+  function studioFrame() {
+    return app.querySelector('.hero-studio');
+  }
+
+  function studioDemo() {
+    var studio = studioFrame();
+    var api = studio && studio.contentWindow && studio.contentWindow.satSignerDemo;
+    return api || null;
+  }
+
+  function revealApp() {
     fitPhone();
     hero.classList.add('is-live');
     splash.setAttribute('aria-hidden', 'true');
     app.removeAttribute('aria-hidden');
-    var studio = app.querySelector('.hero-studio');
-    var demo = studio && studio.contentWindow && studio.contentWindow.satSignerDemo;
-    if (demo) demo.open();
+  }
+
+  function whenDemo(done) {
+    var settled = false;
+    function finish(api) {
+      if (settled || !api) return;
+      settled = true;
+      clearInterval(timer);
+      done(api);
+    }
+    var api = studioDemo();
+    if (api) {
+      done(api);
+      return;
+    }
+    var studio = studioFrame();
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      var ready = studioDemo();
+      if (ready) finish(ready);
+      else if (tries > 50) clearInterval(timer);
+    }, 100);
+    if (studio) {
+      studio.addEventListener('load', function () {
+        finish(studioDemo());
+      }, { once: true });
+    }
+  }
+
+  splash.addEventListener('click', function () {
+    if (hero.classList.contains('is-live')) return;
+    revealApp();
+    whenDemo(function (demo) { demo.open(); });
   });
+
+  var demoWrap = document.querySelector('.hero-demo');
+  var demoLink = demoWrap && demoWrap.querySelector('.hero-demo-link');
+  var demoMenu = demoWrap && demoWrap.querySelector('.hero-demo-menu');
+  if (demoWrap && demoLink && demoMenu) {
+    function setDemoMenu(open) {
+      demoLink.setAttribute('aria-expanded', open ? 'true' : 'false');
+      demoMenu.hidden = !open;
+    }
+
+    demoLink.addEventListener('click', function () {
+      setDemoMenu(demoMenu.hidden);
+    });
+
+    demoMenu.querySelectorAll('[data-flow]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var flow = button.getAttribute('data-flow');
+        setDemoMenu(false);
+        revealApp();
+        whenDemo(function (demo) {
+          if (demo.play) demo.play(flow);
+        });
+      });
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!demoWrap.contains(event.target)) setDemoMenu(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') setDemoMenu(false);
+    });
+  }
 })();
 
 (function initFeatureFlows() {
@@ -704,7 +800,7 @@ if (typeof Swiper !== 'undefined') {
       'uniform float uRadius;',
       'uniform float uTheme;',
       'uniform float uFade;',
-      'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+      'float hash21(vec2 p){ vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }',
       'float sdRoundBox(vec2 p, vec2 b, float r){',
       '  vec2 q = abs(p) - b + r;',
       '  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;',
@@ -729,10 +825,11 @@ if (typeof Swiper !== 'undefined') {
       '  float far = exp(-max(sdf, 0.0) / (36.0 * uDpr));',
       '  float light = far * (0.02 + 0.38 * face) * uFade;',
       '  vec2 css = p / max(uDpr, 1.0);',
-      '  float grain = hash21(floor(css * 2.0));',
-      '  grain += hash21(floor(css * 4.24));',
-      '  grain += hash21(floor(css * 6.3));',
-      '  grain = clamp(grain * 0.33, 0.0, 1.0);',
+      '  float grain = hash21(floor(css * 2.17));',
+      '  grain += hash21(floor(css * 5.71 + vec2(19.0, 7.0)));',
+      '  grain += hash21(floor(css * 11.3 + vec2(3.0, 41.0)));',
+      '  grain += hash21(floor(css * 23.9 + vec2(8.0, 2.0)));',
+      '  grain *= 0.25;',
       '  float floorDark = mix(0.055, 0.02, grain);',
       '  float floorLight = mix(0.831, 0.78, grain);',
       '  float page = mix(0.0, 0.831, uTheme);',
@@ -1027,8 +1124,8 @@ if (typeof Swiper !== 'undefined') {
   if (initial && slugs[initial]) showFlow(cards.indexOf(slugs[initial]));
 })();
 
-// Phone leaves 1.3× faster than the page. The logo follows that
-// direction at about two thirds of the strength.
+// Phone leaves a little faster than the page. The logo moves
+// further in the same direction, so it pulls away from the device.
 (function () {
   var hero = document.getElementById('beta');
   var phone = hero && hero.querySelector('.hero-mark');
@@ -1037,8 +1134,8 @@ if (typeof Swiper !== 'undefined') {
   if (!hero || !phone || !logo) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  var extra = 0.3;
-  var logoExtra = 0.2;
+  var extra = 0.2;
+  var logoExtra = 0.4;
   var frame = 0;
 
   function clear() {
@@ -1089,5 +1186,117 @@ if (typeof Swiper !== 'undefined') {
         if (panel) panel.hidden = !on;
       });
     });
+  });
+})();
+
+(function initStudioEntryGrain() {
+  var nodes = document.querySelectorAll('.studio-entry, .support-action, .git-host');
+  if (!nodes.length) return;
+  var vs = 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }';
+  var fs = [
+    'precision highp float;',
+    'uniform vec2 uRes;',
+    'uniform float uDpr;',
+    'uniform float uHover;',
+    'uniform float uTheme;',
+    'uniform float uGain;',
+    'float hash21(vec2 p){ vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }',
+    'void main(){',
+    '  vec2 p = gl_FragCoord.xy;',
+    '  p.y = uRes.y - p.y;',
+    '  vec2 css = p / max(uDpr, 1.0);',
+    '  vec2 size = uRes / max(uDpr, 1.0);',
+    '  vec2 c = vec2(size.x * 0.5, size.y * 1.2);',
+    '  float light = 1.0 - smoothstep(0.0, 0.6, length((css - c) / vec2(448.0, 160.0)));',
+    '  float grain = hash21(floor(css * 2.17));',
+    '  grain += hash21(floor(css * 5.71 + vec2(19.0, 7.0)));',
+    '  grain += hash21(floor(css * 11.3 + vec2(3.0, 41.0)));',
+    '  grain += hash21(floor(css * 23.9 + vec2(8.0, 2.0)));',
+    '  grain *= 0.25;',
+    '  float baseDark = mix(0.078, 0.047, uGain);',
+    '  float lift = uHover * mix(0.45, 1.0, uGain);',
+    '  float base = mix(mix(baseDark, baseDark + 0.012, lift), mix(0.969, 1.0, lift * 0.45), uTheme);',
+    '  float peak = mix(mix(0.16, 0.19, uHover), mix(-0.05, -0.035, uHover), uTheme) * uGain;',
+    '  float col = base + mix(-0.02, 0.028, grain) * uGain + light * peak * mix(0.82, 1.12, grain);',
+    '  gl_FragColor = vec4(vec3(clamp(col, 0.0, 1.0)), 1.0);',
+    '}'
+  ].join('\n');
+  function theme() {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0;
+  }
+  nodes.forEach(function (entry) {
+    var canvas = document.createElement('canvas');
+    canvas.className = 'studio-entry-grain';
+    canvas.setAttribute('aria-hidden', 'true');
+    entry.insertBefore(canvas, entry.firstChild);
+    var gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: true });
+    if (!gl) return;
+    function compile(type, src) {
+      var sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      return sh;
+    }
+    var prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(prog, 'a');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    var uRes = gl.getUniformLocation(prog, 'uRes');
+    var uDpr = gl.getUniformLocation(prog, 'uDpr');
+    var uHover = gl.getUniformLocation(prog, 'uHover');
+    var uTheme = gl.getUniformLocation(prog, 'uTheme');
+    var uGain = gl.getUniformLocation(prog, 'uGain');
+    var gain = entry.classList.contains('studio-entry') ? 1 : 0.32;
+    var hover = 0;
+    var target = 0;
+    var raf = 0;
+    function draw() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uDpr, dpr);
+      gl.uniform1f(uHover, hover);
+      gl.uniform1f(uTheme, theme());
+      gl.uniform1f(uGain, gain);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function resize() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.max(1, Math.round(entry.clientWidth * dpr));
+      var h = Math.max(1, Math.round(entry.clientHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      draw();
+    }
+    function tick() {
+      hover += (target - hover) * 0.28;
+      if (Math.abs(target - hover) < 0.004) hover = target;
+      draw();
+      raf = hover === target ? 0 : requestAnimationFrame(tick);
+    }
+    entry.addEventListener('pointerenter', function () {
+      target = 1;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
+    entry.addEventListener('pointerleave', function () {
+      target = 0;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(entry);
+    else window.addEventListener('resize', resize);
+    if (window.MutationObserver) {
+      new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+    resize();
   });
 })();
