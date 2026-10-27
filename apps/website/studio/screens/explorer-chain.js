@@ -84,7 +84,7 @@ document.head.insertAdjacentHTML(
 
 // --- fixtures --------------------------------------------------------------------------
 
-const EC_TIP = 972231 // matches the hand-ported Difficulty screen (epoch 482)
+let EC_TIP = 972231 // fallback until mempool.space reports the tip
 const EC_HALVING = 210000
 const EC_SUBSIDY0 = 5000000000
 const EC_GENESIS_TIME = 1231006505
@@ -771,7 +771,7 @@ function ecBindExternal(body, key, id) {
 
 // --- chaintip.tsx (+ SSFeeRateChart and the price chart) ---------------------------------
 
-const EC_FEES = { high: 12, medium: 8, low: 4, none: 2 }
+const EC_FEES = { high: 12, medium: 8, low: 4, none: 2 } // overwritten by mempool recommended fees
 
 // SSFeeRateChart: stacked mempool vbytes per fee band over two hours (alternating #939393/#FFFFFF).
 function ecFeeRateChart() {
@@ -826,7 +826,7 @@ function ecPriceChart() {
   let p = 96200
   for (let i = 0; i <= days; i += 1) {
     p += (ecRand('price' + i) - 0.45) * 2600
-    prices.push(i === days ? 100000 : p)
+    prices.push(i === days ? USD_PER_BTC : p * (USD_PER_BTC / 100000))
   }
   const min = Math.min(...prices) * 0.995
   const max = Math.max(...prices) * 1.005

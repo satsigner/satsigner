@@ -681,7 +681,7 @@ function baTxHeader(tx) {
           ss.text({ color: 'muted', size: 'xl', as: 'span' }, t('bitcoin.sats')))),
       tx.fiat
         ? ss.hstack({ gap: 'xs' },
-            ss.text({ color: 'muted', size: 'sm', as: 'span' }, tx.fiat),
+            ss.text({ color: 'muted', size: 'sm', as: 'span' }, usd(tx.amount)),
             ss.text({ size: 'sm', style: 'color:var(--gray-500)', as: 'span' }, 'USD'),
             tx.historical ? ss.text({ color: 'muted', size: 'sm', as: 'span' }, `(${tx.historical})`) : '',
             tx.priceChange

@@ -3144,6 +3144,28 @@ const ssStrings = {
   "error.psbtCannotBeUsedForOutputs": "PSBTs cannot be used for individual outputs",
   "fee": "Fee",
   "feeBytes": "Fee sat/b",
+  "feeReplacement": {
+   "bump": "Increase fee",
+   "cancel": {
+    "action": "Cancel to self",
+    "confirm": "Replace payment",
+    "message": "This spends the same inputs again. The original payment will not be sent, and the sats return to a new address of this account.",
+    "title": "Cancel this payment?"
+   },
+   "cpfp": "Raise parent fee",
+   "error": {
+    "failed": "This transaction cannot be replaced.",
+    "feeTooHigh": "This fee is higher than these coins can cover."
+   },
+   "flag": {
+    "cpfp": "CPFP",
+    "rbf": "RBF"
+   },
+   "note": {
+    "cancel": "This replaces the unconfirmed payment. The extra fee comes out of what you get back.",
+    "cpfp": "This spends your unconfirmed coins to pay miners to confirm the incoming payment. The fee comes out of those coins."
+   }
+  },
   "feeVBytes": "Fee sat/vb",
   "finalizedSuccessfully": "Multisig transaction finalized successfully!",
   "hash": "Hash",

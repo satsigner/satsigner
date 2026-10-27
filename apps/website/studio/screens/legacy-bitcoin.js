@@ -17,7 +17,11 @@ document.head.insertAdjacentHTML(
   'beforeend',
   `<style>
   #kit-body:has(.lb-flush) { padding: 0; }
+  #kit-body:has(.lb-acct) { display: flex; flex-direction: column; overflow: hidden; }
   .lb-flush { display: flex; flex-direction: column; min-height: 100%; }
+  .lb-acct { flex: 1; min-height: 0; overflow: hidden; }
+  .lb-acct > .lb-pad:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .lb-scroll { flex: 1; min-height: 0; overflow: auto; }
   .lb-pad { padding: 0 var(--layout-main-container-padding-horizontal); }
   .lb-info { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 var(--layout-main-container-padding-horizontal); }
   .lb-info button { border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
@@ -45,7 +49,7 @@ document.head.insertAdjacentHTML(
   .lb-stat-tabs { display: flex; padding: 8px var(--layout-main-container-padding-horizontal); }
   .lb-stat { position: relative; width: 25%; height: 62px; border: 0; padding: 0; background: none; color: var(--white); font: inherit; cursor: pointer; }
   .lb-stat strong { display: block; font-size: var(--sizes-text-font-size-lg); font-weight: 400; }
-  .lb-stat small { display: block; color: var(--gray-300); font-size: var(--sizes-text-font-size-sm); line-height: 12px; white-space: pre-line; }
+  .lb-stat small { display: block; margin-top: 6px; color: var(--gray-300); font-size: var(--sizes-text-font-size-sm); line-height: 12px; white-space: pre-line; }
   .lb-stat.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; background: var(--white); }
   .lb-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
   .lb-toolbar-side { display: flex; align-items: center; gap: 12px; }
@@ -56,6 +60,21 @@ document.head.insertAdjacentHTML(
   .lb-sortbar { display: flex; justify-content: flex-end; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-900); }
   .lb-list { padding: 12px 0 24px; }
   .lb-empty { padding-top: 50px; text-align: center; color: var(--gray-300); }
+  .tx-card.is-compact { margin-bottom: 6px; padding-top: 0; }
+  .tx-card.is-compact .tx-amount { gap: 4px; }
+  .tx-card.is-compact .tx-flow { width: 12px; height: 12px; }
+  .tx-card.is-compact .tx-amount .ss-sat,
+  .tx-card.is-compact .tx-amount .ss-sat span { font-size: var(--font-xl); letter-spacing: 0; font-weight: var(--weight-light); }
+  .tx-card.is-compact .tx-amount > .ss-text { font-size: var(--font-xs); color: var(--gray-400); }
+  .tx-card.is-compact .tx-fiat { font-size: var(--font-xs); }
+  .tx-card.is-compact .tx-balance .ss-sat,
+  .tx-card.is-compact .tx-balance .ss-sat span { font-size: var(--font-xs); font-weight: var(--weight-regular); }
+  .tx-card.is-compact .tx-fiat { height: 14px; }
+  .tx-card.is-compact .tx-fiat span { font-size: var(--font-xs); }
+  .tx-card.is-compact .tx-label,
+  .tx-card.is-compact .tx-tag,
+  .tx-card.is-compact .tx-side .tx-pct { font-size: var(--font-xxs); }
+  .tx-card.is-compact .tx-tag.is-empty { padding-top: 0; padding-bottom: 0; }
   .lb-utxo { display: flex; align-items: stretch; border-bottom: 1px solid var(--gray-900); }
   .lb-utxo-body { flex: 1; min-width: 0; border: 0; padding: 12px 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
   .lb-utxo.is-excluded .lb-utxo-body { opacity: 0.45; }
@@ -63,7 +82,8 @@ document.head.insertAdjacentHTML(
   .lb-utxo-x.is-on { color: var(--main-red); }
   .lb-utxo-bar { height: 2px; background: var(--gray-850); }
   .lb-utxo-bar i { display: block; height: 2px; background: var(--white); opacity: 0.3; }
-  .lb-acct .history-chart { height: 360px; margin-top: 8px; }
+  .lb-chart-host { display: flex; flex-direction: column; overflow: hidden; }
+  .lb-chart-host .history-chart { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; aspect-ratio: auto; }
   .lb-acct .addr-row, .lb-acct .addr-card { cursor: pointer; }
   .lb-tx .tx-sankey { height: auto; margin: 4px 0 16px; }
   .lb-tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--gray-850); color: var(--gray-75); font-size: var(--sizes-text-font-size-xs); }
@@ -130,9 +150,9 @@ function lbSortBar() {
   return `<div class="lb-sortbar">${['date', 'amount', 'label']
     .map(
       (field) =>
-        `<button type="button" class="sort-toggle${lbAcct.sort.field === field ? ' is-on' : ''}" data-lb-sort="${field}"><span>${
-          lbAcct.sort.field === field && lbAcct.sort.dir === 'asc' ? '↑' : '↓'
-        }</span>${ss.text({ as: 'span', color: lbAcct.sort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
+        `<button type="button" class="sort-toggle${lbAcct.sort.field === field ? ' is-on' : ''}" data-lb-sort="${field}">${
+          ss.icon(lbAcct.sort.field === field && lbAcct.sort.dir === 'asc' ? 'chevronUp' : 'chevronDown', { width: 11, height: 5 })
+        }${ss.text({ as: 'span', color: lbAcct.sort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
     )
     .join('')}</div>`
 }
@@ -213,7 +233,13 @@ registerScreen('accounts', {
 // --- account/[id]/index.tsx ------------------------------------------------------------
 
 function lbSortedTxs(list) {
-  const key = { date: (tx) => tx.block || Infinity, amount: (tx) => tx.amount, label: (tx) => (tx.label || '').toLowerCase() }[lbAcct.sort.field]
+  // Fewer confirmations is more recent. Unconfirmed (0) is newest. Block heights in the
+  // fixtures don't match confirmation counts, so date order follows confirmations.
+  const key = {
+    date: (tx) => (tx.conf > 0 ? -tx.conf : Number.POSITIVE_INFINITY),
+    amount: (tx) => tx.amount,
+    label: (tx) => (tx.label || '').toLowerCase()
+  }[lbAcct.sort.field]
   return [...list].sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (lbAcct.sort.dir === 'asc' ? 1 : -1))
 }
 
@@ -224,7 +250,7 @@ function lbTxList(list) {
   return lbSortedTxs(list)
     .map((tx) => {
       const index = all.indexOf(tx)
-      return txCard(tx, index <= 0 ? 0 : all[index - 1].balance, max)
+      return txCard(tx, index <= 0 ? 0 : all[index - 1].balance, max, lbAcct.expand)
     })
     .join('')
 }
@@ -261,7 +287,7 @@ function lbAccountMarkup() {
   if (lbAcct.tab === 0) {
     content =
       toolbar(syncTitle, `${lbIconButton('search', 'disabled', 18)}${lbIconButton(lbAcct.chart ? 'menu' : 'historyChart', 'data-lb-chart', 18)}`) +
-      (lbAcct.chart ? historyChart(txs) : lbSortBar() + `<div class="lb-list">${lbTxList(txs)}</div>`)
+      (lbAcct.chart ? `<div class="lb-scroll lb-chart-host"></div>` : lbSortBar() + `<div class="lb-scroll"><div class="lb-list">${lbTxList(txs)}</div></div>`)
   } else if (lbAcct.tab === 1) {
     const rows = addressRows(account)
     const markup = lbAcct.addrView === 'table' ? addressTable(account) : addressCards(account)
@@ -273,13 +299,15 @@ function lbAccountMarkup() {
       ss.hstack({ gap: 'none', style: 'margin-bottom:12px' },
         ss.radio({ label: 'Receive', variant: 'outline', group: 'lb-chain', selected: !lbAcct.change, data: { 'lb-chain': 'receive' }, style: 'flex:1' }),
         ss.radio({ label: 'Change', variant: 'outline', group: 'lb-chain', selected: lbAcct.change, data: { 'lb-chain': 'change' }, style: 'flex:1' })) +
-      tagged
+      `<div class="lb-scroll">${tagged}</div>`
   } else if (lbAcct.tab === 2) {
     const excluded = coins.filter((c) => c.excluded).length
     const total = coins.reduce((s, c) => s + c.value, 0)
+    const bubblesOn = typeof sfState === 'undefined' || !sfState.charts || sfState.charts.showUtxoFlowChart
+    if (!bubblesOn) lbAcct.utxoView = 'list'
     const right =
       lbIconButton('filter', '', 16) +
-      lbIconButton(lbAcct.utxoView === 'bubbles' ? 'list' : 'bubbles', 'data-lb-utxo-view', 15) +
+      (bubblesOn ? lbIconButton(lbAcct.utxoView === 'bubbles' ? 'list' : 'bubbles', 'data-lb-utxo-view', 15) : '') +
       `<button type="button" class="lb-icon" data-go="exclude-utxos" aria-label="${t('utxo.exclude.title')}">${ss.icon('exclude', { size: 16 })}${excluded ? `<span class="exclude-badge">${excluded}</span>` : ''}</button>`
     const sorted = [...coins].sort((a, b) => {
       const key = { date: (c) => c.timestamp || 0, amount: (c) => c.value, label: (c) => (c.label || '').toLowerCase() }[lbAcct.sort.field]
@@ -288,11 +316,11 @@ function lbAccountMarkup() {
     content =
       toolbar(syncTitle, right) +
       (lbAcct.utxoView === 'bubbles'
-        ? `<div class="lb-bubbles">${bubblePack(!lbAcct.bubblesEntered, false)}</div>`
-        : lbSortBar() + `<div class="lb-list">${sorted.map((c) => lbUtxoCard(c, total)).join('')}</div>`)
+        ? `<div class="lb-scroll"><div class="lb-bubbles">${bubblePack(!lbAcct.bubblesEntered, false)}</div></div>`
+        : lbSortBar() + `<div class="lb-scroll"><div class="lb-list">${sorted.map((c) => lbUtxoCard(c, total)).join('')}</div></div>`)
     lbAcct.bubblesEntered = lbAcct.utxoView === 'bubbles'
   } else {
-    content = toolbar(syncTitle, lbIconButton('search', 'disabled', 18)) + `<div class="lb-list">${lbTxList(txs.filter((tx) => tx.conf <= 0))}</div>`
+    content = toolbar(syncTitle, lbIconButton('search', 'disabled', 18)) + `<div class="lb-scroll"><div class="lb-list">${lbTxList(txs.filter((tx) => tx.conf <= 0))}</div></div>`
   }
   const actions = `<div class="lb-actions">
     <button type="button" class="lb-act is-wide" style="--from:var(--gray-880);--to:var(--gray-700)" data-lb-send>Send</button>
@@ -302,12 +330,12 @@ function lbAccountMarkup() {
     <button type="button" class="lb-act is-wide" style="--from:var(--gray-700);--to:var(--gray-880)" data-go="account-receive">Receive</button>
   </div>`
   const balanceSize = String(account.balance).length > 9 ? '5xl' : '6xl'
-  return `<div class="lb-flush lb-acct">
+  return `<div class="lb-flush lb-acct${lbAcct.expand ? ' is-expanded' : ''}">
     ${lbInfoRows()}
     ${
       lbAcct.expand
         ? ''
-        : `<div class="lb-pad" style="padding-top:20px">${ss.vstack({ itemsCenter: true, gap: 'none' },
+        : `<div class="lb-pad" style="padding-top:8px">${ss.vstack({ itemsCenter: true, gap: 'none' },
             ss.vstack({ itemsCenter: true, gap: 'none', style: 'padding-bottom:12px' },
               ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: account.balance, textSize: balanceSize, weight: 'ultralight', unitSize: 'xl' })),
               ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({ color: 'muted' }, lbUsd(account.balance)), ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD'))),
@@ -323,6 +351,8 @@ function lbAccountMarkup() {
 function lbBindAccount(body) {
   const repaint = () => {
     body.innerHTML = lbAccountMarkup()
+    const host = body.querySelector('.lb-chart-host')
+    if (host) host.innerHTML = historyChart(lbTxs(), host.clientWidth, host.clientHeight)
   }
   body.addEventListener('click', (e) => {
     const hit = (sel) => e.target.closest(sel)
@@ -383,9 +413,10 @@ function lbBindAccount(body) {
     if (utxo) return baOpenUtxo(utxo.dataset.lbUtxo || utxo.dataset.coin)
     const addr = hit('[data-lb-address]')
     if (addr && addr.dataset.lbAddress) return baOpenAddress(addr.dataset.lbAddress)
-    const card = hit('.tx-card[data-txid]')
+    const card = hit('.tx-card[data-txid]') || hit('.ba-tx-row[data-ba-tx]')
     if (card) {
-      const tx = lbTxs().find((item) => item.txid === card.dataset.txid)
+      const txid = card.dataset.txid || card.dataset.baTx
+      const tx = lbTxs().find((item) => item.txid === txid)
       if (tx) openTransaction(tx)
     }
   })
@@ -401,7 +432,7 @@ function lbHeaderKeys() {
   keys.className = 'settings lb-header-extra'
   keys.setAttribute('aria-label', 'Account settings')
   keys.innerHTML = ss.icon('keys', { size: 20 })
-  keys.addEventListener('click', () => go('account-settings'))
+  keys.addEventListener('click', () => go(openAccountData && openAccountData.multisig ? 'multisig-settings' : 'account-settings'))
   header.appendChild(keys)
 }
 
@@ -456,6 +487,19 @@ openTransaction = function (tx) {
   go('tx')
 }
 
+function lbReplacementMarkup(tx) {
+  if (tx.conf > 0) return ''
+  const rbf = tx.type === 'send' && tx.rbf !== false
+  const cpfp = tx.type === 'receive'
+  const watch = openAccountData && openAccountData.watchOnly
+  const flag = (key) => ss.text({ uppercase: true, color: 'muted', size: 'xs', as: 'span' }, t('transaction.feeReplacement.flag.' + key))
+  return ss.vstack({ gap: 'xs', style: 'width:100%' },
+    rbf || cpfp ? ss.hstack({ gap: 'sm', style: 'justify-content:center' }, rbf ? flag('rbf') : '', cpfp ? flag('cpfp') : '') : '',
+    !watch && rbf ? ss.button({ variant: 'outline', label: t('transaction.feeReplacement.bump'), data: { 'lb-bump': '' } }) : '',
+    !watch && rbf ? ss.button({ variant: 'danger', label: t('transaction.feeReplacement.cancel.action'), data: { 'lb-cancel': '' } }) : '',
+    !watch && cpfp ? ss.button({ variant: 'outline', label: t('transaction.feeReplacement.cpfp'), data: { 'lb-cpfp': '' } }) : '')
+}
+
 function lbTxMarkup(tx) {
   const feeRate = (tx.fee / tx.size).toFixed(2)
   const feeVrate = (tx.fee / tx.vsize).toFixed(2)
@@ -482,10 +526,11 @@ function lbTxMarkup(tx) {
             ss.text({ as: 'span', color: 'muted', size: 'xl' }, t('bitcoin.sats')))),
         tx.payjoin && tx.contributed ? ss.text({ color: 'muted' }, t('transaction.details.contributed', { amount: tx.contributed.toLocaleString('en-US') })) : '',
         ss.hstack({ gap: 'xs' },
-          ss.text({ color: 'muted' }, tx.fiat),
+          ss.text({ color: 'muted' }, lbUsd(tx.amount)),
           ss.text({ style: 'color:var(--gray-500)' }, 'USD'),
           tx.historical ? ss.text({ color: 'muted' }, `(${tx.historical})`) : '',
           pct ? ss.text({ style: `color:var(${pct[0] === '+' ? '--soft-bar-green' : '--soft-bar-red'})` }, pct) : '')),
+      lbReplacementMarkup(tx),
       ss.hstack({ gap: 'sm', style: 'align-items:baseline' },
         `<span class="tx-conf ${confClass(tx.conf)} ss-text w-light">${confText(tx.conf, 0)}</span>`,
         ss.text({ as: 'span' }, `<span class="ss-text is-muted">${t('common.from').toLowerCase()} </span>${tx.inputs} ${(tx.inputs === 1 ? t('transaction.input.singular') : t('transaction.input.plural')).toLowerCase()}`),
@@ -563,9 +608,24 @@ for (const id of ['tx', 'payjoin-tx']) {
       }
       return lbTxMarkup(openTxData)
     },
+    overlays: () =>
+      ss.modal({ id: 'lb-cancel-modal', showLabel: false },
+        ss.vstack({ gap: 'md', style: 'margin:auto 0' },
+          ss.text({ uppercase: true, center: true }, t('transaction.feeReplacement.cancel.title')),
+          ss.text({ color: 'muted', center: true }, t('transaction.feeReplacement.cancel.message')),
+          ss.button({ variant: 'secondary', label: t('transaction.feeReplacement.cancel.confirm'), id: 'lb-cancel-yes' }),
+          ss.button({ variant: 'ghost', label: t('common.cancel'), data: { 'ss-close': '' } }))),
     bind: (body) => {
       document.getElementById('kit-title').textContent = t('transaction.details.title')
+      const yes = document.getElementById('lb-cancel-yes')
+      if (yes) yes.onclick = () => {
+        ss.close('lb-cancel-modal')
+        loadReplacement('cancel', openTxData)
+      }
       body.addEventListener('click', (e) => {
+        if (e.target.closest('[data-lb-bump]')) return loadReplacement('bump', openTxData)
+        if (e.target.closest('[data-lb-cancel]')) return ss.open('lb-cancel-modal')
+        if (e.target.closest('[data-lb-cpfp]')) return loadReplacement('cpfp', openTxData)
         if (e.target.closest('[data-lb-tx-label]')) return baOpenTxLabel(openTxData)
         const a = e.target.closest('[data-lb-open-address]')
         if (a) return baOpenAddress(a.dataset.lbOpenAddress)
@@ -597,9 +657,9 @@ registerScreen('account-settings', {
         row(t('account.createdOn'), ss.text({}, 'Mar 12, 2024')),
         `<button type="button" class="lb-card" data-go="account-birthday">${row(t('account.birthdayDate.label'), ss.hstack({ gap: 'xs' }, ss.text({}, birthday), ss.icon('chevronRight', { width: 7, height: 12 })))}</button>`,
         row(t('account.network.title'), ss.text({}, account.network)),
-        row(t('account.policy.title'), ss.text({}, account.watchOnly ? 'Watch Only' : 'Single Signature')),
-        account.watchOnly ? '' : row(t('account.script'), ss.text({}, 'Native Segwit (P2WPKH)')),
-        row(t('account.derivationPath'), ss.text({}, "m/84'/1'/0'")),
+        row(t('account.policy.title'), ss.text({}, account.multisig ? t('account.policy.multiSignature.title') : account.watchOnly ? 'Watch Only' : 'Single Signature')),
+        account.watchOnly ? '' : row(t('account.script'), ss.text({}, account.multisig ? 'Native Segwit (P2WSH)' : 'Native Segwit (P2WPKH)')),
+        row(t('account.derivationPath'), ss.text({}, account.multisig ? "m/48'/1'/0'/2'" : "m/84'/1'/0'")),
         row(t('account.labeledTransactions'), ratio(lbTxs().filter((tx) => tx.label).length, n(0))),
         row(t('account.labeledUtxos'), ratio(coins.filter((c) => c.label).length, n(2))),
         row(t('account.labeledAddresses'), ratio(addressRows(account).filter((r) => r.label).length, n(1)))
@@ -609,7 +669,7 @@ registerScreen('account-settings', {
         ss.button({ label: t('account.export.labels'), go: 'account-export-labels' }),
         ss.button({ label: t('account.import.labels'), go: 'account-import-labels' })),
       ss.vstack({},
-        account.watchOnly ? '' : ss.button({ label: t('account.viewMnemonic'), go: 'account-export-seed-words' }),
+        account.watchOnly || account.multisig ? '' : ss.button({ label: t('account.viewMnemonic'), go: 'account-export-seed-words' }),
         ss.hstack({ className: 'lb-pair' },
           ss.button({ label: t('account.export.descriptors'), go: 'account-export-descriptors' }),
           ss.button({ label: t('account.export.pubkeys'), go: 'account-export-pubkeys' }))),

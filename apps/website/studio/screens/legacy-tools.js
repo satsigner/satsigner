@@ -107,8 +107,8 @@ function ltBanner(p) {
 // --- difficulty.tsx ---------------------------------------------------------------------
 
 const LT_INTERVAL = 2016
-const LT_TIP = typeof EC_TIP !== 'undefined' ? EC_TIP : 972231
-const LT_MAX_EPOCH = Math.floor(LT_TIP / LT_INTERVAL)
+let LT_TIP = typeof EC_TIP !== 'undefined' ? EC_TIP : 972231
+let LT_MAX_EPOCH = Math.floor(LT_TIP / LT_INTERVAL)
 const ltDiff = { input: String(LT_MAX_EPOCH), fetched: null, loading: false, adjustment: false, adjusting: false, block: null }
 
 const ltTime = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -482,8 +482,8 @@ function ltHistoryModel() {
       }
     }),
     outputs: draft.outputs
-      .map((o) => ({ value: o.amount, label: o.label || t('common.noLabel'), kind: 'external' }))
-      .concat(tot.change > 0 ? [{ value: tot.change, label: 'Change', kind: 'change' }] : []),
+      .map((o) => ({ value: o.amount, label: o.label || t('common.noLabel'), kind: 'external', to: o.to }))
+      .concat(tot.change > 0 ? [{ value: tot.change, label: 'Change', kind: 'change', to: 'tb1qchange0001' }] : []),
     fee: tot.fee,
     feeRate: draft.feeRate
   }
@@ -491,9 +491,9 @@ function ltHistoryModel() {
 
 // Five levels: parent inputs → parent tx → our inputs → this tx → outputs (+ fee).
 function ltHistorySvg(m) {
-  const NODE_W = 98
-  const BLOCK_W = 46
-  const GAP_X = 70
+  const NODE_W = 88
+  const BLOCK_W = 40
+  const GAP_X = 36
   const ROW = 58
   const levels = 5
   const xs = Array.from({ length: levels }, (_, i) => 12 + i * (NODE_W + GAP_X))
@@ -504,8 +504,8 @@ function ltHistorySvg(m) {
   const height = rows * ROW + 40
   const band = (v, total, px) => Math.max(2, (v / (total || 1)) * px)
   const slotY = (i, count) => (height - count * ROW) / 2 + i * ROW + ROW / 2
-  const col = (k) => ({ ours: 'url(#ltOwn)', external: 'url(#ltPay)', change: 'url(#ltOwn)', fee: 'url(#ltFee)', prev: 'url(#ltPrev)' })[k]
-  const ribbon = (x1, y1, h1, x2, y2, h2, fill) => `<path fill="${fill}" opacity="0.9" d="${txRibbon(x1, y1, h1, x2, y2, h2)}"/>`
+  const col = (k) => ({ ours: 'url(#ltIn)', external: 'url(#ltFee)', change: '#FFFFFF', fee: 'url(#ltFee)', prev: 'url(#ltPrev)' })[k]
+  const ribbon = (x1, y1, h1, x2, y2, h2, fill) => `<path fill="${fill}" d="${txRibbon(x1, y1, h1, x2, y2, h2)}"/>`
   const label = (x, y, amt, sub, name, color, anchor = 'start') =>
     `<text x="${x}" y="${y - 6}" class="lt-node-amt" text-anchor="${anchor}">${amt.toLocaleString('en-US')} sats</text>` +
     (sub ? `<text x="${x}" y="${y + 4}" class="lt-node-sub" text-anchor="${anchor}">${sub}</text>` : '') +
@@ -525,7 +525,7 @@ function ltHistorySvg(m) {
     const share = band(p.value, blk.total, blk.h)
     const offset = parentInputs.filter((q, j) => q.owner === p.owner && j < k).reduce((s, q) => s + band(q.value, blk.total, blk.h), 0)
     svg += ribbon(xs[0] + NODE_W - 10, y - share / 2, share, blk.x, blk.y + offset, share, col('prev'))
-    svg += label(xs[0], y, p.value, '', p.label, '#8A8A8A')
+    svg += label(xs[0], y, p.value, 'from ' + ss.shortId(demoTxid('pp' + p.owner + k), 4), p.label, '#FF7171')
   })
   // parent blocks → our inputs (level 2)
   const inTotal = m.inputs.reduce((s, i) => s + i.value, 0)
@@ -537,16 +537,16 @@ function ltHistorySvg(m) {
     const blk = parentBlocks[i]
     const y = slotY(i, m.inputs.length)
     const h = band(inp.value, blk.total, blk.h)
-    svg += `<rect x="${blk.x}" y="${blk.y}" width="${BLOCK_W}" height="${blk.h}" fill="#2D2D2D" stroke="#515151"/>`
+    svg += `<rect x="${blk.x}" y="${blk.y}" width="${BLOCK_W}" height="${blk.h}" fill="#686868"/><rect x="${blk.x + BLOCK_W / 6}" y="${blk.y}" width="${BLOCK_W / 1.5}" height="${Math.min(blk.h, 12)}" fill="#515151" opacity="0.7"/>`
     svg += `<text x="${blk.x + BLOCK_W / 2}" y="${blk.y - 4}" class="lt-block-lbl" text-anchor="middle">${ss.shortId(inp.parent.txid, 4)}</text>`
     svg += ribbon(blk.x + BLOCK_W, blk.y, h, xs[2], y - h / 2, h, col(inp.ours ? 'ours' : 'prev'))
     const share = band(inp.value, inTotal, txH)
     svg += ribbon(xs[2] + NODE_W - 10, y - h / 2, Math.min(h, share), txX, txY + txOffset, share, col(inp.ours ? 'ours' : 'prev'))
     txOffset += share
-    svg += label(xs[2], y - 6, inp.value, '', inp.label, inp.ours ? '#A7FFAF' : '#FF7171')
+    svg += label(xs[2], y, inp.value, 'from ' + ss.shortId(inp.parent.txid, 4), inp.label, inp.ours ? '#A7FFAF' : '#FF7171')
   })
   // this tx → outputs + fee
-  svg += `<rect x="${txX}" y="${txY}" width="${BLOCK_W}" height="${txH}" fill="url(#ltBlock)" stroke="#777"/>`
+  svg += `<rect x="${txX}" y="${txY}" width="${BLOCK_W}" height="${txH}" fill="url(#ltBlock)"/><rect x="${txX + BLOCK_W / 6}" y="${txY}" width="${BLOCK_W / 1.5}" height="${Math.min(txH, 30)}" fill="#515151" opacity="0.6"/>`
   svg += `<text x="${txX + BLOCK_W / 2}" y="${txY - 6}" class="lt-block-lbl" text-anchor="middle">${m.txid === 'draft' ? t('transaction.build.preview.contents') : ss.shortId(m.txid, 4)}</text>`
   const outTotal = rights.reduce((s, o) => s + o.value, 0)
   let outOffset = 0
@@ -555,16 +555,15 @@ function ltHistorySvg(m) {
     const share = band(o.value, outTotal, txH)
     svg += ribbon(txX + BLOCK_W, txY + outOffset, share, xs[4], y - share / 2, share, col(o.kind))
     outOffset += share
-    const sub = o.kind === 'fee' ? `${(m.feeRate || 0).toFixed(2)} sat/vB` : ''
+    const sub = o.kind === 'fee' ? `${(m.feeRate || 0).toFixed(2)} sat/vB` : o.to ? 'to ' + ss.shortId(o.to, 4) : ''
     svg += label(xs[4] + 4, y, o.value, sub, o.label, o.kind === 'fee' ? '#FF7171' : o.kind === 'change' ? '#A7FFAF' : '#FF7171')
   })
-  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  return `<svg data-focus="${xs[2] - 4}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
-      <linearGradient id="ltOwn" x1="0" x2="1"><stop offset="0" stop-color="#0E5D0C" stop-opacity="0.9"/><stop offset="1" stop-color="#F2F2F2" stop-opacity="0.9"/></linearGradient>
-      <linearGradient id="ltPay" x1="0" x2="1"><stop offset="0" stop-color="#F2F2F2"/><stop offset="1" stop-color="#7B0B0B" stop-opacity="0.85"/></linearGradient>
-      <linearGradient id="ltFee" x1="0" x2="1"><stop offset="0" stop-color="#F2F2F2"/><stop offset="1" stop-color="#F2F2F2" stop-opacity="0.1"/></linearGradient>
-      <linearGradient id="ltPrev" x1="0" x2="1"><stop offset="0" stop-color="#434343" stop-opacity="0.5"/><stop offset="1" stop-color="#A0A0A0" stop-opacity="0.8"/></linearGradient>
-      <linearGradient id="ltBlock" x1="0" x2="1"><stop offset="0" stop-color="#363636"/><stop offset="1" stop-color="#CDCDCD"/></linearGradient>
+      <linearGradient id="ltIn" x1="0" x2="1"><stop offset="0" stop-color="#111111"/><stop offset="1" stop-color="#828282"/></linearGradient>
+      <linearGradient id="ltFee" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.3" stop-color="#FFFFFF"/><stop offset="1" stop-color="#111111"/></linearGradient>
+      <linearGradient id="ltPrev" x1="0" x2="1"><stop offset="0" stop-color="#4A4A4A"/><stop offset="1" stop-color="#3A3A3A"/></linearGradient>
+      <linearGradient id="ltBlock" x1="0" x2="1"><stop offset="0" stop-color="#828282"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>
     </defs>${svg}</svg>`
 }
 

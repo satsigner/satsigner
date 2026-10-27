@@ -21,10 +21,10 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .lx-select-body { display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-lg); width: 100%; overflow: auto; }
 .lx-select-title { min-height: 40px; }
 /* SSMultisigCountSelector + SSSignatureRequiredDisplay */
-.lx-count svg { display: block; width: 100%; height: 80px; touch-action: none; cursor: pointer; overflow: visible; }
+.lx-count svg { display: block; width: 100%; height: auto; touch-action: none; cursor: pointer; overflow: visible; }
 .lx-count-big { font-size: 55px; font-weight: var(--sizes-text-font-weight-light); text-transform: lowercase; line-height: 1.1; }
 .lx-sigs { display: flex; justify-content: center; }
-.lx-sigs svg { display: block; height: 80px; overflow: visible; }
+.lx-sigs svg { display: block; height: auto; overflow: visible; }
 /* SSMultisigKeyControl / SSSignatureDropdown rows */
 .lx-key { border-top: 1px solid #444444; padding: 16px 0; }
 .lx-key.is-last { border-bottom: 1px solid #444444; }
@@ -269,7 +269,7 @@ function lxCountSelector(required, total) {
   return `<div class="lx-count" data-lx-count>
     ${ss.text({ center: true }, t('account.signatureRequired'))}
     <p class="ss-text is-center lx-count-big">${required} ${t('common.of')} ${total}</p>
-    <svg viewBox="0 0 ${W} 60" preserveAspectRatio="none" aria-label="${ss.esc(t('account.signatureRequired'))}">
+    <svg viewBox="0 0 ${W} 60" aria-label="${ss.esc(t('account.signatureRequired'))}">
       <g>${labels}</g>
       <g><circle cx="${R_OUT}" cy="35" r="${R_OUT}" fill="black"/><rect x="${R_OUT}" y="${35 - R_OUT}" width="${W - R_OUT * 2}" height="${R_OUT * 2}" fill="black"/><circle cx="${W - R_OUT}" cy="35" r="${R_OUT}" fill="black"/></g>
       <g>${bar(R_IN, total, '#4A4A4A')}</g>
@@ -331,7 +331,7 @@ function lxSigDisplay(required, total, collected) {
 
 function lxKeyIcon(key) {
   if (!lxKeyType(key)) return ss.icon('add', { size: 24 })
-  return ss.icon(key.seed || lxKeyType(key) === 'importExtendedPub' || lxKeyType(key) === 'importDescriptor' ? 'green' : 'greenNoSecret', { size: 24 })
+  return ss.icon(key.seed ? 'green' : 'greenNoSecret', { size: 24 })
 }
 
 function lxKeyHead(key, index, iconHtml, attrs = '') {
@@ -958,10 +958,10 @@ registerScreen('multisig-settings', {
         row(t('account.network.title'), acct.network),
         row(t('account.labeledTransactions'), `2 of ${acct.stats[0][0]}`)
       ].join('')}</div>`,
-      `<div class="lx-msig-head">${ss.vstack({ gap: 'md' },
+      ss.vstack({ gap: 'md' },
         `<p class="ss-text is-center lx-count-big">${msigRequired} ${t('common.of')} ${msigTotal}</p>`,
         lxSigDisplay(msigRequired, msigTotal, 0),
-        ss.text({ center: true, uppercase: true }, t('account.accountKeys')))}</div>`,
+        ss.text({ center: true, uppercase: true }, t('account.accountKeys'))),
       `<div>${keys.map((k, i) => lxKeyControl(k, i, keys.length, 'settings')).join('')}</div>`)
   },
   overlays: lxKeyOverlays,

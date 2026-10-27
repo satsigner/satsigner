@@ -23,6 +23,10 @@ let settingsReturn = 'signer'
 function openKitScreen(id) {
   const def = kitScreens[id]
   if (id === 'settings' && routeId && !String(routeId).startsWith('settings')) settingsReturn = routeId
+  // Chart settings opened from the account chart returns there; the settings stack stays on Features.
+  if (id === 'settings-features-charts' && routeId !== 'settings-features-charts') {
+    sfChartReturn = routeId && !String(routeId).startsWith('settings') ? routeId : 'settings-features'
+  }
   kitCurrent = id
   document.getElementById('view-kit').onclick = null
   // Lets CSS target one kit screen: #view-kit[data-screen="set-pin"]
@@ -89,8 +93,8 @@ registerScreen('fee-management', {
 })
 
 // timeLock.tsx
-const CURRENT_BLOCK_HEIGHT = 885000
-const SAFE_TIMELOCK_LIMIT = CURRENT_BLOCK_HEIGHT + 52560 * 2
+let CURRENT_BLOCK_HEIGHT = 885000
+let SAFE_TIMELOCK_LIMIT = CURRENT_BLOCK_HEIGHT + 52560 * 2
 
 registerScreen('timelock', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/[id]/signAndSend/timeLock.tsx',
@@ -240,9 +244,9 @@ registerScreen('coin-list', {
           ? t('transaction.build.add.inputs.button.oneSelected')
           : t('transaction.build.add.inputs.button.multipleSelected', { count: selected.length })
     const sortToggle = (field) =>
-      `<button type="button" class="sort-toggle${coinSort.field === field ? ' is-on' : ''}" data-sort="${field}"><span>${
-        coinSort.field === field && coinSort.dir === 'asc' ? '↑' : '↓'
-      }</span>${ss.text({ as: 'span', color: coinSort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
+      `<button type="button" class="sort-toggle${coinSort.field === field ? ' is-on' : ''}" data-sort="${field}">${
+        ss.icon(coinSort.field === field && coinSort.dir === 'asc' ? 'chevronUp' : 'chevronDown', { width: 11, height: 5 })
+      }${ss.text({ as: 'span', color: coinSort.field === field ? 'white' : 'muted' }, t('utxo.sort.' + field))}</button>`
     return `<div class="coin-list">
       <div class="coin-head">${coinHeader('bubbles', 'coin-bubbles')}</div>
       ${ss.separator({ color: 'grayDark', style: 'margin-top:12px' })}

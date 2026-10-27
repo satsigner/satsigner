@@ -40,6 +40,7 @@ const sfState = {
     showOutputField: true,
     lockZoomToXAxis: false,
     showFiatOnChart: false,
+    showHistoricalFiatLine: true,
     showFiatAtTxTime: false,
     showFiatPercentageChange: false,
     showTransactionFlowChart: true,
@@ -254,10 +255,12 @@ registerScreen('settings-features-fiat-data', {
 
 // features/charts.tsx — local edits, Save commits, Cancel discards
 let sfChartDraft = null
+// Set in openKitScreen: 'chart' when the chart gear opened this page, otherwise Features.
+let sfChartReturn = 'settings-features'
 registerScreen('settings-features-charts', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/settings/features/charts.tsx',
   title: () => t('settings.features.charts.pageTitle'),
-  back: 'settings-features',
+  back: () => sfChartReturn,
   render: () => {
     if (!sfChartDraft) sfChartDraft = { ...sfState.charts }
     const c = sfChartDraft
@@ -288,7 +291,11 @@ registerScreen('settings-features-charts', {
         ss.button({ label: t('common.save'), variant: 'secondary', id: 'sf-save' }),
         ss.button({ label: t('common.cancel'), variant: 'ghost', id: 'sf-cancel' })))
   },
-  bind: (body) =>
+  bind: (body) => {
+    document.getElementById('kit-back').onclick = () => {
+      sfChartDraft = null
+      go(sfChartReturn)
+    }
     sfOnClick(body, {
       '[data-chart]': (el) => {
         const key = el.dataset.chart
@@ -299,13 +306,14 @@ registerScreen('settings-features-charts', {
       '#sf-save': () => {
         sfState.charts = { ...sfChartDraft }
         sfChartDraft = null
-        go('settings-features')
+        go(sfChartReturn)
       },
       '#sf-cancel': () => {
         sfChartDraft = null
-        go('settings-features')
+        go(sfChartReturn)
       }
     })
+  }
 })
 
 // features/payjoin.tsx — saves immediately
@@ -394,7 +402,13 @@ registerScreen('settings-fiat', {
     sfOnClick(body, {
       '[data-fiat]': (el) => {
         sfState.fiat = el.dataset.fiat
+        if (typeof appSettings !== 'undefined') appSettings.fiat = el.dataset.fiat
         openKitScreen('settings-fiat')
+        if (typeof renderAccounts === 'function') renderAccounts()
+        const accountView = document.getElementById('view-account')
+        if (accountView && typeof renderAccount === 'function') renderAccount()
+        const txView = document.getElementById('view-tx')
+        if (txView && !txView.hidden && typeof renderTransaction === 'function') renderTransaction()
       }
     })
 })

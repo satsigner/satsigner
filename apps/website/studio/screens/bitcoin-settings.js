@@ -44,8 +44,8 @@ document.head.insertAdjacentHTML(
   .bs-addr-actions { display: flex; gap: 12px; }
   .bs-addr-actions button { border: 0; padding: 0; background: none; color: var(--white); cursor: pointer; }
   /* Nostr sync */
-  .bs-keys { box-sizing: border-box; padding: 10px 28px 30px; border: 1px solid var(--white); border-radius: 8px; background: #1a1a1a; }
-  .bs-members { box-sizing: border-box; padding: 12px; border: 1px solid var(--white); border-radius: 8px; background: #1a1a1a; }
+  .bs-keys { box-sizing: border-box; padding: 10px 28px 30px; border: 1px solid var(--gray-600); border-radius: 8px; background: #1a1a1a; }
+  .bs-members { box-sizing: border-box; padding: 12px; border: 1px solid var(--gray-600); border-radius: 8px; background: #1a1a1a; }
   .bs-dot { flex: none; width: 10px; height: 10px; border-radius: 5px; }
   .bs-dot.is-small { width: 8px; height: 8px; border-radius: 4px; }
   .bs-avatar { flex: none; width: 24px; height: 24px; border-radius: 12px; }

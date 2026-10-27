@@ -17,6 +17,7 @@ document.head.insertAdjacentHTML(
   /* SSPinInput — 54px cells, gray-850 / active gray-700 / active+filled gray-500, white dot */
   .es-pin { width: 100%; }
   .es-pin-row { display: flex; justify-content: center; gap: var(--layout-h-stack-gap-xs); }
+  #view-kit[data-screen="set-duress-pin"] .es-pin-row { margin-top: 32px; }
   .es-pin-cell { position: relative; width: 54px; height: 54px; box-sizing: border-box; border-radius: 4px; padding: 1px;
     background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02) 40%, rgba(255,255,255,0.14)); }
   .es-pin-cell i { display: block; height: 100%; border-radius: 3px; background: var(--gray-850); }
