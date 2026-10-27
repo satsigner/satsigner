@@ -1,4 +1,5 @@
 html {
+  --corner: 6px;
   overflow-x: hidden;
   background-color: #0a0a0a;
 }
@@ -57,7 +58,7 @@ a{
     border: 1px #6b6b6b solid;
     text-decoration: none;
     padding: 10px 20px;
-    border-radius: 5px;
+    border-radius: var(--corner);
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.3s;
@@ -143,11 +144,11 @@ a{
   margin-left: 0.32rem;
   border-right: 1px solid currentColor;
   border-bottom: 1px solid currentColor;
-  transform: translateY(0.06rem) rotate(45deg);
+  transform: translateY(-0.05rem) rotate(45deg);
   opacity: 0.7;
 }
 .nav-drop-menu {
-  display: none;
+  display: flex;
   position: absolute;
   top: calc(100% + 0.55rem);
   right: 0;
@@ -157,20 +158,44 @@ a{
   padding: 0.35rem;
   background: rgba(12, 12, 12, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  border-radius: var(--corner);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.96);
+  transform-origin: top right;
+  transition:
+    opacity 0.16s ease,
+    transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.2s;
 }
 .nav-drop:hover .nav-drop-menu,
 .nav-drop:focus-within .nav-drop-menu {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.42s cubic-bezier(0.16, 1.15, 0.3, 1),
+    visibility 0s;
+}
+.nav-drop:hover .nav-drop-menu a,
+.nav-drop:focus-within .nav-drop-menu a {
+  animation: menu-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.nav-drop:hover .nav-drop-menu a:nth-child(2),
+.nav-drop:focus-within .nav-drop-menu a:nth-child(2) {
+  animation-delay: 0.05s;
 }
 .nav-drop-menu a {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.65rem;
-  border-radius: 6px;
+  border-radius: var(--corner);
   white-space: nowrap;
 }
 .host-logo {
@@ -703,26 +728,57 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   margin: 0;
   text-align: left;
 }
+.hero-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  margin-top: 0.2rem;
+}
 .hero-demo {
   position: relative;
 }
 .hero-demo-link {
+  position: relative;
+  display: inline-block;
   margin: 0;
-  padding: 0;
+  padding: 0 0.64rem 0 0;
   border: 0;
   background: none;
   color: rgba(255, 255, 255, 0.48);
   font: inherit;
   font-size: 0.75rem;
+  line-height: 1;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
 }
+.hero-demo-caret {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(calc(-50% - 0.05rem)) rotate(45deg);
+  opacity: 0.7;
+}
+.hero-demo:hover .hero-demo-link,
+.hero-demo:focus-within .hero-demo-link,
 .hero-demo-link:hover,
 .hero-demo-link[aria-expanded="true"] {
   color: #fff;
 }
+.hero-demo::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 11.5rem;
+  height: 10px;
+}
 .hero-demo-menu {
+  display: block;
   position: absolute;
   z-index: 6;
   top: calc(100% + 8px);
@@ -730,14 +786,74 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   min-width: 11.5rem;
   padding: 0.35rem;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
+  border-radius: var(--corner);
   background: #111;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.96);
+  transform-origin: top left;
+  transition:
+    opacity 0.16s ease,
+    transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.2s;
+}
+.hero-demo.is-open .hero-demo-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.42s cubic-bezier(0.16, 1.15, 0.3, 1),
+    visibility 0s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-demo:hover .hero-demo-menu,
+  .hero-demo:focus-within .hero-demo-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition:
+      opacity 0.2s ease,
+      transform 0.42s cubic-bezier(0.16, 1.15, 0.3, 1),
+      visibility 0s;
+  }
+  .hero-demo:hover .hero-demo-menu button,
+  .hero-demo:focus-within .hero-demo-menu button,
+  .hero-demo.is-open .hero-demo-menu button {
+    animation: menu-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .hero-demo:hover .hero-demo-menu button:nth-child(2),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(2),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(2) {
+    animation-delay: 0.05s;
+  }
+}
+@keyframes menu-item-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-drop-menu,
+  .hero-demo-menu {
+    transition: none;
+    transform: none;
+  }
+  .nav-drop:hover .nav-drop-menu a,
+  .nav-drop:focus-within .nav-drop-menu a,
+  .hero-demo:hover .hero-demo-menu button,
+  .hero-demo:focus-within .hero-demo-menu button,
+  .hero-demo.is-open .hero-demo-menu button {
+    animation: none;
+  }
 }
 .hero-demo-menu button {
   display: block;
   width: 100%;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--corner);
   background: transparent;
   color: #fff;
   font: inherit;
@@ -777,7 +893,7 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
 }
 .hero-version {
   display: block;
-  margin-top: 0.2rem;
+  margin-top: 0;
   font-size: 0.75rem;
   line-height: 1;
   letter-spacing: 0.14em;
@@ -794,7 +910,7 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   font-size: 0.95rem;
   font-family: inherit;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
+  border-radius: var(--corner);
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   text-align: left;
@@ -813,7 +929,7 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   letter-spacing: -0.011em;
   font-weight: 500;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--corner);
   cursor: pointer;
   background: #fff;
   color: #000;
@@ -1082,7 +1198,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   overflow: hidden;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: var(--corner);
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   font-size: 0.95rem;
@@ -1127,7 +1243,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     radial-gradient(28rem 10rem at 50% 120%, rgba(255, 255, 255, 0.16), transparent 60%),
     #0c0c0c;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 18px;
+  border-radius: var(--corner);
   color: #fff;
   text-decoration: none;
   text-align: left;
@@ -1256,7 +1372,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   overflow: hidden;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: var(--corner);
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   font-size: 0.95rem;
@@ -1267,7 +1383,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
 .git-host .host-logo {
   width: 2rem;
   height: 2rem;
-  border-radius: 6px;
+  border-radius: var(--corner);
 }
 .git-host-copy {
   display: flex;
@@ -1320,7 +1436,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   padding: 0.55rem 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: 0;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--corner) var(--corner) 0 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.55);
   font: inherit;
@@ -1347,7 +1463,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   counter-reset: git-step;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0 12px 12px 12px;
+  border-radius: 0 var(--corner) var(--corner) var(--corner);
 }
 .git-commands[hidden] {
   display: none;
@@ -1752,7 +1868,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   padding: 1.25rem 1.5rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: var(--corner);
   font-size: 0.9rem;
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.88);
@@ -1881,6 +1997,9 @@ html[data-theme="light"] .as-seen-in-logo--light {
     max-width: 36rem;
     text-align: center;
   }
+  .hero-meta {
+    justify-content: center;
+  }
   .hero-mark {
     order: 1;
     justify-self: center;
@@ -1949,7 +2068,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     padding: 0.4rem;
     background: rgba(12, 12, 12, 0.96);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
+    border-radius: var(--corner);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     z-index: 2;
@@ -1978,7 +2097,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
     font-size: 0.95rem;
     font-weight: 400;
     padding: 0.7rem 0.85rem;
-    border-radius: 8px;
+    border-radius: var(--corner);
     text-align: left;
   }
   .nav-links a:hover {
@@ -2006,6 +2125,15 @@ html[data-theme="light"] .as-seen-in-logo--light {
     border-radius: 0;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition: none;
+  }
+  .nav-drop:hover .nav-drop-menu a,
+  .nav-drop:focus-within .nav-drop-menu a {
+    animation: none;
   }
   .nav-drop-menu a {
     font-size: 0.85rem;
@@ -2303,7 +2431,7 @@ html[data-theme="light"] .as-seen-in-logo--light {
   max-width: 44rem;
   margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: var(--corner);
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
 }
@@ -2863,7 +2991,7 @@ button.submit.donation {
     letter-spacing: -0.011em;
     font-weight: 500;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--corner);
     cursor: pointer;
     background: #fff;
     color: #000;
@@ -2886,7 +3014,7 @@ input.btcpay-input-price {
 .donation-cta{
   min-width:209px;
   min-height:37px;
-  border-radius:4px;
+  border-radius: var(--corner);
   border-style:none;
   background-color:#000;
   cursor:pointer;
@@ -2986,7 +3114,7 @@ input.btcpay-input-price {
                   text-align: center;
                   font-size: 25px;
                   margin: auto;
-                  border-radius: 5px;
+                  border-radius: var(--corner);
                   line-height: 35px;
                   background: #131313;
                   color: #fff;
@@ -3186,13 +3314,13 @@ input.btcpay-input-price {
                 	margin: 8px 0 3px 0;
                 	max-width: 216px;
                 	display: block;
-                	border-radius: 5px;
+                	border-radius: var(--corner);
                 	padding: 5px;
                 	width: 100%;
                 	padding: 10px;
                 	margin: 10px 0;
                 	border: 1px solid #444;
-                	border-radius: 5px;
+                	border-radius: var(--corner);
                 	background-color: #1e1e1e;
                 	color: #ffffff;
                 	font-size: 16px;
@@ -3254,7 +3382,7 @@ FORM
     color: #000000;
     padding: 0.7rem 1.05rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--corner);
     cursor: pointer;
     font-size: 0.95rem;
     font-family: inherit;
@@ -3356,6 +3484,8 @@ html[data-theme="light"] .hero-version:hover {
 html[data-theme="light"] .hero-demo-link {
   color: rgba(22, 22, 22, 0.45);
 }
+html[data-theme="light"] .hero-demo:hover .hero-demo-link,
+html[data-theme="light"] .hero-demo:focus-within .hero-demo-link,
 html[data-theme="light"] .hero-demo-link:hover,
 html[data-theme="light"] .hero-demo-link[aria-expanded="true"] {
   color: #161616;
@@ -3419,6 +3549,17 @@ html[data-theme="light"] .feature-grid-card h3,
 html[data-theme="light"] .feature-grid-card p {
   background: transparent;
   color: #000;
+}
+html[data-theme="light"] .feature-flow::before {
+  box-shadow:
+    -20px -10px 42px rgba(0, 0, 0, 0.28),
+    14px 18px 34px rgba(0, 0, 0, 0.14);
+}
+html[data-theme="light"] .feature-flow.is-ready::before {
+  opacity: 1;
+  transition:
+    opacity 0.7s ease 0.55s,
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 html[data-theme="light"] .feature-flow::after {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%);

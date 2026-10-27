@@ -720,7 +720,7 @@ if (typeof Swiper !== 'undefined') {
   if (demoWrap && demoLink && demoMenu) {
     function setDemoMenu(open) {
       demoLink.setAttribute('aria-expanded', open ? 'true' : 'false');
-      demoMenu.hidden = !open;
+      demoWrap.classList.toggle('is-open', open);
     }
 
     demoLink.addEventListener('click', function () {

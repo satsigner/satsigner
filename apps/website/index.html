@@ -104,7 +104,7 @@
     <link rel="stylesheet" href="fonts/inter.css">
     <link rel="stylesheet" href="studio/tokens.css">
     <link rel="stylesheet" href="studio/screen.css">
-    <link rel="stylesheet" type="text/css" href="styles.css?v=102" media="screen" />
+    <link rel="stylesheet" type="text/css" href="styles.css?v=106" media="screen" />
 
     <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
@@ -156,7 +156,16 @@
         <a class="zapstore-badge" href="https://zapstore.dev/apps/satsigner" target="_blank" rel="noopener">
           <img src="imgs/get-it-on-zapstore.svg" alt="Get it on Zapstore" height="36">
         </a>
-        <a class="hero-version" href="https://github.com/satsigner/satsigner/releases/tag/v0.3.6" target="_blank" rel="noopener">v0.3.6</a>
+        <div class="hero-meta">
+          <a class="hero-version" href="https://github.com/satsigner/satsigner/releases/tag/v0.3.6" target="_blank" rel="noopener">v0.3.6</a>
+          <div class="hero-demo">
+            <button type="button" class="hero-demo-link" aria-expanded="false" aria-haspopup="menu" aria-controls="hero-demo-menu">Demo<span class="hero-demo-caret" aria-hidden="true"></span></button>
+            <div class="hero-demo-menu" id="hero-demo-menu" role="menu">
+              <button type="button" role="menuitem" data-flow="send">Send transaction</button>
+              <button type="button" role="menuitem" data-flow="account">Create account</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="hero-mark">
         <span class="phone-key phone-key-silent" aria-hidden="true"></span>
@@ -185,13 +194,6 @@
       </div>
       <div class="hero-aside">
         <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
-        <div class="hero-demo">
-          <button type="button" class="hero-demo-link" aria-expanded="false" aria-haspopup="menu" aria-controls="hero-demo-menu">Demo</button>
-          <div class="hero-demo-menu" id="hero-demo-menu" role="menu" hidden>
-            <button type="button" role="menuitem" data-flow="send">Send transaction</button>
-            <button type="button" role="menuitem" data-flow="account">Create account</button>
-          </div>
-        </div>
       </div>
     </div>
   </section>
