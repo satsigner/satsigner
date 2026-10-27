@@ -7,7 +7,78 @@
 
 const STAGGER_DELAY = 60
 const SATS_PER_BTC = 100000000
-const USD_PER_BTC = 100000
+let USD_PER_BTC = 100000
+
+const FIAT_LINE_COLORS = {
+  USD: '#6f9a74',
+  EUR: '#6a9aaa',
+  GBP: '#a56b6b',
+  CAD: '#b89a62',
+  CHF: '#8d86a8',
+  AUD: '#b88862',
+  JPY: '#a67d8c'
+}
+
+const bundledPrices = {}
+
+function satsUsd(sats) {
+  return ((Number(sats) / SATS_PER_BTC) * USD_PER_BTC).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+function fiatDigits(code) {
+  return code === 'JPY' ? 0 : 2
+}
+
+function formatFiat(sats, price, code) {
+  return ((Number(sats) / SATS_PER_BTC) * price).toLocaleString('en-US', {
+    minimumFractionDigits: fiatDigits(code),
+    maximumFractionDigits: fiatDigits(code)
+  })
+}
+
+function fiatSpotPrice() {
+  const code = chartCurrency()
+  const series = bundledPrices[code]
+  if (series && series.prices.length) return { code: code, price: series.prices[series.prices.length - 1] }
+  if (code === 'USD') return { code: 'USD', price: USD_PER_BTC }
+  return null
+}
+
+function headerQuote() {
+  const spot = fiatSpotPrice()
+  if (!spot) return '$' + USD_PER_BTC.toLocaleString('en-US')
+  const digits = fiatDigits(spot.code)
+  return spot.price.toLocaleString('en-US', { maximumFractionDigits: digits }) + ' ' + spot.code
+}
+
+function accountFiat(sats) {
+  const spot = fiatSpotPrice()
+  if (!spot) return satsUsd(sats) + ' <span>USD</span>'
+  return formatFiat(sats, spot.price, spot.code) + ' <span>' + spot.code + '</span>'
+}
+
+function txFiatHtml(tx) {
+  const spot = fiatSpotPrice()
+  const code = spot ? spot.code : 'USD'
+  const now = spot ? formatFiat(tx.amount, spot.price, code) : satsUsd(tx.amount)
+  const unix = Math.floor(Date.now() / 1000) - (tx.conf || 0) * 600
+  const thenPrice = spot ? bundledPriceAt(unix) : null
+  const then = thenPrice ? formatFiat(tx.amount, thenPrice, code) : code === 'USD' ? tx.historical : ''
+  return (
+    '<span class="tx-price">' +
+    now +
+    '</span> <span class="tx-ccy">' +
+    code +
+    '</span>' +
+    (then ? ' <span class="tx-price">(' + then + ')</span>' : '') +
+    (tx.priceChange
+      ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
+      : '')
+  )
+}
 
 const groups = {
   signer: {
@@ -50,29 +121,30 @@ const accounts = [
   {
     name: 'Spending',
     network: 'signet',
-    balance: 1240000,
-    fiat: '1,240.00',
+    balance: 1026067,
+    fiat: '1,026.07',
     fingerprint: 'ab12cd34',
     watchOnly: false,
     stats: [
-      ['12', 'Transactions'],
+      ['23', 'Transactions'],
       ['28', 'Addresses'],
       ['10', 'Outputs'],
-      ['0', 'Mempool']
+      ['24183', 'Mempool']
     ]
   },
   {
     name: 'Savings',
     network: 'signet',
-    balance: 21000000,
-    fiat: '21,000.00',
+    balance: 21112040,
+    fiat: '21,112.04',
     fingerprint: 'ef56ab78',
-    watchOnly: true,
+    watchOnly: false,
+    multisig: true,
     stats: [
-      ['3', 'Transactions'],
+      ['5', 'Transactions'],
       ['6', 'Addresses'],
       ['2', 'Outputs'],
-      ['50000', 'Mempool']
+      ['48271', 'Mempool']
     ]
   }
 ]
@@ -352,6 +424,101 @@ drawer.addEventListener('click', (event) => {
 paintNavToggle()
 }
 
+let panDrag = null
+let panCoast = 0
+
+function panScroller(node) {
+  let el = node instanceof Element ? node : null
+  while (el && el !== phoneScreen) {
+    const style = getComputedStyle(el)
+    const scrollable = style.overflowY === 'auto' || style.overflowY === 'scroll'
+    if (scrollable && el.scrollHeight > el.clientHeight + 1) return el
+    el = el.parentElement
+  }
+  return null
+}
+
+function stopPanCoast() {
+  if (!panCoast) return
+  cancelAnimationFrame(panCoast)
+  panCoast = 0
+}
+
+if (phoneScreen) {
+  phoneScreen.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return
+    if (event.target.closest('#drawer, input, textarea, select, canvas, .lx-count, .lx-sigs, [contenteditable]')) return
+    const scroller = panScroller(event.target)
+    if (!scroller) return
+    stopPanCoast()
+    phoneScreen.classList.add('is-panning')
+    const scale = scroller.getBoundingClientRect().height / scroller.offsetHeight || 1
+    panDrag = {
+      y: event.clientY,
+      top: scroller.scrollTop,
+      moved: false,
+      id: event.pointerId,
+      scroller,
+      scale,
+      lastY: event.clientY,
+      lastT: event.timeStamp,
+      velocity: 0
+    }
+  })
+
+  phoneScreen.addEventListener('pointermove', (event) => {
+    if (!panDrag || panDrag.id !== event.pointerId) return
+    const delta = event.clientY - panDrag.y
+    if (!panDrag.moved && Math.abs(delta) < 6) return
+    if (!panDrag.moved) {
+      panDrag.moved = true
+      phoneScreen.classList.add('is-dragging')
+      const selection = window.getSelection()
+      if (selection) selection.removeAllRanges()
+      try { phoneScreen.setPointerCapture(event.pointerId) } catch (error) {}
+    }
+    const dt = event.timeStamp - panDrag.lastT
+    if (dt > 0) panDrag.velocity = (event.clientY - panDrag.lastY) / dt / panDrag.scale
+    panDrag.lastY = event.clientY
+    panDrag.lastT = event.timeStamp
+    panDrag.scroller.scrollTop = panDrag.top - delta / panDrag.scale
+  })
+
+  function endPan(event) {
+    if (!panDrag || panDrag.id !== event.pointerId) return
+    const { scroller, moved, velocity } = panDrag
+    phoneScreen.classList.remove('is-panning', 'is-dragging')
+    panDrag = null
+    try {
+      if (phoneScreen.hasPointerCapture(event.pointerId)) phoneScreen.releasePointerCapture(event.pointerId)
+    } catch (error) {}
+    if (!moved) return
+    const stopClick = (clickEvent) => {
+      clickEvent.stopPropagation()
+      clickEvent.preventDefault()
+      phoneScreen.removeEventListener('click', stopClick, true)
+    }
+    phoneScreen.addEventListener('click', stopClick, true)
+    let speed = velocity
+    let previous = performance.now()
+    const coast = (now) => {
+      const dt = Math.min(32, now - previous)
+      previous = now
+      scroller.scrollTop -= speed * dt
+      speed *= Math.pow(0.92, dt / 16)
+      if (Math.abs(speed) > 0.02) panCoast = requestAnimationFrame(coast)
+      else panCoast = 0
+    }
+    if (Math.abs(speed) > 0.05) panCoast = requestAnimationFrame(coast)
+  }
+
+  phoneScreen.addEventListener('pointerup', endPan)
+  phoneScreen.addEventListener('pointercancel', endPan)
+  phoneScreen.addEventListener('selectstart', (event) => {
+    if (phoneScreen.classList.contains('is-panning')) event.preventDefault()
+  })
+}
+
 const accountList = document.getElementById('account-list')
 const networkTabs = document.querySelectorAll('.network-tab')
 const networkNames = { bitcoin: 'Bitcoin', testnet: 'Testnet', signet: 'Signet' }
@@ -363,6 +530,7 @@ function mempoolSats(account) {
 }
 
 function renderAccounts() {
+  loadBundledPrices()
   const visible = accounts.filter((account) => account.network === activeNetwork)
   const balance = visible.reduce((sum, account) => sum + account.balance, 0)
   const mempool = visible.reduce((sum, account) => sum + mempoolSats(account), 0)
@@ -389,8 +557,8 @@ function renderAccounts() {
       '</span><span class="account-balance"><span class="account-amount">' +
       account.balance.toLocaleString('en-US') +
       '</span> <span class="account-unit">sats</span></span><span class="account-fiat">' +
-      account.fiat +
-      ' <span>USD</span></span><span class="account-stats">' +
+      accountFiat(account.balance) +
+      '</span><span class="account-stats">' +
       account.stats
         .map(
           (stat) =>
@@ -426,15 +594,15 @@ const activity = {
       type: 'receive',
       label: 'Salary',
       tags: [],
-      amount: 800000,
-      fiat: '800.00',
+      amount: 484308,
+      fiat: '484.31',
       historical: '412.40',
       priceChange: '+94.0%',
-      ago: '2 months ago',
+      ago: 'May 24, 2026 · 5 months ago',
       txid: 'a91c8f21b04e20aa11c0d4e20aa91c8f21b04e20aa11c0d4e20aa91c8f4e20',
-      conf: 842,
-      block: 283270,
-      balance: 800000,
+      conf: 22032,
+      block: 870388,
+      balance: 484308,
       inputs: 1,
       outputs: 1,
       size: 222,
@@ -447,15 +615,15 @@ const activity = {
       type: 'send',
       label: 'Rent',
       tags: ['home'],
-      amount: 210000,
-      fiat: '210.00',
+      amount: 89184,
+      fiat: '89.18',
       historical: '198.10',
       priceChange: '+6.0%',
-      ago: '6 weeks ago',
+      ago: 'May 26, 2026 · 5 months ago',
       txid: 'b20d91aa77c0e11f44aa91b20d91aa77c0e11f44aa91b20d91aa77c0e191aa',
-      conf: 610,
-      block: 283502,
-      balance: 590000,
+      conf: 21744,
+      block: 870676,
+      balance: 395124,
       inputs: 1,
       outputs: 2,
       size: 141,
@@ -468,15 +636,15 @@ const activity = {
       type: 'receive',
       label: 'Coffee refund',
       tags: ['coffee'],
-      amount: 650000,
-      fiat: '650.00',
+      amount: 617433,
+      fiat: '617.43',
       historical: '640.20',
       priceChange: '+1.5%',
-      ago: '3 days ago',
+      ago: 'May 29, 2026 · 5 months ago',
       txid: 'c77e10b3aa44d90211c77e10b3aa44d90211c77e10b3aa44d90211c710b3',
-      conf: 3,
-      block: 283984,
-      balance: 1240000,
+      conf: 21312,
+      block: 871108,
+      balance: 1012557,
       inputs: 2,
       outputs: 2,
       size: 312,
@@ -489,15 +657,15 @@ const activity = {
       type: 'receive',
       label: 'Books',
       tags: ['payjoin'],
-      amount: 50000,
-      fiat: '50.00',
-      historical: '49.20',
+      amount: 47381,
+      fiat: '47.38',
+      historical: '46.60',
       priceChange: '+1.6%',
-      ago: '1 day ago',
+      ago: 'Jun 11, 2026 · 4 months ago',
       txid: 'pj77e10b3aa44d90211c77e10b3aa44d90211c77e10b3aa44d90211c7pj77',
-      conf: 6,
-      block: 284010,
-      balance: 1290000,
+      conf: 19440,
+      block: 872980,
+      balance: 1059938,
       inputs: 2,
       outputs: 2,
       size: 372,
@@ -506,16 +674,437 @@ const activity = {
       fee: 420,
       version: 2,
       payjoin: true,
-      contributed: 80000,
+      contributed: 61247,
       flowInputs: [
-        { value: 80000, label: 'Savings', ours: true, from: 'a91c8f21b04e' },
-        { value: 130420, label: 'Counterparty', ours: false, from: 'e44f02d199aa' }
+        { value: 61247, label: 'Savings', ours: true, from: 'a91c8f21b04e' },
+        { value: 148903, label: 'Counterparty', ours: false, from: 'e44f02d199aa' }
       ],
       flowOutputs: [
-        { value: 130000, label: 'Books', ours: true, to: 'tb1qbooks00001' },
-        { value: 80000, label: 'Sender change', ours: false, to: 'tb1qsender009' },
-        { value: 420, label: 'Miner fee', fee: true }
+        { value: 147381, label: 'Books', ours: true, to: 'tb1qbooks00001' },
+        { value: 62347, label: 'Sender change', ours: false, to: 'tb1qsender009' },
+        { value: 422, label: 'Miner fee', fee: true }
       ]
+    },
+    {
+      type: 'send',
+      label: 'Groceries',
+      tags: ['food'],
+      amount: 173906,
+      fiat: '173.91',
+      historical: '176.40',
+      priceChange: '+2.0%',
+      ago: 'Jun 14, 2026 · 4 months ago',
+      txid: 'f18a00c1aa22bb33cc44dd55ee66ff7700112233445566778899aabbccddeeff',
+      conf: 19008,
+      block: 873412,
+      balance: 886032,
+      inputs: 1,
+      outputs: 2,
+      size: 225,
+      vsize: 141,
+      weight: 564,
+      fee: 310,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Invoice',
+      tags: ['work'],
+      amount: 128447,
+      fiat: '128.45',
+      historical: '124.10',
+      priceChange: '+0.7%',
+      ago: 'Jun 15, 2026 · 4 months ago',
+      txid: 'a12500d2bb33cc44dd55ee66ff7700112233445566778899aabbccddeeff0011',
+      conf: 18864,
+      block: 873556,
+      balance: 1014479,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 440,
+      fee: 154,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Transit',
+      tags: [],
+      amount: 41873,
+      fiat: '41.87',
+      historical: '44.20',
+      priceChange: '+1.8%',
+      ago: 'Jul 4, 2026 · 4 months ago',
+      txid: 'b04500e3cc44dd55ee66ff7700112233445566778899aabbccddeeff00112233',
+      conf: 16128,
+      block: 876292,
+      balance: 972606,
+      inputs: 1,
+      outputs: 2,
+      size: 210,
+      vsize: 128,
+      weight: 512,
+      fee: 220,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Gift',
+      tags: [],
+      amount: 86419,
+      fiat: '86.42',
+      historical: '83.10',
+      priceChange: '+1.1%',
+      ago: 'Jul 11, 2026 · 3 months ago',
+      txid: 'c08400f4dd55ee66ff7700112233445566778899aabbccddeeff001122334455',
+      conf: 15120,
+      block: 877300,
+      balance: 1059025,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 444,
+      fee: 166,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Hardware',
+      tags: ['shop'],
+      amount: 312847,
+      fiat: '312.85',
+      historical: '318.00',
+      priceChange: '+0.6%',
+      ago: 'Aug 2, 2026 · 3 months ago',
+      txid: 'd32000a5ee66ff7700112233445566778899aabbccddeeff0011223344556677',
+      conf: 11952,
+      block: 880468,
+      balance: 746178,
+      inputs: 2,
+      outputs: 2,
+      size: 340,
+      vsize: 196,
+      weight: 784,
+      fee: 480,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Tips',
+      tags: [],
+      amount: 39114,
+      fiat: '39.11',
+      historical: '38.70',
+      priceChange: '+1.0%',
+      ago: 'Aug 6, 2026 · 3 months ago',
+      txid: 'e04200b6ff7700112233445566778899aabbccddeeff00112233445566778899',
+      conf: 11376,
+      block: 881044,
+      balance: 785292,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 437,
+      fee: 140,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Donation',
+      tags: ['give'],
+      amount: 90000,
+      fiat: '90.00',
+      historical: '89.40',
+      priceChange: '+0.7%',
+      ago: 'Aug 7, 2026 · 11 weeks ago',
+      txid: 'f09000c700112233445566778899aabbccddeeff00112233445566778899aabb',
+      conf: 11232,
+      block: 881188,
+      balance: 695292,
+      inputs: 1,
+      outputs: 2,
+      size: 218,
+      vsize: 132,
+      weight: 528,
+      fee: 240,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Lunch',
+      tags: ['food'],
+      amount: 12847,
+      fiat: '12.85',
+      historical: '11.90',
+      priceChange: '+0.8%',
+      ago: 'Aug 23, 2026 · 2 months ago',
+      txid: 'b01200a9112233445566778899aabbccddeeff00112233445566778899aabb01',
+      conf: 8928,
+      block: 883492,
+      balance: 682445,
+      inputs: 1,
+      outputs: 2,
+      size: 210,
+      vsize: 128,
+      weight: 512,
+      fee: 180,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Rebate',
+      tags: [],
+      amount: 9641,
+      fiat: '9.64',
+      historical: '9.40',
+      priceChange: '+1.1%',
+      ago: 'Aug 31, 2026 · 8 weeks ago',
+      txid: 'c00950b0112233445566778899aabbccddeeff00112233445566778899aabb02',
+      conf: 7776,
+      block: 884644,
+      balance: 692086,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 438,
+      fee: 140,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Subscription',
+      tags: [],
+      amount: 4753,
+      fiat: '4.75',
+      historical: '4.85',
+      priceChange: '+1.0%',
+      ago: 'Sep 13, 2026 · 6 weeks ago',
+      txid: 'd00490c1112233445566778899aabbccddeeff00112233445566778899aabb03',
+      conf: 5904,
+      block: 886516,
+      balance: 687333,
+      inputs: 1,
+      outputs: 2,
+      size: 208,
+      vsize: 126,
+      weight: 504,
+      fee: 168,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Freelance',
+      tags: ['work'],
+      amount: 73816,
+      fiat: '73.82',
+      historical: '74.20',
+      priceChange: '+1.1%',
+      ago: 'Sep 16, 2026 · 5 weeks ago',
+      txid: 'e07500d2112233445566778899aabbccddeeff00112233445566778899aabb04',
+      conf: 5472,
+      block: 886948,
+      balance: 761149,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 442,
+      fee: 155,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Flight',
+      tags: ['travel'],
+      amount: 204391,
+      fiat: '204.39',
+      historical: '208.00',
+      priceChange: '+1.0%',
+      ago: 'Sep 29, 2026 · 25 days ago',
+      txid: 'f21000e3112233445566778899aabbccddeeff00112233445566778899aabb05',
+      conf: 3600,
+      block: 888820,
+      balance: 556758,
+      inputs: 2,
+      outputs: 2,
+      size: 340,
+      vsize: 196,
+      weight: 784,
+      fee: 460,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Refund',
+      tags: [],
+      amount: 41208,
+      fiat: '41.21',
+      historical: '41.70',
+      priceChange: '+0.7%',
+      ago: 'Oct 1, 2026 · 3 weeks ago',
+      txid: 'a04200f4112233445566778899aabbccddeeff00112233445566778899aabb06',
+      conf: 3312,
+      block: 889108,
+      balance: 597966,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 440,
+      fee: 148,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Pharmacy',
+      tags: [],
+      amount: 17642,
+      fiat: '17.64',
+      historical: '18.30',
+      priceChange: '+1.1%',
+      ago: 'Oct 12, 2026 · 12 days ago',
+      txid: 'b01850a5112233445566778899aabbccddeeff00112233445566778899aabb07',
+      conf: 1728,
+      block: 890692,
+      balance: 580324,
+      inputs: 1,
+      outputs: 2,
+      size: 214,
+      vsize: 130,
+      weight: 520,
+      fee: 196,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Split',
+      tags: [],
+      amount: 148773,
+      fiat: '148.77',
+      historical: '148.50',
+      priceChange: '+1.0%',
+      ago: 'Oct 17, 2026 · 7 days ago',
+      txid: 'c15000b6112233445566778899aabbccddeeff00112233445566778899aabb08',
+      conf: 1008,
+      block: 891412,
+      balance: 729097,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 444,
+      fee: 160,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Utilities',
+      tags: ['home'],
+      amount: 59318,
+      fiat: '59.32',
+      historical: '60.40',
+      priceChange: '+1.0%',
+      ago: 'Oct 19, 2026 · 5 days ago',
+      txid: 'd06100c7112233445566778899aabbccddeeff00112233445566778899aabb09',
+      conf: 720,
+      block: 891700,
+      balance: 669779,
+      inputs: 1,
+      outputs: 2,
+      size: 218,
+      vsize: 132,
+      weight: 528,
+      fee: 210,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Cashback',
+      tags: [],
+      amount: 28447,
+      fiat: '28.45',
+      historical: '29.60',
+      priceChange: '+1.0%',
+      ago: 'Oct 22, 2026 · 2 days ago',
+      txid: 'e02990d8112233445566778899aabbccddeeff00112233445566778899aabb10',
+      conf: 288,
+      block: 892132,
+      balance: 698226,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 437,
+      fee: 142,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Bonus',
+      tags: ['work'],
+      amount: 327841,
+      fiat: '327.84',
+      historical: '330.00',
+      priceChange: '+1.2%',
+      ago: 'Oct 24, 2026 · today',
+      txid: 'a33400d8112233445566778899aabbccddeeff00112233445566778899aabbcc',
+      conf: 2,
+      block: 892418,
+      balance: 1026067,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 441,
+      fee: 178,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Payment',
+      tags: [],
+      amount: 24183,
+      fiat: '24.18',
+      historical: '',
+      priceChange: '',
+      ago: '',
+      txid: 'u02500e900aabbccddeeff00112233445566778899aabbccddeeff0011223344',
+      conf: 0,
+      block: 0,
+      balance: 1050250,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 437,
+      fee: 154,
+      version: 2
+    },
+    {
+      type: 'send',
+      label: 'Invoice',
+      tags: [],
+      amount: 42000,
+      fiat: '42.00',
+      historical: '',
+      priceChange: '',
+      ago: '',
+      txid: 'rbf000aa11bb22cc33dd44ee55ff66778899aabbccddeeff00112233445566',
+      conf: 0,
+      block: 0,
+      rbf: true,
+      balance: 1008250,
+      inputs: 1,
+      outputs: 1,
+      size: 218,
+      vsize: 141,
+      weight: 564,
+      fee: 310,
+      version: 2
     }
   ],
   ef56ab78: [
@@ -523,15 +1112,15 @@ const activity = {
       type: 'receive',
       label: 'Cold storage',
       tags: [],
-      amount: 21000000,
-      fiat: '21,000.00',
-      historical: '18,420.00',
-      priceChange: '+14.0%',
-      ago: '1 year ago',
+      amount: 484308,
+      fiat: '484.31',
+      historical: '70.00',
+      priceChange: '+500%',
+      ago: 'Nov 28, 2022 · 4 years ago',
       txid: 'd11a88c0ff21ab90eed11a88c0ff21ab90eed11a88c0ff21ab90eed188c0',
-      conf: 4200,
-      block: 279912,
-      balance: 21000000,
+      conf: 205344,
+      block: 687076,
+      balance: 484308,
       inputs: 1,
       outputs: 1,
       size: 192,
@@ -542,17 +1131,80 @@ const activity = {
     },
     {
       type: 'receive',
+      label: 'Deposit',
+      tags: [],
+      amount: 8173641,
+      fiat: '8,173.64',
+      historical: '2,050.00',
+      priceChange: '+300%',
+      ago: 'Mar 14, 2023 · 4 years ago',
+      txid: 'a50000aa11bb22cc33dd44ee55ff66778899aabbccddeeff0011223344556601',
+      conf: 190080,
+      block: 702340,
+      balance: 8657949,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 441,
+      fee: 210,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Interest',
+      tags: [],
+      amount: 35184,
+      fiat: '35.18',
+      historical: '22.00',
+      priceChange: '+59%',
+      ago: 'Oct 9, 2024 · 2 years ago',
+      txid: 'b12000bb22cc33dd44ee55ff66778899aabbccddeeff001122334455667702',
+      conf: 107280,
+      block: 785140,
+      balance: 8693133,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 111,
+      weight: 441,
+      fee: 166,
+      version: 2
+    },
+    {
+      type: 'receive',
+      label: 'Top up',
+      tags: [],
+      amount: 12418907,
+      fiat: '12,418.91',
+      historical: '8,100.00',
+      priceChange: '+52%',
+      ago: 'Jun 2, 2026 · 5 months ago',
+      txid: 'c38000cc33dd44ee55ff66778899aabbccddeeff0011223344556677889903',
+      conf: 20736,
+      block: 871684,
+      balance: 21112040,
+      inputs: 1,
+      outputs: 1,
+      size: 192,
+      vsize: 110,
+      weight: 438,
+      fee: 154,
+      version: 2
+    },
+    {
+      type: 'receive',
       label: '',
       tags: [],
-      amount: 50000,
-      fiat: '50.00',
+      amount: 48271,
+      fiat: '48.27',
       historical: '',
       priceChange: '',
       ago: '',
       txid: 'e44f02d199aa10cc77e44f02d199aa10cc77e44f02d199aa10cc77e402d1',
       conf: 0,
       block: 0,
-      balance: 21050000,
+      balance: 21160311,
       inputs: 1,
       outputs: 1,
       size: 192,
@@ -595,8 +1247,7 @@ function compactTxid(txid) {
 
 function confText(count, block) {
   if (count <= 0) return 'Unconfirmed'
-  const countLabel =
-    count === 1 ? '1 conf' : (count < 1000 ? String(count) : '~' + Math.round(count / 1000) + 'k') + ' confs'
+  const countLabel = (count === 1 ? '1 conf' : count.toLocaleString('en-US') + ' confs')
   return block ? countLabel + ' • ' + block.toLocaleString('en-US') : countLabel
 }
 
@@ -612,7 +1263,7 @@ function pctChange(now, base) {
   return (value > 0 ? '+' : '-') + Math.abs(value).toFixed(1) + '%'
 }
 
-function txCard(tx, previousBalance, max) {
+function txCard(tx, previousBalance, max, compact) {
   const tags = tx.tags.length
     ? tx.tags
         .map((tag) => '<span class="tx-tag">' + tag + '</span>')
@@ -620,8 +1271,26 @@ function txCard(tx, previousBalance, max) {
     : '<span class="tx-tag is-empty">No tags</span>'
   const balanceChange = pctChange(tx.balance, previousBalance)
   const metaLeft = tx.ago ? tx.ago + ' ' + compactTxid(tx.txid) : compactTxid(tx.txid)
+  const amount = compact
+    ? ss.amountDisplay({
+        amount: tx.amount,
+        textSize: 'xl',
+        weight: 'light',
+        unitSize: 'xs',
+        type: tx.type,
+        noColor: false,
+        showSign: false,
+        letterSpacing: 0
+      })
+    : '<strong>' + tx.amount.toLocaleString('en-US') + '</strong> <span>sats</span>'
+  const balance = compact
+    ? ss.styledSat({ amount: tx.balance, textSize: 'xs', type: tx.type, noColor: false, showSign: false }) +
+      ' <span>sats</span>'
+    : '<strong>' + tx.balance.toLocaleString('en-US') + '</strong> <span>sats</span>'
   return (
-    '<button type="button" class="tx-card" data-txid="' +
+    '<button type="button" class="tx-card' +
+    (compact ? ' is-compact' : '') +
+    '" data-txid="' +
     tx.txid +
     '">' +
     bar(tx, max) +
@@ -635,24 +1304,18 @@ function txCard(tx, previousBalance, max) {
     tx.type +
     '">' +
     icon(tx.type === 'receive' ? 'incoming' : 'outgoing', 'tx-flow') +
-    '<strong>' +
-    tx.amount.toLocaleString('en-US') +
-    '</strong> <span>sats</span></p><p class="tx-fiat"><span class="tx-price">' +
-    tx.fiat +
-    '</span> <span class="tx-ccy">USD</span>' +
-    (tx.historical ? ' <span class="tx-price">(' + tx.historical + ')</span>' : '') +
-    (tx.priceChange
-      ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
-      : '') +
+    amount +
+    '</p><p class="tx-fiat">' +
+    txFiatHtml(tx) +
     '</p><p class="tx-label' +
     (tx.label ? '' : ' is-empty') +
     '">' +
     (tx.label || 'NO LABEL') +
     '</p></div><div class="tx-side"><p class="tx-balance ' +
     tx.type +
-    '"><strong>' +
-    tx.balance.toLocaleString('en-US') +
-    '</strong> <span>sats</span></p>' +
+    '">' +
+    balance +
+    '</p>' +
     (balanceChange
       ? '<p class="tx-pct ' + (balanceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + balanceChange + '</p>'
       : '') +
@@ -665,8 +1328,8 @@ function txCard(tx, previousBalance, max) {
 const usedAddresses = {
   ab12cd34: {
     receive: [
-      { index: 0, address: 'tb1qsalary0ab12cd34spend0000000000000000', label: 'Salary', balance: 800000, mempool: 0, txs: 1, utxos: 1 },
-      { index: 1, address: 'tb1qcoffee0ab12cd34spend0000000000000000', label: 'Coffee refund', balance: 440000, mempool: 0, txs: 1, utxos: 1 },
+      { index: 0, address: 'tb1qsalary0ab12cd34spend0000000000000000', label: 'Salary', balance: 484308, mempool: 0, txs: 1, utxos: 1 },
+      { index: 1, address: 'tb1qcoffee0ab12cd34spend0000000000000000', label: 'Coffee refund', balance: 617433, mempool: 0, txs: 1, utxos: 1 },
       { index: 2, address: 'tb1qunused0ab12cd34spend0000000000000000', label: '', balance: 0, mempool: 0, txs: 0, utxos: 0 }
     ],
     change: [
@@ -676,8 +1339,8 @@ const usedAddresses = {
   },
   ef56ab78: {
     receive: [
-      { index: 0, address: 'tb1qcold000ef56ab78spend0000000000000000', label: 'Cold storage', balance: 21000000, mempool: 0, txs: 1, utxos: 1 },
-      { index: 1, address: 'tb1qpool000ef56ab78spend0000000000000000', label: '', balance: 0, mempool: 50000, txs: 1, utxos: 0 }
+      { index: 0, address: 'tb1qcold000ef56ab78spend0000000000000000', label: 'Cold storage', balance: 21112040, mempool: 0, txs: 1, utxos: 1 },
+      { index: 1, address: 'tb1qpool000ef56ab78spend0000000000000000', label: '', balance: 0, mempool: 48271, txs: 1, utxos: 0 }
     ],
     change: [
       { index: 0, address: 'tb1qchange0ef56ab78internal00000000000000', label: '', balance: 0, mempool: 0, txs: 0, utxos: 0 }
@@ -781,40 +1444,160 @@ function bar(tx, max) {
   )
 }
 
-function historyChart(txs) {
-  const latest = txs.length ? txs[txs.length - 1].balance : 0
-  const steps = [
-    [8, 90000],
-    [28, 160000],
-    [46, 148000],
-    [92, 410000],
-    [108, 250000],
-    [124, 270000],
-    [168, 620000],
-    [186, 590000],
-    [214, 980000],
-    [236, 640000],
-    [252, 710000],
-    [278, 1320000],
-    [292, 1100000],
-    [312, latest]
-  ]
-  const balances = steps.map((step) => step[1])
+function fiatAxisTick(value) {
+  const abs = Math.abs(value)
+  if (abs >= 1000000) return (value / 1000000).toFixed(abs >= 10000000 ? 0 : 1).replace(/\.0$/, '') + 'm'
+  if (abs < 1000) return String(Math.round(value))
+  const scaled = value / 1000
+  const digits = abs >= 10000 ? 0 : abs >= 1000 ? 1 : 2
+  return scaled.toFixed(digits).replace(/\.0$/, '') + 'k'
+}
+
+function chartCurrency() {
+  const code = (typeof sfState !== 'undefined' && sfState.fiat) || (typeof appSettings !== 'undefined' && appSettings.fiat) || 'USD'
+  return FIAT_LINE_COLORS[code] ? code : 'USD'
+}
+
+function loadBundledPrices() {
+  if (loadBundledPrices.started) return
+  loadBundledPrices.started = true
+  Object.keys(FIAT_LINE_COLORS).forEach((code) => {
+    fetch('/studio/prices/' + code.toLowerCase() + '.json')
+      .then((response) => response.json())
+      .then((data) => {
+        bundledPrices[code] = data
+        if (chartCurrency() !== code) return
+        if (typeof renderAccounts === 'function') renderAccounts()
+        const accountView = document.getElementById('view-account')
+        if (accountView && !accountView.hidden) renderAccount()
+        const txView = document.getElementById('view-tx')
+        if (txView && !txView.hidden) renderTransaction()
+      })
+      .catch(() => {})
+  })
+}
+
+function bundledSeries() {
+  return bundledPrices[chartCurrency()] || null
+}
+
+function bundledPriceAt(unix) {
+  const series = bundledSeries()
+  if (!series || !series.times.length || unix < series.times[0]) return null
+  const times = series.times
+  let lo = 0
+  let hi = times.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (times[mid] <= unix) lo = mid
+    else hi = mid - 1
+  }
+  return series.prices[lo]
+}
+
+function historyChart(txs, boxW, boxH) {
+  loadBundledPrices()
+  const balances = txs.length ? txs.map((tx) => tx.balance) : [0]
   const max = Math.max(...balances)
-  const min = Math.min(...balances)
+  const min = 0
   const span = Math.max(max - min, 1)
-  const plotTop = 18
-  const floor = 228
-  const points = steps.map((step) => ({
-    x: step[0],
-    y: plotTop + (1 - (step[1] - min) / span) * (floor - plotTop - 6)
+  const width = Math.max(240, Math.round(boxW || 340))
+  const height = Math.max(140, Math.round(boxH || 260))
+  const plotTop = 36
+  const floor = height - 32
+  const left = 54
+  const right = width - 50
+  const now = Math.floor(Date.now() / 1000)
+  const txUnix = (tx) => now - (tx.conf || 0) * 600
+  const oldest = Math.max(...txs.map((tx) => tx.conf || 0), 144)
+  const ordered = txs.slice().sort((a, b) => txUnix(a) - txUnix(b))
+  const balanceAt = (unix) => {
+    let balance = 0
+    ordered.forEach((tx) => {
+      if (txUnix(tx) <= unix) balance = tx.balance
+    })
+    return balance
+  }
+  const start = Math.min(...ordered.map(txUnix))
+  const marks = new Set(ordered.map(txUnix))
+  const priceSeries = bundledSeries()
+  if (priceSeries) priceSeries.times.forEach((time) => {
+    if (time >= start && time <= now) marks.add(time)
+  })
+  const fiatSamples = Array.from(marks)
+    .sort((a, b) => a - b)
+    .map((unix) => {
+      const price = bundledPriceAt(unix)
+      if (price === null) return null
+      return { conf: Math.max(0, (now - unix) / 600), fiat: (balanceAt(unix) * price) / SATS_PER_BTC }
+    })
+    .filter(Boolean)
+  const fiatValues = fiatSamples.map((sample) => sample.fiat)
+  const fiatMax = Math.max(...fiatValues)
+  const fiatMin = Math.min(...fiatValues)
+  const fiatSpan = Math.max(fiatMax - fiatMin, 1)
+  const tick = (value) => (Math.abs(value) >= 10000 ? fiatAxisTick(value) : Math.round(value).toLocaleString('en-US'))
+  const yOf = (value, low, range) => plotTop + (1 - (value - low) / range) * (floor - plotTop)
+  const xOfConf = (conf) => right - (conf / oldest) * (right - left)
+  const byTime = txs.slice().sort((a, b) => (b.conf || 0) - (a.conf || 0))
+  const points = byTime.map((tx) => ({
+    x: xOfConf(tx.conf || 0),
+    y: yOf(tx.balance, min, span)
   }))
+  if ((byTime[byTime.length - 1].conf || 0) > 0) {
+    points.push({ x: xOfConf(0), y: yOf(byTime[byTime.length - 1].balance, min, span) })
+  }
   let line = 'M' + points[0].x + ' ' + points[0].y
   for (let index = 1; index < points.length; index += 1) {
     line += ' H' + points[index].x + ' V' + points[index].y
   }
+  let fiatLine = ''
+  fiatSamples.forEach((sample, index) => {
+    const x = xOfConf(sample.conf)
+    const y = yOf(sample.fiat, fiatMin, fiatSpan)
+    fiatLine += (index ? ' L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1)
+  })
+  const opts = typeof sfState !== 'undefined' && sfState.charts ? sfState.charts : null
+  const showFiat = !opts || opts.showHistoricalFiatLine !== false
+  const fiatColor = FIAT_LINE_COLORS[chartCurrency()]
+  const fiatAxis = showFiat && fiatValues.length
+    ? '<text x="' + (width - 8) + '" y="14" text-anchor="end" fill="' + fiatColor + '" font-size="10">' + chartCurrency() + '</text>' +
+      '<text x="' + (width - 8) + '" y="' + (plotTop + 4) + '" text-anchor="end" fill="' + fiatColor + '" font-size="10">' +
+      fiatAxisTick(fiatMax) +
+      '</text><text x="' + (width - 8) + '" y="' + (floor + 3) + '" text-anchor="end" fill="' + fiatColor + '" font-size="10">' +
+      fiatAxisTick(fiatMin) +
+      '</text><path d="' +
+      fiatLine +
+      '" fill="none" stroke="' + fiatColor + '" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="miter"/>'
+    : ''
+  const callouts = []
+  if (opts) {
+    let lastX = -80
+    byTime.forEach((tx) => {
+      const x = xOfConf(tx.conf || 0)
+      if (x - lastX < 52) return
+      const lines = []
+      if (opts.showLabel && tx.label) lines.push(tx.label)
+      if (opts.showAmount) lines.push(Number(tx.amount).toLocaleString('en-US'))
+      if (opts.showTransactionInfo) lines.push(tx.type === 'send' ? 'Sent' : 'Received')
+      if (opts.showOutputField && tx.outputs) lines.push(tx.outputs + (tx.outputs === 1 ? ' output' : ' outputs'))
+      if (opts.showFiatAtTxTime && tx.historical) lines.push('$' + tx.historical)
+      if (opts.showFiatPercentageChange && tx.priceChange) lines.push(tx.priceChange)
+      if (!lines.length) return
+      lastX = x
+      const y = Math.min(floor - 4, Math.max(plotTop, yOf(tx.balance, min, span) - 8 - lines.length * 11))
+      lines.forEach((line, index) => {
+        const gold = line.charAt(0) === '$' || line.charAt(0) === '+' || line.charAt(0) === '-'
+        callouts.push(
+          '<text x="' + x.toFixed(1) + '" y="' + (y + index * 11).toFixed(1) + '" fill="' + (gold ? fiatColor : '#bdbdbd') + '" font-size="8">' + line + '</text>'
+        )
+      })
+    })
+  }
   return (
-    '<svg class="history-chart" viewBox="0 0 320 236" preserveAspectRatio="xMidYMax meet" aria-label="Balance history">' +
+    '<svg class="history-chart' +
+    (opts && opts.lockZoomToXAxis ? ' is-lock-x' : '') +
+    '" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" preserveAspectRatio="none" aria-label="Balance history">' +
     '<path d="' +
     line +
     ' V' +
@@ -824,32 +1607,35 @@ function historyChart(txs) {
     ' Z" fill="rgba(255,255,255,0.14)"/>' +
     '<path d="' +
     line +
-    '" fill="none" stroke="var(--white)" stroke-width="1.75"/>' +
-    points
-      .map(
-        (point) =>
-          '<circle cx="' + point.x + '" cy="' + point.y + '" r="2.2" fill="var(--white)"/>'
-      )
-      .join('') +
-    '<text x="8" y="14" fill="var(--gray-500)" font-size="9">' +
-    max.toLocaleString('en-US') +
-    '</text><text x="8" y="234" fill="var(--gray-500)" font-size="9">' +
-    min.toLocaleString('en-US') +
-    '</text></svg>'
+    '" fill="none" stroke="var(--white)" stroke-width="1.75" stroke-linecap="butt" stroke-linejoin="miter"/>' +
+    fiatAxis +
+    callouts.join('') +
+    '<text x="6" y="14" fill="var(--gray-400)" font-size="10">sats</text>' +
+    '<text x="6" y="' + (plotTop + 4) + '" fill="var(--gray-400)" font-size="10">' +
+    tick(max) +
+    '</text><text x="6" y="' +
+    ((plotTop + floor) / 2 + 3) +
+    '" fill="var(--gray-400)" font-size="10">' +
+    tick((max + min) / 2) +
+    '</text><text x="6" y="' + (floor + 3) + '" fill="var(--gray-400)" font-size="10">' +
+    tick(min) +
+    '</text>' +
+    '</svg>'
   )
 }
 
 const coins = [
-  { id: 'salary', label: 'Salary', value: 800000, fiat: '800.00', address: 'tb1q…4e20', selected: true },
-  { id: 'refund', label: 'Coffee refund', value: 650000, fiat: '650.00', address: 'tb1q…10b3', selected: false },
-  { id: 'change', label: 'Change', value: 210000, fiat: '210.00', address: 'tb1q…91aa', selected: false },
-  { id: 'invoice', label: 'Invoice', value: 125000, fiat: '125.00', address: 'tb1q…77c1', selected: false },
-  { id: 'gift', label: 'Gift', value: 84000, fiat: '84.00', address: 'tb1q…2aa9', selected: false },
-  { id: 'tips', label: 'Tips', value: 42000, fiat: '42.00', address: 'tb1q…b014', selected: false },
-  { id: 'dust', label: 'Dust', value: 18000, fiat: '18.00', address: 'tb1q…55e8', selected: false },
-  { id: 'rebate', label: 'Rebate', value: 9500, fiat: '9.50', address: 'tb1q…c3d2', selected: false },
-  { id: 'test', label: 'Test', value: 3300, fiat: '3.30', address: 'tb1q…90af', selected: false },
-  { id: 'spare', label: 'Spare', value: 1200, fiat: '1.20', address: 'tb1q…61bb', selected: false }
+  { id: 'salary', label: 'Salary', value: 484308, fiat: '484.31', address: 'tb1q…4e20', selected: true },
+  { id: 'refund', label: 'Coffee refund', value: 617433, fiat: '617.43', address: 'tb1q…10b3', selected: false },
+  { id: 'change', label: 'Change', value: 213847, fiat: '213.85', address: 'tb1q…91aa', selected: false },
+  { id: 'invoice', label: 'Invoice', value: 128447, fiat: '128.45', address: 'tb1q…77c1', selected: false },
+  { id: 'gift', label: 'Gift', value: 86419, fiat: '86.42', address: 'tb1q…2aa9', selected: false },
+  { id: 'tips', label: 'Tips', value: 39114, fiat: '39.11', address: 'tb1q…b014', selected: false },
+  { id: 'dust', label: 'Dust', value: 1847, fiat: '1.85', address: 'tb1q…55e8', selected: false },
+  { id: 'rebate', label: 'Rebate', value: 9641, fiat: '9.64', address: 'tb1q…c3d2', selected: false },
+  { id: 'test', label: 'Test', value: 353, fiat: '0.35', address: 'tb1q…90af', selected: false },
+  { id: 'spare', label: 'Spare', value: 1284, fiat: '1.28', address: 'tb1q…61bb', selected: false },
+  { id: 'pending', label: 'Payment', value: 24183, fiat: '24.18', address: 'tb1q…3344', selected: false, unconfirmed: true }
 ]
 let coinView = 'list'
 let outputView = 'bubbles'
@@ -879,7 +1665,7 @@ function utxoList() {
           '</span></td><td><strong>' +
           coin.value.toLocaleString('en-US') +
           '</strong><small>' +
-          coin.fiat +
+          satsUsd(coin.value) +
           ' USD</small></td><td>' +
           coin.label +
           '</td><td>' +
@@ -1104,8 +1890,34 @@ const draft = {
   autoSelect: 'user',
   editing: null
 }
-const BLOCK_HEIGHT = 892417
-const NEXT_BLOCK_FEE = 3
+// Set by a fee replacement (bump, cancel-to-self, or CPFP) before go('send').
+let replacementDraft = null
+let enteringReplacement = false
+
+function loadReplacement(kind, tx) {
+  const book = (typeof usedAddresses !== 'undefined' && usedAddresses[openAccountData.fingerprint]) || usedAddresses.ab12cd34
+  const fresh = (book.receive.find((row) => !row.balance && !row.txs) || book.receive[book.receive.length - 1]).address
+  const floor = Math.round((tx.fee / tx.vsize) * 10) / 10 + 1
+  replacementDraft = { kind, feeFloor: floor }
+  draft.feeRate = floor
+  sendOptions.rbf = kind !== 'cpfp'
+  coins.forEach((coin) => {
+    coin.selected = kind === 'cpfp' ? Boolean(coin.unconfirmed) : coin.id === 'salary'
+  })
+  if (kind === 'bump') {
+    draft.outputs = [{ id: 1, amount: tx.amount, to: 'tb1qinvoice0demo000000000000000000000', label: tx.label || 'Payment' }]
+  } else {
+    const totGuess = 11 + 68 + 31
+    const fee = Math.ceil(totGuess * floor)
+    const returned = Math.max(546, (kind === 'cancel' ? tx.amount + tx.fee : tx.amount) - fee)
+    draft.outputs = [{ id: 1, amount: returned, to: fresh, label: kind === 'cancel' ? t('transaction.feeReplacement.cancel.action') : t('transaction.feeReplacement.cpfp') }]
+  }
+  enteringReplacement = true
+  go('send')
+  enteringReplacement = false
+}
+let BLOCK_HEIGHT = 892417
+let NEXT_BLOCK_FEE = 3
 
 function draftTotals() {
   const inputs = coins.filter((coin) => coin.selected)
@@ -1136,6 +1948,19 @@ function draftTx(tot) {
   }
 }
 
+// Load history swaps the builder's chart for the multi-hop diagram in place, like ioPreview.tsx.
+let ioHistory = false
+
+function ioChart(tot, tx) {
+  if (typeof sfState !== 'undefined' && sfState.charts && !sfState.charts.showTransactionFlowChart) return ''
+  if (!tot.inputs.length) return ''
+  if (ioHistory && typeof ltHistorySvg === 'function') {
+    const model = ltHistoryModel()
+    if (model) return '<div class="io-history" id="io-history-scroll">' + ltHistorySvg(model) + '</div>'
+  }
+  return txDetailSankey(tx)
+}
+
 function renderIo() {
   const root = document.getElementById('io-preview')
   const accountsBody = document.querySelector('#view-send > .accounts-body')
@@ -1148,7 +1973,7 @@ function renderIo() {
   const autoTitle = (k) => t('transaction.build.options.autoSelect.utxos.' + k + '.title')
 
   root.innerHTML =
-    '<div class="io-chart">' + (tot.inputs.length ? txDetailSankey(tx) : '') + '</div>' +
+    '<div class="io-chart' + (ioHistory ? ' is-history' : '') + '">' + ioChart(tot, tx) + '</div>' +
     '<div class="io-top">' +
     ss.vstack({ gap: 'xs', itemsCenter: true },
       ss.hstack({ gap: 'xxs', className: 'io-chaintip', go: 'explorer-chaintip' },
@@ -1161,6 +1986,11 @@ function renderIo() {
         ss.hstack({ gap: 'xs' }, gray(400, t('common.total')), gray(75, tot.spendable.toLocaleString('en-US')), gray(400, t('bitcoin.sats')),
           gray(75, fiat(tot.spendable)), gray(400, 'USD'))),
       tot.underfunded ? ss.text({ size: 'xxs', style: 'color:var(--warning);margin-top:-2px' }, t('transaction.error.insufficientInputs')) : '',
+      replacementDraft && replacementDraft.kind === 'cpfp' && tot.inputs.length > 0 && tot.inputs.every((coin) => coin.unconfirmed)
+        ? ss.text({ size: 'sm', color: 'muted', center: true }, t('transaction.feeReplacement.note.cpfp'))
+        : replacementDraft && replacementDraft.kind === 'cancel'
+          ? ss.text({ size: 'sm', color: 'muted', center: true }, t('transaction.feeReplacement.note.cancel'))
+          : '',
       ss.vstack({ gap: 'xxs', itemsCenter: true },
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
           ss.text({ size: '5xl', weight: 'ultralight', style: 'line-height:44px' }, tot.inValue.toLocaleString('en-US')),
@@ -1172,11 +2002,18 @@ function renderIo() {
     '<div class="io-bottom">' +
     ss.vstack({ gap: 'xs' },
       ss.hstack({ justifyBetween: true, style: 'margin-bottom:var(--layout-v-stack-gap-sm)' },
-        '<button type="button" class="io-link" data-go="builder">' + ss.icon('chevronLeft', { width: 3, height: 6 }) + ss.icon('chevronLeft', { width: 3, height: 6 }) + '<span>' + t('transaction.loadHistory').toUpperCase() + '</span></button>',
+        ioHistory
+          ? '<i></i>'
+          : '<button type="button" class="io-link" id="io-history">' + ss.icon('chevronLeft', { width: 3, height: 6 }) + ss.icon('chevronLeft', { width: 3, height: 6 }) + '<span>' + t('transaction.loadHistory').toUpperCase() + '</span></button>',
         document.getElementById('payjoin-toggle').checked
           ? '<button type="button" class="io-link" id="io-payjoin"><span>' + t('transaction.build.payjoin.data.open').toUpperCase() + '</span>' + ss.icon('chevronRight', { width: 3, height: 6 }) + ss.icon('chevronRight', { width: 3, height: 6 }) + '</button>'
           : ''),
       ss.vstack({ gap: 'xs' },
+        (sendOptions.rbf || tot.inputs.some((coin) => coin.unconfirmed))
+          ? ss.hstack({ gap: 'sm' },
+              sendOptions.rbf ? ss.text({ uppercase: true, color: 'muted', size: 'xs' }, t('transaction.feeReplacement.flag.rbf')) : '',
+              tot.inputs.some((coin) => coin.unconfirmed) ? ss.text({ uppercase: true, color: 'muted', size: 'xs' }, t('transaction.feeReplacement.flag.cpfp')) : '')
+          : '',
         ss.hstack({ gap: 'xs' },
           ss.button({ variant: 'outline', label: t('transaction.build.toolbar.input'), className: 'io-tool', id: 'io-inputs' }),
           ss.button({ variant: 'outline', label: t('transaction.build.toolbar.options'), className: 'io-tool', id: 'io-options' }),
@@ -1193,6 +2030,9 @@ function renderIo() {
           })))) +
     '</div>'
   document.getElementById('io-overlays').innerHTML = renderIoSheets(tot, autoTitle)
+  const history = document.getElementById('io-history-scroll')
+  // Open on the newest hops (inputs → tx → outputs); older hops are a scroll to the left.
+  if (history) requestAnimationFrame(() => { history.scrollLeft = Math.max(Number(history.firstElementChild.dataset.focus) || 0, history.scrollWidth - history.clientWidth) })
 }
 
 function renderIoSheets(tot, autoTitle) {
@@ -1209,7 +2049,7 @@ function renderIoSheets(tot, autoTitle) {
           ss.button({ variant: 'outline', label: t('transaction.build.options.timelock'), style: 'flex-grow:1;width:45%', go: 'timelock' })),
         ss.button({ variant: 'outline', label: t('transaction.build.options.importOutputs.title'), go: 'import-outputs' }))) +
     ss.bottomSheet({ id: 'io-fee-sheet', title: t('transaction.build.update.fee.title'), height: '62%' },
-      ss.feeInput({ value: draft.feeRate, vbytes: tot.vsize, max: 40 }),
+      ss.feeInput({ value: draft.feeRate, vbytes: tot.vsize, max: 40, min: replacementDraft ? replacementDraft.feeFloor : 1 }),
       ss.button({ variant: 'secondary', label: t('transaction.build.set.fee'), id: 'io-set-fee' }),
       ss.button({ variant: 'ghost', label: t('common.cancel'), data: { 'ss-close': '' } })) +
     ss.bottomSheet({ id: 'io-payjoin-sheet', title: t('transaction.build.payjoin.data.title'), height: '70%' },
@@ -1259,6 +2099,7 @@ document.getElementById('view-send').addEventListener('click', (e) => {
   if (hit('#io-add-output')) openOutputModal(null)
   if (hit('#io-discard')) {
     draft.outputs = []
+    replacementDraft = null
     go('account')
   }
   if (hit('[data-auto]')) {
@@ -1285,6 +2126,10 @@ document.getElementById('view-send').addEventListener('click', (e) => {
     const existing = draft.outputs.find((out) => out.id === draft.editing)
     if (existing) Object.assign(existing, { amount, to, label })
     else draft.outputs.push({ id: Date.now(), amount, to, label })
+    renderIo()
+  }
+  if (hit('#io-history')) {
+    ioHistory = true
     renderIo()
   }
   if (hit('#io-preview-go')) {
@@ -1382,9 +2227,9 @@ function renderAccountSettings() {
     icon('chevron', 'acct-chevron') +
     '</span></p>' +
     pair('Network', account.network) +
-    pair('Policy Type', account.watchOnly ? 'Watch Only' : 'Single Signature') +
-    pair('Script', 'Native SegWit') +
-    pair('Derivation path', "m/84'/1'/0'") +
+    pair('Policy Type', account.multisig ? 'Multi-Signature' : account.watchOnly ? 'Watch Only' : 'Single Signature') +
+    pair('Script', account.multisig ? 'Native SegWit (P2WSH)' : 'Native SegWit') +
+    pair('Derivation path', account.multisig ? "m/48'/1'/0'/2'" : "m/84'/1'/0'") +
     pair('Labeled Transactions', '2 <em>of</em> ' + account.stats[0][0]) +
     pair('Labeled UTXOs', '1 <em>of</em> ' + account.stats[2][0]) +
     pair('Labeled Addresses', '3 <em>of</em> ' + account.stats[1][0]) +
@@ -1397,6 +2242,7 @@ function renderAccountSettings() {
 }
 
 function renderAccount() {
+  loadBundledPrices()
   const account = openAccountData
   const txs = activity[account.fingerprint]
   const max = Math.max(...txs.map((tx) => tx.balance))
@@ -1428,13 +2274,13 @@ function renderAccount() {
   document.getElementById('account-title').textContent = account.name
   document.getElementById('account-landing').innerHTML =
     '<p class="connection"><span class="dot"></span>Signet — Default <span>mempool.space</span></p>' +
-    '<p class="connection">Block 284,112 · 12 sat/vB · $100,000</p>' +
+    '<p class="connection">Block ' + BLOCK_HEIGHT.toLocaleString('en-US') + ' · ' + NEXT_BLOCK_FEE + ' sat/vB · ' + headerQuote() + '</p>' +
     '<p class="landing-balance">' +
     account.balance.toLocaleString('en-US') +
     ' <span>sats</span></p>' +
     '<p class="landing-fiat">' +
-    account.fiat +
-    ' <span>USD</span></p>' +
+    accountFiat(account.balance) +
+    '</p>' +
     '<div class="action-row"><button type="button" id="send-open">Send</button><button type="button" id="paste-open" aria-label="Paste">' +
     icon('paste', 'action-icon') +
     '</button><button type="button" id="camera-open" aria-label="Camera">' +
@@ -1493,8 +2339,10 @@ function renderAccount() {
             : '') +
         '</span></div>') +
     (accountTab === 0 && showChart
-      ? historyChart(txs)
+      ? '<div class="chart-host"></div>'
       : '<div class="tx-list">' + list + '</div>')
+  const chartHost = document.querySelector('#account-landing .chart-host')
+  if (chartHost) chartHost.innerHTML = historyChart(txs, chartHost.clientWidth, chartHost.clientHeight)
   document.getElementById('send-open').addEventListener('click', () => go('coin-list'))
   const openMultisig = document.getElementById('open-multisig')
   if (openMultisig) openMultisig.addEventListener('click', () => go('multisig-settings'))
@@ -1577,13 +2425,8 @@ function renderTransaction() {
     icon(tx.type === 'receive' ? 'incoming' : 'outgoing', 'tx-flow') +
     '<strong>' +
     tx.amount.toLocaleString('en-US') +
-    '</strong> <span class="tx-unit">sats</span></p><p class="tx-fiat"><span class="tx-price">' +
-    tx.fiat +
-    '</span> <span class="tx-ccy">USD</span>' +
-    (tx.historical ? ' <span class="tx-price">(' + tx.historical + ')</span>' : '') +
-    (tx.priceChange
-      ? ' <span class="tx-pct ' + (tx.priceChange[0] === '+' ? 'is-up' : 'is-down') + '">' + tx.priceChange + '</span>'
-      : '') +
+    '</strong> <span class="tx-unit">sats</span></p><p class="tx-fiat">' +
+    txFiatHtml(tx) +
     '</p>' +
     (tx.payjoin && tx.contributed
       ? '<p class="tx-contributed">Contributed ' + tx.contributed.toLocaleString('en-US') + ' sats</p>'
@@ -2150,7 +2993,7 @@ function txDetailSankey(tx) {
   const rightValues = flowOutputs ? flowOutputs.map((item) => item.value) : outputValues.concat([tx.fee])
   const row = 68
   const rows = Math.max(inputCount, rightValues.length)
-  const height = rows * row + 8
+  let height = rows * row + 8
   const blockX = 146
   const blockW = 50
   const leftX = 108
@@ -2169,6 +3012,8 @@ function txDetailSankey(tx) {
 
   const inH = linearShare(inputValues, band)
   const rightH = linearShare(rightValues, band)
+  const need = (hs) => hs.reduce((sum, h) => sum + Math.max(h, 40) + 6, 0) + 24
+  height = Math.max(height, need(inH), need(rightH), band + 24)
   const blockY = Math.max(4, (height - band) / 2)
 
   function stack(heights, y0) {
@@ -2180,35 +3025,42 @@ function txDetailSankey(tx) {
     })
   }
 
-  function sideY(index, count, h) {
-    const start = (height - count * row) / 2
-    return start + index * row + (row - h) / 2
+  // Ribbon ends stack in slots at least one label tall, so labels and ribbons never overlap.
+  function endLayout(heights) {
+    const gap = 6
+    const slots = heights.map((h) => Math.max(h, 40))
+    const total = slots.reduce((sum, h) => sum + h, 0) + gap * (slots.length - 1)
+    let y = (height - total) / 2
+    return slots.map((slot, i) => {
+      const mid = y + slot / 2
+      y += slot + gap
+      return mid
+    })
   }
+  const inMid = endLayout(inH)
+  const rightMid = endLayout(rightH)
 
-  // Labels stay inside their own row even when a ribbon is taller than the row.
-  function labelY(index, count, h) {
-    const rowTop = (height - count * row) / 2 + index * row
-    return Math.max(sideY(index, count, h), rowTop) + 4
-  }
 
   const inSlots = stack(inH, blockY)
   const rightSlots = stack(rightH, blockY)
 
   const inputPaths = inSlots
     .map((slot, index) => {
-      const y = sideY(index, inputCount, slot.h)
-      const ours = flowInputs ? flowInputs[index].ours : true
-      const fill = flowInputs ? (ours ? 'url(#' + gid + 'OwnIn)' : 'url(#' + gid + 'ForeignIn)') : 'url(#' + gid + 'In)'
+      const y = inMid[index] - slot.h / 2
+      // App (SSSankeyLinks): every current-tx input ribbon is gray[900] → gray[200].
+      const fill = 'url(#' + gid + 'In)'
       return '<path fill="' + fill + '" d="' + txRibbon(leftX, y, slot.h, blockX, slot.y, slot.h) + '"/>'
     })
     .join('')
 
   const outputPaths = rightSlots
     .map((slot, index) => {
-      const y = sideY(index, rightValues.length, slot.h)
+      const y = rightMid[index] - slot.h / 2
       const isFee = index === rightSlots.length - 1
-      const ours = !isFee && (tx.type === 'receive' ? index === 0 : index > 0)
-      const fill = isFee ? 'url(#' + gid + 'Fee)' : ours ? 'url(#' + gid + 'Mine)' : 'url(#' + gid + 'Pay)'
+      const flow = flowOutputs && flowOutputs[index]
+      const ours = flow ? !!flow.ours && !flow.fee : !isFee && (tx.type === 'receive' ? index === 0 : index > 0)
+      // App: change stays solid white; payments and the fee fade to gray[900] at the far end.
+      const fill = ours ? 'url(#' + gid + 'Mine)' : 'url(#' + gid + 'Fee)'
       return '<path fill="' + fill + '" d="' + txRibbon(blockX + blockW, slot.y, slot.h, rightX, y, slot.h) + '"/>'
     })
     .join('')
@@ -2218,7 +3070,7 @@ function txDetailSankey(tx) {
       const flow = flowInputs && flowInputs[index]
       const named = flow ? flow.ours : index === 0 && tx.type === 'send' && tx.label
       const name = flow ? flow.label : named ? tx.label : 'Previous'
-      const y = labelY(index, inputCount, inSlots[index].h)
+      const y = inMid[index] - 9
       return flowLabel(
         [
           { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
@@ -2248,7 +3100,7 @@ function txDetailSankey(tx) {
             : index > 0
               ? 'Change'
               : tx.label || 'Payment'
-      const y = labelY(index, rightValues.length, rightSlots[index].h)
+      const y = rightMid[index] - 9
       const lines = [
         { text: value.toLocaleString('en-US') + ' sats', color: '#FFFFFF', size: 12, weight: 650 },
         {
@@ -3434,6 +4286,14 @@ function renderScriptSelect() {
 }
 
 function go(id) {
+  ioHistory = false
+  // Load history lives inside the builder (ioPreview.tsx); only the explorer keeps the standalone view.
+  if (id === 'builder' && routeId !== 'explorer-transaction-detail') {
+    go('send')
+    ioHistory = true
+    renderIo()
+    return true
+  }
   if (phoneScreen.classList.contains('is-drawer') && id !== 'session') setDrawer(false)
   if (typeof kitScreens !== 'undefined' && kitScreens[id]) {
     openKitScreen(id)
@@ -3501,6 +4361,7 @@ function go(id) {
     show('send', 'output')
     return true
   }
+  if ((id === 'send' || id === 'payjoin') && !enteringReplacement && !['fee-management', 'timelock', 'import-outputs'].includes(routeId)) replacementDraft = null
   if (id === 'send' || id === 'payjoin') {
     openAccountData = accounts[0]
     document.getElementById('payjoin-toggle').checked = true
@@ -3657,11 +4518,151 @@ window.addEventListener('message', (event) => {
 })
 
 const stageHome = document.getElementById('stage-home')
+const stagePlay = document.getElementById('stage-play')
+const demoCursor = document.getElementById('demo-cursor')
+let demoToken = 0
+let demoTimer = 0
+
+function waitDemo(ms, token) {
+  return new Promise((resolve) => {
+    demoTimer = setTimeout(() => resolve(token === demoToken), ms)
+  })
+}
+
+function hideDemoCursor() {
+  if (!demoCursor) return
+  demoCursor.classList.remove('is-on', 'is-pressing')
+  demoCursor.hidden = true
+}
+
+function stopDemo() {
+  demoToken += 1
+  clearTimeout(demoTimer)
+  hideDemoCursor()
+  document.documentElement.classList.remove('is-demo')
+  if (stagePlay) {
+    stagePlay.textContent = 'Play'
+    stagePlay.setAttribute('aria-pressed', 'false')
+    stagePlay.parentElement.classList.remove('is-playing')
+  }
+}
+
+function demoTarget(selector) {
+  const list = typeof selector === 'string' ? [...document.querySelectorAll(selector)] : [selector]
+  for (const target of list) {
+    if (!target || target.closest('[hidden]') || target.disabled) continue
+    const box = target.getBoundingClientRect()
+    if (box.width >= 1 && box.height >= 1) return target
+  }
+  return null
+}
+
+function revealDemoTarget(target) {
+  let box = target.parentElement
+  while (box && box !== document.body) {
+    if (box.scrollHeight > box.clientHeight + 1) {
+      const top = target.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+      box.scrollTop = Math.max(0, top - box.clientHeight / 2)
+      return
+    }
+    box = box.parentElement
+  }
+}
+
+async function pressDemo(token, selector) {
+  if (token !== demoToken) return false
+  const screen = document.querySelector('.phone-screen')
+  const target = demoTarget(selector)
+  if (!demoCursor || !screen || !target) return false
+  revealDemoTarget(target)
+  const box = target.getBoundingClientRect()
+  const frame = screen.getBoundingClientRect()
+  demoCursor.hidden = false
+  demoCursor.classList.add('is-on')
+  demoCursor.classList.remove('is-pressing')
+  demoCursor.style.left = box.left + box.width / 2 - frame.left + 'px'
+  demoCursor.style.top = box.top + box.height / 2 - frame.top + 'px'
+  if (!(await waitDemo(480, token))) return false
+  demoCursor.classList.add('is-pressing')
+  if (!(await waitDemo(160, token))) return false
+  demoCursor.classList.remove('is-pressing')
+  return token === demoToken
+}
+
+async function tapDemo(token, selector, hold = 1400) {
+  const target = demoTarget(selector)
+  if (!target || !(await pressDemo(token, target))) return false
+  target.click()
+  return waitDemo(hold, token)
+}
+
+async function playDemo(flow) {
+  demoToken += 1
+  const token = demoToken
+  clearTimeout(demoTimer)
+  document.documentElement.classList.add('is-demo')
+  stagePlay.textContent = 'Stop'
+  stagePlay.setAttribute('aria-pressed', 'true')
+  stagePlay.parentElement.classList.add('is-playing')
+  closeSheet()
+  setDrawer(false)
+  go('signer')
+  if (!(await waitDemo(500, token))) return
+
+  let ok = false
+  if (flow === 'account') ok = await playCreateAccount(token)
+  else ok = await playSendTransaction(token)
+  if (token === demoToken) stopDemo()
+  return ok
+}
+
+async function playSendTransaction(token) {
+  if (!(await tapDemo(token, '#menu-list .menu-button'))) return false
+  if (!(await tapDemo(token, '#account-list .account-card'))) return false
+  if (!(await tapDemo(token, '#send-open'))) return false
+  if (!(await tapDemo(token, '#coin-use'))) return false
+  if (!(await tapDemo(token, '#io-preview-go'))) return false
+  if (!(await tapDemo(token, '#sign-open'))) return false
+  for (let i = 0; i < 12; i += 1) {
+    if (demoTarget('#broadcast')) return tapDemo(token, '#broadcast', 1600)
+    if (!(await waitDemo(400, token))) return false
+  }
+  return false
+}
+
+async function playCreateAccount(token) {
+  if (!(await tapDemo(token, '#menu-list .menu-button'))) return false
+  if (!(await tapDemo(token, '.add-account'))) return false
+  const field = '#kit-body .lx-account-name input'
+  if (!(await pressDemo(token, field))) return false
+  const input = demoTarget(field)
+  if (!input) return false
+  input.focus()
+  input.value = 'Holiday'
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  if (!(await waitDemo(700, token))) return false
+  if (!(await tapDemo(token, '#lx-continue'))) return false
+  return tapDemo(token, '#lx-generate', 1800)
+}
+
 if (stageHome) {
   stageHome.addEventListener('click', () => {
+    stopDemo()
     closeSheet()
     setDrawer(false)
     go('intro')
+  })
+}
+
+if (stagePlay) {
+  stagePlay.addEventListener('click', () => {
+    if (stagePlay.getAttribute('aria-pressed') === 'true') stopDemo()
+  })
+  stagePlay.parentElement.querySelectorAll('[data-flow]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (stagePlay.getAttribute('aria-pressed') === 'true') return
+      playDemo(button.getAttribute('data-flow'))
+    })
   })
 }
 
@@ -3669,7 +4670,11 @@ window.satSignerDemo = {
   open(screen) {
     if (screen) go(screen)
     else startOnboarding()
-  }
+  },
+  play(flow) {
+    return playDemo(flow === 'account' ? 'account' : 'send')
+  },
+  stop: stopDemo
 }
 
 const clock = document.querySelector('.phone-time')

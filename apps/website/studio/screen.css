@@ -37,6 +37,69 @@ svg text {
   padding: var(--gap-lg) var(--gap-md);
 }
 
+.stage-controls {
+  display: flex;
+  gap: var(--gap-md);
+}
+
+.stage-play-wrap {
+  position: relative;
+}
+
+.stage-play-wrap::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 100%;
+  width: 12.5rem;
+  height: 14px;
+  transform: translateX(-50%);
+}
+
+.stage-flows {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 11.5rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  background: #111;
+}
+
+.stage-play-wrap:hover .stage-flows,
+.stage-play-wrap:focus-within .stage-flows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stage-play-wrap.is-playing .stage-flows {
+  display: none;
+}
+
+.stage-flows button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--white);
+  font: inherit;
+  font-size: var(--font-sm);
+  text-align: left;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.stage-flows button:hover,
+.stage-flows button:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .stage-home {
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -54,6 +117,8 @@ svg text {
 }
 
 .phone {
+  color: var(--white);
+  color-scheme: dark;
   --status-height: 34px;
   --ui-drop: 26px;
   --frame: min(390px, calc((100vh - 128px) * 390 / 844));
@@ -179,19 +244,60 @@ svg text {
   overflow: hidden;
   border-radius: calc(var(--radius) - var(--bezel));
   background: #0a0a0a;
-  scrollbar-width: none;
 }
 
+/* Thin thumb, transparent track, no arrow buttons.
+   scrollbar-width/color covers Firefox and Chromium.
+   WebKit pseudos cover Safari and older Chromium, including Windows classic bars. */
 .phone-screen,
 .phone-screen * {
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
 }
 
 .phone-screen::-webkit-scrollbar,
 .phone-screen *::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  background: transparent;
+}
+
+.phone-screen::-webkit-scrollbar-track,
+.phone-screen *::-webkit-scrollbar-track,
+.phone-screen::-webkit-scrollbar-track-piece,
+.phone-screen *::-webkit-scrollbar-track-piece,
+.phone-screen::-webkit-scrollbar-corner,
+.phone-screen *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.phone-screen::-webkit-scrollbar-thumb,
+.phone-screen *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+}
+
+.phone-screen::-webkit-scrollbar-thumb:hover,
+.phone-screen *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.phone-screen::-webkit-scrollbar-button,
+.phone-screen *::-webkit-scrollbar-button,
+.phone-screen::-webkit-scrollbar-button:single-button,
+.phone-screen *::-webkit-scrollbar-button:vertical:start:decrement,
+.phone-screen *::-webkit-scrollbar-button:vertical:end:increment,
+.phone-screen *::-webkit-scrollbar-button:horizontal:start:decrement,
+.phone-screen *::-webkit-scrollbar-button:horizontal:end:increment,
+.phone-screen::-webkit-scrollbar-button:vertical:start:decrement,
+.phone-screen::-webkit-scrollbar-button:vertical:end:increment,
+.phone-screen::-webkit-scrollbar-button:horizontal:start:decrement,
+.phone-screen::-webkit-scrollbar-button:horizontal:end:increment {
   display: none;
   width: 0;
   height: 0;
+  background: transparent;
+  appearance: none;
 }
 
 .phone-screen > section {
@@ -602,9 +708,21 @@ svg text {
   transition: transform 220ms ease;
 }
 
+.phone-screen.is-panning,
+.phone-screen.is-panning * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .drawer.is-dragging {
   cursor: grabbing;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+.phone-screen.is-panning.is-dragging,
+.phone-screen.is-panning.is-dragging * {
+  cursor: grabbing;
 }
 
 .phone-screen.is-drawer .drawer {
@@ -1397,7 +1515,7 @@ svg text {
   padding: 0 var(--pad-main-x) var(--pad-main-bottom);
 }
 
-#view-account .account-landing:has(.history-chart) {
+#view-account .account-landing:has(.chart-host) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2082,11 +2200,19 @@ svg text {
   background: var(--gray-950);
 }
 
-#view-account .history-chart {
+#view-account .chart-host {
   flex: 1;
-  height: auto;
   min-height: 0;
   margin-top: 8px;
+}
+
+#view-account .history-chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
 }
 
 .coin-bar {
@@ -3162,8 +3288,41 @@ html.is-embed .stage {
   padding: 0;
 }
 
-html.is-embed .stage-home {
+html.is-embed .stage-controls,
+html.is-embed .demo-cursor {
   display: none;
+}
+
+html.is-embed.is-demo .demo-cursor {
+  display: block;
+}
+
+.demo-cursor {
+  position: absolute;
+  z-index: 80;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.72);
+  left: 50%;
+  top: 78%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    left 450ms ease,
+    top 450ms ease,
+    transform 120ms ease,
+    opacity 200ms ease;
+}
+
+.demo-cursor.is-on {
+  opacity: 1;
+}
+
+.demo-cursor.is-pressing {
+  transform: translate(-50%, -50%) scale(0.78);
 }
 
 html.is-device .stage {
@@ -3434,6 +3593,7 @@ html.is-bare .phone-status {
 .select-all { flex-shrink: 1; min-width: 0; height: var(--sizes-button-height); border: 0; padding: 0; background: none; color: var(--gray-75); font: inherit; font-size: var(--sizes-button-font-size); letter-spacing: 1px; text-decoration: underline; text-align: left; cursor: pointer; }
 .sort-toggle { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 0; background: none; color: var(--white); font: inherit; opacity: 0.4; cursor: pointer; }
 .sort-toggle.is-on { opacity: 1; }
+.sort-toggle .ss-icon svg path { stroke: currentColor; }
 .utxo-item { position: relative; }
 .utxo-row { display: flex; align-items: stretch; }
 .utxo-body { flex: 1; min-width: 0; border: 0; padding: 16px 5%; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -3479,3 +3639,9 @@ html.is-bare .intro.is-splash .intro-logo { visibility: hidden; }
 /* setPin / setDuressPin have no header bar; add its 48px so the title lines up with other screens' content */
 #view-kit[data-screen="set-pin"] .es-shell,
 #view-kit[data-screen="set-duress-pin"] .es-shell { padding-top: calc(48px + 64px); }
+
+/* Load history: multi-hop diagram in place of the builder chart, scrolled sideways. */
+.io-chart.is-history { padding-left: 0; padding-right: 0; overflow: hidden; }
+.io-history { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.io-history::-webkit-scrollbar { display: none; }
+.io-history svg { display: block; }
