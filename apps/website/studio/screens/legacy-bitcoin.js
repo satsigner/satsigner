@@ -515,7 +515,7 @@ function lbTxMarkup(tx) {
   // Wallet-owned outputs show the matching receive address from the account's address book.
   const ownAddress = (o) => (known.has(o.to) ? o.to : (book.receive.find((r) => r.label && r.label === o.label) || book.receive[0]).address)
   const tagChips = (tx.tags || []).map((tag) => `<span class="lb-tag">${ss.esc(tag)}</span>`).join('')
-  return `<div class="lb-tx" style="padding:20px">${ss.vstack({},
+  return `<div class="lb-tx" style="padding:20px 0">${ss.vstack({},
     ss.vstack({ gap: 'sm', itemsCenter: true },
       tx.ago ? ss.text({ color: 'muted' }, tx.ago) : '',
       ss.vstack({ gap: 'xxs', itemsCenter: true },
