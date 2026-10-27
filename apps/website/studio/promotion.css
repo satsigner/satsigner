@@ -1,0 +1,366 @@
+body:has(#promotion-view:not([hidden])) .catalog {
+  max-width: none;
+}
+
+.promotion {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+
+.promo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.25rem;
+}
+
+.promo-toolbar .promo-spec {
+  margin: 0;
+}
+
+.promo-toolbar a {
+  color: var(--ink);
+}
+
+.promo-download {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.promo-download:disabled {
+  cursor: progress;
+  color: var(--ink-muted);
+}
+
+.promo-section h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.promo-spec {
+  margin: 0.45rem 0 0;
+  max-width: 68ch;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.promo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  align-items: flex-start;
+  margin-top: 1.35rem;
+}
+
+.promo-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.promo-slot figcaption {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.promo-jpg,
+.promo-jpg-save {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.promo-jpg:disabled {
+  cursor: progress;
+  color: var(--ink-muted);
+}
+
+.promo-check {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px 16px 0;
+  background: #111;
+  overflow: auto;
+}
+
+.promo-check-col {
+  margin: 0;
+}
+
+.promo-check-col figcaption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.promo-check-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+.promo-check-frame {
+  overflow: hidden;
+  background: #000;
+}
+
+.promo-scale {
+  overflow: hidden;
+  outline: 1px solid var(--line);
+  outline-offset: 0;
+}
+
+.promo-board {
+  position: relative;
+  transform-origin: top left;
+  background: #000;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+  overflow: hidden;
+}
+
+.promo-glow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.promo-copy,
+.promo-phone {
+  position: relative;
+  z-index: 1;
+}
+
+.promo-board h3,
+.promo-board p {
+  margin: 0;
+}
+
+.promo-kicker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+
+.promo-kicker img {
+  height: 56px;
+  width: auto;
+  display: block;
+}
+
+.promo-headline {
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+}
+
+.promo-sub {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.promo-phone {
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.promo-phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+  pointer-events: none;
+}
+
+/* 1200 × 630 Open Graph */
+.promo-og {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 1200px;
+  height: 630px;
+  padding: 64px 72px 0 80px;
+  box-sizing: border-box;
+}
+
+.promo-og .promo-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-bottom: 72px;
+}
+
+.promo-og .promo-headline {
+  font-size: 76px;
+}
+
+.promo-og .promo-sub {
+  max-width: 16em;
+  font-size: 26px;
+}
+
+.promo-og .promo-phone {
+  width: 340px;
+  height: 736px;
+  flex: none;
+  align-self: flex-start;
+  margin-top: 72px;
+}
+
+/* 1024 × 500 Play feature graphic */
+.promo-feature {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 1024px;
+  height: 500px;
+  padding: 48px 56px 0 64px;
+  box-sizing: border-box;
+}
+
+.promo-feature .promo-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 56px;
+}
+
+.promo-feature .promo-headline {
+  font-size: 64px;
+}
+
+.promo-feature .promo-sub {
+  max-width: 16em;
+  font-size: 22px;
+}
+
+.promo-feature .promo-phone {
+  width: 280px;
+  height: 606px;
+  flex: none;
+  align-self: flex-start;
+  margin-top: 36px;
+}
+
+/* Portrait store frames */
+.promo-shot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.promo-shot .promo-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.promo-shot .promo-headline {
+  max-width: none;
+  white-space: nowrap;
+  line-height: 1;
+  height: 1em;
+}
+
+.promo-shot .promo-sub {
+  max-width: none;
+  line-height: 1.35;
+  height: 2.7em;
+}
+
+.promo-apple {
+  width: 1320px;
+  height: 2868px;
+  padding: 200px 90px 0;
+  gap: 110px;
+  justify-content: flex-start;
+}
+
+.promo-apple .promo-headline {
+  font-size: 78px;
+}
+
+.promo-apple .promo-sub {
+  font-size: 36px;
+}
+
+.promo-apple .promo-phone {
+  width: 1000px;
+  height: 2164px;
+}
+
+.promo-play {
+  width: 1080px;
+  height: 1920px;
+  padding: 120px 64px 0;
+  gap: 48px;
+  justify-content: flex-start;
+}
+
+.promo-play .promo-headline {
+  font-size: 64px;
+}
+
+.promo-play .promo-sub {
+  font-size: 30px;
+}
+
+.promo-play .promo-phone {
+  width: 700px;
+  height: 1515px;
+}
+
+.promo-logo {
+  display: block;
+  height: 160px;
+  width: auto;
+}
+
+.promo-chicklet {
+  display: block;
+  height: 40px;
+  width: auto;
+}
