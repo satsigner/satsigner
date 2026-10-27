@@ -12,8 +12,9 @@
   <link rel="stylesheet" href="/studio/tokens.css">
   <link rel="stylesheet" href="/studio/components.css">
   <link rel="stylesheet" href="/studio/screen.css">
-  <link rel="stylesheet" href="/studio/catalog.css?v=24">
+  <link rel="stylesheet" href="/studio/catalog.css?v=26">
   <link rel="stylesheet" href="/studio/dashboard.css">
+  <link rel="stylesheet" href="/studio/promotion.css?v=14">
 </head>
 <body>
   <div class="view-toggle" role="group" aria-label="Catalog layout">
@@ -24,6 +25,7 @@
     <button type="button" data-view="table">Table</button>
     <button type="button" data-view="map">Map</button>
     <button type="button" data-view="components">Components</button>
+    <button type="button" data-view="promotion">Promotion</button>
     <button type="button" id="card-height" aria-pressed="false">Expand</button>
     <button type="button" id="theme-toggle" aria-label="Toggle color theme" aria-pressed="false">
       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -292,15 +294,26 @@
           <div class="accounts-body section-body" id="multisig-sign"></div>
         </section>
         <div id="sheet" class="sheet" hidden></div>
+        <span class="demo-cursor" id="demo-cursor" hidden aria-hidden="true"></span>
       </div>
     </div>
-    <button type="button" class="stage-home" id="stage-home">Home</button>
+    <div class="stage-controls">
+      <div class="stage-play-wrap">
+        <button type="button" class="stage-home" id="stage-play" aria-pressed="false" aria-haspopup="menu">Play</button>
+        <div class="stage-flows" role="menu" aria-label="Demo flows">
+          <button type="button" role="menuitem" data-flow="send">Send transaction</button>
+          <button type="button" role="menuitem" data-flow="account">Create account</button>
+        </div>
+      </div>
+      <button type="button" class="stage-home" id="stage-home">Home</button>
+    </div>
   </main>
   <div class="catalog" id="catalog-views" hidden>
     <div class="dashboard" id="dashboard-view" hidden></div>
     <div class="flow" id="flow-view" hidden></div>
     <div class="screen-grid" id="list-view"></div>
     <div class="component-grid" id="components-view" hidden></div>
+    <div class="promotion" id="promotion-view" hidden></div>
     <table class="screen-table" id="table-view" hidden>
       <thead>
         <tr>
@@ -318,30 +331,32 @@
   </div>
   <script src="/studio/icons.js"></script>
   <script src="/studio/generated/icons.js"></script>
-  <script src="/studio/generated/strings.js"></script>
-  <script src="/studio/components.js"></script>
-  <script src="/studio/screen.js?v=2"></script>
-  <script src="/studio/screens.js"></script>
+  <script src="/studio/generated/strings.js?v=2"></script>
+  <script src="/studio/components.js?v=2"></script>
+  <script src="/studio/screen.js?v=17"></script>
+  <script src="/studio/screens.js?v=2"></script>
   <script src="/studio/screens/settings.js"></script>
   <script src="/studio/screens/settings-network.js"></script>
-  <script src="/studio/screens/settings-features.js"></script>
+  <script src="/studio/screens/settings-features.js?v=3"></script>
   <script src="/studio/screens/settings-system.js"></script>
   <script src="/studio/screens/explorer-tx.js"></script>
-  <script src="/studio/screens/explorer-chain.js"></script>
-  <script src="/studio/screens/bitcoin-account.js"></script>
+  <script src="/studio/screens/explorer-chain.js?v=2"></script>
+  <script src="/studio/screens/bitcoin-account.js?v=2"></script>
   <script src="/studio/screens/bitcoin-settings.js"></script>
   <script src="/studio/screens/bitcoin-add.js"></script>
   <script src="/studio/screens/nostr.js"></script>
   <script src="/studio/screens/ark-lightning.js"></script>
   <script src="/studio/screens/ecash-shell.js"></script>
-  <script src="/studio/screens/legacy-bitcoin.js"></script>
+  <script src="/studio/screens/legacy-bitcoin.js?v=5"></script>
   <script src="/studio/screens/legacy-add.js"></script>
   <script src="/studio/screens/legacy-hubs.js"></script>
-  <script src="/studio/screens/legacy-tools.js"></script>
+  <script src="/studio/screens/legacy-tools.js?v=2"></script>
   <script src="/studio/generated/routes.js"></script>
   <script src="/studio/generated/coverage.js"></script>
   <script src="/studio/generated/meta.js"></script>
-  <script src="/studio/catalog.js?v=26"></script>
+  <script src="/studio/catalog.js?v=29"></script>
   <script src="/studio/dashboard.js"></script>
+  <script src="/studio/promotion.js?v=63"></script>
+  <script src="/studio/market.js?v=4"></script>
 </body>
 </html>

@@ -71,7 +71,8 @@ a {
 }
 
 body:has(#table-view:not([hidden])) .catalog,
-body:has(#components-view:not([hidden])) .catalog {
+body:has(#components-view:not([hidden])) .catalog,
+body:has(#promotion-view:not([hidden])) .catalog {
   max-width: none;
 }
 
@@ -186,9 +187,37 @@ html.is-embed #catalog-views {
   height: 0.85rem;
 }
 
-html[data-theme="light"] .stage-home {
+@property --vt-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) {
+  z-index: 2147483646;
+  -webkit-mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 max(0px, calc(var(--vt-r) - 2.75rem)), transparent var(--vt-r));
+  mask-image: radial-gradient(circle at var(--vt-x) var(--vt-y), #000 max(0px, calc(var(--vt-r) - 2.75rem)), transparent var(--vt-r));
+}
+
+html[data-theme="light"] .stage-home,
+html[data-theme="light"] .stage-flows button {
   border-color: rgba(0, 0, 0, 0.22);
   color: #111;
+}
+
+html[data-theme="light"] .stage-flows {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: #fff;
+}
+
+html[data-theme="light"] .stage-flows button:hover,
+html[data-theme="light"] .stage-flows button:focus-visible {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 html[data-theme="light"] .stage-home:hover {

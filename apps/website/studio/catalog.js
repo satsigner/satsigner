@@ -573,6 +573,7 @@ const table = document.getElementById('table-view')
 const flow = document.getElementById('flow-view')
 const phone = document.getElementById('phone-view')
 const componentsView = document.getElementById('components-view')
+const promotionViewEl = document.getElementById('promotion-view')
 const dashboardView = document.getElementById('dashboard-view')
 const catalog = document.getElementById('catalog-views')
 const buttons = document.querySelectorAll('[data-view]')
@@ -813,7 +814,7 @@ components.forEach((component) => {
 const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map' }
 
 function isLayoutMode(mode) {
-  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components'
+  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components' || mode === 'promotion'
 }
 
 function viewFromUrl() {
@@ -830,6 +831,7 @@ function setView(mode, updateUrl) {
   flow.hidden = mode !== 'map'
   phone.hidden = mode !== 'prototype'
   componentsView.hidden = mode !== 'components'
+  if (promotionViewEl) promotionViewEl.hidden = mode !== 'promotion'
   dashboardView.hidden = mode !== 'dashboard'
   if (catalog) catalog.hidden = mode === 'prototype'
   buttons.forEach((button) => {
@@ -879,7 +881,26 @@ function applyTheme(theme) {
 
 applyTheme(localStorage.getItem('studio-theme') === 'light' ? 'light' : 'dark')
 themeToggle.addEventListener('click', () => {
-  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light')
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (!document.startViewTransition || reduce) {
+    applyTheme(next)
+    return
+  }
+  const rect = themeToggle.getBoundingClientRect()
+  const x = rect.left + rect.width / 2
+  const y = rect.top + rect.height / 2
+  const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)) + 44
+  const transition = document.startViewTransition(() => applyTheme(next))
+  transition.ready.then(() => {
+    document.documentElement.animate(
+      [
+        { '--vt-x': `${x}px`, '--vt-y': `${y}px`, '--vt-r': '0px' },
+        { '--vt-x': `${x}px`, '--vt-y': `${y}px`, '--vt-r': `${end}px` },
+      ],
+      { duration: 340, easing: 'cubic-bezier(0.85, 0, 1, 1)', pseudoElement: '::view-transition-new(root)' },
+    )
+  })
 })
 
 // Land on the dashboard; a deep link to a screen (#send) still opens the prototype.
