@@ -294,7 +294,7 @@ a{
 /* ----- Hero ----- */
 .hero {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   min-height: calc(100svh - 3.4rem);
   display: flex;
   align-items: center;
@@ -329,7 +329,7 @@ a{
 }
 .hero-copy {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   justify-self: start;
   width: 100%;
   max-width: 36rem;
@@ -400,9 +400,10 @@ a{
 }
 .hero.is-phone .hero-mark {
   will-change: transform;
-  --bezel: 10px;
-  --radius: 48px;
-  width: 280px;
+  --frame: 280px;
+  --bezel: calc(var(--frame) * 10 / 280);
+  --radius: calc(var(--frame) * 48 / 280);
+  width: var(--frame);
   height: auto;
   aspect-ratio: 390 / 844;
   border-radius: var(--radius);
@@ -416,12 +417,12 @@ a{
   content: "";
   position: absolute;
   z-index: 8;
-  top: calc(var(--bezel) + 14px);
+  top: calc(var(--bezel) + var(--frame) * 14 / 280);
   left: 50%;
-  width: 92px;
-  height: 26px;
+  width: calc(var(--frame) * 92 / 280);
+  height: calc(var(--frame) * 26 / 280);
   transform: translateX(-50%);
-  border-radius: 20px;
+  border-radius: calc(var(--frame) * 20 / 280);
   background: #050505;
   pointer-events: none;
 }
@@ -432,14 +433,14 @@ a{
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  border: 4px solid transparent;
+  border: calc(var(--frame) * 4 / 280) solid transparent;
   filter: blur(0.7px);
   background:
     linear-gradient(#000, #000) padding-box,
-    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
-    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
-    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box,
-    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box;
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box;
   background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
 .hero-mark .phone::before {
@@ -624,10 +625,11 @@ a{
 .hero.is-phone.is-badge .hero-mark-type {
   z-index: 4;
   top: 40%;
+  font-size: calc(1.195rem * (var(--frame) / 280px));
 }
 .hero.is-phone.is-badge .hero-logo-light {
   z-index: 3;
-  clip-path: inset(12px round 36px);
+  clip-path: inset(calc(var(--frame) * 12 / 280) round calc(var(--radius) - var(--frame) * 12 / 280));
 }
 .hero-logo-light {
   display: none;
@@ -2076,13 +2078,10 @@ html[data-theme="light"] .as-seen-in-logo--light {
     font-size: 2.6rem;
   }
   .hero.is-phone .hero-mark {
-    width: min(260px, 68vw);
+    --frame: min(260px, 68vw);
+    width: var(--frame);
     height: auto;
     aspect-ratio: 390 / 844;
-  }
-  .hero.is-badge .hero-mark-type {
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
   }
   .hero-aside {
     order: 3;
