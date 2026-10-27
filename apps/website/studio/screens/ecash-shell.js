@@ -159,6 +159,19 @@ esState.proofs.forEach((p, i) => {
   p.counter = 12 + i * 3
 })
 const esBalance = (url) => esState.proofs.filter((p) => !url || p.mintUrl === url).reduce((s, p) => s + p.amount, 0)
+
+// Received ecash lands in the account: proofs split into powers of two, plus a transaction.
+// Marked `added` so the Studio demo can put the fixtures back.
+function esCredit(tx) {
+  const mintUrl = tx.mintUrl || esState.mints[0].url
+  const keyset = (esState.proofs.find((p) => p.mintUrl === mintUrl) || esState.proofs[0]).id
+  for (let bit = 1 << 20; bit >= 1; bit >>= 1) {
+    if (!(tx.amount & bit)) continue
+    const i = esState.proofs.length
+    esState.proofs.push({ amount: bit, mintUrl, id: keyset, active: true, secret: esHex('secret' + i, 64), C: '02' + esHex('C' + i, 64), counter: 12 + i * 3, added: true })
+  }
+  esState.transactions.unshift({ id: `tx-${tx.type}-${Date.now()}`, timestamp: Date.now(), status: 'completed', added: true, ...tx, mintUrl })
+}
 const ES_DEMO_SEED = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ')
 
 function esOpenProof(i) {
@@ -1252,6 +1265,7 @@ registerScreen('ecash-receive-page', {
         btn.innerHTML = '<span class="ss-spinner"></span>'
         setTimeout(() => {
           s.redeemed = true
+          esCredit({ type: 'receive', amount: 2048, mintUrl: 'https://mint.coinos.io', token: true })
           rerender()
         }, 900)
       }
@@ -1268,7 +1282,10 @@ registerScreen('ecash-receive-page', {
         s.status = 'pending'
         rerender()
         setTimeout(() => {
-          if (s.quote) s.status = 'paid'
+          if (s.quote && s.status !== 'paid') {
+            s.status = 'paid'
+            esCredit({ type: 'mint', amount: +s.amount || 1, mintUrl: s.mint, memo: s.memo, invoice: true })
+          }
           if (kitCurrent === 'ecash-receive-page') rerender()
         }, 3000)
       }

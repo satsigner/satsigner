@@ -234,6 +234,8 @@ registerScreen('add-confirm-word', {
     body.addEventListener('click', (e) => {
       const c = e.target.closest('[data-choice]')
       if (c) {
+        // Single choice: keep the kit's data-ss-toggle handler from flipping it back off.
+        e.stopPropagation()
         bdState.choice = Number(c.dataset.choice)
         body.querySelectorAll('[data-choice]').forEach((x) => {
           const on = x === c
@@ -266,6 +268,38 @@ registerScreen('add-confirm-word', {
 
 // --- created/[id].tsx ----------------------------------------------------------------------
 
+// The new wallet joins the account list (empty, on the active network) so "Go to wallet"
+// opens it instead of a fixture account. Creating the same name again reuses it.
+function bdRegisterAccount(multisig) {
+  const name = String(bdName()).trim() || 'Spending'
+  let account = accounts.find((a) => a.created && a.name === name)
+  if (!account) {
+    let fingerprint = BD_FINGERPRINT
+    for (let n = 1; accounts.some((a) => a.fingerprint === fingerprint); n += 1) {
+      fingerprint = ((parseInt(BD_FINGERPRINT, 16) + n) >>> 0).toString(16).padStart(8, '0')
+    }
+    account = {
+      name,
+      network: typeof activeNetwork !== 'undefined' ? activeNetwork : 'signet',
+      balance: 0,
+      fiat: '0.00',
+      fingerprint,
+      watchOnly: false,
+      multisig: !!multisig,
+      created: true,
+      stats: [['0', 'Transactions'], ['0', 'Addresses'], ['0', 'Outputs'], ['0', 'Mempool']]
+    }
+    accounts.push(account)
+    activity[fingerprint] = []
+  }
+  return account
+}
+
+function bdBindGoto(body, multisig) {
+  const account = bdRegisterAccount(multisig)
+  body.querySelector('#bd-goto').onclick = () => openAccount(account)
+}
+
 registerScreen('add-created', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/add/(common)/created/[id].tsx',
   title: () => bdName(),
@@ -282,7 +316,8 @@ registerScreen('add-created', {
           ss.vstack({ itemsCenter: true }, ss.text({ style: 'color:var(--gray-500)' }, t('account.fingerprint')), bdFingerprint(BD_FINGERPRINT))),
         ss.separator(),
         ss.vstack({ itemsCenter: true }, ss.text({ style: 'color:var(--gray-500)' }, t('account.derivationPath')), ss.text({ size: 'md', color: 'muted' }, "m/84'/1'/0'"))),
-      ss.button({ label: t('account.multisig.gotoWallet'), variant: 'secondary', go: 'account' }))
+      ss.button({ label: t('account.multisig.gotoWallet'), variant: 'secondary', id: 'bd-goto' })),
+  bind: (body) => bdBindGoto(body, false)
 })
 
 // --- import/mnemonic/[keyIndex].tsx (SSSeedWordsInput + SSKeyboardWordSelector) ------------
@@ -694,8 +729,9 @@ registerScreen('add-multisig-finish', {
       `<div style="align-self:center;margin-top:40px;width:163px;height:163px" id="bd-finish-mark"><svg width="163" height="163" viewBox="0 0 163 163" fill="none"><circle cx="81.5" cy="81.5" r="79.5" stroke="#343434" stroke-width="3"/><path class="bd-arc" d="M161 81.5C161 125.407 125.407 161 81.5 161" stroke="white" stroke-width="3"/></svg></div>`)}
       <div id="bd-finish-actions" hidden>${ss.vstack({},
         ss.button({ label: t('account.multisig.viewAllWallets'), variant: 'outline', go: 'accounts' }),
-        ss.button({ label: t('account.multisig.gotoWallet'), variant: 'secondary', go: 'account' }))}</div></div>`,
+        ss.button({ label: t('account.multisig.gotoWallet'), variant: 'secondary', id: 'bd-goto' }))}</div></div>`,
   bind: (body) => {
+    bdBindGoto(body, true)
     clearTimeout(bdFinishTimer)
     bdFinishTimer = setTimeout(() => {
       if (!body.isConnected) return

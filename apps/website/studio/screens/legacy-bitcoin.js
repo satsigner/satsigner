@@ -18,7 +18,7 @@ document.head.insertAdjacentHTML(
   `<style>
   #kit-body:has(.lb-flush) { padding: 0; }
   #kit-body:has(.lb-acct) { display: flex; flex-direction: column; overflow: hidden; }
-  .lb-flush { display: flex; flex-direction: column; min-height: 100%; }
+  .lb-flush { display: flex; flex-direction: column; flex-shrink: 0; min-height: 100%; }
   .lb-acct { flex: 1; min-height: 0; overflow: hidden; }
   .lb-acct > .lb-pad:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   .lb-scroll { flex: 1; min-height: 0; overflow: auto; }
@@ -240,7 +240,9 @@ function lbSortedTxs(list) {
     amount: (tx) => tx.amount,
     label: (tx) => (tx.label || '').toLowerCase()
   }[lbAcct.sort.field]
-  return [...list].sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (lbAcct.sort.dir === 'asc' ? 1 : -1))
+  // Ties (several unconfirmed) fall back to list order, which is oldest first.
+  const tie = (a, b) => (lbAcct.sort.field === 'date' ? list.indexOf(a) - list.indexOf(b) : 0)
+  return [...list].sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : tie(a, b)) * (lbAcct.sort.dir === 'asc' ? 1 : -1))
 }
 
 function lbTxList(list) {

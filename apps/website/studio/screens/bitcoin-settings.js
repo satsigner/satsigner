@@ -109,13 +109,11 @@ function bsState() {
         commonNsec: 'nsec1c0mm0ndem0x4w9q2r7t5y8u3i6o1p4a7s0d3f6g9h2j5k8l1z4x7c0v3bq',
         kind0: { displayName: 'Satoshi’s laptop' },
         members: [
-          { npub: 'npub1q3sle0k6qwhzrx4t7vp2mfg9yjc5u8ldn0ea3xs6h2k4w7r9tz5qp8g0vx', color: '#E5A33A', alias: 'Coldcard desk', displayName: '' },
           { npub: 'npub1w8v4fq7m2ejx0zn6t3cak5yhr9lpd4g1us8w6q2fx7c3nmz0jk5spyt9re', color: '#6EA8FE', alias: '', displayName: 'Phone (Alice)' },
           { npub: 'npub1z9k3mq6p8sxe4wv2rt7yjd0ufhc5lg1an3e7q9xk2w6p4m8ts0r5cqzl3h', color: '#9B7BE0', alias: '', displayName: '' }
         ],
-        trusted: new Set(['npub1q3sle0k6qwhzrx4t7vp2mfg9yjc5u8ldn0ea3xs6h2k4w7r9tz5qp8g0vx']),
+        trusted: new Set(),
         messages: [
-          { from: 'npub1q3sle0k6qwhzrx4t7vp2mfg9yjc5u8ldn0ea3xs6h2k4w7r9tz5qp8g0vx', text: 'Labels synced from the desk machine. 14 labels.', at: Date.now() - 1000 * 60 * 60 * 26 },
           { from: 'npub1w8v4fq7m2ejx0zn6t3cak5yhr9lpd4g1us8w6q2fx7c3nmz0jk5spyt9re', text: 'Got them. Can you sign the rent payment PSBT tonight?', at: Date.now() - 1000 * 60 * 60 * 3 },
           { from: 'self', text: 'Yes, sending the PSBT here after I review fees.', at: Date.now() - 1000 * 60 * 52 }
         ]
@@ -124,6 +122,14 @@ function bsState() {
     }
   }
   return bsStore[fp]
+}
+
+// Nostr sync as it is before first use: no device key, no relays, nothing fetched. The
+// fixture members and messages are kept aside so the first sync can "discover" them.
+function bsNostrFresh() {
+  const n = bsState().nostr
+  n.found = n.found || { members: n.members, messages: n.messages, kind0: n.kind0 }
+  Object.assign(n, { autoSync: false, syncing: false, syncStage: '', lastSync: 0, relays: [], deviceNpub: '', kind0: null, members: [], messages: [], trusted: new Set() })
 }
 
 const BS_SEED = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ')
@@ -749,7 +755,7 @@ registerScreen('account-nostr', {
         }),
         !n.autoSync && n.relays.length === 0 ? ss.text({ color: 'muted', center: true }, bsTn('noRelaysWarning')) : '',
         syncing
-          ? ss.hstack({ gap: 'sm', style: 'justify-content:center' }, '<span class="ss-spinner"></span>', ss.text({ color: 'muted' }, bsTn('syncingFetching')))
+          ? ss.hstack({ gap: 'sm', style: 'justify-content:center' }, '<span class="ss-spinner"></span>', ss.text({ color: 'muted' }, bsTn(n.syncStage || 'syncingFetching')))
           : ss.hstack({ gap: 'sm', style: 'justify-content:center' }, ss.text({ color: 'muted' }, `Last sync: ${n.lastSync ? bsDateShort(n.lastSync) : 'Never'}`)),
         ss.button({ label: bsTn('manageRelays', { count: n.relays.length }), go: 'account-nostr-relays', disabled: syncing }),
         n.relays.length === 0 && n.autoSync ? ss.text({ weight: 'bold', center: true }, bsTn('noRelaysWarning')) : '',
@@ -826,17 +832,31 @@ registerScreen('account-nostr', {
       if (e.target.closest('#bs-sync-toggle')) {
         n.autoSync = !n.autoSync
         if (n.autoSync) {
+          // Connect, discover devices, fetch messages. The first sync brings in the members.
+          const first = !n.lastSync
+          const stages = ['syncingConnecting', 'syncingDiscovering', 'syncingFetching']
+          let stage = 0
           n.syncing = true
-          setTimeout(() => {
-            n.syncing = false
-            n.lastSync = Date.now()
+          n.syncStage = stages[0]
+          const step = () => {
+            stage += 1
+            if (stage < stages.length) n.syncStage = stages[stage]
+            else {
+              n.syncing = false
+              n.lastSync = Date.now()
+              if (first && n.found) Object.assign(n, { members: n.found.members, messages: n.found.messages, kind0: n.found.kind0 })
+            }
             if (kitCurrent === 'account-nostr') bsRerender()
-          }, 1400)
+            if (n.syncing) return setTimeout(step, 900)
+            bsToast(first ? `Synced · ${n.members.length} devices found` : `Synced with ${n.relays.length} relays`)
+          }
+          setTimeout(step, 900)
         }
         return bsRerender()
       }
       if (e.target.closest('#bs-create-key')) {
         n.deviceNpub = 'npub1s8gx3r0d6m4kpz2wq9cl7yv5ht3nf8ue6aj0rxk2ds4gq7vz5mfqh2l9wc'
+        bsToast('Device key created')
         return bsRerender()
       }
       const member = e.target.closest('[data-member]')

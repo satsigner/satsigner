@@ -739,7 +739,11 @@ registerScreen('ark-board', {
       '#al-board-go': (el) => {
         const v = Number(body.querySelector('[data-ss-amount]').dataset.value || alArk.boardAmount)
         alBusy(el, () => {
-          alArk.pendingBoards.unshift({ vtxoId: 'b' + Date.now(), amountSats: v, txid: alHex('board-' + v + Date.now()) })
+          const txid = alHex('board-' + v + Date.now())
+          alArk.pendingBoards.unshift({ vtxoId: 'b' + Date.now(), amountSats: v, txid, added: true })
+          // The board shows on the account as a pending movement, like the app after boarding.
+          alMovements.push({ id: Math.max(...alMovements.map((m) => m.id)) + 1, kind: 'board', amount: v, status: 'pending', lightning: false, subsystem: ['board', 'onchain'], fee: 210, at: Date.now(), txids: [txid], sent: [], received: [], inputs: [], outputs: [txid.slice(0, 12) + ':0'], exited: [], added: true })
+          alArk.account.pending += v
           ss.toast(t('ark.board.confirm'), document.getElementById('view-kit'))
           setTimeout(() => go('ark-account'), 700)
         }, 1200)

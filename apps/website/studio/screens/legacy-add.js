@@ -43,9 +43,12 @@ document.head.insertAdjacentHTML('beforeend', `<style>
 .lx-psbt.is-valid { border-color: var(--main-green); }
 .lx-psbt.is-empty { color: var(--gray-300); }
 .lx-half { width: 48% !important; }
-/* manager header block (#131313) and settings multisig container */
-.lx-msig-head { margin: 0 calc(-1 * var(--layout-main-container-padding-horizontal)); padding: 16px; background: #131313; }
-.lx-keys { padding-top: 16px; }
+/* manager header block (#131313). Drop the screen inset so the fill meets the phone edges;
+   percentage negative margins resolve against the content box and leave a sliver. */
+#kit-body:has(.lx-msig-head) { padding-left: 0; padding-right: 0; }
+.lx-msig-head { margin: 0; padding: 16px var(--pad-main-x); background: #131313; }
+.lx-keys { padding: 16px var(--pad-main-x) 0; }
+.lx-msig-actions { padding: 16px var(--pad-main-x); }
 /* white confirm card used by drop seed / reset key */
 .lx-confirm { width: 100%; max-width: 300px; margin: auto 40px; padding: 20px 16px; border-radius: 8px; background: var(--white); box-shadow: 0 2px 3.84px rgba(0,0,0,0.25); }
 .lx-confirm .ss-button.v-ghost { background: var(--gray-100); color: var(--black); }
@@ -880,7 +883,7 @@ registerScreen('multisig-keys', {
         lxSigDisplay(msigRequired, msigTotal, 0),
         ss.text({ center: true }, t('account.addOrGenerateKeys')))}</div>`,
       `<div class="lx-keys">${shown.map((k, i) => lxKeyControl(k, i, msigTotal, 'setup')).join('')}</div>`,
-      ss.vstack({ style: 'padding:16px 0' },
+      ss.vstack({ className: 'lx-msig-actions' },
         ss.button({ label: t('common.confirm'), variant: 'secondary', disabled: !ready, id: 'lx-msig-confirm' }),
         ss.button({ label: t('common.cancel'), variant: 'ghost', go: 'multisig-setup' })))
   },
