@@ -2826,9 +2826,61 @@ document.getElementById('sign-body').addEventListener('click', (e) => {
     const button = e.target.closest('#broadcast')
     button.disabled = true
     button.innerHTML = '<span class="ss-spinner"></span>'
+    recordBroadcast()
     setTimeout(() => renderSent(signState.txid), 700)
   }
 })
+
+// The broadcast shows up in the account as an unconfirmed send, so "Back to account home"
+// lands on it. Marked `broadcast` so the demo reset can take it back out.
+function recordBroadcast() {
+  const account = openAccountData
+  const list = account && activity[account.fingerprint]
+  if (!list || list.some((tx) => tx.txid === signState.txid)) return
+  const tot = draftTotals()
+  const amount = signState.amount
+  const spent = amount + tot.fee
+  const before = list.length ? list[list.length - 1].balance : account.balance
+  list.push({
+    type: 'send',
+    label: signState.label,
+    tags: [],
+    amount,
+    fiat: satsUsd(amount),
+    historical: '',
+    priceChange: '',
+    ago: '',
+    txid: signState.txid,
+    conf: 0,
+    block: 0,
+    balance: before - spent,
+    inputs: Math.max(tot.inputs.length, 1),
+    outputs: draft.outputs.length + 1,
+    size: tot.vsize + 80,
+    vsize: tot.vsize,
+    weight: tot.vsize * 4,
+    fee: tot.fee,
+    version: 2,
+    broadcast: { spent, stats: account.stats.map((row) => row.slice()) }
+  })
+  account.balance -= spent
+  account.fiat = satsUsd(account.balance)
+  account.stats[0][0] = String(Number(account.stats[0][0]) + 1)
+}
+
+function undoBroadcasts() {
+  accounts.forEach((account) => {
+    const list = activity[account.fingerprint] || []
+    for (let i = list.length - 1; i >= 0; i -= 1) {
+      const sent = list[i].broadcast
+      if (!sent) continue
+      account.balance += sent.spent
+      account.fiat = satsUsd(account.balance)
+      account.stats = sent.stats
+      list.splice(i, 1)
+    }
+  })
+}
 
 // transactionConfirmation.tsx
 function renderSent(txid) {
@@ -4532,6 +4584,12 @@ const stagePlay = document.getElementById('stage-play')
 const demoCursor = document.getElementById('demo-cursor')
 let demoToken = 0
 let demoTimer = 0
+let demoRunId = 0
+
+function notifyDemo(playing) {
+  if (window.parent === window) return
+  window.parent.postMessage({ type: 'satsigner-demo', playing: playing, run: demoRunId }, location.origin)
+}
 
 function waitDemo(ms, token) {
   return new Promise((resolve) => {
@@ -4555,6 +4613,7 @@ function stopDemo() {
     stagePlay.setAttribute('aria-pressed', 'false')
     stagePlay.parentElement.classList.remove('is-playing')
   }
+  notifyDemo(false)
 }
 
 function demoTarget(selector) {
@@ -4579,7 +4638,8 @@ function revealDemoTarget(target) {
   }
 }
 
-async function pressDemo(token, selector) {
+// `quick` moves the cursor faster, for runs of repeated taps like seed word confirmation.
+async function pressDemo(token, selector, quick = false) {
   if (token !== demoToken) return false
   const screen = document.querySelector('.phone-screen')
   const target = demoTarget(selector)
@@ -4589,24 +4649,115 @@ async function pressDemo(token, selector) {
   const frame = screen.getBoundingClientRect()
   demoCursor.hidden = false
   demoCursor.classList.add('is-on')
+  demoCursor.classList.toggle('is-quick', quick)
   demoCursor.classList.remove('is-pressing')
   demoCursor.style.left = box.left + box.width / 2 - frame.left + 'px'
   demoCursor.style.top = box.top + box.height / 2 - frame.top + 'px'
-  if (!(await waitDemo(480, token))) return false
+  if (!(await waitDemo(quick ? 240 : 480, token))) return false
   demoCursor.classList.add('is-pressing')
-  if (!(await waitDemo(160, token))) return false
+  if (!(await waitDemo(quick ? 110 : 160, token))) return false
   demoCursor.classList.remove('is-pressing')
   return token === demoToken
 }
 
-async function tapDemo(token, selector, hold = 1400) {
+async function tapDemo(token, selector, hold = 1400, quick = false) {
   const target = demoTarget(selector)
-  if (!target || !(await pressDemo(token, target))) return false
+  if (!target || !(await pressDemo(token, target, quick))) return false
   target.click()
   return waitDemo(hold, token)
 }
 
-async function playDemo(flow) {
+// Types like a person: one character at a time. Kit screens can re-render on every
+// keystroke (new-account does), so the field is looked up again each time.
+async function typeDemo(token, selector, text) {
+  if (!(await pressDemo(token, selector))) return false
+  for (let i = 1; i <= text.length; i += 1) {
+    const field = demoTarget(selector)
+    if (!field) return false
+    field.focus()
+    field.value = text.slice(0, i)
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+    if (!(await waitDemo(70, token))) return false
+  }
+  const field = demoTarget(selector)
+  if (field) {
+    field.dispatchEvent(new Event('change', { bubbles: true }))
+    field.blur()
+  }
+  return waitDemo(600, token)
+}
+
+// Drags an ss.amountInput slider to `sats` over a few frames.
+async function slideDemo(token, selector, sats) {
+  if (!(await pressDemo(token, selector))) return false
+  const slider = demoTarget(selector)
+  if (!slider) return false
+  const from = Number(slider.value)
+  for (let step = 1; step <= 12; step += 1) {
+    slider.value = Math.round(from + ((sats - from) * step) / 12)
+    slider.dispatchEvent(new Event('input', { bubbles: true }))
+    if (!(await waitDemo(40, token))) return false
+  }
+  return waitDemo(700, token)
+}
+
+// Waits for async UI (signing, redeeming, finishing) to show `selector` or satisfy a check.
+async function untilDemo(token, selector, timeout = 8000) {
+  for (let waited = 0; waited < timeout; waited += 200) {
+    if (typeof selector === 'function' ? selector() : demoTarget(selector)) return waitDemo(500, token)
+    if (!(await waitDemo(200, token))) return false
+  }
+  return false
+}
+
+async function demoSteps(steps) {
+  for (const step of steps) {
+    if (await step()) continue
+    if (document.documentElement.classList.contains('is-demo')) console.warn('Demo stopped at', String(step), 'on', routeId)
+    return false
+  }
+  return true
+}
+
+const demoOnScreen = (id) => () => routeId === id
+
+// Each run starts from the same fixtures, so a flow can be replayed and a stopped flow
+// doesn't leak into the next one.
+function resetDemoState() {
+  closeSheet()
+  setDrawer(false)
+  document.querySelectorAll('.ss-modal:not([hidden]), .bd-warning:not([hidden]), .bd-gradient-modal:not([hidden])').forEach((node) => node.setAttribute('hidden', ''))
+  for (let i = accounts.length - 1; i >= 0; i -= 1) if (accounts[i].created) accounts.splice(i, 1)
+  undoBroadcasts()
+  coins.forEach((coin) => (coin.selected = coin.id === 'salary'))
+  activeNetwork = 'signet'
+  newAccountName = 'Spending'
+  newAccountPolicy = 'singlesig'
+  Object.assign(lxState, { typedName: '', words: 24, keyWords: 24, entropy: 'none', keyEntropy: 'none', keyIndex: 0, expanded: null, pending: null })
+  Object.assign(bdState, { wordIndex: 0, choice: 0, keyIndex: 0, passphrase: '', importWords: Array(12).fill(''), activeWord: null })
+  msigRequired = 2
+  msigTotal = 3
+  multisigKeys.forEach((key) => Object.assign(key, { name: '', source: '', fingerprint: '', pub: '', seed: false, signed: false, creationType: null }))
+  draft.outputs = []
+  draft.feeRate = 2.2
+  draft.editing = null
+  replacementDraft = null
+  Object.assign(esReceive, { tab: 'ecash', token: '', redeemed: false, amount: '', fiatMode: false, memo: '', quote: '', status: 'pending' })
+  esState.proofs = esState.proofs.filter((proof) => !proof.added)
+  esState.transactions = esState.transactions.filter((tx) => !tx.added)
+  alArk.boardTab = 'address'
+  alArk.boardAmount = 50000
+  alArk.pendingBoards = alArk.pendingBoards.filter((board) => !board.added)
+  for (let i = alMovements.length - 1; i >= 0; i -= 1) {
+    if (!alMovements[i].added) continue
+    alArk.account.pending -= alMovements[i].amount
+    alMovements.splice(i, 1)
+  }
+}
+
+async function playDemo(flow, runId) {
+  const run = DEMO_FLOWS[flow] || DEMO_FLOWS.send
+  demoRunId = runId || 0
   demoToken += 1
   const token = demoToken
   clearTimeout(demoTimer)
@@ -4614,47 +4765,172 @@ async function playDemo(flow) {
   stagePlay.textContent = 'Stop'
   stagePlay.setAttribute('aria-pressed', 'true')
   stagePlay.parentElement.classList.add('is-playing')
-  closeSheet()
-  setDrawer(false)
+  resetDemoState()
   go('signer')
-  if (!(await waitDemo(500, token))) return
+  if (!(await waitDemo(500, token))) return false
 
-  let ok = false
-  if (flow === 'account') ok = await playCreateAccount(token)
-  else ok = await playSendTransaction(token)
+  const ok = await run(token)
   if (token === demoToken) stopDemo()
   return ok
 }
 
-async function playSendTransaction(token) {
-  if (!(await tapDemo(token, '#menu-list .menu-button'))) return false
-  if (!(await tapDemo(token, '#account-list .account-card'))) return false
-  if (!(await tapDemo(token, '#send-open'))) return false
-  if (!(await tapDemo(token, '#coin-use'))) return false
-  if (!(await tapDemo(token, '#io-preview-go'))) return false
-  if (!(await tapDemo(token, '#sign-open'))) return false
-  for (let i = 0; i < 12; i += 1) {
-    if (demoTarget('#broadcast')) return tapDemo(token, '#broadcast', 1600)
-    if (!(await waitDemo(400, token))) return false
+// Confirms every seed word by picking the right candidate, then acknowledges the warning.
+// Multisig keys skip the warning and return to the key manager instead.
+async function confirmSeedDemo(token) {
+  for (let i = 0; i < BD_MNEMONIC.length; i += 1) {
+    const pick = bdCandidates(i).indexOf(BD_MNEMONIC[i]) + 1
+    if (!(await tapDemo(token, '#kit-body [data-choice="' + pick + '"]', 420, true))) return false
+    if (!(await tapDemo(token, '#bd-next', 200, true))) return false
   }
-  return false
+  return true
 }
 
-async function playCreateAccount(token) {
-  if (!(await tapDemo(token, '#menu-list .menu-button'))) return false
-  if (!(await tapDemo(token, '.add-account'))) return false
-  const field = '#kit-body .lx-account-name input'
-  if (!(await pressDemo(token, field))) return false
-  const input = demoTarget(field)
-  if (!input) return false
-  input.focus()
-  input.value = 'Holiday'
-  input.dispatchEvent(new Event('input', { bubbles: true }))
-  if (!(await waitDemo(700, token))) return false
-  if (!(await tapDemo(token, '#lx-continue'))) return false
-  return tapDemo(token, '#lx-generate', 1800)
-}
+// Opens a mnemonic length select (lx-words / lx-key-words) and picks 12 words, matching the
+// 12-word seed the generate screens show.
+const twelveWordsDemo = (token, id) => [
+  () => tapDemo(token, '#kit-body [data-open="' + id + '"]', 900),
+  () => tapDemo(token, '#' + id + ' [data-ss-radio][data-value="12"]', 900),
+  () => tapDemo(token, '#' + id + ' [data-lx-select="' + id + '"]')
+]
 
+const openBitcoinDemo = (token) => [
+  () => tapDemo(token, '#menu-list .menu-button'),
+  () => untilDemo(token, demoOnScreen('accounts'))
+]
+
+const newAccountDemo = (token, name, policy) => [
+  ...openBitcoinDemo(token),
+  () => tapDemo(token, '#kit-body [data-go="new-account"]'),
+  () => typeDemo(token, '#kit-body .lx-account-name input', name),
+  ...(policy ? [() => tapDemo(token, '#kit-body [data-policy="' + policy + '"]', 900)] : []),
+  () => tapDemo(token, '#lx-continue')
+]
+
+const DEMO_FLOWS = {
+  send: (token) =>
+    demoSteps([
+      ...openBitcoinDemo(token),
+      () => tapDemo(token, '#kit-body [data-lb-account]'),
+      () => tapDemo(token, '#kit-body [data-lb-send]'),
+      () => tapDemo(token, '#kit-body [data-coin]', 900),
+      () => tapDemo(token, '#coin-use'),
+      () => tapDemo(token, '#io-add-output'),
+      () => tapDemo(token, '#io-output-modal #io-paste', 900),
+      () => slideDemo(token, '#io-output-modal .ss-slider', 42000),
+      () => typeDemo(token, '#io-output-modal .io-label textarea', 'Coffee'),
+      () => tapDemo(token, '#io-save-output'),
+      () => tapDemo(token, '#io-preview-go'),
+      () => tapDemo(token, '#sign-open'),
+      () => untilDemo(token, '#broadcast', 12000),
+      () => tapDemo(token, '#broadcast'),
+      () => untilDemo(token, '#sent-body [data-go="account"]'),
+      () => waitDemo(1400, token),
+      () => tapDemo(token, '#sent-body [data-go="account"]', 1600)
+    ]),
+  account: (token) =>
+    demoSteps([
+      ...newAccountDemo(token, 'Holiday'),
+      ...twelveWordsDemo(token, 'lx-words'),
+      () => tapDemo(token, '#lx-generate', 1800),
+      () => tapDemo(token, '#bd-confirm'),
+      () => confirmSeedDemo(token),
+      () => untilDemo(token, '#bd-ack'),
+      () => waitDemo(1200, token),
+      () => tapDemo(token, '#bd-ack'),
+      () => untilDemo(token, demoOnScreen('add-created')),
+      () => waitDemo(800, token),
+      () => tapDemo(token, '#bd-goto', 1800)
+    ]),
+  import: (token) =>
+    demoSteps([
+      ...newAccountDemo(token, 'Restored'),
+      () => tapDemo(token, '#lx-import'),
+      () => tapDemo(token, '#bd-paste', 1600),
+      () => tapDemo(token, '#bd-import'),
+      () => untilDemo(token, demoOnScreen('add-created')),
+      () => waitDemo(800, token),
+      () => tapDemo(token, '#bd-goto', 1800)
+    ]),
+  multisig: (token) => {
+    const importKey = (index, name) => [
+      () => tapDemo(token, '#kit-body [data-lx-toggle="' + index + '"]', 700),
+      () => typeDemo(token, '#kit-body .lx-key-name[data-key="' + index + '"] input', name),
+      () => tapDemo(token, '#kit-body [data-act="import-xpub"][data-i="' + index + '"]'),
+      () => tapDemo(token, '#bd-paste', 900),
+      () => tapDemo(token, '#bd-paste-fp', 900),
+      () => tapDemo(token, '#bd-confirm'),
+      () => untilDemo(token, demoOnScreen('multisig-keys'))
+    ]
+    return demoSteps([
+      ...newAccountDemo(token, 'Family vault', 'multisig'),
+      () => untilDemo(token, demoOnScreen('multisig-setup')),
+      () => tapDemo(token, '#lx-msig-continue'),
+      () => tapDemo(token, '#kit-body [data-lx-toggle="0"]', 700),
+      () => typeDemo(token, '#kit-body .lx-key-name[data-key="0"] input', 'Phone'),
+      () => tapDemo(token, '#kit-body [data-act="generate"][data-i="0"]'),
+      ...twelveWordsDemo(token, 'lx-key-words'),
+      () => tapDemo(token, '#lx-key-generate', 1800),
+      () => tapDemo(token, '#bd-confirm'),
+      () => confirmSeedDemo(token),
+      () => untilDemo(token, demoOnScreen('multisig-keys')),
+      ...importKey(1, 'Laptop'),
+      ...importKey(2, 'Hardware'),
+      () => tapDemo(token, '#lx-msig-confirm'),
+      () => untilDemo(token, '#kit-body #bd-goto'),
+      () => waitDemo(800, token),
+      () => tapDemo(token, '#kit-body #bd-goto', 1800)
+    ])
+  },
+  nostr: (token) =>
+    demoSteps([
+      ...openBitcoinDemo(token),
+      () => tapDemo(token, '#kit-body [data-lb-account]'),
+      () => {
+        bsNostrFresh()
+        return true
+      },
+      () => tapDemo(token, '#view-kit .lb-header-extra'),
+      () => tapDemo(token, '#kit-body [data-go="account-nostr"]'),
+      () => tapDemo(token, '#kit-body #bs-create-key', 1800),
+      () => tapDemo(token, '#kit-body [data-go="account-nostr-relays"]'),
+      () => tapDemo(token, '#kit-body [data-relay="wss://relay.damus.io"]', 700),
+      () => tapDemo(token, '#kit-body [data-relay="wss://nos.lol"]', 700),
+      () => tapDemo(token, '#kit-body [data-relay="wss://relay.primal.net"]', 700),
+      () => tapDemo(token, '#kit-body #bs-save-relays'),
+      () => tapDemo(token, '#kit-body #bs-sync-toggle'),
+      () => untilDemo(token, () => !bsState().nostr.syncing),
+      () => waitDemo(1200, token),
+      () => tapDemo(token, '#kit-body [data-trust="' + bsState().nostr.members[1].npub + '"]'),
+      () => tapDemo(token, '#bs-trust-yes', 2200)
+    ]),
+  ecash: (token) =>
+    demoSteps([
+      () => tapDemo(token, '#menu-list .menu-item:nth-child(5) .menu-button'),
+      () => tapDemo(token, '#kit-body [data-go="ecash-account"]'),
+      () => tapDemo(token, '#kit-body [data-lh-act="receive"]'),
+      () => tapDemo(token, '#kit-body #es-paste-token', 1600),
+      () => tapDemo(token, '#kit-body #es-redeem'),
+      () => untilDemo(token, () => esReceive.redeemed),
+      () => waitDemo(800, token),
+      () => tapDemo(token, '#kit-body [data-es-tab][data-value="lightning"]'),
+      () => typeDemo(token, '#kit-body #es-amount input, #kit-body input#es-amount', '5000'),
+      () => tapDemo(token, '#kit-body #es-invoice-btn', 1800),
+      () => untilDemo(token, () => esReceive.status === 'paid'),
+      () => waitDemo(1200, token),
+      () => tapDemo(token, '#view-kit .back, #view-kit [data-kit-back]', 1600)
+    ]),
+  ark: (token) =>
+    demoSteps([
+      () => tapDemo(token, '#menu-list .menu-item:nth-child(3) .menu-button'),
+      () => tapDemo(token, '#kit-body [data-go="ark-account"]'),
+      () => tapDemo(token, '#view-kit [data-go="ark-settings"]'),
+      () => tapDemo(token, '#kit-body [data-go="ark-board"]'),
+      () => slideDemo(token, '#kit-body .ss-slider', 120000),
+      () => tapDemo(token, '#kit-body #al-board-go'),
+      () => untilDemo(token, demoOnScreen('ark-account')),
+      () => waitDemo(1600, token)
+    ])
+}
 if (stageHome) {
   stageHome.addEventListener('click', () => {
     stopDemo()
@@ -4681,8 +4957,8 @@ window.satSignerDemo = {
     if (screen) go(screen)
     else startOnboarding()
   },
-  play(flow) {
-    return playDemo(flow === 'account' ? 'account' : 'send')
+  play(flow, runId) {
+    return playDemo(DEMO_FLOWS[flow] ? flow : 'send', runId)
   },
   stop: stopDemo
 }

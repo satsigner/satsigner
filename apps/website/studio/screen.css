@@ -146,13 +146,13 @@ svg text {
   border-radius: inherit;
   pointer-events: none;
   border: calc(var(--frame) * 4 / 280) solid transparent;
-  filter: blur(1.8px);
+  filter: blur(0.7px);
   background:
     linear-gradient(#000, #000) padding-box,
-    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
-    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
-    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box,
-    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box;
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box,
+    radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box;
   background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
 
@@ -252,13 +252,13 @@ svg text {
 .phone-screen,
 .phone-screen * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
 
 .phone-screen::-webkit-scrollbar,
 .phone-screen *::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 2px;
+  height: 2px;
   background: transparent;
 }
 
@@ -273,13 +273,13 @@ svg text {
 
 .phone-screen::-webkit-scrollbar-thumb,
 .phone-screen *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
 }
 
 .phone-screen::-webkit-scrollbar-thumb:hover,
 .phone-screen *::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .phone-screen::-webkit-scrollbar-button,
@@ -905,18 +905,44 @@ svg text {
 }
 
 .tab-bar {
+  --tab-index: 1;
+  position: relative;
   display: flex;
   height: 70px;
   margin-top: auto;
   background: var(--gray-925);
-  border-top: 1px solid transparent;
-  border-image: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0.22),
-      rgba(255, 255, 255, 0.02)
-    )
-    1;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tab-bar:has(.tab:nth-child(1).is-active) {
+  --tab-index: 0;
+}
+
+.tab-bar:has(.tab:nth-child(2).is-active) {
+  --tab-index: 1;
+}
+
+.tab-bar:has(.tab:nth-child(3).is-active) {
+  --tab-index: 2;
+}
+
+.tab-bar::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: calc(100% / 3);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.28),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.18);
+  transform: translateX(calc(var(--tab-index) * 100%));
+  transition: transform 280ms ease;
+  pointer-events: none;
 }
 
 .hero.is-phone .tab-bar {
@@ -3319,6 +3345,10 @@ html.is-embed.is-demo .demo-cursor {
 
 .demo-cursor.is-on {
   opacity: 1;
+}
+
+.demo-cursor.is-quick {
+  transition-duration: 220ms, 220ms, 90ms, 200ms;
 }
 
 .demo-cursor.is-pressing {
