@@ -22,6 +22,9 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 // `false` disables waiting for lightning-send confirmation before returning.
 export const ARK_LIGHTNING_SEND_WAIT = false
+// `undefined` leaves how long the Ark server keeps retrying a lightning
+// payment to the server (bark's `retry_for_secs: None`).
+export const ARK_LIGHTNING_RETRY_FOR_SECS = undefined
 export const ARK_NO_HTLC_VTXOS_LOCKED = 0
 export const ARK_PENDING_RACE_TIMEOUT_MS = 30_000
 export const ARK_PENDING_TXID = 'pending'

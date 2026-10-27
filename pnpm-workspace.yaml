@@ -18,6 +18,5 @@ overrides:
   react: 19.3.0
   react-dom: 19.3.0
 patchedDependencies:
-  '@secondts/bark-react-native@0.25.0': patches/@secondts__bark-react-native@0.25.0.patch
   react-native-bdk-sdk@0.8.0: patches/react-native-bdk-sdk@0.8.0.patch
   react-native-draggable-flatlist@4.0.3: patches/react-native-draggable-flatlist@4.0.3.patch
