@@ -392,6 +392,27 @@ const ss = (() => {
   function successCheck(p = {}) {
     const size = p.size || 159
     const id = `ss-success-${++successId}`
+    // SSIconSuccess outline: signed, not yet broadcast. Ring and check, no filled disc.
+    if (p.variant === 'outline') {
+      return `<span class="ss-success is-outline" style="width:${size}px;height:${size}px">
+        <svg viewBox="-22 -22 204 204" width="${size}" height="${size}" fill="none">
+          <defs>
+            <radialGradient id="${id}-rim" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff" stop-opacity="0"/><stop offset="48%" stop-color="#fff" stop-opacity="0"/>
+              <stop offset="72%" stop-color="#fff" stop-opacity="0.05"/><stop offset="88%" stop-color="#fff" stop-opacity="0.11"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="0.15"/>
+            </radialGradient>
+            <radialGradient id="${id}-center" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff" stop-opacity="0.14"/><stop offset="38%" stop-color="#fff" stop-opacity="0.05"/>
+              <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="80" cy="80" r="70" fill="url(#${id}-rim)"/>
+          <circle cx="80" cy="80" r="70" fill="url(#${id}-center)"/>
+          <circle cx="80" cy="80" r="72" fill="none" stroke="#fff" stroke-opacity="0.52" stroke-width="1.2"/>
+          <path d="M44 81 L69 106 L116 52" stroke="#fff" stroke-opacity="0.52" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></span>`
+    }
     return `<span class="ss-success${p.static ? ' is-static' : ''}" style="width:${size}px;height:${size}px">
       <i class="ss-success-ring"></i><i class="ss-success-ring is-late"></i>
       <svg viewBox="-44 -44 248 248" width="${size}" height="${size}" fill="none">

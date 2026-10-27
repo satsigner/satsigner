@@ -2750,7 +2750,7 @@ function renderSign() {
           ss.text({ color: 'muted', center: true }, t(st.hint))))
     : ss.vstack({ itemsCenter: true },
         ss.text({ size: 'md', uppercase: true, weight: 'light' }, signed ? (multisig ? tn('readyToBroadcast') : tn('signed')) : tn('signing')),
-        signed ? ss.successCheck({ static: true }) : ss.orbitLoader({ size: 160 }),
+        signed ? ss.successCheck({ variant: 'outline' }) : ss.orbitLoader({ size: 160 }),
         signed && st.payjoin
           ? ss.vstack({ gap: 'xs', itemsCenter: true },
               ss.text({ color: 'muted', center: true }, t('transaction.build.payjoin.success')),
@@ -4626,16 +4626,46 @@ function demoTarget(selector) {
   return null
 }
 
-function revealDemoTarget(target) {
-  let box = target.parentElement
-  while (box && box !== document.body) {
-    if (box.scrollHeight > box.clientHeight + 1) {
-      const top = target.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
-      box.scrollTop = Math.max(0, top - box.clientHeight / 2)
-      return
-    }
-    box = box.parentElement
+function demoScroller(target) {
+  for (let box = target.parentElement; box && box !== document.body; box = box.parentElement) {
+    const overflow = getComputedStyle(box).overflowY
+    if ((overflow === 'auto' || overflow === 'scroll') && box.scrollHeight > box.clientHeight + 1) return box
   }
+  return null
+}
+
+// Scrolls like a thumb would: only when the target is out of comfortable view, and eased
+// over a time that grows with the distance. Resolves once the scroll settles.
+async function revealDemoTarget(target, token) {
+  const box = demoScroller(target)
+  if (!box) return true
+  const screen = document.querySelector('.phone-screen')
+  const view = box.getBoundingClientRect()
+  const frame = screen ? screen.getBoundingClientRect() : view
+  const top = Math.max(view.top, frame.top)
+  const bottom = Math.min(view.bottom, frame.bottom)
+  const rect = target.getBoundingClientRect()
+  const margin = 72
+  if (rect.top >= top + margin && rect.bottom <= bottom - margin) return true
+  const from = box.scrollTop
+  const max = box.scrollHeight - box.clientHeight
+  const to = Math.max(0, Math.min(max, from + rect.top - top - (bottom - top - rect.height) / 2))
+  const distance = Math.abs(to - from)
+  if (distance < 2) return true
+  const duration = Math.min(900, 320 + distance * 0.6)
+  const start = performance.now()
+  await new Promise((resolve) => {
+    const frameStep = (now) => {
+      if (token !== demoToken) return resolve()
+      const p = Math.min(1, (now - start) / duration)
+      const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
+      box.scrollTop = from + (to - from) * eased
+      if (p < 1) requestAnimationFrame(frameStep)
+      else resolve()
+    }
+    requestAnimationFrame(frameStep)
+  })
+  return waitDemo(120, token)
 }
 
 // `quick` moves the cursor faster, for runs of repeated taps like seed word confirmation.
@@ -4644,7 +4674,7 @@ async function pressDemo(token, selector, quick = false) {
   const screen = document.querySelector('.phone-screen')
   const target = demoTarget(selector)
   if (!demoCursor || !screen || !target) return false
-  revealDemoTarget(target)
+  if (!(await revealDemoTarget(target, token))) return false
   const box = target.getBoundingClientRect()
   const frame = screen.getBoundingClientRect()
   demoCursor.hidden = false
