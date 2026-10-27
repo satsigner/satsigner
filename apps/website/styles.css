@@ -433,13 +433,13 @@ a{
   border-radius: inherit;
   pointer-events: none;
   border: 4px solid transparent;
-  filter: blur(1.8px);
+  filter: blur(0.7px);
   background:
     linear-gradient(#000, #000) padding-box,
-    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0.16) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box,
-    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.12) 38%, transparent 100%) border-box;
+    radial-gradient(circle 78px at 0 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle 78px at 100% 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+    radial-gradient(circle 78px at 0 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box,
+    radial-gradient(circle 78px at 100% 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box;
   background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
 .hero-mark .phone::before {
@@ -736,6 +736,8 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
 }
 .hero-demo {
   position: relative;
+  display: inline-flex;
+  align-items: baseline;
 }
 .hero-demo-link {
   position: relative;
@@ -762,6 +764,32 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   border-bottom: 1px solid currentColor;
   transform: translateY(calc(-50% - 0.05rem)) rotate(45deg);
   opacity: 0.7;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-demo.is-playing:not(:hover):not(:focus-within):not(.is-open) .hero-demo-caret {
+  transform: translateY(calc(-50% - 0.05rem)) rotate(-45deg);
+}
+.hero-demo-now {
+  display: inline-block;
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.62);
+  opacity: 0;
+  transition:
+    opacity 0.4s ease,
+    max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    margin-left 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-demo.is-playing .hero-demo-now {
+  max-width: 14rem;
+  margin-left: 0.55rem;
+  opacity: 1;
 }
 .hero-demo:hover .hero-demo-link,
 .hero-demo:focus-within .hero-demo-link,
@@ -798,6 +826,16 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
     transform 0.34s cubic-bezier(0.16, 1, 0.3, 1),
     visibility 0s linear 0.2s;
 }
+.hero-demo.is-up::before {
+  top: auto;
+  bottom: 100%;
+}
+.hero-demo.is-up .hero-demo-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateY(8px) scale(0.96);
+  transform-origin: bottom left;
+}
 .hero-demo.is-open .hero-demo-menu {
   opacity: 1;
   visibility: visible;
@@ -830,6 +868,31 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   .hero-demo.is-open .hero-demo-menu button:nth-child(2) {
     animation-delay: 0.05s;
   }
+  .hero-demo:hover .hero-demo-menu button:nth-child(3),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(3),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(3) {
+    animation-delay: 0.10s;
+  }
+  .hero-demo:hover .hero-demo-menu button:nth-child(4),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(4),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(4) {
+    animation-delay: 0.15s;
+  }
+  .hero-demo:hover .hero-demo-menu button:nth-child(5),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(5),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(5) {
+    animation-delay: 0.20s;
+  }
+  .hero-demo:hover .hero-demo-menu button:nth-child(6),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(6),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(6) {
+    animation-delay: 0.25s;
+  }
+  .hero-demo:hover .hero-demo-menu button:nth-child(7),
+  .hero-demo:focus-within .hero-demo-menu button:nth-child(7),
+  .hero-demo.is-open .hero-demo-menu button:nth-child(7) {
+    animation-delay: 0.3s;
+  }
 }
 @keyframes menu-item-in {
   from { opacity: 0; transform: translateY(-6px); }
@@ -847,6 +910,10 @@ html:not(.is-ready) .hero.is-intro.is-phone .phone-key {
   .hero-demo:focus-within .hero-demo-menu button,
   .hero-demo.is-open .hero-demo-menu button {
     animation: none;
+  }
+  .hero-demo-caret,
+  .hero-demo-now {
+    transition: none;
   }
 }
 .hero-demo-menu button {
@@ -3484,6 +3551,9 @@ html[data-theme="light"] .hero-version:hover {
 html[data-theme="light"] .hero-demo-link {
   color: rgba(22, 22, 22, 0.45);
 }
+html[data-theme="light"] .hero-demo-now {
+  color: rgba(22, 22, 22, 0.55);
+}
 html[data-theme="light"] .hero-demo:hover .hero-demo-link,
 html[data-theme="light"] .hero-demo:focus-within .hero-demo-link,
 html[data-theme="light"] .hero-demo-link:hover,
@@ -3695,13 +3765,13 @@ html[data-theme="light"] .phone-screen {
   color: #fff;
 }
 html[data-theme="light"] .hero.is-phone .hero-mark::after {
-  filter: blur(1.5px);
+  filter: blur(0.55px);
   background:
     linear-gradient(#000, #000) padding-box,
-    radial-gradient(circle 90px at 0 0, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
-    radial-gradient(circle 90px at 100% 0, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.32) 38%, transparent 100%) border-box,
-    radial-gradient(circle 86px at 0 100%, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.22) 38%, transparent 100%) border-box,
-    radial-gradient(circle 86px at 100% 100%, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.22) 38%, transparent 100%) border-box;
+    radial-gradient(circle 90px at 0 0, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.28) 22%, transparent 58%) border-box,
+    radial-gradient(circle 90px at 100% 0, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.28) 22%, transparent 58%) border-box,
+    radial-gradient(circle 86px at 0 100%, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0.2) 22%, transparent 58%) border-box,
+    radial-gradient(circle 86px at 100% 100%, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0.2) 22%, transparent 58%) border-box;
   background-clip: padding-box, border-box, border-box, border-box, border-box;
 }
 

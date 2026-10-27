@@ -718,24 +718,61 @@ if (typeof Swiper !== 'undefined') {
   var demoLink = demoWrap && demoWrap.querySelector('.hero-demo-link');
   var demoMenu = demoWrap && demoWrap.querySelector('.hero-demo-menu');
   if (demoWrap && demoLink && demoMenu) {
+    // Open upward when the link sits near the bottom of the screen (phones).
+    function placeDemoMenu() {
+      var below = window.innerHeight - demoLink.getBoundingClientRect().bottom;
+      demoWrap.classList.toggle('is-up', below < demoMenu.offsetHeight + 16);
+    }
+
     function setDemoMenu(open) {
+      if (open) placeDemoMenu();
       demoLink.setAttribute('aria-expanded', open ? 'true' : 'false');
       demoWrap.classList.toggle('is-open', open);
     }
 
+    demoWrap.addEventListener('mouseenter', placeDemoMenu);
+    demoWrap.addEventListener('focusin', placeDemoMenu);
     demoLink.addEventListener('click', function () {
-      setDemoMenu(demoMenu.hidden);
+      setDemoMenu(!demoWrap.classList.contains('is-open'));
     });
+
+    var demoNow = demoWrap.querySelector('.hero-demo-now');
+    var demoRun = 0;
+
+    function showDemoName(name) {
+      demoRun += 1;
+      if (demoNow) demoNow.textContent = name;
+      demoWrap.classList.add('is-playing');
+      return demoRun;
+    }
+
+    function hideDemoName(run) {
+      if (run !== demoRun) return;
+      demoWrap.classList.remove('is-playing');
+    }
 
     demoMenu.querySelectorAll('[data-flow]').forEach(function (button) {
       button.addEventListener('click', function () {
         var flow = button.getAttribute('data-flow');
+        var run = showDemoName(button.textContent.trim());
         setDemoMenu(false);
         revealApp();
         whenDemo(function (demo) {
-          if (demo.play) demo.play(flow);
+          var pending = demo.play && demo.play(flow, run);
+          if (pending && pending.then) {
+            pending.then(function () { hideDemoName(run); }, function () { hideDemoName(run); });
+          } else {
+            hideDemoName(run);
+          }
         });
       });
+    });
+
+    window.addEventListener('message', function (event) {
+      if (event.origin !== location.origin) return;
+      var data = event.data;
+      if (!data || data.type !== 'satsigner-demo' || data.playing) return;
+      hideDemoName(data.run);
     });
 
     document.addEventListener('click', function (event) {
