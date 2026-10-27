@@ -306,7 +306,7 @@ function renderDrawer() {
     .map(([key, group]) => {
       const items = group.items
         .map((item) => {
-          const current = key === activeTab && item.title === 'Bitcoin'
+          const current = item.screen && (routeId === item.screen || routeId.startsWith(item.screen + '-'))
           return (
             '<button type="button" class="drawer-item' +
             (item.soon ? ' is-soon' : '') +
@@ -315,6 +315,7 @@ function renderDrawer() {
             key +
             '"' +
             (item.screen ? ' data-drawer-screen="' + item.screen + '"' : '') +
+            (item.upcoming ? ' data-drawer-upcoming="' + item.upcoming + '"' : '') +
             '>' +
             icon(item.icon, 'drawer-mark') +
             '<span>' +
@@ -405,19 +406,28 @@ drawer.addEventListener('click', (event) => {
   const item = event.target.closest('[data-drawer-tab], [data-drawer-settings], [data-drawer-about]')
   if (!item) return
   if (item.hasAttribute('data-drawer-settings')) {
-    setDrawer(false)
     go('settings')
     return
   }
   if (item.hasAttribute('data-drawer-about')) {
-    setDrawer(false)
     go('settings-about')
     return
   }
-  activeTab = item.dataset.drawerTab
-  paintTabs()
-  renderMenu(activeTab)
-  show(item.dataset.drawerScreen || 'menu')
+  const tab = item.dataset.drawerTab
+  if (tab && groups[tab]) {
+    activeTab = tab
+    paintTabs()
+    renderMenu(activeTab)
+  }
+  if (item.dataset.drawerScreen) {
+    go(item.dataset.drawerScreen)
+    return
+  }
+  if (item.dataset.drawerUpcoming && typeof esOpenUpcoming === 'function') {
+    esOpenUpcoming(item.dataset.drawerUpcoming)
+    return
+  }
+  show('menu', activeTab)
   setDrawer(false)
 })
 
