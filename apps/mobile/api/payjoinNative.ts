@@ -327,17 +327,25 @@ const NATIVE_FAILURE_PATTERN =
  * value; the upstream keys object is not serializable, so a sentinel is
  * returned to preserve the previous `Promise<string>` contract.
  */
+/** Checks the OHTTP relay and directory answer, without remembering the relay. */
+async function probeOhttpKeys(
+  relayUrl: string,
+  directoryUrl: string
+): Promise<void> {
+  try {
+    await nativeFetchOhttpKeys(relayUrl, directoryUrl)
+  } catch (error) {
+    throw toError(error)
+  }
+}
+
 async function fetchOhttpKeys(
   relayUrl: string,
   directoryUrl: string
 ): Promise<string> {
-  try {
-    await nativeFetchOhttpKeys(relayUrl, directoryUrl)
-    nextSenderOhttpRelay = relayUrl
-    return PAYJOIN_OHTTP_KEYS_PROBE_OK
-  } catch (error) {
-    throw toError(error)
-  }
+  await probeOhttpKeys(relayUrl, directoryUrl)
+  nextSenderOhttpRelay = relayUrl
+  return PAYJOIN_OHTTP_KEYS_PROBE_OK
 }
 
 async function httpPost(
@@ -987,6 +995,7 @@ export {
   fetchOhttpKeys,
   httpPost,
   isNativeAvailable,
+  probeOhttpKeys,
   receiverContributeAndFinalize,
   receiverExtractRequest,
   receiverFinalizeWithoutInputs,

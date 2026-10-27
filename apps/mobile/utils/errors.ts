@@ -38,10 +38,53 @@ class NostrNoRelaysError extends AppError {
   override name = 'NostrNoRelaysError'
 }
 
+/** Relays were connected but none finished answering (EOSE) in time. */
+class NostrRelayTimeoutError extends AppError {
+  override name = 'NostrRelayTimeoutError'
+}
+
+type NostrPublishFailure = { reason: string; url: string }
+
+/** No relay accepted a published event. */
+class NostrPublishError extends AppError {
+  override name = 'NostrPublishError'
+  readonly failed: NostrPublishFailure[]
+
+  constructor(failed: NostrPublishFailure[], options?: ErrorOptions) {
+    super(
+      `Failed to publish to any relay: ${failed
+        .map(({ url, reason }) => `${url}: ${reason}`)
+        .join('; ')}`,
+      options
+    )
+    this.failed = failed
+  }
+}
+
+/** Some, but not all, recipients of a multi-recipient send received it. */
+class NostrPartialSendError extends AppError {
+  override name = 'NostrPartialSendError'
+  readonly delivered: string[]
+  readonly failed: string[]
+
+  constructor(delivered: string[], failed: string[], options?: ErrorOptions) {
+    super(
+      `Delivered to ${delivered.length} of ${delivered.length + failed.length} recipients`,
+      options
+    )
+    this.delivered = delivered
+    this.failed = failed
+  }
+}
+
 export {
   AppError,
   HttpStatusError,
   NostrNoRelaysError,
+  NostrPartialSendError,
+  NostrPublishError,
+  NostrRelayTimeoutError,
   RpcError,
   RequestTimeoutError
 }
+export type { NostrPublishFailure }

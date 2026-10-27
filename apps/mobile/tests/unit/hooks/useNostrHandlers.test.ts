@@ -244,7 +244,7 @@ describe('message handlers', () => {
       await txHandler.handle(context)
 
       expect(mockToast.info).toHaveBeenCalledWith(
-        'New Transaction',
+        'New transaction',
         expect.objectContaining({
           description: expect.stringContaining('abcdef123456')
         })
@@ -275,7 +275,7 @@ describe('message handlers', () => {
       await signMessageHandler.handle(context)
 
       expect(mockToast.info).toHaveBeenCalledWith(
-        'New Sign Request',
+        'New sign request',
         expect.objectContaining({
           description: expect.stringContaining('Please sign this')
         })
@@ -365,6 +365,25 @@ describe('message handlers', () => {
         skipToast: true,
         unwrappedEvent: context.unwrappedEvent
       })
+    })
+
+    it('handle ignores PSBTs from untrusted devices', async () => {
+      mockAccounts = [
+        {
+          id: accountIds.primary,
+          nostr: { deviceNpub: nostrKeys.alice.npub, trustedMemberDevices: [] }
+        } as unknown as Account
+      ]
+      const onPendingDM = jest.fn()
+      const context = createMockContext({
+        data: { data: 'cHNidP8...', data_type: 'PSBT' },
+        onPendingDM
+      })
+
+      await psbtHandler.handle(context)
+
+      expect(mockToast.info).not.toHaveBeenCalled()
+      expect(onPendingDM).not.toHaveBeenCalled()
     })
 
     it('handle uses current time when created_at is missing', async () => {

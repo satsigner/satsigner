@@ -93,12 +93,10 @@ type BackupData = {
     nodeInfo?: LNDNodeInfo | null
   }
   lnd?: LNDConfig | null
+  // Sync cursors and dedupe state are never restored: restored cursors would
+  // skip events the restored device has not processed yet.
   nostr?: {
-    lastDataExchangeEOSE?: Record<string, number>
-    lastProtocolEOSE?: Record<string, number>
     members?: Record<string, { color: string; npub: string }[]>
-    processedEvents?: Record<string, Record<string, true>>
-    processedMessageIds?: Record<string, Record<string, true>>
     profiles?: Record<string, { displayName?: string; picture?: string }>
     trustedDevices?: Record<string, string[]>
   }
@@ -429,7 +427,6 @@ function applyStoreRestore(
   data: BackupData,
   restoredAccounts: Account[]
 ): void {
-  resetNostrSync()
   useNostrStore.getState().clearAllNostrState()
   useEcashStore.getState().clearAllData()
   useAccountsStore.getState().deleteAccounts()
@@ -439,12 +436,9 @@ function applyStoreRestore(
   }
   if (data.nostr) {
     useNostrStore.setState({
-      activeSubscriptions: new Set(),
-      lastDataExchangeEOSE: data.nostr.lastDataExchangeEOSE ?? {},
-      lastProtocolEOSE: data.nostr.lastProtocolEOSE ?? {},
+      lastDataExchangeEOSE: {},
+      lastProtocolEOSE: {},
       members: data.nostr.members ?? {},
-      processedEvents: data.nostr.processedEvents ?? {},
-      processedMessageIds: data.nostr.processedMessageIds ?? {},
       profiles: data.nostr.profiles ?? {},
       syncStatus: {},
       syncingAccounts: {},
@@ -576,6 +570,8 @@ export async function performRecoverOverwrite(
       restoredArkIds.has(account.id)
   )
   const snapshot = snapshotStores()
+  // Running subscriptions must be closed before their accounts are replaced.
+  await resetNostrSync()
 
   try {
     applyStoreRestore(data, prepared.accounts)

@@ -29,6 +29,10 @@ function setNostrFollowCache(npub: string, pubkeys: string[]): void {
   storage.set(nostrFollowCacheKey(npub), JSON.stringify(pubkeys))
 }
 
+function clearNostrFollowCache(npub: string): void {
+  storage.remove(nostrFollowCacheKey(npub))
+}
+
 function clearNostrFollowCaches(): void {
   for (const key of storage.getAllKeys()) {
     if (key.startsWith(NOSTR_FOLLOW_CACHE_PREFIX)) {
@@ -58,13 +62,44 @@ function clearAllStorage() {
   storage.clearAll()
 }
 
+const MMKV_PROBE_KEY = 'diagnostic:mmkv-probe'
+
+type MmkvKeyStat = { bytes: number; key: string }
+
+/** Byte size of every string value, largest first (diagnostics). */
+function getMmkvKeyStats(): MmkvKeyStat[] {
+  return storage
+    .getAllKeys()
+    .map((key) => ({ bytes: storage.getString(key)?.length ?? 0, key }))
+    .toSorted((a, b) => b.bytes - a.bytes)
+}
+
+function listMmkvKeys(prefix: string): string[] {
+  return storage.getAllKeys().filter((key) => key.startsWith(prefix))
+}
+
+/** Write → read → delete roundtrip on a throwaway key. */
+function probeMmkvRoundtrip(): boolean {
+  const value = `probe-${Date.now()}`
+  storage.set(MMKV_PROBE_KEY, value)
+  const roundtrip = storage.getString(MMKV_PROBE_KEY) === value
+  storage.remove(MMKV_PROBE_KEY)
+  return roundtrip && storage.getString(MMKV_PROBE_KEY) === undefined
+}
+
 export default mmkvStorage
 export {
   clearAllStorage,
+  clearNostrFollowCache,
   clearNostrFollowCaches,
   getLastBackgroundTimestamp,
+  getMmkvKeyStats,
   getNostrFollowCache,
+  listMmkvKeys,
   mmkvStorage,
+  NOSTR_FOLLOW_CACHE_PREFIX,
+  probeMmkvRoundtrip,
   setLastBackgroundTimestamp,
   setNostrFollowCache
 }
+export type { MmkvKeyStat }

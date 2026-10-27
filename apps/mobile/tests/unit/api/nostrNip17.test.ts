@@ -103,6 +103,20 @@ describe('unwrapNip59EventOrNull (NIP-17 sender verification)', () => {
     expect(unwrapNip59EventOrNull(wrap, recipientSecret)).toBeNull()
   })
 
+  it('rejects a rumor whose id is not the hash of its content', () => {
+    const senderSecret = nextSecretKey()
+    const rumor = nip59.createRumor(
+      { content: 'hello', created_at: nowSeconds(), kind: 14, tags: [] },
+      senderSecret
+    )
+    const wrap = buildGiftWrap(
+      { ...rumor, content: 'tampered after hashing' },
+      senderSecret
+    )
+
+    expect(unwrapNip59EventOrNull(wrap, recipientSecret)).toBeNull()
+  })
+
   it('rejects a rumor whose pubkey does not match the seal signer', () => {
     // Attacker seals with their own key but forges the rumor author to look
     // like one of the victim's trusted devices.

@@ -2,7 +2,11 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
   jest.requireActual('nostr-tools')
 )
 
+import { nip19 } from 'nostr-tools'
+
 import { NostrAPI } from '@/api/nostr'
+import { getDb } from '@/db/connection'
+import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
@@ -58,6 +62,30 @@ describe('nostrIdentity store', () => {
     })
     expect(useNostrIdentityStore.getState().identities[0].relayConnected).toBe(
       false
+    )
+  })
+
+  it('removeIdentity clears that identity follow cache and cached rows', () => {
+    const hex = 'a'.repeat(64)
+    const npub = nip19.npubEncode(hex)
+    const other = nip19.npubEncode('b'.repeat(64))
+    setNostrFollowCache(npub, ['c'.repeat(64)])
+    setNostrFollowCache(other, ['c'.repeat(64)])
+    useNostrIdentityStore.getState().addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: true,
+      npub
+    })
+    const execute = jest.mocked(getDb().execute)
+    execute.mockClear()
+
+    useNostrIdentityStore.getState().removeIdentity(npub)
+
+    expect(getNostrFollowCache(npub)).toBeNull()
+    expect(getNostrFollowCache(other)).toStrictEqual(['c'.repeat(64)])
+    expect(execute).toHaveBeenCalledWith(
+      'DELETE FROM nostr_event_cache WHERE pubkey = ? OR target_pubkey = ?',
+      [hex, hex]
     )
   })
 })

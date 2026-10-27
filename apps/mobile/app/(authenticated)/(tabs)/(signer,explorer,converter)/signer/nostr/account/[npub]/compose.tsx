@@ -17,7 +17,6 @@ import {
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
 import { cacheEvents } from '@/db/nostrCache'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -28,11 +27,11 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type NostrKind1DraftImport } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   buildEnhancedZapTags,
   extractEnhancedZapTags
@@ -259,8 +258,9 @@ export default function NostrComposePage() {
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
+      toast.error(
+        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
+      )
     } finally {
       setSigningExport(false)
     }
@@ -291,8 +291,9 @@ export default function NostrComposePage() {
       }
       setSignedQrPayload(compact)
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
+      toast.error(
+        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
+      )
     } finally {
       setSigningExport(false)
     }
@@ -313,30 +314,19 @@ export default function NostrComposePage() {
     try {
       const tags = buildTags()
       const api = new NostrAPI(effectiveRelays)
-      const eventId = await api.publishNote(identity.nsec, content.trim(), tags)
-
-      const hexPk = getPubKeyHexFromNpub(npub ?? '')
-      if (hexPk) {
-        cacheEvents(
-          [
-            {
-              content: content.trim(),
-              created_at: Math.floor(Date.now() / MS_PER_SECOND),
-              id: eventId,
-              kind: nostrKinds.ShortTextNote,
-              pubkey: hexPk,
-              tags
-            }
-          ],
-          [hexPk]
-        )
-      }
+      const published = await api.publishNote(
+        identity.nsec,
+        content.trim(),
+        tags
+      )
+      cacheEvents([published], [published.pubkey])
 
       toast.success(t('nostrIdentity.compose.published'))
       router.back()
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
+      toast.error(
+        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
+      )
     } finally {
       setPublishing(false)
     }

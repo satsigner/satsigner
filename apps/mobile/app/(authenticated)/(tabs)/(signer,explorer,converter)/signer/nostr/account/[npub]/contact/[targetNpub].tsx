@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, StyleSheet } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSContactProfileQrOverlay from '@/components/SSContactProfileQrOverlay'
@@ -25,6 +25,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
+import { type ZapReceiptInfo } from '@/types/models/Nostr'
 import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
@@ -241,6 +242,16 @@ export default function NostrContactProfile() {
     })
   }
 
+  function handleZapPress(receipt: ZapReceiptInfo) {
+    if (npub) {
+      router.navigate(nostrZapDetailHref(npub, receipt.id))
+    }
+  }
+
+  function handleAuthorPress(authorNpub: string) {
+    router.navigate(nostrAuthorProfileHref(npub, authorNpub))
+  }
+
   if (!targetPubkeyHex) {
     return (
       <SSMainLayout>
@@ -283,63 +294,61 @@ export default function NostrContactProfile() {
           <ActivityIndicator color={Colors.white} size="large" />
         </SSVStack>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <SSNostrHeroCard
-            identity={targetIdentity}
-            nip05Valid={nip05Valid ?? null}
-          />
-          <SSVStack gap="md" style={styles.content}>
-            <SSHStack gap="sm" style={styles.actionRow}>
-              {showZapButton ? (
-                <SSButton
-                  disabled={zapLoading}
-                  gradientType="special"
-                  label={
-                    zapLoading
-                      ? t('nostrIdentity.note.zapSending')
-                      : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
-                  }
-                  onPress={handleZap}
-                  style={styles.halfButton}
-                  variant="gradient"
-                />
-              ) : null}
-              <SSButton
-                gradientType="special"
-                label={t('nostrIdentity.contact.more')}
-                onPress={handleOpenQrOverlay}
-                style={showZapButton ? styles.halfButton : styles.fullButton}
-                variant="gradient"
+        <SSNostrFeedTabs
+          header={
+            <SSVStack gap="md">
+              <SSNostrHeroCard
+                identity={targetIdentity}
+                nip05Valid={nip05Valid ?? null}
               />
-            </SSHStack>
+              <SSVStack gap="md" style={styles.content}>
+                <SSHStack gap="sm" style={styles.actionRow}>
+                  {showZapButton ? (
+                    <SSButton
+                      disabled={zapLoading}
+                      gradientType="special"
+                      label={
+                        zapLoading
+                          ? t('nostrIdentity.note.zapSending')
+                          : `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : 21} sats`
+                      }
+                      onPress={handleZap}
+                      style={styles.halfButton}
+                      variant="gradient"
+                    />
+                  ) : null}
+                  <SSButton
+                    gradientType="special"
+                    label={t('nostrIdentity.contact.more')}
+                    onPress={handleOpenQrOverlay}
+                    style={
+                      showZapButton ? styles.halfButton : styles.fullButton
+                    }
+                    variant="gradient"
+                  />
+                </SSHStack>
 
-            {!targetIdentity.lud16 && availablePaymentMethods.length > 0 && (
-              <SSText size="xs" color="muted" center>
-                {t('nostrIdentity.note.zapEndpointNotFound')}
-              </SSText>
-            )}
-            {availablePaymentMethods.length === 0 && (
-              <SSText color="muted" center size="sm">
-                {t('nostrIdentity.contact.noWallets')}
-              </SSText>
-            )}
-
-            <SSNostrFeedTabs
-              npub={targetNpub}
-              relayConnected={relayConnected}
-              relays={effectiveRelays}
-              onNotePress={handleNotePress}
-              onZapPress={(receipt) => {
-                if (npub) {
-                  router.navigate(nostrZapDetailHref(npub, receipt.id))
-                }
-              }}
-              onAuthorPress={(authorNpub) =>
-                router.navigate(nostrAuthorProfileHref(npub, authorNpub))
-              }
-            />
-          </SSVStack>
-        </ScrollView>
+                {!targetIdentity.lud16 &&
+                  availablePaymentMethods.length > 0 && (
+                    <SSText size="xs" color="muted" center>
+                      {t('nostrIdentity.note.zapEndpointNotFound')}
+                    </SSText>
+                  )}
+                {availablePaymentMethods.length === 0 && (
+                  <SSText color="muted" center size="sm">
+                    {t('nostrIdentity.contact.noWallets')}
+                  </SSText>
+                )}
+              </SSVStack>
+            </SSVStack>
+          }
+          npub={targetNpub}
+          relayConnected={relayConnected}
+          relays={effectiveRelays}
+          onNotePress={handleNotePress}
+          onZapPress={handleZapPress}
+          onAuthorPress={handleAuthorPress}
+        />
       )}
 
       <SSPaymentMethodPicker
@@ -374,7 +383,6 @@ const styles = StyleSheet.create({
     paddingVertical: 48
   },
   content: {
-    paddingBottom: 40,
     paddingHorizontal: Layout.mainContainer.paddingHorizontal
   },
   fullButton: {

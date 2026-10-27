@@ -10,8 +10,10 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
-import useNostrSync from '@/hooks/useNostrSync'
+import {
+  NOSTR_FALLBACK_NPUB_COLOR,
+  NOSTR_TRUST_SYNC_RESTART_DELAY_MS
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -20,6 +22,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 
 export default function DeviceAliasPage() {
   const { id: accountId, npub } =
@@ -63,7 +66,6 @@ export default function DeviceAliasPage() {
     })
   )
 
-  const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(
     () => () => {
@@ -229,18 +231,14 @@ export default function DeviceAliasPage() {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
       }
-      const TRUST_SYNC_RESTART_DELAY_MS = 1500
+      // Events from this device were skipped while it was untrusted, so the
+      // data-exchange history is fetched again.
       trustSyncRestartRef.current = setTimeout(() => {
         trustSyncRestartRef.current = null
         clearProcessedEvents(accountId)
         setLastDataExchangeEOSE(accountId, 0)
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        if (current) {
-          restartSync(current, () => undefined)
-        }
-      }, TRUST_SYNC_RESTART_DELAY_MS)
+        void nostrSyncService.restartSync(accountId)
+      }, NOSTR_TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }

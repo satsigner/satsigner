@@ -4,30 +4,43 @@ import {
 } from '@/types/models/Nostr'
 
 const handlers: NostrMsgHandler[] = []
-let handlersInitialized = false
+const registryState = { initialized: false }
 
 function registerHandler(handler: NostrMsgHandler): void {
   handlers.push(handler)
 }
 
 function isInitialized(): boolean {
-  return handlersInitialized
+  return registryState.initialized
 }
 
 function setInitialized(value: boolean): void {
-  handlersInitialized = value
+  registryState.initialized = value
 }
 
+type NostrHandlerOutcome =
+  | { status: 'handled' }
+  | { status: 'unhandled' }
+  | { error: unknown; status: 'failed' }
+
+/**
+ * Runs the first handler that accepts the message. A throwing handler is
+ * reported as `failed` instead of aborting the caller's batch, so the event
+ * stays unprocessed and is retried on the next sync.
+ */
 async function processMessage(
   context: NostrMsgHandlerContext
-): Promise<boolean> {
-  for (const handler of handlers) {
-    if (handler.canHandle(context)) {
-      await handler.handle(context)
-      return true
-    }
+): Promise<NostrHandlerOutcome> {
+  const handler = handlers.find((candidate) => candidate.canHandle(context))
+  if (!handler) {
+    return { status: 'unhandled' }
   }
-  return false
+  try {
+    await handler.handle(context)
+    return { status: 'handled' }
+  } catch (error) {
+    return { error, status: 'failed' }
+  }
 }
 
 function clearHandlers(): void {
@@ -38,6 +51,7 @@ function getHandlers(): NostrMsgHandler[] {
   return [...handlers]
 }
 
+export type { NostrHandlerOutcome }
 export {
   clearHandlers,
   getHandlers,

@@ -12,6 +12,7 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
     const store = new Map<string, unknown>()
     return {
       __store: store,
+      deleteChatMessagesForIdentity: jest.fn(),
       insertChatMessage: jest.fn((message: { id: string }) => {
         if (store.has(message.id)) {
           return false
@@ -19,31 +20,117 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
         store.set(message.id, message)
         return true
       }),
+      markChatThreadRead: jest.fn(() => 0),
       updateChatMessageStatus: jest.fn()
     }
   }
 )
 
-import { getPublicKey, nip19, nip59 } from 'nostr-tools'
+jest.mock<typeof import('@/db/queries/nostrChat')>(
+  '@/db/queries/nostrChat',
+  () => {
+    type MockStoredMessage = {
+      created_at: number
+      id: string
+      protocol: string
+      status: string
+    }
+    function storedMessages(): MockStoredMessage[] {
+      const { __store } = jest.requireMock<{
+        __store: Map<string, MockStoredMessage>
+      }>('@/db/mutations/nostrChat')
+      return [...__store.values()]
+    }
+    return {
+      getNewestSentChatMessageCreatedAt: jest.fn(
+        (_npub: string, protocol: string) => {
+          const times = storedMessages()
+            .filter((m) => m.protocol === protocol && m.status === 'sent')
+            .map((m) => m.created_at)
+          return times.length > 0 ? Math.max(...times) : null
+        }
+      ),
+      getOldestChatMessageCreatedAt: jest.fn(() => null),
+      hasChatMessage: jest.fn((_npub: string, id: string) =>
+        storedMessages().some((m) => m.id === id)
+      ),
+      listChatConversations: jest.fn(() => []),
+      listChatThread: jest.fn(() => [])
+    }
+  }
+)
+
+// In-memory decrypt-once ledger.
+jest.mock<typeof import('@/db/nostrProcessedEvents')>(
+  '@/db/nostrProcessedEvents',
+  () => {
+    const processed = new Set<string>()
+    return {
+      __processed: processed,
+      chatProcessedScope: (npub: string) => `chat:${npub}`,
+      clearNostrProcessedEvents: jest.fn(() => {
+        processed.clear()
+      }),
+      countNostrProcessedEvents: jest.fn(() => processed.size),
+      getNewestProcessedCreatedAt: jest.fn(() => null),
+      getProcessedNostrEventIds: jest.fn(
+        (scope: string, ids: string[]) =>
+          new Set(ids.filter((id) => processed.has(`${scope}|${id}`)))
+      ),
+      isNostrEventProcessed: jest.fn((scope: string, id: string) =>
+        processed.has(`${scope}|${id}`)
+      ),
+      markNostrEventsProcessed: jest.fn(
+        (scope: string, events: { id: string }[]) => {
+          for (const { id } of events) {
+            processed.add(`${scope}|${id}`)
+          }
+        }
+      ),
+      pruneNostrProcessedEvents: jest.fn()
+    }
+  }
+)
+
+jest.mock<
+  Pick<typeof import('@/utils/nostrLifecycle'), 'registerNostrLifecycleHandler'>
+>('@/utils/nostrLifecycle', () => ({
+  registerNostrLifecycleHandler: jest.fn(() => jest.fn())
+}))
+
+import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
+import { getPublicKey, nip19, nip44, nip59 } from 'nostr-tools'
 import { decrypt as nip04Decrypt } from 'nostr-tools/nip04'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  __store as chatStore,
+  NOSTR_CHAT_CATCH_UP_LIMIT,
+  NOSTR_CHAT_INITIAL_HISTORY_LIMIT,
+  NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC,
+  NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
+} from '@/constants/nostr'
+import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
+import { type NostrChatGiftWrap } from '@/types/models/Nostr'
+import { NostrNoRelaysError } from '@/utils/errors'
 import {
   acquireChatPipeline,
   addChatListener,
   clearRecipientRelaysCache,
+  closeActiveChatPipeline,
+  flushChatMessages,
+  getChatLiveWindow,
   getChatPipelineApi,
+  getChatPipelineStatus,
   ingestChatMessage,
-  releaseChatPipeline,
+  restartChatPipeline,
   sendNip04Chat,
   sendNip17Chat,
   subscribeToIdentityChat
 } from '@/utils/nostrChat'
+import { isSignedNdkEvent } from '@/utils/nostrEvent'
 
 const senderSecretKey = new Uint8Array(32).fill(1)
 const senderPubkey = getPublicKey(senderSecretKey)
@@ -53,8 +140,33 @@ const senderNsec = nip19.nsecEncode(senderSecretKey)
 const peerSecretKey = new Uint8Array(32).fill(2)
 const peerPubkey = getPublicKey(peerSecretKey)
 const peerNpub = nip19.npubEncode(peerPubkey)
+const peerNsec = nip19.nsecEncode(peerSecretKey)
 
 const sender = { npub: senderNpub, nsec: senderNsec }
+const pipelineIdentity = { ...sender, relays: ['wss://test.relay'] }
+
+type StoredMessage = Record<string, unknown>
+
+function unwrapPublished(
+  raw: Awaited<ReturnType<NDKEvent['toNostrEvent']>> | undefined,
+  secretKey: Uint8Array
+) {
+  if (!raw || !isSignedNdkEvent(raw)) {
+    throw new Error('expected a signed gift wrap')
+  }
+  return nip59.unwrapEvent(raw, secretKey)
+}
+
+const { __store: chatStore } = jest.requireMock<{
+  __store: Map<string, StoredMessage>
+}>('@/db/mutations/nostrChat')
+const { __processed: processedWraps } = jest.requireMock<{
+  __processed: Set<string>
+}>('@/db/nostrProcessedEvents')
+
+function storedMessages(): StoredMessage[] {
+  return [...chatStore.values()]
+}
 
 /** Lets the background inbox-routing promise chain settle. */
 async function flushBackground() {
@@ -65,16 +177,92 @@ async function flushBackground() {
   }
 }
 
+type GiftWrapHandlers = {
+  onWrap: (wrap: NostrChatGiftWrap) => void
+  shouldUnwrap: (wrap: { createdAt: number; id: string }) => boolean
+}
+
+/** Fake pipeline API capturing the gift wrap handlers chat registers. */
+function createFakeChatApi() {
+  const captured: { handlers?: GiftWrapHandlers } = {}
+  const api = new NostrAPI(['wss://test.relay'])
+  jest
+    .spyOn(api, 'subscribeToChatGiftWraps')
+    .mockImplementation(async (_nsec, _npub, handlers) => {
+      captured.handlers = handlers
+    })
+  jest.spyOn(api, 'subscribeToKind4').mockResolvedValue(undefined)
+  return { api, captured }
+}
+
+function deliverRumor(
+  handlers: GiftWrapHandlers | undefined,
+  wrapId: string,
+  rumor: Record<string, unknown>
+) {
+  const wrap = { createdAt: Number(rumor.created_at ?? 0), id: wrapId }
+  if (handlers === undefined || !handlers.shouldUnwrap(wrap)) {
+    return
+  }
+  handlers.onWrap({
+    ...wrap,
+    rumor: {
+      content: '',
+      created_at: 0,
+      id: '',
+      kind: 14,
+      pubkey: '',
+      tags: [],
+      ...rumor
+    }
+  })
+}
+
+type CapturedSubscription = {
+  filters: { kinds?: number[]; limit?: number; since?: number }[]
+  handlers: Map<string, (...args: unknown[]) => void>
+}
+
+/** Records every REQ the real NostrAPI opens on the mocked NDK. */
+function captureNdkSubscriptions(): CapturedSubscription[] {
+  const subscriptions: CapturedSubscription[] = []
+  jest.spyOn(NDK.prototype, 'subscribe').mockImplementation(((
+    filters: CapturedSubscription['filters']
+  ) => {
+    const handlers = new Map<string, (...args: unknown[]) => void>()
+    subscriptions.push({ filters, handlers })
+    return {
+      on: (event: string, handler: (...args: unknown[]) => void) => {
+        handlers.set(event, handler)
+      },
+      stop: jest.fn()
+    }
+  }) as never)
+  return subscriptions
+}
+
+function findGiftWrapSubscriptions(subscriptions: CapturedSubscription[]) {
+  return subscriptions.filter(
+    (sub) => sub.filters[0]?.kinds?.includes(1059) === true
+  )
+}
+
 describe('nostrChat', () => {
   beforeEach(() => {
+    closeActiveChatPipeline()
+    flushChatMessages()
     chatStore.clear()
+    processedWraps.clear()
     clearRecipientRelaysCache()
+    jest.restoreAllMocks()
     jest.clearAllMocks()
     // No recipient inbox relays in tests — skip the indexing-relay lookup.
     jest
       .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
       .mockResolvedValue([])
-    releaseChatPipeline(senderNpub)
+    jest
+      .spyOn(NostrAPI.prototype, 'publishDmInboxRelayList')
+      .mockResolvedValue(undefined)
   })
 
   it('sendNip17Chat stores an outgoing message then marks it sent', async () => {
@@ -85,13 +273,7 @@ describe('nostrChat', () => {
 
     await sendNip17Chat(api, sender, peerNpub, 'hello nip17')
 
-    const stored = [...chatStore.values()] as {
-      content: string
-      direction: string
-      peerPubkey: string
-      protocol: string
-      status: string
-    }[]
+    const stored = storedMessages()
     expect(stored).toHaveLength(1)
     expect(stored[0]).toMatchObject({
       content: 'hello nip17',
@@ -104,17 +286,60 @@ describe('nostrChat', () => {
     expect(publishSpy).toHaveBeenCalledTimes(2)
     expect(updateChatMessageStatus).toHaveBeenCalledWith(
       senderNpub,
-      stored[0] && (stored[0] as { id: string }).id,
+      stored[0]?.id,
       'sent'
     )
   })
 
-  it('sendNip17Chat marks the message failed when all publishes fail', async () => {
+  it('sendNip17Chat seals one rumor tagged with the peer for both recipients', async () => {
     const api = new NostrAPI([])
-    jest.spyOn(api, 'publishEvent').mockRejectedValue(new Error('no relays'))
+    const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+    jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+      published.push(await event.toNostrEvent())
+    })
 
-    await expect(sendNip17Chat(api, sender, peerNpub, 'hello')).rejects.toThrow(
-      'Failed to publish to any relay'
+    await sendNip17Chat(api, sender, peerNpub, 'same rumor')
+
+    const [peerWrap, selfWrap] = published
+    const peerRumor = unwrapPublished(peerWrap, peerSecretKey)
+    const selfRumor = unwrapPublished(selfWrap, senderSecretKey)
+    expect(selfRumor.id).toBe(peerRumor.id)
+    expect(selfRumor.tags).toStrictEqual([['p', peerPubkey]])
+    expect(storedMessages()[0]).toMatchObject({ id: peerRumor.id })
+  })
+
+  it('files a synced self copy under the peer thread, deduped by rumor id', async () => {
+    const api = new NostrAPI([])
+    const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+    jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+      published.push(await event.toNostrEvent())
+    })
+    await sendNip17Chat(api, sender, peerNpub, 'from my phone')
+    const [, selfWrap] = published
+    const selfRumor = unwrapPublished(selfWrap, senderSecretKey)
+    chatStore.clear()
+
+    const { api: otherDevice, captured } = createFakeChatApi()
+    await subscribeToIdentityChat(otherDevice, sender)
+    deliverRumor(captured.handlers, 'self-wrap', { ...selfRumor })
+    deliverRumor(captured.handlers, 'self-wrap-redelivered', { ...selfRumor })
+
+    expect(storedMessages()).toHaveLength(1)
+    expect(storedMessages()[0]).toMatchObject({
+      content: 'from my phone',
+      direction: 'out',
+      id: selfRumor.id,
+      peerPubkey
+    })
+  })
+
+  it('sendNip17Chat marks the message failed and rethrows the relay error', async () => {
+    const api = new NostrAPI([])
+    const relayError = new NostrNoRelaysError('no relays')
+    jest.spyOn(api, 'publishEvent').mockRejectedValue(relayError)
+
+    await expect(sendNip17Chat(api, sender, peerNpub, 'hello')).rejects.toBe(
+      relayError
     )
     expect(updateChatMessageStatus).toHaveBeenCalledWith(
       senderNpub,
@@ -124,7 +349,6 @@ describe('nostrChat', () => {
   })
 
   it('marks sent when base relays reject but the inbox copy lands', async () => {
-    // Recipient announces an inbox relay; our base set is a read-only relay.
     jest
       .spyOn(NostrAPI.prototype, 'fetchInboxRelaysForNpub')
       .mockResolvedValue(['wss://peer-inbox.relay'])
@@ -183,24 +407,28 @@ describe('nostrChat', () => {
 
   it('sendNip04Chat produces a kind-4 event decryptable by the recipient', async () => {
     const api = new NostrAPI([])
-    let published: Awaited<ReturnType<NostrAPI['createKind4']>> | null = null
+    const published: { event?: Awaited<ReturnType<NostrAPI['createKind4']>> } =
+      {}
     jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
-      published = event
+      published.event = event
     })
 
     await sendNip04Chat(api, sender, peerNpub, 'secret 🔐')
 
-    expect(published).not.toBeNull()
-    const raw = published!.toNostrEvent()
-    expect(raw.kind).toBe(4)
-    expect(raw.tags).toContainEqual(['p', peerPubkey])
+    const raw = published.event?.toNostrEvent()
+    expect(raw?.kind).toBe(4)
+    expect(raw?.tags).toContainEqual(['p', peerPubkey])
 
-    const decrypted = await nip04Decrypt(peerSecretKey, raw.pubkey, raw.content)
+    const decrypted = nip04Decrypt(
+      peerSecretKey,
+      String(raw?.pubkey),
+      String(raw?.content)
+    )
     expect(decrypted).toBe('secret 🔐')
   })
 
-  it('dedupes relay redelivery by message id', () => {
-    const listener = jest.fn()
+  it('dedupes relay redelivery and delivers one batch per flush', () => {
+    const listener = jest.fn<undefined, [unknown[]]>()
     const remove = addChatListener(listener)
 
     const message = {
@@ -216,124 +444,72 @@ describe('nostrChat', () => {
     }
     ingestChatMessage(message)
     ingestChatMessage(message)
+    ingestChatMessage({ ...message, id: 'other-id' })
+    expect(listener).not.toHaveBeenCalled()
+    flushChatMessages()
 
-    expect(insertChatMessage).toHaveBeenCalledTimes(2)
+    expect(insertChatMessage).toHaveBeenCalledTimes(3)
     expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener.mock.calls[0]?.[0]).toHaveLength(2)
     remove()
   })
 
   it('subscription ingests kind-14 chat rumors and ignores other wraps', async () => {
-    let rumorCallback:
-      | ((messages: { content: unknown; created_at: number }[]) => void)
-      | undefined
-    const fakeApi = {
-      getRelays: () => ['wss://test.relay'],
-      subscribeToKind1059: jest.fn(
-        async (
-          _nsec: string,
-          _npub: string,
-          cb: (messages: { content: unknown; created_at: number }[]) => void
-        ) => {
-          rumorCallback = cb
-        }
-      ),
-      subscribeToKind4: jest.fn(async () => undefined)
-    }
+    const { api, captured } = createFakeChatApi()
+    await subscribeToIdentityChat(api, sender)
 
-    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
-    expect(rumorCallback).toBeDefined()
+    deliverRumor(captured.handlers, 'wrap-1', {
+      content: 'hey there',
+      created_at: 2000,
+      id: 'rumor-1',
+      pubkey: peerPubkey
+    })
+    // label-sync payload — not a chat rumor
+    deliverRumor(captured.handlers, 'wrap-2', {
+      content: '{}',
+      id: 'sync-1',
+      kind: 1,
+      pubkey: peerPubkey
+    })
 
-    rumorCallback!([
-      {
-        content: {
-          content: 'hey there',
-          created_at: 2000,
-          id: 'rumor-1',
-          kind: 14,
-          pubkey: peerPubkey
-        },
-        created_at: 2000,
-        id: 'wrap-1',
-        pubkey: 'wrap-author'
-      },
-      {
-        // label-sync payload — not a chat rumor
-        content: { content: '{}', id: 'sync-1', kind: 1, pubkey: peerPubkey },
-        created_at: 2001,
-        id: 'wrap-2',
-        pubkey: 'wrap-author'
-      }
-    ])
-
-    const stored = [...chatStore.values()] as {
-      content: string
-      id: string
-      protocol: string
-    }[]
+    const stored = storedMessages()
     expect(stored).toHaveLength(1)
     expect(stored[0]).toMatchObject({
       content: 'hey there',
       id: 'rumor-1',
       protocol: 'nip17'
     })
+    // Both wraps are recorded so neither is decrypted again.
+    expect(processedWraps).toStrictEqual(
+      new Set([`chat:${senderNpub}|wrap-1`, `chat:${senderNpub}|wrap-2`])
+    )
   })
 
   it('ingests NIP-17 self copies as outgoing messages for the tagged peer', async () => {
-    let rumorCallback:
-      | ((messages: { content: unknown; created_at: number }[]) => void)
-      | undefined
-    const fakeApi = {
-      getRelays: () => ['wss://test.relay'],
-      subscribeToKind1059: jest.fn(
-        async (
-          _nsec: string,
-          _npub: string,
-          cb: (messages: { content: unknown; created_at: number }[]) => void
-        ) => {
-          rumorCallback = cb
-        }
-      ),
-      subscribeToKind4: jest.fn(async () => undefined)
-    }
+    const { api, captured } = createFakeChatApi()
+    await subscribeToIdentityChat(api, sender)
 
-    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
+    deliverRumor(captured.handlers, 'wrap-self-1', {
+      content: 'sent from my other device',
+      created_at: 3000,
+      id: 'self-rumor-1',
+      pubkey: senderPubkey,
+      tags: [['p', peerPubkey]]
+    })
+    // Another client's self copy: a relay hint serialised as null and a
+    // malformed tag must not hide the peer.
+    deliverRumor(captured.handlers, 'wrap-self-2', {
+      content: 'sent from another client',
+      created_at: 3001,
+      id: 'self-rumor-2',
+      pubkey: senderPubkey,
+      tags: [
+        ['p', peerPubkey, null],
+        ['subject', 5]
+      ]
+    })
 
-    rumorCallback!([
-      {
-        // Our own self copy: rumor author is us, peer lives in the p tag.
-        content: {
-          content: 'sent from my other device',
-          created_at: 3000,
-          id: 'self-rumor-1',
-          kind: 14,
-          pubkey: senderPubkey,
-          tags: [['p', peerPubkey]]
-        },
-        created_at: 3000,
-        id: 'wrap-self-1',
-        pubkey: 'wrap-author'
-      },
-      {
-        // Another client's self copy: a relay hint serialised as null and a
-        // malformed tag must not hide the peer.
-        content: {
-          content: 'sent from another client',
-          created_at: 3001,
-          id: 'self-rumor-2',
-          kind: 14,
-          pubkey: senderPubkey,
-          tags: [
-            ['p', peerPubkey, null],
-            ['subject', 5]
-          ]
-        },
-        created_at: 3001,
-        id: 'wrap-self-2',
-        pubkey: 'wrap-author'
-      }
-    ])
-
-    const stored = [...chatStore.values()] as Record<string, unknown>[]
+    const stored = storedMessages()
     expect(stored).toHaveLength(2)
     expect(stored[0]).toMatchObject({
       content: 'sent from my other device',
@@ -349,44 +525,19 @@ describe('nostrChat', () => {
   })
 
   it('ingests incoming chat rumors whose tags are malformed', async () => {
-    let rumorCallback:
-      | ((messages: { content: unknown; created_at: number }[]) => void)
-      | undefined
-    const fakeApi = {
-      getRelays: () => ['wss://test.relay'],
-      subscribeToKind1059: jest.fn(
-        async (
-          _nsec: string,
-          _npub: string,
-          cb: (messages: { content: unknown; created_at: number }[]) => void
-        ) => {
-          rumorCallback = cb
-        }
-      ),
-      subscribeToKind4: jest.fn(async () => undefined)
-    }
+    const { api, captured } = createFakeChatApi()
+    await subscribeToIdentityChat(api, sender)
 
-    await subscribeToIdentityChat(fakeApi as unknown as NostrAPI, sender)
+    deliverRumor(captured.handlers, 'wrap-bad-tags', {
+      content: 'hello despite bad tags',
+      created_at: 4000,
+      id: 'rumor-bad-tags',
+      pubkey: peerPubkey,
+      tags: [null]
+    })
 
-    rumorCallback!([
-      {
-        content: {
-          content: 'hello despite bad tags',
-          created_at: 4000,
-          id: 'rumor-bad-tags',
-          kind: 14,
-          pubkey: peerPubkey,
-          tags: [null]
-        },
-        created_at: 4000,
-        id: 'wrap-bad-tags',
-        pubkey: 'wrap-author'
-      }
-    ])
-
-    const stored = [...chatStore.values()] as Record<string, unknown>[]
-    expect(stored).toHaveLength(1)
-    expect(stored[0]).toMatchObject({
+    expect(storedMessages()).toHaveLength(1)
+    expect(storedMessages()[0]).toMatchObject({
       content: 'hello despite bad tags',
       direction: 'in',
       peerPubkey
@@ -401,30 +552,169 @@ describe('nostrChat', () => {
     expect(rumor.content).toBe(text)
   })
 
-  it('does not leak the chat pipeline if released during acquire', async () => {
-    let finishSubscribe: (() => void) | undefined
-    jest.spyOn(NostrAPI.prototype, 'subscribeToKind1059').mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishSubscribe = () => resolve(undefined)
-        })
-    )
-    jest
-      .spyOn(NostrAPI.prototype, 'subscribeToKind4')
-      .mockResolvedValue(undefined)
-    jest
-      .spyOn(NostrAPI.prototype, 'publishDmInboxRelayList')
-      .mockResolvedValue(undefined)
-
-    const pending = acquireChatPipeline({
-      npub: senderNpub,
-      nsec: senderNsec,
-      relays: ['wss://test.relay']
+  describe('live window', () => {
+    it('fetches a bounded recent window when nothing is stored', () => {
+      expect(getChatLiveWindow(senderNpub, 'nip17')).toStrictEqual({
+        limit: NOSTR_CHAT_INITIAL_HISTORY_LIMIT
+      })
     })
-    releaseChatPipeline(senderNpub)
-    finishSubscribe?.()
-    await pending
 
-    expect(getChatPipelineApi(senderNpub)).toBeNull()
+    it('catches up from the newest stored message per protocol', () => {
+      ingestChatMessage({
+        content: 'kind 4',
+        created_at: 50_000,
+        direction: 'in',
+        id: 'k4',
+        identityNpub: senderNpub,
+        peerPubkey,
+        protocol: 'nip04',
+        read: false,
+        status: 'sent'
+      })
+
+      expect(getChatLiveWindow(senderNpub, 'nip04')).toStrictEqual({
+        limit: NOSTR_CHAT_CATCH_UP_LIMIT,
+        since: 50_000 - NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC
+      })
+    })
+  })
+
+  describe('pipeline over the relay adapter', () => {
+    it('reopening sends since = newest stored message and never decrypts a wrap twice', async () => {
+      const subscriptions = captureNdkSubscriptions()
+      const decryptSpy = jest.spyOn(nip44.v2, 'decrypt')
+      const wrap = new NostrAPI([]).createKind1059(
+        peerNsec,
+        senderNpub,
+        'decrypt me once'
+      )
+
+      const first = acquireChatPipeline(pipelineIdentity)
+      await first.ready
+      const [firstSub] = findGiftWrapSubscriptions(subscriptions)
+      expect(firstSub?.filters[0]).toMatchObject({
+        limit: NOSTR_CHAT_INITIAL_HISTORY_LIMIT
+      })
+      expect(firstSub?.filters[0]?.since).toBeUndefined()
+      firstSub?.handlers.get('event')?.(wrap)
+      expect(decryptSpy).toHaveBeenCalledTimes(2)
+      const [message] = storedMessages()
+      expect(message).toMatchObject({ content: 'decrypt me once' })
+      first.release()
+
+      const second = acquireChatPipeline(pipelineIdentity)
+      await second.ready
+      const [, secondSub] = findGiftWrapSubscriptions(subscriptions)
+      expect(secondSub?.filters[0]).toMatchObject({
+        limit: NOSTR_CHAT_CATCH_UP_LIMIT,
+        since:
+          Number(message?.created_at) - NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
+      })
+      secondSub?.handlers.get('event')?.(wrap)
+
+      expect(decryptSpy).toHaveBeenCalledTimes(2)
+      expect(storedMessages()).toHaveLength(1)
+      second.release()
+    })
+
+    it('skips stored kind-4 events before decrypting them', async () => {
+      const subscriptions = captureNdkSubscriptions()
+      const event = await new NostrAPI([]).createKind4(
+        peerNsec,
+        senderNpub,
+        'kind 4 once'
+      )
+      const lease = acquireChatPipeline(pipelineIdentity)
+      await lease.ready
+      const kind4Sub = subscriptions.find(
+        (sub) => sub.filters[0]?.kinds?.includes(4) === true
+      )
+
+      kind4Sub?.handlers.get('event')?.(event)
+      await flushBackground()
+      expect(storedMessages()[0]).toMatchObject({ content: 'kind 4 once' })
+      expect(insertChatMessage).toHaveBeenCalledTimes(1)
+
+      kind4Sub?.handlers.get('event')?.(event)
+      await flushBackground()
+
+      expect(insertChatMessage).toHaveBeenCalledTimes(1)
+      lease.release()
+    })
+  })
+
+  describe('pipeline ref counting', () => {
+    beforeEach(() => {
+      jest
+        .spyOn(NostrAPI.prototype, 'subscribeToChatGiftWraps')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(NostrAPI.prototype, 'subscribeToKind4')
+        .mockResolvedValue(undefined)
+    })
+
+    it('releasing a lease twice never drops another screen hold', async () => {
+      const listScreen = acquireChatPipeline(pipelineIdentity)
+      const threadScreen = acquireChatPipeline(pipelineIdentity)
+      await listScreen.ready
+
+      listScreen.release()
+      listScreen.release()
+      expect(getChatPipelineApi(senderNpub)).not.toBeNull()
+
+      threadScreen.release()
+      expect(getChatPipelineApi(senderNpub)).toBeNull()
+    })
+
+    it('does not leak the pipeline if released during acquire', async () => {
+      const finish: { subscribe?: () => void } = {}
+      jest
+        .spyOn(NostrAPI.prototype, 'subscribeToChatGiftWraps')
+        .mockImplementation(
+          async () =>
+            new Promise((resolve) => {
+              finish.subscribe = () => {
+                resolve(undefined)
+              }
+            })
+        )
+      const closeSpy = jest.spyOn(NostrAPI.prototype, 'closeAllSubscriptions')
+
+      const lease = acquireChatPipeline(pipelineIdentity)
+      lease.release()
+      finish.subscribe?.()
+      await lease.ready
+
+      expect(getChatPipelineApi(senderNpub)).toBeNull()
+      expect(getChatPipelineStatus(senderNpub).state).toBe('idle')
+      expect(closeSpy).toHaveBeenCalledWith()
+    })
+  })
+
+  describe('pipeline errors', () => {
+    it('surfaces a subscribe failure and does not keep the pipeline live', async () => {
+      const subscribeSpy = jest
+        .spyOn(NostrAPI.prototype, 'subscribeToChatGiftWraps')
+        .mockRejectedValue(new NostrNoRelaysError('offline'))
+      jest
+        .spyOn(NostrAPI.prototype, 'subscribeToKind4')
+        .mockResolvedValue(undefined)
+
+      const lease = acquireChatPipeline(pipelineIdentity)
+      await lease.ready
+
+      expect(getChatPipelineStatus(senderNpub)).toStrictEqual({
+        errorCode: 'noRelays',
+        state: 'error'
+      })
+      expect(getChatPipelineApi(senderNpub)).toBeNull()
+
+      subscribeSpy.mockResolvedValue(undefined)
+      await restartChatPipeline(senderNpub)
+
+      expect(getChatPipelineStatus(senderNpub).state).toBe('live')
+      expect(getChatPipelineApi(senderNpub)).not.toBeNull()
+      lease.release()
+    })
   })
 })

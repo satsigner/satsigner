@@ -5,7 +5,7 @@ import {
 
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 
-import { getDb } from '../connection'
+import { getDb, runTransaction } from '../connection'
 import { boolToInt, dateToIso, optionalToJson } from '../mappers'
 
 type TransactionContext = NitroSQLiteConnection
@@ -30,26 +30,7 @@ function upsertNostrData(
   clearNostrData(tx, accountId)
 
   for (const dm of nostr.dms) {
-    tx.execute(
-      `INSERT INTO nostr_dms (
-        id, account_id, author, created_at, description, event, label,
-        content_description, content_created_at, content_pubkey, pending, read
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        dm.id,
-        accountId,
-        dm.author,
-        dm.created_at,
-        dm.description,
-        dm.event,
-        dm.label,
-        dm.content?.description ?? '',
-        dm.content?.created_at ?? null,
-        dm.content?.pubkey ?? null,
-        boolToInt(dm.pending),
-        dm.read === undefined ? null : boolToInt(dm.read)
-      ]
-    )
+    executeDmInsert(tx, accountId, dm, 'INSERT')
   }
 
   for (const url of nostr.relays) {
@@ -75,10 +56,18 @@ function markDmsAsRead(accountId: string) {
   )
 }
 
-function insertDm(accountId: string, dm: NostrDM) {
-  const db = getDb()
-  db.execute(
-    `INSERT OR REPLACE INTO nostr_dms (
+type DmInsertVerb = 'INSERT' | 'INSERT OR IGNORE'
+
+type NostrDmStatusPatch = Partial<Pick<NostrDM, 'pending' | 'read'>>
+
+function executeDmInsert(
+  tx: TransactionContext,
+  accountId: string,
+  dm: NostrDM,
+  verb: DmInsertVerb
+) {
+  tx.execute(
+    `${verb} INTO nostr_dms (
       id, account_id, author, created_at, description, event, label,
       content_description, content_created_at, content_pubkey, pending, read
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -97,6 +86,53 @@ function insertDm(accountId: string, dm: NostrDM) {
       dm.read === undefined ? null : boolToInt(dm.read)
     ]
   )
+}
+
+/** Appends DMs in one transaction; DMs already stored (same id) are kept. */
+function insertDms(accountId: string, dms: NostrDM[]) {
+  if (dms.length === 0) {
+    return
+  }
+  runTransaction((tx) => {
+    for (const dm of dms) {
+      executeDmInsert(tx, accountId, dm, 'INSERT OR IGNORE')
+    }
+  })
+}
+
+function updateDmStatus(
+  accountId: string,
+  dmId: string,
+  patch: NostrDmStatusPatch
+) {
+  const updates: string[] = []
+  const params: SQLiteValue[] = []
+  if (patch.pending !== undefined) {
+    updates.push('pending = ?')
+    params.push(boolToInt(patch.pending))
+  }
+  if (patch.read !== undefined) {
+    updates.push('read = ?')
+    params.push(boolToInt(patch.read))
+  }
+  if (updates.length === 0) {
+    return
+  }
+  getDb().execute(
+    `UPDATE nostr_dms SET ${updates.join(', ')} WHERE account_id = ? AND id = ?`,
+    [...params, accountId, dmId]
+  )
+}
+
+/** Swaps an optimistic (pending) DM for the relay copy of the same message. */
+function replaceDm(accountId: string, previousId: string, dm: NostrDM) {
+  runTransaction((tx) => {
+    tx.execute('DELETE FROM nostr_dms WHERE account_id = ? AND id = ?', [
+      accountId,
+      previousId
+    ])
+    executeDmInsert(tx, accountId, dm, 'INSERT OR IGNORE')
+  })
 }
 
 function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
@@ -188,11 +224,24 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
   }
 
   if (nostr.dms !== undefined) {
-    db.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
-    for (const dm of nostr.dms) {
-      insertDm(accountId, dm)
-    }
+    // Full replacement (clear / restore); incremental writes use insertDms.
+    const { dms } = nostr
+    runTransaction((tx) => {
+      tx.execute('DELETE FROM nostr_dms WHERE account_id = ?', [accountId])
+      for (const dm of dms) {
+        executeDmInsert(tx, accountId, dm, 'INSERT OR IGNORE')
+      }
+    })
   }
 }
 
-export { clearNostrData, markDmsAsRead, updateAccountNostr, upsertNostrData }
+export {
+  clearNostrData,
+  insertDms,
+  markDmsAsRead,
+  replaceDm,
+  updateAccountNostr,
+  updateDmStatus,
+  upsertNostrData
+}
+export type { NostrDmStatusPatch }

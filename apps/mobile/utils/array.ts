@@ -35,6 +35,12 @@ export function range(end: number, start = 0) {
   return result
 }
 
+export function chunk<T>(items: T[], size: number): T[][] {
+  return range(Math.ceil(items.length / size)).map((index) =>
+    items.slice(index * size, (index + 1) * size)
+  )
+}
+
 /**
  * Bucket items by a derived key, preserving input order within each bucket.
  * Lets a single bulk query replace per-parent child queries.

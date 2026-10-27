@@ -1,74 +1,73 @@
-import { nip19 } from 'nostr-tools'
-import * as nostrKinds from 'nostr-tools/kinds'
-import { Fragment, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
+import { type ReactElement, useState } from 'react'
+import { StyleSheet, View } from 'react-native'
 
-import { NostrAPI } from '@/api/nostr'
-import SSIconLock from '@/components/icons/SSIconLock'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import {
-  SSNostrFeedAuthorRow,
-  SSNostrFeedNoteRow
-} from '@/components/SSNostrFeedNoteRow'
 import {
   SSNostrKindFilterSheet,
   SSNostrKindFilterTrigger,
   SSNostrReplyFilterChip,
   ssnostrKindFilterRowStyle
 } from '@/components/SSNostrKindFilter'
+import SSNostrNoteList, {
+  type NostrNotePressPayload,
+  type OwnAuthorFallback
+} from '@/components/SSNostrNoteList'
+import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
+import SSNostrZapList from '@/components/SSNostrZapList'
 import SSText from '@/components/SSText'
-import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_BOOKMARKS_FILTER_IDS,
-  NOSTR_BOOKMARKS_MAX_FETCH,
-  NOSTR_BOOKMARKS_PAGE_SIZE,
-  NOSTR_PRIVACY_MASK,
   NOSTR_NOTE_FILTER_OPTIONS
 } from '@/constants/nostr'
+import { useNostrFeedFetch } from '@/hooks/useNostrFeedFetch'
+import { useNostrFollowsFetch } from '@/hooks/useNostrFollowsFetch'
+import { useNostrNewNotesPoll } from '@/hooks/useNostrNewNotesPoll'
+import { useNostrNotesFetch } from '@/hooks/useNostrNotesFetch'
+import { useNostrZapsFetch } from '@/hooks/useNostrZapsFetch'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import type {
-  NostrFeedNoteLike,
-  NostrKind0Profile,
+  NostrIdentity,
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
-import { formatNostrCardDate, formatNpub } from '@/utils/format'
-import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { filterFeedReplies } from '@/utils/nostrFeed'
 import {
-  decryptPrivateBookmarks,
-  mergeBookmarks,
-  parsePublicBookmarks
-} from '@/utils/nostrBookmarks'
-import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
-import {
-  collectUnresolvedEventIds,
-  getResolvedEventId,
-  isNoteQuotePost
-} from '@/utils/nostrNoteQuotes'
-import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
-import {
-  enrichZapReceipts,
-  fetchZapsByPubkey,
-  fetchZapsSentByPubkey,
-  mergeZapReceiptsById,
-  sortZapReceipts
+  applyZapSort,
+  getNextZapSort,
+  type ZapSortState
 } from '@/utils/nostrZap'
 
 import SSPressable from './SSPressable'
 
-type SSNostrFeedTabsProps = {
-  npub: string
-  onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
-  onZapPress?: (receipt: ZapReceiptInfo) => void
-  /** Called with the author npub when an author row is pressed. */
+type FeedTab = 'feed' | 'notes' | 'zaps'
+
+type FeedTabCallbacks = {
   onAuthorPress?: (authorNpub: string) => void
+  onNotePress?: (payload: NostrNotePressPayload) => void
+  onZapPress?: (receipt: ZapReceiptInfo) => void
+}
+
+type SSNostrFeedTabsProps = FeedTabCallbacks & {
+  /** Rendered above the tab bar, inside the scrolling list (e.g. hero card). */
+  header?: ReactElement
+  npub: string
   relayConnected: boolean
+  relays: string[]
+}
+
+type FeedTabContentProps = FeedTabCallbacks & {
+  header: ReactElement
+  identity?: NostrIdentity
+  npub: string
+  privacyMode: boolean
   relays: string[]
 }
 
@@ -76,36 +75,405 @@ type SSNostrFeedTabsProps = {
 const FEED_KIND_FILTER_OPTIONS = NOSTR_NOTE_FILTER_OPTIONS.filter(
   (o) => !NOSTR_BOOKMARKS_FILTER_IDS.has(o.id)
 )
-
 const DEFAULT_KIND_FILTER_ID = NOSTR_NOTE_FILTER_OPTIONS[0].id
+const SHORT_TEXT_FILTER_ID = 'short_text'
+const NO_AUTHORS: string[] = []
+const NO_PRIVATE_IDS = new Set<string>()
+const DEFAULT_ZAP_SORT: ZapSortState = { asc: false, field: 'date' }
 
-function kindsForNoteKindFilterId(id: string): number[] {
-  const opt = NOSTR_NOTE_FILTER_OPTIONS.find((o) => o.id === id)
-  return opt?.kinds.length ? opt.kinds : [nostrKinds.ShortTextNote]
+function getKindFilterLabel(id: string): string {
+  const option = NOSTR_NOTE_FILTER_OPTIONS.find((o) => o.id === id)
+  return option ? t(option.labelKey) : ''
 }
 
-type FeedTab = 'feed' | 'notes' | 'zaps'
+function getOwnAuthorFallback(
+  identity: NostrIdentity | undefined
+): OwnAuthorFallback | undefined {
+  const pubkey = identity ? getPubKeyHexFromNpub(identity.npub) : null
+  if (!identity || !pubkey) {
+    return undefined
+  }
+  return {
+    displayName: identity.displayName,
+    nip05: identity.nip05,
+    picture: identity.picture,
+    pubkey
+  }
+}
 
-type FeedAuthorKind0State =
-  | { status: 'loading' }
-  | { status: 'ready'; profile: NostrKind0Profile | null }
+function getZapSortLabel(sort: ZapSortState, field: ZapSortField): string {
+  const label = t(`nostrIdentity.zapSort.${field}`)
+  if (sort.field !== field) {
+    return label
+  }
+  return `${label}${sort.asc ? ' ↑' : ' ↓'}`
+}
 
-function DecryptedBadge() {
+type TabButtonProps = {
+  active: boolean
+  label: string
+  onPress: () => void
+}
+
+function TabButton({ active, label, onPress }: TabButtonProps) {
   return (
-    <SSHStack gap="xxs" style={styles.decryptedBadge}>
-      <SSIconLock width={10} height={10} />
-      <SSText size="xxs" color="muted" uppercase>
-        {t('nostrIdentity.feed.decrypted')}
-      </SSText>
-    </SSHStack>
+    <SSActionButton style={styles.tabButton} onPress={onPress}>
+      <View style={styles.tabButtonWrap}>
+        <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
+          <SSText size="sm" uppercase center color={active ? 'white' : 'muted'}>
+            {label}
+          </SSText>
+        </SSVStack>
+        {active ? <View style={styles.tabIndicator} /> : null}
+      </View>
+    </SSActionButton>
   )
 }
 
-function SSNostrFeedTabs({
+type NewNotesPromptProps = {
+  count: number
+  onPress: () => void
+}
+
+function NewNotesPrompt({ count, onPress }: NewNotesPromptProps) {
+  if (count === 0) {
+    return null
+  }
+  return (
+    <SSButton
+      label={t('nostrIdentity.feed.newNotes', { count })}
+      onPress={onPress}
+      variant="subtle"
+    />
+  )
+}
+
+function NotesTabContent({
+  header,
+  identity,
   npub,
+  onAuthorPress,
+  onNotePress,
+  privacyMode,
+  relays
+}: FeedTabContentProps) {
+  const [kindFilterId, setKindFilterId] = useState(DEFAULT_KIND_FILTER_ID)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [excludeReplies, setExcludeReplies] = useState(true)
+  const isBookmarks = NOSTR_BOOKMARKS_FILTER_IDS.has(kindFilterId)
+  const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+
+  const notes = useNostrNotesFetch({
+    enabled: true,
+    kindFilterId,
+    npub,
+    nsec: identity?.nsec,
+    relays,
+    resolveQuotes: !privacyMode
+  })
+  const newCount = useNostrNewNotesPoll({
+    authors: NO_AUTHORS,
+    enabled: !isBookmarks,
+    kindFilterId,
+    newestCreatedAt: notes.notes[0]?.created_at ?? 0,
+    npub,
+    relays,
+    tab: 'notes'
+  })
+
+  function openSheet() {
+    setSheetOpen(true)
+  }
+
+  function closeSheet() {
+    setSheetOpen(false)
+  }
+
+  function selectKindFilter(id: string) {
+    setKindFilterId(id)
+    setExcludeReplies(id === SHORT_TEXT_FILTER_ID)
+  }
+
+  function toggleExcludeReplies() {
+    setExcludeReplies((current) => !current)
+  }
+
+  const listHeader = (
+    <View>
+      {header}
+      <SSVStack gap="sm" style={styles.tabHeader}>
+        <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
+          <SSNostrKindFilterTrigger
+            label={getKindFilterLabel(kindFilterId)}
+            onPress={openSheet}
+          />
+          {isShortText ? (
+            <SSNostrReplyFilterChip
+              active={!excludeReplies}
+              label={t('nostrIdentity.feed.showReplies')}
+              onPress={toggleExcludeReplies}
+            />
+          ) : null}
+        </SSHStack>
+        <SSNostrSourceBanner
+          error={notes.error}
+          onRetry={notes.refetch}
+          retrying={notes.isRefetching}
+          source={notes.source}
+        />
+        <NewNotesPrompt count={newCount} onPress={notes.showNewest} />
+      </SSVStack>
+    </View>
+  )
+
+  return (
+    <View style={styles.fill}>
+      <SSNostrNoteList
+        emptyLabel={t('nostrIdentity.feed.noNotes')}
+        fetchNextPage={notes.fetchNextPage}
+        hasNextPage={notes.hasNextPage}
+        header={listHeader}
+        isFetchingNextPage={notes.isFetchingNextPage}
+        isLoading={notes.isLoading}
+        notes={filterFeedReplies(notes.notes, excludeReplies && isShortText)}
+        onAuthorPress={onAuthorPress}
+        onNotePress={onNotePress}
+        ownAuthor={getOwnAuthorFallback(identity)}
+        privacyMode={privacyMode}
+        privateIds={notes.privateIds}
+        relays={relays}
+        resolved={notes.resolved}
+      />
+      <SSNostrKindFilterSheet
+        visible={sheetOpen}
+        onClose={closeSheet}
+        options={NOSTR_NOTE_FILTER_OPTIONS}
+        selectedId={kindFilterId}
+        onSelect={selectKindFilter}
+      />
+    </View>
+  )
+}
+
+function FollowingTabContent({
+  header,
+  identity,
+  npub,
+  onAuthorPress,
+  onNotePress,
+  privacyMode,
+  relays
+}: FeedTabContentProps) {
+  const [kindFilterId, setKindFilterId] = useState(DEFAULT_KIND_FILTER_ID)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [excludeReplies, setExcludeReplies] = useState(true)
+  const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+
+  const follows = useNostrFollowsFetch({ enabled: true, npub, relays })
+  const authors = follows.data?.data.pubkeys ?? NO_AUTHORS
+  const feed = useNostrFeedFetch({
+    authors,
+    enabled: true,
+    followsUpdatedAt: follows.dataUpdatedAt,
+    kindFilterId,
+    npub,
+    relays,
+    resolveQuotes: !privacyMode
+  })
+  const newCount = useNostrNewNotesPoll({
+    authors,
+    enabled: authors.length > 0,
+    kindFilterId,
+    newestCreatedAt: feed.notes[0]?.created_at ?? 0,
+    npub,
+    relays,
+    tab: 'feed'
+  })
+
+  const followsResult = follows.data
+  const followingEmpty =
+    followsResult?.source === 'relay' && followsResult.data.pubkeys.length === 0
+  const followsDegraded = Boolean(
+    followsResult && (followsResult.source !== 'relay' || followsResult.error)
+  )
+
+  function openSheet() {
+    setSheetOpen(true)
+  }
+
+  function closeSheet() {
+    setSheetOpen(false)
+  }
+
+  function selectKindFilter(id: string) {
+    setKindFilterId(id)
+    setExcludeReplies(id === SHORT_TEXT_FILTER_ID)
+  }
+
+  function toggleExcludeReplies() {
+    setExcludeReplies((current) => !current)
+  }
+
+  const listHeader = (
+    <View>
+      {header}
+      <SSVStack gap="sm" style={styles.tabHeader}>
+        <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
+          <SSNostrKindFilterTrigger
+            label={getKindFilterLabel(kindFilterId)}
+            onPress={openSheet}
+          />
+          {isShortText ? (
+            <SSNostrReplyFilterChip
+              active={!excludeReplies}
+              label={t('nostrIdentity.feed.showReplies')}
+              onPress={toggleExcludeReplies}
+            />
+          ) : null}
+        </SSHStack>
+        {followsDegraded && followsResult ? (
+          <SSNostrSourceBanner
+            error={followsResult.error}
+            onRetry={follows.refetch}
+            retrying={follows.isRefetching}
+            source={followsResult.source}
+          />
+        ) : (
+          <SSNostrSourceBanner
+            error={feed.error}
+            onRetry={feed.refetch}
+            retrying={feed.isRefetching}
+            source={feed.source}
+          />
+        )}
+        <NewNotesPrompt count={newCount} onPress={feed.showNewest} />
+      </SSVStack>
+    </View>
+  )
+
+  return (
+    <View style={styles.fill}>
+      <SSNostrNoteList
+        emptyLabel={
+          followingEmpty
+            ? t('nostrIdentity.feed.noFollowing')
+            : t('nostrIdentity.feed.noFeed')
+        }
+        fetchNextPage={feed.fetchNextPage}
+        hasNextPage={feed.hasNextPage}
+        header={listHeader}
+        isFetchingNextPage={feed.isFetchingNextPage}
+        isLoading={follows.isLoading || feed.isLoading}
+        notes={filterFeedReplies(feed.notes, excludeReplies && isShortText)}
+        onAuthorPress={onAuthorPress}
+        onNotePress={onNotePress}
+        ownAuthor={getOwnAuthorFallback(identity)}
+        privacyMode={privacyMode}
+        privateIds={NO_PRIVATE_IDS}
+        relays={relays}
+        resolved={feed.resolved}
+      />
+      <SSNostrKindFilterSheet
+        visible={sheetOpen}
+        onClose={closeSheet}
+        options={FEED_KIND_FILTER_OPTIONS}
+        selectedId={kindFilterId}
+        onSelect={selectKindFilter}
+      />
+    </View>
+  )
+}
+
+function ZapsTabContent({
+  header,
+  npub,
+  onZapPress,
+  privacyMode,
+  relays
+}: FeedTabContentProps) {
+  const [sort, setSort] = useState(DEFAULT_ZAP_SORT)
+  const pubkeyHex = getPubKeyHexFromNpub(npub) ?? ''
+  const zaps = useNostrZapsFetch({
+    enabled: true,
+    ownPubkeys: pubkeyHex ? [pubkeyHex] : [],
+    pubkeyHex,
+    relays
+  })
+
+  function sortByDate() {
+    setSort((current) => getNextZapSort(current, 'date'))
+  }
+
+  function sortByAmount() {
+    setSort((current) => getNextZapSort(current, 'amount'))
+  }
+
+  const listHeader = (
+    <View>
+      {header}
+      <SSVStack gap="sm" style={styles.tabHeader}>
+        <SSNostrSourceBanner
+          error={zaps.error}
+          onRetry={zaps.refetch}
+          retrying={zaps.isRefetching}
+          source={zaps.source}
+        />
+        {zaps.zaps.length > 0 ? (
+          <SSHStack gap="sm" style={styles.zapSortBar}>
+            <SSPressable onPress={sortByDate} hitSlop={8}>
+              <SSText
+                size="xxs"
+                color={sort.field === 'date' ? 'white' : 'muted'}
+              >
+                {getZapSortLabel(sort, 'date')}
+              </SSText>
+            </SSPressable>
+            <SSPressable onPress={sortByAmount} hitSlop={8}>
+              <SSText
+                size="xxs"
+                color={sort.field === 'amount' ? 'white' : 'muted'}
+              >
+                {getZapSortLabel(sort, 'amount')}
+              </SSText>
+            </SSPressable>
+          </SSHStack>
+        ) : null}
+      </SSVStack>
+    </View>
+  )
+
+  return (
+    <View style={styles.fill}>
+      <SSNostrZapList
+        fetchNextPage={zaps.fetchNextPage}
+        hasNextPage={zaps.hasNextPage}
+        header={listHeader}
+        isFetchingNextPage={zaps.isFetchingNextPage}
+        isLoading={zaps.isLoading}
+        onZapPress={onZapPress}
+        privacyMode={privacyMode}
+        relays={relays}
+        zaps={applyZapSort(zaps.zaps, sort)}
+      />
+    </View>
+  )
+}
+
+function renderNothing() {
+  return null
+}
+
+/**
+ * Zaps / notes / following feed for one identity. Each tab is its own
+ * FlashList with `header` and the tab bar as the list header, so the whole
+ * screen scrolls as one virtualized list.
+ */
+function SSNostrFeedTabs({
+  header,
+  npub,
+  onAuthorPress,
   onNotePress,
   onZapPress,
-  onAuthorPress,
   relayConnected,
   relays
 }: SSNostrFeedTabsProps) {
@@ -115,961 +483,87 @@ function SSNostrFeedTabs({
   )
   const [activeTab, setActiveTab] = useState<FeedTab>('zaps')
 
-  const [notes, setNotes] = useState<NostrFeedNoteLike[]>([])
-  const [notesLoading, setNotesLoading] = useState(false)
-  const [notesHasMore, setNotesHasMore] = useState(true)
-  const notesFetchedRef = useRef(false)
-  const [notesKindFilterId, setNotesKindFilterId] = useState(
-    DEFAULT_KIND_FILTER_ID
-  )
-  const [notesKindSheetOpen, setNotesKindSheetOpen] = useState(false)
-  const [notesExcludeReplies, setNotesExcludeReplies] = useState(true)
-
-  const [feedNotes, setFeedNotes] = useState<NostrFeedNoteLike[]>([])
-  const [feedKindFilterId, setFeedKindFilterId] = useState(
-    DEFAULT_KIND_FILTER_ID
-  )
-  const [feedKindSheetOpen, setFeedKindSheetOpen] = useState(false)
-  const [feedExcludeReplies, setFeedExcludeReplies] = useState(true)
-  const [feedLoading, setFeedLoading] = useState(false)
-  const [feedHasMore, setFeedHasMore] = useState(true)
-  const [feedFollowingEmpty, setFeedFollowingEmpty] = useState(false)
-  const feedFetchedRef = useRef(false)
-  const [feedAuthorKind0, setFeedAuthorKind0] = useState<
-    Record<string, FeedAuthorKind0State>
-  >({})
-  const feedKind0FetchedRef = useRef(new Set<string>())
-
-  const [zaps, setZaps] = useState<ZapReceiptInfo[]>([])
-  const [zapsLoading, setZapsLoading] = useState(false)
-  const [zapsHasMore, setZapsHasMore] = useState(true)
-  const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
-  const [zapSortAsc, setZapSortAsc] = useState(false)
-  const zapsFetchedRef = useRef(false)
-
-  const privateBookmarkIdsRef = useRef(new Set<string>())
-
-  const [noteResolvedEvents, setNoteResolvedEvents] = useState<
-    Map<string, NostrFeedNoteLike>
-  >(new Map())
-  const [feedResolvedEvents, setFeedResolvedEvents] = useState<
-    Map<string, NostrFeedNoteLike>
-  >(new Map())
-
-  const hexPubkey = getPubKeyHexFromNpub(npub) ?? ''
-  const ownPubkeyLower = hexPubkey.toLowerCase()
-  const [ownPubkeys] = useState<string[]>(() => (hexPubkey ? [hexPubkey] : []))
-
-  const apiRef = useRef<NostrAPI | null>(null)
-  const relaysKey = JSON.stringify(relays)
-
-  useEffect(() => {
-    apiRef.current?.closeAllSubscriptions()
-    apiRef.current = relays.length ? new NostrAPI(relays, ownPubkeys) : null
-    return () => {
-      apiRef.current?.closeAllSubscriptions()
-      apiRef.current = null
-    }
-  }, [relaysKey, ownPubkeys]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function batchResolveNotes(
-    fetched: NostrFeedNoteLike[],
-    existing: Map<string, NostrFeedNoteLike>,
-    setter: (
-      updater: (
-        prev: Map<string, NostrFeedNoteLike>
-      ) => Map<string, NostrFeedNoteLike>
-    ) => void
-  ) {
-    if (!apiRef.current || privacyMode) {
-      return
-    }
-    const alreadyResolved = new Set(existing.keys())
-    const unresolvedIds = collectUnresolvedEventIds(fetched, alreadyResolved)
-    if (unresolvedIds.length === 0) {
-      return
-    }
-    const resolved = await apiRef.current.fetchEventBatch(unresolvedIds)
-    if (resolved.size === 0) {
-      return
-    }
-    setter((prev) => {
-      const next = new Map(prev)
-      for (const [k, v] of resolved) {
-        next.set(k, v)
-      }
-      return next
-    })
+  function showZaps() {
+    setActiveTab('zaps')
   }
 
-  async function loadBookmarkNotes() {
-    if (!apiRef.current) {
-      return
-    }
-    setNotesLoading(true)
-    try {
-      const result = await apiRef.current.fetchBookmarks(npub)
-      if (!result) {
-        setNotes([])
-        return
-      }
-
-      const pubBookmarks = parsePublicBookmarks(result.tags)
-      const nsec = identity?.nsec
-      const resolvePrivBookmarks = () => {
-        if (notesKindFilterId === 'bookmarks' || !nsec) {
-          return []
-        }
-        const secretKey = getSecretFromNsec(nsec)
-        if (!secretKey) {
-          return []
-        }
-        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
-      }
-      const privBookmarks = resolvePrivBookmarks()
-
-      const merged =
-        notesKindFilterId === 'private_bookmarks'
-          ? privBookmarks
-          : mergeBookmarks(pubBookmarks, privBookmarks)
-
-      const trimmed = merged.slice(0, NOSTR_BOOKMARKS_MAX_FETCH)
-      privateBookmarkIdsRef.current = new Set(
-        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
-      )
-
-      const fetched = await Promise.all(
-        trimmed.map(async (bm) => {
-          const event = await apiRef.current!.fetchEvent(bm.eventId)
-          if (!event) {
-            return null
-          }
-          return { ...event, id: bm.eventId }
-        })
-      )
-      const bookmarkedNotes = fetched.filter(
-        (n): n is NonNullable<typeof n> => n !== null
-      )
-      setNotes(bookmarkedNotes)
-      setNotesHasMore(false)
-      await batchResolveNotes(
-        bookmarkedNotes,
-        noteResolvedEvents,
-        setNoteResolvedEvents
-      )
-    } catch {
-      // fetch failed — UI already shows empty state
-    } finally {
-      setNotesLoading(false)
-    }
+  function showNotes() {
+    setActiveTab('notes')
   }
 
-  async function loadNotes(loadMore = false) {
-    if (notesLoading || !apiRef.current) {
-      return
-    }
-
-    if (NOSTR_BOOKMARKS_FILTER_IDS.has(notesKindFilterId)) {
-      await loadBookmarkNotes()
-      return
-    }
-
-    setNotesLoading(true)
-    try {
-      const lastNote = notes.at(-1)
-      const until = loadMore && lastNote ? lastNote.created_at : undefined
-
-      const fetched = await apiRef.current.fetchNotes(
-        npub,
-        NOSTR_BOOKMARKS_PAGE_SIZE,
-        until,
-        kindsForNoteKindFilterId(notesKindFilterId)
-      )
-
-      if (fetched.length < NOSTR_BOOKMARKS_PAGE_SIZE) {
-        setNotesHasMore(false)
-      }
-
-      if (loadMore) {
-        setNotes((prev) => {
-          const existingIds = new Set(prev.map((n) => n.id))
-          const newNotes = fetched.filter((n) => !existingIds.has(n.id))
-          return [...prev, ...newNotes]
-        })
-      } else {
-        setNotes(fetched)
-      }
-      await batchResolveNotes(
-        fetched,
-        noteResolvedEvents,
-        setNoteResolvedEvents
-      )
-    } catch {
-      // fetch failed — UI already shows empty state
-    } finally {
-      setNotesLoading(false)
-    }
-  }
-
-  async function loadFeed(loadMore = false) {
-    if (feedLoading || !apiRef.current) {
-      return
-    }
-
-    setFeedLoading(true)
-    try {
-      if (!loadMore) {
-        const { pubkeys: following } =
-          await apiRef.current.fetchKind3FollowingPubkeys(npub)
-        const empty = following.length === 0
-        setFeedFollowingEmpty(empty)
-        if (empty) {
-          setFeedNotes([])
-          setFeedHasMore(false)
-          return
-        }
-      }
-
-      const lastFeed = feedNotes.at(-1)
-      const until = loadMore && lastFeed ? lastFeed.created_at : undefined
-
-      const fetched = await apiRef.current.fetchFollowingTimelineNotes(
-        npub,
-        NOSTR_BOOKMARKS_PAGE_SIZE,
-        until,
-        kindsForNoteKindFilterId(feedKindFilterId)
-      )
-
-      if (fetched.length < NOSTR_BOOKMARKS_PAGE_SIZE) {
-        setFeedHasMore(false)
-      }
-
-      if (loadMore) {
-        setFeedNotes((prev) => {
-          const existingIds = new Set(prev.map((n) => n.id))
-          const newNotes = fetched.filter((n) => !existingIds.has(n.id))
-          return [...prev, ...newNotes]
-        })
-      } else {
-        setFeedNotes(fetched)
-      }
-      await batchResolveNotes(
-        fetched,
-        feedResolvedEvents,
-        setFeedResolvedEvents
-      )
-    } catch {
-      // fetch failed — UI already shows empty state
-    } finally {
-      setFeedLoading(false)
-    }
-  }
-
-  async function loadZaps(loadMore = false) {
-    if (zapsLoading || !relays.length) {
-      return
-    }
-
-    setZapsLoading(true)
-    try {
-      const lastZap = zaps.at(-1)
-      const until =
-        loadMore && lastZap && lastZap.createdAt > 0
-          ? lastZap.createdAt - 1
-          : undefined
-
-      const [incomingBatch, sentBatch] = await Promise.all([
-        fetchZapsByPubkey(
-          hexPubkey,
-          relays,
-          NOSTR_BOOKMARKS_PAGE_SIZE,
-          until,
-          ownPubkeys
-        ),
-        fetchZapsSentByPubkey(
-          hexPubkey,
-          relays,
-          NOSTR_BOOKMARKS_PAGE_SIZE,
-          until
-        )
-      ])
-
-      const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
-      const incomingHasMore = incomingBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
-      const sentHasMore = sentBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
-
-      if (loadMore) {
-        const prevLen = zaps.length
-        const allZaps = mergeZapReceiptsById([...zaps, ...fetched])
-        if (allZaps.length === prevLen) {
-          setZapsHasMore(false)
-        } else {
-          setZapsHasMore(incomingHasMore || sentHasMore)
-        }
-        setZaps(allZaps)
-        await enrichZapReceipts(allZaps, relays)
-        setZaps([...allZaps])
-      } else {
-        setZapsHasMore(incomingHasMore || sentHasMore)
-        setZaps(fetched)
-        await enrichZapReceipts(fetched, relays)
-        setZaps([...fetched])
-      }
-    } catch {
-      // fetch failed — UI already shows empty state
-    } finally {
-      setZapsLoading(false)
-    }
-  }
-
-  function resetAllFeedState() {
-    notesFetchedRef.current = false
-    feedFetchedRef.current = false
-    zapsFetchedRef.current = false
-    setNotes([])
-    setFeedNotes([])
-    setZaps([])
-    setNotesHasMore(true)
-    setFeedHasMore(true)
-    setZapsHasMore(true)
-    setFeedFollowingEmpty(false)
-    setFeedAuthorKind0({})
-    feedKind0FetchedRef.current.clear()
-    privateBookmarkIdsRef.current.clear()
-    setNoteResolvedEvents(new Map())
-    setFeedResolvedEvents(new Map())
-  }
-
-  useEffect(() => {
-    if (!relayConnected) {
-      resetAllFeedState()
-      setNotesLoading(false)
-      setFeedLoading(false)
-      setZapsLoading(false)
-    }
-  }, [relayConnected]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    resetAllFeedState()
-  }, [npub]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    notesFetchedRef.current = false
-    setNotes([])
-    setNotesHasMore(true)
-    setNoteResolvedEvents(new Map())
-    setNotesExcludeReplies(notesKindFilterId === 'short_text')
-  }, [notesKindFilterId])
-
-  useEffect(() => {
-    feedFetchedRef.current = false
-    setFeedNotes([])
-    setFeedHasMore(true)
-    setFeedAuthorKind0({})
-    feedKind0FetchedRef.current.clear()
-    setFeedResolvedEvents(new Map())
-    setFeedExcludeReplies(feedKindFilterId === 'short_text')
-  }, [feedKindFilterId])
-
-  const notesKindOpt = NOSTR_NOTE_FILTER_OPTIONS.find(
-    (o) => o.id === notesKindFilterId
-  )
-  const notesKindLabel = notesKindOpt ? t(notesKindOpt.labelKey) : ''
-
-  const feedKindOpt = FEED_KIND_FILTER_OPTIONS.find(
-    (o) => o.id === feedKindFilterId
-  )
-  const feedKindLabel = feedKindOpt ? t(feedKindOpt.labelKey) : ''
-
-  function openNotesKindSheet() {
-    setNotesKindSheetOpen(true)
-  }
-
-  function closeNotesKindSheet() {
-    setNotesKindSheetOpen(false)
-  }
-
-  function toggleNotesExcludeReplies() {
-    setNotesExcludeReplies((current) => !current)
-  }
-
-  function openFeedKindSheet() {
-    setFeedKindSheetOpen(true)
-  }
-
-  function closeFeedKindSheet() {
-    setFeedKindSheetOpen(false)
-  }
-
-  function toggleFeedExcludeReplies() {
-    setFeedExcludeReplies((current) => !current)
-  }
-
-  useEffect(() => {
-    if (!relayConnected) {
-      return
-    }
-    if (activeTab === 'notes' && !notesFetchedRef.current) {
-      notesFetchedRef.current = true
-      void loadNotes()
-    } else if (activeTab === 'feed' && !feedFetchedRef.current) {
-      feedFetchedRef.current = true
-      void loadFeed()
-    } else if (activeTab === 'zaps' && !zapsFetchedRef.current) {
-      zapsFetchedRef.current = true
-      void loadZaps()
-    }
-  }, [activeTab, relayConnected, notesKindFilterId, feedKindFilterId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!relayConnected || privacyMode || !apiRef.current) {
-      return
-    }
-
-    const api = apiRef.current
-    const allNotes = [
-      ...feedNotes,
-      ...notes,
-      ...feedResolvedEvents.values(),
-      ...noteResolvedEvents.values()
-    ]
-    const pks = [
-      ...new Set([
-        ...allNotes.map((n) => n.pubkey.toLowerCase()),
-        ...allNotes.flatMap((n) => extractMentionPubkeys(n.content)),
-        ...(ownPubkeyLower && /^[0-9a-f]{64}$/.test(ownPubkeyLower)
-          ? [ownPubkeyLower]
-          : [])
-      ])
-    ].filter((pk) => /^[0-9a-f]{64}$/.test(pk))
-
-    for (const pk of pks) {
-      if (feedKind0FetchedRef.current.has(pk)) {
-        continue
-      }
-      feedKind0FetchedRef.current.add(pk)
-      setFeedAuthorKind0((prev) => ({
-        ...prev,
-        [pk]: { status: 'loading' }
-      }))
-      void (async () => {
-        try {
-          const profile = await api.fetchKind0ByPubkeyHex(pk)
-          setFeedAuthorKind0((prev) => ({
-            ...prev,
-            [pk]: { profile, status: 'ready' }
-          }))
-        } catch {
-          setFeedAuthorKind0((prev) => ({
-            ...prev,
-            [pk]: { profile: null, status: 'ready' }
-          }))
-        }
-      })()
-    }
-  }, [
-    feedNotes,
-    notes,
-    feedResolvedEvents,
-    noteResolvedEvents,
-    ownPubkeyLower,
-    relayConnected,
-    privacyMode
-  ]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function renderFeedAuthorKind0Row(note: NostrFeedNoteLike) {
-    const pk = note.pubkey.toLowerCase()
-    const npubBech = nip19.npubEncode(note.pubkey)
-    const row = feedAuthorKind0[pk]
-    const p = row?.status === 'ready' ? row.profile : undefined
-
-    const fromIdentity =
-      pk === ownPubkeyLower && identity
-        ? {
-            displayName: identity.displayName?.trim() ?? '',
-            nip05: identity.nip05?.trim() ?? '',
-            pictureUri: identity.picture?.trim()
-          }
-        : null
-    const hasIdentityFallback = Boolean(
-      fromIdentity &&
-      (fromIdentity.displayName.length > 0 ||
-        fromIdentity.nip05.length > 0 ||
-        (fromIdentity.pictureUri?.length ?? 0) > 0)
-    )
-
-    const loading = (!row || row.status === 'loading') && !hasIdentityFallback
-
-    const displayName =
-      p?.displayName?.trim() || fromIdentity?.displayName || ''
-    const nip05 = p?.nip05?.trim() || fromIdentity?.nip05 || ''
-    const pictureUri =
-      (p?.picture?.trim() || fromIdentity?.pictureUri || '').trim() || undefined
-
-    return (
-      <SSNostrFeedAuthorRow
-        onPress={onAuthorPress ? () => onAuthorPress(npubBech) : undefined}
-        loading={loading}
-        npubBech={npubBech}
-        displayName={displayName}
-        nip05={nip05}
-        pictureUri={pictureUri}
-      />
-    )
-  }
-
-  const visibleNotes =
-    notesExcludeReplies && notesKindFilterId === 'short_text'
-      ? notes.filter((n) => !noteLooksLikeReply(n.tags) || isNoteQuotePost(n))
-      : notes
-
-  const visibleFeedNotes =
-    feedExcludeReplies && feedKindFilterId === 'short_text'
-      ? feedNotes.filter(
-          (n) => !noteLooksLikeReply(n.tags) || isNoteQuotePost(n)
-        )
-      : feedNotes
-
-  const readyProfiles: Record<string, NostrKind0Profile | null> = {}
-  for (const [pk, state] of Object.entries(feedAuthorKind0)) {
-    if (state.status === 'ready') {
-      readyProfiles[pk] = state.profile
-    }
+  function showFeed() {
+    setActiveTab('feed')
   }
 
   if (!relayConnected) {
     return (
-      <SSVStack gap="none">
-        <SSText size="xs" color="muted" center style={styles.emptyText}>
-          {t('nostrIdentity.feed.relayQueriesOff')}
-        </SSText>
-      </SSVStack>
+      <FlashList
+        data={[]}
+        ListEmptyComponent={
+          <SSText size="xs" color="muted" center style={styles.emptyText}>
+            {t('nostrIdentity.feed.relayQueriesOff')}
+          </SSText>
+        }
+        ListHeaderComponent={header}
+        renderItem={renderNothing}
+      />
     )
   }
 
-  return (
-    <SSVStack gap="none">
+  const tabsHeader = (
+    <View>
+      {header}
       <SSHStack gap="none" style={styles.tabBar}>
-        <SSActionButton
-          style={styles.tabButton}
-          onPress={() => setActiveTab('zaps')}
-        >
-          <View style={styles.tabButtonWrap}>
-            <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
-              <SSText
-                size="sm"
-                uppercase
-                center
-                color={activeTab === 'zaps' ? 'white' : 'muted'}
-              >
-                {t('nostrIdentity.feed.zaps')}
-              </SSText>
-            </SSVStack>
-            {activeTab === 'zaps' ? <View style={styles.tabIndicator} /> : null}
-          </View>
-        </SSActionButton>
-        <SSActionButton
-          style={styles.tabButton}
-          onPress={() => setActiveTab('notes')}
-        >
-          <View style={styles.tabButtonWrap}>
-            <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
-              <SSText
-                size="sm"
-                uppercase
-                center
-                color={activeTab === 'notes' ? 'white' : 'muted'}
-              >
-                {t('nostrIdentity.feed.notes')}
-              </SSText>
-            </SSVStack>
-            {activeTab === 'notes' ? (
-              <View style={styles.tabIndicator} />
-            ) : null}
-          </View>
-        </SSActionButton>
-        <SSActionButton
-          style={styles.tabButton}
-          onPress={() => setActiveTab('feed')}
-        >
-          <View style={styles.tabButtonWrap}>
-            <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
-              <SSText
-                size="sm"
-                uppercase
-                center
-                color={activeTab === 'feed' ? 'white' : 'muted'}
-              >
-                {t('nostrIdentity.feed.feed')}
-              </SSText>
-            </SSVStack>
-            {activeTab === 'feed' ? <View style={styles.tabIndicator} /> : null}
-          </View>
-        </SSActionButton>
+        <TabButton
+          active={activeTab === 'zaps'}
+          label={t('nostrIdentity.feed.zaps')}
+          onPress={showZaps}
+        />
+        <TabButton
+          active={activeTab === 'notes'}
+          label={t('nostrIdentity.feed.notes')}
+          onPress={showNotes}
+        />
+        <TabButton
+          active={activeTab === 'feed'}
+          label={t('nostrIdentity.feed.feed')}
+          onPress={showFeed}
+        />
       </SSHStack>
-
-      <SSVStack gap="sm" style={styles.tabContent}>
-        {activeTab === 'notes' && (
-          <>
-            <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
-              <SSNostrKindFilterTrigger
-                label={notesKindLabel}
-                onPress={openNotesKindSheet}
-              />
-              {notesKindFilterId === 'short_text' ? (
-                <SSNostrReplyFilterChip
-                  active={!notesExcludeReplies}
-                  label={t('nostrIdentity.feed.showReplies')}
-                  onPress={toggleNotesExcludeReplies}
-                />
-              ) : null}
-            </SSHStack>
-            {visibleNotes.map((note) => {
-              const resolvedId = getResolvedEventId(note)
-              const resolvedNote = resolvedId
-                ? noteResolvedEvents.get(resolvedId)
-                : undefined
-              const resolvedProfileRow = resolvedNote
-                ? feedAuthorKind0[resolvedNote.pubkey.toLowerCase()]
-                : undefined
-              const resolvedProfile =
-                resolvedProfileRow?.status === 'ready'
-                  ? resolvedProfileRow.profile
-                  : undefined
-              return (
-                <SSNostrFeedNoteRow
-                  key={note.id}
-                  note={note}
-                  privacyMode={privacyMode}
-                  showAuthor
-                  authorPreview={renderFeedAuthorKind0Row(note)}
-                  badge={
-                    NOSTR_BOOKMARKS_FILTER_IDS.has(notesKindFilterId) &&
-                    privateBookmarkIdsRef.current.has(note.id) ? (
-                      <DecryptedBadge />
-                    ) : undefined
-                  }
-                  resolvedQuotedNote={resolvedNote}
-                  resolvedQuotedNoteProfile={resolvedProfile}
-                  mentionProfiles={readyProfiles}
-                  onPress={() =>
-                    onNotePress?.({
-                      id: note.id,
-                      kind: note.kind,
-                      pubkey: note.pubkey
-                    })
-                  }
-                  onQuotePress={(id) => {
-                    const target = resolvedNote?.id === id ? resolvedNote : null
-                    onNotePress?.({
-                      id,
-                      kind: target?.kind ?? nostrKinds.ShortTextNote,
-                      pubkey: target?.pubkey ?? ''
-                    })
-                  }}
-                />
-              )
-            })}
-            {notesLoading && (
-              <ActivityIndicator
-                color={Colors.white}
-                size="small"
-                style={styles.loader}
-              />
-            )}
-
-            {!notesLoading && visibleNotes.length === 0 && (
-              <SSText size="xs" color="muted" center style={styles.emptyText}>
-                {t('nostrIdentity.feed.noNotes')}
-              </SSText>
-            )}
-
-            {!notesLoading && notesHasMore && visibleNotes.length > 0 && (
-              <SSButton
-                label={t('nostrIdentity.feed.loadMore')}
-                variant="ghost"
-                onPress={() => loadNotes(true)}
-              />
-            )}
-          </>
-        )}
-
-        {activeTab === 'feed' && (
-          <>
-            <SSHStack gap="md" style={ssnostrKindFilterRowStyle}>
-              <SSNostrKindFilterTrigger
-                label={feedKindLabel}
-                onPress={openFeedKindSheet}
-              />
-              {feedKindFilterId === 'short_text' ? (
-                <SSNostrReplyFilterChip
-                  active={!feedExcludeReplies}
-                  label={t('nostrIdentity.feed.showReplies')}
-                  onPress={toggleFeedExcludeReplies}
-                />
-              ) : null}
-            </SSHStack>
-            {visibleFeedNotes.map((note) => {
-              const resolvedId = getResolvedEventId(note)
-              const resolvedNote = resolvedId
-                ? feedResolvedEvents.get(resolvedId)
-                : undefined
-              const resolvedProfileRow = resolvedNote
-                ? feedAuthorKind0[resolvedNote.pubkey.toLowerCase()]
-                : undefined
-              const resolvedProfile =
-                resolvedProfileRow?.status === 'ready'
-                  ? resolvedProfileRow.profile
-                  : undefined
-              return (
-                <SSNostrFeedNoteRow
-                  key={note.id}
-                  note={note}
-                  privacyMode={privacyMode}
-                  showAuthor
-                  authorPreview={renderFeedAuthorKind0Row(note)}
-                  resolvedQuotedNote={resolvedNote}
-                  resolvedQuotedNoteProfile={resolvedProfile}
-                  mentionProfiles={readyProfiles}
-                  onPress={() =>
-                    onNotePress?.({
-                      id: note.id,
-                      kind: note.kind,
-                      pubkey: note.pubkey
-                    })
-                  }
-                  onQuotePress={(id) => {
-                    const target = resolvedNote?.id === id ? resolvedNote : null
-                    onNotePress?.({
-                      id,
-                      kind: target?.kind ?? nostrKinds.ShortTextNote,
-                      pubkey: target?.pubkey ?? ''
-                    })
-                  }}
-                />
-              )
-            })}
-
-            {feedLoading && (
-              <ActivityIndicator
-                color={Colors.white}
-                size="small"
-                style={styles.loader}
-              />
-            )}
-
-            {!feedLoading && feedFollowingEmpty && (
-              <SSText size="xs" color="muted" center style={styles.emptyText}>
-                {t('nostrIdentity.feed.noFollowing')}
-              </SSText>
-            )}
-
-            {!feedLoading &&
-              !feedFollowingEmpty &&
-              visibleFeedNotes.length === 0 && (
-                <SSText size="xs" color="muted" center style={styles.emptyText}>
-                  {t('nostrIdentity.feed.noFeed')}
-                </SSText>
-              )}
-
-            {!feedLoading &&
-              !feedFollowingEmpty &&
-              feedHasMore &&
-              visibleFeedNotes.length > 0 && (
-                <SSButton
-                  label={t('nostrIdentity.feed.loadMore')}
-                  variant="ghost"
-                  onPress={() => loadFeed(true)}
-                />
-              )}
-          </>
-        )}
-
-        {activeTab === 'zaps' && (
-          <>
-            {zaps.length > 0 && (
-              <SSHStack gap="sm" style={styles.zapSortBar}>
-                <SSPressable
-                  onPress={() => {
-                    if (zapSortField === 'date') {
-                      setZapSortAsc((v) => !v)
-                    } else {
-                      setZapSortField('date')
-                      setZapSortAsc(false)
-                    }
-                  }}
-                  hitSlop={8}
-                >
-                  <SSText
-                    size="xxs"
-                    color={zapSortField === 'date' ? 'white' : 'muted'}
-                  >
-                    {t('nostrIdentity.zapSort.date')}
-                    {zapSortField === 'date' ? (zapSortAsc ? ' ↑' : ' ↓') : ''}
-                  </SSText>
-                </SSPressable>
-                <SSPressable
-                  onPress={() => {
-                    if (zapSortField === 'amount') {
-                      setZapSortAsc((v) => !v)
-                    } else {
-                      setZapSortField('amount')
-                      setZapSortAsc(false)
-                    }
-                  }}
-                  hitSlop={8}
-                >
-                  <SSText
-                    size="xxs"
-                    color={zapSortField === 'amount' ? 'white' : 'muted'}
-                  >
-                    {t('nostrIdentity.zapSort.amount')}
-                    {zapSortField === 'amount'
-                      ? zapSortAsc
-                        ? ' ↑'
-                        : ' ↓'
-                      : ''}
-                  </SSText>
-                </SSPressable>
-              </SSHStack>
-            )}
-            {sortZapReceipts(zaps, zapSortField, zapSortAsc).map((receipt) => {
-              const isOutgoing = receipt.direction === 'outgoing'
-              const avatarUri = isOutgoing
-                ? receipt.recipientPicture
-                : receipt.senderPicture
-              const displayName = isOutgoing
-                ? receipt.recipientPubkey
-                  ? receipt.recipientName ||
-                    formatNpub(nip19.npubEncode(receipt.recipientPubkey), 'xs')
-                  : '?'
-                : receipt.senderName ||
-                  formatNpub(nip19.npubEncode(receipt.senderPubkey), 'xs')
-              const placeholderLetter = isOutgoing
-                ? receipt.recipientName?.[0]?.toUpperCase() ||
-                  receipt.recipientPubkey?.slice(2, 3)?.toUpperCase()
-                : receipt.senderName?.[0]?.toUpperCase() || '?'
-
-              const row = (
-                <SSHStack gap="sm" style={styles.zapRow}>
-                  {privacyMode ? (
-                    <View
-                      style={[styles.zapAvatar, styles.zapAvatarPlaceholder]}
-                    />
-                  ) : avatarUri ? (
-                    <Image
-                      source={{ uri: avatarUri }}
-                      style={styles.zapAvatar}
-                    />
-                  ) : (
-                    <View
-                      style={[styles.zapAvatar, styles.zapAvatarPlaceholder]}
-                    >
-                      <SSText size="xs" weight="bold">
-                        {placeholderLetter || '?'}
-                      </SSText>
-                    </View>
-                  )}
-                  <SSVStack gap="xxs" style={styles.zapInfo}>
-                    {isOutgoing ? (
-                      <SSText size="xxs" color="muted" uppercase>
-                        {t('nostrIdentity.feed.outgoingZap')}
-                      </SSText>
-                    ) : null}
-                    <SSText size="sm" weight="medium">
-                      {privacyMode ? NOSTR_PRIVACY_MASK : displayName}
-                    </SSText>
-                    {!privacyMode && receipt.comment ? (
-                      <SSText size="xs" color="muted" numberOfLines={2}>
-                        {receipt.comment}
-                      </SSText>
-                    ) : null}
-                  </SSVStack>
-                  <SSVStack gap="xxs" style={styles.zapAmountCol}>
-                    <SSText size="xxs" color="muted">
-                      {formatNostrCardDate(receipt.createdAt)}
-                    </SSText>
-                    <SSZapAmountDisplay
-                      amountSats={receipt.amountSats}
-                      incoming={!isOutgoing}
-                    />
-                  </SSVStack>
-                </SSHStack>
-              )
-
-              return onZapPress ? (
-                <SSPressable
-                  key={receipt.id}
-                  accessibilityRole="button"
-                  activeOpacity={0.7}
-                  onPress={() => onZapPress(receipt)}
-                >
-                  {row}
-                </SSPressable>
-              ) : (
-                <Fragment key={receipt.id}>{row}</Fragment>
-              )
-            })}
-
-            {zapsLoading && (
-              <ActivityIndicator
-                color={Colors.white}
-                size="small"
-                style={styles.loader}
-              />
-            )}
-
-            {!zapsLoading && zaps.length === 0 && (
-              <SSText size="xs" color="muted" center style={styles.emptyText}>
-                {t('nostrIdentity.feed.noZaps')}
-              </SSText>
-            )}
-
-            {zapsHasMore && zaps.length > 0 && (
-              <SSButton
-                disabled={zapsLoading}
-                label={t('nostrIdentity.feed.loadMore')}
-                variant="ghost"
-                onPress={() => loadZaps(true)}
-              />
-            )}
-          </>
-        )}
-      </SSVStack>
-
-      <SSNostrKindFilterSheet
-        visible={notesKindSheetOpen}
-        onClose={closeNotesKindSheet}
-        options={NOSTR_NOTE_FILTER_OPTIONS}
-        selectedId={notesKindFilterId}
-        onSelect={setNotesKindFilterId}
-      />
-
-      <SSNostrKindFilterSheet
-        visible={feedKindSheetOpen}
-        onClose={closeFeedKindSheet}
-        options={FEED_KIND_FILTER_OPTIONS}
-        selectedId={feedKindFilterId}
-        onSelect={setFeedKindFilterId}
-      />
-    </SSVStack>
+    </View>
   )
+
+  const contentProps: FeedTabContentProps = {
+    header: tabsHeader,
+    identity,
+    npub,
+    onAuthorPress,
+    onNotePress,
+    onZapPress,
+    privacyMode,
+    relays
+  }
+
+  if (activeTab === 'notes') {
+    return <NotesTabContent key={npub} {...contentProps} />
+  }
+  if (activeTab === 'feed') {
+    return <FollowingTabContent key={npub} {...contentProps} />
+  }
+  return <ZapsTabContent key={npub} {...contentProps} />
 }
 
 const styles = StyleSheet.create({
-  decryptedBadge: {
-    alignItems: 'center',
-    opacity: 0.7
-  },
   emptyText: {
     paddingVertical: 24
   },
-  loader: {
-    paddingVertical: 16
+  fill: {
+    flex: 1
   },
   tabBar: {
     borderBottomColor: Colors.gray[800],
     borderBottomWidth: 1,
+    marginHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingVertical: 0
   },
   tabButton: {
@@ -1088,7 +582,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%'
   },
-  tabContent: {
+  tabHeader: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingTop: 12
   },
   tabIndicator: {
@@ -1099,34 +594,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     zIndex: 1
-  },
-  zapAmountCol: {
-    alignItems: 'flex-end'
-  },
-  zapAmountIncoming: {
-    color: Colors.success
-  },
-  zapAvatar: {
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    height: 32,
-    width: 32
-  },
-  zapAvatarPlaceholder: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray[800],
-    justifyContent: 'center'
-  },
-  zapInfo: {
-    flex: 1
-  },
-  zapRow: {
-    alignItems: 'center',
-    borderBottomColor: Colors.gray[800],
-    borderBottomWidth: 1,
-    paddingBottom: 16,
-    paddingTop: 8
   },
   zapSortBar: {
     alignItems: 'center',

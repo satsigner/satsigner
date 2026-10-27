@@ -1,10 +1,21 @@
 import { toast } from 'sonner-native'
 
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Label } from '@/types/bips/329'
 import { type NostrMsgHandler } from '@/types/models/Nostr'
 import { JSONLtoLabels } from '@/utils/bip329'
 
 import { isSenderAllowed } from './useNostrDMStorage'
+
+/** Malformed payloads are permanent failures: report them, don't retry. */
+function parseLabels(jsonl: string): Label[] | null {
+  try {
+    return JSONLtoLabels(jsonl)
+  } catch {
+    return null
+  }
+}
 
 const labelsHandler: NostrMsgHandler = {
   canHandle: (context) => context.data?.data_type === 'LabelsBip329',
@@ -29,21 +40,20 @@ const labelsHandler: NostrMsgHandler = {
       return
     }
 
-    try {
-      const labels = JSONLtoLabels(String(data.data ?? ''))
-      const labelsAdded = useAccountsStore
-        .getState()
-        .importLabels(account.id, labels)
+    const labels = parseLabels(String(data.data ?? ''))
+    if (!labels) {
+      toast.error(t('account.nostrSync.labelsImportFailed'))
+      return
+    }
+    // A failed import throws, leaving the event unprocessed for a retry.
+    const labelsAdded = useAccountsStore
+      .getState()
+      .importLabels(account.id, labels)
 
-      if (labelsAdded > 0) {
-        toast.success(
-          labelsAdded === 1
-            ? `Imported ${labelsAdded} label`
-            : `Imported ${labelsAdded} labels`
-        )
-      }
-    } catch {
-      toast.error('Failed to import labels')
+    if (labelsAdded > 0) {
+      toast.success(
+        t('account.nostrSync.labelsImported', { count: labelsAdded })
+      )
     }
   }
 }

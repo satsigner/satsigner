@@ -1,5 +1,6 @@
-import { nip19 } from 'nostr-tools'
-import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native'
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
+import { createContext, use } from 'react'
+import { Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
@@ -7,13 +8,16 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrChatConversation } from '@/types/models/Nostr'
+import { type NostrChatConversationItem } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
+import { isNonEmptyString } from '@/utils/string'
 
 type SSNostrConversationListProps = {
-  conversations: NostrChatConversation[]
+  conversations: NostrChatConversationItem[]
   onOpenPeer: (peerNpub: string) => void
 }
+
+const OpenPeerContext = createContext<((peerNpub: string) => void) | null>(null)
 
 function formatConversationTime(timestamp: number): string {
   const date = new Date(timestamp * MS_PER_SECOND)
@@ -24,24 +28,29 @@ function formatConversationTime(timestamp: number): string {
   return date.toLocaleDateString()
 }
 
+function getRowStyle({ pressed }: { pressed: boolean }) {
+  return [styles.row, pressed && styles.rowPressed]
+}
+
 function ConversationRow({
-  conversation,
-  onPress
+  conversation
 }: {
-  conversation: NostrChatConversation
-  onPress: () => void
+  conversation: NostrChatConversationItem
 }) {
-  const peerNpub = nip19.npubEncode(conversation.peerPubkey)
+  const { peerNpub } = conversation
+  const onOpenPeer = use(OpenPeerContext)
   const profile = useNostrStore((state) => state.profiles[peerNpub])
   const displayName = profile?.displayName
+  const label = displayName ?? formatNpub(peerNpub)
+
+  function handlePress() {
+    onOpenPeer?.(peerNpub)
+  }
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
+    <Pressable onPress={handlePress} style={getRowStyle}>
       <View style={styles.avatarWrap}>
-        {profile?.picture ? (
+        {isNonEmptyString(profile?.picture) ? (
           <Image
             source={{ uri: profile.picture }}
             style={styles.avatar}
@@ -50,16 +59,16 @@ function ConversationRow({
         ) : (
           <View style={styles.avatarFallback}>
             <SSText size="md" style={styles.avatarFallbackText}>
-              {(displayName ?? formatNpub(peerNpub)).slice(0, 1).toUpperCase()}
+              {label.slice(0, 1).toUpperCase()}
             </SSText>
           </View>
         )}
       </View>
       <View style={styles.rowContent}>
         <SSText weight="medium" numberOfLines={1}>
-          {displayName ?? formatNpub(peerNpub)}
+          {label}
         </SSText>
-        {displayName ? (
+        {isNonEmptyString(displayName) ? (
           <SSText size="xs" color="muted">
             {formatNpub(peerNpub)}
           </SSText>
@@ -84,29 +93,38 @@ function ConversationRow({
   )
 }
 
+function renderConversation({
+  item
+}: ListRenderItemInfo<NostrChatConversationItem>) {
+  return <ConversationRow conversation={item} />
+}
+
+function getConversationKey(item: NostrChatConversationItem) {
+  return item.peerPubkey
+}
+
 export default function SSNostrConversationList({
   conversations,
   onOpenPeer
 }: SSNostrConversationListProps) {
-  return (
-    <FlatList
-      data={conversations}
-      renderItem={({ item }) => (
-        <ConversationRow
-          conversation={item}
-          onPress={() => onOpenPeer(nip19.npubEncode(item.peerPubkey))}
-        />
-      )}
-      keyExtractor={(item) => item.peerPubkey}
-      contentContainerStyle={
-        conversations.length === 0 ? styles.emptyContainer : undefined
-      }
-      ListEmptyComponent={
+  if (conversations.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
         <SSText center color="muted">
           {t('nostrIdentity.chat.noConversations')}
         </SSText>
-      }
-    />
+      </View>
+    )
+  }
+
+  return (
+    <OpenPeerContext value={onOpenPeer}>
+      <FlashList
+        data={conversations}
+        renderItem={renderConversation}
+        keyExtractor={getConversationKey}
+      />
+    </OpenPeerContext>
   )
 }
 

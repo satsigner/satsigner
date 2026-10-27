@@ -13,6 +13,7 @@ import {
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
 import SSText from '@/components/SSText'
@@ -27,6 +28,8 @@ import { Colors } from '@/styles'
 import { type ZapReceiptInfo } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
+import { isNostrRelayUnavailableError } from '@/utils/nostrFeed'
 import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
@@ -68,8 +71,8 @@ export default function NostrZapDetail() {
       if (!r) {
         throw new Error('Zap receipt not found')
       }
-      await enrichZapReceipts([r], effectiveRelays)
-      return r
+      const [enriched] = await enrichZapReceipts([r], effectiveRelays)
+      return enriched ?? r
     },
     queryKey: ['nostr', 'zap-receipt', npub, zapId]
   })
@@ -186,6 +189,14 @@ export default function NostrZapDetail() {
           <SSText color="muted">
             {t('nostrIdentity.zapDetail.loadError')}
           </SSText>
+        ) : null}
+        {isNostrRelayUnavailableError(receiptQuery.error) ? (
+          <SSNostrSourceBanner
+            error={getNostrErrorCode(receiptQuery.error)}
+            onRetry={receiptQuery.refetch}
+            retrying={receiptQuery.isRefetching}
+            source="cache"
+          />
         ) : null}
         {loadState === 'ready' && receipt ? (
           <SSVStack gap="md">

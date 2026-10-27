@@ -92,7 +92,6 @@ import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import useNostrSync from '@/hooks/useNostrSync'
 import { useNow } from '@/hooks/useNow'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -127,6 +126,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
@@ -1884,7 +1884,6 @@ export default function AccountView() {
     )
   const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { fetchOnce, startSync, stopSync } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -1981,17 +1980,19 @@ export default function AccountView() {
   // Keep the Nostr subscription open for the entire account session.
   // index.tsx stays mounted (not just focused) while navigating deeper into
   // the account stack, so useEffect cleanup only fires on true account exit.
+  // Only id and readiness restart it: the service reads the latest account
+  // from the store, so label or DM updates must not resubscribe.
   useEffect(() => {
-    if (hasNostrReady && account) {
-      startSync(account)
+    if (hasNostrReady && id) {
+      void nostrSyncService.startSync(id)
     }
 
     return () => {
       if (id) {
-        stopSync(id)
+        void nostrSyncService.stopSync(id)
       }
     }
-  }, [id, account, hasNostrReady, startSync, stopSync])
+  }, [id, hasNostrReady])
 
   // Memoize headerRight so React Navigation doesn't receive a new function
   // reference on every DM update, which would interrupt in-progress tap gestures.
@@ -2159,7 +2160,7 @@ export default function AccountView() {
     }
     // Fire-and-forget - don't block refresh completion for Nostr sync
     if (account.nostr?.autoSync) {
-      fetchOnce(account)
+      void nostrSyncService.fetchOnce(account.id)
     }
   }
 
