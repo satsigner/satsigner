@@ -3026,6 +3026,7 @@
     "developer.diagnosis.checks.accountSync.title": "Wallet sync freshness",
     "developer.diagnosis.checks.nostrRelays.title": "Nostr relays",
     "developer.diagnosis.checks.nostrConnections.title": "Nostr relay pools",
+    "developer.diagnosis.checks.nostrFollows.title": "Nostr follow list",
     "developer.diagnosis.checks.nostrCache.title": "Nostr cache",
     "developer.diagnosis.checks.nostrCacheFreshness.title": "Nostr cache vs relays",
     "developer.diagnosis.checks.nostrOrphans.title": "Leftover nostr data",

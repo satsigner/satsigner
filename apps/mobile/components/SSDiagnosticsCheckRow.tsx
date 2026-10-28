@@ -12,7 +12,7 @@ import type { DiagnosticResult, DiagnosticStatus } from '@/utils/diagnostics'
 
 const STATUS_COLORS: Record<DiagnosticStatus, string> = {
   fail: Colors.error,
-  ok: Colors.success,
+  ok: Colors.mainGreen,
   skipped: Colors.gray[500],
   warn: Colors.warning
 }

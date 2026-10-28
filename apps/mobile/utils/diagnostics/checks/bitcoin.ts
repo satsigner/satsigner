@@ -77,7 +77,10 @@ const accountSyncCheck: DiagnosticCheck = {
       .accounts.filter((account) => account.network === ctx.network)
     if (accounts.length === 0) {
       return Promise.resolve({
-        lines: [`no ${ctx.network} accounts`],
+        lines: [
+          `Skipped because there is no ${ctx.network} Bitcoin account.`,
+          'Add one under Signer. This check compares each account’s last sync time.'
+        ],
         status: 'skipped'
       })
     }

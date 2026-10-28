@@ -25,7 +25,13 @@ async function runCheckOutcome(
   ctx: DiagnosticsContext
 ): Promise<DiagnosticOutcome> {
   if (check.requiresNetwork && !ctx.isOnline) {
-    return { lines: ['device is offline'], status: 'skipped' }
+    return {
+      lines: [
+        'Skipped because the device is offline.',
+        'Connect to a network and run this check again.'
+      ],
+      status: 'skipped'
+    }
   }
   const timeoutMs = check.timeoutMs ?? DIAGNOSTIC_CHECK_TIMEOUT_MS
   try {
