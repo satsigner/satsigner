@@ -54,6 +54,7 @@ import {
   useNostrNoteFetch,
   useNostrNoteLookupFetch
 } from '@/hooks/useNostrNoteFetch'
+import { useNostrNoteLike } from '@/hooks/useNostrNoteLike'
 import { useNostrNoteZapsFetch } from '@/hooks/useNostrNoteZapsFetch'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import { useNostrProfilesFetch } from '@/hooks/useNostrProfilesFetch'
@@ -422,6 +423,19 @@ export default function NostrNotePage() {
     pollInfo,
     relays: effectiveRelays
   })
+
+  const { canLike, handleLikePress, likeCount, likedByMe, likeToggling } =
+    useNostrNoteLike({
+      enabled: !privacyMode,
+      isWatchOnly: Boolean(identity?.isWatchOnly),
+      note:
+        noteEvent && noteEventId
+          ? { id: noteEventId, kind: noteEvent.kind, pubkey: noteEvent.pubkey }
+          : null,
+      nsec: identity?.nsec,
+      ownPubkeys,
+      relays: effectiveRelays
+    })
 
   const noteItemForFeed = deriveNoteItemForFeed(fetched, decoded)
   const isLongFormNote = fetched ? isLongFormNostrKind(fetched.kind) : false
@@ -1024,11 +1038,26 @@ export default function NostrNotePage() {
                   <SSIconRepost width={18} height={16} />
                 </SSIconButton>
                 <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.likeTitle')}
-                  style={styles.actionButton}
-                  disabled
+                  accessibilityLabel={t(
+                    likedByMe
+                      ? 'nostrIdentity.note.unlikeTitle'
+                      : 'nostrIdentity.note.likeTitle'
+                  )}
+                  style={[styles.actionButton, styles.likeButton]}
+                  disabled={!canLike || likeToggling}
+                  onPress={handleLikePress}
                 >
-                  <SSIconHeart width={18} height={16} />
+                  <SSIconHeart
+                    width={18}
+                    height={16}
+                    color={likedByMe ? Colors.white : undefined}
+                    filled={likedByMe}
+                  />
+                  {likeCount > 0 && !privacyMode ? (
+                    <SSText size="xs" color={likedByMe ? 'white' : 'muted'}>
+                      {likeCount}
+                    </SSText>
+                  ) : null}
                 </SSIconButton>
                 <SSIconButton
                   accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
@@ -1961,6 +1990,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3
+  },
+  likeButton: {
+    flexDirection: 'row',
+    gap: 6
   },
   markdownToggleRow: {
     marginBottom: 4

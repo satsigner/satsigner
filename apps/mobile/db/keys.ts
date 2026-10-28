@@ -62,6 +62,8 @@ const nostrKeys = {
     ['nostr', 'identity', 'note', eventId, relaysKey] as const,
   identityNoteLookup: (eventId: string, relaysKey: string) =>
     ['nostr', 'identity', 'note-lookup', eventId, relaysKey] as const,
+  identityNoteReactions: (eventId: string, relaysKey: string) =>
+    ['nostr', 'identity', 'note-reactions', eventId, relaysKey] as const,
   identityNoteZaps: (eventId: string, relaysKey: string) =>
     ['nostr', 'identity', 'note-zaps', eventId, relaysKey] as const,
   identityNotes: (npub: string, relaysKey: string, kindFilterId: string) =>

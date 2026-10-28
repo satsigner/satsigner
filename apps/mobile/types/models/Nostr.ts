@@ -402,6 +402,23 @@ export type NostrFeedNoteLike = {
   created_at: number
 }
 
+export type NostrReaction = {
+  content: string
+  created_at: number
+  id: string
+  pubkey: string
+}
+
+export type NostrReactionDeletion = {
+  pubkey: string
+  tags: string[][]
+}
+
+export type NostrNoteLikes = {
+  count: number
+  ownLikeIds: string[]
+}
+
 export type NostrPollOption = {
   id: string
   label: string

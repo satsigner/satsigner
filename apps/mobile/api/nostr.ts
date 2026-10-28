@@ -67,6 +67,7 @@ import type {
   NostrMessage,
   NostrNotesQuery,
   NostrPollResponse,
+  NostrReaction,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrSubscriptionWindow,
@@ -99,6 +100,11 @@ import {
   mergeNotesNewestFirst
 } from '@/utils/nostrFeed'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
+import {
+  NOSTR_LIKE_CONTENT,
+  buildReactionTags,
+  dropDeletedReactions
+} from '@/utils/nostrReactions'
 import { isRecord } from '@/utils/object'
 
 import {
@@ -1765,6 +1771,78 @@ export class NostrAPI {
       ),
       pubkey: event.pubkey
     }))
+  }
+
+  /** Reactions to a note (NIP-25), minus the ones their authors deleted. */
+  async fetchReactions(eventIdHex: string): Promise<NostrReaction[]> {
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    const reactionEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      { '#e': [eventIdHex], kinds: [nostrKinds.Reaction], limit: 500 },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    const reactions = [...reactionEvents].map((event) => ({
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      pubkey: event.pubkey
+    }))
+    if (reactions.length === 0) {
+      return reactions
+    }
+
+    const deletionEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      {
+        '#e': reactions.map((reaction) => reaction.id),
+        authors: [...new Set(reactions.map((reaction) => reaction.pubkey))],
+        kinds: [nostrKinds.EventDeletion]
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    return dropDeletedReactions(
+      reactions,
+      [...deletionEvents].map((event) => ({
+        pubkey: event.pubkey,
+        tags: event.tags.map((tag) =>
+          tag.filter((value): value is string => typeof value === 'string')
+        )
+      }))
+    )
+  }
+
+  /** Signs and publishes a NIP-25 reaction (kind 7) to a note. */
+  async publishReaction(
+    nsec: string,
+    target: Pick<NostrFeedNoteLike, 'id' | 'kind' | 'pubkey'>,
+    content = NOSTR_LIKE_CONTENT
+  ): Promise<NostrReaction> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const signer = new NDKPrivateKeySigner(secretKey)
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    ndk.signer = signer
+    const event = new NDKEvent(ndk, {
+      content,
+      kind: nostrKinds.Reaction,
+      tags: buildReactionTags(target)
+    })
+
+    await event.sign(signer)
+    await this.publishEvent(event)
+    return {
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      pubkey: event.pubkey
+    }
   }
 
   async publishPollResponse(
