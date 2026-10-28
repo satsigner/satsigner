@@ -5,20 +5,26 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSDiagnosticsCheckRow from '@/components/SSDiagnosticsCheckRow'
+import SSDiagnosticsSection from '@/components/SSDiagnosticsSection'
 import SSModal from '@/components/SSModal'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import { useDiagnosticsRun } from '@/hooks/useDiagnosticsRun'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors } from '@/styles'
 import {
-  type CheckResults,
+  DIAGNOSTIC_CATEGORIES,
   DIAGNOSTIC_CHECKS,
-  type DiagnosticCheckId,
-  runDiagnosticCheck
+  type DiagnosticCategory,
+  type DiagnosticResult,
+  type DiagnosticStatus,
+  formatDiagnosticsReport,
+  FULL_RUN_CHECKS,
+  getDiagnosticCheck
 } from '@/utils/diagnostics'
 import {
   buildDiagnosticsReport,
@@ -33,6 +39,38 @@ type DiagnosisStatus =
   | { kind: 'running'; step: string }
   | { kind: 'success'; txid: string }
   | { kind: 'failed'; reason: string }
+
+const DIAGNOSTIC_STATUSES: DiagnosticStatus[] = [
+  'ok',
+  'warn',
+  'fail',
+  'skipped'
+]
+
+const CHECKS_BY_CATEGORY = DIAGNOSTIC_CATEGORIES.map((category) => ({
+  category,
+  checks: DIAGNOSTIC_CHECKS.filter((check) => check.category === category)
+}))
+
+function countByStatus(results: DiagnosticResult[]) {
+  return Object.fromEntries(
+    DIAGNOSTIC_STATUSES.map((status) => [
+      status,
+      results.filter((result) => result.status === status).length
+    ])
+  )
+}
+
+function categorySummary(
+  category: DiagnosticCategory,
+  results: DiagnosticResult[]
+): string | undefined {
+  const inCategory = results.filter((result) => result.category === category)
+  if (inCategory.length === 0) {
+    return undefined
+  }
+  return t('settings.developer.diagnosis.summary', countByStatus(inCategory))
+}
 
 function diagnosisStatusLabel(status: DiagnosisStatus): string {
   if (status.kind === 'idle') {
@@ -63,37 +101,44 @@ export default function DeveloperDiagnosis() {
   const [logLines, setLogLines] = useState<string[]>([])
   const abortRef = useRef<AbortController | null>(null)
 
-  const [checkResults, setCheckResults] = useState<CheckResults>({})
-  const anyCheckRunning = Object.values(checkResults).some(
-    (result) => result?.kind === 'running'
+  const diagnostics = useDiagnosticsRun()
+  const resultsById = new Map(
+    diagnostics.results.map((result) => [result.id, result])
   )
-  const anyCheckCompleted = Object.values(checkResults).some(
-    (result) => result?.kind === 'ok' || result?.kind === 'failed'
-  )
+  const finishedCount = diagnostics.results.length
 
   const [reportPayload, setReportPayload] =
     useState<DiagnosticsReportPayload | null>(null)
   const [reportSending, setReportSending] = useState(false)
 
-  async function handleRunCheck(id: DiagnosticCheckId) {
-    setCheckResults((prev) => ({ ...prev, [id]: { kind: 'running' } }))
-    const result = await runDiagnosticCheck(id, { relayUrls: identityRelays })
-    setCheckResults((prev) => ({
-      ...prev,
-      [id]: result.ok
-        ? { kind: 'ok', lines: result.lines }
-        : { kind: 'failed', lines: result.lines }
-    }))
-  }
-
-  async function handleRunAllChecks() {
-    for (const { id } of DIAGNOSTIC_CHECKS) {
-      await handleRunCheck(id)
+  function handleRunCheck(checkId: string) {
+    const check = getDiagnosticCheck(checkId)
+    if (check) {
+      diagnostics.run([check])
     }
   }
 
+  function handleRunFullDiagnostics() {
+    diagnostics.run(FULL_RUN_CHECKS)
+  }
+
+  async function handleCopyReport() {
+    const report = formatDiagnosticsReport(diagnostics.results, [
+      t('settings.developer.diagnosis.title'),
+      new Date().toISOString(),
+      t(
+        'settings.developer.diagnosis.summary',
+        countByStatus(diagnostics.results)
+      )
+    ])
+    await Clipboard.setStringAsync(report)
+    toast.success(t('common.copiedToClipboard'))
+  }
+
   function handleOpenReport() {
-    setReportPayload(buildDiagnosticsReport(checkResults, selectedNetwork))
+    setReportPayload(
+      buildDiagnosticsReport(diagnostics.results, selectedNetwork)
+    )
   }
 
   function handleCloseReport() {
@@ -208,72 +253,61 @@ export default function DeveloperDiagnosis() {
             </SSText>
 
             <SSVStack gap="sm">
-              <SSText uppercase>
-                {t('settings.developer.diagnosis.quickChecks.title')}
-              </SSText>
-              <SSText color="muted" size="sm">
-                {t('settings.developer.diagnosis.quickChecks.description')}
-              </SSText>
-              {DIAGNOSTIC_CHECKS.map(({ id, requiresNetwork }) => {
-                const result = checkResults[id]
-                return (
-                  <SSVStack gap="xs" key={id}>
-                    <SSButton
-                      label={t(
-                        `settings.developer.diagnosis.checks.${id}.title`
-                      )}
-                      variant="outline"
-                      disabled={result?.kind === 'running'}
-                      loading={result?.kind === 'running'}
-                      onPress={() => handleRunCheck(id)}
-                    />
-                    {requiresNetwork ? (
-                      <SSText color="muted" size="xs">
-                        {t(`settings.developer.diagnosis.checks.${id}.hint`)}
-                      </SSText>
-                    ) : null}
-                    {result?.kind === 'ok' || result?.kind === 'failed' ? (
-                      <>
-                        <SSText
-                          size="sm"
-                          style={{
-                            color:
-                              result.kind === 'ok'
-                                ? Colors.success
-                                : Colors.error
-                          }}
-                        >
-                          {result.kind === 'ok'
-                            ? t('settings.developer.diagnosis.checks.statusOk')
-                            : t(
-                                'settings.developer.diagnosis.checks.statusFailed'
-                              )}
-                        </SSText>
-                        {result.lines.map((line, index) => (
-                          <SSText
-                            key={`${index}-${line}`}
-                            color="muted"
-                            size="xs"
-                            type="mono"
-                          >
-                            {line}
-                          </SSText>
-                        ))}
-                      </>
-                    ) : null}
-                  </SSVStack>
-                )
-              })}
               <SSButton
-                label={t('settings.developer.diagnosis.checks.runAll')}
+                label={t('settings.developer.diagnosis.runFull')}
+                variant="secondary"
+                loading={diagnostics.isRunning}
+                disabled={diagnostics.isRunning}
+                onPress={handleRunFullDiagnostics}
+              />
+              {diagnostics.isRunning ? (
+                <SSText color="muted" size="sm" center>
+                  {t('settings.developer.diagnosis.progress', {
+                    done: finishedCount,
+                    total: FULL_RUN_CHECKS.length
+                  })}
+                </SSText>
+              ) : null}
+              {finishedCount > 0 ? (
+                <SSText size="sm" center>
+                  {t(
+                    'settings.developer.diagnosis.summary',
+                    countByStatus(diagnostics.results)
+                  )}
+                </SSText>
+              ) : null}
+            </SSVStack>
+
+            {CHECKS_BY_CATEGORY.map(({ category, checks }) => (
+              <SSDiagnosticsSection
+                key={category}
+                title={t(`settings.developer.diagnosis.category.${category}`)}
+                summary={categorySummary(category, diagnostics.results)}
+              >
+                {checks.map((check) => (
+                  <SSDiagnosticsCheckRow
+                    key={check.id}
+                    checkId={check.id}
+                    disabled={diagnostics.isRunning}
+                    onRun={handleRunCheck}
+                    result={resultsById.get(check.id)}
+                    running={diagnostics.runningIds.includes(check.id)}
+                  />
+                ))}
+              </SSDiagnosticsSection>
+            ))}
+
+            <SSVStack gap="sm">
+              <SSButton
+                label={t('settings.developer.diagnosis.copyReport')}
                 variant="outline"
-                disabled={anyCheckRunning}
-                onPress={handleRunAllChecks}
+                disabled={finishedCount === 0 || diagnostics.isRunning}
+                onPress={handleCopyReport}
               />
               <SSButton
                 label={t('settings.developer.diagnosis.report.submit')}
                 variant="outline"
-                disabled={!anyCheckCompleted || anyCheckRunning}
+                disabled={finishedCount === 0 || diagnostics.isRunning}
                 onPress={handleOpenReport}
               />
             </SSVStack>

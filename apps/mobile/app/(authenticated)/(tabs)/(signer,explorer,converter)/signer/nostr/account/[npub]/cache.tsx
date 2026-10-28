@@ -17,8 +17,10 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { Colors } from '@/styles'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { resetNostrIdentityMemory } from '@/utils/nostrIdentityCache'
 
 type CacheParams = {
   npub: string
@@ -72,6 +74,7 @@ export default function NostrIdentityCache() {
 
   function handleClearCategory(category: CacheCategory) {
     clearCacheCategory(category, getHexPubkey())
+    void resetNostrIdentityMemory()
     refreshCounts()
     toast.success(t('nostrIdentity.settings.cache.cleared'))
   }
@@ -79,6 +82,8 @@ export default function NostrIdentityCache() {
   function handleClearAll() {
     setClearAllModalVisible(false)
     clearAllCache()
+    clearNostrFollowCaches()
+    void resetNostrIdentityMemory()
     refreshCounts()
     toast.success(t('nostrIdentity.settings.cache.cleared'))
   }

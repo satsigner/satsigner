@@ -23,12 +23,14 @@
     "start": "expo start",
     "variant": "node --experimental-strip-types scripts/variant.ts",
     "storybook-generate": "sb-rn-get-stories",
-    "test": "pnpm test:unit && pnpm test:int",
+    "test": "pnpm test:unit && pnpm test:int && pnpm test:relay",
     "test:int": "jest ./tests/int",
     "test:int:nostr": "node scripts/nostr-roundtrip.mjs",
     "diagnose:nostr": "node scripts/nostr-diagnose.mjs",
     "test:int:payjoin": "jest ./tests/int/api/payjoin-signet.test.ts",
     "test:unit": "jest ./tests/unit",
+    "test:relay": "jest -c jest.relay.config.js",
+    "test:relay:live": "cross-env NOSTR_RELAY_LIVE=1 jest -c jest.relay.config.js --passWithNoTests tests/relay/live",
     "maestro:prep": "bash .maestro/scripts/prep-android.sh",
     "maestro:link-studio": "bash .maestro/scripts/link-studio-workspace.sh",
     "maestro:last": "bash .maestro/scripts/last-failure.sh",
@@ -108,6 +110,7 @@
     "expo-splash-screen": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.1",
+    "expo-video": "~57.0.5",
     "expo-web-browser": "~57.0.1",
     "i18n-js": "^4.4.3",
     "immer": "^11.1.4",
@@ -171,11 +174,13 @@
     "@types/pako": "^2.0.3",
     "@types/react": "~19.2.10",
     "@types/react-timeago": "^4.1.7",
+    "@types/ws": "^8.18.2",
     "jest": "^29.7.0",
     "jest-expo": "~57.0.2",
     "react-dom": "^19.2.3",
     "storybook": "^10.4.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "ws": "^8.20.0"
   },
   "engines": {
     "node": "^22.23.4 || ^24.22.1 || >=26.12.1"

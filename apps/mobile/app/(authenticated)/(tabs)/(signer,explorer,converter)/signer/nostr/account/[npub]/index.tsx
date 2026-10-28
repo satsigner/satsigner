@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
-import { ScrollView, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
@@ -17,6 +17,10 @@ import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
+import {
+  NOSTR_PROFILE_QUERY_STALE_TIME_MS,
+  NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
+} from '@/constants/nostr'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -24,9 +28,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
-import { type NostrRelayConnectionInfo } from '@/types/models/Nostr'
+import {
+  type NostrRelayConnectionInfo,
+  type ZapReceiptInfo
+} from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
-import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import {
+  getNostrContactsRelaysKey,
+  getNostrIdentityRelays
+} from '@/utils/nostrContacts'
 import {
   nostrAccountHref,
   nostrAuthorProfileHref,
@@ -34,6 +44,7 @@ import {
   nostrNoteHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
+import { getIdentityProfileUpdate } from '@/utils/nostrProfile'
 
 type AccountParams = {
   npub: string
@@ -59,10 +70,15 @@ export default function NostrAccountLanding() {
   const connectionQuery = useQuery({
     enabled: !!identity && relayConnected && relaysAvailable,
     queryFn: () => testNostrRelaysReachable(effectiveRelays),
-    queryKey: ['nostr', 'relay-connection', npub, effectiveRelays],
+    queryKey: [
+      'nostr',
+      'relay-connection',
+      npub,
+      getNostrContactsRelaysKey(effectiveRelays)
+    ],
     refetchOnWindowFocus: false,
     retry: 0,
-    staleTime: 5 * 60_000
+    staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
   })
 
   const connectionInfo: NostrRelayConnectionInfo = !identity
@@ -79,13 +95,8 @@ export default function NostrAccountLanding() {
       const api = new NostrAPI(effectiveRelays)
       try {
         const profile = await api.fetchKind0(npub)
-        if (profile && identity) {
-          updateIdentity(npub, {
-            displayName: profile.displayName || identity.displayName,
-            lud16: profile.lud16 || identity.lud16,
-            nip05: profile.nip05 || identity.nip05,
-            picture: profile.picture || identity.picture
-          })
+        if (profile) {
+          updateIdentity(npub, getIdentityProfileUpdate(profile))
         }
         return profile
       } finally {
@@ -93,7 +104,7 @@ export default function NostrAccountLanding() {
       }
     },
     queryKey: ['nostr', 'profile', npub],
-    staleTime: 60_000
+    staleTime: NOSTR_PROFILE_QUERY_STALE_TIME_MS
   })
 
   const pubkeyHex = npub ? getPubKeyHexFromNpub(npub) : null
@@ -103,7 +114,7 @@ export default function NostrAccountLanding() {
     enabled: !!pubkeyHex && !!nip05,
     queryFn: () => validateNip05(pubkeyHex!, nip05!),
     queryKey: ['nostr', 'nip05-valid', npub, nip05],
-    staleTime: 5 * 60_000
+    staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
   })
 
   function handleContentScanned(detected: {
@@ -131,6 +142,14 @@ export default function NostrAccountLanding() {
       kind: payload.kind
     })
     router.navigate(nostrNoteHref(npub, nevent))
+  }
+
+  function handleZapPress(receipt: ZapReceiptInfo) {
+    router.navigate(nostrZapDetailHref(npub, receipt.id))
+  }
+
+  function handleAuthorPress(authorNpub: string) {
+    router.navigate(nostrAuthorProfileHref(npub, authorNpub))
   }
 
   const contentHandler = useContentHandler({
@@ -184,41 +203,35 @@ export default function NostrAccountLanding() {
           headerTitle: ''
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SSNostrHeroCard
-          identity={identity}
-          connectionInfo={connectionInfo}
-          nip05Valid={nip05Valid ?? null}
-          style={styles.heroProfile}
-        />
-        <SSVStack
-          gap="sm"
-          style={{ paddingHorizontal: Layout.mainContainer.paddingHorizontal }}
-        >
-          <SSButtonActionsGroup
-            context="nostr"
-            nfcAvailable={contentHandler.nfcAvailable}
-            onSend={contentHandler.handleSend}
-            onPaste={contentHandler.handlePaste}
-            onCamera={contentHandler.handleCamera}
-            onNFC={contentHandler.handleNFC}
-            onReceive={contentHandler.handleReceive}
-          />
-
-          <SSNostrFeedTabs
-            npub={npub}
-            relayConnected={identity.relayConnected === true}
-            relays={identity.relays ?? relays}
-            onNotePress={handleNotePress}
-            onZapPress={(receipt) =>
-              router.navigate(nostrZapDetailHref(npub, receipt.id))
-            }
-            onAuthorPress={(authorNpub) =>
-              router.navigate(nostrAuthorProfileHref(npub, authorNpub))
-            }
-          />
-        </SSVStack>
-      </ScrollView>
+      <SSNostrFeedTabs
+        header={
+          <View>
+            <SSNostrHeroCard
+              identity={identity}
+              connectionInfo={connectionInfo}
+              nip05Valid={nip05Valid ?? null}
+              style={styles.heroProfile}
+            />
+            <View style={styles.actions}>
+              <SSButtonActionsGroup
+                context="nostr"
+                nfcAvailable={contentHandler.nfcAvailable}
+                onSend={contentHandler.handleSend}
+                onPaste={contentHandler.handlePaste}
+                onCamera={contentHandler.handleCamera}
+                onNFC={contentHandler.handleNFC}
+                onReceive={contentHandler.handleReceive}
+              />
+            </View>
+          </View>
+        }
+        npub={npub}
+        relayConnected={identity.relayConnected === true}
+        relays={identity.relays ?? relays}
+        onNotePress={handleNotePress}
+        onZapPress={handleZapPress}
+        onAuthorPress={handleAuthorPress}
+      />
 
       <SSCameraModal
         visible={contentHandler.cameraModalVisible}
@@ -244,6 +257,9 @@ export default function NostrAccountLanding() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal
+  },
   emptyContainer: {
     paddingVertical: 60
   },

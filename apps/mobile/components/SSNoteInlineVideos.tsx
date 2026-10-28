@@ -7,6 +7,7 @@ import {
   type ViewStyle
 } from 'react-native'
 
+import SSNostrVideo from '@/components/SSNostrVideo'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -37,6 +38,49 @@ function labelForProvider(provider: NostrVideoEmbed['provider']): string {
   }
 }
 
+type SSNoteVideoLinkCardProps = {
+  embed: NostrVideoEmbed
+}
+
+function SSNoteVideoLinkCard({ embed }: SSNoteVideoLinkCardProps) {
+  function handleOpen() {
+    void WebBrowser.openBrowserAsync(embed.watchUrl)
+  }
+
+  return (
+    <SSPressable
+      activeOpacity={0.7}
+      accessibilityLabel={t('nostrIdentity.feed.openVideo')}
+      accessibilityRole="button"
+      onPress={handleOpen}
+    >
+      <View style={styles.card}>
+        {embed.thumbnailUrl ? (
+          <Image
+            resizeMode="cover"
+            source={{ uri: embed.thumbnailUrl }}
+            style={styles.thumb}
+          />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder]}>
+            <SSText size="sm" color="muted">
+              {labelForProvider(embed.provider)}
+            </SSText>
+          </View>
+        )}
+        <View style={styles.overlay}>
+          <SSText size="xs" weight="medium" style={styles.overlayTitle}>
+            {labelForProvider(embed.provider)}
+          </SSText>
+          <SSText size="xxs" style={styles.openCta}>
+            {t('nostrIdentity.feed.openVideo')}
+          </SSText>
+        </View>
+      </View>
+    </SSPressable>
+  )
+}
+
 function SSNoteInlineVideos({ embeds, style }: SSNoteInlineVideosProps) {
   if (embeds.length === 0) {
     return null
@@ -44,41 +88,13 @@ function SSNoteInlineVideos({ embeds, style }: SSNoteInlineVideosProps) {
 
   return (
     <View style={[styles.wrap, style]}>
-      {embeds.map((embed) => (
-        <SSPressable
-          key={embed.watchUrl}
-          activeOpacity={0.7}
-          accessibilityLabel={t('nostrIdentity.feed.openVideo')}
-          accessibilityRole="button"
-          onPress={() => {
-            void WebBrowser.openBrowserAsync(embed.watchUrl)
-          }}
-        >
-          <View style={styles.card}>
-            {embed.thumbnailUrl ? (
-              <Image
-                resizeMode="cover"
-                source={{ uri: embed.thumbnailUrl }}
-                style={styles.thumb}
-              />
-            ) : (
-              <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                <SSText size="sm" color="muted">
-                  {labelForProvider(embed.provider)}
-                </SSText>
-              </View>
-            )}
-            <View style={styles.overlay}>
-              <SSText size="xs" weight="medium" style={styles.overlayTitle}>
-                {labelForProvider(embed.provider)}
-              </SSText>
-              <SSText size="xxs" style={styles.openCta}>
-                {t('nostrIdentity.feed.openVideo')}
-              </SSText>
-            </View>
-          </View>
-        </SSPressable>
-      ))}
+      {embeds.map((embed) =>
+        embed.provider === 'direct' ? (
+          <SSNostrVideo key={embed.watchUrl} embed={embed} />
+        ) : (
+          <SSNoteVideoLinkCard key={embed.watchUrl} embed={embed} />
+        )
+      )}
     </View>
   )
 }
