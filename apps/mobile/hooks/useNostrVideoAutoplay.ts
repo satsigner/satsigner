@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { NOSTR_VIDEO_ACTIVE_SETTLE_MS } from '@/constants/nostr'
 import { pickActiveVideoUrl, useNostrVideoStore } from '@/store/nostrVideo'
@@ -10,6 +10,15 @@ import { pickActiveVideoUrl, useNostrVideoStore } from '@/store/nostrVideo'
  */
 export function useNostrVideoAutoplay() {
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(
+    () => () => {
+      if (settleTimer.current) {
+        clearTimeout(settleTimer.current)
+      }
+    },
+    []
+  )
 
   function reportVisibleVideos(visibleUrls: string[]) {
     if (settleTimer.current) {

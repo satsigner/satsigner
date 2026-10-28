@@ -129,13 +129,7 @@ export default function NostrSync() {
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
-  const clearProcessedEvents = useNostrStore(
-    (state) => state.clearProcessedEvents
-  )
   const setSyncing = useNostrStore((state) => state.setSyncing)
-  const setLastDataExchangeEOSE = useNostrStore(
-    (state) => state.setLastDataExchangeEOSE
-  )
   const lastProtocolEOSE = useNostrStore((state) =>
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
@@ -300,7 +294,7 @@ export default function NostrSync() {
   /**
    * Full reset: stop sync, clear relays, DMs, Kind 0 data, and processed state.
    */
-  const handleClearCaches = () => {
+  const handleClearCaches = async () => {
     if (!accountId || !account?.nostr) {
       return
     }
@@ -308,7 +302,7 @@ export default function NostrSync() {
     try {
       setIsLoading(true)
       setClearCachesModalVisible(false)
-      void nostrSyncService.stopSync(accountId)
+      await nostrSyncService.stopSync(accountId)
       clearStoredDMs(account)
       updateAccountNostr(accountId, {
         autoSync: false,
@@ -557,6 +551,20 @@ export default function NostrSync() {
     setTrustMemberModalVisible(false)
   }
 
+  async function finishTrustResync(id: string) {
+    toast.info(t('account.nostrSync.resyncingAfterTrust'))
+    setIsSyncing(true)
+    setSyncing(id, true)
+    await nostrSyncService.resyncDataExchangeAfterTrust(
+      id,
+      handleSyncLoadingChange
+    )
+    if (!nostrSyncService.hasActiveSubscription(id)) {
+      setIsSyncing(false)
+      setSyncing(id, false)
+    }
+  }
+
   const toggleMember = (npub: string) => {
     if (!accountId || !account?.nostr) {
       return
@@ -591,12 +599,7 @@ export default function NostrSync() {
       // was untrusted, so the data-exchange history is fetched again.
       trustSyncRestartRef.current = setTimeout(() => {
         trustSyncRestartRef.current = null
-        clearProcessedEvents(accountId)
-        setLastDataExchangeEOSE(accountId, 0)
-        toast.info(t('account.nostrSync.resyncingAfterTrust'))
-        setIsSyncing(true)
-        setSyncing(accountId, true)
-        void nostrSyncService.restartSync(accountId, handleSyncLoadingChange)
+        void finishTrustResync(accountId)
       }, NOSTR_TRUST_SYNC_RESTART_DELAY_MS)
     }
   }

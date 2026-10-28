@@ -31,6 +31,7 @@ type UseNostrNotesFetchOptions = {
   resolveQuotes: boolean
 }
 
+const BOOKMARKS_QUERY_KEY_SEGMENT = 'bookmarks'
 const EMPTY_PRIVATE_IDS = new Set<string>()
 
 /**
@@ -85,7 +86,7 @@ function useNostrNotesFetch({
         nsec,
         resolveQuotes
       }),
-    queryKey,
+    queryKey: [...queryKey, BOOKMARKS_QUERY_KEY_SEGMENT],
     staleTime: NOSTR_FEED_STALE_TIME_MS
   })
 

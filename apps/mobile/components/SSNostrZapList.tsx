@@ -163,6 +163,7 @@ function SSNostrZapList({
   return (
     <FlashList
       data={zaps}
+      extraData={privacyMode}
       keyExtractor={keyExtractor}
       ListEmptyComponent={
         showSpinner ? null : (

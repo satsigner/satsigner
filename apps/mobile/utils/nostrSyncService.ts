@@ -592,6 +592,23 @@ async function restartSync(
   await startSync(accountId, onLoadingChange)
 }
 
+/**
+ * Trust was just granted. Stop first so a draining queue cannot write the
+ * previous session's cursor back, then drop processed events and the
+ * data-exchange cursor so history skipped while the device was untrusted
+ * is fetched again.
+ */
+async function resyncDataExchangeAfterTrust(
+  accountId: string,
+  onLoadingChange?: LoadingCallback
+): Promise<void> {
+  await stopSync(accountId)
+  const store = useNostrStore.getState()
+  store.clearProcessedEvents(accountId)
+  store.setLastDataExchangeEOSE(accountId, 0)
+  await startSync(accountId, onLoadingChange)
+}
+
 function getSyncedAccountIds(): string[] {
   const ids = [...liveSubscriptions.values()].map(
     (subscription) => subscription.accountId
@@ -677,6 +694,7 @@ export const nostrSyncService = Object.assign(emitter, {
   hasActiveSubscription,
   resetInstance,
   restartSync,
+  resyncDataExchangeAfterTrust,
   setMessageProcessor,
   startSync,
   stopAll,
