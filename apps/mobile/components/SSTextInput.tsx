@@ -1,4 +1,9 @@
-import { StyleSheet, TextInput, View } from 'react-native'
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance
+} from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
@@ -13,7 +18,7 @@ export type SSTextInputProps = {
   status?: 'valid' | 'invalid'
   warning?: string
   error?: string
-  ref?: React.Ref<TextInput>
+  ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSTextInput({

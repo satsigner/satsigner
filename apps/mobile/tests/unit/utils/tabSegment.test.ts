@@ -1,4 +1,9 @@
-import { isTabSegment } from '@/utils/tabSegment'
+import { t } from '@/locales'
+import {
+  getTabSegmentLabel,
+  isTabSegment,
+  toTabSegment
+} from '@/utils/tabSegment'
 
 describe('isTabSegment', () => {
   it('accepts the bottom tab segments', () => {
@@ -18,5 +23,30 @@ describe('isTabSegment', () => {
     const segments = ['(authenticated)', '(tabs)', '(explorer)', 'explorer']
     expect(segments.find(isTabSegment)).toBe('(explorer)')
     expect(['(authenticated)', 'settings'].find(isTabSegment)).toBeUndefined()
+  })
+})
+
+describe('toTabSegment', () => {
+  it('keeps a bottom tab segment', () => {
+    expect(toTabSegment('(explorer)')).toBe('(explorer)')
+    expect(toTabSegment('(converter)')).toBe('(converter)')
+  })
+
+  it('falls back to the signer tab', () => {
+    expect(toTabSegment(undefined)).toBe('(signer)')
+    expect(toTabSegment('')).toBe('(signer)')
+    expect(toTabSegment('(tabs)')).toBe('(signer)')
+  })
+})
+
+describe('getTabSegmentLabel', () => {
+  it('returns the navigation label of each tab', () => {
+    expect(getTabSegmentLabel('(signer)')).toBe(t('navigation.label.signer'))
+    expect(getTabSegmentLabel('(explorer)')).toBe(
+      t('navigation.label.explorer')
+    )
+    expect(getTabSegmentLabel('(converter)')).toBe(
+      t('navigation.label.converter')
+    )
   })
 })

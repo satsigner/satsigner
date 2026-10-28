@@ -23,9 +23,17 @@ import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
-import { TAB_SEGMENTS, type TabSegment } from '@/types/navigation/tabs'
+import {
+  DEFAULT_TAB_SEGMENT,
+  TAB_SEGMENTS,
+  type TabSegment
+} from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
 import { isTabSegment } from '@/utils/tabSegment'
+
+export const unstable_settings = {
+  anchor: DEFAULT_TAB_SEGMENT
+}
 
 const TAB_BAR_PADDING_Y = 8
 const TAB_BAR_ITEM_HEIGHT = 54
@@ -203,7 +211,6 @@ export default function TabLayout() {
   return (
     <View style={styles.container}>
       <Tabs
-        initialRouteName="(signer)"
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: 'white',
