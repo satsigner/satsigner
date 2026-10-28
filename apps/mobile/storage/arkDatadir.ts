@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { assertSafePathSegment } from '@/utils/safePath'
 
 const ARK_DIR = `${FileSystem.documentDirectory}ark/`
+const ARK_SWAP_DIR = `${FileSystem.documentDirectory}ark-swap/`
 
 export type ArkDatadirFile = {
   base64: string
@@ -16,6 +17,11 @@ function uriToPath(uri: string): string {
 function getArkDatadirUri(accountId: string): string {
   const safeId = assertSafePathSegment(accountId, 'ark account id')
   return `${ARK_DIR}${safeId}/`
+}
+
+function getArkSwapUri(accountId: string): string {
+  const safeId = assertSafePathSegment(accountId, 'ark account id')
+  return `${ARK_SWAP_DIR}${safeId}/`
 }
 
 async function ensureArkDatadir(accountId: string): Promise<string> {
@@ -33,6 +39,7 @@ async function deleteArkDatadir(accountId: string): Promise<void> {
   if (info.exists) {
     await FileSystem.deleteAsync(uri, { idempotent: true })
   }
+  await FileSystem.deleteAsync(getArkSwapUri(accountId), { idempotent: true })
 }
 
 const SQLITE_SIDECAR_SUFFIXES = ['-wal', '-shm', '-journal']
@@ -86,16 +93,6 @@ async function readArkDatadirFiles(
     files.push({ base64, filename })
   }
   return files
-}
-
-function getArkStagingDatadirUri(accountId: string): string {
-  const safeId = assertSafePathSegment(accountId, 'ark account id')
-  return `${ARK_DIR}${safeId}.staging/`
-}
-
-function getArkPreviousDatadirUri(accountId: string): string {
-  const safeId = assertSafePathSegment(accountId, 'ark account id')
-  return `${ARK_DIR}${safeId}.previous/`
 }
 
 function validatedDatadirFiles(files: ArkDatadirFile[]): ArkDatadirFile[] {
@@ -159,8 +156,9 @@ async function writeArkDatadirFiles(
     return
   }
   const targetUri = getArkDatadirUri(accountId)
-  const stagingUri = getArkStagingDatadirUri(accountId)
-  const previousUri = getArkPreviousDatadirUri(accountId)
+  const swapUri = getArkSwapUri(accountId)
+  const stagingUri = `${swapUri}staging/`
+  const previousUri = `${swapUri}previous/`
   try {
     await stageArkDatadirFiles(stagingUri, safeFiles)
     await moveLiveDatadirAside(targetUri, previousUri)
@@ -170,7 +168,7 @@ async function writeArkDatadirFiles(
     await FileSystem.deleteAsync(stagingUri, { idempotent: true })
     throw error
   }
-  await FileSystem.deleteAsync(previousUri, { idempotent: true })
+  await FileSystem.deleteAsync(swapUri, { idempotent: true })
 }
 
 export {

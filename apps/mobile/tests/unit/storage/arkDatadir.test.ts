@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 
 import {
+  deleteArkDatadir,
   findArkDbFile,
   readArkDatadirFiles,
   writeArkDatadirFiles
@@ -30,8 +31,8 @@ const mockDelete = jest.mocked(FileSystem.deleteAsync)
 const mockMove = jest.mocked(FileSystem.moveAsync)
 
 const LIVE_URI = 'file:///doc/ark/acc-1/'
-const STAGING_URI = 'file:///doc/ark/acc-1.staging/'
-const PREVIOUS_URI = 'file:///doc/ark/acc-1.previous/'
+const STAGING_URI = 'file:///doc/ark-swap/acc-1/staging/'
+const PREVIOUS_URI = 'file:///doc/ark-swap/acc-1/previous/'
 const BARK_DB_FILES = [{ base64: 'ZGItbWFpbg==', filename: 'bark.db' }]
 
 function fakeDirectories(
@@ -47,7 +48,11 @@ function fakeDirectories(
     return Promise.resolve()
   })
   mockDelete.mockImplementation((uri) => {
-    dirs.delete(uri)
+    for (const dir of dirs.keys()) {
+      if (dir.startsWith(uri)) {
+        dirs.delete(dir)
+      }
+    }
     return Promise.resolve()
   })
   mockMove.mockImplementation(({ from, to }) => {
@@ -202,12 +207,12 @@ describe('writeArkDatadirFiles', () => {
     ])
 
     expect(mockWriteAsString).toHaveBeenCalledWith(
-      'file:///doc/ark/acc-1.staging/bark.db',
+      'file:///doc/ark-swap/acc-1/staging/bark.db',
       'ZGItbWFpbg==',
       { encoding: 'base64' }
     )
     expect(mockMove).toHaveBeenCalledWith({
-      from: 'file:///doc/ark/acc-1.staging/',
+      from: 'file:///doc/ark-swap/acc-1/staging/',
       to: 'file:///doc/ark/acc-1/'
     })
   })
@@ -267,5 +272,39 @@ describe('writeArkDatadirFiles', () => {
     await writeArkDatadirFiles('acc-1', BARK_DB_FILES)
 
     expect(Object.fromEntries(dirs)).toStrictEqual({ [LIVE_URI]: 'staged' })
+  })
+
+  it('leaves accounts whose ids end in .staging or .previous untouched', async () => {
+    const dirs = fakeDirectories({
+      [LIVE_URI]: 'live',
+      'file:///doc/ark/acc-1.previous/': 'other account',
+      'file:///doc/ark/acc-1.staging/': 'other account'
+    })
+
+    await writeArkDatadirFiles('acc-1', BARK_DB_FILES)
+
+    expect(Object.fromEntries(dirs)).toStrictEqual({
+      [LIVE_URI]: 'staged',
+      'file:///doc/ark/acc-1.previous/': 'other account',
+      'file:///doc/ark/acc-1.staging/': 'other account'
+    })
+  })
+})
+
+describe('deleteArkDatadir', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('removes the live datadir and any leftover restore copies', async () => {
+    const dirs = fakeDirectories({
+      [LIVE_URI]: 'live',
+      [PREVIOUS_URI]: 'older',
+      [STAGING_URI]: 'staged'
+    })
+
+    await deleteArkDatadir('acc-1')
+
+    expect(Object.fromEntries(dirs)).toStrictEqual({})
   })
 })
