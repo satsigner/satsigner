@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { assertSafePathSegment } from '@/utils/safePath'
 
 const ARK_DIR = `${FileSystem.documentDirectory}ark/`
+const ARK_SWAP_DIR = `${FileSystem.documentDirectory}ark-swap/`
 
 export type ArkDatadirFile = {
   base64: string
@@ -16,6 +17,11 @@ function uriToPath(uri: string): string {
 function getArkDatadirUri(accountId: string): string {
   const safeId = assertSafePathSegment(accountId, 'ark account id')
   return `${ARK_DIR}${safeId}/`
+}
+
+function getArkSwapUri(accountId: string): string {
+  const safeId = assertSafePathSegment(accountId, 'ark account id')
+  return `${ARK_SWAP_DIR}${safeId}/`
 }
 
 async function ensureArkDatadir(accountId: string): Promise<string> {
@@ -33,6 +39,7 @@ async function deleteArkDatadir(accountId: string): Promise<void> {
   if (info.exists) {
     await FileSystem.deleteAsync(uri, { idempotent: true })
   }
+  await FileSystem.deleteAsync(getArkSwapUri(accountId), { idempotent: true })
 }
 
 const SQLITE_SIDECAR_SUFFIXES = ['-wal', '-shm', '-journal']
@@ -88,11 +95,6 @@ async function readArkDatadirFiles(
   return files
 }
 
-function getArkStagingDatadirUri(accountId: string): string {
-  const safeId = assertSafePathSegment(accountId, 'ark account id')
-  return `${ARK_DIR}${safeId}.staging/`
-}
-
 function validatedDatadirFiles(files: ArkDatadirFile[]): ArkDatadirFile[] {
   return files.map((file) => {
     const filename = assertSafePathSegment(file.filename, 'ark datadir file')
@@ -101,6 +103,47 @@ function validatedDatadirFiles(files: ArkDatadirFile[]): ArkDatadirFile[] {
     }
     return { base64: file.base64, filename }
   })
+}
+
+async function stageArkDatadirFiles(
+  stagingUri: string,
+  files: ArkDatadirFile[]
+): Promise<void> {
+  await FileSystem.deleteAsync(stagingUri, { idempotent: true })
+  await FileSystem.makeDirectoryAsync(stagingUri, { intermediates: true })
+  for (const file of files) {
+    await FileSystem.writeAsStringAsync(
+      `${stagingUri}${file.filename}`,
+      file.base64,
+      { encoding: FileSystem.EncodingType.Base64 }
+    )
+  }
+}
+
+async function moveLiveDatadirAside(
+  targetUri: string,
+  previousUri: string
+): Promise<void> {
+  const live = await FileSystem.getInfoAsync(targetUri)
+  if (!live.exists) {
+    return
+  }
+  await FileSystem.deleteAsync(previousUri, { idempotent: true })
+  await FileSystem.moveAsync({ from: targetUri, to: previousUri })
+}
+
+async function restorePreviousDatadir(
+  targetUri: string,
+  previousUri: string
+): Promise<void> {
+  const [live, previous] = await Promise.all([
+    FileSystem.getInfoAsync(targetUri),
+    FileSystem.getInfoAsync(previousUri)
+  ])
+  if (live.exists || !previous.exists) {
+    return
+  }
+  await FileSystem.moveAsync({ from: previousUri, to: targetUri })
 }
 
 async function writeArkDatadirFiles(
@@ -113,27 +156,22 @@ async function writeArkDatadirFiles(
     return
   }
   const targetUri = getArkDatadirUri(accountId)
-  const stagingUri = getArkStagingDatadirUri(accountId)
-  await FileSystem.deleteAsync(stagingUri, { idempotent: true })
-  await FileSystem.makeDirectoryAsync(stagingUri, { intermediates: true })
+  const swapUri = getArkSwapUri(accountId)
+  const stagingUri = `${swapUri}staging/`
+  const previousUri = `${swapUri}previous/`
   try {
-    for (const file of safeFiles) {
-      await FileSystem.writeAsStringAsync(
-        `${stagingUri}${file.filename}`,
-        file.base64,
-        { encoding: FileSystem.EncodingType.Base64 }
-      )
-    }
-    await FileSystem.deleteAsync(targetUri, { idempotent: true })
+    await stageArkDatadirFiles(stagingUri, safeFiles)
+    await moveLiveDatadirAside(targetUri, previousUri)
     await FileSystem.moveAsync({ from: stagingUri, to: targetUri })
   } catch (error) {
-    try {
-      await FileSystem.deleteAsync(stagingUri, { idempotent: true })
-    } catch {
-      // Staging cleanup is best-effort after a failed replace.
-    }
+    await restorePreviousDatadir(targetUri, previousUri)
+    await FileSystem.deleteAsync(stagingUri, { idempotent: true })
     throw error
   }
+  // The new datadir is in place; a leftover swap dir is cleared by the next replace or delete.
+  await FileSystem.deleteAsync(swapUri, { idempotent: true }).catch(
+    () => undefined
+  )
 }
 
 export {
