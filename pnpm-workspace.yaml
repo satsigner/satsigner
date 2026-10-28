@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'tools/*'
 
 onlyBuiltDependencies:
   - '@shopify/react-native-skia'

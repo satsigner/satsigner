@@ -40,6 +40,27 @@ Read more about Satsigner [here](ABOUT.md) and check out the [features](FEATURES
 - [Mempool.space](https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualizations
 - [Zeus](https://github.com/ZeusLN/zeus) - pretty, increasingly powerful remote LN node management app
 
+## Clone with ngit
+
+Pushes, pull requests, and Zapstore releases go through the local release page. It listens on `127.0.0.1`. The Nostr key stays in a NIP-07 browser extension.
+
+```bash
+pnpm --dir tools/release install
+pnpm --dir tools/release dev
+```
+
+Open http://127.0.0.1:4717 and sign in (Alby or nos2x). The signer relay uses port `4718`.
+
+**Sync with ngit** publishes the repository when `origin` is not a `nostr://` remote yet, then pushes the current branch. After the first publish the page prints the clone URL. The repository identifier is `satsigner`.
+
+```bash
+git clone nostr://<npub>/satsigner
+```
+
+A pull request is a branch whose name starts with `pr/`. Push that branch from the same page.
+
+**Build and publish** sends the current Android release APK to Zapstore. **Build APK** saves a copy under `apps/mobile/dist/apks`. Details, including the tools each action expects, are in [tools/release/README.md](tools/release/README.md).
+
 ## Contributing
 
 Thinking about contributing to Satsigner? Read more about it [here](CONTRIBUTING.md).

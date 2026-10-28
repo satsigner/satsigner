@@ -1,0 +1,4 @@
+repository: https://github.com/satsigner/satsigner
+name: SatSigner [Hermes]
+summary: Bitcoin self-custody signer — agent-published build
+tags: [bitcoin, nostr, signer, lightning]
