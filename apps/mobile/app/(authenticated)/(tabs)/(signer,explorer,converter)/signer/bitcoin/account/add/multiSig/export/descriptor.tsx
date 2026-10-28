@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, View, type ViewInstance } from 'react-native'
 import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -36,7 +36,7 @@ export default function DescriptorPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [descriptor, setDescriptor] = useState('')
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState<CreationType | null>()
   const [scriptVersion, setScriptVersion] =

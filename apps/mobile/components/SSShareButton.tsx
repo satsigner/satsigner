@@ -1,5 +1,5 @@
 import { type RefObject } from 'react'
-import { StyleSheet, type View } from 'react-native'
+import { StyleSheet, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -17,7 +17,11 @@ type SSShareButtonBaseProps = {
 type SSShareButtonProps = SSShareButtonBaseProps &
   (
     | { content: string; type?: 'text' | 'image'; qrRef?: undefined }
-    | { qrRef: RefObject<View | null>; content?: undefined; type?: undefined }
+    | {
+        qrRef: RefObject<ViewInstance | null>
+        content?: undefined
+        type?: undefined
+      }
   )
 
 function SSShareButton({

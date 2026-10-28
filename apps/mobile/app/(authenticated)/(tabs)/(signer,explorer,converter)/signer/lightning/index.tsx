@@ -58,10 +58,7 @@ export default function LightningPage() {
   }
 
   function goToSignerLanding() {
-    router.replace({
-      params: { tab: t('navigation.label.signer') },
-      pathname: '/(authenticated)/(tabs)/(signer)'
-    })
+    router.replace('/(authenticated)/(tabs)/(signer)')
   }
 
   const handleLNDRestPress = () => {

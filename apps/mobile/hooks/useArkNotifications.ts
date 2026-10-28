@@ -1,6 +1,6 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { AppState } from 'react-native'
 
 import {
   openArkWallet,
@@ -188,9 +188,9 @@ export function useArkNotifications() {
   }, [accounts, queryClient])
 
   useEffect(() => {
-    let lastState: AppStateStatus = AppState.currentState
+    let lastState = AppState.currentState
     const subscription = AppState.addEventListener('change', (next) => {
-      if (next === 'active' && lastState.match(/background|inactive/)) {
+      if (next === 'active' && lastState?.match(/background|inactive/)) {
         handleAppForeground(queryClient)
       }
       lastState = next

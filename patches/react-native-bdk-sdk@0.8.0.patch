@@ -1,0 +1,19 @@
+diff --git a/android/proguard-rules.pro b/android/proguard-rules.pro
+new file mode 100644
+index 0000000000000000000000000000000000000000..073e9e92c1ed6d04518bdc1c1a5cb07d8af70b5e
+--- /dev/null
++++ b/android/proguard-rules.pro
+@@ -0,0 +1,13 @@
++# Consumer ProGuard rules for react-native-bdk-sdk.
++#
++# build.gradle lists this file in `consumerProguardFiles`, but the published
++# package does not ship it. AGP 9 fails release builds when it is missing.
++
++# The TurboModule is instantiated reflectively by React Native's module
++# registry, and its `nativeInstallRustCrate` / `nativeCleanupRustCrate`
++# methods are resolved from JNI by name.
++-keep class com.reactnativebdksdk.** { *; }
++
++-keepclasseswithmembernames class * {
++    native <methods>;
++}

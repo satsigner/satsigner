@@ -1,4 +1,10 @@
-import { Canvas, Path, Skia, type SkPath } from '@shopify/react-native-skia'
+import {
+  Canvas,
+  Path,
+  Skia,
+  type SkPath,
+  type SkPathBuilder
+} from '@shopify/react-native-skia'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { StyleSheet, View, useWindowDimensions } from 'react-native'
@@ -45,7 +51,7 @@ export default function DrawingEntropy() {
   const [points, setPoints] = useState<DrawingPoint[]>([])
   const [paths, setPaths] = useState<SkPath[]>([])
   const [strokeVersion, setStrokeVersion] = useState(0)
-  const currentPathRef = useRef<SkPath | null>(null)
+  const currentPathRef = useRef<SkPathBuilder | null>(null)
   const lastSampleRef = useRef<{ x: number; y: number } | null>(null)
   const pointsRef = useRef<DrawingPoint[]>([])
 
@@ -107,9 +113,7 @@ export default function DrawingEntropy() {
       if (completedRef.current) {
         return
       }
-      const path = Skia.Path.Make()
-      path.moveTo(event.x, event.y)
-      currentPathRef.current = path
+      currentPathRef.current = Skia.PathBuilder.Make().moveTo(event.x, event.y)
       bumpStroke()
       addSample(event.x, event.y)
     })
@@ -130,7 +134,8 @@ export default function DrawingEntropy() {
       if (!path) {
         return
       }
-      setPaths((prev) => [...prev, path])
+      const strokePath = path.detach()
+      setPaths((prev) => [...prev, strokePath])
       currentPathRef.current = null
       bumpStroke()
     })
@@ -178,7 +183,7 @@ export default function DrawingEntropy() {
                 {currentPathRef.current ? (
                   <Path
                     key={`stroke-${strokeVersion}`}
-                    path={currentPathRef.current}
+                    path={currentPathRef.current.build()}
                     color={Colors.white}
                     style="stroke"
                     strokeWidth={3}
