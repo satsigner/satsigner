@@ -480,20 +480,27 @@
               <li class="step">
                 <span class="step-title">Release channel</span>
                 <div class="channel" id="channel">
+                  <button type="button" data-channel="dev" aria-pressed="true">
+                    Branch
+                  </button>
                   <button
                     type="button"
                     data-channel="primary"
                     aria-pressed="false"
                   >
-                    Primary release
+                    Production
                   </button>
-                  <button type="button" data-channel="dev" aria-pressed="true">
-                    Dev release
+                  <button
+                    type="button"
+                    data-channel="generic"
+                    aria-pressed="false"
+                  >
+                    Generic dev
                   </button>
                 </div>
                 <p class="hint" id="channel-hint">
-                  Dev keeps the branch in the name and package id, so it
-                  installs beside the primary app.
+                  Branch keeps the branch in the name and package id, so it
+                  installs beside the other apps.
                 </p>
                 <ul id="zapstore-preview"></ul>
                 <textarea
@@ -539,45 +546,59 @@
           </section>
           <section id="apk-panel" hidden>
             <p class="hint">
-              Each option runs a clean prebuild, which deletes the android
-              folder, then saves a copy under dist/apks.
+              Pick the name and package id, then the CPU set. The build runs a
+              clean prebuild, which deletes the android folder, and saves a
+              copy under dist/apks.
             </p>
-            <div class="choices">
-              <div class="choice">
-                <h3>Branch</h3>
-                <p class="hint">
-                  Includes every CPU architecture, so the file is large. The
-                  package id follows this branch, so the install sits beside the
-                  Zapstore app and will not replace it.
+            <ol class="plain">
+              <li class="step">
+                <span class="step-title">Name and package id</span>
+                <div class="channel" id="apk-identity">
+                  <button
+                    type="button"
+                    data-identity="branch"
+                    aria-pressed="true"
+                  >
+                    Branch
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="prod"
+                    aria-pressed="false"
+                  >
+                    Production
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="generic"
+                    aria-pressed="false"
+                  >
+                    Generic dev
+                  </button>
+                </div>
+                <p class="hint" id="apk-identity-hint"></p>
+                <ul id="apk-preview"></ul>
+              </li>
+              <li class="step">
+                <span class="step-title">APK type</span>
+                <div class="channel" id="apk-kind">
+                  <button type="button" data-kind="all" aria-pressed="true">
+                    All CPUs
+                  </button>
+                  <button type="button" data-kind="pixel" aria-pressed="false">
+                    Pixel 8, 9, or 10
+                  </button>
+                </div>
+                <p class="hint" id="apk-kind-hint">
+                  All CPUs installs on phones and emulators. The file is larger.
                 </p>
-                <button type="button" data-apk="branch">
-                  Build branch APK
-                </button>
-              </div>
-              <div class="choice danger">
-                <h3>Production</h3>
-                <p class="hint warn">
-                  Uses the production package id with no branch suffix, so
-                  installing it replaces the real Satsigner app. A later store
-                  update can fail if this APK was signed with the local test
-                  key.
-                </p>
-                <button class="danger" type="button" data-apk="prod">
-                  Build production APK
-                </button>
-              </div>
-              <div class="choice">
-                <h3>Pixel 8, 9, or 10</h3>
-                <p class="hint">
-                  arm64-v8a only, which those Pixels use. Smaller and faster to
-                  build. It will not install on x86 emulators or 32-bit phones.
-                  The package id still follows this branch.
-                </p>
-                <button type="button" data-apk="pixel">
-                  Build for Pixel 8, 9, 10
-                </button>
-              </div>
-            </div>
+                <div class="actions">
+                  <button id="build-apk" class="primary" type="button">
+                    Build APK
+                  </button>
+                </div>
+              </li>
+            </ol>
             <ul id="apks"></ul>
           </section>
         </div>
@@ -1037,7 +1058,16 @@
       const zapstoreButton = document.querySelector('#zapstore')
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
-      const apkButtons = [...document.querySelectorAll('[data-apk]')]
+      const identityButtons = [
+        ...document.querySelectorAll('[data-identity]')
+      ]
+      const kindButtons = [...document.querySelectorAll('[data-kind]')]
+      const buildApkButton = document.querySelector('#build-apk')
+      const apkIdentityHint = document.querySelector('#apk-identity-hint')
+      const apkKindHint = document.querySelector('#apk-kind-hint')
+      const apkPreview = document.querySelector('#apk-preview')
+      let apkIdentity = 'branch'
+      let apkKind = 'all'
       const apksEl = document.querySelector('#apks')
       const notesEl = document.querySelector('#notes')
       const zapstoreTargetEl = document.querySelector('#zapstore-target')
@@ -1206,7 +1236,10 @@
         zapstoreButton.disabled = busy || !connected
         zapstoreOnlyButton.disabled = busy || !connected
         announceButton.disabled = busy || !connected
-        for (const button of apkButtons) button.disabled = busy
+        for (const button of [...identityButtons, ...kindButtons]) {
+          button.disabled = busy
+        }
+        buildApkButton.disabled = busy
       }
 
       function formatBytes(bytes) {
@@ -1264,17 +1297,69 @@
         return item
       }
 
+      function showApkSelection() {
+        const channelKey =
+          apkIdentity === 'prod'
+            ? 'primary'
+            : apkIdentity === 'branch'
+              ? 'dev'
+              : apkIdentity
+        const listing = releaseStatus?.channels?.[channelKey] ?? {}
+        const identityHints = {
+          branch:
+            'Named after this branch. Installs beside generic dev and production.',
+          generic:
+            'Shared development name and package id, with no branch suffix.',
+          prod: 'Clean production name and package id. Installing it replaces the store app. A later store update can fail if this APK was signed with the local test key.'
+        }
+        const kindHints = {
+          all: 'All CPUs installs on phones and emulators. The file is larger.',
+          pixel:
+            'arm64-v8a only. Smaller and faster. It will not install on x86 emulators or 32-bit phones.'
+        }
+        apkIdentityHint.textContent =
+          identityHints[apkIdentity] ?? identityHints.branch
+        apkIdentityHint.classList.toggle('warn', apkIdentity === 'prod')
+        apkKindHint.textContent = kindHints[apkKind] ?? kindHints.all
+        for (const button of identityButtons) {
+          const selected = button.dataset.identity === apkIdentity
+          button.setAttribute('aria-pressed', selected ? 'true' : 'false')
+          button.classList.toggle(
+            'danger',
+            selected && button.dataset.identity === 'prod'
+          )
+        }
+        for (const button of kindButtons) {
+          button.setAttribute(
+            'aria-pressed',
+            button.dataset.kind === apkKind ? 'true' : 'false'
+          )
+        }
+        buildApkButton.classList.toggle('danger', apkIdentity === 'prod')
+        buildApkButton.classList.toggle('primary', apkIdentity !== 'prod')
+        const rows = [
+          ['Name', listing.appName],
+          ['App ID', listing.packageId]
+        ].filter(([, value]) => value)
+        apkPreview.replaceChildren(
+          ...rows.map(([label, value]) => previewRow(label, value))
+        )
+      }
+
       function showChannel() {
         const listing = releaseStatus?.channels?.[releaseChannel] ?? {}
         if (listing.packageId) {
           zapstoreLink.href = `https://zapstore.dev/apps/${listing.packageId}`
         }
-        const primaryHint =
-          'Primary publishes a clean name and the production package id. The prebuild deletes the android folder, and installing the APK replaces the store app.'
-        const devHint =
-          'Dev keeps the branch in the name and package id, so it installs beside the primary app.'
+        const channelHints = {
+          dev: 'Branch keeps the branch in the name and package id, so it installs beside the other apps.',
+          generic:
+            'Generic dev uses the shared development name and package id, with no branch suffix.',
+          primary:
+            'Production publishes a clean name and the production package id. The prebuild deletes the android folder, and installing the APK replaces the store app.'
+        }
         channelHint.textContent =
-          releaseChannel === 'primary' ? primaryHint : devHint
+          channelHints[releaseChannel] ?? channelHints.dev
         channelHint.classList.toggle('warn', releaseChannel === 'primary')
         for (const button of channelButtons) {
           button.classList.toggle(
@@ -1326,6 +1411,7 @@
         }
         releaseStatus = status
         showChannel()
+        showApkSelection()
         const release = status.releaseApk
         zapstoreTargetEl.textContent = release
           ? `Release APK from the Android project on disk, all CPU architectures. Current app-release.apk: ${formatBytes(release.bytes)} · ${release.modifiedAt.slice(0, 16).replace('T', ' ')}.`
@@ -1390,7 +1476,7 @@
         })
       }
 
-      async function runAction(action, profile) {
+      async function runAction(action) {
         setBusy(true)
         statusEl.textContent =
           action === 'apk'
@@ -1402,8 +1488,9 @@
           body: JSON.stringify({
             action,
             channel: releaseChannel,
-            notes: notesEl.value,
-            profile
+            identity: apkIdentity,
+            kind: apkKind,
+            notes: notesEl.value
           })
         })
         if (!response.ok) {
@@ -1437,11 +1524,19 @@
         runAction('zapstoreOnly')
       )
       announceButton.addEventListener('click', () => runAction('announce'))
-      for (const button of apkButtons) {
-        button.addEventListener('click', () =>
-          runAction('apk', button.dataset.apk)
-        )
+      for (const button of identityButtons) {
+        button.addEventListener('click', () => {
+          apkIdentity = button.dataset.identity
+          showApkSelection()
+        })
       }
+      for (const button of kindButtons) {
+        button.addEventListener('click', () => {
+          apkKind = button.dataset.kind
+          showApkSelection()
+        })
+      }
+      buildApkButton.addEventListener('click', () => runAction('apk'))
 
       const logs = new EventSource('/api/logs')
       logs.onmessage = (event) => {

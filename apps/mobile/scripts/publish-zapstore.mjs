@@ -116,6 +116,7 @@ function gitBranch() {
 
 function apkPackageId() {
   if (CHANNEL === 'primary') return getVariantPackageId(false, '')
+  if (CHANNEL === 'generic') return getVariantPackageId(true, '')
   if (CHANNEL === 'dev') return getVariantPackageId(true, gitBranch())
   const gradlePath = path.join(ANDROID_DIR, 'app/build.gradle')
   if (!existsSync(gradlePath)) return 'com.satsigner.satsigner.dev'
@@ -338,7 +339,7 @@ function step(n, label) {
 }
 
 async function buildReleaseApk() {
-  if (CHANNEL !== 'primary' && CHANNEL !== 'dev') {
+  if (CHANNEL !== 'primary' && CHANNEL !== 'dev' && CHANNEL !== 'generic') {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
         'android/ is prebuilt with the production package id. ' +
@@ -379,17 +380,20 @@ async function buildReleaseApk() {
     '--release'
   ]
   if (CHANNEL === 'primary') variantArgs.push('--prod', '--plain')
+  if (CHANNEL === 'generic') variantArgs.push('--plain')
   console.log(
     CHANNEL === 'primary'
       ? '  Primary release: clean name, production package id\n'
-      : '  Dev release: branch name and package id\n'
+      : CHANNEL === 'generic'
+        ? '  Generic dev: shared dev name and package id, no branch suffix\n'
+        : '  Branch release: branch name and package id\n'
   )
   await run('pnpm', variantArgs, { cwd: REPO_ROOT })
 
   const segment =
-    CHANNEL === 'primary'
-      ? 'plain'
-      : sanitizePackageSegment(gitBranch()) || 'plain'
+    CHANNEL === 'dev'
+      ? sanitizePackageSegment(gitBranch()) || 'plain'
+      : 'plain'
   const label = CHANNEL === 'primary' ? 'prod' : 'dev'
   const apkPath = path.join(
     MOBILE_DIR,
