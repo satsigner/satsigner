@@ -161,13 +161,9 @@ export default function ImportExtendedPub() {
     }
 
     setDisabled(!nextXpub || !validXpub || !validFingerprint)
-    setXpubError('')
-
-    if (nextXpub && !validXpub) {
-      const errorMessage = t('account.import.error.descriptorFormat')
-      setXpubError(errorMessage)
-      toast.error(errorMessage)
-    }
+    setXpubError(
+      nextXpub && !validXpub ? t('account.import.error.xpubFormat') : ''
+    )
   }
 
   function convertVpubToTpub(vpub: string): string {

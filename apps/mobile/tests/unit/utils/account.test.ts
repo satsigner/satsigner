@@ -5,6 +5,7 @@ import {
   createResetKey,
   dropSeedFromKeyInMemory,
   getAccountFingerprint,
+  getAccountLabelCounts,
   getAccountTotalBalance,
   getNextDisplayIndex,
   hasStoredMnemonic,
@@ -516,5 +517,56 @@ describe('hasStoredMnemonic', () => {
     ).toBe(false)
     expect(hasStoredMnemonic(makeKey({ secret: 'encrypted' }))).toBe(false)
     expect(hasStoredMnemonic(undefined)).toBe(false)
+  })
+})
+
+describe('getAccountLabelCounts', () => {
+  it('counts only labels of current utxos, addresses and transactions', () => {
+    const account = makeAccount({
+      addresses: [
+        {
+          address: 'bc1qmine',
+          label: '',
+          summary: {
+            balance: 0,
+            satsInMempool: 0,
+            transactions: 0,
+            utxos: 0
+          },
+          transactions: [],
+          utxos: []
+        }
+      ],
+      labels: {
+        bc1qforeign: { label: 'shop', ref: 'bc1qforeign', type: 'addr' },
+        bc1qmine: { label: 'savings', ref: 'bc1qmine', type: 'addr' },
+        'spent-tx:0': { label: 'spent', ref: 'spent-tx:0', type: 'output' },
+        'tx-1': { label: 'rent', ref: 'tx-1', type: 'tx' },
+        'tx-1:0': { label: 'rent', ref: 'tx-1:0', type: 'output' },
+        'tx-1:1': { label: 'rent', ref: 'tx-1:1', type: 'output' }
+      },
+      transactions: [
+        {
+          id: 'tx-1',
+          lockTimeEnabled: false,
+          prices: {},
+          received: 0,
+          sent: 0,
+          type: 'send',
+          vin: [],
+          vout: []
+        }
+      ],
+      utxos: [
+        { keychain: 'internal', label: '', txid: 'tx-1', value: 1000, vout: 1 },
+        { keychain: 'external', label: '', txid: 'tx-2', value: 2000, vout: 0 }
+      ]
+    })
+
+    expect(getAccountLabelCounts(account)).toStrictEqual({
+      addresses: { labeled: 1, total: 1 },
+      transactions: { labeled: 1, total: 1 },
+      utxos: { labeled: 1, total: 2 }
+    })
   })
 })

@@ -309,27 +309,39 @@ export default function SSSeedWordsInput({
     [passphrase, onMnemonicValid, onMnemonicInvalid, wordListName]
   )
 
-  const readSeedFromClipboard = useCallback(async () => {
-    try {
-      const clipboardText = await Clipboard.getStringAsync()
-      const text = clipboardText.trim()
-      const seed = checkClipboardForSeed(text)
-      if (seed.length > 0) {
-        await fillOutSeedWords(seed)
-        toast.success('Seed words pasted from clipboard')
-      } else {
-        toast.error('No valid seed found in clipboard')
+  // The automatic check on open stays silent unless it finds a seed; only the
+  // Paste button reports a miss.
+  const readSeedFromClipboard = useCallback(
+    async (reportMiss: boolean) => {
+      try {
+        const clipboardText = await Clipboard.getStringAsync()
+        const text = clipboardText.trim()
+        const seed = checkClipboardForSeed(text)
+        if (seed.length > 0) {
+          await fillOutSeedWords(seed)
+          toast.success(t('account.import.clipboard.seedPasted'))
+        } else if (reportMiss) {
+          toast.error(t('account.import.clipboard.noSeed'))
+        }
+      } catch (error) {
+        if (!reportMiss) {
+          return
+        }
+        const reason = error instanceof Error ? error.message : String(error)
+        toast.error(t('account.import.clipboard.readFailed', { reason }))
       }
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      toast.error(`Failed to read clipboard, ${reason}`)
-    }
-  }, [checkClipboardForSeed, fillOutSeedWords])
+    },
+    [checkClipboardForSeed, fillOutSeedWords]
+  )
+
+  function handlePasteFromClipboard() {
+    readSeedFromClipboard(true)
+  }
 
   useEffect(() => {
     if (autoCheckClipboard && !clipboardCheckedRef.current) {
       clipboardCheckedRef.current = true
-      readSeedFromClipboard()
+      readSeedFromClipboard(false)
     }
   }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -547,7 +559,7 @@ export default function SSSeedWordsInput({
               <SSButton
                 label={t('common.paste')}
                 variant="outline"
-                onPress={readSeedFromClipboard}
+                onPress={handlePasteFromClipboard}
                 style={{ flex: 1 }}
               />
             )}

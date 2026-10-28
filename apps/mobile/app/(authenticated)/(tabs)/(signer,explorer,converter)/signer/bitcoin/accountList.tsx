@@ -62,6 +62,11 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { ensurePin } from '@/utils/pin'
+import {
+  getSampleAccountName,
+  isSampleWalletLoaded,
+  type SampleWallet
+} from '@/utils/sampleWallet'
 import { time } from '@/utils/time'
 
 function accountShowsFingerprint(account: Account) {
@@ -161,16 +166,6 @@ export default function AccountList() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  type SampleWallet =
-    | 'segwit'
-    | 'legacy'
-    | 'watchonlyXpub'
-    | 'watchonlyAddress'
-    | 'watchonlySalvador'
-    | 'watchonlySegwit'
-    | 'watchonlyTestnet4'
-    | 'watchonlyTether'
-    | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs: { key: Network }[] = [
@@ -308,6 +303,10 @@ export default function AccountList() {
   }
 
   async function handleLoadSampleWallet(type: SampleWallet) {
+    if (isSampleWalletLoaded(type, tabs[tabIndex].key, accounts, addresses)) {
+      toast.info(t('accounts.sampleAlreadyLoaded'))
+      return
+    }
     setLoadingWallet(type)
     try {
       await loadSampleWallet(type)
@@ -324,7 +323,7 @@ export default function AccountList() {
     // seeds a random ephemeral key when none exists (never a hardcoded PIN).
     await ensurePin()
 
-    setName(`Sample (${type})`)
+    setName(getSampleAccountName(type))
     setKeyCount(1)
     setKeysRequired(1)
 
