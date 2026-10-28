@@ -24,6 +24,26 @@ jest.mock<typeof import('@react-native-community/netinfo')>(
     jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js')
 )
 
+// jest-expo installs these globals as lazy getters that require a module on
+// first read. Relay sockets can read them from callbacks that fire after a
+// test ends, when Jest no longer allows requires, so resolve them up front.
+const EXPO_LAZY_GLOBALS = [
+  'DOMException',
+  'structuredClone',
+  'TextDecoderStream',
+  'TextEncoderStream',
+  'URL',
+  'URLSearchParams',
+  '__ExpoImportMetaRegistry'
+]
+for (const name of EXPO_LAZY_GLOBALS) {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    value: Reflect.get(globalThis, name),
+    writable: true
+  })
+}
+
 // Node's built-in WebSocket never fires `close` after a refused handshake,
 // unlike React Native's, so NDK would stay CONNECTING forever. The `ws`
 // client matches the React Native behaviour.
