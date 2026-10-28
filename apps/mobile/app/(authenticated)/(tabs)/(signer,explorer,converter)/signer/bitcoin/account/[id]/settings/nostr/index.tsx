@@ -25,7 +25,11 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import {
+  NOSTR_FALLBACK_NPUB_COLOR,
+  NOSTR_SYNCING_MESSAGE_ROTATE_MS,
+  NOSTR_TRUST_SYNC_RESTART_DELAY_MS
+} from '@/constants/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -37,7 +41,17 @@ import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDateShort } from '@/utils/date'
 import { generateColorFromNpub, getPubKeyHexFromNpub } from '@/utils/nostr'
+import {
+  getNostrErrorMessage,
+  getNostrErrorMessageForCode
+} from '@/utils/nostrErrorMessage'
 import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
+import {
+  checkRelayStatuses,
+  countDisconnected,
+  type NostrRelayCheckStatus
+} from '@/utils/nostrRelayStatus'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 
 const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingConnecting',
@@ -115,9 +129,6 @@ export default function NostrSync() {
   const [isGeneratingKeys, setIsGeneratingKeys] = useState(false)
 
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
-  const clearProcessedMessageIds = useNostrStore(
-    (state) => state.clearProcessedMessageIds
-  )
   const clearProcessedEvents = useNostrStore(
     (state) => state.clearProcessedEvents
   )
@@ -128,6 +139,13 @@ export default function NostrSync() {
   const lastProtocolEOSE = useNostrStore((state) =>
     accountId ? state.lastProtocolEOSE[accountId] : undefined
   )
+  const syncState = useNostrStore((state) =>
+    accountId ? state.syncStatus[accountId] : undefined
+  )
+  const syncErrorMessage =
+    syncState?.status === 'error' && syncState.lastError
+      ? getNostrErrorMessageForCode(syncState.lastError)
+      : null
 
   const rawMembers = useNostrStore((state) =>
     accountId ? state.members[accountId] : undefined
@@ -151,15 +169,8 @@ export default function NostrSync() {
       }, [])
   }, [rawMembers])
 
-  const {
-    clearStoredDMs,
-    generateCommonNostrKeys,
-    deviceAnnouncement,
-    cleanupSubscriptions,
-    nostrSyncSubscriptions,
-    restartSync,
-    stopSync
-  } = useNostrSync()
+  const { clearStoredDMs, generateCommonNostrKeys, deviceAnnouncement } =
+    useNostrSync()
 
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
@@ -170,7 +181,7 @@ export default function NostrSync() {
   const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
-    Record<string, 'connected' | 'connecting' | 'disconnected'>
+    Record<string, NostrRelayCheckStatus>
   >({})
   const [deletionModalVisible, setDeletionModalVisible] = useState(false)
   const [clearCachesModalVisible, setClearCachesModalVisible] = useState(false)
@@ -189,7 +200,7 @@ export default function NostrSync() {
       setSyncingMessageIndex((i) =>
         i + 1 >= SYNCING_MESSAGE_KEYS.length ? 0 : i + 1
       )
-    }, 2500)
+    }, NOSTR_SYNCING_MESSAGE_ROTATE_MS)
     return () => clearInterval(interval)
   }, [isSyncing])
 
@@ -232,29 +243,21 @@ export default function NostrSync() {
     setDeviceColor(generateColorFromNpub(account.nostr.deviceNpub))
   })
 
-  const testRelaySync = async (relays: string[]) => {
-    const statuses: Record<
-      string,
-      'connected' | 'connecting' | 'disconnected'
-    > = {}
-
-    for (const relay of relays) {
-      statuses[relay] = 'connecting'
-    }
+  async function testRelaySync(relays: string[]) {
+    setRelayConnectionStatuses(
+      Object.fromEntries(relays.map((relay) => [relay, 'connecting']))
+    )
+    const statuses = await checkRelayStatuses(relays)
     setRelayConnectionStatuses(statuses)
 
-    // Test connectivity only - don't publish events here to avoid rate limiting
-    // Device announcement is sent separately via deviceAnnouncement()
-    for (const relay of relays) {
-      try {
-        const nostrApi = new NostrAPI([relay])
-        await nostrApi.connect()
-        statuses[relay] = 'connected'
-      } catch {
-        toast.error(`Failed to connect to relay ${relay}`)
-        statuses[relay] = 'disconnected'
-      }
-      setRelayConnectionStatuses({ ...statuses })
+    const unreachable = countDisconnected(statuses)
+    if (unreachable > 0) {
+      toast.error(
+        t('account.nostrSync.relaysUnreachable', {
+          count: unreachable,
+          total: relays.length
+        })
+      )
     }
 
     if (accountId) {
@@ -265,9 +268,7 @@ export default function NostrSync() {
     }
   }
 
-  const getRelayConnectionInfo = (
-    status: 'connected' | 'connecting' | 'disconnected'
-  ) => {
+  const getRelayConnectionInfo = (status: NostrRelayCheckStatus) => {
     switch (status) {
       case 'connected': {
         return {
@@ -288,7 +289,10 @@ export default function NostrSync() {
         }
       }
       default: {
-        return { color: '#6b7280', text: 'Unknown' }
+        return {
+          color: '#6b7280',
+          text: t('account.nostrSync.relayStatusUnknown')
+        }
       }
     }
   }
@@ -304,7 +308,7 @@ export default function NostrSync() {
     try {
       setIsLoading(true)
       setClearCachesModalVisible(false)
-      stopSync(accountId)
+      void nostrSyncService.stopSync(accountId)
       clearStoredDMs(account)
       updateAccountNostr(accountId, {
         autoSync: false,
@@ -318,15 +322,13 @@ export default function NostrSync() {
         trustedMemberDevices: []
       })
       clearNostrState(accountId)
-      clearProcessedMessageIds(accountId)
-      clearProcessedEvents(accountId)
       setSelectedMembers(new Set())
       setSelectedRelays([])
       setRelayConnectionStatuses({})
       previousRelaysRef.current = []
       toast.success(t('account.nostrSync.clearCachesSuccess'))
     } catch {
-      toast.error('Failed to clear local Nostr data')
+      toast.error(t('account.nostrSync.clearCachesError'))
     } finally {
       setIsLoading(false)
     }
@@ -399,8 +401,6 @@ export default function NostrSync() {
       clearStoredDMs(account)
       updateAccountNostr(accountId, { dms: [] })
       clearNostrState(accountId)
-      clearProcessedMessageIds(accountId)
-      clearProcessedEvents(accountId)
       setDeletionModalVisible(false)
       toast.success(t('account.nostrSync.deletionSuccess'))
     } catch {
@@ -447,123 +447,103 @@ export default function NostrSync() {
     }
   }
 
-  /**
-   * Toggles auto-sync functionality and manages subscriptions
-   */
-  const handleToggleAutoSync = async () => {
+  function handleSyncLoadingChange(loading: boolean) {
+    requestAnimationFrame(() => {
+      setIsSyncing(loading)
+      if (accountId) {
+        setSyncing(accountId, loading)
+      }
+    })
+  }
+
+  async function turnSyncOff(relays: string[]) {
+    if (!accountId) {
+      return
+    }
+    setIsSyncing(true)
+    setSyncing(accountId, true)
+    await nostrSyncService.stopSync(accountId)
+
+    const allRelaysDisconnected: Record<string, NostrRelayCheckStatus> =
+      Object.fromEntries(relays.map((relay) => [relay, 'disconnected']))
+    setRelayConnectionStatuses(allRelaysDisconnected)
+    updateAccountNostr(accountId, {
+      autoSync: false,
+      lastUpdated: new Date(),
+      relayStatuses: allRelaysDisconnected
+    })
+    setIsSyncing(false)
+    setSyncing(accountId, false)
+  }
+
+  async function turnSyncOn() {
+    if (!accountId) {
+      return
+    }
+    // syncStart marks which DMs belong to this session (notifications).
+    updateAccountNostr(accountId, {
+      autoSync: true,
+      lastUpdated: new Date(),
+      syncStart: new Date()
+    })
+    const updatedAccount = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    if (!updatedAccount?.nostr?.relays?.length) {
+      return
+    }
+    if (!updatedAccount.nostr.deviceNsec || !updatedAccount.nostr.deviceNpub) {
+      toast.error(t('common.error.missingRequiredNostrConfig'))
+      return
+    }
+
+    setIsSyncing(true)
+    setSyncing(accountId, true)
     try {
-      if (!accountId || !account) {
-        return
-      }
-
-      if (!account.nostr) {
-        updateAccountNostr(accountId, {
-          autoSync: false,
-          commonNpub: '',
-          commonNsec: '',
-          deviceNpub: '',
-          deviceNsec: '',
-          dms: [],
-          lastUpdated: new Date(),
-          relays: [],
-          syncStart: new Date(),
-          trustedMemberDevices: []
-        })
-        return
-      }
-
-      if (account.nostr.autoSync) {
-        setIsSyncing(true)
-        if (accountId) {
-          setSyncing(accountId, true)
-        }
-
-        if (accountId) {
-          stopSync(accountId)
-        }
-        await cleanupSubscriptions().catch(() => {
-          toast.error('Failed to cleanup subscriptions')
-        })
-
-        const allRelaysDisconnected: Record<
-          string,
-          'connected' | 'connecting' | 'disconnected'
-        > = {}
-        if (account.nostr.relays) {
-          for (const relay of account.nostr.relays) {
-            allRelaysDisconnected[relay] = 'disconnected'
-          }
-        }
-        setRelayConnectionStatuses(allRelaysDisconnected)
-
-        updateAccountNostr(accountId, {
-          autoSync: false,
-          lastUpdated: new Date(),
-          relayStatuses: allRelaysDisconnected
-        })
-
-        setIsSyncing(false)
-        if (accountId) {
-          setSyncing(accountId, false)
-        }
-        return
-      }
-
-      // Turn sync ON – set syncStart so DMs from this session are distinguished; caller must set before subscribe to avoid effect loops
-      updateAccountNostr(accountId, {
-        autoSync: true,
-        lastUpdated: new Date(),
-        syncStart: new Date()
+      await testRelaySync(updatedAccount.nostr.relays)
+      void deviceAnnouncement(updatedAccount)
+      await nostrSyncService.startSync(accountId, handleSyncLoadingChange)
+    } catch (error) {
+      toast.error(t('account.nostrSync.setupSyncFailed'), {
+        description: getNostrErrorMessage(error)
       })
-
-      const updatedAccount = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === accountId)
-
-      if (
-        !updatedAccount?.nostr?.relays ||
-        updatedAccount.nostr.relays.length === 0
-      ) {
-        return
-      }
-
-      if (
-        !updatedAccount.nostr.deviceNsec ||
-        !updatedAccount.nostr.deviceNpub
-      ) {
-        toast.error('Missing required Nostr configuration')
-        return
-      }
-
-      setIsSyncing(true)
-      if (accountId) {
-        setSyncing(accountId, true)
-      }
-      try {
-        await testRelaySync(updatedAccount.nostr.relays)
-        deviceAnnouncement(updatedAccount)
-        await nostrSyncSubscriptions(updatedAccount, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-            if (accountId) {
-              setSyncing(accountId, loading)
-            }
-          })
-        })
-      } catch {
-        toast.error('Failed to setup sync')
-      } finally {
-        setIsSyncing(false)
-        if (accountId) {
-          setSyncing(accountId, false)
-        }
-      }
-    } catch {
-      toast.error('Failed to toggle auto sync')
+    } finally {
       setIsSyncing(false)
-      if (accountId) {
-        setSyncing(accountId, false)
+      setSyncing(accountId, false)
+    }
+  }
+
+  async function handleToggleAutoSync() {
+    if (!accountId || !account) {
+      return
+    }
+    if (!account.nostr) {
+      updateAccountNostr(accountId, {
+        autoSync: false,
+        commonNpub: '',
+        commonNsec: '',
+        deviceNpub: '',
+        deviceNsec: '',
+        dms: [],
+        lastUpdated: new Date(),
+        relays: [],
+        syncStart: new Date(),
+        trustedMemberDevices: []
+      })
+      return
+    }
+    try {
+      if (account.nostr.autoSync) {
+        await turnSyncOff(account.nostr.relays ?? [])
+        return
       }
+      await turnSyncOn()
+    } catch (error) {
+      toast.error(t('account.nostrSync.toggleSyncFailed'), {
+        description: getNostrErrorMessage(error)
+      })
+      setIsSyncing(false)
+      setSyncing(accountId, false)
     }
   }
 
@@ -607,26 +587,17 @@ export default function NostrSync() {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
       }
-      const TRUST_SYNC_RESTART_DELAY_MS = 1500
+      // Events from this device were skipped (and marked processed) while it
+      // was untrusted, so the data-exchange history is fetched again.
       trustSyncRestartRef.current = setTimeout(() => {
         trustSyncRestartRef.current = null
         clearProcessedEvents(accountId)
         setLastDataExchangeEOSE(accountId, 0)
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        if (current) {
-          toast.info(t('account.nostrSync.resyncingAfterTrust'))
-          setIsSyncing(true)
-          setSyncing(accountId, true)
-          restartSync(current, (loading) => {
-            requestAnimationFrame(() => {
-              setIsSyncing(loading)
-              setSyncing(accountId, loading)
-            })
-          })
-        }
-      }, TRUST_SYNC_RESTART_DELAY_MS)
+        toast.info(t('account.nostrSync.resyncingAfterTrust'))
+        setIsSyncing(true)
+        setSyncing(accountId, true)
+        void nostrSyncService.restartSync(accountId, handleSyncLoadingChange)
+      }, NOSTR_TRUST_SYNC_RESTART_DELAY_MS)
     }
   }
 
@@ -759,11 +730,8 @@ export default function NostrSync() {
             commonNsec: keys.commonNsec
           })
         }
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'unknown'
-        toast.error(
-          `${t('account.nostrSync.errorLoadingCommonKeys')}: ${reason}`
-        )
+      } catch {
+        toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
       }
     }
     loadCommonKeys()
@@ -816,36 +784,20 @@ export default function NostrSync() {
     }
   }, [accountId, hasNostr, relayCount]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const relayKey = (account?.nostr?.relays ?? []).toSorted().join(',')
+  // startSync is idempotent: it only resubscribes when relays or keys
+  // differ from the running sync, so revisiting this screen costs nothing.
+  const syncConfigKey = [
+    account?.nostr?.autoSync,
+    account?.nostr?.commonNpub,
+    account?.nostr?.deviceNpub,
+    ...(account?.nostr?.relays ?? []).toSorted()
+  ].join('|')
   useEffect(() => {
-    if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) {
-      return
-    }
     if (!accountId) {
       return
     }
-
-    const current = useAccountsStore
-      .getState()
-      .accounts.find((a) => a.id === accountId)
-    if (!current?.nostr) {
-      return
-    }
-
-    restartSync(current, (loading) => {
-      requestAnimationFrame(() => {
-        setIsSyncing(loading)
-        setSyncing(accountId, loading)
-      })
-    })
-  }, [
-    accountId,
-    account?.nostr?.autoSync,
-    account?.nostr?.relays?.length,
-    relayKey,
-    restartSync,
-    setSyncing
-  ])
+    void nostrSyncService.startSync(accountId)
+  }, [accountId, syncConfigKey])
 
   if (!accountId || !account) {
     return <Redirect href="/" />
@@ -876,7 +828,9 @@ export default function NostrSync() {
             <SSButton
               variant={account?.nostr?.autoSync ? 'danger' : 'secondary'}
               label={
-                account?.nostr?.autoSync ? 'Turn sync OFF' : 'Turn sync ON'
+                account?.nostr?.autoSync
+                  ? t('account.nostrSync.turnSyncOff')
+                  : t('account.nostrSync.turnSyncOn')
               }
               onPress={handleToggleAutoSync}
               disabled={
@@ -896,14 +850,20 @@ export default function NostrSync() {
               </SSHStack>
             )}
             {!isSyncing && (
-              <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-                <SSText color="muted">
-                  Last sync:{' '}
+              <SSVStack gap="xxs" style={styles.syncStatusBlock}>
+                <SSText color="muted" center size="sm">
                   {lastProtocolEOSE
-                    ? formatDateShort(lastProtocolEOSE)
-                    : 'Never'}
+                    ? t('account.nostrSync.lastSync', {
+                        date: formatDateShort(lastProtocolEOSE)
+                      })
+                    : t('account.nostrSync.lastSyncNever')}
                 </SSText>
-              </SSHStack>
+                {syncErrorMessage && (
+                  <SSText center size="sm" style={styles.syncErrorText}>
+                    {syncErrorMessage}
+                  </SSText>
+                )}
+              </SSVStack>
             )}
             <SSButton
               label={t('account.nostrSync.manageRelays', {
@@ -1086,8 +1046,8 @@ export default function NostrSync() {
                               }
                               label={
                                 selectedMembers.has(member.npub)
-                                  ? 'Distrust'
-                                  : 'Trust'
+                                  ? t('account.nostrSync.distrust')
+                                  : t('account.nostrSync.trust')
                               }
                               onPress={() => {
                                 handleToggleMember(member.npub)
@@ -1381,5 +1341,11 @@ const styles = StyleSheet.create({
   relayStatusItem: {
     alignItems: 'center',
     paddingVertical: 4
+  },
+  syncErrorText: {
+    color: Colors.error
+  },
+  syncStatusBlock: {
+    alignItems: 'center'
   }
 })

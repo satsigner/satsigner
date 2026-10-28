@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { nostrKeys } from '@/db/keys'
 import { t } from '@/locales'
 import {
   type NostrPollInfo,
   type NostrPollResponse
 } from '@/types/models/Nostr'
+import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import { getUserPollVoteOptionIds, tallyPollVotes } from '@/utils/nostrPoll'
+
+const NO_RESPONSES: NostrPollResponse[] = []
 
 type UseNostrPollVoteParams = {
   enabled: boolean
@@ -40,8 +46,23 @@ export function useNostrPollVote({
   pollInfo,
   relays
 }: UseNostrPollVoteParams): UseNostrPollVoteResult {
-  const [pollResponses, setPollResponses] = useState<NostrPollResponse[]>([])
-  const [pollResponsesLoading, setPollResponsesLoading] = useState(false)
+  const queryClient = useQueryClient()
+  const pollQueryKey = nostrKeys.identityPollResponses(
+    eventId ?? '',
+    getNostrContactsRelaysKey(relays)
+  )
+  const responsesQuery = useQuery({
+    enabled: Boolean(enabled && pollInfo && eventId),
+    queryFn: () => {
+      if (!eventId) {
+        return NO_RESPONSES
+      }
+      return new NostrAPI(relays, ownPubkeys).fetchPollResponses(eventId)
+    },
+    queryKey: pollQueryKey
+  })
+  const pollResponses = responsesQuery.data ?? NO_RESPONSES
+  const pollResponsesLoading = responsesQuery.isLoading
   const [pollVoting, setPollVoting] = useState(false)
   const [pollMultipleSelection, setPollMultipleSelection] = useState<string[]>(
     []
@@ -62,43 +83,6 @@ export function useNostrPollVote({
       : []
 
   const userPollVoteKey = userPollVoteIds.join('|')
-  const loadGenerationRef = useRef(0)
-
-  useEffect(() => {
-    if (!enabled || !pollInfo || !eventId) {
-      setPollResponses([])
-      setPollMultipleSelection([])
-      return
-    }
-
-    const generation = loadGenerationRef.current + 1
-    loadGenerationRef.current = generation
-    setPollResponsesLoading(true)
-    const pollEventId = eventId
-
-    async function loadPollResponses() {
-      const api = new NostrAPI(relays, ownPubkeys)
-      try {
-        const responses = await api.fetchPollResponses(pollEventId)
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses(responses)
-      } catch {
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses([])
-      } finally {
-        api.disconnect()
-        if (loadGenerationRef.current === generation) {
-          setPollResponsesLoading(false)
-        }
-      }
-    }
-
-    void loadPollResponses()
-  }, [enabled, eventId, ownPubkeys, pollInfo, relays])
 
   useEffect(() => {
     if (
@@ -126,12 +110,12 @@ export function useNostrPollVote({
     const api = new NostrAPI(relays, ownPubkeys)
     try {
       await api.publishPollResponse(nsec, eventId, optionIds, pollInfo.relays)
-      const responses = await api.fetchPollResponses(eventId)
-      setPollResponses(responses)
       toast.success(t('nostrIdentity.note.pollVoteSuccess'))
+      void queryClient.invalidateQueries({ queryKey: pollQueryKey })
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.note.pollVoteFailed')}: ${reason}`)
+      toast.error(
+        `${t('nostrIdentity.note.pollVoteFailed')}: ${getNostrErrorMessage(error)}`
+      )
     } finally {
       api.disconnect()
       setPollVoting(false)

@@ -2,6 +2,10 @@ import { type NostrChatMessage } from '@/types/models/Nostr'
 
 import { getDb } from '../connection'
 import { boolToInt } from '../mappers'
+import {
+  chatProcessedScope,
+  clearNostrProcessedEvents
+} from '../nostrProcessedEvents'
 
 /** INSERT OR IGNORE: relay redelivery must not duplicate (id, identity). */
 function insertChatMessage(message: NostrChatMessage): boolean {
@@ -38,24 +42,29 @@ function updateChatMessageStatus(
   )
 }
 
+/** Returns how many messages flipped to read. */
 function markChatThreadRead(
   identityNpub: string,
   protocol: string,
   peerPubkey: string
-) {
-  const db = getDb()
-  db.execute(
+): number {
+  const { rowsAffected } = getDb().execute(
     `UPDATE nostr_chat_messages SET read = 1
       WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ? AND read = 0`,
     [identityNpub, protocol, peerPubkey]
   )
+  return rowsAffected ?? 0
 }
 
+/**
+ * Also forgets which gift wraps were decrypted, otherwise re-adding the
+ * identity would skip every wrap and never restore its history.
+ */
 function deleteChatMessagesForIdentity(identityNpub: string) {
-  const db = getDb()
-  db.execute('DELETE FROM nostr_chat_messages WHERE identity_npub = ?', [
+  getDb().execute('DELETE FROM nostr_chat_messages WHERE identity_npub = ?', [
     identityNpub
   ])
+  clearNostrProcessedEvents(chatProcessedScope(identityNpub))
 }
 
 export {

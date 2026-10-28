@@ -21,8 +21,12 @@ import {
   importLabels as importLabelsDb
 } from '@/db/mutations/labels'
 import {
+  insertDms as insertDmsDb,
   markDmsAsRead as markDmsAsReadDb,
-  updateAccountNostr as updateAccountNostrDb
+  type NostrDmStatusPatch,
+  replaceDm as replaceDmDb,
+  updateAccountNostr as updateAccountNostrDb,
+  updateDmStatus as updateDmStatusDb
 } from '@/db/mutations/nostr'
 import {
   deleteTags as deleteTagsDb,
@@ -32,15 +36,17 @@ import {
 import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
 import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
+import { useNostrStore } from '@/store/nostr'
 import { type Label } from '@/types/bips/329'
 import {
   type Account,
   type SyncProgress,
   type SyncStatus
 } from '@/types/models/Account'
-import { type NostrAccount } from '@/types/models/Nostr'
+import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { createResetKey, dropSeedFromKey } from '@/utils/account'
+import { sortDmsByCreatedAt } from '@/utils/nostrDms'
 import {
   deleteNostrAccountSecretSafe,
   mergeAccountWithCachedNostrSecrets,
@@ -87,6 +93,17 @@ type AccountsAction = {
     nostr: Partial<Account['nostr']>
   ) => void
   markDmsAsRead: (id: Account['id']) => void
+  addAccountDms: (id: Account['id'], dms: NostrDM[]) => void
+  updateAccountDmStatus: (
+    id: Account['id'],
+    dmId: NostrDM['id'],
+    patch: NostrDmStatusPatch
+  ) => void
+  replaceAccountDm: (
+    id: Account['id'],
+    previousId: NostrDM['id'],
+    dm: NostrDM
+  ) => void
   updateAccountBirthday: (id: Account['id'], date: Date | undefined) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
@@ -156,12 +173,34 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         state.accounts.push(account)
       })
     },
+    addAccountDms: (id, dms) => {
+      const existing = get().accounts.find((a) => a.id === id)?.nostr?.dms
+      if (!existing || dms.length === 0) {
+        return
+      }
+      const existingIds = new Set(existing.map((dm) => dm.id))
+      const fresh = dms.filter((dm) => !existingIds.has(dm.id))
+      if (fresh.length === 0) {
+        return
+      }
+      insertDmsDb(id, fresh)
+      set((state) => {
+        const account = state.accounts.find((a) => a.id === id)
+        if (account?.nostr) {
+          account.nostr.dms = sortDmsByCreatedAt([
+            ...account.nostr.dms,
+            ...fresh
+          ])
+        }
+      })
+    },
     deleteAccount: (id) => {
       const account = get().accounts.find((a) => a.id === id)
       if (account) {
         deleteAllKeySecrets(account.id, account.keys.length)
         void deleteNostrAccountSecretSafe(account.id)
       }
+      useNostrStore.getState().removeAccountNostrState(id)
       deleteAccountDb(id)
       set((state) => {
         const index = state.accounts.findIndex((a) => a.id === id)
@@ -319,6 +358,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
           (dm) => (dm.read === false ? { ...dm, read: true } : dm)
         )
+      })
+    },
+    replaceAccountDm: (id, previousId, dm) => {
+      replaceDmDb(id, previousId, dm)
+      set((state) => {
+        const account = state.accounts.find((a) => a.id === id)
+        if (!account?.nostr) {
+          return
+        }
+        const withoutPrevious = account.nostr.dms.filter(
+          (stored) => stored.id !== previousId && stored.id !== dm.id
+        )
+        account.nostr.dms = sortDmsByCreatedAt([...withoutPrevious, dm])
       })
     },
     resetKey: (accountId, keyIndex) => {
@@ -487,6 +539,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           state.accounts[index].birthdayDate = date
           state.accounts[index].rpcLastBlockHash = undefined
         }
+      })
+    },
+    updateAccountDmStatus: (id, dmId, patch) => {
+      updateDmStatusDb(id, dmId, patch)
+      set((state) => {
+        const account = state.accounts.find((a) => a.id === id)
+        const dm = account?.nostr?.dms.find((stored) => stored.id === dmId)
+        if (!dm) {
+          return
+        }
+        Object.assign(dm, patch)
       })
     },
     updateAccountName: (id, newName) => {

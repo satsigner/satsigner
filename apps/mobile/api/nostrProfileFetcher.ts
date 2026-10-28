@@ -7,69 +7,88 @@ import {
   disconnectNdkPool,
   getOrCreateNdk
 } from '@/api/ndkRegistry'
+import { connectToFirstRelay } from '@/api/nostrRelayHealth'
 import {
+  NOSTR_FIRST_RELAY_CONNECT_TIMEOUT_MS,
+  NOSTR_HEX_PUBKEY_RE,
   NOSTR_INDEXER_RELAYS,
+  NOSTR_PROFILE_BACKOFF_BASE_MS,
+  NOSTR_PROFILE_BACKOFF_MAX_MS,
+  NOSTR_PROFILE_BATCH_BUFFER_MS,
+  NOSTR_PROFILE_BATCH_FLUSH_AT,
   NOSTR_PROFILE_BATCH_SIZE,
-  NOSTR_PROFILE_CACHE_TTL_SECS
+  NOSTR_PROFILE_CACHE_TTL_SECS,
+  NOSTR_PROFILE_FETCH_EOSE_TIMEOUT_MS,
+  NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
-import { chunkArray } from '@/utils/chunkArray'
+import {
+  type CachedProfile,
+  cacheProfile,
+  getCachedProfile
+} from '@/db/nostrCache'
+import type {
+  NostrErrorCode,
+  NostrFetchResult,
+  NostrKind0Profile
+} from '@/types/models/Nostr'
+import { chunk } from '@/utils/array'
+import { NostrRelayTimeoutError } from '@/utils/errors'
 import { getProfileFromKind0Content } from '@/utils/nostr'
+import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 
-// CONFIG
+const BACKOFF_FACTOR = 2
+const PROFILE_TTL_MS = NOSTR_PROFILE_CACHE_TTL_SECS * MS_PER_SECOND
 
-const QUEUE_DEBOUNCE_MS = 100
-const QUEUE_FLUSH_AT = 100
-const MAX_ATTEMPTS_PER_PUBKEY = 2
-// EOSE closes the fetch as soon as relays finish; the timeout is only a
-// backstop, so cache hits return as fast as relays answer.
-const FETCH_EOSE_TIMEOUT_MS = 5000
-// Longer cap for cold ephemeral connections to the indexer tier.
-const EPHEMERAL_CONNECT_TIMEOUT_MS = 8000
-
+type ProfileResult = NostrFetchResult<NostrKind0Profile | null>
 type ProfileBatch = Map<string, NostrKind0Profile>
 type BatchCallback = (batch: ProfileBatch) => void
-type ProfileWaiter = { resolve: (profile: NostrKind0Profile | null) => void }
+type ProfileWaiter = (result: ProfileResult) => void
+type ProfileFetchOptions = { onBatch?: BatchCallback; relays?: string[] }
 
-type PendingEntry = {
-  onBatch?: BatchCallback
+type ProfileRequest = {
+  callbacks: Set<BatchCallback>
   relays: string[]
   waiters: ProfileWaiter[]
 }
 
-const pending = new Map<string, PendingEntry>()
-const inFlight = new Set<string>()
-const attempts = new Map<string, number>()
-const exhausted = new Set<string>()
-let flushTimer: ReturnType<typeof setTimeout> | null = null
+type ProfileBackoff = {
+  attempts: number
+  error: NostrErrorCode
+  retryAt: number
+}
+
+type FetchedProfile = {
+  createdAt: number
+  eventId: string
+  profile: NostrKind0Profile
+}
+
+type TierOutcome = {
+  answered: boolean
+  error?: NostrErrorCode
+  profiles: Map<string, FetchedProfile>
+}
+
+type ChunkOutcome = {
+  answered: boolean
+  error?: NostrErrorCode
+  found: Map<string, FetchedProfile>
+}
+
+const pending = new Map<string, ProfileRequest>()
+const inFlight = new Map<string, ProfileRequest>()
+const backoff = new Map<string, ProfileBackoff>()
+const answeredAt = new Map<string, number>()
+const flushState: { timer: ReturnType<typeof setTimeout> | null } = {
+  timer: null
+}
 
 function isValidHex(hexPubkey: string): boolean {
-  return /^[0-9a-f]{64}$/.test(hexPubkey)
+  return NOSTR_HEX_PUBKEY_RE.test(hexPubkey)
 }
 
-function getFreshCached(hexPubkey: string): NostrKind0Profile | null {
-  const cached = getCachedProfile(hexPubkey)
-  const now = Math.floor(Date.now() / MS_PER_SECOND)
-  if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
-    return {
-      banner: cached.banner,
-      displayName: cached.displayName,
-      lud16: cached.lud16,
-      nip05: cached.nip05,
-      picture: cached.picture
-    }
-  }
-  return null
-}
-
-/** Stale cache allowed — used as the final fallback when relays come up empty. */
-function getStaleCached(hexPubkey: string): NostrKind0Profile | null {
-  const cached = getCachedProfile(hexPubkey)
-  if (!cached) {
-    return null
-  }
+function toProfile(cached: CachedProfile): NostrKind0Profile {
   return {
     banner: cached.banner,
     displayName: cached.displayName,
@@ -78,27 +97,58 @@ function getStaleCached(hexPubkey: string): NostrKind0Profile | null {
     picture: cached.picture
   }
 }
-type FetchedProfile = {
-  createdAt: number
-  eventId: string
-  profile: NostrKind0Profile
+
+function isCacheFresh(cached: CachedProfile, now = Date.now()): boolean {
+  return now - cached.cached_at * MS_PER_SECOND < PROFILE_TTL_MS
 }
-type FetchResult = Map<string, FetchedProfile>
+
+/** What we know without touching relays: fresh cache, stale cache, or nothing. */
+function getCachedResult(hexPubkey: string): ProfileResult {
+  const cached = getCachedProfile(hexPubkey)
+  const error = backoff.get(hexPubkey)?.error
+  if (!cached) {
+    return {
+      data: null,
+      error,
+      source: answeredAt.has(hexPubkey) ? 'relay' : 'cache'
+    }
+  }
+  if (isCacheFresh(cached)) {
+    return { data: toProfile(cached), source: 'cache' }
+  }
+  return { data: toProfile(cached), error, source: 'stale' }
+}
+
+function isLoadThrottled(hexPubkey: string, now = Date.now()): boolean {
+  const lastAnswer = answeredAt.get(hexPubkey)
+  if (lastAnswer !== undefined && now - lastAnswer < PROFILE_TTL_MS) {
+    return true
+  }
+  const retryAt = backoff.get(hexPubkey)?.retryAt ?? 0
+  return retryAt > now
+}
+
+function getBackoffDelay(attempts: number): number {
+  return Math.min(
+    NOSTR_PROFILE_BACKOFF_BASE_MS * BACKOFF_FACTOR ** (attempts - 1),
+    NOSTR_PROFILE_BACKOFF_MAX_MS
+  )
+}
 
 // FETCH
 
 /**
- * Subscribe-collect-until-EOSE. Resolves as soon as a connected relay sends
- * EOSE (hits return immediately) or after the backstop timeout.
+ * Collects kind 0 events until a connected relay sends EOSE. Throws
+ * NostrRelayTimeoutError when no relay answered and nothing arrived.
  */
 function fetchKind0Events(
   ndk: NDK,
   hexPubkeys: string[],
   timeoutMs: number
-): Promise<FetchResult> {
-  return new Promise((resolve) => {
-    let settled = false
-    const newest: FetchResult = new Map()
+): Promise<Map<string, FetchedProfile>> {
+  return new Promise((resolve, reject) => {
+    const state = { settled: false }
+    const newest = new Map<string, FetchedProfile>()
     const filter: NDKFilter = {
       authors: hexPubkeys,
       kinds: [nostrKinds.Metadata],
@@ -106,14 +156,21 @@ function fetchKind0Events(
     }
     const sub = ndk.subscribe(filter, { closeOnEose: false })
 
-    const finish = () => {
-      if (settled) {
+    function finish(answered: boolean) {
+      if (state.settled) {
         return
       }
-      settled = true
+      state.settled = true
+      clearTimeout(timer)
       sub.stop()
+      if (!answered && newest.size === 0) {
+        reject(new NostrRelayTimeoutError('No relay answered the kind 0 REQ'))
+        return
+      }
       resolve(newest)
     }
+
+    const timer = setTimeout(() => finish(false), timeoutMs)
 
     sub.on('event', (event: NDKEvent) => {
       if (!event.pubkey || !event.content) {
@@ -135,268 +192,364 @@ function fetchKind0Events(
     })
     sub.on('eose', () => {
       if ((ndk.pool?.connectedRelays().length ?? 0) > 0) {
-        finish()
+        finish(true)
       }
     })
-    setTimeout(finish, timeoutMs)
   })
+}
+
+async function fetchFromRelays(
+  relays: string[],
+  hexPubkeys: string[]
+): Promise<Map<string, FetchedProfile>> {
+  const ndk = getOrCreateNdk(relays)
+  await connectToFirstRelay(ndk, NOSTR_FIRST_RELAY_CONNECT_TIMEOUT_MS)
+  return fetchKind0Events(ndk, hexPubkeys, NOSTR_PROFILE_FETCH_EOSE_TIMEOUT_MS)
 }
 
 async function fetchFromIndexerRelays(
   hexPubkeys: string[]
-): Promise<FetchResult> {
+): Promise<Map<string, FetchedProfile>> {
   const ephemeral = createEphemeralNdk(NOSTR_INDEXER_RELAYS)
   try {
-    await ephemeral.connect(EPHEMERAL_CONNECT_TIMEOUT_MS)
-    return await fetchKind0Events(ephemeral, hexPubkeys, FETCH_EOSE_TIMEOUT_MS)
+    await connectToFirstRelay(ephemeral, NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
+    return await fetchKind0Events(
+      ephemeral,
+      hexPubkeys,
+      NOSTR_PROFILE_FETCH_EOSE_TIMEOUT_MS
+    )
   } finally {
     disconnectNdkPool(ephemeral)
   }
 }
 
-// FLUSH
-
-async function flushChunk(relaySetKey: string, hexes: string[]): Promise<void> {
-  const relays = relaySetKey ? relaySetKey.split(',') : []
-  const fetched: FetchResult = new Map()
-
-  // Attempt 1: the caller's relay pool (shared NDK). Empty pools skip
-  // straight to the indexer tier rather than timing out for nothing.
-  if (relays.length > 0) {
-    const first = await fetchKind0Events(
-      getOrCreateNdk(relays),
-      hexes,
-      FETCH_EOSE_TIMEOUT_MS
-    )
-    for (const [pk, entry] of first) {
-      fetched.set(pk, entry)
-    }
-  }
-  for (const pk of hexes) {
-    attempts.set(pk, (attempts.get(pk) ?? 0) + 1)
-  }
-
-  // Attempt 2: indexer relays, only for still-missing, attempt-capped pubkeys.
-  const missing = hexes.filter(
-    (pk) =>
-      !fetched.has(pk) && (attempts.get(pk) ?? 0) < MAX_ATTEMPTS_PER_PUBKEY
-  )
-  if (missing.length > 0) {
-    const second = await fetchFromIndexerRelays(missing)
-    for (const [pk, entry] of second) {
-      fetched.set(pk, entry)
-    }
-  }
-  for (const pk of missing) {
-    attempts.set(pk, (attempts.get(pk) ?? 0) + 1)
-  }
-
-  // Newest-wins merge is already applied inside fetchKind0Events; write back
-  // with real event metadata.
-  const found: ProfileBatch = new Map()
-  for (const [pk, entry] of fetched) {
-    cacheProfile(pk, entry.profile, entry.eventId, entry.createdAt)
-    found.set(pk, entry.profile)
-  }
-
-  const callbacks = new Set<BatchCallback>()
-  for (const pk of hexes) {
-    const entry = pendingEntriesFor(pk)
-    if (entry?.onBatch) {
-      callbacks.add(entry.onBatch)
-    }
-  }
-  if (found.size > 0) {
-    for (const onBatch of callbacks) {
-      try {
-        onBatch(found)
-      } catch {
-        // A broken UI callback must not break the flush for everyone else.
-      }
-    }
-  }
-
-  for (const pk of hexes) {
-    const profile = found.get(pk) ?? getStaleCached(pk)
-    const entry = pendingEntriesFor(pk)
-    if (!entry) {
-      continue
-    }
-    for (const waiter of entry.waiters) {
-      waiter.resolve(profile)
-    }
-    if (!found.has(pk) && (attempts.get(pk) ?? 0) >= MAX_ATTEMPTS_PER_PUBKEY) {
-      exhausted.add(pk)
+async function settleTier(
+  run: () => Promise<Map<string, FetchedProfile>>
+): Promise<TierOutcome> {
+  try {
+    return { answered: true, profiles: await run() }
+  } catch (error) {
+    return {
+      answered: false,
+      error: getNostrErrorCode(error),
+      profiles: new Map()
     }
   }
 }
 
-// Track the pending entries attached to each flush chunk.
-const chunkEntries = new Map<string, PendingEntry>()
+function skippedTier(): TierOutcome {
+  return { answered: false, profiles: new Map() }
+}
 
-function pendingEntriesFor(hexPubkey: string): PendingEntry | undefined {
-  return chunkEntries.get(hexPubkey)
+/** Caller's relays first; pubkeys they miss go to the indexer relays. */
+async function fetchChunkProfiles(
+  relays: string[],
+  hexPubkeys: string[]
+): Promise<ChunkOutcome> {
+  const primary =
+    relays.length > 0
+      ? await settleTier(() => fetchFromRelays(relays, hexPubkeys))
+      : skippedTier()
+  const missing = hexPubkeys.filter((pk) => !primary.profiles.has(pk))
+  const secondary =
+    missing.length > 0
+      ? await settleTier(() => fetchFromIndexerRelays(missing))
+      : skippedTier()
+  const answered = primary.answered || secondary.answered
+  return {
+    answered,
+    error: answered ? undefined : (primary.error ?? secondary.error),
+    found: new Map([...primary.profiles, ...secondary.profiles])
+  }
+}
+
+// FLUSH
+
+function recordOutcome(hexPubkeys: string[], outcome: ChunkOutcome): void {
+  const now = Date.now()
+  for (const pk of hexPubkeys) {
+    if (outcome.answered || outcome.found.has(pk)) {
+      answeredAt.set(pk, now)
+      backoff.delete(pk)
+      continue
+    }
+    const attempts = (backoff.get(pk)?.attempts ?? 0) + 1
+    backoff.set(pk, {
+      attempts,
+      error: outcome.error ?? 'unknown',
+      retryAt: now + getBackoffDelay(attempts)
+    })
+  }
+  for (const [pk, entry] of outcome.found) {
+    cacheProfile(pk, entry.profile, entry.eventId, entry.createdAt)
+  }
+}
+
+function resultFor(hexPubkey: string, outcome: ChunkOutcome): ProfileResult {
+  const fetched = outcome.found.get(hexPubkey)
+  const cached = getCachedProfile(hexPubkey)
+  if (fetched) {
+    const cachedIsNewer = cached && cached.created_at > fetched.createdAt
+    return {
+      data: cachedIsNewer ? toProfile(cached) : fetched.profile,
+      source: 'relay'
+    }
+  }
+  if (outcome.answered) {
+    return cached
+      ? { data: toProfile(cached), source: 'stale' }
+      : { data: null, source: 'relay' }
+  }
+  return {
+    data: cached ? toProfile(cached) : null,
+    error: outcome.error ?? 'unknown',
+    source: cached ? 'stale' : 'cache'
+  }
+}
+
+function deliverBatch(results: Map<string, ProfileResult>): void {
+  const batch: ProfileBatch = new Map()
+  const listeners = new Set<BatchCallback>()
+  for (const [pk, result] of results) {
+    if (result.source === 'relay' && result.data) {
+      batch.set(pk, result.data)
+    }
+    for (const onBatch of inFlight.get(pk)?.callbacks ?? []) {
+      listeners.add(onBatch)
+    }
+  }
+  if (batch.size === 0) {
+    return
+  }
+  for (const onBatch of listeners) {
+    try {
+      onBatch(batch)
+    } catch {
+      // A broken UI callback must not break the flush for everyone else.
+    }
+  }
+}
+
+function resolveWaiters(
+  hexPubkeys: string[],
+  results: Map<string, ProfileResult>
+): void {
+  for (const pk of hexPubkeys) {
+    const request = inFlight.get(pk)
+    if (!request) {
+      continue
+    }
+    inFlight.delete(pk)
+    const result = results.get(pk) ?? getCachedResult(pk)
+    for (const waiter of request.waiters) {
+      waiter(result)
+    }
+  }
+}
+
+async function flushChunk(
+  relays: string[],
+  hexPubkeys: string[]
+): Promise<void> {
+  const results = new Map<string, ProfileResult>()
+  try {
+    const outcome = await fetchChunkProfiles(relays, hexPubkeys)
+    recordOutcome(hexPubkeys, outcome)
+    for (const pk of hexPubkeys) {
+      results.set(pk, resultFor(pk, outcome))
+    }
+    deliverBatch(results)
+  } finally {
+    resolveWaiters(hexPubkeys, results)
+  }
+}
+
+async function flushGroup(
+  relays: string[],
+  hexPubkeys: string[]
+): Promise<void> {
+  try {
+    for (const part of chunk(hexPubkeys, NOSTR_PROFILE_BATCH_SIZE)) {
+      await flushChunk(relays, part)
+    }
+  } finally {
+    resolveWaiters(hexPubkeys, new Map())
+  }
 }
 
 async function flush(): Promise<void> {
+  if (flushState.timer) {
+    clearTimeout(flushState.timer)
+    flushState.timer = null
+  }
   if (pending.size === 0) {
     return
   }
-  const entries = new Map(pending)
+
+  const groups = new Map<string, { hexPubkeys: string[]; relays: string[] }>()
+  for (const [pk, request] of pending) {
+    inFlight.set(pk, request)
+    const key = [...request.relays].toSorted().join(',')
+    const group = groups.get(key) ?? { hexPubkeys: [], relays: request.relays }
+    group.hexPubkeys.push(pk)
+    groups.set(key, group)
+  }
   pending.clear()
 
-  // Group by relay set so same-set callers share one fetch.
-  const groups = new Map<string, string[]>()
-  for (const [pk, entry] of entries) {
-    const key = [...entry.relays].toSorted().join(',')
-    const group = groups.get(key) ?? []
-    group.push(pk)
-    groups.set(key, group)
-    chunkEntries.set(pk, entry)
-    inFlight.add(pk)
-  }
-
-  try {
-    for (const [relaySetKey, hexes] of groups) {
-      for (const chunk of chunkArray(hexes, NOSTR_PROFILE_BATCH_SIZE)) {
-        await flushChunk(relaySetKey, chunk)
-      }
-    }
-  } finally {
-    for (const pk of entries.keys()) {
-      inFlight.delete(pk)
-      chunkEntries.delete(pk)
-    }
-  }
+  await Promise.allSettled(
+    [...groups.values()].map(({ relays, hexPubkeys }) =>
+      flushGroup(relays, hexPubkeys)
+    )
+  )
 }
 
 function scheduleFlush(): void {
-  if (pending.size >= QUEUE_FLUSH_AT) {
+  if (pending.size >= NOSTR_PROFILE_BATCH_FLUSH_AT) {
     void flush()
     return
   }
-  if (!flushTimer) {
-    flushTimer = setTimeout(() => {
-      flushTimer = null
-      void flush()
-    }, QUEUE_DEBOUNCE_MS)
+  if (flushState.timer) {
+    return
   }
+  flushState.timer = setTimeout(() => {
+    flushState.timer = null
+    void flush()
+  }, NOSTR_PROFILE_BATCH_BUFFER_MS)
 }
 
-// PUBLIC API
-
-function queueProfileFetch(
+function requestProfile(
   hexPubkey: string,
-  opts: { onBatch?: BatchCallback; relays?: string[] } = {}
+  relays: string[],
+  waiter?: ProfileWaiter,
+  onBatch?: BatchCallback
 ): void {
-  const pk = hexPubkey.toLowerCase()
-  if (!isValidHex(pk)) {
+  const cached = getCachedProfile(hexPubkey)
+  if (cached && isCacheFresh(cached)) {
+    waiter?.({ data: toProfile(cached), source: 'cache' })
     return
   }
-  if (getFreshCached(pk) || inFlight.has(pk) || exhausted.has(pk)) {
+
+  const joinable = inFlight.get(hexPubkey) ?? pending.get(hexPubkey)
+  if (joinable) {
+    if (waiter) {
+      joinable.waiters.push(waiter)
+    }
+    if (onBatch) {
+      joinable.callbacks.add(onBatch)
+    }
     return
   }
-  const existing = pending.get(pk)
-  if (existing) {
+
+  if (isLoadThrottled(hexPubkey)) {
+    waiter?.(getCachedResult(hexPubkey))
     return
   }
-  pending.set(pk, {
-    onBatch: opts.onBatch,
-    relays: opts.relays ?? [],
-    waiters: []
+
+  pending.set(hexPubkey, {
+    callbacks: new Set(onBatch ? [onBatch] : []),
+    relays,
+    waiters: waiter ? [waiter] : []
   })
   scheduleFlush()
 }
 
-function queueProfileFetches(
-  hexPubkeys: string[],
-  opts: { onBatch?: BatchCallback; relays?: string[] } = {}
-): void {
-  for (const hex of hexPubkeys) {
-    queueProfileFetch(hex, opts)
+// PUBLIC API
+
+/**
+ * Kind 0 for one pubkey through the shared batcher: fresh cache answers
+ * immediately, concurrent callers share one REQ, a pubkey relays answered
+ * is not reloaded within the TTL, and failures back off exponentially.
+ */
+function fetchProfileResult(
+  hexPubkey: string,
+  relays: string[] = []
+): Promise<ProfileResult> {
+  const pk = hexPubkey.toLowerCase()
+  if (!isValidHex(pk)) {
+    return Promise.resolve({ data: null, source: 'relay' })
   }
+  return new Promise((resolve) => {
+    requestProfile(pk, relays, resolve)
+  })
 }
 
-function fetchProfileCoalesced(
+async function fetchProfileCoalesced(
   hexPubkey: string,
   relays: string[] = []
 ): Promise<NostrKind0Profile | null> {
-  const pk = hexPubkey.toLowerCase()
-  if (!isValidHex(pk)) {
-    return Promise.resolve(null)
-  }
-  const fresh = getFreshCached(pk)
-  if (fresh) {
-    return Promise.resolve(fresh)
-  }
-  if (exhausted.has(pk)) {
-    return Promise.resolve(getStaleCached(pk))
-  }
-  return new Promise((resolve) => {
-    // Attach to the in-flight flush entry when one is already running.
-    const running = chunkEntries.get(pk)
-    if (running && inFlight.has(pk)) {
-      running.waiters.push({ resolve })
-      return
-    }
-    const existing = pending.get(pk)
-    if (existing) {
-      existing.waiters.push({ resolve })
-    } else {
-      pending.set(pk, { relays, waiters: [{ resolve }] })
-    }
-    scheduleFlush()
-  })
+  const { data } = await fetchProfileResult(hexPubkey, relays)
+  return data
 }
 
 async function fetchProfilesCoalesced(
   hexPubkeys: string[],
   relays: string[] = []
 ): Promise<ProfileBatch> {
-  const valid = hexPubkeys
-    .map((pk) => pk.toLowerCase())
-    .filter((pk) => isValidHex(pk))
-  const profiles = await Promise.all(
-    valid.map((pk) => fetchProfileCoalesced(pk, relays))
+  const valid = [
+    ...new Set(hexPubkeys.map((pk) => pk.toLowerCase()).filter(isValidHex))
+  ]
+  const results = await Promise.all(
+    valid.map((pk) => fetchProfileResult(pk, relays))
   )
-  const result: ProfileBatch = new Map()
-  for (const [index, profile] of profiles.entries()) {
-    if (profile) {
-      result.set(valid[index], profile)
+  const batch: ProfileBatch = new Map()
+  for (const [index, { data }] of results.entries()) {
+    if (data) {
+      batch.set(valid[index], data)
     }
   }
-  return result
+  return batch
 }
 
-/** Re-queue a pubkey the user explicitly opened: clears exhausted/attempts. */
-function forceProfileFetch(
+function queueProfileFetch(
   hexPubkey: string,
-  opts: { onBatch?: BatchCallback; relays?: string[] } = {}
+  { onBatch, relays = [] }: ProfileFetchOptions = {}
 ): void {
   const pk = hexPubkey.toLowerCase()
-  exhausted.delete(pk)
-  attempts.delete(pk)
-  queueProfileFetch(pk, opts)
+  if (!isValidHex(pk)) {
+    return
+  }
+  requestProfile(pk, relays, undefined, onBatch)
 }
 
-/** Test/support hook: reset all session state. */
+function queueProfileFetches(
+  hexPubkeys: string[],
+  options: ProfileFetchOptions = {}
+): void {
+  for (const hex of hexPubkeys) {
+    queueProfileFetch(hex, options)
+  }
+}
+
+/** The user explicitly opened this pubkey: skip the TTL and backoff once. */
+function forceProfileFetch(
+  hexPubkey: string,
+  options: ProfileFetchOptions = {}
+): void {
+  const pk = hexPubkey.toLowerCase()
+  backoff.delete(pk)
+  answeredAt.delete(pk)
+  queueProfileFetch(pk, options)
+}
+
+/** Drops all in-memory loader state (cache screen, tests). */
 function resetProfileFetcher(): void {
   pending.clear()
   inFlight.clear()
-  attempts.clear()
-  exhausted.clear()
-  chunkEntries.clear()
-  if (flushTimer) {
-    clearTimeout(flushTimer)
-    flushTimer = null
+  backoff.clear()
+  answeredAt.clear()
+  if (flushState.timer) {
+    clearTimeout(flushState.timer)
+    flushState.timer = null
   }
 }
 
 export {
   fetchProfileCoalesced,
+  fetchProfileResult,
   fetchProfilesCoalesced,
   forceProfileFetch,
   queueProfileFetch,
   queueProfileFetches,
   resetProfileFetcher
 }
+export type { ProfileResult }

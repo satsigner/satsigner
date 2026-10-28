@@ -2,13 +2,14 @@ import { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSNostrContactList from '@/components/SSNostrContactList'
+import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS } from '@/constants/nostr'
@@ -20,7 +21,11 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type NostrContactItem } from '@/types/models/Nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
-import { getNostrContactsRelays } from '@/utils/nostrContacts'
+import {
+  filterNostrContacts,
+  getNostrContactsRelays
+} from '@/utils/nostrContacts'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import { nostrContactProfileHref } from '@/utils/nostrNavigation'
 
 type ContactsParams = {
@@ -43,28 +48,17 @@ export default function NostrContacts() {
   const {
     contacts,
     connectedRelayCount,
+    error: contactsError,
     isError,
     isLoading,
+    isRefetching,
     kind3Found,
-    relaysQueried
+    refetch,
+    relaysQueried,
+    source
   } = useNostrContacts(npub, contactsRelays)
 
-  const trimmedQuery = searchQuery.trim().toLowerCase()
-
-  const filteredContacts = useMemo(() => {
-    if (!trimmedQuery) {
-      return contacts
-    }
-    return contacts.filter((contact) => {
-      const displayName = contact.profile?.displayName?.toLowerCase() ?? ''
-      const nip05 = contact.profile?.nip05?.toLowerCase() ?? ''
-      return (
-        displayName.includes(trimmedQuery) ||
-        nip05.includes(trimmedQuery) ||
-        nip19.npubEncode(contact.pubkey).includes(trimmedQuery)
-      )
-    })
-  }, [contacts, trimmedQuery])
+  const filteredContacts = filterNostrContacts(contacts, searchQuery)
 
   function handleContactPress(item: NostrContactItem) {
     const contactNpub = nip19.npubEncode(item.pubkey)
@@ -97,12 +91,16 @@ export default function NostrContacts() {
       const sourceApi = new NostrAPI(contactsRelays)
       const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
 
-      if (!result.kind3Found || result.pubkeys.length === 0) {
+      if (result.error) {
+        toast.error(getNostrErrorMessage(result.error))
+        return
+      }
+      if (!result.data.kind3Found || result.data.pubkeys.length === 0) {
         toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
         return
       }
 
-      const tags = result.pubkeys.map((pk) => ['p', pk])
+      const tags = result.data.pubkeys.map((pk) => ['p', pk])
 
       const targetApi = new NostrAPI(otherRelays)
       await targetApi.connectForPublish()
@@ -119,15 +117,13 @@ export default function NostrContacts() {
 
       toast.success(
         t('nostrIdentity.contacts.publishSuccess', {
-          count: result.pubkeys.length,
+          count: result.data.pubkeys.length,
           relays: otherRelays.length
         })
       )
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : t('nostrIdentity.contacts.publishError')
+        `${t('nostrIdentity.contacts.publishError')}: ${getNostrErrorMessage(error)}`
       )
     } finally {
       setIsPublishing(false)
@@ -150,11 +146,30 @@ export default function NostrContacts() {
           align="left"
           onChangeText={setSearchQuery}
         />
+        <SSNostrSourceBanner
+          error={contactsError}
+          onRetry={refetch}
+          retrying={isRefetching}
+          source={source}
+        />
         <View style={styles.listContainer}>
           {isLoading && contacts.length === 0 ? (
             <SSVStack itemsCenter style={styles.center}>
               <ActivityIndicator color={Colors.gray[400]} />
             </SSVStack>
+          ) : contacts.length > 0 ? (
+            filteredContacts.length === 0 ? (
+              <SSVStack itemsCenter style={styles.center}>
+                <SSText color="muted" size="sm" center>
+                  {t('nostrIdentity.chat.noMatchingContacts')}
+                </SSText>
+              </SSVStack>
+            ) : (
+              <SSNostrContactList
+                contacts={filteredContacts}
+                onPress={handleContactPress}
+              />
+            )
           ) : isError ? (
             <SSVStack itemsCenter gap="sm" style={styles.center}>
               <SSText color="muted" size="sm">
@@ -178,23 +193,12 @@ export default function NostrContacts() {
                 }
               />
             </SSVStack>
-          ) : contacts.length === 0 ? (
+          ) : (
             <SSVStack itemsCenter style={styles.center}>
               <SSText color="muted" size="sm">
                 {t('nostrIdentity.contacts.empty')}
               </SSText>
             </SSVStack>
-          ) : filteredContacts.length === 0 ? (
-            <SSVStack itemsCenter style={styles.center}>
-              <SSText color="muted" size="sm" center>
-                {t('nostrIdentity.chat.noMatchingContacts')}
-              </SSText>
-            </SSVStack>
-          ) : (
-            <SSNostrContactList
-              contacts={filteredContacts}
-              onPress={handleContactPress}
-            />
           )}
         </View>
         {kind3Found && contacts.length > 0 && identity?.nsec && (
