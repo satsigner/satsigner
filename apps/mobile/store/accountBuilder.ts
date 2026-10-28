@@ -320,7 +320,9 @@ const useAccountBuilderStore = create<
       const isWatchOnlyAddress =
         creationType === 'importAddress' && externalDescriptor
 
-      const isWif = creationType === 'importWif' && Boolean(privateKey)
+      const wifPrivateKey =
+        creationType === 'importWif' ? privateKey : undefined
+      const isWif = Boolean(wifPrivateKey)
 
       const isImportedPublicKey =
         creationType === 'importExtendedPub' ||
@@ -337,7 +339,7 @@ const useAccountBuilderStore = create<
       }
 
       const hasPublicKey =
-        extendedPublicKey || externalDescriptor || mnemonic || privateKey
+        extendedPublicKey || externalDescriptor || mnemonic || wifPrivateKey
       if (!hasPublicKey) {
         throw new Error(
           'Each key must have either a public key, descriptor, or mnemonic'
@@ -359,7 +361,10 @@ const useAccountBuilderStore = create<
           ...(externalDescriptor && { externalDescriptor }),
           ...(internalDescriptor && { internalDescriptor }),
           ...(extendedPublicKey && { extendedPublicKey }),
-          ...(privateKey && { privateKey, privateKeyCompressed }),
+          ...(wifPrivateKey && {
+            privateKey: wifPrivateKey,
+            privateKeyCompressed
+          }),
           ...(resolvedFingerprint && { fingerprint: resolvedFingerprint })
         }
       }

@@ -132,6 +132,9 @@ export default function SeedWordsPage() {
               <SSText center color="muted">
                 {t('account.seed.keepItSecret')}
               </SSText>
+              <SSText center type="mono" selectable>
+                {wif}
+              </SSText>
               <SSClipboardCopy text={wif}>
                 <SSButton label={t('common.copy')} variant="outline" />
               </SSClipboardCopy>

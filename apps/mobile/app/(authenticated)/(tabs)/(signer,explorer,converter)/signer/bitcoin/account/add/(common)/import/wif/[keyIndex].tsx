@@ -204,6 +204,7 @@ export default function ImportWif() {
         </SSVStack>
       </ScrollView>
       <SSScriptVersionModal
+        key={importScript}
         visible={scriptVersionModalVisible}
         scriptVersion={importScript}
         disabledScripts={limits.map((limit) => ({

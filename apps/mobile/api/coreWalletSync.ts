@@ -205,7 +205,8 @@ async function importDescriptorsIfNeeded(
       ]
     : [
         {
-          active: true,
+          // Core rejects active descriptors that are not ranged.
+          active: false,
           desc: external,
           internal: false,
           timestamp: 'now'
