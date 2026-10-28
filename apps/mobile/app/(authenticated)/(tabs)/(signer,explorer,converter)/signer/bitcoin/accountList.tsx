@@ -62,11 +62,12 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { ensurePin } from '@/utils/pin'
+import {
+  getSampleAccountName,
+  isSampleWalletLoaded,
+  type SampleWallet
+} from '@/utils/sampleWallet'
 import { time } from '@/utils/time'
-
-function getSampleAccountName(sample: string) {
-  return `Sample (${sample})`
-}
 
 function accountShowsFingerprint(account: Account) {
   return account.keys[0]?.creationType !== 'importAddress'
@@ -165,16 +166,6 @@ export default function AccountList() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  type SampleWallet =
-    | 'segwit'
-    | 'legacy'
-    | 'watchonlyXpub'
-    | 'watchonlyAddress'
-    | 'watchonlySalvador'
-    | 'watchonlySegwit'
-    | 'watchonlyTestnet4'
-    | 'watchonlyTether'
-    | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs: { key: Network }[] = [
@@ -312,13 +303,7 @@ export default function AccountList() {
   }
 
   async function handleLoadSampleWallet(type: SampleWallet) {
-    const sampleNetwork = tabs[tabIndex].key
-    const isSampleLoaded = accounts.some(
-      (account) =>
-        account.network === sampleNetwork &&
-        account.name === getSampleAccountName(type)
-    )
-    if (isSampleLoaded) {
+    if (isSampleWalletLoaded(type, tabs[tabIndex].key, accounts, addresses)) {
       toast.info(t('accounts.sampleAlreadyLoaded'))
       return
     }
