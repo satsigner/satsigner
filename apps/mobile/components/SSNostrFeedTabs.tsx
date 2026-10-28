@@ -291,8 +291,12 @@ function FollowingTabContent({
   })
 
   const followsResult = follows.data
+  const followCount = followsResult?.data.pubkeys.length ?? 0
+  const followsStillLooking = follows.isFetching && followCount === 0
   const followingEmpty =
-    followsResult?.source === 'relay' && followsResult.data.pubkeys.length === 0
+    !follows.isFetching &&
+    followsResult?.source === 'relay' &&
+    followCount === 0
   const followsDegraded = Boolean(
     followsResult && (followsResult.source !== 'relay' || followsResult.error)
   )
@@ -363,7 +367,7 @@ function FollowingTabContent({
         hasNextPage={feed.hasNextPage}
         header={listHeader}
         isFetchingNextPage={feed.isFetchingNextPage}
-        isLoading={follows.isLoading || feed.isLoading}
+        isLoading={followsStillLooking || feed.isLoading}
         notes={filterFeedReplies(feed.notes, excludeReplies && isShortText)}
         onAuthorPress={onAuthorPress}
         onNotePress={onNotePress}

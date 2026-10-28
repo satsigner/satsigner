@@ -39,10 +39,12 @@ export default function NostrFollowingSend() {
 
   const contactsRelays = getNostrContactsRelays(identity?.relays)
 
-  const { contacts, isError, isLoading } = useNostrContacts(
+  const { contacts, isError, isLoading, isRefetching } = useNostrContacts(
     npub,
     contactsRelays
   )
+  const waitingForFollows =
+    contacts.length === 0 && (isLoading || isRefetching)
 
   // The input doubles as a search over our follows: anything that is not a
   // valid npub filters the contact list by name, NIP-05 or npub.
@@ -123,7 +125,7 @@ export default function NostrFollowingSend() {
         </SSVStack>
 
         <View style={styles.listContainer}>
-          {isLoading && contacts.length === 0 ? (
+          {waitingForFollows ? (
             <SSVStack itemsCenter gap="md" style={styles.centered}>
               <ActivityIndicator color={Colors.white} size="large" />
               <SSText color="muted">

@@ -2026,7 +2026,7 @@
     "account.eventNotFound": "Event not found on relays",
     "account.fetchingNote": "Fetching note from relays...",
     "account.followingEmpty": "No follows found on relays for this identity yet.",
-    "account.followingLoading": "Loading people you follow...",
+    "account.followingLoading": "Looking up your follow list on relays. This can take a few seconds.",
     "account.followingTitle": "Following",
     "account.lud16NotSet": "Lightning address not set",
     "account.nip05NotSet": "NIP-05 not set",
