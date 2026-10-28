@@ -168,7 +168,10 @@ async function writeArkDatadirFiles(
     await FileSystem.deleteAsync(stagingUri, { idempotent: true })
     throw error
   }
-  await FileSystem.deleteAsync(swapUri, { idempotent: true })
+  // The new datadir is in place; a leftover swap dir is cleared by the next replace or delete.
+  await FileSystem.deleteAsync(swapUri, { idempotent: true }).catch(
+    () => undefined
+  )
 }
 
 export {

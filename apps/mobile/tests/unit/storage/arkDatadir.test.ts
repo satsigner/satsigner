@@ -31,13 +31,15 @@ const mockDelete = jest.mocked(FileSystem.deleteAsync)
 const mockMove = jest.mocked(FileSystem.moveAsync)
 
 const LIVE_URI = 'file:///doc/ark/acc-1/'
+const SWAP_URI = 'file:///doc/ark-swap/acc-1/'
 const STAGING_URI = 'file:///doc/ark-swap/acc-1/staging/'
 const PREVIOUS_URI = 'file:///doc/ark-swap/acc-1/previous/'
 const BARK_DB_FILES = [{ base64: 'ZGItbWFpbg==', filename: 'bark.db' }]
 
 function fakeDirectories(
   initial: Record<string, string>,
-  failingMoveSources: string[] = []
+  failingMoveSources: string[] = [],
+  failingDeletes: string[] = []
 ) {
   const dirs = new Map(Object.entries(initial))
   mockGetInfo.mockImplementation((uri) =>
@@ -48,6 +50,9 @@ function fakeDirectories(
     return Promise.resolve()
   })
   mockDelete.mockImplementation((uri) => {
+    if (failingDeletes.includes(uri)) {
+      return Promise.reject(new Error(`delete failed: ${uri}`))
+    }
     for (const dir of dirs.keys()) {
       if (dir.startsWith(uri)) {
         dirs.delete(dir)
@@ -272,6 +277,15 @@ describe('writeArkDatadirFiles', () => {
     await writeArkDatadirFiles('acc-1', BARK_DB_FILES)
 
     expect(Object.fromEntries(dirs)).toStrictEqual({ [LIVE_URI]: 'staged' })
+  })
+
+  it('keeps the installed datadir when clearing the swap dir fails', async () => {
+    const dirs = fakeDirectories({ [LIVE_URI]: 'live' }, [], [SWAP_URI])
+
+    await writeArkDatadirFiles('acc-1', BARK_DB_FILES)
+
+    expect(dirs.get(LIVE_URI)).toBe('staged')
+    expect(dirs.get(PREVIOUS_URI)).toBe('live')
   })
 
   it('leaves accounts whose ids end in .staging or .previous untouched', async () => {
