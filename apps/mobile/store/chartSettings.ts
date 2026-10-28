@@ -101,7 +101,7 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showUtxoFlowChart: true
     }),
     {
-      name: 'satsigner-blockchain',
+      name: 'satsigner-chart-settings',
       storage: createJSONStorage(() => mmkvStorage)
     }
   )
