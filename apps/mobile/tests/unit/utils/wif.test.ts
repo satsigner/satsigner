@@ -23,7 +23,7 @@ describe('decodeWif', () => {
     if (!decoded.ok) {
       return
     }
-    expect(JSON.stringify(decoded).includes(COMPRESSED_WIF)).toBe(false)
+    expect(JSON.stringify(decoded)).not.toContain(COMPRESSED_WIF)
   })
 
   it('rejects a checksum that does not match', () => {
@@ -91,7 +91,7 @@ describe('wifImportSecret', () => {
     expect(secret?.externalDescriptor?.startsWith('pkh(04')).toBe(true)
     expect(secret?.privateKey).toBe(PRIVATE_KEY_HEX)
     expect(secret?.privateKeyCompressed).toBe(false)
-    expect(JSON.stringify(secret).includes(UNCOMPRESSED_WIF)).toBe(false)
+    expect(JSON.stringify(secret)).not.toContain(UNCOMPRESSED_WIF)
     expect(
       descriptorHasPrivateKeyMaterial(secret?.externalDescriptor ?? '')
     ).toBe(false)
@@ -106,6 +106,6 @@ describe('wifImportSecret', () => {
     expect(tr?.includes('/*')).toBe(false)
     expect(
       publicDescriptorFromPrivateKey(PRIVATE_KEY_HEX, false, 'P2WPKH')
-    ).toBe(undefined)
+    ).toBeUndefined()
   })
 })
