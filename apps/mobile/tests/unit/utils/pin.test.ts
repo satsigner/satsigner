@@ -1,9 +1,12 @@
+import { DURESS_PIN_KEY } from '@/config/auth'
+import { deleteItem, setItem } from '@/storage/encrypted'
 import {
   clampPinLength,
   deletePinDigit,
   emptyPin,
   fillPinDigit,
   getPinCursorIndex,
+  hasDuressPin,
   isPinFilled
 } from '@/utils/pin'
 
@@ -134,5 +137,20 @@ describe('clampPinLength', () => {
     expect(clampPinLength(99)).toBe(8)
     expect(clampPinLength(Number.NaN)).toBe(4)
     expect(clampPinLength(5.5)).toBe(4)
+  })
+})
+
+describe('hasDuressPin', () => {
+  afterEach(async () => {
+    await deleteItem(DURESS_PIN_KEY)
+  })
+
+  it('is false when no duress digest is stored', async () => {
+    await expect(hasDuressPin()).resolves.toBe(false)
+  })
+
+  it('is true when a duress digest is stored', async () => {
+    await setItem(DURESS_PIN_KEY, 'digest')
+    await expect(hasDuressPin()).resolves.toBe(true)
   })
 })

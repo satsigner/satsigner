@@ -1,9 +1,15 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from 'expo-router'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { toast } from 'sonner-native'
 
-import { DURESS_PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import {
+  DURESS_PIN_KEY,
+  PIN_LENGTH_KEY,
+  PIN_SIZE,
+  SALT_KEY
+} from '@/config/auth'
 import { usePinAuth, verifyPin } from '@/hooks/usePinAuth'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
@@ -21,7 +27,7 @@ import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
 import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
 
 jest.mock<typeof import('expo-router')>('expo-router', () => ({
-  router: { dismissAll: jest.fn(), replace: jest.fn() }
+  router: { canDismiss: jest.fn(), dismissAll: jest.fn(), replace: jest.fn() }
 }))
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   ...jest.requireActual<typeof import('@/storage/encrypted')>(
@@ -229,8 +235,23 @@ async function renderPinAuth(props: Parameters<typeof usePinAuth>[0]) {
     hook.current = usePinAuth(props)
     return null
   }
+  const queryClient = new QueryClient()
   await act(async () => {
-    mounted.push(create(createElement(Harness)))
+    mounted.push(
+      create(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(Harness)
+        )
+      )
+    )
+  })
+  // Let the stored PIN length query resolve and notify the harness.
+  await act(async () => {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0)
+    })
   })
   return hook
 }
@@ -273,6 +294,14 @@ describe('usePinAuth', () => {
   it('loads an empty PIN of the default length', async () => {
     const hook = await renderPinAuth({ onSuccess: jest.fn() })
     expect(hook.current?.pin).toStrictEqual(emptyPin(PIN_SIZE))
+  })
+
+  it('loads an empty PIN of the stored length', async () => {
+    mock.getItem.mockImplementation((key: string) =>
+      Promise.resolve(key === PIN_LENGTH_KEY ? '6' : null)
+    )
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+    expect(hook.current?.pin).toStrictEqual(emptyPin(6))
   })
 
   it('counts wrong PINs and calls onTriesOver once maxTries is reached', async () => {
@@ -370,6 +399,7 @@ describe('usePinAuth', () => {
   })
 
   it('unlocks and navigates home on a duress PIN', async () => {
+    jest.mocked(router.canDismiss).mockReturnValue(false)
     useAuthStore.setState({ duressPinEnabled: true, lockTriggered: true })
     mock.pinMatchesDuressDigest.mockResolvedValue(true)
     mock.isDuressPinRemoved.mockResolvedValue(true)
@@ -381,6 +411,20 @@ describe('usePinAuth', () => {
     expect(mock.loadAuthenticatedSession).toHaveBeenCalledTimes(1)
     expect(useAuthStore.getState().justUnlocked).toBe(true)
     expect(useAuthStore.getState().lockTriggered).toBe(false)
+    expect(router.dismissAll).not.toHaveBeenCalled()
+    expect(router.replace).toHaveBeenCalledWith('/')
+  })
+
+  it('clears the screen stack on a duress PIN entered in the app', async () => {
+    jest.mocked(router.canDismiss).mockReturnValue(true)
+    useAuthStore.setState({ duressPinEnabled: true, lockTriggered: false })
+    mock.pinMatchesDuressDigest.mockResolvedValue(true)
+    mock.isDuressPinRemoved.mockResolvedValue(true)
+    const hook = await renderPinAuth({ onSuccess: jest.fn() })
+
+    await enterPin(hook, '0000')
+
+    expect(mock.secureWipeAllWalletData).toHaveBeenCalledTimes(1)
     expect(router.dismissAll).toHaveBeenCalledTimes(1)
     expect(router.replace).toHaveBeenCalledWith('/')
   })

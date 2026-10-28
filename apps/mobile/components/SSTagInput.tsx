@@ -1,6 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
-import { type TextInput } from 'react-native-gesture-handler'
+import { StyleSheet, View, type TextInputInstance } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -27,7 +26,7 @@ type SSTagInputHandle = {
 const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
   function SSTagInput({ tags, selectedTags, onAdd, onSelect, onRemove }, ref) {
     const [text, setText] = useState('')
-    const inputRef = useRef<TextInput>(null)
+    const inputRef = useRef<TextInputInstance>(null)
 
     useImperativeHandle(ref, () => ({
       focus() {
@@ -84,7 +83,7 @@ const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
               onSubmitEditing={enterTag}
               blurOnSubmit={false}
               align="left"
-              ref={(input: TextInput | null) => {
+              ref={(input: TextInputInstance | null) => {
                 inputRef.current = input
               }}
             />

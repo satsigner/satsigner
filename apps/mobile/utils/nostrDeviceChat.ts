@@ -71,9 +71,12 @@ async function sendDeviceChatMessage(
   const store = useAccountsStore.getState()
   store.addAccountDms(accountId, [optimistic])
 
-  const result = await deliver(() => sendDeviceDM(account, text))
-  store.updateAccountDmStatus(accountId, optimistic.id, { pending: false })
-  return { ...result, messageId: optimistic.id }
+  try {
+    const result = await deliver(() => sendDeviceDM(account, text))
+    return { ...result, messageId: optimistic.id }
+  } finally {
+    store.updateAccountDmStatus(accountId, optimistic.id, { pending: false })
+  }
 }
 
 /** Re-sends a message only to the devices that missed it. */

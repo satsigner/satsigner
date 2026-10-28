@@ -35,12 +35,7 @@ export default function DeviceAliasPage() {
     ])
   )
 
-  const [
-    clearProcessedEvents,
-    setLastDataExchangeEOSE,
-    memberColor,
-    globalProfile
-  ] = useNostrStore(
+  const [memberColor, globalProfile] = useNostrStore(
     useShallow((state) => {
       const memberColorValue =
         !accountId || !npub
@@ -57,12 +52,7 @@ export default function DeviceAliasPage() {
                 ? NOSTR_FALLBACK_NPUB_COLOR
                 : member.color
             })()
-      return [
-        state.clearProcessedEvents,
-        state.setLastDataExchangeEOSE,
-        memberColorValue,
-        npub ? state.profiles[npub] : undefined
-      ]
+      return [memberColorValue, npub ? state.profiles[npub] : undefined]
     })
   )
 
@@ -235,9 +225,7 @@ export default function DeviceAliasPage() {
       // data-exchange history is fetched again.
       trustSyncRestartRef.current = setTimeout(() => {
         trustSyncRestartRef.current = null
-        clearProcessedEvents(accountId)
-        setLastDataExchangeEOSE(accountId, 0)
-        void nostrSyncService.restartSync(accountId)
+        void nostrSyncService.resyncDataExchangeAfterTrust(accountId)
       }, NOSTR_TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }

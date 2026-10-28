@@ -4,7 +4,7 @@ import {
   Keyboard,
   StyleSheet,
   TextInput,
-  type TextInput as RNTextInput
+  type TextInputInstance
 } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -32,7 +32,7 @@ type SSPasteProps = {
 }
 
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
-  const inputRef = useRef<RNTextInput>(null)
+  const inputRef = useRef<TextInputInstance>(null)
   const [content, setContent] = useState('')
   const [isValidContent, setIsValidContent] = useState(false)
   const [detectedContentType, setDetectedContentType] =

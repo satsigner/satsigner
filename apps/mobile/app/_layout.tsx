@@ -36,8 +36,16 @@ import { installDevErrorReporting } from '@/utils/devErrorReporting'
 // Metro console. Installed before any component code runs.
 installDevErrorReporting()
 
+async function setAndroidBackgroundColor() {
+  try {
+    await SystemUI.setBackgroundColorAsync(Colors.gray[950])
+  } catch {
+    // Rejects when the activity is already gone; the color is only cosmetic.
+  }
+}
+
 if (Platform.OS === 'android') {
-  SystemUI.setBackgroundColorAsync(Colors.gray[950])
+  void setAndroidBackgroundColor()
 }
 
 const appTheme = {
@@ -113,7 +121,7 @@ export default function RootLayout() {
       setLastBackgroundTimestamp(Date.now())
     } else if (
       nextAppState === 'active' &&
-      appState.current.match(/background/) &&
+      appState.current?.match(/background/) &&
       requiresAuth
     ) {
       const inactivityStartTime = getLastBackgroundTimestamp()

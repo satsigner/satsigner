@@ -25,7 +25,10 @@ import {
   filterNostrContacts,
   getNostrContactsRelays
 } from '@/utils/nostrContacts'
-import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
+import {
+  getNostrErrorMessage,
+  getNostrErrorMessageForCode
+} from '@/utils/nostrErrorMessage'
 import { nostrContactProfileHref } from '@/utils/nostrNavigation'
 
 type ContactsParams = {
@@ -92,7 +95,7 @@ export default function NostrContacts() {
       const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
 
       if (result.error) {
-        toast.error(getNostrErrorMessage(result.error))
+        toast.error(getNostrErrorMessageForCode(result.error))
         return
       }
       if (!result.data.kind3Found || result.data.pubkeys.length === 0) {

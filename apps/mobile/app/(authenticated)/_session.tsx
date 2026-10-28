@@ -202,7 +202,7 @@ function AuthenticatedSession() {
         const { success } = await performRecoverOverwrite(pending)
         setPendingRecoverData(null)
         if (success) {
-          toast.success(t('settings.developer.backupSuccess'))
+          toast.success(t('settings.developer.recoverSuccess'))
         } else {
           toast.error(t('settings.developer.recoverOverwriteError'))
         }

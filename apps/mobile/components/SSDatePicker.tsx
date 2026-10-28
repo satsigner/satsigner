@@ -6,7 +6,8 @@ import {
   StyleSheet,
   Text,
   useWindowDimensions,
-  View
+  View,
+  type ScrollViewInstance
 } from 'react-native'
 
 import { useMountEffect } from '@/hooks/useMountEffect'
@@ -283,7 +284,7 @@ function DateBlock({
   const fadeMid: string = hex2rgba(fadeColor || '#ffffff', 0.82)
   const fadeTransparent: string = hex2rgba(fadeColor || '#ffffff', 0)
 
-  const scrollRef = useRef<ScrollView>(null)
+  const scrollRef = useRef<ScrollViewInstance>(null)
 
   const snapScrollToIndex = (index: number) => {
     scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })

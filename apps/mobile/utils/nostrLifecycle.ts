@@ -31,6 +31,18 @@ type LifecycleListeners = {
 const handlers = new Set<NostrLifecycleHandler>()
 const listeners: LifecycleListeners = {}
 
+function isAppStateStatus(
+  value: string | null | undefined
+): value is AppStateStatus {
+  return (
+    value === 'active' ||
+    value === 'background' ||
+    value === 'inactive' ||
+    value === 'extension' ||
+    value === 'unknown'
+  )
+}
+
 /**
  * Lets another nostr pipeline (e.g. identity chat) react to the app coming
  * back or going to background. Returns the unregister function.
@@ -150,7 +162,10 @@ function startNostrLifecycle(): void {
   if (listeners.appState) {
     return
   }
-  listeners.lastAppState = AppState.currentState
+  const current = AppState.currentState
+  if (isAppStateStatus(current)) {
+    listeners.lastAppState = current
+  }
   listeners.appState = AppState.addEventListener('change', handleAppStateChange)
   listeners.netInfo = NetInfo.addEventListener(handleConnectivityChange)
 }

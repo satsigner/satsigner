@@ -64,9 +64,10 @@ async function publishToDevices(
   }
 
   const results = await Promise.allSettled(
-    recipients.map((npub) =>
-      nostrApi.publishEvent(nostrApi.createKind1059(deviceNsec, npub, content))
-    )
+    recipients.map(async (npub) => {
+      const event = nostrApi.createKind1059(deviceNsec, npub, content)
+      await nostrApi.publishEvent(event)
+    })
   )
   const delivered = recipients.filter(
     (_npub, index) => results[index].status === 'fulfilled'

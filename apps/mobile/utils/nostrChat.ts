@@ -823,15 +823,20 @@ async function restartChatPipeline(npub: string): Promise<void> {
 }
 
 /**
- * One `until` page of older history. Resolves with the oldest event seen
- * (null when the relays had nothing older) on EOSE or after the timeout.
+ * One `until` page of older history. `complete` is true only after EOSE.
+ * A timeout with no events is not "no more history".
  */
+type ChatHistoryPage = {
+  complete: boolean
+  oldest: number | null
+}
+
 async function fetchChatHistoryPage(
   api: NostrAPI,
   identity: ChatIdentity,
   protocol: NostrChatProtocol,
   until: number
-): Promise<number | null> {
+): Promise<ChatHistoryPage> {
   const seen: { oldest: number | null } = { oldest: null }
   function observe({ createdAt }: NostrChatEventRef): void {
     seen.oldest =
@@ -844,9 +849,13 @@ async function fetchChatHistoryPage(
     limit: NOSTR_CHAT_HISTORY_PAGE_LIMIT,
     until
   }
+  const page = { eose: false }
   const timer: { current?: ReturnType<typeof setTimeout> } = {}
   const answered = new Promise<void>((resolve) => {
-    pageWindow.onEose = resolve
+    pageWindow.onEose = () => {
+      page.eose = true
+      resolve()
+    }
     timer.current = setTimeout(resolve, NOSTR_DEFAULT_FETCH_TIMEOUT_MS)
   })
 
@@ -856,7 +865,7 @@ async function fetchChatHistoryPage(
   } finally {
     clearTimeout(timer.current)
   }
-  return seen.oldest
+  return { complete: page.eose, oldest: seen.oldest }
 }
 
 /**
@@ -880,12 +889,15 @@ async function loadOlderChatHistory(
     cursor.until ??
     getOldestChatMessageCreatedAt(identityNpub, protocol) ??
     nowInSeconds()
-  const oldest = await fetchChatHistoryPage(
+  const { complete, oldest } = await fetchChatHistoryPage(
     pipeline.api,
     pipeline.identity,
     protocol,
     until
   )
+  if (oldest === null && !complete) {
+    return { exhausted: false }
+  }
   cursor.exhausted = oldest === null
   cursor.until = oldest === null ? until : oldest - 1
   return { exhausted: cursor.exhausted }

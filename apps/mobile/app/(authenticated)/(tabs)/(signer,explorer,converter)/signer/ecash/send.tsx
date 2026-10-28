@@ -1,7 +1,12 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  type ViewInstance
+} from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
@@ -34,7 +39,7 @@ export default function EcashSendPage() {
   const { invoice: invoiceParam } = useLocalSearchParams()
   const [activeTab, setActiveTab] = useState<'ecash' | 'lightning'>('ecash')
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const {
     activeAccount,

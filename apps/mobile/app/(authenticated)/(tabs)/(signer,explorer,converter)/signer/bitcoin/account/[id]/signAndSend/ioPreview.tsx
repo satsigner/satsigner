@@ -97,7 +97,7 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
-import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
+import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
@@ -203,23 +203,6 @@ export default function IOPreview() {
       state.setPayjoinUri
     ])
   )
-
-  // ioPreview only stores the invoice — Payjoin server (OHTTP / directory /
-  // BIP78 endpoint) is contacted later on sign via sendPayjoin.
-  useEffect(() => {
-    const state = useTransactionBuilderStore.getState()
-    const uri = state.payjoinUri
-    const parsed = uri ? parsePayjoinUri(uri) : undefined
-    console.log('[ioPreview] load', {
-      callingPayjoinServer: false,
-      endpointKind: parsed?.endpointKind ?? null,
-      hasPayjoinUri: !!uri,
-      inputs: state.inputs.size,
-      outputs: state.outputs.length,
-      payjoinUri: uri ?? null,
-      pj: parsed?.params?.pj ?? null
-    })
-  }, [])
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id)
