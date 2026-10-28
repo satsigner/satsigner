@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance
+} from 'react-native'
 
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
@@ -17,7 +22,7 @@ type SSNumberInputProps = {
   allowDecimal?: boolean
   allowValidEmpty?: boolean
   alwaysTriggerOnChange?: boolean
-  ref?: React.Ref<TextInput>
+  ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSNumberInput({

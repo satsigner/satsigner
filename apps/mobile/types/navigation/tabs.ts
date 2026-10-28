@@ -5,3 +5,5 @@ export const TAB_SEGMENTS: TabSegment[] = [
   '(signer)',
   '(converter)'
 ]
+
+export const DEFAULT_TAB_SEGMENT: TabSegment = '(signer)'

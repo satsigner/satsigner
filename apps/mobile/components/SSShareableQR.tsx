@@ -1,5 +1,10 @@
 import { type ReactNode, type RefObject, useRef } from 'react'
-import { type StyleProp, View, type ViewStyle } from 'react-native'
+import {
+  type StyleProp,
+  View,
+  type ViewStyle,
+  type ViewInstance
+} from 'react-native'
 
 import SSQRCode from './SSQRCode'
 import SSShareButton from './SSShareButton'
@@ -11,7 +16,7 @@ type SSShareableQRProps = {
   color?: string
   backgroundColor?: string
   containerStyle?: StyleProp<ViewStyle>
-  qrRef?: RefObject<View | null>
+  qrRef?: RefObject<ViewInstance | null>
   hideShareButton?: boolean
   children?: ReactNode
 }
@@ -27,7 +32,7 @@ function SSShareableQR({
   hideShareButton = false,
   children
 }: SSShareableQRProps) {
-  const internalRef = useRef<View>(null)
+  const internalRef = useRef<ViewInstance>(null)
   const qrRef = externalRef ?? internalRef
 
   return (

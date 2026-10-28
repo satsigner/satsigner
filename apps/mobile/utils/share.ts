@@ -1,5 +1,5 @@
 import { type RefObject } from 'react'
-import { Share, type View } from 'react-native'
+import { Share, type ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { shareExistingFile } from '@/utils/filesystem'
@@ -42,7 +42,7 @@ export async function shareImage({
 }
 
 type ShareViewAsImageProps = {
-  viewRef: RefObject<View | null>
+  viewRef: RefObject<ViewInstance | null>
   dialogTitle: string
 }
 

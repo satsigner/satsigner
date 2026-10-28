@@ -254,7 +254,11 @@ export default function ImportLabels() {
           onResolve={importLabelsWithConflicts}
         />
       </SSModal>
-      <SSModal visible={successMsgVisible} onClose={router.back} fullOpacity>
+      <SSModal
+        visible={successMsgVisible}
+        onClose={() => router.back()}
+        fullOpacity
+      >
         <SSVStack
           gap="lg"
           style={{ height: '100%', justifyContent: 'center', width: '100%' }}
@@ -262,7 +266,7 @@ export default function ImportLabels() {
           <SSText uppercase size="md" center weight="bold">
             {t('import.success', { importCount, total: importCountTotal })}
           </SSText>
-          <SSButton label={t('common.close')} onPress={router.back} />
+          <SSButton label={t('common.close')} onPress={() => router.back()} />
         </SSVStack>
       </SSModal>
     </ScrollView>

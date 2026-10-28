@@ -113,7 +113,6 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       ],
       'expo-sharing',
       'expo-web-browser',
-      '@secondts/bark-react-native',
       [
         'expo-splash-screen',
         {

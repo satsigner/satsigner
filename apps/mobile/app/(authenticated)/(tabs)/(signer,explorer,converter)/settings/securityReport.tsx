@@ -266,7 +266,7 @@ export default function SecurityReport() {
               <SSButton
                 label={t('common.back')}
                 variant="ghost"
-                onPress={router.back}
+                onPress={() => router.back()}
               />
             </SSVStack>
           </ScrollView>
