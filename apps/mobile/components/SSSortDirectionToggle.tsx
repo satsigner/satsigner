@@ -16,15 +16,17 @@ type SSSortDirectionToggleProps = {
   label?: string
   /** When false, label and arrow are muted (inactive sort field). */
   active?: boolean
+  initialDirection?: Direction
   onDirectionChanged(direction: Direction): void
 }
 
 function SSSortDirectionToggle({
   label,
   active = true,
+  initialDirection = 'desc',
   onDirectionChanged
 }: SSSortDirectionToggleProps) {
-  const [direction, setDirection] = useState<Direction>('desc')
+  const [direction, setDirection] = useState(initialDirection)
 
   function handleToggle() {
     const newDirection = direction === 'asc' ? 'desc' : 'asc'

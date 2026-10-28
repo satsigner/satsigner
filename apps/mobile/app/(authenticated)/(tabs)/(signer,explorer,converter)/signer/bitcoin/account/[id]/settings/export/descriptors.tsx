@@ -2,7 +2,7 @@ import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
@@ -83,7 +83,7 @@ export default function ExportDescriptors() {
   const [separateExportContent, setSeparateExportContent] = useState('')
   const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const shownContent = showSeparate ? separateExportContent : exportContent
 
   useEffect(() => {

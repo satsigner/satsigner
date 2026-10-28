@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { type View } from 'react-native'
+import { type ViewInstance } from 'react-native'
 
 import {
   ANIMATION_SPEED_DEFAULT,
@@ -58,7 +58,7 @@ export function usePsbtQrExport(
     setHasExportBeenVisible(true)
   }
 
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const psbtToEncodeOnceVisible = hasExportBeenVisible ? psbtBase64 : undefined
   const { chunks, errorKey } = useMemo(

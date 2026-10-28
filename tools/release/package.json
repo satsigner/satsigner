@@ -1,0 +1,14 @@
+{
+  "name": "@satsigner/release",
+  "version": "0.3.6",
+  "private": true,
+  "description": "Localhost page for GitWorkshop pushes and Zapstore releases",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node --test commands.test.mjs"
+  },
+  "dependencies": {
+    "ws": "8.20.0"
+  }
+}

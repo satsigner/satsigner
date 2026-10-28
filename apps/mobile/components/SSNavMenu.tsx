@@ -4,7 +4,7 @@ import {
   type DrawerContentComponentProps,
   DrawerContentScrollView,
   useDrawerStatus
-} from 'expo-router/build/react-navigation/drawer'
+} from 'expo-router/drawer'
 import { Platform, StyleSheet, View } from 'react-native'
 
 import { SSIconAbout, SSIconSettings } from '@/components/icons'

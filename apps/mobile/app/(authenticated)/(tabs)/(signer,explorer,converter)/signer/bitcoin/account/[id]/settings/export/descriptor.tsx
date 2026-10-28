@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, View, type ViewInstance } from 'react-native'
 import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -33,7 +33,7 @@ export default function DescriptorPage() {
 
   const [descriptor, setDescriptor] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')

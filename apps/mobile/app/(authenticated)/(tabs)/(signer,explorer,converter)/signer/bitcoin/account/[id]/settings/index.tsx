@@ -41,7 +41,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint, getAccountLabelCounts } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { formatAccountCreationDate } from '@/utils/date'
 import { decryptAccountKeySecret } from '@/utils/decryption'
@@ -82,23 +82,8 @@ export default function AccountSettings() {
     'mnemonic' | 'deletion' | null
   >()
 
-  const labels = account?.labels ? Object.values(account.labels) : []
-  const labelCounts = {
-    addresses: {
-      labeled: labels.filter((l) => l.type === 'addr').length,
-      total: account?.addresses?.length || 0
-    },
-    transactions: {
-      labeled: labels.filter((l) => l.type === 'tx').length,
-      total: account?.transactions?.length || 0
-    },
-    utxos: {
-      labeled: labels.filter((l) => l.type === 'output').length,
-      total: account?.utxos?.length || 0
-    }
-  }
-
   const {
+    accountName,
     localAccountName,
     isValidName,
     isPseudoDuplicatedName,
@@ -157,7 +142,7 @@ export default function AccountSettings() {
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId, localAccountName)
+    updateAccountName(currentAccountId, accountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
@@ -231,6 +216,8 @@ export default function AccountSettings() {
   if (!currentAccountId || !account || !scriptVersion) {
     return <Redirect href="/" />
   }
+
+  const labelCounts = getAccountLabelCounts(account)
 
   return (
     <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>

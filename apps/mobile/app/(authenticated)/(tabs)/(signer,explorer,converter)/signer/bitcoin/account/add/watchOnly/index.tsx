@@ -261,11 +261,6 @@ export default function WatchOnly() {
       !addresses.includes(processedAddress)
 
     setIsValidAddress(!address || isValidAddress)
-
-    if (selectedOption === 'importAddress') {
-      setIsDisabled(!isValidAddress)
-    }
-
     setAddressInput(address)
   }
 
@@ -800,7 +795,7 @@ export default function WatchOnly() {
   )
 
   const isConfirmDisabled =
-    isDisabled || (selectedOption === 'importAddress' && addresses.length === 0)
+    selectedOption === 'importAddress' ? addresses.length === 0 : isDisabled
 
   return (
     <SSMainLayout style={styles.mainContainer}>

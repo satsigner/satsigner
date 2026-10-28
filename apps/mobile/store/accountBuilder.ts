@@ -9,6 +9,7 @@ import { createResetKey, dropSeedFromKeyInMemory } from '@/utils/account'
 import { randomIv, randomUuid } from '@/utils/crypto'
 
 const DEFAULT_MNEMONIC_WORD_COUNT = 24
+const DEFAULT_SCRIPT_VERSION = 'P2WPKH'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -127,7 +128,7 @@ const initialState: AccountBuilderState = {
   policyType: 'singlesig',
   privateKey: undefined,
   privateKeyCompressed: undefined,
-  scriptVersion: 'P2WPKH'
+  scriptVersion: DEFAULT_SCRIPT_VERSION
 }
 
 const useAccountBuilderStore = create<
@@ -440,4 +441,4 @@ const useAccountBuilderStore = create<
   }))
 )
 
-export { useAccountBuilderStore }
+export { DEFAULT_SCRIPT_VERSION, useAccountBuilderStore }
