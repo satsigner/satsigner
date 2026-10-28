@@ -28,6 +28,7 @@ import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { type Message, type Notice } from '@/types/ui/notice'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { getUnsignedTransactionHexFromPSBT } from '@/utils/psbt'
 import { validateAddress } from '@/utils/validation'
 
 function areTransactionsEquivalent(a: Transaction, b: Transaction): boolean {
@@ -391,6 +392,26 @@ export function buildPreviewTransactionHex(
   }
 
   return transaction.toHex()
+}
+
+/**
+ * The transaction to decode on Preview: the PSBT's own unsigned transaction,
+ * so version, sequences and locktime match what gets signed. Falls back to a
+ * rebuild from the builder state until the PSBT exists.
+ */
+export function getPreviewTransactionHex(
+  psbtBase64: string | undefined,
+  inputs: Map<string, Utxo>,
+  outputs: Output[],
+  network: AppNetwork
+) {
+  const unsignedTransactionHex = psbtBase64
+    ? getUnsignedTransactionHexFromPSBT(psbtBase64)
+    : ''
+  return (
+    unsignedTransactionHex ||
+    buildPreviewTransactionHex(inputs, outputs, network)
+  )
 }
 
 export function findFirstInvalidOutputAddress(
