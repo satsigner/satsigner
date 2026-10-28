@@ -329,7 +329,7 @@ export default function DeveloperDiagnosis() {
             <SSButton
               label={t('common.back')}
               variant="outline"
-              onPress={router.back}
+              onPress={() => router.back()}
             />
           </SSVStack>
         </ScrollView>

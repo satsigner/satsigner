@@ -1,7 +1,12 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  type ViewInstance
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -62,7 +67,7 @@ export default function EcashProofDetailPage() {
   const [animatedQR, setAnimatedQR] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [

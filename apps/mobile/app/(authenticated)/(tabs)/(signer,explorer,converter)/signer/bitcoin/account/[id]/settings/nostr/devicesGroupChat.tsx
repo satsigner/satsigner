@@ -535,7 +535,7 @@ export default function DevicesGroupChat() {
                   <SSText center color="muted">
                     {t('account.nostrSync.devicesGroupChat.noMessages')}
                   </SSText>
-                ) : null
+                ) : undefined
               }
               inverted
               initialNumToRender={25}

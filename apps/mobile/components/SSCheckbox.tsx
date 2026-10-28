@@ -9,7 +9,7 @@ import { Colors, Sizes } from '@/styles'
 import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
 
-const DEFAULT_CONTAINER_STYLE: StyleProp<ViewStyle> = {}
+const DEFAULT_CONTAINER_STYLE: ViewStyle = {}
 const DEFAULT_LABEL_PROPS: SSTextProps = {
   color: 'white',
   size: 'lg'

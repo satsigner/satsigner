@@ -1,6 +1,12 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ViewInstance
+} from 'react-native'
 
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -28,7 +34,7 @@ export default function ExportPubkeys() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const [pubkeyFormat, setPubkeyFormat] = useState<'xpub' | 'zpub' | 'vpub'>(
     'xpub'
   )
