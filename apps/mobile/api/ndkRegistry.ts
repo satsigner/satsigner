@@ -20,12 +20,19 @@ function createEphemeralNdk(explicitRelayUrls: string[]): NDK {
  * sockets open on an instance nothing references any more.
  */
 function disconnectNdkPool(ndk: NDK): void {
-  if (!ndk.pool) {
+  const pool = ndk.pool
+  if (!pool) {
     return
   }
-  ndk.pool.removeAllListeners()
-  for (const url of ndk.pool.relays.keys()) {
-    ndk.pool.removeRelay(url)
+  pool.removeAllListeners()
+  for (const relay of pool.relays.values()) {
+    // A socket can open after the relay leaves the pool. NDK then logs
+    // "relay not found in pool" from the connect handler still attached here.
+    relay.removeAllListeners()
+    relay.disconnect()
+  }
+  for (const url of [...pool.relays.keys()]) {
+    pool.relays.delete(url)
   }
 }
 
