@@ -34,18 +34,11 @@ import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type TabSegment } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
-import { toTabSegment } from '@/utils/tabSegment'
+import { getTabSegmentLabel, toTabSegment } from '@/utils/tabSegment'
 
 const HEADER_ICON_STROKE = '#828282'
 const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
-
-const HOME_SCREEN_TITLES: Record<TabSegment, string> = {
-  '(converter)': 'Converter',
-  '(explorer)': 'Explore',
-  '(signer)': 'Signer'
-}
 
 function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
   const router = useRouter()
@@ -194,7 +187,7 @@ export default function StackLayout(params: { segment?: string }) {
       >
         <Stack.Screen
           name="index"
-          options={{ title: HOME_SCREEN_TITLES[tabSegment] }}
+          options={{ title: getTabSegmentLabel(tabSegment) }}
         />
       </Stack>
     </TabSegmentContext>

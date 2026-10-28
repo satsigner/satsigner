@@ -28,7 +28,7 @@ import {
   type TabSegment
 } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
-import { isTabSegment } from '@/utils/tabSegment'
+import { getTabSegmentLabel, isTabSegment } from '@/utils/tabSegment'
 
 export const unstable_settings = {
   anchor: DEFAULT_TAB_SEGMENT
@@ -241,7 +241,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
-            title: 'Explorer'
+            title: getTabSegmentLabel('(explorer)')
           }}
         />
         <Tabs.Screen
@@ -257,7 +257,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: 'Signer'
+            title: getTabSegmentLabel('(signer)')
           }}
         />
         <Tabs.Screen
@@ -273,7 +273,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
-            title: 'Converter'
+            title: getTabSegmentLabel('(converter)')
           }}
         />
       </Tabs>
