@@ -42,6 +42,8 @@ export function useTransactionPsbt({
     outputs,
     fee,
     rbf,
+    isPsbtPrebuilt,
+    replacesTxid,
     setPsbt,
     txBuilderResult,
     setSignedTx,
@@ -57,6 +59,8 @@ export function useTransactionPsbt({
       state.outputs,
       state.fee,
       state.rbf,
+      state.isPsbtPrebuilt,
+      state.replacesTxid,
       state.setPsbt,
       state.psbt,
       state.setSignedTx,
@@ -207,7 +211,7 @@ export function useTransactionPsbt({
     setPsbtBuildError({ key })
   }
 
-  function markImportedPsbtAsBuilt() {
+  function markExistingPsbtAsBuilt() {
     setPsbtBuildStatus('idle')
     setPsbtBuildError(null)
     const importedTxid = txBuilderResult?.txid()
@@ -218,8 +222,8 @@ export function useTransactionPsbt({
 
   const buildPreviewPsbtFromBuilderState = useEffectEvent(
     async (buildRun: PreviewBuildRun) => {
-      if (importedPsbtBase64) {
-        markImportedPsbtAsBuilt()
+      if (importedPsbtBase64 || isPsbtPrebuilt) {
+        markExistingPsbtAsBuilt()
         return
       }
 
@@ -239,6 +243,12 @@ export function useTransactionPsbt({
       }
       if (outputs.length === 0) {
         failBuild('transaction.error.previewMissingOutputs')
+        return
+      }
+      // The inputs are spent by the transaction being replaced, so only
+      // BDK's replace-by-fee can build it again.
+      if (replacesTxid) {
+        failBuild('transaction.feeReplacement.error.rebuild')
         return
       }
 
@@ -289,7 +299,17 @@ export function useTransactionPsbt({
     return () => {
       buildRun.isCancelled = true
     }
-  }, [wallet, inputs, outputs, fee, rbf, network, importedPsbtBase64])
+  }, [
+    wallet,
+    inputs,
+    outputs,
+    fee,
+    rbf,
+    network,
+    importedPsbtBase64,
+    isPsbtPrebuilt,
+    replacesTxid
+  ])
 
   const reportInvalidOutputAddress = useEffectEvent((address: string) => {
     onNotice({

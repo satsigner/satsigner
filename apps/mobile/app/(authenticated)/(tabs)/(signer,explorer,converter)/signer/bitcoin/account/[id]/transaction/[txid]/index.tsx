@@ -6,7 +6,9 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -26,10 +28,12 @@ import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
+import { getFeeReplacementOptions } from '@/utils/feeReplacement'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -122,6 +126,16 @@ export default function TxDetails() {
   )
 
   const currentServer = configs[selectedNetwork].server
+
+  const feeReplacement =
+    account && displayTx
+      ? getFeeReplacementOptions({
+          account,
+          backend: currentServer.backend,
+          ownedOutpoints,
+          tx: displayTx
+        })
+      : undefined
 
   const placeholder = '-'
 
@@ -221,6 +235,24 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function openFeeReplacement(kind: FeeReplacementKind) {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/transaction/${txid}/feeReplacement?kind=${kind}`
+    )
+  }
+
+  function handleIncreaseFee() {
+    openFeeReplacement('bump')
+  }
+
+  function handleCancelToSelf() {
+    openFeeReplacement('cancel')
+  }
+
+  function handleChildPaysForParent() {
+    openFeeReplacement('cpfp')
+  }
+
   if (!accountId || !txid || !displayTx) {
     return <Redirect href="/" />
   }
@@ -241,6 +273,35 @@ export default function TxDetails() {
               : undefined
           }
         />
+        {feeReplacement?.assessment.unconfirmed ? (
+          <SSVStack gap="xs">
+            <SSFeeReplacementFlags
+              rbf={feeReplacement.assessment.signalsRbf}
+              cpfp={feeReplacement.assessment.canCpfp}
+            />
+            {feeReplacement.actions.bump ? (
+              <SSButton
+                variant="outline"
+                label={t('transaction.feeReplacement.bump')}
+                onPress={handleIncreaseFee}
+              />
+            ) : null}
+            {feeReplacement.actions.cancel ? (
+              <SSButton
+                variant="danger"
+                label={t('transaction.feeReplacement.cancel.action')}
+                onPress={handleCancelToSelf}
+              />
+            ) : null}
+            {feeReplacement.actions.cpfp ? (
+              <SSButton
+                variant="outline"
+                label={t('transaction.feeReplacement.cpfp')}
+                onPress={handleChildPaysForParent}
+              />
+            ) : null}
+          </SSVStack>
+        ) : null}
         <SSSeparator color="gradient" />
         <SSLabelDetails
           label={displayTx.label || ''}

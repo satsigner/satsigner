@@ -45,6 +45,10 @@ export type TxSearchParams = {
   txid: string
 } & AccountSearchParams
 
+export type FeeReplacementSearchParams = {
+  kind?: string
+} & TxSearchParams
+
 export type UtxoSearchParams = {
   vout: string
 } & TxSearchParams
