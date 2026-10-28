@@ -327,6 +327,8 @@ export default function Receive() {
   const advertisePayjoinInQr = shouldIncludePayjoinInUri({
     amountSats: amountSatsForPayjoin
   })
+  const showPayjoinControls =
+    account?.policyType === 'singlesig' && payjoinEnabled
   const showBelowMinReceiveHint =
     includePayjoin &&
     payjoinEnabled &&
@@ -759,7 +761,7 @@ export default function Receive() {
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />
-                  {account?.policyType === 'singlesig' ? (
+                  {showPayjoinControls ? (
                     <SSButton
                       testID="receive-payjoin-toggle"
                       label={
@@ -783,7 +785,7 @@ export default function Receive() {
                     />
                   ) : null}
                 </SSHStack>
-                {account?.policyType === 'singlesig' ? (
+                {showPayjoinControls ? (
                   !canContribute ? (
                     <SSText
                       testID="receive-payjoin-empty-wallet"

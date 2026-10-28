@@ -6,7 +6,6 @@ import {
   useSegments
 } from 'expo-router'
 import { type DrawerNavigationProp, useDrawerStatus } from 'expo-router/drawer'
-import { useEffect, useMemo, useState } from 'react'
 import { Platform, type ViewStyle, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
@@ -132,27 +131,16 @@ function HeaderRight() {
 export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
-  const [isShowNav, setShowNav] = useState(false)
   const insets = useSafeAreaInsets()
-
-  const compactHeaderHeight = useMemo(() => {
-    const toolbar = Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
-    return toolbar - HEADER_HEIGHT_TRIM_PX
-  }, [insets.top])
-
-  const stackHeaderStyle = useMemo<ViewStyle>(
-    () => ({
-      backgroundColor: Colors.gray[950],
-      height: compactHeaderHeight
-    }),
-    [compactHeaderHeight]
-  )
-
-  useEffect(() => {
-    setShowNav(showNavigation(currentPath, segments.length))
-  }, [currentPath, segments])
-
+  const isShowNav = showNavigation(currentPath, segments.length)
   const tabSegment = toTabSegment(params?.segment)
+
+  const toolbarHeight =
+    Platform.OS === 'ios' ? insets.top + 44 : insets.top + 56
+  const stackHeaderStyle: ViewStyle = {
+    backgroundColor: Colors.gray[950],
+    height: toolbarHeight - HEADER_HEIGHT_TRIM_PX
+  }
 
   return (
     <TabSegmentContext value={tabSegment}>
@@ -188,6 +176,14 @@ export default function StackLayout(params: { segment?: string }) {
         <Stack.Screen
           name="index"
           options={{ title: getTabSegmentLabel(tabSegment) }}
+        />
+        <Stack.Screen
+          name="settings/changePin"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="settings/duressPin"
+          options={{ headerShown: false }}
         />
       </Stack>
     </TabSegmentContext>

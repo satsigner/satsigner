@@ -41,6 +41,9 @@ function compactError(error: unknown, maxLen = 160): string {
 }
 
 function payjoinLog(step: string, fields?: PayjoinLogFields): void {
+  if (!__DEV__) {
+    return
+  }
   if (fields && Object.keys(fields).length > 0) {
     console.log(`[payjoin] ${step}`, fields)
     return
@@ -49,6 +52,9 @@ function payjoinLog(step: string, fields?: PayjoinLogFields): void {
 }
 
 function payjoinWarn(step: string, fields?: PayjoinLogFields): void {
+  if (!__DEV__) {
+    return
+  }
   if (fields && Object.keys(fields).length > 0) {
     console.warn(`[payjoin] ${step}`, fields)
     return

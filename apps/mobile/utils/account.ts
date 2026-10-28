@@ -311,3 +311,41 @@ export function hasStoredMnemonic(key: Key | undefined) {
   const secret = key?.secret
   return typeof secret === 'object' && !!secret.mnemonic
 }
+
+function hasLabelOfType(
+  labels: Account['labels'],
+  ref: string,
+  type: Account['labels'][string]['type']
+) {
+  const label = labels[ref]
+  return label?.type === type && label.label.trim() !== ''
+}
+
+// Counts only labels that belong to the account's current transactions,
+// UTXOs and addresses; propagated labels for spent or foreign outputs and
+// addresses are left out.
+export function getAccountLabelCounts(
+  account: Pick<Account, 'addresses' | 'labels' | 'transactions' | 'utxos'>
+) {
+  const { labels } = account
+  return {
+    addresses: {
+      labeled: account.addresses.filter((address) =>
+        hasLabelOfType(labels, address.address, 'addr')
+      ).length,
+      total: account.addresses.length
+    },
+    transactions: {
+      labeled: account.transactions.filter((transaction) =>
+        hasLabelOfType(labels, transaction.id, 'tx')
+      ).length,
+      total: account.transactions.length
+    },
+    utxos: {
+      labeled: account.utxos.filter((utxo) =>
+        hasLabelOfType(labels, getUtxoOutpoint(utxo), 'output')
+      ).length,
+      total: account.utxos.length
+    }
+  }
+}

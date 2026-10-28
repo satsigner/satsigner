@@ -273,9 +273,9 @@ function SSMultisigKeyControl({
       setLocalKeyName('')
       setExtractedPublicKey('')
       setSeedDropped(false)
-      toast.error('Key has been reset')
+      toast.success(t('account.seed.resetKeySuccess'))
     } catch {
-      toast.error('Failed to reset key')
+      toast.error(t('account.seed.resetKeyError'))
     }
   }
 
@@ -288,7 +288,7 @@ function SSMultisigKeyControl({
     if (isSettingsMode && accountId && localKeyName.trim()) {
       updateKeyName(accountId, index, localKeyName.trim())
       setHasUnsavedChanges(false)
-      toast.success('Key name saved')
+      toast.success(t('account.key.nameSaved'))
     }
   }
 

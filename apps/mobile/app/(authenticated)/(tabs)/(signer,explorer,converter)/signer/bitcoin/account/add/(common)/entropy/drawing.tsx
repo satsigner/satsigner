@@ -94,9 +94,7 @@ export default function DrawingEntropy() {
   }
 
   function handleClear() {
-    if (completedRef.current) {
-      return
-    }
+    completedRef.current = false
     pointsRef.current = []
     lastSampleRef.current = null
     currentPathRef.current = null

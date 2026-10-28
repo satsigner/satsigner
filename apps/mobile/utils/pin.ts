@@ -79,6 +79,10 @@ async function getStoredPinLength(): Promise<number | null> {
   return clampPinLength(length)
 }
 
+async function hasDuressPin(): Promise<boolean> {
+  return (await getItem(DURESS_PIN_KEY)) !== null
+}
+
 function getPinCursorIndex(pin: string[]): number {
   const firstEmptyIndex = pin.indexOf('')
   return firstEmptyIndex === -1 ? pin.length : firstEmptyIndex
@@ -117,5 +121,6 @@ export {
   getPin,
   getPinCursorIndex,
   getStoredPinLength,
+  hasDuressPin,
   isPinFilled
 }

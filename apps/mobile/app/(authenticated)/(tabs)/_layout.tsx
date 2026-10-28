@@ -20,6 +20,7 @@ import {
 } from '@/components/icons'
 import { useTabBarBackgroundAnimation } from '@/hooks/useTabBarBackgroundAnimation'
 import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
 import {
@@ -28,7 +29,7 @@ import {
   type TabSegment
 } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
-import { getTabSegmentLabel, isTabSegment } from '@/utils/tabSegment'
+import { isTabSegment } from '@/utils/tabSegment'
 
 export const unstable_settings = {
   anchor: DEFAULT_TAB_SEGMENT
@@ -241,7 +242,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
-            title: getTabSegmentLabel('(explorer)')
+            title: t('navigation.label.explorer')
           }}
         />
         <Tabs.Screen
@@ -257,7 +258,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: getTabSegmentLabel('(signer)')
+            title: t('navigation.label.signer')
           }}
         />
         <Tabs.Screen
@@ -273,7 +274,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
-            title: getTabSegmentLabel('(converter)')
+            title: t('navigation.label.converter')
           }}
         />
       </Tabs>

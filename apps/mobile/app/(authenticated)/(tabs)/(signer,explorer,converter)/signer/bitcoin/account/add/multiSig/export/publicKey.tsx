@@ -47,16 +47,7 @@ export default function PublicKeyPage() {
         setScriptVersion(key.scriptVersion)
       }
 
-      if (key?.scriptVersion === 'P2SH-P2WSH') {
-        // For P2SH-P2WSH, default to ypub/upub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')
-      } else if (key?.scriptVersion === 'P2WSH') {
-        // For P2WSH, default to zpub/vpub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'zpub' : 'vpub')
-      } else {
-        // For P2SH and others, default to xpub/tpub
-        setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
-      }
+      setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
     }
   }, [getAccountData, network, keyIndex])
 
@@ -66,49 +57,18 @@ export default function PublicKeyPage() {
       label: string
     }[] = []
 
-    if (scriptVersion === 'P2SH') {
-      // P2SH: Only show xpub/tpub
+    if (
+      scriptVersion === 'P2SH' ||
+      scriptVersion === 'P2SH-P2WSH' ||
+      scriptVersion === 'P2WSH'
+    ) {
+      // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so
+      // multisig keys are only shown as xpub/tpub.
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
           `account.seed.formatButtons.${
             network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2SH-P2WSH') {
-      // P2SH-P2WSH: Show xpub/ypub or tpub/upub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'ypub' : 'upub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2WSH') {
-      // P2WSH: Show xpub/zpub or tpub/vpub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'zpub' : 'vpub'
           }`
         )
       })
