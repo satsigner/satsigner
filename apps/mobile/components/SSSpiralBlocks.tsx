@@ -181,7 +181,7 @@ function SSSpiralBlocks({
   const paths = useMemo(
     () =>
       spiralBlocks.map((block) => {
-        const path = Skia.Path.Make()
+        const builder = Skia.PathBuilder.Make()
         const cosTheta = Math.cos(block.rotation)
         const sinTheta = Math.sin(block.rotation)
 
@@ -196,13 +196,13 @@ function SSSpiralBlocks({
           return [rotatedX, rotatedY]
         })
 
-        path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
-        path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
-        path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
-        path.lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
-        path.close()
-
-        return path
+        return builder
+          .moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
+          .lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
+          .lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
+          .lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
+          .close()
+          .detach()
       }),
     [spiralBlocks, centerX, centerY, halfSize]
   )

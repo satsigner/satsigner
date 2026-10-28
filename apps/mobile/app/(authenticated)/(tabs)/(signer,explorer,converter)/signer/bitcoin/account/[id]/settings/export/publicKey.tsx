@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -16,7 +16,6 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Network } from '@/types/settings/blockchain'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { convertKeyFormat } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
@@ -36,34 +35,16 @@ export default function PublicKeyPage() {
 
   const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
   const [rawPublicKey, setRawPublicKey] = useState('')
 
   const keyIndexNum = account && keyIndex ? Number(keyIndex) : null
   const key = keyIndexNum !== null ? account?.keys[keyIndexNum] : null
   const scriptVersion = key?.scriptVersion || 'P2PKH'
 
-  const getDefaultFormat = (
-    scriptVersion: string,
-    network: Network
-  ): PublicKeyFormat => {
-    if (scriptVersion === 'P2SH-P2WSH') {
-      // For P2SH-P2WSH, default to ypub/upub (more specific)
-      return network === 'bitcoin' ? 'ypub' : 'upub'
-    } else if (scriptVersion === 'P2WSH') {
-      // For P2WSH, default to zpub/vpub (more specific)
-      return network === 'bitcoin' ? 'zpub' : 'vpub'
-    }
-    // For P2SH and others, default to xpub/tpub
-    return network === 'bitcoin' ? 'xpub' : 'tpub'
-  }
-
-  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
-
-  useEffect(() => {
-    const newFormat = getDefaultFormat(scriptVersion, network)
-    setSelectedFormat(newFormat)
-  }, [scriptVersion, network])
+  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>(
+    network === 'bitcoin' ? 'xpub' : 'tpub'
+  )
 
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
@@ -71,49 +52,18 @@ export default function PublicKeyPage() {
       label: string
     }[] = []
 
-    if (scriptVersion === 'P2SH') {
-      // P2SH: Only show xpub/tpub
+    if (
+      scriptVersion === 'P2SH' ||
+      scriptVersion === 'P2SH-P2WSH' ||
+      scriptVersion === 'P2WSH'
+    ) {
+      // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so
+      // multisig keys are only shown as xpub/tpub.
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
           `account.seed.formatButtons.${
             network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2SH-P2WSH') {
-      // P2SH-P2WSH: Show xpub/ypub or tpub/upub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'ypub' : 'upub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2WSH') {
-      // P2WSH: Show xpub/zpub or tpub/vpub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'zpub' : 'vpub'
           }`
         )
       })

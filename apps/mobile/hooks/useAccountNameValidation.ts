@@ -22,18 +22,19 @@ function useAccountNameValidation({
   const [isValidName, setIsValidName] = useState<SSTextInputProps['status']>()
   const [isPseudoDuplicatedName, setIsPseudoDuplicatedName] = useState(false) // pseudo-duplicate name = wallet of other network has same name
 
-  function validateName(name: string) {
+  function validateName(text: string) {
+    const name = text.trim()
     if (name === '') {
       setIsValidName(undefined)
       return
     }
     const duplicated = currentNetworkAccounts.some(
-      (account: Account) => account.name === name
+      (account: Account) => account.name.trim() === name
     )
     setIsValidName(duplicated ? 'invalid' : 'valid')
     const pseudoDuplicated = accounts.some(
       (otherAccount: Account) =>
-        otherAccount.network !== network && otherAccount.name === name
+        otherAccount.network !== network && otherAccount.name.trim() === name
     )
     setIsPseudoDuplicatedName(pseudoDuplicated)
   }
@@ -44,6 +45,7 @@ function useAccountNameValidation({
   }
 
   return {
+    accountName: localAccountName.trim(),
     handleSetAccountName,
     isPseudoDuplicatedName,
     isValidName,

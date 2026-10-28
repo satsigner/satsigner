@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { Modal, Platform, ScrollView, StatusBar, View } from 'react-native'
+import { Modal, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 
@@ -31,18 +30,6 @@ function SSSelectModal({
   children
 }: SSSelectModalProps) {
   const insets = useSafeAreaInsets()
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') {
-      return
-    }
-    if (!visible) {
-      StatusBar.setBackgroundColor('transparent', false)
-      return
-    }
-
-    StatusBar.setBackgroundColor('black', false)
-  }, [visible])
 
   return (
     <Modal visible={visible} transparent={false}>

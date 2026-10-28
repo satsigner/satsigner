@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import Animated, {
@@ -14,11 +14,13 @@ import Animated, {
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { navMenuGroups } from '@/constants/navItems'
+import { useTabSegment } from '@/hooks/useTabSegment'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type NavMenuItem } from '@/types/navigation/navMenu'
+import { getTabSegmentLabel } from '@/utils/tabSegment'
 
 const STAGGER_DELAY = 60
 const ITEM_DURATION = 150
@@ -79,7 +81,7 @@ function StaggerItem({
 }
 
 export default function Home() {
-  const { tab } = useLocalSearchParams()
+  const tab = getTabSegmentLabel(useTabSegment())
   const router = useRouter()
   const pages = navMenuGroups.find((group) => group.title === tab)?.items
   const totalItems = 1 + (pages?.length ?? 0)

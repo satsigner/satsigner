@@ -1,4 +1,9 @@
-import { StyleSheet, TextInput, View } from 'react-native'
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance
+} from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
@@ -10,7 +15,7 @@ type SSWordInputProps = {
   position: number
   editable?: boolean
   index: number
-  ref?: React.Ref<TextInput>
+  ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSWordInput({
