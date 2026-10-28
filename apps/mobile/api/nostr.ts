@@ -919,19 +919,21 @@ export class NostrAPI {
   ): Promise<Set<NDKEvent>> {
     return new Promise((resolve, reject) => {
       const collected = new Set<NDKEvent>()
-      const state = { settled: false }
-      let timer: ReturnType<typeof setTimeout> | undefined
-      let sub: NDKSubscription | undefined
+      const state: {
+        settled: boolean
+        sub?: NDKSubscription
+        timer?: ReturnType<typeof setTimeout>
+      } = { settled: false }
 
       function finish(error?: Error) {
         if (state.settled) {
           return
         }
         state.settled = true
-        if (timer) {
-          clearTimeout(timer)
+        if (state.timer) {
+          clearTimeout(state.timer)
         }
-        sub?.stop()
+        state.sub?.stop()
         if (error) {
           reject(error)
           return
@@ -940,7 +942,7 @@ export class NostrAPI {
       }
 
       try {
-        sub = ndk.subscribe(filter, { closeOnEose: false })
+        state.sub = ndk.subscribe(filter, { closeOnEose: false })
       } catch (error) {
         const failure =
           error instanceof Error ? error : new Error('Nostr subscribe failed')
@@ -948,12 +950,12 @@ export class NostrAPI {
         return
       }
 
-      if (!sub) {
+      if (!state.sub) {
         finish(new Error('Nostr subscribe failed'))
         return
       }
 
-      timer = setTimeout(() => {
+      state.timer = setTimeout(() => {
         if (collected.size > 0) {
           finish()
           return
@@ -963,16 +965,16 @@ export class NostrAPI {
         )
       }, timeoutMs)
 
-      sub.on('event', (event: NDKEvent) => {
+      state.sub.on('event', (event: NDKEvent) => {
         collected.add(event)
         if (stopOnFirstEvent) {
           finish()
         }
       })
-      sub.on('closed', (relay, reason) => {
+      state.sub.on('closed', (relay, reason) => {
         markRelayClosed(relay.url, reason)
       })
-      sub.on('eose', () => {
+      state.sub.on('eose', () => {
         if (ndk.pool.connectedRelays().length === 0) {
           return
         }

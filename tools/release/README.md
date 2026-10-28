@@ -23,10 +23,10 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Build APK.** Two choices, then one build. A clean prebuild deletes `apps/mobile/android`. The file is saved under `apps/mobile/dist/apks`.
 
-| Choice | Options |
-| --- | --- |
-| Name and package id | Branch, production, or generic dev |
-| APK type | All CPUs, or Pixel 8, 9, or 10 (`arm64-v8a` only) |
+| Choice              | Options                                           |
+| ------------------- | ------------------------------------------------- |
+| Name and package id | Branch, production, or generic dev                |
+| APK type            | All CPUs, or Pixel 8, 9, or 10 (`arm64-v8a` only) |
 
 **Build and publish** uses the same three identities. Production stays blocked until a release keystore is configured.
 

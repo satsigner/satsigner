@@ -391,9 +391,7 @@ async function buildReleaseApk() {
   await run('pnpm', variantArgs, { cwd: REPO_ROOT })
 
   const segment =
-    CHANNEL === 'dev'
-      ? sanitizePackageSegment(gitBranch()) || 'plain'
-      : 'plain'
+    CHANNEL === 'dev' ? sanitizePackageSegment(gitBranch()) || 'plain' : 'plain'
   const label = CHANNEL === 'primary' ? 'prod' : 'dev'
   const apkPath = path.join(
     MOBILE_DIR,

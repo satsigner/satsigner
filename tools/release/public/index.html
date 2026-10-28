@@ -547,8 +547,8 @@
           <section id="apk-panel" hidden>
             <p class="hint">
               Pick the name and package id, then the CPU set. The build runs a
-              clean prebuild, which deletes the android folder, and saves a
-              copy under dist/apks.
+              clean prebuild, which deletes the android folder, and saves a copy
+              under dist/apks.
             </p>
             <ol class="plain">
               <li class="step">
@@ -1058,9 +1058,7 @@
       const zapstoreButton = document.querySelector('#zapstore')
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
-      const identityButtons = [
-        ...document.querySelectorAll('[data-identity]')
-      ]
+      const identityButtons = [...document.querySelectorAll('[data-identity]')]
       const kindButtons = [...document.querySelectorAll('[data-kind]')]
       const buildApkButton = document.querySelector('#build-apk')
       const apkIdentityHint = document.querySelector('#apk-identity-hint')

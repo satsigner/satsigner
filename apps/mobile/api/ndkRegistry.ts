@@ -20,7 +20,7 @@ function createEphemeralNdk(explicitRelayUrls: string[]): NDK {
  * sockets open on an instance nothing references any more.
  */
 function disconnectNdkPool(ndk: NDK): void {
-  const pool = ndk.pool
+  const { pool } = ndk
   if (!pool) {
     return
   }
@@ -31,7 +31,8 @@ function disconnectNdkPool(ndk: NDK): void {
     relay.removeAllListeners()
     relay.disconnect()
   }
-  for (const url of [...pool.relays.keys()]) {
+  const urls = [...pool.relays.keys()]
+  for (const url of urls) {
     pool.relays.delete(url)
   }
 }

@@ -43,8 +43,7 @@ export default function NostrFollowingSend() {
     npub,
     contactsRelays
   )
-  const waitingForFollows =
-    contacts.length === 0 && (isLoading || isRefetching)
+  const waitingForFollows = contacts.length === 0 && (isLoading || isRefetching)
 
   // The input doubles as a search over our follows: anything that is not a
   // valid npub filters the contact list by name, NIP-05 or npub.

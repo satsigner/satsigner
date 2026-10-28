@@ -55,9 +55,7 @@ test('login and init commands keep the key out of the argument names', () => {
   assert.ok(buildApkArgs({ identity: 'prod' }).includes('--prod'))
   assert.deepEqual(buildApkArgs({ identity: 'generic' }).slice(-1), ['--plain'])
   assert.equal(buildApkArgs({ identity: 'generic' }).includes('--prod'), false)
-  assert.ok(
-    buildApkArgs({ identity: 'prod', kind: 'pixel' }).includes('--abi')
-  )
+  assert.ok(buildApkArgs({ identity: 'prod', kind: 'pixel' }).includes('--abi'))
   assert.throws(() => buildApkArgs({ identity: 'debug' }), /unknown apk/)
 })
 
