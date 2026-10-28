@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   type AddressInfo,
+  BdkPsbtParams,
   BdkRpcClient,
   BdkTxBuilder,
   BdkWallet,
@@ -10,6 +11,7 @@ import {
   type Network,
   Psbt,
   type PsbtLike,
+  SelectionStrategy,
   walletNameFromDescriptor
 } from 'react-native-bdk-sdk'
 
@@ -21,6 +23,7 @@ import {
   SEQUENCE_RBF
 } from '@/constants/btc'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type FeeReplacementRecipient } from '@/types/models/FeeReplacement'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -972,6 +975,39 @@ function buildTransaction(
   return txBuilder.finish(wallet)
 }
 
+function isUtxoInWallet(
+  wallet: BdkWallet,
+  utxo: Pick<Utxo, 'txid' | 'vout'>
+): boolean {
+  return wallet.getUtxo({ txid: utxo.txid, vout: utxo.vout }) !== undefined
+}
+
+async function buildReplacementPsbt(
+  wallet: BdkWallet,
+  data: {
+    feeRate: number
+    originalTxid: string
+    recipients: FeeReplacementRecipient[]
+    sweepTo?: string
+    unspendable: Pick<Utxo, 'txid' | 'vout'>[]
+  }
+): Promise<PsbtLike> {
+  const params = new BdkPsbtParams()
+  params.feeRate(data.feeRate)
+  params.addRecipients(data.recipients)
+  params.unspendable(data.unspendable.map(({ txid, vout }) => ({ txid, vout })))
+  if (data.sweepTo) {
+    // bdk_wallet only accepts a replacement without recipients as a sweep to
+    // an explicit address. Without manuallySelectedOnly the sweep would also
+    // spend every other wallet UTXO.
+    params.manuallySelectedOnly()
+    params.coinSelection(new SelectionStrategy.All())
+    params.changeAddress(data.sweepTo)
+  }
+  const { psbt } = await wallet.replaceByFee(params, [data.originalTxid])
+  return psbt
+}
+
 function buildPsbtWithRpcOrBdkWallet(
   wallet: BdkWallet,
   server: Server,
@@ -1170,6 +1206,7 @@ async function deleteWalletDb(dbPath: string): Promise<void> {
 export {
   broadcastTransaction,
   buildPsbtWithRpcOrBdkWallet,
+  buildReplacementPsbt,
   buildTransactionWithRpc,
   deleteWalletDb,
   getDescriptorString,
@@ -1179,6 +1216,7 @@ export {
   getTransactionInputValues,
   getWalletData,
   getWalletFromDescriptor,
+  isUtxoInWallet,
   parseDescriptor,
   resolveRpcWalletName,
   signTransaction,

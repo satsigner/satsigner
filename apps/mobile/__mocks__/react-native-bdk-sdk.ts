@@ -260,6 +260,9 @@ export class BdkWallet {
   calculateFee = jest.fn(() => 0)
   calculateFeeRate = jest.fn(() => 0)
   buildFeeBump = jest.fn(() => new Psbt(''))
+  replaceByFee = jest.fn(() =>
+    Promise.resolve({ finalizer: {}, psbt: new Psbt('') })
+  )
   getTx = jest.fn(() => undefined)
   getUtxo = jest.fn(() => undefined)
   txDetails = jest.fn(() => undefined)
@@ -279,6 +282,21 @@ export class BdkTxBuilder {
   drainWallet = jest.fn()
   drainTo = jest.fn()
   finish = jest.fn(() => Promise.resolve(new Psbt('')))
+}
+
+export const BdkPsbtParams = jest.fn(() => ({
+  addRecipients: jest.fn(),
+  changeAddress: jest.fn(),
+  coinSelection: jest.fn(),
+  feeRate: jest.fn(),
+  manuallySelectedOnly: jest.fn(),
+  unspendable: jest.fn()
+}))
+
+export const SelectionStrategy = {
+  All: class {
+    readonly tag = 'All'
+  }
 }
 
 export class BdkElectrumClient {
