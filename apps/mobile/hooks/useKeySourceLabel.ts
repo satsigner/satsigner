@@ -91,22 +91,16 @@ export function useKeySourceLabel({
   }, [scriptVersion, network])
 
   const dropSeedLabel = useMemo(() => {
-    if (scriptVersion === 'P2SH') {
+    // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so multisig
+    // keys are only shared as xpub/tpub.
+    if (
+      scriptVersion === 'P2SH' ||
+      scriptVersion === 'P2SH-P2WSH' ||
+      scriptVersion === 'P2WSH'
+    ) {
       return network === 'bitcoin'
         ? t('account.seed.dropAndKeep.xpub')
         : t('account.seed.dropAndKeep.tpub')
-    }
-
-    if (scriptVersion === 'P2SH-P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.ypub')
-        : t('account.seed.dropAndKeep.upub')
-    }
-
-    if (scriptVersion === 'P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.dropAndKeep.zpub')
-        : t('account.seed.dropAndKeep.vpub')
     }
 
     if (scriptVersion === 'P2PKH') {
@@ -140,22 +134,16 @@ export function useKeySourceLabel({
   }, [scriptVersion, network])
 
   const shareXpubLabel = useMemo(() => {
-    if (scriptVersion === 'P2SH') {
+    // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so multisig
+    // keys are only shared as xpub/tpub.
+    if (
+      scriptVersion === 'P2SH' ||
+      scriptVersion === 'P2SH-P2WSH' ||
+      scriptVersion === 'P2WSH'
+    ) {
       return network === 'bitcoin'
         ? t('account.seed.shareXpub')
         : t('account.seed.shareTpub')
-    }
-
-    if (scriptVersion === 'P2SH-P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.shareYpub')
-        : t('account.seed.shareUpub')
-    }
-
-    if (scriptVersion === 'P2WSH') {
-      return network === 'bitcoin'
-        ? t('account.seed.shareZpub')
-        : t('account.seed.shareVpub')
     }
 
     if (scriptVersion === 'P2PKH') {

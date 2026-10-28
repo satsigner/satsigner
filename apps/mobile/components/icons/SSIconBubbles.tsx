@@ -1,8 +1,14 @@
 import Svg, { Circle, G, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height'>
+import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
-export default function SSIconBubbles({ width, height }: IconProps) {
+type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
+
+export default function SSIconBubbles({
+  width = 18,
+  height = 16,
+  color = '#adadad'
+}: IconProps & NavMenuItemIconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 17.966 16.092">
       <G id="bubbles" transform="translate(-0.774 -0.944)">
@@ -14,7 +20,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           r="4.77"
           transform="translate(8.701 1.445)"
           fill="none"
-          stroke="#adadad"
+          stroke={color}
           strokeWidth="0.75"
         />
         <Circle
@@ -25,7 +31,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           r="2.795"
           transform="translate(1.274 4.51)"
           fill="none"
-          stroke="#adadad"
+          stroke={color}
           strokeWidth="0.75"
         />
         <Circle
@@ -36,7 +42,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           r="2.284"
           transform="translate(5.59 11.968)"
           fill="none"
-          stroke="#adadad"
+          stroke={color}
           strokeWidth="0.75"
         />
       </G>

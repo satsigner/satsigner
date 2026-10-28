@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,14 +8,15 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { PIN_LENGTH_KEY, SALT_KEY } from '@/config/auth'
+import { SALT_KEY } from '@/config/auth'
+import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { Layout, Sizes } from '@/styles'
-import { clampPinLength, emptyPin, getPin } from '@/utils/pin'
+import { emptyPin, getPin } from '@/utils/pin'
 import {
   derivePinDigest,
   getStoredKdfConfig,
@@ -26,7 +27,16 @@ type Stage = 'set' | 're-enter'
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
-export default function SetPin() {
+export default function SetDuressPin() {
+  const pinLength = useStoredPinLength()
+  if (pinLength === undefined) {
+    return null
+  }
+  // The duress PIN must match the main PIN's length.
+  return <SetDuressPinForm pinLength={pinLength} />
+}
+
+function SetDuressPinForm({ pinLength }: { pinLength: number }) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const [setFirstTime, setRequiresAuth, setDuressPin] = useAuthStore(
@@ -40,20 +50,10 @@ export default function SetPin() {
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
 
-  const [pinArray, setPinArray] = useState<string[]>(emptyPin)
-  const [confirmationPinArray, setConfirmationPinArray] =
-    useState<string[]>(emptyPin)
-
-  // The duress PIN must match the main PIN's length.
-  useEffect(() => {
-    async function loadPinLength() {
-      const stored = await getItem(PIN_LENGTH_KEY)
-      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
-      setPinArray(emptyPin(length))
-      setConfirmationPinArray(emptyPin(length))
-    }
-    loadPinLength()
-  }, [])
+  const [pinArray, setPinArray] = useState(() => emptyPin(pinLength))
+  const [confirmationPinArray, setConfirmationPinArray] = useState(() =>
+    emptyPin(pinLength)
+  )
 
   const pinFilled = !pinArray.includes('')
   const confirmationPinFilled = !confirmationPinArray.includes('')
@@ -88,11 +88,11 @@ export default function SetPin() {
   }
 
   function clearPin() {
-    setPinArray((current) => emptyPin(current.length))
+    setPinArray(emptyPin(pinLength))
   }
 
   function clearConfirmationPin() {
-    setConfirmationPinArray((current) => emptyPin(current.length))
+    setConfirmationPinArray(emptyPin(pinLength))
   }
 
   async function handleSetPin() {

@@ -42,6 +42,7 @@ export default function Add() {
     useState<NonNullable<Account['policyType']>>('singlesig')
 
   const {
+    accountName,
     localAccountName,
     isValidName,
     isPseudoDuplicatedName,
@@ -49,7 +50,7 @@ export default function Add() {
   } = useAccountNameValidation({ name, network })
 
   function handleOnPressContinue() {
-    setAccountName(localAccountName)
+    setAccountName(accountName)
     setAccountPolicyType(localPolicyType)
     setDisplayIndex(getNextDisplayIndex(accounts))
     setAccountNetwork(network)

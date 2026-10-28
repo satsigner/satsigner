@@ -20,6 +20,7 @@ import {
 } from '@/components/icons'
 import { useTabBarBackgroundAnimation } from '@/hooks/useTabBarBackgroundAnimation'
 import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
 import { TAB_SEGMENTS, type TabSegment } from '@/types/navigation/tabs'
@@ -234,7 +235,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
-            title: 'Explorer'
+            title: t('navigation.label.explorer')
           }}
         />
         <Tabs.Screen
@@ -250,7 +251,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: 'Signer'
+            title: t('navigation.label.signer')
           }}
         />
         <Tabs.Screen
@@ -266,7 +267,7 @@ export default function TabLayout() {
             ),
             tabBarIcon: ({ focused }) =>
               renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
-            title: 'Converter'
+            title: t('navigation.label.converter')
           }}
         />
       </Tabs>

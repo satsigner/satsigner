@@ -15,7 +15,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useAccountBuilderStore } from '@/store/accountBuilder'
+import {
+  DEFAULT_SCRIPT_VERSION,
+  useAccountBuilderStore
+} from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
@@ -74,40 +77,40 @@ export default function ImportDescriptor() {
 
     setIsValidating(true)
     setDescriptorError('')
+    try {
+      const error = await getDescriptorInputError(descriptorText)
+      setIsValidDescriptor(!error)
+      setDescriptorError(error)
+    } finally {
+      setIsValidating(false)
+    }
+  }
 
+  async function getDescriptorInputError(descriptorText: string) {
     const descriptorValidation = await validateDescriptor(descriptorText)
-
     if (!descriptorValidation) {
-      setIsValidDescriptor(false)
-      setDescriptorError('Invalid descriptor')
-      return
+      return 'Invalid descriptor'
     }
 
-    if (scriptVersion) {
-      // For multisig descriptors, we need to be more flexible with script version validation
-      // because the default script version might not be set correctly yet
-      let effectiveScriptVersion = scriptVersion
-
-      // If we're in a multisig context and the descriptor uses wsh, use P2WSH
-      if (policyType === 'multisig' && descriptorText.includes('wsh(')) {
-        effectiveScriptVersion = 'P2WSH'
-      }
-
-      const scriptVersionValidation = validateDescriptorScriptVersion(
-        descriptorText,
-        effectiveScriptVersion
-      )
-
-      if (!scriptVersionValidation) {
-        setIsValidDescriptor(false)
-        setDescriptorError('Invalid script version')
-        return
-      }
+    if (!scriptVersion) {
+      return ''
     }
 
-    setIsValidDescriptor(true)
-    setDescriptorError('')
-    setIsValidating(false)
+    // While the builder still holds its default script version, a multisig
+    // wsh() descriptor is checked as P2WSH. A version the user picked is kept,
+    // so sh(wsh()) still matches P2SH-P2WSH and mismatches are reported.
+    const effectiveScriptVersion =
+      policyType === 'multisig' &&
+      scriptVersion === DEFAULT_SCRIPT_VERSION &&
+      descriptorText.includes('wsh(')
+        ? 'P2WSH'
+        : scriptVersion
+
+    const scriptVersionValidation = validateDescriptorScriptVersion(
+      descriptorText,
+      effectiveScriptVersion
+    )
+    return scriptVersionValidation ? '' : 'Invalid script version'
   }
 
   function handleDescriptorChange(text: string) {

@@ -373,6 +373,18 @@ export function createMockPsbt(
   }
 }
 
+/** Hex of the PSBT's unsigned transaction, or '' when it can't be read. */
+export function getUnsignedTransactionHexFromPSBT(psbtBase64: string): string {
+  try {
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+    return Buffer.from(psbt.data.globalMap.unsignedTx.toBuffer()).toString(
+      'hex'
+    )
+  } catch {
+    return ''
+  }
+}
+
 export function extractTransactionIdFromPSBT(
   psbtBase64: string
 ): string | null {

@@ -14,6 +14,8 @@ import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 void loadAuthenticatedSession()
 
+const ERASE_WARNING_TRIES_LEFT = 2
+
 export default function Unlock() {
   const router = useRouter()
   const [
@@ -50,17 +52,14 @@ export default function Unlock() {
   }
 
   function getWarningText() {
-    let text = ''
-    if (triesLeft < pinMaxTries) {
-      text += triesLeft
-      text += ' '
-      text += triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')
-      if (triesLeft <= 2) {
-        text += '\n'
-        text += t('auth.warningKeysErase')
-      }
+    if (triesLeft >= pinMaxTries) {
+      return ''
     }
-    return text
+    const triesLeftText = t('auth.triesLeft', { count: triesLeft })
+    if (triesLeft > ERASE_WARNING_TRIES_LEFT) {
+      return triesLeftText
+    }
+    return `${triesLeftText}\n${t('auth.warningKeysErase')}`
   }
 
   async function handleSuccess() {
@@ -99,7 +98,7 @@ export default function Unlock() {
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}
         feedbackColor={getWarningColor()}
-        feedbackBold={triesLeft <= 2 && triesLeft > 0}
+        feedbackBold={triesLeft <= ERASE_WARNING_TRIES_LEFT && triesLeft > 0}
       />
     </SSMainLayout>
   )
