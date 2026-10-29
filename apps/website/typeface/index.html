@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Typeface — SatSigner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --fg: #fff;
+      --muted: #9a9a9a;
+      --line: rgba(255, 255, 255, 0.12);
+      --card: #141414;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Inter, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .board-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: baseline;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .board-head h1 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .board-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      max-width: 46rem;
+      text-align: right;
+    }
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(320px, 1fr));
+      min-height: calc(100vh - 69px);
+    }
+    .col {
+      border-right: 1px solid var(--line);
+      min-width: 0;
+    }
+    .col:last-child { border-right: 0; }
+    .col[data-face="inter"] { font-family: Inter, sans-serif; }
+    .col[data-face="geist"] { font-family: Geist, sans-serif; }
+    .col[data-face="manrope"] { font-family: Manrope, sans-serif; }
+
+    .label {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 14px 22px;
+      background: rgba(10, 10, 10, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .label strong {
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+    .label span {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .proto { padding: 36px 28px 64px; text-align: left; }
+    .wordmark {
+      margin: 0 0 56px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+    }
+    .hero-title {
+      margin: 0;
+      font-weight: 500;
+      font-size: clamp(2.4rem, 3.4vw, 3.6rem);
+      letter-spacing: -0.045em;
+      line-height: 0.95;
+    }
+    .sub {
+      margin: 22px 0 0;
+      max-width: 28ch;
+      color: #d4d4d4;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 28px; }
+    .btn {
+      display: inline-block;
+      border: 1px solid #6b6b6b;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 12px;
+      letter-spacing: 0.05rem;
+      text-transform: uppercase;
+    }
+    .ver { color: var(--muted); font-size: 13px; font-weight: 400; }
+
+    .section-kicker {
+      margin: 56px 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h2.feature-title {
+      margin: 0 0 8px;
+      font-weight: 500;
+      font-size: 1.7rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .intro {
+      margin: 0 0 18px;
+      color: #cfcfcf;
+      font-size: 15px;
+      line-height: 1.45;
+      max-width: 36ch;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 16px 18px;
+      margin-top: 10px;
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-weight: 500;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .card p {
+      margin: 0;
+      color: #bdbdbd;
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 400;
+    }
+    .amount {
+      margin-top: 22px;
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .amount small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+    .weights {
+      display: grid;
+      gap: 6px;
+      margin-top: 22px;
+      font-size: 15px;
+    }
+    .weights div { display: flex; justify-content: space-between; gap: 12px; }
+    .weights b { font-weight: inherit; }
+    .w300 { font-weight: 300; }
+    .w400 { font-weight: 400; }
+    .w500 { font-weight: 500; }
+    .w600 { font-weight: 600; }
+    .pangram {
+      margin: 22px 0 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c8c8c8;
+    }
+
+    @media (max-width: 980px) {
+      .board-head { flex-direction: column; align-items: flex-start; }
+      .board-head p { text-align: left; }
+      .cols { grid-template-columns: 1fr; }
+      .col { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <header class="board-head">
+    <h1>Typeface</h1>
+    <p>Same layout, three faces. Inter is what the site was built in. Geist is named first in the homepage CSS. Manrope is the other candidate.</p>
+  </header>
+  <div class="cols">
+    <section class="col" data-face="inter">
+      <div class="label"><strong>Inter</strong><span>Current</span></div>
+      <div class="proto">
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <div class="weights">
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — “quotes” &amp; sats.</p>
+      </div>
+    </section>
+
+    <section class="col" data-face="geist">
+      <div class="label"><strong>Geist</strong><span>Candidate</span></div>
+      <div class="proto">
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <div class="weights">
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — “quotes” &amp; sats.</p>
+      </div>
+    </section>
+
+    <section class="col" data-face="manrope">
+      <div class="label"><strong>Manrope</strong><span>Candidate</span></div>
+      <div class="proto">
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <div class="weights">
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — “quotes” &amp; sats.</p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
