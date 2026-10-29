@@ -29,9 +29,13 @@ function SSNostrSourceBanner({
 
   return (
     <View style={styles.container}>
-      {sourceLabel ? <SSText style={styles.text}>{sourceLabel}</SSText> : null}
+      {sourceLabel && !error ? (
+        <SSText center style={styles.text}>
+          {sourceLabel}
+        </SSText>
+      ) : null}
       {error ? (
-        <SSText size="xs" color="muted">
+        <SSText center size="xs" style={styles.text}>
           {getNostrErrorMessageForCode(error)}
         </SSText>
       ) : null}
@@ -49,11 +53,9 @@ function SSNostrSourceBanner({
 
 const styles = StyleSheet.create({
   container: {
-    borderColor: Colors.warning,
-    borderRadius: 5,
-    borderWidth: 1,
+    alignItems: 'center',
     gap: 8,
-    padding: 10
+    paddingVertical: 10
   },
   text: {
     color: Colors.warning

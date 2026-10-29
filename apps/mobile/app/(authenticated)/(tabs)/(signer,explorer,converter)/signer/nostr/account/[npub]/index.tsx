@@ -227,7 +227,7 @@ export default function NostrAccountLanding() {
         }
         npub={npub}
         relayConnected={identity.relayConnected === true}
-        relays={identity.relays ?? relays}
+        relays={effectiveRelays}
         onNotePress={handleNotePress}
         onZapPress={handleZapPress}
         onAuthorPress={handleAuthorPress}

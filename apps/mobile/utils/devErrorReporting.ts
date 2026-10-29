@@ -94,9 +94,16 @@ function report(prefix: string, error: unknown): void {
 
 async function logSymbolicated(prefix: string, error: unknown) {
   const sourceFrames = await symbolicate(error)
-  if (sourceFrames) {
-    console.error(`${prefix} source location:\n${sourceFrames}`)
+  if (!sourceFrames) {
+    return
   }
+  // console.log, not console.error: LogBox records console.error and
+  // symbolicates this callsite. its-fine wraps console.error, so the box
+  // would name its-fine as the crash instead of the frames below.
+  const [firstFrame, ...rest] = sourceFrames.split('\n')
+  const headline = firstFrame?.replace(/^\s*at\s+/, '') ?? ''
+  const body = rest.length > 0 ? `\n${rest.join('\n')}` : ''
+  console.log(`${prefix} source location: ${headline}${body}`)
 }
 
 /**

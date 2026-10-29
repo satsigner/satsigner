@@ -168,6 +168,27 @@ describe('nostr feed fetchers', () => {
       expect(getNostrFollowCache(SELF_NPUB)).toStrictEqual([FRIEND_A, FRIEND_B])
     })
 
+    it('reads follows from indexing relays when the configured relays have none', async () => {
+      const empty = makeFakeNdk([])
+      const withFollows = makeFakeNdk([
+        makeEvent({ kind: 3, tags: [['p', FRIEND_A]] })
+      ])
+      jest
+        .mocked(getOrCreateNdk)
+        .mockReturnValueOnce(empty)
+        .mockReturnValueOnce(withFollows)
+      jest.mocked(connectToFirstRelay).mockResolvedValue()
+
+      const result = await new NostrAPI(RELAYS).fetchKind3FollowingPubkeys(
+        SELF_NPUB
+      )
+
+      expect(result.source).toBe('relay')
+      expect(result.data.kind3Found).toBe(true)
+      expect(result.data.pubkeys).toStrictEqual([FRIEND_A])
+      expect(getOrCreateNdk).toHaveBeenCalledTimes(2)
+    })
+
     it('caches an empty follow list when the kind 3 follows nobody', async () => {
       setNostrFollowCache(SELF_NPUB, [FRIEND_A])
       relaysUp([makeEvent({ kind: 3, tags: [] })])

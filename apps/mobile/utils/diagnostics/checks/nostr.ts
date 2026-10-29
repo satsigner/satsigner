@@ -7,6 +7,7 @@ import {
   disconnectNdkPool,
   ndkRegistry
 } from '@/api/ndkRegistry'
+import { NostrAPI } from '@/api/nostr'
 import {
   connectToFirstRelay,
   getRelayHealthSnapshot,
@@ -45,6 +46,7 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getChatPipelineStatus } from '@/utils/nostrChat'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import { getNostrLifecycleDiagnostics } from '@/utils/nostrLifecycle'
 import { getNostrSyncDiagnostics } from '@/utils/nostrSyncService'
 import { isRecord } from '@/utils/object'
@@ -160,7 +162,13 @@ const relayHealthCheck: DiagnosticCheck = {
   async run(ctx) {
     const urls = collectRelayUrls(ctx)
     if (urls.length === 0) {
-      return { lines: ['no relays configured'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because no relays are saved.',
+          'Add a Nostr identity under Signer → Nostr, then pick relays on Identity relays or on the Relays button on the Nostr home screen. A Bitcoin account can also save relays under its Nostr settings.'
+        ],
+        status: 'skipped'
+      }
     }
     const ndk = createEphemeralNdk(urls)
     try {
@@ -280,7 +288,11 @@ const nostrSyncCheck: DiagnosticCheck = {
     }`
     if (accounts.length === 0) {
       return Promise.resolve({
-        lines: [lifecycleLine, 'no account sync running'],
+        lines: [
+          lifecycleLine,
+          'Skipped because no Bitcoin account is syncing over Nostr.',
+          'Add a Bitcoin account, open its Nostr settings, and turn on device sync.'
+        ],
         status: 'skipped'
       })
     }
@@ -318,7 +330,10 @@ const nostrChatPipelineCheck: DiagnosticCheck = {
     const { identities } = useNostrIdentityStore.getState()
     if (identities.length === 0) {
       return Promise.resolve({
-        lines: ['no nostr identities'],
+        lines: [
+          'Skipped because there is no Nostr identity.',
+          'Add one under Signer → Nostr, then open it so chat can connect.'
+        ],
         status: 'skipped'
       })
     }
@@ -339,6 +354,46 @@ const nostrChatPipelineCheck: DiagnosticCheck = {
 function activeIdentityHex(): string | null {
   const npub = useNostrIdentityStore.getState().activeIdentityNpub
   return npub ? getPubKeyHexFromNpub(npub) : null
+}
+
+const nostrFollowsCheck: DiagnosticCheck = {
+  category: 'nostr',
+  id: 'nostrFollows',
+  requiresNetwork: true,
+  async run(ctx) {
+    const { activeIdentityNpub, identities } = useNostrIdentityStore.getState()
+    const identity =
+      identities.find((item) => item.npub === activeIdentityNpub) ??
+      identities[0]
+    if (!identity) {
+      return {
+        lines: [
+          'Skipped because there is no Nostr identity.',
+          'Add one under Signer → Nostr. The follow list is read for that identity.'
+        ],
+        status: 'skipped'
+      }
+    }
+    const relays = getNostrIdentityRelays(identity.relays, ctx.identityRelays)
+    const api = new NostrAPI(relays)
+    try {
+      const result = await api.fetchKind3FollowingPubkeys(identity.npub)
+      const found = result.data.kind3Found
+      return {
+        lines: [
+          found
+            ? `kind 3 found, ${result.data.pubkeys.length} follows`
+            : 'kind 3 not found on the identity relays or the indexing relays',
+          `queried ${result.data.relaysQueried.length} relays, ${result.data.connectedRelayCount} connected`,
+          `source ${result.source}${result.error ? ` (${result.error})` : ''}`
+        ],
+        status: found ? 'ok' : 'warn'
+      }
+    } finally {
+      api.disconnect()
+    }
+  },
+  timeoutMs: DIAGNOSTIC_SLOW_CHECK_TIMEOUT_MS
 }
 
 const nostrCacheCheck: DiagnosticCheck = {
@@ -414,10 +469,22 @@ const nostrCacheFreshnessCheck: DiagnosticCheck = {
   async run(ctx) {
     const hex = activeIdentityHex()
     if (!hex) {
-      return { lines: ['no active nostr identity'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because there is no Nostr identity.',
+          'Add one under Signer → Nostr and open it so it becomes the active identity.'
+        ],
+        status: 'skipped'
+      }
     }
     if (ctx.identityRelays.length === 0) {
-      return { lines: ['no identity relays configured'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because this identity has no relays.',
+          'Open Signer → Nostr → Relays, or the identity’s Identity relays screen, and save at least one relay.'
+        ],
+        status: 'skipped'
+      }
     }
     const [relayProfileAt, relayNoteAt] = await Promise.all([
       fetchNewestFromRelays(ctx.identityRelays, {
@@ -501,7 +568,10 @@ const nip46SessionsCheck: DiagnosticCheck = {
     const { sessions } = useNip46Store.getState()
     if (sessions.length === 0) {
       return Promise.resolve({
-        lines: ['no remote signer sessions'],
+        lines: [
+          'Skipped because no remote signer (NIP-46) session is saved.',
+          'Connect a bunker from the identity’s bunker screen if you want this checked.'
+        ],
         status: 'skipped'
       })
     }
@@ -518,6 +588,7 @@ const nip46SessionsCheck: DiagnosticCheck = {
 const NOSTR_CHECKS = [
   relayHealthCheck,
   ndkRegistryCheck,
+  nostrFollowsCheck,
   nostrSyncCheck,
   nostrChatPipelineCheck,
   nostrCacheCheck,

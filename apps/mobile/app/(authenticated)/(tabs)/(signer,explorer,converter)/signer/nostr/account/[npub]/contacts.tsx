@@ -156,9 +156,12 @@ export default function NostrContacts() {
           source={source}
         />
         <View style={styles.listContainer}>
-          {isLoading && contacts.length === 0 ? (
-            <SSVStack itemsCenter style={styles.center}>
+          {contacts.length === 0 && (isLoading || isRefetching) ? (
+            <SSVStack itemsCenter gap="md" style={styles.center}>
               <ActivityIndicator color={Colors.gray[400]} />
+              <SSText color="muted" size="sm" center>
+                {t('nostrIdentity.account.followingLoading')}
+              </SSText>
             </SSVStack>
           ) : contacts.length > 0 ? (
             filteredContacts.length === 0 ? (

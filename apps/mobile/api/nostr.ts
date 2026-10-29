@@ -284,6 +284,19 @@ function rememberBounded(ids: Set<string>, id: string, max: number): void {
   ids.delete(oldest)
 }
 
+/** Indexing relays that are not already in the identity's own list. */
+function indexingRelaysBeyond(configured: string[]): string[] {
+  const own = new Set(configured.map(normalizeRelayUrl))
+  return NostrAPI.INDEXING_RELAYS.filter(
+    (url) => !own.has(normalizeRelayUrl(url))
+  )
+}
+
+type Kind3Attempt = {
+  error?: unknown
+  list: NostrFollowList | null
+}
+
 type NostrKind1059Options = {
   /** Processed-events scope checked before decrypting a gift wrap. */
   processedScope?: string
@@ -602,18 +615,55 @@ export class NostrAPI {
       return { data: this.emptyFollowList(), source: 'relay' }
     }
 
+    const primary = await this.tryKind3(npub, hexPubkey)
+    if (primary.list?.kind3Found) {
+      return { data: primary.list, source: 'relay' }
+    }
+
+    const extra = indexingRelaysBeyond(this.relays)
+    const fallback =
+      extra.length > 0
+        ? await this.tryKind3On(extra, npub, hexPubkey)
+        : { list: null }
+
+    if (fallback.list?.kind3Found) {
+      return { data: fallback.list, source: 'relay' }
+    }
+    const answered = primary.list ?? fallback.list
+    if (answered) {
+      return { data: answered, source: 'relay' }
+    }
+    return {
+      data: {
+        ...this.emptyFollowList(),
+        pubkeys: getNostrFollowCache(npub) ?? []
+      },
+      error: getNostrErrorCode(primary.error ?? fallback.error),
+      source: 'cache'
+    }
+  }
+
+  private async tryKind3(
+    npub: string,
+    hexPubkey: string
+  ): Promise<Kind3Attempt> {
     try {
-      const data = await this.fetchKind3FromRelays(npub, hexPubkey)
-      return { data, source: 'relay' }
+      return { list: await this.fetchKind3FromRelays(npub, hexPubkey) }
     } catch (error) {
-      return {
-        data: {
-          ...this.emptyFollowList(),
-          pubkeys: getNostrFollowCache(npub) ?? []
-        },
-        error: getNostrErrorCode(error),
-        source: 'cache'
-      }
+      return { error, list: null }
+    }
+  }
+
+  private async tryKind3On(
+    relays: string[],
+    npub: string,
+    hexPubkey: string
+  ): Promise<Kind3Attempt> {
+    const api = new NostrAPI(relays)
+    try {
+      return await api.tryKind3(npub, hexPubkey)
+    } finally {
+      api.disconnect()
     }
   }
 
@@ -880,15 +930,21 @@ export class NostrAPI {
   ): Promise<Set<NDKEvent>> {
     return new Promise((resolve, reject) => {
       const collected = new Set<NDKEvent>()
-      const state = { settled: false }
+      const state: {
+        settled: boolean
+        sub?: NDKSubscription
+        timer?: ReturnType<typeof setTimeout>
+      } = { settled: false }
 
       function finish(error?: Error) {
         if (state.settled) {
           return
         }
         state.settled = true
-        clearTimeout(timer)
-        sub.stop()
+        if (state.timer) {
+          clearTimeout(state.timer)
+        }
+        state.sub?.stop()
         if (error) {
           reject(error)
           return
@@ -896,7 +952,21 @@ export class NostrAPI {
         resolve(collected)
       }
 
-      const timer = setTimeout(() => {
+      try {
+        state.sub = ndk.subscribe(filter, { closeOnEose: false })
+      } catch (error) {
+        const failure =
+          error instanceof Error ? error : new Error('Nostr subscribe failed')
+        finish(failure)
+        return
+      }
+
+      if (!state.sub) {
+        finish(new Error('Nostr subscribe failed'))
+        return
+      }
+
+      state.timer = setTimeout(() => {
         if (collected.size > 0) {
           finish()
           return
@@ -905,18 +975,17 @@ export class NostrAPI {
           new NostrRelayTimeoutError(`No relay answered within ${timeoutMs}ms`)
         )
       }, timeoutMs)
-      const sub = ndk.subscribe(filter, { closeOnEose: false })
 
-      sub.on('event', (event: NDKEvent) => {
+      state.sub.on('event', (event: NDKEvent) => {
         collected.add(event)
         if (stopOnFirstEvent) {
           finish()
         }
       })
-      sub.on('closed', (relay, reason) => {
+      state.sub.on('closed', (relay, reason) => {
         markRelayClosed(relay.url, reason)
       })
-      sub.on('eose', () => {
+      state.sub.on('eose', () => {
         if (ndk.pool.connectedRelays().length === 0) {
           return
         }

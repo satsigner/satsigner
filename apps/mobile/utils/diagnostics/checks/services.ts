@@ -82,7 +82,13 @@ const payjoinCheck: DiagnosticCheck = {
   requiresNetwork: true,
   async run() {
     if (!useSettingsStore.getState().payjoinEnabled) {
-      return { lines: ['payjoin is turned off'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because Payjoin is turned off.',
+          'Turn it on in Settings if you want the directory checked.'
+        ],
+        status: 'skipped'
+      }
     }
     const { directoryUrl } = getPayjoinSettings()
     const relays = getShuffledOhttpRelays().slice(0, OHTTP_RELAYS_PROBED)
@@ -110,7 +116,13 @@ const ecashMintsCheck: DiagnosticCheck = {
       )
     ]
     if (urls.length === 0) {
-      return { lines: ['no mints configured'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because there is no ecash mint.',
+          'Add an ecash account and a mint if you want mints checked.'
+        ],
+        status: 'skipped'
+      }
     }
     const probes = await Promise.all(
       urls.map((url) => timedProbe(url, () => connectToMint(url)))
@@ -126,7 +138,13 @@ const lightningCheck: DiagnosticCheck = {
   async run() {
     const { config } = useLightningStore.getState()
     if (!config) {
-      return { lines: ['no LND node configured'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because no Lightning node is saved.',
+          'Add an LND node under Lightning settings if you want it checked.'
+        ],
+        status: 'skipped'
+      }
     }
     if (!config.macaroon) {
       return {
@@ -160,7 +178,13 @@ const arkServerCheck: DiagnosticCheck = {
   async run() {
     const { accounts } = useArkStore.getState()
     if (accounts.length === 0) {
-      return { lines: ['no ark accounts'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because there is no Ark account.',
+          'Add one under Signer if you want its server checked.'
+        ],
+        status: 'skipped'
+      }
     }
     const probes = await Promise.all(
       accounts.map((account, index) =>
@@ -200,7 +224,13 @@ const pricesCheck: DiagnosticCheck = {
   requiresNetwork: true,
   async run(ctx) {
     if (!useSettingsStore.getState().fetchCurrentPrices) {
-      return { lines: ['price fetching is turned off'], status: 'skipped' }
+      return {
+        lines: [
+          'Skipped because price fetching is turned off.',
+          'Turn on current prices in Settings if you want the price sources checked.'
+        ],
+        status: 'skipped'
+      }
     }
     const mempoolUrl = useBlockchainStore.getState().configsMempool[ctx.network]
     const fiatUrl = getFiatPriceApiUrl()
