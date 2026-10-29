@@ -43,16 +43,6 @@ export const slides = [
   {
     items: [
       {
-        description: t('upcoming.liquid.description'),
-        image: require('@/assets/images/liquid_0.jpg'),
-        title: t('upcoming.liquid.title')
-      }
-    ],
-    page: t('navigation.item.liquid')
-  },
-  {
-    items: [
-      {
         description: t('upcoming.ecash.description_1'),
         image: require('@/assets/images/ecash_1.jpg'),
         title: t('upcoming.ecash.title_1')
