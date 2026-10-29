@@ -2,3 +2,7 @@
 
 # Local Netlify folder
 .netlify
+
+# Local tooling and exported store screenshots
+node_modules
+release/out
