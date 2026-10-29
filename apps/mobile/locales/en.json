@@ -3573,7 +3573,7 @@
     "partialSend": "Sent to {{delivered}} of {{total}} devices. Retry to reach the rest.",
     "publishFailed": "No relay accepted the event. Try again or check your relays.",
     "source": {
-      "cache": "Offline — showing saved data",
+      "cache": "Showing saved data",
       "retry": "Retry",
       "stale": "Showing older saved data — relays didn't answer"
     },
