@@ -50,7 +50,7 @@ body {
   margin: 0;
   background: var(--page);
   color: var(--ink);
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

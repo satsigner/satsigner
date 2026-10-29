@@ -146,7 +146,7 @@ body:has(#promotion-view:not([hidden])) .catalog {
   transform-origin: top left;
   background: #000;
   color: #fff;
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", "Inter", sans-serif;
   overflow: hidden;
 }
 
