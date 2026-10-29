@@ -402,21 +402,31 @@ export type NostrFeedNoteLike = {
   created_at: number
 }
 
-export type NostrReaction = {
+export type NostrEngagementEvent = {
   content: string
   created_at: number
   id: string
+  kind: number
   pubkey: string
+  targetId: string
 }
 
-export type NostrReactionDeletion = {
+export type NostrEngagementDeletion = {
   pubkey: string
   tags: string[][]
 }
 
-export type NostrNoteLikes = {
-  count: number
+export type NostrEngagementSigner = {
+  isWatchOnly: boolean
+  nsec?: string
+  ownPubkey: string
+}
+
+export type NostrNoteEngagement = {
+  likeCount: number
   ownLikeIds: string[]
+  ownRepostIds: string[]
+  repostCount: number
 }
 
 export type NostrPollOption = {

@@ -33,6 +33,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import type {
+  NostrEngagementSigner,
   NostrIdentity,
   ZapReceiptInfo,
   ZapSortField
@@ -98,6 +99,16 @@ function getOwnAuthorFallback(
     nip05: identity.nip05,
     picture: identity.picture,
     pubkey
+  }
+}
+
+function getEngagementSigner(
+  identity: NostrIdentity | undefined
+): NostrEngagementSigner {
+  return {
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    nsec: identity?.nsec,
+    ownPubkey: identity ? (getPubKeyHexFromNpub(identity.npub) ?? '') : ''
   }
 }
 
@@ -229,6 +240,7 @@ function NotesTabContent({
   return (
     <View style={styles.fill}>
       <SSNostrNoteList
+        engagementSigner={getEngagementSigner(identity)}
         emptyLabel={t('nostrIdentity.feed.noNotes')}
         fetchNextPage={notes.fetchNextPage}
         hasNextPage={notes.hasNextPage}
@@ -354,6 +366,7 @@ function FollowingTabContent({
   return (
     <View style={styles.fill}>
       <SSNostrNoteList
+        engagementSigner={getEngagementSigner(identity)}
         emptyLabel={
           followingEmpty
             ? t('nostrIdentity.feed.noFollowing')

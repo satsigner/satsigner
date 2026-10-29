@@ -60,10 +60,21 @@ const nostrKeys = {
     ] as const,
   identityNote: (eventId: string, relaysKey: string) =>
     ['nostr', 'identity', 'note', eventId, relaysKey] as const,
+  identityNoteEngagement: (
+    eventId: string,
+    relaysKey: string,
+    ownPubkey: string
+  ) =>
+    [
+      'nostr',
+      'identity',
+      'note-engagement',
+      eventId,
+      relaysKey,
+      ownPubkey
+    ] as const,
   identityNoteLookup: (eventId: string, relaysKey: string) =>
     ['nostr', 'identity', 'note-lookup', eventId, relaysKey] as const,
-  identityNoteReactions: (eventId: string, relaysKey: string) =>
-    ['nostr', 'identity', 'note-reactions', eventId, relaysKey] as const,
   identityNoteZaps: (eventId: string, relaysKey: string) =>
     ['nostr', 'identity', 'note-zaps', eventId, relaysKey] as const,
   identityNotes: (npub: string, relaysKey: string, kindFilterId: string) =>

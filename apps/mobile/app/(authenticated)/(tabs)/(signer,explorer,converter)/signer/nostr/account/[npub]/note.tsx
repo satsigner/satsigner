@@ -21,9 +21,7 @@ import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
-import SSIconHeart from '@/components/icons/SSIconHeart'
 import SSIconQR from '@/components/icons/SSIconQR'
-import SSIconRepost from '@/components/icons/SSIconRepost'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -34,6 +32,7 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import SSNostrNoteActions from '@/components/SSNostrNoteActions'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
@@ -50,11 +49,11 @@ import {
   NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
+import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
 import {
   useNostrNoteFetch,
   useNostrNoteLookupFetch
 } from '@/hooks/useNostrNoteFetch'
-import { useNostrNoteLike } from '@/hooks/useNostrNoteLike'
 import { useNostrNoteZapsFetch } from '@/hooks/useNostrNoteZapsFetch'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import { useNostrProfilesFetch } from '@/hooks/useNostrProfilesFetch'
@@ -424,18 +423,17 @@ export default function NostrNotePage() {
     relays: effectiveRelays
   })
 
-  const { canLike, handleLikePress, likeCount, likedByMe, likeToggling } =
-    useNostrNoteLike({
-      enabled: !privacyMode,
-      isWatchOnly: Boolean(identity?.isWatchOnly),
-      note:
-        noteEvent && noteEventId
-          ? { id: noteEventId, kind: noteEvent.kind, pubkey: noteEvent.pubkey }
-          : null,
-      nsec: identity?.nsec,
-      ownPubkeys,
-      relays: effectiveRelays
-    })
+  const engagement = useNostrNoteEngagement({
+    enabled: !privacyMode,
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    note:
+      noteEvent && noteEventId
+        ? { id: noteEventId, kind: noteEvent.kind, pubkey: noteEvent.pubkey }
+        : null,
+    nsec: identity?.nsec,
+    ownPubkey: ownPubkeyHex,
+    relays: effectiveRelays
+  })
 
   const noteItemForFeed = deriveNoteItemForFeed(fetched, decoded)
   const isLongFormNote = fetched ? isLongFormNostrKind(fetched.kind) : false
@@ -1021,59 +1019,43 @@ export default function NostrNotePage() {
             ) : null}
 
             {fetched ? (
-              <SSHStack gap="none" style={styles.actionRow}>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.qrTitle')}
-                  style={styles.actionButton}
-                  disabled={!noteNeventId}
-                  onPress={() => setQrModalVisible(true)}
-                >
-                  <SSIconQR width={18} height={18} />
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.repostTitle')}
-                  style={styles.actionButton}
-                  disabled
-                >
-                  <SSIconRepost width={18} height={16} />
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t(
-                    likedByMe
-                      ? 'nostrIdentity.note.unlikeTitle'
-                      : 'nostrIdentity.note.likeTitle'
-                  )}
-                  style={[styles.actionButton, styles.likeButton]}
-                  disabled={!canLike || likeToggling}
-                  onPress={handleLikePress}
-                >
-                  <SSIconHeart
-                    width={18}
-                    height={16}
-                    color={likedByMe ? Colors.white : undefined}
-                    filled={likedByMe}
-                  />
-                  {likeCount > 0 && !privacyMode ? (
-                    <SSText size="xs" color={likedByMe ? 'white' : 'muted'}>
-                      {likeCount}
-                    </SSText>
-                  ) : null}
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
-                  style={styles.actionButton}
-                  disabled={
-                    bookmarkLoading || !decoded?.data || !identity?.nsec
-                  }
-                  onPress={handleBookmarkPress}
-                >
-                  <SSIconBookmark
-                    width={14}
-                    height={18}
-                    color={Colors.gray[300]}
-                  />
-                </SSIconButton>
-              </SSHStack>
+              <SSNostrNoteActions
+                canEngage={engagement.canEngage}
+                likeCount={engagement.likeCount}
+                likedByMe={engagement.likedByMe}
+                onLikePress={engagement.handleLikePress}
+                onRepostPress={engagement.handleRepostPress}
+                repostCount={engagement.repostCount}
+                repostedByMe={engagement.repostedByMe}
+                showCounts={!privacyMode}
+                style={styles.actionRow}
+                toggling={engagement.toggling}
+              >
+                <SSHStack gap="none" style={styles.actionRowEnd}>
+                  <SSIconButton
+                    accessibilityLabel={t('nostrIdentity.note.qrTitle')}
+                    style={styles.actionButton}
+                    disabled={!noteNeventId}
+                    onPress={() => setQrModalVisible(true)}
+                  >
+                    <SSIconQR width={18} height={18} />
+                  </SSIconButton>
+                  <SSIconButton
+                    accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
+                    style={styles.actionButton}
+                    disabled={
+                      bookmarkLoading || !decoded?.data || !identity?.nsec
+                    }
+                    onPress={handleBookmarkPress}
+                  >
+                    <SSIconBookmark
+                      width={20}
+                      height={20}
+                      color={Colors.gray[300]}
+                    />
+                  </SSIconButton>
+                </SSHStack>
+              </SSNostrNoteActions>
             ) : null}
 
             {fetched ? (
@@ -1940,8 +1922,10 @@ const styles = StyleSheet.create({
   actionRow: {
     borderBottomWidth: 1,
     borderColor: Colors.gray[800],
-    justifyContent: 'flex-end',
     paddingBottom: 4
+  },
+  actionRowEnd: {
+    marginLeft: 'auto'
   },
   authorAvatar: {
     borderRadius: 24,
@@ -1990,10 +1974,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3
-  },
-  likeButton: {
-    flexDirection: 'row',
-    gap: 6
   },
   markdownToggleRow: {
     marginBottom: 4

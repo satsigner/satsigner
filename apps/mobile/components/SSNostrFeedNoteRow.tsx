@@ -278,6 +278,8 @@ type SSNostrFeedNoteRowProps = {
   mentionProfiles?: Record<string, NostrKind0Profile | null>
   /** Render note body as formatted markdown (long-form detail). */
   formatMarkdown?: boolean
+  /** Rendered under the note body, e.g. the like and repost actions. */
+  footer?: ReactNode
 }
 
 function SSNostrFeedNoteRow({
@@ -294,7 +296,8 @@ function SSNostrFeedNoteRow({
   resolvedQuotedNoteProfile,
   onQuotePress,
   mentionProfiles,
-  formatMarkdown = false
+  formatMarkdown = false,
+  footer
 }: SSNostrFeedNoteRowProps) {
   const parsed = parseNoteContent(note, resolvedQuotedNote)
   const { isQuotePost, isRepost, quotedId, repostUnavailable } = parsed
@@ -437,6 +440,7 @@ function SSNostrFeedNoteRow({
           )
         ) : null}
       </SSVStack>
+      {footer ?? null}
     </SSVStack>
   )
 

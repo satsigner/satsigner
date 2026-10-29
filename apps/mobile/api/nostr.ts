@@ -18,6 +18,7 @@ import {
 } from '@/api/nostrProfileFetcher'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
+  NOSTR_ENGAGEMENT_FETCH_LIMIT,
   NOSTR_DELETION_FETCH_LIMIT,
   NOSTR_EVENT_ID_RE,
   NOSTR_FEED_FOLLOWING_MAX_AUTHORS,
@@ -67,7 +68,7 @@ import type {
   NostrMessage,
   NostrNotesQuery,
   NostrPollResponse,
-  NostrReaction,
+  NostrEngagementEvent,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrSubscriptionWindow,
@@ -84,6 +85,15 @@ import {
   getPubKeyHexFromNpub,
   getSecretFromNsec
 } from '@/utils/nostr'
+import {
+  NOSTR_ENGAGEMENT_KINDS,
+  NOSTR_LIKE_CONTENT,
+  buildReactionTags,
+  buildRepost,
+  dropDeletedEngagement,
+  type EngagementTarget,
+  toEngagementEvent
+} from '@/utils/nostrEngagement'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import {
   getNostrTagValue,
@@ -100,11 +110,6 @@ import {
   mergeNotesNewestFirst
 } from '@/utils/nostrFeed'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
-import {
-  NOSTR_LIKE_CONTENT,
-  buildReactionTags,
-  dropDeletedReactions
-} from '@/utils/nostrReactions'
 import { isRecord } from '@/utils/object'
 
 import {
@@ -1773,52 +1778,96 @@ export class NostrAPI {
     }))
   }
 
-  /** Reactions to a note (NIP-25), minus the ones their authors deleted. */
-  async fetchReactions(eventIdHex: string): Promise<NostrReaction[]> {
+  /**
+   * Likes and reposts (NIP-25, NIP-18) of the given notes. Only deletions
+   * signed by `ownPubkey` are fetched: relays drop most deleted events
+   * themselves, and asking for every author's deletions would not scale to a
+   * feed window.
+   */
+  async fetchEngagement(
+    noteIds: string[],
+    ownPubkey: string
+  ): Promise<NostrEngagementEvent[]> {
+    if (noteIds.length === 0) {
+      return []
+    }
     await this.connectForPublish()
     const ndk = this.requireNdk()
 
-    const reactionEvents = await NostrAPI.fetchManyWithTimeout(
+    const engagementEvents = await NostrAPI.fetchManyWithTimeout(
       ndk,
-      { '#e': [eventIdHex], kinds: [nostrKinds.Reaction], limit: 500 },
+      {
+        '#e': noteIds,
+        kinds: NOSTR_ENGAGEMENT_KINDS,
+        limit: NOSTR_ENGAGEMENT_FETCH_LIMIT
+      },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
-    const reactions = [...reactionEvents].map((event) => ({
-      content: event.content,
-      created_at: event.created_at ?? 0,
-      id: event.id,
-      pubkey: event.pubkey
-    }))
-    if (reactions.length === 0) {
-      return reactions
+    const events = [...engagementEvents].flatMap((event) => {
+      const parsed = toEngagementEvent({
+        content: event.content,
+        created_at: event.created_at ?? 0,
+        id: event.id,
+        kind: event.kind ?? nostrKinds.Reaction,
+        pubkey: event.pubkey,
+        tags: NostrAPI.stringTags(event.tags)
+      })
+      return parsed ? [parsed] : []
+    })
+    const ownEventIds = events
+      .filter((event) => event.pubkey === ownPubkey)
+      .map((event) => event.id)
+    if (ownEventIds.length === 0) {
+      return events
     }
 
     const deletionEvents = await NostrAPI.fetchManyWithTimeout(
       ndk,
       {
-        '#e': reactions.map((reaction) => reaction.id),
-        authors: [...new Set(reactions.map((reaction) => reaction.pubkey))],
+        '#e': ownEventIds,
+        authors: [ownPubkey],
         kinds: [nostrKinds.EventDeletion]
       },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
-    return dropDeletedReactions(
-      reactions,
+    return dropDeletedEngagement(
+      events,
       [...deletionEvents].map((event) => ({
         pubkey: event.pubkey,
-        tags: event.tags.map((tag) =>
-          tag.filter((value): value is string => typeof value === 'string')
-        )
+        tags: NostrAPI.stringTags(event.tags)
       }))
     )
   }
 
   /** Signs and publishes a NIP-25 reaction (kind 7) to a note. */
-  async publishReaction(
+  publishReaction(
     nsec: string,
-    target: Pick<NostrFeedNoteLike, 'id' | 'kind' | 'pubkey'>,
+    target: EngagementTarget,
     content = NOSTR_LIKE_CONTENT
-  ): Promise<NostrReaction> {
+  ): Promise<NostrEngagementEvent> {
+    return this.publishEngagement(nsec, target, {
+      content,
+      kind: nostrKinds.Reaction,
+      tags: buildReactionTags(target)
+    })
+  }
+
+  /** Signs and publishes a NIP-18 repost (kind 6 or 16) of a note. */
+  publishRepost(
+    nsec: string,
+    target: EngagementTarget
+  ): Promise<NostrEngagementEvent> {
+    return this.publishEngagement(nsec, target, {
+      content: '',
+      ...buildRepost(target, this.relays[0] ?? '')
+    })
+  }
+
+  private async publishEngagement(
+    nsec: string,
+    target: EngagementTarget,
+    template: { content: string; kind: number; tags: string[][] }
+  ): Promise<NostrEngagementEvent> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
       throw new Error('Invalid nsec')
@@ -1829,20 +1878,23 @@ export class NostrAPI {
     const ndk = this.requireNdk()
 
     ndk.signer = signer
-    const event = new NDKEvent(ndk, {
-      content,
-      kind: nostrKinds.Reaction,
-      tags: buildReactionTags(target)
-    })
-
+    const event = new NDKEvent(ndk, template)
     await event.sign(signer)
     await this.publishEvent(event)
     return {
       content: event.content,
       created_at: event.created_at ?? 0,
       id: event.id,
-      pubkey: event.pubkey
+      kind: template.kind,
+      pubkey: event.pubkey,
+      targetId: target.id
     }
+  }
+
+  private static stringTags(tags: unknown[][]): string[][] {
+    return tags.map((tag) =>
+      tag.filter((value): value is string => typeof value === 'string')
+    )
   }
 
   async publishPollResponse(

@@ -10,8 +10,10 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import SSNostrNoteActions from '@/components/SSNostrNoteActions'
 import SSText from '@/components/SSText'
 import { NOSTR_FEED_END_REACHED_THRESHOLD } from '@/constants/nostr'
+import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
 import { useNostrVideoAutoplay } from '@/hooks/useNostrVideoAutoplay'
 import { useNostrVisibleItemsTrack } from '@/hooks/useNostrVisibleItemsTrack'
 import SSHStack from '@/layouts/SSHStack'
@@ -22,7 +24,11 @@ import {
   useNostrProfilesStore
 } from '@/store/nostrProfiles'
 import { Colors, Layout } from '@/styles'
-import type { NostrFeedNoteLike } from '@/types/models/Nostr'
+import type {
+  NostrEngagementSigner,
+  NostrFeedNoteLike
+} from '@/types/models/Nostr'
+import { isRepostKind } from '@/utils/nostrEngagement'
 import {
   getNoteProfilePubkeys,
   getResolvedQuotedNote,
@@ -44,15 +50,18 @@ type NoteRowHandlers = {
 }
 
 type NoteListRowProps = NoteRowHandlers & {
+  engagementSigner: NostrEngagementSigner
   isPrivate: boolean
   note: NostrFeedNoteLike
   ownAuthor?: OwnAuthorFallback
   privacyMode: boolean
+  relays: string[]
   resolvedNote?: NostrFeedNoteLike
 }
 
 type SSNostrNoteListProps = NoteRowHandlers & {
   emptyLabel: string
+  engagementSigner: NostrEngagementSigner
   fetchNextPage: () => void
   hasNextPage: boolean
   header: ReactElement
@@ -95,12 +104,14 @@ function getAuthorDisplay(
 }
 
 function NoteListRow({
+  engagementSigner,
   isPrivate,
   note,
   onAuthorPress,
   onNotePress,
   ownAuthor,
   privacyMode,
+  relays,
   resolvedNote
 }: NoteListRowProps) {
   const profiles = useNostrProfilesStore(
@@ -116,6 +127,16 @@ function NoteListRow({
   const resolvedProfile = resolvedNote
     ? profiles[resolvedNote.pubkey.toLowerCase()]
     : undefined
+  // A repost row is liked and reposted as the note it carries.
+  const engagementTarget = isRepostKind(note.kind)
+    ? (resolvedNote ?? null)
+    : note
+  const engagement = useNostrNoteEngagement({
+    ...engagementSigner,
+    enabled: !privacyMode,
+    note: engagementTarget,
+    relays
+  })
 
   function handleAuthorPress() {
     onAuthorPress?.(authorNpub)
@@ -156,6 +177,22 @@ function NoteListRow({
         mentionProfiles={profiles}
         onPress={handlePress}
         onQuotePress={handleQuotePress}
+        footer={
+          privacyMode ? undefined : (
+            <SSNostrNoteActions
+              canEngage={engagement.canEngage}
+              likeCount={engagement.likeCount}
+              likedByMe={engagement.likedByMe}
+              onLikePress={engagement.handleLikePress}
+              onRepostPress={engagement.handleRepostPress}
+              repostCount={engagement.repostCount}
+              repostedByMe={engagement.repostedByMe}
+              size="sm"
+              style={styles.actions}
+              toggling={engagement.toggling}
+            />
+          )
+        }
       />
     </View>
   )
@@ -172,6 +209,7 @@ function keyExtractor(item: NostrFeedNoteLike) {
  */
 function SSNostrNoteList({
   emptyLabel,
+  engagementSigner,
   fetchNextPage,
   hasNextPage,
   header,
@@ -219,12 +257,14 @@ function SSNostrNoteList({
   function renderItem({ item }: { item: NostrFeedNoteLike }) {
     return (
       <NoteListRow
+        engagementSigner={engagementSigner}
         isPrivate={privateIds.has(item.id)}
         note={item}
         onAuthorPress={onAuthorPress}
         onNotePress={onNotePress}
         ownAuthor={ownAuthor}
         privacyMode={privacyMode}
+        relays={relays}
         resolvedNote={getResolvedQuotedNote(item, resolved)}
       />
     )
@@ -263,6 +303,9 @@ function SSNostrNoteList({
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    marginBottom: -8
+  },
   decryptedBadge: {
     alignItems: 'center',
     opacity: 0.7
