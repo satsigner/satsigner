@@ -28,7 +28,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
 const ANIMATED_QR_CHUNK_SIZE = 200
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800]
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 100,

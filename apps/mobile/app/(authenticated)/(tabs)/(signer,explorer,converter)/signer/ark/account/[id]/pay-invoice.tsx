@@ -19,7 +19,7 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { useZapFlowStore } from '@/store/zapFlow'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { ArkFeeEstimate } from '@/types/models/Ark'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
 import { getBolt11Network } from '@/utils/bolt11Network'
@@ -277,7 +277,7 @@ export const styles = StyleSheet.create({
     padding: 12
   },
   monospace: {
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   totalRightColumn: {
     alignItems: 'flex-end'

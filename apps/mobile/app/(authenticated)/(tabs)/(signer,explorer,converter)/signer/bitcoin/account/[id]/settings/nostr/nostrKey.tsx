@@ -29,7 +29,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     paddingTop: 10
   },
   monoInput: {
-    fontFamily: 'SF-NS-Mono'
+    fontFamily: Typography.geistMonoRegular
   },
   npubActions: {
     flexWrap: 'wrap',

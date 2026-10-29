@@ -18,16 +18,16 @@ import {
   MemoizedYScaleRenderer
 } from '@/components/SSHistoryChartRenderers'
 import { useFiatData } from '@/hooks/useFiatData'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import {
   useHistoryChartGestures,
   useHistoryChartLabels,
   useHistoryChartViewport
 } from '@/hooks/useHistoryChart'
-import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
@@ -379,9 +379,9 @@ function SSHistoryChart({
     ]
   )
 
-  const customFontManager = useSFProFonts()
+  const customFontManager = useGeistFonts()
   const fontStyle = {
-    fontFamily: 'SF Pro Text',
+    fontFamily: Typography.geistSkiaFamily,
     fontSize: 10
   } as const
 

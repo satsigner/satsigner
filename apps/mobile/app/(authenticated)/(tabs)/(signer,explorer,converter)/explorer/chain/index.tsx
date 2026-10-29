@@ -16,7 +16,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { DifficultyAdjustment } from '@/types/models/Blockchain'
 import {
   blocksUntilDifficultyAdjustment,
@@ -286,7 +286,10 @@ function Row({
 
 const styles = StyleSheet.create({
   container: { paddingTop: 0 },
-  hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
+  hashText: {
+    color: Colors.gray['100'],
+    fontFamily: Typography.geistMonoRegular
+  },
   labelText: { color: Colors.gray['400'] },
   linkText: {
     color: Colors.white,
