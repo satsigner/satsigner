@@ -1,79 +1,98 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <title>satsigner</title>
-    <meta name="description" content="A bitcoin first mobile application concept">
-    <meta name="keywords" content="sats, bitcoin, mobile">
+    <meta charset="utf-8">
+    <title>Privacy Policy · satsigner</title>
+    <meta name="description" content="satsigner collects no personal data. Keys and wallet data stay on your device.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-    <link rel="stylesheet" type="text/css" href="../styles.css" media="screen" />
-
-
-    <meta property="og:title" content="SatSigner - A bitcoin first mobile application concept" />
-    <meta property="og:type" content="website" />
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg"/>
-
-    <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-
-
-
-
-
+    <meta property="og:title" content="satsigner Privacy Policy">
+    <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css">
   </head>
   <body>
+    <nav class="page-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt="">SATSIGNER</a>
+      <div class="page-nav-links">
+        <a href="/privacy-policy/" aria-current="page">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/support/">Support</a>
+      </div>
+    </nav>
 
+    <main class="page">
+      <h1>Privacy Policy</h1>
+      <p class="lede">Last updated October 29, 2026</p>
 
-  <div id="header">
-    <img id="logo" src="../imgs/satSigner_symbol.png">
-    <h1>
-      Privacy Policy
-    </h1>
+      <p>This policy describes how the satsigner mobile application (the "App") handles information. satsigner is free, open-source software. Anyone can audit the source code at <a href="https://github.com/satsigner/satsigner">github.com/satsigner/satsigner</a>.</p>
 
+      <div class="callout">
+        <strong>Summary:</strong> We do not collect, store, sell, or share any personal data. The App has no accounts, no analytics, no advertising, and no crash reporting. Your keys and wallet data stay on your device.
+      </div>
 
-    <div style="text-align:left; max-width:600px; margin:auto">
-    Last updated Friday, April 18, 2025<br><br>
+      <h2>1. Information we collect</h2>
+      <p>None. The App does not send any information to satsigner or its developers. The App contains no tracking technology, analytics SDKs, advertising identifiers, or third-party crash reporters.</p>
 
-    This SatSigner Privacy Notice describes the privacy practices that are applicable to your use of the SatSigner mobile application (the "App").
-    <br><br>
-    <b>1. Privacy Practices</b>
-    <br>
-    SatSigner is designed to be used in a decentralized, privacy-focused manner. We do not collect, use, maintain, or share any personal information about you when you use the App. We do not use any tracking technology to track your use of the App, nor do we allow third parties to collect personal information about you or track your use of the App.
-    <br>
-    No aggregated data or basic usage events for analytics and application crashes are collected. Any information that you provide to us when you communicate with our technical support will only be used for purposes of addressing your specific support request.
-    <br>
-    All sensitive data, including private keys and transaction information, is stored locally on your device. We do not have access to this information.
-    <br>
-    IP addresses, transaction, and price data may be collected when accessing optional remote services (such as mempool.space, Electrs, or Explora servers). Connect to your own node to mitigate the risk of data collection.
+      <h2>2. Data stored on your device</h2>
+      <p>The App stores the following locally on your device. None of it reaches us:</p>
+      <ul>
+        <li>Seed phrases, private keys, and extended public keys. These are encrypted at rest with your PIN and the device's secure storage.</li>
+        <li>Wallet descriptors, addresses, transactions, UTXOs, and labels.</li>
+        <li>App settings, such as server choices, currency, and display preferences.</li>
+      </ul>
+      <p>If you delete the App, this data is deleted too. Keep your own backup of your seed phrase. We cannot recover it for you.</p>
 
-    <br><br>
-    <b>2. Third Party App Stores</b>
-    <br>
-    If you purchase or access the App through a third party app store, such as the App Store or Google Play (an "App Store"), you will have a separate, additional account relationship with that App Store. The information you provide to that App Store will be handled in accordance with the privacy practices of the applicable App Store. App Stores are not partners or representatives of SatSigner, and we are not responsible for the acts or omissions of an App Store with regard to the collection, use, maintenance, or disclosure of your information.
+      <h2>3. Network services you connect to</h2>
+      <p>A Bitcoin wallet has to talk to the network to work. The App connects directly from your device to the services below. It never routes traffic through satsigner servers, and we run none of them. Each operator can see your IP address and the data your request needs. For example, a blockchain server sees which addresses or transactions you look up. You can change most of these in Settings, or point them at your own node to remove the third party.</p>
+      <table>
+        <thead><tr><th>Service</th><th>Used for</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td>Electrum / Esplora server</td><td>Wallet sync, fee estimates, broadcasting transactions</td><td>Public servers such as mempool.space and blockstream.info, or your own node</td></tr>
+          <tr><td>Mempool API</td><td>Fiat prices, fee and network charts</td><td>mempool.space or your configured server</td></tr>
+          <tr><td>Nostr relays</td><td>Optional encrypted label sync and messaging</td><td>Public relays you choose</td></tr>
+          <tr><td>Blossom media servers</td><td>Optional file uploads for Nostr</td><td>Servers you choose</td></tr>
+          <tr><td>Payjoin directory and OHTTP relay</td><td>Optional Payjoin (BIP77/BIP78) transactions</td><td>payjo.in and public OHTTP relays</td></tr>
+          <tr><td>Lightning (LND) node</td><td>Optional Lightning payments</td><td>Only a node you connect</td></tr>
+          <tr><td>Cashu mints</td><td>Optional eCash</td><td>Only mints you add</td></tr>
+          <tr><td>Ark server</td><td>Optional Ark payments</td><td>Ark servers you choose</td></tr>
+          <tr><td>Bitnodes</td><td>Optional node explorer statistics</td><td>bitnodes.io</td></tr>
+        </tbody>
+      </table>
+      <p>These operators have their own privacy practices, which we do not control. Data you publish to Nostr relays may be public and permanent. The App encrypts label sync messages before sending them.</p>
 
-    <br><br>
-    <b>3. No Use by Children</b><br>
-    The App is not intended for use by children under the age of thirteen (13). If you are under the age of thirteen (13), please do not use the App.
+      <h2>4. Device permissions</h2>
+      <ul>
+        <li><strong>Camera:</strong> scans QR codes for addresses, invoices, PSBTs, and wallet backups. Images are processed on the device and never stored or sent.</li>
+        <li><strong>NFC:</strong> reads and writes PSBTs and keys with NFC tags and hardware signers.</li>
+        <li><strong>Face ID / Touch ID:</strong> optionally unlocks the App. Biometric data is handled by iOS and never accessible to the App.</li>
+      </ul>
+      <p>Each permission is optional and requested only when you use the feature.</p>
 
-    <br><br>
-    <b>4. Modifications to this Privacy Notice</b><br>
-    We will notify you of material changes to this Privacy Notice by posting the modified privacy notice on the App at least thirty (30) days before the effective date of the changes. If you do not agree to the changes, you should discontinue your use of the App prior to the time the modified privacy notice takes effect. If you continue using the App after the modified privacy notice takes effect, you will be bound by the modified privacy notice.
+      <h2>5. App stores</h2>
+      <p>If you download the App from the Apple App Store, Google Play, Zapstore, or another store, that store may collect information under its own privacy policy. App stores are not partners of satsigner, and we are not responsible for their practices.</p>
 
-    <br><br>
-    <b>5. How to Contact Us</b><br>
-    If you have any questions about this Privacy Notice, please contact us at p@pedromvpg.com.
-    </div>
-  </div>
+      <h2>6. Support requests</h2>
+      <p>If you contact us by email, GitHub, or Nostr, we use what you send only to answer you. Email is hosted by <a href="https://proton.me/mail">Proton Mail</a>, which stores it with zero-access encryption. For end-to-end encrypted contact, message <code>satsigner@satsigner.com</code> on Nostr. Never send your seed phrase or private keys to anyone, including us.</p>
 
+      <h2>7. Children</h2>
+      <p>The App is not directed at children under 13, and we knowingly collect no information from anyone.</p>
 
+      <h2>8. Changes</h2>
+      <p>We will post any changes to this policy on this page and update the date above. Material changes will also be noted in the App's release notes.</p>
 
+      <h2>9. Contact</h2>
+      <p>Questions about this policy: <a href="mailto:satsigner@protonmail.com">satsigner@protonmail.com</a>.</p>
+    </main>
 
-
-
-
+    <footer class="page-footer">
+      <span>© 2026 satsigner</span>
+      <a href="/privacy-policy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/support/">Support</a>
+      <a href="https://github.com/satsigner/satsigner">GitHub</a>
+    </footer>
   </body>
 </html>

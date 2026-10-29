@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Support · satsigner</title>
+    <meta name="description" content="Get help with satsigner: FAQ, bug reports, and contact.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="satsigner Support">
+    <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css">
+  </head>
+  <body>
+    <nav class="page-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt="">SATSIGNER</a>
+      <div class="page-nav-links">
+        <a href="/privacy-policy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/support/" aria-current="page">Support</a>
+      </div>
+    </nav>
+
+    <main class="page">
+      <h1>Support</h1>
+      <p class="lede">Help with the satsigner app.</p>
+
+      <div class="callout">
+        <strong>Never share your seed phrase or private keys.</strong> No one from satsigner will ever ask for them. Anyone who does is trying to steal your bitcoin.
+      </div>
+
+      <h2>Get in touch</h2>
+      <ul>
+        <li><strong>Report a bug or request a feature:</strong> <a href="https://github.com/satsigner/satsigner/issues">GitHub issues</a></li>
+        <li><strong>Report a security vulnerability:</strong> follow our <a href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md">security policy</a>. Please do not open a public issue.</li>
+        <li><strong>Email:</strong> <a href="mailto:satsigner@protonmail.com">satsigner@protonmail.com</a></li>
+        <li><strong>Private, end-to-end encrypted:</strong> message <code>satsigner@satsigner.com</code> on Nostr, by direct message or from <a href="https://app.nostrmail.org">Nmail</a>.</li>
+        <li><strong>Nostr:</strong> <a href="https://njump.me/npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn">satsigner</a></li>
+        <li><strong>TestFlight testers:</strong> take a screenshot in the app and use Send Beta Feedback, or open TestFlight and tap Send Feedback.</li>
+      </ul>
+
+      <h2>FAQ</h2>
+
+      <h3>I lost my phone. Can you recover my wallet?</h3>
+      <p>No. satsigner is self-custody software, and we never have your keys. Restore your wallet on a new device with your seed phrase, or with your multisig descriptor and enough cosigner keys.</p>
+
+      <h3>I forgot my PIN.</h3>
+      <p>The PIN encrypts your keys on the device, and nobody can reset it. Delete and reinstall the App, then restore from your seed phrase.</p>
+
+      <h3>My balance or transactions look wrong.</h3>
+      <p>Pull down to sync the account. If that doesn't help, go to Settings → Network and try a different Electrum or Esplora server. A wrong script type or derivation path at import can also hide funds. Check those in the account settings.</p>
+
+      <h3>Can I use my own node?</h3>
+      <p>Yes. In Settings → Network, enter your own Electrum or Esplora server. This keeps your address lookups private.</p>
+
+      <h3>My transaction is stuck.</h3>
+      <p>If you sent it with Replace-By-Fee, open the transaction and bump the fee. You can also spend one of its outputs with a higher fee (CPFP).</p>
+
+      <h3>Does satsigner collect my data?</h3>
+      <p>No. See the <a href="/privacy-policy/">Privacy Policy</a>.</p>
+
+      <h3>Where is the source code?</h3>
+      <p><a href="https://github.com/satsigner/satsigner">github.com/satsigner/satsigner</a>, under the MIT License.</p>
+    </main>
+
+    <footer class="page-footer">
+      <span>© 2026 satsigner</span>
+      <a href="/privacy-policy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/support/">Support</a>
+      <a href="https://github.com/satsigner/satsigner">GitHub</a>
+    </footer>
+  </body>
+</html>
