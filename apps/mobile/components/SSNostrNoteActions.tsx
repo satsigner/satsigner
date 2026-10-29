@@ -2,6 +2,7 @@ import { type ReactNode } from 'react'
 import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native'
 
 import SSIconHeart from '@/components/icons/SSIconHeart'
+import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSIconRepost from '@/components/icons/SSIconRepost'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
@@ -10,11 +11,20 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 const ACTION_HIT_SLOP = 6
+const ZAP_LONG_PRESS_DELAY_MS = 400
+const ICON_STROKE_WIDTH = 1.5
 
 const ICON_SIZE = {
   md: 20,
   sm: 18
 } as const
+
+type ZapAction = {
+  canZap: boolean
+  onLongPress: () => void
+  onPress: () => void
+  zapping: boolean
+}
 
 type SSNostrNoteActionsProps = {
   canEngage: boolean
@@ -29,6 +39,7 @@ type SSNostrNoteActionsProps = {
   size?: keyof typeof ICON_SIZE
   style?: StyleProp<ViewStyle>
   toggling: boolean
+  zap?: ZapAction
 }
 
 function ActionCount({
@@ -62,7 +73,8 @@ function SSNostrNoteActions({
   showCounts = true,
   size = 'md',
   style,
-  toggling
+  toggling,
+  zap
 }: SSNostrNoteActionsProps) {
   const iconSize = ICON_SIZE[size]
   const disabled = !canEngage || toggling
@@ -116,6 +128,26 @@ function SSNostrNoteActions({
           visible={showCounts}
         />
       </SSIconButton>
+      {zap ? (
+        <SSIconButton
+          accessibilityHint={t('nostrIdentity.note.zapLongPressHint')}
+          accessibilityLabel={t('nostrIdentity.note.zap')}
+          accessibilityState={{ busy: zap.zapping, disabled: !zap.canZap }}
+          delayLongPress={ZAP_LONG_PRESS_DELAY_MS}
+          disabled={!zap.canZap || zap.zapping}
+          hitSlop={ACTION_HIT_SLOP}
+          onLongPress={zap.onLongPress}
+          onPress={zap.onPress}
+          style={styles.action}
+        >
+          <SSIconLightning
+            width={iconSize}
+            height={iconSize}
+            stroke={zap.zapping ? Colors.gold : Colors.gray[300]}
+            strokeWidth={ICON_STROKE_WIDTH}
+          />
+        </SSIconButton>
+      ) : null}
       {children}
     </SSHStack>
   )

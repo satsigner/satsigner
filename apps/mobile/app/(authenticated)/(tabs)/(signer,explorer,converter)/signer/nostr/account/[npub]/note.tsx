@@ -1,9 +1,8 @@
-import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -22,7 +21,6 @@ import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
 import SSIconQR from '@/components/icons/SSIconQR'
-import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
@@ -35,18 +33,16 @@ import {
 import SSNostrNoteActions from '@/components/SSNostrNoteActions'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
+import SSNostrZapSheets from '@/components/SSNostrZapSheets'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
-  NOSTR_PROFILE_QUERY_STALE_TIME_MS,
-  NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
-  NOSTR_ZAP_DEFAULT_PRESETS
+  NOSTR_PROFILE_QUERY_STALE_TIME_MS
 } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
@@ -57,18 +53,15 @@ import {
 import { useNostrNoteZapsFetch } from '@/hooks/useNostrNoteZapsFetch'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import { useNostrProfilesFetch } from '@/hooks/useNostrProfilesFetch'
+import { useNostrZapFlow } from '@/hooks/useNostrZapFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useArkStore } from '@/store/ark'
-import { useEcashStore } from '@/store/ecash'
-import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useNostrProfilesStore } from '@/store/nostrProfiles'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import type {
   NostrDecodedContent,
@@ -77,7 +70,6 @@ import type {
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
-import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { getDecodedContentRelays } from '@/utils/nostrDecodedContent'
@@ -110,10 +102,8 @@ import { extractPollInfo, isPollExpired } from '@/utils/nostrPoll'
 import {
   applyZapProfiles,
   countQualifyingZaps,
-  initiateZap,
   sortZapReceipts
 } from '@/utils/nostrZap'
-import { buildPaymentMethods } from '@/utils/paymentMethods'
 
 const NO_ZAP_RECEIPTS: ZapReceiptInfo[] = []
 const NO_PUBKEYS: string[] = []
@@ -144,17 +134,7 @@ export default function NostrNotePage() {
   const [manualSearching, setManualSearching] = useState(false)
   const [triedHints, setTriedHints] = useState(false)
   const [triedBroadSearch, setTriedBroadSearch] = useState(false)
-  const paymentSheetRef = useRef<BottomSheetMethods>(null)
-  const [payAmount, setPayAmount] = useState(0)
   const [customAmount, setCustomAmount] = useState('')
-  const [zapLoading, setZapLoading] = useState(false)
-  const pendingInvoiceRef = useRef<{
-    invoice: string
-    zapRequestJson: string
-  } | null>(null)
-  const zapSheetRef = useRef<BottomSheetMethods>(null)
-  const [sheetCustomAmount, setSheetCustomAmount] = useState('')
-  const [sheetZapComment, setSheetZapComment] = useState('')
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
   const [formatMarkdownByNoteId, setFormatMarkdownByNoteId] = useState<
@@ -165,38 +145,11 @@ export default function NostrNotePage() {
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
-  const zapPrefs = identity?.zapPreferences
-  const zapPresets = zapPrefs?.presetAmounts ?? NOSTR_ZAP_DEFAULT_PRESETS
-  const oneTapAmount =
-    zapPrefs?.oneTapAmount ?? NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
-
-  const lightningConfig = useLightningStore((state) => state.config)
-  const lightningNodeAlias = useLightningStore(
-    (state) => state.status.nodeInfo?.alias
-  )
-  const ecashAccounts = useEcashStore((state) => state.accounts)
-  const ecashAllMints = useEcashStore((state) => state.mints)
-  const setEcashActiveAccountId = useEcashStore(
-    (state) => state.setActiveAccountId
-  )
-  const arkAccounts = useArkStore((state) => state.accounts)
-
-  const pendingZap = useZapFlowStore((state) => state.pendingZap)
-  const zapResult = useZapFlowStore((state) => state.zapResult)
-  const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
-  const setZapResult = useZapFlowStore((state) => state.setZapResult)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
-
-  const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
-    ecashAccounts,
-    ecashAllMints,
-    arkAccounts
-  )
 
   const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
   const [ownPubkeys] = useState<string[]>(() =>
@@ -253,6 +206,14 @@ export default function NostrNotePage() {
     applyZapProfiles(receipt, (pk) => storeProfiles[pk.toLowerCase()])
   )
   const zapReceiptsLoading = zapsQuery.isLoading
+  const zapFlow = useNostrZapFlow({
+    identity,
+    npub: npub ?? '',
+    onZapSuccess: () => {
+      void zapsQuery.refetch()
+    },
+    relays: effectiveRelays
+  })
 
   const quotedEventId = noteEvent
     ? (getResolvedEventId({ ...noteEvent, id: noteEventId }) ?? '')
@@ -319,22 +280,6 @@ export default function NostrNotePage() {
       toast.error(t('nostrIdentity.account.eventNotFound'))
     }
   }
-
-  useEffect(() => {
-    if (zapResult === 'success' && pendingZap) {
-      toast.success(
-        `${t('nostrIdentity.note.zapSuccess')} (${
-          privacyMode ? NOSTR_PRIVACY_MASK : pendingZap.amountSats
-        } sats)`
-      )
-      void zapsQuery.refetch()
-      clearPendingZap()
-      setZapResult(null)
-    } else if (zapResult === 'cancelled') {
-      clearPendingZap()
-      setZapResult(null)
-    }
-  }, [zapResult, privacyMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pubpayTags = extractPubpayTags(fetched?.tags ?? [])
 
@@ -521,160 +466,42 @@ export default function NostrNotePage() {
     setBookmarkModalVisible(true)
   }
 
-  async function handleZap(amountSats: number, comment?: string) {
-    if (!amountSats || amountSats <= 0) {
-      return
-    }
-    if (availablePaymentMethods.length === 0) {
-      return
-    }
-
-    if (!effectiveLud16) {
-      toast.error(t('nostrIdentity.note.zapEndpointNotFound'))
-      return
-    }
-
-    if (!identity?.nsec) {
-      toast.error(t('nostrIdentity.error.missingKeys'))
-      return
-    }
-
-    if (!fetched) {
-      return
-    }
-
-    setZapLoading(true)
-    try {
-      const { invoice, zapRequestJson } = await initiateZap({
-        amountSats,
-        comment,
-        eventIdHex: decoded?.data,
-        eventKind: fetched.kind,
-        eventTags: fetched.tags,
-        recipientLud16: effectiveLud16,
-        recipientPubkeyHex: fetched.pubkey,
-        relays: effectiveRelays,
-        senderNsec: identity.nsec
-      })
-
-      setZapLoading(false)
-      pendingInvoiceRef.current = { invoice, zapRequestJson }
-
-      if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
-        const autoWallet = availablePaymentMethods.find(
-          (m) => m.id === zapPrefs.autoApproveWalletId
-        )
-        if (autoWallet) {
-          navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
-          return
+  const zapTarget =
+    fetched && decoded?.data
+      ? {
+          id: decoded.data,
+          kind: fetched.kind,
+          lud16: effectiveLud16,
+          pubkey: fetched.pubkey,
+          tags: fetched.tags
         }
-      }
-
-      if (availablePaymentMethods.length === 1) {
-        navigateToPayment(
-          availablePaymentMethods[0],
-          invoice,
-          zapRequestJson,
-          amountSats
-        )
-        return
-      }
-
-      setPayAmount(amountSats)
-      paymentSheetRef.current?.snapToIndex(0)
-    } catch (error) {
-      setZapLoading(false)
-      toast.error(
-        `${t('nostrIdentity.note.zapFailed')}: ${getNostrErrorMessage(error)}`
-      )
-    }
-  }
-
-  function navigateToPayment(
-    method: PaymentMethod,
-    invoice?: string,
-    zapRequestJson?: string,
-    amountSats?: number
-  ) {
-    paymentSheetRef.current?.close()
-
-    const pending = pendingInvoiceRef.current
-    const bolt11 = invoice || pending?.invoice
-    const reqJson = zapRequestJson || pending?.zapRequestJson || ''
-    const sats = amountSats ?? payAmount
-    pendingInvoiceRef.current = null
-
-    if (bolt11 && npub && nostrUri) {
-      useZapFlowStore.getState().setPendingZap({
-        amountSats: sats,
-        invoice: bolt11,
-        nostrUri,
-        noteNpub: npub,
-        paymentMethod: method,
-        zapRequestJson: reqJson
-      })
-    }
-
-    if (method.type === 'lightning') {
-      router.navigate({
-        params: bolt11 ? { invoice: bolt11 } : undefined,
-        pathname: '/signer/lightning/pay'
-      })
-    } else if (method.type === 'ecash') {
-      if (method.accountId) {
-        setEcashActiveAccountId(method.accountId)
-      }
-      router.navigate({
-        params: bolt11 ? { invoice: bolt11 } : undefined,
-        pathname: '/signer/ecash/send'
-      })
-    } else if (method.type === 'ark' && method.accountId && bolt11) {
-      router.navigate({
-        params: {
-          amountSats: String(sats),
-          id: method.accountId,
-          invoice: bolt11
-        },
-        pathname: '/signer/ark/account/[id]/pay-invoice'
-      })
-    }
-  }
+      : null
 
   function handleAmountSelected(sats: number) {
     setCustomAmount('')
-    handleZap(sats)
+    if (zapTarget) {
+      void zapFlow.zap(zapTarget, sats)
+    }
   }
 
   function handleCustomAmountSubmit() {
     const sats = Number.parseInt(customAmount, 10)
-    if (!sats || sats <= 0) {
+    if (!sats || sats <= 0 || !zapTarget) {
       return
     }
-    handleZap(sats)
+    void zapFlow.zap(zapTarget, sats)
   }
 
   function handleOneTapZap() {
-    handleZap(oneTapAmount)
+    if (zapTarget) {
+      zapFlow.zapOneTap(zapTarget)
+    }
   }
 
   function handleOpenZapSheet() {
-    setSheetCustomAmount('')
-    setSheetZapComment('')
-    zapSheetRef.current?.snapToIndex(0)
-  }
-
-  function handleSheetAmountSelected(sats: number) {
-    zapSheetRef.current?.close()
-    handleZap(sats, sheetZapComment || undefined)
-  }
-
-  function handleSheetCustomSubmit() {
-    const sats = Number.parseInt(sheetCustomAmount, 10)
-    if (!sats || sats <= 0) {
-      return
+    if (zapTarget) {
+      zapFlow.openZapOptions(zapTarget)
     }
-    zapSheetRef.current?.close()
-    handleZap(sats, sheetZapComment || undefined)
   }
 
   function handleZapSortPress(field: 'date' | 'amount') {
@@ -1030,6 +857,12 @@ export default function NostrNotePage() {
                 showCounts={!privacyMode}
                 style={styles.actionRow}
                 toggling={engagement.toggling}
+                zap={{
+                  canZap: zapFlow.canZap && Boolean(effectiveLud16),
+                  onLongPress: handleOpenZapSheet,
+                  onPress: handleOneTapZap,
+                  zapping: zapFlow.zapping
+                }}
               >
                 <SSHStack gap="none" style={styles.actionRowEnd}>
                   <SSIconButton
@@ -1203,7 +1036,7 @@ export default function NostrNotePage() {
               </SSVStack>
             ) : null}
 
-            {fetched && availablePaymentMethods.length > 0 && (
+            {fetched && zapFlow.sheets.paymentMethods.length > 0 && (
               <SSVStack gap="sm">
                 {profileLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
@@ -1287,7 +1120,7 @@ export default function NostrNotePage() {
                       <SSButton
                         label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin?.toLocaleString()} sats`}
                         variant="secondary"
-                        disabled={zapLoading || !effectiveLud16}
+                        disabled={zapFlow.zapping || !effectiveLud16}
                         onPress={() =>
                           handleAmountSelected(enhancedZap.zapMin!)
                         }
@@ -1318,7 +1151,7 @@ export default function NostrNotePage() {
                             <SSPressable
                               key={sats}
                               style={styles.presetButton}
-                              disabled={zapLoading || !effectiveLud16}
+                              disabled={zapFlow.zapping || !effectiveLud16}
                               onPress={() => handleAmountSelected(sats)}
                               activeOpacity={0.6}
                             >
@@ -1354,7 +1187,7 @@ export default function NostrNotePage() {
                           }
                           variant="secondary"
                           disabled={
-                            zapLoading ||
+                            zapFlow.zapping ||
                             !effectiveLud16 ||
                             !customAmount ||
                             Number.parseInt(customAmount, 10) <
@@ -1389,7 +1222,7 @@ export default function NostrNotePage() {
                             <SSButton
                               label={t('nostrIdentity.note.zap')}
                               variant="secondary"
-                              disabled={zapLoading || !effectiveLud16}
+                              disabled={zapFlow.zapping || !effectiveLud16}
                               onPress={() => handleAmountSelected(tag.amount)}
                               style={styles.zapButton}
                             />
@@ -1409,11 +1242,11 @@ export default function NostrNotePage() {
                             privacyMode
                               ? `${NOSTR_PRIVACY_MASK} sats`
                               : t('nostrIdentity.note.zapOneTap', {
-                                  amount: oneTapAmount
+                                  amount: zapFlow.oneTapAmount
                                 })
                           }
                           variant="outline"
-                          disabled={zapLoading}
+                          disabled={zapFlow.zapping}
                           onPress={handleOneTapZap}
                           onLongPress={handleOpenZapSheet}
                           delayLongPress={400}
@@ -1422,7 +1255,7 @@ export default function NostrNotePage() {
                         <SSButton
                           label={t('nostrIdentity.note.more')}
                           variant="outline"
-                          disabled={zapLoading}
+                          disabled={zapFlow.zapping}
                           onPress={handleOpenZapSheet}
                           style={{ flex: 1 }}
                         />
@@ -1437,7 +1270,7 @@ export default function NostrNotePage() {
                   </>
                 )}
 
-                {zapLoading && (
+                {zapFlow.zapping && (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
                     <SSText size="sm" color="muted">
@@ -1716,13 +1549,11 @@ export default function NostrNotePage() {
         </ScrollView>
       )}
 
-      <SSPaymentMethodPicker
-        ref={paymentSheetRef}
-        onSelect={(method) => navigateToPayment(method)}
-        methods={availablePaymentMethods}
-        amountSats={payAmount}
+      <SSNostrZapSheets
+        {...zapFlow.sheets}
         btcPrice={btcPrice}
         fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
 
       <SSModal
@@ -1792,61 +1623,6 @@ export default function NostrNotePage() {
           </SSShareableQR>
         </SSVStack>
       </SSModal>
-
-      <SSBottomSheet
-        ref={zapSheetRef}
-        title={t('nostrIdentity.note.zapChooseAmount')}
-      >
-        <SSVStack gap="sm" style={styles.sheetContent}>
-          <SSHStack gap="sm">
-            {zapPresets.map((sats) => (
-              <SSButton
-                key={sats}
-                label={privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
-                variant="outline"
-                onPress={() => handleSheetAmountSelected(sats)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </SSHStack>
-          <TextInput
-            style={styles.customInput}
-            placeholderTextColor={Colors.gray[500]}
-            placeholder={t('nostrIdentity.note.customAmount')}
-            keyboardType="number-pad"
-            value={sheetCustomAmount}
-            onChangeText={setSheetCustomAmount}
-            returnKeyType="next"
-          />
-          <TextInput
-            style={styles.customInput}
-            placeholderTextColor={Colors.gray[500]}
-            placeholder={t('nostrIdentity.note.zapCommentPlaceholder')}
-            value={sheetZapComment}
-            onChangeText={setSheetZapComment}
-            returnKeyType="done"
-            onSubmitEditing={handleSheetCustomSubmit}
-          />
-          <SSButton
-            label={
-              sheetCustomAmount && Number.parseInt(sheetCustomAmount, 10) > 0
-                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : Number.parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
-                : t('nostrIdentity.note.zap')
-            }
-            variant="gradient"
-            gradientType="special"
-            disabled={
-              !sheetCustomAmount || Number.parseInt(sheetCustomAmount, 10) <= 0
-            }
-            onPress={handleSheetCustomSubmit}
-          />
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => zapSheetRef.current?.close()}
-          />
-        </SSVStack>
-      </SSBottomSheet>
     </SSMainLayout>
   )
 }
@@ -2141,9 +1917,6 @@ const styles = StyleSheet.create({
   },
   retrySection: {
     width: '100%'
-  },
-  sheetContent: {
-    paddingBottom: 24
   },
   tagTypeBadge: {
     backgroundColor: Colors.gray[800],

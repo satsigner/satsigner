@@ -1,5 +1,9 @@
 import type { ArkAccount } from '@/types/models/Ark'
-import { buildPaymentMethods } from '@/utils/paymentMethods'
+import {
+  buildPaymentMethods,
+  getAutoPaymentMethod,
+  getInvoicePayRoute
+} from '@/utils/paymentMethods'
 
 const arkAccount = (overrides: Partial<ArkAccount> = {}): ArkAccount => ({
   bitcoinAccountId: null,
@@ -70,5 +74,93 @@ describe('buildPaymentMethods', () => {
     expect(() =>
       buildPaymentMethods({ url: 'https://lnd.example' }, [])
     ).not.toThrow()
+  })
+})
+
+describe('getAutoPaymentMethod', () => {
+  const lightning = {
+    id: 'lightning',
+    label: 'Node',
+    type: 'lightning' as const
+  }
+  const ecash = {
+    accountId: 'e1',
+    id: 'ecash-e1',
+    label: 'Mint',
+    type: 'ecash' as const
+  }
+  const autoEcash = {
+    autoApprove: true,
+    autoApproveWalletId: 'ecash-e1',
+    oneTapAmount: 21,
+    presetAmounts: [21]
+  }
+
+  it('uses the auto-approve wallet when it still exists', () => {
+    expect(getAutoPaymentMethod([lightning, ecash], autoEcash)).toBe(ecash)
+  })
+
+  it('asks when the auto-approve wallet is gone and there is a choice', () => {
+    expect(
+      getAutoPaymentMethod([lightning, { ...ecash, id: 'ecash-e2' }], autoEcash)
+    ).toBeNull()
+  })
+
+  it('ignores the saved wallet when auto-approve is off', () => {
+    expect(
+      getAutoPaymentMethod([lightning, ecash], {
+        ...autoEcash,
+        autoApprove: false
+      })
+    ).toBeNull()
+  })
+
+  it('uses the only wallet without asking', () => {
+    expect(getAutoPaymentMethod([lightning])).toBe(lightning)
+  })
+
+  it('returns nothing when there is no wallet', () => {
+    expect(getAutoPaymentMethod([])).toBeNull()
+  })
+})
+
+describe('getInvoicePayRoute', () => {
+  it('routes each wallet type to its pay screen', () => {
+    expect(
+      getInvoicePayRoute(
+        { id: 'lightning', label: 'Node', type: 'lightning' },
+        'lnbc1',
+        21
+      )
+    ).toStrictEqual({
+      params: { invoice: 'lnbc1' },
+      pathname: '/signer/lightning/pay'
+    })
+    expect(
+      getInvoicePayRoute(
+        { accountId: 'e1', id: 'ecash-e1', label: 'Mint', type: 'ecash' },
+        'lnbc1',
+        21
+      )
+    ).toStrictEqual({
+      params: { invoice: 'lnbc1' },
+      pathname: '/signer/ecash/send'
+    })
+    expect(
+      getInvoicePayRoute(
+        { accountId: 'a1', id: 'ark-a1', label: 'Ark', type: 'ark' },
+        'lnbc1',
+        21
+      )
+    ).toStrictEqual({
+      params: { amountSats: '21', id: 'a1', invoice: 'lnbc1' },
+      pathname: '/signer/ark/account/[id]/pay-invoice'
+    })
+  })
+
+  it('has no route for an Ark wallet without an account', () => {
+    expect(
+      getInvoicePayRoute({ id: 'ark', label: 'Ark', type: 'ark' }, 'lnbc1', 21)
+    ).toBeNull()
   })
 })

@@ -16,6 +16,7 @@ import { NOSTR_FEED_END_REACHED_THRESHOLD } from '@/constants/nostr'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
 import { useNostrVideoAutoplay } from '@/hooks/useNostrVideoAutoplay'
 import { useNostrVisibleItemsTrack } from '@/hooks/useNostrVisibleItemsTrack'
+import { type NostrZapTarget } from '@/hooks/useNostrZapFlow'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import {
@@ -44,9 +45,17 @@ type OwnAuthorFallback = {
   pubkey: string
 }
 
+type NoteListZap = {
+  canZap: boolean
+  onZap: (target: NostrZapTarget) => void
+  onZapOptions: (target: NostrZapTarget) => void
+  zapping: boolean
+}
+
 type NoteRowHandlers = {
   onAuthorPress?: (authorNpub: string) => void
   onNotePress?: (payload: NostrNotePressPayload) => void
+  zap?: NoteListZap
 }
 
 type NoteListRowProps = NoteRowHandlers & {
@@ -112,7 +121,8 @@ function NoteListRow({
   ownAuthor,
   privacyMode,
   relays,
-  resolvedNote
+  resolvedNote,
+  zap
 }: NoteListRowProps) {
   const profiles = useNostrProfilesStore(
     useShallow((state) =>
@@ -131,6 +141,26 @@ function NoteListRow({
   const engagementTarget = isRepostKind(note.kind)
     ? (resolvedNote ?? null)
     : note
+  const zapLud16 = engagementTarget
+    ? profiles[engagementTarget.pubkey.toLowerCase()]?.lud16
+    : undefined
+  const zapTarget =
+    engagementTarget && zapLud16
+      ? { ...engagementTarget, lud16: zapLud16 }
+      : null
+
+  function handleZapPress() {
+    if (zapTarget) {
+      zap?.onZap(zapTarget)
+    }
+  }
+
+  function handleZapLongPress() {
+    if (zapTarget) {
+      zap?.onZapOptions(zapTarget)
+    }
+  }
+
   const engagement = useNostrNoteEngagement({
     ...engagementSigner,
     enabled: !privacyMode,
@@ -190,6 +220,16 @@ function NoteListRow({
               size="sm"
               style={styles.actions}
               toggling={engagement.toggling}
+              zap={
+                zap
+                  ? {
+                      canZap: zap.canZap && zapTarget !== null,
+                      onLongPress: handleZapLongPress,
+                      onPress: handleZapPress,
+                      zapping: zap.zapping
+                    }
+                  : undefined
+              }
             />
           )
         }
@@ -222,7 +262,8 @@ function SSNostrNoteList({
   privacyMode,
   privateIds,
   relays,
-  resolved
+  resolved,
+  zap
 }: SSNostrNoteListProps) {
   function getNotePubkeys(note: NostrFeedNoteLike) {
     return getNoteProfilePubkeys(note, getResolvedQuotedNote(note, resolved))
@@ -266,6 +307,7 @@ function SSNostrNoteList({
         privacyMode={privacyMode}
         relays={relays}
         resolvedNote={getResolvedQuotedNote(item, resolved)}
+        zap={zap}
       />
     )
   }
@@ -322,4 +364,4 @@ const styles = StyleSheet.create({
 })
 
 export default SSNostrNoteList
-export type { NostrNotePressPayload, OwnAuthorFallback }
+export type { NoteListZap, NostrNotePressPayload, OwnAuthorFallback }
