@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Release Kit · satsigner</title>
+    <meta name="description" content="Everything satsigner needs for TestFlight and App Store submission.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css">
+    <link rel="stylesheet" href="release.css">
+  </head>
+  <body>
+    <nav class="page-nav kit-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt="">SATSIGNER</a>
+      <div class="page-nav-links">
+        <a href="#blockers">Blockers</a>
+        <a href="#checklist">Checklist</a>
+        <a href="#listing">Listing</a>
+        <a href="#compliance">Compliance</a>
+        <a href="#graphics">Graphics</a>
+      </div>
+    </nav>
+
+    <main class="page kit">
+      <h1>Release Kit</h1>
+      <p class="lede" id="kit-meta"></p>
+
+      <div class="kit-progress" id="kit-progress">
+        <div class="kit-progress-bar"><i></i></div>
+        <span></span>
+      </div>
+
+      <section id="pages">
+        <h2>Public pages</h2>
+        <p class="kit-hint">App Store Connect links to these. Each one must load over HTTPS before you submit.</p>
+        <ul class="kit-pages" id="kit-pages"></ul>
+      </section>
+
+      <section id="blockers">
+        <h2>Fix before uploading</h2>
+        <p class="kit-hint">Found in the app repo (<code>apps/mobile</code>). These can get a build rejected.</p>
+        <div id="kit-blockers"></div>
+      </section>
+
+      <section id="checklist">
+        <h2>Checklist</h2>
+        <p class="kit-hint">Ticks are saved in this browser only.</p>
+        <div id="kit-checklist"></div>
+      </section>
+
+      <section id="listing">
+        <h2>Listing copy</h2>
+        <p class="kit-hint">Edit the source in <code>release/data.js</code>. Edits here are saved in this browser only, so you can draft before committing.</p>
+        <div id="kit-fields"></div>
+      </section>
+
+      <section id="compliance">
+        <h2>Compliance answers</h2>
+        <div id="kit-compliance"></div>
+        <h3>Info.plist purpose strings</h3>
+        <div id="kit-purpose"></div>
+      </section>
+
+      <section id="graphics">
+        <h2>Graphics</h2>
+        <p class="kit-hint">Screenshots are rendered from the live Studio prototype. Open the composer to preview them, then export PNGs with <code>node release/tools/export-shots.mjs</code>.</p>
+        <div id="kit-formats"></div>
+        <p><a class="kit-button" href="shots.html">Open screenshot composer</a></p>
+      </section>
+    </main>
+
+    <div class="kit-toast" id="kit-toast" role="status" aria-live="polite"></div>
+
+    <script src="data.js"></script>
+    <script src="release.js"></script>
+  </body>
+</html>
