@@ -169,7 +169,7 @@ function lbAccountCard(account, index) {
       lbFingerprint(account.fingerprint),
       ss.hstack({ gap: 'sm' }, ss.text({ size: 'lg', color: 'muted' }, account.name), account.watchOnly ? ss.icon('eyeOn', { size: 16 }) : ''),
       ss.vstack({ gap: 'none' },
-        ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: account.balance, textSize: '3xl', weight: 'light', unitSize: 'xl' })),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline;max-width:100%' }, ss.amountDisplay({ amount: account.balance, textSize: ss.moneySize(account.balance, '3xl', 'xl'), weight: 'light', unitSize: 'xl', fitMax: 230 })),
         ss.hstack({ gap: 'xs', style: 'align-items:baseline;margin-top:-4px' }, ss.text({ color: 'muted' }, lbUsd(account.balance)), ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD'))),
       `<span class="lb-stats">${stats.map((s) => `<span>${ss.text({ as: 'span', size: 'md' }, s.value.toLocaleString('en-US'))}<small>${s.label}</small></span>`).join('')}</span>`)}
     <span class="lb-chevron">${ss.icon('chevronRight', { width: 6, height: 11.6 })}</span>
@@ -331,7 +331,7 @@ function lbAccountMarkup() {
     <button type="button" class="lb-act is-narrow" style="--to:var(--gray-850)" data-lb-nfc aria-label="NFC">${ss.icon('scanNFC', { width: 18, height: 21 })}</button>
     <button type="button" class="lb-act is-wide" style="--from:var(--gray-700);--to:var(--gray-880)" data-go="account-receive">Receive</button>
   </div>`
-  const balanceSize = String(account.balance).length > 9 ? '5xl' : '6xl'
+  const balanceSize = ss.moneySize(account.balance)
   return `<div class="lb-flush lb-acct${lbAcct.expand ? ' is-expanded' : ''}">
     ${lbInfoRows()}
     ${
@@ -339,7 +339,7 @@ function lbAccountMarkup() {
         ? ''
         : `<div class="lb-pad" style="padding-top:8px">${ss.vstack({ itemsCenter: true, gap: 'none' },
             ss.vstack({ itemsCenter: true, gap: 'none', style: 'padding-bottom:12px' },
-              ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: account.balance, textSize: balanceSize, weight: 'ultralight', unitSize: 'xl' })),
+              ss.hstack({ gap: 'xs', className: 'lb-balance', style: 'align-items:baseline;max-width:100%' }, ss.amountDisplay({ amount: account.balance, textSize: balanceSize, weight: 'ultralight', unitSize: 'xl', letterSpacing: -1, fitMax: 250 })),
               ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({ color: 'muted' }, lbUsd(account.balance)), ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD'))),
             actions)}</div>
           <div class="lb-stat-tabs">${stats
@@ -524,8 +524,7 @@ function lbTxMarkup(tx) {
         ss.hstack({ gap: 'sm', style: 'align-items:center' },
           ss.icon(tx.type === 'receive' ? 'incoming' : 'outgoing', { size: 12 }),
           ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
-            ss.styledSat({ amount: tx.amount, textSize: '4xl', weight: 'ultralight', noColor: false, showSign: false, type: tx.type }),
-            ss.text({ as: 'span', color: 'muted', size: 'xl' }, t('bitcoin.sats')))),
+            ss.amountDisplay({ amount: tx.amount, textSize: ss.moneySize(tx.amount, '4xl', 'xl'), weight: 'ultralight', noColor: false, showSign: false, type: tx.type, unitSize: 'xl', fitMax: 280 }))),
         tx.payjoin && tx.contributed ? ss.text({ color: 'muted' }, t('transaction.details.contributed', { amount: tx.contributed.toLocaleString('en-US') })) : '',
         ss.hstack({ gap: 'xs' },
           ss.text({ color: 'muted' }, lbUsd(tx.amount)),

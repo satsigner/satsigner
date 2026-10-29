@@ -216,20 +216,67 @@ const ss = (() => {
   const price = { fiat: 'USD', btc: 100000 }
   const satsToFiat = (sats) => (sats / 1e8) * price.btc
 
+  const SAT_SIZES = { xxs: 9, xs: 10, sm: 12, md: 14, lg: 16, xl: 18, '2xl': 20, '3xl': 24, '4xl': 30, '5xl': 36, '6xl': 42, '7xl': 50, '8xl': 62 }
+
+  // settings/features/currencyFormatting.tsx — sfState is the prototype store.
+  function moneyPrefs(p = {}) {
+    const globalUnit = typeof sfState !== 'undefined' && sfState.currencyUnit === 'btc' ? 'btc' : 'sats'
+    const globalPad = typeof sfState !== 'undefined' && !!sfState.zeroPadding
+    const currency = p.currency || globalUnit
+    const useZeroPadding = p.useZeroPadding !== undefined ? p.useZeroPadding : globalPad
+    return { currency, pad: !!(useZeroPadding || currency === 'btc') }
+  }
+
+  // utils/format formatNumber, then SSStyledSatText's second group pass.
+  function moneyText(amount, p = {}) {
+    const { pad } = moneyPrefs(p)
+    const decimals = p.decimals ?? 0
+    const n = Number(amount) || 0
+    const formatted = pad
+      ? (n / 1e8).toFixed(8)
+      : n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    const [integerPart, decimalPart] = formatted.split('.')
+    const integer = integerPart.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+    const joined = decimalPart !== undefined ? `${integer}.${decimalPart}` : integer
+    return joined.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  }
+
+  function moneyUnit(p = {}) {
+    return moneyPrefs(p).currency === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')
+  }
+
+  // Account header: 6xl until the balance is over 1 BTC or the padded string no longer fits.
+  function moneySize(amount, big = '6xl', small = '4xl') {
+    const n = Math.abs(Number(amount) || 0)
+    return n > 1000000000 || moneyText(n).length >= 12 ? small : big
+  }
+
+  // Long padded strings ("0.00 021 000") shrink like the header and transaction cards.
+  function moneyFit(text, size, fitMax) {
+    if (!fitMax) return ''
+    const base = SAT_SIZES[size] || 16
+    const width = String(text).length * base * 0.56
+    if (width <= fitMax) return ''
+    const next = Math.max(base * 0.62, (fitMax / width) * base)
+    return `font-size:${next.toFixed(1)}px`
+  }
+
   // SSStyledSatText: leading zeros dimmed, digits spaced in threes, red/green for send/receive.
   function styledSat(p = {}) {
     const size = p.textSize || '3xl'
-    const pad = p.useZeroPadding || p.currency === 'btc'
-    const decimals = p.decimals ?? (p.currency === 'btc' ? 8 : 0)
-    const raw = Number(p.amount || 0).toLocaleString('en-US', { minimumFractionDigits: pad ? decimals : 0, maximumFractionDigits: decimals, useGrouping: false })
-    const spaced = raw.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+    const { pad } = moneyPrefs(p)
+    const spaced = moneyText(p.amount, p)
     const i = spaced.search(/[1-9]/) === -1 ? spaced.length : spaced.search(/[1-9]/)
     const lead = spaced.slice(0, i)
     const rest = spaced.slice(i)
     const noColor = p.noColor !== false
     const type = p.type || 'send'
     const tone = noColor ? '' : ` is-${type}`
-    return `<span class="ss-text ss-sat s-${size}${p.weight ? ` w-${p.weight}` : ''}${tone}${pad && lead ? ' is-padded' : ''}">${
+    const style = [
+      p.letterSpacing != null ? `letter-spacing:${p.letterSpacing}px` : '',
+      moneyFit(spaced, size, p.fitMax)
+    ].filter(Boolean).join(';')
+    return `<span class="ss-text ss-sat s-${size}${p.weight ? ` w-${p.weight}` : ''}${tone}${pad && lead ? ' is-padded' : ''}"${style ? ` style="${style}"` : ''}>${
       type === 'send' && !noColor && p.showSign !== false ? '<span class="ss-sat-sign">-</span>' : ''
     }${lead ? `<span class="ss-sat-lead">${lead}</span>` : ''}${rest ? `<span class="ss-sat-main">${rest}</span>` : ''}</span>`
   }
@@ -238,7 +285,7 @@ const ss = (() => {
   function amountDisplay(p = {}) {
     const size = p.textSize || '3xl'
     const value = p.privacyMode ? `<span class="ss-text s-${size}">${PRIVACY_MASK}</span>` : styledSat({ ...p, textSize: size })
-    return `${value}<span class="ss-text is-muted s-${p.unitSize || 'sm'}">${p.currency === 'btc' ? t('bitcoin.btc') : t('bitcoin.sats')}</span>`
+    return `${value}<span class="ss-text is-muted s-${p.unitSize || 'sm'}">${moneyUnit(p)}</span>`
   }
 
   // SSAddressDisplay: address in 4-char mono groups, copy on tap.
@@ -525,5 +572,5 @@ const ss = (() => {
       icon('chevronRight', { width: 6, height: 11.6 }))}</button>`
   }
 
-  return { settingsCard, bottomSheet, feeInput, orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
+  return { settingsCard, bottomSheet, feeInput, orbitLoader, successCheck, txid, shortId, price, PRIVACY_MASK, moneyText, moneyUnit, moneySize, styledSat, amountDisplay, addressDisplay, detailsList, actionButton, qr, shareableQR, amountInput, esc, icon, text, button, iconButton, vstack, hstack, mainLayout, textInput, checkbox, radio, separator, form, loader, modal, clipboardCopy, toast, open, close }
 })()

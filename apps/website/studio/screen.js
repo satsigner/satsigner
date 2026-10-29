@@ -1281,25 +1281,31 @@ function txCard(tx, previousBalance, max, compact) {
     : '<span class="tx-tag is-empty">No tags</span>'
   const balanceChange = pctChange(tx.balance, previousBalance)
   const metaLeft = tx.ago ? tx.ago + ' ' + compactTxid(tx.txid) : compactTxid(tx.txid)
-  const amount = compact
-    ? ss.amountDisplay({
-        amount: tx.amount,
-        textSize: 'xl',
-        weight: 'light',
-        unitSize: 'xs',
-        type: tx.type,
-        noColor: false,
-        showSign: false,
-        letterSpacing: 0
-      })
-    : '<strong>' + tx.amount.toLocaleString('en-US') + '</strong> <span>sats</span>'
-  const balance = compact
-    ? ss.styledSat({ amount: tx.balance, textSize: 'xs', type: tx.type, noColor: false, showSign: false }) +
-      ' <span>sats</span>'
-    : '<strong>' + tx.balance.toLocaleString('en-US') + '</strong> <span>sats</span>'
+  // SSTransactionCard smallView: expanded, or a long sat count, or a padded string like "0.00 021 000".
+  const small = compact || String(Math.abs(tx.amount)).length > 10 || ss.moneyText(tx.amount).length >= 12
+  const amount = ss.amountDisplay({
+    amount: tx.amount,
+    textSize: small ? 'xl' : '4xl',
+    weight: 'light',
+    unitSize: small ? 'xs' : 'sm',
+    type: tx.type,
+    noColor: false,
+    showSign: false,
+    letterSpacing: small ? 0 : -0.5,
+    fitMax: small ? 150 : 190
+  })
+  const balance = ss.amountDisplay({
+    amount: tx.balance,
+    textSize: small ? 'xs' : 'sm',
+    type: tx.type,
+    noColor: false,
+    showSign: false,
+    unitSize: small ? 'xs' : 'sm',
+    fitMax: 120
+  })
   return (
     '<button type="button" class="tx-card' +
-    (compact ? ' is-compact' : '') +
+    (small ? ' is-compact' : '') +
     '" data-txid="' +
     tx.txid +
     '">' +

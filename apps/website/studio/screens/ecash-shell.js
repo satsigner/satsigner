@@ -1039,7 +1039,7 @@ registerScreen('ecash-proof', {
     return ss.vstack({ gap: 'lg', style: 'padding-bottom:40px' },
       ss.vstack({ gap: 'xs', itemsCenter: true, style: 'padding:12px 0' },
         ss.text({ color: 'muted', size: 'xs', uppercase: true }, t('ecash.proofDetail.amount')),
-        ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: p.amount, textSize: '4xl', weight: 'ultralight', unitSize: 'xl' })),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline;max-width:100%' }, ss.amountDisplay({ amount: p.amount, textSize: ss.moneySize(p.amount, '4xl', 'xl'), weight: 'ultralight', unitSize: 'xl', fitMax: 250 })),
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({ color: 'muted' }, esUsd(p.amount)), ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD'))),
       ss.vstack({ gap: 'sm' },
         field(t('ecash.proofs.keysetId'), '', ss.hstack({ gap: 'xs' }, ss.text({ type: 'mono', size: 'xs' }, p.id), ss.text({ size: 'xs', style: `color:${p.active ? 'var(--success)' : 'var(--gray-500)'}` }, p.active ? t('ecash.proofs.active') : t('ecash.proofs.inactive')))),

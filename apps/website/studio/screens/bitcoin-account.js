@@ -677,8 +677,7 @@ function baTxHeader(tx) {
       ss.hstack({ gap: 'sm' },
         ss.icon(type === 'send' ? 'outgoing' : 'incoming', { size: 12 }),
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' },
-          ss.styledSat({ amount: tx.amount, textSize: '4xl', weight: 'ultralight', type, noColor: false, showSign: false }),
-          ss.text({ color: 'muted', size: 'xl', as: 'span' }, t('bitcoin.sats')))),
+          ss.amountDisplay({ amount: tx.amount, textSize: ss.moneySize(tx.amount, '4xl', 'xl'), weight: 'ultralight', type, noColor: false, showSign: false, unitSize: 'xl', fitMax: 280 }))),
       tx.fiat
         ? ss.hstack({ gap: 'xs' },
             ss.text({ color: 'muted', size: 'sm', as: 'span' }, usd(tx.amount)),

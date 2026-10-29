@@ -13,7 +13,7 @@ body {
   min-height: 100vh;
   background: var(--gray-900);
   color: var(--white);
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", "Inter", sans-serif;
 }
 
 button,
@@ -24,7 +24,7 @@ select {
 }
 
 svg text {
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", "Inter", sans-serif;
 }
 
 .stage {
@@ -478,7 +478,7 @@ svg text {
   width: 100%;
   height: 220px;
   margin: 0 0 var(--gap-md);
-  font-family: Inter, sans-serif;
+  font-family: "Geist", "Inter", sans-serif;
 }
 
 .layer-phone {
@@ -1795,6 +1795,8 @@ svg text {
   align-items: center;
   gap: var(--gap-sm);
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tx-amount strong {
@@ -1811,8 +1813,8 @@ svg text {
   color: var(--main-red);
 }
 
-.tx-amount span,
-.tx-side span,
+.tx-amount > span:not(.ss-sat),
+.tx-side > p > span:not(.ss-sat),
 .tx-fiat span {
   color: var(--gray-200);
   font-size: var(--font-sm);
@@ -1900,7 +1902,7 @@ svg text {
   color: var(--main-red);
 }
 
-.tx-balance span {
+.tx-balance > span:not(.ss-sat) {
   color: var(--gray-400);
 }
 

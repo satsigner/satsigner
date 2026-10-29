@@ -367,7 +367,7 @@ registerScreen('ark-account', {
     return `<div class="lh-flush">${ss.vstack({ itemsCenter: true, gap: 'none', className: 'lh-pad' },
       ss.vstack({ gap: 'xs', itemsCenter: true, style: 'padding:24px 0 12px' },
         ss.text({ color: 'muted', size: 'xs', uppercase: true }, t('ark.balance.title')),
-        ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: a.balance, textSize: '6xl', weight: 'ultralight', unitSize: 'xl' })),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline;max-width:100%' }, ss.amountDisplay({ amount: a.balance, textSize: ss.moneySize(a.balance), weight: 'ultralight', unitSize: 'xl', letterSpacing: -1, fitMax: 250 })),
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({ color: 'muted' }, lhUsd(a.balance)), ss.text({ size: 'xs', style: 'color:var(--gray-500)' }, 'USD')),
         a.pending > 0 ? ss.hstack({ gap: 'xs' }, ss.icon('time', { size: 13 }), ss.text({ color: 'muted', size: 'xs' }, t('ark.balance.pending', { amount: lhFmt(a.pending) }))) : ''),
       `<div style="width:100%;padding:12px 0;margin-bottom:8px">${lhActions(true)}</div>`)}${lhTabs(tabs, lhArkUi.tab, 'ark-tab')}${scene}</div>`
@@ -566,8 +566,9 @@ registerScreen('lightning-node', {
       `<div class="lh-hero-side">${ss.text({ color: 'muted', center: true, size: 'xs' }, label)}${ss.styledSat({ amount: sats, textSize: 'md', weight: 'light' })}${ss.text({ color: 'muted', size: 'xs', style: 'opacity:0.7' }, `${lhUsd(sats)} USD`)}</div>`
     const hero = `<div class="lh-hero-cols">${side(t('lightning.node.totalColumn'), total)}<div class="lh-hero-main">${ss.text({ color: 'muted', center: true, size: 'xs' }, t('lightning.node.spendableLightning'))}${ss.styledSat({
       amount: lnBal,
-      textSize: '5xl',
-      weight: 'light'
+      textSize: ss.moneySize(lnBal, '5xl', 'xl'),
+      weight: 'light',
+      fitMax: 150
     })}${ss.text({ color: 'muted', size: 'xs' }, `${lhUsd(lnBal)} USD`)}</div>${side(t('lightning.node.onchainColumn'), onchain)}</div>`
     let scene = ''
     if (lhLnUi.tab === 0)
@@ -690,7 +691,7 @@ registerScreen('ecash-account', {
     return `<div class="lh-flush"><div class="lh-pad">${ss.vstack({ itemsCenter: true, gap: 'none' },
       ss.vstack({ gap: 'xs', itemsCenter: true, style: 'padding:24px 0 16px' },
         ss.text({ color: 'muted', size: 'xs', uppercase: true }, t('ecash.mint.balance')),
-        ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.amountDisplay({ amount: total, textSize: '6xl', weight: 'ultralight', unitSize: 'xl' })),
+        ss.hstack({ gap: 'xs', style: 'align-items:baseline;max-width:100%' }, ss.amountDisplay({ amount: total, textSize: ss.moneySize(total), weight: 'ultralight', unitSize: 'xl', letterSpacing: -1, fitMax: 250 })),
         ss.hstack({ gap: 'xs', style: 'align-items:baseline' }, ss.text({ size: 'xl', style: 'color:var(--gray-500)' }, lhUsd(total)), ss.text({ size: 'xl', style: 'color:var(--gray-500)' }, 'USD')),
         ss.hstack({ gap: 'sm', style: 'flex-wrap:wrap;justify-content:center' },
           esState.mints.map((m) => ss.hstack({ gap: 'xs' }, `<i class="lh-dot${m.isConnected ? ' is-on' : ''}"></i>`, ss.text({ color: 'muted', size: 'xs' }, ss.esc(m.name || m.url)))))),
