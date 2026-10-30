@@ -250,6 +250,11 @@ export default function IOPreview() {
   const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
     useState<Utxo[]>()
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
+  const [syncedFeeRate, setSyncedFeeRate] = useState(feeRate)
+  if (feeRate !== syncedFeeRate) {
+    setSyncedFeeRate(feeRate)
+    setLocalFeeRate(feeRate)
+  }
   const [feeRateDraft, setFeeRateDraft] = useState<number>()
   const sheetFeeRate = feeRateDraft ?? localFeeRate
   const [outputsCount, setOutputsCount] = useState(0)
@@ -827,10 +832,6 @@ export default function IOPreview() {
     }
     setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
-
-  useEffect(() => {
-    setLocalFeeRate(feeRate)
-  }, [feeRate])
 
   function handleContentScanned(content: DetectedContent) {
     if (!content.isValid) {

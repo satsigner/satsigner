@@ -75,7 +75,7 @@ export default function SeedWordsPage() {
     } else {
       setIsLoading(false)
     }
-  }, [account, key, decryptMnemonic])
+  }, [account, key])
 
   if (isLoading) {
     return (

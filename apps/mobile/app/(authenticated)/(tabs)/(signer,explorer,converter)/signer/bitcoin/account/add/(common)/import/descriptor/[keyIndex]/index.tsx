@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
@@ -70,7 +70,6 @@ export default function ImportDescriptor() {
   const [externalDescriptor, setExternalDescriptor] = useState('')
   const [internalDescriptor, setInternalDescriptor] = useState('')
 
-  const [disabled, setDisabled] = useState(true)
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [externalDescriptorError, setExternalDescriptorError] = useState('')
@@ -131,29 +130,11 @@ export default function ImportDescriptor() {
     ])
   )
 
-  const updateDescriptorValidationState = useCallback(() => {
-    // Allow import if either external or internal descriptor is valid
-    // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor
-    const hasValidInternal = internalDescriptor && validInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-    setDisabled(!hasAnyValidDescriptor)
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor
-  ])
-
-  useEffect(() => {
-    updateDescriptorValidationState()
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor,
-    updateDescriptorValidationState
-  ])
+  // Allow import if either external or internal descriptor is valid
+  // At least one descriptor must be provided and valid
+  const hasValidExternal = externalDescriptor && validExternalDescriptor
+  const hasValidInternal = internalDescriptor && validInternalDescriptor
+  const disabled = !(hasValidExternal || hasValidInternal)
 
   function updateExternalDescriptor(
     descriptor: string,

@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { Keyboard, StyleSheet } from 'react-native'
 import { type BdkWallet, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
@@ -207,34 +207,15 @@ export default function WatchOnly() {
     setCameraModalVisible(true)
   }
 
-  const updateDescriptorValidationState = useCallback(() => {
-    const hasValidExternal = externalDescriptor && isValidExternalDescriptor
-    const hasValidInternal = internalDescriptor && isValidInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-
-    if (selectedOption === 'importDescriptor') {
-      setIsDisabled(!hasAnyValidDescriptor)
-    }
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    isValidExternalDescriptor,
-    isValidInternalDescriptor,
-    selectedOption
-  ])
-
-  useEffect(() => {
-    if (selectedOption === 'importDescriptor') {
-      updateDescriptorValidationState()
-    }
-  }, [
-    selectedOption,
-    externalDescriptor,
-    internalDescriptor,
-    isValidExternalDescriptor,
-    isValidInternalDescriptor,
-    updateDescriptorValidationState
-  ])
+  const hasValidExternal = externalDescriptor && isValidExternalDescriptor
+  const hasValidInternal = internalDescriptor && isValidInternalDescriptor
+  const isDescriptorImportDisabled = !(hasValidExternal || hasValidInternal)
+  if (
+    selectedOption === 'importDescriptor' &&
+    isDisabled !== isDescriptorImportDisabled
+  ) {
+    setIsDisabled(isDescriptorImportDisabled)
+  }
 
   function updateAddress(address: string) {
     const processedAddress = stripBitcoinPrefix(address)

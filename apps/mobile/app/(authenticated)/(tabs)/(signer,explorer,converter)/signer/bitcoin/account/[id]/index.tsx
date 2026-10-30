@@ -568,7 +568,7 @@ function SyncScanStats({
   currentBlockTimeSec?: number
   scanFromTimeSec?: number
 }) {
-  const trackerRef = useRef(createScanThroughputTracker())
+  const [tracker] = useState(createScanThroughputTracker)
   const [throughput, setThroughput] = useState<ScanThroughput>({
     blocksPerSec: null,
     etaSeconds: null,
@@ -585,13 +585,20 @@ function SyncScanStats({
 
   useEffect(() => {
     setThroughput(
-      trackerRef.current.update(
+      tracker.update(
         hasBlockProgress ? tasksDone : undefined,
         hasBlockProgress ? totalTasks : undefined,
         isSyncing && isInitialScan
       )
     )
-  }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
+  }, [
+    hasBlockProgress,
+    isInitialScan,
+    isSyncing,
+    tasksDone,
+    totalTasks,
+    tracker
+  ])
 
   // Primary sync / last-synced copy lives in the toolbar title. This block only
   // adds initial-scan extras so the list does not jump for normal catch-ups.
@@ -1142,7 +1149,6 @@ function DerivedAddresses({
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
@@ -1167,14 +1173,10 @@ function DerivedAddresses({
     sortDirection
   )
 
-  function updateDerivationPath() {
-    if (isMultiAddressWatchOnly) {
-      return
-    }
-    if (account.keys[0].derivationPath) {
-      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
-    }
-  }
+  const keyDerivationPath = account.keys[0]?.derivationPath
+  const addressPath = keyDerivationPath
+    ? `${keyDerivationPath}/${change ? 1 : 0}`
+    : ''
 
   function loadExactAccountAddresses() {
     setAddressCount(account.addresses.length)
@@ -1269,10 +1271,6 @@ function DerivedAddresses({
     }
     isUpdatingAddresses.current = false
   }
-
-  useEffect(() => {
-    updateDerivationPath()
-  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateAddresses()

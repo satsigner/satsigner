@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
@@ -8,6 +6,7 @@ import { SAFE_LIMIT_OF_INPUTS_OUTPUTS } from '@/constants/sankey'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { setClipboard } from '@/utils/clipboard'
 import { formatNumber } from '@/utils/format'
@@ -27,6 +26,42 @@ type SSTransactionVoutListProps = {
   onOpenAddress?: (address: string) => void
 }
 
+function getOutputLookups(
+  account: Account | undefined,
+  txid: SSTransactionVoutListProps['txid'],
+  vout: SSTransactionVoutListProps['vout']
+) {
+  const utxoDict: Record<string, boolean> = {}
+  const labelsDict: Record<number, string> = {}
+
+  if (!account) {
+    return { labelsDict, utxoDict }
+  }
+
+  for (const utxo of account.utxos) {
+    utxoDict[getUtxoOutpoint(utxo)] = true
+  }
+
+  if (!txid || !vout) {
+    return { labelsDict, utxoDict }
+  }
+
+  for (const [index, output] of vout.entries()) {
+    const utxoOutpoint = `${txid}:${index}`
+    const outputAddress = output.address
+    const labelFromUtxo = account.labels[utxoOutpoint]
+    const labelFromAddress = account.labels[outputAddress]
+    const label = labelFromUtxo || labelFromAddress
+    if (!label) {
+      continue
+    }
+    labelsDict[index] = label.label
+    utxoDict[utxoOutpoint] = true
+  }
+
+  return { labelsDict, utxoDict }
+}
+
 function SSTransactionVoutList({
   txid,
   vout,
@@ -38,43 +73,10 @@ function SSTransactionVoutList({
     state.accounts.find((account) => accountId && account.id === accountId)
   )
 
-  const [utxoDict, setUtxoDict] = useState<Record<string, boolean>>({})
   const addressDict: Record<string, boolean> = account
     ? Object.fromEntries(account.addresses.map((addr) => [addr.address, true]))
     : {}
-  const [labelsDict, setLabelsDict] = useState<Record<number, string>>({})
-
-  useEffect(() => {
-    if (!account) {
-      return
-    }
-
-    const utxos: Record<string, boolean> = {}
-    for (const utxo of account.utxos) {
-      utxos[getUtxoOutpoint(utxo)] = true
-    }
-    setUtxoDict(utxos)
-
-    if (!txid || !vout) {
-      return
-    }
-
-    const labels: Record<number, string> = {}
-    for (const [index, output] of vout.entries()) {
-      const utxoOutpoint = `${txid}:${index}`
-      const outputAddress = output.address
-      const labelFromUtxo = account.labels[utxoOutpoint]
-      const labelFromAddress = account.labels[outputAddress]
-      const label = labelFromUtxo || labelFromAddress
-      if (!label) {
-        continue
-      }
-      labels[index] = label.label
-      utxos[utxoOutpoint] = true
-    }
-    setLabelsDict(labels)
-    setUtxoDict(utxos)
-  }, [account, txid, vout]) // eslint-disable-line react-hooks/exhaustive-deps
+  const { utxoDict, labelsDict } = getOutputLookups(account, txid, vout)
 
   if (!txid || !vout) {
     return null

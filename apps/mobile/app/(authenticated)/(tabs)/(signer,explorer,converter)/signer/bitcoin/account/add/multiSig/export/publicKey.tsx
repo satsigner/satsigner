@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -31,25 +31,22 @@ export default function PublicKeyPage() {
     useShallow((state) => [state.getAccountData])
   )
 
-  const [publicKey, setPublicKey] = useState('')
+  const keyScriptVersion = useAccountBuilderStore(
+    (state) => state.keys[Number(keyIndex || 0)]?.scriptVersion
+  )
+  const scriptVersion = keyScriptVersion || 'P2WPKH'
+
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<ViewInstance>(null)
-  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
+  const networkDefaultFormat = network === 'bitcoin' ? 'xpub' : 'tpub'
+  const [selectedFormat, setSelectedFormat] =
+    useState<PublicKeyFormat>(networkDefaultFormat)
+  const [formatNetwork, setFormatNetwork] = useState(network)
+  if (network !== formatNetwork) {
+    setFormatNetwork(network)
+    setSelectedFormat(networkDefaultFormat)
+  }
   const [rawPublicKey, setRawPublicKey] = useState('')
-  const [scriptVersion, setScriptVersion] = useState('P2WPKH')
-
-  useEffect(() => {
-    const accountData = getAccountData()
-    if (accountData) {
-      const keyIndexNum = Number(keyIndex || 0)
-      const key = accountData.keys[keyIndexNum]
-      if (key?.scriptVersion) {
-        setScriptVersion(key.scriptVersion)
-      }
-
-      setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
-    }
-  }, [getAccountData, network, keyIndex])
 
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
@@ -163,7 +160,6 @@ export default function PublicKeyPage() {
       toast.error('Key not found')
       return
     }
-    setScriptVersion(key.scriptVersion || 'P2WPKH')
     const secret = key.secret
       ? await decryptKeySecret(key)
       : await decryptAccountKeySecret(accountData.id, keyIndexNum)
@@ -177,7 +173,6 @@ export default function PublicKeyPage() {
       return
     }
     setRawPublicKey(publicKeyString)
-    setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
   }
 
   useAsyncEffect(async () => {
@@ -189,13 +184,9 @@ export default function PublicKeyPage() {
       .finally(() => setIsLoading(false))
   }, [keyIndex, network, selectedFormat, convertPublicKeyFormat])
 
-  useEffect(() => {
-    if (rawPublicKey) {
-      const convertedKey = convertPublicKeyFormat(rawPublicKey, selectedFormat)
-      setPublicKey(convertedKey)
-    }
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [selectedFormat, rawPublicKey])
+  const publicKey = rawPublicKey
+    ? convertPublicKeyFormat(rawPublicKey, selectedFormat)
+    : ''
 
   function exportPublicKey() {
     const accountData = getAccountData()

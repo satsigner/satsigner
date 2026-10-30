@@ -1,7 +1,7 @@
 import { toOutputScript } from 'bitcoinjs-lib/src/address'
 import { toASM } from 'bitcoinjs-lib/src/script'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
@@ -38,10 +38,22 @@ import { formatNumber } from '@/utils/format'
 import { getAddressKeyPair } from '@/utils/key'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+function getAddressScriptAsm(address: Address) {
+  const addressNetwork = address.network || 'signet'
+  try {
+    const rawScript = toOutputScript(
+      address.address,
+      bitcoinjsNetwork(addressNetwork)
+    )
+    return toASM(rawScript)
+  } catch {
+    return ''
+  }
+}
+
 function AddressDetails() {
   const display = useDisplayPreferences()
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
-  const [script, setScript] = useState('')
 
   const [account, address] = useAccountsStore(
     useShallow((state) => [
@@ -51,6 +63,7 @@ function AddressDetails() {
         ?.addresses.find((address) => address.address === addr)
     ])
   )
+  const script = address ? getAddressScriptAsm(address) : ''
 
   const derivationPath =
     account && address ? getAddressDerivationPath(account, address) : ''
@@ -127,22 +140,6 @@ function AddressDetails() {
       `/signer/bitcoin/account/${accountId}/address/${addr}/verifyMessage`
     )
   }
-
-  useEffect(() => {
-    if (!address) {
-      return
-    }
-    const addressNetwork = address.network || 'signet'
-    try {
-      const rawScript = toOutputScript(
-        address.address,
-        bitcoinjsNetwork(addressNetwork)
-      )
-      setScript(toASM(rawScript))
-    } catch {
-      setScript('')
-    }
-  }, [address])
 
   if (!account || !addr) {
     return <Redirect href="/" />

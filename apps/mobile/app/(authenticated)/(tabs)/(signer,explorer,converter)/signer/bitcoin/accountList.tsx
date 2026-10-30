@@ -178,15 +178,9 @@ export default function AccountList() {
     return Math.max(index, 0)
   })
 
-  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>(
-    accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+  const filteredAccounts = accounts.filter(
+    (acc) => acc.network === tabs[tabIndex].key
   )
-
-  useEffect(() => {
-    setFilteredAccounts(
-      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-    )
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
   const fingerprints = useAccountsFingerprints(filteredAccounts)
 
   const totalBalance = useMemo(
