@@ -14,19 +14,19 @@ import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountTransactionOutput from '@/hooks/useGetAccountTransactionOutput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useChartSettingStore } from '@/store/chartSettings'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
+import { satsToFiat } from '@/utils/fiat'
 import { formatDate, formatNumber } from '@/utils/format'
 import {
   buildKnownTxIds,
@@ -76,14 +76,14 @@ function UtxoDetails({
   const [blockTime, setBlockTime] = useState('')
   const [blockHeight, setBlockHeight] = useState('')
   const [value, setValue] = useState('')
-  const [fiatValue, setFiatValue] = useState('')
   const [txid, setTxid] = useState('')
   const [vout, setVout] = useState('')
 
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
+  const fiatValue = utxo?.value
+    ? `${formatNumber(satsToFiat(utxo.value, btcPrice, fiatEnabled), 2)} ${fiatCurrency}`
+    : ''
   const [showTransactionFlowChart, showUtxoFlowChart] = useChartSettingStore(
     useShallow((state) => [
       state.showTransactionFlowChart,
@@ -120,8 +120,6 @@ function UtxoDetails({
       const { value } = utxo
       if (value) {
         setValue(formatNumber(value))
-        const fiatValue = formatNumber(satsToFiat(value), 2)
-        setFiatValue(`${fiatValue} ${fiatCurrency}`)
       }
     }
   }

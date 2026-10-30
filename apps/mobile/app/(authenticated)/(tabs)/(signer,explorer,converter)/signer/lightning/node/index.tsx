@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconBubbles,
@@ -45,16 +44,16 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
 import { type LNDCombinedTransaction } from '@/types/models/Lightning'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, truncate } from '@/utils/format'
 import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import {
@@ -168,7 +167,8 @@ export default function NodeDetailPage() {
   const { width } = useWindowDimensions()
   const params = useLocalSearchParams<{ alias: string; pubkey: string }>()
   const { channels, isConnecting, isConnected } = useLND()
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
 
   const contentHandler = useContentHandler({
     context: 'lightning',
@@ -201,14 +201,6 @@ export default function NodeDetailPage() {
     { key: 'channels' },
     { key: 'onchain' }
   ]
-
-  const [satsToFiat, btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [
-      state.satsToFiat,
-      state.btcPrice,
-      state.fiatCurrency
-    ])
-  )
 
   const balance = dashboard?.balance ?? null
   const transactions = dashboard?.transactions ?? []
@@ -312,9 +304,9 @@ export default function NodeDetailPage() {
     const channelBalance = Number(balance.channel_balance) || 0
     const totalBalance = onchainBalance + channelBalance
 
-    const totalFiat = satsToFiat(totalBalance, btcPrice)
-    const onchainFiat = satsToFiat(onchainBalance, btcPrice)
-    const channelFiat = satsToFiat(channelBalance, btcPrice)
+    const totalFiat = satsToFiat(totalBalance, btcPrice, fiatEnabled)
+    const onchainFiat = satsToFiat(onchainBalance, btcPrice, fiatEnabled)
+    const channelFiat = satsToFiat(channelBalance, btcPrice, fiatEnabled)
 
     const channelList = channels ?? []
     const nodeTotalCapacity = channelList.reduce((sum, channel) => {
@@ -521,7 +513,7 @@ export default function NodeDetailPage() {
   function renderTxRow(tx: LNDCombinedTransaction) {
     const nowMs = Date.now()
     const timestamp = new Date(tx.timestamp * MS_PER_SECOND)
-    const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
+    const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice, fiatEnabled)
     const isReceive = tx.amount > 0
     const statusBadge = getTxStatusBadge(tx, nowMs)
     const isNonNormal = statusBadge !== null
