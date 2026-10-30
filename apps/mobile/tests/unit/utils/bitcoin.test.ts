@@ -268,6 +268,7 @@ describe('getScriptTypeFromAddress', () => {
 
 describe('matchAddressNetwork', () => {
   const MAINNET_ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+  const MAINNET_BASE58_ADDRESS = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'
   const TESTNET_ADDRESS =
     'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'
 
@@ -286,6 +287,9 @@ describe('matchAddressNetwork', () => {
   it('flags a valid address from another network', () => {
     expect(matchAddressNetwork(MAINNET_ADDRESS, 'signet')).toBe('otherNetwork')
     expect(matchAddressNetwork(TESTNET_ADDRESS, 'bitcoin')).toBe('otherNetwork')
+    expect(matchAddressNetwork(MAINNET_BASE58_ADDRESS, 'testnet')).toBe(
+      'otherNetwork'
+    )
   })
 
   it('rejects input that is not an address', () => {
