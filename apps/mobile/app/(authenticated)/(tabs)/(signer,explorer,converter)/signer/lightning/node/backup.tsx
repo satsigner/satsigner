@@ -14,7 +14,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { shareFile } from '@/utils/filesystem'
 import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     paddingTop: 20
   },
   backupInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 200,

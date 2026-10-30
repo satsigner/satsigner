@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
   signedPsbtScroll: { flex: 1 },
   signedPsbtText: {
     color: Colors.white,
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     lineHeight: 18
   },

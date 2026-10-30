@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
-import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import {
@@ -93,10 +92,6 @@ export default function PayPage() {
     sendCoins,
     verifyConnection
   } = useLND()
-
-  const [fontsLoaded] = useFonts({
-    'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
-  })
 
   const [paymentRequest, setPaymentRequest] = useState('')
   const [amount, setAmount] = useState('')
@@ -427,10 +422,6 @@ export default function PayPage() {
     queryKey: ['lnd', 'pay-inbound', inboundClean]
   })
 
-  if (!fontsLoaded) {
-    return null
-  }
-
   return (
     <>
       <Stack.Screen
@@ -734,7 +725,7 @@ const styles = StyleSheet.create({
     padding: 12
   },
   monospaceInput: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5
   },

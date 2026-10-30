@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   hashText: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     opacity: 0.8,
     textAlign: 'right'
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   monospaceInput: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5
   }
