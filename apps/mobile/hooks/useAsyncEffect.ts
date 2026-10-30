@@ -25,6 +25,5 @@ export function useAsyncEffect(
       active = false
       cleanup?.()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, deps) // eslint-disable-line react-hooks/exhaustive-deps
 }

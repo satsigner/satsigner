@@ -10,6 +10,13 @@ import type { Account } from '@/types/models/Account'
 import { formatAccountLabels, labelsToJSONL } from '@/utils/bip329'
 import { sha256 } from '@/utils/crypto'
 
+function getTrustedMemberDevices(accountId: Account['id']) {
+  const currentAccount = useAccountsStore
+    .getState()
+    .accounts.find((a) => a.id === accountId)
+  return currentAccount?.nostr?.trustedMemberDevices || []
+}
+
 function useNostrLabelSync() {
   const sync = useCallback(async (account?: Account, singleLabel?: Label) => {
     if (!account || !account.nostr || !account.nostr.autoSync) {
@@ -120,10 +127,7 @@ function useNostrLabelSync() {
     try {
       await nostrApi.connectForPublish()
 
-      const currentAccount = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === account.id)
-      const trustedDevices = currentAccount?.nostr?.trustedMemberDevices || []
+      const trustedDevices = getTrustedMemberDevices(account.id)
 
       if (trustedDevices.length === 0) {
         return

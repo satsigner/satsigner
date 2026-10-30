@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { type Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
@@ -29,6 +29,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
@@ -51,6 +52,12 @@ import {
   validateDescriptorScriptVersion
 } from '@/utils/validation'
 
+function getCombinedDescriptorErrorMessage(error: string | undefined) {
+  return error
+    ? t(`account.import.error.${error}`)
+    : t('account.import.error.descriptorFormat')
+}
+
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
   const router = useRouter()
@@ -63,7 +70,6 @@ export default function ImportDescriptor() {
   const [externalDescriptor, setExternalDescriptor] = useState('')
   const [internalDescriptor, setInternalDescriptor] = useState('')
 
-  const [disabled, setDisabled] = useState(true)
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [externalDescriptorError, setExternalDescriptorError] = useState('')
@@ -124,29 +130,11 @@ export default function ImportDescriptor() {
     ])
   )
 
-  const updateDescriptorValidationState = useCallback(() => {
-    // Allow import if either external or internal descriptor is valid
-    // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor
-    const hasValidInternal = internalDescriptor && validInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-    setDisabled(!hasAnyValidDescriptor)
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor
-  ])
-
-  useEffect(() => {
-    updateDescriptorValidationState()
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor,
-    updateDescriptorValidationState
-  ])
+  // Allow import if either external or internal descriptor is valid
+  // At least one descriptor must be provided and valid
+  const hasValidExternal = externalDescriptor && validExternalDescriptor
+  const hasValidInternal = internalDescriptor && validInternalDescriptor
+  const disabled = !(hasValidExternal || hasValidInternal)
 
   function updateExternalDescriptor(
     descriptor: string,
@@ -252,10 +240,11 @@ export default function ImportDescriptor() {
   }
 
   function handleConfirm() {
-    try {
-      // Extract fingerprint from the descriptor if possible
-      const fingerprint = getFingerprint(externalDescriptor)
+    // Extract fingerprint from the descriptor if possible
+    const fingerprint =
+      getFingerprint(externalDescriptor) || UNKNOWN_MASTER_FINGERPRINT
 
+    try {
       const { extendedPublicKey, derivationPath } =
         extractDescriptorInfo(externalDescriptor)
 
@@ -270,7 +259,7 @@ export default function ImportDescriptor() {
       }
 
       setExtendedPublicKey(extendedPublicKey)
-      setFingerprint(fingerprint || UNKNOWN_MASTER_FINGERPRINT)
+      setFingerprint(fingerprint)
 
       setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
@@ -321,9 +310,9 @@ export default function ImportDescriptor() {
         setValidExternalDescriptor(false)
         setValidInternalDescriptor(false)
 
-        const errorMessage = combinedValidation.error
-          ? t(`account.import.error.${combinedValidation.error}`)
-          : t('account.import.error.descriptorFormat')
+        const errorMessage = getCombinedDescriptorErrorMessage(
+          combinedValidation.error
+        )
         setExternalDescriptorError(errorMessage)
         setInternalDescriptorError(errorMessage)
       }
@@ -384,6 +373,30 @@ export default function ImportDescriptor() {
     }
   }
 
+  function importNFCData(nfcData: NFCReadResult | null) {
+    if (!nfcData?.text) {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
+      return
+    }
+
+    const text = sanitizeScannedText(nfcData.text)
+
+    const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
+
+    if (isCombinedDescriptor(text)) {
+      handleCombinedDescriptorImport(text)
+    } else {
+      if (externalDescriptor) {
+        updateExternalDescriptor(externalDescriptor)
+      }
+      if (internalDescriptor) {
+        updateInternalDescriptor(internalDescriptor)
+      }
+    }
+
+    toast.success(t('watchonly.success.nfcRead'))
+  }
+
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
@@ -392,28 +405,7 @@ export default function ImportDescriptor() {
 
     try {
       const nfcData = await readNFCTag()
-
-      if (!nfcData?.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = sanitizeScannedText(nfcData.text)
-
-      const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
-
-      if (isCombinedDescriptor(text)) {
-        handleCombinedDescriptorImport(text)
-      } else {
-        if (externalDescriptor) {
-          updateExternalDescriptor(externalDescriptor)
-        }
-        if (internalDescriptor) {
-          updateInternalDescriptor(internalDescriptor)
-        }
-      }
-
-      toast.success(t('watchonly.success.nfcRead'))
+      importNFCData(nfcData)
     } catch {
       toast.error(t('nfc.error.readFailed'))
     }

@@ -19,6 +19,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -575,6 +576,7 @@ export default function LndTransactionDetailPage() {
   }>()
 
   const { data: dashboardData } = useLndNodeDashboard(true)
+  const nowMs = useNow()
 
   const tx = dashboardData?.transactions.find((t) => t.id === txId)
   const rawInvoice =
@@ -730,7 +732,7 @@ export default function LndTransactionDetailPage() {
                         {formatUnixTimestamp(tx.timestamp)}
                       </SSText>
                       <SSText color="muted" size="xs">
-                        {formatLightningTxTimeAgo(tx.timestamp, Date.now())}
+                        {formatLightningTxTimeAgo(tx.timestamp, nowMs)}
                       </SSText>
                     </SSVStack>
                   </SSHStack>

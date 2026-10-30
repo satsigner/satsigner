@@ -30,7 +30,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { MemPoolFees } from '@/types/models/Blockchain'
 import { formatBytes, formatDate, formatPercentualChange } from '@/utils/format'
 import {
@@ -47,7 +47,7 @@ import {
   priceDomainFromData
 } from '@/utils/priceChart'
 
-const chartFont = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+const chartFont = require('@/assets/fonts/Geist-Medium.ttf')
 
 const tn = _tn('explorer.chaintip')
 
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   hashText: {
     color: Colors.gray['100'],
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   labelText: {
     color: Colors.gray['400']

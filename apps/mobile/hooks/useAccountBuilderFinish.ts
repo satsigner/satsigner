@@ -42,7 +42,7 @@ function useAccountBuilderFinish() {
     const { policyType } = account
     const { creationType } = firstKey
 
-    try {
+    async function persistAccount() {
       const walletData = !isImportAddress
         ? await getWalletData(account, appNetworkToBdkNetwork(network))
         : undefined
@@ -119,9 +119,9 @@ function useAccountBuilderFinish() {
         accountWithEncryptedSecret,
         wallet: walletData?.wallet
       }
-    } finally {
-      setLoading(false)
     }
+
+    return await persistAccount().finally(() => setLoading(false))
   }
 
   return { accountBuilderFinish, loading }

@@ -30,6 +30,11 @@ const ROUTES = [
   { key: 'npub', title: 'npub' }
 ]
 
+async function getTrimmedClipboardText() {
+  const text = await Clipboard.getStringAsync()
+  return text?.trim()
+}
+
 export default function ImportNostrIdentity() {
   const router = useRouter()
   const addIdentity = useNostrIdentityStore((state) => state.addIdentity)
@@ -44,12 +49,12 @@ export default function ImportNostrIdentity() {
 
   async function handlePasteNsec() {
     try {
-      const text = await Clipboard.getStringAsync()
-      if (!text?.trim()) {
+      const text = await getTrimmedClipboardText()
+      if (!text) {
         toast.error(t('watchonly.error.emptyClipboard'))
         return
       }
-      setNsec(text.trim())
+      setNsec(text)
       toast.success(t('common.success.dataPasted'))
     } catch {
       toast.error(t('watchonly.error.clipboardPaste'))
@@ -58,12 +63,12 @@ export default function ImportNostrIdentity() {
 
   async function handlePasteNpub() {
     try {
-      const text = await Clipboard.getStringAsync()
-      if (!text?.trim()) {
+      const text = await getTrimmedClipboardText()
+      if (!text) {
         toast.error(t('watchonly.error.emptyClipboard'))
         return
       }
-      setNpub(text.trim())
+      setNpub(text)
       toast.success(t('common.success.dataPasted'))
     } catch {
       toast.error(t('watchonly.error.clipboardPaste'))

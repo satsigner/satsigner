@@ -14,7 +14,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { shareFile } from '@/utils/filesystem'
 import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
@@ -29,11 +29,10 @@ export default function LightningBackupPage() {
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
+  const nodeAlias = status.nodeInfo?.alias ?? ''
+  const nodePubkey = status.nodeInfo?.identity_pubkey ?? ''
   const nodeTitle =
-    lndNodeCardTitle(
-      status.nodeInfo?.alias ?? '',
-      status.nodeInfo?.identity_pubkey ?? ''
-    ) ||
+    lndNodeCardTitle(nodeAlias, nodePubkey) ||
     config?.url ||
     t('lightning.backup.notConnected')
 
@@ -60,9 +59,8 @@ export default function LightningBackupPage() {
       setShowBackupData(true)
     } catch {
       toast.error(t('lightning.backup.generationFailed'))
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   async function handleShareBackup() {
@@ -222,7 +220,7 @@ const styles = StyleSheet.create({
     paddingTop: 20
   },
   backupInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 200,

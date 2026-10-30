@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import SSButton from '@/components/SSButton'
 import SSIntroAnimationBubbleStep from '@/components/SSIntroAnimationBubbleStep'
@@ -182,7 +182,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
           RETURNING_FADE_DELAY,
           withTiming(0, { duration: RETURNING_FADE_OUT }, (finished) => {
             if (finished) {
-              runOnJS(onComplete)()
+              scheduleOnRN(onComplete)
             }
           })
         )
@@ -243,7 +243,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
         CIRCLE_IN_MS + LOGO_IN_MS + LOGO_HOLD_MS,
         withTiming(0, { duration: FADE_OUT_MS }, (finished) => {
           if (finished) {
-            runOnJS(onComplete)()
+            scheduleOnRN(onComplete)
           }
         })
       )
@@ -258,18 +258,18 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
       return
     }
 
-    stepOffsetX.value = SLIDE_IN_OFFSET
-    textSlideX.value = SLIDE_IN_OFFSET
-    descSlideX.value = SLIDE_IN_OFFSET
+    stepOffsetX.set(SLIDE_IN_OFFSET)
+    textSlideX.set(SLIDE_IN_OFFSET)
+    descSlideX.set(SLIDE_IN_OFFSET)
     stepSwitchingRef.current = true
     setCurrentStep(next)
   }
 
   function goBackFromStep(step: number) {
     const prev = step - 1
-    stepOffsetX.value = SLIDE_OUT_OFFSET
-    textSlideX.value = SLIDE_OUT_OFFSET
-    descSlideX.value = SLIDE_OUT_OFFSET
+    stepOffsetX.set(SLIDE_OUT_OFFSET)
+    textSlideX.set(SLIDE_OUT_OFFSET)
+    descSlideX.set(SLIDE_OUT_OFFSET)
     stepSwitchingRef.current = true
     setCurrentStep(prev)
   }
@@ -282,7 +282,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(advanceFromStep)(step)
+          scheduleOnRN(advanceFromStep, step)
         }
       })
     )
@@ -296,14 +296,14 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(goBackFromStep)(step)
+          scheduleOnRN(goBackFromStep, step)
         }
       })
     )
   }
 
   function handleSkip() {
-    containerOpacity.value = 0
+    containerOpacity.set(0)
     onComplete()
   }
 
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: Colors.black,
-    fontFamily: Typography.sfProTextRegular,
+    fontFamily: Typography.geistRegular,
     fontSize: LOGO_FONT_SIZE,
     letterSpacing: LOGO_LETTER_SPACING,
     lineHeight: LOGO_FONT_LINE_HEIGHT,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   stepTitle: {
-    fontFamily: Typography.sfProTextLight,
+    fontFamily: Typography.geistLight,
     textAlign: 'center'
   },
   titleBlock: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     color: 'rgba(255,255,255,0.4)',
-    fontFamily: Typography.sfProTextLight,
+    fontFamily: Typography.geistLight,
     fontSize: 11,
     letterSpacing: 3,
     textAlign: 'center'

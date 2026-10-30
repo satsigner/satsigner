@@ -24,7 +24,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
-import { type NostrRelayConnectionInfo } from '@/types/models/Nostr'
+import {
+  type NostrIdentity,
+  type NostrRelayConnectionInfo
+} from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
@@ -37,6 +40,31 @@ import {
 
 type AccountParams = {
   npub: string
+}
+
+async function syncIdentityKind0(
+  relays: string[],
+  npub: string,
+  identity: NostrIdentity | undefined,
+  updateIdentity: ReturnType<
+    typeof useNostrIdentityStore.getState
+  >['updateIdentity']
+) {
+  const api = new NostrAPI(relays)
+  try {
+    const profile = await api.fetchKind0(npub)
+    if (profile && identity) {
+      updateIdentity(npub, {
+        displayName: profile.displayName || identity.displayName,
+        lud16: profile.lud16 || identity.lud16,
+        nip05: profile.nip05 || identity.nip05,
+        picture: profile.picture || identity.picture
+      })
+    }
+    return profile
+  } finally {
+    api.disconnect()
+  }
 }
 
 export default function NostrAccountLanding() {
@@ -75,23 +103,8 @@ export default function NostrAccountLanding() {
 
   useQuery({
     enabled: !!identity && relayConnected && !!npub && relaysAvailable,
-    queryFn: async () => {
-      const api = new NostrAPI(effectiveRelays)
-      try {
-        const profile = await api.fetchKind0(npub)
-        if (profile && identity) {
-          updateIdentity(npub, {
-            displayName: profile.displayName || identity.displayName,
-            lud16: profile.lud16 || identity.lud16,
-            nip05: profile.nip05 || identity.nip05,
-            picture: profile.picture || identity.picture
-          })
-        }
-        return profile
-      } finally {
-        api.disconnect()
-      }
-    },
+    queryFn: () =>
+      syncIdentityKind0(effectiveRelays, npub, identity, updateIdentity),
     queryKey: ['nostr', 'profile', npub],
     staleTime: 60_000
   })

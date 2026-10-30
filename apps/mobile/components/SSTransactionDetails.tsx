@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -65,48 +64,27 @@ function SSTransactionDetails({
 
   const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
   const matchedAccount = accountMatch?.account || account
-  const { ownAddresses, internalAddresses } = useMemo(
-    () => getAccountAddressSets(matchedAccount?.addresses ?? []),
-    [matchedAccount?.addresses]
+  const { ownAddresses, internalAddresses } = getAccountAddressSets(
+    matchedAccount?.addresses ?? []
   )
   const handleOpenLinkedTx =
     matchedAccount && onOpenLinkedTx
       ? (txId: string) => onOpenLinkedTx(matchedAccount.id, txId)
       : undefined
-  const unspentOutpoints = useMemo(
-    () =>
-      new Set(matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)),
-    [matchedAccount?.utxos]
+  const unspentOutpoints = new Set(
+    matchedAccount?.utxos.map((utxo) => `${utxo.txid}:${utxo.vout}`)
   )
-  const txLabelsById = useMemo(
-    () => buildTxLabelsById(matchedAccount?.transactions),
-    [matchedAccount?.transactions]
+  const txLabelsById = buildTxLabelsById(matchedAccount?.transactions)
+  const knownTxIds = buildKnownTxIds(matchedAccount?.transactions)
+  const spendingTxIdsByOutpoint = buildSpendingTxIdsByOutpoint(
+    matchedAccount?.transactions
   )
-  const knownTxIds = useMemo(
-    () => buildKnownTxIds(matchedAccount?.transactions),
-    [matchedAccount?.transactions]
-  )
-  const spendingTxIdsByOutpoint = useMemo(
-    () => buildSpendingTxIdsByOutpoint(matchedAccount?.transactions),
-    [matchedAccount?.transactions]
-  )
-  const outpointLabelsByRef = useMemo(
-    () => buildOutpointLabelsByRef(matchedAccount ?? {}),
-    [matchedAccount]
-  )
-  const ownedOutpoints = useMemo(
-    () =>
-      buildOwnedOutpoints({
-        addresses: matchedAccount?.addresses,
-        transactions: matchedAccount?.transactions,
-        utxos: matchedAccount?.utxos
-      }),
-    [
-      matchedAccount?.addresses,
-      matchedAccount?.transactions,
-      matchedAccount?.utxos
-    ]
-  )
+  const outpointLabelsByRef = buildOutpointLabelsByRef(matchedAccount ?? {})
+  const ownedOutpoints = buildOwnedOutpoints({
+    addresses: matchedAccount?.addresses,
+    transactions: matchedAccount?.transactions,
+    utxos: matchedAccount?.utxos
+  })
 
   if (!txid) {
     return (

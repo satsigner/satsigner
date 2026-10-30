@@ -56,7 +56,7 @@ function ShadedNostrKeyText({
   const trimmed = value.trim()
   const fontSize = Sizes.text.fontSize[size]
   const baseTextStyle: TextStyle = {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize,
     letterSpacing: 1,
     lineHeight: Math.round(fontSize * 1.45),

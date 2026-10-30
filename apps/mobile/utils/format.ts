@@ -51,6 +51,23 @@ import {
   type TxIdSize
 } from '@/types/ui/format'
 
+const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: 'numeric'
+})
+const SHORT_MONTH_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'short'
+})
+const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric'
+})
+const compactLongFormattersByLocale = new Map<
+  string,
+  { exact: Intl.NumberFormat; rounded: Intl.NumberFormat }
+>()
+
 /**
  * Middle-truncate a string to `headChars` leading and `tailChars` trailing
  * characters joined by an ellipsis (e.g. "abcd...wxyz"). `tailChars` defaults
@@ -136,13 +153,7 @@ function formatFeeRateSatPerVb(feeRate: number): string {
 }
 
 function formatTime(date: Date) {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric'
-  })
-    .format(date)
-    .replace(' ', '')
-    .toLowerCase()
+  return TIME_FORMATTER.format(date).replace(' ', '').toLowerCase()
 }
 
 /**
@@ -154,7 +165,7 @@ function formatNostrCardDate(unixSeconds: number): string {
   }
   const d = new Date(unixSeconds * MS_PER_SECOND)
   const dd = String(d.getDate()).padStart(2, '0')
-  const mmm = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)
+  const mmm = SHORT_MONTH_FORMATTER.format(d)
   const yyyy = String(d.getFullYear())
   return `${mmm} ${dd}, ${yyyy} · ${formatTime(d)}`
 }
@@ -163,11 +174,7 @@ function formatDate(date: Date | string | number) {
   const dateObj =
     typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
-  return new Intl.DateTimeFormat('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  }).format(dateObj)
+  return DATE_FORMATTER.format(dateObj)
 }
 
 function formatTimestamp(date: Date) {
@@ -421,17 +428,30 @@ function formatLargeNumber(
     return formatScaledWord(num, QUADRILLION, 'quadrillion')
   }
 
-  const intlLocale = european ? 'fr' : locale
-  const exact = new Intl.NumberFormat(intlLocale, {
-    ...COMPACT_LONG_OPTS,
-    maximumFractionDigits: 20
-  }).format(num)
-  const rounded = new Intl.NumberFormat(intlLocale, {
-    ...COMPACT_LONG_OPTS,
-    maximumFractionDigits: 0
-  }).format(num)
+  const formatters = getCompactLongFormatters(european ? 'fr' : locale)
+  const exact = formatters.exact.format(num)
+  const rounded = formatters.rounded.format(num)
 
   return (exact !== rounded ? '~' : '') + rounded
+}
+
+function getCompactLongFormatters(locale: string) {
+  const cached = compactLongFormattersByLocale.get(locale)
+  if (cached) {
+    return cached
+  }
+  const formatters = {
+    exact: new Intl.NumberFormat(locale, {
+      ...COMPACT_LONG_OPTS,
+      maximumFractionDigits: 20
+    }),
+    rounded: new Intl.NumberFormat(locale, {
+      ...COMPACT_LONG_OPTS,
+      maximumFractionDigits: 0
+    })
+  }
+  compactLongFormattersByLocale.set(locale, formatters)
+  return formatters
 }
 
 function trimOnionAddress(url: string): string {
