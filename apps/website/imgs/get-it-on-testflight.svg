@@ -3,15 +3,20 @@
   <rect x="1.5" y="1.5" width="371" height="111" rx="20.5" stroke="#A6A6A6" stroke-opacity="0.3" stroke-width="3"/>
   <g transform="translate(20 21)">
     <defs>
-      <radialGradient id="tf-face" cx="38%" cy="36%" r="68%">
-        <stop offset="0" stop-color="#3a4654"/>
-        <stop offset="0.55" stop-color="#1a1d22"/>
-        <stop offset="1" stop-color="#0c0d10"/>
+      <radialGradient id="tf-face" cx="50%" cy="42%" r="78%">
+        <stop offset="0" stop-color="#7ec4fe"/>
+        <stop offset="0.42" stop-color="#3d9cf8"/>
+        <stop offset="1" stop-color="#2176f3"/>
       </radialGradient>
-      <linearGradient id="tf-blade" x1="0" y1="-30" x2="8" y2="-4" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#d7f1ff"/>
-        <stop offset="0.35" stop-color="#4eb6ff"/>
-        <stop offset="1" stop-color="#0a63e8"/>
+      <radialGradient id="tf-glow" cx="50%" cy="46%" r="42%">
+        <stop offset="0" stop-color="#d7efff" stop-opacity="0.55"/>
+        <stop offset="1" stop-color="#d7efff" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="tf-blade" x1="-1.2" y1="-26" x2="1.6" y2="-1.6" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset="0.38" stop-color="#eef8ff"/>
+        <stop offset="0.72" stop-color="#c5e4fb"/>
+        <stop offset="1" stop-color="#8fc8f6"/>
       </linearGradient>
       <clipPath id="tf-clip">
         <rect width="72" height="72" rx="16"/>
@@ -19,13 +24,14 @@
     </defs>
     <g clip-path="url(#tf-clip)">
       <rect width="72" height="72" fill="url(#tf-face)"/>
-      <g stroke="#2f6d9e" stroke-width="0.7" opacity="0.85">
+      <rect width="72" height="72" fill="url(#tf-glow)"/>
+      <g stroke="#ffffff" stroke-width="0.7" opacity="0.28">
         <path d="M18 0v72M36 0v72M54 0v72M0 18h72M0 36h72M0 54h72"/>
       </g>
-      <g transform="translate(36 38)" fill="url(#tf-blade)">
-        <path d="M0-3.2C7.2-6 9.4-16 0-29.5-9.4-16-7.2-6 0-3.2Z"/>
-        <path d="M0-3.2C7.2-6 9.4-16 0-29.5-9.4-16-7.2-6 0-3.2Z" transform="rotate(120)"/>
-        <path d="M0-3.2C7.2-6 9.4-16 0-29.5-9.4-16-7.2-6 0-3.2Z" transform="rotate(240)"/>
+      <g transform="translate(36 36)" fill="url(#tf-blade)">
+        <ellipse cx="0" cy="-13.8" rx="4.85" ry="12.15"/>
+        <ellipse cx="0" cy="-13.8" rx="4.85" ry="12.15" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-13.8" rx="4.85" ry="12.15" transform="rotate(240)"/>
       </g>
     </g>
   </g>

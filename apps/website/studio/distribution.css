@@ -25,13 +25,20 @@ body:has(#distribution-view:not([hidden])) .catalog {
 
 .promo-download {
   padding: 0.45rem 0.9rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--pill);
-  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--corner);
+  background: var(--ink);
+  color: var(--page);
   font: inherit;
   font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.promo-download:hover:not(:disabled) {
+  opacity: 0.88;
 }
 
 .promo-download:disabled {
@@ -281,6 +288,210 @@ body:has(#distribution-view:not([hidden])) .catalog {
   margin-top: 72px;
 }
 
+/* Social posts: square, 4:5, 9:16, 16:9 */
+.promo-social {
+  display: flex;
+  box-sizing: border-box;
+}
+
+.promo-social .promo-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.promo-social .promo-phone {
+  flex: none;
+}
+
+.promo-social-square {
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 1080px;
+  height: 1080px;
+  padding: 72px 64px 0 72px;
+}
+
+.promo-social-square .promo-copy {
+  gap: 24px;
+  max-width: 520px;
+  padding-bottom: 80px;
+}
+
+.promo-social-square .promo-headline {
+  font-size: 64px;
+}
+
+.promo-social-square .promo-sub {
+  font-size: 26px;
+}
+
+.promo-social-square .promo-phone {
+  width: 380px;
+  height: 822px;
+  align-self: flex-start;
+  margin-top: 96px;
+}
+
+.promo-social-portrait {
+  flex-direction: column;
+  align-items: center;
+  width: 1080px;
+  height: 1350px;
+  padding: 88px 72px 0;
+  gap: 48px;
+  text-align: center;
+}
+
+.promo-social-portrait .promo-copy {
+  align-items: center;
+  gap: 22px;
+}
+
+.promo-social-portrait .promo-headline {
+  font-size: 72px;
+}
+
+.promo-social-portrait .promo-sub {
+  max-width: 16em;
+  font-size: 28px;
+}
+
+.promo-social-portrait .promo-phone {
+  width: 520px;
+  height: 1125px;
+}
+
+.promo-social-story {
+  flex-direction: column;
+  align-items: center;
+  width: 1080px;
+  height: 1920px;
+  padding: 280px 72px 0;
+  gap: 56px;
+  text-align: center;
+}
+
+.promo-social-story .promo-copy {
+  align-items: center;
+  gap: 24px;
+}
+
+.promo-social-story .promo-headline {
+  font-size: 84px;
+}
+
+.promo-social-story .promo-sub {
+  max-width: 14em;
+  font-size: 32px;
+}
+
+.promo-social-story .promo-phone {
+  width: 640px;
+  height: 1384px;
+}
+
+.promo-social-landscape {
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 1600px;
+  height: 900px;
+  padding: 72px 80px 0 88px;
+}
+
+.promo-social-landscape .promo-copy {
+  gap: 28px;
+  max-width: 760px;
+  padding-bottom: 88px;
+}
+
+.promo-social-landscape .promo-headline {
+  font-size: 84px;
+}
+
+.promo-social-landscape .promo-sub {
+  max-width: 18em;
+  font-size: 30px;
+}
+
+.promo-social-landscape .promo-phone {
+  width: 420px;
+  height: 908px;
+  align-self: flex-start;
+  margin-top: 72px;
+}
+
+/* Phone-free post: soft white gradient and grain on black */
+.promo-orb {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+}
+
+.promo-orb .promo-copy {
+  z-index: 2;
+  align-items: center;
+  gap: 28px;
+  max-width: 920px;
+  padding: 0 72px;
+}
+
+.promo-orb .promo-kicker {
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+
+.promo-orb .promo-headline {
+  font-size: 92px;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+
+.promo-orb .promo-sub {
+  max-width: 22em;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 26px;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+
+.promo-orb-sphere {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: min(1600px, 150%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -46%);
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.28) 24%, rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0.03) 68%, transparent 84%);
+  filter: blur(90px);
+}
+
+.promo-orb-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.promo-social-story.promo-orb .promo-headline {
+  font-size: 108px;
+}
+
+.promo-social-landscape.promo-orb .promo-headline {
+  font-size: 104px;
+}
+
 /* 1024 × 500 Play feature graphic */
 .promo-feature {
   display: flex;
@@ -413,7 +624,7 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
   left: 0;
   right: 0;
   top: -1.25rem;
-  height: 5.5rem;
+  height: 4.75rem;
   background: var(--page);
 }
 
@@ -429,7 +640,7 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
   align-items: flex-end;
   gap: 0;
   margin: 0 -1.5rem;
-  padding: 0 1.5rem;
+  padding: 0.55rem 1.5rem 0;
   border-bottom: 1px solid var(--line-strong);
   background: var(--page);
   box-shadow: 0 -2rem 0 var(--page);
@@ -470,33 +681,47 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
 }
 
 .dist-section-tabs {
-  align-items: flex-end;
-  gap: 0.15rem;
+  align-self: flex-start;
+  gap: 2px;
+  width: fit-content;
   margin-top: 1.15rem;
-  border-bottom: 1px solid var(--line-strong);
+  padding: 3px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
 
 .dist-section-tabs .dist-tab {
-  margin: 0 0 -1px;
-  padding: 0.42rem 0.85rem 0.38rem;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  background: color-mix(in srgb, var(--ink) 5%, var(--page));
+  margin: 0;
+  padding: 0.38rem 0.85rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: background 160ms ease, color 160ms ease;
 }
 
 .dist-section-tabs .dist-tab:hover {
   color: var(--ink);
 }
 
+.dist-section-tabs .dist-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
 .dist-section-tabs .dist-tab[aria-selected="true"] {
-  z-index: 1;
-  padding-bottom: 0.48rem;
-  border-color: var(--line-strong);
-  border-bottom: 1px solid var(--page);
-  background: var(--page);
+  background: var(--pill-active);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
   color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dist-section-tabs .dist-tab {
+    transition: none;
+  }
 }
 
 .dist-tab {
@@ -520,6 +745,10 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
   margin-top: 0.35rem;
   padding-top: 0;
   border-top: 0;
+}
+
+.dist-panel > .promo-section {
+  margin-top: 1.75rem;
 }
 
 .dist-panel .promo-row {

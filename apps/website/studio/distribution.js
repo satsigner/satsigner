@@ -103,7 +103,9 @@ function board(className, scale, node) {
   scaleWrap.append(node, actionBar(jpgButton(), compareButton()))
   const cap = document.createElement('figcaption')
   const label = document.createElement('span')
-  label.textContent = w + ' × ' + h
+  label.textContent = node.dataset.caption
+    ? node.dataset.caption + ' · ' + w + ' × ' + h
+    : w + ' × ' + h
   cap.appendChild(label)
   slot.append(scaleWrap, cap)
   return slot
@@ -145,13 +147,40 @@ function fileSlug(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-function wideBoard(className, scale, kicker, title, sub, screen, w, h, logo, file) {
+function wideBoard(className, scale, kicker, title, sub, screen, w, h, logo, file, caption) {
   const node = document.createElement('div')
   node.dataset.w = w
   node.dataset.h = h
   node.dataset.file = file
+  if (caption) node.dataset.caption = caption
   node.appendChild(copyBlock(kicker, title, sub, logo))
   node.appendChild(phone(screen))
+  return board(className, scale, node)
+}
+
+function sphereBoard(className, scale, w, h, file, caption) {
+  const node = document.createElement('div')
+  node.dataset.w = w
+  node.dataset.h = h
+  node.dataset.file = file
+  if (caption) node.dataset.caption = caption
+  const sphere = document.createElement('div')
+  sphere.className = 'promo-orb-sphere'
+  sphere.setAttribute('aria-hidden', 'true')
+  const grain = document.createElement('canvas')
+  grain.className = 'promo-orb-grain'
+  grain.setAttribute('aria-hidden', 'true')
+  grain.width = w
+  grain.height = h
+  const pixels = grain.getContext('2d').createImageData(w, h)
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const n = (Math.random() * 255) | 0
+    pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = n
+    pixels.data[i + 3] = 255
+  }
+  grain.getContext('2d').putImageData(pixels, 0, 0)
+  const copy = copyBlock('SATSIGNER', 'See every sat.\nControl every key.', 'Clear, private, and yours.')
+  node.append(sphere, grain, copy)
   return board(className, scale, node)
 }
 
@@ -422,6 +451,58 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     markSlot('/imgs/get-it-on-testflight.svg', 'chicklet-testflight', 'chicklet', 'TestFlight chicklet')
   )
 
+  const posts = [
+    {
+      slug: 'see-every-sat',
+      title: 'See every sat.\nControl every key.',
+      sub: 'Mobile self-custody that’s clear, private, and yours.',
+      screen: 'account'
+    },
+    {
+      slug: 'sign-off-line',
+      title: 'Sign off-line.',
+      sub: 'Animated QR for an air-gapped signer.',
+      screen: 'psbt-qr'
+    }
+  ]
+  const formats = [
+    { id: 'square', label: 'Square · Instagram, Facebook, LinkedIn, Nostr', w: 1080, h: 1080, scale: 0.3 },
+    { id: 'portrait', label: 'Portrait · Instagram, LinkedIn, Facebook', w: 1080, h: 1350, scale: 0.24 },
+    { id: 'story', label: 'Story · Stories, Reels, TikTok, Shorts', w: 1080, h: 1920, scale: 0.168 },
+    { id: 'landscape', label: 'Landscape · X, LinkedIn', w: 1600, h: 900, scale: 0.36 }
+  ]
+  const social = section(
+    'Social posts',
+    'Two posts, each in the frame those networks accept. Square is the feed image. Portrait is the 4:5 feed. Story is 9:16, with the top and bottom 250px left clear of the network’s own controls. Landscape is the wide image post. Type stays inside the inset so a crop still reads.'
+  )
+  posts.forEach((post) => {
+    formats.forEach((format) => {
+      social.row.appendChild(wideBoard(
+        'promo-social promo-social-' + format.id,
+        format.scale,
+        'SATSIGNER',
+        post.title,
+        post.sub,
+        post.screen,
+        format.w,
+        format.h,
+        true,
+        'social-' + post.slug + '-' + format.id,
+        format.label
+      ))
+    })
+  })
+  formats.forEach((format) => {
+    social.row.appendChild(sphereBoard(
+      'promo-social promo-social-' + format.id + ' promo-orb',
+      format.scale,
+      format.w,
+      format.h,
+      'social-orb-' + format.id,
+      'Sphere · ' + format.label
+    ))
+  })
+
   const apple = section(
     'App Store screenshots',
     '1320 × 2868 portrait, the required 6.9-inch iPhone size. Upload up to 10. The first three show on the product page before the visitor scrolls, so each one stands alone. No prices, ratings, or “Download” calls.'
@@ -497,6 +578,7 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
       store: shared,
       sections: [
         { id: 'open-graph', label: 'Open Graph', el: og.el },
+        { id: 'social', label: 'Social posts', el: social.el },
         { id: 'chicklets', label: 'Logos and chicklets', el: chips.el }
       ]
     }
@@ -549,24 +631,43 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     panels.push(panel)
   })
 
-  function showStore(id) {
+  function selectedSection(storeId) {
+    const panel = panels.find((item) => item.dataset.store === storeId)
+    const current = panel && panel.querySelector('.dist-section-tabs [aria-selected="true"]')
+    return current ? current.dataset.id : ''
+  }
+
+  function writeSelection(storeId, sectionId) {
+    const url = new URL(location.href)
+    url.searchParams.set('store', storeId)
+    if (sectionId) url.searchParams.set('section', sectionId)
+    else url.searchParams.delete('section')
+    history.replaceState(null, '', url)
+  }
+
+  function showStore(id, write) {
     selectTab(storeBar, id)
     panels.forEach((panel) => { panel.hidden = panel.dataset.store !== id })
     paintDistributionGlow()
+    if (write !== false) writeSelection(id, selectedSection(id))
   }
 
-  function showSection(storeId, sectionId) {
+  function showSection(storeId, sectionId, write) {
     const panel = panels.find((item) => item.dataset.store === storeId)
     if (!panel) return
+    const known = panel.querySelector('.dist-section-tabs [data-id="' + sectionId + '"]')
+    if (!known) return
     selectTab(panel.querySelector('.dist-section-tabs'), sectionId)
     panel.querySelectorAll('[data-section]').forEach((section) => {
       section.hidden = section.dataset.section !== sectionId
     })
     paintDistributionGlow()
+    if (write !== false) writeSelection(storeId, sectionId)
   }
 
   distributionView.append(storeBar, ...panels)
-  const shot = new URLSearchParams(location.search).get('shot')
+  const params = new URLSearchParams(location.search)
+  const shot = params.get('shot')
   if (shot) {
     const node = distributionView.querySelector('[data-file="' + shot + '"]')
     const panel = node && node.closest('.dist-panel')
@@ -574,6 +675,14 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     if (panel) showStore(panel.dataset.store)
     if (panel && block) showSection(panel.dataset.store, block.dataset.section)
     setTimeout(() => showCheck(shot), 0)
+  } else {
+    const storeId = params.get('store')
+    const hasStore = storeId && panels.some((panel) => panel.dataset.store === storeId)
+    if (hasStore) {
+      showStore(storeId, false)
+      const sectionId = params.get('section')
+      if (sectionId) showSection(storeId, sectionId, false)
+    }
   }
 }
 
@@ -977,16 +1086,27 @@ function bakeSvgPaint(root) {
 }
 
 async function rasterIcons(root) {
-  const rootBox = root.getBoundingClientRect()
+  const win = root.ownerDocument.defaultView
   const svgs = [...root.querySelectorAll('svg')]
   await Promise.all(svgs.map(async (svg) => {
-    const iconBox = svg.getBoundingClientRect()
-    const w = iconBox.width
-    const h = iconBox.height
+    // getBoundingClientRect includes --ui-scale. The bitmap has to match the
+    // layout box, or the same transform enlarges it a second time.
+    const cs = win.getComputedStyle(svg)
+    let w = parseFloat(cs.width)
+    let h = parseFloat(cs.height)
+    if (!w || !h) {
+      const iconBox = svg.getBoundingClientRect()
+      const scale = visualScale(svg, root) || 1
+      w = iconBox.width / scale
+      h = iconBox.height / scale
+    }
     if (!w || !h) return
     const copy = svg.cloneNode(true)
+    copy.setAttribute('xmlns', SVG_NS)
     copy.setAttribute('width', String(w))
     copy.setAttribute('height', String(h))
+    // Standalone SVG images resolve currentColor from the root color, not the page.
+    copy.style.color = win.getComputedStyle(svg).color
     const view = copy.viewBox && copy.viewBox.baseVal
     const unit = view && view.width ? w / view.width : 1
     copy.querySelectorAll('path, line, circle, polyline, polygon, rect').forEach((shape) => {
@@ -1009,9 +1129,10 @@ async function rasterIcons(root) {
     const img = svg.ownerDocument.createElement('img')
     img.alt = ''
     img.src = canvas.toDataURL('image/png')
-    img.style.cssText = 'position:absolute;left:' + (iconBox.left - rootBox.left) + 'px;top:' + (iconBox.top - rootBox.top) + 'px;width:' + w + 'px;height:' + h + 'px;display:block;'
-    root.appendChild(img)
-    svg.remove()
+    // Stay in the icon's box. Parking the bitmap on the phone root paints it
+    // under .phone-screen, which covers every icon inside the display.
+    img.style.cssText = 'display:block;width:' + w + 'px!important;height:' + h + 'px!important;max-width:none;flex:none;'
+    svg.replaceWith(img)
   }))
 }
 
@@ -1280,6 +1401,15 @@ async function boardCanvas(board, scale) {
     img.alt = ''
     img.src = liveGlow.toDataURL('image/png')
     glow.replaceWith(img)
+  }
+  const liveGrain = board.querySelector('canvas.promo-orb-grain')
+  const grain = clone.querySelector('canvas.promo-orb-grain')
+  if (liveGrain && grain) {
+    const img = document.createElement('img')
+    img.className = 'promo-orb-grain'
+    img.alt = ''
+    img.src = liveGrain.toDataURL('image/png')
+    grain.replaceWith(img)
   }
   const liveFrames = [...board.querySelectorAll('iframe')]
   const frames = [...clone.querySelectorAll('iframe')]
