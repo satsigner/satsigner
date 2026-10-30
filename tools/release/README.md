@@ -26,7 +26,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 | Option            | What it builds                                               |
 | ----------------- | ------------------------------------------------------------ |
 | Branch            | Dev package id for the current branch, all CPU architectures |
-| Production        | Production package id, no branch suffix                      |
+| Production        | Production package id, no branch suffix, ARM CPUs only       |
 | Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
 ## Tools the actions expect

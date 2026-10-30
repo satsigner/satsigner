@@ -22,10 +22,10 @@ import {
   SANKEY_BLOCK_TX_STRIP_MAX_PX,
   SANKEY_BLOCK_TX_STRIP_PX_PER_BYTE
 } from '@/constants/sankey'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
-import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
 import type { Node, SankeyOutputRole } from '@/types/ui/sankey'
 import { formatFeeRateSatPerVb, formatNumber } from '@/utils/format'
@@ -157,7 +157,7 @@ function SSSankeyNodes({
   showUnspentLabel = true,
   onLabelsReady
 }: SSSankeyNodesProps) {
-  const customFontManager = useSFProFonts()
+  const customFontManager = useGeistFonts()
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
   const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
@@ -373,7 +373,7 @@ function NodeText({
 
     const baseTextStyle = {
       color: Skia.Color('white'),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize: BASE_FONT_SIZE,
       fontStyle: {
         weight: 500
@@ -442,7 +442,7 @@ function NodeText({
 
     const baseTextStyle = {
       color: Skia.Color('white'),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize: BASE_FONT_SIZE,
       fontStyle: {
         weight: 500

@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: Colors.black,
-    fontFamily: Typography.sfProTextRegular,
+    fontFamily: Typography.geistRegular,
     fontSize: LOGO_FONT_SIZE,
     letterSpacing: LOGO_LETTER_SPACING,
     lineHeight: LOGO_FONT_LINE_HEIGHT,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   stepTitle: {
-    fontFamily: Typography.sfProTextLight,
+    fontFamily: Typography.geistLight,
     textAlign: 'center'
   },
   titleBlock: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     color: 'rgba(255,255,255,0.4)',
-    fontFamily: Typography.sfProTextLight,
+    fontFamily: Typography.geistLight,
     fontSize: 11,
     letterSpacing: 3,
     textAlign: 'center'

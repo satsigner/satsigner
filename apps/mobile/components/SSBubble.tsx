@@ -18,7 +18,7 @@ import {
 } from 'react-native-reanimated'
 
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
@@ -105,7 +105,7 @@ function SSBubble({
 
     const textStyle = {
       color: Skia.Color('black'),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize,
       fontStyle: {
         weight: selected ? 400 : 300
@@ -159,7 +159,7 @@ function SSBubble({
 
     const textStyle = {
       color: Skia.Color(Colors.gray[700]),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize: descriptionFontSize,
       fontStyle: {
         weight: 400
@@ -198,7 +198,7 @@ function SSBubble({
 
     const textStyle = {
       color: Skia.Color('black'),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize: descriptionFontSize,
       fontStyle: {
         weight: 400
@@ -250,7 +250,7 @@ function SSBubble({
 
     const textStyle = {
       color: Skia.Color('black'),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize: descriptionFontSize,
       fontStyle: {
         weight: 400

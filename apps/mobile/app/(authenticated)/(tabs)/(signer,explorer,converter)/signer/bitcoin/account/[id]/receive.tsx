@@ -44,7 +44,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 16,
     letterSpacing: 1.5,
     lineHeight: 30,
@@ -1132,7 +1132,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5,
     lineHeight: 18,

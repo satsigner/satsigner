@@ -25,7 +25,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type NostrKind1DraftImport } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#242424',
     borderRadius: 3,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     lineHeight: 18,
     maxHeight: 220,

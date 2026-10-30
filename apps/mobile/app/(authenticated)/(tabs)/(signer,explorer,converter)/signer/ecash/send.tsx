@@ -29,7 +29,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     padding: 12
   },
   invoiceInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     padding: 10
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800]
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 100,

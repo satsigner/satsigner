@@ -29,7 +29,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
 import { type EcashSearchParams } from '@/types/navigation/searchParams'
 import { formatFiatPrice } from '@/utils/format'
@@ -564,7 +564,7 @@ export default function EcashTransactionDetailPage() {
 
 const styles = StyleSheet.create({
   dataInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 120,

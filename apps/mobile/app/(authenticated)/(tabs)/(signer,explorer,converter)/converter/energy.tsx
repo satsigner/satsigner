@@ -26,7 +26,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type BlockTemplateTransaction } from '@/types/models/Rpc'
 import { blocksUntilDifficultyAdjustment } from '@/utils/bitcoin/consensus'
 import {
@@ -1886,7 +1886,7 @@ const styles = StyleSheet.create({
     padding: 16
   },
   templateText: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 8
   }
 })

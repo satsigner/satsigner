@@ -10,8 +10,8 @@ import {
 import { type LayoutChangeEvent } from 'react-native'
 import { Gesture } from 'react-native-gesture-handler'
 
-import { useSFProFonts } from '@/hooks/useSFProFonts'
-import { Colors } from '@/styles'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
+import { Colors, Typography } from '@/styles'
 import { type Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Rectangle } from '@/types/ui/geometry'
@@ -29,7 +29,7 @@ import {
 import { HISTORY_CHART_Y_HEADROOM, hexToRgba } from '@/utils/historyChart'
 
 const DAYS_AHEAD = 5
-const LABEL_FONT = ['SF Pro Text']
+const LABEL_FONT = [Typography.geistSkiaFamily]
 const LABEL_BASE_FONT_SIZE = 10
 const LABEL_FIAT_FONT_SIZE = 8
 
@@ -56,7 +56,7 @@ type UseHistoryChartGesturesParams = {
 }
 
 type UseHistoryChartLabelsParams = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   txInfoLabels: TxInfoLabel[]
   transactionsMap: Map<string, Transaction>
   chartWidth: number

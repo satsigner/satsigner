@@ -15,7 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { formatDate, formatTime, formatTimeFromNow } from '@/utils/format'
 
 const tn = _tn('explorer.node')
@@ -286,11 +286,14 @@ function Row({
 const styles = StyleSheet.create({
   bannerText: {
     color: Colors.gray['300'],
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     marginTop: 2
   },
   container: { paddingTop: 0 },
-  hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
+  hashText: {
+    color: Colors.gray['100'],
+    fontFamily: Typography.geistMonoRegular
+  },
   inlineLoading: {
     alignItems: 'center',
     paddingVertical: 24

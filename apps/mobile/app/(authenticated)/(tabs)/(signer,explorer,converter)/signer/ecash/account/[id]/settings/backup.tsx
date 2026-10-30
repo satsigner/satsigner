@@ -16,7 +16,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { buildEcashBackupPayload } from '@/utils/ecashBackup'
 import { formatNumber } from '@/utils/format'
 
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     paddingTop: 20
   },
   backupInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 200,

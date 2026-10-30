@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
     color: Colors.white,
-    fontFamily: Typography.sfProTextRegular,
+    fontFamily: Typography.geistRegular,
     textAlign: 'center',
     width: '100%'
   },

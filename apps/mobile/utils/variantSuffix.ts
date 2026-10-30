@@ -1,4 +1,5 @@
 export {
+  getVariantAndroidAbis,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme,
