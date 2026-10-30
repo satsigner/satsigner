@@ -67,16 +67,22 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       return
     }
 
+    const reloadTimers = new Set<ReturnType<typeof setTimeout>>()
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        setTimeout(async () => {
+        const timer = setTimeout(async () => {
+          reloadTimers.delete(timer)
           await loadClipboardContent()
         }, 1)
+        reloadTimers.add(timer)
       }
     })
 
     return () => {
       subscription.remove()
+      for (const timer of reloadTimers) {
+        clearTimeout(timer)
+      }
     }
   }, [visible])
 
