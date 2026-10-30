@@ -253,15 +253,13 @@ export default function Converter() {
   }
 
   function handleToggleWrittenNumbers() {
-    setShowWrittenNumbers((prev) => {
-      const next = !prev
-      writtenNumberH.set(
-        withTiming(next ? WRITTEN_NUMBER_HEIGHT : 0, {
-          duration: WRITTEN_NUMBER_DURATION
-        })
-      )
-      return next
-    })
+    const next = !showWrittenNumbers
+    writtenNumberH.set(
+      withTiming(next ? WRITTEN_NUMBER_HEIGHT : 0, {
+        duration: WRITTEN_NUMBER_DURATION
+      })
+    )
+    setShowWrittenNumbers(next)
   }
 
   function handleToggleEuropeanScale() {
