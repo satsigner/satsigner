@@ -13,7 +13,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useEffect, useEffectEvent, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -163,8 +163,11 @@ function SSSankeyNodes({
   const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
 
-  const notifyLabelsReady = useEffectEvent(() => {
-    onLabelsReady?.(true)
+  // Rendered inside a Skia Canvas, whose reconciler predates useEffectEvent,
+  // so the latest callback is kept in a ref instead.
+  const onLabelsReadyRef = useRef(onLabelsReady)
+  useLayoutEffect(() => {
+    onLabelsReadyRef.current = onLabelsReady
   })
   const labelsNotifiedRef = useRef(false)
 
@@ -181,7 +184,7 @@ function SSSankeyNodes({
       }
       if (remaining <= 0) {
         labelsNotifiedRef.current = true
-        notifyLabelsReady()
+        onLabelsReadyRef.current?.(true)
         return
       }
       frame = requestAnimationFrame(() => waitForPaint(remaining - 1))
