@@ -16,30 +16,28 @@ import SSBackgroundGradient from './SSBackgroundGradient'
 import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
 
-const TOP_LIGHT_PEAK = 'rgba(255,255,255,0.07)'
-const TOP_LIGHT_CLEAR = 'rgba(255,255,255,0)'
-const TOP_EDGE_EDGE = 'rgba(255,255,255,0.04)'
-const TOP_EDGE_PEAK = 'rgba(255,255,255,0.14)'
+const TOP_LIGHT_PEAK = 0.04
+const TOP_LIGHT_TAIL = 0.03
+const TOP_EDGE_EDGE = 0.07
+const TOP_EDGE_PEAK = 0.12
+const STACK_LIGHT_FALLOFF = 0.78
 
-function topLightOrigin(
-  horizontalIndex: number | undefined,
-  totalButtons: number | undefined,
+function whiteAlpha(alpha: number) {
+  return `rgba(255,255,255,${alpha.toFixed(3)})`
+}
+
+function stackLightScale(
   verticalIndex: number | undefined,
   totalButtonsVertical: number | undefined
 ) {
-  const x =
-    horizontalIndex !== undefined &&
-    totalButtons !== undefined &&
-    totalButtons > 1
-      ? -horizontalIndex / (totalButtons - 1)
-      : 0
-  const y =
-    verticalIndex !== undefined &&
-    totalButtonsVertical !== undefined &&
-    totalButtonsVertical > 1
-      ? -verticalIndex / (totalButtonsVertical - 1)
-      : 0
-  return { x, y }
+  if (
+    verticalIndex === undefined ||
+    totalButtonsVertical === undefined ||
+    totalButtonsVertical <= 1
+  ) {
+    return 1
+  }
+  return 1 - (verticalIndex / (totalButtonsVertical - 1)) * STACK_LIGHT_FALLOFF
 }
 
 export type SSButtonProps = {
@@ -101,13 +99,13 @@ function SSButton({
     (variant === 'gradient' && gradientType === 'special')
   const showDefaultGradient =
     variant === 'gradient' && gradientType === 'default'
-  const showTopLight = variant === 'subtle' || variant === 'outline'
-  const topLightStart = topLightOrigin(
-    horizontalIndex,
-    totalButtons,
-    verticalIndex,
-    totalButtonsVertical
-  )
+  const showTopLight =
+    variant === 'default' ||
+    variant === 'subtle' ||
+    variant === 'outline' ||
+    variant === 'gradient' ||
+    variant === 'danger'
+  const lightScale = stackLightScale(verticalIndex, totalButtonsVertical)
 
   const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
 
@@ -205,27 +203,34 @@ function SSButton({
           />
         </>
       )}
+      {showDefaultGradient && (
+        <SSBackgroundGradient style={styles.buttonGradient} />
+      )}
       {showTopLight && (
         <>
           <LinearGradient
             pointerEvents={decorationPointerEvents}
             style={styles.buttonGradient}
-            colors={[TOP_LIGHT_PEAK, TOP_LIGHT_CLEAR]}
-            start={topLightStart}
-            end={{ x: 1, y: 1 }}
+            colors={[
+              whiteAlpha(TOP_LIGHT_PEAK * lightScale),
+              whiteAlpha(TOP_LIGHT_TAIL * lightScale)
+            ]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
           />
           <LinearGradient
             pointerEvents={decorationPointerEvents}
             style={[styles.glassBorder, styles.glassBorderTop]}
-            colors={[TOP_EDGE_EDGE, TOP_EDGE_PEAK, TOP_EDGE_EDGE]}
-            locations={[0, 0.35, 1]}
-            start={{ x: topLightStart.x, y: 0 }}
-            end={{ x: topLightStart.x + 1, y: 0 }}
+            colors={[
+              whiteAlpha(TOP_EDGE_EDGE * lightScale),
+              whiteAlpha(TOP_EDGE_PEAK * lightScale),
+              whiteAlpha(TOP_EDGE_EDGE * lightScale)
+            ]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           />
         </>
-      )}
-      {showDefaultGradient && (
-        <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
         icon ? (

@@ -25,14 +25,12 @@ type SettingsParams = {
   npub: string
 }
 
-// Gradient start x shifts left→right across chiclets to simulate a single
-// overhead light source landing at a slightly different angle on each tile.
-const CHICLET_GRADIENT_STARTS: { x: number; y: number }[] = [
-  { x: 0.15, y: 0 },
-  { x: 0.38, y: 0 },
-  { x: 0.62, y: 0 },
-  { x: 0.85, y: 0 }
-]
+const CHICLET_COUNT = 4
+const CHICLET_TOP_EDGE = [
+  'rgba(255,255,255,0.05)',
+  'rgba(255,255,255,0.18)',
+  'rgba(255,255,255,0.05)'
+] as const
 
 export default function NostrIdentitySettings() {
   const router = useRouter()
@@ -111,17 +109,17 @@ export default function NostrIdentitySettings() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <SSVStack gap="lg" style={styles.content}>
-          <SSHStack gap="sm">
+        <SSVStack gap="md" style={styles.content}>
+          <SSHStack gap="md">
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[0]}
+              index={0}
               label={t('nostrIdentity.chat.title')}
               onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
             >
               <SSIconChatBubble color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[1]}
+              index={1}
               label={t('nostrIdentity.contacts.title')}
               onPress={() =>
                 router.navigate(nostrAccountHref(npub, 'contacts'))
@@ -130,7 +128,7 @@ export default function NostrIdentitySettings() {
               <SSIconContacts color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[2]}
+              index={2}
               label={t('nostrIdentity.calendar.title')}
               onPress={() =>
                 router.navigate(nostrAccountHref(npub, 'calendar'))
@@ -139,7 +137,7 @@ export default function NostrIdentitySettings() {
               <SSIconCalendar color={Colors.white} height={24} width={24} />
             </Chiclet>
             <Chiclet
-              gradientStart={CHICLET_GRADIENT_STARTS[3]}
+              index={3}
               label={t('nostrIdentity.files.title')}
               onPress={() => router.navigate(nostrAccountHref(npub, 'files'))}
             >
@@ -198,60 +196,47 @@ export default function NostrIdentitySettings() {
 
 type ChicletProps = {
   children: React.ReactNode
-  gradientStart: { x: number; y: number }
+  index: number
   label: string
   onPress: () => void
 }
 
-function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
+function Chiclet({ children, index, label, onPress }: ChicletProps) {
   return (
-    <SSPressable style={styles.chiclet} onPress={onPress} activeOpacity={0.7}>
+    <SSPressable
+      accessibilityLabel={label}
+      style={styles.chiclet}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.chicletTile}>
         <LinearGradient
-          colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
-          start={gradientStart}
-          end={{ x: 1, y: 1 }}
+          colors={['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.025)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
         <LinearGradient
           style={[styles.glassBorder, styles.glassBorderTop]}
-          colors={[
-            'rgba(255,255,255,0.04)',
-            'rgba(255,255,255,0.14)',
-            'rgba(255,255,255,0.04)'
-          ]}
-          locations={[0, 0.35, 1]}
-          start={{ x: gradientStart.x, y: 0 }}
-          end={{ x: gradientStart.x + 1, y: 0 }}
+          colors={CHICLET_TOP_EDGE}
+          locations={[0, 0.42, 1]}
+          start={{ x: -index, y: 0 }}
+          end={{ x: CHICLET_COUNT - index, y: 0 }}
         />
         <View style={styles.chicletContent}>{children}</View>
       </View>
-      <SSText
-        size="xs"
-        color="muted"
-        uppercase
-        center
-        style={styles.chicletLabel}
-      >
-        {label}
-      </SSText>
     </SSPressable>
   )
 }
 
 const styles = StyleSheet.create({
   chiclet: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 6
+    flex: 1
   },
   chicletContent: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center'
-  },
-  chicletLabel: {
-    paddingHorizontal: 2
   },
   chicletTile: {
     aspectRatio: 1,
