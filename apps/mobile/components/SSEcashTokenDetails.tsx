@@ -6,13 +6,17 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Typography } from '@/styles'
 import { type EcashToken } from '@/types/models/Ecash'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
-type SSEcashTokenDetailsProps = {
+type SSEcashTokenDetailsProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatEnabled'
+> & {
   decodedToken: EcashToken
   fiatCurrency: string
   privacyMode?: boolean
-  satsToFiat: (amount: number) => number
   showMint?: boolean
   showProofs?: boolean
 }
@@ -21,7 +25,8 @@ function SSEcashTokenDetails({
   decodedToken,
   fiatCurrency,
   privacyMode = false,
-  satsToFiat,
+  btcPrice,
+  fiatEnabled,
   showMint = true,
   showProofs = true
 }: SSEcashTokenDetailsProps) {
@@ -46,7 +51,7 @@ function SSEcashTokenDetails({
               <SSText color="muted" size="sm">
                 {privacyMode
                   ? `≈ •••• ${fiatCurrency}`
-                  : `≈ ${formatNumber(satsToFiat(totalAmount), 2)} ${fiatCurrency}`}
+                  : `≈ ${formatNumber(satsToFiat(totalAmount, btcPrice, fiatEnabled), 2)} ${fiatCurrency}`}
               </SSText>
             </SSHStack>
           </SSHStack>

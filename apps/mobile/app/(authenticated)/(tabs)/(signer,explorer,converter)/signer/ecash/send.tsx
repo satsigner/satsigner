@@ -28,7 +28,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors, Sizes } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
@@ -80,7 +79,6 @@ export default function EcashSendPage() {
     tokenVersion
   } = useEcashSend()
 
-  const satsToFiat = usePriceStore((state) => state.satsToFiat)
   const { width } = useWindowDimensions()
   const qrSize = Math.floor(width * 0.88)
   const routeLabel = describeTokenRoute(tokenRoute, mints)
@@ -388,7 +386,8 @@ export default function EcashSendPage() {
                     decodedInvoice={decodedInvoice}
                     fiatCurrency={fiatCurrency}
                     privacyMode={privacyMode}
-                    satsToFiat={satsToFiat}
+                    btcPrice={btcPrice}
+                    fiatEnabled={fiatEnabled}
                   />
                 )}
 
@@ -404,7 +403,8 @@ export default function EcashSendPage() {
                     inputStyles={styles.input}
                     fiatCurrency={fiatCurrency}
                     privacyMode={privacyMode}
-                    satsToFiat={satsToFiat}
+                    btcPrice={btcPrice}
+                    fiatEnabled={fiatEnabled}
                   />
                 )}
               </SSVStack>
