@@ -2,7 +2,7 @@ import { Canvas, Group, Path, rect } from '@shopify/react-native-skia'
 import { format } from 'd3-format'
 import { scaleLinear, scaleTime } from 'd3-scale'
 import { area, curveStepAfter, line } from 'd3-shape'
-import { memo, useMemo, useRef } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
@@ -113,7 +113,8 @@ function SSHistoryChart({
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
-  const currentDate = useRef<Date>(new Date())
+  const [mountDate] = useState(() => new Date())
+  const currentDate = useRef(mountDate)
   const labelRectRef = useRef<{ rect: Rectangle; id: string }[]>([])
   const viewport = useHistoryChartViewport(currentDate)
   const {
@@ -132,15 +133,14 @@ function SSHistoryChart({
   )
 
   const chartData: HistoryChartData[] = useMemo(
-    () => buildChartData(transactions, currentDate.current),
-    [transactions]
+    () => buildChartData(transactions, mountDate),
+    [mountDate, transactions]
   )
 
   const timeOffset =
     chartData.length > 0
-      ? new Date(currentDate.current).setDate(
-          currentDate.current.getDate() + 10
-        ) - chartData[0].date.getTime()
+      ? new Date(mountDate).setDate(mountDate.getDate() + 10) -
+        chartData[0].date.getTime()
       : 0
   const startDate = useMemo<Date>(
     () => new Date(endDate.getTime() - timeOffset / scale),
@@ -149,8 +149,7 @@ function SSHistoryChart({
 
   const balanceHistory = useMemo(
     () => buildBalanceHistory(transactions, walletAddresses),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [walletAddresses]
+    [transactions, walletAddresses]
   )
 
   const [maxBalance, validChartData] = useMemo(
@@ -159,10 +158,10 @@ function SSHistoryChart({
         chartData,
         startDate,
         endDate,
-        currentDate.current,
+        mountDate,
         lockZoomToXAxis
       ),
-    [chartData, lockZoomToXAxis, startDate, endDate]
+    [chartData, lockZoomToXAxis, mountDate, startDate, endDate]
   )
 
   const showFiatLine =
@@ -187,10 +186,10 @@ function SSHistoryChart({
     return buildFiatChartPoints({
       chartData,
       closes: getLocalPriceCloses(fiatCurrency),
-      endDate: currentDate.current,
+      endDate: mountDate,
       startDate: earliest
     })
-  }, [chartData, fiatCurrency, showFiatLine])
+  }, [chartData, fiatCurrency, mountDate, showFiatLine])
   const fiatChartPoints = useMemo(
     () => fiatPointsInWindow(fiatSeries, startDate, endDate),
     [endDate, fiatSeries, startDate]
@@ -244,13 +243,12 @@ function SSHistoryChart({
       buildUtxoRectangles({
         balanceHistory,
         chartWidth,
-        currentDate: currentDate.current,
+        currentDate: mountDate,
         transactions,
         xScale,
         yScale
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [balanceHistory, xScale, yScale]
+    [balanceHistory, chartWidth, mountDate, transactions, xScale, yScale]
   )
 
   const utxoLabels = useMemo(
@@ -258,13 +256,12 @@ function SSHistoryChart({
       buildUtxoLabels({
         balanceHistory,
         chartWidth,
-        currentDate: currentDate.current,
+        currentDate: mountDate,
         transactions,
         xScale,
         yScale
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [balanceHistory, xScale, yScale]
+    [balanceHistory, chartWidth, mountDate, transactions, xScale, yScale]
   )
 
   const combinedGesture = useHistoryChartGestures({

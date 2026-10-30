@@ -13,7 +13,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -163,8 +163,9 @@ function SSSankeyNodes({
   const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
 
-  const onLabelsReadyRef = useRef(onLabelsReady)
-  onLabelsReadyRef.current = onLabelsReady
+  const notifyLabelsReady = useEffectEvent(() => {
+    onLabelsReady?.(true)
+  })
   const labelsNotifiedRef = useRef(false)
 
   useEffect(() => {
@@ -180,7 +181,7 @@ function SSSankeyNodes({
       }
       if (remaining <= 0) {
         labelsNotifiedRef.current = true
-        onLabelsReadyRef.current?.(true)
+        notifyLabelsReady()
         return
       }
       frame = requestAnimationFrame(() => waitForPaint(remaining - 1))
@@ -425,10 +426,10 @@ function NodeText({
     return built
   }, [
     customFontManager,
-    ioData?.blockHeight,
-    ioData?.blockRelativeTime,
-    ioData?.blockTime,
-    ioData?.txId,
+    ioData.blockHeight,
+    ioData.blockRelativeTime,
+    ioData.blockTime,
+    ioData.txId,
     isBlock
   ])
 
@@ -820,20 +821,20 @@ function NodeText({
     isMiningFee,
     isUnspent,
     paragraphLayoutWidth,
-    ioData?.txSize,
+    ioData.txSize,
     ioData.vSize,
-    ioData?.feeRate,
-    ioData?.value,
-    ioData?.maxAllowedSats,
+    ioData.feeRate,
+    ioData.value,
+    ioData.maxAllowedSats,
     ioData.fiatValue,
     ioData.fiatCurrency,
-    ioData?.text,
-    ioData?.feePercentage,
-    ioData?.address,
+    ioData.text,
+    ioData.feePercentage,
+    ioData.address,
     ioData.label,
-    ioData?.specialTag,
-    ioData?.vout,
-    ioData?.isOwnInput,
+    ioData.specialTag,
+    ioData.vout,
+    ioData.isOwnInput,
     isHigherMinerFee,
     isFeeValueWarning,
     isChange,
