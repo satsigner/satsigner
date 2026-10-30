@@ -4,7 +4,6 @@
 
 import { Gesture } from 'react-native-gesture-handler'
 import {
-  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -12,6 +11,7 @@ import {
   withDecay,
   withTiming
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import {
   ANIMATION_VALUE,
@@ -214,7 +214,7 @@ export const useGestures = ({
     .minPointers(minPanPointers)
     .maxPointers(maxPanPointers)
     .onStart((event) => {
-      runOnJS(onPanStarted)(event)
+      scheduleOnRN(onPanStarted, event)
       savedTranslate.x.set(translate.x.get())
       savedTranslate.y.set(translate.y.get())
     })
@@ -243,7 +243,7 @@ export const useGestures = ({
                 },
                 () => {
                   if (event.velocityX >= event.velocityY) {
-                    runOnJS(onPanEnded)(event, success)
+                    scheduleOnRN(onPanEnded, event, success)
                   }
                 }
               )
@@ -253,7 +253,7 @@ export const useGestures = ({
                 },
                 () => {
                   if (event.velocityX >= event.velocityY) {
-                    runOnJS(onPanEnded)(event, success)
+                    scheduleOnRN(onPanEnded, event, success)
                   }
                 }
               )
@@ -273,7 +273,7 @@ export const useGestures = ({
                 },
                 () => {
                   if (event.velocityY > event.velocityX) {
-                    runOnJS(onPanEnded)(event, success)
+                    scheduleOnRN(onPanEnded, event, success)
                   }
                 }
               )
@@ -283,20 +283,20 @@ export const useGestures = ({
                 },
                 () => {
                   if (event.velocityY > event.velocityX) {
-                    runOnJS(onPanEnded)(event, success)
+                    scheduleOnRN(onPanEnded, event, success)
                   }
                 }
               )
         )
       } else {
-        runOnJS(onPanEnded)(event, success)
+        scheduleOnRN(onPanEnded, event, success)
       }
     })
 
   const pinchGesture = Gesture.Pinch()
     .enabled(isPinchEnabled)
     .onStart((event) => {
-      runOnJS(onPinchStarted)(event)
+      scheduleOnRN(onPinchStarted, event)
       savedScale.set(scale.get())
       savedFocal.x.set(focal.x.get())
       savedFocal.y.set(focal.y.get())
@@ -316,7 +316,7 @@ export const useGestures = ({
     })
     .onEnd((...args) => {
       isZoomedIn.set(args[0].scale > 1)
-      runOnJS(onPinchEnded)(...args)
+      scheduleOnRN(onPinchEnded, ...args)
     })
 
   const doubleTapGesture = Gesture.Tap()
@@ -326,7 +326,7 @@ export const useGestures = ({
     .onStart((event) => {
       if (scale.get() === 1) {
         isZoomedIn.set(true)
-        runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
+        scheduleOnRN(onDoubleTap, ZOOM_TYPE.ZOOM_IN)
         scale.set(withTiming(doubleTapScale))
         const focalX = (center.x - event.x) * (doubleTapScale - 1)
         const focalY = (center.y - event.y) * (doubleTapScale - 1)
@@ -344,7 +344,7 @@ export const useGestures = ({
         }
       } else {
         isZoomedIn.set(false)
-        runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
+        scheduleOnRN(onDoubleTap, ZOOM_TYPE.ZOOM_OUT)
         reset()
       }
     })
@@ -352,7 +352,7 @@ export const useGestures = ({
   const singleTapGesture = Gesture.Tap()
     .numberOfTaps(1)
     .onStart((event) => {
-      runOnJS(onSingleTap)(event)
+      scheduleOnRN(onSingleTap, event)
     })
 
   const animatedStyle = useAnimatedStyle(() => ({

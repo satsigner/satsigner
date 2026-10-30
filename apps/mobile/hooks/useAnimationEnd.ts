@@ -2,9 +2,9 @@ import { useCallback } from 'react'
 import {
   type AnimatableValue,
   type AnimationCallback,
-  runOnJS,
   useSharedValue
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import {
   ANIMATION_VALUE,
@@ -60,7 +60,7 @@ export const useAnimationEnd = (
         currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
           const completed = areAllAnimationsFinished(currentEndValues)
-          runOnJS(onResetAnimationEnd)(completed, currentEndValues)
+          scheduleOnRN(onResetAnimationEnd, completed, currentEndValues)
           delete interactionEndValues[interactionId]
         } else {
           interactionEndValues[interactionId] = currentEndValues

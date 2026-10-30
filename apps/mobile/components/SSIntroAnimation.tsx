@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import SSButton from '@/components/SSButton'
 import SSIntroAnimationBubbleStep from '@/components/SSIntroAnimationBubbleStep'
@@ -182,7 +182,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
           RETURNING_FADE_DELAY,
           withTiming(0, { duration: RETURNING_FADE_OUT }, (finished) => {
             if (finished) {
-              runOnJS(onComplete)()
+              scheduleOnRN(onComplete)
             }
           })
         )
@@ -243,7 +243,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
         CIRCLE_IN_MS + LOGO_IN_MS + LOGO_HOLD_MS,
         withTiming(0, { duration: FADE_OUT_MS }, (finished) => {
           if (finished) {
-            runOnJS(onComplete)()
+            scheduleOnRN(onComplete)
           }
         })
       )
@@ -282,7 +282,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(advanceFromStep)(step)
+          scheduleOnRN(advanceFromStep, step)
         }
       })
     )
@@ -296,7 +296,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
     stepTransition.set(
       withTiming(0, { duration: TRANSITION_MS }, (finished) => {
         if (finished) {
-          runOnJS(goBackFromStep)(step)
+          scheduleOnRN(goBackFromStep, step)
         }
       })
     )

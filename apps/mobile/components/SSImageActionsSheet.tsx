@@ -14,12 +14,12 @@ import {
   GestureHandlerRootView
 } from 'react-native-gesture-handler'
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -241,7 +241,7 @@ export default function SSImageActionsSheet() {
     translateY.set(
       withTiming(windowHeight, { duration: 220 }, (finished) => {
         if (finished) {
-          runOnJS(handleDismiss)()
+          scheduleOnRN(handleDismiss)
         }
       })
     )
@@ -261,7 +261,7 @@ export default function SSImageActionsSheet() {
         shouldDismiss
           ? withTiming(windowHeight, { duration: 220 }, (finished) => {
               if (finished) {
-                runOnJS(handleDismiss)()
+                scheduleOnRN(handleDismiss)
               }
             })
           : withTiming(0, { duration: 200 })

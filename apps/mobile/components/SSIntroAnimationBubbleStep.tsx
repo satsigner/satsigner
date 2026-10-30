@@ -7,9 +7,9 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withTiming,
-  runOnJS
+  withTiming
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import { Colors } from '@/styles'
 
@@ -202,7 +202,7 @@ function LiveBubbleItem({
           0,
           { duration: UTXO_EXIT_MS, easing: Easing.in(Easing.cubic) },
           () => {
-            runOnJS(onExited)(id)
+            scheduleOnRN(onExited, id)
           }
         )
       )
