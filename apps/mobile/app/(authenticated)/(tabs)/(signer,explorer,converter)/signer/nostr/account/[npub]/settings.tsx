@@ -61,6 +61,41 @@ export default function NostrIdentitySettings() {
     )
   }
 
+  const menuItems = [
+    {
+      label: t('nostrIdentity.settings.profile'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'profile'))
+    },
+    {
+      label: t('nostrIdentity.settings.keys'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'keys'))
+    },
+    {
+      label: t('nostrIdentity.settings.relays'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'relays'))
+    },
+    {
+      label: t('nostrIdentity.settings.blossom'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'blossom'))
+    },
+    {
+      label: t('nostrIdentity.settings.zaps'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'zapSettings'))
+    },
+    ...(!identity.isWatchOnly
+      ? [
+          {
+            label: t('nostrIdentity.settings.signer'),
+            onPress: () => router.navigate(nostrAccountHref(npub, 'bunker'))
+          }
+        ]
+      : []),
+    {
+      label: t('nostrIdentity.settings.cache.title'),
+      onPress: () => router.navigate(nostrAccountHref(npub, 'cache'))
+    }
+  ]
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -113,53 +148,16 @@ export default function NostrIdentitySettings() {
           </SSHStack>
 
           <SSVStack gap="md" widthFull>
-            <SSButton
-              label={t('nostrIdentity.settings.profile')}
-              variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'profile'))}
-            />
-
-            <SSButton
-              label={t('nostrIdentity.settings.keys')}
-              variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'keys'))}
-            />
-
-            <SSButton
-              label={t('nostrIdentity.settings.relays')}
-              variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'relays'))}
-            />
-
-            <SSButton
-              label={t('nostrIdentity.settings.blossom')}
-              variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'blossom'))}
-            />
-
-            <SSButton
-              label={t('nostrIdentity.settings.zaps')}
-              variant="outline"
-              onPress={() =>
-                router.navigate(nostrAccountHref(npub, 'zapSettings'))
-              }
-            />
-
-            {!identity.isWatchOnly && (
+            {menuItems.map((item, index) => (
               <SSButton
-                label={t('nostrIdentity.settings.signer')}
-                variant="outline"
-                onPress={() =>
-                  router.navigate(nostrAccountHref(npub, 'bunker'))
-                }
+                key={item.label}
+                label={item.label}
+                variant="subtle"
+                verticalIndex={index}
+                totalButtonsVertical={menuItems.length}
+                onPress={item.onPress}
               />
-            )}
-
-            <SSButton
-              label={t('nostrIdentity.settings.cache.title')}
-              variant="outline"
-              onPress={() => router.navigate(nostrAccountHref(npub, 'cache'))}
-            />
+            ))}
 
             <SSButton
               label={t('nostrIdentity.settings.deleteIdentity')}
@@ -212,42 +210,19 @@ function Chiclet({ children, gradientStart, label, onPress }: ChicletProps) {
         <LinearGradient
           colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
           start={gradientStart}
-          end={{ x: 0.5, y: 1 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
         <LinearGradient
           style={[styles.glassBorder, styles.glassBorderTop]}
           colors={[
-            'rgba(255,255,255,0.16)',
-            'rgba(255,255,255,0.30)',
-            'rgba(255,255,255,0.18)'
+            'rgba(255,255,255,0.04)',
+            'rgba(255,255,255,0.14)',
+            'rgba(255,255,255,0.04)'
           ]}
-          locations={[0, 0.45, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        />
-        <LinearGradient
-          style={[styles.glassBorder, styles.glassBorderBottom]}
-          colors={[
-            'rgba(255,255,255,0.06)',
-            'rgba(255,255,255,0.20)',
-            'rgba(255,255,255,0.06)'
-          ]}
-          locations={[0, 0.5, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        />
-        <LinearGradient
-          style={[styles.glassBorder, styles.glassBorderLeft]}
-          colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.14)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        />
-        <LinearGradient
-          style={[styles.glassBorder, styles.glassBorderRight]}
-          colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.13)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+          locations={[0, 0.35, 1]}
+          start={{ x: gradientStart.x, y: 0 }}
+          end={{ x: gradientStart.x + 1, y: 0 }}
         />
         <View style={styles.chicletContent}>{children}</View>
       </View>
@@ -280,6 +255,7 @@ const styles = StyleSheet.create({
   },
   chicletTile: {
     aspectRatio: 1,
+    backgroundColor: Colors.gray[900],
     borderRadius: 3,
     overflow: 'hidden',
     width: '100%'
@@ -298,24 +274,6 @@ const styles = StyleSheet.create({
   },
   glassBorder: {
     position: 'absolute'
-  },
-  glassBorderBottom: {
-    bottom: 0,
-    height: 1,
-    left: 0,
-    right: 0
-  },
-  glassBorderLeft: {
-    bottom: 0,
-    left: 0,
-    top: 0,
-    width: 1
-  },
-  glassBorderRight: {
-    bottom: 0,
-    right: 0,
-    top: 0,
-    width: 1
   },
   glassBorderTop: {
     height: 1,

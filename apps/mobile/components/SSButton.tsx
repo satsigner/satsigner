@@ -13,9 +13,34 @@ import { Colors, Sizes } from '@/styles'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
-import SSOutlineGlassBorders from './SSOutlineGlassBorders'
 import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
+
+const TOP_LIGHT_PEAK = 'rgba(255,255,255,0.07)'
+const TOP_LIGHT_CLEAR = 'rgba(255,255,255,0)'
+const TOP_EDGE_EDGE = 'rgba(255,255,255,0.04)'
+const TOP_EDGE_PEAK = 'rgba(255,255,255,0.14)'
+
+function topLightOrigin(
+  horizontalIndex: number | undefined,
+  totalButtons: number | undefined,
+  verticalIndex: number | undefined,
+  totalButtonsVertical: number | undefined
+) {
+  const x =
+    horizontalIndex !== undefined &&
+    totalButtons !== undefined &&
+    totalButtons > 1
+      ? -horizontalIndex / (totalButtons - 1)
+      : 0
+  const y =
+    verticalIndex !== undefined &&
+    totalButtonsVertical !== undefined &&
+    totalButtonsVertical > 1
+      ? -verticalIndex / (totalButtonsVertical - 1)
+      : 0
+  return { x, y }
+}
 
 export type SSButtonProps = {
   label?: string
@@ -76,6 +101,13 @@ function SSButton({
     (variant === 'gradient' && gradientType === 'special')
   const showDefaultGradient =
     variant === 'gradient' && gradientType === 'default'
+  const showTopLight = variant === 'subtle' || variant === 'outline'
+  const topLightStart = topLightOrigin(
+    horizontalIndex,
+    totalButtons,
+    verticalIndex,
+    totalButtonsVertical
+  )
 
   const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
 
@@ -173,7 +205,25 @@ function SSButton({
           />
         </>
       )}
-      {variant === 'outline' && <SSOutlineGlassBorders />}
+      {showTopLight && (
+        <>
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={styles.buttonGradient}
+            colors={[TOP_LIGHT_PEAK, TOP_LIGHT_CLEAR]}
+            start={topLightStart}
+            end={{ x: 1, y: 1 }}
+          />
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderTop]}
+            colors={[TOP_EDGE_EDGE, TOP_EDGE_PEAK, TOP_EDGE_EDGE]}
+            locations={[0, 0.35, 1]}
+            start={{ x: topLightStart.x, y: 0 }}
+            end={{ x: topLightStart.x + 1, y: 0 }}
+          />
+        </>
+      )}
       {showDefaultGradient && (
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
@@ -225,7 +275,7 @@ function getButtonVariantStyle(
     return styles.buttonSecondary
   }
   if (variant === 'outline') {
-    return styles.buttonOutline
+    return styles.buttonSubtle
   }
   if (variant === 'ghost') {
     return styles.buttonGhost
@@ -307,11 +357,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     maxWidth: '100%',
     paddingHorizontal: 12
-  },
-  buttonOutline: {
-    backgroundColor: Colors.transparent,
-    borderWidth: 0,
-    overflow: 'hidden'
   },
   buttonSecondary: {
     backgroundColor: Colors.white
