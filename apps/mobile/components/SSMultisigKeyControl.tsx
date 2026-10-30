@@ -264,9 +264,11 @@ function SSMultisigKeyControl({
       return
     }
 
+    const existingAccountId = isSettingsMode ? accountId : undefined
+
     try {
-      if (isSettingsMode && accountId) {
-        resetKeyExisting(accountId, index)
+      if (existingAccountId) {
+        resetKeyExisting(existingAccountId, index)
       } else {
         resetKey(index)
       }

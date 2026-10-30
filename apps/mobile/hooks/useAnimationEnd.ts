@@ -39,6 +39,13 @@ const isAnimationComplete = (
   endValues: PartialEndValues
 ): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
+// Kept outside the hook: React Compiler would hoist the inner callback out of
+// the worklet into a plain function the UI runtime cannot call.
+function areAllAnimationsFinished(endValues: EndValues) {
+  'worklet'
+  return !Object.values(endValues).some((item) => !item.finished)
+}
+
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback
 ) => {
@@ -48,16 +55,15 @@ export const useAnimationEnd = (
     (interactionId, value, finished, current) => {
       'worklet'
       if (onResetAnimationEnd) {
-        const currentEndValues = endValues.value[interactionId] || {}
+        const interactionEndValues = endValues.get()
+        const currentEndValues = interactionEndValues[interactionId] || {}
         currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
-          const completed = !Object.values(currentEndValues).some(
-            (item) => !item.finished
-          )
+          const completed = areAllAnimationsFinished(currentEndValues)
           runOnJS(onResetAnimationEnd)(completed, currentEndValues)
-          delete endValues.value[interactionId]
+          delete interactionEndValues[interactionId]
         } else {
-          endValues.value[interactionId] = currentEndValues
+          interactionEndValues[interactionId] = currentEndValues
         }
       }
     },

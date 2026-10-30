@@ -16,6 +16,7 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated'
 
+import { useMountEffect } from '@/hooks/useMountEffect'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Layout, Sizes } from '@/styles'
@@ -263,18 +264,18 @@ function PinDigitGlassOverlay({
 
 function PinCellGlow() {
   const opacity = useSharedValue(0)
-  const started = useRef(false)
 
-  if (!started.current) {
-    started.current = true
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.07, { duration: 500 }),
-        withTiming(0, { duration: 500 })
-      ),
-      -1
+  useMountEffect(() => {
+    opacity.set(
+      withRepeat(
+        withSequence(
+          withTiming(0.07, { duration: 500 }),
+          withTiming(0, { duration: 500 })
+        ),
+        -1
+      )
     )
-  }
+  })
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }))
 

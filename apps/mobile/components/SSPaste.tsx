@@ -31,6 +31,10 @@ type SSPasteProps = {
   context: ContentContext
 }
 
+async function readClipboardText() {
+  return (await getAllClipboardContent()) || ''
+}
+
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const inputRef = useRef<TextInputInstance>(null)
   const [content, setContent] = useState('')
@@ -38,6 +42,14 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const [detectedContentType, setDetectedContentType] =
     useState<ContentType | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  async function loadClipboardContent() {
+    try {
+      setContent(await readClipboardText())
+    } catch {
+      toast.error(t('paste.error.loadFailed'))
+    }
+  }
 
   useEffect(() => {
     if (visible) {
@@ -83,9 +95,11 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
           return
         }
         setIsValidContent(detectedContent.isValid)
-        setDetectedContentType(
-          detectedContent.isValid ? detectedContent.type : null
-        )
+        if (!detectedContent.isValid) {
+          setDetectedContentType(null)
+          return
+        }
+        setDetectedContentType(detectedContent.type)
       } catch {
         toast.error(t('paste.error.validateFailed'))
         setIsValidContent(false)
@@ -103,15 +117,6 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
       setDetectedContentType(null)
     }
   }, [content, context, validateContent])
-
-  async function loadClipboardContent() {
-    try {
-      const text = await getAllClipboardContent()
-      setContent(text || '')
-    } catch {
-      toast.error(t('paste.error.loadFailed'))
-    }
-  }
 
   async function handlePaste() {
     if (!content.trim()) {

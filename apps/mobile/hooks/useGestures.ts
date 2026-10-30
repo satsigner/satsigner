@@ -2,7 +2,6 @@
 // https://github.com/likashefqet/react-native-image-zoom
 // with a few modifications to work with Skia and focal points pinching improvements
 
-import { useCallback, useRef } from 'react'
 import { Gesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
@@ -26,6 +25,7 @@ import {
 import { clamp, limits, sum } from '@/utils/worklet'
 
 import { useAnimationEnd } from './useAnimationEnd'
+import { useGestureInteractionFlags } from './useGestureInteractionFlags'
 import { useInteractionId } from './useInteractionId'
 import { usePanGestureCount } from './usePanGestureCount'
 
@@ -52,8 +52,8 @@ export const useGestures = ({
   onSingleTap = () => undefined,
   initialTranslation = { x: 0, y: 0 }
 }: ZoomUseGesturesProps) => {
-  const isInteracting = useRef(false)
-  const isPinching = useRef(false)
+  const { isInteracting, isPinching, setInteracting, setPinching } =
+    useGestureInteractionFlags()
   const { isPanning, startPan, endPan } = usePanGestureCount()
 
   const savedScale = useSharedValue(1)
@@ -74,10 +74,10 @@ export const useGestures = ({
       'worklet'
       // Reactor function: runs on UI thread if currentData is different from previousData.
       if (currentData) {
-        translate.x.value = currentData.x
-        translate.y.value = currentData.y
-        savedTranslate.x.value = currentData.x
-        savedTranslate.y.value = currentData.y
+        translate.x.set(currentData.x)
+        translate.y.set(currentData.y)
+        savedTranslate.x.set(currentData.x)
+        savedTranslate.y.set(currentData.y)
       }
     },
     [initialTranslation.x, initialTranslation.y]
@@ -88,7 +88,7 @@ export const useGestures = ({
 
   // JS-only (see onInteractionEnded); not a worklet so reset stays in closure.
   const moveIntoView = () => {
-    if (scale.value > 1) {
+    if (scale.get() > 1) {
       if (shouldResetOnInteractionEnd) {
         const rightLimit = limits.right(width, scale)
         const leftLimit = -rightLimit
@@ -98,19 +98,19 @@ export const useGestures = ({
         const totalTranslateY = sum(translate.y, focal.y)
 
         if (totalTranslateX > rightLimit) {
-          translate.x.value = withTiming(rightLimit)
-          focal.x.value = withTiming(0)
+          translate.x.set(withTiming(rightLimit))
+          focal.x.set(withTiming(0))
         } else if (totalTranslateX < leftLimit) {
-          translate.x.value = withTiming(leftLimit)
-          focal.x.value = withTiming(0)
+          translate.x.set(withTiming(leftLimit))
+          focal.x.set(withTiming(0))
         }
 
         if (totalTranslateY > bottomLimit) {
-          translate.y.value = withTiming(bottomLimit)
-          focal.y.value = withTiming(0)
+          translate.y.set(withTiming(bottomLimit))
+          focal.y.set(withTiming(0))
         } else if (totalTranslateY < topLimit) {
-          translate.y.value = withTiming(topLimit)
-          focal.y.value = withTiming(0)
+          translate.y.set(withTiming(topLimit))
+          focal.y.set(withTiming(0))
         }
       }
     } else if (shouldResetOnInteractionEnd) {
@@ -118,92 +118,81 @@ export const useGestures = ({
     }
   }
 
-  const resetScale = useCallback(() => {
+  const resetScale = () => {
     'worklet'
     const interactionId = getInteractionId()
 
-    savedScale.value = 1
-    scale.value = withTiming(1, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.SCALE, ...args)
+    savedScale.set(1)
+    scale.set(
+      withTiming(1, undefined, (...args) =>
+        onAnimationEnd(interactionId, ANIMATION_VALUE.SCALE, ...args)
+      )
     )
-    initialFocal.x.value = 0
-    initialFocal.y.value = 0
-    savedFocal.x.value = 0
-    savedFocal.y.value = 0
-    focal.x.value = withTiming(0, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.FOCAL_X, ...args)
+    initialFocal.x.set(0)
+    initialFocal.y.set(0)
+    savedFocal.x.set(0)
+    savedFocal.y.set(0)
+    focal.x.set(
+      withTiming(0, undefined, (...args) =>
+        onAnimationEnd(interactionId, ANIMATION_VALUE.FOCAL_X, ...args)
+      )
     )
-    focal.y.value = withTiming(0, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.FOCAL_Y, ...args)
+    focal.y.set(
+      withTiming(0, undefined, (...args) =>
+        onAnimationEnd(interactionId, ANIMATION_VALUE.FOCAL_Y, ...args)
+      )
     )
-  }, [
-    savedScale,
-    scale,
-    initialFocal.x,
-    initialFocal.y,
-    savedFocal.x,
-    savedFocal.y,
-    focal.x,
-    focal.y,
-    getInteractionId,
-    onAnimationEnd
-  ])
+  }
 
-  const reset = useCallback(() => {
+  const reset = () => {
     'worklet'
     const interactionId = getInteractionId()
 
     resetScale()
-    savedTranslate.x.value = initialTranslation.x
-    savedTranslate.y.value = initialTranslation.y
-    translate.x.value = withTiming(initialTranslation.x, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_X, ...args)
+    savedTranslate.x.set(initialTranslation.x)
+    savedTranslate.y.set(initialTranslation.y)
+    translate.x.set(
+      withTiming(initialTranslation.x, undefined, (...args) =>
+        onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_X, ...args)
+      )
     )
-    translate.y.value = withTiming(initialTranslation.y, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_Y, ...args)
+    translate.y.set(
+      withTiming(initialTranslation.y, undefined, (...args) =>
+        onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_Y, ...args)
+      )
     )
-  }, [
-    resetScale,
-    savedTranslate.x,
-    savedTranslate.y,
-    translate.x,
-    translate.y,
-    initialTranslation.x,
-    initialTranslation.y,
-    getInteractionId,
-    onAnimationEnd
-  ])
+  }
 
   const onInteractionStarted = () => {
-    if (!isInteracting.current) {
-      isInteracting.current = true
+    if (!isInteracting()) {
+      setInteracting(true)
       onInteractionStart?.()
       updateInteractionId()
     }
   }
 
   const onInteractionEnded = () => {
-    if (isInteracting.current && !isPinching.current && !isPanning()) {
+    if (isInteracting() && !isPinching() && !isPanning()) {
       if (isDoubleTapEnabled) {
         moveIntoView()
       } else if (shouldResetOnInteractionEnd) {
         reset()
       }
-      isInteracting.current = false
+      setInteracting(false)
       onInteractionEnd?.()
     }
   }
 
   const onPinchStarted: OnPinchStartCallback = (event) => {
     onInteractionStarted()
-    isPinching.current = true
-    initialFocal.x.value = event.focalX
-    initialFocal.y.value = event.focalY
+    setPinching(true)
+    initialFocal.x.set(event.focalX)
+    initialFocal.y.set(event.focalY)
     onPinchStart?.(event)
   }
 
   const onPinchEnded: OnPinchEndCallback = (...args) => {
-    isPinching.current = false
+    setPinching(false)
     onPinchEnd?.(...args)
     onInteractionEnded()
   }
@@ -226,12 +215,12 @@ export const useGestures = ({
     .maxPointers(maxPanPointers)
     .onStart((event) => {
       runOnJS(onPanStarted)(event)
-      savedTranslate.x.value = translate.x.value
-      savedTranslate.y.value = translate.y.value
+      savedTranslate.x.set(translate.x.get())
+      savedTranslate.y.set(translate.y.get())
     })
     .onUpdate((event) => {
-      translate.x.value = savedTranslate.x.value + event.translationX
-      translate.y.value = savedTranslate.y.value + event.translationY
+      translate.x.set(savedTranslate.x.get() + event.translationX)
+      translate.y.set(savedTranslate.y.get() + event.translationY)
     })
     .onEnd((event, success) => {
       const rightLimit = limits.right(width, scale)
@@ -239,14 +228,14 @@ export const useGestures = ({
       const bottomLimit = limits.bottom(height, scale)
       const topLimit = -bottomLimit
 
-      if (!shouldResetOnInteractionEnd || scale.value > 1) {
-        translate.x.value =
-          shouldResetOnInteractionEnd && scale.value > 1
+      if (!shouldResetOnInteractionEnd || scale.get() > 1) {
+        translate.x.set(
+          shouldResetOnInteractionEnd && scale.get() > 1
             ? withDecay(
                 {
                   clamp: [
-                    leftLimit - focal.x.value,
-                    rightLimit - focal.x.value
+                    leftLimit - focal.x.get(),
+                    rightLimit - focal.x.get()
                   ],
                   rubberBandEffect: true,
                   rubberBandFactor: 0.9,
@@ -268,14 +257,15 @@ export const useGestures = ({
                   }
                 }
               )
+        )
 
-        translate.y.value =
-          shouldResetOnInteractionEnd && scale.value > 1
+        translate.y.set(
+          shouldResetOnInteractionEnd && scale.get() > 1
             ? withDecay(
                 {
                   clamp: [
-                    topLimit - focal.y.value,
-                    bottomLimit - focal.y.value
+                    topLimit - focal.y.get(),
+                    bottomLimit - focal.y.get()
                   ],
                   rubberBandEffect: true,
                   rubberBandFactor: 0.9,
@@ -297,6 +287,7 @@ export const useGestures = ({
                   }
                 }
               )
+        )
       } else {
         runOnJS(onPanEnded)(event, success)
       }
@@ -306,25 +297,25 @@ export const useGestures = ({
     .enabled(isPinchEnabled)
     .onStart((event) => {
       runOnJS(onPinchStarted)(event)
-      savedScale.value = scale.value
-      savedFocal.x.value = focal.x.value
-      savedFocal.y.value = focal.y.value
-      initialFocal.x.value = event.focalX
-      initialFocal.y.value = event.focalY
+      savedScale.set(scale.get())
+      savedFocal.x.set(focal.x.get())
+      savedFocal.y.set(focal.y.get())
+      initialFocal.x.set(event.focalX)
+      initialFocal.y.set(event.focalY)
     })
     .onUpdate((event) => {
-      scale.value = clamp(savedScale.value * event.scale, minScale, maxScale)
+      scale.set(clamp(savedScale.get() * event.scale, minScale, maxScale))
       const scaleChangeScale =
-        (scale.value - savedScale.value) / savedScale.value
+        (scale.get() - savedScale.get()) / savedScale.get()
       const centerOffsetX =
-        savedFocal.x.value + translate.x.value + center.x - initialFocal.x.value
+        savedFocal.x.get() + translate.x.get() + center.x - initialFocal.x.get()
       const centerOffsetY =
-        savedFocal.y.value + translate.y.value + center.y - initialFocal.y.value
-      focal.x.value = centerOffsetX * scaleChangeScale + savedFocal.x.value
-      focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value
+        savedFocal.y.get() + translate.y.get() + center.y - initialFocal.y.get()
+      focal.x.set(centerOffsetX * scaleChangeScale + savedFocal.x.get())
+      focal.y.set(centerOffsetY * scaleChangeScale + savedFocal.y.get())
     })
     .onEnd((...args) => {
-      isZoomedIn.value = args[0].scale > 1
+      isZoomedIn.set(args[0].scale > 1)
       runOnJS(onPinchEnded)(...args)
     })
 
@@ -333,26 +324,26 @@ export const useGestures = ({
     .numberOfTaps(2)
     .maxDuration(250)
     .onStart((event) => {
-      if (scale.value === 1) {
-        isZoomedIn.value = true
+      if (scale.get() === 1) {
+        isZoomedIn.set(true)
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
-        scale.value = withTiming(doubleTapScale)
+        scale.set(withTiming(doubleTapScale))
         const focalX = (center.x - event.x) * (doubleTapScale - 1)
         const focalY = (center.y - event.y) * (doubleTapScale - 1)
 
         if (shouldResetOnInteractionEnd) {
-          focal.x.value = withTiming(focalX)
-          focal.y.value = withTiming(focalY)
+          focal.x.set(withTiming(focalX))
+          focal.y.set(withTiming(focalY))
         } else {
-          focal.x.value = withTiming(
-            focalX + translate.x.value * (doubleTapScale - 1)
+          focal.x.set(
+            withTiming(focalX + translate.x.get() * (doubleTapScale - 1))
           )
-          focal.y.value = withTiming(
-            focalY + translate.y.value * (doubleTapScale - 1)
+          focal.y.set(
+            withTiming(focalY + translate.y.get() * (doubleTapScale - 1))
           )
         }
       } else {
-        isZoomedIn.value = false
+        isZoomedIn.set(false)
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
         reset()
       }

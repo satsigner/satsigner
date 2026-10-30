@@ -17,7 +17,9 @@ export function useAnimatedQrFrameCycle(
     const clock: FrameClock = { requestId: 0 }
 
     function onAnimationFrame(timestamp: number) {
-      clock.lastAdvanceTimestamp ??= timestamp
+      if (clock.lastAdvanceTimestamp === undefined) {
+        clock.lastAdvanceTimestamp = timestamp
+      }
       const hasFrameIntervalElapsed =
         timestamp - clock.lastAdvanceTimestamp >= frameIntervalMs
       if (hasFrameIntervalElapsed) {

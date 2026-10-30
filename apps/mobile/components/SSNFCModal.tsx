@@ -12,6 +12,7 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import { sanitizeScannedText } from '@/utils/parse'
 
 type SSNFCModalProps = {
@@ -20,6 +21,13 @@ type SSNFCModalProps = {
   onContentRead: (content: string) => void
   mode: 'read' | 'write'
   dataToWrite?: string
+}
+
+function getSanitizedNfcText(nfcData: NFCReadResult | null) {
+  if (!nfcData?.text) {
+    return null
+  }
+  return sanitizeScannedText(nfcData.text)
 }
 
 function SSNFCModal({
@@ -52,14 +60,12 @@ function SSNFCModal({
     }
 
     try {
-      const nfcData = await readNFCTag()
+      const text = getSanitizedNfcText(await readNFCTag())
 
-      if (!nfcData?.text) {
+      if (text === null) {
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
-
-      const text = sanitizeScannedText(nfcData.text)
 
       onContentRead(text)
       onClose()

@@ -258,18 +258,18 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
       return
     }
 
-    stepOffsetX.value = SLIDE_IN_OFFSET
-    textSlideX.value = SLIDE_IN_OFFSET
-    descSlideX.value = SLIDE_IN_OFFSET
+    stepOffsetX.set(SLIDE_IN_OFFSET)
+    textSlideX.set(SLIDE_IN_OFFSET)
+    descSlideX.set(SLIDE_IN_OFFSET)
     stepSwitchingRef.current = true
     setCurrentStep(next)
   }
 
   function goBackFromStep(step: number) {
     const prev = step - 1
-    stepOffsetX.value = SLIDE_OUT_OFFSET
-    textSlideX.value = SLIDE_OUT_OFFSET
-    descSlideX.value = SLIDE_OUT_OFFSET
+    stepOffsetX.set(SLIDE_OUT_OFFSET)
+    textSlideX.set(SLIDE_OUT_OFFSET)
+    descSlideX.set(SLIDE_OUT_OFFSET)
     stepSwitchingRef.current = true
     setCurrentStep(prev)
   }
@@ -303,7 +303,7 @@ function SSIntroAnimation({ firstTime, onComplete }: SSIntroAnimationProps) {
   }
 
   function handleSkip() {
-    containerOpacity.value = 0
+    containerOpacity.set(0)
     onComplete()
   }
 

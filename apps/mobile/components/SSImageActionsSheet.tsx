@@ -238,14 +238,12 @@ export default function SSImageActionsSheet() {
   }
 
   function dismissWithAnimation() {
-    translateY.value = withTiming(
-      windowHeight,
-      { duration: 220 },
-      (finished) => {
+    translateY.set(
+      withTiming(windowHeight, { duration: 220 }, (finished) => {
         if (finished) {
           runOnJS(handleDismiss)()
         }
-      }
+      })
     )
   }
 
@@ -253,19 +251,21 @@ export default function SSImageActionsSheet() {
     .maxPointers(1)
     .minDistance(0)
     .onUpdate((e) => {
-      translateY.value = Math.max(0, e.translationY)
+      translateY.set(Math.max(0, e.translationY))
     })
     .onEnd((e) => {
       const shouldDismiss =
-        translateY.value > DISMISS_DRAG_THRESHOLD ||
+        translateY.get() > DISMISS_DRAG_THRESHOLD ||
         e.velocityY > DISMISS_VELOCITY_Y
-      translateY.value = shouldDismiss
-        ? withTiming(windowHeight, { duration: 220 }, (finished) => {
-            if (finished) {
-              runOnJS(handleDismiss)()
-            }
-          })
-        : withTiming(0, { duration: 200 })
+      translateY.set(
+        shouldDismiss
+          ? withTiming(windowHeight, { duration: 220 }, (finished) => {
+              if (finished) {
+                runOnJS(handleDismiss)()
+              }
+            })
+          : withTiming(0, { duration: 200 })
+      )
     })
 
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
@@ -303,7 +303,7 @@ export default function SSImageActionsSheet() {
       animationType="none"
       onRequestClose={dismissWithAnimation}
       onShow={() => {
-        translateY.value = withTiming(0, { duration: 280 })
+        translateY.set(withTiming(0, { duration: 280 }))
       }}
       statusBarTranslucent
     >

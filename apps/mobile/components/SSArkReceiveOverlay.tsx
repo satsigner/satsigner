@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { BackHandler, StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
@@ -18,6 +18,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useMountEffect } from '@/hooks/useMountEffect'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
@@ -52,18 +53,18 @@ const VERTICAL_PADDING = Layout.mainContainer.paddingBottom
 
 function ReceivePulseRing({ delay }: { delay: number }) {
   const progress = useSharedValue(0)
-  const started = useRef(false)
 
-  if (!started.current) {
-    started.current = true
-    progress.value = withDelay(
-      delay,
-      withTiming(1, {
-        duration: PULSE_DURATION_MS,
-        easing: Easing.out(Easing.quad)
-      })
+  useMountEffect(() => {
+    progress.set(
+      withDelay(
+        delay,
+        withTiming(1, {
+          duration: PULSE_DURATION_MS,
+          easing: Easing.out(Easing.quad)
+        })
+      )
     )
-  }
+  })
 
   const ringStyle = useAnimatedStyle(() => ({
     opacity: PULSE_START_OPACITY * (1 - progress.value),
@@ -76,22 +77,24 @@ function ReceivePulseRing({ delay }: { delay: number }) {
 function ReceiveCheckIcon() {
   const circleOffset = useSharedValue(CIRCLE_CIRCUMFERENCE)
   const checkOffset = useSharedValue(CHECK_PATH_LENGTH)
-  const started = useRef(false)
 
-  if (!started.current) {
-    started.current = true
-    circleOffset.value = withTiming(0, {
-      duration: CIRCLE_DRAW_MS,
-      easing: Easing.out(Easing.cubic)
-    })
-    checkOffset.value = withDelay(
-      CHECK_DELAY_MS,
+  useMountEffect(() => {
+    circleOffset.set(
       withTiming(0, {
-        duration: CHECK_DRAW_MS,
-        easing: Easing.out(Easing.quad)
+        duration: CIRCLE_DRAW_MS,
+        easing: Easing.out(Easing.cubic)
       })
     )
-  }
+    checkOffset.set(
+      withDelay(
+        CHECK_DELAY_MS,
+        withTiming(0, {
+          duration: CHECK_DRAW_MS,
+          easing: Easing.out(Easing.quad)
+        })
+      )
+    )
+  })
 
   const circleProps = useAnimatedProps(() => ({
     strokeDashoffset: circleOffset.value

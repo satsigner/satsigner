@@ -1,5 +1,5 @@
 import { FlashList, FlashListRef } from '@shopify/flash-list'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   Platform,
   type StyleProp,
@@ -17,7 +17,6 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
-import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
 import type { WordListName } from '@/types/bips/39'
@@ -79,7 +78,6 @@ function SSKeyboardWordSelector({
   const insets = useSafeAreaInsets()
   const flashList = useRef<FlashListRef<WordInfo> | null>(null)
 
-  const previousWordStart = usePrevious(wordStart)
   const keyboardHeight = useKeyboardHeight()
 
   const opacityAnimated = useSharedValue(0)
@@ -87,9 +85,9 @@ function SSKeyboardWordSelector({
   const data = getMatchingWords(wordStart, wordList)
   const keyboardVisible = keyboardHeight > 0
 
-  if (data.length > 0 && previousWordStart !== wordStart) {
+  useEffect(() => {
     flashList.current?.scrollToOffset({ animated: false, offset: 0 })
-  }
+  }, [wordStart])
 
   if (keyboardVisible && visible && data.length > 0) {
     opacityAnimated.set(withTiming(1, { duration: 200 }))
