@@ -4,7 +4,13 @@ import { HEADER_HEIGHT_TRIM_PX } from '@/constants/headerChrome'
 
 const MAIN_CONTAINER_PADDING_TOP_BASE = 12
 
-const MAIN_CONTAINER_PADDING_HORIZONTAL: DimensionValue = '6%'
+const MAIN_CONTAINER_PADDING_HORIZONTAL_PERCENT = 6
+
+const MAIN_CONTAINER_PADDING_HORIZONTAL: DimensionValue = `${MAIN_CONTAINER_PADDING_HORIZONTAL_PERCENT}%`
+
+/** `mainContainer.paddingHorizontal` as a share of the window width. */
+export const mainContainerPaddingHorizontalRatio =
+  MAIN_CONTAINER_PADDING_HORIZONTAL_PERCENT / 100
 
 export const mainContainer = {
   paddingBottom: 32,

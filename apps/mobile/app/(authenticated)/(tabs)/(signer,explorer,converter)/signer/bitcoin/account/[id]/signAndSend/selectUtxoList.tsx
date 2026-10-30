@@ -14,12 +14,11 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
 import SSUtxoListControlsModal from '@/components/SSUtxoListControlsModal'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout } from '@/styles'
@@ -27,6 +26,7 @@ import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
@@ -58,9 +58,8 @@ export default function SelectUtxoList() {
   const account = useAccountsStore(
     (state) => state.accounts.find((entry) => entry.id === id)!
   )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
-  )
+  const { btcPrice, currencyUnit, fiatCurrency, fiatEnabled, useZeroPadding } =
+    useDisplayPreferences()
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [inputs, hasInput, addInput, removeInput] = useTransactionBuilderStore(
     useShallow((state) => [
@@ -86,10 +85,6 @@ export default function SelectUtxoList() {
   const utxoOutpointSet = new Set(account.utxos.map(getUtxoOutpoint))
   const orphanedInputs = [...inputs.values()].filter(
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
-  )
-
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
   const [filter, setFilter] = useState<UtxoListFilter>(DEFAULT_UTXO_LIST_FILTER)
@@ -281,7 +276,10 @@ export default function SelectUtxoList() {
                     : t('bitcoin.sats')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
+                  {formatNumber(
+                    satsToFiat(utxosTotalValue, btcPrice, fiatEnabled),
+                    2
+                  )}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {fiatCurrency}
@@ -309,7 +307,10 @@ export default function SelectUtxoList() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="muted">
-                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
+                  {formatNumber(
+                    satsToFiat(utxosSelectedValue, btcPrice, fiatEnabled),
+                    2
+                  )}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}
