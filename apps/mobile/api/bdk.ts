@@ -57,7 +57,10 @@ import {
 } from '@/utils/descriptor'
 import { estimateBirthHeight } from '@/utils/rpcScanStartHeight'
 import { isCombinedDescriptor } from '@/utils/validation'
-import { publicDescriptorFromPrivateKey } from '@/utils/wif'
+import {
+  publicDescriptorFromPrivateKey,
+  walletDescriptorsFromPrivateKey
+} from '@/utils/wif'
 
 import { toAppNetwork } from './bdkWalletMappers'
 import AppElectrumClient from './electrum'
@@ -168,13 +171,19 @@ async function getWalletData(
           key.secret.privateKeyCompressed,
           key.scriptVersion
         )
-        if (!externalDescriptor) {
+        const signingDescriptors = walletDescriptorsFromPrivateKey(
+          key.secret.privateKey,
+          key.secret.privateKeyCompressed,
+          key.scriptVersion,
+          toAppNetwork(network)
+        )
+        if (!externalDescriptor || !signingDescriptors) {
           throw new Error('Invalid secret')
         }
 
         const { wallet, dbPath } = await getWalletFromDescriptor(
-          externalDescriptor,
-          undefined,
+          signingDescriptors.receive,
+          signingDescriptors.change,
           network
         )
 

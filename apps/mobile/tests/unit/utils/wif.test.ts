@@ -3,6 +3,7 @@ import {
   decodeWif,
   isScriptVersionAllowedForWif,
   publicDescriptorFromPrivateKey,
+  walletDescriptorsFromPrivateKey,
   wifImportSecret,
   wifScriptLimits
 } from '@/utils/wif'
@@ -107,5 +108,39 @@ describe('wifImportSecret', () => {
     expect(
       publicDescriptorFromPrivateKey(PRIVATE_KEY_HEX, false, 'P2WPKH')
     ).toBeUndefined()
+  })
+})
+
+describe('walletDescriptorsFromPrivateKey', () => {
+  it('gives BDK a private receive descriptor and a different change descriptor', () => {
+    const descriptors = walletDescriptorsFromPrivateKey(
+      PRIVATE_KEY_HEX,
+      true,
+      'P2WPKH',
+      'bitcoin'
+    )
+    expect(descriptors?.receive.startsWith(`wpkh(${COMPRESSED_WIF})`)).toBe(
+      true
+    )
+    expect(descriptors?.change.startsWith(`pkh(${COMPRESSED_WIF})`)).toBe(true)
+    expect(descriptors?.receive).not.toBe(descriptors?.change)
+    expect(descriptorHasPrivateKeyMaterial(descriptors?.receive ?? '')).toBe(
+      true
+    )
+  })
+
+  it('uses a wrapped pkh change descriptor for an uncompressed key', () => {
+    const descriptors = walletDescriptorsFromPrivateKey(
+      PRIVATE_KEY_HEX,
+      false,
+      'P2PKH',
+      'bitcoin'
+    )
+    expect(descriptors?.receive.startsWith(`pkh(${UNCOMPRESSED_WIF})`)).toBe(
+      true
+    )
+    expect(
+      descriptors?.change.startsWith(`sh(pkh(${UNCOMPRESSED_WIF}))`)
+    ).toBe(true)
   })
 })

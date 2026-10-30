@@ -159,6 +159,61 @@ export function publicDescriptorFromPrivateKey(
   return addDescriptorChecksum(`wpkh(${keyHex})`)
 }
 
+// BDK refuses a wallet whose receive and change descriptors are the same, and
+// the SDK substitutes the receive descriptor when change is omitted. A WIF has
+// one receive script, so change is a different script of the same key. The
+// private form is what BDK extracts keys from; `wallet.sign` cannot sign a
+// public-only descriptor.
+export function walletDescriptorsFromPrivateKey(
+  privateKeyHex: string,
+  compressed: boolean,
+  scriptVersion: ScriptVersionType,
+  network: Network
+) {
+  if (!isScriptVersionAllowedForWif(scriptVersion, compressed)) {
+    return
+  }
+  const wif = encodeWif(privateKeyHex, network, compressed)
+  if (!wif) {
+    return
+  }
+  const receive = privateDescriptorBody(scriptVersion, wif)
+  const change = companionPrivateDescriptor(scriptVersion, compressed, wif)
+  if (!receive || !change) {
+    return
+  }
+  return {
+    change: addDescriptorChecksum(change),
+    receive: addDescriptorChecksum(receive)
+  }
+}
+
+function privateDescriptorBody(scriptVersion: ScriptVersionType, wif: string) {
+  if (scriptVersion === 'P2PKH') {
+    return `pkh(${wif})`
+  }
+  if (scriptVersion === 'P2WPKH') {
+    return `wpkh(${wif})`
+  }
+  if (scriptVersion === 'P2TR') {
+    return `tr(${wif})`
+  }
+}
+
+function companionPrivateDescriptor(
+  scriptVersion: ScriptVersionType,
+  compressed: boolean,
+  wif: string
+) {
+  if (scriptVersion === 'P2PKH' && !compressed) {
+    return `sh(pkh(${wif}))`
+  }
+  if (scriptVersion === 'P2PKH') {
+    return `wpkh(${wif})`
+  }
+  return `pkh(${wif})`
+}
+
 export function wifImportSecret(
   decoded: Extract<WifDecodeResult, { ok: true }>,
   scriptVersion: ScriptVersionType
