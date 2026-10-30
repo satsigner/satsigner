@@ -17,7 +17,7 @@ import { type ScaleLinear, type ScaleTime } from 'd3-scale'
 import { timeFormat } from 'd3-time-format'
 import { Fragment, memo, useMemo } from 'react'
 
-import { useSFProFonts } from '@/hooks/useSFProFonts'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
@@ -30,7 +30,7 @@ const Y_AXIS_LABEL_BASELINE_OFFSET = 6
 const Y_AXIS_TITLE_Y = -10
 
 type YScaleRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   yScale: ScaleLinear<number, number>
   chartHeight: number
@@ -43,7 +43,7 @@ type YScaleRendererProps = {
 }
 
 type XScaleRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   showTransactionInfo: boolean
   txXAxisLabels: {
@@ -64,7 +64,7 @@ type XScaleRendererProps = {
 }
 
 type XAxisRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   xScale: ScaleTime<number, number>
   chartHeight: number
@@ -88,7 +88,7 @@ type UtxoRectRendererProps = {
 }
 
 type UtxoLabelRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoLabels: {
     x1: number
@@ -101,7 +101,7 @@ type UtxoLabelRendererProps = {
 }
 
 type TransactionInfoRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   txInfoLabels: {
     x: number
@@ -121,7 +121,7 @@ type TransactionInfoRendererProps = {
 }
 
 type CursorRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   cursorX: Date | undefined
   cursorY: number | undefined
@@ -131,7 +131,7 @@ type CursorRendererProps = {
 }
 
 type HistoryChartUtxoSeriesProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoRectangleData: UtxoRectangle[]
   utxoLabels: UtxoLabel[]

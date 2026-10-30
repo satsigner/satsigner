@@ -11,9 +11,9 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
-import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { type BubblePackNode, buildBubblePackRoot } from '@/utils/bubblePack'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -50,7 +50,7 @@ function SSBubbleChart({
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
-  const customFontManager = useSFProFonts()
+  const customFontManager = useGeistFonts()
 
   const { leaves, groups } = useMemo(() => {
     const root = buildBubblePackRoot(utxos, groupMode)

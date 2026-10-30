@@ -12,7 +12,7 @@ import {
 
 import { useMountEffect } from '@/hooks/useMountEffect'
 import { t } from '@/locales'
-import { sfProTextRegular } from '@/styles/typography'
+import { geistRegular } from '@/styles/typography'
 
 import SSPressable from './SSPressable'
 
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   digit: {
-    fontFamily: sfProTextRegular,
+    fontFamily: geistRegular,
     fontSize: 20,
     textAlign: 'center'
   },
