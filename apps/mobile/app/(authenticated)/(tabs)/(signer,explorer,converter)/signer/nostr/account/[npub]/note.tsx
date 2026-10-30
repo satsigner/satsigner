@@ -42,7 +42,8 @@ import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
-  NOSTR_PROFILE_QUERY_STALE_TIME_MS
+  NOSTR_PROFILE_QUERY_STALE_TIME_MS,
+  NOSTR_RELAYS
 } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
@@ -145,6 +146,8 @@ export default function NostrNotePage() {
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
+  const [deletionModalVisible, setDeletionModalVisible] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
@@ -526,6 +529,51 @@ export default function NostrNotePage() {
     ? formatMarkdownByNoteId[noteHexId] === true
     : false
 
+  const listedRelayUrls = NOSTR_RELAYS.map((relay) => relay.url)
+  const canRequestDeletion =
+    fetched?.pubkey === ownPubkeyHex &&
+    ownPubkeyHex.length > 0 &&
+    Boolean(identity?.nsec) &&
+    !identity?.isWatchOnly
+
+  function openDeletionModal() {
+    setDeletionModalVisible(true)
+  }
+
+  function closeDeletionModal() {
+    setDeletionModalVisible(false)
+  }
+
+  async function requestNoteDeletion(relays: string[]) {
+    if (!identity?.nsec || !noteHexId || relays.length === 0) {
+      return
+    }
+
+    setDeletionModalVisible(false)
+    setDeleting(true)
+    const api = new NostrAPI(relays)
+    try {
+      await api.requestDeletion([noteHexId], identity.nsec)
+      toast.success(t('nostrIdentity.note.requestDeletionSuccess'))
+      router.back()
+    } catch (error) {
+      toast.error(
+        `${t('nostrIdentity.note.requestDeletionFailed')}: ${getNostrErrorMessage(error)}`
+      )
+    } finally {
+      api.disconnect()
+      setDeleting(false)
+    }
+  }
+
+  function handleDeleteFromSelectedRelays() {
+    void requestNoteDeletion(effectiveRelays)
+  }
+
+  function handleDeleteFromListedRelays() {
+    void requestNoteDeletion(listedRelayUrls)
+  }
+
   function handlePlainTextViewPress() {
     if (!noteHexId) {
       return
@@ -889,6 +937,16 @@ export default function NostrNotePage() {
                   </SSIconButton>
                 </SSHStack>
               </SSNostrNoteActions>
+            ) : null}
+
+            {canRequestDeletion ? (
+              <SSButton
+                label={t('nostrIdentity.note.requestDeletion')}
+                variant="danger"
+                disabled={deleting}
+                loading={deleting}
+                onPress={openDeletionModal}
+              />
             ) : null}
 
             {fetched ? (
@@ -1557,6 +1615,36 @@ export default function NostrNotePage() {
       />
 
       <SSModal
+        visible={deletionModalVisible}
+        onClose={closeDeletionModal}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="sm" style={styles.deletionModal}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.requestDeletionConfirm')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('nostrIdentity.note.requestDeletion')}
+          </SSText>
+          <SSButton
+            label={t('nostrIdentity.note.requestDeletionSelected', {
+              count: effectiveRelays.length
+            })}
+            variant="danger"
+            disabled={effectiveRelays.length === 0 || deleting}
+            onPress={handleDeleteFromSelectedRelays}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.requestDeletionAll', {
+              count: listedRelayUrls.length
+            })}
+            variant="danger"
+            disabled={listedRelayUrls.length === 0 || deleting}
+            onPress={handleDeleteFromListedRelays}
+          />
+        </SSVStack>
+      </SSModal>
+      <SSModal
         visible={bookmarkModalVisible}
         onClose={() => setBookmarkModalVisible(false)}
         label={t('common.cancel')}
@@ -1736,6 +1824,9 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     padding: 12
+  },
+  deletionModal: {
+    width: '100%'
   },
   goalHeader: {
     alignItems: 'center',
