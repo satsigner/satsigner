@@ -3,7 +3,11 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
-import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import {
+  NOSTR_HASHTAG_TAG,
+  NOSTR_NIP06_DERIVATION_PATH,
+  NOSTR_PUBPAY_HASHTAG
+} from '@/constants/nostr'
 import { t } from '@/locales'
 import type {
   NostrDecodedContent,
@@ -190,6 +194,24 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   }
 
   return result
+}
+
+export function withPubpayHashtag(
+  tags: string[][],
+  paymentRequestSelected: boolean
+): string[][] {
+  if (!paymentRequestSelected) {
+    return tags
+  }
+  const alreadyTagged = tags.some(
+    (tag) =>
+      tag[0] === NOSTR_HASHTAG_TAG &&
+      tag[1]?.toLowerCase() === NOSTR_PUBPAY_HASHTAG
+  )
+  if (alreadyTagged) {
+    return tags
+  }
+  return [...tags, [NOSTR_HASHTAG_TAG, NOSTR_PUBPAY_HASHTAG]]
 }
 
 export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {

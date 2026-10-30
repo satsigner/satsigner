@@ -403,6 +403,8 @@ export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
 export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15_000
 export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
+export const NOSTR_PUBPAY_HASHTAG = 'pubpay'
+export const NOSTR_HASHTAG_TAG = 't'
 export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-goal',
   'zap-lnurl',

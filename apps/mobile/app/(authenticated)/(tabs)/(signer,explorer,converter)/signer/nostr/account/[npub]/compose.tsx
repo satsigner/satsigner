@@ -39,7 +39,8 @@ import {
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   buildEnhancedZapTags,
-  extractEnhancedZapTags
+  extractEnhancedZapTags,
+  withPubpayHashtag
 } from '@/utils/nostrIdentity'
 import {
   applyNostrProofOfWork,
@@ -158,7 +159,10 @@ export default function NostrComposePage() {
             zapUses: maxUses ? Number.parseInt(maxUses, 10) : undefined
           })
 
-    return [...baseTags, ...zapTags]
+    return withPubpayHashtag(
+      [...baseTags, ...zapTags],
+      amountMode !== 'none'
+    )
   }
 
   function applyKind1Draft(draft: NostrKind1DraftImport): boolean {

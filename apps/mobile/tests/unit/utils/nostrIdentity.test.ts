@@ -165,6 +165,28 @@ describe('decodeNostrContent', () => {
   })
 })
 
+describe('withPubpayHashtag', () => {
+  it('adds the pubpay hashtag when a payment option is selected', () => {
+    const { withPubpayHashtag } = require('@/utils/nostrIdentity')
+    expect(withPubpayHashtag([['zap-min', '1000']], true)).toEqual([
+      ['zap-min', '1000'],
+      ['t', 'pubpay']
+    ])
+  })
+
+  it('leaves tags unchanged when no payment option is selected', () => {
+    const { withPubpayHashtag } = require('@/utils/nostrIdentity')
+    const tags = [['p', 'abc']]
+    expect(withPubpayHashtag(tags, false)).toBe(tags)
+  })
+
+  it('does not add a second pubpay hashtag', () => {
+    const { withPubpayHashtag } = require('@/utils/nostrIdentity')
+    const tags = [['t', 'Pubpay']]
+    expect(withPubpayHashtag(tags, true)).toBe(tags)
+  })
+})
+
 describe('extractPubpayTags', () => {
   it('extracts amount tags in millisats and converts to sats', () => {
     const { extractPubpayTags } = require('@/utils/nostrIdentity')
