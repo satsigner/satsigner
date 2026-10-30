@@ -76,7 +76,6 @@ export default function NostrContactProfile() {
   })
   const [zapLoading, setZapLoading] = useState(false)
   const [qrOverlayVisible, setQrOverlayVisible] = useState(false)
-  const [qrOverlayKey, setQrOverlayKey] = useState(0)
   const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
 
@@ -122,7 +121,6 @@ export default function NostrContactProfile() {
   )
 
   function handleOpenQrOverlay() {
-    setQrOverlayKey((current) => current + 1)
     setQrOverlayVisible(true)
   }
 
@@ -319,7 +317,7 @@ export default function NostrContactProfile() {
                   ) : null}
                   <SSButton
                     gradientType="special"
-                    label={t('nostrIdentity.contact.more')}
+                    label={t('nostrIdentity.contact.shareProfile')}
                     onPress={handleOpenQrOverlay}
                     style={
                       showZapButton ? styles.halfButton : styles.fullButton
@@ -360,15 +358,16 @@ export default function NostrContactProfile() {
         fiatCurrency={fiatCurrency}
       />
 
-      <SSContactProfileQrOverlay
-        key={qrOverlayKey}
-        contactNprofile={contactNprofile}
-        lud16={lud16Value}
-        onClose={handleCloseQrOverlay}
-        shareProfileName={shareProfileName}
-        targetNpub={targetNpub}
-        visible={qrOverlayVisible}
-      />
+      {qrOverlayVisible ? (
+        <SSContactProfileQrOverlay
+          contactNprofile={contactNprofile}
+          lud16={lud16Value}
+          onClose={handleCloseQrOverlay}
+          shareProfileName={shareProfileName}
+          targetNpub={targetNpub}
+          visible
+        />
+      ) : null}
     </SSMainLayout>
   )
 }

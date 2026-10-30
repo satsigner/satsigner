@@ -10,6 +10,11 @@ type SSQRCodeProps = {
   backgroundColor?: string
 }
 
+function handleQrError() {
+  // Oversized payloads throw inside react-native-qrcode-svg's render.
+  // Swallowing that keeps the screen up instead of crashing the app.
+}
+
 function SSQRCode({
   value,
   size = 200,
@@ -24,6 +29,7 @@ function SSQRCode({
       color={color}
       backgroundColor={backgroundColor}
       ecl={ecl}
+      onError={handleQrError}
     />
   )
 }
