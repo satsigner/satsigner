@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { StyleSheet, View } from 'react-native'
 
-import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
+import { NostrAPI, probeIdentityRelays } from '@/api/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
@@ -35,8 +35,8 @@ import {
 } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
-  getNostrContactsRelaysKey,
-  getNostrIdentityRelays
+  getNostrIdentityRelays,
+  identityRelayConnectionQueryKey
 } from '@/utils/nostrContacts'
 import { hasNostrRelaysSelected } from '@/utils/nostrIdentity'
 import {
@@ -72,13 +72,8 @@ export default function NostrAccountLanding() {
 
   const connectionQuery = useQuery({
     enabled: !!identity && relayConnected && relaysAvailable,
-    queryFn: () => testNostrRelaysReachable(effectiveRelays),
-    queryKey: [
-      'nostr',
-      'relay-connection',
-      npub,
-      getNostrContactsRelaysKey(effectiveRelays)
-    ],
+    queryFn: () => probeIdentityRelays(effectiveRelays),
+    queryKey: identityRelayConnectionQueryKey(npub, effectiveRelays),
     refetchOnWindowFocus: false,
     retry: 0,
     staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
@@ -215,6 +210,7 @@ export default function NostrAccountLanding() {
           <View>
             <SSNostrHeroCard
               identity={identity}
+              configuredRelayCount={effectiveRelays.length}
               connectionInfo={connectionInfo}
               nip05Valid={nip05Valid ?? null}
               style={styles.heroProfile}

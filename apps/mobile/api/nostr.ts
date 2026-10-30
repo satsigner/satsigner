@@ -131,15 +131,18 @@ export { clearNdkRegistry } from './ndkRegistry'
 
 function buildRelayConnectionInfo(
   allUrls: string[],
-  connectedUrls: string[]
+  connectedUrls: string[],
+  probeCount = NOSTR_RELAY_PROBE_COUNT
 ): NostrRelayConnectionInfo {
-  const probeUrls = allUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
+  const probeUrls = allUrls.slice(0, probeCount)
   const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
   return {
-    relayDetails: probeUrls.map((url) => ({
-      connected: connectedNormalized.has(normalizeRelayUrl(url)),
-      url
-    })),
+    relayDetails: probeUrls.map((url) => {
+      const connected = connectedNormalized.has(normalizeRelayUrl(url))
+      return connected
+        ? { connected, url }
+        : { connected, error: 'timeout', url }
+    }),
     status: 'connected'
   }
 }
@@ -157,9 +160,27 @@ export async function reconnectNdkForRelays(
   )
 }
 
-export async function testNostrRelaysReachable(
+type RelayReachabilityOptions = {
+  probeCount?: number
+  /** Wait out the probe window so relays that are still connecting get a result. */
+  waitForAll?: boolean
+}
+
+/** Probe every relay in the identity set and wait for the full window. */
+export function probeIdentityRelays(
   relayUrls: string[]
 ): Promise<NostrRelayConnectionInfo> {
+  return testNostrRelaysReachable(relayUrls, {
+    probeCount: relayUrls.length,
+    waitForAll: true
+  })
+}
+
+export async function testNostrRelaysReachable(
+  relayUrls: string[],
+  options?: RelayReachabilityOptions
+): Promise<NostrRelayConnectionInfo> {
+  const probeCount = options?.probeCount ?? NOSTR_RELAY_PROBE_COUNT
   if (relayUrls.length === 0) {
     return { reason: 'no_relays', status: 'disconnected' }
   }
@@ -174,27 +195,39 @@ export async function testNostrRelaysReachable(
   // against existing sockets and often report "unreachable" while data flows).
   const registryKey = [...relayUrls].toSorted().join(',')
   const registryNdk = ndkRegistry.get(registryKey)
-  if (registryNdk?.pool) {
+  if (!options?.waitForAll && registryNdk?.pool) {
     const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
     if (connected.length > 0) {
-      return buildRelayConnectionInfo(relayUrls, connected)
+      return buildRelayConnectionInfo(relayUrls, connected, probeCount)
     }
   }
 
   // Probe with a throw-away NDK: resetting the shared instance would kill
   // the live subscriptions (account sync, chat) that run on it.
-  const probeUrls = relayUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
+  const probeUrls = relayUrls.slice(0, probeCount)
   const probeNdk = createEphemeralNdk(probeUrls)
+  const startedAt = Date.now()
   const connected = await connectToFirstRelay(
     probeNdk,
     NOSTR_RELAY_REACHABILITY_TEST_MS
   )
-    .then(() => probeNdk.pool.connectedRelays().map((r) => r.url))
+    .then(async () => {
+      if (options?.waitForAll) {
+        const remaining =
+          NOSTR_RELAY_REACHABILITY_TEST_MS - (Date.now() - startedAt)
+        if (remaining > 0) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, remaining)
+          })
+        }
+      }
+      return probeNdk.pool.connectedRelays().map((r) => r.url)
+    })
     .catch(() => [])
   disconnectNdkPool(probeNdk)
 
   if (connected.length > 0) {
-    return buildRelayConnectionInfo(probeUrls, connected)
+    return buildRelayConnectionInfo(probeUrls, connected, probeUrls.length)
   }
 
   return {

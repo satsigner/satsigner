@@ -4,7 +4,15 @@ import { act, create } from 'react-test-renderer'
 import { useNostrIdentityAdd } from '@/hooks/useNostrIdentityAdd'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { type NostrIdentity } from '@/types/models/Nostr'
-import { hasNostrRelaysSelected } from '@/utils/nostrIdentity'
+import {
+  connectedRelayUrls,
+  hasNostrRelaysSelected,
+  nostrAccountRelayCount,
+  nostrConnectedDetail,
+  nostrConnectedSummary,
+  relayEditorSelection,
+  relayStatusNote
+} from '@/utils/nostrIdentity'
 
 type IdentityAdd = ReturnType<typeof useNostrIdentityAdd>
 
@@ -121,5 +129,121 @@ describe('hasNostrRelaysSelected', () => {
   it('is true when either list has relays', () => {
     expect(hasNostrRelaysSelected(['wss://a'], [])).toBe(true)
     expect(hasNostrRelaysSelected(undefined, ['wss://b'])).toBe(true)
+  })
+})
+
+describe('nostrAccountRelayCount', () => {
+  const configured = [
+    'wss://indexer.coracle.social',
+    'wss://relay.nos.social',
+    'wss://relay.primal.net',
+    'wss://relay.snort.social'
+  ]
+
+  it('counts only the relays that connected', () => {
+    expect(
+      nostrAccountRelayCount(configured, {
+        relayDetails: [
+          { connected: true, url: 'wss://indexer.coracle.social' },
+          { connected: true, url: 'wss://relay.nos.social' },
+          { connected: false, url: 'wss://relay.nostr.band' }
+        ],
+        status: 'connected'
+      })
+    ).toBe(2)
+  })
+
+  it('uses the configured list when nothing is connected', () => {
+    expect(
+      nostrAccountRelayCount(configured, {
+        reason: 'no_relays',
+        status: 'disconnected'
+      })
+    ).toBe(configured.length)
+  })
+})
+
+describe('relayEditorSelection', () => {
+  const connected = ['wss://indexer.coracle.social', 'wss://relay.nos.social']
+
+  it('checks the connected relays when nothing was saved', () => {
+    expect(relayEditorSelection([], connected, null)).toStrictEqual(connected)
+  })
+
+  it('keeps an explicit list instead of the live connections', () => {
+    expect(
+      relayEditorSelection(['wss://relay.primal.net'], connected, null)
+    ).toStrictEqual(['wss://relay.primal.net'])
+  })
+
+  it('keeps the user override', () => {
+    expect(
+      relayEditorSelection([], connected, ['wss://relay.snort.social'])
+    ).toStrictEqual(['wss://relay.snort.social'])
+  })
+})
+
+describe('nostrConnectedSummary', () => {
+  const info = {
+    relayDetails: [
+      { connected: true, url: 'wss://relay.nos.social' },
+      { connected: false, url: 'wss://relay.primal.net' }
+    ],
+    status: 'connected' as const
+  }
+
+  it('names the live connection against the larger selected list', () => {
+    expect(nostrConnectedSummary(info, 8)).toBe('1 of 8 connected')
+    expect(nostrConnectedDetail(info, 8)).toBe('1 of 8 connected relays')
+  })
+
+  it('stays a plain connected label when every selected relay answered', () => {
+    expect(nostrConnectedSummary(info, 1)).toBe('Connected')
+  })
+})
+
+describe('relayStatusNote', () => {
+  const info = {
+    relayDetails: [
+      { connected: true, url: 'wss://relay.nos.social' },
+      { connected: false, error: 'timeout', url: 'wss://relay.primal.net' },
+      { connected: false, error: '403', url: 'wss://relay.snort.social' }
+    ],
+    status: 'connected' as const
+  }
+
+  it('uses green-path copy when the relay answered', () => {
+    expect(
+      relayStatusNote('wss://relay.nos.social/', info, false)
+    ).toStrictEqual({
+      label: 'Connected',
+      tone: 'ok'
+    })
+  })
+
+  it('explains a timeout and any other error', () => {
+    expect(relayStatusNote('wss://relay.primal.net', info, false)?.label).toBe(
+      'Timed out'
+    )
+    expect(
+      relayStatusNote('wss://relay.snort.social', info, false)
+    ).toStrictEqual({
+      label: '403',
+      tone: 'bad'
+    })
+  })
+})
+
+describe('connectedRelayUrls', () => {
+  it('returns the urls that answered', () => {
+    expect(
+      connectedRelayUrls({
+        relayDetails: [
+          { connected: true, url: 'wss://indexer.coracle.social' },
+          { connected: false, url: 'wss://relay.primal.net' }
+        ],
+        status: 'connected'
+      })
+    ).toStrictEqual(['wss://indexer.coracle.social'])
   })
 })

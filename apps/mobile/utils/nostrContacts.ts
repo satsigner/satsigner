@@ -49,6 +49,20 @@ export function getNostrContactsRelaysKey(contactsRelays: string[]): string {
   return [...contactsRelays].toSorted().join(',')
 }
 
+/** Shared by the profile, the landing card, and the identity relay list. */
+export function identityRelayConnectionQueryKey(
+  npub: string,
+  relayUrls: string[]
+): readonly ['nostr', 'relay-connection', 'full', string, string] {
+  return [
+    'nostr',
+    'relay-connection',
+    'full',
+    npub,
+    getNostrContactsRelaysKey(relayUrls)
+  ]
+}
+
 export function contactToIdentity(contact: NostrContactItem): NostrIdentity {
   return {
     createdAt: Date.now(),
