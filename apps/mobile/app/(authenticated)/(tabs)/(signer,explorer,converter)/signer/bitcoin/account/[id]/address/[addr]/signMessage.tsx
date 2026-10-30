@@ -73,6 +73,7 @@ function AddressSignMessage() {
       )
       if (!keyPair) {
         toast.error(t('address.details.key.unavailable'))
+        setIsSigning(false)
         return
       }
       const privateKey = Buffer.from(keyPair.privateKey, 'hex')
@@ -89,9 +90,8 @@ function AddressSignMessage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
-    } finally {
-      setIsSigning(false)
     }
+    setIsSigning(false)
   }
 
   function handleChangeMessage(value: string) {

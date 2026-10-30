@@ -16,8 +16,14 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/decryption'
+
+async function decryptKeyMnemonic(key: Key) {
+  const secret = await decryptKeySecret(key)
+  return secret.mnemonic || ''
+}
 
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -43,15 +49,14 @@ export default function SeedWordsPage() {
     }
 
     try {
-      const secret = await decryptKeySecret(key)
-      setMnemonic(secret.mnemonic || '')
-      setNoMnemonicAvailable(!secret.mnemonic)
+      const decryptedMnemonic = await decryptKeyMnemonic(key)
+      setMnemonic(decryptedMnemonic)
+      setNoMnemonicAvailable(!decryptedMnemonic)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
-    } finally {
-      setShowPinEntry(false)
     }
+    setShowPinEntry(false)
   }, [account, key])
 
   async function handleSuccessPin() {

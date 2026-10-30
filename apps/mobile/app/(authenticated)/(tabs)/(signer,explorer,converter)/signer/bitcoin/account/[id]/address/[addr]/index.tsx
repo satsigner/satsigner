@@ -104,9 +104,8 @@ function AddressDetails() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
-    } finally {
-      setShowKeyPinEntry(false)
     }
+    setShowKeyPinEntry(false)
   }
 
   function handleShowKeyPress() {
@@ -133,10 +132,11 @@ function AddressDetails() {
     if (!address) {
       return
     }
+    const addressNetwork = address.network || 'signet'
     try {
       const rawScript = toOutputScript(
         address.address,
-        bitcoinjsNetwork(address.network || 'signet')
+        bitcoinjsNetwork(addressNetwork)
       )
       setScript(toASM(rawScript))
     } catch {

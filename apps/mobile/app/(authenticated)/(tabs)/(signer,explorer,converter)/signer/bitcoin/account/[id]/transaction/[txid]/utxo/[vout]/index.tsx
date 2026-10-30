@@ -37,6 +37,8 @@ import {
 import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+const EMPTY_ADDRESS_SET = new Set<string>()
+
 type UtxoDetailsProps = {
   accountId: string
   onPressAddress: () => void
@@ -60,8 +62,8 @@ function UtxoDetails({
   onPressAddress,
   onPressTx,
   onSpendUtxo,
-  ownAddresses = new Set(),
-  internalAddresses = new Set(),
+  ownAddresses = EMPTY_ADDRESS_SET,
+  internalAddresses = EMPTY_ADDRESS_SET,
   unspentOutpoints,
   ownedOutpoints,
   txLabelsById,

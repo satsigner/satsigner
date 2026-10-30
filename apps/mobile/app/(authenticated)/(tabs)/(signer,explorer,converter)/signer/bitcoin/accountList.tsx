@@ -225,26 +225,6 @@ export default function AccountList() {
     }
   }, [tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    syncAccounts()
-  }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!showCurrentFiat) {
-      return
-    }
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
-
-  function handleOnNavigateToAddAccount() {
-    clearAccount()
-    router.navigate('/signer/bitcoin/account/add')
-  }
-
-  function handleGoToAccount(accountId: string) {
-    router.navigate(`/signer/bitcoin/account/${accountId}`)
-  }
-
   async function syncAccounts() {
     if (connectionMode !== 'auto') {
       return
@@ -302,6 +282,26 @@ export default function AccountList() {
     }
   }
 
+  useEffect(() => {
+    syncAccounts()
+  }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!showCurrentFiat) {
+      return
+    }
+    fetchPrices(fiatPriceApiUrl)
+  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
+
+  function handleOnNavigateToAddAccount() {
+    clearAccount()
+    router.navigate('/signer/bitcoin/account/add')
+  }
+
+  function handleGoToAccount(accountId: string) {
+    router.navigate(`/signer/bitcoin/account/${accountId}`)
+  }
+
   async function handleLoadSampleWallet(type: SampleWallet) {
     if (isSampleWalletLoaded(type, tabs[tabIndex].key, accounts, addresses)) {
       toast.info(t('accounts.sampleAlreadyLoaded'))
@@ -312,10 +312,9 @@ export default function AccountList() {
       await loadSampleWallet(type)
     } catch {
       toast.error('failed to create sample wallet')
-    } finally {
-      clearAccount()
-      setLoadingWallet(undefined)
     }
+    clearAccount()
+    setLoadingWallet(undefined)
   }
 
   async function loadSampleWallet(type: SampleWallet) {

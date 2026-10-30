@@ -49,6 +49,11 @@ import { formatDate } from '@/utils/format'
 import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
+async function decryptFirstKeyMnemonic(accountId: string) {
+  const accountSecret = await decryptAccountKeySecret(accountId, 0)
+  return accountSecret.mnemonic || ''
+}
+
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const insets = useSafeAreaInsets()
@@ -198,8 +203,8 @@ export default function AccountSettings() {
     }
 
     try {
-      const accountSecret = await decryptAccountKeySecret(account.id, 0)
-      setLocalMnemonic(accountSecret.mnemonic || '')
+      const mnemonic = await decryptFirstKeyMnemonic(account.id)
+      setLocalMnemonic(mnemonic)
     } catch {
       toast.error(t('account.seed.unableToDecrypt'))
     }

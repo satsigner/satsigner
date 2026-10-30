@@ -63,14 +63,14 @@ export default function AccountBirthdayPage() {
     return <Redirect href="/" />
   }
 
+  async function saveBirthdayAndGoBack(birthday: Date | undefined) {
+    await applyBirthday(id, birthday)
+    router.back()
+  }
+
   async function handleSaveDate() {
     setSaving(true)
-    try {
-      await applyBirthday(id, date)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    await saveBirthdayAndGoBack(date).finally(() => setSaving(false))
   }
 
   async function handleSaveBlock() {
@@ -81,23 +81,13 @@ export default function AccountBirthdayPage() {
     }
     setBlockError(false)
     setSaving(true)
-    try {
-      const approxDate = estimateDateFromHeight(height, tip || height)
-      await applyBirthday(id, approxDate)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    const approxDate = estimateDateFromHeight(height, tip || height)
+    await saveBirthdayAndGoBack(approxDate).finally(() => setSaving(false))
   }
 
   async function handleClear() {
     setSaving(true)
-    try {
-      await applyBirthday(id, undefined)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    await saveBirthdayAndGoBack(undefined).finally(() => setSaving(false))
   }
 
   function handleSelectDateMode() {

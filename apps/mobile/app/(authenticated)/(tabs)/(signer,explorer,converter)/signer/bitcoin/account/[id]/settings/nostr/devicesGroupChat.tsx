@@ -36,6 +36,7 @@ import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
+import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
 import { type TransactionData } from '@/utils/psbt'
 
 // In-memory color cache; keyed by pubkey hex.
@@ -67,6 +68,39 @@ function getAuthorColor(
 function formatNpubText(pubkey: string): string {
   const npub = safeNpubEncode(pubkey, '')
   return npub ? formatNpub(npub) : pubkey.slice(0, 8)
+}
+
+function createPendingDm(
+  deviceNpub: string,
+  description: string
+): NostrDM | null {
+  const decoded = nip19.decode(deviceNpub)
+  const devicePubkeyHex =
+    decoded?.type === 'npub' && typeof decoded.data === 'string'
+      ? decoded.data
+      : null
+  if (!devicePubkeyHex) {
+    return null
+  }
+  const created_at = Math.floor(Date.now() / MS_PER_SECOND)
+  return {
+    author: devicePubkeyHex,
+    content: {
+      created_at,
+      description,
+      pubkey: devicePubkeyHex
+    },
+    created_at,
+    description,
+    event: '',
+    id: `pending-${Date.now()}`,
+    label: 1,
+    pending: true
+  }
+}
+
+function appendDmSorted(dms: NostrDM[] | undefined, dm: NostrDM) {
+  return [...(dms ?? []), dm].toSorted((a, b) => a.created_at - b.created_at)
 }
 
 const INITIAL_PAGE_SIZE = 50
@@ -158,6 +192,19 @@ export default function DevicesGroupChat() {
     [members]
   )
 
+  function markPendingDmSent(pendingId: string | null) {
+    if (!pendingId || !accountId) {
+      return
+    }
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    const dms = (current?.nostr?.dms ?? []).map((m) =>
+      m.id === pendingId ? { ...m, pending: false } : m
+    )
+    updateAccountNostr(accountId, { dms })
+  }
+
   async function handleSendMessage() {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
@@ -181,35 +228,17 @@ export default function DevicesGroupChat() {
     const trimmed = messageInput.trim()
     let pendingId: string | null = null
     try {
-      const decoded = nip19.decode(account.nostr.deviceNpub)
-      const devicePubkeyHex =
-        decoded?.type === 'npub' && typeof decoded.data === 'string'
-          ? decoded.data
-          : null
-      if (!devicePubkeyHex) {
+      const optimisticMessage = createPendingDm(
+        account.nostr.deviceNpub,
+        trimmed
+      )
+      if (!optimisticMessage) {
         toast.error(t('common.error.missingRequiredNostrConfig'))
         return
       }
-      const created_at = Math.floor(Date.now() / MS_PER_SECOND)
-      pendingId = `pending-${Date.now()}`
-      const optimisticMessage: NostrDM = {
-        author: devicePubkeyHex,
-        content: {
-          created_at,
-          description: trimmed,
-          pubkey: devicePubkeyHex
-        },
-        created_at,
-        description: trimmed,
-        event: '',
-        id: pendingId,
-        label: 1,
-        pending: true
-      }
+      pendingId = optimisticMessage.id
       updateAccountNostr(accountId, {
-        dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
-          (a, b) => a.created_at - b.created_at
-        )
+        dms: appendDmSorted(account.nostr.dms, optimisticMessage)
       })
       setMessageInput('')
     } catch {
@@ -222,15 +251,7 @@ export default function DevicesGroupChat() {
       await sendDM(account, trimmed)
       // Mark as sent: many relays don't echo events back to the sender, so we
       // clear pending when publish succeeds instead of waiting for the echo.
-      if (pendingId && accountId) {
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        const dms = (current?.nostr?.dms ?? []).map((m) =>
-          m.id === pendingId ? { ...m, pending: false } : m
-        )
-        updateAccountNostr(accountId, { dms })
-      }
+      markPendingDmSent(pendingId)
     } catch {
       toast.error(t('common.error.failedToSendMessage'))
       if (pendingId && accountId) {
@@ -243,9 +264,8 @@ export default function DevicesGroupChat() {
         updateAccountNostr(accountId, { dms })
       }
       setMessageInput(trimmed)
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
   async function handleGoToSignFlowClick(messageContent: string) {
@@ -288,12 +308,11 @@ export default function DevicesGroupChat() {
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
-    } finally {
-      setIsShareModalVisible(false)
-      setTransactionToShareLocal('')
-      setTransactionDataForModal(null)
-      setIsLoading(false)
     }
+    setIsShareModalVisible(false)
+    setTransactionToShareLocal('')
+    setTransactionDataForModal(null)
+    setIsLoading(false)
   }
 
   function handleCancelShare() {
@@ -391,8 +410,9 @@ export default function DevicesGroupChat() {
 
         try {
           const api = new NostrAPI(relays)
-          const result = await api.fetchKind0(npub)
-          if (!result?.displayName && !result?.picture) {
+          const fetchedProfile = await api.fetchKind0(npub)
+          const result = kind0ProfileWithContent(fetchedProfile)
+          if (!result) {
             continue
           }
           setProfile(npub, {

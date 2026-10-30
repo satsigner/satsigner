@@ -20,6 +20,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
+import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
 
 export default function DeviceAliasPage() {
   const { id: accountId, npub } =
@@ -122,9 +123,11 @@ export default function DeviceAliasPage() {
     setLoadingFetchKind0(true)
     try {
       const api = new NostrAPI(relays)
-      const profile = await api.fetchKind0(npub)
-      if (!profile || (!profile.displayName && !profile.picture)) {
+      const fetchedProfile = await api.fetchKind0(npub)
+      const profile = kind0ProfileWithContent(fetchedProfile)
+      if (!profile) {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
+        setLoadingFetchKind0(false)
         return
       }
       const updated = {
@@ -150,9 +153,8 @@ export default function DeviceAliasPage() {
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )
-    } finally {
-      setLoadingFetchKind0(false)
     }
+    setLoadingFetchKind0(false)
   }
 
   function clearKind0Profile() {

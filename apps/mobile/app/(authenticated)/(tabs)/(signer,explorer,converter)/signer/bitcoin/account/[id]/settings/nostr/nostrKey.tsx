@@ -35,12 +35,32 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
 import { deriveNpubFromNsec, generateColorFromNpub } from '@/utils/nostr'
 import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
+import {
+  hasCommonNostrKeys,
+  kind0ProfileWithContent
+} from '@/utils/nostrSyncSettings'
 
 const COMMON_KEYS_LOAD_TIMEOUT_MS = 45_000
 
 type QrModalContent = {
   type: 'npub' | 'nsec'
   value: string
+}
+
+async function readTrimmedClipboardText() {
+  const text = await Clipboard.getStringAsync()
+  return text?.trim() ?? ''
+}
+
+function withCommonKeysLoadTimeout<T>(generation: Promise<T>) {
+  return Promise.race([
+    generation,
+    new Promise<undefined>((_resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error(t('account.nostrSync.commonKeysTimeout')))
+      }, COMMON_KEYS_LOAD_TIMEOUT_MS)
+    })
+  ])
 }
 
 function NostrKeys() {
@@ -158,8 +178,9 @@ function NostrKeys() {
     setLoadingFetchKind0(true)
     try {
       const api = new NostrAPI(relays)
-      const profile = await api.fetchKind0(derivedNpub)
-      if (profile && (profile.displayName || profile.picture)) {
+      const fetchedProfile = await api.fetchKind0(derivedNpub)
+      const profile = kind0ProfileWithContent(fetchedProfile)
+      if (profile) {
         setKind0Profile(profile)
         const npubProfiles = {
           ...account.nostr.npubProfiles,
@@ -184,9 +205,8 @@ function NostrKeys() {
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )
-    } finally {
-      setLoadingFetchKind0(false)
     }
+    setLoadingFetchKind0(false)
   }
 
   const loadCommonNostrKeys = useCallback(async () => {
@@ -210,15 +230,8 @@ function NostrKeys() {
     setCommonKeysError(null)
     setLoadingCommonKeys(true)
     try {
-      const keys = await Promise.race([
-        generateCommonNostrKeys(acc),
-        new Promise<undefined>((_resolve, reject) => {
-          setTimeout(() => {
-            reject(new Error(t('account.nostrSync.commonKeysTimeout')))
-          }, COMMON_KEYS_LOAD_TIMEOUT_MS)
-        })
-      ])
-      if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
+      const keys = await withCommonKeysLoadTimeout(generateCommonNostrKeys(acc))
+      if (hasCommonNostrKeys(keys)) {
         updateAccountNostr(acc.id, {
           commonNpub: keys.commonNpub,
           commonNsec: keys.commonNsec,
@@ -233,10 +246,9 @@ function NostrKeys() {
           ? error.message
           : t('account.nostrSync.commonKeysLoadError')
       )
-    } finally {
-      commonKeysLoadRef.current = false
-      setLoadingCommonKeys(false)
     }
+    commonKeysLoadRef.current = false
+    setLoadingCommonKeys(false)
   }, [accountId, generateCommonNostrKeys, updateAccountNostr])
 
   useEffect(() => {
@@ -303,12 +315,12 @@ function NostrKeys() {
 
   async function pasteNsec() {
     try {
-      const text = await Clipboard.getStringAsync()
-      if (!text?.trim()) {
+      const pastedNsec = await readTrimmedClipboardText()
+      if (!pastedNsec) {
         toast.error(t('common.error.noClipboardData'))
         return
       }
-      setNsec(text.trim())
+      setNsec(pastedNsec)
       setDeviceMnemonic('')
       setSeedRevealed(false)
       toast.success(t('common.success.dataPasted'))

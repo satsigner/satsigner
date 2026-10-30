@@ -173,9 +173,8 @@ export default function PublicKeyPage() {
       await getPublicKey()
     } catch {
       toast.error('Failed to get public key')
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {
