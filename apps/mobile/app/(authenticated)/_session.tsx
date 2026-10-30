@@ -28,6 +28,7 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { startNostrLifecycle, stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
@@ -201,6 +202,8 @@ function AuthenticatedSession() {
   }
 
   useEffect(() => {
+    const session = { active: true }
+
     async function run() {
       await yieldToUi()
 
@@ -232,10 +235,17 @@ function AuthenticatedSession() {
       } catch {
         // non-critical — cache prune failure should not block startup
       }
+      if (session.active) {
+        startNostrLifecycle()
+      }
 
       usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
     run()
+    return () => {
+      session.active = false
+      stopNostrLifecycle()
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

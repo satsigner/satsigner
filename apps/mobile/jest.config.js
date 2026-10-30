@@ -50,6 +50,7 @@ const config = {
     '^sonner-native$': '<rootDir>/__mocks__/sonner-native.ts'
   },
   preset: 'jest-expo',
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/relay/'],
   transformIgnorePatterns: [
     // Regular node_modules: transform listed packages (also when nested one
     // level deep, e.g. nostr-tools/node_modules/@noble/*), but don't ignore

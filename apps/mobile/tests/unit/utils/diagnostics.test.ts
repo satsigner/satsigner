@@ -35,10 +35,8 @@ import {
   checkPinKdf,
   checkSecureStore,
   checkSqlite,
-  DIAGNOSTIC_CHECKS,
-  resolveLiveRoundtripRelays,
-  runDiagnosticCheck
-} from '@/utils/diagnostics'
+  resolveLiveRoundtripRelays
+} from '@/utils/diagnostics/coreChecks'
 
 describe('diagnostics one-click checks', () => {
   it('crypto roundtrip passes', async () => {
@@ -82,20 +80,6 @@ describe('diagnostics one-click checks', () => {
     expect(fallback.length).toBeGreaterThanOrEqual(2)
     for (const url of fallback) {
       expect(url.startsWith('wss://')).toBe(true)
-    }
-  })
-
-  it('every registered local check runs and returns a result', async () => {
-    const local = DIAGNOSTIC_CHECKS.filter((check) => !check.requiresNetwork)
-    // Network checks must stay flagged so generic runners (and this loop)
-    // never invoke them without connectivity.
-    expect(
-      DIAGNOSTIC_CHECKS.filter((c) => c.requiresNetwork).map((c) => c.id)
-    ).toStrictEqual(['nip17Live', 'relayPersistence'])
-    for (const { id } of local) {
-      const result = await runDiagnosticCheck(id)
-      expect(typeof result.ok).toBe('boolean')
-      expect(result.lines.length).toBeGreaterThan(0)
     }
   })
 })

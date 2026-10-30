@@ -84,6 +84,13 @@ async function fetchOhttpKeys(
   return 'mock-ohttp-keys'
 }
 
+function probeOhttpKeys(
+  _relayUrl: string,
+  _directoryUrl: string
+): Promise<void> {
+  return Promise.resolve()
+}
+
 async function httpPost(
   url: string,
   contentType: string,
@@ -427,6 +434,7 @@ export {
   fetchOhttpKeys,
   httpPost,
   isNativeAvailable,
+  probeOhttpKeys,
   receiverContributeAndFinalize,
   receiverExtractRequest,
   receiverFinalizeWithoutInputs,
