@@ -53,6 +53,7 @@ import {
   findExternalAddressIndex,
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
+import { fiatToSats } from '@/utils/fiat'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
@@ -555,7 +556,7 @@ export default function Receive() {
     if (!btcPrice || btcPrice <= 0) {
       return null
     }
-    return Math.round((Number(fiat) / btcPrice) * SATS_PER_BITCOIN)
+    return fiatToSats(Number(fiat), btcPrice)
   }
 
   function getSatsDisplay(fiat: string): string {

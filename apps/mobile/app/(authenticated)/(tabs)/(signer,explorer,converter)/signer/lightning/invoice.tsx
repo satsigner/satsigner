@@ -19,7 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
-import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -31,6 +31,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { fiatToSats } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
@@ -138,7 +139,7 @@ export default function InvoicePage() {
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
-      const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
+      const sats = fiatToSats(fiat, btcPrice)
       setInvoiceAmount(sats > 0 ? sats.toString() : '')
     }
   }

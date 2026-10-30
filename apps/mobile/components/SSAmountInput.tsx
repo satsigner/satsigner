@@ -2,14 +2,14 @@ import { Slider } from '@miblanchard/react-native-slider'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT } from '@/constants/btc'
 import { PRIVACY_MASK } from '@/constants/privacy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import { satsToFiat as convertSatsToFiat } from '@/utils/fiat'
+import { satsToFiat as convertSatsToFiat, fiatToSats } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 import SSNumberGhostInput from './SSNumberGhostInput'
@@ -58,10 +58,7 @@ function SSAmountInput({
     if (Number.isNaN(fiat) || !btcPrice || btcPrice <= 0) {
       return
     }
-    const sats = Math.max(
-      min,
-      Math.min(max, Math.round((fiat / btcPrice) * SATS_PER_BITCOIN))
-    )
+    const sats = Math.max(min, Math.min(max, fiatToSats(fiat, btcPrice)))
     setLocalFiatValue(fiat)
     setLocalValue(sats)
     onValueChange(sats)

@@ -13,7 +13,7 @@ import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -25,6 +25,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { fiatToSats } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLNURLType } from '@/utils/lnurl'
 
@@ -167,7 +168,7 @@ export default function EcashReceivePage() {
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
-      const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
+      const sats = fiatToSats(fiat, btcPrice)
       setAmount(sats > 0 ? sats.toString() : '')
     }
   }
