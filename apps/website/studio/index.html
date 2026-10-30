@@ -15,9 +15,9 @@
   <link rel="stylesheet" href="/studio/tokens.css">
   <link rel="stylesheet" href="/studio/components.css">
   <link rel="stylesheet" href="/studio/screen.css">
-  <link rel="stylesheet" href="/studio/catalog.css?v=27">
+  <link rel="stylesheet" href="/studio/catalog.css?v=28">
   <link rel="stylesheet" href="/studio/dashboard.css">
-  <link rel="stylesheet" href="/studio/promotion.css?v=14">
+  <link rel="stylesheet" href="/studio/distribution.css?v=23">
 </head>
 <body>
   <div class="view-toggle" role="group" aria-label="Catalog layout">
@@ -28,7 +28,7 @@
     <button type="button" data-view="table">Table</button>
     <button type="button" data-view="map">Map</button>
     <button type="button" data-view="components">Components</button>
-    <button type="button" data-view="promotion">Promotion</button>
+    <button type="button" data-view="distribution">Distribution</button>
     <button type="button" id="card-height" aria-pressed="false">Expand</button>
     <button type="button" id="theme-toggle" aria-label="Toggle color theme" aria-pressed="false">
       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -321,7 +321,7 @@
     <div class="flow" id="flow-view" hidden></div>
     <div class="screen-grid" id="list-view"></div>
     <div class="component-grid" id="components-view" hidden></div>
-    <div class="promotion" id="promotion-view" hidden></div>
+    <div class="distribution" id="distribution-view" hidden></div>
     <table class="screen-table" id="table-view" hidden>
       <thead>
         <tr>
@@ -362,9 +362,10 @@
   <script src="/studio/generated/routes.js"></script>
   <script src="/studio/generated/coverage.js"></script>
   <script src="/studio/generated/meta.js"></script>
-  <script src="/studio/catalog.js?v=29"></script>
+  <script src="/studio/catalog.js?v=30"></script>
   <script src="/studio/dashboard.js"></script>
-  <script src="/studio/promotion.js?v=63"></script>
+  <script src="/release/data.js?v=2"></script>
+  <script src="/studio/distribution.js?v=68"></script>
   <script src="/studio/market.js?v=4"></script>
 </body>
 </html>

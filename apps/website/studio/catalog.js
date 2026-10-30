@@ -573,7 +573,7 @@ const table = document.getElementById('table-view')
 const flow = document.getElementById('flow-view')
 const phone = document.getElementById('phone-view')
 const componentsView = document.getElementById('components-view')
-const promotionViewEl = document.getElementById('promotion-view')
+const distributionViewEl = document.getElementById('distribution-view')
 const dashboardView = document.getElementById('dashboard-view')
 const catalog = document.getElementById('catalog-views')
 const buttons = document.querySelectorAll('[data-view]')
@@ -811,10 +811,10 @@ components.forEach((component) => {
   componentGrid.appendChild(card)
 })
 
-const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map' }
+const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map', promotion: 'distribution' }
 
 function isLayoutMode(mode) {
-  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components' || mode === 'promotion'
+  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components' || mode === 'distribution'
 }
 
 function viewFromUrl() {
@@ -831,7 +831,7 @@ function setView(mode, updateUrl) {
   flow.hidden = mode !== 'map'
   phone.hidden = mode !== 'prototype'
   componentsView.hidden = mode !== 'components'
-  if (promotionViewEl) promotionViewEl.hidden = mode !== 'promotion'
+  if (distributionViewEl) distributionViewEl.hidden = mode !== 'distribution'
   dashboardView.hidden = mode !== 'dashboard'
   if (catalog) catalog.hidden = mode === 'prototype'
   buttons.forEach((button) => {

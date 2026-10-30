@@ -1,5 +1,5 @@
 /* Store and social artboards at the sizes those surfaces accept. */
-const promotionView = document.getElementById('promotion-view')
+const distributionView = document.getElementById('distribution-view')
 
 const shots = [
   {
@@ -13,14 +13,34 @@ const shots = [
     sub: 'Fees, RBF, time-locks,\nand the outputs you choose.'
   },
   {
-    screen: 'multisig-sign',
+    screen: 'multisig-settings',
     title: 'Sign together.',
-    sub: 'M-of-N wallets with\nper-cosigner PSBT tracking.'
+    sub: 'M-of-N wallets,\npolicy, and every key.'
   },
   {
     screen: 'account',
     title: 'One balance. Every account.',
     sub: 'Single-sig, multisig,\nand watch-only.'
+  },
+  {
+    screen: 'psbt-qr',
+    title: 'Sign off-line.',
+    sub: 'Animated QR for an\nair-gapped signer.'
+  },
+  {
+    screen: 'account-receive',
+    title: 'A new address.',
+    sub: 'Fresh receive address\nand a QR, every time.'
+  },
+  {
+    screen: 'settings-network-server',
+    title: 'Your own node.',
+    sub: 'Electrum or Esplora.\nNothing in between.'
+  },
+  {
+    screen: 'nostr',
+    title: 'Messages, too.',
+    sub: 'Nostr from the same\nkeys you already hold.'
   }
 ]
 
@@ -84,10 +104,16 @@ function board(className, scale, node) {
   const cap = document.createElement('figcaption')
   const label = document.createElement('span')
   label.textContent = w + ' × ' + h
-  cap.append(label, jpgButton(), compareButton())
-  slot.appendChild(scaleWrap)
-  slot.appendChild(cap)
+  cap.appendChild(label)
+  slot.append(scaleWrap, cap, actionBar(jpgButton(), compareButton()))
   return slot
+}
+
+function actionBar(...nodes) {
+  const bar = document.createElement('div')
+  bar.className = 'promo-actions'
+  bar.append(...nodes)
+  return bar
 }
 
 function jpgButton() {
@@ -157,12 +183,211 @@ function markSlot(src, file, kind, caption) {
   const cap = document.createElement('figcaption')
   const label = document.createElement('span')
   label.textContent = caption
-  cap.append(label, jpgButton(), compareButton())
-  slot.append(img, cap)
+  cap.appendChild(label)
+  slot.append(img, cap, actionBar(jpgButton(), compareButton()))
   return slot
 }
 
-if (promotionView && !document.documentElement.classList.contains('is-embed')) {
+// Store copy, answers, and requirements come from /release/data.js, shared with the Release Kit.
+const release = window.RELEASE
+
+function storeOf(id) {
+  return release.stores.find((s) => s.id === id)
+}
+
+function copyText(text, button) {
+  const done = () => {
+    const previous = button.textContent
+    button.textContent = 'Copied'
+    setTimeout(() => { button.textContent = previous }, 1200)
+  }
+  navigator.clipboard.writeText(text).then(done, () => { button.textContent = 'Copy failed' })
+}
+
+function copyButton(get) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'promo-jpg'
+  button.textContent = 'Copy'
+  button.addEventListener('click', () => copyText(get(), button))
+  return button
+}
+
+function storeHeader(store) {
+  const head = document.createElement('header')
+  head.className = 'dist-store'
+  const h = document.createElement('h2')
+  h.textContent = store.label
+  const link = document.createElement('a')
+  link.href = store.url
+  link.target = '_blank'
+  link.rel = 'noopener'
+  link.textContent = store.console + ' ↗'
+  head.append(h, link)
+  return head
+}
+
+function textGroup(title) {
+  const el = document.createElement('section')
+  el.className = 'promo-section'
+  const h = document.createElement('h3')
+  h.className = 'dist-group'
+  h.textContent = title
+  const list = document.createElement('div')
+  list.className = 'dist-fields'
+  el.append(h, list)
+  return { el, list }
+}
+
+function fieldCard(field) {
+  const card = document.createElement('div')
+  card.className = 'dist-field'
+  const head = document.createElement('div')
+  head.className = 'dist-field-head'
+  const label = document.createElement('strong')
+  label.textContent = field.label
+  const meta = document.createElement('span')
+  meta.className = 'dist-count'
+  if (field.limit) {
+    meta.textContent = field.value.length + ' / ' + field.limit
+    meta.classList.toggle('is-over', field.value.length > field.limit)
+  }
+  head.append(label, meta, copyButton(() => field.value))
+  const value = document.createElement(field.multiline ? 'pre' : 'p')
+  value.className = 'dist-value'
+  value.textContent = field.value
+  card.append(head, value)
+  if (field.note) {
+    const note = document.createElement('p')
+    note.className = 'dist-note'
+    note.textContent = field.note
+    card.appendChild(note)
+  }
+  return card
+}
+
+function answerCard(answer) {
+  const card = document.createElement('div')
+  card.className = 'dist-field'
+  const head = document.createElement('div')
+  head.className = 'dist-field-head'
+  const label = document.createElement('strong')
+  label.textContent = answer.title
+  head.append(label, document.createElement('span'), copyButton(() => answer.answer))
+  const value = document.createElement('p')
+  value.className = 'dist-value'
+  value.textContent = answer.answer
+  card.append(head, value)
+  answer.notes.forEach((text) => {
+    const note = document.createElement('p')
+    note.className = 'dist-note'
+    note.textContent = text
+    card.appendChild(note)
+  })
+  return card
+}
+
+function blockerCard(blocker) {
+  const card = document.createElement('div')
+  card.className = 'dist-field dist-blocker'
+  const label = document.createElement('strong')
+  label.textContent = blocker.title
+  const body = document.createElement('p')
+  body.className = 'dist-note'
+  body.textContent = blocker.body
+  const where = document.createElement('p')
+  where.className = 'dist-where'
+  where.textContent = blocker.where
+  card.append(label, body, where)
+  return card
+}
+
+// Text, answers, and open issues for one store, in the order the console asks for them.
+function storeText(storeId) {
+  const sections = []
+  const fields = release.fields.filter((f) => f.store === storeId)
+  const groups = [...new Set(fields.map((f) => f.group))]
+  groups.forEach((group) => {
+    const g = textGroup(group)
+    fields.filter((f) => f.group === group).forEach((f) => g.list.appendChild(fieldCard(f)))
+    sections.push({ id: fileSlug(group), label: group, el: g.el })
+  })
+  if (storeId === 'apple') {
+    const purpose = textGroup('Info.plist purpose strings')
+    release.purposeStrings.forEach((p) => purpose.list.appendChild(fieldCard({ label: p.key, value: p.value, note: p.note })))
+    sections.push({ id: 'purpose', label: 'Purpose strings', el: purpose.el })
+  }
+  const answers = release.answers.filter((a) => a.store === storeId)
+  if (answers.length) {
+    const g = textGroup('Questionnaires and declarations')
+    answers.forEach((a) => g.list.appendChild(answerCard(a)))
+    sections.push({ id: 'answers', label: 'Questionnaires', el: g.el })
+  }
+  const blockers = release.blockers.filter((b) => b.store === storeId)
+  if (blockers.length) {
+    const g = textGroup('Fix in the app before submitting')
+    blockers.forEach((b) => g.list.appendChild(blockerCard(b)))
+    sections.push({ id: 'blockers', label: 'Before submitting', el: g.el })
+  }
+  const checklist = release.checklist.filter((c) => c.store === storeId || c.store === 'all')
+  if (checklist.length) {
+    const g = textGroup('Checklist')
+    const list = document.createElement('ul')
+    list.className = 'dist-checklist'
+    checklist.forEach((c) => c.items.forEach((item) => {
+      const li = document.createElement('li')
+      li.textContent = item
+      list.appendChild(li)
+    }))
+    const track = document.createElement('a')
+    track.href = '/release/#checklist'
+    track.textContent = 'Track progress in the Release Kit ↗'
+    g.list.append(list, track)
+    sections.push({ id: 'checklist', label: 'Checklist', el: g.el })
+  }
+  return sections
+}
+
+// Plain files (icons) that ship as-is rather than rendered from a board.
+function assetSlot(src, file, caption, size) {
+  const slot = document.createElement('figure')
+  slot.className = 'promo-slot'
+  const img = document.createElement('img')
+  img.className = 'dist-icon'
+  img.src = src
+  img.alt = caption
+  img.width = size
+  img.height = size
+  const cap = document.createElement('figcaption')
+  const label = document.createElement('span')
+  label.textContent = caption
+  const link = document.createElement('a')
+  link.className = 'promo-jpg-save'
+  link.href = src
+  link.download = file
+  link.dataset.asset = file
+  link.textContent = 'PNG'
+  cap.appendChild(label)
+  slot.append(img, cap, actionBar(link))
+  return slot
+}
+
+// Markdown copy of every store field, added to the zip so the text travels with the images.
+function storeMarkdown() {
+  const lines = ['# satsigner store text', '', 'Generated from release/data.js.', '']
+  release.stores.forEach((store) => {
+    lines.push('## ' + store.label + ' (' + store.console + ')', '')
+    release.fields.filter((f) => f.store === store.id).forEach((f) => {
+      lines.push('### ' + f.group + ' · ' + f.label + (f.limit ? ' (' + f.value.length + '/' + f.limit + ')' : ''), '', f.value, '')
+    })
+    release.answers.filter((a) => a.store === store.id).forEach((a) => {
+      lines.push('### ' + a.title, '', a.answer, '', ...a.notes.map((n) => '> ' + n), '')
+    })
+  })
+  return lines.join('\n')
+}
+
+if (distributionView && !document.documentElement.classList.contains('is-embed')) {
   const og = section(
     'Open Graph',
     '1200 × 630. This is the image Facebook, LinkedIn, Slack, and X use for summary_large_image. Keep the wordmark and headline inside a 60px inset so crops still read.'
@@ -182,18 +407,19 @@ if (promotionView && !document.documentElement.classList.contains('is-embed')) {
 
   const chips = section(
     'Logos and chicklets',
-    'The circular mark is the logo. The Zapstore button is the chicklet — use the file as shipped, at 40px tall or larger.'
+    'The circular mark is the logo. The Zapstore and TestFlight buttons are the chicklets — use the files as shipped, at 40px tall or larger.'
   )
   chips.row.append(
     markSlot('/imgs/satSigner_symbol.png', 'logo-symbol', 'logo', 'Logo'),
-    markSlot('/imgs/get-it-on-zapstore.svg', 'chicklet-zapstore', 'chicklet', 'Zapstore chicklet')
+    markSlot('/imgs/get-it-on-zapstore.svg', 'chicklet-zapstore', 'chicklet', 'Zapstore chicklet'),
+    markSlot('/imgs/get-it-on-testflight.svg', 'chicklet-testflight', 'chicklet', 'TestFlight chicklet')
   )
 
   const apple = section(
     'App Store screenshots',
     '1320 × 2868 portrait, the required 6.9-inch iPhone size. Upload up to 10. The first three show on the product page before the visitor scrolls, so each one stands alone. No prices, ratings, or “Download” calls.'
   )
-  shots.forEach((shot) => apple.row.appendChild(shotBoard('promo-shot promo-apple', 0.22, shot, 1320, 2868, 'app-store-' + fileSlug(shot.title))))
+  shots.forEach((shot) => apple.row.appendChild(shotBoard('promo-shot promo-apple', 0.11, shot, 1320, 2868, 'app-store-' + fileSlug(shot.title))))
 
   const feature = section(
     'Play feature graphic',
@@ -201,7 +427,7 @@ if (promotionView && !document.documentElement.classList.contains('is-embed')) {
   )
   feature.row.appendChild(wideBoard(
     'promo-feature',
-    0.62,
+    0.48,
     'SATSIGNER',
     'See every sat.',
     'Your keys. Every coin. One signer.',
@@ -216,7 +442,7 @@ if (promotionView && !document.documentElement.classList.contains('is-embed')) {
     'Play phone screenshots',
     '1080 × 1920, a 9:16 frame inside Google’s rules: each side from 320 to 3840 pixels, and the long side at most twice the short side. JPEG or 24-bit PNG, no alpha. Two to eight images.'
   )
-  shots.forEach((shot) => play.row.appendChild(shotBoard('promo-shot promo-play', 0.26, shot, 1080, 1920, 'play-' + fileSlug(shot.title))))
+  shots.forEach((shot) => play.row.appendChild(shotBoard('promo-shot promo-play', 0.14, shot, 1080, 1920, 'play-' + fileSlug(shot.title))))
 
   const toolbar = document.createElement('div')
   toolbar.className = 'promo-toolbar'
@@ -226,12 +452,122 @@ if (promotionView && !document.documentElement.classList.contains('is-embed')) {
   download.textContent = 'Download all'
   const status = document.createElement('p')
   status.className = 'promo-spec'
-  status.textContent = 'JPG, JPG 2×, PNG, and PNG 2×, zipped.'
-  download.addEventListener('click', () => exportPromotion(download, status))
+  status.textContent = 'Every board as JPG, JPG 2×, PNG, and PNG 2×, plus the icons and store-text.md, zipped.'
+  download.addEventListener('click', () => exportDistribution(download, status))
   toolbar.append(download, status)
-  promotionView.append(toolbar, og.el, chips.el, apple.el, feature.el, play.el)
+  const appleIcon = section(
+    'App Store icon',
+    '1024 × 1024 PNG, square, no transparency or rounded corners. It ships inside the build (Images.xcassets), so App Store Connect has no upload field for it. This is the file the current build uses.'
+  )
+  appleIcon.row.appendChild(assetSlot('/imgs/store/app-icon-1024.png', 'app-store-icon-1024.png', 'App Store icon', 160))
+
+  const playIcon = section(
+    'Play app icon',
+    '512 × 512, 32-bit PNG, up to 1 MB. Upload a full square; Play rounds the corners and adds the shadow itself.'
+  )
+  playIcon.row.appendChild(assetSlot('/imgs/store/play-icon-512.png', 'play-icon-512.png', 'Play icon', 160))
+
+  const shared = { label: 'Shared', console: 'Website, social, and Zapstore', url: '/' }
+  const stores = [
+    {
+      store: storeOf('apple'),
+      sections: [
+        { id: 'screenshots', label: 'Screenshots', el: apple.el },
+        { id: 'icon', label: 'Icon', el: appleIcon.el },
+        ...storeText('apple')
+      ]
+    },
+    {
+      store: storeOf('testflight'),
+      sections: storeText('testflight')
+    },
+    {
+      store: storeOf('play'),
+      sections: [
+        { id: 'screenshots', label: 'Screenshots', el: play.el },
+        { id: 'feature', label: 'Feature graphic', el: feature.el },
+        { id: 'icon', label: 'Icon', el: playIcon.el },
+        ...storeText('play')
+      ]
+    },
+    {
+      store: shared,
+      sections: [
+        { id: 'open-graph', label: 'Open Graph', el: og.el },
+        { id: 'chicklets', label: 'Logos and chicklets', el: chips.el }
+      ]
+    }
+  ]
+
+  function tabBar(className, items, onPick) {
+    const bar = document.createElement('div')
+    bar.className = 'dist-tabs ' + className
+    bar.setAttribute('role', 'tablist')
+    items.forEach((item, index) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'dist-tab'
+      button.setAttribute('role', 'tab')
+      button.dataset.id = item.id
+      button.textContent = item.label
+      button.setAttribute('aria-selected', index === 0 ? 'true' : 'false')
+      button.addEventListener('click', () => onPick(item.id))
+      bar.appendChild(button)
+    })
+    return bar
+  }
+
+  function selectTab(bar, id) {
+    bar.querySelectorAll('.dist-tab').forEach((button) => {
+      button.setAttribute('aria-selected', button.dataset.id === id ? 'true' : 'false')
+    })
+  }
+
+  const storeBar = tabBar('dist-store-tabs', stores.map((entry) => ({ id: entry.store.id || 'shared', label: entry.store.label })), showStore)
+  const panels = []
+  stores.forEach((entry, index) => {
+    const id = entry.store.id || 'shared'
+    const panel = document.createElement('div')
+    panel.className = 'dist-panel'
+    panel.dataset.store = id
+    panel.hidden = index !== 0
+    const head = storeHeader(entry.store)
+    const sectionBar = tabBar('dist-section-tabs', entry.sections, (sectionId) => showSection(id, sectionId))
+    entry.sections.forEach((section, sectionIndex) => {
+      section.el.dataset.section = section.id
+      section.el.hidden = sectionIndex !== 0
+      panel.appendChild(section.el)
+    })
+    panel.prepend(head, sectionBar)
+    panels.push(panel)
+  })
+
+  function showStore(id) {
+    selectTab(storeBar, id)
+    panels.forEach((panel) => { panel.hidden = panel.dataset.store !== id })
+    paintDistributionGlow()
+  }
+
+  function showSection(storeId, sectionId) {
+    const panel = panels.find((item) => item.dataset.store === storeId)
+    if (!panel) return
+    selectTab(panel.querySelector('.dist-section-tabs'), sectionId)
+    panel.querySelectorAll('[data-section]').forEach((section) => {
+      section.hidden = section.dataset.section !== sectionId
+    })
+    paintDistributionGlow()
+  }
+
+  distributionView.append(toolbar, storeBar, ...panels)
   const shot = new URLSearchParams(location.search).get('shot')
-  if (shot) setTimeout(() => showCheck(shot), 0)
+  if (shot) {
+    const node = distributionView.querySelector('[data-file="' + shot + '"]')
+    const panel = node && node.closest('.dist-panel')
+    const block = node && node.closest('[data-section]')
+    if (panel) showStore(panel.dataset.store)
+    if (panel && block) showSection(panel.dataset.store, block.dataset.section)
+    setTimeout(() => showCheck(shot), 0)
+  }
 }
 
 // One still frame of the homepage hero rim light. Same shader, time frozen.
@@ -337,7 +673,7 @@ function closeCheck() {
 async function showCheck(target) {
   closeCheck()
   const slot = typeof target === 'string'
-    ? promotionView.querySelector('[data-file="' + target + '"]')?.closest('.promo-slot')
+    ? distributionView.querySelector('[data-file="' + target + '"]')?.closest('.promo-slot')
     : target
   if (!slot) return
   const board = slot.querySelector('.promo-board')
@@ -458,14 +794,27 @@ async function showCheck(target) {
   renderJpeg()
 }
 
-function paintPromotionGlow() {
-  if (!promotionView || promotionView.hidden) return
-  promotionView.querySelectorAll('.promo-board').forEach(paintGlow)
+function reveal(node) {
+  const opened = []
+  let current = node
+  while (current && current !== distributionView) {
+    if (current.hidden) {
+      current.hidden = false
+      opened.push(current)
+    }
+    current = current.parentElement
+  }
+  return () => opened.forEach((el) => { el.hidden = true })
 }
 
-paintPromotionGlow()
-if (promotionView) {
-  new MutationObserver(paintPromotionGlow).observe(promotionView, { attributes: true, attributeFilter: ['hidden'] })
+function paintDistributionGlow() {
+  if (!distributionView || distributionView.hidden) return
+  distributionView.querySelectorAll('.promo-board').forEach(paintGlow)
+}
+
+paintDistributionGlow()
+if (distributionView) {
+  new MutationObserver(paintDistributionGlow).observe(distributionView, { attributes: true, attributeFilter: ['hidden'] })
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -843,6 +1192,8 @@ function paintGlare(canvas, frame, scale) {
 }
 
 async function phoneShot(iframe, scale) {
+  // Boards below the fold have lazy iframes that never load unless scrolled to.
+  if (iframe.loading === 'lazy') iframe.loading = 'eager'
   const ready = () => iframe.contentDocument && iframe.contentDocument.querySelector('.phone')
   if (!ready()) {
     await new Promise((resolve, reject) => {
@@ -1105,20 +1456,21 @@ async function exportJpg(button) {
   }
 }
 
-async function exportPromotion(button, status) {
+async function exportDistribution(button, status) {
   if (button.disabled) return
   button.disabled = true
   const previous = button.textContent
   const files = []
   try {
     if (document.fonts) await document.fonts.ready
-    const boards = [...promotionView.querySelectorAll('.promo-board')]
-    const marks = [...promotionView.querySelectorAll('.promo-mark')]
+    const boards = [...distributionView.querySelectorAll('.promo-board')]
+    const marks = [...distributionView.querySelectorAll('.promo-mark')]
     const total = boards.length + marks.length
     let done = 0
     for (const board of boards) {
       done += 1
       button.textContent = 'Rendering ' + done + ' / ' + total
+      const hideAgain = reveal(board)
       if (!board.querySelector('canvas.promo-glow')) paintGlow(board)
       const width = Number(board.dataset.w)
       const height = Number(board.dataset.h)
@@ -1135,6 +1487,7 @@ async function exportPromotion(button, status) {
         { name: name + '.png', data: new Uint8Array(await png.arrayBuffer()) },
         { name: name + '@2x.png', data: new Uint8Array(await png2x.arrayBuffer()) }
       )
+      hideAgain()
     }
     for (const mark of marks) {
       done += 1
@@ -1155,6 +1508,11 @@ async function exportPromotion(button, status) {
         { name: name + '@2x.png', data: new Uint8Array(await png2x.arrayBuffer()) }
       )
     }
+    for (const link of distributionView.querySelectorAll('a[data-asset]')) {
+      const response = await fetch(link.href)
+      files.push({ name: link.dataset.asset, data: new Uint8Array(await response.arrayBuffer()) })
+    }
+    files.push({ name: 'store-text.md', data: new TextEncoder().encode(storeMarkdown()) })
     button.textContent = 'Zipping…'
     const zip = await zipFiles(files)
     if (status.dataset.url) URL.revokeObjectURL(status.dataset.url)
@@ -1162,8 +1520,8 @@ async function exportPromotion(button, status) {
     status.dataset.url = url
     const link = document.createElement('a')
     link.href = url
-    link.download = 'satsigner-promotion.zip'
-    link.textContent = 'Save satsigner-promotion.zip'
+    link.download = 'satsigner-distribution.zip'
+    link.textContent = 'Save satsigner-distribution.zip'
     status.replaceChildren(link)
     link.click()
   } catch (err) {

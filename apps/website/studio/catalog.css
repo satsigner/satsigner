@@ -73,7 +73,7 @@ a {
 
 body:has(#table-view:not([hidden])) .catalog,
 body:has(#components-view:not([hidden])) .catalog,
-body:has(#promotion-view:not([hidden])) .catalog {
+body:has(#distribution-view:not([hidden])) .catalog {
   max-width: none;
 }
 
