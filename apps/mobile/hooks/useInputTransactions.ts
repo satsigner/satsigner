@@ -16,6 +16,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
+import type { Network, Server } from '@/types/settings/blockchain'
 import {
   assignOutputDepthOrder,
   recalculateDepthH,
@@ -56,6 +57,653 @@ async function fetchEsploraTx(
   return null
 }
 
+type InputTransactionsLoad = {
+  inputs: Map<string, Utxo>
+  levelDeep: number
+  selectedNetwork: Network
+  server: Server
+  setError: (error: Error) => void
+  setLoading: (loading: boolean) => void
+  setTransactions: (transactions: Map<string, ExtendedTransaction>) => void
+}
+
+async function loadInputTransactions({
+  inputs,
+  levelDeep,
+  selectedNetwork,
+  server,
+  setError,
+  setLoading,
+  setTransactions
+}: InputTransactionsLoad) {
+  function normalizeTxid(id: string): string {
+    return id.trim().toLowerCase()
+  }
+
+  /** Wire-order outpoint hash → explorer / Electrum txid (Hermes: no TypedArray#toReversed). */
+  function outpointHashBytesToTxid(hash: Uint8Array): string {
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    return normalizeTxid(Buffer.from(hash).reverse().toString('hex'))
+  }
+
+  const levelOneTxids = new Set(
+    [...inputs.values()].map((u) => normalizeTxid(u.txid))
+  )
+
+  const newTransactions = new Map<string, ExtendedTransaction>()
+  const queue = [...inputs.values()].map((input) => ({
+    level: 1,
+    txid: normalizeTxid(input.txid)
+  }))
+  const processed = new Set<string>()
+  let currentLevelDeep = 0
+
+  const allOutputAddresses = new Set<string>()
+  const transactionInputAddresses = new Map<string, Set<string>>()
+
+  let electrumClient: ElectrumClient | null = null
+
+  async function fetchElectrumTxRaw(txId: string): Promise<string | undefined> {
+    if (!electrumClient) {
+      return undefined
+    }
+    const id = normalizeTxid(txId)
+    const candidates: string[] = [id]
+    if (TXID_HEX_PATTERN.test(id)) {
+      candidates.push(
+        // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+        Buffer.from(id, 'hex').reverse().toString('hex').toLowerCase()
+      )
+    }
+    for (const candidate of candidates) {
+      try {
+        const raw = await electrumClient.getTransactionRaw(candidate)
+        if (raw && typeof raw === 'string' && raw.length > 0) {
+          return raw
+        }
+      } catch {
+        continue
+      }
+    }
+    return undefined
+  }
+
+  try {
+    if (server.backend === 'electrum') {
+      electrumClient = ElectrumClient.fromUrl(server.url, server.network)
+      await electrumClient.init()
+    }
+
+    while (currentLevelDeep < levelDeep && queue.length > 0) {
+      const targetLevel = currentLevelDeep + 1
+      const currentLevelTxids = queue.filter(
+        (item) => item.level === targetLevel
+      )
+      if (currentLevelTxids.length === 0) {
+        break
+      }
+
+      await Promise.all(
+        // eslint-disable-next-line no-loop-func
+        currentLevelTxids.map(async ({ txid, level }) => {
+          if (processed.has(txid)) {
+            return
+          }
+          processed.add(txid)
+
+          let tx
+          if (server.backend === 'esplora') {
+            const esploraClient = new Esplora(server.url)
+            let fetched = await fetchEsploraTx(esploraClient, txid)
+            if (!fetched && TXID_HEX_PATTERN.test(txid)) {
+              const reversed =
+                // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+                Buffer.from(txid, 'hex').reverse().toString('hex')
+              fetched = await fetchEsploraTx(esploraClient, reversed)
+            }
+
+            if (fetched?.kind === 'json') {
+              tx = fetched.tx
+              const mappedTx: ExtendedTransaction = {
+                address: undefined,
+                blockHeight: tx.status.block_height,
+                depthH: 0,
+                fee: tx.fee,
+                id: txid,
+                label: undefined,
+                lockTime: tx.locktime,
+                lockTimeEnabled: tx.locktime > 0,
+                prices: {},
+                raw: undefined,
+                received: 0,
+                sent: 0,
+                size: tx.size,
+                timestamp: tx.status.block_time
+                  ? new Date(tx.status.block_time * MS_PER_SECOND)
+                  : undefined,
+                type: 'send',
+                version: tx.version,
+                vin: tx.vin.map((input) => ({
+                  address: input.prevout?.scriptpubkey_address ?? 'unknown',
+                  label: undefined,
+                  previousOutput: {
+                    txid: normalizeTxid(input.txid),
+                    vout: input.vout
+                  },
+                  scriptSig: input.scriptsig
+                    ? [...Buffer.from(input.scriptsig, 'hex')]
+                    : [],
+                  sequence: input.sequence,
+                  value: input.prevout?.value,
+                  witness: input.witness
+                    ? input.witness.map((w) => [...Buffer.from(w, 'hex')])
+                    : []
+                })),
+                vout: tx.vout.map((output) => ({
+                  address: output?.scriptpubkey_address || '',
+                  label: undefined,
+                  script: output.scriptpubkey
+                    ? [...hex.decode(output.scriptpubkey)]
+                    : [],
+                  value: output.value
+                })),
+                vsize: weightToVsize(tx.weight),
+                weight: tx.weight
+              }
+              newTransactions.set(txid, mappedTx)
+
+              for (const vout of mappedTx.vout ?? []) {
+                if (!vout.address) {
+                  continue
+                }
+                allOutputAddresses.add(vout.address)
+              }
+
+              const inputAddresses = new Set<string>()
+              for (const vin of tx.vin ?? []) {
+                if (!vin.prevout?.scriptpubkey_address) {
+                  continue
+                }
+                inputAddresses.add(vin.prevout.scriptpubkey_address)
+              }
+              transactionInputAddresses.set(txid, inputAddresses)
+            } else if (fetched?.kind === 'hex') {
+              try {
+                const parsedTx = TxDecoded.fromHex(fetched.hex)
+                const bjsNetwork =
+                  selectedNetwork === 'bitcoin'
+                    ? bitcoinjs.networks.bitcoin
+                    : bitcoinjs.networks.testnet
+                const outputScriptToAddress = (script: Buffer): string => {
+                  try {
+                    return bitcoinjs.address.fromOutputScript(
+                      script,
+                      bjsNetwork
+                    )
+                  } catch {
+                    return ''
+                  }
+                }
+                const mappedTx: ExtendedTransaction = {
+                  address: undefined,
+                  blockHeight: undefined,
+                  depthH: 0,
+                  fee: undefined,
+                  id: txid,
+                  label: undefined,
+                  lockTime: parsedTx.locktime,
+                  lockTimeEnabled: parsedTx.locktime > 0,
+                  prices: {},
+                  raw: [...Buffer.from(fetched.hex, 'hex')],
+                  received: 0,
+                  sent: 0,
+                  size: parsedTx.byteLength(),
+                  timestamp: undefined,
+                  type: 'send',
+                  version: parsedTx.version,
+                  vin: parsedTx.ins.map((input) => ({
+                    address: 'unknown',
+                    label: undefined,
+                    previousOutput: {
+                      txid: outpointHashBytesToTxid(input.hash),
+                      vout: input.index
+                    },
+                    scriptSig: [...input.script],
+                    sequence: input.sequence,
+                    value: undefined,
+                    witness: input.witness.map((w) => [...w])
+                  })),
+                  vout: parsedTx.outs.map((output) => ({
+                    address: output.script
+                      ? outputScriptToAddress(output.script)
+                      : '',
+                    label: undefined,
+                    script: [...output.script],
+                    value: output.value
+                  })),
+                  vsize: parsedTx.virtualSize(),
+                  weight: parsedTx.weight()
+                }
+                newTransactions.set(txid, mappedTx)
+                const inputAddresses = new Set<string>()
+                for (const vout of mappedTx.vout ?? []) {
+                  if (!vout.address) {
+                    continue
+                  }
+                  allOutputAddresses.add(vout.address)
+                }
+                transactionInputAddresses.set(txid, inputAddresses)
+              } catch {
+                /* Failed to parse Esplora hex fallback */
+              }
+            }
+          } else if (server.backend === 'rpc') {
+            try {
+              const rpc = new BitcoinRpc(
+                server.url,
+                server.rpcCredentials?.username ?? '',
+                server.rpcCredentials?.password ?? ''
+              )
+              const rawTx = await rpc.getRawTransaction(txid).catch(() => null)
+              if (rawTx) {
+                let blockHeight: number | undefined
+                if (rawTx.confirmations && rawTx.blockhash) {
+                  blockHeight = await rpc
+                    .getBlock(rawTx.blockhash)
+                    .then((block) => block.height)
+                    .catch(() => undefined)
+                }
+                const mappedTx: ExtendedTransaction = {
+                  address: undefined,
+                  blockHeight,
+                  depthH: 0,
+                  fee: undefined,
+                  id: rawTx.txid,
+                  label: undefined,
+                  lockTime: rawTx.locktime,
+                  lockTimeEnabled: rawTx.locktime > 0,
+                  prices: {},
+                  raw: [...hex.decode(rawTx.hex)],
+                  received: 0,
+                  sent: 0,
+                  size: rawTx.size,
+                  timestamp: rawTx.blocktime
+                    ? new Date(rawTx.blocktime * MS_PER_SECOND)
+                    : undefined,
+                  type: 'send',
+                  version: rawTx.version,
+                  vin: rawTx.vin.map((input) => ({
+                    address: 'unknown',
+                    label: undefined,
+                    previousOutput: input.txid
+                      ? {
+                          txid: normalizeTxid(input.txid),
+                          vout: input.vout ?? 0
+                        }
+                      : { txid: COINBASE_PREV_TXID, vout: 0 },
+                    scriptSig: [],
+                    sequence: input.sequence,
+                    value: undefined,
+                    witness: input.txinwitness
+                      ? input.txinwitness.map((w) => [...Buffer.from(w, 'hex')])
+                      : []
+                  })),
+                  vout: rawTx.vout.map((output) => ({
+                    address:
+                      output.scriptPubKey.address ??
+                      output.scriptPubKey.addresses?.[0] ??
+                      '',
+                    label: undefined,
+                    script: [...hex.decode(output.scriptPubKey.hex)],
+                    value: Math.round(output.value * SATS_PER_BITCOIN)
+                  })),
+                  vsize: rawTx.vsize,
+                  weight: rawTx.weight
+                }
+                newTransactions.set(txid, mappedTx)
+
+                const inputAddresses = new Set<string>()
+                const outputAddresses = new Set<string>()
+                for (const vout of mappedTx.vout ?? []) {
+                  if (!vout.address) {
+                    continue
+                  }
+                  outputAddresses.add(vout.address)
+                  allOutputAddresses.add(vout.address)
+                }
+                transactionInputAddresses.set(txid, inputAddresses)
+              }
+            } catch {
+              /* RPC path failed for this txid */
+            }
+          } else if (server.backend === 'electrum' && electrumClient) {
+            try {
+              let blockHeight: number | undefined = undefined
+              let timestamp: Date | undefined = undefined
+              const rawHex = await fetchElectrumTxRaw(txid)
+              if (rawHex && rawHex.length > 0) {
+                const parsedTx = TxDecoded.fromHex(rawHex)
+
+                // Try to get block height by deriving an address from outputs and checking history
+                // Derive an address from the transaction outputs if possible
+                for (const output of parsedTx.outs) {
+                  try {
+                    const address = output.script
+                      ? bitcoinjs.address.fromOutputScript(
+                          output.script,
+                          selectedNetwork === 'bitcoin'
+                            ? bitcoinjs.networks.bitcoin
+                            : bitcoinjs.networks.testnet
+                        )
+                      : null
+                    if (!address) {
+                      continue
+                    }
+                    const history =
+                      await electrumClient.client.blockchainScripthash_getHistory(
+                        electrumClient.addressToScriptHash(address)
+                      )
+                    const txEntry = history.find(
+                      (entry: { tx_hash: string; height: number }) =>
+                        normalizeTxid(entry.tx_hash) === txid
+                    )
+                    if (txEntry && txEntry.height) {
+                      blockHeight = txEntry.height
+                      break
+                    }
+                  } catch {
+                    /* silently ignored */
+                  }
+                }
+                if (blockHeight) {
+                  timestamp = new Date(
+                    await electrumClient.getBlockTimestamp(blockHeight)
+                  )
+                }
+                const prevTxOutputs = parsedTx.ins.map((input) => ({
+                  txid: outpointHashBytesToTxid(input.hash),
+                  vout: input.index
+                }))
+                const uniquePrevTxids = [
+                  ...new Set(prevTxOutputs.map((p) => p.txid))
+                ]
+
+                // Fetch each prev tx separately: batch getTransactions aborts
+                // the whole map if any single blockchainTransaction_get throws.
+                const prevTxsMap = new Map<string, TxDecoded>()
+                for (const prevId of uniquePrevTxids) {
+                  const rawPrev = await fetchElectrumTxRaw(prevId)
+                  if (!rawPrev) {
+                    continue
+                  }
+                  try {
+                    prevTxsMap.set(prevId, TxDecoded.fromHex(rawPrev))
+                  } catch {
+                    /* Failed to parse, skip this one */
+                  }
+                }
+
+                const bjsNetwork =
+                  selectedNetwork === 'bitcoin'
+                    ? bitcoinjs.networks.bitcoin
+                    : bitcoinjs.networks.testnet
+
+                const outputScriptToAddress = (script: Buffer): string => {
+                  try {
+                    return bitcoinjs.address.fromOutputScript(
+                      script,
+                      bjsNetwork
+                    )
+                  } catch {
+                    return ''
+                  }
+                }
+
+                const mappedTx: ExtendedTransaction = {
+                  address: undefined, // Not directly available in raw tx
+                  blockHeight,
+                  depthH: 0,
+                  fee: undefined, // Not directly available in raw tx
+                  id: txid,
+                  label: undefined, // TODO: add label
+                  lockTime: parsedTx.locktime,
+                  lockTimeEnabled: parsedTx.locktime > 0,
+                  prices: {},
+                  raw: [...Buffer.from(rawHex, 'hex')],
+                  received: 0, // Not needed
+                  sent: 0, // Not needed
+                  size: parsedTx.byteLength(),
+                  timestamp,
+                  type: 'send', // Not needed
+                  version: parsedTx.version,
+                  vin: parsedTx.ins.map((input) => {
+                    const prevTxid = outpointHashBytesToTxid(input.hash)
+                    const prevVout = input.index
+                    const prevTx = prevTxsMap.get(prevTxid)
+                    const value = prevTx?.outs[prevVout]?.value
+
+                    let address = 'unknown'
+                    if (prevTx) {
+                      // Ensure prevTx.outs[prevVout].script is a Buffer
+                      // TxDecoded stores script as Buffer, so direct use should be fine.
+                      address =
+                        prevTx.generateOutputScriptAddress(
+                          prevVout,
+                          bjsNetwork
+                        ) || 'unknown'
+                    }
+
+                    return {
+                      address, // Assign derived address
+                      label: undefined, // TODO: add label
+                      previousOutput: {
+                        txid: prevTxid,
+                        vout: prevVout
+                      },
+                      scriptSig: [...input.script],
+                      sequence: input.sequence,
+                      value, // Assign fetched value
+                      witness: input.witness.map((w) => [...w])
+                    }
+                  }),
+                  vout: parsedTx.outs.map((output) => ({
+                    address: output.script
+                      ? outputScriptToAddress(output.script)
+                      : '',
+                    label: undefined, // TODO: add label
+                    script: [...output.script],
+                    value: output.value
+                  })),
+                  vsize: parsedTx.virtualSize(),
+                  weight: parsedTx.weight()
+                }
+
+                newTransactions.set(txid, mappedTx)
+
+                const inputAddresses = new Set<string>()
+                for (const vin of mappedTx.vin) {
+                  if (vin.address && vin.address !== 'unknown') {
+                    inputAddresses.add(vin.address)
+                  }
+                }
+                for (const vout of mappedTx.vout ?? []) {
+                  if (!vout.address) {
+                    continue
+                  }
+                  allOutputAddresses.add(vout.address)
+                }
+                transactionInputAddresses.set(txid, inputAddresses)
+              }
+            } catch {
+              /* Electrum path failed for this txid */
+            }
+          }
+
+          const storedTx = newTransactions.get(txid)
+          if (level < levelDeep && storedTx?.vin) {
+            for (const vin of storedTx.vin) {
+              const parentTxid = normalizeTxid(vin.previousOutput.txid)
+              const isCoinbaseInput =
+                !parentTxid ||
+                parentTxid === COINBASE_PREV_TXID ||
+                parentTxid.length !== HASH_HEX_LENGTH
+              if (
+                !isCoinbaseInput &&
+                !processed.has(parentTxid) &&
+                !queue.some((item) => item.txid === parentTxid)
+              ) {
+                queue.push({
+                  level: level + 1,
+                  txid: parentTxid
+                })
+              }
+            }
+          }
+        })
+      )
+
+      currentLevelDeep += 1
+    }
+
+    // Backfill input addresses/values by looking up each vin's previous
+    // output against transactions we've already fetched in this walk.
+    // Needed for the RPC backend: getrawtransaction doesn't return prevout
+    // info the way Esplora/Electrum's decoded views do, so RPC-sourced
+    // vins start out as address: 'unknown' with no input Set populated —
+    // without this, the ancestor tx-graph silently degrades to level 1
+    // for RPC accounts (every deeper transaction fails the address-match
+    // filter below).
+    for (const [txid, tx] of newTransactions.entries()) {
+      if (!tx.vin || tx.vin.length === 0) {
+        continue
+      }
+      let inputAddresses = transactionInputAddresses.get(txid)
+      let changed = false
+      const resolvedVin = tx.vin.map((vin) => {
+        if (vin.address && vin.address !== 'unknown') {
+          return vin
+        }
+        const parentTxid = normalizeTxid(vin.previousOutput.txid)
+        const parentTx = newTransactions.get(parentTxid)
+        const parentOut = parentTx?.vout?.[vin.previousOutput.vout]
+        if (!parentOut?.address) {
+          return vin
+        }
+        changed = true
+        if (!inputAddresses) {
+          inputAddresses = new Set<string>()
+        }
+        inputAddresses.add(parentOut.address)
+        return {
+          ...vin,
+          address: parentOut.address,
+          value: vin.value ?? parentOut.value
+        }
+      })
+      if (changed) {
+        newTransactions.set(txid, { ...tx, vin: resolvedVin })
+        if (inputAddresses) {
+          transactionInputAddresses.set(txid, inputAddresses)
+        }
+      }
+    }
+
+    const filteredTransactions = new Map<string, ExtendedTransaction>()
+
+    for (const [txid, tx] of newTransactions.entries()) {
+      const inputAddresses =
+        transactionInputAddresses.get(txid) ?? new Set<string>()
+
+      let hasMatchingAddress = false
+      for (const inputAddr of inputAddresses) {
+        if (!allOutputAddresses.has(inputAddr)) {
+          continue
+        }
+        hasMatchingAddress = true
+        break
+      }
+
+      const isLevel1 = levelOneTxids.has(txid)
+
+      if (hasMatchingAddress || isLevel1) {
+        filteredTransactions.set(txid, tx)
+      }
+    }
+
+    if (filteredTransactions.size === 0 && newTransactions.size > 0) {
+      // If no transactions passed the filter but we have raw transactions,
+      // use at least the direct transactions (level 1)
+      for (const [txid, tx] of newTransactions.entries()) {
+        if (!levelOneTxids.has(txid)) {
+          continue
+        }
+        filteredTransactions.set(txid, tx)
+      }
+    }
+
+    // Keep ancestors linked by outpoint even when address matching fails
+    // (RPC / hex fallback often lack prevout addresses).
+    const spentByIncluded = new Set<string>()
+    for (const included of filteredTransactions.values()) {
+      for (const vin of included.vin ?? []) {
+        spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+      }
+    }
+
+    let expanded = true
+    while (expanded) {
+      expanded = false
+      for (const [txid, tx] of newTransactions.entries()) {
+        if (filteredTransactions.has(txid)) {
+          continue
+        }
+        if (!spentByIncluded.has(txid)) {
+          continue
+        }
+        filteredTransactions.set(txid, tx)
+        for (const vin of tx.vin ?? []) {
+          spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
+        }
+        expanded = true
+      }
+    }
+
+    if (filteredTransactions.size > 0) {
+      for (const [txid, tx] of filteredTransactions.entries()) {
+        filteredTransactions.set(txid, { ...tx, depthH: 0 })
+      }
+
+      const mappedInputs = new Map(
+        [...inputs.entries()].map(([key, utxo]) => [
+          key,
+          {
+            scriptpubkey_address: utxo.addressTo || '',
+            value: utxo.value
+          }
+        ])
+      )
+
+      const transactionsWithDepthH = recalculateDepthH(
+        filteredTransactions,
+        mappedInputs
+      )
+
+      setTransactions(assignOutputDepthOrder(transactionsWithDepthH))
+    } else {
+      setTransactions(new Map())
+    }
+
+    setLoading(false)
+  } catch (error) {
+    setError(error instanceof Error ? error : new Error(String(error)))
+    setLoading(false)
+  } finally {
+    if (electrumClient) {
+      electrumClient.close()
+    }
+  }
+}
+
 export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
@@ -80,638 +728,15 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
     setLoading(true)
     setError(null)
 
-    function normalizeTxid(id: string): string {
-      return id.trim().toLowerCase()
-    }
-
-    /** Wire-order outpoint hash → explorer / Electrum txid (Hermes: no TypedArray#toReversed). */
-    function outpointHashBytesToTxid(hash: Uint8Array): string {
-      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-      return normalizeTxid(Buffer.from(hash).reverse().toString('hex'))
-    }
-
-    const levelOneTxids = new Set(
-      [...inputs.values()].map((u) => normalizeTxid(u.txid))
-    )
-
-    const newTransactions = new Map<string, ExtendedTransaction>()
-    const queue = [...inputs.values()].map((input) => ({
-      level: 1,
-      txid: normalizeTxid(input.txid)
-    }))
-    const processed = new Set<string>()
-    let currentLevelDeep = 0
-
-    const allOutputAddresses = new Set<string>()
-    const transactionInputAddresses = new Map<string, Set<string>>()
-
-    let electrumClient: ElectrumClient | null = null
-
-    async function fetchElectrumTxRaw(
-      txId: string
-    ): Promise<string | undefined> {
-      if (!electrumClient) {
-        return undefined
-      }
-      const id = normalizeTxid(txId)
-      const candidates: string[] = [id]
-      if (TXID_HEX_PATTERN.test(id)) {
-        candidates.push(
-          // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-          Buffer.from(id, 'hex').reverse().toString('hex').toLowerCase()
-        )
-      }
-      for (const candidate of candidates) {
-        try {
-          const raw = await electrumClient.getTransactionRaw(candidate)
-          if (raw && typeof raw === 'string' && raw.length > 0) {
-            return raw
-          }
-        } catch {
-          continue
-        }
-      }
-      return undefined
-    }
-
-    try {
-      if (server.backend === 'electrum') {
-        electrumClient = ElectrumClient.fromUrl(server.url, server.network)
-        await electrumClient.init()
-      }
-
-      while (currentLevelDeep < levelDeep && queue.length > 0) {
-        const targetLevel = currentLevelDeep + 1
-        const currentLevelTxids = queue.filter(
-          (item) => item.level === targetLevel
-        )
-        if (currentLevelTxids.length === 0) {
-          break
-        }
-
-        await Promise.all(
-          // eslint-disable-next-line no-loop-func
-          currentLevelTxids.map(async ({ txid, level }) => {
-            if (processed.has(txid)) {
-              return
-            }
-            processed.add(txid)
-
-            let tx
-            if (server.backend === 'esplora') {
-              const esploraClient = new Esplora(server.url)
-              let fetched = await fetchEsploraTx(esploraClient, txid)
-              if (!fetched && TXID_HEX_PATTERN.test(txid)) {
-                const reversed =
-                  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-                  Buffer.from(txid, 'hex').reverse().toString('hex')
-                fetched = await fetchEsploraTx(esploraClient, reversed)
-              }
-
-              if (fetched?.kind === 'json') {
-                tx = fetched.tx
-                const mappedTx: ExtendedTransaction = {
-                  address: undefined,
-                  blockHeight: tx.status.block_height,
-                  depthH: 0,
-                  fee: tx.fee,
-                  id: txid,
-                  label: undefined,
-                  lockTime: tx.locktime,
-                  lockTimeEnabled: tx.locktime > 0,
-                  prices: {},
-                  raw: undefined,
-                  received: 0,
-                  sent: 0,
-                  size: tx.size,
-                  timestamp: tx.status.block_time
-                    ? new Date(tx.status.block_time * MS_PER_SECOND)
-                    : undefined,
-                  type: 'send',
-                  version: tx.version,
-                  vin: tx.vin.map((input) => ({
-                    address: input.prevout?.scriptpubkey_address ?? 'unknown',
-                    label: undefined,
-                    previousOutput: {
-                      txid: normalizeTxid(input.txid),
-                      vout: input.vout
-                    },
-                    scriptSig: input.scriptsig
-                      ? [...Buffer.from(input.scriptsig, 'hex')]
-                      : [],
-                    sequence: input.sequence,
-                    value: input.prevout?.value,
-                    witness: input.witness
-                      ? input.witness.map((w) => [...Buffer.from(w, 'hex')])
-                      : []
-                  })),
-                  vout: tx.vout.map((output) => ({
-                    address: output?.scriptpubkey_address || '',
-                    label: undefined,
-                    script: output.scriptpubkey
-                      ? [...hex.decode(output.scriptpubkey)]
-                      : [],
-                    value: output.value
-                  })),
-                  vsize: weightToVsize(tx.weight),
-                  weight: tx.weight
-                }
-                newTransactions.set(txid, mappedTx)
-
-                for (const vout of mappedTx.vout ?? []) {
-                  if (!vout.address) {
-                    continue
-                  }
-                  allOutputAddresses.add(vout.address)
-                }
-
-                const inputAddresses = new Set<string>()
-                for (const vin of tx.vin ?? []) {
-                  if (!vin.prevout?.scriptpubkey_address) {
-                    continue
-                  }
-                  inputAddresses.add(vin.prevout.scriptpubkey_address)
-                }
-                transactionInputAddresses.set(txid, inputAddresses)
-              } else if (fetched?.kind === 'hex') {
-                try {
-                  const parsedTx = TxDecoded.fromHex(fetched.hex)
-                  const bjsNetwork =
-                    selectedNetwork === 'bitcoin'
-                      ? bitcoinjs.networks.bitcoin
-                      : bitcoinjs.networks.testnet
-                  const outputScriptToAddress = (script: Buffer): string => {
-                    try {
-                      return bitcoinjs.address.fromOutputScript(
-                        script,
-                        bjsNetwork
-                      )
-                    } catch {
-                      return ''
-                    }
-                  }
-                  const mappedTx: ExtendedTransaction = {
-                    address: undefined,
-                    blockHeight: undefined,
-                    depthH: 0,
-                    fee: undefined,
-                    id: txid,
-                    label: undefined,
-                    lockTime: parsedTx.locktime,
-                    lockTimeEnabled: parsedTx.locktime > 0,
-                    prices: {},
-                    raw: [...Buffer.from(fetched.hex, 'hex')],
-                    received: 0,
-                    sent: 0,
-                    size: parsedTx.byteLength(),
-                    timestamp: undefined,
-                    type: 'send',
-                    version: parsedTx.version,
-                    vin: parsedTx.ins.map((input) => ({
-                      address: 'unknown',
-                      label: undefined,
-                      previousOutput: {
-                        txid: outpointHashBytesToTxid(input.hash),
-                        vout: input.index
-                      },
-                      scriptSig: [...input.script],
-                      sequence: input.sequence,
-                      value: undefined,
-                      witness: input.witness.map((w) => [...w])
-                    })),
-                    vout: parsedTx.outs.map((output) => ({
-                      address: output.script
-                        ? outputScriptToAddress(output.script)
-                        : '',
-                      label: undefined,
-                      script: [...output.script],
-                      value: output.value
-                    })),
-                    vsize: parsedTx.virtualSize(),
-                    weight: parsedTx.weight()
-                  }
-                  newTransactions.set(txid, mappedTx)
-                  const inputAddresses = new Set<string>()
-                  for (const vout of mappedTx.vout ?? []) {
-                    if (!vout.address) {
-                      continue
-                    }
-                    allOutputAddresses.add(vout.address)
-                  }
-                  transactionInputAddresses.set(txid, inputAddresses)
-                } catch {
-                  /* Failed to parse Esplora hex fallback */
-                }
-              }
-            } else if (server.backend === 'rpc') {
-              try {
-                const rpc = new BitcoinRpc(
-                  server.url,
-                  server.rpcCredentials?.username ?? '',
-                  server.rpcCredentials?.password ?? ''
-                )
-                const rawTx = await rpc
-                  .getRawTransaction(txid)
-                  .catch(() => null)
-                if (rawTx) {
-                  let blockHeight: number | undefined
-                  if (rawTx.confirmations && rawTx.blockhash) {
-                    blockHeight = await rpc
-                      .getBlock(rawTx.blockhash)
-                      .then((block) => block.height)
-                      .catch(() => undefined)
-                  }
-                  const mappedTx: ExtendedTransaction = {
-                    address: undefined,
-                    blockHeight,
-                    depthH: 0,
-                    fee: undefined,
-                    id: rawTx.txid,
-                    label: undefined,
-                    lockTime: rawTx.locktime,
-                    lockTimeEnabled: rawTx.locktime > 0,
-                    prices: {},
-                    raw: [...hex.decode(rawTx.hex)],
-                    received: 0,
-                    sent: 0,
-                    size: rawTx.size,
-                    timestamp: rawTx.blocktime
-                      ? new Date(rawTx.blocktime * MS_PER_SECOND)
-                      : undefined,
-                    type: 'send',
-                    version: rawTx.version,
-                    vin: rawTx.vin.map((input) => ({
-                      address: 'unknown',
-                      label: undefined,
-                      previousOutput: input.txid
-                        ? {
-                            txid: normalizeTxid(input.txid),
-                            vout: input.vout ?? 0
-                          }
-                        : { txid: COINBASE_PREV_TXID, vout: 0 },
-                      scriptSig: [],
-                      sequence: input.sequence,
-                      value: undefined,
-                      witness: input.txinwitness
-                        ? input.txinwitness.map((w) => [
-                            ...Buffer.from(w, 'hex')
-                          ])
-                        : []
-                    })),
-                    vout: rawTx.vout.map((output) => ({
-                      address:
-                        output.scriptPubKey.address ??
-                        output.scriptPubKey.addresses?.[0] ??
-                        '',
-                      label: undefined,
-                      script: [...hex.decode(output.scriptPubKey.hex)],
-                      value: Math.round(output.value * SATS_PER_BITCOIN)
-                    })),
-                    vsize: rawTx.vsize,
-                    weight: rawTx.weight
-                  }
-                  newTransactions.set(txid, mappedTx)
-
-                  const inputAddresses = new Set<string>()
-                  const outputAddresses = new Set<string>()
-                  for (const vout of mappedTx.vout ?? []) {
-                    if (!vout.address) {
-                      continue
-                    }
-                    outputAddresses.add(vout.address)
-                    allOutputAddresses.add(vout.address)
-                  }
-                  transactionInputAddresses.set(txid, inputAddresses)
-                }
-              } catch {
-                /* RPC path failed for this txid */
-              }
-            } else if (server.backend === 'electrum' && electrumClient) {
-              try {
-                let blockHeight: number | undefined = undefined
-                let timestamp: Date | undefined = undefined
-                const rawHex = await fetchElectrumTxRaw(txid)
-                if (rawHex && rawHex.length > 0) {
-                  const parsedTx = TxDecoded.fromHex(rawHex)
-
-                  // Try to get block height by deriving an address from outputs and checking history
-                  // Derive an address from the transaction outputs if possible
-                  for (const output of parsedTx.outs) {
-                    try {
-                      const address = output.script
-                        ? bitcoinjs.address.fromOutputScript(
-                            output.script,
-                            selectedNetwork === 'bitcoin'
-                              ? bitcoinjs.networks.bitcoin
-                              : bitcoinjs.networks.testnet
-                          )
-                        : null
-                      if (!address) {
-                        continue
-                      }
-                      const history =
-                        await electrumClient.client.blockchainScripthash_getHistory(
-                          electrumClient.addressToScriptHash(address)
-                        )
-                      const txEntry = history.find(
-                        (entry: { tx_hash: string; height: number }) =>
-                          normalizeTxid(entry.tx_hash) === txid
-                      )
-                      if (txEntry && txEntry.height) {
-                        blockHeight = txEntry.height
-                        break
-                      }
-                    } catch {
-                      /* silently ignored */
-                    }
-                  }
-                  if (blockHeight) {
-                    timestamp = new Date(
-                      await electrumClient.getBlockTimestamp(blockHeight)
-                    )
-                  }
-                  const prevTxOutputs = parsedTx.ins.map((input) => ({
-                    txid: outpointHashBytesToTxid(input.hash),
-                    vout: input.index
-                  }))
-                  const uniquePrevTxids = [
-                    ...new Set(prevTxOutputs.map((p) => p.txid))
-                  ]
-
-                  // Fetch each prev tx separately: batch getTransactions aborts
-                  // the whole map if any single blockchainTransaction_get throws.
-                  const prevTxsMap = new Map<string, TxDecoded>()
-                  for (const prevId of uniquePrevTxids) {
-                    const rawPrev = await fetchElectrumTxRaw(prevId)
-                    if (!rawPrev) {
-                      continue
-                    }
-                    try {
-                      prevTxsMap.set(prevId, TxDecoded.fromHex(rawPrev))
-                    } catch {
-                      /* Failed to parse, skip this one */
-                    }
-                  }
-
-                  const bjsNetwork =
-                    selectedNetwork === 'bitcoin'
-                      ? bitcoinjs.networks.bitcoin
-                      : bitcoinjs.networks.testnet
-
-                  const outputScriptToAddress = (script: Buffer): string => {
-                    try {
-                      return bitcoinjs.address.fromOutputScript(
-                        script,
-                        bjsNetwork
-                      )
-                    } catch {
-                      return ''
-                    }
-                  }
-
-                  const mappedTx: ExtendedTransaction = {
-                    address: undefined, // Not directly available in raw tx
-                    blockHeight,
-                    depthH: 0,
-                    fee: undefined, // Not directly available in raw tx
-                    id: txid,
-                    label: undefined, // TODO: add label
-                    lockTime: parsedTx.locktime,
-                    lockTimeEnabled: parsedTx.locktime > 0,
-                    prices: {},
-                    raw: [...Buffer.from(rawHex, 'hex')],
-                    received: 0, // Not needed
-                    sent: 0, // Not needed
-                    size: parsedTx.byteLength(),
-                    timestamp,
-                    type: 'send', // Not needed
-                    version: parsedTx.version,
-                    vin: parsedTx.ins.map((input) => {
-                      const prevTxid = outpointHashBytesToTxid(input.hash)
-                      const prevVout = input.index
-                      const prevTx = prevTxsMap.get(prevTxid)
-                      const value = prevTx?.outs[prevVout]?.value
-
-                      let address = 'unknown'
-                      if (prevTx) {
-                        // Ensure prevTx.outs[prevVout].script is a Buffer
-                        // TxDecoded stores script as Buffer, so direct use should be fine.
-                        address =
-                          prevTx.generateOutputScriptAddress(
-                            prevVout,
-                            bjsNetwork
-                          ) || 'unknown'
-                      }
-
-                      return {
-                        address, // Assign derived address
-                        label: undefined, // TODO: add label
-                        previousOutput: {
-                          txid: prevTxid,
-                          vout: prevVout
-                        },
-                        scriptSig: [...input.script],
-                        sequence: input.sequence,
-                        value, // Assign fetched value
-                        witness: input.witness.map((w) => [...w])
-                      }
-                    }),
-                    vout: parsedTx.outs.map((output) => ({
-                      address: output.script
-                        ? outputScriptToAddress(output.script)
-                        : '',
-                      label: undefined, // TODO: add label
-                      script: [...output.script],
-                      value: output.value
-                    })),
-                    vsize: parsedTx.virtualSize(),
-                    weight: parsedTx.weight()
-                  }
-
-                  newTransactions.set(txid, mappedTx)
-
-                  const inputAddresses = new Set<string>()
-                  for (const vin of mappedTx.vin) {
-                    if (vin.address && vin.address !== 'unknown') {
-                      inputAddresses.add(vin.address)
-                    }
-                  }
-                  for (const vout of mappedTx.vout ?? []) {
-                    if (!vout.address) {
-                      continue
-                    }
-                    allOutputAddresses.add(vout.address)
-                  }
-                  transactionInputAddresses.set(txid, inputAddresses)
-                }
-              } catch {
-                /* Electrum path failed for this txid */
-              }
-            }
-
-            const storedTx = newTransactions.get(txid)
-            if (level < levelDeep && storedTx?.vin) {
-              for (const vin of storedTx.vin) {
-                const parentTxid = normalizeTxid(vin.previousOutput.txid)
-                const isCoinbaseInput =
-                  !parentTxid ||
-                  parentTxid === COINBASE_PREV_TXID ||
-                  parentTxid.length !== HASH_HEX_LENGTH
-                if (
-                  !isCoinbaseInput &&
-                  !processed.has(parentTxid) &&
-                  !queue.some((item) => item.txid === parentTxid)
-                ) {
-                  queue.push({
-                    level: level + 1,
-                    txid: parentTxid
-                  })
-                }
-              }
-            }
-          })
-        )
-
-        currentLevelDeep += 1
-      }
-
-      // Backfill input addresses/values by looking up each vin's previous
-      // output against transactions we've already fetched in this walk.
-      // Needed for the RPC backend: getrawtransaction doesn't return prevout
-      // info the way Esplora/Electrum's decoded views do, so RPC-sourced
-      // vins start out as address: 'unknown' with no input Set populated —
-      // without this, the ancestor tx-graph silently degrades to level 1
-      // for RPC accounts (every deeper transaction fails the address-match
-      // filter below).
-      for (const [txid, tx] of newTransactions.entries()) {
-        if (!tx.vin || tx.vin.length === 0) {
-          continue
-        }
-        let inputAddresses = transactionInputAddresses.get(txid)
-        let changed = false
-        const resolvedVin = tx.vin.map((vin) => {
-          if (vin.address && vin.address !== 'unknown') {
-            return vin
-          }
-          const parentTxid = normalizeTxid(vin.previousOutput.txid)
-          const parentTx = newTransactions.get(parentTxid)
-          const parentOut = parentTx?.vout?.[vin.previousOutput.vout]
-          if (!parentOut?.address) {
-            return vin
-          }
-          changed = true
-          if (!inputAddresses) {
-            inputAddresses = new Set<string>()
-          }
-          inputAddresses.add(parentOut.address)
-          return {
-            ...vin,
-            address: parentOut.address,
-            value: vin.value ?? parentOut.value
-          }
-        })
-        if (changed) {
-          newTransactions.set(txid, { ...tx, vin: resolvedVin })
-          if (inputAddresses) {
-            transactionInputAddresses.set(txid, inputAddresses)
-          }
-        }
-      }
-
-      const filteredTransactions = new Map<string, ExtendedTransaction>()
-
-      for (const [txid, tx] of newTransactions.entries()) {
-        const inputAddresses =
-          transactionInputAddresses.get(txid) ?? new Set<string>()
-
-        let hasMatchingAddress = false
-        for (const inputAddr of inputAddresses) {
-          if (!allOutputAddresses.has(inputAddr)) {
-            continue
-          }
-          hasMatchingAddress = true
-          break
-        }
-
-        const isLevel1 = levelOneTxids.has(txid)
-
-        if (hasMatchingAddress || isLevel1) {
-          filteredTransactions.set(txid, tx)
-        }
-      }
-
-      if (filteredTransactions.size === 0 && newTransactions.size > 0) {
-        // If no transactions passed the filter but we have raw transactions,
-        // use at least the direct transactions (level 1)
-        for (const [txid, tx] of newTransactions.entries()) {
-          if (!levelOneTxids.has(txid)) {
-            continue
-          }
-          filteredTransactions.set(txid, tx)
-        }
-      }
-
-      // Keep ancestors linked by outpoint even when address matching fails
-      // (RPC / hex fallback often lack prevout addresses).
-      const spentByIncluded = new Set<string>()
-      for (const included of filteredTransactions.values()) {
-        for (const vin of included.vin ?? []) {
-          spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
-        }
-      }
-
-      let expanded = true
-      while (expanded) {
-        expanded = false
-        for (const [txid, tx] of newTransactions.entries()) {
-          if (filteredTransactions.has(txid)) {
-            continue
-          }
-          if (!spentByIncluded.has(txid)) {
-            continue
-          }
-          filteredTransactions.set(txid, tx)
-          for (const vin of tx.vin ?? []) {
-            spentByIncluded.add(normalizeTxid(vin.previousOutput.txid))
-          }
-          expanded = true
-        }
-      }
-
-      if (filteredTransactions.size > 0) {
-        for (const [txid, tx] of filteredTransactions.entries()) {
-          filteredTransactions.set(txid, { ...tx, depthH: 0 })
-        }
-
-        const mappedInputs = new Map(
-          [...inputs.entries()].map(([key, utxo]) => [
-            key,
-            {
-              scriptpubkey_address: utxo.addressTo || '',
-              value: utxo.value
-            }
-          ])
-        )
-
-        const transactionsWithDepthH = recalculateDepthH(
-          filteredTransactions,
-          mappedInputs
-        )
-
-        setTransactions(assignOutputDepthOrder(transactionsWithDepthH))
-      } else {
-        setTransactions(new Map())
-      }
-
-      setLoading(false)
-    } catch (error) {
-      setError(error instanceof Error ? error : new Error(String(error)))
-      setLoading(false)
-    } finally {
-      if (electrumClient) {
-        electrumClient.close()
-      }
-    }
+    await loadInputTransactions({
+      inputs,
+      levelDeep,
+      selectedNetwork,
+      server,
+      setError,
+      setLoading,
+      setTransactions
+    })
   }, [inputs, server, levelDeep, selectedNetwork])
 
   useEffect(() => {

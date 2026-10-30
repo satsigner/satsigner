@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import {
@@ -29,8 +29,7 @@ export function useUriAutoSelectUtxos({
     isAutoSelectFromUriSearchParam(autoSelectFromUri)
   )
   const hasAppliedUriAutoSelectRef = useRef(false)
-  const onApplyAlgorithmRef = useRef(onApplyAlgorithm)
-  onApplyAlgorithmRef.current = onApplyAlgorithm
+  const applyAlgorithm = useEffectEvent(onApplyAlgorithm)
 
   function markUriAutoSelectPending() {
     if (hasAppliedUriAutoSelectRef.current) {
@@ -67,7 +66,7 @@ export function useUriAutoSelectUtxos({
       return
     }
 
-    if (onApplyAlgorithmRef.current(defaultAlgorithm)) {
+    if (applyAlgorithm(defaultAlgorithm)) {
       hasAppliedUriAutoSelectRef.current = true
       setUriAutoSelectPending(false)
     }
