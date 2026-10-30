@@ -1,43 +1,34 @@
+import { useContext } from 'react'
 import {
+  type SharedValue,
   useAnimatedStyle,
-  useDerivedValue,
-  withTiming
+  useSharedValue
 } from 'react-native-reanimated'
 
-import { type TabSegment } from '@/types/navigation/tabs'
+import { TabBarIndicatorContext } from '@/hooks/useTabBarButtonAnimation'
+import { selectionFromIndex } from '@/hooks/useTabBarIndicator'
+import { tabIndicatorOffset } from '@/utils/tabBarIndicator'
 
-const OPACITY_DURATION = 180
+export function useTabBarIndicatorPosition(barWidth: SharedValue<number>) {
+  const indicator = useContext(TabBarIndicatorContext)
+  const fallback = useSharedValue(0)
 
-export function useTabBarBackgroundAnimation(
-  activeSegment: TabSegment | undefined
-) {
-  const explorerOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(explorer)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
-  const signerOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(signer)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
-  const converterOpacity = useDerivedValue(() =>
-    withTiming(activeSegment === '(converter)' ? 1 : 0, {
-      duration: OPACITY_DURATION
-    })
-  )
+  return useAnimatedStyle(() => {
+    const source = indicator ?? fallback
+    const width = barWidth.get()
+    return {
+      opacity: width > 0 ? 1 : 0,
+      transform: [{ translateX: tabIndicatorOffset(source.get(), width) }]
+    }
+  })
+}
 
-  const explorerStyle = useAnimatedStyle(() => ({
-    opacity: explorerOpacity.value
-  }))
-  const signerStyle = useAnimatedStyle(() => ({ opacity: signerOpacity.value }))
-  const converterStyle = useAnimatedStyle(() => ({
-    opacity: converterOpacity.value
-  }))
+export function useTabBarBorderStyle(segmentIndex: number) {
+  const indicator = useContext(TabBarIndicatorContext)
+  const fallback = useSharedValue(segmentIndex)
 
-  return {
-    '(converter)': converterStyle,
-    '(explorer)': explorerStyle,
-    '(signer)': signerStyle
-  } as const
+  return useAnimatedStyle(() => {
+    const source = indicator ?? fallback
+    return { opacity: selectionFromIndex(source, segmentIndex) }
+  })
 }

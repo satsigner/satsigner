@@ -3,11 +3,12 @@ import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
 import { type BottomTabBarButtonProps } from 'expo-router/js-tabs'
 import {
   type GestureResponderEvent,
+  type LayoutChangeEvent,
   Pressable,
   StyleSheet,
   View
 } from 'react-native'
-import Animated from 'react-native-reanimated'
+import Animated, { useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
@@ -18,8 +19,16 @@ import {
   SSIconSigner,
   SSIconSignerActive
 } from '@/components/icons'
-import { useTabBarBackgroundAnimation } from '@/hooks/useTabBarBackgroundAnimation'
-import { useTabBarButtonAnimation } from '@/hooks/useTabBarButtonAnimation'
+import {
+  useTabBarBorderStyle,
+  useTabBarIndicatorPosition
+} from '@/hooks/useTabBarBackgroundAnimation'
+import {
+  TabBarIndicatorContext,
+  useTabBarButtonAnimation,
+  useTabBarIconCrossfade
+} from '@/hooks/useTabBarButtonAnimation'
+import { useTabBarIndicator } from '@/hooks/useTabBarIndicator'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
@@ -29,6 +38,11 @@ import {
   type TabSegment
 } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
+import {
+  TAB_BAR_INDICATOR_RADIUS,
+  TAB_BAR_ITEM_WIDTH,
+  tabSegmentIndex
+} from '@/utils/tabBarIndicator'
 import { isTabSegment } from '@/utils/tabSegment'
 
 export const unstable_settings = {
@@ -75,20 +89,35 @@ const TAB_TOP_BORDER_GRADIENTS: Record<
   }
 }
 
-function TabBarBackground({
-  activeSegment
-}: {
-  activeSegment: TabSegment | undefined
-}) {
-  const animatedStyles = useTabBarBackgroundAnimation(activeSegment)
+function TabBarBackground() {
+  const barWidth = useSharedValue(0)
+  const indicatorStyle = useTabBarIndicatorPosition(barWidth)
+  const explorerBorder = useTabBarBorderStyle(0)
+  const signerBorder = useTabBarBorderStyle(1)
+  const converterBorder = useTabBarBorderStyle(2)
+  const borderStyles = {
+    '(converter)': converterBorder,
+    '(explorer)': explorerBorder,
+    '(signer)': signerBorder
+  } as const
+
+  function handleLayout(event: LayoutChangeEvent) {
+    barWidth.set(event.nativeEvent.layout.width)
+  }
 
   return (
-    <View style={styles.tabBarBackground}>
+    <View style={styles.tabBarBackground} onLayout={handleLayout}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.tabBarIndicator, indicatorStyle]}
+      >
+        <TabBarIndicatorGlass />
+      </Animated.View>
       {TAB_SEGMENTS.map((segment) => (
         <Animated.View
           key={segment}
           pointerEvents="none"
-          style={[styles.tabBarTopBorder, animatedStyles[segment]]}
+          style={[styles.tabBarTopBorder, borderStyles[segment]]}
         >
           <LinearGradient
             pointerEvents="none"
@@ -104,10 +133,59 @@ function TabBarBackground({
   )
 }
 
+function TabBarIndicatorGlass() {
+  return (
+    <View
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, styles.tabBarGlassContainer]}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+        colors={['#0E0E0E', '#060606']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        style={[styles.glassBorder, styles.glassBorderTop]}
+        colors={[
+          'rgba(255,255,255,0.05)',
+          'rgba(255,255,255,0.12)',
+          'rgba(255,255,255,0.03)'
+        ]}
+        locations={[0, 0.35, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        style={[styles.glassBorder, styles.glassBorderBottom]}
+        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.18)', 'rgba(0,0,0,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        style={[styles.glassBorder, styles.glassBorderLeft]}
+        colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        style={[styles.glassBorder, styles.glassBorderRight]}
+        colors={['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.01)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+    </View>
+  )
+}
+
 type TabBarButtonProps = {
   bottomTabProps: BottomTabBarButtonProps
   segment: TabSegment
-  isSelected: boolean
   onPress: (
     props: BottomTabBarButtonProps,
     segment: TabSegment,
@@ -115,68 +193,20 @@ type TabBarButtonProps = {
   ) => void
 }
 
-function TabBarButton({
-  bottomTabProps,
-  segment,
-  isSelected,
-  onPress
-}: TabBarButtonProps) {
-  const animatedStyle = useTabBarButtonAnimation(isSelected)
+function TabBarButton({ bottomTabProps, segment, onPress }: TabBarButtonProps) {
+  const { animatedStyle, pressIn, pressOut } = useTabBarButtonAnimation(
+    tabSegmentIndex(segment)
+  )
 
   return (
     <View style={[bottomTabProps.style, styles.tabBarButtonOuter]}>
       <Animated.View style={animatedStyle}>
         <Pressable
           onPress={(e) => onPress(bottomTabProps, segment, e)}
-          style={[styles.tabBarItem, isSelected && styles.tabBarItemActive]}
+          onPressIn={pressIn}
+          onPressOut={pressOut}
+          style={styles.tabBarItem}
         >
-          {isSelected && (
-            <View
-              pointerEvents="none"
-              style={[StyleSheet.absoluteFill, styles.tabBarGlassContainer]}
-            >
-              <LinearGradient
-                pointerEvents="none"
-                style={StyleSheet.absoluteFill}
-                colors={['#0E0E0E', '#060606']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              />
-              <LinearGradient
-                pointerEvents="none"
-                style={[styles.glassBorder, styles.glassBorderTop]}
-                colors={[
-                  'rgba(255,255,255,0.05)',
-                  'rgba(255,255,255,0.12)',
-                  'rgba(255,255,255,0.03)'
-                ]}
-                locations={[0, 0.35, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <LinearGradient
-                pointerEvents="none"
-                style={[styles.glassBorder, styles.glassBorderBottom]}
-                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.18)', 'rgba(0,0,0,0)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <LinearGradient
-                pointerEvents="none"
-                style={[styles.glassBorder, styles.glassBorderLeft]}
-                colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              />
-              <LinearGradient
-                pointerEvents="none"
-                style={[styles.glassBorder, styles.glassBorderRight]}
-                colors={['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.01)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              />
-            </View>
-          )}
           <View style={styles.tabBarButtonInner}>
             {bottomTabProps.children}
           </View>
@@ -192,6 +222,7 @@ export default function TabLayout() {
   const segments: string[] = useSegments()
   const { bottom } = useSafeAreaInsets()
   const isShowTab = showNavigation(currentPath, segments.length)
+  const indicatorIndex = useTabBarIndicator(segments.find(isTabSegment))
 
   function handleTabItemPress(
     props: BottomTabBarButtonProps,
@@ -209,88 +240,119 @@ export default function TabLayout() {
   }
 
   return (
-    <View style={styles.container}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: 'white',
-          tabBarBackground: () => (
-            <TabBarBackground activeSegment={segments.find(isTabSegment)} />
-          ),
-          tabBarLabelStyle: styles.tabBarLabel,
-          tabBarStyle: [
-            styles.tabBar,
-            {
-              display: isShowTab ? 'flex' : 'none',
-              height: TAB_BAR_HEIGHT + TAB_BAR_PADDING_Y + bottom,
-              paddingBottom: TAB_BAR_PADDING_Y + bottom
-            }
-          ]
-        }}
-        backBehavior="initialRoute"
-      >
-        <Tabs.Screen
-          name="(explorer)"
-          options={{
-            tabBarButton: (props) => (
-              <TabBarButton
-                bottomTabProps={props}
-                segment="(explorer)"
-                isSelected={segments.includes('(explorer)')}
-                onPress={handleTabItemPress}
-              />
-            ),
-            tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
-            title: t('navigation.label.explorer')
+    <TabBarIndicatorContext.Provider value={indicatorIndex}>
+      <View style={styles.container}>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: 'white',
+            tabBarBackground: () => <TabBarBackground />,
+            tabBarLabelStyle: styles.tabBarLabel,
+            tabBarStyle: [
+              styles.tabBar,
+              {
+                display: isShowTab ? 'flex' : 'none',
+                height: TAB_BAR_HEIGHT + TAB_BAR_PADDING_Y + bottom,
+                paddingBottom: TAB_BAR_PADDING_Y + bottom
+              }
+            ]
           }}
-        />
-        <Tabs.Screen
-          name="(signer)"
-          options={{
-            tabBarButton: (props) => (
-              <TabBarButton
-                bottomTabProps={props}
-                segment="(signer)"
-                isSelected={segments.includes('(signer)')}
-                onPress={handleTabItemPress}
-              />
-            ),
-            tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
-            title: t('navigation.label.signer')
-          }}
-        />
-        <Tabs.Screen
-          name="(converter)"
-          options={{
-            tabBarButton: (props) => (
-              <TabBarButton
-                bottomTabProps={props}
-                segment="(converter)"
-                isSelected={segments.includes('(converter)')}
-                onPress={handleTabItemPress}
-              />
-            ),
-            tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
-            title: t('navigation.label.converter')
-          }}
-        />
-      </Tabs>
-    </View>
+          backBehavior="initialRoute"
+        >
+          <Tabs.Screen
+            name="(explorer)"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton
+                  bottomTabProps={props}
+                  segment="(explorer)"
+                  onPress={handleTabItemPress}
+                />
+              ),
+              tabBarIcon: () => (
+                <TabBarIcon
+                  segment="(explorer)"
+                  ActiveIcon={SSIconExplorerActive}
+                  InactiveIcon={SSIconExplorer}
+                />
+              ),
+              title: t('navigation.label.explorer')
+            }}
+          />
+          <Tabs.Screen
+            name="(signer)"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton
+                  bottomTabProps={props}
+                  segment="(signer)"
+                  onPress={handleTabItemPress}
+                />
+              ),
+              tabBarIcon: () => (
+                <TabBarIcon
+                  segment="(signer)"
+                  ActiveIcon={SSIconSignerActive}
+                  InactiveIcon={SSIconSigner}
+                />
+              ),
+              title: t('navigation.label.signer')
+            }}
+          />
+          <Tabs.Screen
+            name="(converter)"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton
+                  bottomTabProps={props}
+                  segment="(converter)"
+                  onPress={handleTabItemPress}
+                />
+              ),
+              tabBarIcon: () => (
+                <TabBarIcon
+                  segment="(converter)"
+                  ActiveIcon={SSIconConverterActive}
+                  InactiveIcon={SSIconConverter}
+                />
+              ),
+              title: t('navigation.label.converter')
+            }}
+          />
+        </Tabs>
+      </View>
+    </TabBarIndicatorContext.Provider>
   )
 }
 
-const renderTabIcon = (
-  focused: boolean,
-  ActiveIcon: React.ElementType,
+type TabBarIconProps = {
+  segment: TabSegment
+  ActiveIcon: React.ElementType
   InactiveIcon: React.ElementType
-) => (
-  <View style={styles.iconContainer}>
-    {focused ? <ActiveIcon /> : <InactiveIcon />}
-  </View>
-)
+}
+
+function TabBarIcon({ segment, ActiveIcon, InactiveIcon }: TabBarIconProps) {
+  const { activeStyle, inactiveStyle } = useTabBarIconCrossfade(
+    tabSegmentIndex(segment)
+  )
+
+  return (
+    <View style={styles.iconContainer}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.iconLayer, inactiveStyle]}
+      >
+        <InactiveIcon />
+      </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.iconLayer, activeStyle]}
+      >
+        <ActiveIcon />
+      </Animated.View>
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -330,6 +392,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 14
   },
+  iconLayer: {
+    alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
+  },
   tabBar: {
     alignItems: 'center',
     backgroundColor: 'transparent',
@@ -356,20 +427,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   tabBarGlassContainer: {
-    borderRadius: 5,
+    borderRadius: TAB_BAR_INDICATOR_RADIUS,
     overflow: 'hidden'
+  },
+  tabBarIndicator: {
+    borderCurve: 'continuous',
+    borderRadius: TAB_BAR_INDICATOR_RADIUS,
+    height: TAB_BAR_ITEM_HEIGHT,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    top: TAB_BAR_PADDING_Y,
+    width: TAB_BAR_ITEM_WIDTH
   },
   tabBarItem: {
     alignItems: 'center',
-    borderRadius: 2,
     height: TAB_BAR_ITEM_HEIGHT,
     justifyContent: 'center',
     paddingBottom: 2,
-    width: 100
-  },
-  tabBarItemActive: {
-    backgroundColor: 'transparent',
-    borderRadius: 2
+    width: TAB_BAR_ITEM_WIDTH
   },
   tabBarLabel: {
     fontSize: text.fontSize.xxs,
