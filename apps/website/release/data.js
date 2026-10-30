@@ -85,6 +85,13 @@ window.RELEASE = {
 
   // App Store Connect → App Information / Version fields.
   fields: [
+    { store: 'apple', group: 'App Information', key: 'bundleId', label: 'Bundle ID', value: 'com.satsigner.satsigner', note: 'Explicit, not wildcard. Register it under Certificates, Identifiers & Profiles, then use the same ID when you create the app record. It cannot change later, and it must match the production build.' },
+    { store: 'apple', group: 'App Information', key: 'appIdDescription', label: 'App ID description', value: 'satsigner self-custody bitcoin wallet', note: 'Certificates, Identifiers & Profiles → Identifiers → App IDs. No @, &, *, or quotation marks. This label is only for your developer account, not the store listing.' },
+    { store: 'apple', group: 'App Information', key: 'teamId', label: 'App ID prefix (Team ID)', value: 'Y7D596R6RG' },
+    { store: 'apple', group: 'App Information', key: 'capabilities', label: 'Capabilities to enable', multiline: true, value: 'Near Field Communication Tag Reading', note: 'Leave every other capability off. The app reads NFC tags and hardware signers (NDEF and TAG). Camera and Face ID are Info.plist purpose strings, not App ID capabilities.' },
+    { store: 'apple', group: 'App Information', key: 'sku', label: 'SKU', value: 'satsigner-ios', note: 'Unique to your account. Apple does not show it on the store.' },
+    { store: 'apple', group: 'App Information', key: 'language', label: 'Primary language', value: 'English (U.S.)' },
+    { store: 'apple', group: 'App Information', key: 'price', label: 'Price', value: 'Free', note: 'Pricing and Availability → Price Schedule. Free in every territory you select.' },
     { store: 'apple', group: 'App Information', key: 'name', label: 'Name', limit: 30, value: 'satsigner' },
     { store: 'apple', group: 'App Information', key: 'subtitle', label: 'Subtitle', limit: 30, value: 'Self-custody bitcoin signer' },
     { store: 'apple', group: 'App Information', key: 'category', label: 'Primary / secondary category', value: 'Finance / Utilities' },
@@ -161,6 +168,10 @@ window.RELEASE = {
       'Permissions: the camera scans QR codes (addresses, PSBTs, backups), NFC talks to hardware signers and tags, and Face ID optionally unlocks the app.'
     ].join('\n') },
 
+    { store: 'play', group: 'Store listing', key: 'packageName', label: 'Package name', value: 'com.satsigner.satsigner', note: 'Set when you create the app. Play and Zapstore both use this name with different signing keys, so an install from one cannot update an install from the other.' },
+    { store: 'play', group: 'Store listing', key: 'playLanguage', label: 'Default language', value: 'English (United States) — en-US' },
+    { store: 'play', group: 'Store listing', key: 'playType', label: 'App or game', value: 'App' },
+    { store: 'play', group: 'Store listing', key: 'playPrice', label: 'Price', value: 'Free' },
     { store: 'play', group: 'Store listing', key: 'playName', label: 'App name', limit: 30, value: 'satsigner' },
     { store: 'play', group: 'Store listing', key: 'playShort', label: 'Short description', limit: 80, value: 'Self-custody bitcoin signer. Full UTXO control, multisig, and privacy.' },
     { store: 'play', group: 'Store listing', key: 'playFull', label: 'Full description', limit: 4000, multiline: true, value: [
