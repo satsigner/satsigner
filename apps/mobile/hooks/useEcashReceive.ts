@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
+import {
+  ECASH_MINT_QUOTE_FAILED_STATES,
+  ECASH_MINT_QUOTE_PAID_STATES
+} from '@/constants/ecash'
 import { useEcash, useQuotePolling } from '@/hooks/useEcash'
 import { t } from '@/locales'
 import type { EcashMint, EcashToken } from '@/types/models/Ecash'
@@ -181,9 +185,8 @@ export function useEcashReceive() {
       setIsLNURLWithdrawMode(false)
       setLnurlWithdrawCode(null)
       setLnurlWithdrawDetails(null)
-    } finally {
-      setIsFetchingLNURL(false)
     }
+    setIsFetchingLNURL(false)
   }
 
   async function redeemToken() {
@@ -231,9 +234,105 @@ export function useEcashReceive() {
           // Ignore; we already surfaced an error to the user.
         }
       }
-    } finally {
-      setIsRedeeming(false)
     }
+    setIsRedeeming(false)
+  }
+
+  async function createInvoiceForMint(mintUrl: string) {
+    const amountSats = Number.parseInt(amount, 10)
+    if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
+      toast.error(t('ecash.error.invalidAmount'))
+      return
+    }
+
+    if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
+      const amountMillisats = amountSats * MILLISATS_PER_SAT
+      if (
+        amountMillisats < lnurlWithdrawDetails.minWithdrawable ||
+        amountMillisats > lnurlWithdrawDetails.maxWithdrawable
+      ) {
+        toast.error(
+          t('ecash.error.amountOutOfRange', {
+            max: Math.floor(
+              lnurlWithdrawDetails.maxWithdrawable / MILLISATS_PER_SAT
+            ).toString(),
+            min: Math.ceil(
+              lnurlWithdrawDetails.minWithdrawable / MILLISATS_PER_SAT
+            ).toString()
+          })
+        )
+        setIsCreatingQuote(false)
+        return
+      }
+    }
+
+    const quote = await createMintQuote(mintUrl, amountSats, memo)
+    setMintQuote(quote)
+    setQuoteStatus('PENDING')
+    toast.success(t('ecash.success.invoiceCreated'))
+
+    if (isLNURLWithdrawMode && lnurlWithdrawDetails && lnurlWithdrawCode) {
+      const withdrawDescription =
+        memo || lnurlWithdrawDetails.defaultDescription
+      try {
+        await requestLNURLWithdrawInvoice(
+          lnurlWithdrawDetails.callback,
+          amountSats * MILLISATS_PER_SAT,
+          lnurlWithdrawDetails.k1,
+          withdrawDescription,
+          quote.request
+        )
+        toast.success(t('ecash.success.lnurlWithdrawRequested'))
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown'
+        toast.error(
+          `${t('ecash.error.failedToRequestLnurlWithdraw')}: ${reason}`
+        )
+      }
+    }
+
+    setTimeout(() => {
+      startPolling(async () => {
+        if (!mintUrl || !quote) {
+          return false
+        }
+
+        try {
+          const status = await checkMintQuote(mintUrl, quote.quote)
+          setQuoteStatus(status)
+
+          if (ECASH_MINT_QUOTE_PAID_STATES.has(status)) {
+            await mintProofs(mintUrl, amountSats, quote.quote)
+            setMintQuote(null)
+            setAmount('')
+            setMemo('')
+            setLnurlWithdrawCode(null)
+            setLnurlWithdrawDetails(null)
+            setIsLNURLWithdrawMode(false)
+            stopPolling()
+            toast.success(t('ecash.success.paymentReceived'))
+            if (activeAccountId) {
+              router.navigate(`/signer/ecash/account/${activeAccountId}`)
+            } else {
+              router.navigate('/signer/ecash')
+            }
+            return true
+          } else if (ECASH_MINT_QUOTE_FAILED_STATES.has(status)) {
+            stopPolling()
+            toast.error(t('ecash.error.paymentFailed'))
+            return true
+          }
+          return false
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : t('ecash.error.networkError')
+          )
+          return false
+        }
+      })
+    }, POLL_START_DELAY_MS)
   }
 
   async function createInvoice() {
@@ -256,103 +355,11 @@ export function useEcashReceive() {
 
     setIsCreatingQuote(true)
     try {
-      const amountSats = Number.parseInt(amount, 10)
-      if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
-        toast.error(t('ecash.error.invalidAmount'))
-        return
-      }
-
-      if (isLNURLWithdrawMode && lnurlWithdrawDetails) {
-        const amountMillisats = amountSats * MILLISATS_PER_SAT
-        if (
-          amountMillisats < lnurlWithdrawDetails.minWithdrawable ||
-          amountMillisats > lnurlWithdrawDetails.maxWithdrawable
-        ) {
-          toast.error(
-            t('ecash.error.amountOutOfRange', {
-              max: Math.floor(
-                lnurlWithdrawDetails.maxWithdrawable / MILLISATS_PER_SAT
-              ).toString(),
-              min: Math.ceil(
-                lnurlWithdrawDetails.minWithdrawable / MILLISATS_PER_SAT
-              ).toString()
-            })
-          )
-          setIsCreatingQuote(false)
-          return
-        }
-      }
-
-      const quote = await createMintQuote(mintUrl, amountSats, memo)
-      setMintQuote(quote)
-      setQuoteStatus('PENDING')
-      toast.success(t('ecash.success.invoiceCreated'))
-
-      if (isLNURLWithdrawMode && lnurlWithdrawDetails && lnurlWithdrawCode) {
-        try {
-          await requestLNURLWithdrawInvoice(
-            lnurlWithdrawDetails.callback,
-            amountSats * MILLISATS_PER_SAT,
-            lnurlWithdrawDetails.k1,
-            memo || lnurlWithdrawDetails.defaultDescription,
-            quote.request
-          )
-          toast.success(t('ecash.success.lnurlWithdrawRequested'))
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : 'unknown'
-          toast.error(
-            `${t('ecash.error.failedToRequestLnurlWithdraw')}: ${reason}`
-          )
-        }
-      }
-
-      setTimeout(() => {
-        startPolling(async () => {
-          if (!mintUrl || !quote) {
-            return false
-          }
-
-          try {
-            const status = await checkMintQuote(mintUrl, quote.quote)
-            setQuoteStatus(status)
-
-            if (status === 'PAID' || status === 'ISSUED') {
-              await mintProofs(mintUrl, amountSats, quote.quote)
-              setMintQuote(null)
-              setAmount('')
-              setMemo('')
-              setLnurlWithdrawCode(null)
-              setLnurlWithdrawDetails(null)
-              setIsLNURLWithdrawMode(false)
-              stopPolling()
-              toast.success(t('ecash.success.paymentReceived'))
-              if (activeAccountId) {
-                router.navigate(`/signer/ecash/account/${activeAccountId}`)
-              } else {
-                router.navigate('/signer/ecash')
-              }
-              return true
-            } else if (status === 'EXPIRED' || status === 'CANCELLED') {
-              stopPolling()
-              toast.error(t('ecash.error.paymentFailed'))
-              return true
-            }
-            return false
-          } catch (error) {
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : t('ecash.error.networkError')
-            )
-            return false
-          }
-        })
-      }, POLL_START_DELAY_MS)
+      await createInvoiceForMint(mintUrl)
     } catch {
       // Error handling is done in the hook
-    } finally {
-      setIsCreatingQuote(false)
     }
+    setIsCreatingQuote(false)
   }
 
   function resetLNURLState() {
@@ -370,9 +377,8 @@ export function useEcashReceive() {
       await connectToMint(tokenMintUrl)
     } catch {
       // Error handling is done in connectToMint
-    } finally {
-      setIsAddingMint(false)
     }
+    setIsAddingMint(false)
   }
 
   return {

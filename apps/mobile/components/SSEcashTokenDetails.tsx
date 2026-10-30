@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     gap: 16
   },
   monospaceInput: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5
   },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end'
   },
   proofId: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 10,
     opacity: 0.8
   },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
 
 import {
@@ -172,19 +172,23 @@ function usePayjoinReceiver({
     !!address &&
     (board ? true : account?.policyType === 'singlesig' && canContribute)
 
-  paramsRef.current = {
-    account,
-    accountId,
-    address,
-    amountSats,
-    board,
-    canUsePayjoin,
-    label,
-    networkName,
-    signPsbt,
-    ttlMs,
-    utxos
-  }
+  // Effects, timers and restartSession read the latest params from this ref.
+  // A layout effect updates it after each commit, before any of them run.
+  useLayoutEffect(() => {
+    paramsRef.current = {
+      account,
+      accountId,
+      address,
+      amountSats,
+      board,
+      canUsePayjoin,
+      label,
+      networkName,
+      signPsbt,
+      ttlMs,
+      utxos
+    }
+  })
 
   function setReceiverSession(next: PayjoinSession | null) {
     sessionRef.current = next
@@ -254,6 +258,25 @@ function usePayjoinReceiver({
     return created
   }
 
+  function releaseStartLock() {
+    startingRef.current = false
+    setStarting(false)
+  }
+
+  async function resumeOrCreateSession(id: string) {
+    const resolved = await resolveReceiverSessionOnStart({
+      accountId: id,
+      amountSats: paramsRef.current.amountSats,
+      hydrated: sessionRef.current,
+      label: paramsRef.current.label
+    })
+    if (resolved.kind === 'session') {
+      setReceiverSession(resolved.session)
+      return
+    }
+    await createFreshSession()
+  }
+
   async function startSession() {
     const {
       accountId: id,
@@ -274,26 +297,13 @@ function usePayjoinReceiver({
     startingStartedAtRef.current = Date.now()
     setStarting(true)
 
-    try {
-      const resolved = await resolveReceiverSessionOnStart({
-        accountId: id,
-        amountSats: paramsRef.current.amountSats,
-        hydrated: sessionRef.current,
-        label: paramsRef.current.label
+    await resumeOrCreateSession(id)
+      .catch((error: unknown) => {
+        payjoinWarn('receiver startSession failed', {
+          error: compactError(error)
+        })
       })
-      if (resolved.kind === 'session') {
-        setReceiverSession(resolved.session)
-        return
-      }
-      await createFreshSession()
-    } catch (error) {
-      payjoinWarn('receiver startSession failed', {
-        error: compactError(error)
-      })
-    } finally {
-      startingRef.current = false
-      setStarting(false)
-    }
+      .finally(releaseStartLock)
   }
 
   async function replaceDeadSession(
@@ -324,16 +334,102 @@ function usePayjoinReceiver({
     }
     startingRef.current = true
     setStarting(true)
-    try {
-      await createFreshSession()
-    } catch (error) {
-      payjoinWarn('replaceDeadSession create failed', {
-        error: compactError(error)
+    await createFreshSession()
+      .catch((error: unknown) => {
+        payjoinWarn('replaceDeadSession create failed', {
+          error: compactError(error)
+        })
       })
-    } finally {
-      startingRef.current = false
-      setStarting(false)
+      .finally(releaseStartLock)
+  }
+
+  async function finalizeAndPersist(target: PayjoinSession) {
+    payjoinLog('receiver finalize', {
+      board: !!target.board,
+      mailbox: mailboxFromEndpoint(target.pjEndpoint),
+      sessionId: target.id,
+      status: target.status
+    })
+    const finalized = target.board
+      ? await finalizeBoardReceiverPayjoin({
+          deps: getPayjoinDeps(),
+          session: target
+        })
+      : await finalizeReceiverPayjoin({
+          callbacks: buildCallbacks(),
+          deps: getPayjoinDeps(),
+          session: target
+        })
+    if (finalized.status === 'error') {
+      const message = finalized.error ?? 'unknown'
+      // Without a native handle the proposal is gone; nothing to retry with.
+      const retryable =
+        !!finalized.nativeState && !isTerminalFinalizeError(message)
+      if (!retryable) {
+        payjoinWarn('receiver finalize terminal error', {
+          error: compactError(message),
+          mailbox: mailboxFromEndpoint(target.pjEndpoint),
+          sessionId: target.id
+        })
+        setReceiverSession(persistSession(finalized))
+        setNegotiating(false)
+        return
+      }
+      payjoinWarn('receiver finalize failed, will retry', {
+        error: compactError(message),
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      setReceiverSession(
+        persistSession({
+          ...finalized,
+          status: 'proposal_received',
+          updatedAt: Date.now()
+        })
+      )
+      return
     }
+    payjoinLog('receiver finalize done', {
+      mailbox: mailboxFromEndpoint(finalized.pjEndpoint),
+      sessionId: finalized.id,
+      status: finalized.status
+    })
+    setReceiverSession(persistSession(finalized))
+  }
+
+  function recoverFromFinalizeError(target: PayjoinSession, error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Thrown terminal errors (e.g. a board proposal whose txid is not
+    // stable) can never succeed on retry — surface them instead of looping.
+    if (isTerminalFinalizeError(message)) {
+      payjoinWarn('receiver finalize terminal error', {
+        error: compactError(message),
+        mailbox: mailboxFromEndpoint(target.pjEndpoint),
+        sessionId: target.id
+      })
+      setReceiverSession(
+        persistSession({
+          ...target,
+          error: message,
+          status: 'error',
+          updatedAt: Date.now()
+        })
+      )
+      return
+    }
+    payjoinWarn('receiver finalize failed, will retry', {
+      error: compactError(message),
+      mailbox: mailboxFromEndpoint(target.pjEndpoint),
+      sessionId: target.id
+    })
+    setReceiverSession(
+      persistSession({
+        ...target,
+        error: message,
+        status: 'proposal_received',
+        updatedAt: Date.now()
+      })
+    )
   }
 
   async function finalizeOnce(target: PayjoinSession) {
@@ -361,233 +457,58 @@ function usePayjoinReceiver({
       return
     }
     setNegotiating(true)
-    try {
-      payjoinLog('receiver finalize', {
-        board: !!target.board,
-        mailbox: mailboxFromEndpoint(target.pjEndpoint),
-        sessionId: target.id,
-        status: target.status
-      })
-      const finalized = target.board
-        ? await finalizeBoardReceiverPayjoin({
-            deps: getPayjoinDeps(),
-            session: target
-          })
-        : await finalizeReceiverPayjoin({
-            callbacks: buildCallbacks(),
-            deps: getPayjoinDeps(),
-            session: target
-          })
-      if (finalized.status === 'error') {
-        const message = finalized.error ?? 'unknown'
-        // Without a native handle the proposal is gone; nothing to retry with.
-        const retryable =
-          !!finalized.nativeState && !isTerminalFinalizeError(message)
-        if (!retryable) {
-          payjoinWarn('receiver finalize terminal error', {
-            error: compactError(message),
-            mailbox: mailboxFromEndpoint(target.pjEndpoint),
-            sessionId: target.id
-          })
-          setReceiverSession(persistSession(finalized))
+    await finalizeAndPersist(target)
+      .catch((error: unknown) => recoverFromFinalizeError(target, error))
+      .finally(() => {
+        if (!sessionNeedsFinalize(sessionRef.current ?? target)) {
           setNegotiating(false)
-          return
         }
-        payjoinWarn('receiver finalize failed, will retry', {
-          error: compactError(message),
-          mailbox: mailboxFromEndpoint(target.pjEndpoint),
-          sessionId: target.id
-        })
-        setReceiverSession(
-          persistSession({
-            ...finalized,
-            status: 'proposal_received',
-            updatedAt: Date.now()
-          })
-        )
-        return
-      }
-      payjoinLog('receiver finalize done', {
-        mailbox: mailboxFromEndpoint(finalized.pjEndpoint),
-        sessionId: finalized.id,
-        status: finalized.status
       })
-      setReceiverSession(persistSession(finalized))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      // Thrown terminal errors (e.g. a board proposal whose txid is not
-      // stable) can never succeed on retry — surface them instead of looping.
-      if (isTerminalFinalizeError(message)) {
-        payjoinWarn('receiver finalize terminal error', {
-          error: compactError(message),
-          mailbox: mailboxFromEndpoint(target.pjEndpoint),
-          sessionId: target.id
-        })
-        setReceiverSession(
-          persistSession({
-            ...target,
-            error: message,
-            status: 'error',
-            updatedAt: Date.now()
-          })
-        )
-        return
-      }
-      payjoinWarn('receiver finalize failed, will retry', {
-        error: compactError(message),
-        mailbox: mailboxFromEndpoint(target.pjEndpoint),
-        sessionId: target.id
-      })
-      setReceiverSession(
-        persistSession({
-          ...target,
-          error: message,
-          status: 'proposal_received',
-          updatedAt: Date.now()
-        })
-      )
-    } finally {
-      if (!sessionNeedsFinalize(sessionRef.current ?? target)) {
-        setNegotiating(false)
-      }
-    }
   }
 
-  async function pollOnce() {
-    const { current } = sessionRef
-    if (
-      !current?.nativeState ||
-      pollingRef.current ||
-      current.status === 'expired' ||
-      current.status === 'completed' ||
-      current.status === 'error'
-    ) {
+  async function pollMailbox(current: PayjoinSession) {
+    if (sessionNeedsFinalize(current)) {
+      await finalizeOnce(current)
       return
     }
 
-    if (isSenderPostInFlight()) {
-      payjoinLog('receiver poll paused — sender posting', {
-        mailbox: mailboxFromEndpoint(current.pjEndpoint),
-        sessionId: current.id
+    payjoinLog('receiver poll', {
+      mailbox: mailboxFromEndpoint(current.pjEndpoint),
+      sessionId: current.id,
+      status: current.status
+    })
+    const { session: updated, originalPsbtBase64 } = await pollReceiverSession({
+      callbacks: buildCallbacks(),
+      deps: getPayjoinDeps(),
+      session: current
+    })
+
+    setLastPolledAt(Date.now())
+
+    if (originalPsbtBase64 || updated.status === 'proposal_received') {
+      payjoinLog('receiver got proposal', {
+        mailbox: mailboxFromEndpoint(updated.pjEndpoint),
+        psbtChars: originalPsbtBase64?.length ?? 0,
+        sessionId: updated.id,
+        status: updated.status
       })
-      return
     }
 
-    pollingRef.current = true
-    try {
-      if (sessionNeedsFinalize(current)) {
-        await finalizeOnce(current)
+    if (updated.status === 'error') {
+      const message = updated.error ?? 'payjoin poll error'
+      if (shouldReplaceMailbox(message)) {
+        await replaceDeadSession(updated, message)
         return
       }
-
-      payjoinLog('receiver poll', {
-        mailbox: mailboxFromEndpoint(current.pjEndpoint),
-        sessionId: current.id,
-        status: current.status
-      })
-      const { session: updated, originalPsbtBase64 } =
-        await pollReceiverSession({
-          callbacks: buildCallbacks(),
-          deps: getPayjoinDeps(),
-          session: current
-        })
-
-      setLastPolledAt(Date.now())
-
-      if (originalPsbtBase64 || updated.status === 'proposal_received') {
-        payjoinLog('receiver got proposal', {
-          mailbox: mailboxFromEndpoint(updated.pjEndpoint),
-          psbtChars: originalPsbtBase64?.length ?? 0,
-          sessionId: updated.id,
-          status: updated.status
-        })
-      }
-
-      if (updated.status === 'error') {
-        const message = updated.error ?? 'payjoin poll error'
-        if (shouldReplaceMailbox(message)) {
-          await replaceDeadSession(updated, message)
-          return
-        }
-        if (isAlreadyHasProposalError(message) && current.nativeState) {
-          const withProposal = persistSession({
-            ...current,
-            nativeState: updated.nativeState ?? current.nativeState,
-            status: 'proposal_received',
-            updatedAt: Date.now()
-          })
-          setReceiverSession(withProposal)
-          await finalizeOnce(withProposal)
-          return
-        }
-        if (isNativeSessionMissingError(message)) {
-          payjoinWarn('receiver native handle missing — try resume', {
-            error: compactError(message),
-            mailbox: mailboxFromEndpoint(current.pjEndpoint),
-            sessionId: current.id
-          })
-          const resumed = await resumePersistedReceiverSession(current)
-          if (resumed) {
-            setReceiverSession(
-              persistSession({
-                ...current,
-                error: undefined,
-                status: 'waiting',
-                updatedAt: Date.now()
-              })
-            )
-            return
-          }
-          await replaceDeadSession(
-            current,
-            'receiver native session lost after restart'
-          )
-          return
-        }
-        setReceiverSession(
-          persistSession({
-            ...current,
-            error: undefined,
-            nativeState: updated.nativeState ?? current.nativeState,
-            status: 'waiting',
-            updatedAt: Date.now()
-          })
-        )
-        payjoinWarn('receiver poll soft-error, still waiting', {
-          error: compactError(message),
-          mailbox: mailboxFromEndpoint(current.pjEndpoint),
-          sessionId: current.id
-        })
-        return
-      }
-
-      const synced = persistSession(updated)
-      if (synced.status === 'proposal_received') {
-        setReceiverSession(synced)
-        await finalizeOnce(synced)
-        return
-      }
-
-      const uriUnchanged = synced.uri === current.uri
-      const statusUnchanged = synced.status === current.status
-      if (!uriUnchanged || !statusUnchanged) {
-        setReceiverSession(synced)
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      setLastPolledAt(Date.now())
-      if (isAlreadyHasProposalError(message)) {
+      if (isAlreadyHasProposalError(message) && current.nativeState) {
         const withProposal = persistSession({
           ...current,
+          nativeState: updated.nativeState ?? current.nativeState,
           status: 'proposal_received',
           updatedAt: Date.now()
         })
         setReceiverSession(withProposal)
         await finalizeOnce(withProposal)
-        return
-      }
-      if (shouldReplaceMailbox(message)) {
-        await replaceDeadSession(current, message)
         return
       }
       if (isNativeSessionMissingError(message)) {
@@ -614,14 +535,111 @@ function usePayjoinReceiver({
         )
         return
       }
-      payjoinWarn('receiver poll failed, retrying later', {
+      setReceiverSession(
+        persistSession({
+          ...current,
+          error: undefined,
+          nativeState: updated.nativeState ?? current.nativeState,
+          status: 'waiting',
+          updatedAt: Date.now()
+        })
+      )
+      payjoinWarn('receiver poll soft-error, still waiting', {
         error: compactError(message),
         mailbox: mailboxFromEndpoint(current.pjEndpoint),
         sessionId: current.id
       })
-    } finally {
-      pollingRef.current = false
+      return
     }
+
+    const synced = persistSession(updated)
+    if (synced.status === 'proposal_received') {
+      setReceiverSession(synced)
+      await finalizeOnce(synced)
+      return
+    }
+
+    const uriUnchanged = synced.uri === current.uri
+    const statusUnchanged = synced.status === current.status
+    if (!uriUnchanged || !statusUnchanged) {
+      setReceiverSession(synced)
+    }
+  }
+
+  async function recoverFromPollError(current: PayjoinSession, error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    setLastPolledAt(Date.now())
+    if (isAlreadyHasProposalError(message)) {
+      const withProposal = persistSession({
+        ...current,
+        status: 'proposal_received',
+        updatedAt: Date.now()
+      })
+      setReceiverSession(withProposal)
+      await finalizeOnce(withProposal)
+      return
+    }
+    if (shouldReplaceMailbox(message)) {
+      await replaceDeadSession(current, message)
+      return
+    }
+    if (isNativeSessionMissingError(message)) {
+      payjoinWarn('receiver native handle missing — try resume', {
+        error: compactError(message),
+        mailbox: mailboxFromEndpoint(current.pjEndpoint),
+        sessionId: current.id
+      })
+      const resumed = await resumePersistedReceiverSession(current)
+      if (resumed) {
+        setReceiverSession(
+          persistSession({
+            ...current,
+            error: undefined,
+            status: 'waiting',
+            updatedAt: Date.now()
+          })
+        )
+        return
+      }
+      await replaceDeadSession(
+        current,
+        'receiver native session lost after restart'
+      )
+      return
+    }
+    payjoinWarn('receiver poll failed, retrying later', {
+      error: compactError(message),
+      mailbox: mailboxFromEndpoint(current.pjEndpoint),
+      sessionId: current.id
+    })
+  }
+
+  async function pollOnce() {
+    const { current } = sessionRef
+    if (
+      !current?.nativeState ||
+      pollingRef.current ||
+      current.status === 'expired' ||
+      current.status === 'completed' ||
+      current.status === 'error'
+    ) {
+      return
+    }
+
+    if (isSenderPostInFlight()) {
+      payjoinLog('receiver poll paused — sender posting', {
+        mailbox: mailboxFromEndpoint(current.pjEndpoint),
+        sessionId: current.id
+      })
+      return
+    }
+
+    pollingRef.current = true
+    await pollMailbox(current)
+      .catch((error: unknown) => recoverFromPollError(current, error))
+      .finally(() => {
+        pollingRef.current = false
+      })
   }
 
   // Keep account-card BIP21 fields in sync when amount/label change.
@@ -739,7 +757,6 @@ function usePayjoinReceiver({
     lastPolledAt,
     negotiating,
     payjoinUri: livePayjoinUri,
-    polling: pollingRef.current,
     restartSession: startSession,
     session,
     starting,

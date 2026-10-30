@@ -19,6 +19,21 @@ import { shareFile } from '@/utils/filesystem'
 import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 
+function resolveLightningBackupNodeTitle(
+  alias: string,
+  identityPubkey: string,
+  configUrl: string | undefined
+): string {
+  const fromCard = lndNodeCardTitle(alias, identityPubkey)
+  if (fromCard) {
+    return fromCard
+  }
+  if (configUrl) {
+    return configUrl
+  }
+  return t('lightning.backup.notConnected')
+}
+
 export default function LightningBackupPage() {
   const [config, status] = useLightningStore(
     useShallow((state) => [state.config, state.status])
@@ -28,13 +43,11 @@ export default function LightningBackupPage() {
   const [includeConnection, setIncludeConnection] = useState(false)
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
-  const nodeTitle =
-    lndNodeCardTitle(
-      status.nodeInfo?.alias ?? '',
-      status.nodeInfo?.identity_pubkey ?? ''
-    ) ||
-    config?.url ||
-    t('lightning.backup.notConnected')
+  const nodeTitle = resolveLightningBackupNodeTitle(
+    status.nodeInfo?.alias ?? '',
+    status.nodeInfo?.identity_pubkey ?? '',
+    config?.url
+  )
 
   function generateBackupData() {
     setBackupData(

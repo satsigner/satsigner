@@ -53,13 +53,11 @@ export default function SeedWordsPage() {
   }
 
   async function handleSuccessPin() {
-    try {
-      await decryptMnemonic()
-    } catch {
-      toast.error(t('account.seed.unableToDecrypt'))
-    } finally {
-      setShowPinEntry(false)
-    }
+    await decryptMnemonic()
+      .catch(() => {
+        toast.error(t('account.seed.unableToDecrypt'))
+      })
+      .finally(() => setShowPinEntry(false))
   }
 
   function handlePinTriesOver() {

@@ -32,6 +32,7 @@ import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { getSankeyExtentTopPx } from '@/utils/sankeyExtent'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
+import { layoutSankeyGraph } from '@/utils/sankeyLayout'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 import {
   CHART_REMAINING_BALANCE_LOCAL_ID,
@@ -68,6 +69,8 @@ type SSCurrentTransactionChartProps = {
   overlayHeaderHeight?: number
 }
 
+const NO_OWN_ADDRESSES = new Set<string>()
+
 function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
@@ -78,7 +81,7 @@ function SSCurrentTransactionChart({
   onPressInput,
   onPressOutput,
   currentOutputLocalId,
-  ownAddresses = new Set(),
+  ownAddresses = NO_OWN_ADDRESSES,
   txLabelsById,
   outpointLabelsByRef,
   overlayHeaderHeight
@@ -415,7 +418,7 @@ function SSCurrentTransactionChart({
       link.target
   )
 
-  const layoutResult = sankeyGenerator({
+  const layoutResult = layoutSankeyGraph(sankeyGenerator, {
     links: validSankeyLinks,
     nodes: validSankeyNodes
   })
@@ -430,30 +433,26 @@ function SSCurrentTransactionChart({
 
   const { links, nodes } = layoutResult
 
-  const nodeStyles = useMemo(
-    () =>
-      nodes.map((node) => {
-        const isBlock = node.type === 'block'
-        const blockNodeHeight =
-          isBlock && node.ioData?.txSize ? (node.ioData?.txSize ?? 0) * 0.1 : 0
+  const nodeStyles = nodes.map((node) => {
+    const isBlock = node.type === 'block'
+    const blockNodeHeight =
+      isBlock && node.ioData?.txSize ? (node.ioData?.txSize ?? 0) * 0.1 : 0
 
-        const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
-        const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
-        const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
-        const slotHeight = Math.max(0, safeY1 - safeY0)
+    const safeX0 = Number.isNaN(node.x0) ? 0 : (node.x0 ?? 0)
+    const safeY0 = Number.isNaN(node.y0) ? 0 : (node.y0 ?? 0)
+    const safeY1 = Number.isNaN(node.y1) ? 0 : (node.y1 ?? 0)
+    const slotHeight = Math.max(0, safeY1 - safeY0)
 
-        return {
-          height: isBlock
-            ? Math.max(blockNodeHeight, LINK_MAX_WIDTH)
-            : Math.max(slotHeight, 1),
-          localId: node.localId,
-          width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-          x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
-          y: safeY0
-        }
-      }),
-    [nodes]
-  )
+    return {
+      height: isBlock
+        ? Math.max(blockNodeHeight, LINK_MAX_WIDTH)
+        : Math.max(slotHeight, 1),
+      localId: node.localId,
+      width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+      x: isBlock ? safeX0 + (NODE_WIDTH - BLOCK_WIDTH) / 2 : safeX0,
+      y: safeY0
+    }
+  })
 
   const transformedLinks = links.map((link) => ({
     source: getSankeyLinkEndId(link.source),

@@ -14,6 +14,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -99,7 +100,7 @@ function SSArkAddressesView({
               { color: label ? Colors.white : Colors.gray[700] }
             ]}
           >
-            {trimLabel(label)}
+            {privacyMode ? PRIVACY_MASK : trimLabel(label)}
           </SSText>
           <SSText
             style={[
@@ -110,7 +111,11 @@ function SSArkAddressesView({
               }
             ]}
           >
-            <SSStyledSatText amount={address.receivedSats} textSize="xs" />
+            {privacyMode ? (
+              PRIVACY_MASK
+            ) : (
+              <SSStyledSatText amount={address.receivedSats} textSize="xs" />
+            )}
           </SSText>
           <SSText
             style={[

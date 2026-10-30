@@ -19,13 +19,14 @@ import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { HTTP_STATUS } from '@/constants/http'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useNetworkHashRate } from '@/hooks/useNetworkHashRate'
+import { useNow } from '@/hooks/useNow'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type BlockTemplateTransaction } from '@/types/models/Rpc'
 import { blocksUntilDifficultyAdjustment } from '@/utils/bitcoin/consensus'
 import {
@@ -41,6 +42,12 @@ const tn = _tn('converter.energy')
 
 const BTC_UNIT = 'BTC'
 const BLOCK_SIZE_UNIT = 'MB'
+
+const MINING_ADDRESS_PREFIXES = ['bcrt1', 'bcrt', 'bc1', 'bc', 'tb1', 'tb']
+
+function hasMiningAddressPrefix(address: string) {
+  return MINING_ADDRESS_PREFIXES.some((prefix) => address.startsWith(prefix))
+}
 
 type Scalar = number | string | boolean
 type RpcRequestBody = {
@@ -116,6 +123,227 @@ const encodeScriptNum = (num: number): Buffer => {
   return Buffer.from(result)
 }
 
+type FetchRpc = (requestBody: RpcRequestBody) => Promise<Response>
+
+function formatTemplateData(data: EnergyBlockTemplate) {
+  try {
+    // Only show essential fields to reduce data size
+    const essentialData = {
+      ...data,
+      transactionSample:
+        data.transactions?.slice(0, 20).map((tx: BlockTemplateTransaction) => ({
+          fee: tx.fee,
+          txid: tx.txid,
+          weight: tx.weight
+        })) || [],
+      transactions: data.transactions?.length || 0
+    }
+    return JSON.stringify(essentialData, null, 2)
+  } catch {
+    return 'Error formatting template data'
+  }
+}
+
+function createMerkleRoot(transactions: BlockTemplateTransaction[]) {
+  if (!transactions || transactions.length === 0) {
+    return ''
+  }
+
+  try {
+    // Convert txids to little-endian for merkle root calculation
+    let hashes: Buffer<ArrayBufferLike>[] = transactions.map((tx) => {
+      if (!tx) {
+        throw new Error('Invalid transaction')
+      }
+      if (tx.txid) {
+        // Convert txid to little-endian for merkle root
+        // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+        return Buffer.from(tx.txid, 'hex').reverse()
+      }
+      throw new Error('Invalid transaction format')
+    })
+
+    while (hashes.length > 1) {
+      const newHashes = []
+      for (let i = 0; i < hashes.length; i += 2) {
+        const left = hashes[i]
+        const right = i + 1 < hashes.length ? hashes[i + 1] : left
+        // Concatenate hashes and double SHA256
+        const concat = Buffer.concat([left, right])
+        const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
+        newHashes.push(hash)
+      }
+      hashes = newHashes
+    }
+
+    if (!hashes[0]) {
+      throw new Error('Failed to create merkle root: no hash generated')
+    }
+
+    // Return merkle root in little-endian (as required by block header)
+    return hashes[0].toString('hex')
+  } catch (error) {
+    throw new Error(
+      `Failed to create merkle root: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      { cause: error }
+    )
+  }
+}
+
+async function requestBlockTemplate(fetchRpc: FetchRpc) {
+  const rules = ['segwit']
+
+  try {
+    const networkResponse = await fetchRpc({
+      id: '1',
+      jsonrpc: '1.0',
+      method: 'getblockchaininfo',
+      params: []
+    })
+
+    if (networkResponse.ok) {
+      const networkData = parseChainInfoResponse(await networkResponse.json())
+
+      if (networkData.result && networkData.result.chain) {
+        if (networkData.result.chain === 'signet') {
+          rules.push('signet')
+        } else if (networkData.result.chain === 'test') {
+          rules.push('testnet')
+        }
+      }
+    }
+  } catch {
+    // Ignore network type detection errors
+  }
+
+  const response = await fetchRpc({
+    id: '1',
+    jsonrpc: '1.0',
+    method: 'getblocktemplate',
+    params: [{ rules }]
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`HTTP error ${response.status}: ${errorText}`)
+  }
+
+  const data = parseBlockTemplateResponse(await response.json())
+
+  if (data.error) {
+    let errorMessage = `RPC Error: ${data.error.message}`
+    if (data.error.code === -32_601) {
+      errorMessage =
+        'getblocktemplate RPC method not found. Make sure your node supports mining.'
+    } else if (data.error.code === -32_603) {
+      errorMessage =
+        'Node is not ready for mining. Check if your node is fully synced.'
+    } else if (data.error.code === -32_602) {
+      errorMessage =
+        'Invalid parameters. Check if your node supports the requested rules.'
+    }
+    throw new Error(errorMessage)
+  }
+
+  if (!data.result) {
+    throw new Error('No block template data received from node')
+  }
+
+  return data.result
+}
+
+async function requestBlockchainInfo(fetchRpc: FetchRpc) {
+  const response = await fetchRpc({
+    id: '1',
+    jsonrpc: '1.0',
+    method: 'getblockchaininfo',
+    params: []
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch blockchain info')
+  }
+
+  const data = parseBlockchainInfoResponse(await response.json())
+
+  if (data.error || !data.result) {
+    throw new Error(data.error?.message || 'RPC error')
+  }
+
+  return data.result
+}
+
+async function requestNodeConnectionInfo(fetchRpc: FetchRpc) {
+  const response = await fetchRpc({
+    id: '1',
+    jsonrpc: '1.0',
+    method: 'getblockchaininfo',
+    params: []
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+
+    if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+      throw new Error('Invalid credentials')
+    } else if (response.status === HTTP_STATUS.FORBIDDEN) {
+      throw new Error('Access denied')
+    } else {
+      throw new Error(
+        `Failed to connect to Bitcoin node: ${response.status} ${errorText}`
+      )
+    }
+  }
+
+  const data = await response.json()
+
+  if (data.error) {
+    if (data.error.code === -28) {
+      throw new Error('Bitcoin node is still starting up')
+    } else if (data.error.code === -32_601) {
+      throw new Error('RPC method not found')
+    } else {
+      throw new Error(`RPC error: ${data.error.message}`)
+    }
+  }
+
+  return data.result
+}
+
+async function requestRawTransaction(fetchRpc: FetchRpc, txId: string) {
+  const response = await fetchRpc({
+    id: '1',
+    jsonrpc: '1.0',
+    method: 'getrawtransaction',
+    params: [txId, true]
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch transaction')
+  }
+
+  const data = await response.json()
+  if (data.error) {
+    throw new Error(`RPC Error ${data.error.message}`)
+  }
+
+  if (!data.result) {
+    throw new Error('No transaction data received')
+  }
+
+  return data.result
+}
+
+function appendTemplateTransaction(
+  template: EnergyBlockTemplate,
+  transaction: BlockTemplateTransaction
+) {
+  return {
+    ...template,
+    transactions: [...(template.transactions || []), transaction]
+  }
+}
+
 export default function Energy() {
   const [
     rpcUrl,
@@ -142,6 +370,7 @@ export default function Energy() {
       state.setOpReturnContent
     ])
   )
+  const nowMs = useNow()
 
   const [blockchainInfo, setBlockchainInfo] =
     useState<EnergyBlockchainInfo | null>(null)
@@ -155,7 +384,10 @@ export default function Energy() {
   const [blockTemplate, setBlockTemplate] =
     useState<EnergyBlockTemplate | null>(null)
   const [connectionError, setConnectionError] = useState('')
-  const [difficultyProgress, setDifficultyProgress] = useState(0)
+  const difficultyProgress = blockchainInfo
+    ? (blockchainInfo.blocks % DIFFICULTY_ADJUSTMENT_INTERVAL) /
+      DIFFICULTY_ADJUSTMENT_INTERVAL
+    : 0
   const [energyRate, setEnergyRate] = useState('0')
 
   const [isConnected, setIsConnected] = useState(false)
@@ -165,7 +397,7 @@ export default function Energy() {
   const [isLoadingTx, setIsLoadingTx] = useState(false)
   const [isMining, setIsMining] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
-  const [isValidAddress, setIsValidAddress] = useState(false)
+  const isValidAddress = hasMiningAddressPrefix(miningAddress)
 
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
@@ -269,27 +501,6 @@ export default function Energy() {
     [rpcUsername, rpcPassword, rpcUrl]
   )
 
-  const formatTemplateData = useCallback((data: EnergyBlockTemplate) => {
-    try {
-      // Only show essential fields to reduce data size
-      const essentialData = {
-        ...data,
-        transactionSample:
-          data.transactions
-            ?.slice(0, 20)
-            .map((tx: BlockTemplateTransaction) => ({
-              fee: tx.fee,
-              txid: tx.txid,
-              weight: tx.weight
-            })) || [],
-        transactions: data.transactions?.length || 0
-      }
-      return JSON.stringify(essentialData, null, 2)
-    } catch {
-      return 'Error formatting template data'
-    }
-  }, [])
-
   const fetchBlockTemplate = useCallback(async () => {
     if (!isConnected) {
       return
@@ -302,79 +513,20 @@ export default function Energy() {
 
     setIsLoadingTemplate(true)
     try {
-      const rules = ['segwit']
+      const template = await requestBlockTemplate(fetchRpc)
 
-      try {
-        const networkResponse = await fetchRpc({
-          id: '1',
-          jsonrpc: '1.0',
-          method: 'getblockchaininfo',
-          params: []
-        })
-
-        if (networkResponse.ok) {
-          const networkData = parseChainInfoResponse(
-            await networkResponse.json()
-          )
-
-          if (networkData.result && networkData.result.chain) {
-            if (networkData.result.chain === 'signet') {
-              rules.push('signet')
-            } else if (networkData.result.chain === 'test') {
-              rules.push('testnet')
-            }
-          }
-        }
-      } catch {
-        // Ignore network type detection errors
-      }
-
-      const response = await fetchRpc({
-        id: '1',
-        jsonrpc: '1.0',
-        method: 'getblocktemplate',
-        params: [{ rules }]
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`HTTP error ${response.status}: ${errorText}`)
-      }
-
-      const data = parseBlockTemplateResponse(await response.json())
-
-      if (data.error) {
-        let errorMessage = `RPC Error: ${data.error.message}`
-        if (data.error.code === -32_601) {
-          errorMessage =
-            'getblocktemplate RPC method not found. Make sure your node supports mining.'
-        } else if (data.error.code === -32_603) {
-          errorMessage =
-            'Node is not ready for mining. Check if your node is fully synced.'
-        } else if (data.error.code === -32_602) {
-          errorMessage =
-            'Invalid parameters. Check if your node supports the requested rules.'
-        }
-        throw new Error(errorMessage)
-      }
-
-      if (!data.result) {
-        throw new Error('No block template data received from node')
-      }
-
-      if (JSON.stringify(data.result) !== JSON.stringify(blockTemplate)) {
-        setBlockTemplate(data.result)
-        setTemplateData(formatTemplateData(data.result))
+      if (JSON.stringify(template) !== JSON.stringify(blockTemplate)) {
+        setBlockTemplate(template)
+        setTemplateData(formatTemplateData(template))
         lastTemplateUpdateRef.current = now
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred'
       toast.error(`Failed to fetch block template: ${errorMessage}`)
-    } finally {
-      setIsLoadingTemplate(false)
     }
-  }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
+    setIsLoadingTemplate(false)
+  }, [isConnected, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
     if (!isConnected) {
@@ -383,30 +535,13 @@ export default function Energy() {
 
     setIsLoadingInfo(true)
     try {
-      const response = await fetchRpc({
-        id: '1',
-        jsonrpc: '1.0',
-        method: 'getblockchaininfo',
-        params: []
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch blockchain info')
-      }
-
-      const data = parseBlockchainInfoResponse(await response.json())
-
-      if (data.error || !data.result) {
-        throw new Error(data.error?.message || 'RPC error')
-      }
-
-      setBlockchainInfo(data.result)
+      const info = await requestBlockchainInfo(fetchRpc)
+      setBlockchainInfo(info)
       fetchBlockTemplate()
     } catch {
       setConnectionError('Failed to fetch blockchain info')
-    } finally {
-      setIsLoadingInfo(false)
     }
+    setIsLoadingInfo(false)
   }, [isConnected, fetchBlockTemplate, fetchRpc])
 
   useEffect(() => {
@@ -426,18 +561,6 @@ export default function Energy() {
       }
     }
   }, [isConnected, fetchBlockchainInfo]) // Dependencies for the effect
-
-  useEffect(() => {
-    if (blockchainInfo) {
-      // Calculate progress of current difficulty adjustment period
-      const blocksInPeriod = DIFFICULTY_ADJUSTMENT_INTERVAL
-      const currentBlock = blockchainInfo.blocks
-      const blocksInCurrentPeriod = currentBlock % blocksInPeriod
-      const progress = blocksInCurrentPeriod / blocksInPeriod
-
-      setDifficultyProgress(progress)
-    }
-  }, [blockchainInfo])
 
   useEffect(() => {
     if (isConnected) {
@@ -466,20 +589,6 @@ export default function Energy() {
     []
   )
 
-  useEffect(() => {
-    if (miningAddress) {
-      const isValid =
-        miningAddress.startsWith('bcrt1') ||
-        miningAddress.startsWith('bcrt') ||
-        miningAddress.startsWith('bc1') ||
-        miningAddress.startsWith('bc') ||
-        miningAddress.startsWith('tb1') ||
-        miningAddress.startsWith('tb')
-
-      setIsValidAddress(isValid)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const connectToNode = async () => {
     if (!rpcUrl || !rpcUsername || !rpcPassword) {
       setConnectionError('Please fill in all RPC credentials')
@@ -490,42 +599,11 @@ export default function Energy() {
     setConnectionError('')
 
     try {
-      const response = await fetchRpc({
-        id: '1',
-        jsonrpc: '1.0',
-        method: 'getblockchaininfo',
-        params: []
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-
-        if (response.status === HTTP_STATUS.UNAUTHORIZED) {
-          throw new Error('Invalid credentials')
-        } else if (response.status === HTTP_STATUS.FORBIDDEN) {
-          throw new Error('Access denied')
-        } else {
-          throw new Error(
-            `Failed to connect to Bitcoin node: ${response.status} ${errorText}`
-          )
-        }
-      }
-
-      const data = await response.json()
-
-      if (data.error) {
-        if (data.error.code === -28) {
-          throw new Error('Bitcoin node is still starting up')
-        } else if (data.error.code === -32_601) {
-          throw new Error('RPC method not found')
-        } else {
-          throw new Error(`RPC error: ${data.error.message}`)
-        }
-      }
+      const connectionInfo = await requestNodeConnectionInfo(fetchRpc)
 
       setConnectionError('')
       setIsConnected(true)
-      setBlockchainInfo(data.result)
+      setBlockchainInfo(connectionInfo)
     } catch (error) {
       if (error instanceof Error) {
         setConnectionError(error.message)
@@ -536,9 +614,8 @@ export default function Energy() {
       }
       setIsConnected(false)
       setBlockchainInfo(null)
-    } finally {
-      setIsConnecting(false)
     }
+    setIsConnecting(false)
   }
 
   const checkDifficulty = (hash: string, bits: string) => {
@@ -685,55 +762,6 @@ export default function Energy() {
     [miningAddress, opReturnContent]
   )
 
-  const createMerkleRoot = useCallback(
-    (transactions: BlockTemplateTransaction[]) => {
-      if (!transactions || transactions.length === 0) {
-        return ''
-      }
-
-      try {
-        // Convert txids to little-endian for merkle root calculation
-        let hashes: Buffer<ArrayBufferLike>[] = transactions.map((tx) => {
-          if (!tx) {
-            throw new Error('Invalid transaction')
-          }
-          if (tx.txid) {
-            // Convert txid to little-endian for merkle root
-            // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-            return Buffer.from(tx.txid, 'hex').reverse()
-          }
-          throw new Error('Invalid transaction format')
-        })
-
-        while (hashes.length > 1) {
-          const newHashes = []
-          for (let i = 0; i < hashes.length; i += 2) {
-            const left = hashes[i]
-            const right = i + 1 < hashes.length ? hashes[i + 1] : left
-            // Concatenate hashes and double SHA256
-            const concat = Buffer.concat([left, right])
-            const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
-            newHashes.push(hash)
-          }
-          hashes = newHashes
-        }
-
-        if (!hashes[0]) {
-          throw new Error('Failed to create merkle root: no hash generated')
-        }
-
-        // Return merkle root in little-endian (as required by block header)
-        return hashes[0].toString('hex')
-      } catch (error) {
-        throw new Error(
-          `Failed to create merkle root: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          { cause: error }
-        )
-      }
-    },
-    []
-  )
-
   const createBlockHeader = useCallback(
     (template: EnergyBlockTemplate, merkleRoot: string, nonce: number) => {
       // For regtest, we should use the template's curtime
@@ -770,7 +798,7 @@ export default function Energy() {
 
   const submitBlock = useCallback(
     async (blockHeader: Buffer) => {
-      try {
+      const submitFreshBlock = async () => {
         // Always get fresh chain data and template before submission
 
         const networkResponse = await fetchRpc({
@@ -884,31 +912,16 @@ export default function Energy() {
 
         setBlocksFound((prev) => prev + 1)
         return true
+      }
+
+      try {
+        return await submitFreshBlock()
       } catch {
         return false // Return false but don't throw error to continue mining
       }
     },
-    [
-      fetchRpc,
-      createCoinbaseTransaction,
-      createBlockHeader,
-      createMerkleRoot,
-      formatTemplateData
-    ]
+    [fetchRpc, createCoinbaseTransaction, createBlockHeader]
   )
-
-  const handleMiningAddressChange = (address: string) => {
-    const isValid =
-      address.startsWith('bcrt1') ||
-      address.startsWith('bcrt') ||
-      address.startsWith('bc1') ||
-      address.startsWith('bc') ||
-      address.startsWith('tb1') ||
-      address.startsWith('tb')
-
-    setMiningAddress(address)
-    setIsValidAddress(isValid)
-  }
 
   const startMining = useCallback(async () => {
     if (!blockTemplate || !miningAddress) {
@@ -921,7 +934,7 @@ export default function Energy() {
       return
     }
 
-    try {
+    const startMiningOrThrow = async () => {
       const networkResponse = await fetchRpc({
         id: '1',
         jsonrpc: '1.0',
@@ -980,199 +993,199 @@ export default function Energy() {
       setIsMining(true)
       isMiningRef.current = true
 
-      try {
-        let nonce = 0
-        let extraNonce = 0
-        let useExtraNonce = false
-        const startTime = Date.now()
-        let hashes = 0
-        let lastStatsUpdate = startTime
+      let nonce = 0
+      let extraNonce = 0
+      let useExtraNonce = false
+      const startTime = Date.now()
+      let hashes = 0
+      let lastStatsUpdate = startTime
 
-        let cachedCoinbaseTx: BlockTemplateTransaction | null = null
-        let cachedMerkleRoot: string | null = null
-        let cachedMempoolTxs: BlockTemplateTransaction[] | null = null
+      let cachedCoinbaseTx: BlockTemplateTransaction | null = null
+      let cachedMerkleRoot: string | null = null
+      let cachedMempoolTxs: BlockTemplateTransaction[] | null = null
 
-        if (blockTemplate) {
-          cachedCoinbaseTx = createCoinbaseTransaction(blockTemplate, 0, false)
-          if (cachedCoinbaseTx) {
-            cachedMempoolTxs =
-              blockTemplate.transactions?.filter(
-                (tx) => tx.txid !== cachedCoinbaseTx?.txid
-              ) || []
-            cachedMerkleRoot = createMerkleRoot([
-              cachedCoinbaseTx,
-              ...cachedMempoolTxs
-            ])
+      if (blockTemplate) {
+        cachedCoinbaseTx = createCoinbaseTransaction(blockTemplate, 0, false)
+        if (cachedCoinbaseTx) {
+          cachedMempoolTxs =
+            blockTemplate.transactions?.filter(
+              (tx) => tx.txid !== cachedCoinbaseTx?.txid
+            ) || []
+          cachedMerkleRoot = createMerkleRoot([
+            cachedCoinbaseTx,
+            ...cachedMempoolTxs
+          ])
+        }
+      }
+
+      const updateMiningStats = () => {
+        const now = Date.now()
+        const elapsed = (now - startTime) / MS_PER_SECOND
+        const hashesPerSecond = Math.floor(hashes / elapsed)
+        const powerConsumption = Number.isNaN(hashesPerSecond)
+          ? '0'
+          : (hashesPerSecond * 0.0001).toFixed(2)
+
+        requestAnimationFrame(() => {
+          setEnergyRate(powerConsumption)
+          setMiningStats((prev) => ({
+            ...prev,
+            attempts: hashes,
+            hashesPerSecond,
+            lastHash: lastHashRef.current
+          }))
+          if (currentHeaderRef.current) {
+            setBlockHeader(
+              Buffer.from(currentHeaderRef.current).toString('hex')
+            )
+          }
+        })
+      }
+
+      const mineBatch = async (miningInterval: NodeJS.Timeout) => {
+        // Update stats every 500ms regardless of mining progress
+        const now = Date.now()
+        if (now - lastStatsUpdate >= 500) {
+          updateMiningStats()
+          lastStatsUpdate = now
+        }
+
+        // Always fetch a fresh template before starting a new mining batch on regtest
+        if (blockchainInfo?.chain === 'regtest') {
+          await fetchBlockTemplate()
+          if (!blockTemplate) {
+            throw new Error('Failed to get block template')
           }
         }
 
-        const updateMiningStats = () => {
-          const now = Date.now()
-          const elapsed = (now - startTime) / MS_PER_SECOND
-          const hashesPerSecond = Math.floor(hashes / elapsed)
-          const powerConsumption = Number.isNaN(hashesPerSecond)
-            ? '0'
-            : (hashesPerSecond * 0.0001).toFixed(2)
-
-          requestAnimationFrame(() => {
-            setEnergyRate(powerConsumption)
-            setMiningStats((prev) => ({
-              ...prev,
-              attempts: hashes,
-              hashesPerSecond,
-              lastHash: lastHashRef.current
-            }))
-            if (currentHeaderRef.current) {
-              setBlockHeader(
-                Buffer.from(currentHeaderRef.current).toString('hex')
-              )
-            }
-          })
+        if (!blockTemplate) {
+          throw new Error('Failed to get block template')
         }
 
-        toast.info(
-          `Running BitcoinMiner with ${
-            blockTemplate?.transactions?.length || 0
-          } transactions in block`
-        )
-        const miningInterval = setInterval(async () => {
+        // Number of hashes to mine for each mining batch
+        for (let i = 0; i < miningIntensity; i += 1) {
           if (!isMiningRef.current) {
             clearInterval(miningInterval)
             return
           }
 
-          try {
-            // Update stats every 500ms regardless of mining progress
-            const now = Date.now()
-            if (now - lastStatsUpdate >= 500) {
-              updateMiningStats()
-              lastStatsUpdate = now
-            }
+          // Check if we need to increment extra nonce
+          if (nonce >= 0xff_ff_ff_ff) {
+            nonce = 0
+            if (!useExtraNonce) {
+              // Only recreate coinbase and merkle root when we need to start using extra nonce
+              useExtraNonce = true
 
-            // Always fetch a fresh template before starting a new mining batch on regtest
-            if (blockchainInfo?.chain === 'regtest') {
-              await fetchBlockTemplate()
-              if (!blockTemplate) {
-                throw new Error('Failed to get block template')
-              }
-            }
-
-            if (!blockTemplate) {
-              throw new Error('Failed to get block template')
-            }
-
-            // Number of hashes to mine for each mining batch
-            for (let i = 0; i < miningIntensity; i += 1) {
-              if (!isMiningRef.current) {
-                clearInterval(miningInterval)
-                return
-              }
-
-              // Check if we need to increment extra nonce
-              if (nonce >= 0xff_ff_ff_ff) {
-                nonce = 0
-                if (!useExtraNonce) {
-                  // Only recreate coinbase and merkle root when we need to start using extra nonce
-                  useExtraNonce = true
-
-                  if (blockTemplate) {
-                    cachedCoinbaseTx = createCoinbaseTransaction(
-                      blockTemplate,
-                      extraNonce,
-                      true
-                    )
-                    if (cachedCoinbaseTx) {
-                      const coinbaseTxid = cachedCoinbaseTx.txid
-                      cachedMempoolTxs =
-                        blockTemplate.transactions?.filter(
-                          (tx) => tx.txid !== coinbaseTxid
-                        ) || []
-                      cachedMerkleRoot = createMerkleRoot([
-                        cachedCoinbaseTx,
-                        ...cachedMempoolTxs
-                      ])
-                    }
-                  }
-                } else {
-                  extraNonce += 1
-                  if (blockTemplate && cachedCoinbaseTx) {
-                    cachedCoinbaseTx = createCoinbaseTransaction(
-                      blockTemplate,
-                      extraNonce,
-                      true
-                    )
-                    if (cachedCoinbaseTx && cachedMempoolTxs) {
-                      cachedMerkleRoot = createMerkleRoot([
-                        cachedCoinbaseTx,
-                        ...cachedMempoolTxs
-                      ])
-                    }
-                  }
+              if (blockTemplate) {
+                cachedCoinbaseTx = createCoinbaseTransaction(
+                  blockTemplate,
+                  extraNonce,
+                  true
+                )
+                if (cachedCoinbaseTx) {
+                  const coinbaseTxid = cachedCoinbaseTx.txid
+                  cachedMempoolTxs =
+                    blockTemplate.transactions?.filter(
+                      (tx) => tx.txid !== coinbaseTxid
+                    ) || []
+                  cachedMerkleRoot = createMerkleRoot([
+                    cachedCoinbaseTx,
+                    ...cachedMempoolTxs
+                  ])
                 }
               }
-
-              if (!cachedCoinbaseTx || !cachedMerkleRoot || !cachedMempoolTxs) {
-                continue
-              }
-
-              const header = createBlockHeader(
-                blockTemplate,
-                cachedMerkleRoot,
-                nonce
-              )
-              nonce += 1
-
-              // Double SHA256 of header (result is in big-endian)
-              const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
-              // Convert to little-endian for comparison
-              // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-              const hashReversed = Buffer.from(hash).reverse()
-              const hashHex = hashReversed.toString('hex')
-
-              hashes += 1
-
-              if (hashes % miningIntensity === 0 || miningIntensity === 10) {
-                currentHeaderRef.current = header
-                lastHashRef.current = hashHex
-
-                await new Promise((resolve) => {
-                  setTimeout(resolve, 1000)
-                })
-              }
-
-              if (checkDifficulty(hashHex, blockTemplate.bits)) {
-                const success = await submitBlock(header)
-
-                if (success) {
-                  setTotalSats((prev) =>
-                    (Number(prev) + blockTemplate.coinbasevalue).toString()
-                  )
-                  toast.success('Block found and submitted successfully!')
-                  updateMiningStats()
+            } else {
+              extraNonce += 1
+              if (blockTemplate && cachedCoinbaseTx) {
+                cachedCoinbaseTx = createCoinbaseTransaction(
+                  blockTemplate,
+                  extraNonce,
+                  true
+                )
+                if (cachedCoinbaseTx && cachedMempoolTxs) {
+                  cachedMerkleRoot = createMerkleRoot([
+                    cachedCoinbaseTx,
+                    ...cachedMempoolTxs
+                  ])
                 }
-                break
               }
             }
-
-            // Update stats more frequently during active mining
-            if (hashes % miningIntensity === 0 || miningIntensity === 10) {
-              updateMiningStats()
-            }
-          } catch {
-            // Don't stop mining on error, just continue
           }
-        }, miningIntervalTime)
 
-        miningIntervalRef.current = miningInterval
+          if (!cachedCoinbaseTx || !cachedMerkleRoot || !cachedMempoolTxs) {
+            continue
+          }
 
-        updateMiningStats()
-      } catch (error) {
-        isMiningRef.current = false
-        setIsMining(false)
-        toast.error(
-          `Error starting mining: ${error instanceof Error ? error.message : 'Unknown error'}`
-        )
+          const header = createBlockHeader(
+            blockTemplate,
+            cachedMerkleRoot,
+            nonce
+          )
+          nonce += 1
+
+          // Double SHA256 of header (result is in big-endian)
+          const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(header))
+          // Convert to little-endian for comparison
+          // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+          const hashReversed = Buffer.from(hash).reverse()
+          const hashHex = hashReversed.toString('hex')
+
+          hashes += 1
+
+          if (hashes % miningIntensity === 0 || miningIntensity === 10) {
+            currentHeaderRef.current = header
+            lastHashRef.current = hashHex
+
+            await new Promise((resolve) => {
+              setTimeout(resolve, 1000)
+            })
+          }
+
+          if (checkDifficulty(hashHex, blockTemplate.bits)) {
+            const success = await submitBlock(header)
+
+            if (success) {
+              setTotalSats((prev) =>
+                (Number(prev) + blockTemplate.coinbasevalue).toString()
+              )
+              toast.success('Block found and submitted successfully!')
+              updateMiningStats()
+            }
+            break
+          }
+        }
+
+        // Update stats more frequently during active mining
+        if (hashes % miningIntensity === 0 || miningIntensity === 10) {
+          updateMiningStats()
+        }
       }
+
+      toast.info(
+        `Running BitcoinMiner with ${
+          blockTemplate?.transactions?.length || 0
+        } transactions in block`
+      )
+      const miningInterval = setInterval(async () => {
+        if (!isMiningRef.current) {
+          clearInterval(miningInterval)
+          return
+        }
+
+        try {
+          await mineBatch(miningInterval)
+        } catch {
+          // Don't stop mining on error, just continue
+        }
+      }, miningIntervalTime)
+
+      miningIntervalRef.current = miningInterval
+
+      updateMiningStats()
+    }
+
+    try {
+      await startMiningOrThrow()
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)
@@ -1185,7 +1198,6 @@ export default function Energy() {
     blockTemplate,
     createBlockHeader,
     createCoinbaseTransaction,
-    createMerkleRoot,
     fetchBlockTemplate,
     fetchRpc,
     isValidAddress,
@@ -1231,31 +1243,13 @@ export default function Energy() {
     setTxError('')
 
     try {
-      const response = await fetchRpc({
-        id: '1',
-        jsonrpc: '1.0',
-        method: 'getrawtransaction',
-        params: [txId, true]
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch transaction')
-      }
-
-      const data = await response.json()
-      if (data.error) {
-        throw new Error(`RPC Error ${data.error.message}`)
-      }
-
-      if (!data.result) {
-        throw new Error('No transaction data received')
-      }
+      const transaction = await requestRawTransaction(fetchRpc, txId)
 
       if (blockTemplate) {
-        const newTemplate = {
-          ...blockTemplate,
-          transactions: [...(blockTemplate.transactions || []), data.result]
-        }
+        const newTemplate = appendTemplateTransaction(
+          blockTemplate,
+          transaction
+        )
         setBlockTemplate(newTemplate)
         setTemplateData(formatTemplateData(newTemplate))
         toast.success('Transaction added to template')
@@ -1265,10 +1259,9 @@ export default function Energy() {
         error instanceof Error ? error.message : 'Failed to fetch transaction'
       )
       toast.error('Failed to fetch transaction')
-    } finally {
-      setIsLoadingTx(false)
     }
-  }, [txId, isConnected, blockTemplate, formatTemplateData, fetchRpc])
+    setIsLoadingTx(false)
+  }, [txId, isConnected, blockTemplate, fetchRpc])
 
   return (
     <>
@@ -1530,8 +1523,7 @@ export default function Energy() {
                   <SSText size="xl">
                     {blockTemplate?.curtime
                       ? Math.floor(
-                          (Date.now() / MS_PER_SECOND - blockTemplate.curtime) /
-                            60
+                          (nowMs / MS_PER_SECOND - blockTemplate.curtime) / 60
                         )
                       : '0'}
                   </SSText>
@@ -1606,7 +1598,7 @@ export default function Energy() {
                 <SSTextInput
                   placeholder={tn('params.addressPlaceholder')}
                   value={miningAddress}
-                  onChangeText={handleMiningAddressChange}
+                  onChangeText={setMiningAddress}
                   variant="outline"
                   align="center"
                   style={
@@ -1894,7 +1886,7 @@ const styles = StyleSheet.create({
     padding: 16
   },
   templateText: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 8
   }
 })

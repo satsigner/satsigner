@@ -25,7 +25,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type NostrKind1DraftImport } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -261,9 +261,8 @@ export default function NostrComposePage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
-    } finally {
-      setSigningExport(false)
     }
+    setSigningExport(false)
   }
 
   async function handleQrSigned() {
@@ -287,15 +286,14 @@ export default function NostrComposePage() {
       const compact = JSON.stringify(signed)
       if (compact.length > NOSTR_SIGNED_EVENT_QR_MAX_CHARS) {
         toast.error(t('nostrIdentity.compose.signedEventTooLongForQr'))
-        return
+      } else {
+        setSignedQrPayload(compact)
       }
-      setSignedQrPayload(compact)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
-    } finally {
-      setSigningExport(false)
     }
+    setSigningExport(false)
   }
 
   async function handlePublish() {
@@ -310,12 +308,13 @@ export default function NostrComposePage() {
     }
 
     setPublishing(true)
+    const authorNpub = npub ?? ''
     try {
       const tags = buildTags()
       const api = new NostrAPI(effectiveRelays)
       const eventId = await api.publishNote(identity.nsec, content.trim(), tags)
 
-      const hexPk = getPubKeyHexFromNpub(npub ?? '')
+      const hexPk = getPubKeyHexFromNpub(authorNpub)
       if (hexPk) {
         cacheEvents(
           [
@@ -337,9 +336,8 @@ export default function NostrComposePage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.compose.publishFailed')}: ${reason}`)
-    } finally {
-      setPublishing(false)
     }
+    setPublishing(false)
   }
 
   if (!identity) {
@@ -714,7 +712,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#242424',
     borderRadius: 3,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     lineHeight: 18,
     maxHeight: 220,

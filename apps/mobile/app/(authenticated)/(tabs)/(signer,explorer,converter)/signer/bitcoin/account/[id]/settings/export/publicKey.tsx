@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ScrollView, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -33,7 +33,6 @@ export default function PublicKeyPage() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const [publicKey, setPublicKey] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<ViewInstance>(null)
   const [rawPublicKey, setRawPublicKey] = useState('')
@@ -164,7 +163,6 @@ export default function PublicKeyPage() {
       return
     }
     setRawPublicKey(publicKey)
-    setPublicKey(convertPublicKeyFormat(publicKey, selectedFormat))
   }
 
   useAsyncEffect(async () => {
@@ -173,17 +171,13 @@ export default function PublicKeyPage() {
       await getPublicKey()
     } catch {
       toast.error('Failed to get public key')
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }, [account, keyIndex, key, network, selectedFormat, convertPublicKeyFormat])
 
-  useEffect(() => {
-    if (rawPublicKey) {
-      const convertedKey = convertPublicKeyFormat(rawPublicKey, selectedFormat)
-      setPublicKey(convertedKey)
-    }
-  }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
+  const publicKey = rawPublicKey
+    ? convertPublicKeyFormat(rawPublicKey, selectedFormat)
+    : ''
 
   function exportPublicKey() {
     if (!account) {

@@ -5,6 +5,7 @@ import SSDetailsList from '@/components/SSDetailsList'
 import SSIconButton from '@/components/SSIconButton'
 import SSLabelTags from '@/components/SSLabelTags'
 import SSText from '@/components/SSText'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -53,7 +54,10 @@ function SSArkAddressCard({
       <SSDetailsList
         columns={2}
         items={[
-          [t('ark.address.received'), formatNumber(address.receivedSats)],
+          [
+            t('ark.address.received'),
+            privacyMode ? PRIVACY_MASK : formatNumber(address.receivedSats)
+          ],
           [t('ark.address.receiveCount'), formatNumber(address.receiveCount)]
         ]}
       />

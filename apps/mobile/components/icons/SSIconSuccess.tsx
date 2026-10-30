@@ -114,13 +114,15 @@ function BroadcastFilledIcon({ height, width }: SizeProps) {
   const renderH = frameH * BROADCAST_RENDER_UPSCALE
 
   useEffect(() => {
-    phase.value = withRepeat(
-      withTiming(2 * Math.PI, {
-        duration: GLOW_CYCLE_MS,
-        easing: Easing.linear
-      }),
-      -1,
-      false
+    phase.set(
+      withRepeat(
+        withTiming(2 * Math.PI, {
+          duration: GLOW_CYCLE_MS,
+          easing: Easing.linear
+        }),
+        -1,
+        false
+      )
     )
   }, [phase])
 

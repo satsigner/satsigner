@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useEffectEvent } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
@@ -18,14 +18,16 @@ function SSPopupText({
   duration = 600,
   onTimeout
 }: SSSnackbarProps) {
+  const handleTimeout = useEffectEvent(onTimeout)
+
   useEffect(() => {
     if (isVisible) {
       const timeout = setTimeout(() => {
-        onTimeout()
+        handleTimeout()
       }, duration)
       return () => clearTimeout(timeout)
     }
-  }, [isVisible, duration, onTimeout])
+  }, [isVisible, duration])
 
   return isVisible ? (
     <View style={styles.container}>

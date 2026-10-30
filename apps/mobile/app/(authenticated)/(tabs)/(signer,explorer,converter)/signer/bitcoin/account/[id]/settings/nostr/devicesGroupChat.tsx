@@ -32,10 +32,11 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrDM } from '@/types/models/Nostr'
+import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
+import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
 import { type TransactionData } from '@/utils/psbt'
 
 // In-memory color cache; keyed by pubkey hex.
@@ -67,6 +68,87 @@ function getAuthorColor(
 function formatNpubText(pubkey: string): string {
   const npub = safeNpubEncode(pubkey, '')
   return npub ? formatNpub(npub) : pubkey.slice(0, 8)
+}
+
+function createPendingDm(
+  deviceNpub: string,
+  description: string
+): NostrDM | null {
+  const decoded = nip19.decode(deviceNpub)
+  const devicePubkeyHex =
+    decoded?.type === 'npub' && typeof decoded.data === 'string'
+      ? decoded.data
+      : null
+  if (!devicePubkeyHex) {
+    return null
+  }
+  const created_at = Math.floor(Date.now() / MS_PER_SECOND)
+  return {
+    author: devicePubkeyHex,
+    content: {
+      created_at,
+      description,
+      pubkey: devicePubkeyHex
+    },
+    created_at,
+    description,
+    event: '',
+    id: `pending-${Date.now()}`,
+    label: 1,
+    pending: true
+  }
+}
+
+function appendDmSorted(dms: NostrDM[] | undefined, dm: NostrDM) {
+  return [...(dms ?? []), dm].toSorted((a, b) => a.created_at - b.created_at)
+}
+
+type AuthorDisplaySource = Pick<
+  NostrAccount,
+  | 'deviceDisplayName'
+  | 'deviceNpub'
+  | 'devicePicture'
+  | 'npubAliases'
+  | 'npubProfiles'
+>
+
+function buildFormattedNpubs(
+  messages: NostrDM[],
+  members: { npub: string; color: string }[],
+  profiles: ReturnType<typeof useNostrStore.getState>['profiles'],
+  source: AuthorDisplaySource
+) {
+  const formattedNpubs = new Map<string, AuthorDisplayInfo>()
+  const aliases = source.npubAliases ?? {}
+
+  for (const msg of messages) {
+    if (!msg.author) {
+      continue
+    }
+    const color = getAuthorColor(msg.author, members)
+    const npub = safeNpubEncode(msg.author, '')
+    const profile = npub ? profiles[npub] : undefined
+    const accountProfile = npub ? source.npubProfiles?.[npub] : undefined
+    const isCurrentDevice = npub === source.deviceNpub
+    const deviceDisplayName = isCurrentDevice
+      ? source.deviceDisplayName
+      : undefined
+    const devicePicture = isCurrentDevice ? source.devicePicture : undefined
+    const alias = npub ? (aliases[npub] ?? '').trim() : ''
+    const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
+    formattedNpubs.set(msg.author, {
+      alias: alias || undefined,
+      color,
+      displayName:
+        profile?.displayName ??
+        accountProfile?.displayName ??
+        deviceDisplayName,
+      npubShort,
+      picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
+    })
+  }
+
+  return formattedNpubs
 }
 
 const INITIAL_PAGE_SIZE = 50
@@ -120,9 +202,6 @@ export default function DevicesGroupChat() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [messageInput, setMessageInput] = useState('')
-  const [formattedNpubs, setFormattedNpubs] = useState<
-    Map<string, AuthorDisplayInfo>
-  >(new Map())
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
   )
@@ -158,6 +237,19 @@ export default function DevicesGroupChat() {
     [members]
   )
 
+  function markPendingDmSent(pendingId: string | null) {
+    if (!pendingId || !accountId) {
+      return
+    }
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    const dms = (current?.nostr?.dms ?? []).map((m) =>
+      m.id === pendingId ? { ...m, pending: false } : m
+    )
+    updateAccountNostr(accountId, { dms })
+  }
+
   async function handleSendMessage() {
     if (!messageInput.trim()) {
       toast.error(t('common.error.messageCannotBeEmpty'))
@@ -181,35 +273,17 @@ export default function DevicesGroupChat() {
     const trimmed = messageInput.trim()
     let pendingId: string | null = null
     try {
-      const decoded = nip19.decode(account.nostr.deviceNpub)
-      const devicePubkeyHex =
-        decoded?.type === 'npub' && typeof decoded.data === 'string'
-          ? decoded.data
-          : null
-      if (!devicePubkeyHex) {
+      const optimisticMessage = createPendingDm(
+        account.nostr.deviceNpub,
+        trimmed
+      )
+      if (!optimisticMessage) {
         toast.error(t('common.error.missingRequiredNostrConfig'))
         return
       }
-      const created_at = Math.floor(Date.now() / MS_PER_SECOND)
-      pendingId = `pending-${Date.now()}`
-      const optimisticMessage: NostrDM = {
-        author: devicePubkeyHex,
-        content: {
-          created_at,
-          description: trimmed,
-          pubkey: devicePubkeyHex
-        },
-        created_at,
-        description: trimmed,
-        event: '',
-        id: pendingId,
-        label: 1,
-        pending: true
-      }
+      pendingId = optimisticMessage.id
       updateAccountNostr(accountId, {
-        dms: [...(account.nostr?.dms ?? []), optimisticMessage].toSorted(
-          (a, b) => a.created_at - b.created_at
-        )
+        dms: appendDmSorted(account.nostr.dms, optimisticMessage)
       })
       setMessageInput('')
     } catch {
@@ -222,15 +296,7 @@ export default function DevicesGroupChat() {
       await sendDM(account, trimmed)
       // Mark as sent: many relays don't echo events back to the sender, so we
       // clear pending when publish succeeds instead of waiting for the echo.
-      if (pendingId && accountId) {
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        const dms = (current?.nostr?.dms ?? []).map((m) =>
-          m.id === pendingId ? { ...m, pending: false } : m
-        )
-        updateAccountNostr(accountId, { dms })
-      }
+      markPendingDmSent(pendingId)
     } catch {
       toast.error(t('common.error.failedToSendMessage'))
       if (pendingId && accountId) {
@@ -243,9 +309,8 @@ export default function DevicesGroupChat() {
         updateAccountNostr(accountId, { dms })
       }
       setMessageInput(trimmed)
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
   async function handleGoToSignFlowClick(messageContent: string) {
@@ -288,12 +353,11 @@ export default function DevicesGroupChat() {
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
     } catch {
       toast.error(t('account.nostrSync.failedToSendTransactionData'))
-    } finally {
-      setIsShareModalVisible(false)
-      setTransactionToShareLocal('')
-      setTransactionDataForModal(null)
-      setIsLoading(false)
     }
+    setIsShareModalVisible(false)
+    setTransactionToShareLocal('')
+    setTransactionDataForModal(null)
+    setIsLoading(false)
   }
 
   function handleCancelShare() {
@@ -302,62 +366,18 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
-  // Rebuild formatted display names whenever messages, members, profiles, or aliases change.
-  // We intentionally do NOT cache these by author in a ref because profiles can
-  // arrive after the initial render and we need to re-compute the display text.
-  useEffect(() => {
-    const newFormattedNpubs = new Map<string, AuthorDisplayInfo>()
-    const aliases = account?.nostr?.npubAliases ?? {}
-
-    for (const msg of memoizedMessages) {
-      if (!msg.author) {
-        continue
-      }
-      const color = getAuthorColor(msg.author, membersList)
-      let npub: string
-      try {
-        npub = nip19.npubEncode(msg.author)
-      } catch {
-        npub = ''
-      }
-      const profile = npub ? profiles[npub] : undefined
-      const accountProfile = npub
-        ? account?.nostr?.npubProfiles?.[npub]
-        : undefined
-      const isCurrentDevice = npub === account?.nostr?.deviceNpub
-      const deviceDisplayName = isCurrentDevice
-        ? account?.nostr?.deviceDisplayName
-        : undefined
-      const devicePicture = isCurrentDevice
-        ? account?.nostr?.devicePicture
-        : undefined
-      const alias = npub ? (aliases[npub] ?? '').trim() : ''
-      const npubShort = npub
-        ? formatNpubText(msg.author)
-        : msg.author.slice(0, 8)
-      newFormattedNpubs.set(msg.author, {
-        alias: alias || undefined,
-        color,
-        displayName:
-          profile?.displayName ??
-          accountProfile?.displayName ??
-          deviceDisplayName,
-        npubShort,
-        picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
-      })
-    }
-
-    setFormattedNpubs(newFormattedNpubs)
-  }, [
+  const formattedNpubs = buildFormattedNpubs(
     memoizedMessages,
     membersList,
     profiles,
-    account?.nostr?.npubAliases,
-    account?.nostr?.npubProfiles,
-    account?.nostr?.deviceNpub,
-    account?.nostr?.deviceDisplayName,
-    account?.nostr?.devicePicture
-  ])
+    {
+      deviceDisplayName: account?.nostr?.deviceDisplayName,
+      deviceNpub: account?.nostr?.deviceNpub,
+      devicePicture: account?.nostr?.devicePicture,
+      npubAliases: account?.nostr?.npubAliases,
+      npubProfiles: account?.nostr?.npubProfiles
+    }
+  )
 
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.
@@ -391,8 +411,9 @@ export default function DevicesGroupChat() {
 
         try {
           const api = new NostrAPI(relays)
-          const result = await api.fetchKind0(npub)
-          if (!result?.displayName && !result?.picture) {
+          const fetchedProfile = await api.fetchKind0(npub)
+          const result = kind0ProfileWithContent(fetchedProfile)
+          if (!result) {
             continue
           }
           setProfile(npub, {

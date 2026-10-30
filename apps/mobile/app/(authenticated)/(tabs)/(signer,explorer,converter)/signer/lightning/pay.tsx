@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
-import { useFonts } from 'expo-font'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import {
@@ -78,6 +77,27 @@ function onchainValidationMessage(
   return t('lightning.pay.invalidFee')
 }
 
+function isLightningPaymentInput(text: string) {
+  return text.toLowerCase().startsWith('lnbc') || isLNURL(text)
+}
+
+function resolveLnurlPayUrl(lnurl: string) {
+  return isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
+}
+
+function showLightningPaymentError(error: unknown) {
+  const fallback = t('lightning.pay.paymentFailed')
+  if (!(error instanceof Error)) {
+    toast.error(fallback)
+    return
+  }
+  if (error instanceof HttpStatusError && error.status === 404) {
+    toast.error(t('lightning.pay.paymentExpired'))
+    return
+  }
+  toast.error(error.message || fallback)
+}
+
 export default function PayPage() {
   const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
     useDisplayPreferences()
@@ -93,10 +113,6 @@ export default function PayPage() {
     sendCoins,
     verifyConnection
   } = useLND()
-
-  const [fontsLoaded] = useFonts({
-    'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
-  })
 
   const [paymentRequest, setPaymentRequest] = useState('')
   const [amount, setAmount] = useState('')
@@ -135,7 +151,7 @@ export default function PayPage() {
     detailsRequestId.current = requestId
     setIsFetchingDetails(true)
     try {
-      const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
+      const url = resolveLnurlPayUrl(lnurl)
       const details = await fetchLNURLPayDetails(url)
       if (requestId !== detailsRequestId.current) {
         return
@@ -148,10 +164,9 @@ export default function PayPage() {
         return
       }
       setLNURLDetails(null)
-    } finally {
-      if (requestId === detailsRequestId.current) {
-        setIsFetchingDetails(false)
-      }
+    }
+    if (requestId === detailsRequestId.current) {
+      setIsFetchingDetails(false)
     }
   }
 
@@ -167,16 +182,14 @@ export default function PayPage() {
         return null
       }
       setDecodedInvoice(response)
+      setIsFetchingDetails(false)
       return response
     } catch {
       if (requestId === detailsRequestId.current) {
         setDecodedInvoice(null)
-      }
-      return null
-    } finally {
-      if (requestId === detailsRequestId.current) {
         setIsFetchingDetails(false)
       }
+      return null
     }
   }
 
@@ -245,50 +258,44 @@ export default function PayPage() {
 
     setIsProcessing(true)
     try {
-      if (isLNURLMode) {
-        const amountSats = parsePositiveSats(amount)
-        if (amountSats === null) {
-          toast.error(t('lightning.pay.validAmount'))
-          setIsProcessing(false)
-          return
-        }
-        const invoice = await handleLNURLPay(
-          paymentRequest,
-          amountSats,
-          comment || undefined
-        )
-        await payInvoice(invoice)
-      } else if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
-        const amountSats = parsePositiveSats(amount)
-        if (amountSats === null) {
-          toast.error(t('lightning.pay.validAmount'))
-          setIsProcessing(false)
-          return
-        }
-        await payInvoice(paymentRequest, amountSats)
-      } else {
-        await payInvoice(paymentRequest)
-      }
-      toast.success(t('lightning.pay.paymentSent'))
-      const { pendingZap, setZapResult } = useZapFlowStore.getState()
-      if (pendingZap) {
-        setZapResult('success')
-      }
-      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
+      await sendLightningPayment()
     } catch (error) {
-      const fallback = t('lightning.pay.paymentFailed')
-      if (!(error instanceof Error)) {
-        toast.error(fallback)
-        return
-      }
-      if (error instanceof HttpStatusError && error.status === 404) {
-        toast.error(t('lightning.pay.paymentExpired'))
-        return
-      }
-      toast.error(error.message || fallback)
-    } finally {
-      setIsProcessing(false)
+      showLightningPaymentError(error)
     }
+    setIsProcessing(false)
+  }
+
+  const sendLightningPayment = async () => {
+    if (isLNURLMode) {
+      const amountSats = parsePositiveSats(amount)
+      if (amountSats === null) {
+        toast.error(t('lightning.pay.validAmount'))
+        setIsProcessing(false)
+        return
+      }
+      const invoice = await handleLNURLPay(
+        paymentRequest,
+        amountSats,
+        comment || undefined
+      )
+      await payInvoice(invoice)
+    } else if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
+      const amountSats = parsePositiveSats(amount)
+      if (amountSats === null) {
+        toast.error(t('lightning.pay.validAmount'))
+        setIsProcessing(false)
+        return
+      }
+      await payInvoice(paymentRequest, amountSats)
+    } else {
+      await payInvoice(paymentRequest)
+    }
+    toast.success(t('lightning.pay.paymentSent'))
+    const { pendingZap, setZapResult } = useZapFlowStore.getState()
+    if (pendingZap) {
+      setZapResult('success')
+    }
+    setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
   }
 
   const handleContentScanned = (content: DetectedContent) => {
@@ -304,7 +311,7 @@ export default function PayPage() {
     }
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
-    if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
+    if (isLightningPaymentInput(cleanText)) {
       handlePaymentRequestChange(cleanText)
     } else {
       toast.error(t('lightning.pay.invalidQr'))
@@ -331,7 +338,7 @@ export default function PayPage() {
         return
       }
 
-      if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
+      if (isLightningPaymentInput(cleanText)) {
         await handlePaymentRequestChange(cleanText)
       } else {
         toast.error(t('lightning.pay.invalidClipboard'))
@@ -396,9 +403,8 @@ export default function PayPage() {
       toast.error(
         `${t('lightning.pay.sendFailed')}: ${getLndErrorMessage(error)}`
       )
-    } finally {
-      setIsProcessing(false)
     }
+    setIsProcessing(false)
   }
 
   const isAmountlessInvoice =
@@ -413,8 +419,7 @@ export default function PayPage() {
   const inboundClean = inboundValue
     ? inboundValue.trim().replace(/^lightning:/i, '')
     : ''
-  const inboundEnabled =
-    inboundClean.toLowerCase().startsWith('lnbc') || isLNURL(inboundClean)
+  const inboundEnabled = isLightningPaymentInput(inboundClean)
 
   useQuery({
     enabled: inboundEnabled,
@@ -424,10 +429,6 @@ export default function PayPage() {
     },
     queryKey: ['lnd', 'pay-inbound', inboundClean]
   })
-
-  if (!fontsLoaded) {
-    return null
-  }
 
   return (
     <>
@@ -735,7 +736,7 @@ const styles = StyleSheet.create({
     padding: 12
   },
   monospaceInput: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5
   },

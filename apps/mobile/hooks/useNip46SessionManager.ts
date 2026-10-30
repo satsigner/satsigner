@@ -155,6 +155,7 @@ export function useNip46SessionManager() {
     }
 
     updateSession(session.id, { connectionStatus: 'connecting' })
+    const connectSecret = session.secret ?? ''
 
     try {
       const service = new Nip46BunkerService()
@@ -218,7 +219,7 @@ export function useNip46SessionManager() {
 
       const connectPayload = buildNip46ResponsePayload(
         'connect',
-        session.secret ?? '',
+        connectSecret,
         null
       )
       await service.sendResponse(

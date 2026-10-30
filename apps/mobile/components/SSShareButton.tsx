@@ -32,10 +32,11 @@ function SSShareButton({
   ...props
 }: SSShareButtonProps) {
   async function handleShare() {
+    const shareDialogTitle = dialogTitle ?? t('common.share')
     if (qrRef) {
       try {
         await shareViewAsImage({
-          dialogTitle: dialogTitle ?? t('common.share'),
+          dialogTitle: shareDialogTitle,
           viewRef: qrRef
         })
       } catch {
@@ -45,7 +46,7 @@ function SSShareButton({
     }
     if (type === 'image') {
       await shareImage({
-        dialogTitle: dialogTitle ?? t('common.share'),
+        dialogTitle: shareDialogTitle,
         uri: content
       })
       return

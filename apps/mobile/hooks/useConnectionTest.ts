@@ -35,13 +35,9 @@ export function useConnectionTest() {
     setLastTestTime(now)
     setTesting(true)
 
-    try {
-      return await probeConnection({ backend, network, rpcCredentials, url })
-    } catch (error) {
-      return toConnectionTestFailure(error, proxy)
-    } finally {
-      setTesting(false)
-    }
+    return await probeConnection({ backend, network, rpcCredentials, url })
+      .catch((error: unknown) => toConnectionTestFailure(error, proxy))
+      .finally(() => setTesting(false))
   }
 
   return {

@@ -13,13 +13,13 @@ import {
 import Animated, {
   Extrapolation,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import SSText from '@/components/SSText'
 import { Colors } from '@/styles'
@@ -87,7 +87,7 @@ function SSFullscreenImageViewerContent({
           const h = windowHeightSV.value
           dismissY.value = withTiming(-h, { duration: 220 }, (finished) => {
             if (finished) {
-              runOnJS(onClose)()
+              scheduleOnRN(onClose)
             }
           })
         } else {

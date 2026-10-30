@@ -81,6 +81,18 @@ function isPrefixWord(word: string, wordList: string[]): boolean {
   return wordList.some((w) => w.startsWith(word) && w !== word)
 }
 
+async function runActionWithLoading(
+  action: SSSeedWordsInputProps['onActionButtonPress'],
+  setLoading: (loading: boolean) => void
+) {
+  setLoading(true)
+  try {
+    await action?.()
+  } finally {
+    setLoading(false)
+  }
+}
+
 export default function SSSeedWordsInput({
   wordCount,
   wordListName,
@@ -581,14 +593,9 @@ export default function SSSeedWordsInput({
               actionButtonDisabled || (!checksumValid && !electrumSeedType)
             }
             loading={actionButtonLoading}
-            onPress={async () => {
-              setActionButtonLoading(true)
-              try {
-                await onActionButtonPress?.()
-              } finally {
-                setActionButtonLoading(false)
-              }
-            }}
+            onPress={() =>
+              runActionWithLoading(onActionButtonPress, setActionButtonLoading)
+            }
           />
         )}
         {showCancelButton && (

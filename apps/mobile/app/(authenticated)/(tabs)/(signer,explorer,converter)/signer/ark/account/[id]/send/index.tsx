@@ -35,11 +35,7 @@ export default function ArkSendEntryPage() {
 
   async function handleContinue() {
     setIsValidating(true)
-    try {
-      await processDestination(destination)
-    } finally {
-      setIsValidating(false)
-    }
+    await processDestination(destination).finally(() => setIsValidating(false))
   }
 
   return (

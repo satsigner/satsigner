@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   hexField: {
     color: Colors.white,
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     minHeight: 120,
     padding: 0,

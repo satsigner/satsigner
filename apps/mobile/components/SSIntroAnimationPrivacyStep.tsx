@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native'
 import Animated, {
   cancelAnimation,
   Easing,
-  runOnJS,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -12,6 +11,7 @@ import Animated, {
   withSequence,
   withTiming
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import { Colors } from '@/styles'
 
@@ -259,7 +259,7 @@ function PrivacyRainClusterSlot({
           },
           (finished) => {
             if (finished) {
-              runOnJS(scheduleAfterGap)()
+              scheduleOnRN(scheduleAfterGap)
             }
           }
         )

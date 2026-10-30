@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   phoneLayerBtnText: {
     color: 'rgba(255,255,255,0.82)',
-    fontFamily: Typography.sfProTextLight,
+    fontFamily: Typography.geistLight,
     fontSize: 16,
     letterSpacing: 3,
     textTransform: 'uppercase'

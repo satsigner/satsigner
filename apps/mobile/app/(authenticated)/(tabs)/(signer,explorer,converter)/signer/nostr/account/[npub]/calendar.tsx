@@ -35,6 +35,15 @@ function formatEventDate(unixTs: number): string {
   })
 }
 
+async function fetchCalendarEvents(relays: string[], npub: string) {
+  const api = new NostrAPI(relays)
+  try {
+    return await api.fetchCalendarEvents(npub)
+  } finally {
+    api.disconnect()
+  }
+}
+
 export default function NostrCalendar() {
   const { npub } = useLocalSearchParams<CalendarParams>()
 
@@ -55,14 +64,7 @@ export default function NostrCalendar() {
     isError
   } = useQuery({
     enabled: !!npub && relayConnected && relaysAvailable,
-    queryFn: async () => {
-      const api = new NostrAPI(effectiveRelays)
-      try {
-        return await api.fetchCalendarEvents(npub)
-      } finally {
-        api.disconnect()
-      }
-    },
+    queryFn: () => fetchCalendarEvents(effectiveRelays, npub),
     queryKey: ['nostr', 'calendar', npub],
     staleTime: 5 * 60_000
   })

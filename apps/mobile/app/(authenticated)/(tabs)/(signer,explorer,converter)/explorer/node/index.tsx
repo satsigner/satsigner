@@ -9,12 +9,13 @@ import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { formatDate, formatTime, formatTimeFromNow } from '@/utils/format'
 
 const tn = _tn('explorer.node')
@@ -31,12 +32,13 @@ export default function ExplorerNode() {
   const { data: serverInfo, isLoading: isLoadingInfo } = useBackendServerInfo()
   const { data: bitnodesInfo, isLoading: isLoadingBitnodes } =
     useBitnodesNodeInfo(showExternal)
+  const nowMs = useNow()
 
   const showServerInfo =
     server.backend === 'electrum' || server.backend === 'rpc'
 
   function formatBlockAge(timestampSeconds: number): string {
-    const elapsedMs = Date.now() - timestampSeconds * MS_PER_SECOND
+    const elapsedMs = nowMs - timestampSeconds * MS_PER_SECOND
     const [value, unit] = formatTimeFromNow(elapsedMs)
     const floored = Math.floor(value)
     if (unit === 'second') {
@@ -284,11 +286,14 @@ function Row({
 const styles = StyleSheet.create({
   bannerText: {
     color: Colors.gray['300'],
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     marginTop: 2
   },
   container: { paddingTop: 0 },
-  hashText: { color: Colors.gray['100'], fontFamily: 'monospace' },
+  hashText: {
+    color: Colors.gray['100'],
+    fontFamily: Typography.geistMonoRegular
+  },
   inlineLoading: {
     alignItems: 'center',
     paddingVertical: 24

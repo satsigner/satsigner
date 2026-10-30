@@ -41,7 +41,7 @@ function SSNumberGhostInput({
           allowDecimal={allowDecimal}
           onBlur={() => setIsEditing(false)}
           style={{
-            fontFamily: Typography.sfProTextLight,
+            fontFamily: Typography.geistLight,
             fontSize: Sizes.text.fontSize['5xl'],
             height: 72
           }}

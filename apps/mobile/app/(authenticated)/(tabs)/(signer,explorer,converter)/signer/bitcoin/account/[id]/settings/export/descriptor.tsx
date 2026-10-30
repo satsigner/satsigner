@@ -81,9 +81,8 @@ export default function DescriptorPage() {
       await getDescriptor()
     } catch {
       toast.error('Failed to get descriptor')
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }, [account, keyIndex])
 
   function exportDescriptor() {
