@@ -62,6 +62,16 @@ export function useNostrPollVote({
       : []
 
   const userPollVoteKey = userPollVoteIds.join('|')
+  const multipleChoiceVoteKey =
+    pollInfo?.pollType === 'multiplechoice' ? userPollVoteKey : ''
+  const [syncedVoteKey, setSyncedVoteKey] = useState(multipleChoiceVoteKey)
+  if (syncedVoteKey !== multipleChoiceVoteKey) {
+    setSyncedVoteKey(multipleChoiceVoteKey)
+    if (multipleChoiceVoteKey.length > 0) {
+      setPollMultipleSelection(multipleChoiceVoteKey.split('|'))
+    }
+  }
+
   const loadGenerationRef = useRef(0)
 
   useEffect(() => {
@@ -96,16 +106,6 @@ export function useNostrPollVote({
 
     void loadPollResponses()
   }, [enabled, eventId, ownPubkeys, pollInfo, relays])
-
-  useEffect(() => {
-    if (
-      pollInfo?.pollType !== 'multiplechoice' ||
-      userPollVoteKey.length === 0
-    ) {
-      return
-    }
-    setPollMultipleSelection(userPollVoteKey.split('|'))
-  }, [pollInfo?.pollType, userPollVoteKey])
 
   async function submitPollVote(optionIds: string[]) {
     if (

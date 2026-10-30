@@ -447,10 +447,14 @@ function SSNostrFeedTabs({
     setZapsLoading(false)
   }
 
-  function resetAllFeedState() {
+  function resetFeedFetchTracking() {
     notesFetchedRef.current = false
     feedFetchedRef.current = false
     zapsFetchedRef.current = false
+    feedKind0FetchedRef.current.clear()
+  }
+
+  function resetFeedState() {
     setNotes([])
     setFeedNotes([])
     setZaps([])
@@ -459,42 +463,58 @@ function SSNostrFeedTabs({
     setZapsHasMore(true)
     setFeedFollowingEmpty(false)
     setFeedAuthorKind0({})
-    feedKind0FetchedRef.current.clear()
     setPrivateBookmarkIds(new Set())
     setNoteResolvedEvents(new Map())
     setFeedResolvedEvents(new Map())
   }
 
-  useEffect(() => {
+  const [prevRelayConnected, setPrevRelayConnected] = useState(relayConnected)
+  if (prevRelayConnected !== relayConnected) {
+    setPrevRelayConnected(relayConnected)
     if (!relayConnected) {
-      resetAllFeedState()
+      resetFeedState()
       setNotesLoading(false)
       setFeedLoading(false)
       setZapsLoading(false)
     }
+  }
+
+  useEffect(() => {
+    if (!relayConnected) {
+      resetFeedFetchTracking()
+    }
   }, [relayConnected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    resetAllFeedState()
+    resetFeedFetchTracking()
+    resetFeedState()
   }, [npub]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
+  function selectNotesKindFilter(filterId: string) {
+    if (filterId === notesKindFilterId) {
+      return
+    }
     notesFetchedRef.current = false
     setNotes([])
     setNotesHasMore(true)
     setNoteResolvedEvents(new Map())
-    setNotesExcludeReplies(notesKindFilterId === 'short_text')
-  }, [notesKindFilterId])
+    setNotesExcludeReplies(filterId === 'short_text')
+    setNotesKindFilterId(filterId)
+  }
 
-  useEffect(() => {
+  function selectFeedKindFilter(filterId: string) {
+    if (filterId === feedKindFilterId) {
+      return
+    }
     feedFetchedRef.current = false
     setFeedNotes([])
     setFeedHasMore(true)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
     setFeedResolvedEvents(new Map())
-    setFeedExcludeReplies(feedKindFilterId === 'short_text')
-  }, [feedKindFilterId])
+    setFeedExcludeReplies(filterId === 'short_text')
+    setFeedKindFilterId(filterId)
+  }
 
   const notesKindOpt = NOSTR_NOTE_FILTER_OPTIONS.find(
     (o) => o.id === notesKindFilterId
@@ -1067,7 +1087,7 @@ function SSNostrFeedTabs({
         onClose={closeNotesKindSheet}
         options={NOSTR_NOTE_FILTER_OPTIONS}
         selectedId={notesKindFilterId}
-        onSelect={setNotesKindFilterId}
+        onSelect={selectNotesKindFilter}
       />
 
       <SSNostrKindFilterSheet
@@ -1075,7 +1095,7 @@ function SSNostrFeedTabs({
         onClose={closeFeedKindSheet}
         options={FEED_KIND_FILTER_OPTIONS}
         selectedId={feedKindFilterId}
-        onSelect={setFeedKindFilterId}
+        onSelect={selectFeedKindFilter}
       />
     </SSVStack>
   )

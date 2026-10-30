@@ -182,13 +182,11 @@ export default function NostrSync() {
     stopSync
   } = useNostrSync()
 
-  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
+  const selectedMembers = new Set(account?.nostr?.trustedMemberDevices)
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [commonNsec, setCommonNsec] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
-  const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [relayConnectionStatuses, setRelayConnectionStatuses] = useState<
     Record<string, 'connected' | 'connecting' | 'disconnected'>
@@ -197,13 +195,19 @@ export default function NostrSync() {
   const [clearCachesModalVisible, setClearCachesModalVisible] = useState(false)
   const [syncingMessageIndex, setSyncingMessageIndex] = useState(0)
   const syncingMessage = SYNCING_MESSAGE_KEYS[syncingMessageIndex]
+  const [wasSyncing, setWasSyncing] = useState(isSyncing)
+  if (wasSyncing !== isSyncing) {
+    setWasSyncing(isSyncing)
+    if (!isSyncing) {
+      setSyncingMessageIndex(0)
+    }
+  }
 
   const [trustMemberModalVisible, setTrustMemberModalVisible] = useState(false)
   const [trustMember, setTrustMember] = useState('')
 
   useEffect(() => {
     if (!isSyncing) {
-      setSyncingMessageIndex(0)
       return
     }
     const interval = setInterval(() => {
@@ -226,9 +230,17 @@ export default function NostrSync() {
     [accountId]
   )
 
+  if (account?.nostr?.deviceNsec && account.nostr.deviceNpub && !deviceNpub) {
+    setDeviceNsec(account.nostr.deviceNsec)
+    setDeviceNpub(account.nostr.deviceNpub)
+  }
+
   // Prefer store for device keys so we show updated values immediately after saving on manage-keys page (no stale local state)
   const displayDeviceNpub = account?.nostr?.deviceNpub ?? deviceNpub
   const displayDeviceNsec = account?.nostr?.deviceNsec ?? deviceNsec
+  const deviceColor = displayDeviceNpub
+    ? generateColorFromNpub(displayDeviceNpub)
+    : NOSTR_FALLBACK_NPUB_COLOR
   const deviceKind0Picture =
     account?.nostr?.devicePicture ??
     (displayDeviceNpub &&
@@ -250,7 +262,6 @@ export default function NostrSync() {
     }
     setDeviceNsec(account.nostr.deviceNsec)
     setDeviceNpub(account.nostr.deviceNpub)
-    setDeviceColor(generateColorFromNpub(account.nostr.deviceNpub))
   })
 
   const testRelaySync = async (relays: string[]) => {
@@ -341,7 +352,6 @@ export default function NostrSync() {
       clearNostrState(accountId)
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
-      setSelectedMembers(new Set())
       setSelectedRelays([])
       setRelayConnectionStatuses({})
       previousRelaysRef.current = []
@@ -605,12 +615,6 @@ export default function NostrSync() {
     const isCurrentlyTrusted = selectedMembers.has(npub)
 
     if (isCurrentlyTrusted) {
-      setSelectedMembers((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(npub)
-        return newSet
-      })
-
       updateAccountNostr(accountId, {
         lastUpdated: new Date(),
         trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
@@ -618,8 +622,6 @@ export default function NostrSync() {
         )
       })
     } else {
-      setSelectedMembers((prev) => new Set([...prev, npub]))
-
       updateAccountNostr(accountId, {
         lastUpdated: new Date(),
         trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
@@ -705,7 +707,6 @@ export default function NostrSync() {
       })
       setDeviceNsec(keys.nsec)
       setDeviceNpub(keys.npub)
-      setDeviceColor(generateColorFromNpub(keys.npub))
     } catch {
       toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
     }
@@ -713,18 +714,6 @@ export default function NostrSync() {
   }
 
   // Effects – use stable deps so we don't re-run on every account ref change
-  const trustedDevicesKey = JSON.stringify(
-    account?.nostr?.trustedMemberDevices ?? []
-  )
-  useEffect(() => {
-    const acc = useAccountsStore
-      .getState()
-      .accounts.find((a) => a.id === accountId)
-    if (acc?.nostr?.trustedMemberDevices) {
-      setSelectedMembers(new Set(acc.nostr.trustedMemberDevices))
-    }
-  }, [accountId, members, trustedDevicesKey])
-
   const loadCommonKeysOnMount = useEffectEvent(() => {
     if (!account || !accountId) {
       return
@@ -748,9 +737,6 @@ export default function NostrSync() {
       !!account.nostr.commonNsec && !!account.nostr.commonNpub
 
     if (hasCommonKeys) {
-      if (!commonNsec) {
-        setCommonNsec(account.nostr.commonNsec)
-      }
       return
     }
 
@@ -758,7 +744,6 @@ export default function NostrSync() {
       try {
         const keys = await generateCommonNostrKeys(account)
         if (hasCommonNostrKeys(keys)) {
-          setCommonNsec(keys.commonNsec)
           updateAccountNostr(accountId, {
             commonNpub: keys.commonNpub,
             commonNsec: keys.commonNsec
@@ -779,38 +764,21 @@ export default function NostrSync() {
   }, [])
 
   useEffect(() => {
-    if (!account || !accountId) {
+    if (!account || !accountId || account.nostr) {
       return
     }
 
-    if (!account.nostr) {
-      updateAccountNostr(accountId, {
-        autoSync: false,
-        commonNpub: '',
-        commonNsec: '',
-        deviceNpub: '',
-        deviceNsec: '',
-        dms: [],
-        relays: [],
-        trustedMemberDevices: []
-      })
-      return
-    }
-
-    if (account.nostr.deviceNsec && account.nostr.deviceNpub && !deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      setDeviceColor(generateColorFromNpub(account.nostr.deviceNpub))
-    }
-  }, [account, accountId, deviceNpub, updateAccountNostr])
-
-  useEffect(() => {
-    if (displayDeviceNpub) {
-      setDeviceColor(generateColorFromNpub(displayDeviceNpub))
-    } else {
-      setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
-    }
-  }, [displayDeviceNpub])
+    updateAccountNostr(accountId, {
+      autoSync: false,
+      commonNpub: '',
+      commonNsec: '',
+      deviceNpub: '',
+      deviceNsec: '',
+      dms: [],
+      relays: [],
+      trustedMemberDevices: []
+    })
+  }, [account, accountId, updateAccountNostr])
 
   const hasNostr = !!account?.nostr
   const relayCount = account?.nostr?.relays?.length ?? 0

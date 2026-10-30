@@ -32,7 +32,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrDM } from '@/types/models/Nostr'
+import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
@@ -103,6 +103,54 @@ function appendDmSorted(dms: NostrDM[] | undefined, dm: NostrDM) {
   return [...(dms ?? []), dm].toSorted((a, b) => a.created_at - b.created_at)
 }
 
+type AuthorDisplaySource = Pick<
+  NostrAccount,
+  | 'deviceDisplayName'
+  | 'deviceNpub'
+  | 'devicePicture'
+  | 'npubAliases'
+  | 'npubProfiles'
+>
+
+function buildFormattedNpubs(
+  messages: NostrDM[],
+  members: { npub: string; color: string }[],
+  profiles: ReturnType<typeof useNostrStore.getState>['profiles'],
+  source: AuthorDisplaySource
+) {
+  const formattedNpubs = new Map<string, AuthorDisplayInfo>()
+  const aliases = source.npubAliases ?? {}
+
+  for (const msg of messages) {
+    if (!msg.author) {
+      continue
+    }
+    const color = getAuthorColor(msg.author, members)
+    const npub = safeNpubEncode(msg.author, '')
+    const profile = npub ? profiles[npub] : undefined
+    const accountProfile = npub ? source.npubProfiles?.[npub] : undefined
+    const isCurrentDevice = npub === source.deviceNpub
+    const deviceDisplayName = isCurrentDevice
+      ? source.deviceDisplayName
+      : undefined
+    const devicePicture = isCurrentDevice ? source.devicePicture : undefined
+    const alias = npub ? (aliases[npub] ?? '').trim() : ''
+    const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
+    formattedNpubs.set(msg.author, {
+      alias: alias || undefined,
+      color,
+      displayName:
+        profile?.displayName ??
+        accountProfile?.displayName ??
+        deviceDisplayName,
+      npubShort,
+      picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
+    })
+  }
+
+  return formattedNpubs
+}
+
 const INITIAL_PAGE_SIZE = 50
 const PAGE_SIZE = 50
 const SCROLL_THRESHOLD = 40
@@ -154,9 +202,6 @@ export default function DevicesGroupChat() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [messageInput, setMessageInput] = useState('')
-  const [formattedNpubs, setFormattedNpubs] = useState<
-    Map<string, AuthorDisplayInfo>
-  >(new Map())
   const [visibleComponents, setVisibleComponents] = useState(
     new Map<string, { sankey: boolean; status: boolean }>()
   )
@@ -321,62 +366,18 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
-  // Rebuild formatted display names whenever messages, members, profiles, or aliases change.
-  // We intentionally do NOT cache these by author in a ref because profiles can
-  // arrive after the initial render and we need to re-compute the display text.
-  useEffect(() => {
-    const newFormattedNpubs = new Map<string, AuthorDisplayInfo>()
-    const aliases = account?.nostr?.npubAliases ?? {}
-
-    for (const msg of memoizedMessages) {
-      if (!msg.author) {
-        continue
-      }
-      const color = getAuthorColor(msg.author, membersList)
-      let npub: string
-      try {
-        npub = nip19.npubEncode(msg.author)
-      } catch {
-        npub = ''
-      }
-      const profile = npub ? profiles[npub] : undefined
-      const accountProfile = npub
-        ? account?.nostr?.npubProfiles?.[npub]
-        : undefined
-      const isCurrentDevice = npub === account?.nostr?.deviceNpub
-      const deviceDisplayName = isCurrentDevice
-        ? account?.nostr?.deviceDisplayName
-        : undefined
-      const devicePicture = isCurrentDevice
-        ? account?.nostr?.devicePicture
-        : undefined
-      const alias = npub ? (aliases[npub] ?? '').trim() : ''
-      const npubShort = npub
-        ? formatNpubText(msg.author)
-        : msg.author.slice(0, 8)
-      newFormattedNpubs.set(msg.author, {
-        alias: alias || undefined,
-        color,
-        displayName:
-          profile?.displayName ??
-          accountProfile?.displayName ??
-          deviceDisplayName,
-        npubShort,
-        picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
-      })
-    }
-
-    setFormattedNpubs(newFormattedNpubs)
-  }, [
+  const formattedNpubs = buildFormattedNpubs(
     memoizedMessages,
     membersList,
     profiles,
-    account?.nostr?.npubAliases,
-    account?.nostr?.npubProfiles,
-    account?.nostr?.deviceNpub,
-    account?.nostr?.deviceDisplayName,
-    account?.nostr?.devicePicture
-  ])
+    {
+      deviceDisplayName: account?.nostr?.deviceDisplayName,
+      deviceNpub: account?.nostr?.deviceNpub,
+      devicePicture: account?.nostr?.devicePicture,
+      npubAliases: account?.nostr?.npubAliases,
+      npubProfiles: account?.nostr?.npubProfiles
+    }
+  )
 
   // Fetch kind0 profiles for authors we haven't resolved yet.
   // Fire-and-forget: results land in the persisted nostr store.

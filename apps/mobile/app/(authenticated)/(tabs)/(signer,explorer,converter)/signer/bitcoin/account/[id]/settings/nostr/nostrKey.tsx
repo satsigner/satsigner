@@ -96,7 +96,9 @@ function NostrKeys() {
     [deviceNsec]
   )
 
-  const [deviceColor, setDeviceColor] = useState(NOSTR_FALLBACK_NPUB_COLOR)
+  const deviceColor = derivedNpub
+    ? generateColorFromNpub(derivedNpub)
+    : NOSTR_FALLBACK_NPUB_COLOR
   const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
   const deviceNpubForProfile = account?.nostr?.deviceNpub ?? derivedNpub
   const [kind0Profile, setKind0Profile] = useState<NostrKind0Profile | null>(
@@ -116,14 +118,6 @@ function NostrKeys() {
     }
   )
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
-
-  useEffect(() => {
-    if (derivedNpub) {
-      setDeviceColor(generateColorFromNpub(derivedNpub))
-    } else {
-      setDeviceColor(NOSTR_FALLBACK_NPUB_COLOR)
-    }
-  }, [derivedNpub])
 
   const storedDeviceNsec = account?.nostr?.deviceNsec ?? ''
   useEffect(() => {

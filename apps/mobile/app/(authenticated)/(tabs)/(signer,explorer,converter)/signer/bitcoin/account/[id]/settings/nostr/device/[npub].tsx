@@ -93,11 +93,14 @@ export default function DeviceAliasPage() {
   const memberProfile =
     npub && (displayName || picture) ? { displayName, picture } : undefined
 
-  const currentAlias =
-    npub && account?.nostr?.npubAliases?.[npub]
-      ? account.nostr.npubAliases[npub]
-      : ''
+  const npubAliases = account?.nostr?.npubAliases
+  const currentAlias = npub && npubAliases?.[npub] ? npubAliases[npub] : ''
   const [alias, setAlias] = useState(currentAlias)
+  const [aliasSource, setAliasSource] = useState({ npub, npubAliases })
+  if (aliasSource.npub !== npub || aliasSource.npubAliases !== npubAliases) {
+    setAliasSource({ npub, npubAliases })
+    setAlias(currentAlias)
+  }
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
@@ -174,14 +177,6 @@ export default function DeviceAliasPage() {
     updateAccountNostr(accountId, payload)
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
-
-  useEffect(() => {
-    const aliasValue =
-      npub && account?.nostr?.npubAliases?.[npub]
-        ? account.nostr.npubAliases[npub]
-        : ''
-    setAlias(aliasValue)
-  }, [npub, account?.nostr?.npubAliases])
 
   function handleSave() {
     if (!accountId || !account?.nostr || !npub) {
