@@ -181,14 +181,12 @@ export default function PublicKeyPage() {
   }
 
   useAsyncEffect(async () => {
-    try {
-      setIsLoading(true)
-      await getPublicKey()
-    } catch {
-      toast.error('Failed to get public key')
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    await getPublicKey()
+      .catch(() => {
+        toast.error('Failed to get public key')
+      })
+      .finally(() => setIsLoading(false))
   }, [keyIndex, network, selectedFormat, convertPublicKeyFormat])
 
   useEffect(() => {
