@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   Animated,
   Easing,
@@ -196,7 +196,7 @@ export default function NodeDetailPage() {
     refetch: refetchDashboard
   } = useLndNodeDashboard(includeOpenInvoices)
 
-  const animationValue = useRef(new Animated.Value(0)).current
+  const [animationValue] = useState(() => new Animated.Value(0))
 
   const tabs = [
     { key: 'transactions' },

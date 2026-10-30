@@ -43,6 +43,12 @@ const tn = _tn('converter.energy')
 const BTC_UNIT = 'BTC'
 const BLOCK_SIZE_UNIT = 'MB'
 
+const MINING_ADDRESS_PREFIXES = ['bcrt1', 'bcrt', 'bc1', 'bc', 'tb1', 'tb']
+
+function hasMiningAddressPrefix(address: string) {
+  return MINING_ADDRESS_PREFIXES.some((prefix) => address.startsWith(prefix))
+}
+
 type Scalar = number | string | boolean
 type RpcRequestBody = {
   [key: string]: Scalar | Scalar[] | RpcRequestBody | RpcRequestBody[]
@@ -378,7 +384,10 @@ export default function Energy() {
   const [blockTemplate, setBlockTemplate] =
     useState<EnergyBlockTemplate | null>(null)
   const [connectionError, setConnectionError] = useState('')
-  const [difficultyProgress, setDifficultyProgress] = useState(0)
+  const difficultyProgress = blockchainInfo
+    ? (blockchainInfo.blocks % DIFFICULTY_ADJUSTMENT_INTERVAL) /
+      DIFFICULTY_ADJUSTMENT_INTERVAL
+    : 0
   const [energyRate, setEnergyRate] = useState('0')
 
   const [isConnected, setIsConnected] = useState(false)
@@ -388,7 +397,7 @@ export default function Energy() {
   const [isLoadingTx, setIsLoadingTx] = useState(false)
   const [isMining, setIsMining] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
-  const [isValidAddress, setIsValidAddress] = useState(false)
+  const isValidAddress = hasMiningAddressPrefix(miningAddress)
 
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
@@ -554,18 +563,6 @@ export default function Energy() {
   }, [isConnected, fetchBlockchainInfo]) // Dependencies for the effect
 
   useEffect(() => {
-    if (blockchainInfo) {
-      // Calculate progress of current difficulty adjustment period
-      const blocksInPeriod = DIFFICULTY_ADJUSTMENT_INTERVAL
-      const currentBlock = blockchainInfo.blocks
-      const blocksInCurrentPeriod = currentBlock % blocksInPeriod
-      const progress = blocksInCurrentPeriod / blocksInPeriod
-
-      setDifficultyProgress(progress)
-    }
-  }, [blockchainInfo])
-
-  useEffect(() => {
     if (isConnected) {
       fetchBlockTemplate()
 
@@ -591,20 +588,6 @@ export default function Energy() {
     },
     []
   )
-
-  useEffect(() => {
-    if (miningAddress) {
-      const isValid =
-        miningAddress.startsWith('bcrt1') ||
-        miningAddress.startsWith('bcrt') ||
-        miningAddress.startsWith('bc1') ||
-        miningAddress.startsWith('bc') ||
-        miningAddress.startsWith('tb1') ||
-        miningAddress.startsWith('tb')
-
-      setIsValidAddress(isValid)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const connectToNode = async () => {
     if (!rpcUrl || !rpcUsername || !rpcPassword) {
@@ -939,19 +922,6 @@ export default function Energy() {
     },
     [fetchRpc, createCoinbaseTransaction, createBlockHeader]
   )
-
-  const handleMiningAddressChange = (address: string) => {
-    const isValid =
-      address.startsWith('bcrt1') ||
-      address.startsWith('bcrt') ||
-      address.startsWith('bc1') ||
-      address.startsWith('bc') ||
-      address.startsWith('tb1') ||
-      address.startsWith('tb')
-
-    setMiningAddress(address)
-    setIsValidAddress(isValid)
-  }
 
   const startMining = useCallback(async () => {
     if (!blockTemplate || !miningAddress) {
@@ -1628,7 +1598,7 @@ export default function Energy() {
                 <SSTextInput
                   placeholder={tn('params.addressPlaceholder')}
                   value={miningAddress}
-                  onChangeText={handleMiningAddressChange}
+                  onChangeText={setMiningAddress}
                   variant="outline"
                   align="center"
                   style={

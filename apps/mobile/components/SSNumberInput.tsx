@@ -64,15 +64,14 @@ function SSNumberInput({
   ]
 
   const [localValue, setLocalValue] = useState(value || '')
+  const [syncedFrom, setSyncedFrom] = useState({ focused, value })
 
-  useEffect(() => {
-    if (focused) {
-      return
-    }
-    if (value !== localValue) {
+  if (syncedFrom.focused !== focused || syncedFrom.value !== value) {
+    setSyncedFrom({ focused, value })
+    if (!focused && value !== localValue) {
       setLocalValue(value || '')
     }
-  }, [focused, value]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   useEffect(() => {
     if (value === undefined || value === '') {

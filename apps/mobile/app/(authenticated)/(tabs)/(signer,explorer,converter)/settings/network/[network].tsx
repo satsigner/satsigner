@@ -57,6 +57,22 @@ import { trimOnionAddress } from '@/utils/format'
 
 const tnServer = _tn('settings.network.server')
 
+type EditServerSource = {
+  customServerCount: number
+  editUrl: string | undefined
+}
+
+function findCustomServerToEdit(
+  customServers: Server[],
+  editUrl: string | undefined
+) {
+  if (!editUrl || customServers.length === 0) {
+    return undefined
+  }
+  const decodedUrl = decodeURIComponent(editUrl)
+  return customServers.find((server) => server.url === decodedUrl)
+}
+
 export default function CustomNetwork() {
   const { network: networkType, editUrl } = useLocalSearchParams<{
     network: Network
@@ -108,21 +124,26 @@ export default function CustomNetwork() {
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
   /** Electrum server.banner text from the last successful probe. */
   const [lastBanner, setLastBanner] = useState<string | null>(null)
+  const [loadedEditServerSource, setLoadedEditServerSource] =
+    useState<EditServerSource | null>(null)
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
   useEffect(() => suppressConnectionPoll(networkType), [networkType])
 
-  useEffect(() => {
-    if (editUrl && customServers.length > 0) {
-      const decoded = decodeURIComponent(editUrl)
-      const server = customServers.find((s) => s.url === decoded)
-      if (server) {
-        setEditingServer(server)
-        loadServer(server)
-      }
+  const customServerCount = customServers.length
+  const isEditServerSourceLoaded =
+    loadedEditServerSource !== null &&
+    loadedEditServerSource.editUrl === editUrl &&
+    loadedEditServerSource.customServerCount === customServerCount
+  if (!isEditServerSourceLoaded) {
+    setLoadedEditServerSource({ customServerCount, editUrl })
+    const serverToEdit = findCustomServerToEdit(customServers, editUrl)
+    if (serverToEdit) {
+      setEditingServer(serverToEdit)
+      loadServer(serverToEdit)
     }
-  }, [editUrl, customServers.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const backends: Backend[] = ['electrum', 'esplora', 'rpc']
   const protocols = ['ssl', 'tcp'] as const
