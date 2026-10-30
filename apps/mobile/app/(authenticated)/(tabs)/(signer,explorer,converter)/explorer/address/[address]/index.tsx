@@ -102,8 +102,18 @@ export default function ExplorerAddressDetail() {
   const { server } = configs[selectedNetwork]
   const sourceLabel = `${server.name} (${server.backend})`
 
-  const { data, isLoading, isError, capability, loadFromMempool, useMempool } =
-    useExplorerAddress(resolvedAddress)
+  const {
+    data,
+    isLoading,
+    isError,
+    capability,
+    isValidAddress,
+    loadFromMempool,
+    needsMempool,
+    useMempool
+  } = useExplorerAddress(resolvedAddress)
+  const capabilityWhy = capability.whyKey ? t(capability.whyKey) : tn('loadWhy')
+  const capabilityFix = capability.fixKey ? t(capability.fixKey) : tn('loadFix')
 
   const displaySourceLabel = useMempool
     ? 'mempool.space'
@@ -150,6 +160,23 @@ export default function ExplorerAddressDetail() {
         }}
       />
       <SSVStack style={styles.container}>
+        {!isValidAddress ? (
+          <SSText color="muted" center style={styles.errorContainer}>
+            {tn('invalid')}
+          </SSText>
+        ) : null}
+
+        {needsMempool ? (
+          <SSVStack gap="sm" style={styles.errorContainer} widthFull>
+            <SSExplorerCapabilityBanner
+              why={capabilityWhy}
+              fix={capabilityFix}
+              onLoad={loadFromMempool}
+              loading={isLoading}
+            />
+          </SSVStack>
+        ) : null}
+
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <SSLoader size={LOADER_SIZE} />
@@ -175,8 +202,8 @@ export default function ExplorerAddressDetail() {
                   {server.url}
                 </SSText>
                 <SSExplorerCapabilityBanner
-                  why={capability.whyKey ? t(capability.whyKey) : tn('loadWhy')}
-                  fix={capability.fixKey ? t(capability.fixKey) : tn('loadFix')}
+                  why={capabilityWhy}
+                  fix={capabilityFix}
                   onLoad={loadFromMempool}
                   loading={isLoading}
                 />

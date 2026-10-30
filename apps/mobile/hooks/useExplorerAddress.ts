@@ -8,8 +8,10 @@ import {
 } from '@/api/explorerAddress'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { getExplorerCapability } from '@/utils/explorerCapabilities'
 import { time } from '@/utils/time'
+import { validateAddress } from '@/utils/validation'
 
 export function useExplorerAddress(address: string | null) {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -25,9 +27,13 @@ export function useExplorerAddress(address: string | null) {
   const capability = getExplorerCapability(server.backend, 'addressHistory')
   const backendSupported = capability.available
   const trimmed = address?.trim() ?? ''
-  const ready = trimmed.length > 20
+  const isValidAddress = validateAddress(
+    trimmed,
+    bitcoinjsNetwork(selectedNetwork)
+  )
   const mempoolEnabled = useMempool && mempoolForAddress === trimmed
-  const enabled = ready && (backendSupported || mempoolEnabled)
+  const enabled = isValidAddress && (backendSupported || mempoolEnabled)
+  const needsMempool = isValidAddress && !backendSupported && !mempoolEnabled
 
   const query = useQuery({
     enabled,
@@ -67,8 +73,9 @@ export function useExplorerAddress(address: string | null) {
     address: trimmed,
     backendSupported,
     capability,
+    isValidAddress,
     loadFromMempool,
-    ready,
+    needsMempool,
     server,
     useMempool: mempoolEnabled
   }
