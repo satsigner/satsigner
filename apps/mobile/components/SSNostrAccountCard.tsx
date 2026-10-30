@@ -58,13 +58,15 @@ type SSNostrAccountCardProps = {
   onPress: () => void
   isActive?: boolean
   connectionInfo?: NostrRelayConnectionInfo
+  showRelayCount?: boolean
 }
 
 function SSNostrAccountCard({
   identity,
   onPress,
   isActive,
-  connectionInfo
+  connectionInfo,
+  showRelayCount = true
 }: SSNostrAccountCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const storeRelays = useNostrIdentityStore((state) => state.relays)
@@ -239,26 +241,30 @@ function SSNostrAccountCard({
                   )}
                 </SSHStack>
               </View>
-              <View style={styles.relayTotalWrap}>
-                <SSText
-                  accessibilityLabel={t(
-                    'nostrIdentity.account.relayTotalA11y',
-                    {
+              {showRelayCount ? (
+                <View style={styles.relayTotalWrap}>
+                  <SSText
+                    accessibilityLabel={t(
+                      'nostrIdentity.account.relayTotalA11y',
+                      {
+                        count: relayCount
+                      }
+                    )}
+                    accessibilityRole="text"
+                    color="muted"
+                    numberOfLines={1}
+                    size="xxs"
+                    style={[
+                      styles.relayTotalInline,
+                      isActive && styles.relayTotalInlineActiveCard
+                    ]}
+                  >
+                    {t('nostrIdentity.account.relayTotal', {
                       count: relayCount
-                    }
-                  )}
-                  accessibilityRole="text"
-                  color="muted"
-                  numberOfLines={1}
-                  size="xxs"
-                  style={[
-                    styles.relayTotalInline,
-                    isActive && styles.relayTotalInlineActiveCard
-                  ]}
-                >
-                  {t('nostrIdentity.account.relayTotal', { count: relayCount })}
-                </SSText>
-              </View>
+                    })}
+                  </SSText>
+                </View>
+              ) : null}
             </SSHStack>
             <View style={styles.reservedMetaRow}>
               {identity.isWatchOnly ? (
