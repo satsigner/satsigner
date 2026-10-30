@@ -216,3 +216,10 @@ export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
 export function npubFromNsec(nsec: string): string | null {
   return deriveNpubFromNsec(nsec)
 }
+
+export function hasNostrRelaysSelected(
+  identityRelays: string[] | undefined,
+  storeRelays: string[]
+): boolean {
+  return (identityRelays?.length ?? 0) > 0 || storeRelays.length > 0
+}

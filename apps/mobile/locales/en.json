@@ -2022,6 +2022,7 @@
   },
   "nostrIdentity": {
     "account.activeTag": "Active",
+    "account.addRelays": "Add relays",
     "account.eventNotFound": "Event not found on relays",
     "account.fetchingNote": "Fetching note from relays...",
     "account.followingEmpty": "No follows found on relays for this identity yet.",
@@ -2330,6 +2331,7 @@
     "relays.saved": "Identity relays saved",
     "relays.search": "Search relays…",
     "relays.title": "Nostr Relays",
+    "relays.usingDefaultIndexers": "You haven't picked relays yet, so the public indexer relays below are being used. Save to keep them, or pick your own.",
     "settings.blossom": "Blossom",
     "settings.cache.allNostr": "All Identities",
     "settings.cache.clearAll": "Clear All Cache",

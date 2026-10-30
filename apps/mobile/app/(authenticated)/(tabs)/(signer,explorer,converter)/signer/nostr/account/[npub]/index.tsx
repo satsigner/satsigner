@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native'
 
 import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
@@ -37,6 +38,7 @@ import {
   getNostrContactsRelaysKey,
   getNostrIdentityRelays
 } from '@/utils/nostrContacts'
+import { hasNostrRelaysSelected } from '@/utils/nostrIdentity'
 import {
   nostrAccountHref,
   nostrAuthorProfileHref,
@@ -64,6 +66,7 @@ export default function NostrAccountLanding() {
     ? getNostrIdentityRelays(identity.relays, relays)
     : []
 
+  const relaysSelected = hasNostrRelaysSelected(identity?.relays, relays)
   const relayConnected = identity?.relayConnected === true
   const relaysAvailable = effectiveRelays.length > 0
 
@@ -144,6 +147,10 @@ export default function NostrAccountLanding() {
     router.navigate(nostrNoteHref(npub, nevent))
   }
 
+  function handleAddRelays() {
+    router.navigate(nostrAccountHref(npub, 'relays'))
+  }
+
   function handleZapPress(receipt: ZapReceiptInfo) {
     router.navigate(nostrZapDetailHref(npub, receipt.id))
   }
@@ -212,6 +219,16 @@ export default function NostrAccountLanding() {
               nip05Valid={nip05Valid ?? null}
               style={styles.heroProfile}
             />
+            {relaysSelected ? null : (
+              <View style={styles.actions}>
+                <SSButton
+                  label={t('nostrIdentity.account.addRelays')}
+                  variant="outline"
+                  onPress={handleAddRelays}
+                  style={styles.addRelaysButton}
+                />
+              </View>
+            )}
             <View style={styles.actions}>
               <SSButtonActionsGroup
                 context="nostr"
@@ -259,6 +276,9 @@ export default function NostrAccountLanding() {
 const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: Layout.mainContainer.paddingHorizontal
+  },
+  addRelaysButton: {
+    marginBottom: 10
   },
   emptyContainer: {
     paddingVertical: 60

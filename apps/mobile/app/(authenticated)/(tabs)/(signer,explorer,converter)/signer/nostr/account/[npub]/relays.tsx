@@ -16,6 +16,8 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type NostrRelay } from '@/types/models/Nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import { hasNostrRelaysSelected } from '@/utils/nostrIdentity'
 
 type RelaysParams = {
   npub: string
@@ -52,8 +54,12 @@ export default function NostrIdentityRelays() {
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
   const addGlobalRelay = useNostrIdentityStore((state) => state.addRelay)
 
-  const [selectedRelays, setSelectedRelays] = useState<string[]>(
-    identity?.relays ?? globalRelays
+  const usingDefaultRelays = !hasNostrRelaysSelected(
+    identity?.relays,
+    globalRelays
+  )
+  const [selectedRelays, setSelectedRelays] = useState(() =>
+    getNostrIdentityRelays(identity?.relays, globalRelays)
   )
   const [customRelayUrl, setCustomRelayUrl] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -130,6 +136,11 @@ export default function NostrIdentityRelays() {
             <SSText size="xs" color="muted">
               {t('nostrIdentity.settings.identityRelaysHint')}
             </SSText>
+            {usingDefaultRelays ? (
+              <SSText size="xs" color="muted">
+                {t('nostrIdentity.relays.usingDefaultIndexers')}
+              </SSText>
+            ) : null}
             <SSTextInput
               placeholder={t('nostrIdentity.relays.search')}
               value={searchQuery}
