@@ -69,6 +69,16 @@ function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
   return `${reason} — ${details}`
 }
 
+function buildConnectedLabel(info: NostrRelayConnectionInfo): string {
+  const connected = info.relayDetails?.filter((r) => r.connected) ?? []
+  const label = t('nostrIdentity.account.relayConnected')
+  if (connected.length === 0) {
+    return label
+  }
+  const hosts = connected.map((r) => formatRelayUrl(r.url)).join(', ')
+  return `${label} · ${hosts}`
+}
+
 type SSNostrHeroCardProps = {
   identity: NostrIdentity
   connectionInfo?: NostrRelayConnectionInfo
@@ -220,7 +230,7 @@ function SSNostrHeroCard({
             {connectionInfo.status === 'checking'
               ? t('nostrIdentity.account.relayChecking')
               : connectionInfo.status === 'connected'
-                ? `${t('nostrIdentity.account.relayConnected')} · ${connectionInfo.relayDetails?.filter((r) => r.connected).length ?? 0}`
+                ? buildConnectedLabel(connectionInfo)
                 : buildDisconnectLabel(connectionInfo)}
           </SSText>
         ) : null}
