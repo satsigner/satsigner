@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useFocusEffect } from 'expo-router'
+import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useState, useSyncExternalStore } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
@@ -141,9 +142,10 @@ export function useNostrChatThread(
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
+  const focused = useIsFocused()
 
   const { data } = useQuery({
-    enabled: Boolean(identity && peerPubkey),
+    enabled: focused && Boolean(identity && peerPubkey),
     placeholderData: keepPreviousData,
     queryFn: () =>
       loadChatThreadItems(identityNpub, protocol, peerPubkey ?? '', limit),

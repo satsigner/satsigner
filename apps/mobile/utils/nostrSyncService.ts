@@ -187,7 +187,9 @@ function clampToNow(createdAt: number): number {
 
 function recordBatchProgress(
   progress: NostrCursorProgress,
-  result: Pick<NostrBatchResult, 'failed' | 'processed'> | undefined
+  result:
+    | Pick<NostrBatchResult, 'deferred' | 'failed' | 'processed'>
+    | undefined
 ): void {
   if (!result) {
     return
@@ -198,7 +200,7 @@ function recordBatchProgress(
       clampToNow(event.createdAt)
     )
   }
-  for (const event of result.failed) {
+  for (const event of [...result.failed, ...(result.deferred ?? [])]) {
     const createdAt = clampToNow(event.createdAt)
     progress.oldestFailed = Math.min(
       progress.oldestFailed ?? createdAt,
