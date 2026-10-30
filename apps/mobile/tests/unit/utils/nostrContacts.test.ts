@@ -1,6 +1,8 @@
 import { setNostrFollowCache } from '@/storage/mmkv'
+import { type NostrKind0Profile } from '@/types/models/Nostr'
 import {
   contactToIdentity,
+  fetchNostrContacts,
   filterNostrContacts,
   getNostrContactsPlaceholder,
   mergeProfileBatch
@@ -10,6 +12,33 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
     npubEncode: (hex: string) => `npub1mock${hex.slice(0, 8)}`
   }
+}))
+
+const mockProfileBatchListeners: ((
+  batch: Map<string, NostrKind0Profile>
+) => void)[] = []
+
+jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
+  NostrAPI: jest.fn(() => ({
+    disconnect: jest.fn(),
+    fetchKind3FollowingPubkeys: () =>
+      Promise.resolve({
+        data: {
+          connectedRelayCount: 1,
+          kind3Found: true,
+          pubkeys: ['c'.repeat(64)],
+          relaysQueried: ['wss://relay.test']
+        },
+        source: 'relay'
+      }),
+    streamKind0Profiles: (
+      _pubkeys: string[],
+      onBatch: (batch: Map<string, NostrKind0Profile>) => void
+    ) => {
+      mockProfileBatchListeners.push(onBatch)
+      return Promise.resolve()
+    }
+  }))
 }))
 
 describe('contactToIdentity', () => {
@@ -89,5 +118,24 @@ describe('filterNostrContacts', () => {
     expect(filterNostrContacts(contacts, ' ALI ')).toHaveLength(1)
     expect(filterNostrContacts(contacts, 'example')).toHaveLength(1)
     expect(filterNostrContacts(contacts, '')).toBe(contacts)
+  })
+})
+
+describe('fetchNostrContacts', () => {
+  it('leaves the resolved contacts untouched when profiles arrive later', async () => {
+    const pubkey = 'c'.repeat(64)
+    const batches: ReturnType<typeof mergeProfileBatch>[] = []
+
+    const result = await fetchNostrContacts('npub1late', ['wss://relay.test'], {
+      onProfileBatch: (contacts) => batches.push(contacts)
+    })
+    const resolvedContacts = result.contacts
+    for (const listener of mockProfileBatchListeners) {
+      listener(new Map([[pubkey, { displayName: 'Carol' }]]))
+    }
+
+    expect(resolvedContacts[0].profile).toBeNull()
+    expect(batches.at(-1)?.[0].profile?.displayName).toBe('Carol')
+    expect(batches.at(-1)).not.toBe(resolvedContacts)
   })
 })
