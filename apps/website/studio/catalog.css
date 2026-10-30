@@ -158,19 +158,31 @@ html.is-embed #catalog-views {
 .view-toggle button {
   pointer-events: auto;
   padding: 0.4rem 0.75rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--pill);
+  border: 1px solid var(--line);
+  border-radius: var(--corner);
+  background: transparent;
   color: var(--ink-soft);
   font: inherit;
   font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
   cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.view-toggle button:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 .view-toggle button.is-active {
-  border-color: var(--line-hot);
-  background: var(--pill-active);
-  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--page);
+}
+
+#theme-toggle {
+  border-radius: 999px;
 }
 
 #theme-toggle {
