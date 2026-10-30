@@ -163,7 +163,7 @@ async function syncWalletAccount({
     walletSummary = coreResult
     newRpcLastBlockHash = coreResult.rpcLastBlockHash
   } else {
-    if (!isFullScan) {
+    if (!isFullScan && latest.keys[0]?.creationType !== 'importWif') {
       revealKnownAddresses(wallet, latest, config.stopGap)
     }
     await syncWallet(

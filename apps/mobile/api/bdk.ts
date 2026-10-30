@@ -57,6 +57,10 @@ import {
 } from '@/utils/descriptor'
 import { estimateBirthHeight } from '@/utils/rpcScanStartHeight'
 import { isCombinedDescriptor } from '@/utils/validation'
+import {
+  publicDescriptorFromPrivateKey,
+  walletDescriptorsFromPrivateKey
+} from '@/utils/wif'
 
 import { toAppNetwork } from './bdkWalletMappers'
 import AppElectrumClient from './electrum'
@@ -152,6 +156,45 @@ async function getWalletData(
         )
 
         return walletData
+      } else if (key.creationType === 'importWif') {
+        if (
+          typeof key.secret === 'string' ||
+          !key.secret.privateKey ||
+          key.secret.privateKeyCompressed === undefined ||
+          !key.scriptVersion
+        ) {
+          throw new Error('Invalid secret')
+        }
+
+        const externalDescriptor = publicDescriptorFromPrivateKey(
+          key.secret.privateKey,
+          key.secret.privateKeyCompressed,
+          key.scriptVersion
+        )
+        const signingDescriptors = walletDescriptorsFromPrivateKey(
+          key.secret.privateKey,
+          key.secret.privateKeyCompressed,
+          key.scriptVersion,
+          toAppNetwork(network)
+        )
+        if (!externalDescriptor || !signingDescriptors) {
+          throw new Error('Invalid secret')
+        }
+
+        const { wallet, dbPath } = await getWalletFromDescriptor(
+          signingDescriptors.receive,
+          signingDescriptors.change,
+          network
+        )
+
+        return {
+          dbPath,
+          derivationPath: '',
+          externalDescriptor,
+          fingerprint: '',
+          internalDescriptor: externalDescriptor,
+          wallet
+        }
       } else if (key.creationType === 'importDescriptor') {
         if (typeof key.secret === 'string' || !key.secret.externalDescriptor) {
           throw new Error('Invalid secret')
@@ -1076,6 +1119,26 @@ function getPublicDescriptorsForAccount(
         network
       )
       return [external, internal]
+    }
+
+    if (key.creationType === 'importWif') {
+      if (
+        typeof key.secret === 'string' ||
+        !key.secret.privateKey ||
+        key.secret.privateKeyCompressed === undefined ||
+        !key.scriptVersion
+      ) {
+        return null
+      }
+      const descriptor = publicDescriptorFromPrivateKey(
+        key.secret.privateKey,
+        key.secret.privateKeyCompressed,
+        key.scriptVersion
+      )
+      if (!descriptor) {
+        return null
+      }
+      return [descriptor, descriptor]
     }
 
     if (key.creationType === 'importExtendedPub') {

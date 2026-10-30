@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Key } from '@/types/models/Account'
@@ -24,10 +25,18 @@ const singleSigScriptVersions: ScriptVersion[] = [
 
 const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
 
+type DisabledScript = {
+  script: ScriptVersion
+  reason: string
+}
+
+const NO_DISABLED_SCRIPTS: DisabledScript[] = []
+
 type SSScriptVersionModalProps = {
   visible: boolean
   scriptVersion: ScriptVersion
   policyType?: 'singlesig' | 'multisig' | 'watchonly'
+  disabledScripts?: DisabledScript[]
   onSelect: (scriptVersion: ScriptVersion) => void
   onCancel: () => void
 }
@@ -36,6 +45,7 @@ function SSScriptVersionModal({
   visible,
   scriptVersion,
   policyType = 'singlesig',
+  disabledScripts = NO_DISABLED_SCRIPTS,
   onSelect,
   onCancel
 }: SSScriptVersionModalProps) {
@@ -73,16 +83,26 @@ function SSScriptVersionModal({
       onSelect={() => handleOnSelectScriptVersion()}
       onCancel={onCancel}
     >
-      {scriptVersions.map((script) => (
-        <SSRadioButton
-          key={script}
-          label={getScriptVersionDisplayName(script)}
-          selected={localScriptVersion === script}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, script)
-          }
-        />
-      ))}
+      {scriptVersions.map((script) => {
+        const disabled = disabledScripts.find((item) => item.script === script)
+        return (
+          <SSVStack key={script} gap="xs">
+            <SSRadioButton
+              label={getScriptVersionDisplayName(script)}
+              selected={localScriptVersion === script}
+              disabled={Boolean(disabled)}
+              onPress={() =>
+                setStateWithLayoutAnimation(setLocalScriptVersion, script)
+              }
+            />
+            {disabled ? (
+              <SSText color="muted" size="sm">
+                {disabled.reason}
+              </SSText>
+            ) : null}
+          </SSVStack>
+        )
+      })}
     </SSSelectModal>
   )
 }

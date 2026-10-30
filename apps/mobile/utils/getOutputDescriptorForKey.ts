@@ -10,6 +10,7 @@ import {
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { wrapBareScriptKey } from '@/utils/descriptor'
+import { publicDescriptorFromPrivateKey } from '@/utils/wif'
 
 export function singlesigDescriptorFromKeyPart(
   keyPart: string,
@@ -100,6 +101,23 @@ export async function getOutputDescriptorStringForKey(
         KeychainKind.External,
         secret.passphrase,
         bdkNetwork
+      )
+    }
+    return ''
+  }
+
+  if (key.creationType === 'importWif') {
+    if (
+      secret.privateKey &&
+      secret.privateKeyCompressed !== undefined &&
+      key.scriptVersion
+    ) {
+      return (
+        publicDescriptorFromPrivateKey(
+          secret.privateKey,
+          secret.privateKeyCompressed,
+          key.scriptVersion
+        ) ?? ''
       )
     }
     return ''

@@ -67,6 +67,19 @@ describe('account builder keys', () => {
     })
   })
 
+  it('keeps a private key left from a failed WIF import out of a mnemonic key', () => {
+    const store = useAccountBuilderStore.getState()
+    store.setCreationType('importWif')
+    store.setPrivateKey('ab'.repeat(32), true)
+
+    const key = addMnemonicKey(0)
+
+    expect(key.secret).toStrictEqual({
+      fingerprint: 'abcdef12',
+      mnemonic: MNEMONIC
+    })
+  })
+
   it('resets only the chosen key slot', () => {
     addMnemonicKey(0)
     addMnemonicKey(1)
