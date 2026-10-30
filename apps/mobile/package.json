@@ -49,6 +49,7 @@
     "entropy:audit": "cross-env ENTROPY_AUDIT_SAMPLES=5000 jest ./tests/entropy-audit --verbose",
     "publish:zapstore": "node scripts/publish-zapstore.mjs",
     "typecheck": "tsc --noEmit",
+    "check:compiler": "node scripts/check-react-compiler.mjs",
     "types": "expo customize tsconfig.json"
   },
   "dependencies": {
