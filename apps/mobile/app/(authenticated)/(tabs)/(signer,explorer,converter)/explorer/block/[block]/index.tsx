@@ -146,9 +146,8 @@ export default function ExplorerBlockDetail() {
       await saveBlockHex(hex, block.height)
     } catch {
       toast.error(tn('downloadRawHexError'))
-    } finally {
-      setLoadingHex(false)
     }
+    setLoadingHex(false)
   }
 
   async function handleDownloadHexFromMempool() {
@@ -164,9 +163,8 @@ export default function ExplorerBlockDetail() {
       await saveBlockHex(hex, block.height)
     } catch {
       toast.error(tn('downloadRawHexError'))
-    } finally {
-      setLoadingHex(false)
     }
+    setLoadingHex(false)
   }
 
   return (

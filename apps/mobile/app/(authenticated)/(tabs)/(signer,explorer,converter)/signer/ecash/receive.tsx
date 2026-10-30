@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -22,7 +22,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
@@ -68,6 +68,11 @@ function getStatusText(status: string) {
       return status || ''
     }
   }
+}
+
+function isLnurlWithdraw(input: string) {
+  const { isLNURL, type } = getLNURLType(input)
+  return isLNURL && type === 'withdraw'
 }
 
 export default function EcashReceivePage() {
@@ -139,27 +144,27 @@ export default function EcashReceivePage() {
     }
   }, [activeTab, stopPolling])
 
+  const applyTokenParam = useEffectEvent((tokenValue: string) => {
+    handleTokenChange(tokenValue)
+  })
+  const applyLnurlParam = useEffectEvent((lnurlValue: string) => {
+    handleLNURLWithdrawInput(lnurlValue)
+  })
+
   useEffect(() => {
     if (tokenParam) {
       const tokenValue = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam
       if (tokenValue) {
         setActiveTab('ecash')
-        handleTokenChange(tokenValue)
+        applyTokenParam(tokenValue)
       }
     } else if (lnurlParam) {
       const lnurlValue = Array.isArray(lnurlParam) ? lnurlParam[0] : lnurlParam
       if (lnurlValue) {
         setActiveTab('lightning')
-        handleLNURLWithdrawInput(lnurlValue)
+        applyLnurlParam(lnurlValue)
       }
     }
-    // `handleTokenChange` and `handleLNURLWithdrawInput` are not memoized in
-    // `useEcashReceive`, so including them in deps re-runs this effect on
-    // every render. When `tokenParam` is set, the effect body calls
-    // `handleTokenChange` which toggles `decodedToken` state, causing a
-    // re-render and re-firing the effect — a classic "Maximum update depth
-    // exceeded" loop. The effect only needs to react to URL param changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokenParam, lnurlParam])
 
   function handleFiatAmountChange(text: string) {
@@ -198,9 +203,7 @@ export default function EcashReceivePage() {
         handleTokenChange(clipboardText)
         toast.success(t('ecash.success.tokenPasted'))
       } else if (activeTab === 'lightning') {
-        const { isLNURL: isLNURLInput, type: lnurlType } =
-          getLNURLType(clipboardText)
-        if (isLNURLInput && lnurlType === 'withdraw') {
+        if (isLnurlWithdraw(clipboardText)) {
           handleLNURLWithdrawInput(clipboardText)
         } else {
           toast.error(t('ecash.error.invalidLnurlType'))
@@ -219,10 +222,7 @@ export default function EcashReceivePage() {
       handleTokenChange(cleanData)
       toast.success(t('ecash.success.tokenScanned'))
     } else if (activeTab === 'lightning') {
-      const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(
-        content.cleaned
-      )
-      if (isLNURLInput && lnurlType === 'withdraw') {
+      if (isLnurlWithdraw(content.cleaned)) {
         handleLNURLWithdrawInput(content.cleaned)
       } else {
         toast.error(t('ecash.error.invalidLnurlType'))
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     height: 'auto',
     minHeight: 100,

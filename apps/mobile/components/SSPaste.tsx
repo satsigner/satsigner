@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   AppState,
   Keyboard,
@@ -31,87 +31,115 @@ type SSPasteProps = {
   context: ContentContext
 }
 
+type PasteValidationError = 'failed' | 'incompatible'
+
+type PasteValidation = {
+  error: PasteValidationError | null
+  validContentType: ContentType | null
+}
+
+const EMPTY_PASTE_VALIDATION: PasteValidation = {
+  error: null,
+  validContentType: null
+}
+
+const PASTE_VALIDATION_ERROR_KEY: Record<PasteValidationError, string> = {
+  failed: 'paste.error.validateFailed',
+  incompatible: 'paste.error.incompatibleContent'
+}
+
+async function readClipboardText() {
+  return (await getAllClipboardContent()) || ''
+}
+
+function validatePasteContent(
+  text: string,
+  context: ContentContext
+): PasteValidation {
+  if (!text.trim()) {
+    return EMPTY_PASTE_VALIDATION
+  }
+  try {
+    const processedText = preprocessByContext(text, context)
+    const detectedContent = detectContentByContext(processedText, context)
+    if (detectedContent.type === 'incompatible') {
+      return { error: 'incompatible', validContentType: null }
+    }
+    return {
+      error: null,
+      validContentType: detectedContent.isValid ? detectedContent.type : null
+    }
+  } catch {
+    return { error: 'failed', validContentType: null }
+  }
+}
+
 function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
   const inputRef = useRef<TextInputInstance>(null)
   const [content, setContent] = useState('')
-  const [isValidContent, setIsValidContent] = useState(false)
-  const [detectedContentType, setDetectedContentType] =
-    useState<ContentType | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [previousVisible, setPreviousVisible] = useState(visible)
 
-  useEffect(() => {
-    if (visible) {
-      loadClipboardContent()
-    } else {
+  if (visible !== previousVisible) {
+    setPreviousVisible(visible)
+    if (!visible) {
       setContent('')
-      setIsValidContent(false)
-      setDetectedContentType(null)
       setIsProcessing(false)
     }
-  }, [visible])
+  }
+
+  const pasteValidation = validatePasteContent(content, context)
+  const detectedContentType = pasteValidation.validContentType
+  const isValidContent = detectedContentType !== null
+
+  const notifyPasteValidationError = useEffectEvent(() => {
+    if (pasteValidation.error) {
+      toast.error(t(PASTE_VALIDATION_ERROR_KEY[pasteValidation.error]))
+    }
+  })
+
+  useEffect(() => {
+    notifyPasteValidationError()
+  }, [content, context])
 
   useEffect(() => {
     if (!visible) {
       return
     }
 
+    const visibleSession = { isClosed: false }
+    async function loadClipboardContent() {
+      try {
+        const clipboardText = await readClipboardText()
+        if (!visibleSession.isClosed) {
+          setContent(clipboardText)
+        }
+      } catch {
+        toast.error(t('paste.error.loadFailed'))
+      }
+    }
+
+    loadClipboardContent()
+
+    const reloadTimers = new Set<ReturnType<typeof setTimeout>>()
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        setTimeout(async () => {
+        const timer = setTimeout(async () => {
+          reloadTimers.delete(timer)
           await loadClipboardContent()
         }, 1)
+        reloadTimers.add(timer)
       }
     })
 
     return () => {
+      visibleSession.isClosed = true
       subscription.remove()
+      for (const timer of reloadTimers) {
+        clearTimeout(timer)
+      }
     }
   }, [visible])
-
-  const validateContent = useCallback(
-    async (text: string) => {
-      try {
-        const processedText = preprocessByContext(text, context)
-        const detectedContent = await detectContentByContext(
-          processedText,
-          context
-        )
-        if (detectedContent.type === 'incompatible') {
-          toast.error(t('paste.error.incompatibleContent'))
-          setIsValidContent(false)
-          setDetectedContentType(null)
-          return
-        }
-        setIsValidContent(detectedContent.isValid)
-        setDetectedContentType(
-          detectedContent.isValid ? detectedContent.type : null
-        )
-      } catch {
-        toast.error(t('paste.error.validateFailed'))
-        setIsValidContent(false)
-        setDetectedContentType(null)
-      }
-    },
-    [context]
-  )
-
-  useEffect(() => {
-    if (content.trim()) {
-      validateContent(content)
-    } else {
-      setIsValidContent(false)
-      setDetectedContentType(null)
-    }
-  }, [content, context, validateContent])
-
-  async function loadClipboardContent() {
-    try {
-      const text = await getAllClipboardContent()
-      setContent(text || '')
-    } catch {
-      toast.error(t('paste.error.loadFailed'))
-    }
-  }
 
   async function handlePaste() {
     if (!content.trim()) {

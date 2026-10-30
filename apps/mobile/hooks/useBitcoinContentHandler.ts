@@ -121,6 +121,12 @@ async function processBitcoinContent(
   }
 }
 
+function isPayjoinBitcoinUri(content: DetectedContent) {
+  return (
+    content.type === 'bitcoin_uri' && !!extractPayjoinUriFromContent(content)
+  )
+}
+
 export function useBitcoinContentHandler({
   accountId,
   account,
@@ -221,10 +227,7 @@ export function useBitcoinContentHandler({
           { account, accountId, nextBlockFee },
           ensureKeyFingerprints
         )
-        if (
-          content.type === 'bitcoin_uri' &&
-          extractPayjoinUriFromContent(content)
-        ) {
+        if (isPayjoinBitcoinUri(content)) {
           onSuccess(t('transaction.build.payjoin.uriDetected'))
         }
       } catch {

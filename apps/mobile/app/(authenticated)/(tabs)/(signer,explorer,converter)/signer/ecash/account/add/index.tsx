@@ -14,7 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 
 type Step = 'name' | 'generate' | 'import' | 'confirm'
@@ -84,9 +84,8 @@ export default function EcashAccountAddPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('ecash.error.networkError')}: ${reason}`)
-    } finally {
-      setIsCreating(false)
     }
+    setIsCreating(false)
   }
 
   function handleBack() {
@@ -249,7 +248,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   mnemonicInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     height: 'auto',
     minHeight: 100,

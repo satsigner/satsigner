@@ -86,12 +86,14 @@ function SuccessPulseRing({ delay, size }: { delay: number; size: number }) {
   const progress = useSharedValue(0)
 
   useEffect(() => {
-    progress.value = withDelay(
-      delay,
-      withTiming(1, {
-        duration: PULSE_RING_DURATION_MS,
-        easing: Easing.out(Easing.quad)
-      })
+    progress.set(
+      withDelay(
+        delay,
+        withTiming(1, {
+          duration: PULSE_RING_DURATION_MS,
+          easing: Easing.out(Easing.quad)
+        })
+      )
     )
   }, [delay, progress])
 
@@ -144,20 +146,24 @@ function SSSuccessCheckAnimation({
   const checkOffset = useSharedValue(CHECK_PATH_LENGTH)
 
   useEffect(() => {
-    phase.value = withRepeat(
-      withTiming(2 * Math.PI, {
-        duration: GLOW_CYCLE_MS,
-        easing: Easing.linear
-      }),
-      -1,
-      false
+    phase.set(
+      withRepeat(
+        withTiming(2 * Math.PI, {
+          duration: GLOW_CYCLE_MS,
+          easing: Easing.linear
+        }),
+        -1,
+        false
+      )
     )
-    checkOffset.value = withDelay(
-      CHECK_DELAY_MS,
-      withTiming(0, {
-        duration: CHECK_DRAW_MS,
-        easing: Easing.out(Easing.quad)
-      })
+    checkOffset.set(
+      withDelay(
+        CHECK_DELAY_MS,
+        withTiming(0, {
+          duration: CHECK_DRAW_MS,
+          easing: Easing.out(Easing.quad)
+        })
+      )
     )
   }, [checkOffset, phase])
 

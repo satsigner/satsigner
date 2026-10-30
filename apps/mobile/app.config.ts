@@ -2,6 +2,7 @@ import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
 import {
   APP_VARIANT_PRODUCTION,
+  getVariantAndroidAbis,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme
@@ -71,16 +72,16 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         'expo-font',
         {
           fonts: [
-            './assets/fonts/SF-Pro-Text-Ultralight.otf',
-            './assets/fonts/SF-Pro-Text-Light.otf',
-            './assets/fonts/SF-Pro-Text-Regular.otf',
-            './assets/fonts/SF-Pro-Text-Medium.otf',
-            './assets/fonts/SF-Pro-Text-Bold.otf',
-            './assets/fonts/SF-NS-Mono.ttf',
-            './assets/fonts/TerminessNerdFontMono-Regular.ttf',
-            './assets/fonts/TerminessNerdFontMono-Bold.ttf',
-            './assets/fonts/TerminessNerdFontMono-BoldItalic.ttf',
-            './assets/fonts/TerminessNerdFontMono-Italic.ttf'
+            './assets/fonts/Geist-ExtraLight.ttf',
+            './assets/fonts/Geist-Light.ttf',
+            './assets/fonts/Geist-Regular.ttf',
+            './assets/fonts/Geist-Medium.ttf',
+            './assets/fonts/Geist-Bold.ttf',
+            './assets/fonts/GeistMono-ExtraLight.ttf',
+            './assets/fonts/GeistMono-Light.ttf',
+            './assets/fonts/GeistMono-Regular.ttf',
+            './assets/fonts/GeistMono-Medium.ttf',
+            './assets/fonts/GeistMono-Bold.ttf'
           ]
         }
       ],
@@ -96,6 +97,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         'expo-build-properties',
         {
           android: {
+            buildArchs: getVariantAndroidAbis(IS_DEV),
             // Production: HTTPS-only. Dev keeps cleartext for local RPC/LND nodes.
             usesCleartextTraffic: IS_DEV
           },

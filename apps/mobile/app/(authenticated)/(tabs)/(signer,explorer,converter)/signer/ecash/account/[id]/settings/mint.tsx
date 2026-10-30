@@ -58,9 +58,8 @@ export default function EcashAccountMintPage() {
       setMintUrl('')
     } catch {
       // Error handling is done in the hook
-    } finally {
-      setIsConnecting(false)
     }
+    setIsConnecting(false)
   }
 
   function handleSelectDefaultMint(url: string) {
@@ -86,9 +85,8 @@ export default function EcashAccountMintPage() {
       }
     } catch {
       toast.error(t('ecash.recovery.restoreFailed', { error: '' }))
-    } finally {
-      setRecoveringMintUrl(null)
     }
+    setRecoveringMintUrl(null)
   }
 
   return (

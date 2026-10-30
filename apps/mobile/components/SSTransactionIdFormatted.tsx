@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginRight: BYTE_GAP
   },
   mono: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     includeFontPadding: false
   },
   row: {

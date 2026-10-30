@@ -13,26 +13,26 @@ function basenameFromUri(uri: string): string {
   return lastSlash === -1 ? uri : uri.slice(lastSlash + 1)
 }
 
+async function syncAndSaveArkDb(account: ArkAccount) {
+  await syncArkWallet(account.serverId, account.id)
+  const dbUri = await findArkDbFile(account.id)
+  if (!dbUri) {
+    throw new Error(t('ark.error.exportDbNotFound'))
+  }
+  await saveExistingFile({
+    dialogTitle: t('ark.account.exportDb'),
+    filename: basenameFromUri(dbUri),
+    mimeType: DB_MIME_TYPE,
+    srcUri: dbUri
+  })
+}
+
 export function useArkExportDatadir() {
   const [isExporting, setIsExporting] = useState(false)
 
   async function exportDb(account: ArkAccount): Promise<void> {
     setIsExporting(true)
-    try {
-      await syncArkWallet(account.serverId, account.id)
-      const dbUri = await findArkDbFile(account.id)
-      if (!dbUri) {
-        throw new Error(t('ark.error.exportDbNotFound'))
-      }
-      await saveExistingFile({
-        dialogTitle: t('ark.account.exportDb'),
-        filename: basenameFromUri(dbUri),
-        mimeType: DB_MIME_TYPE,
-        srcUri: dbUri
-      })
-    } finally {
-      setIsExporting(false)
-    }
+    await syncAndSaveArkDb(account).finally(() => setIsExporting(false))
   }
 
   return { exportDb, isExporting }

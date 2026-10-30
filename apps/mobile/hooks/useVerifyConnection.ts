@@ -1,6 +1,6 @@
 import NetInfo from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
@@ -10,12 +10,44 @@ import { servers } from '@/constants/servers'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { useBlockchainStore } from '@/store/blockchain'
-import { isConnectionPollSuppressed } from '@/utils/connectionPollSuppression'
+import { type Config, type Server } from '@/types/settings/blockchain'
+import {
+  isConnectionPollSuppressed,
+  subscribeToConnectionPollSuppression
+} from '@/utils/connectionPollSuppression'
 import { trimOnionAddress } from '@/utils/format'
 
 export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
 
 const NETINFO_RECONNECT_DELAY_MS = 5000
+
+async function testServerConnection(
+  server: Server,
+  config: Config
+): Promise<ConnectionVerifyStatus> {
+  try {
+    let ok: boolean
+    if (server.backend === 'electrum') {
+      ok = await ElectrumClient.test(
+        server.url,
+        server.network,
+        config.timeout * MS_PER_SECOND
+      )
+    } else if (server.backend === 'rpc') {
+      ok = await BitcoinRpc.test(
+        server.url,
+        server.rpcCredentials?.username ?? '',
+        server.rpcCredentials?.password ?? '',
+        config.timeout * MS_PER_SECOND
+      )
+    } else {
+      ok = await Esplora.test(server.url, config.timeout * MS_PER_SECOND)
+    }
+    return ok ? 'connected' : 'failed'
+  } catch {
+    return 'failed'
+  }
+}
 
 function useVerifyConnection() {
   const [selectedNetwork, configs] = useBlockchainStore(
@@ -27,11 +59,14 @@ function useVerifyConnection() {
   /** `null` until first NetInfo read — avoids showing failed before we know online state */
   const isConnectionAvailable = useRef<boolean | null>(null)
 
+  const pollSuppressed = useSyncExternalStore(
+    subscribeToConnectionPollSuppression,
+    () => isConnectionPollSuppressed(selectedNetwork)
+  )
+
   const { data: connectionStatus = 'checking', refetch } =
     useQuery<ConnectionVerifyStatus>({
-      enabled:
-        config.connectionMode !== 'manual' &&
-        !isConnectionPollSuppressed(selectedNetwork),
+      enabled: config.connectionMode !== 'manual' && !pollSuppressed,
       gcTime: 0,
       queryFn: async () => {
         if (isConnectionAvailable.current === null) {
@@ -40,28 +75,7 @@ function useVerifyConnection() {
         if (isConnectionAvailable.current === false) {
           return 'failed'
         }
-        try {
-          let ok: boolean
-          if (server.backend === 'electrum') {
-            ok = await ElectrumClient.test(
-              server.url,
-              server.network,
-              config.timeout * MS_PER_SECOND
-            )
-          } else if (server.backend === 'rpc') {
-            ok = await BitcoinRpc.test(
-              server.url,
-              server.rpcCredentials?.username ?? '',
-              server.rpcCredentials?.password ?? '',
-              config.timeout * MS_PER_SECOND
-            )
-          } else {
-            ok = await Esplora.test(server.url, config.timeout * MS_PER_SECOND)
-          }
-          return ok ? 'connected' : 'failed'
-        } catch {
-          return 'failed'
-        }
+        return await testServerConnection(server, config)
       },
       queryKey: [
         'verifyConnection',

@@ -19,16 +19,15 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Sync with ngit.** If `origin` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
 
-**Build and publish.** Builds one of three identities and publishes that APK to Zapstore: the current branch, generic dev (no branch suffix), or production (clean name). The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. Listing and release-post management stays behind **Manage listings and posts**.
+**Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. Listing and release-post management stays behind **Manage listings and posts**.
 
-**Build APK.** Two choices, then one build. A clean prebuild deletes `apps/mobile/android`. The file is saved under `apps/mobile/dist/apks`.
+**Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 
-| Choice              | Options                                           |
-| ------------------- | ------------------------------------------------- |
-| Name and package id | Branch, production, or generic dev                |
-| APK type            | All CPUs, or Pixel 8, 9, or 10 (`arm64-v8a` only) |
-
-**Build and publish** uses the same three identities. Production stays blocked until a release keystore is configured.
+| Option            | What it builds                                               |
+| ----------------- | ------------------------------------------------------------ |
+| Branch            | Dev package id for the current branch, all CPU architectures |
+| Production        | Production package id, no branch suffix, ARM CPUs only       |
+| Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
 ## Tools the actions expect
 

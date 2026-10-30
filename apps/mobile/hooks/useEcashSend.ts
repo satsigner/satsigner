@@ -131,9 +131,8 @@ export function useEcashSend() {
       setGeneratedTokenV3(result.tokenV3)
     } catch {
       // Error handling is done in the hook
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   const generatedToken =
@@ -168,33 +167,36 @@ export function useEcashSend() {
     setIsMelting(true)
     setStatusMessage(t('ecash.status.startingMeltProcess'))
     try {
-      const bolt11Invoice = await resolveBolt11Invoice()
-      if (!bolt11Invoice) {
-        return
-      }
-
-      setStatusMessage(t('ecash.status.creatingMeltQuote'))
-      await payLightningInvoice(
-        bolt11Invoice,
-        amountSats,
-        mints.length === 1 ? mints[0].url : selectedMintUrl
-      )
-      setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
-
-      setInvoice('')
-      setAmount('')
-      toast.success(t('ecash.success.tokensMelted'))
-      const { pendingZap, setZapResult } = useZapFlowStore.getState()
-      if (pendingZap) {
-        setZapResult('success')
-        router.back()
-      } else {
-        router.navigate('/signer/ecash')
-      }
+      await meltToInvoice(amountSats)
     } catch (error) {
       handleMeltError(error)
-    } finally {
-      setIsMelting(false)
+    }
+    setIsMelting(false)
+  }
+
+  async function meltToInvoice(amountSats: number) {
+    const bolt11Invoice = await resolveBolt11Invoice()
+    if (!bolt11Invoice) {
+      return
+    }
+
+    setStatusMessage(t('ecash.status.creatingMeltQuote'))
+    await payLightningInvoice(
+      bolt11Invoice,
+      amountSats,
+      mints.length === 1 ? mints[0].url : selectedMintUrl
+    )
+    setStatusMessage(t('ecash.status.tokensMeltedSuccessfully'))
+
+    setInvoice('')
+    setAmount('')
+    toast.success(t('ecash.success.tokensMelted'))
+    const { pendingZap, setZapResult } = useZapFlowStore.getState()
+    if (pendingZap) {
+      setZapResult('success')
+      router.back()
+    } else {
+      router.navigate('/signer/ecash')
     }
   }
 
@@ -290,9 +292,8 @@ export function useEcashSend() {
         }
       } catch {
         setLNURLDetails(null)
-      } finally {
-        setIsFetchingLNURL(false)
       }
+      setIsFetchingLNURL(false)
       return
     }
 

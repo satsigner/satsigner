@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   hexText: {
     color: Colors.gray[700],
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: HEX_FONT_SIZE,
     left: HEX_LEFT_PADDING,
     lineHeight: HEX_LINE_HEIGHT,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   hexTextOverlayLine: {
     color: Colors.gray[700],
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: HEX_FONT_SIZE,
     lineHeight: HEX_LINE_HEIGHT,
     textAlign: 'center'

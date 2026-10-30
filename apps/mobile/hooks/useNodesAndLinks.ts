@@ -101,6 +101,105 @@ type UseNodesAndLinksProps = {
   outpointLabelsByRef?: Map<string, string> | Record<string, string>
 }
 
+const NO_OWN_ADDRESSES = new Set<string>()
+
+function generateSankeyLinks(
+  nodes: TxNode[],
+  inputs: Map<string, Utxo>,
+  outputNodesCurrentTransaction: TxNode[]
+) {
+  const links: Link[] = []
+  const depthMap = new Map<number, TxNode[]>()
+
+  for (const node of nodes) {
+    const depth = node.depthH
+    const depthNodes = depthMap.get(depth) ?? []
+    depthNodes.push(node)
+    depthMap.set(depth, depthNodes)
+  }
+
+  for (const node of nodes) {
+    if (node.type === 'text' && node.depthH === 0) {
+      // vin node in the first depth
+      const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+      const targetBlock = nextDepthNodes.find(
+        (n: TxNode) => n.type === 'block' && n.txId === node.txId
+      )
+      if (targetBlock) {
+        links.push({
+          source: node.id,
+          target: targetBlock.id,
+          value: node.value
+        })
+      }
+    } else if (node.type === 'block') {
+      // block node
+      const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+      const vouts = nextDepthNodes.filter(
+        (n: TxNode) => n.type === 'text' && n.txId === node.txId
+      )
+
+      for (const vout of vouts) {
+        links.push({ source: node.id, target: vout.id, value: vout.value })
+      }
+    } else if (node.type === 'text' && node.nextTx) {
+      // vout node that has connection to block
+      const targetBlock = nodes.find(
+        (n: TxNode) => n.type === 'block' && n.txId === node.nextTx
+      )
+      if (targetBlock) {
+        links.push({
+          source: node.id,
+          target: targetBlock.id,
+          value: node.value
+        })
+      }
+    } else if (
+      node.type === 'text' &&
+      node.id.includes('vout') &&
+      [...inputs.values()]
+        .map((input) => input.value)
+        .includes(node?.value ?? 0) &&
+      [...inputs.values()].map((input) => input.vout).includes(node?.vout ?? 0)
+    ) {
+      // vout node that has input selected by users
+      const targetBlock = outputNodesCurrentTransaction[0].id
+      if (targetBlock) {
+        links.push({
+          source: node.id,
+          target: targetBlock,
+          value: node.value
+        })
+      }
+    } else if (
+      node.type === 'text' &&
+      node.depthH !== 0 &&
+      node.id.includes('vin')
+    ) {
+      const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+      const targetBlock = nextDepthNodes.find(
+        (n: TxNode) => n.type === 'block' && n.txId === node.txId
+      )
+      if (targetBlock) {
+        links.push({
+          source: node.id,
+          target: targetBlock.id,
+          value: node.value
+        })
+      }
+    }
+  }
+
+  for (const node of outputNodesCurrentTransaction.slice(1)) {
+    links.push({
+      source: outputNodesCurrentTransaction[0].id,
+      target: node.id,
+      value: node.value ?? 0
+    })
+  }
+  return links
+}
+
 export const useNodesAndLinks = ({
   transactions,
   inputs,
@@ -108,7 +207,7 @@ export const useNodesAndLinks = ({
   feeRate,
   minerFeeSats,
   elevatedFeeRateHighlight = false,
-  ownAddresses = new Set(),
+  ownAddresses = NO_OWN_ADDRESSES,
   walletSpendColors = true,
   txLabelsById: accountTxLabelsById,
   outpointLabelsByRef: accountOutpointLabelsByRef
@@ -571,106 +670,15 @@ export const useNodesAndLinks = ({
   ].toSorted((a, b) => a.depthH - b.depthH)
 
   const links = useMemo(() => {
-    function generateSankeyLinks(nodes: TxNode[]) {
-      const links: Link[] = []
-      const depthMap = new Map<number, TxNode[]>()
-
-      for (const node of nodes) {
-        const depth = node.depthH
-        const depthNodes = depthMap.get(depth) ?? []
-        depthNodes.push(node)
-        depthMap.set(depth, depthNodes)
-      }
-
-      for (const node of nodes) {
-        if (node.type === 'text' && node.depthH === 0) {
-          // vin node in the first depth
-          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
-          const targetBlock = nextDepthNodes.find(
-            (n: TxNode) => n.type === 'block' && n.txId === node.txId
-          )
-          if (targetBlock) {
-            links.push({
-              source: node.id,
-              target: targetBlock.id,
-              value: node.value
-            })
-          }
-        } else if (node.type === 'block') {
-          // block node
-          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
-          const vouts = nextDepthNodes.filter(
-            (n: TxNode) => n.type === 'text' && n.txId === node.txId
-          )
-
-          for (const vout of vouts) {
-            links.push({ source: node.id, target: vout.id, value: vout.value })
-          }
-        } else if (node.type === 'text' && node.nextTx) {
-          // vout node that has connection to block
-          const targetBlock = nodes.find(
-            (n: TxNode) => n.type === 'block' && n.txId === node.nextTx
-          )
-          if (targetBlock) {
-            links.push({
-              source: node.id,
-              target: targetBlock.id,
-              value: node.value
-            })
-          }
-        } else if (
-          node.type === 'text' &&
-          node.id.includes('vout') &&
-          [...inputs.values()]
-            .map((input) => input.value)
-            .includes(node?.value ?? 0) &&
-          [...inputs.values()]
-            .map((input) => input.vout)
-            .includes(node?.vout ?? 0)
-        ) {
-          // vout node that has input selected by users
-          const targetBlock = outputNodesCurrentTransaction[0].id
-          if (targetBlock) {
-            links.push({
-              source: node.id,
-              target: targetBlock,
-              value: node.value
-            })
-          }
-        } else if (
-          node.type === 'text' &&
-          node.depthH !== 0 &&
-          node.id.includes('vin')
-        ) {
-          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
-          const targetBlock = nextDepthNodes.find(
-            (n: TxNode) => n.type === 'block' && n.txId === node.txId
-          )
-          if (targetBlock) {
-            links.push({
-              source: node.id,
-              target: targetBlock.id,
-              value: node.value
-            })
-          }
-        }
-      }
-
-      for (const node of outputNodesCurrentTransaction.slice(1)) {
-        links.push({
-          source: outputNodesCurrentTransaction[0].id,
-          target: node.id,
-          value: node.value ?? 0
-        })
-      }
-      return links
-    }
-
     if (nodes?.length === 0) {
       return []
     }
 
-    return generateSankeyLinks(previousConfirmedNodes)
+    return generateSankeyLinks(
+      previousConfirmedNodes,
+      inputs,
+      outputNodesCurrentTransaction
+    )
   }, [
     nodes?.length,
     previousConfirmedNodes,

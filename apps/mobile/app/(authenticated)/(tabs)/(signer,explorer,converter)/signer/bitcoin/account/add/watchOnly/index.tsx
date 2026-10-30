@@ -1,8 +1,8 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { Keyboard, StyleSheet } from 'react-native'
-import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import { type BdkWallet, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -41,7 +41,8 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType } from '@/types/models/Account'
+import { type Account, type CreationType } from '@/types/models/Account'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import {
   appNetworkToBdkNetwork,
@@ -157,24 +158,6 @@ export default function WatchOnly() {
   const [isValidMasterFingerprint, setIsValidMasterFingerprint] = useState(true)
   const [isLoadingWallet, setIsLoadingWallet] = useState(false)
 
-  useEffect(() => {
-    async function handleScannerParams() {
-      if (params.descriptor) {
-        const descriptorFromScanner = params.descriptor
-
-        setCreationType('importDescriptor')
-        await handleSingleDescriptor(descriptorFromScanner)
-      } else if (params.extendedPublicKey) {
-        const xpubFromScanner = params.extendedPublicKey
-        setCreationType('importExtendedPub')
-        updateXpub(xpubFromScanner)
-      }
-    }
-
-    handleScannerParams()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.descriptor, params.extendedPublicKey, setCreationType])
-
   const pulseAnim = useSharedValue(0)
   const scaleAnim = useSharedValue(1)
 
@@ -224,34 +207,15 @@ export default function WatchOnly() {
     setCameraModalVisible(true)
   }
 
-  const updateDescriptorValidationState = useCallback(() => {
-    const hasValidExternal = externalDescriptor && isValidExternalDescriptor
-    const hasValidInternal = internalDescriptor && isValidInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-
-    if (selectedOption === 'importDescriptor') {
-      setIsDisabled(!hasAnyValidDescriptor)
-    }
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    isValidExternalDescriptor,
-    isValidInternalDescriptor,
-    selectedOption
-  ])
-
-  useEffect(() => {
-    if (selectedOption === 'importDescriptor') {
-      updateDescriptorValidationState()
-    }
-  }, [
-    selectedOption,
-    externalDescriptor,
-    internalDescriptor,
-    isValidExternalDescriptor,
-    isValidInternalDescriptor,
-    updateDescriptorValidationState
-  ])
+  const hasValidExternal = externalDescriptor && isValidExternalDescriptor
+  const hasValidInternal = internalDescriptor && isValidInternalDescriptor
+  const isDescriptorImportDisabled = !(hasValidExternal || hasValidInternal)
+  if (
+    selectedOption === 'importDescriptor' &&
+    isDisabled !== isDescriptorImportDisabled
+  ) {
+    setIsDisabled(isDescriptorImportDisabled)
+  }
 
   function updateAddress(address: string) {
     const processedAddress = stripBitcoinPrefix(address)
@@ -293,6 +257,18 @@ export default function WatchOnly() {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
     }
+  }
+
+  function extractAndSetFingerprint(descriptor: string) {
+    if (localFingerprint) {
+      return
+    }
+    const extractedFingerprint = getFingerprint(descriptor)
+    if (!extractedFingerprint) {
+      return
+    }
+    setLocalFingerprint(extractedFingerprint)
+    setFingerprint(extractedFingerprint)
   }
 
   function updateXpub(raw: string) {
@@ -436,16 +412,83 @@ export default function WatchOnly() {
     }
   }
 
-  function extractAndSetFingerprint(descriptor: string) {
-    if (localFingerprint) {
+  async function handleCombinedDescriptor(descriptor: string) {
+    const result = await processCombinedDescriptor(
+      descriptor,
+      getScriptVersionFromDescriptor(descriptor) ?? scriptVersion
+    )
+
+    if (result.success) {
+      setLocalExternalDescriptor(result.external)
+      setLocalInternalDescriptor(result.internal)
+      setIsValidExternalDescriptor(true)
+      setIsValidInternalDescriptor(true)
+
+      const externalWithoutChecksum = removeChecksum(result.external)
+      const internalWithoutChecksum = removeChecksum(result.internal)
+      setExternalDescriptor(externalWithoutChecksum)
+      setInternalDescriptor(internalWithoutChecksum)
+
+      if (!localFingerprint && result.fingerprint) {
+        setLocalFingerprint(result.fingerprint)
+        setFingerprint(result.fingerprint)
+      }
+
+      await updateExternalDescriptor(externalWithoutChecksum, true)
+      await updateInternalDescriptor(internalWithoutChecksum, true)
+    } else {
+      setLocalExternalDescriptor(result.external)
+      setLocalInternalDescriptor(result.internal)
+      setIsValidExternalDescriptor(false)
+      setIsValidInternalDescriptor(false)
+      toast.error(t('account.import.error.descriptorFormat'))
+    }
+  }
+
+  async function handleJsonDescriptor(result: {
+    external: string
+    internal: string
+    original: string
+  }) {
+    const { external, internal, original } = result
+
+    if (isCombinedDescriptor(original)) {
+      await handleCombinedDescriptor(original)
+    } else {
+      await updateExternalDescriptor(original)
+      if (internal) {
+        await updateInternalDescriptor(internal)
+      }
+      extractAndSetFingerprint(external)
+    }
+  }
+
+  async function handleLegacyDescriptor(result: {
+    external: string
+    internal: string
+  }) {
+    const { external, internal } = result
+
+    if (isCombinedDescriptor(external)) {
+      await handleCombinedDescriptor(external)
       return
     }
-    const extractedFingerprint = getFingerprint(descriptor)
-    if (!extractedFingerprint) {
-      return
+
+    await updateExternalDescriptor(external)
+    if (internal) {
+      await updateInternalDescriptor(internal)
     }
-    setLocalFingerprint(extractedFingerprint)
-    setFingerprint(extractedFingerprint)
+
+    extractAndSetFingerprint(external)
+  }
+
+  async function handleSingleDescriptor(descriptor: string) {
+    if (isCombinedDescriptor(descriptor)) {
+      await handleCombinedDescriptor(descriptor)
+    } else {
+      await updateExternalDescriptor(descriptor)
+      extractAndSetFingerprint(descriptor)
+    }
   }
 
   function handleContentScanned(content: DetectedContent) {
@@ -571,86 +614,66 @@ export default function WatchOnly() {
     }
   }
 
-  async function handleJsonDescriptor(result: {
-    external: string
-    internal: string
-    original: string
-  }) {
-    const { external, internal, original } = result
-
-    if (isCombinedDescriptor(original)) {
-      await handleCombinedDescriptor(original)
-    } else {
-      await updateExternalDescriptor(original)
-      if (internal) {
-        await updateInternalDescriptor(internal)
-      }
-      extractAndSetFingerprint(external)
+  const applyDescriptorParam = useEffectEvent((descriptor: string) =>
+    handleSingleDescriptor(descriptor)
+  )
+  const applyExtendedPublicKeyParam = useEffectEvent(
+    (extendedPublicKey: string) => {
+      updateXpub(extendedPublicKey)
     }
-  }
+  )
 
-  async function handleLegacyDescriptor(result: {
-    external: string
-    internal: string
-  }) {
-    const { external, internal } = result
+  useEffect(() => {
+    async function handleScannerParams() {
+      if (params.descriptor) {
+        const descriptorFromScanner = params.descriptor
 
-    if (isCombinedDescriptor(external)) {
-      await handleCombinedDescriptor(external)
+        setCreationType('importDescriptor')
+        await applyDescriptorParam(descriptorFromScanner)
+      } else if (params.extendedPublicKey) {
+        const xpubFromScanner = params.extendedPublicKey
+        setCreationType('importExtendedPub')
+        applyExtendedPublicKeyParam(xpubFromScanner)
+      }
+    }
+
+    handleScannerParams()
+  }, [params.descriptor, params.extendedPublicKey, setCreationType])
+
+  // TODO: remove this logic, it should not be defined here.
+  async function importNFCData(nfcData: NFCReadResult | null) {
+    if (!nfcData?.text) {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
       return
     }
 
-    await updateExternalDescriptor(external)
-    if (internal) {
-      await updateInternalDescriptor(internal)
-    }
+    const text = sanitizeScannedText(nfcData.text)
 
-    extractAndSetFingerprint(external)
-  }
+    if (selectedOption === 'importDescriptor') {
+      const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
 
-  async function handleSingleDescriptor(descriptor: string) {
-    if (isCombinedDescriptor(descriptor)) {
-      await handleCombinedDescriptor(descriptor)
-    } else {
-      await updateExternalDescriptor(descriptor)
-      extractAndSetFingerprint(descriptor)
-    }
-  }
-
-  async function handleCombinedDescriptor(descriptor: string) {
-    const result = await processCombinedDescriptor(
-      descriptor,
-      getScriptVersionFromDescriptor(descriptor) ?? scriptVersion
-    )
-
-    if (result.success) {
-      setLocalExternalDescriptor(result.external)
-      setLocalInternalDescriptor(result.internal)
-      setIsValidExternalDescriptor(true)
-      setIsValidInternalDescriptor(true)
-
-      const externalWithoutChecksum = removeChecksum(result.external)
-      const internalWithoutChecksum = removeChecksum(result.internal)
-      setExternalDescriptor(externalWithoutChecksum)
-      setInternalDescriptor(internalWithoutChecksum)
-
-      if (!localFingerprint && result.fingerprint) {
-        setLocalFingerprint(result.fingerprint)
-        setFingerprint(result.fingerprint)
+      if (isCombinedDescriptor(text)) {
+        await handleCombinedDescriptor(text)
+      } else {
+        if (externalDescriptor) {
+          updateExternalDescriptor(externalDescriptor)
+        }
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
+        extractAndSetFingerprint(externalDescriptor)
       }
+    }
 
-      await updateExternalDescriptor(externalWithoutChecksum, true)
-      await updateInternalDescriptor(internalWithoutChecksum, true)
-    } else {
-      setLocalExternalDescriptor(result.external)
-      setLocalInternalDescriptor(result.internal)
-      setIsValidExternalDescriptor(false)
-      setIsValidInternalDescriptor(false)
-      toast.error(t('account.import.error.descriptorFormat'))
+    if (selectedOption === 'importExtendedPub') {
+      updateXpub(text)
+    }
+
+    if (selectedOption === 'importAddress') {
+      updateAddress(text)
     }
   }
 
-  // TODO: remove this logic, it should not be defined here.
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
@@ -659,37 +682,7 @@ export default function WatchOnly() {
 
     try {
       const nfcData = await readNFCTag()
-
-      if (!nfcData?.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = sanitizeScannedText(nfcData.text)
-
-      if (selectedOption === 'importDescriptor') {
-        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
-
-        if (isCombinedDescriptor(text)) {
-          await handleCombinedDescriptor(text)
-        } else {
-          if (externalDescriptor) {
-            updateExternalDescriptor(externalDescriptor)
-          }
-          if (internalDescriptor) {
-            updateInternalDescriptor(internalDescriptor)
-          }
-          extractAndSetFingerprint(externalDescriptor)
-        }
-      }
-
-      if (selectedOption === 'importExtendedPub') {
-        updateXpub(text)
-      }
-
-      if (selectedOption === 'importAddress') {
-        updateAddress(text)
-      }
+      await importNFCData(nfcData)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {
@@ -698,101 +691,96 @@ export default function WatchOnly() {
     }
   }
 
-  const confirmAccountCreation = useCallback(
-    async () => {
-      setIsLoadingWallet(true)
-      try {
-        if (selectedOption === 'importExtendedPub') {
-          if (!xpub || !scriptVersion) {
-            toast.error(t('watchonly.error.missingFields'))
-            return
-          }
-          const normalizedXpub = convertKeyFormat(xpub, 'xpub', network)
-          setExtendedPublicKey(normalizedXpub)
-          setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
-          setScriptVersion(scriptVersion)
-        } else if (selectedOption === 'importAddress') {
-          for (let index = 0; index < addresses.length; index += 1) {
-            const address = addresses[index]
-            setExternalDescriptor(`addr(${address})`)
-            setKey(index)
-          }
-        } else if (selectedOption === 'importDescriptor') {
-          const descriptorScriptVersion =
-            getScriptVersionFromDescriptor(externalDescriptor) ?? scriptVersion
-          if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
-            const combinedValidation = await processCombinedDescriptor(
-              externalDescriptor,
-              descriptorScriptVersion
-            )
+  async function syncCreatedAccount(
+    createdAccount: Account,
+    wallet: BdkWallet | undefined
+  ) {
+    const updatedAccount =
+      selectedOption !== 'importAddress'
+        ? await syncAccountWithWallet(createdAccount, wallet!)
+        : await syncAccountWithAddress(createdAccount)
+    if (updatedAccount) {
+      updateAccount(updatedAccount)
+    }
+  }
 
-            if (!combinedValidation.success) {
-              toast.error('Invalid combined descriptor')
-              return
-            }
-          }
-
-          extractAndSetFingerprint(externalDescriptor)
-          setScriptVersion(descriptorScriptVersion)
-
-          setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
-        }
-
-        setNetwork(network)
-        if (selectedOption !== 'importAddress') {
-          setKey(0)
-        }
-
-        const account = getAccountData()
-
-        const data = await accountBuilderFinish(account)
-        if (!data) {
-          toast.error(t('watchonly.error.creationFailed'))
-          return
-        }
-
-        updateAccount(data.accountWithEncryptedSecret)
-        toast.success(t('watchonly.success.accountCreated'))
-        router.dismissAll()
-        router.navigate(
-          `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
+  async function createWatchOnlyAccount() {
+    if (selectedOption === 'importExtendedPub') {
+      if (!xpub || !scriptVersion) {
+        toast.error(t('watchonly.error.missingFields'))
+        return
+      }
+      const normalizedXpub = convertKeyFormat(xpub, 'xpub', network)
+      setExtendedPublicKey(normalizedXpub)
+      setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
+      setScriptVersion(scriptVersion)
+    } else if (selectedOption === 'importAddress') {
+      for (let index = 0; index < addresses.length; index += 1) {
+        const address = addresses[index]
+        setExternalDescriptor(`addr(${address})`)
+        setKey(index)
+      }
+    } else if (selectedOption === 'importDescriptor') {
+      const descriptorScriptVersion =
+        getScriptVersionFromDescriptor(externalDescriptor) ?? scriptVersion
+      if (externalDescriptor && isCombinedDescriptor(externalDescriptor)) {
+        const combinedValidation = await processCombinedDescriptor(
+          externalDescriptor,
+          descriptorScriptVersion
         )
 
-        if (connectionMode === 'auto') {
-          try {
-            const updatedAccount =
-              selectedOption !== 'importAddress'
-                ? await syncAccountWithWallet(
-                    data.accountWithEncryptedSecret,
-                    data.wallet!
-                  )
-                : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-            if (updatedAccount) {
-              updateAccount(updatedAccount)
-            }
-          } catch {
-            /* silently ignored */
-          }
+        if (!combinedValidation.success) {
+          toast.error('Invalid combined descriptor')
+          return
         }
+      }
+
+      extractAndSetFingerprint(externalDescriptor)
+      setScriptVersion(descriptorScriptVersion)
+
+      setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
+    }
+
+    setNetwork(network)
+    if (selectedOption !== 'importAddress') {
+      setKey(0)
+    }
+
+    const account = getAccountData()
+
+    const data = await accountBuilderFinish(account)
+    if (!data) {
+      toast.error(t('watchonly.error.creationFailed'))
+      return
+    }
+
+    updateAccount(data.accountWithEncryptedSecret)
+    toast.success(t('watchonly.success.accountCreated'))
+    router.dismissAll()
+    router.navigate(
+      `/signer/bitcoin/account/${data.accountWithEncryptedSecret.id}`
+    )
+
+    if (connectionMode === 'auto') {
+      try {
+        await syncCreatedAccount(data.accountWithEncryptedSecret, data.wallet)
       } catch {
+        /* silently ignored */
+      }
+    }
+  }
+
+  async function confirmAccountCreation() {
+    setIsLoadingWallet(true)
+    await createWatchOnlyAccount()
+      .catch(() => {
         toast.error(t('watchonly.error.creationFailed'))
-      } finally {
+      })
+      .finally(() => {
         clearAccount()
         setIsLoadingWallet(false)
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      selectedOption,
-      xpub,
-      localFingerprint,
-      scriptVersion,
-      addresses,
-      externalDescriptor,
-      network,
-      connectionMode
-    ]
-  )
+      })
+  }
 
   const isConfirmDisabled =
     selectedOption === 'importAddress' ? addresses.length === 0 : isDisabled

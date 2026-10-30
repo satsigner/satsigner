@@ -20,23 +20,25 @@ export default function EcashSeedPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPinEntry, setShowPinEntry] = useState(false)
 
+  async function loadStoredMnemonic(accountId: string) {
+    const storedMnemonic = await getEcashMnemonic(accountId)
+    if (!storedMnemonic) {
+      toast.error(t('ecash.account.seedDisplayWarning'))
+      return
+    }
+    setMnemonic(storedMnemonic)
+    setIsRevealed(true)
+  }
+
   async function revealSeed() {
     if (!id) {
       return
     }
     setIsLoading(true)
-    try {
-      const storedMnemonic = await getEcashMnemonic(id)
-      if (!storedMnemonic) {
-        toast.error(t('ecash.account.seedDisplayWarning'))
-        return
-      }
-      setMnemonic(storedMnemonic)
-      setIsRevealed(true)
-    } finally {
+    await loadStoredMnemonic(id).finally(() => {
       setIsLoading(false)
       setShowPinEntry(false)
-    }
+    })
   }
 
   async function handleSuccessPin() {

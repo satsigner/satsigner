@@ -69,6 +69,21 @@ export default function ImportMnemonic() {
     setCurrentFingerprint('')
   }
 
+  function openCreatedAccount(
+    data: Awaited<ReturnType<typeof accountBuilderFinish>>
+  ) {
+    if (!data || !data.wallet) {
+      toast.error(t('account.import.error.generic'))
+      return
+    }
+
+    const createdAccountId = data.accountWithEncryptedSecret.id
+    router.navigate(`/signer/bitcoin/account/add/created/${createdAccountId}`)
+
+    // we clear the account in the background to avoid an immediate re-render of the current page which resets its state variables
+    setTimeout(clearAccount, 1500)
+  }
+
   async function handleOnPressImportSeed() {
     setMnemonic(currentMnemonic)
     setPassphrase(currentPassphrase)
@@ -78,17 +93,7 @@ export default function ImportMnemonic() {
     try {
       const account = getAccountData()
       const data = await accountBuilderFinish(account)
-
-      if (!data || !data.wallet) {
-        toast.error(t('account.import.error.generic'))
-        return
-      }
-
-      const createdAccountId = data.accountWithEncryptedSecret.id
-      router.navigate(`/signer/bitcoin/account/add/created/${createdAccountId}`)
-
-      // we clear the account in the background to avoid an immediate re-render of the current page which resets its state variables
-      setTimeout(clearAccount, 1500)
+      openCreatedAccount(data)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('account.import.error.generic')}: ${reason}`)

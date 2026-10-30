@@ -33,7 +33,7 @@ metadata:
 - Colors: always `Colors.*` from `@/styles` — never `'#FFFFFF'`, `'black'`, `rgba(...)`
 - Spacing/gaps: always `Layout.vStack.gap.*` tokens or SS component `gap` prop — never `gap: 16`
 - Font sizes: always `Sizes.text.fontSize.*` — never `fontSize: 14`
-- Font families: always `Typography.*` from `@/styles` — never `fontFamily: 'SF-Pro-Text-Regular'`
+- Font families: always `Typography.*` from `@/styles` — never `fontFamily: 'Geist-Regular'`
 - User-facing strings: always `i18n.t('namespace.key')` — never hardcoded English. Add new keys to `locales/*.json` if absent.
 
 ### Dark theme only

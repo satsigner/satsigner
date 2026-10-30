@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   Pressable,
   StyleSheet,
@@ -29,7 +29,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
@@ -85,6 +85,10 @@ export default function EcashSendPage() {
   const qrSize = Math.floor(width * 0.88)
   const routeLabel = describeTokenRoute(tokenRoute, mints)
 
+  const applyInvoiceParam = useEffectEvent((invoiceValue: string) => {
+    handleInvoiceChange(invoiceValue)
+  })
+
   useEffect(() => {
     if (invoiceParam) {
       const invoiceValue = Array.isArray(invoiceParam)
@@ -92,10 +96,9 @@ export default function EcashSendPage() {
         : invoiceParam
       if (invoiceValue) {
         setActiveTab('lightning')
-        handleInvoiceChange(invoiceValue)
+        applyInvoiceParam(invoiceValue)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceParam])
 
   const chunks = getTokenURFragments()
@@ -448,7 +451,7 @@ const styles = StyleSheet.create({
     padding: 12
   },
   invoiceInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     padding: 10
@@ -468,7 +471,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800]
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 100,

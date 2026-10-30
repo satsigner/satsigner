@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   psbtText: {
     color: Colors.white,
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     lineHeight: 18
   },

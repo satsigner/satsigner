@@ -7,6 +7,7 @@ export {
   SCHEME_DEV,
   SCHEME_PROD,
   VARIANT_SUFFIX_MAX_LENGTH,
+  getVariantAndroidAbis,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme,

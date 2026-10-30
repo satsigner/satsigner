@@ -22,7 +22,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import {
   type BlockDifficulty,
   type DifficultyAdjustment
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   chainWork: {
     color: Colors.gray['100'],
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   dateContainer: {
     alignItems: 'center',
