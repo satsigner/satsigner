@@ -165,6 +165,23 @@ describe('decodeNostrContent', () => {
   })
 })
 
+describe('contentWithPubpayHashtag', () => {
+  it('appends the hashtag when a payment option is selected', () => {
+    const { contentWithPubpayHashtag } = require('@/utils/nostrIdentity')
+    expect(contentWithPubpayHashtag('hello', true)).toBe('hello\n#pubpay')
+  })
+
+  it('keeps the note unchanged when no payment option is selected', () => {
+    const { contentWithPubpayHashtag } = require('@/utils/nostrIdentity')
+    expect(contentWithPubpayHashtag('hello', false)).toBe('hello')
+  })
+
+  it('does not append a second hashtag', () => {
+    const { contentWithPubpayHashtag } = require('@/utils/nostrIdentity')
+    expect(contentWithPubpayHashtag('hello #pubpay', true)).toBe('hello #pubpay')
+  })
+})
+
 describe('withPubpayHashtag', () => {
   it('adds the pubpay hashtag when a payment option is selected', () => {
     const { withPubpayHashtag } = require('@/utils/nostrIdentity')

@@ -39,6 +39,7 @@ import {
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   buildEnhancedZapTags,
+  contentWithPubpayHashtag,
   extractEnhancedZapTags,
   withPubpayHashtag
 } from '@/utils/nostrIdentity'
@@ -158,10 +159,7 @@ export default function NostrComposePage() {
             zapUses: maxUses ? Number.parseInt(maxUses, 10) : undefined
           })
 
-    return withPubpayHashtag(
-      [...baseTags, ...zapTags],
-      amountMode !== 'none'
-    )
+    return withPubpayHashtag([...baseTags, ...zapTags], amountMode !== 'none')
   }
 
   function applyKind1Draft(draft: NostrKind1DraftImport): boolean {
@@ -248,9 +246,15 @@ export default function NostrComposePage() {
     toast.success(t('nostrIdentity.compose.importSuccess'))
   }
 
+  const paymentRequestSelected = amountMode !== 'none'
+  const noteContent = contentWithPubpayHashtag(
+    content,
+    paymentRequestSelected
+  )
+
   const draftEventJson = JSON.stringify(
     {
-      content: content.trim(),
+      content: noteContent,
       kind: nostrKinds.ShortTextNote,
       tags: buildTags()
     },
@@ -268,7 +272,7 @@ export default function NostrComposePage() {
     setMining(true)
     try {
       return await applyNostrProofOfWork({
-        content: content.trim(),
+        content: noteContent,
         difficulty: powDifficulty,
         nsec,
         tags: buildTags()
@@ -302,7 +306,7 @@ export default function NostrComposePage() {
       const prepared = await tagsForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        content.trim(),
+        noteContent,
         prepared.tags,
         prepared.createdAt
       )
@@ -333,7 +337,7 @@ export default function NostrComposePage() {
       const prepared = await tagsForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        content.trim(),
+        noteContent,
         prepared.tags,
         prepared.createdAt
       )
@@ -369,7 +373,7 @@ export default function NostrComposePage() {
       const api = new NostrAPI(effectiveRelays)
       const published = await api.publishNote(
         identity.nsec,
-        content.trim(),
+        noteContent,
         prepared.tags,
         prepared.createdAt
       )
@@ -498,6 +502,12 @@ export default function NostrComposePage() {
                 </SSPressable>
               ))}
             </SSHStack>
+
+            {paymentRequestSelected ? (
+              <SSText size="xxs" color="muted">
+                {t('nostrIdentity.compose.pubpayHashtag')}
+              </SSText>
+            ) : null}
 
             {amountMode === 'fixed' && (
               <TextInput

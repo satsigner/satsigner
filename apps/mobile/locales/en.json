@@ -2136,6 +2136,7 @@
     "compose.published": "Note posted!",
     "compose.publishFailed": "Failed to post note",
     "compose.publishing": "Posting...",
+    "compose.pubpayHashtag": "#pubpay",
     "compose.qrSigned": "QR signed",
     "compose.showAdvanced": "Show advanced options",
     "compose.showJson": "Show JSON",

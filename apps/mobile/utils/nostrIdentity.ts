@@ -196,6 +196,19 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   return result
 }
 
+const PUBPAY_HASHTAG_PATTERN = /(?:^|\s)#pubpay\b/i
+
+export function contentWithPubpayHashtag(
+  content: string,
+  paymentRequestSelected: boolean
+): string {
+  const trimmed = content.trim()
+  if (!paymentRequestSelected || PUBPAY_HASHTAG_PATTERN.test(trimmed)) {
+    return trimmed
+  }
+  return trimmed.length > 0 ? `${trimmed}\n#pubpay` : '#pubpay'
+}
+
 export function withPubpayHashtag(
   tags: string[][],
   paymentRequestSelected: boolean
