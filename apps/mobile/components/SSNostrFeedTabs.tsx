@@ -86,6 +86,46 @@ function kindsForNoteKindFilterId(id: string): number[] {
 
 type FeedTab = 'feed' | 'notes' | 'zaps'
 
+type NostrBookmarksEvent = NonNullable<
+  Awaited<ReturnType<NostrAPI['fetchBookmarks']>>
+>
+
+function selectFilteredBookmarks(
+  result: NostrBookmarksEvent,
+  filterId: string,
+  nsec: string | undefined,
+  hexPubkey: string
+) {
+  const pubBookmarks = parsePublicBookmarks(result.tags)
+  const resolvePrivBookmarks = () => {
+    if (filterId === 'bookmarks' || !nsec) {
+      return []
+    }
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      return []
+    }
+    return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
+  }
+  const privBookmarks = resolvePrivBookmarks()
+
+  const merged =
+    filterId === 'private_bookmarks'
+      ? privBookmarks
+      : mergeBookmarks(pubBookmarks, privBookmarks)
+
+  return merged.slice(0, NOSTR_BOOKMARKS_MAX_FETCH)
+}
+
+function hasMoreZapPages(
+  incomingBatch: ZapReceiptInfo[],
+  sentBatch: ZapReceiptInfo[]
+) {
+  const incomingHasMore = incomingBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
+  const sentHasMore = sentBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
+  return incomingHasMore || sentHasMore
+}
+
 type FeedAuthorKind0State =
   | { status: 'loading' }
   | { status: 'ready'; profile: NostrKind0Profile | null }
@@ -147,7 +187,9 @@ function SSNostrFeedTabs({
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const zapsFetchedRef = useRef(false)
 
-  const privateBookmarkIdsRef = useRef(new Set<string>())
+  const [privateBookmarkIds, setPrivateBookmarkIds] = useState<Set<string>>(
+    new Set()
+  )
 
   const [noteResolvedEvents, setNoteResolvedEvents] = useState<
     Map<string, NostrFeedNoteLike>
@@ -207,35 +249,25 @@ function SSNostrFeedTabs({
       return
     }
     setNotesLoading(true)
+    const nsec = identity?.nsec
     try {
       const result = await apiRef.current.fetchBookmarks(npub)
       if (!result) {
         setNotes([])
+        setNotesLoading(false)
         return
       }
 
-      const pubBookmarks = parsePublicBookmarks(result.tags)
-      const nsec = identity?.nsec
-      const resolvePrivBookmarks = () => {
-        if (notesKindFilterId === 'bookmarks' || !nsec) {
-          return []
-        }
-        const secretKey = getSecretFromNsec(nsec)
-        if (!secretKey) {
-          return []
-        }
-        return decryptPrivateBookmarks(result.content, secretKey, hexPubkey)
-      }
-      const privBookmarks = resolvePrivBookmarks()
-
-      const merged =
-        notesKindFilterId === 'private_bookmarks'
-          ? privBookmarks
-          : mergeBookmarks(pubBookmarks, privBookmarks)
-
-      const trimmed = merged.slice(0, NOSTR_BOOKMARKS_MAX_FETCH)
-      privateBookmarkIdsRef.current = new Set(
-        trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
+      const trimmed = selectFilteredBookmarks(
+        result,
+        notesKindFilterId,
+        nsec,
+        hexPubkey
+      )
+      setPrivateBookmarkIds(
+        new Set(
+          trimmed.filter((b) => b.source === 'private').map((b) => b.eventId)
+        )
       )
 
       const fetched = await Promise.all(
@@ -259,9 +291,8 @@ function SSNostrFeedTabs({
       )
     } catch {
       // fetch failed — UI already shows empty state
-    } finally {
-      setNotesLoading(false)
     }
+    setNotesLoading(false)
   }
 
   async function loadNotes(loadMore = false) {
@@ -275,10 +306,9 @@ function SSNostrFeedTabs({
     }
 
     setNotesLoading(true)
+    const lastNote = notes.at(-1)
+    const until = loadMore && lastNote ? lastNote.created_at : undefined
     try {
-      const lastNote = notes.at(-1)
-      const until = loadMore && lastNote ? lastNote.created_at : undefined
-
       const fetched = await apiRef.current.fetchNotes(
         npub,
         NOSTR_BOOKMARKS_PAGE_SIZE,
@@ -306,9 +336,8 @@ function SSNostrFeedTabs({
       )
     } catch {
       // fetch failed — UI already shows empty state
-    } finally {
-      setNotesLoading(false)
     }
+    setNotesLoading(false)
   }
 
   async function loadFeed(loadMore = false) {
@@ -317,6 +346,8 @@ function SSNostrFeedTabs({
     }
 
     setFeedLoading(true)
+    const lastFeed = feedNotes.at(-1)
+    const until = loadMore && lastFeed ? lastFeed.created_at : undefined
     try {
       if (!loadMore) {
         const { pubkeys: following } =
@@ -326,12 +357,10 @@ function SSNostrFeedTabs({
         if (empty) {
           setFeedNotes([])
           setFeedHasMore(false)
+          setFeedLoading(false)
           return
         }
       }
-
-      const lastFeed = feedNotes.at(-1)
-      const until = loadMore && lastFeed ? lastFeed.created_at : undefined
 
       const fetched = await apiRef.current.fetchFollowingTimelineNotes(
         npub,
@@ -360,9 +389,8 @@ function SSNostrFeedTabs({
       )
     } catch {
       // fetch failed — UI already shows empty state
-    } finally {
-      setFeedLoading(false)
     }
+    setFeedLoading(false)
   }
 
   async function loadZaps(loadMore = false) {
@@ -371,13 +399,12 @@ function SSNostrFeedTabs({
     }
 
     setZapsLoading(true)
+    const lastZap = zaps.at(-1)
+    const until =
+      loadMore && lastZap && lastZap.createdAt > 0
+        ? lastZap.createdAt - 1
+        : undefined
     try {
-      const lastZap = zaps.at(-1)
-      const until =
-        loadMore && lastZap && lastZap.createdAt > 0
-          ? lastZap.createdAt - 1
-          : undefined
-
       const [incomingBatch, sentBatch] = await Promise.all([
         fetchZapsByPubkey(
           hexPubkey,
@@ -395,8 +422,7 @@ function SSNostrFeedTabs({
       ])
 
       const fetched = mergeZapReceiptsById([...incomingBatch, ...sentBatch])
-      const incomingHasMore = incomingBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
-      const sentHasMore = sentBatch.length >= NOSTR_BOOKMARKS_PAGE_SIZE
+      const hasMorePages = hasMoreZapPages(incomingBatch, sentBatch)
 
       if (loadMore) {
         const prevLen = zaps.length
@@ -404,22 +430,21 @@ function SSNostrFeedTabs({
         if (allZaps.length === prevLen) {
           setZapsHasMore(false)
         } else {
-          setZapsHasMore(incomingHasMore || sentHasMore)
+          setZapsHasMore(hasMorePages)
         }
         setZaps(allZaps)
         await enrichZapReceipts(allZaps, relays)
         setZaps([...allZaps])
       } else {
-        setZapsHasMore(incomingHasMore || sentHasMore)
+        setZapsHasMore(hasMorePages)
         setZaps(fetched)
         await enrichZapReceipts(fetched, relays)
         setZaps([...fetched])
       }
     } catch {
       // fetch failed — UI already shows empty state
-    } finally {
-      setZapsLoading(false)
     }
+    setZapsLoading(false)
   }
 
   function resetAllFeedState() {
@@ -435,7 +460,7 @@ function SSNostrFeedTabs({
     setFeedFollowingEmpty(false)
     setFeedAuthorKind0({})
     feedKind0FetchedRef.current.clear()
-    privateBookmarkIdsRef.current.clear()
+    setPrivateBookmarkIds(new Set())
     setNoteResolvedEvents(new Map())
     setFeedResolvedEvents(new Map())
   }
@@ -745,7 +770,7 @@ function SSNostrFeedTabs({
                   authorPreview={renderFeedAuthorKind0Row(note)}
                   badge={
                     NOSTR_BOOKMARKS_FILTER_IDS.has(notesKindFilterId) &&
-                    privateBookmarkIdsRef.current.has(note.id) ? (
+                    privateBookmarkIds.has(note.id) ? (
                       <DecryptedBadge />
                     ) : undefined
                   }

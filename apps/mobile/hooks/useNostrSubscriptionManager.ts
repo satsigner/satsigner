@@ -131,6 +131,52 @@ function useNostrSubscriptionManager() {
     await Promise.allSettled(cleanupPromises)
   }, [clearSubscriptions, getActiveSubscriptions])
 
+  const replaceSubscriptions = useCallback(
+    async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
+      const existingApis = [...getActiveSubscriptions()]
+      const currentRelays = account?.nostr?.relays || []
+
+      // Check if we already have valid subscriptions for this account
+      const hasValidSubscription = existingApis.some((api) => {
+        const relays = api.getRelays()
+        return (
+          relays.length > 0 &&
+          relays.every((r) => currentRelays.includes(r)) &&
+          currentRelays.every((r) => relays.includes(r))
+        )
+      })
+
+      if (hasValidSubscription) {
+        return
+      }
+
+      for (const api of existingApis) {
+        await api.flushQueue?.()
+      }
+
+      await cleanup()
+
+      const [protocolApi, dataExchangeApi] = await Promise.all([
+        createProtocolSubscription(account, onLoadingChange),
+        createDataExchangeSubscription(account, onLoadingChange)
+      ])
+
+      if (protocolApi) {
+        addSubscription(protocolApi)
+      }
+      if (dataExchangeApi) {
+        addSubscription(dataExchangeApi)
+      }
+    },
+    [
+      cleanup,
+      createProtocolSubscription,
+      createDataExchangeSubscription,
+      addSubscription,
+      getActiveSubscriptions
+    ]
+  )
+
   const isSubscribingRef = useRef(false)
   const subscribe = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
@@ -141,52 +187,11 @@ function useNostrSubscriptionManager() {
         return
       }
       isSubscribingRef.current = true
-      try {
-        const existingApis = [...getActiveSubscriptions()]
-        const currentRelays = account?.nostr?.relays || []
-
-        // Check if we already have valid subscriptions for this account
-        const hasValidSubscription = existingApis.some((api) => {
-          const relays = api.getRelays()
-          return (
-            relays.length > 0 &&
-            relays.every((r) => currentRelays.includes(r)) &&
-            currentRelays.every((r) => relays.includes(r))
-          )
-        })
-
-        if (hasValidSubscription) {
-          return
-        }
-
-        for (const api of existingApis) {
-          await api.flushQueue?.()
-        }
-
-        await cleanup()
-
-        const [protocolApi, dataExchangeApi] = await Promise.all([
-          createProtocolSubscription(account, onLoadingChange),
-          createDataExchangeSubscription(account, onLoadingChange)
-        ])
-
-        if (protocolApi) {
-          addSubscription(protocolApi)
-        }
-        if (dataExchangeApi) {
-          addSubscription(dataExchangeApi)
-        }
-      } finally {
+      await replaceSubscriptions(account, onLoadingChange).finally(() => {
         isSubscribingRef.current = false
-      }
+      })
     },
-    [
-      cleanup,
-      createProtocolSubscription,
-      createDataExchangeSubscription,
-      addSubscription,
-      getActiveSubscriptions
-    ]
+    [replaceSubscriptions]
   )
 
   return useMemo(

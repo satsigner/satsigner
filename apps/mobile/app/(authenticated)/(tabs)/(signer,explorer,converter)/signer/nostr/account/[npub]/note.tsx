@@ -105,6 +105,15 @@ type NoteParams = {
   nostrUri: string
 }
 
+async function fetchKind0OrNull(api: NostrAPI, npub: string) {
+  try {
+    return await api.fetchKind0(npub)
+  } catch {
+    // non-critical: callers render without the profile
+    return null
+  }
+}
+
 export default function NostrNotePage() {
   const router = useRouter()
   const { npub, nostrUri } = useLocalSearchParams<NoteParams>()
@@ -145,7 +154,9 @@ export default function NostrNotePage() {
       Parameters<typeof SSNostrFeedNoteRow>[0]['resolvedQuotedNoteProfile']
     >(undefined)
   const effectiveRelaysRef = useRef(effectiveRelays)
-  effectiveRelaysRef.current = effectiveRelays
+  useEffect(() => {
+    effectiveRelaysRef.current = effectiveRelays
+  }, [effectiveRelays])
   const fetchedRef = useRef(false)
   const pendingInvoiceRef = useRef<{
     invoice: string
@@ -207,8 +218,6 @@ export default function NostrNotePage() {
   const [ownPubkeys] = useState<string[]>(() =>
     ownPubkeyHex ? [ownPubkeyHex] : []
   )
-  const ownPubkeysRef = useRef(ownPubkeys)
-  ownPubkeysRef.current = ownPubkeys
 
   async function loadZapReceipts(eventIdHex: string) {
     setZapReceiptsLoading(true)
@@ -216,7 +225,7 @@ export default function NostrNotePage() {
       const receipts = await fetchZapReceipts(
         eventIdHex,
         effectiveRelaysRef.current,
-        ownPubkeysRef.current
+        ownPubkeys
       )
       setZapReceipts(receipts)
       setZapReceiptsLoading(false)
@@ -231,14 +240,14 @@ export default function NostrNotePage() {
     decoded?.kind === 'nevent' ? getDecodedContentRelays(decoded) : undefined
 
   async function loadQuotedNote(quotedEventId: string) {
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
     try {
       let quotedEvent = await api.fetchEvent(quotedEventId)
       if (!quotedEvent) {
         quotedEvent = await NostrAPI.fetchEventFromRelays(
           quotedEventId,
           NostrAPI.INDEXING_RELAYS,
-          ownPubkeysRef.current
+          ownPubkeys
         )
       }
       if (!quotedEvent) {
@@ -266,13 +275,12 @@ export default function NostrNotePage() {
   }
 
   async function fetchMentionProfiles(pubkeys: string[]) {
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
     const resolved: Record<string, NostrKind0Profile | null> = {}
     await Promise.allSettled(
       pubkeys.map(async (pubkey) => {
         try {
-          resolved[pubkey] =
-            (await api.fetchKind0(nip19.npubEncode(pubkey))) ?? null
+          resolved[pubkey] = await api.fetchKind0(nip19.npubEncode(pubkey))
         } catch {
           resolved[pubkey] = null
         }
@@ -320,10 +328,7 @@ export default function NostrNotePage() {
     }
 
     const authorNpub = nip19.npubEncode(event.pubkey)
-    const profileApi = new NostrAPI(
-      effectiveRelaysRef.current,
-      ownPubkeysRef.current
-    )
+    const profileApi = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
     try {
       const profile = await profileApi.fetchKind0(authorNpub)
       if (!profile) {
@@ -386,10 +391,7 @@ export default function NostrNotePage() {
       if (!decoded) {
         return
       }
-      const api = new NostrAPI(
-        effectiveRelaysRef.current,
-        ownPubkeysRef.current
-      )
+      const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
       try {
         const event = await api.fetchEvent(decoded.data)
         if (!event) {
@@ -420,7 +422,7 @@ export default function NostrNotePage() {
       const event = await NostrAPI.fetchEventFromRelays(
         decoded.data,
         relayHints,
-        ownPubkeysRef.current
+        ownPubkeys
       )
       if (event) {
         handleEventFound(event)
@@ -456,7 +458,7 @@ export default function NostrNotePage() {
       const event = await NostrAPI.fetchEventFromRelays(
         decoded.data,
         searchRelays,
-        ownPubkeysRef.current
+        ownPubkeys
       )
       if (event) {
         handleEventFound(event)
@@ -546,77 +548,73 @@ export default function NostrNotePage() {
     setReplyParentMissing(false)
     setReplyParentLoading(true)
 
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeysRef.current)
+    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
+
+    async function loadReplyParent(parentId: string) {
+      let event = await api.fetchEvent(parentId)
+      if (!event && replyParentRelayHint) {
+        event = await NostrAPI.fetchEventFromRelays(
+          parentId,
+          [replyParentRelayHint],
+          ownPubkeys
+        )
+      }
+      if (!event) {
+        event = await NostrAPI.fetchEventFromRelays(
+          parentId,
+          NostrAPI.INDEXING_RELAYS,
+          ownPubkeys
+        )
+      }
+      if (cancelled) {
+        return
+      }
+      if (!event) {
+        setReplyParentMissing(true)
+        setReplyParentLoading(false)
+        return
+      }
+
+      const base: NostrFetchedNoteData = {
+        content: event.content,
+        created_at: event.created_at,
+        kind: event.kind,
+        pubkey: event.pubkey,
+        tags: event.tags
+      }
+      setReplyParent(base)
+      setReplyParentLoading(false)
+
+      const authorNpub = nip19.npubEncode(event.pubkey)
+      const profileApi = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
+      setReplyParentKind0Pending(true)
+      const profile = await fetchKind0OrNull(profileApi, authorNpub)
+      if (cancelled) {
+        return
+      }
+      if (profile) {
+        setReplyParent((prev) => {
+          if (!prev || prev.pubkey !== event.pubkey) {
+            return prev
+          }
+          return {
+            ...prev,
+            authorLud16: profile.lud16,
+            authorName: profile.displayName,
+            authorNip05: profile.nip05,
+            authorPicture: profile.picture
+          }
+        })
+      }
+      setReplyParentKind0Pending(false)
+    }
 
     async function fetchReplyParent() {
       if (!replyParentId) {
         return
       }
       try {
-        let event = await api.fetchEvent(replyParentId)
-        if (!event && replyParentRelayHint) {
-          event = await NostrAPI.fetchEventFromRelays(
-            replyParentId,
-            [replyParentRelayHint],
-            ownPubkeysRef.current
-          )
-        }
-        if (!event) {
-          event = await NostrAPI.fetchEventFromRelays(
-            replyParentId,
-            NostrAPI.INDEXING_RELAYS,
-            ownPubkeysRef.current
-          )
-        }
-        if (cancelled) {
-          return
-        }
-        if (!event) {
-          setReplyParentMissing(true)
-          setReplyParentLoading(false)
-          return
-        }
-
-        const base: NostrFetchedNoteData = {
-          content: event.content,
-          created_at: event.created_at,
-          kind: event.kind,
-          pubkey: event.pubkey,
-          tags: event.tags
-        }
-        setReplyParent(base)
-        setReplyParentLoading(false)
-
-        const authorNpub = nip19.npubEncode(event.pubkey)
-        const profileApi = new NostrAPI(
-          effectiveRelaysRef.current,
-          ownPubkeysRef.current
-        )
-        setReplyParentKind0Pending(true)
-        try {
-          const profile = await profileApi.fetchKind0(authorNpub)
-          if (cancelled || !profile) {
-            return
-          }
-          setReplyParent((prev) => {
-            if (!prev || prev.pubkey !== event.pubkey) {
-              return prev
-            }
-            return {
-              ...prev,
-              authorLud16: profile.lud16,
-              authorName: profile.displayName,
-              authorNip05: profile.nip05,
-              authorPicture: profile.picture
-            }
-          })
-        } catch {
-          // non-critical
-        } finally {
-          if (!cancelled) {
-            setReplyParentKind0Pending(false)
-          }
-        }
+        await loadReplyParent(replyParentId)
       } catch {
         if (!cancelled) {
           setReplyParentMissing(true)
@@ -630,7 +628,7 @@ export default function NostrNotePage() {
     return () => {
       cancelled = true
     }
-  }, [replyParentId, replyParentRelayHint])
+  }, [replyParentId, replyParentRelayHint, ownPubkeys])
 
   const pollInfo =
     fetched?.kind === nostrKinds.Poll ? extractPollInfo(fetched.tags) : null
@@ -716,27 +714,57 @@ export default function NostrNotePage() {
     }
     setBookmarkLoading(true)
     const api = new NostrAPI(effectiveRelays)
+    const successMessage =
+      action.type === 'remove'
+        ? t('nostrIdentity.note.bookmarkRemoved')
+        : t('nostrIdentity.note.bookmarkAdded')
     try {
       await api.publishBookmarkUpdate(npub, identity.nsec, {
         eventId,
         ...action
       })
-      toast.success(
-        action.type === 'remove'
-          ? t('nostrIdentity.note.bookmarkRemoved')
-          : t('nostrIdentity.note.bookmarkAdded')
-      )
+      toast.success(successMessage)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.note.bookmarkFailed')}: ${reason}`)
-    } finally {
-      api.disconnect()
-      setBookmarkLoading(false)
     }
+    api.disconnect()
+    setBookmarkLoading(false)
   }
 
   function handleBookmarkPress() {
     setBookmarkModalVisible(true)
+  }
+
+  function presentZapInvoice(
+    invoice: string,
+    zapRequestJson: string,
+    amountSats: number
+  ) {
+    pendingInvoiceRef.current = { invoice, zapRequestJson }
+
+    if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
+      const autoWallet = availablePaymentMethods.find(
+        (m) => m.id === zapPrefs.autoApproveWalletId
+      )
+      if (autoWallet) {
+        navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
+        return
+      }
+    }
+
+    if (availablePaymentMethods.length === 1) {
+      navigateToPayment(
+        availablePaymentMethods[0],
+        invoice,
+        zapRequestJson,
+        amountSats
+      )
+      return
+    }
+
+    setPayAmount(amountSats)
+    paymentSheetRef.current?.snapToIndex(0)
   }
 
   async function handleZap(amountSats: number, comment?: string) {
@@ -762,11 +790,12 @@ export default function NostrNotePage() {
     }
 
     setZapLoading(true)
+    const eventIdHex = decoded?.data
     try {
       const { invoice, zapRequestJson } = await initiateZap({
         amountSats,
         comment,
-        eventIdHex: decoded?.data,
+        eventIdHex,
         eventKind: fetched.kind,
         eventTags: fetched.tags,
         recipientLud16: effectiveLud16,
@@ -776,30 +805,7 @@ export default function NostrNotePage() {
       })
 
       setZapLoading(false)
-      pendingInvoiceRef.current = { invoice, zapRequestJson }
-
-      if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
-        const autoWallet = availablePaymentMethods.find(
-          (m) => m.id === zapPrefs.autoApproveWalletId
-        )
-        if (autoWallet) {
-          navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
-          return
-        }
-      }
-
-      if (availablePaymentMethods.length === 1) {
-        navigateToPayment(
-          availablePaymentMethods[0],
-          invoice,
-          zapRequestJson,
-          amountSats
-        )
-        return
-      }
-
-      setPayAmount(amountSats)
-      paymentSheetRef.current?.snapToIndex(0)
+      presentZapInvoice(invoice, zapRequestJson, amountSats)
     } catch (error) {
       setZapLoading(false)
       const reason = error instanceof Error ? error.message : 'unknown'

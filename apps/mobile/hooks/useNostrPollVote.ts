@@ -80,20 +80,17 @@ export function useNostrPollVote({
       const api = new NostrAPI(relays, ownPubkeys)
       try {
         const responses = await api.fetchPollResponses(pollEventId)
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses(responses)
-      } catch {
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses([])
-      } finally {
-        api.disconnect()
         if (loadGenerationRef.current === generation) {
-          setPollResponsesLoading(false)
+          setPollResponses(responses)
         }
+      } catch {
+        if (loadGenerationRef.current === generation) {
+          setPollResponses([])
+        }
+      }
+      api.disconnect()
+      if (loadGenerationRef.current === generation) {
+        setPollResponsesLoading(false)
       }
     }
 
@@ -132,10 +129,9 @@ export function useNostrPollVote({
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.note.pollVoteFailed')}: ${reason}`)
-    } finally {
-      api.disconnect()
-      setPollVoting(false)
     }
+    api.disconnect()
+    setPollVoting(false)
   }
 
   function handlePollOptionPress(optionId: string) {
