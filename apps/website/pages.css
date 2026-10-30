@@ -80,7 +80,34 @@ a:hover { text-decoration-color: var(--fg); }
   font-weight: 600;
 }
 
-.page .lede { color: var(--muted); margin: 0 0 40px; }
+.page .lede { color: var(--muted); margin: 0 0 28px; }
+
+.logo-row {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 36px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 28px;
+}
+
+.logo-row a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logo-row img { display: block; height: 28px; width: auto; max-width: 168px; }
+.logo-row .logo-word { height: 16px; max-width: 140px; }
+.logo-row .logo-mark { height: 36px; width: 36px; max-width: 36px; }
+.logo-row svg { display: block; width: 22px; height: 22px; }
+
+html[data-theme="light"] .logo-on-dark { filter: invert(1); }
 
 .page h2 {
   font-size: 18px;
