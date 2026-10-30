@@ -4,12 +4,12 @@ import { toast } from 'sonner-native'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSText from '@/components/SSText'
-import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { EcashKeyset, EcashProof } from '@/types/models/Ecash'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 
 import SSPressable from './SSPressable'
 

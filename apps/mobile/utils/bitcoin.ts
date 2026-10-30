@@ -185,6 +185,17 @@ export function bitcoinjsNetwork(network: AppNetwork): networks.Network {
   }
 }
 
+/** Whether `address` is valid on `network`, only on another network, or not at all. */
+export function matchAddressNetwork(
+  address: string,
+  network: AppNetwork
+): 'match' | 'otherNetwork' | 'invalid' {
+  if (validateAddress(address, bitcoinjsNetwork(network))) {
+    return 'match'
+  }
+  return validateAddress(address) ? 'otherNetwork' : 'invalid'
+}
+
 const WIF_COMPRESSED_FLAG = 0x01
 
 /**

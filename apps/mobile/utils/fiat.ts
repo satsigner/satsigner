@@ -12,6 +12,17 @@ export function satsToFiat(sats: number, btcPrice: number, enabled: boolean) {
   return (sats / SATS_PER_BITCOIN) * btcPrice
 }
 
+/**
+ * Sats worth `fiat` at `btcPrice`, rounded to the nearest sat. Returns 0 when
+ * the amount is not positive or the price is unknown.
+ */
+export function fiatToSats(fiat: number, btcPrice: number) {
+  if (!(fiat > 0) || !(btcPrice > 0)) {
+    return 0
+  }
+  return Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
+}
+
 export function normalizeFiatPriceApiUrl(url: string) {
   return url.trim().replace(/\/+$/, '')
 }

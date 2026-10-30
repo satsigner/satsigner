@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -13,18 +12,18 @@ import SSEcashTokenDetails from '@/components/SSEcashTokenDetails'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useEcashReceive } from '@/hooks/useEcashReceive'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { fiatToSats, satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLNURLType } from '@/utils/lnurl'
 
@@ -122,14 +121,8 @@ export default function EcashReceivePage() {
   const showTokenStatusCheckingNote =
     !!decodedToken && isTokenMintConnected && tokenSpentStatus === 'checking'
 
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
+    useDisplayPreferences()
 
   useEffect(
     () => () => {
@@ -172,7 +165,7 @@ export default function EcashReceivePage() {
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
-      const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
+      const sats = fiatToSats(fiat, btcPrice)
       setAmount(sats > 0 ? sats.toString() : '')
     }
   }
@@ -182,7 +175,11 @@ export default function EcashReceivePage() {
       return
     }
     if (amount) {
-      const fiat = satsToFiat(Number.parseInt(amount, 10))
+      const fiat = satsToFiat(
+        Number.parseInt(amount, 10),
+        btcPrice,
+        fiatEnabled
+      )
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -282,7 +279,8 @@ export default function EcashReceivePage() {
                   decodedToken={decodedToken}
                   fiatCurrency={fiatCurrency}
                   privacyMode={privacyMode}
-                  satsToFiat={satsToFiat}
+                  btcPrice={btcPrice}
+                  fiatEnabled={fiatEnabled}
                   showMint
                   showProofs
                 />
@@ -414,7 +412,7 @@ export default function EcashReceivePage() {
                     {privacyMode
                       ? `•••• ${fiatCurrency}`
                       : amount
-                        ? `${formatNumber(satsToFiat(Number.parseInt(amount, 10)), 2)} ${fiatCurrency}`
+                        ? `${formatNumber(satsToFiat(Number.parseInt(amount, 10), btcPrice, fiatEnabled), 2)} ${fiatCurrency}`
                         : `0 ${fiatCurrency}`}
                   </SSText>
                 ) : (
