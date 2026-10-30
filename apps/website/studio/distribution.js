@@ -174,7 +174,7 @@ function sphereBoard(className, scale, w, h, file, caption) {
   grain.height = h
   const pixels = grain.getContext('2d').createImageData(w, h)
   for (let i = 0; i < pixels.data.length; i += 4) {
-    const n = (Math.random() * 255) | 0
+    const n = 96 + ((Math.random() * 48) | 0)
     pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = n
     pixels.data[i + 3] = 255
   }
@@ -925,7 +925,9 @@ function reveal(node) {
 
 function paintDistributionGlow() {
   if (!distributionView || distributionView.hidden) return
-  distributionView.querySelectorAll('.promo-board').forEach(paintGlow)
+  distributionView.querySelectorAll('.promo-board').forEach((board) => {
+    try { paintGlow(board) } catch (err) { /* a glow failure must not drop the open tab */ }
+  })
 }
 
 paintDistributionGlow()

@@ -58,13 +58,14 @@ function renderDashboard() {
     <section class="dash-hero">
       <p class="dash-eyebrow">SatSigner Studio</p>
       <h1>The SatSigner app, in the browser.</h1>
-      <p class="dash-lede">Studio is the working copy of the app for design, prototyping, and review. Screens, flows, and the component kit are rebuilt from the React Native source so they can be walked through, compared, and shown without a device.
+      <p class="dash-lede">Studio is the working copy of the app for design, prototyping, review, social, and distribution. Screens, flows, and the component kit are rebuilt from the React Native source so they can be walked through, compared, and shown without a device. Store listings and social posts are laid out at the sizes those surfaces accept.
         The clickable prototype uses fixtures only: no keys, no network, no real money. Colours, icons, copy, and spacing are extracted from the app; behaviour is ported by hand.</p>
       <div class="dash-actions">
         <button type="button" class="dash-cta" data-dash-view="prototype">Open the prototype</button>
         <button type="button" data-dash-view="screens">Browse screens</button>
         <button type="button" data-dash-view="map">Flow map</button>
         <button type="button" data-dash-view="components">Components</button>
+        <button type="button" data-dash-view="distribution">Distribution</button>
       </div>
     </section>
 
