@@ -182,9 +182,8 @@ export default function EcashProofDetailPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`Failed to emit NFC: ${reason}`)
-    } finally {
-      setNfcModalVisible(false)
     }
+    setNfcModalVisible(false)
   }
 
   function handleCloseNFCModal() {

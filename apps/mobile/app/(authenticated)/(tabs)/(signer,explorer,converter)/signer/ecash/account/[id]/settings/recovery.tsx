@@ -50,9 +50,8 @@ export default function EcashAccountRecoveryPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    } finally {
-      setIsRestoring(false)
     }
+    setIsRestoring(false)
   }
 
   function handleRestoreBackup() {
@@ -63,9 +62,8 @@ export default function EcashAccountRecoveryPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    } finally {
-      setIsRestoringBackup(false)
     }
+    setIsRestoringBackup(false)
   }
 
   return (

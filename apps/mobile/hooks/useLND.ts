@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { lndRestFetch } from '@/api/lndRest'
+import {
+  closeLndChannel,
+  fetchLndNodeInfo,
+  requestLndRestJson
+} from '@/api/lndRestRequest'
 import { LND_REST } from '@/constants/lightning'
 import { useLightningStore } from '@/store/lightning'
 import type {
@@ -22,15 +26,12 @@ import type {
   LNDRequest,
   LNDRequestOptions
 } from '@/types/models/Lightning'
-import { HttpStatusError } from '@/utils/errors'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
-import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
 import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
 import {
   assertLndPaymentSucceeded,
   buildLndPayInvoiceBody
 } from '@/utils/lndPayInvoice'
-import { isRecord } from '@/utils/object'
 
 const HEALTH_CHECK_INTERVAL_MS = 30_000
 
@@ -59,16 +60,7 @@ export const useLND = () => {
     }
 
     try {
-      const response = await lndRestFetch(config, '/v1/getinfo')
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch node info: ${response.status}`)
-      }
-
-      const info = parseLndNodeInfo(await response.json())
-      if (!info) {
-        throw new Error(`Failed to fetch node info: ${response.status}`)
-      }
+      const info = await fetchLndNodeInfo(config)
       setNodeInfo(info)
       setConnected(true)
       updateLastSync()
@@ -79,10 +71,6 @@ export const useLND = () => {
     }
   }
 
-  /**
-   * Calls LND REST and hands back the JSON body as the caller's `T` without
-   * validating it: each caller owns the shape it asks for.
-   */
   const makeRequest: LNDRequest = async <T>(
     endpoint: string,
     options: LNDRequestOptions = {}
@@ -99,29 +87,16 @@ export const useLND = () => {
     } = options
     setConnecting(true)
 
-    try {
-      const response = await lndRestFetch(config, endpoint, {
-        body: body ? JSON.stringify(body) : undefined,
-        headers,
-        method
-      })
-
-      if (!response.ok) {
+    return await requestLndRestJson<T>(
+      config,
+      endpoint,
+      { body, headers, method },
+      () => {
         if (disconnectOnError) {
           setConnected(false)
         }
-        const errorText = await response.text()
-        throw new HttpStatusError(
-          response.status,
-          `LND API error: ${response.status} ${errorText}`
-        )
       }
-
-      const data = await response.json()
-      return data as T
-    } finally {
-      setConnecting(false)
-    }
+    ).finally(() => setConnecting(false))
   }
 
   const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
@@ -200,35 +175,10 @@ export const useLND = () => {
     if (!parsed) {
       throw new Error('Invalid channel point')
     }
-    const qs = new URLSearchParams({
-      force: String(opts.force),
-      no_wait: 'true'
-    })
-    const url = `${config.url}/v1/channels/${encodeURIComponent(parsed.txid)}/${encodeURIComponent(parsed.vout)}?${qs}`
     setConnecting(true)
-    try {
-      const response = await lndRestFetch(config, url, {
-        method: 'DELETE'
-      })
-      const body = await response.text()
-      if (!response.ok) {
-        throw new HttpStatusError(
-          response.status,
-          `LND API error: ${response.status} ${body}`
-        )
-      }
-      if (!body) {
-        return {}
-      }
-      try {
-        const parsed: unknown = JSON.parse(body)
-        return isRecord(parsed) ? parsed : {}
-      } catch {
-        return {}
-      }
-    } finally {
+    return await closeLndChannel(config, parsed, opts.force).finally(() =>
       setConnecting(false)
-    }
+    )
   }
 
   const getPendingChannels = () =>

@@ -29,11 +29,10 @@ export default function LightningBackupPage() {
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
+  const nodeAlias = status.nodeInfo?.alias ?? ''
+  const nodePubkey = status.nodeInfo?.identity_pubkey ?? ''
   const nodeTitle =
-    lndNodeCardTitle(
-      status.nodeInfo?.alias ?? '',
-      status.nodeInfo?.identity_pubkey ?? ''
-    ) ||
+    lndNodeCardTitle(nodeAlias, nodePubkey) ||
     config?.url ||
     t('lightning.backup.notConnected')
 
@@ -60,9 +59,8 @@ export default function LightningBackupPage() {
       setShowBackupData(true)
     } catch {
       toast.error(t('lightning.backup.generationFailed'))
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   async function handleShareBackup() {

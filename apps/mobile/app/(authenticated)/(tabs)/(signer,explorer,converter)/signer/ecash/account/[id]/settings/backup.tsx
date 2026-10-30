@@ -37,10 +37,11 @@ export default function EcashBackupPage() {
 
   function generateBackupData() {
     setIsGenerating(true)
+    const accountId = activeAccountId ?? undefined
     try {
       const jsonData = JSON.stringify(
         buildEcashBackupPayload({
-          accountId: activeAccountId ?? undefined,
+          accountId,
           includeMintInformation,
           includeTokenProofs,
           includeTransactionHistory,
@@ -55,9 +56,8 @@ export default function EcashBackupPage() {
       setShowBackupData(true)
     } catch {
       toast.error(t('ecash.error.backupGenerationFailed'))
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   async function handleCopyBackup() {
