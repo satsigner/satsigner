@@ -39,6 +39,10 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
+  type ConnectionTestResult,
+  type ConnectionTestSuccess
+} from '@/types/models/ConnectionTest'
+import {
   type Backend,
   type Network,
   type Server
@@ -235,6 +239,42 @@ export default function CustomNetwork() {
     return base
   }
 
+  function showSuccessToast(server: Server, result: ConnectionTestSuccess) {
+    try {
+      toast.success(`${server.name} (${trimOnionAddress(server.url)})`, {
+        description: successToastDescription(result)
+      })
+    } catch {
+      // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
+    }
+  }
+
+  function applyTestResult(server: Server, result: ConnectionTestResult) {
+    if (!result.success) {
+      toast.error(`${server.name} (${trimOnionAddress(server.url)})`, {
+        description: result.error ?? tnServer('tester.failed')
+      })
+      return
+    }
+
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
+
+    setLastProbeLine(successProbeDescription(result))
+    setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
+
+    showSuccessToast(server, result)
+
+    if (result.blockFilterIndexMissing) {
+      setTimeout(() => {
+        toast.warning(tnServer('rpc.blockFilterIndexMissing.title'), {
+          description: tnServer('rpc.blockFilterIndexMissing.description'),
+          duration: 8000
+        })
+      }, 600)
+    }
+  }
+
   async function handleTest() {
     if (!isValid()) {
       return
@@ -253,36 +293,7 @@ export default function CustomNetwork() {
         server.proxy,
         server.rpcCredentials
       )
-
-      if (!result.success) {
-        toast.error(`${server.name} (${trimOnionAddress(server.url)})`, {
-          description: result.error ?? tnServer('tester.failed')
-        })
-        return
-      }
-
-      setSelectedNetwork(networkType)
-      updateServer(networkType, server)
-
-      setLastProbeLine(successProbeDescription(result))
-      setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
-
-      try {
-        toast.success(`${server.name} (${trimOnionAddress(server.url)})`, {
-          description: successToastDescription(result)
-        })
-      } catch {
-        // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
-      }
-
-      if (result.blockFilterIndexMissing) {
-        setTimeout(() => {
-          toast.warning(tnServer('rpc.blockFilterIndexMissing.title'), {
-            description: tnServer('rpc.blockFilterIndexMissing.description'),
-            duration: 8000
-          })
-        }, 600)
-      }
+      applyTestResult(server, result)
     } catch (error) {
       const message =
         error instanceof Error ? error.message : tnServer('tester.error')

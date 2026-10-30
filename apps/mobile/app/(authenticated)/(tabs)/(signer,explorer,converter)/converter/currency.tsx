@@ -91,9 +91,7 @@ export default function Converter() {
   // Prices at the picked date; null falls back to the current prices.
   const datePricesRef = useRef<PricesMap | null>(null)
   const lastChangeKeyRef = useRef(lastChangeKey)
-  lastChangeKeyRef.current = lastChangeKey
   const currencyValuesRef = useRef(currencyValues)
-  currencyValuesRef.current = currencyValues
 
   const writtenNumberH = useSharedValue(0)
   const writtenNumberAnimStyle = useAnimatedStyle(() => ({
@@ -192,7 +190,7 @@ export default function Converter() {
   function applyAnchoredValues(key: CurrencyKey, anchoredValue: number) {
     const priceMap = getActivePrices()
     const btc = getBitcoinValue(key, anchoredValue, priceMap)
-    setCurrencyValues({
+    const nextValues = {
       CAD: (priceMap.CAD || 0) * btc,
       CHF: (priceMap.CHF || 0) * btc,
       EUR: (priceMap.EUR || 0) * btc,
@@ -202,12 +200,31 @@ export default function Converter() {
       bitcoin: btc,
       sats: Math.round(btc * SATS_PER_BITCOIN),
       [key]: anchoredValue
-    })
+    }
+    currencyValuesRef.current = nextValues
+    setCurrencyValues(nextValues)
   }
 
   function handleValueChange(key: CurrencyKey, value: number) {
+    lastChangeKeyRef.current = key
     setLastChangedKey(key)
     applyAnchoredValues(key, value)
+  }
+
+  function applyDatePrices(datePrices: PricesMap | null) {
+    datePricesRef.current = datePrices
+    const key = getAnchorKey(lastChangeKeyRef.current, getActivePrices())
+    lastChangeKeyRef.current = key
+    setLastChangedKey(key)
+    const anchoredValue = currencyValuesRef.current[key]
+    applyAnchoredValues(key, hasInitializedRef.current ? anchoredValue : 1)
+    hasInitializedRef.current = true
+  }
+
+  function stopLoadingIfLatestRequest(requestId: number) {
+    if (requestId === priceRequestIdRef.current) {
+      animateLoading(false)
+    }
   }
 
   async function refreshPricesForDate(value: Date) {
@@ -219,25 +236,15 @@ export default function Converter() {
     animateLoading(true)
     try {
       const datePrices = await resolvePricesAt(timestamp)
-      if (requestId !== priceRequestIdRef.current) {
-        return
-      }
-      datePricesRef.current = datePrices
-      const key = getAnchorKey(lastChangeKeyRef.current, getActivePrices())
-      lastChangeKeyRef.current = key
-      setLastChangedKey(key)
-      const anchoredValue = currencyValuesRef.current[key]
-      applyAnchoredValues(key, hasInitializedRef.current ? anchoredValue : 1)
-      hasInitializedRef.current = true
-    } finally {
       if (requestId === priceRequestIdRef.current) {
-        animateLoading(false)
+        applyDatePrices(datePrices)
       }
+    } catch (error) {
+      stopLoadingIfLatestRequest(requestId)
+      throw error
     }
+    stopLoadingIfLatestRequest(requestId)
   }
-
-  const refreshPricesForDateRef = useRef(refreshPricesForDate)
-  refreshPricesForDateRef.current = refreshPricesForDate
 
   function handleDragStart() {
     animateLoading(true)
@@ -259,16 +266,20 @@ export default function Converter() {
     setUseEuropeanScale((prev) => !prev)
   }
 
-  function handleTodayPress() {
-    handleDateChange(new Date())
-    setPickerKey((prev) => prev + 1)
-  }
-
   function handleDateChange(value: Date) {
     dateRef.current = value
     setDate(value)
     void refreshPricesForDate(value)
   }
+
+  function handleTodayPress() {
+    handleDateChange(new Date())
+    setPickerKey((prev) => prev + 1)
+  }
+
+  // refreshPricesForDate only closes over refs, state setters and shared
+  // values, so the first render's instance stays valid for the screen's life.
+  const refreshPricesForDateRef = useRef(refreshPricesForDate)
 
   // useCallback required: useFocusEffect re-runs whenever the callback identity
   // changes, which would refetch on every keystroke and overwrite input state.
