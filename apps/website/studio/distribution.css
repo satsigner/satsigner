@@ -5,7 +5,7 @@ body:has(#distribution-view:not([hidden])) .catalog {
 .distribution {
   display: flex;
   flex-direction: column;
-  gap: 3.5rem;
+  gap: 1.25rem;
 }
 
 .promo-toolbar {
@@ -70,15 +70,19 @@ body:has(#distribution-view:not([hidden])) .catalog {
   margin: 0;
 }
 
+.promo-frame,
+.promo-scale {
+  position: relative;
+}
+
 .promo-actions {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 3;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  max-width: calc(100% - 16px);
+  width: 100%;
   opacity: 0;
   pointer-events: none;
 }
@@ -91,9 +95,12 @@ body:has(#distribution-view:not([hidden])) .catalog {
 
 .promo-actions .promo-jpg,
 .promo-actions .promo-jpg-save {
+  flex: 1;
+  border-radius: 0;
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.28);
+  text-align: center;
 }
 
 .promo-slot figcaption {
@@ -417,14 +424,28 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
 
 .dist-store-tabs {
   position: sticky;
-  top: 4.25rem;
+  top: 4.75rem;
   z-index: 5;
+  align-items: flex-end;
   gap: 0;
-  margin: 0.35rem -1.5rem 0;
+  margin: 0 -1.5rem;
   padding: 0 1.5rem;
   border-bottom: 1px solid var(--line-strong);
   background: var(--page);
-  box-shadow: 0 -1.25rem 0 var(--page);
+  box-shadow: 0 -2rem 0 var(--page);
+}
+
+.dist-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.4rem auto;
+  padding-left: 1rem;
+}
+
+.dist-tab-actions .promo-spec {
+  margin: 0;
+  max-width: 28ch;
 }
 
 .dist-store-tabs .dist-tab {

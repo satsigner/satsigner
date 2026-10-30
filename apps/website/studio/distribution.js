@@ -100,13 +100,20 @@ function board(className, scale, node) {
   scaleWrap.style.height = (h * scale) + 'px'
   node.className = 'promo-board ' + className
   node.style.transform = 'scale(' + scale + ')'
-  scaleWrap.appendChild(node)
+  scaleWrap.append(node, actionBar(jpgButton(), compareButton()))
   const cap = document.createElement('figcaption')
   const label = document.createElement('span')
   label.textContent = w + ' × ' + h
   cap.appendChild(label)
-  slot.append(scaleWrap, cap, actionBar(jpgButton(), compareButton()))
+  slot.append(scaleWrap, cap)
   return slot
+}
+
+function frame(visual, ...nodes) {
+  const box = document.createElement('div')
+  box.className = 'promo-frame'
+  box.append(visual, actionBar(...nodes))
+  return box
 }
 
 function actionBar(...nodes) {
@@ -184,7 +191,7 @@ function markSlot(src, file, kind, caption) {
   const label = document.createElement('span')
   label.textContent = caption
   cap.appendChild(label)
-  slot.append(img, cap, actionBar(jpgButton(), compareButton()))
+  slot.append(frame(img, jpgButton(), compareButton()), cap)
   return slot
 }
 
@@ -368,7 +375,7 @@ function assetSlot(src, file, caption, size) {
   link.dataset.asset = file
   link.textContent = 'PNG'
   cap.appendChild(label)
-  slot.append(img, cap, actionBar(link))
+  slot.append(frame(img, link), cap)
   return slot
 }
 
@@ -444,17 +451,13 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
   )
   shots.forEach((shot) => play.row.appendChild(shotBoard('promo-shot promo-play', 0.14, shot, 1080, 1920, 'play-' + fileSlug(shot.title))))
 
-  const toolbar = document.createElement('div')
-  toolbar.className = 'promo-toolbar'
   const download = document.createElement('button')
   download.type = 'button'
   download.className = 'promo-download'
-  download.textContent = 'Download all'
+  download.textContent = 'Download all images'
   const status = document.createElement('p')
   status.className = 'promo-spec'
-  status.textContent = 'Every board as JPG, JPG 2×, PNG, and PNG 2×, plus the icons and store-text.md, zipped.'
   download.addEventListener('click', () => exportDistribution(download, status))
-  toolbar.append(download, status)
   const appleIcon = section(
     'App Store icon',
     '1024 × 1024 PNG, square, no transparency or rounded corners. It ships inside the build (Images.xcassets), so App Store Connect has no upload field for it. This is the file the current build uses.'
@@ -524,6 +527,10 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
   }
 
   const storeBar = tabBar('dist-store-tabs', stores.map((entry) => ({ id: entry.store.id || 'shared', label: entry.store.label })), showStore)
+  const tabActions = document.createElement('div')
+  tabActions.className = 'dist-tab-actions'
+  tabActions.append(status, download)
+  storeBar.appendChild(tabActions)
   const panels = []
   stores.forEach((entry, index) => {
     const id = entry.store.id || 'shared'
@@ -558,7 +565,7 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     paintDistributionGlow()
   }
 
-  distributionView.append(toolbar, storeBar, ...panels)
+  distributionView.append(storeBar, ...panels)
   const shot = new URLSearchParams(location.search).get('shot')
   if (shot) {
     const node = distributionView.querySelector('[data-file="' + shot + '"]')
