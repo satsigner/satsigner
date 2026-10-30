@@ -8,12 +8,17 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
+import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import {
   NOSTR_NIP01_MAX_NOTE_LENGTH,
+  NOSTR_POW_DEFAULT_DIFFICULTY,
+  NOSTR_POW_MAX_DIFFICULTY,
+  NOSTR_POW_MIN_DIFFICULTY,
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
@@ -36,6 +41,7 @@ import {
   buildEnhancedZapTags,
   extractEnhancedZapTags
 } from '@/utils/nostrIdentity'
+import { applyNostrProofOfWork, stripNonceTags } from '@/utils/nostrPow'
 
 type ComposeParams = {
   npub: string
@@ -66,6 +72,11 @@ export default function NostrComposePage() {
   const [customLnurl, setCustomLnurl] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showJson, setShowJson] = useState(false)
+  const [powEnabled, setPowEnabled] = useState(false)
+  const [powDifficulty, setPowDifficulty] = useState(
+    NOSTR_POW_DEFAULT_DIFFICULTY
+  )
+  const [mining, setMining] = useState(false)
   const [signingExport, setSigningExport] = useState(false)
   const [signedQrPayload, setSignedQrPayload] = useState<string | null>(null)
   const [baseTags, setBaseTags] = useState<string[][]>([])
@@ -115,6 +126,7 @@ export default function NostrComposePage() {
     content.trim().length > 0 &&
     charCount <= NOSTR_NIP01_MAX_NOTE_LENGTH &&
     !publishing &&
+    !mining &&
     !!identity?.nsec
 
   const canExportSigned = canPublish && !signingExport
@@ -150,7 +162,7 @@ export default function NostrComposePage() {
     }
 
     setContent(draft.content)
-    setBaseTags(stripZapTags(draft.tags))
+    setBaseTags(stripNonceTags(stripZapTags(draft.tags)))
 
     const ez = extractEnhancedZapTags(draft.tags)
     if (ez.zapMin !== undefined && ez.zapMax !== undefined) {
@@ -237,6 +249,30 @@ export default function NostrComposePage() {
     2
   )
 
+  async function tagsForSigning(
+    nsec: string
+  ): Promise<{ createdAt?: number; tags: string[][] }> {
+    if (!powEnabled) {
+      return { tags: buildTags() }
+    }
+
+    setMining(true)
+    try {
+      return await applyNostrProofOfWork({
+        content: content.trim(),
+        difficulty: powDifficulty,
+        nsec,
+        tags: buildTags()
+      })
+    } finally {
+      setMining(false)
+    }
+  }
+
+  function handlePowToggle(selected: boolean) {
+    setPowEnabled(!selected)
+  }
+
   async function handleCopySigned() {
     if (!canExportSigned || !identity?.nsec) {
       return
@@ -250,10 +286,12 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
+      const prepared = await tagsForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
         content.trim(),
-        buildTags()
+        prepared.tags,
+        prepared.createdAt
       )
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
@@ -279,10 +317,12 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
+      const prepared = await tagsForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
         content.trim(),
-        buildTags()
+        prepared.tags,
+        prepared.createdAt
       )
       const compact = JSON.stringify(signed)
       if (compact.length > NOSTR_SIGNED_EVENT_QR_MAX_CHARS) {
@@ -312,12 +352,13 @@ export default function NostrComposePage() {
 
     setPublishing(true)
     try {
-      const tags = buildTags()
+      const prepared = await tagsForSigning(identity.nsec)
       const api = new NostrAPI(effectiveRelays)
       const published = await api.publishNote(
         identity.nsec,
         content.trim(),
-        tags
+        prepared.tags,
+        prepared.createdAt
       )
       cacheEvents([published], [published.pubkey])
 
@@ -554,6 +595,24 @@ export default function NostrComposePage() {
             )}
           </SSVStack>
 
+          <SSVStack gap="sm" style={styles.zapTagsSection}>
+            <SSCheckbox
+              label={t('nostrIdentity.compose.pow')}
+              selected={powEnabled}
+              labelProps={{ size: 'xs' }}
+              onPress={handlePowToggle}
+            />
+            {powEnabled ? (
+              <SSSlider
+                min={NOSTR_POW_MIN_DIFFICULTY}
+                max={NOSTR_POW_MAX_DIFFICULTY}
+                value={powDifficulty}
+                suffix={t('nostrIdentity.compose.powBits')}
+                onValueChange={setPowDifficulty}
+              />
+            ) : null}
+          </SSVStack>
+
           <SSVStack gap="sm">
             <SSButton
               label={
@@ -578,9 +637,11 @@ export default function NostrComposePage() {
 
           <SSButton
             label={
-              publishing
-                ? t('nostrIdentity.compose.publishing')
-                : t('nostrIdentity.compose.publish')
+              mining
+                ? t('nostrIdentity.compose.mining')
+                : publishing
+                  ? t('nostrIdentity.compose.publishing')
+                  : t('nostrIdentity.compose.publish')
             }
             variant="gradient"
             gradientType="special"

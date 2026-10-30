@@ -1788,7 +1788,8 @@ export class NostrAPI {
   static async signKind1Note(
     nsec: string,
     content: string,
-    tags?: string[][]
+    tags?: string[][],
+    createdAt?: number
   ): Promise<NostrSignedKind1Event> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
@@ -1800,6 +1801,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content,
+      ...(createdAt === undefined ? {} : { created_at: createdAt }),
       kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
@@ -1826,7 +1828,8 @@ export class NostrAPI {
   async publishNote(
     nsec: string,
     content: string,
-    tags?: string[][]
+    tags?: string[][],
+    createdAt?: number
   ): Promise<NostrFeedNoteLike> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
@@ -1840,6 +1843,7 @@ export class NostrAPI {
     ndk.signer = signer
     const event = new NDKEvent(ndk, {
       content,
+      ...(createdAt === undefined ? {} : { created_at: createdAt }),
       kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })

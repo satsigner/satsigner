@@ -237,6 +237,11 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 
 // NIPS
 export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
+export const NOSTR_POW_DEFAULT_DIFFICULTY = 16
+export const NOSTR_POW_HASHES_PER_YIELD = 1024
+export const NOSTR_POW_MAX_DIFFICULTY = 24
+export const NOSTR_POW_MIN_DIFFICULTY = 8
+export const NOSTR_POW_NONCE_TAG = 'nonce'
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
