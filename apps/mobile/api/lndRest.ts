@@ -198,10 +198,10 @@ function readHttpResponse(
 
     socket.on('data', (data: unknown) => {
       const chunk = toBuffer(data)
-      chunks.push(chunk)
-      const raw = Buffer.concat(chunks)
       try {
         if (version === 'http1') {
+          chunks.push(chunk)
+          const raw = Buffer.concat(chunks)
           if (looksLikeHttp2Session(raw) && !startsWithHttp1Response(raw)) {
             finish(null, null, true)
             return
@@ -224,9 +224,9 @@ function readHttpResponse(
     })
 
     socket.on('close', () => {
-      const raw = Buffer.concat(chunks)
       try {
         if (version === 'http1') {
+          const raw = Buffer.concat(chunks)
           if (looksLikeHttp2Session(raw) && !startsWithHttp1Response(raw)) {
             finish(null, null, true)
             return

@@ -26,6 +26,7 @@ const INDEXED_STATUS: Record<number, number> = {
 
 const MAX_WINDOW_INCREMENT = 0x7f_ff_ff_ff
 const HUFFMAN_MAX_PADDING_BITS = 7
+const HUFFMAN_EOS_PADDING_PATTERN = /^1*$/
 const HTTP_STATUS_PATTERN = /^\d{3}$/
 
 // RFC 7541 Appendix B codes for the digits only. LND's Go HPACK encoder
@@ -362,7 +363,10 @@ function decodeHuffmanDigits(bytes: Uint8Array): string | null {
 }
 
 function decodeHuffmanDigitBits(bits: string, decoded: string): string | null {
-  if (bits.length <= HUFFMAN_MAX_PADDING_BITS && /^1*$/.test(bits)) {
+  if (
+    bits.length <= HUFFMAN_MAX_PADDING_BITS &&
+    HUFFMAN_EOS_PADDING_PATTERN.test(bits)
+  ) {
     return decoded
   }
   const match = HUFFMAN_DIGIT_CODES.find((code) => bits.startsWith(code.bits))
