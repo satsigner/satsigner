@@ -61,7 +61,6 @@ a:hover { text-decoration-color: var(--fg); }
 }
 
 .page-nav-logo img { width: 28px; height: 28px; }
-html[data-theme="light"] .page-nav-logo img { filter: invert(1); }
 
 .page-nav-links { display: flex; gap: 18px; font-size: 14px; }
 .page-nav-links a { text-decoration: none; color: var(--muted); }
