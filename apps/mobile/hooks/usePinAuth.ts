@@ -93,6 +93,19 @@ async function checkPin(
   return 'success'
 }
 
+// The pad stays disabled until onFail settles: after the last try it wipes the
+// app, and no PIN may be checked while that runs.
+async function settleFailedAttempt(
+  onFail: UsePinAuthProps['onFail'],
+  stopVerifying: () => void
+) {
+  try {
+    await onFail?.()
+  } finally {
+    stopVerifying()
+  }
+}
+
 // Core PIN verification orchestration. Kept free of component state so it can
 // be tested directly. The duress branch wipes wallet data and the success
 // branch finalizes the unlock; navigation is left to the caller. Never throws:
@@ -163,13 +176,7 @@ function usePinAuth({
         onTriesOver()
       }
 
-      // The pad stays disabled until onFail settles: after the last try it
-      // wipes the app, and no PIN may be checked while that runs.
-      try {
-        await onFail?.()
-      } finally {
-        setVerifying(false)
-      }
+      await settleFailedAttempt(onFail, () => setVerifying(false))
     }
     // 'success' finalized the unlock; nothing to do.
   }

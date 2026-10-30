@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -54,11 +54,7 @@ export default function NostrBunker() {
   const [previewUri, setPreviewUri] = useState<string | null>(null)
   const [previewData, setPreviewData] = useState<Nip46ParsedUri | null>(null)
 
-  const deepLinkHandled = useRef(false)
-  if (connectUri && !deepLinkHandled.current) {
-    deepLinkHandled.current = true
-    handlePreviewUri(connectUri)
-  }
+  const [isDeepLinkHandled, setIsDeepLinkHandled] = useState(false)
 
   const currentRequest =
     pendingRequests.find((r) => sessions.some((s) => s.id === r.sessionId)) ??
@@ -72,6 +68,11 @@ export default function NostrBunker() {
     }
     setPreviewUri(uri)
     setPreviewData(parsed)
+  }
+
+  if (connectUri && !isDeepLinkHandled) {
+    setIsDeepLinkHandled(true)
+    handlePreviewUri(connectUri)
   }
 
   function handleCancelPreview() {

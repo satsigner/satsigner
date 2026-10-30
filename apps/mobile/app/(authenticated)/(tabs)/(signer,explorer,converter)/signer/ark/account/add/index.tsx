@@ -76,9 +76,8 @@ export default function ArkAccountAddPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('ark.error.create')}: ${reason}`)
-    } finally {
-      setIsCreating(false)
     }
+    setIsCreating(false)
   }
 
   function handleBack() {

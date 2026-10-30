@@ -2,9 +2,9 @@ import { useCallback } from 'react'
 import {
   type AnimatableValue,
   type AnimationCallback,
-  runOnJS,
   useSharedValue
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import {
   ANIMATION_VALUE,
@@ -39,6 +39,13 @@ const isAnimationComplete = (
   endValues: PartialEndValues
 ): endValues is EndValues => ANIMATION_VALUES.every((item) => !!endValues[item])
 
+// Kept outside the hook: React Compiler would hoist the inner callback out of
+// the worklet into a plain function the UI runtime cannot call.
+function areAllAnimationsFinished(endValues: EndValues) {
+  'worklet'
+  return !Object.values(endValues).some((item) => !item.finished)
+}
+
 export const useAnimationEnd = (
   onResetAnimationEnd?: OnResetAnimationEndCallback
 ) => {
@@ -48,16 +55,15 @@ export const useAnimationEnd = (
     (interactionId, value, finished, current) => {
       'worklet'
       if (onResetAnimationEnd) {
-        const currentEndValues = endValues.value[interactionId] || {}
+        const interactionEndValues = endValues.get()
+        const currentEndValues = interactionEndValues[interactionId] || {}
         currentEndValues[value] = { current, finished }
         if (isAnimationComplete(currentEndValues)) {
-          const completed = !Object.values(currentEndValues).some(
-            (item) => !item.finished
-          )
-          runOnJS(onResetAnimationEnd)(completed, currentEndValues)
-          delete endValues.value[interactionId]
+          const completed = areAllAnimationsFinished(currentEndValues)
+          scheduleOnRN(onResetAnimationEnd, completed, currentEndValues)
+          delete interactionEndValues[interactionId]
         } else {
-          endValues.value[interactionId] = currentEndValues
+          interactionEndValues[interactionId] = currentEndValues
         }
       }
     },

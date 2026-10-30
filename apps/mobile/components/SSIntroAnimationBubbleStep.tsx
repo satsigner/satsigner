@@ -1,5 +1,5 @@
 import { hierarchy, pack } from 'd3-hierarchy'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
@@ -7,9 +7,9 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withTiming,
-  runOnJS
+  withTiming
 } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import { Colors } from '@/styles'
 
@@ -49,6 +49,21 @@ type LiveUtxoBubble = {
   exiting: boolean
   id: number
   value: number
+}
+
+function createInitialBubbles(): LiveUtxoBubble[] {
+  const picked = [...UTXO_VALUE_POOL]
+    // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 9)
+    // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
+    .sort((a, b) => b - a)
+  return picked.map((value, index) => ({
+    enterDelay: index * UTXO_ENTER_STAGGER_MS,
+    exiting: false,
+    id: nextUtxoBubbleId(),
+    value
+  }))
 }
 
 type PackedUtxoBubble = {
@@ -187,7 +202,7 @@ function LiveBubbleItem({
           0,
           { duration: UTXO_EXIT_MS, easing: Easing.in(Easing.cubic) },
           () => {
-            runOnJS(onExited)(id)
+            scheduleOnRN(onExited, id)
           }
         )
       )
@@ -236,25 +251,7 @@ function SSIntroAnimationBubbleStep({
   screenWidth,
   screenHeight
 }: SSIntroAnimationBubbleStepProps) {
-  const initialBubbles = useRef<LiveUtxoBubble[] | null>(null)
-  if (!initialBubbles.current) {
-    const picked = [...UTXO_VALUE_POOL]
-      // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 9)
-      // eslint-disable-next-line unicorn/no-array-sort -- toSorted not supported in Hermes
-      .sort((a, b) => b - a)
-    initialBubbles.current = picked.map((value, index) => ({
-      enterDelay: index * UTXO_ENTER_STAGGER_MS,
-      exiting: false,
-      id: nextUtxoBubbleId(),
-      value
-    }))
-  }
-
-  const [bubbles, setBubbles] = useState<LiveUtxoBubble[]>(
-    initialBubbles.current
-  )
+  const [bubbles, setBubbles] = useState(createInitialBubbles)
   const packed = computePackedBubbles(bubbles, screenWidth, screenHeight)
 
   function handleExited(id: number) {

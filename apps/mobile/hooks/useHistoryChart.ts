@@ -79,15 +79,15 @@ export function useHistoryChartViewport(currentDate: MutableRefObject<Date>) {
   const [{ endDate, scale }, setLocationState] = useState<{
     endDate: Date
     scale: number
-  }>({
+  }>(() => ({
     endDate: futureDate(currentDate.current, DAYS_AHEAD),
     scale: 1
-  })
+  }))
 
   const prevScale = useRef<number>(1)
   const scaleRef = useRef<number>(1)
-  const endDateRef = useRef<Date>(futureDate(currentDate.current, DAYS_AHEAD))
-  const prevEndDate = useRef<Date>(new Date(currentDate.current))
+  const endDateRef = useRef<Date>(endDate)
+  const prevEndDate = useRef<Date>(currentDate.current)
   const startYRef = useRef<number>(0)
   const prevStartY = useRef<number>(0)
   const gestureUpdateAnimationFrameRef = useRef<number | null>(null)

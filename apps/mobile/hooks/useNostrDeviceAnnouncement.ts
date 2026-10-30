@@ -6,6 +6,30 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { type Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 
+async function publishAnnouncement(
+  nostrApi: NostrAPI,
+  commonNsec: string,
+  commonNpub: string,
+  compressedMessage: string
+) {
+  try {
+    const eventKind1059 = nostrApi.createKind1059(
+      commonNsec,
+      commonNpub,
+      compressedMessage
+    )
+    await nostrApi.publishEvent(eventKind1059)
+    return true
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to publish announcement'
+    toast.error('Failed to publish announcement', { description: message })
+    return false
+  } finally {
+    await nostrApi.closeAllSubscriptions()
+  }
+}
+
 function useNostrDeviceAnnouncement() {
   const announce = useCallback(
     async (
@@ -34,24 +58,12 @@ function useNostrDeviceAnnouncement() {
       const nostrApi = new NostrAPI(relays)
       await nostrApi.connect()
 
-      try {
-        const eventKind1059 = nostrApi.createKind1059(
-          commonNsec,
-          commonNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-        return true
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Failed to publish announcement'
-        toast.error('Failed to publish announcement', { description: message })
-        return false
-      } finally {
-        await nostrApi.closeAllSubscriptions()
-      }
+      return publishAnnouncement(
+        nostrApi,
+        commonNsec,
+        commonNpub,
+        compressedMessage
+      )
     },
     []
   )

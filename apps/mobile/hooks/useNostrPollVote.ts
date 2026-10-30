@@ -62,6 +62,16 @@ export function useNostrPollVote({
       : []
 
   const userPollVoteKey = userPollVoteIds.join('|')
+  const multipleChoiceVoteKey =
+    pollInfo?.pollType === 'multiplechoice' ? userPollVoteKey : ''
+  const [syncedVoteKey, setSyncedVoteKey] = useState(multipleChoiceVoteKey)
+  if (syncedVoteKey !== multipleChoiceVoteKey) {
+    setSyncedVoteKey(multipleChoiceVoteKey)
+    if (multipleChoiceVoteKey.length > 0) {
+      setPollMultipleSelection(multipleChoiceVoteKey.split('|'))
+    }
+  }
+
   const loadGenerationRef = useRef(0)
 
   useEffect(() => {
@@ -80,35 +90,22 @@ export function useNostrPollVote({
       const api = new NostrAPI(relays, ownPubkeys)
       try {
         const responses = await api.fetchPollResponses(pollEventId)
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses(responses)
-      } catch {
-        if (loadGenerationRef.current !== generation) {
-          return
-        }
-        setPollResponses([])
-      } finally {
-        api.disconnect()
         if (loadGenerationRef.current === generation) {
-          setPollResponsesLoading(false)
+          setPollResponses(responses)
         }
+      } catch {
+        if (loadGenerationRef.current === generation) {
+          setPollResponses([])
+        }
+      }
+      api.disconnect()
+      if (loadGenerationRef.current === generation) {
+        setPollResponsesLoading(false)
       }
     }
 
     void loadPollResponses()
   }, [enabled, eventId, ownPubkeys, pollInfo, relays])
-
-  useEffect(() => {
-    if (
-      pollInfo?.pollType !== 'multiplechoice' ||
-      userPollVoteKey.length === 0
-    ) {
-      return
-    }
-    setPollMultipleSelection(userPollVoteKey.split('|'))
-  }, [pollInfo?.pollType, userPollVoteKey])
 
   async function submitPollVote(optionIds: string[]) {
     if (
@@ -132,10 +129,9 @@ export function useNostrPollVote({
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('nostrIdentity.note.pollVoteFailed')}: ${reason}`)
-    } finally {
-      api.disconnect()
-      setPollVoting(false)
     }
+    api.disconnect()
+    setPollVoting(false)
   }
 
   function handlePollOptionPress(optionId: string) {

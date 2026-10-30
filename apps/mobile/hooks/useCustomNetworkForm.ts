@@ -312,13 +312,12 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
           : ''
       try {
         const u = new URL(server.url)
-        const port = u.port || ''
         setFormData((prev) => ({
           ...prev,
           backend: 'rpc',
           host: u.hostname,
           name: server.name,
-          port,
+          port: u.port || '',
           proxy: server.proxy ?? prev.proxy,
           rpcPassword: server.rpcCredentials?.password ?? '',
           rpcScanFromHeight: scanFromHeight,
@@ -341,13 +340,12 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
     } else {
       try {
         const u = new URL(server.url)
-        const port = u.port && u.port !== '443' ? u.port : ''
         setFormData((prev) => ({
           ...prev,
           backend: 'esplora',
           host: u.hostname,
           name: server.name,
-          port,
+          port: u.port && u.port !== '443' ? u.port : '',
           proxy: server.proxy ?? prev.proxy,
           rpcPassword: '',
           rpcUsername: '',

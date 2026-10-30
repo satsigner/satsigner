@@ -13,7 +13,7 @@ import {
   useSVG,
   vec
 } from '@shopify/react-native-skia'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -163,8 +163,12 @@ function SSSankeyNodes({
   const fakeMixIconSvg = useSVG(require('@/assets/green-fake-mix.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
 
+  // Rendered inside a Skia Canvas, whose reconciler predates useEffectEvent,
+  // so the latest callback is kept in a ref instead.
   const onLabelsReadyRef = useRef(onLabelsReady)
-  onLabelsReadyRef.current = onLabelsReady
+  useLayoutEffect(() => {
+    onLabelsReadyRef.current = onLabelsReady
+  })
   const labelsNotifiedRef = useRef(false)
 
   useEffect(() => {
@@ -425,10 +429,10 @@ function NodeText({
     return built
   }, [
     customFontManager,
-    ioData?.blockHeight,
-    ioData?.blockRelativeTime,
-    ioData?.blockTime,
-    ioData?.txId,
+    ioData.blockHeight,
+    ioData.blockRelativeTime,
+    ioData.blockTime,
+    ioData.txId,
     isBlock
   ])
 
@@ -820,20 +824,20 @@ function NodeText({
     isMiningFee,
     isUnspent,
     paragraphLayoutWidth,
-    ioData?.txSize,
+    ioData.txSize,
     ioData.vSize,
-    ioData?.feeRate,
-    ioData?.value,
-    ioData?.maxAllowedSats,
+    ioData.feeRate,
+    ioData.value,
+    ioData.maxAllowedSats,
     ioData.fiatValue,
     ioData.fiatCurrency,
-    ioData?.text,
-    ioData?.feePercentage,
-    ioData?.address,
+    ioData.text,
+    ioData.feePercentage,
+    ioData.address,
     ioData.label,
-    ioData?.specialTag,
-    ioData?.vout,
-    ioData?.isOwnInput,
+    ioData.specialTag,
+    ioData.vout,
+    ioData.isOwnInput,
     isHigherMinerFee,
     isFeeValueWarning,
     isChange,

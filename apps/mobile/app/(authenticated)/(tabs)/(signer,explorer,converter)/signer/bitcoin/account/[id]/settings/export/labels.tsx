@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { SSIconEyeOn } from '@/components/icons'
@@ -25,12 +25,8 @@ export default function ExportLabels() {
   )
 
   const [exportType, setExportType] = useState<Bip329FileType>('JSONL')
-  const [exportContent, setExportContent] = useState('')
   const labels: Label[] = Object.values(account?.labels || {})
-
-  useEffect(() => {
-    setExportContent(bip329export[exportType](labels))
-  }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
+  const exportContent = bip329export[exportType](labels)
 
   function exportLabels() {
     if (!account) {

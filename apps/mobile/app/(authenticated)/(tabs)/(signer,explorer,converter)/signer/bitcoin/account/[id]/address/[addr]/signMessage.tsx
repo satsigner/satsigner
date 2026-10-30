@@ -25,6 +25,18 @@ import {
   signAddressMessage
 } from '@/utils/message'
 
+function signWithPrivateKey(
+  privateKeyHex: string,
+  sign: (privateKey: Buffer) => string
+) {
+  const privateKey = Buffer.from(privateKeyHex, 'hex')
+  try {
+    return sign(privateKey)
+  } finally {
+    privateKey.fill(0)
+  }
+}
+
 function AddressSignMessage() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
@@ -73,25 +85,25 @@ function AddressSignMessage() {
       )
       if (!keyPair) {
         toast.error(t('address.details.key.unavailable'))
+        setIsSigning(false)
         return
       }
-      const privateKey = Buffer.from(keyPair.privateKey, 'hex')
-      const result = signAddressMessage(
-        privateKey,
-        addr,
-        message,
-        address.scriptVersion,
-        account.network,
-        method
+      const result = signWithPrivateKey(keyPair.privateKey, (privateKey) =>
+        signAddressMessage(
+          privateKey,
+          addr,
+          message,
+          address.scriptVersion,
+          account.network,
+          method
+        )
       )
-      privateKey.fill(0)
       setSignature(result)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('address.details.key.unableToDecrypt')}: ${reason}`)
-    } finally {
-      setIsSigning(false)
     }
+    setIsSigning(false)
   }
 
   function handleChangeMessage(value: string) {

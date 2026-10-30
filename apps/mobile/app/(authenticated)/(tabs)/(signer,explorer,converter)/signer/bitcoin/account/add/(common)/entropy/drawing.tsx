@@ -30,6 +30,26 @@ import {
   type DrawingPoint
 } from '@/utils/drawingEntropy'
 
+type DrawingPanHandlers = {
+  onBegin: (x: number, y: number) => void
+  onUpdate: (x: number, y: number) => void
+  onEnd: () => void
+}
+
+// The handlers read refs. React Compiler accepts that when they are passed to
+// a hook, but not when they are passed to the gesture builder during render.
+function useDrawingPanGesture({
+  onBegin,
+  onUpdate,
+  onEnd
+}: DrawingPanHandlers) {
+  return Gesture.Pan()
+    .runOnJS(true)
+    .onBegin((event) => onBegin(event.x, event.y))
+    .onUpdate((event) => onUpdate(event.x, event.y))
+    .onEnd(() => onEnd())
+}
+
 export default function DrawingEntropy() {
   const router = useRouter()
   const { height: screenHeight } = useWindowDimensions()
@@ -50,6 +70,7 @@ export default function DrawingEntropy() {
 
   const [points, setPoints] = useState<DrawingPoint[]>([])
   const [paths, setPaths] = useState<SkPath[]>([])
+  const [currentStroke, setCurrentStroke] = useState<SkPath | null>(null)
   const [strokeVersion, setStrokeVersion] = useState(0)
   const currentPathRef = useRef<SkPathBuilder | null>(null)
   const lastSampleRef = useRef<{ x: number; y: number } | null>(null)
@@ -100,45 +121,53 @@ export default function DrawingEntropy() {
     currentPathRef.current = null
     setPoints([])
     setPaths([])
+    setCurrentStroke(null)
     setStrokeVersion((version) => version + 1)
   }
 
   function bumpStroke() {
+    setCurrentStroke(currentPathRef.current?.build() ?? null)
     setStrokeVersion((version) => version + 1)
   }
 
-  const panGesture = Gesture.Pan()
-    .runOnJS(true)
-    .onBegin((event) => {
-      if (completedRef.current) {
-        return
-      }
-      currentPathRef.current = Skia.PathBuilder.Make().moveTo(event.x, event.y)
-      bumpStroke()
-      addSample(event.x, event.y)
-    })
-    .onUpdate((event) => {
-      if (completedRef.current) {
-        return
-      }
-      const path = currentPathRef.current
-      if (!path) {
-        return
-      }
-      path.lineTo(event.x, event.y)
-      bumpStroke()
-      addSample(event.x, event.y)
-    })
-    .onEnd(() => {
-      const path = currentPathRef.current
-      if (!path) {
-        return
-      }
-      const strokePath = path.detach()
-      setPaths((prev) => [...prev, strokePath])
-      currentPathRef.current = null
-      bumpStroke()
-    })
+  function handleStrokeBegin(x: number, y: number) {
+    if (completedRef.current) {
+      return
+    }
+    currentPathRef.current = Skia.PathBuilder.Make().moveTo(x, y)
+    bumpStroke()
+    addSample(x, y)
+  }
+
+  function handleStrokeUpdate(x: number, y: number) {
+    if (completedRef.current) {
+      return
+    }
+    const path = currentPathRef.current
+    if (!path) {
+      return
+    }
+    path.lineTo(x, y)
+    bumpStroke()
+    addSample(x, y)
+  }
+
+  function handleStrokeEnd() {
+    const path = currentPathRef.current
+    if (!path) {
+      return
+    }
+    const strokePath = path.detach()
+    setPaths((prev) => [...prev, strokePath])
+    currentPathRef.current = null
+    bumpStroke()
+  }
+
+  const panGesture = useDrawingPanGesture({
+    onBegin: handleStrokeBegin,
+    onEnd: handleStrokeEnd,
+    onUpdate: handleStrokeUpdate
+  })
 
   return (
     <SSMainLayout style={styles.container}>
@@ -180,10 +209,10 @@ export default function DrawingEntropy() {
                     strokeJoin="round"
                   />
                 ))}
-                {currentPathRef.current ? (
+                {currentStroke ? (
                   <Path
                     key={`stroke-${strokeVersion}`}
-                    path={currentPathRef.current.build()}
+                    path={currentStroke}
                     color={Colors.white}
                     style="stroke"
                     strokeWidth={3}

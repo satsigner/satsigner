@@ -129,53 +129,6 @@ export default function NostrContactProfile() {
     setQrOverlayVisible(false)
   }
 
-  async function handleZap() {
-    if (availablePaymentMethods.length === 0) {
-      return
-    }
-    if (!targetIdentity.lud16) {
-      return
-    }
-    if (!owner?.nsec) {
-      return
-    }
-
-    const amountSats = 21
-    setZapLoading(true)
-
-    try {
-      if (!targetPubkeyHex) {
-        setZapLoading(false)
-        return
-      }
-      const { invoice, zapRequestJson } = await initiateZap({
-        amountSats,
-        recipientLud16: targetIdentity.lud16,
-        recipientPubkeyHex: targetPubkeyHex,
-        relays: effectiveRelays,
-        senderNsec: owner.nsec
-      })
-
-      setZapLoading(false)
-      pendingInvoice[1]({ invoice, zapRequestJson })
-
-      if (availablePaymentMethods.length === 1) {
-        navigateToPayment(
-          availablePaymentMethods[0],
-          invoice,
-          zapRequestJson,
-          amountSats
-        )
-        return
-      }
-
-      setPayAmount(amountSats)
-      paymentSheetRef.current?.snapToIndex(0)
-    } catch {
-      setZapLoading(false)
-    }
-  }
-
   function navigateToPayment(
     method: PaymentMethod,
     invoice?: string,
@@ -222,6 +175,61 @@ export default function NostrContactProfile() {
         },
         pathname: '/signer/ark/account/[id]/pay-invoice'
       })
+    }
+  }
+
+  function presentZapInvoice(
+    invoice: string,
+    zapRequestJson: string,
+    amountSats: number
+  ) {
+    pendingInvoice[1]({ invoice, zapRequestJson })
+
+    if (availablePaymentMethods.length === 1) {
+      navigateToPayment(
+        availablePaymentMethods[0],
+        invoice,
+        zapRequestJson,
+        amountSats
+      )
+      return
+    }
+
+    setPayAmount(amountSats)
+    paymentSheetRef.current?.snapToIndex(0)
+  }
+
+  async function handleZap() {
+    if (availablePaymentMethods.length === 0) {
+      return
+    }
+    if (!targetIdentity.lud16) {
+      return
+    }
+    if (!owner?.nsec) {
+      return
+    }
+
+    const amountSats = 21
+    setZapLoading(true)
+
+    try {
+      if (!targetPubkeyHex) {
+        setZapLoading(false)
+        return
+      }
+      const { invoice, zapRequestJson } = await initiateZap({
+        amountSats,
+        recipientLud16: targetIdentity.lud16,
+        recipientPubkeyHex: targetPubkeyHex,
+        relays: effectiveRelays,
+        senderNsec: owner.nsec
+      })
+
+      setZapLoading(false)
+      presentZapInvoice(invoice, zapRequestJson, amountSats)
+    } catch {
+      setZapLoading(false)
     }
   }
 

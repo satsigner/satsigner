@@ -20,6 +20,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import {
+  type ConnectionTestResult,
+  type ConnectionTestSuccess
+} from '@/types/models/ConnectionTest'
 import { type Network, type Server } from '@/types/settings/blockchain'
 import {
   formatBannerForToast,
@@ -89,6 +93,38 @@ export default function NetworkSettings() {
     removeCustomServer(server)
   }
 
+  function showSuccessToast(server: Server, result: ConnectionTestSuccess) {
+    try {
+      toast.success(`${server.name} (${server.url})`, {
+        description: successToastDescription(result)
+      })
+    } catch {
+      // Avoid crashing if sonner handler was ever invalid; banner still shows tip.
+    }
+  }
+
+  function applyTestResult(server: Server, result: ConnectionTestResult) {
+    if (!result.success) {
+      const errorMessage = result.error || tn('tester.failed')
+      toast.error(`${server.name} (${server.url})`, {
+        description: errorMessage
+      })
+      setTestingServer(null)
+      return
+    }
+
+    const probeLine = successProbeDescription(result)
+    setLastProbeBanner(
+      `${server.name} (${trimOnionAddress(server.url)}): ${tn(
+        'tester.success'
+      )} — ${probeLine}`
+    )
+    setLastServerBanner(result.banner?.trim() ? result.banner.trim() : null)
+
+    showSuccessToast(server, result)
+    setTestingServer(null)
+  }
+
   async function handleTestConnection(server: Server) {
     setTestingServer(server.url)
     setLastProbeBanner(null)
@@ -102,32 +138,7 @@ export default function NetworkSettings() {
         server.proxy,
         server.rpcCredentials
       )
-
-      if (!result.success) {
-        const errorMessage = result.error || tn('tester.failed')
-        toast.error(`${server.name} (${server.url})`, {
-          description: errorMessage
-        })
-        setTestingServer(null)
-        return
-      }
-
-      const probeLine = successProbeDescription(result)
-      setLastProbeBanner(
-        `${server.name} (${trimOnionAddress(server.url)}): ${tn(
-          'tester.success'
-        )} — ${probeLine}`
-      )
-      setLastServerBanner(result.banner?.trim() ? result.banner.trim() : null)
-
-      try {
-        toast.success(`${server.name} (${server.url})`, {
-          description: successToastDescription(result)
-        })
-      } catch {
-        // Avoid crashing if sonner handler was ever invalid; banner still shows tip.
-      }
-      setTestingServer(null)
+      applyTestResult(server, result)
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : tn('tester.error')

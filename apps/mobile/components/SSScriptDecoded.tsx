@@ -14,15 +14,20 @@ type SSScriptDecodedProps = {
 
 const SAFE_SCRIPT_SIZE = 2048
 
-function SSScriptDecoded({ script }: SSScriptDecodedProps) {
-  let decodedScript: string | undefined
-
+function decodeScriptToAsm(script: SSScriptDecodedProps['script']) {
   try {
-    decodedScript =
-      typeof script === 'string'
-        ? script
-        : bitcoinjs.script.toASM(Buffer.from(script))
+    return typeof script === 'string'
+      ? script
+      : bitcoinjs.script.toASM(Buffer.from(script))
   } catch {
+    return null
+  }
+}
+
+function SSScriptDecoded({ script }: SSScriptDecodedProps) {
+  const decodedScript = decodeScriptToAsm(script)
+
+  if (decodedScript === null) {
     return <SSText>{t('transaction.decoded.error')}</SSText>
   }
 

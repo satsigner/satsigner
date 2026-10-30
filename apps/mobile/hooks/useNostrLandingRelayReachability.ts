@@ -12,44 +12,92 @@ type UseNostrLandingRelayReachabilityArgs = {
   relays: string[]
 }
 
+type RelayReachabilityPlan =
+  | { info: NostrRelayConnectionInfo | null; kind: 'settled' }
+  | { kind: 'probe'; urls: string[] }
+
+const CHECKING_CONNECTION_INFO: NostrRelayConnectionInfo = {
+  status: 'checking'
+}
+
+function getRelayReachabilityPlan({
+  activeIdentityNpub,
+  identities,
+  relays
+}: UseNostrLandingRelayReachabilityArgs): RelayReachabilityPlan {
+  if (!activeIdentityNpub) {
+    return { info: null, kind: 'settled' }
+  }
+
+  const identity = identities.find((i) => i.npub === activeIdentityNpub)
+  if (!identity) {
+    return { info: null, kind: 'settled' }
+  }
+
+  if (!identity.relayConnected) {
+    return {
+      info: { reason: 'user_disabled', status: 'disconnected' },
+      kind: 'settled'
+    }
+  }
+
+  const urls = identity.relays?.length ? identity.relays : relays
+
+  if (urls.length === 0) {
+    return {
+      info: { reason: 'no_relays', status: 'disconnected' },
+      kind: 'settled'
+    }
+  }
+
+  return { kind: 'probe', urls }
+}
+
+function getPlanConnectionInfo(plan: RelayReachabilityPlan) {
+  return plan.kind === 'settled' ? plan.info : CHECKING_CONNECTION_INFO
+}
+
+function hasSameReachabilityInputs(
+  a: UseNostrLandingRelayReachabilityArgs,
+  b: UseNostrLandingRelayReachabilityArgs
+) {
+  return (
+    a.activeIdentityNpub === b.activeIdentityNpub &&
+    a.identities === b.identities &&
+    a.relays === b.relays
+  )
+}
+
 export function useNostrLandingRelayReachability({
   activeIdentityNpub,
   identities,
   relays
 }: UseNostrLandingRelayReachabilityArgs) {
-  const [activeConnectionInfo, setActiveConnectionInfo] =
-    useState<NostrRelayConnectionInfo | null>(null)
+  const inputs = { activeIdentityNpub, identities, relays }
+  const [activeConnectionInfo, setActiveConnectionInfo] = useState(() =>
+    getPlanConnectionInfo(getRelayReachabilityPlan(inputs))
+  )
+  const [checkedInputs, setCheckedInputs] = useState(inputs)
   const effectGenerationRef = useRef(0)
 
+  if (!hasSameReachabilityInputs(checkedInputs, inputs)) {
+    setCheckedInputs(inputs)
+    setActiveConnectionInfo(
+      getPlanConnectionInfo(getRelayReachabilityPlan(inputs))
+    )
+  }
+
   useEffect(() => {
-    if (!activeIdentityNpub) {
-      setActiveConnectionInfo(null)
+    const plan = getRelayReachabilityPlan({
+      activeIdentityNpub,
+      identities,
+      relays
+    })
+    if (plan.kind === 'settled') {
       return
     }
 
-    const identity = identities.find((i) => i.npub === activeIdentityNpub)
-    if (!identity) {
-      setActiveConnectionInfo(null)
-      return
-    }
-
-    if (!identity.relayConnected) {
-      setActiveConnectionInfo({
-        reason: 'user_disabled',
-        status: 'disconnected'
-      })
-      return
-    }
-
-    const urls = identity.relays?.length ? identity.relays : relays
-
-    if (urls.length === 0) {
-      setActiveConnectionInfo({ reason: 'no_relays', status: 'disconnected' })
-      return
-    }
-
-    setActiveConnectionInfo({ status: 'checking' })
-
+    const { urls } = plan
     effectGenerationRef.current += 1
     const generation = effectGenerationRef.current
 

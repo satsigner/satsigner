@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import {
   Easing,
   useAnimatedStyle,
@@ -12,7 +11,7 @@ import {
 export const useAnimatedShake = () => {
   const shakeTranslateX = useSharedValue(0)
 
-  const shake = useCallback(() => {
+  function shake() {
     const translationAmount = 20
     const timingConfig = {
       duration: 60,
@@ -28,7 +27,7 @@ export const useAnimatedShake = () => {
         })
       )
     )
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const shakeStyle = useAnimatedStyle(
     () => ({

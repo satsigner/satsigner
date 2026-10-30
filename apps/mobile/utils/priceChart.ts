@@ -8,6 +8,10 @@ export const PRICE_CHART_LOADER_SIZE = 40
 export const MAIN_HORIZONTAL_PAD_RATIO = 0.06
 const PRICE_DOMAIN_Y_PAD_RATIO = 0.1
 const PRICE_DOMAIN_Y_PAD_FALLBACK = 1
+const PRICE_CHART_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  day: 'numeric',
+  month: 'short'
+})
 
 export const PRICE_CHART_PADDING = {
   bottom: 28,
@@ -57,10 +61,9 @@ export function priceDomainFromData(
 }
 
 function formatPriceChartDate(timestampSeconds: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short'
-  }).format(new Date(timestampSeconds * MS_PER_SECOND))
+  return PRICE_CHART_DATE_FORMATTER.format(
+    new Date(timestampSeconds * MS_PER_SECOND)
+  )
 }
 
 export function formatCompactFiat(value: number): string {

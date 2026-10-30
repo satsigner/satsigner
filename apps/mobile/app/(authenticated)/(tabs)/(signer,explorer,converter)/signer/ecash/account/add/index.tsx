@@ -84,9 +84,8 @@ export default function EcashAccountAddPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${t('ecash.error.networkError')}: ${reason}`)
-    } finally {
-      setIsCreating(false)
     }
+    setIsCreating(false)
   }
 
   function handleBack() {

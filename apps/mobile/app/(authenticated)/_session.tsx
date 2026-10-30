@@ -39,6 +39,65 @@ function yieldToUi() {
   })
 }
 
+type AccountWalletLoaders = Pick<
+  ReturnType<typeof useWalletsStore.getState>,
+  'wallets' | 'addresses' | 'addAccountWallet' | 'addAccountAddress'
+>
+
+async function loadAccountWallets({
+  wallets,
+  addresses,
+  addAccountWallet,
+  addAccountAddress
+}: AccountWalletLoaders) {
+  for (const account of useAccountsStore.getState().accounts) {
+    try {
+      const isImportAddress = account.keys[0].creationType === 'importAddress'
+      const existsWallet = !isImportAddress
+        ? !!wallets[account.id]
+        : !!addresses[account.id]
+      if (existsWallet) {
+        continue
+      }
+
+      const secrets = await decryptAccountKeySecrets(account)
+      const tmpAccount: Account = {
+        ...account,
+        keys: account.keys.map((key, index) => {
+          const decryptedKey: Key = { ...key, secret: secrets[index] }
+          return decryptedKey
+        })
+      }
+
+      const walletData = !isImportAddress
+        ? await getWalletData(
+            tmpAccount,
+            appNetworkToBdkNetwork(account.network)
+          )
+        : undefined
+      if (walletData) {
+        addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
+      }
+
+      const importSecret = tmpAccount.keys[0].secret
+      if (isImportAddress && typeof importSecret === 'object') {
+        const descriptor = importSecret.externalDescriptor
+        if (descriptor) {
+          addAccountAddress(
+            account.id,
+            parseAddressDescriptorToAddress(descriptor)
+          )
+        }
+      }
+    } catch (error) {
+      const label = account.name ?? account.id
+      const reason = error instanceof Error ? error.message : String(error)
+      toast.error(`${label}: ${reason}`)
+    }
+    await yieldToUi()
+  }
+}
+
 function toPageRoute(path: string, params: Record<string, unknown>): PageRoute {
   const pageParams: PageParams = {}
   for (const [key, value] of Object.entries(params)) {
@@ -96,52 +155,12 @@ function AuthenticatedSession() {
       return
     }
 
-    for (const account of useAccountsStore.getState().accounts) {
-      try {
-        const isImportAddress = account.keys[0].creationType === 'importAddress'
-        const existsWallet = !isImportAddress
-          ? !!wallets[account.id]
-          : !!addresses[account.id]
-        if (existsWallet) {
-          continue
-        }
-
-        const secrets = await decryptAccountKeySecrets(account)
-        const tmpAccount: Account = {
-          ...account,
-          keys: account.keys.map((key, index) => {
-            const decryptedKey: Key = { ...key, secret: secrets[index] }
-            return decryptedKey
-          })
-        }
-
-        const walletData = !isImportAddress
-          ? await getWalletData(
-              tmpAccount,
-              appNetworkToBdkNetwork(account.network)
-            )
-          : undefined
-        if (walletData) {
-          addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
-        }
-
-        const importSecret = tmpAccount.keys[0].secret
-        if (isImportAddress && typeof importSecret === 'object') {
-          const descriptor = importSecret.externalDescriptor
-          if (descriptor) {
-            addAccountAddress(
-              account.id,
-              parseAddressDescriptorToAddress(descriptor)
-            )
-          }
-        }
-      } catch (error) {
-        const label = account.name ?? account.id
-        const reason = error instanceof Error ? error.message : String(error)
-        toast.error(`${label}: ${reason}`)
-      }
-      await yieldToUi()
-    }
+    await loadAccountWallets({
+      addAccountAddress,
+      addAccountWallet,
+      addresses,
+      wallets
+    })
     setJustUnlocked(false)
   }
 
