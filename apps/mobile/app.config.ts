@@ -2,6 +2,7 @@ import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
 import {
   APP_VARIANT_PRODUCTION,
+  getVariantAndroidAbis,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme
@@ -96,6 +97,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         'expo-build-properties',
         {
           android: {
+            buildArchs: getVariantAndroidAbis(IS_DEV),
             // Production: HTTPS-only. Dev keeps cleartext for local RPC/LND nodes.
             usesCleartextTraffic: IS_DEV
           },

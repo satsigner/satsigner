@@ -5,6 +5,7 @@ import {
   SCHEME_DEV
 } from '@/constants/variant'
 import {
+  getVariantAndroidAbis,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme,
@@ -70,6 +71,24 @@ describe('variantSuffix utils', () => {
 
     it('appends a sanitized scheme segment', () => {
       expect(getVariantScheme(true, 'pr453')).toBe(`${SCHEME_DEV}pr453`)
+    })
+  })
+
+  describe('getVariantAndroidAbis', () => {
+    it('builds every CPU type for dev so emulators keep working', () => {
+      expect(getVariantAndroidAbis(true)).toStrictEqual([
+        'armeabi-v7a',
+        'arm64-v8a',
+        'x86',
+        'x86_64'
+      ])
+    })
+
+    it('ships only ARM CPU types in production', () => {
+      expect(getVariantAndroidAbis(false)).toStrictEqual([
+        'armeabi-v7a',
+        'arm64-v8a'
+      ])
     })
   })
 })
