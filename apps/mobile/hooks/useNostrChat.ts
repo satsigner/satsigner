@@ -72,9 +72,10 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
     setRetrying(true)
     try {
       await restartChatPipeline(npub)
-    } finally {
-      setRetrying(false)
+    } catch {
+      // Relay outages are non-fatal; retry state still clears below.
     }
+    setRetrying(false)
   }
 
   return { retry, retrying, status }
@@ -168,9 +169,10 @@ export function useNostrChatThread(
     try {
       const { exhausted } = await loadOlderChatHistory(identity.npub, protocol)
       setHistoryExhausted(exhausted)
-    } finally {
-      setLoadingOlder(false)
+    } catch {
+      // History paging failures leave the thread unchanged.
     }
+    setLoadingOlder(false)
   }
 
   async function send(text: string) {
@@ -195,14 +197,17 @@ export function useNostrChatThread(
       )
     } catch (error) {
       setInput(text)
-      throw error
-    } finally {
-      // Refresh in both outcomes so the card flips to sent/failed at once.
       invalidateChatQueries(identity.npub)
       setSending(false)
       if (!pipelineApi) {
         api.closeAllSubscriptions()
       }
+      throw error
+    }
+    invalidateChatQueries(identity.npub)
+    setSending(false)
+    if (!pipelineApi) {
+      api.closeAllSubscriptions()
     }
   }
 

@@ -282,19 +282,16 @@ export default function NostrNotePage() {
       return null
     }
     setManualSearching(true)
-    try {
-      const event = await NostrAPI.fetchEventFromRelays(
-        noteEventId,
-        searchRelays,
-        ownPubkeys
-      ).catch(() => null)
-      if (event) {
-        setManualEvent(event)
-      }
-      return event
-    } finally {
-      setManualSearching(false)
+    const event = await NostrAPI.fetchEventFromRelays(
+      noteEventId,
+      searchRelays,
+      ownPubkeys
+    ).catch(() => null)
+    if (event) {
+      setManualEvent(event)
     }
+    setManualSearching(false)
+    return event
   }
 
   async function handleTryHintedRelays() {
@@ -485,24 +482,21 @@ export default function NostrNotePage() {
     }
     setBookmarkLoading(true)
     const api = new NostrAPI(effectiveRelays)
+    const bookmarkUpdate = { eventId, ...action }
+    const successMessage =
+      action.type === 'remove'
+        ? t('nostrIdentity.note.bookmarkRemoved')
+        : t('nostrIdentity.note.bookmarkAdded')
     try {
-      await api.publishBookmarkUpdate(npub, identity.nsec, {
-        eventId,
-        ...action
-      })
-      toast.success(
-        action.type === 'remove'
-          ? t('nostrIdentity.note.bookmarkRemoved')
-          : t('nostrIdentity.note.bookmarkAdded')
-      )
+      await api.publishBookmarkUpdate(npub, identity.nsec, bookmarkUpdate)
+      toast.success(successMessage)
     } catch (error) {
       toast.error(
         `${t('nostrIdentity.note.bookmarkFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      api.disconnect()
-      setBookmarkLoading(false)
     }
+    api.disconnect()
+    setBookmarkLoading(false)
   }
 
   function handleBookmarkPress() {
@@ -531,12 +525,15 @@ export default function NostrNotePage() {
       return
     }
 
+    const eventIdHex = decoded?.data
     setZapLoading(true)
+    let invoice: string | undefined
+    let zapRequestJson: string | undefined
     try {
-      const { invoice, zapRequestJson } = await initiateZap({
+      const zapResult = await initiateZap({
         amountSats,
         comment,
-        eventIdHex: decoded?.data,
+        eventIdHex,
         eventKind: fetched.kind,
         eventTags: fetched.tags,
         recipientLud16: effectiveLud16,
@@ -544,38 +541,41 @@ export default function NostrNotePage() {
         relays: effectiveRelays,
         senderNsec: identity.nsec
       })
-
-      setZapLoading(false)
-      pendingInvoiceRef.current = { invoice, zapRequestJson }
-
-      if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
-        const autoWallet = availablePaymentMethods.find(
-          (m) => m.id === zapPrefs.autoApproveWalletId
-        )
-        if (autoWallet) {
-          navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
-          return
-        }
-      }
-
-      if (availablePaymentMethods.length === 1) {
-        navigateToPayment(
-          availablePaymentMethods[0],
-          invoice,
-          zapRequestJson,
-          amountSats
-        )
-        return
-      }
-
-      setPayAmount(amountSats)
-      paymentSheetRef.current?.snapToIndex(0)
+      invoice = zapResult.invoice
+      zapRequestJson = zapResult.zapRequestJson
     } catch (error) {
       setZapLoading(false)
       toast.error(
         `${t('nostrIdentity.note.zapFailed')}: ${getNostrErrorMessage(error)}`
       )
+      return
     }
+
+    setZapLoading(false)
+    pendingInvoiceRef.current = { invoice, zapRequestJson }
+
+    if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
+      const autoWallet = availablePaymentMethods.find(
+        (m) => m.id === zapPrefs.autoApproveWalletId
+      )
+      if (autoWallet) {
+        navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
+        return
+      }
+    }
+
+    if (availablePaymentMethods.length === 1) {
+      navigateToPayment(
+        availablePaymentMethods[0],
+        invoice,
+        zapRequestJson,
+        amountSats
+      )
+      return
+    }
+
+    setPayAmount(amountSats)
+    paymentSheetRef.current?.snapToIndex(0)
   }
 
   function navigateToPayment(

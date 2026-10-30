@@ -60,6 +60,17 @@ const SYNCING_MESSAGE_KEYS = [
   'account.nostrSync.syncingWithRelays'
 ] as const
 
+async function applyNostrAutoSyncToggle(options: {
+  autoSync: boolean
+  relays: string[]
+  turnSyncOff: (relays: string[]) => Promise<void>
+  turnSyncOn: () => Promise<void>
+}) {
+  await (options.autoSync
+    ? options.turnSyncOff(options.relays)
+    : options.turnSyncOn())
+}
+
 type MemberNameBlockProps = {
   npub: string
   displayName?: string
@@ -323,9 +334,8 @@ export default function NostrSync() {
       toast.success(t('account.nostrSync.clearCachesSuccess'))
     } catch {
       toast.error(t('account.nostrSync.clearCachesError'))
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
   const eventCount = account?.nostr?.dms?.length ?? 0
@@ -340,15 +350,16 @@ export default function NostrSync() {
       toast.error(t('account.nostrSync.backupError'))
       return
     }
+    const dms = account.nostr.dms ?? []
+    const payload = JSON.stringify(
+      {
+        dms,
+        exportedAt: new Date().toISOString()
+      },
+      null,
+      2
+    )
     try {
-      const payload = JSON.stringify(
-        {
-          dms: account.nostr.dms ?? [],
-          exportedAt: new Date().toISOString()
-        },
-        null,
-        2
-      )
       await Share.share({
         message: payload,
         title: t('account.nostrSync.backupEvents')
@@ -399,9 +410,8 @@ export default function NostrSync() {
       toast.success(t('account.nostrSync.deletionSuccess'))
     } catch {
       toast.error(t('account.nostrSync.deletionError'))
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
   /**
@@ -501,10 +511,9 @@ export default function NostrSync() {
       toast.error(t('account.nostrSync.setupSyncFailed'), {
         description: getNostrErrorMessage(error)
       })
-    } finally {
-      setIsSyncing(false)
-      setSyncing(accountId, false)
     }
+    setIsSyncing(false)
+    setSyncing(accountId, false)
   }
 
   async function handleToggleAutoSync() {
@@ -526,12 +535,14 @@ export default function NostrSync() {
       })
       return
     }
+    const relays = account.nostr.relays ?? []
     try {
-      if (account.nostr.autoSync) {
-        await turnSyncOff(account.nostr.relays ?? [])
-        return
-      }
-      await turnSyncOn()
+      await applyNostrAutoSyncToggle({
+        autoSync: account.nostr.autoSync,
+        relays,
+        turnSyncOff,
+        turnSyncOn
+      })
     } catch (error) {
       toast.error(t('account.nostrSync.toggleSyncFailed'), {
         description: getNostrErrorMessage(error)
@@ -647,38 +658,40 @@ export default function NostrSync() {
       return
     }
     setIsGeneratingKeys(true)
+    let keys
     try {
-      const keys = generateDeviceNostrKeysFromSeed()
-      const current = useAccountsStore
-        .getState()
-        .accounts.find((a) => a.id === accountId)
-      const nostrBase = current?.nostr ?? {
-        autoSync: false,
-        commonNpub: '',
-        commonNsec: '',
-        deviceNpub: '',
-        deviceNsec: '',
-        dms: [],
-        lastUpdated: new Date(),
-        relays: [],
-        syncStart: new Date(),
-        trustedMemberDevices: []
-      }
-      updateAccountNostr(accountId, {
-        ...nostrBase,
-        deviceMnemonic: keys.mnemonic,
-        deviceNpub: keys.npub,
-        deviceNsec: keys.nsec,
-        lastUpdated: new Date()
-      })
-      setDeviceNsec(keys.nsec)
-      setDeviceNpub(keys.npub)
-      setDeviceColor(generateColorFromNpub(keys.npub))
+      keys = generateDeviceNostrKeysFromSeed()
     } catch {
       toast.error(t('account.nostrSync.errorGenerateDeviceKeys'))
-    } finally {
       setIsGeneratingKeys(false)
+      return
     }
+    const current = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)
+    const nostrBase = current?.nostr ?? {
+      autoSync: false,
+      commonNpub: '',
+      commonNsec: '',
+      deviceNpub: '',
+      deviceNsec: '',
+      dms: [],
+      lastUpdated: new Date(),
+      relays: [],
+      syncStart: new Date(),
+      trustedMemberDevices: []
+    }
+    updateAccountNostr(accountId, {
+      ...nostrBase,
+      deviceMnemonic: keys.mnemonic,
+      deviceNpub: keys.npub,
+      deviceNsec: keys.nsec,
+      lastUpdated: new Date()
+    })
+    setDeviceNsec(keys.nsec)
+    setDeviceNpub(keys.npub)
+    setDeviceColor(generateColorFromNpub(keys.npub))
+    setIsGeneratingKeys(false)
   }
 
   // Effects – use stable deps so we don't re-run on every account ref change
@@ -724,23 +737,29 @@ export default function NostrSync() {
     }
 
     async function loadCommonKeys() {
+      let keys
       try {
-        const keys = await generateCommonNostrKeys(account)
-        if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
-          setCommonNsec(keys.commonNsec)
-          updateAccountNostr(accountId, {
-            commonNpub: keys.commonNpub,
-            commonNsec: keys.commonNsec
-          })
-        }
+        keys = await generateCommonNostrKeys(account)
       } catch {
         toast.error(t('account.nostrSync.errorLoadingCommonKeys'))
+        return
+      }
+      if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
+        setCommonNsec(keys.commonNsec)
+        updateAccountNostr(accountId, {
+          commonNpub: keys.commonNpub,
+          commonNsec: keys.commonNsec
+        })
       }
     }
     loadCommonKeys()
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when common keys or account id change; omit full account to avoid re-run on ref change
-  }, [])
+  }, [
+    account,
+    accountId,
+    commonNsec,
+    generateCommonNostrKeys,
+    updateAccountNostr
+  ])
 
   useEffect(() => {
     if (!account || !accountId) {
