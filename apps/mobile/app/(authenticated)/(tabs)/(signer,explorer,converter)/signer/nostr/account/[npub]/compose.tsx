@@ -45,7 +45,6 @@ import {
 import {
   applyNostrProofOfWork,
   expectedPowHashes,
-  POW_LEVELS,
   stripNonceTags
 } from '@/utils/nostrPow'
 
@@ -635,27 +634,16 @@ export default function NostrComposePage() {
               />
             ) : null}
             {powHelpOpen ? (
-              <SSVStack gap="xs">
-                {POW_LEVELS.map((level) => (
-                  <SSVStack key={level} gap="none">
-                    <SSText
-                      size="xxs"
-                      weight={
-                        powEnabled && level === powDifficulty
-                          ? 'medium'
-                          : 'regular'
-                      }
-                    >
-                      {t('nostrIdentity.compose.powLevelTitle', {
-                        bits: level,
-                        hashes: expectedPowHashes(level)
-                      })}
-                    </SSText>
-                    <SSText size="xxs" color="muted">
-                      {t(`nostrIdentity.compose.powLevel${level}`)}
-                    </SSText>
-                  </SSVStack>
-                ))}
+              <SSVStack gap="none">
+                <SSText size="xxs" weight="medium">
+                  {t('nostrIdentity.compose.powLevelTitle', {
+                    bits: powDifficulty,
+                    hashes: expectedPowHashes(powDifficulty)
+                  })}
+                </SSText>
+                <SSText size="xxs" color="muted">
+                  {t(`nostrIdentity.compose.powLevel${powDifficulty}`)}
+                </SSText>
               </SSVStack>
             ) : null}
           </SSVStack>
