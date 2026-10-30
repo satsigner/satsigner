@@ -12,6 +12,8 @@ import {
 import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
+import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLNURLDetails from '@/components/SSLNURLDetails'
@@ -26,6 +28,7 @@ import {
   LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
   LND_SUCCESS_NAVIGATE_DELAY_MS
 } from '@/constants/lightning'
+import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
@@ -37,6 +40,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Typography } from '@/styles'
+import { type BrantaLookupSource } from '@/types/models/Branta'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse
@@ -135,6 +139,13 @@ export default function PayPage() {
     useState<LNDDecodedInvoice | null>(null)
   const [activeTab, setActiveTab] = useState<PayTab>('lightning')
   const [onchainAddress, setOnchainAddress] = useState('')
+  const {
+    adopt: adoptBrantaPayee,
+    lookup: lookupBrantaDestination,
+    mode: brantaLookupMode,
+    payee: brantaPayee,
+    verifyLatest: verifyBrantaDestination
+  } = useBrantaPayeeLookup()
   const [onchainAmountSat, setOnchainAmountSat] = useState(0)
   const [satPerVbyteText, setSatPerVbyteText] = useState('')
 
@@ -193,8 +204,16 @@ export default function PayPage() {
     }
   }
 
-  async function handlePaymentRequestChange(text: string) {
+  async function handlePaymentRequestChange(
+    text: string,
+    source?: BrantaLookupSource
+  ) {
     setPaymentRequest(text)
+    if (source) {
+      void lookupBrantaDestination(text, source)
+    } else {
+      adoptBrantaPayee(null)
+    }
     const isLNURLInput = isLNURL(text)
     setIsLNURLMode(isLNURLInput)
     setDecodedInvoice(null)
@@ -300,6 +319,7 @@ export default function PayPage() {
 
   const handleContentScanned = (content: DetectedContent) => {
     setCameraModalVisible(false)
+    const raw = content.raw.trim() || content.cleaned.trim()
     if (activeTab === 'onchain') {
       const address = parseBitcoinUriAddress(content.cleaned)
       if (!address) {
@@ -307,12 +327,13 @@ export default function PayPage() {
         return
       }
       setOnchainAddress(address)
+      void lookupBrantaDestination(raw, 'qr')
       return
     }
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
     if (isLightningPaymentInput(cleanText)) {
-      handlePaymentRequestChange(cleanText)
+      void handlePaymentRequestChange(cleanText, 'qr')
     } else {
       toast.error(t('lightning.pay.invalidQr'))
     }
@@ -335,11 +356,12 @@ export default function PayPage() {
           return
         }
         setOnchainAddress(address)
+        void lookupBrantaDestination(cleanText, 'paste')
         return
       }
 
       if (isLightningPaymentInput(cleanText)) {
-        await handlePaymentRequestChange(cleanText)
+        await handlePaymentRequestChange(cleanText, 'paste')
       } else {
         toast.error(t('lightning.pay.invalidClipboard'))
       }
@@ -358,6 +380,12 @@ export default function PayPage() {
 
   function handleOnchainAddressChange(text: string) {
     setOnchainAddress(text)
+    adoptBrantaPayee(null)
+  }
+
+  function handleTabChange(tab: PayTab) {
+    adoptBrantaPayee(null)
+    setActiveTab(tab)
   }
 
   function handleOnchainAmountChange(value: number) {
@@ -446,7 +474,7 @@ export default function PayPage() {
           <SSVStack gap="md">
             <SSPairedTabs<PayTab>
               activeTab={activeTab}
-              onChange={setActiveTab}
+              onChange={handleTabChange}
               primary={{
                 key: 'lightning',
                 label: t('lightning.pay.lightningTab')
@@ -456,6 +484,19 @@ export default function PayPage() {
                 label: t('lightning.pay.onchainTab')
               }}
             />
+            <SSBrantaLookupModal />
+            {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+            {brantaLookupMode === 'manual' ? (
+              <SSButton
+                label={t('settings.branta.verify')}
+                variant="outline"
+                onPress={() => {
+                  const destination =
+                    activeTab === 'onchain' ? onchainAddress : paymentRequest
+                  void verifyBrantaDestination(destination)
+                }}
+              />
+            ) : null}
             {activeTab === 'lightning' ? (
               <View>
                 <SSVStack>

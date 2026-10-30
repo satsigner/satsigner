@@ -117,6 +117,9 @@ importers:
       '@bitcoinerlab/secp256k1':
         specifier: ^1.2.0
         version: 1.2.0
+      '@branta-ops/branta':
+        specifier: ^3.2.2
+        version: 3.2.5
       '@cashu/cashu-ts':
         specifier: ^3.0.0
         version: 3.6.2
@@ -132,6 +135,9 @@ importers:
       '@ngraveio/bc-ur':
         specifier: ^1.1.13
         version: 1.1.13
+      '@noble/ciphers':
+        specifier: ^2.4.0
+        version: 2.4.0
       '@noble/hashes':
         specifier: 1.8.0
         version: 1.8.0
@@ -971,6 +977,9 @@ packages:
 
   '@bitcoinerlab/secp256k1@1.2.0':
     resolution: {integrity: sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q==}
+
+  '@branta-ops/branta@3.2.5':
+    resolution: {integrity: sha512-uj7xVZyzLrqdRssaEzxBP+ZIm5Jcl/0e9r4StVk5seuNeIgy1Ly8awfPKL+czpK5fcYFWvgaCO67Ae2f15vn+w==}
 
   '@cashu/cashu-ts@3.6.2':
     resolution: {integrity: sha512-wdlX1rIFC+cdr+qVnVl2ko6ShKeNSJCGnQFQ1NyeS+EwZ8e0t6BQXF5uLgGnA8DB44RkfCgiH2Iw5RHTDkb6YQ==}
@@ -2006,6 +2015,10 @@ packages:
 
   '@noble/ciphers@2.1.1':
     resolution: {integrity: sha512-bysYuiVfhxNJuldNXlFEitTVdNnYUc+XNJZd7Qm2a5j1vZHgY+fazadNFWFaMK/2vye0JVlxV3gHmC0WDfAOQw==}
+    engines: {node: '>= 20.19.0'}
+
+  '@noble/ciphers@2.4.0':
+    resolution: {integrity: sha512-AnjFn0Jv92laAkvMrghlFZq4qQCIN/4DxFV/eooqtC2YTjB7kBeLMS2T9KJX4Dn+ZVXLOwK0lSgqDtx9gvxtiw==}
     engines: {node: '>= 20.19.0'}
 
   '@noble/curves@1.9.7':
@@ -9970,6 +9983,8 @@ snapshots:
     dependencies:
       '@noble/curves': 1.9.7
 
+  '@branta-ops/branta@3.2.5': {}
+
   '@cashu/cashu-ts@3.6.2':
     dependencies:
       '@noble/curves': 2.0.1
@@ -11179,6 +11194,8 @@ snapshots:
 
   '@noble/ciphers@2.1.1': {}
 
+  '@noble/ciphers@2.4.0': {}
+
   '@noble/curves@1.9.7':
     dependencies:
       '@noble/hashes': 1.8.0
@@ -12325,9 +12342,7 @@ snapshots:
       metro-runtime: 0.87.1
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.88.0': {}
 
