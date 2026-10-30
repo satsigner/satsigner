@@ -11,11 +11,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
     <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
-    <link rel="stylesheet" href="/pages.css?v=10">
+    <link rel="stylesheet" href="/pages.css?v=17">
   </head>
   <body>
     <nav class="page-nav">
-      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt="">SATSIGNER</a>
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER</span></a>
       <div class="page-nav-links">
         <a href="/privacy-policy/">Privacy</a>
         <a href="/terms/">Terms</a>
@@ -101,10 +101,54 @@
             var data = JSON.parse(profile.content)
             var picture = data.picture || ''
             if (!/^https?:\/\//i.test(picture)) picture = ''
-            return { name: data.display_name || data.name || '', picture: picture }
+            return { name: data.display_name || data.name || '', picture: picture, nip05: data.nip05 || '' }
           } catch (e) {
-            return { name: '', picture: '' }
+            return { name: '', picture: '', nip05: '' }
           }
+        }
+
+        function nip05Address(value) {
+          if (typeof value !== 'string') return null
+          var trimmed = value.trim()
+          var at = trimmed.lastIndexOf('@')
+          if (at < 1 || at === trimmed.length - 1) return null
+          var name = trimmed.slice(0, at).toLowerCase()
+          var domain = trimmed.slice(at + 1).toLowerCase()
+          if (!/^[a-z0-9._-]+$/.test(name)) return null
+          if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(domain)) return null
+          return { name: name, domain: domain, text: name === '_' ? domain : name + '@' + domain }
+        }
+
+        var nip05Checks = {}
+
+        function verifyNip05() {
+          var nodes = list.querySelectorAll('[data-nip05]')
+          nodes.forEach(function (node) {
+            var address = nip05Address(node.getAttribute('data-nip05'))
+            var pubkey = (node.getAttribute('data-pubkey') || '').toLowerCase()
+            if (!address || !/^[0-9a-f]{64}$/.test(pubkey)) {
+              node.classList.add('is-invalid')
+              node.textContent = node.getAttribute('data-nip05') || ''
+              return
+            }
+            node.textContent = address.text
+            var key = address.text + ' ' + pubkey
+            if (!nip05Checks[key]) {
+              var url = 'https://' + address.domain + '/.well-known/nostr.json?name=' + encodeURIComponent(address.name)
+              nip05Checks[key] = fetch(url).then(function (response) {
+                if (!response.ok) return false
+                return response.json()
+              }).then(function (body) {
+                var names = body && body.names
+                if (!names) return false
+                var match = Object.keys(names).find(function (item) { return item.toLowerCase() === address.name })
+                return !!(match && String(names[match]).toLowerCase() === pubkey)
+              }).catch(function () { return false })
+            }
+            nip05Checks[key].then(function (ok) {
+              node.classList.add(ok ? 'is-valid' : 'is-invalid')
+            })
+          })
         }
 
         function when(seconds) {
@@ -162,7 +206,9 @@
           }).catch(function () { return null })
         }
 
-        function markSig(slot, result) {
+        function markSig(id, slot, result) {
+          var button = list.querySelector('[data-sig="' + CSS.escape(id) + '"]')
+          if (button) button.hidden = result !== null
           slot.hidden = false
           slot.className = 'review-sig' + (result === true ? ' is-valid' : result === false ? ' is-invalid' : '')
           slot.textContent = result === true ? 'Valid' : result === false ? 'Invalid' : 'Could not check'
@@ -171,10 +217,12 @@
         function checkNote(id, slot) {
           var note = notes[id]
           if (!note || !slot) return
+          var button = list.querySelector('[data-sig="' + CSS.escape(id) + '"]')
+          if (button) button.hidden = true
           slot.hidden = false
           slot.className = 'review-sig'
           slot.textContent = 'Checking…'
-          signatureOk(note).then(function (result) { markSig(slot, result) })
+          signatureOk(note).then(function (result) { markSig(id, slot, result) })
         }
 
         list.addEventListener('click', function (event) {
@@ -236,12 +284,13 @@
             var avatar = info.picture
               ? '<img class="review-avatar" src="' + esc(info.picture) + '" alt="" data-initial="' + esc(initial) + '" onerror="this.outerHTML=\'<span class=&quot;review-avatar is-fallback&quot;>\'+this.dataset.initial+\'</span>\'">'
               : '<span class="review-avatar is-fallback">' + esc(initial) + '</span>'
+            var nip = info.nip05 ? '<span class="review-nip05" data-nip05="' + esc(info.nip05) + '" data-pubkey="' + esc(event.pubkey) + '"></span>' : ''
             notes[event.id] = event
-            var html = '<article class="review">' +
-              '<header class="review-meta"><span class="review-who">' + avatar + '<span class="review-author">' + esc(author) + '</span></span>' +
+            var html = '<article class="review' + (nested ? ' is-reply' : '') + '">' +
+              '<header class="review-meta"><span class="review-who">' + avatar + '<span class="review-id"><span class="review-author">' + esc(author) + '</span>' + nip + '</span></span>' +
               '<span class="review-aside"><span class="review-actions">' +
-              '<button type="button" class="review-raw" data-sig="' + esc(event.id) + '">Check signature</button>' +
-              '<button type="button" class="review-raw" data-note="' + esc(event.id) + '">Raw note</button></span>' +
+              '<button type="button" class="review-raw" data-note="' + esc(event.id) + '">Raw note</button>' +
+              '<button type="button" class="review-raw" data-sig="' + esc(event.id) + '">Check signature</button></span>' +
               '<span class="review-sig" data-sig-for="' + esc(event.id) + '" hidden></span>' +
               '<time datetime="' + esc(new Date(event.created_at * 1000).toISOString()) + '">' + esc(when(event.created_at)) + '</time></span></header>' +
               '<p class="review-body">' + esc(event.content || '') + '</p>'
@@ -251,6 +300,7 @@
             return html + '</article>'
           }
           list.innerHTML = roots.map(function (event) { return block(event, false) }).join('')
+          verifyNip05()
         }
 
         var socket
