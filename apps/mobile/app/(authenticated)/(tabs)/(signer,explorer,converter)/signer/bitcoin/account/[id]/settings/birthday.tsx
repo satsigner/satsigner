@@ -8,6 +8,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useApplyAccountBirthday } from '@/hooks/useApplyAccountBirthday'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -17,6 +18,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { isToday } from '@/utils/date'
 import { formatDate } from '@/utils/format'
 import {
   estimateBirthHeight,
@@ -36,6 +38,7 @@ export default function AccountBirthdayPage() {
     state.accounts.find((a) => a.id === id)
   )
   const tip = useBlockchainStore((state) => state.lastKnownBlockHeight)
+  const nowMs = useNow()
 
   const [mode, setMode] = useState<BirthdayMode>('date')
   const [date, setDate] = useState<Date>(
@@ -166,7 +169,7 @@ export default function AccountBirthdayPage() {
                 label={t('date.today')}
                 variant="outline"
                 onPress={handleToday}
-                disabled={date.toDateString() === new Date().toDateString()}
+                disabled={isToday(date, nowMs)}
               />
               <SSButton
                 label={t('common.save')}

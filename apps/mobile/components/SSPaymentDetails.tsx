@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -106,7 +107,7 @@ function SSPaymentDetails({
   showPaymentHash = true
 }: SSPaymentDetailsProps) {
   const amountSats = bolt11AmountSats(decodedInvoice)
-  const nowMs = Date.now()
+  const nowMs = useNow()
   const createdAt = new Date(Number(decodedInvoice.timestamp) * MS_PER_SECOND)
   const expiresAt = new Date(
     Number(decodedInvoice.timestamp) * MS_PER_SECOND +

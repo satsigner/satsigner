@@ -14,6 +14,7 @@ import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -73,6 +74,7 @@ export default function Converter() {
 
   const [date, setDate] = useState(new Date())
   const dateRef = useRef(date)
+  const nowMs = useNow()
   const [pickerKey, setPickerKey] = useState(0)
   const [lastChangeKey, setLastChangedKey] = useState<CurrencyKey>('bitcoin')
   const [showWrittenNumbers, setShowWrittenNumbers] = useState(false)
@@ -616,7 +618,7 @@ export default function Converter() {
                   label={t('date.today')}
                   variant="outline"
                   onPress={handleTodayPress}
-                  disabled={isToday(date)}
+                  disabled={isToday(date, nowMs)}
                 />
                 <SSHStack gap="sm">
                   <SSButton

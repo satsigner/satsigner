@@ -47,6 +47,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useLND } from '@/hooks/useLND'
 import { useLndNodeDashboard } from '@/hooks/useLndNodeDashboard'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -169,6 +170,7 @@ export default function NodeDetailPage() {
   const params = useLocalSearchParams<{ alias: string; pubkey: string }>()
   const { channels, isConnecting, isConnected } = useLND()
   const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const nowMs = useNow()
 
   const contentHandler = useContentHandler({
     context: 'lightning',
@@ -519,7 +521,6 @@ export default function NodeDetailPage() {
   }
 
   function renderTxRow(tx: LNDCombinedTransaction) {
-    const nowMs = Date.now()
     const timestamp = new Date(tx.timestamp * MS_PER_SECOND)
     const fiatAmount = satsToFiat(Math.abs(tx.amount), btcPrice)
     const isReceive = tx.amount > 0

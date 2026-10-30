@@ -689,6 +689,7 @@ function TotalTransactions({
   const display = useDisplayPreferences()
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
+  const nowMs = useNow()
   const [sortField, setSortField] = useState<TransactionSortField>('date')
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
 
@@ -699,18 +700,19 @@ function TotalTransactions({
   const hasDraft =
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
-  const activePayjoinSessions = useMemo(() => {
-    const now = Date.now()
-    return payjoinSessions.filter(
-      (session) =>
-        session.accountId === account.id &&
-        session.expiresAt > now &&
-        ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
-        // Sender completed strips nativeState — hide those. Receiver completed
-        // stays visible until mempool sync or discard.
-        (session.role === 'receiver' || !!session.nativeState)
-    )
-  }, [account.id, payjoinSessions])
+  const activePayjoinSessions = useMemo(
+    () =>
+      payjoinSessions.filter(
+        (session) =>
+          session.accountId === account.id &&
+          session.expiresAt > nowMs &&
+          ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
+          // Sender completed strips nativeState — hide those. Receiver completed
+          // stays visible until mempool sync or discard.
+          (session.role === 'receiver' || !!session.nativeState)
+      ),
+    [account.id, nowMs, payjoinSessions]
+  )
 
   // Drop completed receive cards once the payjoin tx shows up in the wallet
   // (typically after the sender broadcasts and we sync / see mempool).
@@ -778,7 +780,6 @@ function TotalTransactions({
   }, [balanceByTxId])
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
-  const nowMs = useNow()
   const isSyncing = syncStatus === 'syncing'
   const activityTitle = isSyncing
     ? syncProgressLabel(tasksDone, totalTasks)

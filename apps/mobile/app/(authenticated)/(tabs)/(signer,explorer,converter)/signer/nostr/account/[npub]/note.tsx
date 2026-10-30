@@ -46,7 +46,9 @@ import {
   NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
   NOSTR_ZAP_DEFAULT_PRESETS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -130,6 +132,7 @@ export default function NostrNotePage() {
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = identity?.relays ?? globalRelays
+  const nowMs = useNow()
 
   const [fetched, setFetched] = useState<NostrFetchedNoteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -632,7 +635,9 @@ export default function NostrNotePage() {
 
   const pollInfo =
     fetched?.kind === nostrKinds.Poll ? extractPollInfo(fetched.tags) : null
-  const pollExpired = pollInfo ? isPollExpired(pollInfo.endsAt) : false
+  const pollExpired = pollInfo
+    ? isPollExpired(pollInfo.endsAt, Math.floor(nowMs / MS_PER_SECOND))
+    : false
   const {
     handlePollOptionPress,
     handlePollSubmitMultiple,
