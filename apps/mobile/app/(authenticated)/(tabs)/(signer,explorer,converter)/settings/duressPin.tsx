@@ -59,6 +59,20 @@ function SetDuressPinForm({ pinLength }: { pinLength: number }) {
   const confirmationPinFilled = !confirmationPinArray.includes('')
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
+  function clearPin() {
+    setPinArray(emptyPin(pinLength))
+  }
+
+  function clearConfirmationPin() {
+    setConfirmationPinArray(emptyPin(pinLength))
+  }
+
+  function handleGoBack() {
+    clearPin()
+    clearConfirmationPin()
+    setStage('set')
+  }
+
   async function persistDuressPin(pin: string) {
     const salt = await getItem(SALT_KEY)
     const encryptedPin = await getPin()
@@ -87,14 +101,6 @@ function SetDuressPinForm({ pinLength }: { pinLength: number }) {
     setStage('re-enter')
   }
 
-  function clearPin() {
-    setPinArray(emptyPin(pinLength))
-  }
-
-  function clearConfirmationPin() {
-    setConfirmationPinArray(emptyPin(pinLength))
-  }
-
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) {
       return
@@ -112,12 +118,6 @@ function SetDuressPinForm({ pinLength }: { pinLength: number }) {
 
     setFirstTime(false)
     setRequiresAuth(true)
-  }
-
-  function handleGoBack() {
-    clearPin()
-    clearConfirmationPin()
-    setStage('set')
   }
 
   function getTitle() {

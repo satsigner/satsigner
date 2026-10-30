@@ -22,6 +22,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import {
   appNetworkToBdkNetwork,
   getDerivationPathFromScriptVersion
@@ -156,6 +157,33 @@ export default function UnifiedImport() {
     }
   }
 
+  function updateDescriptorValidationState(overrides?: {
+    externalDescriptor?: string
+    internalDescriptor?: string
+    validExternalDescriptor?: boolean
+    validInternalDescriptor?: boolean
+  }) {
+    // Allow import if either external or internal descriptor is valid.
+    // Prefer overrides so callers (e.g. QR scan) are not blocked by stale state.
+    const nextExternalDescriptor =
+      overrides?.externalDescriptor ?? externalDescriptor
+    const nextInternalDescriptor =
+      overrides?.internalDescriptor ?? internalDescriptor
+    const nextValidExternalDescriptor =
+      overrides?.validExternalDescriptor ?? validExternalDescriptor
+    const nextValidInternalDescriptor =
+      overrides?.validInternalDescriptor ?? validInternalDescriptor
+    const hasValidExternal =
+      nextExternalDescriptor && nextValidExternalDescriptor
+    const hasValidInternal =
+      nextInternalDescriptor && nextValidInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
+
+    if (importType === 'descriptor') {
+      setDisabled(!hasAnyValidDescriptor)
+    }
+  }
+
   function updateExternalDescriptor(
     descriptor: string,
     skipChecksumValidation = false
@@ -267,33 +295,6 @@ export default function UnifiedImport() {
     }
   }
 
-  function updateDescriptorValidationState(overrides?: {
-    externalDescriptor?: string
-    internalDescriptor?: string
-    validExternalDescriptor?: boolean
-    validInternalDescriptor?: boolean
-  }) {
-    // Allow import if either external or internal descriptor is valid.
-    // Prefer overrides so callers (e.g. QR scan) are not blocked by stale state.
-    const nextExternalDescriptor =
-      overrides?.externalDescriptor ?? externalDescriptor
-    const nextInternalDescriptor =
-      overrides?.internalDescriptor ?? internalDescriptor
-    const nextValidExternalDescriptor =
-      overrides?.validExternalDescriptor ?? validExternalDescriptor
-    const nextValidInternalDescriptor =
-      overrides?.validInternalDescriptor ?? validInternalDescriptor
-    const hasValidExternal =
-      nextExternalDescriptor && nextValidExternalDescriptor
-    const hasValidInternal =
-      nextInternalDescriptor && nextValidInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-
-    if (importType === 'descriptor') {
-      setDisabled(!hasAnyValidDescriptor)
-    }
-  }
-
   function confirmKeyImport() {
     if (disabled) {
       return
@@ -301,14 +302,15 @@ export default function UnifiedImport() {
 
     setLoadingWallet(true)
 
-    try {
-      const creationType: CreationType =
-        importType === 'descriptor' ? 'importDescriptor' : 'importExtendedPub'
+    const creationType: CreationType =
+      importType === 'descriptor' ? 'importDescriptor' : 'importExtendedPub'
+    const importedFingerprint = localFingerprint || UNKNOWN_MASTER_FINGERPRINT
 
+    try {
       setCreationType(creationType)
       setNetwork(network)
       if (importType === 'extendedPub') {
-        setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
+        setFingerprint(importedFingerprint)
       }
 
       const keyIndex = Number.parseInt(index, 10)
@@ -323,9 +325,8 @@ export default function UnifiedImport() {
       } else {
         toast.error(t('account.import.error.generic'))
       }
-    } finally {
-      setLoadingWallet(false)
     }
+    setLoadingWallet(false)
   }
 
   function handleCombinedDescriptorImport(combinedDescriptor: string) {
@@ -438,6 +439,34 @@ export default function UnifiedImport() {
     }
   }
 
+  function importNFCData(nfcData: NFCReadResult | null) {
+    if (!nfcData?.text) {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
+      return
+    }
+
+    const text = sanitizeScannedText(nfcData.text)
+
+    if (importType === 'descriptor') {
+      const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
+
+      if (isCombinedDescriptor(text)) {
+        handleCombinedDescriptorImport(text)
+      } else {
+        if (externalDescriptor) {
+          updateExternalDescriptor(externalDescriptor)
+        }
+        if (internalDescriptor) {
+          updateInternalDescriptor(internalDescriptor)
+        }
+      }
+    }
+
+    if (importType === 'extendedPub') {
+      updateXpub(text)
+    }
+  }
+
   async function handleNFCRead() {
     if (!isHardwareSupported) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
@@ -451,32 +480,7 @@ export default function UnifiedImport() {
 
     try {
       const nfcData = await readNFCTag()
-
-      if (!nfcData?.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = sanitizeScannedText(nfcData.text)
-
-      if (importType === 'descriptor') {
-        const [externalDescriptor, internalDescriptor = ''] = text.split('\n')
-
-        if (isCombinedDescriptor(text)) {
-          handleCombinedDescriptorImport(text)
-        } else {
-          if (externalDescriptor) {
-            updateExternalDescriptor(externalDescriptor)
-          }
-          if (internalDescriptor) {
-            updateInternalDescriptor(internalDescriptor)
-          }
-        }
-      }
-
-      if (importType === 'extendedPub') {
-        updateXpub(text)
-      }
+      importNFCData(nfcData)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : ''
       if (errorMessage) {

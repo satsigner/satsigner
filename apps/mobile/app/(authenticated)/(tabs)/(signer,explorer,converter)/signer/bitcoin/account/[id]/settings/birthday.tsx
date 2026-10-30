@@ -8,6 +8,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useApplyAccountBirthday } from '@/hooks/useApplyAccountBirthday'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -17,6 +18,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { isToday } from '@/utils/date'
 import { formatDate } from '@/utils/format'
 import {
   estimateBirthHeight,
@@ -36,6 +38,7 @@ export default function AccountBirthdayPage() {
     state.accounts.find((a) => a.id === id)
   )
   const tip = useBlockchainStore((state) => state.lastKnownBlockHeight)
+  const nowMs = useNow()
 
   const [mode, setMode] = useState<BirthdayMode>('date')
   const [date, setDate] = useState<Date>(
@@ -63,14 +66,14 @@ export default function AccountBirthdayPage() {
     return <Redirect href="/" />
   }
 
+  async function saveBirthdayAndGoBack(birthday: Date | undefined) {
+    await applyBirthday(id, birthday)
+    router.back()
+  }
+
   async function handleSaveDate() {
     setSaving(true)
-    try {
-      await applyBirthday(id, date)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    await saveBirthdayAndGoBack(date).finally(() => setSaving(false))
   }
 
   async function handleSaveBlock() {
@@ -81,23 +84,13 @@ export default function AccountBirthdayPage() {
     }
     setBlockError(false)
     setSaving(true)
-    try {
-      const approxDate = estimateDateFromHeight(height, tip || height)
-      await applyBirthday(id, approxDate)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    const approxDate = estimateDateFromHeight(height, tip || height)
+    await saveBirthdayAndGoBack(approxDate).finally(() => setSaving(false))
   }
 
   async function handleClear() {
     setSaving(true)
-    try {
-      await applyBirthday(id, undefined)
-      router.back()
-    } finally {
-      setSaving(false)
-    }
+    await saveBirthdayAndGoBack(undefined).finally(() => setSaving(false))
   }
 
   function handleSelectDateMode() {
@@ -176,7 +169,7 @@ export default function AccountBirthdayPage() {
                 label={t('date.today')}
                 variant="outline"
                 onPress={handleToday}
-                disabled={date.toDateString() === new Date().toDateString()}
+                disabled={isToday(date, nowMs)}
               />
               <SSButton
                 label={t('common.save')}

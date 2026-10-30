@@ -72,18 +72,23 @@ export default function ConfirmScreen() {
   const [status, setStatus] = useState<CreationStatus>('creating')
   const [accountId, setAccountId] = useState<string>()
 
+  function failCreation() {
+    toast.error(t('multisig.createError'))
+    setStatus('failed')
+  }
+
   async function createMultisigWallet() {
     setStatus('creating')
     try {
       const data = await accountBuilderFinish(account)
       if (!data) {
-        throw new Error('Multisig wallet was not created')
+        failCreation()
+        return
       }
       setAccountId(data.accountWithEncryptedSecret.id)
       setStatus('created')
     } catch {
-      toast.error(t('multisig.createError'))
-      setStatus('failed')
+      failCreation()
     }
   }
 

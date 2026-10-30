@@ -10,7 +10,7 @@ import {
 import { useEffect, useMemo } from 'react'
 import { useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 
 type SSBubbleGroupProps = {
   title: string
@@ -50,7 +50,7 @@ function SSBubbleGroup({
     )
       .pushStyle({
         color: Skia.Color(Colors.gray[200]),
-        fontFamilies: ['SF Pro Text'],
+        fontFamilies: [Typography.geistSkiaFamily],
         fontSize,
         fontStyle: { weight: 500 }
       })

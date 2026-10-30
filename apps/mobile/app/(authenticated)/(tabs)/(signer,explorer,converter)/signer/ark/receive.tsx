@@ -28,7 +28,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { formatNumber, formatTxId } from '@/utils/format'
 
 type ReceiveTab = 'ark' | 'lightning' | 'onchain'
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     paddingTop: 20
   },
   monospace: {
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   pendingRow: {
     borderBottomColor: Colors.gray[800],

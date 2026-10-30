@@ -20,6 +20,7 @@ import {
   useAccountBuilderStore
 } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -28,6 +29,80 @@ import {
   validateDescriptor,
   validateDescriptorScriptVersion
 } from '@/utils/validation'
+
+function parseMultisigDescriptor(descriptorText: string) {
+  try {
+    const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
+
+    let innerDescriptor = cleanDescriptor
+    if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
+      innerDescriptor = cleanDescriptor.slice(4, -1)
+    } else if (
+      cleanDescriptor.startsWith('sh(') &&
+      cleanDescriptor.endsWith(')')
+    ) {
+      innerDescriptor = cleanDescriptor.slice(3, -1)
+    }
+
+    // Parse multisig parameters: sortedmulti(2,key1,key2,key3)
+    const multiMatch = innerDescriptor.match(
+      /^(multi|sortedmulti)\((\d+),(.+)\)$/
+    )
+    if (!multiMatch) {
+      throw new Error('Invalid multisig descriptor format')
+    }
+
+    const [requiredStr, keysStr] = multiMatch.slice(2)
+    const keysRequired = Number.parseInt(requiredStr, 10)
+    const keys = keysStr.split(',').map((key) => key.trim())
+
+    const keyData = keys.map((key, index) => {
+      // Key shape: [7af70d19/48h/1h/0h/2h]tpub.../<0;1>/*
+      const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/)
+      if (!bracketMatch) {
+        throw new Error(`Invalid key format at index ${index}`)
+      }
+
+      const [, bracketContent, afterBracket] = bracketMatch
+      const [, ...restParts] = bracketContent.split('/')
+      const derivationPath = restParts.join('/')
+
+      const fingerprint = getXpubFingerprint(key)
+      if (!fingerprint) {
+        throw new Error(`Invalid key format at index ${index}`)
+      }
+
+      const extendedPublicKey = getExtendedKeyFromDescriptor(afterBracket)
+      if (!extendedPublicKey) {
+        throw new Error(`Invalid extended public key format at index ${index}`)
+      }
+
+      const addressPath = afterBracket.slice(extendedPublicKey.length)
+      return {
+        addressPath: addressPath || '/<0;1>/*',
+        derivationPath,
+        extendedPublicKey,
+        fingerprint
+      }
+    })
+
+    const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith('sh(')
+      ? 'P2SH'
+      : 'P2WSH'
+
+    return {
+      keyCount: keys.length,
+      keyData,
+      keysRequired,
+      scriptVersion
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(`Failed to parse multisig descriptor: ${reason}`, {
+      cause: error
+    })
+  }
+}
 
 export default function ImportDescriptor() {
   const router = useRouter()
@@ -77,13 +152,12 @@ export default function ImportDescriptor() {
 
     setIsValidating(true)
     setDescriptorError('')
-    try {
-      const error = await getDescriptorInputError(descriptorText)
-      setIsValidDescriptor(!error)
-      setDescriptorError(error)
-    } finally {
-      setIsValidating(false)
-    }
+    await getDescriptorInputError(descriptorText)
+      .then((error) => {
+        setIsValidDescriptor(!error)
+        setDescriptorError(error)
+      })
+      .finally(() => setIsValidating(false))
   }
 
   async function getDescriptorInputError(descriptorText: string) {
@@ -140,6 +214,15 @@ export default function ImportDescriptor() {
     setCameraModalVisible(false)
   }
 
+  function importNFCData(data: NFCReadResult | null) {
+    if (data && typeof data === 'string') {
+      handleDescriptorChange(data)
+      toast.success(t('watchonly.success.nfcRead'))
+    } else {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
+    }
+  }
+
   async function handleScanNFC() {
     if (!isHardwareSupported) {
       toast.error(t('watchonly.read.nfcNotAvailable'))
@@ -147,91 +230,37 @@ export default function ImportDescriptor() {
     }
     try {
       const data = await readNFCTag()
-      if (data && typeof data === 'string') {
-        handleDescriptorChange(data)
-        toast.success(t('watchonly.success.nfcRead'))
-      } else {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-      }
+      importNFCData(data)
     } catch {
       toast.error(t('watchonly.read.nfcErrorNoData'))
     }
   }
 
-  function parseMultisigDescriptor(descriptorText: string) {
-    try {
-      const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
+  function importMultisigDescriptor() {
+    const parsedData = parseMultisigDescriptor(descriptor)
 
-      let innerDescriptor = cleanDescriptor
-      if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
-        innerDescriptor = cleanDescriptor.slice(4, -1)
-      } else if (
-        cleanDescriptor.startsWith('sh(') &&
-        cleanDescriptor.endsWith(')')
-      ) {
-        innerDescriptor = cleanDescriptor.slice(3, -1)
-      }
+    setScriptVersion(parsedData.scriptVersion)
+    setKeyCount(parsedData.keyCount)
+    setKeysRequired(parsedData.keysRequired)
 
-      // Parse multisig parameters: sortedmulti(2,key1,key2,key3)
-      const multiMatch = innerDescriptor.match(
-        /^(multi|sortedmulti)\((\d+),(.+)\)$/
-      )
-      if (!multiMatch) {
-        throw new Error('Invalid multisig descriptor format')
-      }
+    setExternalDescriptor(descriptor)
 
-      const [requiredStr, keysStr] = multiMatch.slice(2)
-      const keysRequired = Number.parseInt(requiredStr, 10)
-      const keys = keysStr.split(',').map((key) => key.trim())
+    const internalDescriptor = descriptor.replaceAll('/0/*', '/1/*')
+    setInternalDescriptor(internalDescriptor)
 
-      const keyData = keys.map((key, index) => {
-        // Key shape: [7af70d19/48h/1h/0h/2h]tpub.../<0;1>/*
-        const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/)
-        if (!bracketMatch) {
-          throw new Error(`Invalid key format at index ${index}`)
-        }
+    for (let i = 0; i < parsedData.keyData.length; i += 1) {
+      const keyData = parsedData.keyData[i]
 
-        const [, bracketContent, afterBracket] = bracketMatch
-        const [, ...restParts] = bracketContent.split('/')
-        const derivationPath = restParts.join('/')
+      setKeyName(`Key ${i + 1}`)
+      setCreationType('importDescriptor')
+      setFingerprint(keyData.fingerprint)
+      setExtendedPublicKey(keyData.extendedPublicKey)
 
-        const fingerprint = getXpubFingerprint(key)
-        if (!fingerprint) {
-          throw new Error(`Invalid key format at index ${index}`)
-        }
-
-        const extendedPublicKey = getExtendedKeyFromDescriptor(afterBracket)
-        if (!extendedPublicKey) {
-          throw new Error(
-            `Invalid extended public key format at index ${index}`
-          )
-        }
-
-        const addressPath = afterBracket.slice(extendedPublicKey.length)
-        return {
-          addressPath: addressPath || '/<0;1>/*',
-          derivationPath,
-          extendedPublicKey,
-          fingerprint
-        }
-      })
-
-      const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith('sh(')
-        ? 'P2SH'
-        : 'P2WSH'
-
-      return {
-        keyCount: keys.length,
-        keyData,
-        keysRequired,
-        scriptVersion
-      }
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      throw new Error(`Failed to parse multisig descriptor: ${reason}`, {
-        cause: error
-      })
+      setKey(i)
     }
+
+    toast.success(t('account.import.success'))
+    router.navigate('/signer/bitcoin/account/add/multiSig/finish')
   }
 
   function handleImport() {
@@ -245,30 +274,7 @@ export default function ImportDescriptor() {
     }
 
     try {
-      const parsedData = parseMultisigDescriptor(descriptor)
-
-      setScriptVersion(parsedData.scriptVersion)
-      setKeyCount(parsedData.keyCount)
-      setKeysRequired(parsedData.keysRequired)
-
-      setExternalDescriptor(descriptor)
-
-      const internalDescriptor = descriptor.replaceAll('/0/*', '/1/*')
-      setInternalDescriptor(internalDescriptor)
-
-      for (let i = 0; i < parsedData.keyData.length; i += 1) {
-        const keyData = parsedData.keyData[i]
-
-        setKeyName(`Key ${i + 1}`)
-        setCreationType('importDescriptor')
-        setFingerprint(keyData.fingerprint)
-        setExtendedPublicKey(keyData.extendedPublicKey)
-
-        setKey(i)
-      }
-
-      toast.success(t('account.import.success'))
-      router.navigate('/signer/bitcoin/account/add/multiSig/finish')
+      importMultisigDescriptor()
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
       toast.error(`Import failed: ${reason}`)

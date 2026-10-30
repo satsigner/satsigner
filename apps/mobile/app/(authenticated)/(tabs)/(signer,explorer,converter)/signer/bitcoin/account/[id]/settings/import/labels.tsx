@@ -49,6 +49,14 @@ export default function ImportLabels() {
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
 
+  function importLabels(labels: Label[]) {
+    const importCount = importLabelsToAccount(accountId, labels)
+    setImportCount(importCount)
+    setImportCountTotal(labels.length)
+    setSuccessMsgVisible(true)
+    sendLabelsToNostr(account)
+  }
+
   function tryImportLabels(content: string) {
     const labels = bip329parser[importType](content)
     const currentLabels = Object.values(account?.labels || [])
@@ -60,14 +68,6 @@ export default function ImportLabels() {
     } else {
       importLabels(labels)
     }
-  }
-
-  function importLabels(labels: Label[]) {
-    const importCount = importLabelsToAccount(accountId, labels)
-    setImportCount(importCount)
-    setImportCountTotal(labels.length)
-    setSuccessMsgVisible(true)
-    sendLabelsToNostr(account)
   }
 
   function importLabelsWithConflicts(resolvedLabels: Label[]) {

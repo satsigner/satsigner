@@ -127,6 +127,34 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     }
   }
 
+  async function verifyCurrentPin() {
+    const isValid = await validatePin(currentPinArray.join(''))
+    if (isValid) {
+      resetPinTries()
+      setStage('set')
+      setCurrentPinWrong(false)
+      return
+    }
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+    setCurrentPinWrong(true)
+    // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+    const remainingTries = incrementPinTries()
+    if (remainingTries > 0) {
+      return
+    }
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
+  }
+
+  function finishPinVerification() {
+    verifyingPin.current = false
+    setVerifyPending(false)
+  }
+
   async function handleVerifyPin() {
     if (verifyingPin.current) {
       return
@@ -134,30 +162,12 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     verifyingPin.current = true
     setVerifyPending(true)
     try {
-      const isValid = await validatePin(currentPinArray.join(''))
-      if (isValid) {
-        resetPinTries()
-        setStage('set')
-        setCurrentPinWrong(false)
-        return
-      }
-      setCurrentPinArray(emptyPin(currentPinArray.length))
-      setCurrentPinWrong(true)
-      // Shares the persisted unlock tries, so the PIN cannot be guessed here.
-      const remainingTries = incrementPinTries()
-      if (remainingTries > 0) {
-        return
-      }
-      const wiped = await secureWipeAfterMaxPinTries()
-      if (!wiped) {
-        toast.error(t('auth.wipeFailed'))
-        return
-      }
-      router.replace('/')
-    } finally {
-      verifyingPin.current = false
-      setVerifyPending(false)
+      await verifyCurrentPin()
+    } catch (error) {
+      finishPinVerification()
+      throw error
     }
+    finishPinVerification()
   }
 
   async function handleSetPinLater() {
@@ -191,6 +201,24 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     setConfirmationPinArray(emptyPin(pinLength))
   }
 
+  function leaveAfterPinChange() {
+    if (fromSettings) {
+      router.back()
+      return
+    }
+    if (showWarning) {
+      router.replace('./warning')
+      return
+    }
+    router.replace('/')
+  }
+
+  function handleGoBack() {
+    clearPin()
+    clearConfirmationPin()
+    setStage('set')
+  }
+
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) {
       return
@@ -222,24 +250,6 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     }
 
     leaveAfterPinChange()
-  }
-
-  function leaveAfterPinChange() {
-    if (fromSettings) {
-      router.back()
-      return
-    }
-    if (showWarning) {
-      router.replace('./warning')
-      return
-    }
-    router.replace('/')
-  }
-
-  function handleGoBack() {
-    clearPin()
-    clearConfirmationPin()
-    setStage('set')
   }
 
   function getTitle() {

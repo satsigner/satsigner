@@ -8,12 +8,98 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { type Account } from '@/types/models/Account'
+import { type Currency } from '@/types/models/Blockchain'
+import { type Transaction } from '@/types/models/Transaction'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { applyAddressSnapshot } from '@/utils/addressSync'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
+
+// Convert timestamps to Date objects and collect unix timestamps
+// Skip transactions that already have a cached price — they are immutable
+function collectUnpricedTimestamps(
+  transactions: Transaction[],
+  fiatCurrency: Currency
+) {
+  const timestamps: number[] = []
+  for (const transaction of transactions) {
+    if (transaction.prices?.[fiatCurrency] !== undefined) {
+      continue
+    }
+    if (!transaction.timestamp) {
+      continue
+    }
+    let date: Date
+    if (typeof transaction.timestamp === 'string') {
+      date = new Date(transaction.timestamp)
+    } else if (transaction.timestamp instanceof Date) {
+      date = transaction.timestamp
+    } else {
+      continue
+    }
+
+    if (!Number.isNaN(date.getTime())) {
+      transaction.timestamp = date
+      timestamps.push(formatTimestamp(date))
+    } else {
+      transaction.timestamp = undefined
+    }
+  }
+  return timestamps
+}
+
+async function fetchHistoricalPrices(
+  fiatCurrency: Currency,
+  uniqueTimestamps: number[]
+) {
+  const emptyPrices: Record<number, number> = {}
+  if (uniqueTimestamps.length === 0) {
+    return emptyPrices
+  }
+  return await resolveHistoricalPrices(fiatCurrency, uniqueTimestamps).catch(
+    () => {
+      toast.error(t('account.sync.historicalPricesFailed'))
+      return emptyPrices
+    }
+  )
+}
+
+function applyHistoricalPrices(
+  updatedAccount: Account,
+  priceTimestamps: Record<number, number>,
+  fiatCurrency: Currency
+) {
+  for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
+    const transaction = updatedAccount.transactions[i]
+    if (!transaction.timestamp || !(transaction.timestamp instanceof Date)) {
+      continue
+    }
+
+    const unixTimestamp = formatTimestamp(transaction.timestamp)
+    const price = priceTimestamps[unixTimestamp]
+
+    if (price === undefined) {
+      continue
+    }
+
+    const newTransaction = {
+      ...updatedAccount.transactions[i],
+      prices: { ...transaction.prices, [fiatCurrency]: price }
+    }
+
+    const newTransactions = [...updatedAccount.transactions]
+    newTransactions[i] = newTransaction
+
+    const newAccount = {
+      ...updatedAccount,
+      transactions: newTransactions
+    }
+
+    Object.assign(updatedAccount, newAccount)
+  }
+}
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
@@ -77,77 +163,16 @@ function useSyncAccountWithAddress() {
 
       const { fiatCurrency } = usePriceStore.getState()
 
-      // Convert timestamps to Date objects and collect unix timestamps
-      // Skip transactions that already have a cached price — they are immutable
-      const timestamps: number[] = []
-      for (const transaction of updatedAccount.transactions) {
-        if (transaction.prices?.[fiatCurrency] !== undefined) {
-          continue
-        }
-        if (!transaction.timestamp) {
-          continue
-        }
-        let date: Date
-        if (typeof transaction.timestamp === 'string') {
-          date = new Date(transaction.timestamp)
-        } else if (transaction.timestamp instanceof Date) {
-          date = transaction.timestamp
-        } else {
-          continue
-        }
-
-        if (!Number.isNaN(date.getTime())) {
-          transaction.timestamp = date
-          timestamps.push(formatTimestamp(date))
-        } else {
-          transaction.timestamp = undefined
-        }
-      }
-
+      const timestamps = collectUnpricedTimestamps(
+        updatedAccount.transactions,
+        fiatCurrency
+      )
       const uniqueTimestamps = [...new Set(timestamps)]
-
-      const emptyPrices: Record<number, number> = {}
-      const priceTimestamps =
-        uniqueTimestamps.length > 0
-          ? await resolveHistoricalPrices(fiatCurrency, uniqueTimestamps).catch(
-              () => {
-                toast.error(t('account.sync.historicalPricesFailed'))
-                return emptyPrices
-              }
-            )
-          : emptyPrices
-
-      for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
-        const transaction = updatedAccount.transactions[i]
-        if (
-          !transaction.timestamp ||
-          !(transaction.timestamp instanceof Date)
-        ) {
-          continue
-        }
-
-        const unixTimestamp = formatTimestamp(transaction.timestamp)
-        const price = priceTimestamps[unixTimestamp]
-
-        if (price === undefined) {
-          continue
-        }
-
-        const newTransaction = {
-          ...updatedAccount.transactions[i],
-          prices: { ...transaction.prices, [fiatCurrency]: price }
-        }
-
-        const newTransactions = [...updatedAccount.transactions]
-        newTransactions[i] = newTransaction
-
-        const newAccount = {
-          ...updatedAccount,
-          transactions: newTransactions
-        }
-
-        Object.assign(updatedAccount, newAccount)
-      }
+      const priceTimestamps = await fetchHistoricalPrices(
+        fiatCurrency,
+        uniqueTimestamps
+      )
+      applyHistoricalPrices(updatedAccount, priceTimestamps, fiatCurrency)
 
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()

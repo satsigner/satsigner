@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import Animated, {
   useAnimatedProps,
   useSharedValue,
@@ -6,6 +5,8 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated'
 import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
+
+import { useMountEffect } from '@/hooks/useMountEffect'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 const AnimatedPath = Animated.createAnimatedComponent(Path)
@@ -21,13 +22,10 @@ export default function SSIconCheckCircleThin({
 }: IconProps) {
   const circleOpacity = useSharedValue(0)
   const checkOffset = useSharedValue(CHECK_PATH_LENGTH)
-  const started = useRef(false)
-
-  if (!started.current) {
-    started.current = true
-    circleOpacity.value = withTiming(1, { duration: 350 })
-    checkOffset.value = withDelay(150, withTiming(0, { duration: 400 }))
-  }
+  useMountEffect(() => {
+    circleOpacity.set(withTiming(1, { duration: 350 }))
+    checkOffset.set(withDelay(150, withTiming(0, { duration: 400 })))
+  })
 
   const circleProps = useAnimatedProps(() => ({
     opacity: circleOpacity.value

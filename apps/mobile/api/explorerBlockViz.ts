@@ -4,40 +4,34 @@ import { type MempoolOracle } from '@/api/blockchain'
 import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { ExplorerBlockVizData } from '@/types/explorer/blockViz'
 
-const PoolSchema = z
-  .object({
-    id: z.number().nullable().optional(),
-    name: z.string().nullable().optional(),
-    slug: z.string().nullable().optional()
-  })
-  .passthrough()
+const PoolSchema = z.looseObject({
+  id: z.number().nullable().optional(),
+  name: z.string().nullable().optional(),
+  slug: z.string().nullable().optional()
+})
 
-const BlockExtrasSchema = z
-  .object({
-    avgFee: z.number().nullable().optional(),
-    avgFeeRate: z.number().nullable().optional(),
-    avgTxSize: z.number().nullable().optional(),
-    feeRange: z.array(z.number()).optional(),
-    matchRate: z.number().nullable().optional(),
-    medianFee: z.number().nullable().optional(),
-    pool: PoolSchema.nullable().optional(),
-    reward: z.number().nullable().optional(),
-    segwitTotalTxs: z.number().nullable().optional(),
-    totalFees: z.number().nullable().optional(),
-    totalInputs: z.number().nullable().optional(),
-    totalOutputs: z.number().nullable().optional(),
-    virtualSize: z.number().nullable().optional()
-  })
-  .passthrough()
+const BlockExtrasSchema = z.looseObject({
+  avgFee: z.number().nullable().optional(),
+  avgFeeRate: z.number().nullable().optional(),
+  avgTxSize: z.number().nullable().optional(),
+  feeRange: z.array(z.number()).optional(),
+  matchRate: z.number().nullable().optional(),
+  medianFee: z.number().nullable().optional(),
+  pool: PoolSchema.nullable().optional(),
+  reward: z.number().nullable().optional(),
+  segwitTotalTxs: z.number().nullable().optional(),
+  totalFees: z.number().nullable().optional(),
+  totalInputs: z.number().nullable().optional(),
+  totalOutputs: z.number().nullable().optional(),
+  virtualSize: z.number().nullable().optional()
+})
 
-const BlockWithExtrasSchema = z
-  .object({
-    extras: BlockExtrasSchema.optional(),
-    height: z.number(),
-    id: z.string(),
-    tx_count: z.number().optional()
-  })
-  .passthrough()
+const BlockWithExtrasSchema = z.looseObject({
+  extras: BlockExtrasSchema.optional(),
+  height: z.number(),
+  id: z.string(),
+  tx_count: z.number().optional()
+})
 
 const BlocksWithExtrasSchema = z.array(BlockWithExtrasSchema)
 

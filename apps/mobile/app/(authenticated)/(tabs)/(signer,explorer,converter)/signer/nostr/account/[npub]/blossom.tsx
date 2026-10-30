@@ -113,23 +113,22 @@ export default function NostrBlossomServers() {
       const discovered = await fetchKind10063Servers(pubkeyHex, relays)
       if (discovered.length === 0) {
         toast.error(t('nostrIdentity.blossom.noServersFound'))
-        return
-      }
-      setServers((prev) => {
-        const merged = [...prev]
-        for (const url of discovered) {
-          if (!merged.includes(url)) {
-            merged.push(url)
+      } else {
+        setServers((prev) => {
+          const merged = [...prev]
+          for (const url of discovered) {
+            if (!merged.includes(url)) {
+              merged.push(url)
+            }
           }
-        }
-        return merged
-      })
-      toast.success(t('nostrIdentity.blossom.serversImported'))
+          return merged
+        })
+        toast.success(t('nostrIdentity.blossom.serversImported'))
+      }
     } catch {
       toast.error(t('nostrIdentity.blossom.importError'))
-    } finally {
-      setIsImporting(false)
     }
+    setIsImporting(false)
   }
 
   function handleSave() {

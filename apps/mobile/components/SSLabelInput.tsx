@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,6 +27,11 @@ function stripLineBreaks(text: string) {
   return text.replaceAll(/[\r\n]+/g, '')
 }
 
+function parseEditableLabel(rawLabel: string) {
+  const { label, tags } = parseLabel(rawLabel)
+  return { label: stripLineBreaks(label), tags }
+}
+
 function SSLabelInput({
   label: originalLabel,
   onUpdateLabel,
@@ -37,9 +42,20 @@ function SSLabelInput({
   )
   const tagInputRef = useRef<SSTagInputHandle>(null)
 
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    () => parseEditableLabel(originalLabel).tags
+  )
   const [tags, setLocalTags] = useState(() => getTags())
-  const [label, setLabel] = useState('')
+  const [label, setLabel] = useState(
+    () => parseEditableLabel(originalLabel).label
+  )
+  const [parsedOriginalLabel, setParsedOriginalLabel] = useState(originalLabel)
+  if (originalLabel !== parsedOriginalLabel) {
+    const editable = parseEditableLabel(originalLabel)
+    setParsedOriginalLabel(originalLabel)
+    setLabel(editable.label)
+    setSelectedTags(editable.tags)
+  }
   const labelFontSize = Sizes.text.fontSize[getLabelTextSize(label)]
 
   function saveLabel() {
@@ -50,12 +66,6 @@ function SSLabelInput({
     }
     onCancel()
   }
-
-  useEffect(() => {
-    const { label, tags } = parseLabel(originalLabel)
-    setLabel(stripLineBreaks(label))
-    setSelectedTags(tags)
-  }, [originalLabel])
 
   function onAddTag(tag: string) {
     if (!tags.includes(tag)) {

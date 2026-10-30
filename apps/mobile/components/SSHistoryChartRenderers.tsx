@@ -15,9 +15,9 @@ import {
 } from '@shopify/react-native-skia'
 import { type ScaleLinear, type ScaleTime } from 'd3-scale'
 import { timeFormat } from 'd3-time-format'
-import { Fragment, memo, useMemo } from 'react'
+import { Fragment, memo, useEffect, useMemo } from 'react'
 
-import { useSFProFonts } from '@/hooks/useSFProFonts'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
 import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
@@ -30,7 +30,7 @@ const Y_AXIS_LABEL_BASELINE_OFFSET = 6
 const Y_AXIS_TITLE_Y = -10
 
 type YScaleRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   yScale: ScaleLinear<number, number>
   chartHeight: number
@@ -43,7 +43,7 @@ type YScaleRendererProps = {
 }
 
 type XScaleRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   showTransactionInfo: boolean
   txXAxisLabels: {
@@ -64,7 +64,7 @@ type XScaleRendererProps = {
 }
 
 type XAxisRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   xScale: ScaleTime<number, number>
   chartHeight: number
@@ -88,7 +88,7 @@ type UtxoRectRendererProps = {
 }
 
 type UtxoLabelRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoLabels: {
     x1: number
@@ -101,7 +101,7 @@ type UtxoLabelRendererProps = {
 }
 
 type TransactionInfoRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   txInfoLabels: {
     x: number
@@ -120,8 +120,28 @@ type TransactionInfoRendererProps = {
   labelRectRef: React.MutableRefObject<{ rect: Rectangle; id: string }[]>
 }
 
+type TxInfoLabelLayoutParams = Pick<
+  TransactionInfoRendererProps,
+  | 'txInfoLabels'
+  | 'labelParagraphs'
+  | 'showLabel'
+  | 'showAmount'
+  | 'zeroPadding'
+> & {
+  font: ReturnType<typeof matchFont>
+}
+
+type TxInfoLabelLayout = {
+  label: TransactionInfoRendererProps['txInfoLabels'][number]
+  paragraph: SkParagraph | undefined
+  paragraphWidth: number
+  rect: Rectangle
+  text: string
+  textWidth: number
+}
+
 type CursorRendererProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   cursorX: Date | undefined
   cursorY: number | undefined
@@ -131,7 +151,7 @@ type CursorRendererProps = {
 }
 
 type HistoryChartUtxoSeriesProps = {
-  customFontManager: ReturnType<typeof useSFProFonts>
+  customFontManager: ReturnType<typeof useGeistFonts>
   fontStyle: { fontFamily: string; fontSize: number }
   utxoRectangleData: UtxoRectangle[]
   utxoLabels: UtxoLabel[]
@@ -513,6 +533,51 @@ function UtxoLabelRenderer({
 
 export const MemoizedUtxoLabelRenderer = memo(UtxoLabelRenderer)
 
+function layoutTxInfoLabels({
+  font,
+  txInfoLabels,
+  labelParagraphs,
+  showLabel,
+  showAmount,
+  zeroPadding
+}: TxInfoLabelLayoutParams): TxInfoLabelLayout[] {
+  return txInfoLabels.flatMap((label) => {
+    if (label.type === 'end') {
+      return []
+    }
+    const text =
+      (showLabel && label.memo!) ||
+      (showAmount &&
+        label.amount !== undefined &&
+        `${label.amount >= 0 ? '+' : ''}${formatNumber(
+          label.amount,
+          0,
+          zeroPadding
+        )}`) ||
+      ''
+
+    const paragraph = labelParagraphs.get(label.index)
+    const paragraphWidth = paragraph ? paragraph.getMinIntrinsicWidth() : 0
+    const textWidth = paragraph ? paragraphWidth : font.measureText(text).width
+
+    return [
+      {
+        label,
+        paragraph,
+        paragraphWidth,
+        rect: {
+          bottom: label.y,
+          left: label.type === 'receive' ? label.x - textWidth : label.x,
+          right: label.type === 'receive' ? label.x : label.x + textWidth,
+          top: label.y - 10
+        },
+        text,
+        textWidth
+      }
+    ]
+  })
+}
+
 function TransactionInfoRenderer({
   customFontManager,
   fontStyle,
@@ -523,43 +588,38 @@ function TransactionInfoRenderer({
   zeroPadding,
   labelRectRef
 }: TransactionInfoRendererProps) {
-  if (!customFontManager) {
+  const font = customFontManager
+    ? matchFont(fontStyle, customFontManager)
+    : null
+  const labelLayouts = font
+    ? layoutTxInfoLabels({
+        font,
+        labelParagraphs,
+        showAmount,
+        showLabel,
+        txInfoLabels,
+        zeroPadding
+      })
+    : null
+
+  useEffect(() => {
+    if (!labelLayouts) {
+      return
+    }
+    labelRectRef.current = labelLayouts.map(({ label, rect }) => ({
+      id: label.id,
+      rect
+    }))
+  }, [labelLayouts, labelRectRef])
+
+  if (!font || !labelLayouts) {
     return null
   }
-  const font = matchFont(fontStyle, customFontManager)
-  labelRectRef.current = []
   return (
     <>
-      {txInfoLabels.map((label) => {
-        if (label.type === 'end') {
-          return null
-        }
-        const text =
-          (showLabel && label.memo!) ||
-          (showAmount &&
-            label.amount !== undefined &&
-            `${label.amount >= 0 ? '+' : ''}${formatNumber(
-              label.amount,
-              0,
-              zeroPadding
-            )}`) ||
-          ''
-
-        const paragraph = labelParagraphs.get(label.index)
-        const paragraphWidth = paragraph ? paragraph.getMinIntrinsicWidth() : 0
-        const textWidth = paragraph
-          ? paragraphWidth
-          : font.measureText(text).width
-
-        labelRectRef.current.push({
-          id: label.id,
-          rect: {
-            bottom: label.y,
-            left: label.type === 'receive' ? label.x - textWidth : label.x,
-            right: label.type === 'receive' ? label.x : label.x + textWidth,
-            top: label.y - 10
-          }
-        })
+      {labelLayouts.map((labelLayout) => {
+        const { label, paragraph, paragraphWidth, text, textWidth } =
+          labelLayout
 
         if (paragraph) {
           const xPos = label.type === 'receive' ? label.x - textWidth : label.x

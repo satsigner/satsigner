@@ -80,11 +80,12 @@ export default function DescriptorPage() {
             appNetworkToBdkNetwork(network)
           )
         } else if (secret.extendedPublicKey && secret.fingerprint) {
+          const keyScriptVersion = key.scriptVersion || 'P2WPKH'
           try {
             const descriptors = getDescriptorsFromKey(
               secret.extendedPublicKey,
               secret.fingerprint,
-              key.scriptVersion || 'P2WPKH',
+              keyScriptVersion,
               appNetworkToBdkNetwork(network)
             )
             foundDescriptor = descriptors.externalDescriptor
@@ -93,7 +94,7 @@ export default function DescriptorPage() {
             // Failed to generate descriptor from key data
             // Fallback: try to construct descriptor manually
             const derivationPath = getDerivationPathFromScriptVersion(
-              key.scriptVersion || 'P2WPKH',
+              keyScriptVersion,
               network
             )
             const keyPart = `[${secret.fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`

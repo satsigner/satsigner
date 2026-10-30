@@ -25,8 +25,6 @@ const DATA_AVAILABLE_KEYS = [
   'historicalPriceAtTimestamp'
 ] as const
 
-const monoTextStyle = { fontFamily: 'monospace' as const }
-
 export default function FiatData() {
   const {
     customFiatPriceApiUrl,
@@ -144,11 +142,7 @@ export default function FiatData() {
                             <SSText size="sm">
                               {tl('apiFormat.currentPrices')}
                             </SSText>
-                            <SSText
-                              color="muted"
-                              size="xs"
-                              style={monoTextStyle}
-                            >
+                            <SSText color="muted" size="xs" type="mono">
                               {CURRENT_PRICES_RESPONSE}
                             </SSText>
                           </SSVStack>
@@ -156,11 +150,7 @@ export default function FiatData() {
                             <SSText size="sm">
                               {tl('apiFormat.historicalPrices')}
                             </SSText>
-                            <SSText
-                              color="muted"
-                              size="xs"
-                              style={monoTextStyle}
-                            >
+                            <SSText color="muted" size="xs" type="mono">
                               {HISTORICAL_PRICE_RESPONSE}
                             </SSText>
                           </SSVStack>

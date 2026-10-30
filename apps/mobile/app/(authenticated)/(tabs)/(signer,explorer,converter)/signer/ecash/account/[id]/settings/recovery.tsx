@@ -11,7 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { collectMintUrlsForRestore } from '@/utils/ecashBackup'
 
 export default function EcashAccountRecoveryPage() {
@@ -50,9 +50,8 @@ export default function EcashAccountRecoveryPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    } finally {
-      setIsRestoring(false)
     }
+    setIsRestoring(false)
   }
 
   function handleRestoreBackup() {
@@ -63,9 +62,8 @@ export default function EcashAccountRecoveryPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    } finally {
-      setIsRestoringBackup(false)
     }
+    setIsRestoringBackup(false)
   }
 
   return (
@@ -184,7 +182,7 @@ export default function EcashAccountRecoveryPage() {
 
 const styles = StyleSheet.create({
   backupInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 160,
