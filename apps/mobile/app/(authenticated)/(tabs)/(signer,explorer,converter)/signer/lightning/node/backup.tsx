@@ -28,7 +28,6 @@ export default function LightningBackupPage() {
   const [includeConnection, setIncludeConnection] = useState(false)
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
-  const [isGenerating, setIsGenerating] = useState(false)
   const nodeTitle =
     lndNodeCardTitle(
       status.nodeInfo?.alias ?? '',
@@ -38,31 +37,24 @@ export default function LightningBackupPage() {
     t('lightning.backup.notConnected')
 
   function generateBackupData() {
-    setIsGenerating(true)
-    try {
-      setBackupData(
-        serializeLightningBackup(
-          {
-            channels: status.channels,
-            config,
-            isConnected: status.isConnected,
-            lastSync: status.lastSync,
-            nodeInfo: status.nodeInfo
-          },
-          {
-            includeChannels,
-            includeConnection,
-            includeNodeInformation
-          },
-          new Date().toISOString()
-        )
+    setBackupData(
+      serializeLightningBackup(
+        {
+          channels: status.channels,
+          config,
+          isConnected: status.isConnected,
+          lastSync: status.lastSync,
+          nodeInfo: status.nodeInfo
+        },
+        {
+          includeChannels,
+          includeConnection,
+          includeNodeInformation
+        },
+        new Date().toISOString()
       )
-      setShowBackupData(true)
-    } catch {
-      toast.error(t('lightning.backup.generationFailed'))
-    } finally {
-      setIsGenerating(false)
-    }
+    )
+    setShowBackupData(true)
   }
 
   async function handleShareBackup() {
@@ -178,7 +170,6 @@ export default function LightningBackupPage() {
             onPress={generateBackupData}
             variant="gradient"
             gradientType="special"
-            loading={isGenerating}
           />
           {showBackupData ? (
             <SSVStack gap="md" style={styles.backupDataSection}>

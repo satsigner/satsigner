@@ -1566,7 +1566,6 @@
     "backup.copyFailed": "Failed to copy to clipboard",
     "backup.description": "Backup your Lightning node connection, node information, and channel snapshot.",
     "backup.generateBackup": "Generate Backup",
-    "backup.generationFailed": "Failed to generate backup",
     "backup.includeChannels": "Channels",
     "backup.includeConnection": "Connection (URL, macaroon, certificate)",
     "backup.includeNodeInformation": "Node Information",
