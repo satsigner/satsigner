@@ -24,6 +24,26 @@ const INDEXED_STATUS: Record<number, number> = {
   9: 204
 }
 
+const MAX_WINDOW_INCREMENT = 0x7f_ff_ff_ff
+const HUFFMAN_MAX_PADDING_BITS = 7
+const HTTP_STATUS_PATTERN = /^\d{3}$/
+
+// RFC 7541 Appendix B codes for the digits only. LND's Go HPACK encoder
+// Huffman-encodes any :status outside the static table (401, 403, 503...),
+// and the status is the only header value this client reads.
+const HUFFMAN_DIGIT_CODES = [
+  { bits: '00000', digit: '0' },
+  { bits: '00001', digit: '1' },
+  { bits: '00010', digit: '2' },
+  { bits: '011001', digit: '3' },
+  { bits: '011010', digit: '4' },
+  { bits: '011011', digit: '5' },
+  { bits: '011100', digit: '6' },
+  { bits: '011101', digit: '7' },
+  { bits: '011110', digit: '8' },
+  { bits: '011111', digit: '9' }
+]
+
 export type Http2Frame = {
   flags: number
   payload: Buffer
@@ -127,6 +147,19 @@ export function http2SettingsAck(): Buffer {
 
 export function http2PingAck(payload: Buffer): Buffer {
   return http2Frame(FRAME_PING, FLAG_ACK, 0, payload)
+}
+
+/**
+ * Returns the flow-control window a DATA payload used, on the connection and
+ * on its stream. Without it the peer stops after 65,535 bytes.
+ */
+export function http2WindowUpdates(streamId: number, increment: number) {
+  const payload = Buffer.alloc(4)
+  writeU32BE(payload, 0, increment & MAX_WINDOW_INCREMENT)
+  return Buffer.concat([
+    http2Frame(FRAME_WINDOW_UPDATE, 0, 0, payload),
+    http2Frame(FRAME_WINDOW_UPDATE, 0, streamId, payload)
+  ])
 }
 
 export function takeHttp2Frames(raw: Buffer): {
@@ -237,11 +270,8 @@ function readHpackStatus(payload: Buffer, offset: number): number | null {
     if (!value) {
       return null
     }
-    if (index === 8) {
-      const status = Number(value.text)
-      if (Number.isFinite(status)) {
-        return status
-      }
+    if (INDEXED_STATUS[index] !== undefined) {
+      return parseHttpStatus(value.text)
     }
     return readHpackStatus(payload, value.next)
   }
@@ -254,10 +284,16 @@ function readHpackStatus(payload: Buffer, offset: number): number | null {
     return null
   }
   if (name.text === ':status') {
-    const status = Number(value.text)
-    return Number.isFinite(status) ? status : null
+    return parseHttpStatus(value.text)
   }
   return readHpackStatus(payload, value.next)
+}
+
+function parseHttpStatus(text: string | null): number | null {
+  if (text === null || !HTTP_STATUS_PATTERN.test(text)) {
+    return null
+  }
+  return Number(text)
 }
 
 function hpackIntLength(
@@ -298,10 +334,11 @@ function decodeHpackIntTail(
   return decodeHpackIntTail(payload, offset + 1, nextValue, shift + 7)
 }
 
+/** `text` is null for a Huffman string that is not all digits. */
 function decodeHpackString(
   payload: Buffer,
   offset: number
-): { next: number; text: string } | null {
+): { next: number; text: string | null } | null {
   if (offset >= payload.length) {
     return null
   }
@@ -311,8 +348,29 @@ function decodeHpackString(
     return null
   }
   const bytes = payload.subarray(next, next + length)
-  if (huffman) {
+  const text = huffman
+    ? decodeHuffmanDigits(bytes)
+    : Buffer.from(bytes).toString('utf8')
+  return { next: next + length, text }
+}
+
+function decodeHuffmanDigits(bytes: Uint8Array): string | null {
+  const bits = [...bytes]
+    .map((byte) => byte.toString(2).padStart(8, '0'))
+    .join('')
+  return decodeHuffmanDigitBits(bits, '')
+}
+
+function decodeHuffmanDigitBits(bits: string, decoded: string): string | null {
+  if (bits.length <= HUFFMAN_MAX_PADDING_BITS && /^1*$/.test(bits)) {
+    return decoded
+  }
+  const match = HUFFMAN_DIGIT_CODES.find((code) => bits.startsWith(code.bits))
+  if (!match) {
     return null
   }
-  return { next: next + length, text: Buffer.from(bytes).toString('utf8') }
+  return decodeHuffmanDigitBits(
+    bits.slice(match.bits.length),
+    decoded + match.digit
+  )
 }

@@ -11,6 +11,7 @@ import {
   buildHttp2PrefaceAndSettings,
   http2PingAck,
   http2SettingsAck,
+  http2WindowUpdates,
   isGoawayFrame,
   isRstStreamFrame,
   looksLikeHttp2Session,
@@ -155,7 +156,13 @@ function readHttpResponse(
         }
         if (frame.type === 0x00) {
           dataParts.push(frame.payload)
-          if ((frame.flags & 0x01) === 0x01) {
+          const endsStream = (frame.flags & 0x01) === 0x01
+          if (!endsStream && frame.payload.length > 0) {
+            socket.write(
+              http2WindowUpdates(frame.streamId, frame.payload.length)
+            )
+          }
+          if (endsStream) {
             if (http2Status === null) {
               finish(
                 new Error('LND HTTP/2 response has no readable status'),
