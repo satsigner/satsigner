@@ -15,7 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { ArkMovement } from '@/types/models/Ark'
 import {
   getArkMovementAmountSats,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     paddingTop: 60
   },
   monospace: {
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   section: {
     width: '100%'

@@ -1628,7 +1628,7 @@ export default function IOPreview() {
                     numberOfLines={4}
                     editable={!isEditingStonewallManagedOutput}
                     style={{
-                      fontFamily: Typography.sfProMono,
+                      fontFamily: Typography.geistMonoRegular,
                       fontSize: 22,
                       height: 110,
                       letterSpacing: 0.5,

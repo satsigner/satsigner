@@ -22,7 +22,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { error, success, warning, white } from '@/styles/colors'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNumber } from '@/utils/format'
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline'
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     height: 'auto',
     minHeight: 100,

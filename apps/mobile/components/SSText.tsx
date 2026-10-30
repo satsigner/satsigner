@@ -31,11 +31,11 @@ function SSText({
 
   const styleMap = {
     mono: {
-      bold: styles.textSFMonoRegular,
-      light: styles.textSFMonoRegular,
-      medium: styles.textSFMonoRegular,
-      regular: styles.textSFMonoRegular,
-      ultralight: styles.textSFMonoRegular
+      bold: styles.textMonoBold,
+      light: styles.textMonoLight,
+      medium: styles.textMonoMedium,
+      regular: styles.textMonoRegular,
+      ultralight: styles.textMonoUltralight
     },
     'sans-serif': {
       bold: styles.textSansSerifBold,
@@ -81,23 +81,35 @@ const styles = StyleSheet.create({
   textColorWhite: {
     color: Colors.white
   },
-  textSFMonoRegular: {
-    fontFamily: Typography.sfProMono
+  textMonoBold: {
+    fontFamily: Typography.geistMonoBold
+  },
+  textMonoLight: {
+    fontFamily: Typography.geistMonoLight
+  },
+  textMonoMedium: {
+    fontFamily: Typography.geistMonoMedium
+  },
+  textMonoRegular: {
+    fontFamily: Typography.geistMonoRegular
+  },
+  textMonoUltralight: {
+    fontFamily: Typography.geistMonoExtraLight
   },
   textSansSerifBold: {
-    fontFamily: Typography.sfProTextBold
+    fontFamily: Typography.geistBold
   },
   textSansSerifLight: {
-    fontFamily: Typography.sfProTextLight
+    fontFamily: Typography.geistLight
   },
   textSansSerifMedium: {
-    fontFamily: Typography.sfProTextMedium
+    fontFamily: Typography.geistMedium
   },
   textSansSerifRegular: {
-    fontFamily: Typography.sfProTextRegular
+    fontFamily: Typography.geistRegular
   },
   textSansSerifUltralight: {
-    fontFamily: Typography.sfProTextUltralight
+    fontFamily: Typography.geistExtraLight
   },
   uppercase: {
     textTransform: 'uppercase'
