@@ -29,7 +29,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { getAccountTotalBalance } from '@/utils/account'
 import {
   type ArkBoardValidationReason,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   monospace: {
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   pendingRow: {
     borderBottomColor: Colors.gray[800],

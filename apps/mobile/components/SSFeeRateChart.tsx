@@ -8,7 +8,7 @@ import { Colors } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { bytes } from '@/utils/bytes'
 
-const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+const sansSerif = require('@/assets/fonts/Geist-Medium.ttf')
 
 const BORDER_PADDING = 12
 const Y_VALUE_THRESHOLD_MVB = 3_000_000 // 3 MvB

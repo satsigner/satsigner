@@ -31,22 +31,10 @@ type SSHalvingProgressProps = {
 
 export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
   const { width } = useWindowDimensions()
-  const fontCenterLg = useFont(
-    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-    20
-  )
-  const fontCenterMd = useFont(
-    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-    17
-  )
-  const fontCenterSm = useFont(
-    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-    13
-  )
-  const fontSmall = useFont(
-    require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-    11
-  )
+  const fontCenterLg = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 20)
+  const fontCenterMd = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 17)
+  const fontCenterSm = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 13)
+  const fontSmall = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 11)
 
   const epoch = halvingEpoch(height)
   const blocksInEpoch = height - epoch * HALVING_INTERVAL
