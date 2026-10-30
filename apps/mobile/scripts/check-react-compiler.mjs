@@ -36,6 +36,7 @@ const SKIPPED_DIRS = new Set([
 ])
 const SOURCE_FILE = /\.(jsx?|tsx?)$/
 const NON_APP_FILE = /\.(d|test|spec|stories)\.(jsx?|tsx?)$/
+const OPT_OUT_DIRECTIVES = new Set(['use no forget', 'use no memo'])
 const FAILURE_KINDS = new Set([
   'CompileError',
   'CompileUnexpectedThrow',
@@ -61,20 +62,48 @@ function describeEvent(event) {
   return { line: loc?.start?.line ?? event.fnLoc?.start?.line, reason }
 }
 
+function findOptedOutFunctionStarts(ast) {
+  const starts = new Set()
+  babel.traverse(ast, {
+    Directive(directivePath) {
+      if (!OPT_OUT_DIRECTIVES.has(directivePath.node.value.value)) {
+        return
+      }
+      const fn = directivePath.getFunctionParent()
+      if (fn?.node.start != null) {
+        starts.add(fn.node.start)
+      }
+    }
+  })
+  return starts
+}
+
 function compileFile(file) {
-  const failures = []
-  babel.transformSync(readFileSync(file, 'utf8'), {
+  const code = readFileSync(file, 'utf8')
+  const options = {
     babelrc: false,
     configFile: false,
     filename: file,
-    parserOpts: { plugins: ['jsx', 'typescript'] },
+    parserOpts: { plugins: ['jsx', 'typescript'] }
+  }
+  // The compiler still logs errors for functions it skips because of an
+  // opt-out directive; those opt-outs are deliberate.
+  const optedOutStarts = findOptedOutFunctionStarts(
+    babel.parseSync(code, options)
+  )
+  const failures = []
+  babel.transformSync(code, {
+    ...options,
     plugins: [
       [
         'babel-plugin-react-compiler',
         {
           logger: {
             logEvent(_filename, event) {
-              if (FAILURE_KINDS.has(event.kind)) {
+              if (
+                FAILURE_KINDS.has(event.kind) &&
+                !optedOutStarts.has(event.fnLoc?.start?.index)
+              ) {
                 failures.push(describeEvent(event))
               }
             }
