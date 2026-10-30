@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 
-import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,

@@ -1,15 +1,14 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSText from '@/components/SSText'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useTransactionFeeReplacement } from '@/hooks/useTransactionFeeReplacement'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
 import { type FeeReplacementSearchParams } from '@/types/navigation/searchParams'
 import { parseFeeReplacementKind } from '@/utils/feeReplacement'
@@ -59,9 +58,7 @@ function FeeReplacement() {
     submitFeeReplacement,
     tx
   } = useTransactionFeeReplacement({ accountId, kind, txid })
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
+  const { btcPrice, fiatCurrency, fiatEnabled } = useDisplayPreferences()
   const [feeRate, setFeeRate] = useState<number>()
 
   if (!kind || !tx || !isAvailable) {
@@ -100,7 +97,8 @@ function FeeReplacement() {
           inputMax={feeRateInputMax}
           estimatedBlock={estimateTargetBlocks(selectedFeeRate, nextBlockFee)}
           fiatCurrency={fiatCurrency}
-          satsToFiat={satsToFiat}
+          btcPrice={btcPrice}
+          fiatEnabled={fiatEnabled}
         />
         <SSVStack gap="sm">
           <SSButton

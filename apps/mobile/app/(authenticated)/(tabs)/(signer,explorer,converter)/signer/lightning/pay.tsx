@@ -10,7 +10,6 @@ import {
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
@@ -48,6 +47,7 @@ import type {
 } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { HttpStatusError } from '@/utils/errors'
+import { satsToFiat } from '@/utils/fiat'
 import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
@@ -124,9 +124,7 @@ export default function PayPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const detailsRequestId = useRef(0)
-  const [satsToFiat, fetchPrices] = usePriceStore(
-    useShallow((state) => [state.satsToFiat, state.fetchPrices])
-  )
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
   const { fiatPriceApiUrl } = useFiatData()
   useQuery({
     queryFn: () => fetchPrices(fiatPriceApiUrl),
@@ -556,7 +554,8 @@ export default function PayPage() {
                       showPaymentHash
                       fiatCurrency={fiatCurrency}
                       privacyMode={privacyMode}
-                      satsToFiat={satsToFiat}
+                      btcPrice={btcPrice}
+                      fiatEnabled={fiatEnabled}
                     />
                   )}
                   {isAmountlessInvoice ? (
@@ -578,13 +577,14 @@ export default function PayPage() {
                         <SSText color="muted" size="sm">
                           {privacyMode
                             ? `≈ •••• ${fiatCurrency}`
-                            : `≈ ${satsToFiat(Number(amount)).toLocaleString(
-                                'en-US',
-                                {
-                                  maximumFractionDigits: 2,
-                                  minimumFractionDigits: 2
-                                }
-                              )} ${fiatCurrency}`}
+                            : `≈ ${satsToFiat(
+                                Number(amount),
+                                btcPrice,
+                                fiatEnabled
+                              ).toLocaleString('en-US', {
+                                maximumFractionDigits: 2,
+                                minimumFractionDigits: 2
+                              })} ${fiatCurrency}`}
                         </SSText>
                       ) : null}
                     </SSVStack>
@@ -601,7 +601,8 @@ export default function PayPage() {
                       inputStyles={styles.input}
                       fiatCurrency={fiatCurrency}
                       privacyMode={privacyMode}
-                      satsToFiat={satsToFiat}
+                      btcPrice={btcPrice}
+                      fiatEnabled={fiatEnabled}
                     />
                   )}
                 </SSVStack>

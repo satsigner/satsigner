@@ -66,7 +66,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout, Typography } from '@/styles'
@@ -101,6 +100,7 @@ import {
   getUsableFeeRate,
   shouldHighlightElevatedFeeRate
 } from '@/utils/feeWarnings'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, formatTxId } from '@/utils/format'
 import {
   ensureBitcoinPrefix,
@@ -242,8 +242,6 @@ export default function IOPreview() {
       }
     }, [changeAddress, secondChangeAddress, decoyAddress])
   )
-
-  const satsToFiat = usePriceStore((state) => state.satsToFiat)
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
@@ -1394,7 +1392,10 @@ export default function IOPreview() {
                     : t('bitcoin.sats')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
+                  {formatNumber(
+                    satsToFiat(utxosTotalValue, btcPrice, fiatEnabled),
+                    2
+                  )}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {fiatCurrency}
@@ -1430,7 +1431,10 @@ export default function IOPreview() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="sm" color="muted">
-                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
+                  {formatNumber(
+                    satsToFiat(utxosSelectedValue, btcPrice, fiatEnabled),
+                    2
+                  )}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}
@@ -2010,7 +2014,8 @@ export default function IOPreview() {
             inputMax={feeRateInputMax}
             estimatedBlock={estimatedTargetBlocks}
             fiatCurrency={fiatCurrency}
-            satsToFiat={satsToFiat}
+            btcPrice={btcPrice}
+            fiatEnabled={fiatEnabled}
           />
           <SSButton
             label={t('transaction.build.set.fee')}

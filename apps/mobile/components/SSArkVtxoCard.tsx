@@ -3,12 +3,12 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { ArkVtxo } from '@/types/models/Ark'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatTxId } from '@/utils/format'
 
 const CHECKBOX_SIZE = 18

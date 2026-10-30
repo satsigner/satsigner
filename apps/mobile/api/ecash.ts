@@ -32,6 +32,7 @@ import type {
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
+import { toError } from '@/utils/error'
 import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
 import { withTimeout } from '@/utils/time'
@@ -287,6 +288,23 @@ export class EcashSpentProofsError extends AppError {
   }
 }
 
+/**
+ * The melt failed after the mint swapped the input proofs, so the inputs are
+ * spent and `keep` and `send` hold the value. `send` can still be pending at
+ * the mint when the payment is in flight.
+ */
+export class EcashMeltFailedError extends AppError {
+  readonly keep: EcashProof[]
+  readonly send: EcashProof[]
+
+  constructor(keep: EcashProof[], send: EcashProof[], cause: unknown) {
+    super(toError(cause).message, { cause })
+    this.name = 'EcashMeltFailedError'
+    this.keep = keep
+    this.send = send
+  }
+}
+
 export async function meltProofs(
   accountId: string,
   mintUrl: string,
@@ -325,11 +343,20 @@ export async function meltProofs(
   const { keep, send } = await wallet.send(needed, validProofs, {
     includeFees: true
   })
-  const result = await wallet.meltProofs(cashuQuote, send)
+  const keepProofs = keep.map((p) => ({ ...p, mintUrl }))
+  const result = await wallet
+    .meltProofs(cashuQuote, send)
+    .catch((error: unknown) => {
+      throw new EcashMeltFailedError(
+        keepProofs,
+        send.map((p) => ({ ...p, mintUrl })),
+        error
+      )
+    })
 
   return {
     change: result.change?.map((p) => ({ ...p, mintUrl })),
-    keep: keep.map((p) => ({ ...p, mintUrl })),
+    keep: keepProofs,
     paid: true,
     preimage: result.quote.payment_preimage ?? undefined
   }

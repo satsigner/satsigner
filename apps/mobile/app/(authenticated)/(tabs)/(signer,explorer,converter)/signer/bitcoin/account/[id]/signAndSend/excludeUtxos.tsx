@@ -1,40 +1,49 @@
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-type SSExcludedUtxoRowProps = {
+type SSExcludedUtxoRowProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'fiatEnabled'
+  | 'useZeroPadding'
+> & {
   utxo: Utxo
   accountId: string
 }
 
-function SSExcludedUtxoRow({ utxo, accountId }: SSExcludedUtxoRowProps) {
+function SSExcludedUtxoRow({
+  utxo,
+  accountId,
+  btcPrice,
+  currencyUnit,
+  fiatCurrency,
+  fiatEnabled,
+  useZeroPadding
+}: SSExcludedUtxoRowProps) {
   const includeUtxoOutpoints = useAccountsStore(
     (state) => state.includeUtxoOutpoints
-  )
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
   )
   const label = normalizeUtxoLabelForDisplay(utxo.label || '')
   const outpoint = getUtxoOutpoint(utxo)
@@ -64,7 +73,9 @@ function SSExcludedUtxoRow({ utxo, accountId }: SSExcludedUtxoRowProps) {
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack gap="xs" style={styles.amountRow}>
-          <SSText size="sm">{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
+          <SSText size="sm">
+            {formatNumber(satsToFiat(utxo.value, btcPrice, fiatEnabled), 2)}
+          </SSText>
           <SSText size="sm" color="muted">
             {fiatCurrency}
           </SSText>
@@ -89,6 +100,7 @@ function listSeparator() {
 
 export default function ExcludeUtxos() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const display = useDisplayPreferences()
   const account = useAccountsStore(
     (state) => state.accounts.find((entry) => entry.id === id)!
   )
@@ -124,7 +136,11 @@ export default function ExcludeUtxos() {
                 keyExtractor={getUtxoOutpoint}
                 ItemSeparatorComponent={listSeparator}
                 renderItem={({ item }) => (
-                  <SSExcludedUtxoRow utxo={item} accountId={account.id} />
+                  <SSExcludedUtxoRow
+                    {...display}
+                    utxo={item}
+                    accountId={account.id}
+                  />
                 )}
               />
             </View>

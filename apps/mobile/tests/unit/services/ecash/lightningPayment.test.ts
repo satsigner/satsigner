@@ -193,6 +193,37 @@ describe('payLightningInvoiceFromMints', () => {
     )
   })
 
+  it('quotes every MPP part first, then melts all parts at once', async () => {
+    const events: string[] = []
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) => {
+        events.push(`quote ${mintUrl}`)
+        return Promise.resolve(quote(mintUrl, amount))
+      })
+    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
+    const { promise: allMeltsStarted, resolve: releaseMelts } =
+      Promise.withResolvers<undefined>()
+    p.meltProofsAndUpdateStore.mockImplementation((mintUrl: string) => {
+      events.push(`melt ${mintUrl}`)
+      const meltsStarted = events.filter((event) => event.startsWith('melt'))
+      if (meltsStarted.length === 2) {
+        releaseMelts(undefined)
+      }
+      return allMeltsStarted
+    })
+
+    await payLightningInvoiceFromMints(p)
+
+    expect(events).toStrictEqual([
+      `quote ${MINT_A}`,
+      `quote ${MINT_A}`,
+      `quote ${MINT_B}`,
+      `melt ${MINT_A}`,
+      `melt ${MINT_B}`
+    ])
+  })
+
   it('reports a partial payment when a later MPP melt fails', async () => {
     jest
       .mocked(createMppMeltQuote)
@@ -231,7 +262,7 @@ describe('payLightningInvoiceFromMints', () => {
     })
   })
 
-  it('rethrows the raw error and drops unused quotes when the first melt fails', async () => {
+  it('reports a partial payment when the first MPP melt fails and a later one settles', async () => {
     jest
       .mocked(createMppMeltQuote)
       .mockImplementation((_account, mintUrl, _invoice, amount) =>
@@ -241,7 +272,24 @@ describe('payLightningInvoiceFromMints', () => {
     const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
     p.meltProofsAndUpdateStore.mockRejectedValueOnce(meltError)
 
+    await expect(payLightningInvoiceFromMints(p)).rejects.toMatchObject({
+      cause: meltError,
+      failure: { reason: 'mppPartialPayment', settled: 1, total: 2 }
+    })
+  })
+
+  it('rethrows the raw error and keeps the quotes when every MPP melt fails', async () => {
+    jest
+      .mocked(createMppMeltQuote)
+      .mockImplementation((_account, mintUrl, _invoice, amount) =>
+        Promise.resolve(quote(mintUrl, amount))
+      )
+    const meltError = new Error('melt failed')
+    const p = params([proof(MINT_A, 61), proof(MINT_B, 51)])
+    p.meltProofsAndUpdateStore.mockRejectedValue(meltError)
+
     await expect(payLightningInvoiceFromMints(p)).rejects.toBe(meltError)
-    expect(p.removeMeltQuote).toHaveBeenCalledWith(`${MINT_B}-40`)
+    expect(p.addMeltQuote).toHaveBeenCalledTimes(2)
+    expect(p.removeMeltQuote).not.toHaveBeenCalled()
   })
 })

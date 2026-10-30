@@ -27,6 +27,7 @@ import {
   EcashPaymentError,
   payLightningInvoiceFromMints
 } from '@/services/ecash/lightningPayment'
+import { proofsAfterFailedMelt } from '@/services/ecash/meltFailure'
 import { restoreProofsFromMints } from '@/services/ecash/restore'
 import { getEcashMnemonic } from '@/storage/encrypted'
 import { useEcashStore } from '@/store/ecash'
@@ -405,11 +406,12 @@ export function useEcash() {
         meltOptions
       )
     } catch (error) {
-      if (error instanceof EcashSpentProofsError) {
-        const remaining = removeSpentSecrets(
-          useEcashStore.getState().proofs[activeAccountId] ?? [],
-          error.spentProofSecrets
-        )
+      const remaining = proofsAfterFailedMelt(
+        error,
+        useEcashStore.getState().proofs[activeAccountId] ?? [],
+        proofsToMelt
+      )
+      if (remaining) {
         setProofsAction(activeAccountId, remaining)
         updateMintBalance(
           activeAccountId,

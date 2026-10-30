@@ -19,6 +19,21 @@ import { shareFile } from '@/utils/filesystem'
 import { serializeLightningBackup } from '@/utils/lightningBackup'
 import { lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
 
+function resolveLightningBackupNodeTitle(
+  alias: string,
+  identityPubkey: string,
+  configUrl: string | undefined
+): string {
+  const fromCard = lndNodeCardTitle(alias, identityPubkey)
+  if (fromCard) {
+    return fromCard
+  }
+  if (configUrl) {
+    return configUrl
+  }
+  return t('lightning.backup.notConnected')
+}
+
 export default function LightningBackupPage() {
   const [config, status] = useLightningStore(
     useShallow((state) => [state.config, state.status])
@@ -28,39 +43,31 @@ export default function LightningBackupPage() {
   const [includeConnection, setIncludeConnection] = useState(false)
   const [includeNodeInformation, setIncludeNodeInformation] = useState(true)
   const [includeChannels, setIncludeChannels] = useState(true)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const nodeAlias = status.nodeInfo?.alias ?? ''
-  const nodePubkey = status.nodeInfo?.identity_pubkey ?? ''
-  const nodeTitle =
-    lndNodeCardTitle(nodeAlias, nodePubkey) ||
-    config?.url ||
-    t('lightning.backup.notConnected')
+  const nodeTitle = resolveLightningBackupNodeTitle(
+    status.nodeInfo?.alias ?? '',
+    status.nodeInfo?.identity_pubkey ?? '',
+    config?.url
+  )
 
   function generateBackupData() {
-    setIsGenerating(true)
-    try {
-      setBackupData(
-        serializeLightningBackup(
-          {
-            channels: status.channels,
-            config,
-            isConnected: status.isConnected,
-            lastSync: status.lastSync,
-            nodeInfo: status.nodeInfo
-          },
-          {
-            includeChannels,
-            includeConnection,
-            includeNodeInformation
-          },
-          new Date().toISOString()
-        )
+    setBackupData(
+      serializeLightningBackup(
+        {
+          channels: status.channels,
+          config,
+          isConnected: status.isConnected,
+          lastSync: status.lastSync,
+          nodeInfo: status.nodeInfo
+        },
+        {
+          includeChannels,
+          includeConnection,
+          includeNodeInformation
+        },
+        new Date().toISOString()
       )
-      setShowBackupData(true)
-    } catch {
-      toast.error(t('lightning.backup.generationFailed'))
-    }
-    setIsGenerating(false)
+    )
+    setShowBackupData(true)
   }
 
   async function handleShareBackup() {
@@ -176,7 +183,6 @@ export default function LightningBackupPage() {
             onPress={generateBackupData}
             variant="gradient"
             gradientType="special"
-            loading={isGenerating}
           />
           {showBackupData ? (
             <SSVStack gap="md" style={styles.backupDataSection}>

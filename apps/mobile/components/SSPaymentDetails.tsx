@@ -8,6 +8,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Typography } from '@/styles'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { bolt11AmountSats } from '@/utils/lightningInvoiceDecoder'
 
 type DecodedInvoice = {
@@ -26,11 +28,13 @@ type DecodedInvoice = {
   min_final_cltv_expiry: string
 }
 
-type SSPaymentDetailsProps = {
+type SSPaymentDetailsProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatEnabled'
+> & {
   decodedInvoice: DecodedInvoice
   fiatCurrency: string
   privacyMode?: boolean
-  satsToFiat: (amount: number) => number
   showCreated?: boolean
   showPaymentHash?: boolean
 }
@@ -102,7 +106,8 @@ function SSPaymentDetails({
   decodedInvoice,
   fiatCurrency,
   privacyMode = false,
-  satsToFiat,
+  btcPrice,
+  fiatEnabled,
   showCreated = true,
   showPaymentHash = true
 }: SSPaymentDetailsProps) {
@@ -136,7 +141,11 @@ function SSPaymentDetails({
                 <SSText center color="muted" size="lg">
                   {privacyMode
                     ? `≈ •••• ${fiatCurrency}`
-                    : `≈ ${satsToFiat(amountSats).toLocaleString('en-US', {
+                    : `≈ ${satsToFiat(
+                        amountSats,
+                        btcPrice,
+                        fiatEnabled
+                      ).toLocaleString('en-US', {
                         maximumFractionDigits: 2,
                         minimumFractionDigits: 2
                       })} ${fiatCurrency}`}

@@ -6,12 +6,14 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
 
-type SSFeeInputProps = {
+type SSFeeInputProps = Pick<DisplayPreferences, 'btcPrice' | 'fiatEnabled'> & {
   max: number
   min?: number
   inputMax?: number
@@ -19,7 +21,6 @@ type SSFeeInputProps = {
   vbytes?: number
   value: number
   fiatCurrency: string
-  satsToFiat: (sats: number) => number
   onValueChange: (value: number) => void
 }
 
@@ -31,7 +32,8 @@ function SSFeeInput({
   vbytes,
   value,
   fiatCurrency,
-  satsToFiat,
+  btcPrice,
+  fiatEnabled,
   onValueChange
 }: SSFeeInputProps) {
   const [slidingValue, setSlidingValue] = useState<number>()
@@ -62,7 +64,14 @@ function SSFeeInput({
               </SSHStack>
               <SSHStack style={{ justifyContent: 'center' }} gap="xxs">
                 <SSText>
-                  {formatNumber(satsToFiat(Math.trunc(vbytes * feeRate)), 2)}
+                  {formatNumber(
+                    satsToFiat(
+                      Math.trunc(vbytes * feeRate),
+                      btcPrice,
+                      fiatEnabled
+                    ),
+                    2
+                  )}
                 </SSText>
                 <SSText color="muted">{fiatCurrency}</SSText>
               </SSHStack>
