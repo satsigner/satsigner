@@ -1,5 +1,10 @@
-import { useRef, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { useState } from 'react'
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance
+} from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 
@@ -45,7 +50,7 @@ type SSCurrencyInputProps = {
   align?: 'center' | 'left'
   actionRight?: React.ReactNode
   onChangeValue: (value: number) => void
-  ref?: React.Ref<TextInput>
+  ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSCurrencyInput({
@@ -63,10 +68,10 @@ function SSCurrencyInput({
   const [localValue, setLocalValue] = useState(() =>
     formatNumberWithCommas(value?.replaceAll(',', '') || '0', decimal)
   )
-  const prevValueRef = useRef(value)
+  const [prevValue, setPrevValue] = useState(value)
 
-  if (value !== prevValueRef.current && value !== undefined) {
-    prevValueRef.current = value
+  if (value !== prevValue && value !== undefined) {
+    setPrevValue(value)
     const formatted =
       formatNumberWithCommas(value.replaceAll(',', ''), decimal) || ''
     if (formatted !== localValue) {
@@ -167,7 +172,7 @@ const styles = StyleSheet.create({
   textInputBase: {
     borderRadius: Sizes.textInput.borderRadius,
     color: Colors.white,
-    fontFamily: Typography.sfProTextRegular,
+    fontFamily: Typography.geistRegular,
     textAlign: 'center',
     width: '100%'
   },

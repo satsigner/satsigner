@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -39,15 +39,19 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountFingerprint } from '@/utils/account'
+import { getAccountFingerprint, getAccountLabelCounts } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { formatAccountCreationDate } from '@/utils/date'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+
+async function decryptFirstKeyMnemonic(accountId: string) {
+  const accountSecret = await decryptAccountKeySecret(accountId, 0)
+  return accountSecret.mnemonic || ''
+}
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -67,9 +71,7 @@ export default function AccountSettings() {
     useShallow((state) => [state.removeAccountWallet, state.dbPaths])
   )
 
-  const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
-    account?.keys[0]?.scriptVersion || 'P2WPKH'
-  )
+  const scriptVersion = account?.keys[0]?.scriptVersion || 'P2WPKH'
   const [localMnemonic, setLocalMnemonic] = useState('')
   const decryptedKeys = useDecryptedKeys(account)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -82,23 +84,8 @@ export default function AccountSettings() {
     'mnemonic' | 'deletion' | null
   >()
 
-  const labels = account?.labels ? Object.values(account.labels) : []
-  const labelCounts = {
-    addresses: {
-      labeled: labels.filter((l) => l.type === 'addr').length,
-      total: account?.addresses?.length || 0
-    },
-    transactions: {
-      labeled: labels.filter((l) => l.type === 'tx').length,
-      total: account?.transactions?.length || 0
-    },
-    utxos: {
-      labeled: labels.filter((l) => l.type === 'output').length,
-      total: account?.utxos?.length || 0
-    }
-  }
-
   const {
+    accountName,
     localAccountName,
     isValidName,
     isPseudoDuplicatedName,
@@ -157,7 +144,7 @@ export default function AccountSettings() {
   }
 
   function saveChanges() {
-    updateAccountName(currentAccountId, localAccountName)
+    updateAccountName(currentAccountId, accountName)
     router.replace(`/signer/bitcoin/account/${currentAccountId}/`)
   }
 
@@ -213,24 +200,18 @@ export default function AccountSettings() {
     }
 
     try {
-      const accountSecret = await decryptAccountKeySecret(account.id, 0)
-      setLocalMnemonic(accountSecret.mnemonic || '')
+      const mnemonic = await decryptFirstKeyMnemonic(account.id)
+      setLocalMnemonic(mnemonic)
     } catch {
       toast.error(t('account.seed.unableToDecrypt'))
     }
   }
 
-  useEffect(() => {
-    const accountKeys = account?.keys
-    const scriptVersion = accountKeys?.[0]?.scriptVersion
-    if (scriptVersion) {
-      setScriptVersion(scriptVersion)
-    }
-  }, [account?.keys])
-
   if (!currentAccountId || !account || !scriptVersion) {
     return <Redirect href="/" />
   }
+
+  const labelCounts = getAccountLabelCounts(account)
 
   return (
     <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>

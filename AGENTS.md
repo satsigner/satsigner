@@ -4,6 +4,10 @@ Satsigner is a privacy-first bitcoin signer with complete UTXO control. Built on
 
 Focused on user experience for everyday use. It also allows easy movements between Bitcoin layers, enhancing the utility of your sats.
 
+## Git remotes
+
+GitHub is the main host. `origin` and `upstream` both point at `https://github.com/satsigner/satsigner.git`. Push there by default. The `ngit` remote only gets a push when the developer explicitly asks for one.
+
 ## Pull requests
 
 - Never make a PR unless the developer explicitly asks you to do so.
@@ -14,6 +18,7 @@ Focused on user experience for everyday use. It also allows easy movements betwe
 
 - `apps/mobile` - Satsigner mobile app.
 - `apps/docs` - Documentation website.
+- `tools/release` - Local maintainer console for ngit and Zapstore. It is not a shipped app.
 
 ## Security
 

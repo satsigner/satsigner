@@ -9,10 +9,26 @@
  * 4. Publishes a kind 1 nostr announcement
  *
  * Usage:
- *   node scripts/publish-zapstore.mjs [--blossom <url>] [--notes "release notes"]
+ *   node scripts/publish-zapstore.mjs [--blossom <url>] [--notes "release notes"] [--yes] [--only zapstore|announce] [--dry-run]
  *
- *   --blossom  Blossom server URL (default: https://cdn.zapstore.dev)
- *   --notes    Pre-fill the kind 1 announcement text (skips the interactive prompt)
+ *   --blossom   Blossom server URL (default: https://cdn.zapstore.dev)
+ *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
+ *   --yes       Publish the announcement without a second prompt
+ *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
+ *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
+ *               zsp fetches the APK from the configured source — no local build.
+ *
+ * Non-interactive / agent / CI env vars:
+ *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
+ *   SIGN_WITH_MNEMONIC Space-separated BIP39 mnemonic (alternative to SIGN_WITH nsec)
+ *   RELEASE_NOTES      Release notes string (preferred over --notes to avoid argv injection)
+ *   CI=true            Implies --yes and structured output (set automatically by most CI)
+ *   AGENT=true         Same as CI=true — set when calling from an agent or script
+ *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
+ *
+ * Security note:
+ *   --channel primary is BLOCKED until a release keystore is in place.
+ *   The public debug.keystore (password "android") must never be used for production.
  *
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
@@ -20,15 +36,22 @@
  *   zapstore.yaml must exist at repo root (copy from zapstore.yaml.example)
  */
 
-import { spawn } from 'child_process'
-import { existsSync } from 'fs'
+import { execFileSync, spawn } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'module'
 import path from 'path'
 import readline from 'readline'
 import { fileURLToPath } from 'url'
+import { parseArgs } from 'util'
 
-import { nip19, getPublicKey, finalizeEvent } from 'nostr-tools'
+import {
+  nip19,
+  getPublicKey,
+  finalizeEvent,
+  generateSecretKey
+} from 'nostr-tools'
 import * as nip06 from 'nostr-tools/nip06'
+import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -36,23 +59,72 @@ const MOBILE_DIR = path.resolve(__dirname, '..')
 const REPO_ROOT = path.resolve(MOBILE_DIR, '../..')
 const require = createRequire(import.meta.url)
 const { version: APP_VERSION } = require('../package.json')
+const {
+  getVariantPackageId,
+  sanitizePackageSegment
+} = require('../constants/variant.cjs')
 
-const args = process.argv.slice(2)
-const blossomFlagIdx = args.indexOf('--blossom')
-const notesFlagIdx = args.indexOf('--notes')
+const { values: flags } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    blossom: { type: 'string' },
+    channel: { type: 'string' },
+    config: { type: 'string' },
+    'dry-run': { type: 'boolean' },
+    notes: { type: 'string' },
+    only: { type: 'string' },
+    yes: { type: 'boolean' }
+  },
+  strict: true
+})
+
+// Agent / CI mode: CI=true or AGENT=true implies --yes and structured output
+const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
+const yes = flags.yes === true || isAgent
+const dryRun = flags['dry-run'] === true
+
+// Key resolution — env takes precedence, interactive prompt is the fallback
+const envSignWith = process.env.SIGN_WITH ?? ''
+const envMnemonic = process.env.SIGN_WITH_MNEMONIC ?? ''
+const bunkerUrl = envSignWith.startsWith('bunker://') ? envSignWith : ''
+const envNsec = envSignWith.startsWith('nsec1') ? envSignWith : ''
 const ANDROID_DIR = path.join(MOBILE_DIR, 'android')
 const APK_OUTPUT = path.join(
   ANDROID_DIR,
   'app/build/outputs/apk/release/app-release.apk'
 )
 
-const BLOSSOM_URL =
-  blossomFlagIdx !== -1
-    ? (args[blossomFlagIdx + 1] ?? 'https://cdn.zapstore.dev')
-    : 'https://cdn.zapstore.dev'
-const NOTES_ARG = notesFlagIdx !== -1 ? (args[notesFlagIdx + 1] ?? null) : null
+const BLOSSOM_URL = flags.blossom ?? 'https://cdn.zapstore.dev'
+const NOTES_ARG =
+  process.env.RELEASE_NOTES !== undefined
+    ? process.env.RELEASE_NOTES
+    : (flags.notes ?? null)
+const ONLY = flags.only ?? ''
+const CHANNEL = flags.channel ?? ''
+const CONFIG_YAML = flags.config
+  ? path.resolve(REPO_ROOT, flags.config)
+  : path.join(REPO_ROOT, 'zapstore.yaml')
+const ZAPSTORE_ONLY = ONLY === 'zapstore'
+const ANNOUNCE_ONLY = ONLY === 'announce'
 const EAS_PROFILE = 'development'
-const ZAPSTORE_APP_URL = 'https://zapstore.dev/app/com.satsigner.satsigner.dev'
+function gitBranch() {
+  return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  }).trim()
+}
+
+function apkPackageId() {
+  if (CHANNEL === 'primary') return getVariantPackageId(false, '')
+  if (CHANNEL === 'dev') return getVariantPackageId(true, gitBranch())
+  const gradlePath = path.join(ANDROID_DIR, 'app/build.gradle')
+  if (!existsSync(gradlePath)) return 'com.satsigner.satsigner.dev'
+  const gradle = readFileSync(gradlePath, 'utf8')
+  const match = gradle.match(/applicationId '([^']+)'/)
+  return match?.[1] ?? 'com.satsigner.satsigner.dev'
+}
+
+const ZAPSTORE_APP_URL = `https://zapstore.dev/apps/${apkPackageId()}`
 
 const ANNOUNCEMENT_RELAYS = [
   'wss://relay.damus.io',
@@ -108,6 +180,26 @@ function prompt(question) {
 // ── key resolution ────────────────────────────────────────────────────────────
 
 async function resolveSecretKey() {
+  // Env-based nsec — no TTY or interactive prompt needed (agent / CI path)
+  if (envNsec) {
+    const decoded = nip19.decode(envNsec)
+    if (decoded.type !== 'nsec') {
+      throw new Error('SIGN_WITH does not decode to a valid nsec')
+    }
+    return Buffer.from(decoded.data)
+  }
+
+  // Env-based mnemonic (SIGN_WITH_MNEMONIC)
+  if (envMnemonic) {
+    const words = envMnemonic.trim()
+    if (words.split(' ').length < 12) {
+      throw new Error('SIGN_WITH_MNEMONIC must be at least 12 words')
+    }
+    const hexKey = nip06.privateKeyFromSeedWords(words)
+    return Buffer.from(hexKey, 'hex')
+  }
+
+  // Interactive fallback (human at a terminal)
   const choice = await prompt('Sign with (1) nsec  (2) mnemonic  [1/2]: ')
 
   if (choice === '2') {
@@ -137,10 +229,13 @@ async function resolveSecretKey() {
 function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
   return new Promise((resolve, reject) => {
     const lines = []
+    // On Windows, spawn needs shell:true to find .cmd shims (pnpm.cmd, etc.)
+    const isWindows = process.platform === 'win32'
     const proc = spawn(cmd, args, {
       cwd,
       env: { ...process.env, ...env },
-      stdio: ['inherit', 'pipe', 'pipe']
+      stdio: ['inherit', 'pipe', 'pipe'],
+      shell: isWindows
     })
 
     proc.stdout.on('data', (chunk) => {
@@ -165,6 +260,18 @@ function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
 
 // ── nostr announcement ────────────────────────────────────────────────────────
 
+async function signWithBunker(unsigned) {
+  const parsed = await parseBunkerInput(bunkerUrl)
+  if (!parsed?.pubkey || parsed.relays.length === 0) {
+    throw new Error('bunker URL is missing a pubkey or relay')
+  }
+  const signer = BunkerSigner.fromBunker(generateSecretKey(), parsed)
+  await signer.connect()
+  const signed = await signer.signEvent(unsigned)
+  await signer.close()
+  return signed
+}
+
 async function publishAnnouncement(secretKey, releaseNotes) {
   const contentLines = [`SatSigner v${APP_VERSION} is out!`]
   if (releaseNotes) {
@@ -177,19 +284,19 @@ async function publishAnnouncement(secretKey, releaseNotes) {
     '#release #bitcoin #satsigner #nostr'
   )
 
-  const event = finalizeEvent(
-    {
-      content: contentLines.join('\n'),
-      created_at: Math.floor(Date.now() / 1000),
-      kind: 1,
-      tags: [
-        ['t', 'release'],
-        ['t', 'bitcoin'],
-        ['t', 'satsigner']
-      ]
-    },
-    secretKey
-  )
+  const unsigned = {
+    content: contentLines.join('\n'),
+    created_at: Math.floor(Date.now() / 1000),
+    kind: 1,
+    tags: [
+      ['t', 'release'],
+      ['t', 'bitcoin'],
+      ['t', 'satsigner']
+    ]
+  }
+  const event = secretKey
+    ? finalizeEvent(unsigned, secretKey)
+    : await signWithBunker(unsigned)
 
   const pool = new SimplePool()
   console.log('\nPublishing announcement to relays...')
@@ -213,10 +320,9 @@ async function publishAnnouncement(secretKey, releaseNotes) {
 // ── pre-flight checks ─────────────────────────────────────────────────────────
 
 function checkPrerequisites() {
-  const zapstoreYaml = path.join(REPO_ROOT, 'zapstore.yaml')
-  if (!existsSync(zapstoreYaml)) {
+  if (!existsSync(CONFIG_YAML)) {
     throw new Error(
-      `zapstore.yaml not found at ${zapstoreYaml}\n` +
+      `${CONFIG_YAML} not found.\n` +
         'Create it first: cp zapstore.yaml.example zapstore.yaml\n' +
         'Then fill in your npub.'
     )
@@ -231,6 +337,72 @@ function step(n, label) {
   console.log(`\n[${n}/${TOTAL_STEPS}] ${label}`)
 }
 
+async function buildReleaseApk() {
+  if (CHANNEL !== 'primary' && CHANNEL !== 'dev') {
+    if (apkPackageId() === getVariantPackageId(false, '')) {
+      throw new Error(
+        'android/ is prebuilt with the production package id. ' +
+          'Production APKs are disabled until a release keystore is in place.'
+      )
+    }
+    console.log('  Running: ./gradlew assembleRelease\n')
+    const androidHome =
+      process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
+    await run('./gradlew', ['assembleRelease'], {
+      cwd: ANDROID_DIR,
+      env: { ANDROID_HOME: androidHome }
+    })
+    if (!existsSync(APK_OUTPUT)) {
+      throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
+    }
+    return APK_OUTPUT
+  }
+
+  if (CHANNEL === 'primary') {
+    // Production channel uses com.satsigner.satsigner — the same package id as
+    // the official release. Publishing this APK signed with the public debug.keystore
+    // (password "android") would let anyone push a spoofed update over it.
+    // Block primary until a real release keystore is configured.
+    throw new Error(
+      '--channel primary is disabled until a release keystore is in place.\n' +
+        'Production APKs must be signed with the same key as the official release.\n' +
+        'Set up release signing (EAS credentials or GitHub secrets) first.'
+    )
+  }
+
+  const variantArgs = [
+    '--dir',
+    'apps/mobile',
+    'variant',
+    '--',
+    '--apk',
+    '--release'
+  ]
+  if (CHANNEL === 'primary') variantArgs.push('--prod', '--plain')
+  console.log(
+    CHANNEL === 'primary'
+      ? '  Primary release: clean name, production package id\n'
+      : '  Dev release: branch name and package id\n'
+  )
+  await run('pnpm', variantArgs, { cwd: REPO_ROOT })
+
+  const segment =
+    CHANNEL === 'primary'
+      ? 'plain'
+      : sanitizePackageSegment(gitBranch()) || 'plain'
+  const label = CHANNEL === 'primary' ? 'prod' : 'dev'
+  const apkPath = path.join(
+    MOBILE_DIR,
+    'dist',
+    'apks',
+    `satsigner-${label}-${segment}-release.apk`
+  )
+  if (!existsSync(apkPath)) {
+    throw new Error(`APK not found at expected path:\n  ${apkPath}`)
+  }
+  return apkPath
+}
+
 async function main() {
   console.log('=== SatSigner Zapstore Publisher ===')
   console.log(`  App version : v${APP_VERSION}`)
@@ -238,8 +410,14 @@ async function main() {
   console.log(`  Blossom URL : ${BLOSSOM_URL}`)
   console.log(`  Zapstore    : ${ZAPSTORE_APP_URL}`)
   console.log(`  Relays      : ${ANNOUNCEMENT_RELAYS.join(', ')}`)
+  if (isAgent) console.log('  Mode        : agent/CI (non-interactive)')
+  if (dryRun) console.log('  Dry-run     : build only, no publish')
   console.log('\nWhat will happen:')
-  console.log('  1. You enter your nsec or seed words (hidden, never saved)')
+  console.log(
+    bunkerUrl
+      ? '  1. The release page signs with your browser extension'
+      : '  1. You enter your nsec or seed words (hidden, never saved)'
+  )
   console.log('  2. EAS builds the Android APK locally')
   console.log('  3. zsp uploads APK to Blossom and publishes to Zapstore relay')
   console.log(
@@ -247,64 +425,119 @@ async function main() {
   )
   console.log('')
 
+  if (ONLY && !ZAPSTORE_ONLY && !ANNOUNCE_ONLY) {
+    throw new Error('--only must be zapstore or announce')
+  }
+
   checkPrerequisites()
 
-  step(1, 'Sign in — enter your key')
+  step(1, bunkerUrl ? 'Sign in — browser bunker' : 'Sign in — enter your key')
   console.log(
     '  Your key is used to sign the Zapstore event and the announcement.'
   )
   console.log('  It is never written to disk.\n')
 
-  const secretKey = await resolveSecretKey()
-  const nsecForZsp = nip19.nsecEncode(secretKey)
-  const pubkey = getPublicKey(secretKey)
-  console.log(`  Pubkey: ${pubkey}`)
-
-  step(2, 'Build APK')
-  console.log('  Running: ./gradlew assembleRelease\n')
-
-  const androidHome =
-    process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
-
-  await run('./gradlew', ['assembleRelease'], {
-    cwd: ANDROID_DIR,
-    env: { ANDROID_HOME: androidHome }
-  })
-
-  if (!existsSync(APK_OUTPUT)) {
-    throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
+  const secretKey = bunkerUrl ? null : await resolveSecretKey()
+  const signWith = bunkerUrl ? bunkerUrl : nip19.nsecEncode(secretKey)
+  if (secretKey) {
+    console.log(`  Pubkey: ${getPublicKey(secretKey)}`)
   }
 
-  const apkPath = APK_OUTPUT
-  console.log(`\n  APK: ${apkPath}`)
+  if (!ANNOUNCE_ONLY) {
+    // When a custom config yaml is specified, zsp fetches the APK from the
+    // configured source (GitHub releases etc.) — no local build needed.
+    // When using the default zapstore.yaml, we build locally and pass the APK path.
+    const usingCustomConfig = Boolean(flags.config)
 
-  step(3, 'Publish to Zapstore')
-  console.log(`  Uploading APK to Blossom (${BLOSSOM_URL})`)
-  console.log(
-    '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
-  )
+    let apkPath = null
+    if (!usingCustomConfig) {
+      step(2, 'Build APK')
+      apkPath = await buildReleaseApk()
+      console.log(`\n  APK: ${apkPath}`)
+    } else {
+      step(2, 'Build APK')
+      console.log(
+        '  Using config yaml — zsp will fetch APK from configured source.'
+      )
+    }
 
-  const zspBin = process.env.ZSP_BIN ?? `${process.env.HOME}/go/bin/zsp`
-  try {
-    await run(zspBin, ['publish', apkPath], {
-      cwd: REPO_ROOT,
-      env: {
-        BLOSSOM_URL,
-        SIGN_WITH: nsecForZsp
+    step(3, 'Publish to Zapstore')
+    console.log(`  Uploading APK to Blossom (${BLOSSOM_URL})`)
+    console.log(
+      '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
+    )
+
+    const zspBin =
+      process.env.ZSP_BIN ??
+      (process.platform === 'win32'
+        ? `${process.env.USERPROFILE}\\go\\bin\\zsp.exe`
+        : `${process.env.HOME}/go/bin/zsp`)
+    // Pass the yaml config OR the local APK path — never both
+    const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
+    const zspFlags = ['publish', '--quiet', '--skip-preview']
+
+    // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
+    // when we're using the default yaml. For custom configs (--config), use
+    // --json instead for machine-readable output without the override.
+    if (isAgent && !usingCustomConfig) {
+      zspFlags.push('--indexer-mode')
+    } else if (isAgent) {
+      zspFlags.push('--json')
+    }
+
+    zspFlags.push(zspTarget)
+
+    if (dryRun) {
+      console.log('  [dry-run] Skipping zsp publish.')
+    } else {
+      try {
+        await run(zspBin, zspFlags, {
+          cwd: REPO_ROOT,
+          env: {
+            BLOSSOM_URL,
+            SIGN_WITH: signWith
+          }
+        })
+      } catch {
+        // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
+        // Interactive combined runs can still continue to the announcement prompt.
+        // Zapstore-only and --yes runs must fail instead of reporting success.
+        if (ZAPSTORE_ONLY || yes) {
+          secretKey?.fill(0)
+          throw new Error(
+            ZAPSTORE_ONLY
+              ? 'zsp publish failed'
+              : 'zsp publish failed; announcement skipped'
+          )
+        }
+        console.log(
+          '\n  zsp exited with errors — continuing to announcement step.'
+        )
       }
-    })
-  } catch {
-    // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
-    // Continue to the announcement step anyway.
-    console.log('\n  zsp exited with errors — continuing to announcement step.')
+    }
+  }
+
+  if (ZAPSTORE_ONLY) {
+    secretKey?.fill(0)
+    console.log('\nDone.')
+    process.exit(0)
   }
 
   step(4, 'Post release announcement')
 
+  if (dryRun) {
+    console.log('  [dry-run] Skipping announcement.')
+    secretKey?.fill(0)
+    console.log('\nDone (dry-run).')
+    process.exit(0)
+  }
+
   const releaseNotes =
     NOTES_ARG !== null
       ? NOTES_ARG
-      : await prompt('  Release notes (optional, press Enter to skip): ')
+      : yes
+        ? ''
+        : await prompt('  Release notes (optional, press Enter to skip): ')
 
   const noteLines = [`SatSigner v${APP_VERSION} is out!`]
   if (releaseNotes) {
@@ -324,14 +557,14 @@ async function main() {
   }
   console.log('  └─────────────────────────────────────────────')
 
-  const confirm = await prompt('\n  Publish this note? [y/N]: ')
+  const confirm = yes ? 'y' : await prompt('\n  Publish this note? [y/N]: ')
   if (confirm.toLowerCase() !== 'y') {
     console.log('  Skipped.')
   } else {
     await publishAnnouncement(secretKey, releaseNotes || null)
   }
 
-  secretKey.fill(0)
+  secretKey?.fill(0)
 
   console.log('\nDone.')
   process.exit(0)

@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { StyleProp, TextInput, ViewStyle } from 'react-native'
+import type { StyleProp, TextInputInstance, ViewStyle } from 'react-native'
 import { type Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -81,6 +81,18 @@ function isPrefixWord(word: string, wordList: string[]): boolean {
   return wordList.some((w) => w.startsWith(word) && w !== word)
 }
 
+async function runActionWithLoading(
+  action: SSSeedWordsInputProps['onActionButtonPress'],
+  setLoading: (loading: boolean) => void
+) {
+  setLoading(true)
+  try {
+    await action?.()
+  } finally {
+    setLoading(false)
+  }
+}
+
 export default function SSSeedWordsInput({
   wordCount,
   wordListName,
@@ -126,9 +138,9 @@ export default function SSSeedWordsInput({
       : passphraseStrength?.level === 'fair'
         ? warning
         : error
-  const passphraseRef = useRef<TextInput>(null)
+  const passphraseRef = useRef<TextInputInstance>(null)
   const clipboardCheckedRef = useRef(false)
-  const wordInputRefs = useRef<(TextInput | null)[]>([])
+  const wordInputRefs = useRef<(TextInputInstance | null)[]>([])
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const handleWordSelectedRef =
     useRef<(word?: string) => Promise<void>>(undefined)
@@ -143,7 +155,7 @@ export default function SSSeedWordsInput({
       value: ''
     }))
     setSeedWordsInfo(initialSeedWordsInfo)
-    wordInputRefs.current = Array.from<TextInput | null>({
+    wordInputRefs.current = Array.from<TextInputInstance | null>({
       length: wordCount
     }).fill(null)
   }, [wordCount])
@@ -309,27 +321,39 @@ export default function SSSeedWordsInput({
     [passphrase, onMnemonicValid, onMnemonicInvalid, wordListName]
   )
 
-  const readSeedFromClipboard = useCallback(async () => {
-    try {
-      const clipboardText = await Clipboard.getStringAsync()
-      const text = clipboardText.trim()
-      const seed = checkClipboardForSeed(text)
-      if (seed.length > 0) {
-        await fillOutSeedWords(seed)
-        toast.success('Seed words pasted from clipboard')
-      } else {
-        toast.error('No valid seed found in clipboard')
+  // The automatic check on open stays silent unless it finds a seed; only the
+  // Paste button reports a miss.
+  const readSeedFromClipboard = useCallback(
+    async (reportMiss: boolean) => {
+      try {
+        const clipboardText = await Clipboard.getStringAsync()
+        const text = clipboardText.trim()
+        const seed = checkClipboardForSeed(text)
+        if (seed.length > 0) {
+          await fillOutSeedWords(seed)
+          toast.success(t('account.import.clipboard.seedPasted'))
+        } else if (reportMiss) {
+          toast.error(t('account.import.clipboard.noSeed'))
+        }
+      } catch (error) {
+        if (!reportMiss) {
+          return
+        }
+        const reason = error instanceof Error ? error.message : String(error)
+        toast.error(t('account.import.clipboard.readFailed', { reason }))
       }
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      toast.error(`Failed to read clipboard, ${reason}`)
-    }
-  }, [checkClipboardForSeed, fillOutSeedWords])
+    },
+    [checkClipboardForSeed, fillOutSeedWords]
+  )
+
+  function handlePasteFromClipboard() {
+    readSeedFromClipboard(true)
+  }
 
   useEffect(() => {
     if (autoCheckClipboard && !clipboardCheckedRef.current) {
       clipboardCheckedRef.current = true
-      readSeedFromClipboard()
+      readSeedFromClipboard(false)
     }
   }, [autoCheckClipboard]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -547,7 +571,7 @@ export default function SSSeedWordsInput({
               <SSButton
                 label={t('common.paste')}
                 variant="outline"
-                onPress={readSeedFromClipboard}
+                onPress={handlePasteFromClipboard}
                 style={{ flex: 1 }}
               />
             )}
@@ -569,14 +593,9 @@ export default function SSSeedWordsInput({
               actionButtonDisabled || (!checksumValid && !electrumSeedType)
             }
             loading={actionButtonLoading}
-            onPress={async () => {
-              setActionButtonLoading(true)
-              try {
-                await onActionButtonPress?.()
-              } finally {
-                setActionButtonLoading(false)
-              }
-            }}
+            onPress={() =>
+              runActionWithLoading(onActionButtonPress, setActionButtonLoading)
+            }
           />
         )}
         {showCancelButton && (

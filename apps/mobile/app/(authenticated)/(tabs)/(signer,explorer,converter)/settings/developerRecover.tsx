@@ -14,7 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { BackupJsonSchema } from '@/types/models/Backup'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
@@ -105,7 +105,7 @@ export default function DeveloperRecover() {
     if (skipPin) {
       const { success } = await performRecoverOverwrite(recoverDecrypted)
       if (success) {
-        toast.success(t('settings.developer.backupSuccess'))
+        toast.success(t('settings.developer.recoverSuccess'))
       } else {
         toast.error(t('settings.developer.recoverOverwriteError'))
       }
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     borderWidth: 1,
     color: Colors.gray['200'],
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 11,
     maxHeight: ENCRYPTED_BACKUP_MAX_HEIGHT,
     minHeight: 120,

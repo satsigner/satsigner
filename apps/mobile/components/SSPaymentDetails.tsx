@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -106,7 +107,7 @@ function SSPaymentDetails({
   showPaymentHash = true
 }: SSPaymentDetailsProps) {
   const amountSats = bolt11AmountSats(decodedInvoice)
-  const nowMs = Date.now()
+  const nowMs = useNow()
   const createdAt = new Date(Number(decodedInvoice.timestamp) * MS_PER_SECOND)
   const expiresAt = new Date(
     Number(decodedInvoice.timestamp) * MS_PER_SECOND +
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   hashText: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     opacity: 0.8,
     textAlign: 'right'
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   monospaceInput: {
-    fontFamily: Typography.sfProMono,
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5
   }

@@ -19,6 +19,7 @@ import {
 import { registerArkProvider } from '@/api/ark/registry'
 import {
   ARK_BOARD_PAYJOIN_NATIVE_MISSING,
+  ARK_LIGHTNING_RETRY_FOR_SECS,
   ARK_LIGHTNING_SEND_WAIT,
   ARK_NO_HTLC_VTXOS_LOCKED,
   ARK_PENDING_RACE_TIMEOUT_MS,
@@ -383,13 +384,13 @@ function mapLightningSendStatus(
   }
 }
 
-function sendArkoor(
+async function sendArkoor(
   accountId: string,
   arkAddress: string,
   amountSats: number
 ): Promise<void> {
   const wallet = getCachedWallet(accountId)
-  return wallet.sendArkoorPayment(arkAddress, BigInt(amountSats))
+  await wallet.sendArkoorPayment(arkAddress, BigInt(amountSats))
 }
 
 function invoiceAmountSats(invoice: string): number {
@@ -410,7 +411,8 @@ async function payBolt11(
   const status = await wallet.payLightningInvoice(
     invoice,
     amount,
-    ARK_LIGHTNING_SEND_WAIT
+    ARK_LIGHTNING_SEND_WAIT,
+    ARK_LIGHTNING_RETRY_FOR_SECS
   )
   return mapLightningSendStatus(
     status,
@@ -430,7 +432,8 @@ async function payLightningAddress(
     address,
     BigInt(amountSats),
     comment,
-    ARK_LIGHTNING_SEND_WAIT
+    ARK_LIGHTNING_SEND_WAIT,
+    ARK_LIGHTNING_RETRY_FOR_SECS
   )
   return mapLightningSendStatus(status, '', amountSats)
 }
@@ -617,6 +620,15 @@ async function estimateRefreshFee(
   return mapFeeEstimate(estimate)
 }
 
+async function offboardToAddress(
+  wallet: WalletLike,
+  bitcoinAddress: string,
+  amountSats: number
+): Promise<string> {
+  const { txid } = await wallet.sendOnchain(bitcoinAddress, BigInt(amountSats))
+  return txid
+}
+
 function sendOnchain(
   accountId: string,
   bitcoinAddress: string,
@@ -627,7 +639,7 @@ function sendOnchain(
     'ark-sendOnchain',
     accountId,
     (movement) => movement.subsystemKind === 'send_onchain',
-    wallet.sendOnchain(bitcoinAddress, BigInt(amountSats))
+    offboardToAddress(wallet, bitcoinAddress, amountSats)
   )
 }
 

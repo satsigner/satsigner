@@ -7,8 +7,7 @@ import {
   Paragraph,
   Path,
   Skia,
-  TextAlign,
-  useFonts
+  TextAlign
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
 import {
@@ -22,9 +21,10 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import SSLoader from '@/components/SSLoader'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
 import SSPressable from './SSPressable'
@@ -55,13 +55,7 @@ function SSSpiralBlocks({
   canvasHeight,
   onBlockPress
 }: SSSpiralBlocksProps) {
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
-  })
+  const customFontManager = useGeistFonts()
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
@@ -81,7 +75,7 @@ function SSSpiralBlocks({
   const TextStyleWeeks = useMemo(
     () => ({
       color: Skia.Color(Colors.gray[100]),
-      fontFamilies: ['SF Pro Text'],
+      fontFamilies: [Typography.geistSkiaFamily],
       fontSize,
       fontStyle: {
         weight: 400
@@ -181,7 +175,7 @@ function SSSpiralBlocks({
   const paths = useMemo(
     () =>
       spiralBlocks.map((block) => {
-        const path = Skia.Path.Make()
+        const builder = Skia.PathBuilder.Make()
         const cosTheta = Math.cos(block.rotation)
         const sinTheta = Math.sin(block.rotation)
 
@@ -196,13 +190,13 @@ function SSSpiralBlocks({
           return [rotatedX, rotatedY]
         })
 
-        path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
-        path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
-        path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
-        path.lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
-        path.close()
-
-        return path
+        return builder
+          .moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
+          .lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
+          .lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
+          .lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
+          .close()
+          .detach()
       }),
     [spiralBlocks, centerX, centerY, halfSize]
   )

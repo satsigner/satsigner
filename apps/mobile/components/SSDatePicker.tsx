@@ -1,17 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   type DimensionValue,
   ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
-  View
+  View,
+  type ScrollViewInstance
 } from 'react-native'
 
 import { useMountEffect } from '@/hooks/useMountEffect'
 import { t } from '@/locales'
-import { sfProTextRegular } from '@/styles/typography'
+import { geistRegular } from '@/styles/typography'
 
 import SSPressable from './SSPressable'
 
@@ -283,17 +284,21 @@ function DateBlock({
   const fadeMid: string = hex2rgba(fadeColor || '#ffffff', 0.82)
   const fadeTransparent: string = hex2rgba(fadeColor || '#ffffff', 0)
 
-  const scrollRef = useRef<ScrollView>(null)
+  const scrollRef = useRef<ScrollViewInstance>(null)
 
   const snapScrollToIndex = (index: number) => {
     scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })
   }
 
+  const [firstDigit] = digits
+  const snapScrollToValue = useEffectEvent(() => {
+    snapScrollToIndex(value - firstDigit)
+  })
+
   useEffect(() => {
-    setTimeout(() => {
-      snapScrollToIndex(value - digits[0])
-    }, 0)
-  }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => snapScrollToValue(), 0)
+    return () => clearTimeout(timer)
+  }, [firstDigit])
 
   const handleMomentumScrollEnd = ({
     nativeEvent
@@ -409,7 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   digit: {
-    fontFamily: sfProTextRegular,
+    fontFamily: geistRegular,
     fontSize: 20,
     textAlign: 'center'
   },

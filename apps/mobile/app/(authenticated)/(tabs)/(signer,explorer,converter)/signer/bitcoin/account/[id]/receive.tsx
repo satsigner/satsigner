@@ -2,8 +2,8 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
-import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
+import { StyleSheet, TextInput, type ViewInstance } from 'react-native'
+import { type BdkWallet, KeychainKind, Psbt } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -44,8 +44,9 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type Label } from '@/types/bips/329'
+import { type Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -118,6 +119,32 @@ function payjoinReceiveHintKey(statusLabelKey: string): string | null {
   return null
 }
 
+function getActiveReceiverSession(accountId: string | undefined) {
+  return accountId
+    ? usePayjoinSessionsStore.getState().getActiveReceiverSession(accountId)
+    : undefined
+}
+
+function peekNextExternalAddress(
+  wallet: BdkWallet,
+  account: Account,
+  currentIndex?: number
+) {
+  const nextIndex = (currentIndex || 0) + 1
+  const newAddressInfo = wallet.peekAddress(KeychainKind.External, nextIndex)
+  const address = newAddressInfo?.address ?? ''
+  return {
+    localAddress: address,
+    localAddressNumber: nextIndex,
+    localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`,
+    localAddressQR: address ? `bitcoin:${address}` : ''
+  }
+}
+
+function findAddressLabel(addresses: Account['addresses'], address: string) {
+  return addresses.find((addr) => addr.address === address)?.label || ''
+}
+
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
@@ -130,9 +157,7 @@ export default function Receive() {
   )
   const wallet = useGetAccountWallet(id)
   const { sendLabelsToNostr } = useNostrSync()
-  const existingPayjoinSession = id
-    ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
-    : undefined
+  const existingPayjoinSession = getActiveReceiverSession(id)
 
   const [addressData, setAddressData] = useState<{
     localAddress?: string
@@ -189,7 +214,7 @@ export default function Receive() {
   // Distinguishes "user turned Payjoin off" from "we auto-disabled while UTXOs
   // were still empty on first paint" so we can re-enable once coins appear.
   const userSetPayjoinRef = useRef(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   // Master switch is read-only here; per-invoice control is local `includePayjoin`.
   const payjoinEnabled = useSettingsStore((state) => state.payjoinEnabled)
@@ -278,43 +303,51 @@ export default function Receive() {
     ? payjoinReceiveHintKey(statusLabelKey)
     : null
 
+  async function importManualOriginal(
+    originalPsbtBase64: string,
+    account: Account,
+    localAddress: string
+  ) {
+    const store = usePayjoinSessionsStore.getState()
+    const callbacks = buildPayjoinWalletCallbacks({
+      hasSeenInput: (outpoint) => store.hasSeenInput(outpoint),
+      markInputSeen: (outpoint) => store.markInputSeen(outpoint),
+      network: bitcoinjsNetwork(account.network),
+      ownedAddresses: [
+        localAddress,
+        ...(account.addresses ?? []).map((a) => a.address)
+      ],
+      signPsbt: signPayjoinPsbt,
+      transactions: account.transactions ?? [],
+      utxos: accountUtxos
+    })
+    const result = await processManualOriginalPsbt({
+      callbacks,
+      disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
+      originalPsbtBase64: originalPsbtBase64,
+      ownedScriptsHex: callbacks.ownedScriptsHex,
+      receiveAddress: localAddress,
+      seenOutpoints: []
+    })
+    if (!result.ok) {
+      toast.error(result.error)
+      return
+    }
+    setManualProposalPsbt(result.proposalPsbtBase64)
+    toast.success(t('receive.payjoin.manual.proposalReady'))
+  }
+
   async function handleImportManualOriginal(originalPsbtBase64: string) {
     if (!account || !localAddress || !wallet) {
       toast.error(t('receive.payjoin.manual.missingAddress'))
       return
     }
     setManualBusy(true)
-    try {
-      const store = usePayjoinSessionsStore.getState()
-      const callbacks = buildPayjoinWalletCallbacks({
-        hasSeenInput: (outpoint) => store.hasSeenInput(outpoint),
-        markInputSeen: (outpoint) => store.markInputSeen(outpoint),
-        network: bitcoinjsNetwork(account.network),
-        ownedAddresses: [
-          localAddress,
-          ...(account.addresses ?? []).map((a) => a.address)
-        ],
-        signPsbt: signPayjoinPsbt,
-        transactions: account.transactions ?? [],
-        utxos: accountUtxos
-      })
-      const result = await processManualOriginalPsbt({
-        callbacks,
-        disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
-        originalPsbtBase64: originalPsbtBase64,
-        ownedScriptsHex: callbacks.ownedScriptsHex,
-        receiveAddress: localAddress,
-        seenOutpoints: []
-      })
-      if (!result.ok) {
-        toast.error(result.error)
-        return
-      }
-      setManualProposalPsbt(result.proposalPsbtBase64)
-      toast.success(t('receive.payjoin.manual.proposalReady'))
-    } finally {
-      setManualBusy(false)
-    }
+    await importManualOriginal(
+      originalPsbtBase64,
+      account,
+      localAddress
+    ).finally(() => setManualBusy(false))
   }
 
   const nowMs = useNow()
@@ -327,6 +360,8 @@ export default function Receive() {
   const advertisePayjoinInQr = shouldIncludePayjoinInUri({
     amountSats: amountSatsForPayjoin
   })
+  const showPayjoinControls =
+    account?.policyType === 'singlesig' && payjoinEnabled
   const showBelowMinReceiveHint =
     includePayjoin &&
     payjoinEnabled &&
@@ -412,9 +447,7 @@ export default function Receive() {
     if (!derivationPath) {
       return
     }
-    const activeSession = id
-      ? usePayjoinSessionsStore.getState().getActiveReceiverSession(id)
-      : undefined
+    const activeSession = getActiveReceiverSession(id)
     const selection = resolveReceiveAddressSelection({
       derivationPath,
       fallback: {
@@ -460,30 +493,15 @@ export default function Receive() {
 
     setIsGenerating(true)
     try {
-      const nextIndex = (localAddressNumber || 0) + 1
-      const newAddressInfo = wallet.peekAddress(
-        KeychainKind.External,
-        nextIndex
+      const nextAddressData = peekNextExternalAddress(
+        wallet,
+        account,
+        localAddressNumber
       )
-      const address = newAddressInfo?.address ?? ''
-      const qrUri = address ? `bitcoin:${address}` : ''
-
-      setAddressData({
-        localAddress: address,
-        localAddressNumber: nextIndex,
-        localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`,
-        localAddressQR: qrUri
-      })
-
-      const existingAddress = account.addresses.find(
-        (addr) => addr.address === address
+      setAddressData(nextAddressData)
+      setLocalLabel(
+        findAddressLabel(account.addresses, nextAddressData.localAddress)
       )
-      if (existingAddress?.label) {
-        setLocalLabel(existingAddress.label)
-      } else {
-        setLocalLabel('')
-      }
-
       setIsManualAddress(true)
     } catch (error) {
       const errorMessage =
@@ -491,9 +509,8 @@ export default function Receive() {
           ? error.message
           : t('receive.error.generateAddress')
       toast.error(errorMessage)
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   function handleLabelChange(text: string) {
@@ -759,7 +776,7 @@ export default function Receive() {
                     style={styles.toggleButton}
                     onPress={handleToggleLabel}
                   />
-                  {account?.policyType === 'singlesig' ? (
+                  {showPayjoinControls ? (
                     <SSButton
                       testID="receive-payjoin-toggle"
                       label={
@@ -783,7 +800,7 @@ export default function Receive() {
                     />
                   ) : null}
                 </SSHStack>
-                {account?.policyType === 'singlesig' ? (
+                {showPayjoinControls ? (
                   !canContribute ? (
                     <SSText
                       testID="receive-payjoin-empty-wallet"
@@ -1061,7 +1078,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 16,
     letterSpacing: 1.5,
     lineHeight: 30,
@@ -1115,7 +1132,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     borderRadius: 4,
     color: Colors.white,
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 14,
     letterSpacing: 0.5,
     lineHeight: 18,

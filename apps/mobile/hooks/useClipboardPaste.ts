@@ -21,6 +21,75 @@ type UseClipboardPasteReturn = {
   pasteFromClipboardSilent: () => Promise<string | null>
 }
 
+async function pasteClipboardContent({
+  onPaste,
+  onError,
+  onSuccess,
+  validateContent,
+  trimContent,
+  showToast
+}: UseClipboardPasteParams) {
+  try {
+    const clipboardContent = await Clipboard.getStringAsync()
+
+    if (!clipboardContent) {
+      const errorMessage = t('watchonly.error.emptyClipboard')
+      if (showToast) {
+        toast.error(errorMessage)
+      }
+      onError?.(errorMessage)
+      return
+    }
+
+    const finalContent = trimContent
+      ? clipboardContent.trim()
+      : clipboardContent
+
+    if (validateContent) {
+      const validation = validateContent(finalContent)
+      if (!validation.isValid) {
+        const errorMessage =
+          validation.error || t('watchonly.error.clipboardPaste')
+        if (showToast) {
+          toast.error(errorMessage)
+        }
+        onError?.(errorMessage)
+        return
+      }
+    }
+
+    onPaste?.(finalContent)
+
+    if (showToast) {
+      toast.success(t('watchonly.success.clipboardPasted'))
+    }
+
+    onSuccess?.(finalContent)
+  } catch {
+    const errorMessage = t('watchonly.error.clipboardPaste')
+    if (showToast) {
+      toast.error(errorMessage)
+    }
+    onError?.(errorMessage)
+  }
+}
+
+async function readClipboardContent(
+  trimContent: boolean
+): Promise<string | null> {
+  try {
+    const clipboardContent = await Clipboard.getStringAsync()
+
+    if (!clipboardContent) {
+      return null
+    }
+
+    return trimContent ? clipboardContent.trim() : clipboardContent
+  } catch {
+    return null
+  }
+}
+
 export function useClipboardPaste({
   onPaste,
   onError,
@@ -29,116 +98,36 @@ export function useClipboardPaste({
   trimContent = true,
   showToast = true
 }: UseClipboardPasteParams = {}): UseClipboardPasteReturn {
-  const pasteFromClipboard = useCallback(async () => {
-    try {
-      const clipboardContent = await Clipboard.getStringAsync()
-
-      if (!clipboardContent) {
-        const errorMessage = t('watchonly.error.emptyClipboard')
-        if (showToast) {
-          toast.error(errorMessage)
-        }
-        onError?.(errorMessage)
-        return
-      }
-
-      const finalContent = trimContent
-        ? clipboardContent.trim()
-        : clipboardContent
-
-      if (validateContent) {
-        const validation = validateContent(finalContent)
-        if (!validation.isValid) {
-          const errorMessage =
-            validation.error || t('watchonly.error.clipboardPaste')
-          if (showToast) {
-            toast.error(errorMessage)
-          }
-          onError?.(errorMessage)
-          return
-        }
-      }
-
-      onPaste?.(finalContent)
-
-      if (showToast) {
-        toast.success(t('watchonly.success.clipboardPasted'))
-      }
-
-      onSuccess?.(finalContent)
-    } catch {
-      const errorMessage = t('watchonly.error.clipboardPaste')
-      if (showToast) {
-        toast.error(errorMessage)
-      }
-      onError?.(errorMessage)
-    }
-  }, [onPaste, onError, onSuccess, validateContent, trimContent, showToast])
+  const pasteFromClipboard = useCallback(
+    () =>
+      pasteClipboardContent({
+        onError,
+        onPaste,
+        onSuccess,
+        showToast,
+        trimContent,
+        validateContent
+      }),
+    [onPaste, onError, onSuccess, validateContent, trimContent, showToast]
+  )
 
   const pasteFromClipboardWithValidation = useCallback(
-    async (
-      validator: (content: string) => { isValid: boolean; error?: string }
-    ) => {
-      try {
-        const clipboardContent = await Clipboard.getStringAsync()
-
-        if (!clipboardContent) {
-          const errorMessage = t('watchonly.error.emptyClipboard')
-          if (showToast) {
-            toast.error(errorMessage)
-          }
-          onError?.(errorMessage)
-          return
-        }
-
-        const finalContent = trimContent
-          ? clipboardContent.trim()
-          : clipboardContent
-
-        const validation = validator(finalContent)
-        if (!validation.isValid) {
-          const errorMessage =
-            validation.error || t('watchonly.error.clipboardPaste')
-          if (showToast) {
-            toast.error(errorMessage)
-          }
-          onError?.(errorMessage)
-          return
-        }
-
-        onPaste?.(finalContent)
-
-        if (showToast) {
-          toast.success(t('watchonly.success.clipboardPasted'))
-        }
-
-        onSuccess?.(finalContent)
-      } catch {
-        const errorMessage = t('watchonly.error.clipboardPaste')
-        if (showToast) {
-          toast.error(errorMessage)
-        }
-        onError?.(errorMessage)
-      }
-    },
+    (validator: (content: string) => { isValid: boolean; error?: string }) =>
+      pasteClipboardContent({
+        onError,
+        onPaste,
+        onSuccess,
+        showToast,
+        trimContent,
+        validateContent: validator
+      }),
     [onPaste, onError, onSuccess, trimContent, showToast]
   )
 
-  const pasteFromClipboardSilent = useCallback(async (): Promise<
-    string | null
-  > => {
-    try {
-      const clipboardContent = await Clipboard.getStringAsync()
-
-      if (!clipboardContent) {
-        return null
-      }
-
-      return trimContent ? clipboardContent.trim() : clipboardContent
-    } catch {
-      return null
-    }
-  }, [trimContent])
+  const pasteFromClipboardSilent = useCallback(
+    () => readClipboardContent(trimContent),
+    [trimContent]
+  )
 
   return {
     pasteFromClipboard,

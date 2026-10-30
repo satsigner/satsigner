@@ -24,7 +24,7 @@ type SSNetworkDotsProps = {
 
 export default function SSNetworkDots({ distribution }: SSNetworkDotsProps) {
   const { width } = useWindowDimensions()
-  const font = useFont(require('@/assets/fonts/SF-Pro-Text-Regular.otf'), 10)
+  const font = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 10)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   if (distribution.length === 0) {

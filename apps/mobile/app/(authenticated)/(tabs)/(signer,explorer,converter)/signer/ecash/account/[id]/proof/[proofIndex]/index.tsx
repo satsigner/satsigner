@@ -1,7 +1,12 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  type ViewInstance
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -23,7 +28,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { formatFiatPrice } from '@/utils/format'
 
 const ANIMATED_QR_CHUNK_SIZE = 200
@@ -62,7 +67,7 @@ export default function EcashProofDetailPage() {
   const [animatedQR, setAnimatedQR] = useState(false)
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0)
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
     useShallow((state) => [
@@ -177,9 +182,8 @@ export default function EcashProofDetailPage() {
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`Failed to emit NFC: ${reason}`)
-    } finally {
-      setNfcModalVisible(false)
     }
+    setNfcModalVisible(false)
   }
 
   function handleCloseNFCModal() {
@@ -547,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800]
   },
   tokenInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 100,

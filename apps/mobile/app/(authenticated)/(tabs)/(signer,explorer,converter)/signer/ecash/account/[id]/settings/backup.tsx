@@ -16,7 +16,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { buildEcashBackupPayload } from '@/utils/ecashBackup'
 import { formatNumber } from '@/utils/format'
 
@@ -37,10 +37,11 @@ export default function EcashBackupPage() {
 
   function generateBackupData() {
     setIsGenerating(true)
+    const accountId = activeAccountId ?? undefined
     try {
       const jsonData = JSON.stringify(
         buildEcashBackupPayload({
-          accountId: activeAccountId ?? undefined,
+          accountId,
           includeMintInformation,
           includeTokenProofs,
           includeTransactionHistory,
@@ -55,9 +56,8 @@ export default function EcashBackupPage() {
       setShowBackupData(true)
     } catch {
       toast.error(t('ecash.error.backupGenerationFailed'))
-    } finally {
-      setIsGenerating(false)
     }
+    setIsGenerating(false)
   }
 
   async function handleCopyBackup() {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     paddingTop: 20
   },
   backupInput: {
-    fontFamily: 'monospace',
+    fontFamily: Typography.geistMonoRegular,
     fontSize: 12,
     height: 'auto',
     minHeight: 200,

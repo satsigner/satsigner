@@ -133,12 +133,13 @@ export default function GenerateMnemonic() {
         }
       }
     } else {
+      const bdkPassphrase = passphrase || ''
       try {
         const externalDescriptor = await getDescriptorString(
           mnemonic,
           scriptVersion,
           KeychainKind.External,
-          passphrase || '',
+          bdkPassphrase,
           appNetworkToBdkNetwork(network)
         )
         const parsedDescriptor = parseDescriptor(externalDescriptor)

@@ -52,6 +52,28 @@ type SSMultisigKeyControlProps = {
   onViewSeedWords: () => void
 }
 
+function getKeyExtendedPublicKey(keyDetails: Key | undefined) {
+  if (!keyDetails || typeof keyDetails.secret !== 'object') {
+    return ''
+  }
+
+  const { secret } = keyDetails
+
+  if (secret.extendedPublicKey) {
+    return secret.extendedPublicKey
+  }
+
+  if (secret.externalDescriptor) {
+    return getExtendedKeyFromDescriptor(secret.externalDescriptor)
+  }
+
+  return ''
+}
+
+function isKeySeedDropped(keyDetails: Key | undefined) {
+  return typeof keyDetails?.secret === 'object' && !keyDetails.secret.mnemonic
+}
+
 function SSMultisigKeyControl({
   index,
   keyCount,
@@ -103,14 +125,33 @@ function SSMultisigKeyControl({
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
-  const [extractedPublicKey, setExtractedPublicKey] = useState('')
-  const [seedDropped, setSeedDropped] = useState(false)
+  const [extractedPublicKey, setExtractedPublicKey] = useState(() =>
+    getKeyExtendedPublicKey(keyDetails)
+  )
+  const [seedDropped, setSeedDropped] = useState(() =>
+    isKeySeedDropped(keyDetails)
+  )
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
   const [resetKeyModalVisible, setResetKeyModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  const [syncedKeyDetails, setSyncedKeyDetails] = useState(keyDetails)
+  const keyDetailsChanged = keyDetails !== syncedKeyDetails
+  const keyNameChanged = keyDetails?.name !== syncedKeyDetails?.name
+  if (keyDetailsChanged) {
+    setSyncedKeyDetails(keyDetails)
+    setExtractedPublicKey(getKeyExtendedPublicKey(keyDetails))
+  }
+  if (keyDetailsChanged && typeof keyDetails?.secret === 'object') {
+    setSeedDropped(!keyDetails.secret.mnemonic)
+  }
+  if (keyNameChanged && keyDetails?.name !== undefined) {
+    setLocalKeyName(keyDetails.name)
+    setHasUnsavedChanges(false)
+  }
 
   const animatedHeight = useSharedValue(0)
   const animatedOpacity = useSharedValue(0)
@@ -132,50 +173,6 @@ function SSMultisigKeyControl({
     opacity: animatedOpacity.value,
     overflow: 'hidden' as const
   }))
-
-  useEffect(() => {
-    function extractPublicKey() {
-      if (!keyDetails || typeof keyDetails.secret !== 'object') {
-        setExtractedPublicKey('')
-        return
-      }
-
-      const { secret } = keyDetails
-
-      if (secret.extendedPublicKey) {
-        setExtractedPublicKey(secret.extendedPublicKey)
-        return
-      }
-
-      if (secret.externalDescriptor) {
-        const publicKey = getExtendedKeyFromDescriptor(
-          secret.externalDescriptor
-        )
-        setExtractedPublicKey(publicKey)
-      } else {
-        setExtractedPublicKey('')
-      }
-    }
-
-    extractPublicKey()
-  }, [keyDetails])
-
-  useEffect(() => {
-    if (keyDetails && typeof keyDetails.secret === 'object') {
-      if (keyDetails.secret.mnemonic) {
-        setSeedDropped(false)
-      } else {
-        setSeedDropped(true)
-      }
-    }
-  }, [keyDetails])
-
-  useEffect(() => {
-    if (keyDetails?.name !== undefined) {
-      setLocalKeyName(keyDetails.name)
-      setHasUnsavedChanges(false)
-    }
-  }, [keyDetails?.name])
 
   const { sourceLabel, importExtendedLabel, dropSeedLabel, shareXpubLabel } =
     useKeySourceLabel({
@@ -264,18 +261,20 @@ function SSMultisigKeyControl({
       return
     }
 
+    const existingAccountId = isSettingsMode ? accountId : undefined
+
     try {
-      if (isSettingsMode && accountId) {
-        resetKeyExisting(accountId, index)
+      if (existingAccountId) {
+        resetKeyExisting(existingAccountId, index)
       } else {
         resetKey(index)
       }
       setLocalKeyName('')
       setExtractedPublicKey('')
       setSeedDropped(false)
-      toast.error('Key has been reset')
+      toast.success(t('account.seed.resetKeySuccess'))
     } catch {
-      toast.error('Failed to reset key')
+      toast.error(t('account.seed.resetKeyError'))
     }
   }
 
@@ -288,7 +287,7 @@ function SSMultisigKeyControl({
     if (isSettingsMode && accountId && localKeyName.trim()) {
       updateKeyName(accountId, index, localKeyName.trim())
       setHasUnsavedChanges(false)
-      toast.success('Key name saved')
+      toast.success(t('account.key.nameSaved'))
     }
   }
 

@@ -484,6 +484,19 @@ describe('bark provider', () => {
     await expect(provider.refreshVtxos('ref5', ['vtxo1'])).resolves.toBe('')
   })
 
+  it('sendOnchain resolves with the offboard txid', async () => {
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockResolvedValue({ movementId: 7, txid: 'offboard-txid' })
+    })
+    await openWallet('onchain1', wallet)
+    await expect(
+      provider.sendOnchain('onchain1', 'tb1qdest', 1000)
+    ).resolves.toBe('offboard-txid')
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
   it('sendOnchain rejects after the timeout when nothing settles', async () => {
     jest.useFakeTimers()
     const wallet = buildFakeWallet({

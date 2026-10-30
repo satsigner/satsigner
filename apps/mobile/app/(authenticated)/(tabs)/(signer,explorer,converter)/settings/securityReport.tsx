@@ -64,6 +64,9 @@ export default function SecurityReport() {
     Keyboard.dismiss()
     setSending(true)
     const reportText = message.trim()
+    const senderIdentity = useAnonymous
+      ? { npub: throwaway.npub, nsec: throwaway.nsec }
+      : { npub: identity!.npub, nsec: identity!.nsec! }
     try {
       if (useAnonymous) {
         // Register the one-time identity so the report shows in the message
@@ -84,16 +87,13 @@ export default function SecurityReport() {
         // unlinkable on relays); identified reports persist under the user's.
         persistCopy: true,
         relays: publishRelays,
-        senderIdentity: useAnonymous
-          ? { npub: throwaway.npub, nsec: throwaway.nsec }
-          : { npub: identity!.npub, nsec: identity!.nsec! }
+        senderIdentity
       })
       setSentMessage(reportText)
     } catch {
       toast.error(t('settings.about.securityReport.error'))
-    } finally {
-      setSending(false)
     }
+    setSending(false)
   }
 
   const backupSection = useAnonymous ? (
@@ -266,7 +266,7 @@ export default function SecurityReport() {
               <SSButton
                 label={t('common.back')}
                 variant="ghost"
-                onPress={router.back}
+                onPress={() => router.back()}
               />
             </SSVStack>
           </ScrollView>

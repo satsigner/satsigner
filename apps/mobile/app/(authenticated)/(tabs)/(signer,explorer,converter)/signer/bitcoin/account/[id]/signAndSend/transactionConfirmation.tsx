@@ -10,7 +10,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
-import { SEQUENCE_FINAL } from '@/constants/btc'
+import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
 import { saveBrantaPayee } from '@/db/mutations/brantaPayees'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,7 +29,9 @@ import {
   paymentHistoryLabel,
   selectTransactionPayee
 } from '@/utils/brantaPayee'
+import { removeReplacedTransaction } from '@/utils/feeReplacement'
 import { formatAddress } from '@/utils/format'
+import { getRawTransactionSizes } from '@/utils/transaction'
 import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
 
 function isReturnedBuilderOutput(
@@ -71,17 +73,29 @@ export default function TransactionConfirmation() {
   const [externalWarningModalVisible, setExternalWarningModalVisible] =
     useState(false)
 
-  const [clearTransaction, psbt, broadcasted, outputs, inputs, fee] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.clearTransaction,
-        state.psbt,
-        state.broadcasted,
-        state.outputs,
-        state.inputs,
-        state.fee
-      ])
-    )
+  const [
+    clearTransaction,
+    psbt,
+    broadcasted,
+    outputs,
+    inputs,
+    fee,
+    rbf,
+    replacesTxid,
+    signedTx
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.clearTransaction,
+      state.psbt,
+      state.broadcasted,
+      state.outputs,
+      state.inputs,
+      state.fee,
+      state.rbf,
+      state.replacesTxid,
+      state.signedTx
+    ])
+  )
   const [account, importLabels, updateAccount] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((account) => account.id === id),
@@ -278,7 +292,7 @@ export default function TransactionConfirmation() {
         label: u.label,
         previousOutput: { txid: u.txid, vout: u.vout },
         scriptSig: [],
-        sequence: SEQUENCE_FINAL,
+        sequence: rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
         value: u.value,
         witness: []
       })),
@@ -290,11 +304,13 @@ export default function TransactionConfirmation() {
           : output.label,
         script: '',
         value: output.amount
-      }))
+      })),
+      ...(signedTx ? getRawTransactionSizes(signedTx) : {})
     }
 
+    const kept = removeReplacedTransaction(account, replacesTxid)
     const spentOutpoints = new Set(inputsList.map((u) => `${u.txid}:${u.vout}`))
-    const remainingUtxos = account.utxos.filter(
+    const remainingUtxos = kept.utxos.filter(
       (u) => !spentOutpoints.has(`${u.txid}:${u.vout}`)
     )
     const returnedUtxos: Utxo[] = []
@@ -338,15 +354,21 @@ export default function TransactionConfirmation() {
       addresses: [...account.addresses, ...newAddresses],
       summary: {
         ...account.summary,
-        balance: account.summary.balance - (totalIn - receivedReturned),
-        numberOfTransactions: account.summary.numberOfTransactions + 1,
+        balance:
+          account.summary.balance -
+          kept.replacedNet -
+          (totalIn - receivedReturned),
+        numberOfTransactions:
+          account.summary.numberOfTransactions +
+          1 -
+          (account.transactions.length - kept.transactions.length),
         numberOfUtxos: remainingUtxos.length + returnedUtxos.length
       },
       transactions: [
         ...(optimisticTransactions[0]
           ? [optimisticTransactions[0]]
           : [optimisticTx]),
-        ...account.transactions
+        ...kept.transactions
       ],
       utxos: [...returnedUtxos, ...remainingUtxos]
     })

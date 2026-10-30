@@ -1,5 +1,5 @@
 import { type RefObject } from 'react'
-import { Share, type View } from 'react-native'
+import { Share, type View, type ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { shareExistingFile } from '@/utils/filesystem'
@@ -89,7 +89,9 @@ describe('shareViewAsImage', () => {
     jest.clearAllMocks()
   })
 
-  function refWithView(current: View | null): RefObject<View | null> {
+  function refWithView(
+    current: ViewInstance | null
+  ): RefObject<ViewInstance | null> {
     return { current }
   }
 

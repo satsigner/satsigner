@@ -13,6 +13,7 @@ import SSText from './SSText'
 
 type SSFeeInputProps = {
   max: number
+  min?: number
   inputMax?: number
   estimatedBlock?: number
   vbytes?: number
@@ -24,6 +25,7 @@ type SSFeeInputProps = {
 
 function SSFeeInput({
   max,
+  min = 1,
   inputMax,
   estimatedBlock,
   vbytes,
@@ -39,7 +41,7 @@ function SSFeeInput({
   return (
     <SSVStack gap="sm">
       <SSNumberGhostInput
-        min={1}
+        min={min}
         max={ghostInputMax}
         suffix={t('bitcoin.satVb')}
         allowDecimal
@@ -48,7 +50,7 @@ function SSFeeInput({
       />
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>1</SSText>
+          <SSText>{min}</SSText>
           <SSText color="muted">{t('bitcoin.sat')}</SSText>
         </SSHStack>
         <SSHStack gap="sm">
@@ -80,7 +82,7 @@ function SSFeeInput({
         </SSHStack>
       </SSHStack>
       <Slider
-        minimumValue={1}
+        minimumValue={min}
         maximumValue={max}
         value={feeRate}
         onValueChange={(value) => setSlidingValue(value[0])}

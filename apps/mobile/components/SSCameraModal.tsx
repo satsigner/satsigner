@@ -162,6 +162,27 @@ function waitForNextFrame(): Promise<void> {
   })
 }
 
+function isPartialCashuChunk(data: string) {
+  const trimmed = prepareEcashTokenInput(data)
+  if (!/^cashu[AB]/i.test(trimmed)) {
+    return false
+  }
+  // Length alone is ambiguous: small Cashu V4 (`cashuB...`) tokens with
+  // few proofs can be under 300 chars, so a static QR of a valid token
+  // would be wrongly rejected. Instead, ask the library to decode it —
+  // if it parses into a complete token it's a real single QR; if decoding
+  // throws, it's a raw slice from the legacy animated sender.
+  try {
+    const decoded = getDecodedToken(trimmed)
+    if (decoded?.proofs && decoded.proofs.length > 0) {
+      return false
+    }
+  } catch {
+    return true
+  }
+  return true
+}
+
 function decodeSingleUR(content: string): string | null {
   try {
     return decodeURGeneric(content)
@@ -340,27 +361,6 @@ function SSCameraModal({
     }, 100)
   }, [])
 
-  const isPartialCashuChunk = useCallback((data: string) => {
-    const trimmed = prepareEcashTokenInput(data)
-    if (!/^cashu[AB]/i.test(trimmed)) {
-      return false
-    }
-    // Length alone is ambiguous: small Cashu V4 (`cashuB...`) tokens with
-    // few proofs can be under 300 chars, so a static QR of a valid token
-    // would be wrongly rejected. Instead, ask the library to decode it —
-    // if it parses into a complete token it's a real single QR; if decoding
-    // throws, it's a raw slice from the legacy animated sender.
-    try {
-      const decoded = getDecodedToken(trimmed)
-      if (decoded?.proofs && decoded.proofs.length > 0) {
-        return false
-      }
-    } catch {
-      return true
-    }
-    return true
-  }, [])
-
   const handleURPart = useCallback(
     async (fragment: string) => {
       if (!urDecoderRef.current) {
@@ -493,6 +493,42 @@ function SSCameraModal({
     setZoom(0)
   }
 
+  const routeQRCode = useCallback(
+    async (data: string) => {
+      const qrInfo = detectQRType(data)
+
+      if (qrInfo.type === 'ur') {
+        await handleURPart(qrInfo.content)
+        return
+      }
+
+      if (qrInfo.type === 'raw' || qrInfo.type === 'bbqr') {
+        if (qrInfo.total <= 1) {
+          await handleSinglePayload(qrInfo.content)
+          return
+        }
+        await handleRawOrBBQRPart(
+          qrInfo.type,
+          qrInfo.content,
+          qrInfo.current,
+          qrInfo.total
+        )
+        return
+      }
+
+      // Single, unenveloped QR. Detect legacy animated-ecash raw slices
+      // and show a one-shot warning instead of spamming toasts on every
+      // animation frame (which also contributed to the update-depth bug).
+      if (isPartialCashuChunk(qrInfo.content)) {
+        warnPartialCashu()
+        return
+      }
+
+      await handleSinglePayload(qrInfo.content)
+    },
+    [handleRawOrBBQRPart, handleSinglePayload, handleURPart, warnPartialCashu]
+  )
+
   const handleQRCodeScanned = useCallback(
     async (data: string) => {
       if (!data) {
@@ -512,51 +548,16 @@ function SSCameraModal({
       processingRef.current = true
       lastDataRef.current = data
 
-      try {
-        const qrInfo = detectQRType(data)
-
-        if (qrInfo.type === 'ur') {
-          await handleURPart(qrInfo.content)
-          return
-        }
-
-        if (qrInfo.type === 'raw' || qrInfo.type === 'bbqr') {
-          if (qrInfo.total <= 1) {
-            await handleSinglePayload(qrInfo.content)
-            return
-          }
-          await handleRawOrBBQRPart(
-            qrInfo.type,
-            qrInfo.content,
-            qrInfo.current,
-            qrInfo.total
-          )
-          return
-        }
-
-        // Single, unenveloped QR. Detect legacy animated-ecash raw slices
-        // and show a one-shot warning instead of spamming toasts on every
-        // animation frame (which also contributed to the update-depth bug).
-        if (isPartialCashuChunk(qrInfo.content)) {
-          warnPartialCashu()
-          return
-        }
-
-        await handleSinglePayload(qrInfo.content)
-      } catch (error) {
-        setIsFinalizing(false)
-        toast.error(error instanceof Error ? error.message : String(error))
-      } finally {
-        processingRef.current = false
-      }
+      await routeQRCode(data)
+        .catch((error: unknown) => {
+          setIsFinalizing(false)
+          toast.error(error instanceof Error ? error.message : String(error))
+        })
+        .finally(() => {
+          processingRef.current = false
+        })
     },
-    [
-      handleRawOrBBQRPart,
-      handleSinglePayload,
-      handleURPart,
-      isPartialCashuChunk,
-      warnPartialCashu
-    ]
+    [routeQRCode]
   )
 
   // The scan entry point reads from a ref so `CameraView` sees the same
@@ -618,7 +619,7 @@ function SSCameraModal({
             <CameraView
               onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
               onAvailableLensesChanged={(event: AvailableLenses) => {
-                const { lenses } = event
+                const lenses = event.lenses.map((lens) => lens.deviceType)
                 if (lenses.length < 2) {
                   return
                 }

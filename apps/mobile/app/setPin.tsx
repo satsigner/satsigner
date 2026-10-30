@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -9,23 +9,18 @@ import { SSIconCheckCircleThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import {
-  PIN_LENGTH_KEY,
-  PIN_MAX_LENGTH,
-  PIN_MIN_LENGTH,
-  PIN_SIZE
-} from '@/config/auth'
+import { PIN_MAX_LENGTH, PIN_MIN_LENGTH, PIN_SIZE } from '@/config/auth'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
+import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor, warning } from '@/styles/colors'
-import { clampPinLength, emptyPin } from '@/utils/pin'
+import { emptyPin } from '@/utils/pin'
 import { changePin } from '@/utils/pinChange'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
@@ -35,11 +30,32 @@ type PinChangeNotice = 'duressCleared' | 'duressClearFailed'
 
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
+type SetPinFormProps = {
+  fromSettings: boolean
+  initialPinLength: number
+}
+
 export default function SetPin() {
+  const { source } = useLocalSearchParams<{ source?: string }>()
+  const skipPin = useAuthStore((state) => state.skipPin)
+  const storedPinLength = useStoredPinLength()
+  const fromSettings = source === 'settings'
+  // Changing an existing PIN must match the stored length.
+  const initialPinLength = fromSettings && !skipPin ? storedPinLength : PIN_SIZE
+  if (initialPinLength === undefined) {
+    return null
+  }
+  return (
+    <SetPinForm
+      fromSettings={fromSettings}
+      initialPinLength={initialPinLength}
+    />
+  )
+}
+
+function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const { source } = useLocalSearchParams<{ source?: string }>()
-  const fromSettings = source === 'settings'
 
   const [
     setFirstTime,
@@ -77,31 +93,17 @@ export default function SetPin() {
     fromSettings && !skipPin && !requirePinMigration ? 'verify' : 'set'
   )
 
-  const [currentPinArray, setCurrentPinArray] = useState<string[]>(emptyPin)
-  const [pinArray, setPinArray] = useState<string[]>(emptyPin)
-  const [confirmationPinArray, setConfirmationPinArray] =
-    useState<string[]>(emptyPin)
+  const [currentPinArray, setCurrentPinArray] = useState(() =>
+    emptyPin(initialPinLength)
+  )
+  const [pinArray, setPinArray] = useState(() => emptyPin(initialPinLength))
+  const [confirmationPinArray, setConfirmationPinArray] = useState(() =>
+    emptyPin(initialPinLength)
+  )
   const [currentPinWrong, setCurrentPinWrong] = useState(false)
   const [verifyPending, setVerifyPending] = useState(false)
   const verifyingPin = useRef(false)
-  const [pinLength, setPinLength] = useState(PIN_SIZE)
-
-  // The verify stage (changing an existing PIN) must match the stored length.
-  useEffect(() => {
-    if (!(fromSettings && !skipPin)) {
-      return
-    }
-    async function loadPinLength() {
-      const stored = await getItem(PIN_LENGTH_KEY)
-      const length = clampPinLength(stored ? Number(stored) : Number.NaN)
-      setCurrentPinArray(emptyPin(length))
-      // Preselect the current length for the new PIN as well.
-      setPinLength(length)
-      setPinArray(emptyPin(length))
-      setConfirmationPinArray(emptyPin(length))
-    }
-    loadPinLength()
-  }, [fromSettings, skipPin])
+  const [pinLength, setPinLength] = useState(initialPinLength)
 
   const currentPinFilled = !currentPinArray.includes('')
   const pinFilled = !pinArray.includes('')
@@ -125,6 +127,34 @@ export default function SetPin() {
     }
   }
 
+  async function verifyCurrentPin() {
+    const isValid = await validatePin(currentPinArray.join(''))
+    if (isValid) {
+      resetPinTries()
+      setStage('set')
+      setCurrentPinWrong(false)
+      return
+    }
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+    setCurrentPinWrong(true)
+    // Shares the persisted unlock tries, so the PIN cannot be guessed here.
+    const remainingTries = incrementPinTries()
+    if (remainingTries > 0) {
+      return
+    }
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
+  }
+
+  function finishPinVerification() {
+    verifyingPin.current = false
+    setVerifyPending(false)
+  }
+
   async function handleVerifyPin() {
     if (verifyingPin.current) {
       return
@@ -132,30 +162,12 @@ export default function SetPin() {
     verifyingPin.current = true
     setVerifyPending(true)
     try {
-      const isValid = await validatePin(currentPinArray.join(''))
-      if (isValid) {
-        resetPinTries()
-        setStage('set')
-        setCurrentPinWrong(false)
-        return
-      }
-      setCurrentPinArray(emptyPin(currentPinArray.length))
-      setCurrentPinWrong(true)
-      // Shares the persisted unlock tries, so the PIN cannot be guessed here.
-      const remainingTries = incrementPinTries()
-      if (remainingTries > 0) {
-        return
-      }
-      const wiped = await secureWipeAfterMaxPinTries()
-      if (!wiped) {
-        toast.error(t('auth.wipeFailed'))
-        return
-      }
-      router.replace('/')
-    } finally {
-      verifyingPin.current = false
-      setVerifyPending(false)
+      await verifyCurrentPin()
+    } catch (error) {
+      finishPinVerification()
+      throw error
     }
+    finishPinVerification()
   }
 
   async function handleSetPinLater() {
@@ -189,6 +201,24 @@ export default function SetPin() {
     setConfirmationPinArray(emptyPin(pinLength))
   }
 
+  function leaveAfterPinChange() {
+    if (fromSettings) {
+      router.back()
+      return
+    }
+    if (showWarning) {
+      router.replace('./warning')
+      return
+    }
+    router.replace('/')
+  }
+
+  function handleGoBack() {
+    clearPin()
+    clearConfirmationPin()
+    setStage('set')
+  }
+
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) {
       return
@@ -220,24 +250,6 @@ export default function SetPin() {
     }
 
     leaveAfterPinChange()
-  }
-
-  function leaveAfterPinChange() {
-    if (fromSettings) {
-      router.back()
-      return
-    }
-    if (showWarning) {
-      router.replace('./warning')
-      return
-    }
-    router.replace('/')
-  }
-
-  function handleGoBack() {
-    clearPin()
-    clearConfirmationPin()
-    setStage('set')
   }
 
   function getTitle() {

@@ -14,6 +14,7 @@ import {
   SETTINGS_PIN_MAX_POSSIBLE_TRIES,
   SETTINGS_PIN_MIN_POSSIBLE_TRIES
 } from '@/config/auth'
+import { useDuressPinStatus } from '@/hooks/useDuressPinStatus'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -41,19 +42,32 @@ export default function Security() {
     ])
   )
 
+  const isDuressPinSet = useDuressPinStatus()
+
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
+  const [localDuressPinEnabled, setLocalDuressPinEnabled] = useState<
+    boolean | null
+  >(null)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
     useState(skipSeedConfirmation)
   const [duressPinModalVisible, setDuressPinModalVisible] = useState(false)
+  const duressPinChecked =
+    (localDuressPinEnabled ?? duressPinEnabled) && isDuressPinSet
 
   function handleOnSave() {
     setPinMaxTries(localPinMaxTries)
+    if (localDuressPinEnabled !== null) {
+      setDuressPinEnabled(duressPinChecked)
+    }
     setSkipSeedConfirmation(localSkipSeedWordConfirmation)
     router.back()
   }
 
   function goSetDuressPin() {
-    router.navigate('/setDuressPin')
+    setDuressPinModalVisible(false)
+    // Setting a duress PIN enables it in the store; show that on return.
+    setLocalDuressPinEnabled(null)
+    router.navigate('/settings/duressPin')
   }
 
   return (
@@ -84,7 +98,7 @@ export default function Security() {
                 onPress={() =>
                   router.navigate({
                     params: { source: 'settings' },
-                    pathname: '/setPin'
+                    pathname: '/settings/changePin'
                   })
                 }
               />
@@ -96,8 +110,9 @@ export default function Security() {
               <SSText uppercase>{tn('duressPin')}</SSText>
               <SSCheckbox
                 label={tn('duressPinEnabled')}
-                selected={duressPinEnabled}
-                onPress={() => setDuressPinEnabled(!duressPinEnabled)}
+                selected={duressPinChecked}
+                disabled={!isDuressPinSet}
+                onPress={() => setLocalDuressPinEnabled(!duressPinChecked)}
               />
               <SSButton
                 label={tn('duressPinSet')}

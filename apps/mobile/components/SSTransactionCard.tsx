@@ -87,7 +87,7 @@ type SSTransactionCardProps = DisplayPreferences & {
   style?: StyleProp<ViewStyle>
 }
 
-const DEFAULT_STYLE: StyleProp<ViewStyle> = {}
+const DEFAULT_STYLE: ViewStyle = {}
 
 function SSTransactionCard({
   transaction,

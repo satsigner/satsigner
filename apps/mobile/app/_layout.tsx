@@ -36,8 +36,16 @@ import { installDevErrorReporting } from '@/utils/devErrorReporting'
 // Metro console. Installed before any component code runs.
 installDevErrorReporting()
 
+async function setAndroidBackgroundColor() {
+  try {
+    await SystemUI.setBackgroundColorAsync(Colors.gray[950])
+  } catch {
+    // Rejects when the activity is already gone; the color is only cosmetic.
+  }
+}
+
 if (Platform.OS === 'android') {
-  SystemUI.setBackgroundColorAsync(Colors.gray[950])
+  void setAndroidBackgroundColor()
 }
 
 const appTheme = {
@@ -78,6 +86,37 @@ export default function RootLayout() {
     })
   }, [authHydrated])
 
+  // Registered once on mount, so auth settings are read from the store at
+  // event time; render-time values would stay frozen at the first render.
+  function handleAppStateChanged(nextAppState: AppStateStatus) {
+    const { requiresAuth, lockDeltaTime } = useAuthStore.getState()
+    if (nextAppState === 'background' && requiresAuth) {
+      setPrivacyScreenVisible(true)
+      setLastBackgroundTimestamp(Date.now())
+    } else if (
+      nextAppState === 'active' &&
+      appState.current?.match(/background/) &&
+      requiresAuth
+    ) {
+      const inactivityStartTime = getLastBackgroundTimestamp()
+      const elapsed = (Date.now() - (inactivityStartTime || 0)) / MS_PER_SECOND
+
+      if (elapsed >= lockDeltaTime) {
+        setLockTriggered(true)
+      }
+
+      // Keep the overlay visible briefly so the /unlock redirect renders
+      // before the previous screen becomes visible
+      setTimeout(() => setPrivacyScreenVisible(false), 300)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
+    } else if (nextAppState === 'active') {
+      setPrivacyScreenVisible(false)
+      usePayjoinSessionsStore.getState().clearExpiredSessions()
+    }
+
+    appState.current = nextAppState
+  }
+
   useEffect(() => {
     if (!firstTime) {
       setLockTriggered(true)
@@ -103,37 +142,6 @@ export default function RootLayout() {
     }
     initNfc()
   }, [])
-
-  // Registered once on mount, so auth settings are read from the store at
-  // event time; render-time values would stay frozen at the first render.
-  function handleAppStateChanged(nextAppState: AppStateStatus) {
-    const { requiresAuth, lockDeltaTime } = useAuthStore.getState()
-    if (nextAppState === 'background' && requiresAuth) {
-      setPrivacyScreenVisible(true)
-      setLastBackgroundTimestamp(Date.now())
-    } else if (
-      nextAppState === 'active' &&
-      appState.current.match(/background/) &&
-      requiresAuth
-    ) {
-      const inactivityStartTime = getLastBackgroundTimestamp()
-      const elapsed = (Date.now() - (inactivityStartTime || 0)) / MS_PER_SECOND
-
-      if (elapsed >= lockDeltaTime) {
-        setLockTriggered(true)
-      }
-
-      // Keep the overlay visible briefly so the /unlock redirect renders
-      // before the previous screen becomes visible
-      setTimeout(() => setPrivacyScreenVisible(false), 300)
-      usePayjoinSessionsStore.getState().clearExpiredSessions()
-    } else if (nextAppState === 'active') {
-      setPrivacyScreenVisible(false)
-      usePayjoinSessionsStore.getState().clearExpiredSessions()
-    }
-
-    appState.current = nextAppState
-  }
 
   return (
     <SafeAreaProvider>

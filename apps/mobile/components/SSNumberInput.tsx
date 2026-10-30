@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputInstance
+} from 'react-native'
 
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
@@ -17,7 +22,7 @@ type SSNumberInputProps = {
   allowDecimal?: boolean
   allowValidEmpty?: boolean
   alwaysTriggerOnChange?: boolean
-  ref?: React.Ref<TextInput>
+  ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSNumberInput({
@@ -59,15 +64,14 @@ function SSNumberInput({
   ]
 
   const [localValue, setLocalValue] = useState(value || '')
+  const [syncedFrom, setSyncedFrom] = useState({ focused, value })
 
-  useEffect(() => {
-    if (focused) {
-      return
-    }
-    if (value !== localValue) {
+  if (syncedFrom.focused !== focused || syncedFrom.value !== value) {
+    setSyncedFrom({ focused, value })
+    if (!focused && value !== localValue) {
       setLocalValue(value || '')
     }
-  }, [focused, value]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   useEffect(() => {
     if (value === undefined || value === '') {

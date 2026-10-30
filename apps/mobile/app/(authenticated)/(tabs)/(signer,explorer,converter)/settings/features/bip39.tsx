@@ -58,7 +58,7 @@ export default function Bip39() {
           <SSButton
             variant="outline"
             label={t('common.cancel')}
-            onPress={router.back}
+            onPress={() => router.back()}
           />
         </SSVStack>
       </SSMainLayout>

@@ -14,6 +14,49 @@ type UseNostrLandingKind0SyncArgs = {
   updateIdentity: (npub: string, updates: Partial<NostrIdentity>) => void
 }
 
+type Kind0RelayGroup = {
+  groupIdentities: NostrIdentity[]
+  groupRelays: string[]
+}
+
+async function fetchMissingProfiles(
+  relayGroups: Map<string, Kind0RelayGroup>,
+  fetchedNpubs: Set<string>,
+  updateIdentity: UseNostrLandingKind0SyncArgs['updateIdentity']
+) {
+  for (const { groupIdentities, groupRelays } of relayGroups.values()) {
+    const hexPubkeys = groupIdentities
+      .map((i) => getPubKeyHexFromNpub(i.npub))
+      .filter((pk): pk is string => !!pk)
+
+    const api = new NostrAPI(groupRelays)
+    try {
+      const profiles = await api.fetchKind0Batch(hexPubkeys)
+      for (const identity of groupIdentities) {
+        const pk = getPubKeyHexFromNpub(identity.npub)
+        const profile = pk ? profiles.get(pk) : undefined
+        if (profile) {
+          updateIdentity(identity.npub, {
+            banner: profile.banner || identity.banner,
+            displayName: profile.displayName || identity.displayName,
+            lud16: profile.lud16 || identity.lud16,
+            nip05: profile.nip05 || identity.nip05,
+            picture: profile.picture || identity.picture
+          })
+        } else {
+          fetchedNpubs.delete(identity.npub)
+        }
+      }
+    } catch {
+      for (const identity of groupIdentities) {
+        fetchedNpubs.delete(identity.npub)
+      }
+    } finally {
+      api.disconnect()
+    }
+  }
+}
+
 export function useNostrLandingKind0Sync({
   identities,
   relays,
@@ -72,10 +115,7 @@ export function useNostrLandingKind0Sync({
 
     // Group misses by relay set — one batch request per group instead of
     // one NostrAPI instance per identity
-    const relayGroups = new Map<
-      string,
-      { groupIdentities: NostrIdentity[]; groupRelays: string[] }
-    >()
+    const relayGroups = new Map<string, Kind0RelayGroup>()
     for (const identity of missIdentities) {
       const groupRelays = getNostrIdentityRelays(identity.relays, relays)
       const key = JSON.stringify([...groupRelays].toSorted())
@@ -87,41 +127,7 @@ export function useNostrLandingKind0Sync({
       }
     }
 
-    async function fetchMissingProfiles() {
-      for (const { groupIdentities, groupRelays } of relayGroups.values()) {
-        const hexPubkeys = groupIdentities
-          .map((i) => getPubKeyHexFromNpub(i.npub))
-          .filter((pk): pk is string => !!pk)
-
-        const api = new NostrAPI(groupRelays)
-        try {
-          const profiles = await api.fetchKind0Batch(hexPubkeys)
-          for (const identity of groupIdentities) {
-            const pk = getPubKeyHexFromNpub(identity.npub)
-            const profile = pk ? profiles.get(pk) : undefined
-            if (profile) {
-              updateIdentity(identity.npub, {
-                banner: profile.banner || identity.banner,
-                displayName: profile.displayName || identity.displayName,
-                lud16: profile.lud16 || identity.lud16,
-                nip05: profile.nip05 || identity.nip05,
-                picture: profile.picture || identity.picture
-              })
-            } else {
-              fetchedRef.current.delete(identity.npub)
-            }
-          }
-        } catch {
-          for (const identity of groupIdentities) {
-            fetchedRef.current.delete(identity.npub)
-          }
-        } finally {
-          api.disconnect()
-        }
-      }
-    }
-
-    void fetchMissingProfiles()
+    void fetchMissingProfiles(relayGroups, fetchedRef.current, updateIdentity)
   }, [identities, relays, updateIdentity])
 
   return { clearKind0FetchCache }

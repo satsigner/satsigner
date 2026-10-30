@@ -49,6 +49,14 @@ export default function ImportLabels() {
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
 
+  function importLabels(labels: Label[]) {
+    const importCount = importLabelsToAccount(accountId, labels)
+    setImportCount(importCount)
+    setImportCountTotal(labels.length)
+    setSuccessMsgVisible(true)
+    sendLabelsToNostr(account)
+  }
+
   function tryImportLabels(content: string) {
     const labels = bip329parser[importType](content)
     const currentLabels = Object.values(account?.labels || [])
@@ -60,14 +68,6 @@ export default function ImportLabels() {
     } else {
       importLabels(labels)
     }
-  }
-
-  function importLabels(labels: Label[]) {
-    const importCount = importLabelsToAccount(accountId, labels)
-    setImportCount(importCount)
-    setImportCountTotal(labels.length)
-    setSuccessMsgVisible(true)
-    sendLabelsToNostr(account)
   }
 
   function importLabelsWithConflicts(resolvedLabels: Label[]) {
@@ -254,7 +254,11 @@ export default function ImportLabels() {
           onResolve={importLabelsWithConflicts}
         />
       </SSModal>
-      <SSModal visible={successMsgVisible} onClose={router.back} fullOpacity>
+      <SSModal
+        visible={successMsgVisible}
+        onClose={() => router.back()}
+        fullOpacity
+      >
         <SSVStack
           gap="lg"
           style={{ height: '100%', justifyContent: 'center', width: '100%' }}
@@ -262,7 +266,7 @@ export default function ImportLabels() {
           <SSText uppercase size="md" center weight="bold">
             {t('import.success', { importCount, total: importCountTotal })}
           </SSText>
-          <SSButton label={t('common.close')} onPress={router.back} />
+          <SSButton label={t('common.close')} onPress={() => router.back()} />
         </SSVStack>
       </SSModal>
     </ScrollView>

@@ -261,6 +261,44 @@ describe('getTransactionRunningBalances', () => {
     // 100_000 - (100_000 - 59_000) = 59_000 after stonewall send
     expect(balances.get('send')).toBe(59_000)
   })
+
+  it('accumulates a same-block spend after the transaction it spends', () => {
+    const blockTime = new Date('2024-01-03')
+    const parent = makeTx({
+      id: 'fcdc',
+      received: 0,
+      sent: 868,
+      timestamp: blockTime,
+      vout: []
+    })
+    const child = makeTx({
+      id: '5f2d',
+      received: 0,
+      sent: 868,
+      timestamp: blockTime,
+      vin: [
+        {
+          previousOutput: { txid: 'fcdc', vout: 1 },
+          scriptSig: '',
+          sequence: 0,
+          witness: []
+        }
+      ],
+      vout: []
+    })
+    const funding = makeTx({
+      id: 'funding',
+      received: 574_331,
+      sent: 0,
+      timestamp: new Date('2024-01-01'),
+      vout: []
+    })
+
+    const balances = getTransactionRunningBalances([child, parent, funding])
+
+    expect(balances.get('fcdc')).toBe(573_463)
+    expect(balances.get('5f2d')).toBe(572_595)
+  })
 })
 
 describe('ownershipScanLimit', () => {

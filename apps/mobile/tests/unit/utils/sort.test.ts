@@ -1,5 +1,11 @@
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
-import { compareAmount, compareTimestamp, sortTransactions } from '@/utils/sort'
+import {
+  compareAmount,
+  compareTimestamp,
+  sortAddressesByIndex,
+  sortTransactions
+} from '@/utils/sort'
 
 function makeTx(
   overrides: Partial<Transaction> & Pick<Transaction, 'id'>
@@ -98,6 +104,48 @@ describe('sort utils', () => {
       ])
     })
 
+    it('keeps a same-block parent before the child that spends it', () => {
+      const blockTime = new Date('2026-04-01T00:00:00.000Z')
+      const parent = makeTx({ id: 'ffff-parent', timestamp: blockTime })
+      const child = makeTx({
+        id: 'aaaa-child',
+        timestamp: blockTime,
+        vin: [
+          {
+            previousOutput: { txid: 'ffff-parent', vout: 1 },
+            scriptSig: '',
+            sequence: 0,
+            witness: []
+          }
+        ]
+      })
+
+      const ascending = sortTransactions([child, parent], 'asc', 'date')
+      const descending = sortTransactions([parent, child], 'desc', 'date')
+
+      expect(ascending.map((tx) => tx.id)).toStrictEqual([
+        'ffff-parent',
+        'aaaa-child'
+      ])
+      expect(descending.map((tx) => tx.id)).toStrictEqual([
+        'aaaa-child',
+        'ffff-parent'
+      ])
+    })
+
+    it('orders same-time transactions the same way in both directions', () => {
+      const blockTime = new Date('2026-04-01T00:00:00.000Z')
+      const first = makeTx({ id: 'b', timestamp: blockTime })
+      const second = makeTx({ id: 'a', timestamp: blockTime })
+
+      const ascending = sortTransactions([first, second], 'asc', 'date')
+      const descending = sortTransactions([first, second], 'desc', 'date')
+
+      expect(descending.map((tx) => tx.id)).toStrictEqual(
+        ascending.map((tx) => tx.id).toReversed()
+      )
+    })
+
     it('sorts by amount', () => {
       const sorted = sortTransactions(txs, 'desc', 'amount')
       expect(sorted.map((tx) => tx.id)).toStrictEqual([
@@ -116,6 +164,46 @@ describe('sort utils', () => {
         'old',
         'mempool'
       ])
+    })
+  })
+
+  describe('sortAddressesByIndex', () => {
+    function makeAddress(index: number): Address {
+      return {
+        address: `addr${index}`,
+        index,
+        keychain: 'external',
+        label: '',
+        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+        transactions: [],
+        utxos: []
+      }
+    }
+    const addresses = [makeAddress(1), makeAddress(0), makeAddress(2)]
+
+    it('sorts by index ascending on asc', () => {
+      expect(
+        sortAddressesByIndex(addresses, 'asc').map((address) => address.index)
+      ).toStrictEqual([0, 1, 2])
+    })
+
+    it('reverses addresses without an index on desc', () => {
+      const unindexed = ['first', 'second', 'third'].map((name) => ({
+        ...makeAddress(0),
+        address: name,
+        index: undefined
+      }))
+      expect(
+        sortAddressesByIndex(unindexed, 'desc').map(
+          (address) => address.address
+        )
+      ).toStrictEqual(['third', 'second', 'first'])
+    })
+
+    it('sorts by index descending on desc', () => {
+      expect(
+        sortAddressesByIndex(addresses, 'desc').map((address) => address.index)
+      ).toStrictEqual([2, 1, 0])
     })
   })
 })

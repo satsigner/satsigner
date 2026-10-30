@@ -13,6 +13,12 @@ const CHANNEL_BACKUP_FILENAME_CHAN_PREFIX_LEN = 12
 
 type ActionBusy = 'close' | 'export' | 'force' | null
 
+function getCloseRequestedMessage(force: boolean) {
+  return force
+    ? t('lightning.channelDetail.forceCloseRequested')
+    : t('lightning.channelDetail.closeRequested')
+}
+
 type UseLndChannelDetailActionsParams = {
   channel: LNDChannel | undefined
   channelPointStr: string
@@ -100,9 +106,8 @@ function useLndChannelDetailActions({
       toast.error(
         `${t('lightning.channelDetail.exportScbFailed')}: ${getLndErrorMessage(error)}`
       )
-    } finally {
-      setActionBusy(null)
     }
+    setActionBusy(null)
   }
 
   async function runChannelClose(force: boolean) {
@@ -112,20 +117,15 @@ function useLndChannelDetailActions({
     setActionBusy(force ? 'force' : 'close')
     try {
       await closeChannel(channelPointStr, { force })
-      toast.success(
-        force
-          ? t('lightning.channelDetail.forceCloseRequested')
-          : t('lightning.channelDetail.closeRequested')
-      )
+      toast.success(getCloseRequestedMessage(force))
       await getChannels()
       onCloseSuccessNavigateBack()
     } catch (error: unknown) {
       toast.error(
         `${t('lightning.channelDetail.actionFailed')}: ${getLndErrorMessage(error)}`
       )
-    } finally {
-      setActionBusy(null)
     }
+    setActionBusy(null)
   }
 
   function requestCloseCooperative() {

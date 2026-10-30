@@ -5,7 +5,7 @@ import {
   useLocalSearchParams,
   useRouter
 } from 'expo-router'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
@@ -413,6 +413,44 @@ export default function SignTransaction() {
     throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
   }
 
+  async function broadcastAndNavigate() {
+    if (signedTx) {
+      await handleBroadcastMultiSig()
+    } else if (psbt) {
+      const broadcastResult = await handleBroadcastSingleSig()
+      if (!broadcastResult) {
+        throw new Error('Broadcast failed')
+      }
+    } else {
+      throw new Error('No transaction to broadcast')
+    }
+
+    setBroadcasted(true)
+    if (id) {
+      const store = usePayjoinSessionsStore.getState()
+      for (const session of store.sessions) {
+        if (session.accountId !== id || session.role !== 'sender') {
+          continue
+        }
+        store.updateSessionStatus(session.id, 'completed')
+      }
+    }
+    const builder = useTransactionBuilderStore.getState()
+    if (isArkBoardPayjoinSend(builder.outputs, builder.payjoinUri)) {
+      const arkAccountId = useArkStore
+        .getState()
+        .accounts.find((arkAccount) => arkAccount.bitcoinAccountId === id)?.id
+      if (arkAccountId) {
+        toast.success(t('ark.board.payjoinBroadcasted'))
+        router.replace(`/signer/ark/account/${arkAccountId}`)
+        return
+      }
+    }
+    router.navigate(
+      `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
+    )
+  }
+
   async function handleBroadcastTransaction() {
     if (broadcasting) {
       toast.info('Please wait while the transaction is being broadcast.')
@@ -429,46 +467,11 @@ export default function SignTransaction() {
     setBroadcasting(true)
 
     try {
-      if (signedTx) {
-        await handleBroadcastMultiSig()
-      } else if (psbt) {
-        const broadcastResult = await handleBroadcastSingleSig()
-        if (!broadcastResult) {
-          throw new Error('Broadcast failed')
-        }
-      } else {
-        throw new Error('No transaction to broadcast')
-      }
-
-      setBroadcasted(true)
-      if (id) {
-        const store = usePayjoinSessionsStore.getState()
-        for (const session of store.sessions) {
-          if (session.accountId !== id || session.role !== 'sender') {
-            continue
-          }
-          store.updateSessionStatus(session.id, 'completed')
-        }
-      }
-      const builder = useTransactionBuilderStore.getState()
-      if (isArkBoardPayjoinSend(builder.outputs, builder.payjoinUri)) {
-        const arkAccountId = useArkStore
-          .getState()
-          .accounts.find((arkAccount) => arkAccount.bitcoinAccountId === id)?.id
-        if (arkAccountId) {
-          toast.success(t('ark.board.payjoinBroadcasted'))
-          router.replace(`/signer/ark/account/${arkAccountId}`)
-          return
-        }
-      }
-      router.navigate(
-        `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
-      )
+      await broadcastAndNavigate()
     } catch (error) {
       toast.error(broadcastFailureUserMessage(error))
-    } finally {
-      setBroadcasting(false)
     }
+    setBroadcasting(false)
   }
 
   function handleShareWithNostrGroup() {
@@ -553,6 +556,40 @@ export default function SignTransaction() {
     setPayjoinStatus(t('transaction.build.payjoin.waitingReceiver'))
   }
 
+  async function pollSenderSession(session: PayjoinSession) {
+    const parsed = parsePayjoinUri(session.uri || payjoinUri || '')
+    const disableOutputSubstitution =
+      (parsed.params?.pjos ?? session.pjos) === 0
+    const pollCallbacks = buildCallbacks()
+    const result = await pollBip77Send({
+      callbacks: pollCallbacks,
+      deps: getPayjoinDeps(),
+      disableOutputSubstitution,
+      outputScriptsHex: pollCallbacks.outputScriptsHex,
+      paymentAmountSats: session.amountSats ?? paymentAmountSats,
+      session,
+      timeoutMs: 15_000
+    })
+    payjoinLog('ui pollBip77Send result', {
+      kind: result.kind,
+      mailbox: mailboxFromUri(session.uri)
+    })
+    if (result.kind === 'proposal') {
+      applyPayjoinProposal(result.result.psbtBase64)
+      return
+    }
+    if (result.kind === 'waiting') {
+      enterWaitingForReceiver()
+      return
+    }
+    payjoinWarn('ui poll fallback', {
+      mailbox: mailboxFromUri(session.uri),
+      reason: compactError(result.reason)
+    })
+    toast.warning(t('transaction.build.payjoin.fallback'))
+    signOriginalTransaction()
+  }
+
   async function pollPersistedSender(session: PayjoinSession) {
     if (!wallet || !account || payjoinBusyRef.current || signed) {
       return
@@ -560,46 +597,16 @@ export default function SignTransaction() {
     payjoinBusyRef.current = true
     setCheckingPayjoin(true)
     setPayjoinStatus(t('transaction.build.payjoin.stage.checkingProposal'))
-    try {
-      const parsed = parsePayjoinUri(session.uri || payjoinUri || '')
-      const disableOutputSubstitution =
-        (parsed.params?.pjos ?? session.pjos) === 0
-      const pollCallbacks = buildCallbacks()
-      const result = await pollBip77Send({
-        callbacks: pollCallbacks,
-        deps: getPayjoinDeps(),
-        disableOutputSubstitution,
-        outputScriptsHex: pollCallbacks.outputScriptsHex,
-        paymentAmountSats: session.amountSats ?? paymentAmountSats,
-        session,
-        timeoutMs: 15_000
+    await pollSenderSession(session)
+      .catch((error: unknown) => {
+        payjoinWarn('ui poll threw', { error: compactError(error) })
+        toast.warning(t('transaction.build.payjoin.fallback'))
+        signOriginalTransaction()
       })
-      payjoinLog('ui pollBip77Send result', {
-        kind: result.kind,
-        mailbox: mailboxFromUri(session.uri)
+      .finally(() => {
+        payjoinBusyRef.current = false
+        setCheckingPayjoin(false)
       })
-      if (result.kind === 'proposal') {
-        applyPayjoinProposal(result.result.psbtBase64)
-        return
-      }
-      if (result.kind === 'waiting') {
-        enterWaitingForReceiver()
-        return
-      }
-      payjoinWarn('ui poll fallback', {
-        mailbox: mailboxFromUri(session.uri),
-        reason: compactError(result.reason)
-      })
-      toast.warning(t('transaction.build.payjoin.fallback'))
-      signOriginalTransaction()
-    } catch (error) {
-      payjoinWarn('ui poll threw', { error: compactError(error) })
-      toast.warning(t('transaction.build.payjoin.fallback'))
-      signOriginalTransaction()
-    } finally {
-      payjoinBusyRef.current = false
-      setCheckingPayjoin(false)
-    }
   }
 
   function skipPayjoinAndSign() {
@@ -619,34 +626,39 @@ export default function SignTransaction() {
     signOriginalTransaction()
   }
 
+  async function importManualProposal(
+    proposalPsbtBase64: string,
+    manualOriginalPsbt: string
+  ) {
+    const callbacks = buildCallbacks()
+    const result = await applyManualSenderProposal({
+      callbacks,
+      disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
+      originalPsbtBase64: manualOriginalPsbt,
+      outputScriptsHex: callbacks.outputScriptsHex,
+      paymentAmountSats,
+      proposalPsbtBase64
+    })
+    if (!result.ok || !result.usedPayjoin) {
+      toast.error(
+        result.ok
+          ? (result.reason ?? t('transaction.build.payjoin.fallback'))
+          : result.error
+      )
+      return
+    }
+    setManualOriginalPsbt(null)
+    applyPayjoinProposal(result.psbtBase64)
+  }
+
   async function handleImportManualProposal(proposalPsbtBase64: string) {
     if (!manualOriginalPsbt || !wallet || !account) {
       return
     }
     setManualBusy(true)
-    try {
-      const callbacks = buildCallbacks()
-      const result = await applyManualSenderProposal({
-        callbacks,
-        disableOutputSubstitution: PAYJOIN_DEFAULT_PJOS === 0,
-        originalPsbtBase64: manualOriginalPsbt,
-        outputScriptsHex: callbacks.outputScriptsHex,
-        paymentAmountSats,
-        proposalPsbtBase64
-      })
-      if (!result.ok || !result.usedPayjoin) {
-        toast.error(
-          result.ok
-            ? (result.reason ?? t('transaction.build.payjoin.fallback'))
-            : result.error
-        )
-        return
-      }
-      setManualOriginalPsbt(null)
-      applyPayjoinProposal(result.psbtBase64)
-    } finally {
-      setManualBusy(false)
-    }
+    await importManualProposal(proposalPsbtBase64, manualOriginalPsbt).finally(
+      () => setManualBusy(false)
+    )
   }
 
   function enterManualPayjoinHandoff() {
@@ -657,6 +669,88 @@ export default function SignTransaction() {
     setManualOriginalPsbt(originalBase64)
     setPayjoinStatus(t('transaction.build.payjoin.manual.waiting'))
     setWaitingForReceiver(false)
+  }
+
+  async function sendOriginalForPayjoin(
+    psbt: PsbtLike,
+    payjoinUri: string,
+    id: string
+  ) {
+    const originalBase64 = psbt.toBase64()
+    const callbacks = buildCallbacks()
+    const parsed = parsePayjoinUri(payjoinUri)
+    const endpointKind =
+      parsed.endpointKind ??
+      (parsed.params ? detectEndpointKind(parsed.params.pj) : 'bip77')
+
+    // BIP78 needs an always-on endpoint — keep the blocking path.
+    if (endpointKind === 'bip78') {
+      payjoinLog('ui sendPayjoin start (bip78)', {
+        mailbox: mailboxFromUri(payjoinUri)
+      })
+      const result = await sendPayjoin({
+        accountId: id,
+        callbacks,
+        deps: getPayjoinDeps(),
+        originalPsbtBase64: originalBase64,
+        outputScriptsHex: callbacks.outputScriptsHex,
+        payjoinUri,
+        paymentAmountSats
+      })
+      payjoinLog('ui sendPayjoin result', {
+        ok: result.ok,
+        usedPayjoin: result.ok ? result.usedPayjoin : false
+      })
+      if (result.ok && result.usedPayjoin) {
+        applyPayjoinProposal(result.psbtBase64)
+        return
+      }
+      payjoinWarn('ui bip78 fallback', {
+        reason: result.ok ? result.reason : result.error
+      })
+      toast.warning(t('transaction.build.payjoin.fallback'))
+      signOriginalTransaction()
+      return
+    }
+
+    // BIP77: post original, then allow switching to Receive and resume.
+    payjoinLog('ui startBip77Send', {
+      amountSats: paymentAmountSats,
+      mailbox: mailboxFromUri(payjoinUri)
+    })
+    const started = await startBip77Send({
+      accountId: id,
+      callbacks,
+      deps: getPayjoinDeps(),
+      disableOutputSubstitution:
+        (parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0,
+      originalPsbtBase64: originalBase64,
+      outputScriptsHex: callbacks.outputScriptsHex,
+      payjoinUri,
+      paymentAmountSats,
+      quickPollMs: 3000
+    })
+    payjoinLog('ui startBip77Send result', {
+      kind: started.kind,
+      mailbox: mailboxFromUri(payjoinUri),
+      reason:
+        started.kind === 'fallback' ? compactError(started.reason) : undefined
+    })
+
+    if (started.kind === 'proposal') {
+      applyPayjoinProposal(started.result.psbtBase64)
+      return
+    }
+    if (started.kind === 'waiting') {
+      enterWaitingForReceiver()
+      return
+    }
+    payjoinWarn('ui start fallback', {
+      mailbox: mailboxFromUri(payjoinUri),
+      reason: compactError(started.reason)
+    })
+    toast.warning(t('transaction.build.payjoin.fallback'))
+    signOriginalTransaction()
   }
 
   async function startOrResumePayjoinSign() {
@@ -711,96 +805,23 @@ export default function SignTransaction() {
 
     payjoinBusyRef.current = true
     setPayjoinStatus(t('transaction.build.payjoin.stage.postingOriginal'))
-    try {
-      const originalBase64 = psbt.toBase64()
-      const callbacks = buildCallbacks()
-      const parsed = parsePayjoinUri(payjoinUri)
-      const endpointKind =
-        parsed.endpointKind ??
-        (parsed.params ? detectEndpointKind(parsed.params.pj) : 'bip77')
-
-      // BIP78 needs an always-on endpoint — keep the blocking path.
-      if (endpointKind === 'bip78') {
-        payjoinLog('ui sendPayjoin start (bip78)', {
-          mailbox: mailboxFromUri(payjoinUri)
-        })
-        const result = await sendPayjoin({
-          accountId: id,
-          callbacks,
-          deps: getPayjoinDeps(),
-          originalPsbtBase64: originalBase64,
-          outputScriptsHex: callbacks.outputScriptsHex,
-          payjoinUri,
-          paymentAmountSats
-        })
-        payjoinLog('ui sendPayjoin result', {
-          ok: result.ok,
-          usedPayjoin: result.ok ? result.usedPayjoin : false
-        })
-        if (result.ok && result.usedPayjoin) {
-          applyPayjoinProposal(result.psbtBase64)
-          return
-        }
-        payjoinWarn('ui bip78 fallback', {
-          reason: result.ok ? result.reason : result.error
-        })
+    await sendOriginalForPayjoin(psbt, payjoinUri, id)
+      .catch((error: unknown) => {
+        payjoinWarn('ui send threw', { error: compactError(error) })
         toast.warning(t('transaction.build.payjoin.fallback'))
         signOriginalTransaction()
-        return
-      }
-
-      // BIP77: post original, then allow switching to Receive and resume.
-      payjoinLog('ui startBip77Send', {
-        amountSats: paymentAmountSats,
-        mailbox: mailboxFromUri(payjoinUri)
       })
-      const started = await startBip77Send({
-        accountId: id,
-        callbacks,
-        deps: getPayjoinDeps(),
-        disableOutputSubstitution:
-          (parsed.params?.pjos ?? PAYJOIN_DEFAULT_PJOS) === 0,
-        originalPsbtBase64: originalBase64,
-        outputScriptsHex: callbacks.outputScriptsHex,
-        payjoinUri,
-        paymentAmountSats,
-        quickPollMs: 3000
+      .finally(() => {
+        payjoinBusyRef.current = false
       })
-      payjoinLog('ui startBip77Send result', {
-        kind: started.kind,
-        mailbox: mailboxFromUri(payjoinUri),
-        reason:
-          started.kind === 'fallback' ? compactError(started.reason) : undefined
-      })
-
-      if (started.kind === 'proposal') {
-        applyPayjoinProposal(started.result.psbtBase64)
-        return
-      }
-      if (started.kind === 'waiting') {
-        enterWaitingForReceiver()
-        return
-      }
-      payjoinWarn('ui start fallback', {
-        mailbox: mailboxFromUri(payjoinUri),
-        reason: compactError(started.reason)
-      })
-      toast.warning(t('transaction.build.payjoin.fallback'))
-      signOriginalTransaction()
-    } catch (error) {
-      payjoinWarn('ui send threw', { error: compactError(error) })
-      toast.warning(t('transaction.build.payjoin.fallback'))
-      signOriginalTransaction()
-    } finally {
-      payjoinBusyRef.current = false
-    }
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      void startOrResumePayjoinSign()
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  )
+  // Pinned to the first render's closure, as the former useCallback(fn, []):
+  // useFocusEffect re-runs whenever the callback identity changes.
+  const [startOrResumePayjoinSignOnFocus] = useState(() => () => {
+    void startOrResumePayjoinSign()
+  })
+  useFocusEffect(startOrResumePayjoinSignOnFocus)
 
   function handleCheckPayjoinResponse() {
     if (!id) {

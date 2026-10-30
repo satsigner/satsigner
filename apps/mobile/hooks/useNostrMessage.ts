@@ -25,67 +25,77 @@ type UseNostrMessageParams = {
   ownNpub?: string
 }
 
+function buildNostrMessageData({
+  msg,
+  account,
+  formattedNpubs,
+  ownNpub
+}: UseNostrMessageParams) {
+  try {
+    const hexString = msg.author.startsWith('npub')
+      ? msg.author
+      : msg.author.padStart(64, '0').toLowerCase()
+
+    const msgAuthorNpub = msg.author.startsWith('npub')
+      ? msg.author
+      : nip19.npubEncode(hexString)
+
+    const isDeviceMessage =
+      msgAuthorNpub === (account?.nostr?.deviceNpub ?? ownNpub)
+    const authorDisplayName = formattedNpubs.get(msg.author) || {
+      color: NOSTR_FALLBACK_NPUB_COLOR,
+      npubShort: formatNpub(msgAuthorNpub)
+    }
+
+    const messageContent =
+      typeof msg.content === 'object' && 'description' in msg.content
+        ? msg.content.description
+        : typeof msg.content === 'string'
+          ? msg.content
+          : t('account.nostrSync.devicesGroupChat.displayError')
+
+    const transactionData = parseNostrTransaction(messageContent)
+    const hasSignFlow = transactionData !== null
+
+    const formattedDate = formatDateShort(msg.created_at)
+
+    return {
+      authorDisplayName,
+      authorNpub: msgAuthorNpub,
+      error: null,
+      formattedDate,
+      hasSignFlow,
+      isDeviceMessage,
+      messageContent,
+      transactionData
+    }
+  } catch (error) {
+    return {
+      authorDisplayName: { color: '', npubShort: '' },
+      authorNpub: '',
+      error:
+        error instanceof Error
+          ? error
+          : new Error('Failed to process Nostr message'),
+      formattedDate: '',
+      hasSignFlow: false,
+      isDeviceMessage: false,
+      messageContent: '',
+      transactionData: null
+    }
+  }
+}
+
 export function useNostrMessage({
   msg,
   account,
   formattedNpubs,
   ownNpub
 }: UseNostrMessageParams) {
-  const data = useMemo(() => {
-    try {
-      const hexString = msg.author.startsWith('npub')
-        ? msg.author
-        : msg.author.padStart(64, '0').toLowerCase()
-
-      const msgAuthorNpub = msg.author.startsWith('npub')
-        ? msg.author
-        : nip19.npubEncode(hexString)
-
-      const isDeviceMessage =
-        msgAuthorNpub === (account?.nostr?.deviceNpub ?? ownNpub)
-      const authorDisplayName = formattedNpubs.get(msg.author) || {
-        color: NOSTR_FALLBACK_NPUB_COLOR,
-        npubShort: formatNpub(msgAuthorNpub)
-      }
-
-      const messageContent =
-        typeof msg.content === 'object' && 'description' in msg.content
-          ? msg.content.description
-          : typeof msg.content === 'string'
-            ? msg.content
-            : t('account.nostrSync.devicesGroupChat.displayError')
-
-      const transactionData = parseNostrTransaction(messageContent)
-      const hasSignFlow = transactionData !== null
-
-      const formattedDate = formatDateShort(msg.created_at)
-
-      return {
-        authorDisplayName,
-        authorNpub: msgAuthorNpub,
-        error: null,
-        formattedDate,
-        hasSignFlow,
-        isDeviceMessage,
-        messageContent,
-        transactionData
-      }
-    } catch (error) {
-      return {
-        authorDisplayName: { color: '', npubShort: '' },
-        authorNpub: '',
-        error:
-          error instanceof Error
-            ? error
-            : new Error('Failed to process Nostr message'),
-        formattedDate: '',
-        hasSignFlow: false,
-        isDeviceMessage: false,
-        messageContent: '',
-        transactionData: null
-      }
-    }
-  }, [msg, account, formattedNpubs, ownNpub])
+  const data = useMemo(
+    () => buildNostrMessageData({ account, formattedNpubs, msg, ownNpub }),
+    [msg, account, formattedNpubs, ownNpub]
+  )
 
   return data
 }

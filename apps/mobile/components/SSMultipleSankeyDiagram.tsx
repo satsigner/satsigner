@@ -24,6 +24,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { getSankeyExtentTopPx } from '@/utils/sankeyExtent'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
+import { layoutSankeyGraph } from '@/utils/sankeyLayout'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 
 import SSPressable from './SSPressable'
@@ -59,7 +60,7 @@ function SSMultipleSankeyDiagram({
   feeRate,
   minerFeeSats,
   elevatedFeeRateHighlight = false,
-  ownAddresses = new Set(),
+  ownAddresses,
   walletSpendColors = true,
   txLabelsById,
   outpointLabelsByRef,
@@ -119,7 +120,7 @@ function SSMultipleSankeyDiagram({
 
   const { layoutFailed, links, nodes } = useMemo(() => {
     try {
-      const layout = sankeyGenerator({
+      const layout = layoutSankeyGraph(sankeyGenerator, {
         links: sankeyLinks,
         nodes: sankeyNodes
       })

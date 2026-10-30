@@ -2,12 +2,12 @@ import { Canvas, Group, Path, rect } from '@shopify/react-native-skia'
 import { format } from 'd3-format'
 import { scaleLinear, scaleTime } from 'd3-scale'
 import { area, curveStepAfter, line } from 'd3-shape'
-import { memo, useMemo, useRef } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getLocalPriceAt } from '@/api/localPrices'
+import { getLocalPriceCloses } from '@/api/localPrices'
 import {
   MemoizedCursorRenderer,
   MemoizedHistoryChartAreaSeries,
@@ -18,16 +18,16 @@ import {
   MemoizedYScaleRenderer
 } from '@/components/SSHistoryChartRenderers'
 import { useFiatData } from '@/hooks/useFiatData'
+import { useGeistFonts } from '@/hooks/useGeistFonts'
 import {
   useHistoryChartGestures,
   useHistoryChartLabels,
   useHistoryChartViewport
 } from '@/hooks/useHistoryChart'
-import { useSFProFonts } from '@/hooks/useSFProFonts'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Rectangle } from '@/types/ui/geometry'
@@ -37,8 +37,7 @@ import {
   buildBalanceHistory,
   buildChartData,
   buildFiatChartPoints,
-  buildFiatStepPath,
-  buildFiatValueById,
+  buildFiatLinePath,
   buildTransactionsMap,
   buildTxInfoLabels,
   buildTxXAxisLabels,
@@ -47,6 +46,8 @@ import {
   buildWalletAddresses,
   computeValidChartData,
   fiatDomainMax,
+  fiatPointsInWindow,
+  fiatSeriesColor,
   fiatYDomain,
   formatFiatAxisTick,
   historyChartMargin,
@@ -112,7 +113,8 @@ function SSHistoryChart({
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
-  const currentDate = useRef<Date>(new Date())
+  const [mountDate] = useState(() => new Date())
+  const currentDate = useRef(mountDate)
   const labelRectRef = useRef<{ rect: Rectangle; id: string }[]>([])
   const viewport = useHistoryChartViewport(currentDate)
   const {
@@ -131,15 +133,14 @@ function SSHistoryChart({
   )
 
   const chartData: HistoryChartData[] = useMemo(
-    () => buildChartData(transactions, currentDate.current),
-    [transactions]
+    () => buildChartData(transactions, mountDate),
+    [mountDate, transactions]
   )
 
   const timeOffset =
     chartData.length > 0
-      ? new Date(currentDate.current).setDate(
-          currentDate.current.getDate() + 10
-        ) - chartData[0].date.getTime()
+      ? new Date(mountDate).setDate(mountDate.getDate() + 10) -
+        chartData[0].date.getTime()
       : 0
   const startDate = useMemo<Date>(
     () => new Date(endDate.getTime() - timeOffset / scale),
@@ -148,8 +149,7 @@ function SSHistoryChart({
 
   const balanceHistory = useMemo(
     () => buildBalanceHistory(transactions, walletAddresses),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [walletAddresses]
+    [transactions, walletAddresses]
   )
 
   const [maxBalance, validChartData] = useMemo(
@@ -158,10 +158,10 @@ function SSHistoryChart({
         chartData,
         startDate,
         endDate,
-        currentDate.current,
+        mountDate,
         lockZoomToXAxis
       ),
-    [chartData, lockZoomToXAxis, startDate, endDate]
+    [chartData, lockZoomToXAxis, mountDate, startDate, endDate]
   )
 
   const showFiatLine =
@@ -175,32 +175,27 @@ function SSHistoryChart({
     [transactions]
   )
 
-  const fiatValueById = useMemo(
-    () =>
-      showFiatLine
-        ? buildFiatValueById({
-            bundledPriceAt: (timestamp) =>
-              getLocalPriceAt(fiatCurrency, timestamp),
-            chartData,
-            currency: fiatCurrency,
-            transactionsMap
-          })
-        : new Map<string, number>(),
-    [chartData, fiatCurrency, showFiatLine, transactionsMap]
-  )
+  const fiatSeries = useMemo(() => {
+    if (!showFiatLine || chartData.length === 0) {
+      return []
+    }
+    const earliest = chartData.reduce(
+      (min, point) => (point.date < min ? point.date : min),
+      chartData[0].date
+    )
+    return buildFiatChartPoints({
+      chartData,
+      closes: getLocalPriceCloses(fiatCurrency),
+      endDate: mountDate,
+      startDate: earliest
+    })
+  }, [chartData, fiatCurrency, mountDate, showFiatLine])
   const fiatChartPoints = useMemo(
-    () =>
-      showFiatLine
-        ? buildFiatChartPoints({
-            chartData,
-            fiatValueById,
-            startDate,
-            validChartData
-          })
-        : [],
-    [chartData, fiatValueById, showFiatLine, startDate, validChartData]
+    () => fiatPointsInWindow(fiatSeries, startDate, endDate),
+    [endDate, fiatSeries, startDate]
   )
-  const maxFiatAll = maxFiatValue(fiatValueById.values())
+  const fiatColor = fiatSeriesColor(fiatCurrency)
+  const maxFiatAll = maxFiatValue(fiatSeries.map((point) => point.value))
   const maxFiat = fiatDomainMax({
     fiatChartPoints,
     lockZoomToXAxis,
@@ -238,7 +233,7 @@ function SSHistoryChart({
   const fiatLinePath = useMemo(
     () =>
       showFiatAxis
-        ? buildFiatStepPath(fiatChartPoints, xScale, fiatYScale)
+        ? buildFiatLinePath(fiatChartPoints, xScale, fiatYScale)
         : null,
     [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
   )
@@ -248,13 +243,12 @@ function SSHistoryChart({
       buildUtxoRectangles({
         balanceHistory,
         chartWidth,
-        currentDate: currentDate.current,
+        currentDate: mountDate,
         transactions,
         xScale,
         yScale
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [balanceHistory, xScale, yScale]
+    [balanceHistory, chartWidth, mountDate, transactions, xScale, yScale]
   )
 
   const utxoLabels = useMemo(
@@ -262,13 +256,12 @@ function SSHistoryChart({
       buildUtxoLabels({
         balanceHistory,
         chartWidth,
-        currentDate: currentDate.current,
+        currentDate: mountDate,
         transactions,
         xScale,
         yScale
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [balanceHistory, xScale, yScale]
+    [balanceHistory, chartWidth, mountDate, transactions, xScale, yScale]
   )
 
   const combinedGesture = useHistoryChartGestures({
@@ -383,9 +376,9 @@ function SSHistoryChart({
     ]
   )
 
-  const customFontManager = useSFProFonts()
+  const customFontManager = useGeistFonts()
   const fontStyle = {
-    fontFamily: 'SF Pro Text',
+    fontFamily: Typography.geistSkiaFamily,
     fontSize: 10
   } as const
 
@@ -447,7 +440,7 @@ function SSHistoryChart({
                 chartHeight={chartHeight}
                 chartWidth={chartWidth}
                 yAxisFormatter={formatFiatAxisTick}
-                color={Colors.gold}
+                color={fiatColor}
                 labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
                 showGridLines={false}
                 title={fiatCurrency}
@@ -495,7 +488,7 @@ function SSHistoryChart({
               {showFiatAxis ? (
                 <Path
                   path={fiatLinePath ?? ''}
-                  color={Colors.gold}
+                  color={fiatColor}
                   strokeWidth={2}
                   style="stroke"
                 />

@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -29,7 +29,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { getAccountTotalBalance } from '@/utils/account'
 import {
   type ArkBoardValidationReason,
@@ -88,7 +88,7 @@ export default function ArkBoardPage() {
 
   const [amountSats, setAmountSats] = useState(0)
   const [fundTab, setFundTab] = useState<FundTab>('address')
-  const qrRef = useRef<View>(null)
+  const qrRef = useRef<ViewInstance>(null)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
   const pendingSats = balanceQuery.data?.pendingSats ?? 0
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   monospace: {
-    fontFamily: 'monospace'
+    fontFamily: Typography.geistMonoRegular
   },
   pendingRow: {
     borderBottomColor: Colors.gray[800],

@@ -29,6 +29,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type NFCReadResult } from '@/types/models/Nfc'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion,
@@ -161,13 +162,9 @@ export default function ImportExtendedPub() {
     }
 
     setDisabled(!nextXpub || !validXpub || !validFingerprint)
-    setXpubError('')
-
-    if (nextXpub && !validXpub) {
-      const errorMessage = t('account.import.error.descriptorFormat')
-      setXpubError(errorMessage)
-      toast.error(errorMessage)
-    }
+    setXpubError(
+      nextXpub && !validXpub ? t('account.import.error.xpubFormat') : ''
+    )
   }
 
   function convertVpubToTpub(vpub: string): string {
@@ -183,6 +180,8 @@ export default function ImportExtendedPub() {
       toast.error(t('watchonly.error.invalidInput'))
       return
     }
+
+    const fingerprint = localFingerprint || UNKNOWN_MASTER_FINGERPRINT
 
     try {
       const convertedXpub = convertVpubToTpub(xpub)
@@ -218,7 +217,7 @@ export default function ImportExtendedPub() {
       }
 
       setExtendedPublicKey(convertedXpub)
-      setFingerprint(localFingerprint || UNKNOWN_MASTER_FINGERPRINT)
+      setFingerprint(fingerprint)
 
       setKey(Number(keyIndex))
 
@@ -265,6 +264,18 @@ export default function ImportExtendedPub() {
     }
   }
 
+  function importNFCData(nfcData: NFCReadResult | null) {
+    if (!nfcData?.text) {
+      toast.error(t('watchonly.read.nfcErrorNoData'))
+      return
+    }
+
+    const text = sanitizeScannedText(nfcData.text)
+
+    updateXpub(text)
+    toast.success(t('watchonly.success.nfcRead'))
+  }
+
   async function handleNFCRead() {
     if (isReading) {
       await cancelNFCScan()
@@ -273,16 +284,7 @@ export default function ImportExtendedPub() {
 
     try {
       const nfcData = await readNFCTag()
-
-      if (!nfcData?.text) {
-        toast.error(t('watchonly.read.nfcErrorNoData'))
-        return
-      }
-
-      const text = sanitizeScannedText(nfcData.text)
-
-      updateXpub(text)
-      toast.success(t('watchonly.success.nfcRead'))
+      importNFCData(nfcData)
     } catch {
       toast.error(t('nfc.error.readFailed'))
     }

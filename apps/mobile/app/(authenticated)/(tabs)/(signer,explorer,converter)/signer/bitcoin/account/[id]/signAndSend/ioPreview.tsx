@@ -9,7 +9,14 @@ import {
   useRouter
 } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -29,6 +36,7 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
@@ -85,6 +93,7 @@ import {
   type DetectedContent
 } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
+import { spendsUnconfirmedParent } from '@/utils/feeReplacement'
 import {
   estimateTargetBlocks,
   getFeeRateInputMax,
@@ -99,7 +108,7 @@ import {
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
-import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
+import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
@@ -164,6 +173,7 @@ export default function IOPreview() {
     outputs,
     getInputs,
     feeRate,
+    rbf,
     addOutput,
     updateOutput,
     removeOutput,
@@ -187,6 +197,7 @@ export default function IOPreview() {
       state.outputs,
       state.getInputs,
       state.feeRate,
+      state.rbf,
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
@@ -203,23 +214,6 @@ export default function IOPreview() {
       state.setPayjoinUri
     ])
   )
-
-  // ioPreview only stores the invoice — Payjoin server (OHTTP / directory /
-  // BIP78 endpoint) is contacted later on sign via sendPayjoin.
-  useEffect(() => {
-    const state = useTransactionBuilderStore.getState()
-    const uri = state.payjoinUri
-    const parsed = uri ? parsePayjoinUri(uri) : undefined
-    console.log('[ioPreview] load', {
-      callingPayjoinServer: false,
-      endpointKind: parsed?.endpointKind ?? null,
-      hasPayjoinUri: !!uri,
-      inputs: state.inputs.size,
-      outputs: state.outputs.length,
-      payjoinUri: uri ?? null,
-      pj: parsed?.params?.pj ?? null
-    })
-  }, [])
 
   const mempoolOracle = useMempoolOracle(account?.network || 'bitcoin')
   const wallet = useGetAccountWallet(id)
@@ -253,13 +247,6 @@ export default function IOPreview() {
 
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
-  const markUriAutoSelectPendingRef = useRef<(() => void) | undefined>(
-    undefined
-  )
-  const applyUtxoSelectionRef = useRef<
-    (type: AutoSelectUtxosAlgorithm) => boolean
-  >(() => false)
-
   const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
@@ -267,12 +254,205 @@ export default function IOPreview() {
   const [previousUserSelectedUtxos, setPreviousUserSelectedUtxos] =
     useState<Utxo[]>()
   const [localFeeRate, setLocalFeeRate] = useState(feeRate)
+  const [syncedFeeRate, setSyncedFeeRate] = useState(feeRate)
+  if (feeRate !== syncedFeeRate) {
+    setSyncedFeeRate(feeRate)
+    setLocalFeeRate(feeRate)
+  }
   const [feeRateDraft, setFeeRateDraft] = useState<number>()
   const sheetFeeRate = feeRateDraft ?? localFeeRate
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [loadingOptimizeAlgorithm, setLoadingOptimizeAlgorithm] =
     useState<LoadingAutoSelectUtxosAlgorithm>(false)
+
+  function setAccountUtxos(utxos: Utxo[]) {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
+    }
+
+    for (const utxo of utxos) {
+      addInput(utxo)
+    }
+  }
+
+  function applyStonewallSelection(excluded: Set<string>): boolean {
+    if (!decoyAddress) {
+      toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+      return false
+    }
+
+    const {
+      changeScriptType,
+      effectiveFeeRate,
+      paymentOutputs,
+      recipientScriptType,
+      userPaymentAmount
+    } = getStonewallPaymentContext({
+      accountAddresses: account.addresses,
+      accountScriptVersion: account.keys[0]?.scriptVersion,
+      decoyAddress,
+      localFeeRate,
+      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
+      outputs
+    })
+
+    const selectableUtxos = applyUtxoDenylist(
+      account.utxos,
+      account.excludedUtxoOutpoints ?? []
+    )
+    const pool = filterUtxosByExcludedOutpoints(selectableUtxos, excluded)
+
+    const stonewallResult = selectStonewallUtxos(
+      pool,
+      userPaymentAmount,
+      effectiveFeeRate,
+      {
+        addresses: account.addresses,
+        changeScriptType,
+        outputs: paymentOutputs,
+        recipientScriptType
+      }
+    )
+
+    if (stonewallResult.error) {
+      toast.error(stonewallResult.error)
+      return false
+    }
+
+    const { changeValues, fakeMixValues } = splitStonewallOutputValues(
+      stonewallResult.outputs
+    )
+
+    setAccountUtxos(stonewallResult.inputs)
+    setStonewallPreview({
+      changeValues,
+      excludedUtxoOutpoints: [...excluded],
+      fakeMixValues,
+      fee: stonewallResult.fee
+    })
+    setFee(stonewallResult.fee)
+
+    if (effectiveFeeRate !== localFeeRate) {
+      setLocalFeeRate(effectiveFeeRate)
+      setFeeRate(effectiveFeeRate)
+    }
+
+    return true
+  }
+
+  function handleOnChangeUtxoSelection(
+    type: AutoSelectUtxosAlgorithm
+  ): boolean {
+    if (type === selectedAutoSelectUtxos) {
+      return true
+    }
+
+    if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
+      toast.error(
+        t('transaction.build.errors.noOutputSelected.autoUtxoSelection')
+      )
+      return false
+    }
+
+    // Leaving privacy mode: drop the decoy output it added before reselecting.
+    if (selectedAutoSelectUtxos === 'privacy' && type !== 'privacy') {
+      const decoyOutput = outputs.find((output) => output.to === decoyAddress)
+      if (decoyOutput) {
+        removeOutput(decoyOutput.localId)
+      }
+      clearStonewallPreview()
+    }
+
+    const { effectiveFeeRate, userPaymentAmount } = getStonewallPaymentContext({
+      accountAddresses: account.addresses,
+      accountScriptVersion: account.keys[0]?.scriptVersion,
+      decoyAddress,
+      localFeeRate,
+      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
+      outputs
+    })
+
+    let selectionSucceeded = true
+
+    switch (type) {
+      case 'user': {
+        if (previousUserSelectedUtxos) {
+          setAccountUtxos(previousUserSelectedUtxos)
+        } else {
+          router.back()
+          return false
+        }
+
+        break
+      }
+      case 'privacy': {
+        setLoadingOptimizeAlgorithm('privacy')
+
+        if (!decoyAddress) {
+          toast.error(t('transaction.error.ChangeAddressNotAvailable'))
+          selectionSucceeded = false
+          break
+        }
+
+        setPreviousUserSelectedUtxos(getInputs())
+        selectionSucceeded = applyStonewallSelection(new Set())
+
+        break
+      }
+      case 'efficiency': {
+        setLoadingOptimizeAlgorithm('efficiency')
+
+        setPreviousUserSelectedUtxos(getInputs())
+
+        const selectableUtxos = applyUtxoDenylist(
+          account.utxos,
+          account.excludedUtxoOutpoints ?? []
+        )
+
+        const feeFn = (inputCount: number, hasChange: boolean) => {
+          const mockInputs = selectableUtxos.slice(0, inputCount)
+          const { vsize } = estimateTransactionSize(
+            mockInputs,
+            outputs,
+            hasChange
+          )
+          return Math.floor(effectiveFeeRate * vsize)
+        }
+
+        const optimizationResult = selectEfficientUtxos(
+          selectableUtxos,
+          userPaymentAmount,
+          effectiveFeeRate,
+          { feeFn }
+        )
+
+        if (optimizationResult.error) {
+          toast.error(optimizationResult.error)
+          selectionSucceeded = false
+          break
+        }
+
+        setAccountUtxos(optimizationResult.inputs)
+
+        if (effectiveFeeRate !== localFeeRate) {
+          setLocalFeeRate(effectiveFeeRate)
+          setFeeRate(effectiveFeeRate)
+        }
+
+        break
+      }
+      default: {
+        break
+      }
+    }
+
+    if (selectionSucceeded) {
+      setSelectedAutoSelectUtxos(type)
+    }
+    setLoadingOptimizeAlgorithm(false)
+    return selectionSucceeded
+  }
 
   // Payjoin invoices always use efficient coin selection — privacy/STONEWALL
   // would rewrite outputs and break the pj= mailbox payment.
@@ -287,10 +467,9 @@ export default function IOPreview() {
       decoyAddress,
       defaultAlgorithm: uriAutoSelectAlgorithm,
       nextBlockFee,
-      onApplyAlgorithm: (type) => applyUtxoSelectionRef.current(type),
+      onApplyAlgorithm: handleOnChangeUtxoSelection,
       outputsLength: outputs.length
     })
-  markUriAutoSelectPendingRef.current = markUriAutoSelectPending
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
@@ -342,6 +521,10 @@ export default function IOPreview() {
     (utxo) => !utxoOutpointSet.has(getUtxoOutpoint(utxo))
   )
   const hasOrphanedInputs = orphanedInputs.length > 0
+  const spendsUnconfirmedInput = spendsUnconfirmedParent(
+    [...inputs.values()],
+    account.transactions
+  )
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
@@ -406,7 +589,7 @@ export default function IOPreview() {
     // Payjoin still needs fee-aware efficiency selection (forced via
     // uriAutoSelectAlgorithm). Non-payjoin uses the settings default.
     if (shouldAutoSelectUtxosFromParsedAmount(parsed.amount)) {
-      markUriAutoSelectPendingRef.current?.()
+      markUriAutoSelectPending()
     }
   }
 
@@ -466,7 +649,7 @@ export default function IOPreview() {
         detectedContent.type === 'bitcoin_uri' &&
         shouldAutoSelectUtxosFromBitcoinUri(trimmedContent)
       ) {
-        markUriAutoSelectPendingRef.current?.()
+        markUriAutoSelectPending()
       }
       if (ok) {
         return
@@ -635,11 +818,14 @@ export default function IOPreview() {
     toast.error(t('transaction.error.insufficientInputs'))
   }, [deferUnderfundedWarning, isUnderfunded])
 
-  useEffect(() => {
+  const raiseZeroFeeRateOnMount = useEffectEvent(() => {
     if (feeRate === 0) {
       setFeeRate(1)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  })
+
+  useEffect(() => {
+    raiseZeroFeeRateOnMount()
   }, [])
 
   // Once: if builder fee is still the default (<=1), match useNetworkInfo nextBlockFee.
@@ -670,10 +856,6 @@ export default function IOPreview() {
     }
     setFee(Math.round(localFeeRate * transactionSize.vsize))
   }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
-
-  useEffect(() => {
-    setLocalFeeRate(feeRate)
-  }, [feeRate])
 
   function handleContentScanned(content: DetectedContent) {
     if (addingOutputRef.current) {
@@ -918,81 +1100,6 @@ export default function IOPreview() {
     setAddOutputModalVisible(true)
   }
 
-  function setAccountUtxos(utxos: Utxo[]) {
-    for (const utxo of account.utxos) {
-      removeInput(utxo)
-    }
-
-    for (const utxo of utxos) {
-      addInput(utxo)
-    }
-  }
-
-  function applyStonewallSelection(excluded: Set<string>): boolean {
-    if (!decoyAddress) {
-      toast.error(t('transaction.error.ChangeAddressNotAvailable'))
-      return false
-    }
-
-    const {
-      changeScriptType,
-      effectiveFeeRate,
-      paymentOutputs,
-      recipientScriptType,
-      userPaymentAmount
-    } = getStonewallPaymentContext({
-      accountAddresses: account.addresses,
-      accountScriptVersion: account.keys[0]?.scriptVersion,
-      decoyAddress,
-      localFeeRate,
-      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
-      outputs
-    })
-
-    const selectableUtxos = applyUtxoDenylist(
-      account.utxos,
-      account.excludedUtxoOutpoints ?? []
-    )
-    const pool = filterUtxosByExcludedOutpoints(selectableUtxos, excluded)
-
-    const stonewallResult = selectStonewallUtxos(
-      pool,
-      userPaymentAmount,
-      effectiveFeeRate,
-      {
-        addresses: account.addresses,
-        changeScriptType,
-        outputs: paymentOutputs,
-        recipientScriptType
-      }
-    )
-
-    if (stonewallResult.error) {
-      toast.error(stonewallResult.error)
-      return false
-    }
-
-    const { changeValues, fakeMixValues } = splitStonewallOutputValues(
-      stonewallResult.outputs
-    )
-
-    setAccountUtxos(stonewallResult.inputs)
-    setStonewallPreview({
-      changeValues,
-      excludedUtxoOutpoints: [...excluded],
-      fakeMixValues,
-      fee: stonewallResult.fee
-    })
-    setFee(stonewallResult.fee)
-
-    if (effectiveFeeRate !== localFeeRate) {
-      setLocalFeeRate(effectiveFeeRate)
-      setFeeRate(effectiveFeeRate)
-    }
-
-    return true
-  }
-
   function handleOnPressInput(outpoint: string) {
     const utxo = inputs.get(outpoint)
     if (!utxo) {
@@ -1029,121 +1136,6 @@ export default function IOPreview() {
     setRemoveInputModalVisible(false)
     setInputToRemove(null)
   }
-
-  function handleOnChangeUtxoSelection(
-    type: AutoSelectUtxosAlgorithm
-  ): boolean {
-    if (type === selectedAutoSelectUtxos) {
-      return true
-    }
-
-    if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
-      toast.error(
-        t('transaction.build.errors.noOutputSelected.autoUtxoSelection')
-      )
-      return false
-    }
-
-    // Leaving privacy mode: drop the decoy output it added before reselecting.
-    if (selectedAutoSelectUtxos === 'privacy' && type !== 'privacy') {
-      const decoyOutput = outputs.find((output) => output.to === decoyAddress)
-      if (decoyOutput) {
-        removeOutput(decoyOutput.localId)
-      }
-      clearStonewallPreview()
-    }
-
-    const { effectiveFeeRate, userPaymentAmount } = getStonewallPaymentContext({
-      accountAddresses: account.addresses,
-      accountScriptVersion: account.keys[0]?.scriptVersion,
-      decoyAddress,
-      localFeeRate,
-      nextBlockFee: useBlockchainStore.getState().nextBlockFee,
-      outputs
-    })
-
-    let selectionSucceeded = true
-
-    switch (type) {
-      case 'user': {
-        if (previousUserSelectedUtxos) {
-          setAccountUtxos(previousUserSelectedUtxos)
-        } else {
-          router.back()
-          return false
-        }
-
-        break
-      }
-      case 'privacy': {
-        setLoadingOptimizeAlgorithm('privacy')
-
-        if (!decoyAddress) {
-          toast.error(t('transaction.error.ChangeAddressNotAvailable'))
-          selectionSucceeded = false
-          break
-        }
-
-        setPreviousUserSelectedUtxos(getInputs())
-        selectionSucceeded = applyStonewallSelection(new Set())
-
-        break
-      }
-      case 'efficiency': {
-        setLoadingOptimizeAlgorithm('efficiency')
-
-        setPreviousUserSelectedUtxos(getInputs())
-
-        const selectableUtxos = applyUtxoDenylist(
-          account.utxos,
-          account.excludedUtxoOutpoints ?? []
-        )
-
-        const feeFn = (inputCount: number, hasChange: boolean) => {
-          const mockInputs = selectableUtxos.slice(0, inputCount)
-          const { vsize } = estimateTransactionSize(
-            mockInputs,
-            outputs,
-            hasChange
-          )
-          return Math.floor(effectiveFeeRate * vsize)
-        }
-
-        const optimizationResult = selectEfficientUtxos(
-          selectableUtxos,
-          userPaymentAmount,
-          effectiveFeeRate,
-          { feeFn }
-        )
-
-        if (optimizationResult.error) {
-          toast.error(optimizationResult.error)
-          selectionSucceeded = false
-          break
-        }
-
-        setAccountUtxos(optimizationResult.inputs)
-
-        if (effectiveFeeRate !== localFeeRate) {
-          setLocalFeeRate(effectiveFeeRate)
-          setFeeRate(effectiveFeeRate)
-        }
-
-        break
-      }
-      default: {
-        break
-      }
-    }
-
-    if (selectionSucceeded) {
-      setSelectedAutoSelectUtxos(type)
-    }
-    setLoadingOptimizeAlgorithm(false)
-    return selectionSucceeded
-  }
-
-  applyUtxoSelectionRef.current = handleOnChangeUtxoSelection
 
   function tryAddStonewallOutputs(): boolean {
     return materializeStonewallOutputs()
@@ -1266,10 +1258,7 @@ export default function IOPreview() {
     return addresses
   }, [account, changeAddress, secondChangeAddress, decoyAddress])
 
-  const txLabelsById = useMemo(
-    () => buildTxLabelsById(account?.transactions),
-    [account?.transactions]
-  )
+  const txLabelsById = buildTxLabelsById(account?.transactions)
   const outpointLabelsByRef = useMemo(
     () => buildOutpointLabelsByRef(account ?? {}),
     [account]
@@ -1561,6 +1550,11 @@ export default function IOPreview() {
             <SSDustWarningBanner message={dustErrorMessage} />
           )}
           <SSVStack gap="xs">
+            <SSFeeReplacementFlags
+              rbf={rbf}
+              cpfp={spendsUnconfirmedInput}
+              size="xs"
+            />
             <SSHStack gap="xs">
               <SSButton
                 variant="outline"
@@ -1689,7 +1683,7 @@ export default function IOPreview() {
                     numberOfLines={4}
                     editable={!isEditingStonewallManagedOutput && !savingOutput}
                     style={{
-                      fontFamily: Typography.sfProMono,
+                      fontFamily: Typography.geistMonoRegular,
                       fontSize: 22,
                       height: 110,
                       letterSpacing: 0.5,

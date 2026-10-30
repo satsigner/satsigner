@@ -284,9 +284,8 @@ export default function OpenChannelPage() {
       toast.error(
         `${t('lightning.openChannel.failed')}: ${getLndErrorMessage(error)}`
       )
-    } finally {
-      setIsSubmitting(false)
     }
+    setIsSubmitting(false)
   }
 
   const title =

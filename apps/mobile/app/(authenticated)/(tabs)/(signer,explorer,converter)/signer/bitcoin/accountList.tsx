@@ -62,6 +62,11 @@ import {
 } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { ensurePin } from '@/utils/pin'
+import {
+  getSampleAccountName,
+  isSampleWalletLoaded,
+  type SampleWallet
+} from '@/utils/sampleWallet'
 import { time } from '@/utils/time'
 
 function accountShowsFingerprint(account: Account) {
@@ -161,16 +166,6 @@ export default function AccountList() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  type SampleWallet =
-    | 'segwit'
-    | 'legacy'
-    | 'watchonlyXpub'
-    | 'watchonlyAddress'
-    | 'watchonlySalvador'
-    | 'watchonlySegwit'
-    | 'watchonlyTestnet4'
-    | 'watchonlyTether'
-    | 'multisig'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs: { key: Network }[] = [
@@ -183,15 +178,9 @@ export default function AccountList() {
     return Math.max(index, 0)
   })
 
-  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>(
-    accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+  const filteredAccounts = accounts.filter(
+    (acc) => acc.network === tabs[tabIndex].key
   )
-
-  useEffect(() => {
-    setFilteredAccounts(
-      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-    )
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
   const fingerprints = useAccountsFingerprints(filteredAccounts)
 
   const totalBalance = useMemo(
@@ -229,26 +218,6 @@ export default function AccountList() {
       setSelectedNetwork(currentNetwork)
     }
   }, [tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    syncAccounts()
-  }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!showCurrentFiat) {
-      return
-    }
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
-
-  function handleOnNavigateToAddAccount() {
-    clearAccount()
-    router.navigate('/signer/bitcoin/account/add')
-  }
-
-  function handleGoToAccount(accountId: string) {
-    router.navigate(`/signer/bitcoin/account/${accountId}`)
-  }
 
   async function syncAccounts() {
     if (connectionMode !== 'auto') {
@@ -307,16 +276,39 @@ export default function AccountList() {
     }
   }
 
+  useEffect(() => {
+    syncAccounts()
+  }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!showCurrentFiat) {
+      return
+    }
+    fetchPrices(fiatPriceApiUrl)
+  }, [fetchPrices, fiatPriceApiUrl, showCurrentFiat])
+
+  function handleOnNavigateToAddAccount() {
+    clearAccount()
+    router.navigate('/signer/bitcoin/account/add')
+  }
+
+  function handleGoToAccount(accountId: string) {
+    router.navigate(`/signer/bitcoin/account/${accountId}`)
+  }
+
   async function handleLoadSampleWallet(type: SampleWallet) {
+    if (isSampleWalletLoaded(type, tabs[tabIndex].key, accounts, addresses)) {
+      toast.info(t('accounts.sampleAlreadyLoaded'))
+      return
+    }
     setLoadingWallet(type)
     try {
       await loadSampleWallet(type)
     } catch {
       toast.error('failed to create sample wallet')
-    } finally {
-      clearAccount()
-      setLoadingWallet(undefined)
     }
+    clearAccount()
+    setLoadingWallet(undefined)
   }
 
   async function loadSampleWallet(type: SampleWallet) {
@@ -324,7 +316,7 @@ export default function AccountList() {
     // seeds a random ephemeral key when none exists (never a hardcoded PIN).
     await ensurePin()
 
-    setName(`Sample (${type})`)
+    setName(getSampleAccountName(type))
     setKeyCount(1)
     setKeysRequired(1)
 

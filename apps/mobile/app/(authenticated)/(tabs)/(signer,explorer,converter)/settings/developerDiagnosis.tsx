@@ -113,9 +113,8 @@ export default function DeveloperDiagnosis() {
       toast.success(t('settings.developer.diagnosis.report.success'))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))
-    } finally {
-      setReportSending(false)
     }
+    setReportSending(false)
   }
 
   const isRunning = status.kind === 'running'
@@ -182,9 +181,8 @@ export default function DeveloperDiagnosis() {
           : t('settings.developer.diagnosis.error.cancelled')
       setStatus({ kind: 'failed', reason })
       toast.error(reason)
-    } finally {
-      abortRef.current = null
     }
+    abortRef.current = null
   }
 
   return (
@@ -329,7 +327,7 @@ export default function DeveloperDiagnosis() {
             <SSButton
               label={t('common.back')}
               variant="outline"
-              onPress={router.back}
+              onPress={() => router.back()}
             />
           </SSVStack>
         </ScrollView>

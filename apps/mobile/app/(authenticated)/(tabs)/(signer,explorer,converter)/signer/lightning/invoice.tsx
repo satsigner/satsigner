@@ -51,6 +51,13 @@ type InvoiceTab = 'lightning' | 'onchain'
 const QR_CODE_HORIZONTAL_PADDING = 40
 const QR_CODE_MAX_SIZE = 300
 
+function isNewlySettled(
+  nextStatus: LndInvoiceUiStatus,
+  previousStatus: LndInvoiceUiStatus
+) {
+  return nextStatus === 'settled' && previousStatus !== 'settled'
+}
+
 export default function InvoicePage() {
   const router = useRouter()
   const { width: screenWidth } = useWindowDimensions()
@@ -112,7 +119,7 @@ export default function InvoicePage() {
       )
       const newStatus = parseLndInvoiceUiStatus(response.state)
       setInvoiceStatus(newStatus)
-      if (newStatus === 'settled' && invoiceStatus !== 'settled') {
+      if (isNewlySettled(newStatus, invoiceStatus)) {
         toast.success(t('lightning.invoice.paymentReceived'))
       }
       return newStatus
@@ -273,6 +280,35 @@ export default function InvoicePage() {
     }
   }
 
+  const createAndShowInvoice = async (amount: number) => {
+    const bolt11Invoice = await createInvoice(amount, invoiceDescription)
+    if (isLNURLMode && lnurlDetails) {
+      const amountMillisats = amount * MILLISATS_PER_SAT
+      if (!bolt11Invoice.payment_request) {
+        throw new Error(t('lightning.invoice.bolt11Failed'))
+      }
+      const response = await requestLNURLWithdrawInvoice(
+        lnurlDetails.callback,
+        amountMillisats,
+        lnurlDetails.k1,
+        invoiceDescription,
+        bolt11Invoice.payment_request
+      )
+      if (response.status === 'ERROR') {
+        throw new Error(
+          response.reason || t('lightning.invoice.lnurlServiceFailed')
+        )
+      }
+    }
+
+    setPaymentRequest(bolt11Invoice.payment_request)
+    setCurrentAmount(invoiceAmount)
+    setCurrentDescription(invoiceDescription)
+    setRHash(bolt11Invoice.r_hash || '')
+    setInvoiceStatus('open')
+    setQrModalVisible(true)
+  }
+
   const handleCreateInvoice = async () => {
     if (!invoiceAmount || !invoiceDescription) {
       toast.error(t('lightning.invoice.fillFields'))
@@ -303,39 +339,13 @@ export default function InvoicePage() {
 
     setIsProcessing(true)
     try {
-      const bolt11Invoice = await createInvoice(amount, invoiceDescription)
-      if (isLNURLMode && lnurlDetails) {
-        const amountMillisats = amount * MILLISATS_PER_SAT
-        if (!bolt11Invoice.payment_request) {
-          throw new Error(t('lightning.invoice.bolt11Failed'))
-        }
-        const response = await requestLNURLWithdrawInvoice(
-          lnurlDetails.callback,
-          amountMillisats,
-          lnurlDetails.k1,
-          invoiceDescription,
-          bolt11Invoice.payment_request
-        )
-        if (response.status === 'ERROR') {
-          throw new Error(
-            response.reason || t('lightning.invoice.lnurlServiceFailed')
-          )
-        }
-      }
-
-      setPaymentRequest(bolt11Invoice.payment_request)
-      setCurrentAmount(invoiceAmount)
-      setCurrentDescription(invoiceDescription)
-      setRHash(bolt11Invoice.r_hash || '')
-      setInvoiceStatus('open')
-      setQrModalVisible(true)
+      await createAndShowInvoice(amount)
     } catch (error) {
       toast.error(
         getLndErrorMessage(error) || t('lightning.invoice.bolt11Failed')
       )
-    } finally {
-      setIsProcessing(false)
     }
+    setIsProcessing(false)
   }
 
   const handleCopyToClipboard = async () => {
@@ -380,9 +390,8 @@ export default function InvoicePage() {
       toast.error(
         `${t('lightning.invoice.addressFailed')}: ${getLndErrorMessage(error)}`
       )
-    } finally {
-      setIsGeneratingAddress(false)
     }
+    setIsGeneratingAddress(false)
   }
 
   function handleRetryAddress() {

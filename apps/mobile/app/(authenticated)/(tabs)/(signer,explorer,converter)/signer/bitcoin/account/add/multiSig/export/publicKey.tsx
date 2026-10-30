@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { useRef, useState } from 'react'
+import { ScrollView, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -31,34 +31,22 @@ export default function PublicKeyPage() {
     useShallow((state) => [state.getAccountData])
   )
 
-  const [publicKey, setPublicKey] = useState('')
+  const keyScriptVersion = useAccountBuilderStore(
+    (state) => state.keys[Number(keyIndex || 0)]?.scriptVersion
+  )
+  const scriptVersion = keyScriptVersion || 'P2WPKH'
+
   const [isLoading, setIsLoading] = useState(true)
-  const qrRef = useRef<View>(null)
-  const [selectedFormat, setSelectedFormat] = useState<PublicKeyFormat>('xpub')
+  const qrRef = useRef<ViewInstance>(null)
+  const networkDefaultFormat = network === 'bitcoin' ? 'xpub' : 'tpub'
+  const [selectedFormat, setSelectedFormat] =
+    useState<PublicKeyFormat>(networkDefaultFormat)
+  const [formatNetwork, setFormatNetwork] = useState(network)
+  if (network !== formatNetwork) {
+    setFormatNetwork(network)
+    setSelectedFormat(networkDefaultFormat)
+  }
   const [rawPublicKey, setRawPublicKey] = useState('')
-  const [scriptVersion, setScriptVersion] = useState('P2WPKH')
-
-  useEffect(() => {
-    const accountData = getAccountData()
-    if (accountData) {
-      const keyIndexNum = Number(keyIndex || 0)
-      const key = accountData.keys[keyIndexNum]
-      if (key?.scriptVersion) {
-        setScriptVersion(key.scriptVersion)
-      }
-
-      if (key?.scriptVersion === 'P2SH-P2WSH') {
-        // For P2SH-P2WSH, default to ypub/upub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'ypub' : 'upub')
-      } else if (key?.scriptVersion === 'P2WSH') {
-        // For P2WSH, default to zpub/vpub (more specific)
-        setSelectedFormat(network === 'bitcoin' ? 'zpub' : 'vpub')
-      } else {
-        // For P2SH and others, default to xpub/tpub
-        setSelectedFormat(network === 'bitcoin' ? 'xpub' : 'tpub')
-      }
-    }
-  }, [getAccountData, network, keyIndex])
 
   function getFormatButtons(scriptVersion: string) {
     const formatButtons: {
@@ -66,49 +54,18 @@ export default function PublicKeyPage() {
       label: string
     }[] = []
 
-    if (scriptVersion === 'P2SH') {
-      // P2SH: Only show xpub/tpub
+    if (
+      scriptVersion === 'P2SH' ||
+      scriptVersion === 'P2SH-P2WSH' ||
+      scriptVersion === 'P2WSH'
+    ) {
+      // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so
+      // multisig keys are only shown as xpub/tpub.
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
           `account.seed.formatButtons.${
             network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2SH-P2WSH') {
-      // P2SH-P2WSH: Show xpub/ypub or tpub/upub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'ypub' : 'upub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2WSH') {
-      // P2WSH: Show xpub/zpub or tpub/vpub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'zpub' : 'vpub'
           }`
         )
       })
@@ -203,7 +160,6 @@ export default function PublicKeyPage() {
       toast.error('Key not found')
       return
     }
-    setScriptVersion(key.scriptVersion || 'P2WPKH')
     const secret = key.secret
       ? await decryptKeySecret(key)
       : await decryptAccountKeySecret(accountData.id, keyIndexNum)
@@ -217,27 +173,20 @@ export default function PublicKeyPage() {
       return
     }
     setRawPublicKey(publicKeyString)
-    setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
   }
 
   useAsyncEffect(async () => {
-    try {
-      setIsLoading(true)
-      await getPublicKey()
-    } catch {
-      toast.error('Failed to get public key')
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    await getPublicKey()
+      .catch(() => {
+        toast.error('Failed to get public key')
+      })
+      .finally(() => setIsLoading(false))
   }, [keyIndex, network, selectedFormat, convertPublicKeyFormat])
 
-  useEffect(() => {
-    if (rawPublicKey) {
-      const convertedKey = convertPublicKeyFormat(rawPublicKey, selectedFormat)
-      setPublicKey(convertedKey)
-    }
-    // oxlint-disable-next-line eslint-plugin-react-hooks/exhaustive-deps
-  }, [selectedFormat, rawPublicKey])
+  const publicKey = rawPublicKey
+    ? convertPublicKeyFormat(rawPublicKey, selectedFormat)
+    : ''
 
   function exportPublicKey() {
     const accountData = getAccountData()

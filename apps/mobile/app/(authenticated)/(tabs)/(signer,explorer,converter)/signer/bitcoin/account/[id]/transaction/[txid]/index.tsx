@@ -7,7 +7,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
+import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
+import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
@@ -27,10 +29,12 @@ import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
+import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
 import { getConfirmationsColorStyle } from '@/utils/confirmations'
+import { getFeeReplacementOptions } from '@/utils/feeReplacement'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -124,21 +128,41 @@ export default function TxDetails() {
 
   const currentServer = configs[selectedNetwork].server
 
+  const feeReplacement =
+    account && displayTx
+      ? getFeeReplacementOptions({
+          account,
+          backend: currentServer.backend,
+          ownedOutpoints,
+          tx: displayTx
+        })
+      : undefined
+
   const placeholder = '-'
 
   const [isReady, setIsReady] = useState(false)
   const [chartLoading, setChartLoading] = useState(true)
-  const [fee, setFee] = useState(placeholder)
-  const [feePerByte, setFeePerByte] = useState(placeholder)
-  const [feePerVByte, setFeePerVByte] = useState(placeholder)
-  const [height, setHeight] = useState(placeholder)
-  const [raw, setRaw] = useState('')
-  const [size, setSize] = useState(placeholder)
-  const [inputsCount, setInputsCount] = useState(placeholder)
-  const [outputsCount, setOutputsCount] = useState(placeholder)
-  const [version, setVersion] = useState(placeholder)
-  const [vsize, setVsize] = useState(placeholder)
-  const [weight, setWeight] = useState(placeholder)
+  const [chartTxid, setChartTxid] = useState(txid)
+  if (txid !== chartTxid) {
+    setChartTxid(txid)
+    setChartLoading(true)
+  }
+
+  const height = tx?.blockHeight
+    ? tx.blockHeight.toLocaleString('en-US')
+    : placeholder
+  const size = tx?.size ? tx.size.toString() : placeholder
+  const vsize = tx?.vsize ? tx.vsize.toString() : placeholder
+  const weight = tx?.weight ? tx.weight.toString() : placeholder
+  const fee = tx?.fee ? tx.fee.toString() : placeholder
+  const feePerByte =
+    tx?.fee && tx.size ? formatNumber(tx.fee / tx.size) : placeholder
+  const feePerVByte =
+    tx?.fee && tx.vsize ? formatNumber(tx.fee / tx.vsize) : placeholder
+  const version = tx?.version ? tx.version.toString() : placeholder
+  const inputsCount = tx?.vin ? tx.vin.length.toString() : placeholder
+  const outputsCount = tx?.vout ? tx.vout.length.toString() : placeholder
+  const raw = tx?.raw ? hex.encode(Uint8Array.from(tx.raw)) : ''
 
   useEffect(() => {
     // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
@@ -149,57 +173,9 @@ export default function TxDetails() {
     return () => cancelIdleCallback(idleHandle)
   }, [])
 
-  useEffect(() => {
-    setChartLoading(true)
-  }, [txid])
-
-  async function updateInfo() {
+  async function loadMissingInputValues() {
     if (!tx) {
       return
-    }
-
-    if (tx.blockHeight) {
-      setHeight(tx.blockHeight.toLocaleString('en-US'))
-    }
-
-    if (tx.size) {
-      setSize(tx.size.toString())
-    }
-
-    if (tx.vsize) {
-      setVsize(tx.vsize.toString())
-    }
-
-    if (tx.weight) {
-      setWeight(tx.weight.toString())
-    }
-
-    if (tx.fee) {
-      setFee(tx.fee.toString())
-    }
-
-    if (tx.fee && tx.size) {
-      setFeePerByte(formatNumber(tx.fee / tx.size))
-    }
-
-    if (tx.fee && tx.vsize) {
-      setFeePerVByte(formatNumber(tx.fee / tx.vsize))
-    }
-
-    if (tx.version) {
-      setVersion(tx.version.toString())
-    }
-
-    if (tx.vin) {
-      setInputsCount(tx.vin.length.toString())
-    }
-
-    if (tx.vout) {
-      setOutputsCount(tx.vout.length.toString())
-    }
-
-    if (tx.raw) {
-      setRaw(hex.encode(Uint8Array.from(tx.raw)))
     }
 
     if (tx.vin.some((input) => input.value === undefined)) {
@@ -216,11 +192,29 @@ export default function TxDetails() {
 
   useEffect(() => {
     try {
-      updateInfo()
+      loadMissingInputValues()
     } catch {
       router.back()
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function openFeeReplacement(kind: FeeReplacementKind) {
+    router.navigate(
+      `/signer/bitcoin/account/${accountId}/transaction/${txid}/feeReplacement?kind=${kind}`
+    )
+  }
+
+  function handleIncreaseFee() {
+    openFeeReplacement('bump')
+  }
+
+  function handleCancelToSelf() {
+    openFeeReplacement('cancel')
+  }
+
+  function handleChildPaysForParent() {
+    openFeeReplacement('cpfp')
+  }
 
   if (!accountId || !txid || !displayTx) {
     return <Redirect href="/" />
@@ -243,6 +237,35 @@ export default function TxDetails() {
           }
         />
         {displayTx.branta ? <SSBrantaPayee payee={displayTx.branta} /> : null}
+        {feeReplacement?.assessment.unconfirmed ? (
+          <SSVStack gap="xs">
+            <SSFeeReplacementFlags
+              rbf={feeReplacement.assessment.signalsRbf}
+              cpfp={feeReplacement.assessment.canCpfp}
+            />
+            {feeReplacement.actions.bump ? (
+              <SSButton
+                variant="outline"
+                label={t('transaction.feeReplacement.bump')}
+                onPress={handleIncreaseFee}
+              />
+            ) : null}
+            {feeReplacement.actions.cancel ? (
+              <SSButton
+                variant="danger"
+                label={t('transaction.feeReplacement.cancel.action')}
+                onPress={handleCancelToSelf}
+              />
+            ) : null}
+            {feeReplacement.actions.cpfp ? (
+              <SSButton
+                variant="outline"
+                label={t('transaction.feeReplacement.cpfp')}
+                onPress={handleChildPaysForParent}
+              />
+            ) : null}
+          </SSVStack>
+        ) : null}
         <SSSeparator color="gradient" />
         <SSLabelDetails
           label={displayTx.label || ''}
