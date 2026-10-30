@@ -86,13 +86,6 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     gap: Sizes.checkbox.height / 2
   },
-  label: {
-    flexShrink: 1
-  },
-  pressable: {
-    alignSelf: 'flex-start',
-    flexGrow: 0
-  },
   disabled: {
     opacity: 0.3
   },
@@ -102,6 +95,13 @@ const styles = StyleSheet.create({
   innerIconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius,
     borderWidth: Sizes.checkbox.borderWidth
+  },
+  label: {
+    flexShrink: 1
+  },
+  pressable: {
+    alignSelf: 'flex-start',
+    flexGrow: 0
   }
 })
 

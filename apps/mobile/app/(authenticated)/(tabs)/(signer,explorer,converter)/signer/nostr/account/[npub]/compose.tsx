@@ -247,10 +247,7 @@ export default function NostrComposePage() {
   }
 
   const paymentRequestSelected = amountMode !== 'none'
-  const noteContent = contentWithPubpayHashtag(
-    content,
-    paymentRequestSelected
-  )
+  const noteContent = contentWithPubpayHashtag(content, paymentRequestSelected)
 
   const draftEventJson = JSON.stringify(
     {
@@ -619,7 +616,7 @@ export default function NostrComposePage() {
           </SSVStack>
 
           <SSVStack gap="sm" style={styles.zapTagsSection}>
-            <SSHStack gap="sm" justifyBetween itemsCenter>
+            <SSHStack gap="sm" justifyBetween>
               <SSCheckbox
                 label={t('nostrIdentity.compose.pow')}
                 selected={powEnabled}

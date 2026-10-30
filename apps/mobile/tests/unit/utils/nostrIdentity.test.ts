@@ -178,14 +178,16 @@ describe('contentWithPubpayHashtag', () => {
 
   it('does not append a second hashtag', () => {
     const { contentWithPubpayHashtag } = require('@/utils/nostrIdentity')
-    expect(contentWithPubpayHashtag('hello #pubpay', true)).toBe('hello #pubpay')
+    expect(contentWithPubpayHashtag('hello #pubpay', true)).toBe(
+      'hello #pubpay'
+    )
   })
 })
 
 describe('withPubpayHashtag', () => {
   it('adds the pubpay hashtag when a payment option is selected', () => {
     const { withPubpayHashtag } = require('@/utils/nostrIdentity')
-    expect(withPubpayHashtag([['zap-min', '1000']], true)).toEqual([
+    expect(withPubpayHashtag([['zap-min', '1000']], true)).toStrictEqual([
       ['zap-min', '1000'],
       ['t', 'pubpay']
     ])
