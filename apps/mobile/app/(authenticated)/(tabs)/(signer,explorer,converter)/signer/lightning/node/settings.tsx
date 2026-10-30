@@ -170,30 +170,33 @@ export default function NodeSettingsPage() {
     setIsLoading(false)
   }
 
+  async function shareChannelBackupSnapshot() {
+    const snap: LNDChanBackupSnapshot = await exportAllChannelBackups()
+    const multi = snap?.multi_chan_backup?.multi_chan_backup
+    const hasSingle =
+      snap?.single_chan_backups !== null &&
+      snap?.single_chan_backups !== undefined &&
+      typeof snap.single_chan_backups === 'object'
+    if (!multi && !hasSingle) {
+      toast.error(t('lightning.nodeSettings.exportBackupNoData'))
+      return
+    }
+    await shareFile({
+      dialogTitle: t('lightning.nodeSettings.channelBackupTitle'),
+      fileContent: JSON.stringify(snap, null, 2),
+      filename: `lnd-channel-backup-${Date.now()}.json`,
+      mimeType: 'application/json'
+    })
+  }
+
   async function handleExportChannelBackupConfirm() {
     setBackupLoading(true)
     try {
-      const snap: LNDChanBackupSnapshot = await exportAllChannelBackups()
-      const multi = snap?.multi_chan_backup?.multi_chan_backup
-      const hasSingle =
-        snap?.single_chan_backups !== null &&
-        snap?.single_chan_backups !== undefined &&
-        typeof snap.single_chan_backups === 'object'
-      if (!multi && !hasSingle) {
-        toast.error(t('lightning.nodeSettings.exportBackupNoData'))
-        return
-      }
-      await shareFile({
-        dialogTitle: t('lightning.nodeSettings.channelBackupTitle'),
-        fileContent: JSON.stringify(snap, null, 2),
-        filename: `lnd-channel-backup-${Date.now()}.json`,
-        mimeType: 'application/json'
-      })
+      await shareChannelBackupSnapshot()
     } catch {
       toast.error(t('lightning.nodeSettings.exportBackupFailed'))
-    } finally {
-      setBackupLoading(false)
     }
+    setBackupLoading(false)
   }
 
   function handleOpenNodeBackup() {

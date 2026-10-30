@@ -4,7 +4,7 @@ import { StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { lndRestFetch } from '@/api/lndRest'
+import { pairLndRestNode } from '@/api/lndRestRequest'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSLoader from '@/components/SSLoader'
@@ -17,11 +17,7 @@ import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
-import {
-  parseLndConnectionInput,
-  resolveLndConfigFromConnectionInput
-} from '@/utils/lndRestRemoteConfig'
+import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 
 const CONNECTING_LOADER_SIZE = 80
 
@@ -50,40 +46,16 @@ export default function LNDRestPage() {
 
     setIsConnecting(true)
     try {
-      const config = await resolveLndConfigFromConnectionInput(connectionString)
+      const { config, nodeInfo } = await pairLndRestNode(connectionString)
 
-      const baseUrl = config.url.replace(/\/+$/, '')
-      const response = await lndRestFetch(
-        { ...config, url: baseUrl },
-        '/v1/getinfo'
-      )
+      setConfig(config)
+      setNodeInfo(nodeInfo)
+      setConnected(true)
 
-      if (response.ok) {
-        const nodeInfo = parseLndNodeInfo(await response.json())
-        if (!nodeInfo) {
-          throw new Error(`getinfo failed (${response.status})`)
-        }
-
-        setConfig({ ...config, url: baseUrl })
-        setNodeInfo(nodeInfo)
-        setConnected(true)
-
-        toast.success(t('lightning.lndRest.connectSuccess'))
-        setTimeout(() => {
-          router.back()
-        }, LND_SUCCESS_NAVIGATE_DELAY_MS)
-      } else {
-        const responseText = await response.text()
-        const errBody = responseText
-          .replaceAll(/\s+/g, ' ')
-          .trim()
-          .slice(0, 180)
-        throw new Error(
-          errBody
-            ? `getinfo failed (${response.status}): ${errBody}`
-            : `getinfo failed (${response.status})`
-        )
-      }
+      toast.success(t('lightning.lndRest.connectSuccess'))
+      setTimeout(() => {
+        router.back()
+      }, LND_SUCCESS_NAVIGATE_DELAY_MS)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       const detail =
@@ -93,9 +65,8 @@ export default function LNDRestPage() {
           detail
         })
       })
-    } finally {
-      setIsConnecting(false)
     }
+    setIsConnecting(false)
   }
 
   const handleContentScanned = (content: DetectedContent) => {

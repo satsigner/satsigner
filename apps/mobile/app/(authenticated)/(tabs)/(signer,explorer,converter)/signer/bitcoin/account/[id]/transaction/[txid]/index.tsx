@@ -141,17 +141,27 @@ export default function TxDetails() {
 
   const [isReady, setIsReady] = useState(false)
   const [chartLoading, setChartLoading] = useState(true)
-  const [fee, setFee] = useState(placeholder)
-  const [feePerByte, setFeePerByte] = useState(placeholder)
-  const [feePerVByte, setFeePerVByte] = useState(placeholder)
-  const [height, setHeight] = useState(placeholder)
-  const [raw, setRaw] = useState('')
-  const [size, setSize] = useState(placeholder)
-  const [inputsCount, setInputsCount] = useState(placeholder)
-  const [outputsCount, setOutputsCount] = useState(placeholder)
-  const [version, setVersion] = useState(placeholder)
-  const [vsize, setVsize] = useState(placeholder)
-  const [weight, setWeight] = useState(placeholder)
+  const [chartTxid, setChartTxid] = useState(txid)
+  if (txid !== chartTxid) {
+    setChartTxid(txid)
+    setChartLoading(true)
+  }
+
+  const height = tx?.blockHeight
+    ? tx.blockHeight.toLocaleString('en-US')
+    : placeholder
+  const size = tx?.size ? tx.size.toString() : placeholder
+  const vsize = tx?.vsize ? tx.vsize.toString() : placeholder
+  const weight = tx?.weight ? tx.weight.toString() : placeholder
+  const fee = tx?.fee ? tx.fee.toString() : placeholder
+  const feePerByte =
+    tx?.fee && tx.size ? formatNumber(tx.fee / tx.size) : placeholder
+  const feePerVByte =
+    tx?.fee && tx.vsize ? formatNumber(tx.fee / tx.vsize) : placeholder
+  const version = tx?.version ? tx.version.toString() : placeholder
+  const inputsCount = tx?.vin ? tx.vin.length.toString() : placeholder
+  const outputsCount = tx?.vout ? tx.vout.length.toString() : placeholder
+  const raw = tx?.raw ? hex.encode(Uint8Array.from(tx.raw)) : ''
 
   useEffect(() => {
     // requestIdleCallback replaces deprecated InteractionManager.runAfterInteractions.
@@ -162,57 +172,9 @@ export default function TxDetails() {
     return () => cancelIdleCallback(idleHandle)
   }, [])
 
-  useEffect(() => {
-    setChartLoading(true)
-  }, [txid])
-
-  async function updateInfo() {
+  async function loadMissingInputValues() {
     if (!tx) {
       return
-    }
-
-    if (tx.blockHeight) {
-      setHeight(tx.blockHeight.toLocaleString('en-US'))
-    }
-
-    if (tx.size) {
-      setSize(tx.size.toString())
-    }
-
-    if (tx.vsize) {
-      setVsize(tx.vsize.toString())
-    }
-
-    if (tx.weight) {
-      setWeight(tx.weight.toString())
-    }
-
-    if (tx.fee) {
-      setFee(tx.fee.toString())
-    }
-
-    if (tx.fee && tx.size) {
-      setFeePerByte(formatNumber(tx.fee / tx.size))
-    }
-
-    if (tx.fee && tx.vsize) {
-      setFeePerVByte(formatNumber(tx.fee / tx.vsize))
-    }
-
-    if (tx.version) {
-      setVersion(tx.version.toString())
-    }
-
-    if (tx.vin) {
-      setInputsCount(tx.vin.length.toString())
-    }
-
-    if (tx.vout) {
-      setOutputsCount(tx.vout.length.toString())
-    }
-
-    if (tx.raw) {
-      setRaw(hex.encode(Uint8Array.from(tx.raw)))
     }
 
     if (tx.vin.some((input) => input.value === undefined)) {
@@ -229,7 +191,7 @@ export default function TxDetails() {
 
   useEffect(() => {
     try {
-      updateInfo()
+      loadMissingInputValues()
     } catch {
       router.back()
     }

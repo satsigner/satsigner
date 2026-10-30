@@ -112,8 +112,8 @@ export function formatAccountCreationDate(
   return formatDateUtil(date)
 }
 
-export function isToday(date: Date): boolean {
-  return date.toDateString() === new Date().toDateString()
+export function isToday(date: Date, nowMs = Date.now()): boolean {
+  return date.toDateString() === new Date(nowMs).toDateString()
 }
 
 export function futureDate(from: Date, days: number): Date {

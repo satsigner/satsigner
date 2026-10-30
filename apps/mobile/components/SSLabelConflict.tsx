@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
@@ -202,8 +202,29 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
   const [conflictStrategyPerLabel, setConflictStrategyPerLabel] = useState<
     ConflictStrategy[]
   >([])
-  const [results, setResults] = useState<Label[]>([])
+  const [results, setResults] = useState<Label[]>(() =>
+    solveConflicts(conflicts, defaultStrategy)
+  )
+  const [solvedConflicts, setSolvedConflicts] = useState(conflicts)
+  const [solvedStrategy, setSolvedStrategy] = useState(conflictStrategy)
   const [stage, setStage] = useState<'selection' | 'preview'>('selection')
+
+  if (conflicts !== solvedConflicts || conflictStrategy !== solvedStrategy) {
+    setSolvedConflicts(conflicts)
+    setSolvedStrategy(conflictStrategy)
+    setResults(solveConflicts(conflicts, conflictStrategy))
+
+    if (
+      conflictStrategy.length !== conflictStrategyPerLabel.length &&
+      conflictStrategy === 'manual'
+    ) {
+      setConflictStrategyPerLabel(
+        Array.from<ConflictStrategy>({ length: conflicts.length }).fill(
+          'manual'
+        )
+      )
+    }
+  }
 
   function solveConflictByIndex(strategy: ConflictStrategy, index: number) {
     const [current, incoming] = conflicts[index]
@@ -223,21 +244,6 @@ function SSLabelConflict({ conflicts, onResolve }: SSLabelConflictProps) {
     newResults[index] = { ...newResults[index], label }
     setResults(newResults)
   }
-
-  useEffect(() => {
-    setResults(solveConflicts(conflicts, conflictStrategy))
-
-    if (
-      conflictStrategy.length !== conflictStrategyPerLabel.length &&
-      conflictStrategy === 'manual'
-    ) {
-      setConflictStrategyPerLabel(
-        Array.from<ConflictStrategy>({ length: conflicts.length }).fill(
-          'manual'
-        )
-      )
-    }
-  }, [conflicts, conflictStrategy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSVStack style={{ width: '100%' }}>

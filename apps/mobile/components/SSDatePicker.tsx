@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   type DimensionValue,
   ScrollView,
@@ -290,11 +290,15 @@ function DateBlock({
     scrollRef?.current?.scrollTo({ animated: true, y: dHeight * index })
   }
 
+  const [firstDigit] = digits
+  const snapScrollToValue = useEffectEvent(() => {
+    snapScrollToIndex(value - firstDigit)
+  })
+
   useEffect(() => {
-    setTimeout(() => {
-      snapScrollToIndex(value - digits[0])
-    }, 0)
-  }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => snapScrollToValue(), 0)
+    return () => clearTimeout(timer)
+  }, [firstDigit])
 
   const handleMomentumScrollEnd = ({
     nativeEvent

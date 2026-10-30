@@ -27,6 +27,38 @@ type ContactsParams = {
   npub: string
 }
 
+/** Copies the kind 3 follow list to other relays; null when none was found. */
+async function republishKind3(
+  npub: string,
+  secretKey: Uint8Array,
+  sourceRelays: string[],
+  targetRelays: string[]
+) {
+  const sourceApi = new NostrAPI(sourceRelays)
+  const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
+
+  if (!result.kind3Found || result.pubkeys.length === 0) {
+    return null
+  }
+
+  const tags = result.pubkeys.map((pk) => ['p', pk])
+
+  const targetApi = new NostrAPI(targetRelays)
+  await targetApi.connectForPublish()
+
+  const signer = new NDKPrivateKeySigner(secretKey)
+  const event = new NDKEvent(undefined, {
+    content: '',
+    kind: nostrKinds.Contacts,
+    tags
+  })
+  await event.sign(signer)
+
+  await targetApi.publishEvent(event)
+
+  return result.pubkeys.length
+}
+
 export default function NostrContacts() {
   const router = useRouter()
   const { npub } = useLocalSearchParams<ContactsParams>()
@@ -94,44 +126,31 @@ export default function NostrContacts() {
 
     setIsPublishing(true)
     try {
-      const sourceApi = new NostrAPI(contactsRelays)
-      const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
-
-      if (!result.kind3Found || result.pubkeys.length === 0) {
-        toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
-        return
-      }
-
-      const tags = result.pubkeys.map((pk) => ['p', pk])
-
-      const targetApi = new NostrAPI(otherRelays)
-      await targetApi.connectForPublish()
-
-      const signer = new NDKPrivateKeySigner(secretKey)
-      const event = new NDKEvent(undefined, {
-        content: '',
-        kind: nostrKinds.Contacts,
-        tags
-      })
-      await event.sign(signer)
-
-      await targetApi.publishEvent(event)
-
-      toast.success(
-        t('nostrIdentity.contacts.publishSuccess', {
-          count: result.pubkeys.length,
-          relays: otherRelays.length
-        })
+      const publishedCount = await republishKind3(
+        npub,
+        secretKey,
+        contactsRelays,
+        otherRelays
       )
+
+      if (publishedCount === null) {
+        toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
+      } else {
+        toast.success(
+          t('nostrIdentity.contacts.publishSuccess', {
+            count: publishedCount,
+            relays: otherRelays.length
+          })
+        )
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : t('nostrIdentity.contacts.publishError')
       )
-    } finally {
-      setIsPublishing(false)
     }
+    setIsPublishing(false)
   }
 
   return (

@@ -266,10 +266,9 @@ export function useExplorerTransaction(txid: string | null) {
     } catch {
       setMempoolTx(null)
       setMempoolError(true)
-    } finally {
-      setMempoolLoading(false)
-      setLoadingPhase(null)
     }
+    setMempoolLoading(false)
+    setLoadingPhase(null)
   }
 
   const useMempool = mempoolTx !== null

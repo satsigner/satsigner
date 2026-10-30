@@ -156,9 +156,8 @@ export default function ArkAccountSettingsPage() {
       const message =
         error instanceof Error ? error.message : t('ark.error.delete')
       toast.error(message)
-    } finally {
-      setIsDeleting(false)
     }
+    setIsDeleting(false)
   }
 
   return (

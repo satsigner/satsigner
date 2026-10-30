@@ -45,6 +45,9 @@ jobs:
       - name: type check
         run: pnpm --filter @satsigner/mobile typecheck
 
+      - name: react compiler check
+        run: pnpm --filter @satsigner/mobile check:compiler
+
       - name: lint & format
         run: pnpm run check
 

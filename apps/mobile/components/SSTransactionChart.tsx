@@ -1,6 +1,6 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey } from 'd3-sankey'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -28,6 +28,7 @@ import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { buildSankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import { isOwnedOutpoint } from '@/utils/sankeyInputOwnership'
+import { layoutSankeyGraph } from '@/utils/sankeyLayout'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
 import {
   resolveChartOutputSpendStatus,
@@ -183,8 +184,8 @@ function SSTransactionChartCanvas({
   outpointLabelsByRef,
   knownTxIds,
   spendingTxIdsByOutpoint,
-  ownAddresses = new Set(),
-  internalAddresses = new Set(),
+  ownAddresses,
+  internalAddresses,
   unspentOutpoints,
   ownedOutpoints,
   selectedOutputIndex,
@@ -200,11 +201,11 @@ function SSTransactionChartCanvas({
   )
 
   const normalizedOwnAddresses = useMemo(
-    () => normalizeAddressSet(ownAddresses),
+    () => normalizeAddressSet(ownAddresses ?? []),
     [ownAddresses]
   )
   const normalizedInternalAddresses = useMemo(
-    () => normalizeAddressSet(internalAddresses),
+    () => normalizeAddressSet(internalAddresses ?? []),
     [internalAddresses]
   )
 
@@ -237,8 +238,9 @@ function SSTransactionChartCanvas({
     transaction.vin.length > 0 &&
     transaction.vout.length > 0
 
-  const onLoadingChangeRef = useRef(onLoadingChange)
-  onLoadingChangeRef.current = onLoadingChange
+  const notifyStructureLoaded = useEffectEvent(() => {
+    onLoadingChange?.(false)
+  })
 
   const structureNotifiedRef = useRef(false)
   const [labelsReady, setLabelsReady] = useState(false)
@@ -255,7 +257,7 @@ function SSTransactionChartCanvas({
 
     if (!canDrawStructure) {
       structureNotifiedRef.current = true
-      onLoadingChangeRef.current?.(false)
+      notifyStructureLoaded()
       return
     }
 
@@ -264,7 +266,7 @@ function SSTransactionChartCanvas({
     }
 
     structureNotifiedRef.current = true
-    onLoadingChangeRef.current?.(false)
+    notifyStructureLoaded()
   }, [canDrawStructure, labelsReady, transaction.id])
 
   const pendingOutspendOutputs: { address: string; vout: number }[] = []
@@ -610,7 +612,7 @@ function SSTransactionChartCanvas({
     return <View style={{ height: GRAPH_HEIGHT / 2, overflow: 'hidden' }} />
   }
 
-  const layoutResult = sankeyGenerator({
+  const layoutResult = layoutSankeyGraph(sankeyGenerator, {
     links: sankeyLinks,
     nodes: sankeyNodes
   })

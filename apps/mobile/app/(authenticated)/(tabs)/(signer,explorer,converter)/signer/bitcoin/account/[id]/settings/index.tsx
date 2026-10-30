@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
@@ -39,7 +39,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint, getAccountLabelCounts } from '@/utils/account'
 import { isElectrumDerivationPath } from '@/utils/bip39'
@@ -48,6 +47,11 @@ import { decryptAccountKeySecret } from '@/utils/decryption'
 import { formatDate } from '@/utils/format'
 import { multisigKeyImportHandlers } from '@/utils/multisigKeyNavigation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
+
+async function decryptFirstKeyMnemonic(accountId: string) {
+  const accountSecret = await decryptAccountKeySecret(accountId, 0)
+  return accountSecret.mnemonic || ''
+}
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -67,9 +71,7 @@ export default function AccountSettings() {
     useShallow((state) => [state.removeAccountWallet, state.dbPaths])
   )
 
-  const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
-    account?.keys[0]?.scriptVersion || 'P2WPKH'
-  )
+  const scriptVersion = account?.keys[0]?.scriptVersion || 'P2WPKH'
   const [localMnemonic, setLocalMnemonic] = useState('')
   const decryptedKeys = useDecryptedKeys(account)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
@@ -198,20 +200,12 @@ export default function AccountSettings() {
     }
 
     try {
-      const accountSecret = await decryptAccountKeySecret(account.id, 0)
-      setLocalMnemonic(accountSecret.mnemonic || '')
+      const mnemonic = await decryptFirstKeyMnemonic(account.id)
+      setLocalMnemonic(mnemonic)
     } catch {
       toast.error(t('account.seed.unableToDecrypt'))
     }
   }
-
-  useEffect(() => {
-    const accountKeys = account?.keys
-    const scriptVersion = accountKeys?.[0]?.scriptVersion
-    if (scriptVersion) {
-      setScriptVersion(scriptVersion)
-    }
-  }, [account?.keys])
 
   if (!currentAccountId || !account || !scriptVersion) {
     return <Redirect href="/" />

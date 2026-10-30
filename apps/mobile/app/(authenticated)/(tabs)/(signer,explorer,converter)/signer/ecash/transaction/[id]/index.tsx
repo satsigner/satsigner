@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -33,6 +33,12 @@ import { Colors, Typography } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
 import { type EcashSearchParams } from '@/types/navigation/searchParams'
 import { formatFiatPrice } from '@/utils/format'
+
+function getCheckedTokenStatus(
+  isValid: boolean
+): EcashTransaction['tokenStatus'] {
+  return isValid ? 'unspent' : 'invalid'
+}
 
 export default function EcashTransactionDetailPage() {
   const router = useRouter()
@@ -80,7 +86,7 @@ export default function EcashTransactionDetailPage() {
     : null
   const lightningInvoice = mintQuote?.request || null
 
-  const handleCopyToken = useCallback(async () => {
+  async function handleCopyToken() {
     if (!transaction?.token) {
       return
     }
@@ -91,9 +97,9 @@ export default function EcashTransactionDetailPage() {
     } catch {
       toast.error(t('ecash.error.failedToCopy'))
     }
-  }, [transaction?.token])
+  }
 
-  const handleCopyInvoice = useCallback(async () => {
+  async function handleCopyInvoice() {
     if (!transaction?.invoice) {
       return
     }
@@ -104,9 +110,9 @@ export default function EcashTransactionDetailPage() {
     } catch {
       toast.error(t('ecash.error.failedToCopy'))
     }
-  }, [transaction?.invoice])
+  }
 
-  const handleCopyLightningInvoice = useCallback(async () => {
+  async function handleCopyLightningInvoice() {
     if (!lightningInvoice) {
       return
     }
@@ -117,9 +123,9 @@ export default function EcashTransactionDetailPage() {
     } catch {
       toast.error(t('ecash.error.failedToCopy'))
     }
-  }, [lightningInvoice])
+  }
 
-  const handleCheckTokenStatus = useCallback(async () => {
+  async function handleCheckTokenStatus() {
     if (!transaction?.token || !transaction?.mintUrl) {
       return
     }
@@ -131,26 +137,17 @@ export default function EcashTransactionDetailPage() {
         transaction.token,
         transaction.mintUrl
       )
-      const tokenStatus: EcashTransaction['tokenStatus'] = isValid
-        ? 'unspent'
-        : 'invalid'
+      const tokenStatus = getCheckedTokenStatus(isValid)
 
       updateTransaction(transaction.id, { tokenStatus })
     } catch {
       updateTransaction(transaction.id, { tokenStatus: 'invalid' })
       toast.error(t('ecash.error.failedToCheckStatus'))
-    } finally {
-      setIsCheckingStatus(false)
     }
-  }, [
-    transaction?.token,
-    transaction?.mintUrl,
-    transaction?.id,
-    updateTransaction,
-    validateToken
-  ])
+    setIsCheckingStatus(false)
+  }
 
-  const handleRedeemToken = useCallback(async () => {
+  async function handleRedeemToken() {
     if (!transaction?.token || !transaction?.mintUrl) {
       return
     }
@@ -163,17 +160,9 @@ export default function EcashTransactionDetailPage() {
       router.back()
     } catch {
       // Error handling is done in the hook
-    } finally {
-      setIsRedeeming(false)
     }
-  }, [
-    transaction?.token,
-    transaction?.mintUrl,
-    transaction?.id,
-    receiveEcash,
-    updateTransaction,
-    router
-  ])
+    setIsRedeeming(false)
+  }
 
   const { isPolling } = useEcashMintQuotePolling({
     checkMintQuote,

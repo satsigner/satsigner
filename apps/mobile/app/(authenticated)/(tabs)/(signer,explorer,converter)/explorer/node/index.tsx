@@ -9,6 +9,7 @@ import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -31,12 +32,13 @@ export default function ExplorerNode() {
   const { data: serverInfo, isLoading: isLoadingInfo } = useBackendServerInfo()
   const { data: bitnodesInfo, isLoading: isLoadingBitnodes } =
     useBitnodesNodeInfo(showExternal)
+  const nowMs = useNow()
 
   const showServerInfo =
     server.backend === 'electrum' || server.backend === 'rpc'
 
   function formatBlockAge(timestampSeconds: number): string {
-    const elapsedMs = Date.now() - timestampSeconds * MS_PER_SECOND
+    const elapsedMs = nowMs - timestampSeconds * MS_PER_SECOND
     const [value, unit] = formatTimeFromNow(elapsedMs)
     const floored = Math.floor(value)
     if (unit === 'second') {

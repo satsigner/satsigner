@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
@@ -37,6 +37,8 @@ import {
 import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+const EMPTY_ADDRESS_SET = new Set<string>()
+
 type UtxoDetailsProps = {
   accountId: string
   onPressAddress: () => void
@@ -60,8 +62,8 @@ function UtxoDetails({
   onPressAddress,
   onPressTx,
   onSpendUtxo,
-  ownAddresses = new Set(),
-  internalAddresses = new Set(),
+  ownAddresses = EMPTY_ADDRESS_SET,
+  internalAddresses = EMPTY_ADDRESS_SET,
   unspentOutpoints,
   ownedOutpoints,
   txLabelsById,
@@ -73,16 +75,22 @@ function UtxoDetails({
   addressIndex,
   allAccountUtxos
 }: UtxoDetailsProps & { allAccountUtxos: Utxo[] }) {
-  const [blockTime, setBlockTime] = useState('')
-  const [blockHeight, setBlockHeight] = useState('')
-  const [value, setValue] = useState('')
-  const [fiatValue, setFiatValue] = useState('')
-  const [txid, setTxid] = useState('')
-  const [vout, setVout] = useState('')
-
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.btcPrice
+    ])
   )
+
+  const txid = tx?.id ?? ''
+  const blockHeight = tx?.blockHeight ? tx.blockHeight.toString() : ''
+  const blockTime = tx?.timestamp ? formatDate(tx.timestamp) : ''
+  const vout = utxo ? utxo.vout.toString() : ''
+  const value = utxo?.value ? formatNumber(utxo.value) : ''
+  const fiatValue = utxo?.value
+    ? `${formatNumber(satsToFiat(utxo.value, btcPrice), 2)} ${fiatCurrency}`
+    : ''
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [showTransactionFlowChart, showUtxoFlowChart] = useChartSettingStore(
     useShallow((state) => [
@@ -102,37 +110,6 @@ function UtxoDetails({
     }
     return [utxo]
   }, [utxo])
-
-  const updateInfo = () => {
-    if (tx) {
-      const { blockHeight, timestamp } = tx
-      setTxid(tx.id)
-      if (blockHeight) {
-        setBlockHeight(blockHeight.toString())
-      }
-      if (timestamp) {
-        setBlockTime(formatDate(timestamp))
-      }
-    }
-
-    if (utxo) {
-      setVout(utxo.vout.toString())
-      const { value } = utxo
-      if (value) {
-        setValue(formatNumber(value))
-        const fiatValue = formatNumber(satsToFiat(value), 2)
-        setFiatValue(`${fiatValue} ${fiatCurrency}`)
-      }
-    }
-  }
-
-  useEffect(() => {
-    try {
-      updateInfo()
-    } catch {
-      //
-    }
-  }, [tx, utxo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ScrollView>

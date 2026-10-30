@@ -78,12 +78,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
   >([])
   const labelTopsRef = useRef<{ key: YKey; top: number }[]>([])
 
-  const maxYDomainRef = useRef(0)
-  const isMvB = useRef(false)
-
-  const data = useMemo(() => {
+  const { data, isMvB, maxYDomain } = useMemo(() => {
     if (!mempoolStatistics) {
-      return []
+      return { data: [], isMvB: false, maxYDomain: 0 }
     }
 
     const totalVsizes = mempoolStatistics.map((entry) =>
@@ -91,10 +88,9 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
     )
     const maxTotalVsize = Math.max(0, ...totalVsizes)
     const useMega = maxTotalVsize > Y_VALUE_THRESHOLD_MVB
-    isMvB.current = useMega
     const convertFunction = useMega ? bytes.toMega : bytes.toKilo
 
-    let maxYDomain = 0
+    let maxTotalInUnit = 0
 
     const result = mempoolStatistics
       .map((entry, i) => {
@@ -122,8 +118,8 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
 
         const totalVsize = totalVsizes[i] ?? 0
         const convertedTotal = convertFunction(totalVsize)
-        if (convertedTotal > maxYDomain) {
-          maxYDomain = convertedTotal
+        if (convertedTotal > maxTotalInUnit) {
+          maxTotalInUnit = convertedTotal
         }
 
         return {
@@ -173,9 +169,7 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
       })
       .toReversed()
 
-    maxYDomainRef.current = maxYDomain
-
-    return result
+    return { data: result, isMvB: useMega, maxYDomain: maxTotalInUnit }
   }, [mempoolStatistics, timeRange])
 
   const keysWithData = useMemo(() => {
@@ -215,13 +209,13 @@ function SSFeeRateChart({ mempoolStatistics, timeRange }: SSFeeRateChartProps) {
               xKey="x"
               yKeys={[...Y_KEYS]}
               padding={{ right: 4 }}
-              domain={{ y: [0, maxYDomainRef.current] }}
+              domain={{ y: [0, maxYDomain] }}
               domainPadding={{ top: 100 }}
               onChartBoundsChange={(bounds) => setChartBounds(bounds)}
               axisOptions={{
                 axisSide: { x: 'bottom', y: 'left' },
                 font: labelFont ?? font,
-                formatYLabel: (v) => `${v} ${isMvB.current ? 'MvB' : 'kvB'}`,
+                formatYLabel: (v) => `${v} ${isMvB ? 'MvB' : 'kvB'}`,
                 labelColor: { x: '#787878', y: '#ffffff' },
                 labelOffset: { x: 4, y: 8 },
                 tickCount: { x: 4, y: 8 }

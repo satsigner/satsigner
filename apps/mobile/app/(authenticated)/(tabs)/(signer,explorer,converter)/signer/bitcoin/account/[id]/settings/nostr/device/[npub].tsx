@@ -20,6 +20,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
+import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
 
 export default function DeviceAliasPage() {
   const { id: accountId, npub } =
@@ -92,11 +93,14 @@ export default function DeviceAliasPage() {
   const memberProfile =
     npub && (displayName || picture) ? { displayName, picture } : undefined
 
-  const currentAlias =
-    npub && account?.nostr?.npubAliases?.[npub]
-      ? account.nostr.npubAliases[npub]
-      : ''
+  const npubAliases = account?.nostr?.npubAliases
+  const currentAlias = npub && npubAliases?.[npub] ? npubAliases[npub] : ''
   const [alias, setAlias] = useState(currentAlias)
+  const [aliasSource, setAliasSource] = useState({ npub, npubAliases })
+  if (aliasSource.npub !== npub || aliasSource.npubAliases !== npubAliases) {
+    setAliasSource({ npub, npubAliases })
+    setAlias(currentAlias)
+  }
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
@@ -122,9 +126,11 @@ export default function DeviceAliasPage() {
     setLoadingFetchKind0(true)
     try {
       const api = new NostrAPI(relays)
-      const profile = await api.fetchKind0(npub)
-      if (!profile || (!profile.displayName && !profile.picture)) {
+      const fetchedProfile = await api.fetchKind0(npub)
+      const profile = kind0ProfileWithContent(fetchedProfile)
+      if (!profile) {
         toast.info(t('account.nostrSync.fetchKind0NotFound'))
+        setLoadingFetchKind0(false)
         return
       }
       const updated = {
@@ -150,9 +156,8 @@ export default function DeviceAliasPage() {
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )
-    } finally {
-      setLoadingFetchKind0(false)
     }
+    setLoadingFetchKind0(false)
   }
 
   function clearKind0Profile() {
@@ -172,14 +177,6 @@ export default function DeviceAliasPage() {
     updateAccountNostr(accountId, payload)
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
-
-  useEffect(() => {
-    const aliasValue =
-      npub && account?.nostr?.npubAliases?.[npub]
-        ? account.nostr.npubAliases[npub]
-        : ''
-    setAlias(aliasValue)
-  }, [npub, account?.nostr?.npubAliases])
 
   function handleSave() {
     if (!accountId || !account?.nostr || !npub) {

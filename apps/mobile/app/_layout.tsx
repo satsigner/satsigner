@@ -86,32 +86,6 @@ export default function RootLayout() {
     })
   }, [authHydrated])
 
-  useEffect(() => {
-    if (!firstTime) {
-      setLockTriggered(true)
-    }
-
-    const subscription = AppState.addEventListener(
-      'change',
-      handleAppStateChanged
-    )
-
-    return () => {
-      subscription.remove()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    async function initNfc() {
-      try {
-        await NfcManager.start()
-      } catch {
-        // NFC init fails on emulators / devices without NFC — safe to ignore
-      }
-    }
-    initNfc()
-  }, [])
-
   // Registered once on mount, so auth settings are read from the store at
   // event time; render-time values would stay frozen at the first render.
   function handleAppStateChanged(nextAppState: AppStateStatus) {
@@ -142,6 +116,32 @@ export default function RootLayout() {
 
     appState.current = nextAppState
   }
+
+  useEffect(() => {
+    if (!firstTime) {
+      setLockTriggered(true)
+    }
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChanged
+    )
+
+    return () => {
+      subscription.remove()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    async function initNfc() {
+      try {
+        await NfcManager.start()
+      } catch {
+        // NFC init fails on emulators / devices without NFC — safe to ignore
+      }
+    }
+    initNfc()
+  }, [])
 
   return (
     <SafeAreaProvider>
