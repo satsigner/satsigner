@@ -106,12 +106,14 @@ export default function ExplorerAddressDetail() {
     data,
     isLoading,
     isError,
+    addressNetworkMatch,
     capability,
-    isValidAddress,
     loadFromMempool,
     needsMempool,
     useMempool
   } = useExplorerAddress(resolvedAddress)
+  const invalidAddressMessage =
+    addressNetworkMatch === 'otherNetwork' ? tn('otherNetwork') : tn('invalid')
   const capabilityWhy = capability.whyKey ? t(capability.whyKey) : tn('loadWhy')
   const capabilityFix = capability.fixKey ? t(capability.fixKey) : tn('loadFix')
 
@@ -160,9 +162,9 @@ export default function ExplorerAddressDetail() {
         }}
       />
       <SSVStack style={styles.container}>
-        {!isValidAddress ? (
+        {addressNetworkMatch !== 'match' ? (
           <SSText color="muted" center style={styles.errorContainer}>
-            {tn('invalid')}
+            {invalidAddressMessage}
           </SSText>
         ) : null}
 

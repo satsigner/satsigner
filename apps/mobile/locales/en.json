@@ -1312,6 +1312,7 @@
     "address.noTransactions": "No transactions",
     "address.noUtxos": "No UTXOs",
     "address.notFound": "Address not found or server error",
+    "address.otherNetwork": "This address is for a different network",
     "address.paste": "Paste",
     "address.placeholder": "Enter a Bitcoin address",
     "address.scanQr": "Scan QR",

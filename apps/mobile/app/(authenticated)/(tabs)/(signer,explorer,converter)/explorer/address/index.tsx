@@ -21,11 +21,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { matchAddressNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { truncate } from '@/utils/format'
 import { parseUriParameters, stripBitcoinPrefix } from '@/utils/parse'
-import { validateAddress } from '@/utils/validation'
 
 const tn = _tn('explorer.address')
 
@@ -44,8 +43,11 @@ export default function ExplorerAddress() {
 
   function navigate(address: string) {
     const trimmed = resolveExplorerAddressInput(address)
-    if (!validateAddress(trimmed, bitcoinjsNetwork(selectedNetwork))) {
-      toast.error(tn('invalid'))
+    const networkMatch = matchAddressNetwork(trimmed, selectedNetwork)
+    if (networkMatch !== 'match') {
+      toast.error(
+        networkMatch === 'otherNetwork' ? tn('otherNetwork') : tn('invalid')
+      )
       return
     }
     router.push({
