@@ -623,7 +623,6 @@ export default function NostrComposePage() {
               <SSCheckbox
                 label={t('nostrIdentity.compose.pow')}
                 selected={powEnabled}
-                containerStyle={styles.powCheckbox}
                 labelProps={{ size: 'xs' }}
                 onPress={handlePowToggle}
               />
@@ -817,9 +816,6 @@ const styles = StyleSheet.create({
     maxHeight: 220,
     padding: 12,
     textAlignVertical: 'top'
-  },
-  powCheckbox: {
-    flex: 1
   },
   modeButton: {
     backgroundColor: Colors.gray[925],

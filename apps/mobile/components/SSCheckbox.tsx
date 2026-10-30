@@ -35,6 +35,7 @@ function SSCheckbox({
 }: SSCheckboxProps) {
   return (
     <SSPressable
+      style={styles.pressable}
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
     >
       <View
@@ -62,7 +63,7 @@ function SSCheckbox({
           {...props}
         />
         {label && (
-          <SSVStack gap="none" style={{ flex: 1 }}>
+          <SSVStack gap="none" style={styles.label}>
             <SSText color={disabled ? 'muted' : 'white'} {...labelProps}>
               {label}
             </SSText>
@@ -82,7 +83,15 @@ const styles = StyleSheet.create({
   containerBase: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexGrow: 0,
     gap: Sizes.checkbox.height / 2
+  },
+  label: {
+    flexShrink: 1
+  },
+  pressable: {
+    alignSelf: 'flex-start',
+    flexGrow: 0
   },
   disabled: {
     opacity: 0.3
