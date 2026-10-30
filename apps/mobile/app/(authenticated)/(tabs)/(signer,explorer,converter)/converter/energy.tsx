@@ -19,6 +19,7 @@ import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { HTTP_STATUS } from '@/constants/http'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useNetworkHashRate } from '@/hooks/useNetworkHashRate'
+import { useNow } from '@/hooks/useNow'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -363,6 +364,7 @@ export default function Energy() {
       state.setOpReturnContent
     ])
   )
+  const nowMs = useNow()
 
   const [blockchainInfo, setBlockchainInfo] =
     useState<EnergyBlockchainInfo | null>(null)
@@ -1551,8 +1553,7 @@ export default function Energy() {
                   <SSText size="xl">
                     {blockTemplate?.curtime
                       ? Math.floor(
-                          (Date.now() / MS_PER_SECOND - blockTemplate.curtime) /
-                            60
+                          (nowMs / MS_PER_SECOND - blockTemplate.curtime) / 60
                         )
                       : '0'}
                   </SSText>
