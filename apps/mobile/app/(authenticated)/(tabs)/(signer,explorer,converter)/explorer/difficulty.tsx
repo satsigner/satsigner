@@ -28,6 +28,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
+import { mainContainerPaddingHorizontalRatio } from '@/styles/layout'
 import {
   type BlockDifficulty,
   type DifficultyAdjustment
@@ -79,6 +80,7 @@ function ExplorerDifficulty() {
 
   const { width } = useWindowDimensions()
   const CANVAS_WIDTH = width
+  const canvasBleed = width * mainContainerPaddingHorizontalRatio
   const [canvasHeight, setCanvasHeight] = useState(0)
 
   const [inputEpoch, setInputEpoch] = useState(MAX_EPOCH.toString())
@@ -176,8 +178,12 @@ function ExplorerDifficulty() {
     setModalVisible(false)
   }
 
+  // The Android keyboard (adjustResize) shrinks the container while the epoch
+  // input is focused. Keeping the largest height clips the spiral instead of
+  // resizing it or unmounting it at zero height.
   function handleCanvasContainerLayout(event: LayoutChangeEvent) {
-    setCanvasHeight(event.nativeEvent.layout.height)
+    const { height } = event.nativeEvent.layout
+    setCanvasHeight((current) => Math.max(current, height))
   }
 
   return (
@@ -253,7 +259,7 @@ function ExplorerDifficulty() {
         </SSVStack>
       ) : (
         <View
-          style={styles.canvasContainer}
+          style={[styles.canvasContainer, { marginHorizontal: -canvasBleed }]}
           onLayout={handleCanvasContainerLayout}
         >
           {canvasHeight > 0 ? (
