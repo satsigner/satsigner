@@ -22,6 +22,8 @@ import {
   getPubKeyHexFromNpub,
   validateNip05
 } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import { nostrConnectedSummary } from '@/utils/nostrIdentity'
 
 import { SSIconChevronRight } from './icons'
 import SSPressable from './SSPressable'
@@ -58,18 +60,23 @@ type SSNostrAccountCardProps = {
   onPress: () => void
   isActive?: boolean
   connectionInfo?: NostrRelayConnectionInfo
+  showRelayCount?: boolean
 }
 
 function SSNostrAccountCard({
   identity,
   onPress,
   isActive,
-  connectionInfo
+  connectionInfo,
+  showRelayCount = true
 }: SSNostrAccountCardProps) {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const storeRelays = useNostrIdentityStore((state) => state.relays)
-  const urls = identity.relays?.length ? identity.relays : storeRelays
-  const relayCount = urls.length
+  const urls = getNostrIdentityRelays(identity.relays, storeRelays)
+  const relayCountLabel =
+    connectionInfo?.status === 'connected'
+      ? nostrConnectedSummary(connectionInfo, urls.length)
+      : t('nostrIdentity.account.relayTotal', { count: urls.length })
 
   const nip05Value = identity.nip05?.trim()
   const lud16Value = identity.lud16?.trim()
@@ -239,26 +246,23 @@ function SSNostrAccountCard({
                   )}
                 </SSHStack>
               </View>
-              <View style={styles.relayTotalWrap}>
-                <SSText
-                  accessibilityLabel={t(
-                    'nostrIdentity.account.relayTotalA11y',
-                    {
-                      count: relayCount
-                    }
-                  )}
-                  accessibilityRole="text"
-                  color="muted"
-                  numberOfLines={1}
-                  size="xxs"
-                  style={[
-                    styles.relayTotalInline,
-                    isActive && styles.relayTotalInlineActiveCard
-                  ]}
-                >
-                  {t('nostrIdentity.account.relayTotal', { count: relayCount })}
-                </SSText>
-              </View>
+              {showRelayCount ? (
+                <View style={styles.relayTotalWrap}>
+                  <SSText
+                    accessibilityLabel={relayCountLabel}
+                    accessibilityRole="text"
+                    color="muted"
+                    numberOfLines={1}
+                    size="xxs"
+                    style={[
+                      styles.relayTotalInline,
+                      isActive && styles.relayTotalInlineActiveCard
+                    ]}
+                  >
+                    {relayCountLabel}
+                  </SSText>
+                </View>
+              ) : null}
             </SSHStack>
             <View style={styles.reservedMetaRow}>
               {identity.isWatchOnly ? (

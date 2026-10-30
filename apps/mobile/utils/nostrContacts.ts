@@ -49,6 +49,20 @@ export function getNostrContactsRelaysKey(contactsRelays: string[]): string {
   return [...contactsRelays].toSorted().join(',')
 }
 
+/** Shared by the profile, the landing card, and the identity relay list. */
+export function identityRelayConnectionQueryKey(
+  npub: string,
+  relayUrls: string[]
+): readonly ['nostr', 'relay-connection', 'full', string, string] {
+  return [
+    'nostr',
+    'relay-connection',
+    'full',
+    npub,
+    getNostrContactsRelaysKey(relayUrls)
+  ]
+}
+
 export function contactToIdentity(contact: NostrContactItem): NostrIdentity {
   return {
     createdAt: Date.now(),
@@ -139,7 +153,10 @@ export async function fetchNostrContacts(
       !result.data.kind3Found &&
       cachedFollows.length > 0
     const pubkeys = useCachedFollows ? cachedFollows : result.data.pubkeys
-    const contacts = contactsFromPubkeys(pubkeys)
+    // Relay batches keep arriving after this resolves. Each batch builds a new
+    // array: mutating the one handed to the query cache would make structural
+    // sharing see no change and the late profiles would never render.
+    const latest = { contacts: contactsFromPubkeys(pubkeys) }
 
     await api.streamKind0Profiles(
       pubkeys,
@@ -147,11 +164,8 @@ export async function fetchNostrContacts(
         if (signal?.aborted) {
           return
         }
-        const merged = mergeProfileBatch(contacts, batch)
-        for (const [index, contact] of merged.entries()) {
-          contacts[index] = contact
-        }
-        onProfileBatch?.(merged)
+        latest.contacts = mergeProfileBatch(latest.contacts, batch)
+        onProfileBatch?.(latest.contacts)
       },
       signal
     )
@@ -159,7 +173,7 @@ export async function fetchNostrContacts(
 
     return {
       connectedRelayCount: result.data.connectedRelayCount,
-      contacts,
+      contacts: latest.contacts,
       error: result.error,
       kind3Found: result.data.kind3Found,
       relaysQueried: result.data.relaysQueried,

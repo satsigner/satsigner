@@ -1,9 +1,9 @@
-import { FlashList } from '@shopify/flash-list'
 import { useRef, useState } from 'react'
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   type ViewInstance
@@ -179,20 +179,22 @@ export default function SSContactProfileQrOverlay({
           style={styles.qrPager}
         >
           {pagerWidth > 0 ? (
-            <FlashList
-              data={qrSlides}
+            <ScrollView
               decelerationRate="fast"
-              getItemType={(item) => item.kind}
               horizontal
-              keyExtractor={(item) => item.key}
               onMomentumScrollEnd={handlePagerScrollEnd}
               pagingEnabled
-              renderItem={({ item }) => (
-                <ContactQrPagerSlide item={item} width={pagerWidth} />
-              )}
               showsHorizontalScrollIndicator={false}
               style={styles.qrPagerList}
-            />
+            >
+              {qrSlides.map((item) => (
+                <ContactQrPagerSlide
+                  item={item}
+                  key={item.key}
+                  width={pagerWidth}
+                />
+              ))}
+            </ScrollView>
           ) : null}
         </View>
         {qrSlides.length > 1 ? (

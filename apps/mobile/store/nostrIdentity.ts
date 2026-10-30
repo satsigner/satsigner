@@ -17,6 +17,7 @@ type NostrIdentityState = {
   identities: NostrIdentity[]
   activeIdentityNpub: string | null
   relays: string[]
+  kind0FetchWarningDismissed: boolean
 }
 
 type NostrIdentityActions = {
@@ -30,6 +31,7 @@ type NostrIdentityActions = {
   addRelay: (url: string) => void
   removeRelay: (url: string) => void
   clearAll: () => void
+  dismissKind0FetchWarning: () => void
 }
 
 const DEFAULT_RELAYS: string[] = []
@@ -73,8 +75,13 @@ const useNostrIdentityStore = create<
         set({
           activeIdentityNpub: null,
           identities: [],
+          kind0FetchWarningDismissed: false,
           relays: DEFAULT_RELAYS
         })
+      },
+
+      dismissKind0FetchWarning: () => {
+        set({ kind0FetchWarningDismissed: true })
       },
 
       getActiveIdentity: () => {
@@ -83,6 +90,8 @@ const useNostrIdentityStore = create<
       },
 
       identities: [],
+
+      kind0FetchWarningDismissed: false,
 
       relays: DEFAULT_RELAYS,
 
@@ -149,6 +158,7 @@ const useNostrIdentityStore = create<
           const { mnemonic: _mnemonic, nsec: _nsec, ...safe } = identity
           return safe
         }),
+        kind0FetchWarningDismissed: state.kind0FetchWarningDismissed,
         relays: state.relays
       }),
       storage: createJSONStorage(() => mmkvStorage)

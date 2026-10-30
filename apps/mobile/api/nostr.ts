@@ -18,6 +18,7 @@ import {
 } from '@/api/nostrProfileFetcher'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
+  NOSTR_ENGAGEMENT_FETCH_LIMIT,
   NOSTR_DELETION_FETCH_LIMIT,
   NOSTR_EVENT_ID_RE,
   NOSTR_FEED_FOLLOWING_MAX_AUTHORS,
@@ -67,6 +68,7 @@ import type {
   NostrMessage,
   NostrNotesQuery,
   NostrPollResponse,
+  NostrEngagementEvent,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrSubscriptionWindow,
@@ -83,6 +85,15 @@ import {
   getPubKeyHexFromNpub,
   getSecretFromNsec
 } from '@/utils/nostr'
+import {
+  NOSTR_ENGAGEMENT_KINDS,
+  NOSTR_LIKE_CONTENT,
+  buildReactionTags,
+  buildRepost,
+  dropDeletedEngagement,
+  type EngagementTarget,
+  toEngagementEvent
+} from '@/utils/nostrEngagement'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import {
   getNostrTagValue,
@@ -120,15 +131,18 @@ export { clearNdkRegistry } from './ndkRegistry'
 
 function buildRelayConnectionInfo(
   allUrls: string[],
-  connectedUrls: string[]
+  connectedUrls: string[],
+  probeCount = NOSTR_RELAY_PROBE_COUNT
 ): NostrRelayConnectionInfo {
-  const probeUrls = allUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
+  const probeUrls = allUrls.slice(0, probeCount)
   const connectedNormalized = new Set(connectedUrls.map(normalizeRelayUrl))
   return {
-    relayDetails: probeUrls.map((url) => ({
-      connected: connectedNormalized.has(normalizeRelayUrl(url)),
-      url
-    })),
+    relayDetails: probeUrls.map((url) => {
+      const connected = connectedNormalized.has(normalizeRelayUrl(url))
+      return connected
+        ? { connected, url }
+        : { connected, error: 'timeout', url }
+    }),
     status: 'connected'
   }
 }
@@ -146,9 +160,27 @@ export async function reconnectNdkForRelays(
   )
 }
 
-export async function testNostrRelaysReachable(
+type RelayReachabilityOptions = {
+  probeCount?: number
+  /** Wait out the probe window so relays that are still connecting get a result. */
+  waitForAll?: boolean
+}
+
+/** Probe every relay in the identity set and wait for the full window. */
+export function probeIdentityRelays(
   relayUrls: string[]
 ): Promise<NostrRelayConnectionInfo> {
+  return testNostrRelaysReachable(relayUrls, {
+    probeCount: relayUrls.length,
+    waitForAll: true
+  })
+}
+
+export async function testNostrRelaysReachable(
+  relayUrls: string[],
+  options?: RelayReachabilityOptions
+): Promise<NostrRelayConnectionInfo> {
+  const probeCount = options?.probeCount ?? NOSTR_RELAY_PROBE_COUNT
   if (relayUrls.length === 0) {
     return { reason: 'no_relays', status: 'disconnected' }
   }
@@ -163,27 +195,39 @@ export async function testNostrRelaysReachable(
   // against existing sockets and often report "unreachable" while data flows).
   const registryKey = [...relayUrls].toSorted().join(',')
   const registryNdk = ndkRegistry.get(registryKey)
-  if (registryNdk?.pool) {
+  if (!options?.waitForAll && registryNdk?.pool) {
     const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
     if (connected.length > 0) {
-      return buildRelayConnectionInfo(relayUrls, connected)
+      return buildRelayConnectionInfo(relayUrls, connected, probeCount)
     }
   }
 
   // Probe with a throw-away NDK: resetting the shared instance would kill
   // the live subscriptions (account sync, chat) that run on it.
-  const probeUrls = relayUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
+  const probeUrls = relayUrls.slice(0, probeCount)
   const probeNdk = createEphemeralNdk(probeUrls)
+  const startedAt = Date.now()
   const connected = await connectToFirstRelay(
     probeNdk,
     NOSTR_RELAY_REACHABILITY_TEST_MS
   )
-    .then(() => probeNdk.pool.connectedRelays().map((r) => r.url))
+    .then(async () => {
+      if (options?.waitForAll) {
+        const remaining =
+          NOSTR_RELAY_REACHABILITY_TEST_MS - (Date.now() - startedAt)
+        if (remaining > 0) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, remaining)
+          })
+        }
+      }
+      return probeNdk.pool.connectedRelays().map((r) => r.url)
+    })
     .catch(() => [])
   disconnectNdkPool(probeNdk)
 
   if (connected.length > 0) {
-    return buildRelayConnectionInfo(probeUrls, connected)
+    return buildRelayConnectionInfo(probeUrls, connected, probeUrls.length)
   }
 
   return {
@@ -1744,7 +1788,8 @@ export class NostrAPI {
   static async signKind1Note(
     nsec: string,
     content: string,
-    tags?: string[][]
+    tags?: string[][],
+    createdAt?: number
   ): Promise<NostrSignedKind1Event> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
@@ -1756,6 +1801,7 @@ export class NostrAPI {
     tempNdk.signer = signer
     const event = new NDKEvent(tempNdk, {
       content,
+      ...(createdAt === undefined ? {} : { created_at: createdAt }),
       kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
@@ -1782,7 +1828,8 @@ export class NostrAPI {
   async publishNote(
     nsec: string,
     content: string,
-    tags?: string[][]
+    tags?: string[][],
+    createdAt?: number
   ): Promise<NostrFeedNoteLike> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
@@ -1796,6 +1843,7 @@ export class NostrAPI {
     ndk.signer = signer
     const event = new NDKEvent(ndk, {
       content,
+      ...(createdAt === undefined ? {} : { created_at: createdAt }),
       kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
     })
@@ -1834,6 +1882,125 @@ export class NostrAPI {
       ),
       pubkey: event.pubkey
     }))
+  }
+
+  /**
+   * Likes and reposts (NIP-25, NIP-18) of the given notes. Only deletions
+   * signed by `ownPubkey` are fetched: relays drop most deleted events
+   * themselves, and asking for every author's deletions would not scale to a
+   * feed window.
+   */
+  async fetchEngagement(
+    noteIds: string[],
+    ownPubkey: string
+  ): Promise<NostrEngagementEvent[]> {
+    if (noteIds.length === 0) {
+      return []
+    }
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    const engagementEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      {
+        '#e': noteIds,
+        kinds: NOSTR_ENGAGEMENT_KINDS,
+        limit: NOSTR_ENGAGEMENT_FETCH_LIMIT
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    const events = [...engagementEvents].flatMap((event) => {
+      const parsed = toEngagementEvent({
+        content: event.content,
+        created_at: event.created_at ?? 0,
+        id: event.id,
+        kind: event.kind ?? nostrKinds.Reaction,
+        pubkey: event.pubkey,
+        tags: NostrAPI.stringTags(event.tags)
+      })
+      return parsed ? [parsed] : []
+    })
+    const ownEventIds = events
+      .filter((event) => event.pubkey === ownPubkey)
+      .map((event) => event.id)
+    if (ownEventIds.length === 0) {
+      return events
+    }
+
+    const deletionEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      {
+        '#e': ownEventIds,
+        authors: [ownPubkey],
+        kinds: [nostrKinds.EventDeletion]
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    return dropDeletedEngagement(
+      events,
+      [...deletionEvents].map((event) => ({
+        pubkey: event.pubkey,
+        tags: NostrAPI.stringTags(event.tags)
+      }))
+    )
+  }
+
+  /** Signs and publishes a NIP-25 reaction (kind 7) to a note. */
+  publishReaction(
+    nsec: string,
+    target: EngagementTarget,
+    content = NOSTR_LIKE_CONTENT
+  ): Promise<NostrEngagementEvent> {
+    return this.publishEngagement(nsec, target, {
+      content,
+      kind: nostrKinds.Reaction,
+      tags: buildReactionTags(target)
+    })
+  }
+
+  /** Signs and publishes a NIP-18 repost (kind 6 or 16) of a note. */
+  publishRepost(
+    nsec: string,
+    target: EngagementTarget
+  ): Promise<NostrEngagementEvent> {
+    return this.publishEngagement(nsec, target, {
+      content: '',
+      ...buildRepost(target, this.relays[0] ?? '')
+    })
+  }
+
+  private async publishEngagement(
+    nsec: string,
+    target: EngagementTarget,
+    template: { content: string; kind: number; tags: string[][] }
+  ): Promise<NostrEngagementEvent> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const signer = new NDKPrivateKeySigner(secretKey)
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    ndk.signer = signer
+    const event = new NDKEvent(ndk, template)
+    await event.sign(signer)
+    await this.publishEvent(event)
+    return {
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      kind: template.kind,
+      pubkey: event.pubkey,
+      targetId: target.id
+    }
+  }
+
+  private static stringTags(tags: unknown[][]): string[][] {
+    return tags.map((tag) =>
+      tag.filter((value): value is string => typeof value === 'string')
+    )
   }
 
   async publishPollResponse(

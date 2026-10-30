@@ -3,8 +3,9 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { StyleSheet, View } from 'react-native'
 
-import { NostrAPI, testNostrRelaysReachable } from '@/api/nostr'
+import { NostrAPI, probeIdentityRelays } from '@/api/nostr'
 import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSIconButton from '@/components/SSIconButton'
@@ -34,9 +35,10 @@ import {
 } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
-  getNostrContactsRelaysKey,
-  getNostrIdentityRelays
+  getNostrIdentityRelays,
+  identityRelayConnectionQueryKey
 } from '@/utils/nostrContacts'
+import { hasNostrRelaysSelected } from '@/utils/nostrIdentity'
 import {
   nostrAccountHref,
   nostrAuthorProfileHref,
@@ -64,18 +66,14 @@ export default function NostrAccountLanding() {
     ? getNostrIdentityRelays(identity.relays, relays)
     : []
 
+  const relaysSelected = hasNostrRelaysSelected(identity?.relays, relays)
   const relayConnected = identity?.relayConnected === true
   const relaysAvailable = effectiveRelays.length > 0
 
   const connectionQuery = useQuery({
     enabled: !!identity && relayConnected && relaysAvailable,
-    queryFn: () => testNostrRelaysReachable(effectiveRelays),
-    queryKey: [
-      'nostr',
-      'relay-connection',
-      npub,
-      getNostrContactsRelaysKey(effectiveRelays)
-    ],
+    queryFn: () => probeIdentityRelays(effectiveRelays),
+    queryKey: identityRelayConnectionQueryKey(npub, effectiveRelays),
     refetchOnWindowFocus: false,
     retry: 0,
     staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
@@ -144,6 +142,10 @@ export default function NostrAccountLanding() {
     router.navigate(nostrNoteHref(npub, nevent))
   }
 
+  function handleAddRelays() {
+    router.navigate(nostrAccountHref(npub, 'relays'))
+  }
+
   function handleZapPress(receipt: ZapReceiptInfo) {
     router.navigate(nostrZapDetailHref(npub, receipt.id))
   }
@@ -208,10 +210,21 @@ export default function NostrAccountLanding() {
           <View>
             <SSNostrHeroCard
               identity={identity}
+              configuredRelayCount={effectiveRelays.length}
               connectionInfo={connectionInfo}
               nip05Valid={nip05Valid ?? null}
               style={styles.heroProfile}
             />
+            {relaysSelected ? null : (
+              <View style={styles.actions}>
+                <SSButton
+                  label={t('nostrIdentity.account.addRelays')}
+                  variant="outline"
+                  onPress={handleAddRelays}
+                  style={styles.addRelaysButton}
+                />
+              </View>
+            )}
             <View style={styles.actions}>
               <SSButtonActionsGroup
                 context="nostr"
@@ -259,6 +272,9 @@ export default function NostrAccountLanding() {
 const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: Layout.mainContainer.paddingHorizontal
+  },
+  addRelaysButton: {
+    marginBottom: 10
   },
   emptyContainer: {
     paddingVertical: 60

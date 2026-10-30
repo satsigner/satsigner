@@ -9,7 +9,6 @@ import {
   SSIconECash,
   SSIconHalving,
   SSIconLightning,
-  SSIconLiquid,
   SSIconMempool,
   SSIconNetwork,
   SSIconNostr,
@@ -44,13 +43,6 @@ export const navMenuGroups: NavMenuGroup[] = [
         platform: PLATFORM.HYBRID,
         title: t('navigation.item.ark'),
         url: '/signer/ark'
-      },
-      {
-        icon: SSIconLiquid,
-        isSoon: true,
-        platform: PLATFORM.HYBRID,
-        title: t('navigation.item.liquid'),
-        url: ''
       },
       {
         icon: SSIconECash,
