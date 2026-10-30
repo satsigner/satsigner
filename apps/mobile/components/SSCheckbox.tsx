@@ -46,12 +46,13 @@ function SSCheckbox({
       >
         <BouncyCheckbox
           isChecked={selected}
+          disableText
           useBuiltInState={false}
           fillColor={Colors.gray[700]}
           unFillColor={Colors.gray[700]}
           size={Sizes.checkbox.height}
           iconStyle={styles.iconStyleBase}
-          style={{ width: Sizes.checkbox.height }}
+          style={styles.checkbox}
           innerIconStyle={[
             styles.innerIconStyleBase,
             { borderColor: selected ? Colors.white : Colors.transparent }
@@ -74,6 +75,10 @@ function SSCheckbox({
 }
 
 const styles = StyleSheet.create({
+  checkbox: {
+    flexGrow: 0,
+    width: Sizes.checkbox.height
+  },
   containerBase: {
     alignItems: 'center',
     flexDirection: 'row',
