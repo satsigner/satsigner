@@ -523,7 +523,7 @@ body:has(#distribution-view:not([hidden])) .view-toggle::before {
 }
 
 .dist-panel .promo-row {
-  gap: 1rem;
+  gap: 0.35rem;
 }
 
 .dist-store {

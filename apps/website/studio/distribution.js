@@ -426,7 +426,7 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     'App Store screenshots',
     '1320 × 2868 portrait, the required 6.9-inch iPhone size. Upload up to 10. The first three show on the product page before the visitor scrolls, so each one stands alone. No prices, ratings, or “Download” calls.'
   )
-  shots.forEach((shot) => apple.row.appendChild(shotBoard('promo-shot promo-apple', 0.11, shot, 1320, 2868, 'app-store-' + fileSlug(shot.title))))
+  shots.forEach((shot) => apple.row.appendChild(shotBoard('promo-shot promo-apple', 0.082, shot, 1320, 2868, 'app-store-' + fileSlug(shot.title))))
 
   const feature = section(
     'Play feature graphic',
@@ -449,7 +449,7 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
     'Play phone screenshots',
     '1080 × 1920, a 9:16 frame inside Google’s rules: each side from 320 to 3840 pixels, and the long side at most twice the short side. JPEG or 24-bit PNG, no alpha. Two to eight images.'
   )
-  shots.forEach((shot) => play.row.appendChild(shotBoard('promo-shot promo-play', 0.14, shot, 1080, 1920, 'play-' + fileSlug(shot.title))))
+  shots.forEach((shot) => play.row.appendChild(shotBoard('promo-shot promo-play', 0.1, shot, 1080, 1920, 'play-' + fileSlug(shot.title))))
 
   const download = document.createElement('button')
   download.type = 'button'
