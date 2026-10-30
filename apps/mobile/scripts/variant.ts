@@ -10,6 +10,7 @@
  *   pnpm variant -- --prod --suffix pr453     production variant + suffix
  *   pnpm variant -- --prebuild-only           stop after prebuild
  *   pnpm variant -- --apk --suffix pr453 --release   named APK in dist/apks
+ *   pnpm variant -- --apk --abi x86_64        one CPU type (arm64-v8a or x86_64)
  *   pnpm variant -- --ios                     run on iOS instead of Android
  *   pnpm variant -- --device Pixel_9          passthrough flags to expo
  */
@@ -27,6 +28,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  ANDROID_ABI_ARM64,
+  ANDROID_ABI_X86_64,
   APP_VARIANT_PRODUCTION,
   getVariantAppName,
   getVariantPackageId,
@@ -66,7 +69,10 @@ function removeNativeDir(path: string) {
   }
 }
 
-const ABI_ARM64 = 'arm64-v8a'
+const APK_ABI_LABELS = new Map([
+  [ANDROID_ABI_ARM64, 'arm64'],
+  [ANDROID_ABI_X86_64, 'x86_64']
+])
 
 type VariantArgs = {
   abi: string | undefined
@@ -105,7 +111,7 @@ function parseArgs(argv: string[]) {
     switch (arg) {
       case '--abi': {
         const abi = remaining.shift()
-        if (abi !== ABI_ARM64) {
+        if (!abi || !APK_ABI_LABELS.has(abi)) {
           console.error(`unsupported abi: ${abi ?? '(missing)'}`)
           process.exit(1)
         }
@@ -249,7 +255,7 @@ function buildApk({
 
   const variantLabel = variant === APP_VARIANT_PRODUCTION ? 'prod' : 'dev'
   const suffixLabel = segment || 'plain'
-  const abiLabel = abi === ABI_ARM64 ? '-arm64' : ''
+  const abiLabel = abi ? `-${APK_ABI_LABELS.get(abi) ?? abi}` : ''
   const outApk = join(
     outDir,
     `satsigner-${variantLabel}-${suffixLabel}-${buildType}${abiLabel}.apk`
