@@ -4,11 +4,11 @@ import { StyleSheet } from 'react-native'
 
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { PRIVACY_MASK } from '@/constants/privacy'
-import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { satsToFiat as convertSatsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
