@@ -63,6 +63,11 @@
 
   var allTicks = [];
 
+  function storeLabel(id) {
+    var store = R.stores.filter(function (st) { return st.id === id; })[0];
+    return store ? store.label : 'All stores';
+  }
+
   function progress() {
     var done = allTicks.filter(tick).length;
     var box = document.getElementById('kit-progress');
@@ -96,7 +101,7 @@
     var id = 'blocker:' + i;
     var card = el('div', { class: 'kit-card kit-blocker' });
     var sync = function (on) { card.classList.toggle('is-done', on); };
-    card.appendChild(el('label', {}, [checkbox(id, sync), el('h3', { text: b.title })]));
+    card.appendChild(el('label', {}, [checkbox(id, sync), el('h3', { text: storeLabel(b.store) + ' · ' + b.title })]));
     card.appendChild(el('p', { text: b.body }));
     card.appendChild(el('p', { class: 'kit-where', text: b.where }));
     sync(tick(id));
@@ -124,9 +129,10 @@
   var lastGroup;
   state.drafts = state.drafts || {};
   R.fields.forEach(function (f) {
-    if (f.group !== lastGroup) {
-      fields.appendChild(el('h3', { class: 'kit-group-title', text: f.group }));
-      lastGroup = f.group;
+    var groupTitle = storeLabel(f.store) + ' · ' + f.group;
+    if (groupTitle !== lastGroup) {
+      fields.appendChild(el('h3', { class: 'kit-group-title', text: groupTitle }));
+      lastGroup = groupTitle;
     }
     var box = el('div', { class: 'kit-field' });
     var input = f.multiline ? el('textarea', { rows: Math.min(18, f.value.split('\n').length + 1) }) : el('input', { type: 'text' });
@@ -170,15 +176,11 @@
 
   // Compliance.
   var compliance = document.getElementById('kit-compliance');
-  [
-    ['App Privacy', R.privacy.answer, [R.privacy.why, R.privacy.revisit]],
-    ['Export compliance', R.exportCompliance.answer, [R.exportCompliance.why, R.exportCompliance.caveat]],
-    ['Age rating', R.ageRating.answer, [R.ageRating.notes]]
-  ].forEach(function (c) {
+  R.answers.forEach(function (a) {
     var card = el('div', { class: 'kit-card' }, [
-      el('h3', { text: c[0] + ': ' + c[1] })
+      el('h3', { text: storeLabel(a.store) + ' · ' + a.title + ': ' + a.answer })
     ]);
-    c[2].forEach(function (p) { card.appendChild(el('p', { text: p })); });
+    a.notes.forEach(function (p) { card.appendChild(el('p', { text: p })); });
     compliance.appendChild(card);
   });
 
