@@ -120,6 +120,7 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
+import { satsToFiat } from '@/utils/fiat'
 import {
   formatAddress,
   formatDate,
@@ -1908,22 +1909,15 @@ export default function AccountView() {
     [account]
   )
 
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
-  )
-
-  const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.fetchPrices,
-      state.btcPrice
-    ])
-  )
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
   const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
@@ -2454,7 +2448,14 @@ export default function AccountView() {
                     <SSText color="muted">
                       {privacyMode
                         ? '••••'
-                        : formatNumber(satsToFiat(accountTotalBalance), 2)}
+                        : formatNumber(
+                            satsToFiat(
+                              accountTotalBalance,
+                              btcPrice,
+                              fiatEnabled
+                            ),
+                            2
+                          )}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}
