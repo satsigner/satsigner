@@ -41,7 +41,12 @@ import {
   buildEnhancedZapTags,
   extractEnhancedZapTags
 } from '@/utils/nostrIdentity'
-import { applyNostrProofOfWork, stripNonceTags } from '@/utils/nostrPow'
+import {
+  applyNostrProofOfWork,
+  expectedPowHashes,
+  POW_LEVELS,
+  stripNonceTags
+} from '@/utils/nostrPow'
 
 type ComposeParams = {
   npub: string
@@ -73,6 +78,7 @@ export default function NostrComposePage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showJson, setShowJson] = useState(false)
   const [powEnabled, setPowEnabled] = useState(false)
+  const [powHelpOpen, setPowHelpOpen] = useState(false)
   const [powDifficulty, setPowDifficulty] = useState(
     NOSTR_POW_DEFAULT_DIFFICULTY
   )
@@ -271,6 +277,10 @@ export default function NostrComposePage() {
 
   function handlePowToggle(selected: boolean) {
     setPowEnabled(!selected)
+  }
+
+  function togglePowHelp() {
+    setPowHelpOpen((open) => !open)
   }
 
   async function handleCopySigned() {
@@ -596,12 +606,21 @@ export default function NostrComposePage() {
           </SSVStack>
 
           <SSVStack gap="sm" style={styles.zapTagsSection}>
-            <SSCheckbox
-              label={t('nostrIdentity.compose.pow')}
-              selected={powEnabled}
-              labelProps={{ size: 'xs' }}
-              onPress={handlePowToggle}
-            />
+            <SSHStack gap="sm" justifyBetween itemsCenter>
+              <SSCheckbox
+                label={t('nostrIdentity.compose.pow')}
+                selected={powEnabled}
+                labelProps={{ size: 'xs' }}
+                onPress={handlePowToggle}
+              />
+              <SSPressable onPress={togglePowHelp} activeOpacity={0.6}>
+                <SSText size="xs" color="muted">
+                  {powHelpOpen
+                    ? t('nostrIdentity.compose.powCollapse')
+                    : t('nostrIdentity.compose.powExpand')}
+                </SSText>
+              </SSPressable>
+            </SSHStack>
             {powEnabled ? (
               <SSSlider
                 min={NOSTR_POW_MIN_DIFFICULTY}
@@ -610,6 +629,30 @@ export default function NostrComposePage() {
                 suffix={t('nostrIdentity.compose.powBits')}
                 onValueChange={setPowDifficulty}
               />
+            ) : null}
+            {powHelpOpen ? (
+              <SSVStack gap="xs">
+                {POW_LEVELS.map((level) => (
+                  <SSVStack key={level} gap="none">
+                    <SSText
+                      size="xxs"
+                      weight={
+                        powEnabled && level === powDifficulty
+                          ? 'medium'
+                          : 'regular'
+                      }
+                    >
+                      {t('nostrIdentity.compose.powLevelTitle', {
+                        bits: level,
+                        hashes: expectedPowHashes(level)
+                      })}
+                    </SSText>
+                    <SSText size="xxs" color="muted">
+                      {t(`nostrIdentity.compose.powLevel${level}`)}
+                    </SSText>
+                  </SSVStack>
+                ))}
+              </SSVStack>
             ) : null}
           </SSVStack>
 

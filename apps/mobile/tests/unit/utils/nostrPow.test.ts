@@ -1,6 +1,11 @@
 import { getEventHash } from 'nostr-tools/pure'
 
-import { countLeadingZeroBits, mineNostrPow } from '@/utils/nostrPow'
+import {
+  countLeadingZeroBits,
+  expectedPowHashes,
+  mineNostrPow,
+  POW_LEVELS
+} from '@/utils/nostrPow'
 
 const PUBKEY = 'ab'.repeat(32)
 
@@ -17,6 +22,15 @@ describe('countLeadingZeroBits', () => {
         '000006d8c378af1779d2feebc7603a125d99eca0ccf1085959b307f64e5dd358'
       )
     ).toBe(21)
+  })
+})
+
+describe('expectedPowHashes', () => {
+  it('formats the average hash count for each level', () => {
+    expect(POW_LEVELS).toHaveLength(17)
+    expect(expectedPowHashes(8)).toBe('256')
+    expect(expectedPowHashes(16)).toBe('65,536')
+    expect(expectedPowHashes(24)).toBe('16,777,216')
   })
 })
 

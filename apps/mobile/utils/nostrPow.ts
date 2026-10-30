@@ -4,6 +4,8 @@ import { getEventHash } from 'nostr-tools/pure'
 
 import {
   NOSTR_POW_HASHES_PER_YIELD,
+  NOSTR_POW_MAX_DIFFICULTY,
+  NOSTR_POW_MIN_DIFFICULTY,
   NOSTR_POW_NONCE_TAG
 } from '@/constants/nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
@@ -25,6 +27,19 @@ type ApplyNostrProofOfWorkInput = {
   nsec: string
   onProgress?: (nonce: number) => void
   tags: string[][]
+}
+
+export const POW_LEVELS = Array.from(
+  {
+    length: NOSTR_POW_MAX_DIFFICULTY - NOSTR_POW_MIN_DIFFICULTY + 1
+  },
+  (_, index) => NOSTR_POW_MIN_DIFFICULTY + index
+)
+
+const HASH_GROUP_PATTERN = /\B(?=(\d{3})+(?!\d))/g
+
+export function expectedPowHashes(difficulty: number): string {
+  return (2 ** difficulty).toString().replace(HASH_GROUP_PATTERN, ',')
 }
 
 export function countLeadingZeroBits(hexId: string): number {
