@@ -66,4 +66,30 @@ describe('extractVideoEmbedsFromNote', () => {
     expect(r).toHaveLength(1)
     expect(r[0].provider).toBe('youtube')
   })
+
+  it('uses imeta dimensions and poster image for direct videos', () => {
+    const tags: string[][] = [
+      [
+        'imeta',
+        'url https://media.example/clip.mp4',
+        'dim 1080x1920',
+        'image https://media.example/poster.jpg',
+        'm video/mp4'
+      ]
+    ]
+    const [embed] = extractVideoEmbedsFromNote('', tags)
+
+    expect(embed?.provider).toBe('direct')
+    expect(embed?.aspectRatio).toBeCloseTo(1080 / 1920)
+    expect(embed?.thumbnailUrl).toBe('https://media.example/poster.jpg')
+  })
+
+  it('treats an extensionless url declared as video/* in imeta as a video', () => {
+    const hashUrl = `https://blossom.example/${'b'.repeat(64)}`
+    const tags: string[][] = [['imeta', `url ${hashUrl}`, 'm video/webm']]
+    const [embed] = extractVideoEmbedsFromNote(hashUrl, tags)
+
+    expect(embed?.provider).toBe('direct')
+    expect(embed?.watchUrl).toBe(hashUrl)
+  })
 })

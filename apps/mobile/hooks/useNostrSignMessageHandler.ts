@@ -1,7 +1,9 @@
 import { toast } from 'sonner-native'
 
+import { t } from '@/locales'
 import { type NostrMsgHandler } from '@/types/models/Nostr'
 
+import { isSenderAllowedForAccount } from './useNostrDMStorage'
 import {
   getAuthorDisplayName,
   isChatActive,
@@ -14,7 +16,11 @@ const signMessageHandler: NostrMsgHandler = {
 
   handle: (context) => {
     const { unwrappedEvent, data, account } = context
-    if (!data) {
+    // Only the account's own and trusted devices may notify or store.
+    if (
+      !data ||
+      !isSenderAllowedForAccount(account.id, unwrappedEvent.pubkey)
+    ) {
       return
     }
 
@@ -23,7 +29,7 @@ const signMessageHandler: NostrMsgHandler = {
     const preview = dataStr.slice(0, TOAST_CONTENT_MAX)
 
     if (!isChatActive(account.id)) {
-      toast.info('New Sign Request', {
+      toast.info(t('account.nostrSync.newSignRequest'), {
         description: `${author}\n${preview}`,
         duration: TOAST_DURATION
       })

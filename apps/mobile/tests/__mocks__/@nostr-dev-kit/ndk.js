@@ -42,6 +42,7 @@ class NDKEvent {
 class NDK {
   constructor(options = {}) {
     this.explicitRelayUrls = options.explicitRelayUrls || []
+    const listeners = new Map()
     this.pool = {
       connect: jest.fn().mockResolvedValue(undefined),
       connectedRelays() {
@@ -49,6 +50,20 @@ class NDK {
           publish: jest.fn().mockResolvedValue(undefined),
           url
         }))
+      },
+      emit(event, ...args) {
+        for (const listener of listeners.get(event) ?? []) {
+          listener(...args)
+        }
+      },
+      off(event, listener) {
+        listeners.get(event)?.delete(listener)
+      },
+      on(event, listener) {
+        if (!listeners.has(event)) {
+          listeners.set(event, new Set())
+        }
+        listeners.get(event).add(listener)
       },
       relays: new Map()
     }

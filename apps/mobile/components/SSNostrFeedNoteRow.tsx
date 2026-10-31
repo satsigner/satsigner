@@ -15,20 +15,9 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { NostrFeedNoteLike, type NostrKind0Profile } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
-import {
-  extractImageUrlsFromNote,
-  stripImageUrlsFromContent
-} from '@/utils/nostrNoteMedia'
+import { parseNoteContent, parseQuoteContent } from '@/utils/nostrNoteContent'
 import { resolveMentionsInContent } from '@/utils/nostrNoteMentions'
-import {
-  getQuoteTagEventIds,
-  getResolvedEventId,
-  hasEmbeddedEventRef,
-  parseRepostOriginalEvent,
-  stripNostrEventRefs
-} from '@/utils/nostrNoteQuotes'
 import { noteLooksLikeReply } from '@/utils/nostrNoteThread'
-import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 
 import SSPressable from './SSPressable'
 
@@ -189,14 +178,10 @@ function NoteQuoteCard({
   onPress?: () => void
 }) {
   const authorNpub = nip19.npubEncode(note.pubkey)
-  const imageUrls = extractImageUrlsFromNote(note.content, note.tags).slice(
-    0,
-    2
-  )
-  const stripped = stripImageUrlsFromContent(note.content, imageUrls)
+  const { imageUrls, text } = parseQuoteContent(note)
   const quoteDisplayContent = mentionProfiles
-    ? resolveMentionsInContent(stripped, mentionProfiles)
-    : stripped
+    ? resolveMentionsInContent(text, mentionProfiles)
+    : text
   const displayName = profile?.displayName?.trim() || ''
   const pictureUri = profile?.picture?.trim() || undefined
   const inner = (
@@ -311,47 +296,13 @@ function SSNostrFeedNoteRow({
   mentionProfiles,
   formatMarkdown = false
 }: SSNostrFeedNoteRowProps) {
-  const isRepost =
-    note.kind === nostrKinds.Repost || note.kind === nostrKinds.GenericRepost
-  const repostOriginal = isRepost
-    ? (parseRepostOriginalEvent(note.content) ?? resolvedQuotedNote ?? null)
-    : null
-  const repostUnavailable = isRepost && repostOriginal === null
-
-  const isQuotePost =
-    note.kind === nostrKinds.ShortTextNote &&
-    (getQuoteTagEventIds(note.tags).length > 0 ||
-      hasEmbeddedEventRef(note.content))
-
-  const quotedId = isQuotePost ? getResolvedEventId(note) : null
-
-  // For reposts: render the original note's content and media
-  // For quote posts and normal notes: render the note itself
-  const contentNote = isRepost && repostOriginal ? repostOriginal : note
-
-  const imageUrls =
-    privacyMode || repostUnavailable
-      ? []
-      : extractImageUrlsFromNote(contentNote.content, contentNote.tags).slice(
-          0,
-          6
-        )
-
-  const strippedContent = stripImageUrlsFromContent(
-    isQuotePost ? stripNostrEventRefs(note.content) : contentNote.content,
-    imageUrls
-  )
+  const parsed = parseNoteContent(note, resolvedQuotedNote)
+  const { isQuotePost, isRepost, quotedId, repostUnavailable } = parsed
+  const imageUrls = privacyMode ? [] : parsed.imageUrls
+  const videoEmbeds = privacyMode ? [] : parsed.videoEmbeds
   const displayContent = mentionProfiles
-    ? resolveMentionsInContent(strippedContent, mentionProfiles)
-    : strippedContent
-
-  const videoEmbeds =
-    privacyMode || repostUnavailable
-      ? []
-      : extractVideoEmbedsFromNote(contentNote.content, contentNote.tags).slice(
-          0,
-          4
-        )
+    ? resolveMentionsInContent(parsed.text, mentionProfiles)
+    : parsed.text
 
   const eventNip19 = !privacyMode ? encodeNotePrimaryNip19(note) : ''
   const authorNpub = !privacyMode ? nip19.npubEncode(note.pubkey) : ''

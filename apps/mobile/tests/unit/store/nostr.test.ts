@@ -1,3 +1,7 @@
+import {
+  clearNostrProcessedEvents,
+  markNostrEventsProcessed
+} from '@/db/nostrProcessedEvents'
 import { useNostrStore } from '@/store/nostr'
 
 import { accountIds, nostrKeys, psbts, timestamps } from '../utils/nostrSamples'
@@ -26,15 +30,21 @@ jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
   NostrAPI: jest.fn()
 }))
 
+jest.mock<typeof import('@/db/nostrProcessedEvents')>(
+  '@/db/nostrProcessedEvents',
+  () => ({
+    ...jest.requireActual('@/db/nostrProcessedEvents'),
+    clearNostrProcessedEvents: jest.fn(),
+    markNostrEventsProcessed: jest.fn()
+  })
+)
+
 describe('nostr store', () => {
   beforeEach(() => {
     useNostrStore.setState({
-      activeSubscriptions: new Set(),
       lastDataExchangeEOSE: {},
       lastProtocolEOSE: {},
       members: {},
-      processedEvents: {},
-      processedMessageIds: {},
       syncStatus: {},
       syncingAccounts: {},
       transactionToShare: null,
@@ -104,71 +114,24 @@ describe('nostr store', () => {
     })
   })
 
-  describe('processed messages and events', () => {
-    it('tracks processed message IDs without duplicates', () => {
-      const { addProcessedMessageId, getProcessedMessageIds } =
-        useNostrStore.getState()
-      const messageIds = ['msg-abc123', 'msg-def456', 'msg-ghi789']
-
-      for (const id of messageIds) {
-        addProcessedMessageId(accountIds.primary, id)
-      }
-      addProcessedMessageId(accountIds.primary, messageIds[0]) // duplicate
-
-      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual(
-        messageIds
-      )
+  describe('processed events', () => {
+    beforeEach(() => {
+      jest.mocked(clearNostrProcessedEvents).mockClear()
     })
 
-    it('tracks processed event IDs without duplicates', () => {
-      const { addProcessedEvent, getProcessedEvents } = useNostrStore.getState()
-      const eventIds = ['evt-111', 'evt-222', 'evt-333']
+    it('clears an account dedupe scope in SQLite', () => {
+      useNostrStore.getState().clearProcessedEvents(accountIds.primary)
 
-      for (const id of eventIds) {
-        addProcessedEvent(accountIds.primary, id)
-      }
-      addProcessedEvent(accountIds.primary, eventIds[0]) // duplicate
-
-      expect(getProcessedEvents(accountIds.primary)).toStrictEqual(eventIds)
+      expect(clearNostrProcessedEvents).toHaveBeenCalledWith(accountIds.primary)
     })
 
-    it('clears processed message IDs', () => {
-      const {
-        addProcessedMessageId,
-        clearProcessedMessageIds,
-        getProcessedMessageIds
-      } = useNostrStore.getState()
+    it('does not keep processed ids in the persisted store', () => {
+      const { partialize } = useNostrStore.persist.getOptions()
 
-      addProcessedMessageId(accountIds.primary, 'msg-1')
-      addProcessedMessageId(accountIds.primary, 'msg-2')
-      clearProcessedMessageIds(accountIds.primary)
+      const persisted = partialize?.(useNostrStore.getState())
 
-      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual([])
-    })
-
-    it('clears processed events', () => {
-      const { addProcessedEvent, clearProcessedEvents, getProcessedEvents } =
-        useNostrStore.getState()
-
-      addProcessedEvent(accountIds.primary, 'evt-1')
-      clearProcessedEvents(accountIds.primary)
-
-      expect(getProcessedEvents(accountIds.primary)).toStrictEqual([])
-    })
-
-    it('isolates processed data between accounts', () => {
-      const { addProcessedMessageId, getProcessedMessageIds } =
-        useNostrStore.getState()
-
-      addProcessedMessageId(accountIds.primary, 'msg-primary')
-      addProcessedMessageId(accountIds.secondary, 'msg-secondary')
-
-      expect(getProcessedMessageIds(accountIds.primary)).toStrictEqual([
-        'msg-primary'
-      ])
-      expect(getProcessedMessageIds(accountIds.secondary)).toStrictEqual([
-        'msg-secondary'
-      ])
+      expect(persisted).not.toHaveProperty('processedEvents')
+      expect(persisted).not.toHaveProperty('processedMessageIds')
     })
   })
 
@@ -418,8 +381,6 @@ describe('nostr store', () => {
       const store = useNostrStore.getState()
 
       await store.addMember(accountIds.primary, nostrKeys.alice.npub)
-      store.addProcessedMessageId(accountIds.primary, 'msg-1')
-      store.addProcessedEvent(accountIds.primary, 'evt-1')
       store.setLastProtocolEOSE(accountIds.primary, timestamps.recent)
       store.setLastDataExchangeEOSE(accountIds.primary, timestamps.recent)
       store.addTrustedDevice(accountIds.primary, nostrKeys.bob.npub)
@@ -433,8 +394,7 @@ describe('nostr store', () => {
 
       // Verify all cleared
       expect(store.getMembers(accountIds.primary)).toStrictEqual([])
-      expect(store.getProcessedMessageIds(accountIds.primary)).toStrictEqual([])
-      expect(store.getProcessedEvents(accountIds.primary)).toStrictEqual([])
+      expect(clearNostrProcessedEvents).toHaveBeenCalledWith(accountIds.primary)
       expect(store.getLastProtocolEOSE(accountIds.primary)).toBe(0)
       expect(store.getLastDataExchangeEOSE(accountIds.primary)).toBe(0)
       expect(store.getTrustedDevices(accountIds.primary)).toStrictEqual([])
@@ -456,25 +416,47 @@ describe('nostr store', () => {
   })
 
   describe('persistence', () => {
-    it('migrates v0 processed id lists to lookup maps', () => {
+    it('moves v0/v1 processed ids to SQLite and drops them from MMKV', () => {
       const { migrate } = useNostrStore.persist.getOptions()
+      jest.mocked(markNostrEventsProcessed).mockClear()
 
       const migrated = migrate?.(
         {
-          processedEvents: { [accountIds.primary]: ['event-1', 'event-2'] },
-          processedMessageIds: { [accountIds.primary]: ['message-1'] },
+          processedEvents: {
+            [accountIds.primary]: { 'event-1': true, 'event-2': true },
+            [accountIds.secondary]: ['event-3']
+          },
+          processedMessageIds: { [accountIds.primary]: { 'message-1': true } },
           trustedDevices: { [accountIds.primary]: [nostrKeys.alice.npub] }
         },
-        0
+        1
       )
 
+      expect(markNostrEventsProcessed).toHaveBeenCalledWith(
+        accountIds.primary,
+        [
+          { createdAt: 0, id: 'event-1' },
+          { createdAt: 0, id: 'event-2' }
+        ]
+      )
+      expect(markNostrEventsProcessed).toHaveBeenCalledWith(
+        accountIds.secondary,
+        [{ createdAt: 0, id: 'event-3' }]
+      )
       expect(migrated).toStrictEqual({
-        processedEvents: {
-          [accountIds.primary]: { 'event-1': true, 'event-2': true }
-        },
-        processedMessageIds: { [accountIds.primary]: { 'message-1': true } },
         trustedDevices: { [accountIds.primary]: [nostrKeys.alice.npub] }
       })
+    })
+
+    it('still drops processed ids when the SQLite copy fails', () => {
+      const { migrate } = useNostrStore.persist.getOptions()
+      jest.mocked(markNostrEventsProcessed).mockImplementationOnce(() => {
+        throw new Error('sqlite unavailable')
+      })
+
+      expect(
+        migrate?.({ processedEvents: { [accountIds.primary]: ['e'] } }, 1)
+      ).toStrictEqual({})
     })
 
     it('migrates persisted state that is not an object to an empty state', () => {

@@ -1,5 +1,7 @@
 import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
+import { clearAllCache } from '@/db/nostrCache'
+import { clearNostrProcessedEvents } from '@/db/nostrProcessedEvents'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -16,13 +18,28 @@ import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useNostrVideoStore } from '@/store/nostrVideo'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
+import { closeActiveChatPipeline } from '@/utils/nostrChat'
+import { stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 import {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe
 } from '@/utils/serviceSecrets'
+
+/** Nostr data kept in SQLite outside the account rows: event cache, dedupe. */
+function wipeNostrSqliteData(): void {
+  for (const wipe of [clearAllCache, clearNostrProcessedEvents]) {
+    try {
+      wipe()
+    } catch {
+      /* best-effort: continue wiping remaining data */
+    }
+  }
+}
 
 /**
  * Best-effort wipe of wallet secrets and local account state for duress PIN.
@@ -32,6 +49,11 @@ import {
 export async function secureWipeAllWalletData(): Promise<void> {
   const { accounts } = useAccountsStore.getState()
   const { identities } = useNostrIdentityStore.getState()
+
+  stopNostrLifecycle()
+  closeActiveChatPipeline()
+  useNostrVideoStore.getState().releaseAllVideos()
+  await nostrSyncService.stopAll().catch(() => undefined)
 
   await Promise.all(
     accounts.map((account) =>
@@ -81,6 +103,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useTransactionBuilderStore.getState().clearAllData()
   useNostrIdentityStore.getState().clearAll()
   useNostrStore.getState().clearAllNostrState()
+  wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
   clearNostrFollowCaches()
 

@@ -147,13 +147,13 @@ describe('handler registry', () => {
   })
 
   describe('processMessage', () => {
-    it('returns false when no handlers are registered', async () => {
+    it('reports unhandled when no handlers are registered', async () => {
       const context = createMockContext()
       const result = await processMessage(context)
-      expect(result).toBe(false)
+      expect(result).toStrictEqual({ status: 'unhandled' })
     })
 
-    it('returns false when no handler can handle the message', async () => {
+    it('reports unhandled when no handler can handle the message', async () => {
       const handler: NostrMsgHandler = {
         canHandle: () => false,
         handle: jest.fn()
@@ -163,11 +163,11 @@ describe('handler registry', () => {
       const context = createMockContext()
       const result = await processMessage(context)
 
-      expect(result).toBe(false)
+      expect(result).toStrictEqual({ status: 'unhandled' })
       expect(handler.handle).not.toHaveBeenCalled()
     })
 
-    it('calls handle on first matching handler and returns true', async () => {
+    it('calls handle on first matching handler and reports handled', async () => {
       const handler1: NostrMsgHandler = {
         canHandle: () => false,
         handle: jest.fn()
@@ -188,7 +188,7 @@ describe('handler registry', () => {
       const context = createMockContext()
       const result = await processMessage(context)
 
-      expect(result).toBe(true)
+      expect(result).toStrictEqual({ status: 'handled' })
       expect(handler1.handle).not.toHaveBeenCalled()
       expect(handler2.handle).toHaveBeenCalledWith(context)
       expect(handler3.handle).not.toHaveBeenCalled()
@@ -225,6 +225,21 @@ describe('handler registry', () => {
       await processMessage(context)
 
       expect(handlerCompleted).toBe(true)
+    })
+
+    it('reports a throwing handler as failed instead of rejecting', async () => {
+      const failure = new Error('handler failed')
+      registerHandler({
+        canHandle: () => true,
+        handle: () => {
+          throw failure
+        }
+      })
+
+      await expect(processMessage(createMockContext())).resolves.toStrictEqual({
+        error: failure,
+        status: 'failed'
+      })
     })
   })
 

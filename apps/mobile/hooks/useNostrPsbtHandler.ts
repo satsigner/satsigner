@@ -1,8 +1,10 @@
 import { toast } from 'sonner-native'
 
 import { MS_PER_SECOND } from '@/constants/time'
+import { t } from '@/locales'
 import { type NostrMsgHandler } from '@/types/models/Nostr'
 
+import { isSenderAllowedForAccount } from './useNostrDMStorage'
 import {
   getAuthorDisplayName,
   isChatActive,
@@ -15,7 +17,11 @@ const psbtHandler: NostrMsgHandler = {
 
   handle: (context) => {
     const { unwrappedEvent, eventContent, data, onPendingDM, account } = context
-    if (!data) {
+    // Only the account's own and trusted devices may notify or store.
+    if (
+      !data ||
+      !isSenderAllowedForAccount(account.id, unwrappedEvent.pubkey)
+    ) {
       return
     }
 
@@ -24,7 +30,7 @@ const psbtHandler: NostrMsgHandler = {
     const preview = dataStr.slice(0, TOAST_CONTENT_MAX)
 
     if (!isChatActive(account.id)) {
-      toast.info('New PSBT', {
+      toast.info(t('account.nostrSync.newPsbt'), {
         description: `${author}\n${preview}`,
         duration: TOAST_DURATION
       })

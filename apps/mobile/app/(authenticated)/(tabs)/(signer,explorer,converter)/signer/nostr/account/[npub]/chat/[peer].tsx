@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip19 } from 'nostr-tools'
 import { StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 
 import SSChatThread from '@/components/chat/SSChatThread'
 import SSText from '@/components/SSText'
@@ -17,7 +17,10 @@ import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
+import { buildChatThreadAuthors } from '@/utils/nostrChat'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
+import { isNonEmptyString } from '@/utils/string'
 
 type ThreadParams = {
   npub: string
@@ -39,22 +42,21 @@ export default function NostrChatThread() {
     state.identities.find((i) => i.npub === npub)
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const peerProfile = useNostrStore((state) =>
-    peer ? state.profiles[peer] : undefined
-  )
 
-  const peerPubkey = peer ? getPubKeyHexFromNpub(peer) : null
+  const peerPubkey = isNonEmptyString(peer) ? getPubKeyHexFromNpub(peer) : null
+  const peerNpub = peerPubkey !== null ? safeNpubEncode(peerPubkey) : ''
+  const peerProfile = useNostrStore((state) => state.profiles[peerNpub])
+
   useNostrChatSubscription(identity)
   // Fetch the peer's kind 0 so the header shows their name/picture.
-  useNostrChatProfiles(identity?.relays, peer ? [peer] : [])
-  const { input, messages, send, sending, setInput } = useNostrChatThread(
-    identity,
-    protocol,
-    peer,
-    peerPubkey ?? undefined
+  useNostrChatProfiles(
+    identity?.relays,
+    isNonEmptyString(peerNpub) ? [peerNpub] : []
   )
+  const { input, items, loadOlder, loadingOlder, send, sending, setInput } =
+    useNostrChatThread(identity, protocol, peerNpub, peerPubkey ?? undefined)
 
-  if (!identity || !peer || !peerPubkey) {
+  if (!identity || peerPubkey === null) {
     return (
       <SSMainLayout>
         <SSVStack itemsCenter gap="lg" style={styles.emptyContainer}>
@@ -64,15 +66,47 @@ export default function NostrChatThread() {
     )
   }
 
-  async function handleSend(text: string) {
+  async function sendOrReport(text: string) {
     try {
       await send(text)
-    } catch {
-      // send() restores the draft on failure
+    } catch (error) {
+      // The draft is restored and the message stays marked failed.
+      toast.error(getNostrErrorMessage(error))
     }
   }
 
-  const peerNpub = nip19.npubEncode(peerPubkey)
+  async function loadOlderOrReport() {
+    try {
+      await loadOlder()
+    } catch (error) {
+      toast.error(getNostrErrorMessage(error))
+    }
+  }
+
+  function handleSend(text: string) {
+    void sendOrReport(text)
+  }
+
+  function handleLoadOlder() {
+    void loadOlderOrReport()
+  }
+
+  function handleAuthorPress(authorNpub: string) {
+    if (!identity) {
+      return
+    }
+    router.push({
+      params: { npub: identity.npub, targetNpub: authorNpub },
+      pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
+    })
+  }
+
+  const formattedNpubs = buildChatThreadAuthors({
+    ownDisplayName: identity.displayName,
+    ownNpub: identity.npub,
+    peerNpub,
+    peerProfile
+  })
   const peerTitle =
     peerProfile?.displayName ?? `${peerNpub.slice(0, 12)}…${peerNpub.slice(-4)}`
 
@@ -88,19 +122,16 @@ export default function NostrChatThread() {
         }}
       />
       <SSChatThread
-        messages={messages}
+        items={items}
+        formattedNpubs={formattedNpubs}
         onSend={handleSend}
         sending={sending}
         inputValue={input}
         onInputChange={setInput}
         ownNpub={identity.npub}
-        ownDisplayName={identity.displayName}
-        onAuthorPress={(authorNpub) =>
-          router.push({
-            params: { npub: identity.npub, targetNpub: authorNpub },
-            pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
-          })
-        }
+        onAuthorPress={handleAuthorPress}
+        onLoadOlder={handleLoadOlder}
+        loadingOlder={loadingOlder}
       />
     </SSMainLayout>
   )

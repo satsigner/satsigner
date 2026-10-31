@@ -1,12 +1,12 @@
 import { nip19 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
-import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
 import { getCachedProfile } from '@/db/nostrCache'
 import { getNostrFollowCache } from '@/storage/mmkv'
 import {
   type NostrContactItem,
+  type NostrDataSource,
+  type NostrErrorCode,
   type NostrIdentity,
   type NostrKind0Profile
 } from '@/types/models/Nostr'
@@ -14,8 +14,10 @@ import {
 export type NostrContactsQueryData = {
   connectedRelayCount: number
   contacts: NostrContactItem[]
+  error?: NostrErrorCode
   kind3Found: boolean
   relaysQueried: string[]
+  source: NostrDataSource
 }
 
 type FetchNostrContactsOptions = {
@@ -59,13 +61,10 @@ export function contactToIdentity(contact: NostrContactItem): NostrIdentity {
   }
 }
 
+/** Any cached profile, fresh or not: shown at once while relays refresh it. */
 function profileFromCache(pubkey: string): NostrKind0Profile | null {
   const cached = getCachedProfile(pubkey)
   if (!cached) {
-    return null
-  }
-  const now = Math.floor(Date.now() / MS_PER_SECOND)
-  if (now - cached.cached_at >= NOSTR_PROFILE_CACHE_TTL_SECS) {
     return null
   }
   return {
@@ -94,6 +93,7 @@ export function mergeProfileBatch(
   })
 }
 
+/** Cached follows shown while relays load; never claims a kind 3 was found. */
 export function getNostrContactsPlaceholder(
   npub: string
 ): NostrContactsQueryData | undefined {
@@ -104,19 +104,23 @@ export function getNostrContactsPlaceholder(
   return {
     connectedRelayCount: 0,
     contacts: contactsFromPubkeys(cached),
-    kind3Found: true,
-    relaysQueried: []
+    kind3Found: false,
+    relaysQueried: [],
+    source: 'cache'
   }
 }
 
-function contactsFromFollowCache(npub: string): NostrContactItem[] | null {
-  const cached = getNostrFollowCache(npub)
-  if (!cached?.length) {
-    return null
+function abortIfNeeded(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError')
   }
-  return contactsFromPubkeys(cached)
 }
 
+/**
+ * Follows (kind 3) with their profiles streamed in. Relay failures and
+ * missing kind 3 events fall back to the cached follow list, flagged by
+ * `source` so the UI can say the list may be out of date.
+ */
 export async function fetchNostrContacts(
   npub: string,
   contactsRelays: string[],
@@ -127,28 +131,18 @@ export async function fetchNostrContacts(
 
   try {
     const result = await api.fetchKind3FollowingPubkeys(npub)
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
-    }
+    abortIfNeeded(signal)
 
-    const metadata = {
-      connectedRelayCount: result.connectedRelayCount,
-      kind3Found: result.kind3Found,
-      relaysQueried: result.relaysQueried
-    }
-
-    if (result.pubkeys.length === 0) {
-      const cachedContacts = contactsFromFollowCache(npub)
-      return {
-        ...metadata,
-        contacts: cachedContacts ?? []
-      }
-    }
-
-    const contacts = contactsFromPubkeys(result.pubkeys)
+    const cachedFollows = getNostrFollowCache(npub) ?? []
+    const useCachedFollows =
+      result.source === 'relay' &&
+      !result.data.kind3Found &&
+      cachedFollows.length > 0
+    const pubkeys = useCachedFollows ? cachedFollows : result.data.pubkeys
+    const contacts = contactsFromPubkeys(pubkeys)
 
     await api.streamKind0Profiles(
-      result.pubkeys,
+      pubkeys,
       (batch) => {
         if (signal?.aborted) {
           return
@@ -161,13 +155,36 @@ export async function fetchNostrContacts(
       },
       signal
     )
+    abortIfNeeded(signal)
 
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
+    return {
+      connectedRelayCount: result.data.connectedRelayCount,
+      contacts,
+      error: result.error,
+      kind3Found: result.data.kind3Found,
+      relaysQueried: result.data.relaysQueried,
+      source: useCachedFollows ? 'stale' : result.source
     }
-
-    return { ...metadata, contacts }
   } finally {
     api.disconnect()
   }
+}
+
+export function filterNostrContacts(
+  contacts: NostrContactItem[],
+  searchQuery: string
+): NostrContactItem[] {
+  const query = searchQuery.trim().toLowerCase()
+  if (!query) {
+    return contacts
+  }
+  return contacts.filter((contact) => {
+    const displayName = contact.profile?.displayName?.toLowerCase() ?? ''
+    const nip05 = contact.profile?.nip05?.toLowerCase() ?? ''
+    return (
+      displayName.includes(query) ||
+      nip05.includes(query) ||
+      nip19.npubEncode(contact.pubkey).includes(query)
+    )
+  })
 }

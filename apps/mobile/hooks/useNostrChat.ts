@@ -1,6 +1,7 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useFocusEffect } from 'expo-router'
-import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useEffectEvent, useState } from 'react'
+import { useIsFocused } from 'expo-router/react-navigation'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
 import {
@@ -9,27 +10,28 @@ import {
   NOSTR_PROFILE_CACHE_TTL_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { markChatThreadRead } from '@/db/mutations/nostrChat'
-import { getCachedProfile } from '@/db/nostrCache'
-import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
-import { useNostrStore } from '@/store/nostr'
 import {
-  type NostrChatConversation,
-  type NostrChatMessage,
-  type NostrChatProtocol
+  type NostrChatConversationItem,
+  type NostrChatProtocol,
+  type NostrChatThreadItem
 } from '@/types/models/Nostr'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   acquireChatPipeline,
-  addChatListener,
-  addChatStoreListener,
-  emitChatStoreChanged,
   getChatPipelineApi,
-  releaseChatPipeline,
+  getChatPipelineStatus,
+  invalidateChatQueries,
+  listChatConversationItems,
+  loadChatPeerProfiles,
+  loadChatThreadItems,
+  loadOlderChatHistory,
+  nostrChatQueryKeys,
+  restartChatPipeline,
   sendNip04Chat,
-  sendNip17Chat
+  sendNip17Chat,
+  subscribeChatPipelineStatus
 } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
+import { isNonEmptyString } from '@/utils/string'
 
 type ChatIdentity = {
   npub: string
@@ -37,212 +39,95 @@ type ChatIdentity = {
   relays?: string[]
 }
 
-function hasSameChatKeys(
-  a: ChatIdentity | undefined,
-  b: ChatIdentity | undefined
-) {
-  return a?.npub === b?.npub && a?.nsec === b?.nsec
-}
+const NO_CONVERSATIONS: NostrChatConversationItem[] = []
+const NO_THREAD_ITEMS: NostrChatThreadItem[] = []
 
 /**
  * While a chat screen is focused, the shared chat pipeline (NIP-04 + NIP-17
- * subscriptions) is held for the identity. Multiple screens acquire/release
- * the same pipeline; switching identity tears down the old subscriptions and
- * opens fresh ones, and the pipeline closes when the last screen leaves.
+ * subscriptions) is held for the identity. Returns the pipeline status so
+ * screens can show relay failures, and a retry that reopens the pipeline.
  */
 export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
-  // Only an npub/nsec change restarts the pipeline; relay-only updates keep
-  // the identity snapshot (and relays) the pipeline was opened with.
-  const [pipelineIdentity, setPipelineIdentity] = useState(identity)
-  if (!hasSameChatKeys(pipelineIdentity, identity)) {
-    setPipelineIdentity(identity)
-  }
+  const npub = identity?.npub
+  const nsec = identity?.nsec
+  const relays = identity?.relays
 
   useFocusEffect(
     useCallback(() => {
-      if (!pipelineIdentity?.nsec) {
+      if (!isNonEmptyString(npub) || !isNonEmptyString(nsec)) {
         return
       }
-      const { nsec } = pipelineIdentity
-      const { npub } = pipelineIdentity
-      const { relays } = pipelineIdentity
-      let cancelled = false
-      async function startPipeline() {
-        try {
-          await acquireChatPipeline({ npub, nsec, relays })
-          if (cancelled) {
-            releaseChatPipeline(npub)
-          }
-        } catch {
-          // Relay outages are non-fatal; screens still render local history.
-        }
-      }
-      void startPipeline()
-      return () => {
-        cancelled = true
-        releaseChatPipeline(npub)
-      }
-    }, [pipelineIdentity])
+      return acquireChatPipeline({ npub, nsec, relays }).release
+    }, [npub, nsec, relays])
   )
-}
 
-async function loadChatProfiles(
-  api: NostrAPI,
-  hexes: string[],
-  setProfile: ReturnType<typeof useNostrStore.getState>['setProfile'],
-  isCancelled: () => boolean
-) {
-  // One retry: the first attempt on cold relay connections often loses to
-  // the connect+fetch timeout, which previously left lists stuck forever.
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    if (isCancelled()) {
+  const status = useSyncExternalStore(subscribeChatPipelineStatus, () =>
+    getChatPipelineStatus(npub ?? '')
+  )
+  const [retrying, setRetrying] = useState(false)
+
+  async function retry() {
+    if (!isNonEmptyString(npub)) {
       return
     }
+    setRetrying(true)
     try {
-      const batch = await api.fetchKind0Batch(hexes)
-      if (isCancelled()) {
-        return
-      }
-      for (const [hex, profile] of batch) {
-        setProfile(nip19.npubEncode(hex), {
-          displayName: profile.displayName,
-          picture: profile.picture
-        })
-      }
-      if (batch.size > 0) {
-        return
-      }
+      await restartChatPipeline(npub)
     } catch {
-      // fall through to the retry
+      // Relay outages are non-fatal; retry state still clears below.
     }
-    if (attempt === 0) {
-      await new Promise((resolve) => {
-        setTimeout(resolve, NOSTR_CHAT_PROFILE_RETRY_DELAY_MS)
-      })
-    }
+    setRetrying(false)
   }
+
+  return { retry, retrying, status }
 }
 
 /**
- * Batch-fetches kind 0 profiles for DM peers into the shared nostr store.
- * Cache-first (fetchKind0Batch hits the SQLite profile cache), one batch
- * request per missing set — previously DM authors rendered as raw npubs.
+ * Loads kind 0 profiles for DM peers into the shared nostr store so
+ * conversations render names instead of raw npubs.
  */
 export function useNostrChatProfiles(
   identityRelays: string[] | undefined,
   peerNpubs: string[]
 ) {
-  const setProfile = useNostrStore((state) => state.setProfile)
-  const profiles = useNostrStore((state) => state.profiles)
-  const peersKey = [...peerNpubs].toSorted().join(',')
-  const relaysKey = identityRelays?.join(',')
-  // Non-reactive on purpose: this effect's own setProfile calls must not
-  // cancel and restart the in-flight batch.
-  const isProfileMissing = useEffectEvent((npub: string) => {
-    const profile = profiles[npub]
-    return !(profile?.displayName || profile?.picture)
+  const peersKey = peerNpubs.toSorted().join(',')
+  useQuery({
+    enabled: peerNpubs.length > 0,
+    queryFn: async () => {
+      const loaded = await loadChatPeerProfiles(identityRelays, peerNpubs)
+      return loaded
+    },
+    queryKey: nostrChatQueryKeys.profiles(
+      peersKey,
+      identityRelays?.join(',') ?? ''
+    ),
+    retry: 1,
+    retryDelay: NOSTR_CHAT_PROFILE_RETRY_DELAY_MS,
+    staleTime: NOSTR_PROFILE_CACHE_TTL_SECS * MS_PER_SECOND
   })
-  const getIdentityRelays = useEffectEvent(() => identityRelays)
-
-  useEffect(() => {
-    const missing = peersKey
-      .split(',')
-      .filter(Boolean)
-      .filter((npub) => isProfileMissing(npub))
-    if (missing.length === 0) {
-      return
-    }
-
-    // Cache-first: apply SQLite-cached profiles immediately so known peers
-    // render instantly, and only relay-fetch the ones still missing.
-    const now = Math.floor(Date.now() / MS_PER_SECOND)
-    const stillMissing: string[] = []
-    for (const npub of missing) {
-      const hex = getPubKeyHexFromNpub(npub)
-      const cached = hex ? getCachedProfile(hex) : null
-      if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
-        setProfile(npub, {
-          displayName: cached.displayName,
-          picture: cached.picture
-        })
-      } else {
-        stillMissing.push(npub)
-      }
-    }
-
-    const hexes: string[] = []
-    for (const npub of stillMissing) {
-      const hex = getPubKeyHexFromNpub(npub)
-      if (hex) {
-        hexes.push(hex)
-      }
-    }
-    if (hexes.length === 0) {
-      return
-    }
-
-    const api = new NostrAPI(getNostrContactsRelays(getIdentityRelays()))
-    let cancelled = false
-
-    loadChatProfiles(api, hexes, setProfile, () => cancelled)
-    return () => {
-      cancelled = true
-    }
-  }, [peersKey, relaysKey, setProfile])
 }
 
 export function useNostrChatConversations(
   identityNpub: string | undefined,
   protocol: NostrChatProtocol
 ) {
-  const [conversations, setConversations] = useState<NostrChatConversation[]>(
-    []
-  )
-
-  const reload = useCallback(() => {
-    if (!identityNpub) {
-      setConversations([])
-      return
-    }
-    setConversations(listChatConversations(identityNpub, protocol))
-  }, [identityNpub, protocol])
-
-  useEffect(() => {
-    reload()
-    const removeMessage = addChatListener((message) => {
-      if (
-        message.identityNpub === identityNpub &&
-        message.protocol === protocol
-      ) {
-        reload()
-      }
-    })
-    const removeStore = addChatStoreListener(reload)
-    return () => {
-      removeMessage()
-      removeStore()
-    }
-  }, [identityNpub, protocol, reload])
-
-  useFocusEffect(
-    useCallback(() => {
-      reload()
-    }, [reload])
-  )
-
-  return conversations
+  const { data } = useQuery({
+    enabled: Boolean(identityNpub),
+    queryFn: () => listChatConversationItems(identityNpub ?? '', protocol),
+    queryKey: nostrChatQueryKeys.conversations(identityNpub ?? '', protocol)
+  })
+  return data ?? NO_CONVERSATIONS
 }
 
-function sendChatByProtocol(
+async function sendChatMessage(
   api: NostrAPI,
+  identity: { npub: string; nsec: string },
   protocol: NostrChatProtocol,
-  sender: Parameters<typeof sendNip17Chat>[1],
   peerNpub: string,
   text: string
-) {
-  return protocol === 'nip17'
-    ? sendNip17Chat(api, sender, peerNpub, text)
-    : sendNip04Chat(api, sender, peerNpub, text)
+): Promise<void> {
+  const sendForProtocol = protocol === 'nip17' ? sendNip17Chat : sendNip04Chat
+  await sendForProtocol(api, identity, peerNpub, text)
 }
 
 export function useNostrChatThread(
@@ -251,89 +136,83 @@ export function useNostrChatThread(
   peerNpub: string | undefined,
   peerPubkey: string | undefined
 ) {
-  const [messages, setMessages] = useState<NostrChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [limit, setLimit] = useState(NOSTR_CHAT_THREAD_PAGE_SIZE)
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  const [historyExhausted, setHistoryExhausted] = useState(false)
+  const identityNpub = identity?.npub ?? ''
+  const focused = useIsFocused()
 
-  const reload = useCallback(() => {
-    if (!identity || !peerPubkey) {
-      setMessages([])
+  const { data } = useQuery({
+    enabled: focused && Boolean(identity && peerPubkey),
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      loadChatThreadItems(identityNpub, protocol, peerPubkey ?? '', limit),
+    queryKey: nostrChatQueryKeys.thread(
+      identityNpub,
+      protocol,
+      peerPubkey ?? '',
+      limit
+    )
+  })
+  const items = data ?? NO_THREAD_ITEMS
+
+  /** Older stored messages first; relays are paged only past local history. */
+  async function loadOlder() {
+    if (!identity || loadingOlder || historyExhausted) {
       return
     }
-    setMessages(
-      listChatThread(
-        identity.npub,
-        protocol,
-        peerPubkey,
-        NOSTR_CHAT_THREAD_PAGE_SIZE
-      )
-    )
-  }, [identity, protocol, peerPubkey])
-
-  // Initial load + mark incoming as read while the thread is open.
-  useEffect(() => {
-    reload()
-    if (identity && peerPubkey) {
-      markChatThreadRead(identity.npub, protocol, peerPubkey)
-      emitChatStoreChanged()
+    if (items.length >= limit) {
+      setLimit(limit + NOSTR_CHAT_THREAD_PAGE_SIZE)
+      return
     }
-  }, [reload, identity, protocol, peerPubkey])
+    setLoadingOlder(true)
+    try {
+      const { exhausted } = await loadOlderChatHistory(identity.npub, protocol)
+      setHistoryExhausted(exhausted)
+    } catch (error) {
+      setLoadingOlder(false)
+      throw error
+    }
+    setLoadingOlder(false)
+  }
 
-  useEffect(() => {
-    const remove = addChatListener((message) => {
-      if (
-        message.identityNpub === identity?.npub &&
-        message.protocol === protocol &&
-        message.peerPubkey === peerPubkey
-      ) {
-        if (message.direction === 'in' && identity && peerPubkey) {
-          markChatThreadRead(identity.npub, protocol, peerPubkey)
-          emitChatStoreChanged()
-        }
-        reload()
+  async function send(text: string) {
+    if (!isNonEmptyString(identity?.nsec) || !isNonEmptyString(peerNpub)) {
+      return
+    }
+    // Clear right away so a slow send can't be re-submitted by accident;
+    // the draft is restored if the send fails.
+    setInput('')
+    setSending(true)
+    // Prefer the warm pipeline (live relay connections) over a fresh API.
+    const pipelineApi = getChatPipelineApi(identity.npub)
+    const api =
+      pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
+    try {
+      await sendChatMessage(
+        api,
+        { npub: identity.npub, nsec: identity.nsec },
+        protocol,
+        peerNpub,
+        text
+      )
+    } catch (error) {
+      setInput(text)
+      invalidateChatQueries(identity.npub)
+      setSending(false)
+      if (!pipelineApi) {
+        api.closeAllSubscriptions()
       }
-    })
-    return remove
-  }, [identity, protocol, peerPubkey, reload])
+      throw error
+    }
+    invalidateChatQueries(identity.npub)
+    setSending(false)
+    if (!pipelineApi) {
+      api.closeAllSubscriptions()
+    }
+  }
 
-  const send = useCallback(
-    async (text: string) => {
-      if (!identity?.nsec || !peerNpub) {
-        return
-      }
-      // Clear right away so a slow send can't be re-submitted by accident;
-      // the draft is restored if the send fails.
-      setInput('')
-      setSending(true)
-      // Prefer the warm pipeline (live relay connections) over a fresh API.
-      const pipelineApi = getChatPipelineApi(identity.npub)
-      const api =
-        pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
-      function finishSend() {
-        // Refresh in both outcomes so the card flips to sent/failed at once.
-        reload()
-        setSending(false)
-        if (!pipelineApi) {
-          api.closeAllSubscriptions()
-        }
-      }
-      try {
-        await sendChatByProtocol(
-          api,
-          protocol,
-          { npub: identity.npub, nsec: identity.nsec },
-          peerNpub,
-          text
-        )
-      } catch (error) {
-        setInput(text)
-        finishSend()
-        throw error
-      }
-      finishSend()
-    },
-    [identity, protocol, peerNpub, reload]
-  )
-
-  return { input, messages, send, sending, setInput }
+  return { input, items, loadOlder, loadingOlder, send, sending, setInput }
 }
