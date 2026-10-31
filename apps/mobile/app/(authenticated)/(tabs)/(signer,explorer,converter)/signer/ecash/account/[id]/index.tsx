@@ -37,12 +37,14 @@ import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
+import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import { Colors } from '@/styles'
+import { getEcashMintLabel } from '@/utils/ecashAccount'
 import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
 import { formatFiatPrice } from '@/utils/format'
 
@@ -61,6 +63,7 @@ export default function EcashAccountDetailPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { mints, proofs, transactions, activeAccount, counters } =
     useEcashAccountState()
+  useFetchBitcoinPrice()
   const [tabIndex, setTabIndex] = useState(0)
   const [proofsView, setProofsView] = useState<'list' | 'bubbles'>('list')
 
@@ -155,6 +158,15 @@ export default function EcashAccountDetailPage() {
                       <SSEcashTransactionCard
                         key={transaction.id}
                         transaction={transaction}
+                        mintLabel={getEcashMintLabel(
+                          mints,
+                          transaction.mintUrl
+                        )}
+                        btcPrice={btcPrice}
+                        currencyUnit={currencyUnit}
+                        fiatCurrency={fiatCurrency}
+                        privacyMode={privacyMode}
+                        useZeroPadding={useZeroPadding}
                         onPress={() =>
                           router.navigate({
                             params: { id: transaction.id },

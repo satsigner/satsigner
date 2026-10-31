@@ -348,6 +348,11 @@ export default function ArkAccountDetailPage() {
   function renderMovementItem({ item }: { item: ArkMovement }) {
     return (
       <SSArkMovementCard
+        btcPrice={btcPrice}
+        currencyUnit={currencyUnit}
+        fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
+        useZeroPadding={useZeroPadding}
         movement={item}
         onPress={() =>
           router.navigate(`/signer/ark/account/${id}/movement/${item.id}`)

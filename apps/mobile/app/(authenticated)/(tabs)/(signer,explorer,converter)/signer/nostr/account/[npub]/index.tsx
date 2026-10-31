@@ -18,6 +18,7 @@ import {
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -70,6 +71,7 @@ async function syncIdentityKind0(
 export default function NostrAccountLanding() {
   const router = useRouter()
   const { npub } = useLocalSearchParams<AccountParams>()
+  const { btcPrice, fiatCurrency, privacyMode } = useDisplayPreferences()
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -220,6 +222,9 @@ export default function NostrAccountLanding() {
 
           <SSNostrFeedTabs
             npub={npub}
+            btcPrice={btcPrice}
+            fiatCurrency={fiatCurrency}
+            privacyMode={privacyMode}
             relayConnected={identity.relayConnected === true}
             relays={identity.relays ?? relays}
             onNotePress={handleNotePress}

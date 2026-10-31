@@ -33,6 +33,7 @@ export const SyncProgressSchema = z.object({
 export const CreationTypeSchema = z.enum([
   'generateMnemonic',
   'importMnemonic',
+  'importWif',
   'importDescriptor',
   'importExtendedPub',
   'importAddress'
@@ -44,7 +45,9 @@ export const SecretSchema = z.object({
   fingerprint: z.string().optional(),
   internalDescriptor: z.string().optional(),
   mnemonic: z.string().optional(),
-  passphrase: z.string().optional()
+  passphrase: z.string().optional(),
+  privateKey: z.string().optional(),
+  privateKeyCompressed: z.boolean().optional()
 })
 
 export const KeyMetaSchema = z.object({

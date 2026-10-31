@@ -1,6 +1,7 @@
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
+import { type Transaction } from '@/types/models/Transaction'
 import { parseLabel } from '@/utils/parse'
 
 const P2WPKH_ADDRESS_MIN_LENGTH = 42
@@ -35,6 +36,15 @@ export function getAccountAddressSets(accountAddresses: Account['addresses']) {
   }
 
   return { internalAddresses, ownAddresses }
+}
+
+export function isAddressUsed(
+  transactions: Pick<Transaction, 'vout'>[],
+  address: string
+) {
+  return transactions.some((tx) =>
+    tx.vout.some((output) => output.address === address)
+  )
 }
 
 export function isChangeOutputLabel(label: string): boolean {

@@ -121,6 +121,8 @@ export default function SingleSig() {
       }
     } else if (type === 'importMnemonic') {
       router.navigate('/signer/bitcoin/account/add/import/mnemonic/0')
+    } else if (type === 'importWif') {
+      router.navigate('/signer/bitcoin/account/add/import/wif/0')
     }
   }
 
@@ -202,6 +204,10 @@ export default function SingleSig() {
             <SSButton
               label={t('account.import.title2')}
               onPress={() => handleOnPress('importMnemonic')}
+            />
+            <SSButton
+              label={t('account.import.wif.title')}
+              onPress={() => handleOnPress('importWif')}
             />
             <SSButton
               label={t('account.generate.title')}

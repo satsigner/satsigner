@@ -1,5 +1,7 @@
 import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
 
+import { peekDerivedAddress } from '@/utils/derivedAddress'
+
 const MAX_EXTERNAL_ADDRESS_SCAN = 1000
 
 type ExternalAddressWallet = Pick<BdkWallet, 'peekAddress'>
@@ -25,8 +27,11 @@ function findExternalAddressIndex(
     (_, value) => value
   )) {
     try {
-      const peeked = wallet.peekAddress(KeychainKind.External, index)
-      if (peeked?.address === address) {
+      const peeked = peekDerivedAddress(wallet, KeychainKind.External, index)
+      if (!peeked) {
+        return undefined
+      }
+      if (peeked.address === address) {
         return index
       }
     } catch {
@@ -36,9 +41,20 @@ function findExternalAddressIndex(
   return undefined
 }
 
+function receiveAddressPath(derivationPath: string | undefined, index: number) {
+  if (!derivationPath) {
+    return ''
+  }
+  return `${derivationPath}/0/${index}`
+}
+
+function hasSingleExternalAddress(wallet: ExternalAddressWallet) {
+  return !peekDerivedAddress(wallet, KeychainKind.External, 1)
+}
+
 function resolveReceiveAddressSelection(params: {
   wallet: ExternalAddressWallet
-  derivationPath: string
+  derivationPath?: string
   preferredAddress?: string
   fallback: ExternalAddressInfo
 }): ReceiveAddressSelection {
@@ -52,9 +68,14 @@ function resolveReceiveAddressSelection(params: {
   return {
     address,
     index,
-    path: `${derivationPath}/0/${index}`,
+    path: receiveAddressPath(derivationPath, index),
     qrUri: `bitcoin:${address}`
   }
 }
 
-export { findExternalAddressIndex, resolveReceiveAddressSelection }
+export {
+  findExternalAddressIndex,
+  hasSingleExternalAddress,
+  receiveAddressPath,
+  resolveReceiveAddressSelection
+}

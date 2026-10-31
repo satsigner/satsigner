@@ -49,9 +49,12 @@ import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import { isAddressUsed } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   findExternalAddressIndex,
+  hasSingleExternalAddress,
+  receiveAddressPath,
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
 import { fiatToSats, satsToFiat } from '@/utils/fiat'
@@ -137,7 +140,10 @@ function peekNextExternalAddress(
   return {
     localAddress: address,
     localAddressNumber: nextIndex,
-    localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`,
+    localAddressPath: receiveAddressPath(
+      account.keys[0]?.derivationPath,
+      nextIndex
+    ),
     localAddressQR: address ? `bitcoin:${address}` : ''
   }
 }
@@ -190,7 +196,7 @@ export default function Receive() {
   const localAddressPath =
     storedAddressPath ??
     (account && localAddressNumber !== undefined
-      ? `${account.keys[0].derivationPath}/0/${localAddressNumber}`
+      ? receiveAddressPath(account.keys[0]?.derivationPath, localAddressNumber)
       : undefined)
   const [localCustomAmount, setLocalCustomAmount] = useState<string>(() => {
     const sats = amountSatsFromPayjoinSession(existingPayjoinSession)
@@ -438,13 +444,9 @@ export default function Receive() {
     if (!wallet || !account || !addressInfo.address) {
       return
     }
-    const derivationPath = account.keys[0]?.derivationPath
-    if (!derivationPath) {
-      return
-    }
     const activeSession = getActiveReceiverSession(id)
     const selection = resolveReceiveAddressSelection({
-      derivationPath,
+      derivationPath: account.keys[0]?.derivationPath,
       fallback: {
         address: addressInfo.address,
         index: addressInfo.index
@@ -634,6 +636,13 @@ export default function Receive() {
     return <Redirect href="/" />
   }
 
+  const hasAddressPath = Boolean(account.keys[0]?.derivationPath)
+  const canGenerateAnother = !wallet || !hasSingleExternalAddress(wallet)
+  const addressUsageKey =
+    localAddress && isAddressUsed(account.transactions, localAddress)
+      ? 'receive.usedBefore'
+      : 'receive.neverUsed'
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
@@ -660,17 +669,19 @@ export default function Receive() {
               )}
             </SSVStack>
             <SSVStack gap="none" itemsCenter>
-              <SSHStack gap="sm">
-                <SSText color="muted" uppercase>
-                  {t('receive.path')}
-                </SSText>
-                {isLoading ? (
-                  <SSText color="muted">...</SSText>
-                ) : (
-                  <SSText>{localAddressPath}</SSText>
-                )}
-              </SSHStack>
-              <SSText>{t('receive.neverUsed')}</SSText>
+              {hasAddressPath && (
+                <SSHStack gap="sm">
+                  <SSText color="muted" uppercase>
+                    {t('receive.path')}
+                  </SSText>
+                  {isLoading ? (
+                    <SSText color="muted">...</SSText>
+                  ) : (
+                    <SSText>{localAddressPath}</SSText>
+                  )}
+                </SSHStack>
+              )}
+              <SSText>{t(addressUsageKey)}</SSText>
             </SSVStack>
             {payjoinCompleted ? (
               <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
@@ -1037,23 +1048,27 @@ export default function Receive() {
                   variant="secondary"
                   onPress={() => router.back()}
                 />
-                <SSButton
-                  label={t('receive.generateAnother')}
-                  variant="outline"
-                  loading={isGenerating}
-                  disabled={isGenerating || isLoading}
-                  onPress={generateAnotherAddress}
-                />
+                {canGenerateAnother && (
+                  <SSButton
+                    label={t('receive.generateAnother')}
+                    variant="outline"
+                    loading={isGenerating}
+                    disabled={isGenerating || isLoading}
+                    onPress={generateAnotherAddress}
+                  />
+                )}
               </>
             ) : (
               <>
-                <SSButton
-                  label={t('receive.generateAnother')}
-                  variant="secondary"
-                  loading={isGenerating}
-                  disabled={isGenerating || isLoading}
-                  onPress={generateAnotherAddress}
-                />
+                {canGenerateAnother && (
+                  <SSButton
+                    label={t('receive.generateAnother')}
+                    variant="secondary"
+                    loading={isGenerating}
+                    disabled={isGenerating || isLoading}
+                    onPress={generateAnotherAddress}
+                  />
+                )}
                 <SSButton
                   label={t('common.cancel')}
                   variant="ghost"

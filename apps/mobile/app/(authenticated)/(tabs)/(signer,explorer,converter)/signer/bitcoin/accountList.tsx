@@ -36,6 +36,7 @@ import {
 } from '@/constants/samples'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useAccountsFingerprints from '@/hooks/useAccountsFingerprints'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -49,7 +50,6 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
@@ -151,14 +151,9 @@ export default function AccountList() {
       state.setNetwork
     ])
   )
-  const [fetchPrices, btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [
-      state.fetchPrices,
-      state.btcPrice,
-      state.fiatCurrency
-    ])
-  )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
+  const display = useDisplayPreferences()
+  const { btcPrice, fiatCurrency, privacyMode } = display
   const [wallets, addresses] = useWalletsStore(
     useShallow((state) => [state.wallets, state.addresses])
   )
@@ -840,6 +835,7 @@ export default function AccountList() {
                   <ScaleDecorator activeScale={1.05}>
                     <SSVStack>
                       <SSAccountCard
+                        {...display}
                         name={item.name}
                         balance={getAccountTotalBalance(item.summary)}
                         fingerprint={fingerprints[item.id]}
