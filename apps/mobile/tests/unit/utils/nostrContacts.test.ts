@@ -1,4 +1,10 @@
-import { contactToIdentity, mergeProfileBatch } from '@/utils/nostrContacts'
+import { setNostrFollowCache } from '@/storage/mmkv'
+import {
+  contactToIdentity,
+  filterNostrContacts,
+  getNostrContactsPlaceholder,
+  mergeProfileBatch
+} from '@/utils/nostrContacts'
 
 jest.mock<typeof import('nostr-tools')>('nostr-tools', () => ({
   nip19: {
@@ -52,5 +58,36 @@ describe('mergeProfileBatch', () => {
 
     expect(merged[0].profile?.displayName).toBe('Alice')
     expect(merged[1].profile).toBeNull()
+  })
+})
+
+describe('getNostrContactsPlaceholder', () => {
+  it('shows cached follows without claiming a kind 3 was found', () => {
+    const npub = 'npub1placeholder'
+    setNostrFollowCache(npub, ['a'.repeat(64)])
+
+    const placeholder = getNostrContactsPlaceholder(npub)
+
+    expect(placeholder?.kind3Found).toBe(false)
+    expect(placeholder?.source).toBe('cache')
+    expect(placeholder?.contacts.map((c) => c.pubkey)).toStrictEqual([
+      'a'.repeat(64)
+    ])
+  })
+
+  it('is undefined without cached follows', () => {
+    expect(getNostrContactsPlaceholder('npub1none')).toBeUndefined()
+  })
+})
+
+describe('filterNostrContacts', () => {
+  it('matches display name, nip05 or npub, ignoring case', () => {
+    const contacts = [
+      { profile: { displayName: 'Alice' }, pubkey: 'a'.repeat(64) },
+      { profile: { nip05: 'bob@example.com' }, pubkey: 'b'.repeat(64) }
+    ]
+    expect(filterNostrContacts(contacts, ' ALI ')).toHaveLength(1)
+    expect(filterNostrContacts(contacts, 'example')).toHaveLength(1)
+    expect(filterNostrContacts(contacts, '')).toBe(contacts)
   })
 })

@@ -1,7 +1,18 @@
+import {
+  FlashList,
+  type FlashListRef,
+  type ListRenderItemInfo
+} from '@shopify/flash-list'
 import { useHeaderHeight } from 'expo-router/react-navigation'
-import { nip19 } from 'nostr-tools'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, StyleSheet, TextInput, View } from 'react-native'
+import { createContext, use, useRef, useState } from 'react'
+import {
+  ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  StyleSheet,
+  TextInput,
+  View
+} from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import SSButton from '@/components/SSButton'
@@ -10,16 +21,81 @@ import SSText from '@/components/SSText'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrChatMessage, type NostrDM } from '@/types/models/Nostr'
-import { formatNpub } from '@/utils/format'
-import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { type Account } from '@/types/models/Account'
+import { type NostrChatThreadItem } from '@/types/models/Nostr'
 
 const SCROLL_THRESHOLD = 40
+const AUTOSCROLL_TO_BOTTOM_THRESHOLD = 0.2
+const MESSAGE_MAX_LENGTH = 500
+
+type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
+
+type ChatThreadRowContext = {
+  formattedNpubs: Map<string, AuthorDisplayInfo>
+  onAuthorPress?: (authorNpub: string) => void
+  onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
+  ownNpub: string
+  visibleComponents: VisibleComponents
+}
+
+const ChatThreadContext = createContext<ChatThreadRowContext | null>(null)
+
+const NO_ACCOUNTS: Account[] = []
+const NO_VISIBLE_COMPONENTS: VisibleComponents = new Map()
+const NO_KEY_FINGERPRINTS = {}
+
+function ignoreSignFlow() {
+  // DM threads have no bitcoin account to sign with.
+}
+
+function ChatThreadRow({ item }: { item: NostrChatThreadItem }) {
+  const context = use(ChatThreadContext)
+  if (!context) {
+    return null
+  }
+  return (
+    <SSNostrMessage
+      item={item.dm}
+      account={undefined}
+      accounts={NO_ACCOUNTS}
+      keyFingerprintsByAccount={NO_KEY_FINGERPRINTS}
+      formattedNpubs={context.formattedNpubs}
+      visibleComponents={context.visibleComponents}
+      onToggleVisibility={context.onToggleVisibility}
+      onGoToSignFlow={ignoreSignFlow}
+      ownNpub={context.ownNpub}
+      onAuthorPress={context.onAuthorPress}
+      failed={item.failed}
+    />
+  )
+}
+
+function renderChatThreadItem({
+  item
+}: ListRenderItemInfo<NostrChatThreadItem>) {
+  return <ChatThreadRow item={item} />
+}
+
+function getChatThreadItemKey(item: NostrChatThreadItem) {
+  return item.dm.id
+}
+
+function isScrolledToBottom({
+  contentOffset,
+  contentSize,
+  layoutMeasurement
+}: NativeScrollEvent): boolean {
+  return (
+    contentOffset.y + layoutMeasurement.height >=
+    contentSize.height - SCROLL_THRESHOLD
+  )
+}
 
 type SSChatThreadProps = {
-  messages: NostrChatMessage[]
+  items: NostrChatThreadItem[]
+  /** Author display info keyed by npub: us and the peer. */
+  formattedNpubs: Map<string, AuthorDisplayInfo>
   onSend: (text: string) => void
   sending?: boolean
   inputValue: string
@@ -27,97 +103,42 @@ type SSChatThreadProps = {
   emptyText?: string
   /** npub of the identity sending from this thread (marks "you"). */
   ownNpub: string
-  ownDisplayName?: string
   /** Overrides author-press navigation (default: none in DM context). */
   onAuthorPress?: (authorNpub: string) => void
-}
-
-/** Adapts a DM-store message to the NostrDM shape the shared card expects. */
-function toNostrDM(msg: NostrChatMessage, ownHex: string): NostrDM {
-  const authorHex = msg.direction === 'out' ? ownHex : msg.peerPubkey
-  return {
-    author: authorHex,
-    content: {
-      created_at: msg.created_at,
-      description: msg.content,
-      pubkey: authorHex
-    },
-    created_at: msg.created_at,
-    description: msg.content,
-    event: '',
-    id: msg.id,
-    label: 0,
-    pending: msg.status === 'pending',
-    read: msg.read
-  }
+  /** Called when the user scrolls to the oldest loaded message. */
+  onLoadOlder?: () => void
+  loadingOlder?: boolean
 }
 
 /**
- * Shared DM thread: inverted list rendering the SAME message card as the
- * bitcoin devices group chat (SSNostrMessage), "new messages" pill, and the
- * group chat's composer.
+ * Shared DM thread: bottom-anchored list rendering the SAME message card as
+ * the bitcoin devices group chat (SSNostrMessage), "new messages" pill, and
+ * the group chat's composer.
  */
 export default function SSChatThread({
-  messages,
+  items,
+  formattedNpubs,
   onSend,
   sending = false,
   inputValue,
   onInputChange,
   emptyText,
   ownNpub,
-  ownDisplayName,
-  onAuthorPress
+  onAuthorPress,
+  onLoadOlder,
+  loadingOlder = false
 }: SSChatThreadProps) {
-  const listRef = useRef<FlatList<NostrChatMessage>>(null)
-  const isAtBottomRef = useRef(true)
-  const [showNewMessageButton, setShowNewMessageButton] = useState(false)
+  const listRef = useRef<FlashListRef<NostrChatThreadItem>>(null)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const [seenNewestId, setSeenNewestId] = useState<string>()
   const [visibleComponents, setVisibleComponents] = useState(
-    new Map<string, { sankey: boolean; status: boolean }>()
+    NO_VISIBLE_COMPONENTS
   )
-  const prevMessageCountRef = useRef(messages.length)
-  const profiles = useNostrStore((state) => state.profiles)
   const headerHeight = useHeaderHeight()
 
-  const ownHex = useMemo(() => getPubKeyHexFromNpub(ownNpub) ?? '', [ownNpub])
-
-  // Author display info for the card: us + every peer seen in this thread.
-  const formattedNpubs = useMemo(() => {
-    const map = new Map<string, AuthorDisplayInfo>()
-    if (ownHex) {
-      map.set(ownHex, {
-        color: Colors.white,
-        displayName: ownDisplayName,
-        npubShort: formatNpub(ownNpub)
-      })
-    }
-    for (const msg of messages) {
-      if (map.has(msg.peerPubkey)) {
-        continue
-      }
-      const peerNpub = getPubKeyHexFromNpub(msg.peerPubkey) ?? msg.peerPubkey
-      const profile = profiles[nip19SafeEncode(msg.peerPubkey)]
-      map.set(msg.peerPubkey, {
-        color: Colors.gray[500],
-        displayName: profile?.displayName,
-        npubShort: formatNpub(peerNpub),
-        picture: profile?.picture
-      })
-    }
-    return map
-  }, [messages, ownHex, ownNpub, ownDisplayName, profiles])
-
-  const displayedMessages = useMemo(
-    () => [...messages].toReversed(),
-    [messages]
-  )
-
-  useEffect(() => {
-    const prevCount = prevMessageCountRef.current
-    if (messages.length > prevCount && !isAtBottomRef.current) {
-      setShowNewMessageButton(true)
-    }
-    prevMessageCountRef.current = messages.length
-  }, [messages.length])
+  const newestId = items.at(-1)?.dm.id
+  const showNewMessageButton =
+    !isAtBottom && seenNewestId !== undefined && newestId !== seenNewestId
 
   function handleSend() {
     const text = inputValue.trim()
@@ -128,20 +149,18 @@ export default function SSChatThread({
   }
 
   function handleScrollToBottom() {
-    listRef.current?.scrollToOffset({ animated: true, offset: 0 })
-    isAtBottomRef.current = true
-    setShowNewMessageButton(false)
+    listRef.current?.scrollToEnd({ animated: true })
+    setIsAtBottom(true)
   }
 
-  function handleListScroll(e: {
-    nativeEvent: { contentOffset: { y: number } }
-  }) {
-    const atBottom = e.nativeEvent.contentOffset.y <= SCROLL_THRESHOLD
-    if (isAtBottomRef.current !== atBottom) {
-      isAtBottomRef.current = atBottom
-      if (atBottom) {
-        setShowNewMessageButton(false)
-      }
+  function handleListScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const atBottom = isScrolledToBottom(event.nativeEvent)
+    if (atBottom === isAtBottom) {
+      return
+    }
+    setIsAtBottom(atBottom)
+    if (!atBottom) {
+      setSeenNewestId(newestId)
     }
   }
 
@@ -151,10 +170,18 @@ export default function SSChatThread({
   ) {
     setVisibleComponents((prev) => {
       const next = new Map(prev)
-      const current = next.get(msgId) || { sankey: false, status: false }
+      const current = next.get(msgId) ?? { sankey: false, status: false }
       next.set(msgId, { ...current, [component]: true })
       return next
     })
+  }
+
+  const rowContext: ChatThreadRowContext = {
+    formattedNpubs,
+    onAuthorPress,
+    onToggleVisibility: handleToggleVisibility,
+    ownNpub,
+    visibleComponents
   }
 
   return (
@@ -164,41 +191,36 @@ export default function SSChatThread({
       style={styles.container}
     >
       <View style={styles.messagesContainer}>
-        {messages.length === 0 ? (
-          // Rendered outside the inverted list so the empty state is never
-          // flipped by the list's vertical inversion.
+        {items.length === 0 ? (
           <View style={styles.emptyContainer}>
             <SSText center color="muted">
               {emptyText ?? t('nostrIdentity.chat.noMessages')}
             </SSText>
           </View>
         ) : (
-          <FlatList
-            ref={listRef}
-            data={displayedMessages}
-            renderItem={({ item }) => (
-              <SSNostrMessage
-                item={toNostrDM(item, ownHex)}
-                account={undefined}
-                accounts={[]}
-                keyFingerprintsByAccount={{}}
-                formattedNpubs={formattedNpubs}
-                visibleComponents={visibleComponents}
-                onToggleVisibility={handleToggleVisibility}
-                onGoToSignFlow={() => undefined}
-                ownNpub={ownNpub}
-                onAuthorPress={onAuthorPress}
-                failed={item.status === 'failed'}
-              />
-            )}
-            keyExtractor={(item) => item.id}
-            inverted
-            initialNumToRender={25}
-            maxToRenderPerBatch={15}
-            onScroll={handleListScroll}
-            scrollEventThrottle={16}
-            contentContainerStyle={styles.listContent}
-          />
+          <ChatThreadContext
+            // oxlint-disable-next-line react/jsx-no-constructed-context-values -- React Compiler memoizes rowContext on its inputs
+            value={rowContext}
+          >
+            <FlashList
+              ref={listRef}
+              data={items}
+              renderItem={renderChatThreadItem}
+              keyExtractor={getChatThreadItemKey}
+              extraData={rowContext}
+              maintainVisibleContentPosition={{
+                autoscrollToBottomThreshold: AUTOSCROLL_TO_BOTTOM_THRESHOLD,
+                startRenderingFromBottom: true
+              }}
+              onStartReached={onLoadOlder}
+              ListHeaderComponent={
+                loadingOlder ? <ActivityIndicator color={Colors.white} /> : null
+              }
+              onScroll={handleListScroll}
+              scrollEventThrottle={16}
+              contentContainerStyle={styles.listContent}
+            />
+          </ChatThreadContext>
         )}
         {showNewMessageButton && (
           <View style={styles.newMessageButtonContainer}>
@@ -218,7 +240,7 @@ export default function SSChatThread({
           placeholder={t('nostrIdentity.chat.messagePlaceholder')}
           placeholderTextColor={Colors.gray[500]}
           multiline
-          maxLength={500}
+          maxLength={MESSAGE_MAX_LENGTH}
         />
         <SSButton
           style={styles.sendButton}
@@ -230,14 +252,6 @@ export default function SSChatThread({
       </SSHStack>
     </KeyboardAvoidingView>
   )
-}
-
-function nip19SafeEncode(hex: string): string {
-  try {
-    return /^[0-9a-f]{64}$/.test(hex) ? nip19.npubEncode(hex) : hex
-  } catch {
-    return hex
-  }
 }
 
 const styles = StyleSheet.create({

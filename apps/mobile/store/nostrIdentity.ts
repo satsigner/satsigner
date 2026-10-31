@@ -3,8 +3,11 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { clearNdkRegistry } from '@/api/nostr'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
-import mmkvStorage from '@/storage/mmkv'
+import { clearIdentityCache } from '@/db/nostrCache'
+import mmkvStorage, { clearNostrFollowCache } from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/Nostr'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { closeActiveChatPipeline } from '@/utils/nostrChat'
 import {
   deleteNostrIdentitySecretSafe,
   persistIdentitySecretsSafe
@@ -85,7 +88,13 @@ const useNostrIdentityStore = create<
 
       removeIdentity: (npub) => {
         void deleteNostrIdentitySecretSafe(npub)
+        closeActiveChatPipeline()
         deleteChatMessagesForIdentity(npub)
+        clearNostrFollowCache(npub)
+        const hexPubkey = getPubKeyHexFromNpub(npub)
+        if (hexPubkey) {
+          clearIdentityCache(hexPubkey)
+        }
         set((state) => ({
           activeIdentityNpub:
             state.activeIdentityNpub === npub ? null : state.activeIdentityNpub,

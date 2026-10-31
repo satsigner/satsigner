@@ -9,80 +9,114 @@ import {
   decrypt as nip04Decrypt,
   encrypt as nip04Encrypt
 } from 'nostr-tools/nip04'
-import { finalizeEvent } from 'nostr-tools/pure'
+import { finalizeEvent, getEventHash } from 'nostr-tools/pure'
 
 import {
-  fetchProfileCoalesced,
+  fetchProfileResult,
   fetchProfilesCoalesced,
   queueProfileFetches
 } from '@/api/nostrProfileFetcher'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
-  NOSTR_FLUSH_QUEUE_DELAY_MS,
+  NOSTR_DELETION_FETCH_LIMIT,
+  NOSTR_EVENT_ID_RE,
+  NOSTR_FEED_FOLLOWING_MAX_AUTHORS,
+  NOSTR_FIRST_RELAY_CONNECT_TIMEOUT_MS,
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
+  NOSTR_HEX_PUBKEY_RE,
   NOSTR_MAX_PROCESSED_RAW_IDS,
-  NOSTR_MAX_QUEUE_SIZE,
+  NOSTR_MAX_FAILED_WRAP_IDS,
   NOSTR_NDK_CONNECT_TIMEOUT_MS,
   NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
-  NOSTR_PROCESSING_INTERVAL_MS,
   NOSTR_PROFILE_CACHE_TTL_SECS,
   NOSTR_PUBKEY_HEX_LENGTH,
   NOSTR_PUBLISH_RETRY_DEADLINE_MS,
   NOSTR_PUBLISH_TIMEOUT_MS,
+  NOSTR_QUEUE_BATCH_SIZE,
   NOSTR_SECRET_KEY_BYTE_LENGTH,
   NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS,
   NOSTR_RELAY_POLL_INTERVAL_MS,
   NOSTR_RELAY_PROBE_COUNT,
   NOSTR_RELAY_PUBLISH_RACE_TIMEOUT_MS,
   NOSTR_RELAY_REACHABILITY_TEST_MS,
-  NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
+  NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS,
+  NOSTR_UI_FLUSH_INTERVAL_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   cacheEvents,
+  deleteCachedEventsByAuthor,
   getCachedEvent,
+  getCachedEvents,
   getCachedNotes,
+  getCachedNotesByAuthors,
   getCachedProfile,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
-import { setNostrFollowCache } from '@/storage/mmkv'
+import { isNostrEventProcessed } from '@/db/nostrProcessedEvents'
+import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import type {
+  NostrChatEventRef,
+  NostrChatGiftWrap,
+  NostrFeedNoteLike,
+  NostrFetchResult,
+  NostrFollowList,
   NostrKeys,
   NostrKind0Profile,
+  NostrKind4ChatEvent,
   NostrMessage,
+  NostrNotesQuery,
   NostrPollResponse,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
+  NostrSubscriptionWindow,
   NostrUnwrappedKind1059Event
 } from '@/types/models/Nostr'
 import { randomKey } from '@/utils/crypto'
-import { NostrNoRelaysError } from '@/utils/errors'
+import {
+  NostrNoRelaysError,
+  NostrPublishError,
+  NostrRelayTimeoutError
+} from '@/utils/errors'
 import {
   extractInboxRelayUrls,
   getPubKeyHexFromNpub,
   getSecretFromNsec
 } from '@/utils/nostr'
+import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import {
+  getNostrTagValue,
+  isNostrTags,
   isSignedNdkEvent,
   parseNostrEvent,
   parseNostrRumor
 } from '@/utils/nostrEvent'
+import {
+  cachedEventToNote,
+  getDeletedEventIds,
+  getFollowedPubkeysFromTags,
+  isNostrRelayUnavailableError,
+  mergeNotesNewestFirst
+} from '@/utils/nostrFeed'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
+import { isRecord } from '@/utils/object'
 
 import {
+  createEphemeralNdk,
   createMobileNdk,
   disconnectNdkPool,
   getOrCreateNdk,
-  ndkRegistry,
-  resetNdkForRelays
+  ndkRegistry
 } from './ndkRegistry'
+import {
+  connectToFirstRelay,
+  markRelayClosed,
+  markRelayEose,
+  normalizeRelayUrl
+} from './nostrRelayHealth'
 
 // Re-exported for existing callers (registry now lives in ./ndkRegistry).
 export { clearNdkRegistry } from './ndkRegistry'
-
-function normalizeRelayUrl(url: string): string {
-  return url.toLowerCase().replace(/\/$/, '')
-}
 
 function buildRelayConnectionInfo(
   allUrls: string[],
@@ -99,11 +133,17 @@ function buildRelayConnectionInfo(
   }
 }
 
+/**
+ * Nudges the shared NDK for this relay set to reconnect dropped relays
+ * without tearing it down, so live subscriptions on it keep working.
+ */
 export async function reconnectNdkForRelays(
   relayUrls: string[]
 ): Promise<void> {
-  const ndk = resetNdkForRelays(relayUrls)
-  await ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
+  await connectToFirstRelay(
+    getOrCreateNdk(relayUrls),
+    NOSTR_NDK_CONNECT_TIMEOUT_MS
+  )
 }
 
 export async function testNostrRelaysReachable(
@@ -128,29 +168,19 @@ export async function testNostrRelaysReachable(
     if (connected.length > 0) {
       return buildRelayConnectionInfo(relayUrls, connected)
     }
-    // Registry NDK exists but all connections are dead — evict the stale
-    // instance and create a fresh one rather than trying to revive it.
-    const freshNdk = resetNdkForRelays(relayUrls)
-    await freshNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
-    const reconnected = freshNdk.pool?.connectedRelays().map((r) => r.url) ?? []
-    if (reconnected.length > 0) {
-      return buildRelayConnectionInfo(relayUrls, reconnected)
-    }
   }
 
-  // No registry entry yet (first probe before any data fetch) — use a throw-away NDK.
+  // Probe with a throw-away NDK: resetting the shared instance would kill
+  // the live subscriptions (account sync, chat) that run on it.
   const probeUrls = relayUrls.slice(0, NOSTR_RELAY_PROBE_COUNT)
-  const probeNdk = createMobileNdk(probeUrls)
-  await probeNdk.connect(NOSTR_RELAY_REACHABILITY_TEST_MS)
-  const connected = probeNdk.pool?.connectedRelays().map((r) => r.url) ?? []
-
-  for (const relay of probeNdk.pool?.relays.values() ?? []) {
-    try {
-      relay.disconnect()
-    } catch {
-      // best-effort cleanup
-    }
-  }
+  const probeNdk = createEphemeralNdk(probeUrls)
+  const connected = await connectToFirstRelay(
+    probeNdk,
+    NOSTR_RELAY_REACHABILITY_TEST_MS
+  )
+    .then(() => probeNdk.pool.connectedRelays().map((r) => r.url))
+    .catch(() => [])
+  disconnectNdkPool(probeNdk)
 
   if (connected.length > 0) {
     return buildRelayConnectionInfo(probeUrls, connected)
@@ -165,6 +195,25 @@ export async function testNostrRelaysReachable(
     })),
     status: 'disconnected'
   }
+}
+
+// Rumors are unsigned, so the id is the only integrity check on them: it must
+// be the NIP-01 hash of the content, or dedupe by id could be spoofed.
+function hasValidRumorId(rumor: unknown): boolean {
+  if (!isRecord(rumor)) {
+    return false
+  }
+  const { content, created_at, id, kind, pubkey, tags } = rumor
+  if (
+    typeof content !== 'string' ||
+    typeof pubkey !== 'string' ||
+    typeof created_at !== 'number' ||
+    typeof kind !== 'number' ||
+    !isNostrTags(tags)
+  ) {
+    return false
+  }
+  return getEventHash({ content, created_at, kind, pubkey, tags }) === id
 }
 
 // NIP-17 unwrap with mandatory sender-authenticity checks. nostr-tools'
@@ -192,8 +241,13 @@ function unwrapNip59EventOrNull(
       seal.content,
       nip44.getConversationKey(secretKey, seal.pubkey)
     )
-    const rumor = parseNostrRumor(JSON.parse(rumorJson))
-    if (!rumor || rumor.pubkey !== seal.pubkey) {
+    const rumorValue: unknown = JSON.parse(rumorJson)
+    const rumor = parseNostrRumor(rumorValue)
+    if (
+      !rumor ||
+      rumor.pubkey !== seal.pubkey ||
+      !hasValidRumorId(rumorValue)
+    ) {
       return null
     }
 
@@ -206,14 +260,34 @@ function unwrapNip59EventOrNull(
 // Exported for unit tests
 export { unwrapNip59EventOrNull }
 
+// Wraps that failed to decrypt or verify, shared across instances so a
+// resubscribe does not decrypt them again.
+const failedGiftWrapIds = new Set<string>()
+
+function rememberBounded(ids: Set<string>, id: string, max: number): void {
+  ids.add(id)
+  if (ids.size <= max) {
+    return
+  }
+  const [oldest] = ids
+  ids.delete(oldest)
+}
+
+type NostrKind1059Options = {
+  /** Processed-events scope checked before decrypting a gift wrap. */
+  processedScope?: string
+}
+
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions = new Set<NDKSubscription>()
+  private kind1059Subscription: NDKSubscription | null = null
   private processedMessageIds = new Set<string>()
   private processedRawEventIds = new Set<string>()
   private eventQueue: NostrMessage[] = []
-  private isProcessingQueue = false
-  private readonly BATCH_SIZE = 10
+  private inFlightCount = 0
+  private queueTimer: ReturnType<typeof setTimeout> | null = null
+  private queueDrain: Promise<void> | null = null
   private onLoadingChange?: (isLoading: boolean) => void
   private relays: string[]
   ownPubkeys: string[] = []
@@ -235,77 +309,36 @@ export class NostrAPI {
     this.onLoadingChange?.(loading)
   }
 
-  async connect() {
+  /**
+   * Resolves once at least one relay is connected and throws
+   * NostrNoRelaysError when none connects in time. NDK routes subscriptions
+   * to the remaining relays as they come online.
+   */
+  async connect(
+    timeoutMs = NOSTR_FIRST_RELAY_CONNECT_TIMEOUT_MS
+  ): Promise<true> {
+    if (this.relays.length === 0) {
+      throw new NostrNoRelaysError('No relays configured')
+    }
     // Always resolve from the registry so all_failed resets don't leave this
     // instance pinned to an evicted/disconnected NDK.
     this.ndk = getOrCreateNdk(this.relays)
-
-    await this.ndk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
-
-    if (!this.ndk.pool) {
-      throw new Error('NDK pool not initialized')
-    }
-
+    await connectToFirstRelay(this.ndk, timeoutMs)
     return true
   }
 
-  /**
-   * Lightweight connect — initialises the NDK pool and starts WebSocket
-   * connections. NDK routes subscriptions to relays as they come online, so
-   * we do NOT gate on connectedRelays().length here; the per-fetch timeout
-   * handles the case where nothing connects in time.
-   */
   async connectForPublish(timeoutMs = NOSTR_PUBLISH_TIMEOUT_MS): Promise<void> {
-    // Always resolve from the registry so all_failed resets don't leave this
-    // instance pinned to an evicted/disconnected NDK.
-    this.ndk = getOrCreateNdk(this.relays)
-
-    await this.ndk.connect(timeoutMs)
-
-    if (!this.ndk.pool) {
-      throw new Error('NDK pool not initialized')
-    }
+    await this.connect(timeoutMs)
   }
 
   /**
-   * Fetches kind 0 (metadata) for a 64-char hex pubkey (lowercase).
-   * Checks SQLite profile cache first; only hits relays when stale or missing.
+   * Kind 0 (metadata) for a 64-char hex pubkey through the shared profile
+   * batcher. The result says whether it came from relays or the cache.
    */
-  async fetchKind0ByPubkeyHex(
+  fetchKind0ByPubkeyHex(
     hexPubkey: string
-  ): Promise<NostrKind0Profile | null> {
-    const pk = hexPubkey.toLowerCase()
-    if (!/^[0-9a-f]{64}$/.test(pk)) {
-      return null
-    }
-
-    const cached = getCachedProfile(pk)
-    const now = Math.floor(Date.now() / MS_PER_SECOND)
-    if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
-      return {
-        banner: cached.banner,
-        displayName: cached.displayName,
-        lud16: cached.lud16,
-        nip05: cached.nip05,
-        picture: cached.picture
-      }
-    }
-
-    // Coalesced fetcher: dedupes across screens, retries dead pubkeys against
-    // indexer relays, and resolves as soon as relays answer (EOSE-driven).
-    const profile = await fetchProfileCoalesced(pk, this.relays)
-    if (profile) {
-      return profile
-    }
-    return cached
-      ? {
-          banner: cached.banner,
-          displayName: cached.displayName,
-          lud16: cached.lud16,
-          nip05: cached.nip05,
-          picture: cached.picture
-        }
-      : null
+  ): Promise<NostrFetchResult<NostrKind0Profile | null>> {
+    return fetchProfileResult(hexPubkey, this.relays)
   }
 
   /**
@@ -313,12 +346,13 @@ export class NostrAPI {
    * Returns display name (name) and picture URL if available.
    * npub must decode to a 64-char hex pubkey (not a Bitcoin address or other format).
    */
-  fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
+  async fetchKind0(npub: string): Promise<NostrKind0Profile | null> {
     const hexPubkey = getPubKeyHexFromNpub(npub)
     if (!hexPubkey) {
-      return Promise.resolve(null)
+      return null
     }
-    return this.fetchKind0ByPubkeyHex(hexPubkey)
+    const { data } = await this.fetchKind0ByPubkeyHex(hexPubkey)
+    return data
   }
 
   async fetchCalendarEvents(npub: string): Promise<
@@ -544,240 +578,249 @@ export class NostrAPI {
   }
 
   /**
-   * Latest kind 3 (NIP-02 contact list) for this npub; returns followed
-   * pubkeys in tag order (64-char hex, lowercase), excluding duplicates and self.
+   * Latest kind 3 (NIP-02 contact list) for this npub; followed pubkeys in
+   * tag order (64-char hex, lowercase), excluding duplicates and self. When
+   * relays fail, the last cached list is returned with source 'cache' so
+   * callers never mistake an outage for "follows nobody".
    */
-  async fetchKind3FollowingPubkeys(npub: string): Promise<{
-    connectedRelayCount: number
-    kind3Found: boolean
-    pubkeys: string[]
-    relaysQueried: string[]
-  }> {
-    const empty = {
+  async fetchKind3FollowingPubkeys(
+    npub: string
+  ): Promise<NostrFetchResult<NostrFollowList>> {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return { data: this.emptyFollowList(), source: 'relay' }
+    }
+
+    try {
+      const data = await this.fetchKind3FromRelays(npub, hexPubkey)
+      return { data, source: 'relay' }
+    } catch (error) {
+      return {
+        data: {
+          ...this.emptyFollowList(),
+          pubkeys: getNostrFollowCache(npub) ?? []
+        },
+        error: getNostrErrorCode(error),
+        source: 'cache'
+      }
+    }
+  }
+
+  private emptyFollowList(): NostrFollowList {
+    return {
       connectedRelayCount: 0,
       kind3Found: false,
       pubkeys: [],
       relaysQueried: this.relays
     }
+  }
 
-    const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) {
-      return empty
-    }
-
+  private async fetchKind3FromRelays(
+    npub: string,
+    hexPubkey: string
+  ): Promise<NostrFollowList> {
     await this.connect()
-    if (!this.ndk) {
-      return empty
-    }
+    const ndk = this.requireNdk()
+    const connectedRelayCount = ndk.pool.connectedRelays().length
 
-    const connectedRelayCount = this.ndk.pool.connectedRelays().length
-
-    const filter: NDKFilter = {
-      authors: [hexPubkey],
-      kinds: [nostrKinds.Contacts],
-      limit: 40
-    }
     const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
+      ndk,
+      { authors: [hexPubkey], kinds: [nostrKinds.Contacts], limit: 1 },
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
-
-    if (events.size === 0) {
-      return { ...empty, connectedRelayCount }
-    }
-
-    const sorted = [...events].toSorted(
+    const [latest] = [...events].toSorted(
       (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
     )
-    const [latest] = sorted
     if (!latest) {
-      return { ...empty, connectedRelayCount }
+      return { ...this.emptyFollowList(), connectedRelayCount }
     }
 
-    const ordered: string[] = []
-    const seen = new Set<string>()
-
-    for (const tag of latest.tags) {
-      if (
-        tag[0] === 'p' &&
-        typeof tag[1] === 'string' &&
-        /^[0-9a-fA-F]{64}$/.test(tag[1])
-      ) {
-        const pk = tag[1].toLowerCase()
-        if (!seen.has(pk) && pk !== hexPubkey) {
-          seen.add(pk)
-          ordered.push(pk)
-        }
-      }
-    }
-
-    if (ordered.length > 0) {
-      setNostrFollowCache(npub, ordered)
-    }
-
+    const pubkeys = getFollowedPubkeysFromTags(latest.tags, hexPubkey)
+    setNostrFollowCache(npub, pubkeys)
     return {
       connectedRelayCount,
       kind3Found: true,
-      pubkeys: ordered,
+      pubkeys,
       relaysQueried: this.relays
     }
   }
 
-  async fetchNotes(
-    npub: string,
-    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
-    until?: number,
-    kinds: number[] = [1]
-  ): Promise<
-    {
-      id: string
-      content: string
-      pubkey: string
-      kind: number
-      tags: string[][]
-      created_at: number
-    }[]
-  > {
-    const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) {
-      return []
-    }
-
-    const isKind1Only =
-      kinds.length === 0 ||
-      (kinds.length === 1 && kinds[0] === nostrKinds.ShortTextNote)
-    let cached: {
-      id: string
-      content: string
-      pubkey: string
-      kind: number
-      tags: string[][]
-      created_at: number
-    }[] = []
-    if (isKind1Only) {
-      cached = getCachedNotes(hexPubkey, limit, until).map((e) => ({
-        content: e.content,
-        created_at: e.created_at,
-        id: e.event_id,
-        kind: e.kind,
-        pubkey: e.pubkey,
-        tags: e.tags
-      }))
-    }
-
-    await this.connectForPublish()
+  private requireNdk(): NDK {
     if (!this.ndk) {
-      return cached
+      throw new NostrNoRelaysError('Not connected to relays')
     }
-
-    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
-    const filter: NDKFilter = {
-      authors: [hexPubkey],
-      kinds: kindList,
-      limit
-    }
-    if (until) {
-      filter.until = until
-    } else if (isKind1Only) {
-      const since = getNewestCachedTimestamp(1, hexPubkey)
-      if (since) {
-        filter.since = since + 1
-      }
-    }
-
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
-    )
-
-    const fresh = [...events]
-      .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
-      .map((e) => ({
-        id: e.id,
-        ...NostrAPI.formatNdkEvent(e)
-      }))
-
-    if (fresh.length > 0) {
-      cacheEvents(fresh, this.ownPubkeys)
-    }
-
-    if (!isKind1Only) {
-      return fresh
-    }
-
-    const idSet = new Set(fresh.map((n) => n.id))
-    const merged = [
-      ...fresh,
-      ...cached.filter((n) => !idSet.has(n.id))
-    ].toSorted((a, b) => b.created_at - a.created_at)
-
-    return merged.slice(0, limit)
+    return this.ndk
   }
 
   /**
-   * Notes from pubkeys in the user's latest kind-3 follow list (NIP-02).
-   * `kinds` defaults to short text notes (kind 1). Pass multiple kinds for
-   * reposts (6, 16) etc. — see https://nostr.dev/ai-reference/
-   * Authors list is capped for relay compatibility.
+   * Own notes, newest first. Kind 1 merges with the SQLite cache and drops
+   * notes the author deleted (NIP-09). On relay failure the cached notes come
+   * back with source 'cache' and the error code.
    */
-  async fetchFollowingTimelineNotes(
+  async fetchNotes(
     npub: string,
-    limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
-    until?: number,
-    kinds: number[] = [1]
-  ): Promise<
     {
-      id: string
-      content: string
-      pubkey: string
-      kind: number
-      tags: string[][]
-      created_at: number
-    }[]
-  > {
-    const { pubkeys: following } = await this.fetchKind3FollowingPubkeys(npub)
-    if (following.length === 0) {
-      return []
+      kinds = [nostrKinds.ShortTextNote],
+      limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
+      since,
+      until
+    }: NostrNotesQuery = {}
+  ): Promise<NostrFetchResult<NostrFeedNoteLike[]>> {
+    const hexPubkey = getPubKeyHexFromNpub(npub)
+    if (!hexPubkey) {
+      return { data: [], source: 'relay' }
     }
-
-    await this.connectForPublish()
-    if (!this.ndk) {
-      return []
-    }
-
-    const MAX_AUTHORS = 200
-    const authors = following.slice(0, MAX_AUTHORS)
 
     const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
-    const filter: NDKFilter = {
-      authors,
-      kinds: kindList,
-      limit
+    const isKind1Only =
+      kindList.length === 1 && kindList[0] === nostrKinds.ShortTextNote
+    const cached =
+      isKind1Only && since === undefined
+        ? getCachedNotes(hexPubkey, limit, until).map(cachedEventToNote)
+        : []
+
+    try {
+      const fresh = await this.fetchAuthorNotesFromRelays(hexPubkey, {
+        isKind1Only,
+        kinds: kindList,
+        limit,
+        since,
+        until
+      })
+      return {
+        data: mergeNotesNewestFirst(fresh.notes, cached, limit).filter(
+          (note) => !fresh.deletedIds.has(note.id)
+        ),
+        source: 'relay'
+      }
+    } catch (error) {
+      return { data: cached, error: getNostrErrorCode(error), source: 'cache' }
     }
+  }
+
+  private async fetchAuthorNotesFromRelays(
+    hexPubkey: string,
+    {
+      isKind1Only,
+      kinds,
+      limit,
+      since,
+      until
+    }: NostrNotesQuery & {
+      isKind1Only: boolean
+      kinds: number[]
+      limit: number
+    }
+  ): Promise<{ deletedIds: Set<string>; notes: NostrFeedNoteLike[] }> {
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    const filter: NDKFilter = { authors: [hexPubkey], kinds, limit }
+    const newestCached = isKind1Only
+      ? getNewestCachedTimestamp(nostrKinds.ShortTextNote, hexPubkey)
+      : null
     if (until) {
       filter.until = until
+    } else if (since !== undefined) {
+      filter.since = since
+    } else if (newestCached) {
+      filter.since = newestCached + 1
     }
 
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
-    )
-
-    const results = [...events]
-      .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
-      .map((e) => ({
-        id: e.id,
-        ...NostrAPI.formatNdkEvent(e)
-      }))
-
-    if (results.length > 0) {
-      cacheEvents(results, this.ownPubkeys)
+    const isHeadPage = until === undefined && since === undefined
+    const [notesResult, deletionsResult] = await Promise.allSettled([
+      NostrAPI.fetchManyWithTimeout(
+        ndk,
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      ),
+      isHeadPage
+        ? NostrAPI.fetchManyWithTimeout(
+            ndk,
+            {
+              authors: [hexPubkey],
+              kinds: [nostrKinds.EventDeletion],
+              limit: NOSTR_DELETION_FETCH_LIMIT
+            },
+            NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+          )
+        : Promise.resolve(new Set<NDKEvent>())
+    ])
+    if (notesResult.status === 'rejected') {
+      throw notesResult.reason
     }
 
-    return results
+    const deletedIds =
+      deletionsResult.status === 'fulfilled'
+        ? getDeletedEventIds([...deletionsResult.value], hexPubkey)
+        : new Set<string>()
+    if (deletedIds.size > 0) {
+      deleteCachedEventsByAuthor([...deletedIds], hexPubkey)
+    }
+
+    const notes = [...notesResult.value]
+      .map((e) => ({ id: e.id, ...NostrAPI.formatNdkEvent(e) }))
+      .filter((note) => !deletedIds.has(note.id))
+      .toSorted((a, b) => b.created_at - a.created_at)
+    cacheEvents(notes, this.ownPubkeys)
+    return { deletedIds, notes }
+  }
+
+  /**
+   * Notes from the given authors (usually the kind 3 follow list). `kinds`
+   * defaults to short text notes; pass reposts (6, 16) etc. as needed.
+   * Authors are capped for relay compatibility. Falls back to cached notes
+   * from the same authors when relays fail.
+   */
+  async fetchFollowingTimelineNotes(
+    authors: string[],
+    {
+      kinds = [nostrKinds.ShortTextNote],
+      limit = NOSTR_NOTES_FETCH_DEFAULT_LIMIT,
+      since,
+      until
+    }: NostrNotesQuery = {}
+  ): Promise<NostrFetchResult<NostrFeedNoteLike[]>> {
+    const cappedAuthors = authors.slice(0, NOSTR_FEED_FOLLOWING_MAX_AUTHORS)
+    if (cappedAuthors.length === 0) {
+      return { data: [], source: 'relay' }
+    }
+    const kindList = kinds.length > 0 ? kinds : [nostrKinds.ShortTextNote]
+
+    try {
+      await this.connectForPublish()
+      const filter: NDKFilter = {
+        authors: cappedAuthors,
+        kinds: kindList,
+        limit
+      }
+      if (until) {
+        filter.until = until
+      }
+      if (since !== undefined) {
+        filter.since = since
+      }
+      const events = await NostrAPI.fetchManyWithTimeout(
+        this.requireNdk(),
+        filter,
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
+      const notes = [...events]
+        .map((e) => ({ id: e.id, ...NostrAPI.formatNdkEvent(e) }))
+        .toSorted((a, b) => b.created_at - a.created_at)
+      cacheEvents(notes, this.ownPubkeys)
+      return { data: notes, source: 'relay' }
+    } catch (error) {
+      const cached =
+        since === undefined
+          ? getCachedNotesByAuthors(cappedAuthors, kindList, limit, until)
+          : []
+      return {
+        data: cached.map(cachedEventToNote),
+        error: getNostrErrorCode(error),
+        source: 'cache'
+      }
+    }
   }
 
   private static formatNdkEvent(event: NDKEvent) {
@@ -797,66 +840,80 @@ export class NostrAPI {
    * events arriving after relays finish connecting are still captured.
    * Resolves with the first matching event or null after timeoutMs.
    */
+  /**
+   * Subscribe-based single-event fetch. Resolves with the first match, or
+   * null once a relay answered EOSE without it. Throws
+   * NostrRelayTimeoutError when no relay answered at all, so "not found"
+   * and "relays unreachable" stay distinguishable.
+   */
   private static fetchWithTimeout(
     ndk: NDK,
     filter: NDKFilter,
     timeoutMs: number
   ): Promise<NDKEvent | null> {
-    return new Promise((resolve) => {
-      let settled = false
-      const sub = ndk.subscribe(filter, { closeOnEose: false })
-
-      const finish = (result: NDKEvent | null) => {
-        if (settled) {
-          return
-        }
-        settled = true
-        sub.stop()
-        resolve(result)
-      }
-
-      sub.on('event', (event: NDKEvent) => finish(event))
-      sub.on('eose', () => {
-        if (ndk.pool.connectedRelays().length > 0) {
-          finish(null)
-        }
-      })
-      setTimeout(() => finish(null), timeoutMs)
-    })
+    return NostrAPI.fetchManyWithTimeout(ndk, filter, timeoutMs, {
+      stopOnFirstEvent: true
+    }).then((events) => [...events][0] ?? null)
   }
 
   /**
-   * Subscribe-based multi-event fetch. Collects events until EOSE from
-   * connected relays or timeout, whichever comes first.
+   * Subscribe-based multi-event fetch. Collects events until a connected
+   * relay answers EOSE. A timeout with events in hand returns what arrived;
+   * a timeout with nothing and no EOSE throws NostrRelayTimeoutError.
    */
   private static fetchManyWithTimeout(
     ndk: NDK,
     filter: NDKFilter<number>,
-    timeoutMs: number
+    timeoutMs: number,
+    { stopOnFirstEvent = false }: { stopOnFirstEvent?: boolean } = {}
   ): Promise<Set<NDKEvent>> {
-    return new Promise((resolve) => {
-      let settled = false
+    return new Promise((resolve, reject) => {
       const collected = new Set<NDKEvent>()
-      const sub = ndk.subscribe(filter, { closeOnEose: false })
+      const state = { settled: false }
 
-      const finish = () => {
-        if (settled) {
+      function finish(error?: Error) {
+        if (state.settled) {
           return
         }
-        settled = true
+        state.settled = true
+        clearTimeout(timer)
         sub.stop()
+        if (error) {
+          reject(error)
+          return
+        }
         resolve(collected)
       }
 
+      const timer = setTimeout(() => {
+        if (collected.size > 0) {
+          finish()
+          return
+        }
+        finish(
+          new NostrRelayTimeoutError(`No relay answered within ${timeoutMs}ms`)
+        )
+      }, timeoutMs)
+      const sub = ndk.subscribe(filter, { closeOnEose: false })
+
       sub.on('event', (event: NDKEvent) => {
         collected.add(event)
-      })
-      sub.on('eose', () => {
-        if (ndk.pool.connectedRelays().length > 0) {
+        if (stopOnFirstEvent) {
           finish()
         }
       })
-      setTimeout(() => finish(), timeoutMs)
+      sub.on('closed', (relay, reason) => {
+        markRelayClosed(relay.url, reason)
+      })
+      sub.on('eose', () => {
+        if (ndk.pool.connectedRelays().length === 0) {
+          return
+        }
+        for (const relay of ndk.pool.connectedRelays()) {
+          markRelayEose(relay.url)
+        }
+        finish()
+      })
     })
   }
 
@@ -909,54 +966,45 @@ export class NostrAPI {
     return formatted
   }
 
-  async fetchEventBatch(hexIds: string[]): Promise<
-    Map<
-      string,
-      {
-        id: string
-        content: string
-        pubkey: string
-        kind: number
-        tags: string[][]
-        created_at: number
-      }
-    >
-  > {
-    const validIds = hexIds.filter((id) => /^[0-9a-f]{64}$/i.test(id))
-    if (validIds.length === 0) {
-      return new Map()
-    }
-
-    await this.connectForPublish()
-    if (!this.ndk) {
-      return new Map()
-    }
-
-    const filter: NDKFilter = { ids: validIds, limit: validIds.length }
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      filter,
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+  /**
+   * Events by id: SQLite cache first, relays only for the missing ones.
+   * On relay failure the cached subset comes back with source 'cache'.
+   */
+  async fetchEventBatch(
+    hexIds: string[]
+  ): Promise<NostrFetchResult<Map<string, NostrFeedNoteLike>>> {
+    const validIds = [
+      ...new Set(hexIds.filter((id) => NOSTR_EVENT_ID_RE.test(id)))
+    ]
+    const result = new Map(
+      getCachedEvents(validIds).map((cached) => [
+        cached.event_id,
+        cachedEventToNote(cached)
+      ])
     )
-
-    const result = new Map<
-      string,
-      {
-        id: string
-        content: string
-        pubkey: string
-        kind: number
-        tags: string[][]
-        created_at: number
-      }
-    >()
-    for (const event of events) {
-      if (!event.id) {
-        continue
-      }
-      result.set(event.id, { id: event.id, ...NostrAPI.formatNdkEvent(event) })
+    const missing = validIds.filter((id) => !result.has(id))
+    if (missing.length === 0) {
+      return { data: result, source: 'relay' }
     }
-    return result
+
+    try {
+      await this.connectForPublish()
+      const events = await NostrAPI.fetchManyWithTimeout(
+        this.requireNdk(),
+        { ids: missing, limit: missing.length },
+        NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      )
+      const fresh = [...events]
+        .filter((event) => Boolean(event.id))
+        .map((event) => ({ id: event.id, ...NostrAPI.formatNdkEvent(event) }))
+      cacheEvents(fresh, this.ownPubkeys)
+      for (const note of fresh) {
+        result.set(note.id, note)
+      }
+      return { data: result, source: 'relay' }
+    } catch (error) {
+      return { data: result, error: getNostrErrorCode(error), source: 'cache' }
+    }
   }
 
   /**
@@ -986,28 +1034,32 @@ export class NostrAPI {
   /**
    * Fetches a pubkey's DM inbox relays: newest kind 10050 (NIP-17) wins,
    * falling back to its kind 10002 (NIP-65) relay list. Empty when the
-   * pubkey never published either — callers should fall back to defaults.
+   * pubkey never published either or relays are unreachable — callers
+   * fall back to their default relays.
    */
   async fetchInboxRelaysForNpub(npub: string): Promise<string[]> {
     const hex = getPubKeyHexFromNpub(npub)
     if (!hex) {
       return []
     }
-    await this.connect()
-    if (!this.ndk) {
-      return []
+    try {
+      await this.connect()
+      const events = await NostrAPI.fetchManyWithTimeout(
+        this.requireNdk(),
+        {
+          authors: [hex],
+          kinds: [nostrKinds.RelayList, nostrKinds.DirectMessageRelaysList],
+          limit: 10
+        },
+        NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS
+      )
+      return extractInboxRelayUrls([...events])
+    } catch (error) {
+      if (isNostrRelayUnavailableError(error)) {
+        return []
+      }
+      throw error
     }
-
-    const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      {
-        authors: [hex],
-        kinds: [nostrKinds.RelayList, nostrKinds.DirectMessageRelaysList],
-        limit: 10
-      },
-      NOSTR_RELAY_LIST_FETCH_TIMEOUT_MS
-    )
-    return extractInboxRelayUrls([...events])
   }
 
   /**
@@ -1053,9 +1105,9 @@ export class NostrAPI {
       return null
     }
 
-    const tempNdk = createMobileNdk(relayUrls)
+    const tempNdk = createEphemeralNdk(relayUrls)
     try {
-      await tempNdk.connect(NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
+      await connectToFirstRelay(tempNdk, NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS)
 
       const filter = { ids: [eventIdHex], limit: 1 }
       const event = await NostrAPI.fetchWithTimeout(
@@ -1106,48 +1158,178 @@ export class NostrAPI {
     }
   }
 
-  private async processQueue() {
-    if (this.isProcessingQueue || this.eventQueue.length === 0) {
+  private clearQueueTimer() {
+    if (this.queueTimer) {
+      clearTimeout(this.queueTimer)
+      this.queueTimer = null
+    }
+  }
+
+  private scheduleQueue() {
+    if (this.queueTimer || this.queueDrain) {
+      return
+    }
+    this.queueTimer = setTimeout(() => {
+      this.queueTimer = null
+      void this.drainQueue()
+    }, NOSTR_UI_FLUSH_INTERVAL_MS)
+  }
+
+  private drainQueue(): Promise<void> {
+    if (!this.queueDrain) {
+      this.queueDrain = this.runQueueDrain()
+    }
+    return this.queueDrain
+  }
+
+  private async runQueueDrain(): Promise<void> {
+    try {
+      await this.processQueue()
+    } finally {
+      this.queueDrain = null
+      if (this.eventQueue.length > 0) {
+        this.scheduleQueue()
+      }
+    }
+  }
+
+  /**
+   * Hands queued rumors to the callback in one batch. Ids are remembered only
+   * once the callback resolves; on failure the wraps are forgotten so a later
+   * delivery of the same events is processed again.
+   */
+  private async processQueue(): Promise<void> {
+    const deliver = this._callback
+    if (!deliver) {
+      return
+    }
+    const batch = this.eventQueue
+      .splice(0, NOSTR_QUEUE_BATCH_SIZE)
+      .filter((message) => !this.processedMessageIds.has(message.id))
+    if (batch.length === 0) {
+      return
+    }
+    this.inFlightCount = batch.length
+    try {
+      await deliver(batch)
+      for (const message of batch) {
+        rememberBounded(
+          this.processedMessageIds,
+          message.id,
+          NOSTR_MAX_PROCESSED_RAW_IDS
+        )
+      }
+    } catch {
+      for (const message of batch) {
+        if (message.wrapId) {
+          this.processedRawEventIds.delete(message.wrapId)
+        }
+      }
+    } finally {
+      this.inFlightCount = 0
+    }
+  }
+
+  /** Events received but not yet handed to the callback. */
+  getQueuedEventCount(): number {
+    return this.eventQueue.length
+  }
+
+  /** Events received but not yet handed to (or resolved by) the callback. */
+  getPendingEventCount(): number {
+    return this.eventQueue.length + this.inFlightCount
+  }
+
+  private async enqueueGiftWrap(
+    event: NDKEvent,
+    source: NDKSubscription,
+    recipientSecretKey: Uint8Array,
+    recipientPubKeyHex: string,
+    processedScope?: string
+  ): Promise<void> {
+    const rawEvent = await event.toNostrEvent()
+    const wrapId = rawEvent.id
+    const failedKey = `${recipientPubKeyHex}:${wrapId}`
+    if (
+      !wrapId ||
+      this.processedRawEventIds.has(wrapId) ||
+      failedGiftWrapIds.has(failedKey)
+    ) {
+      return
+    }
+    rememberBounded(
+      this.processedRawEventIds,
+      wrapId,
+      NOSTR_MAX_PROCESSED_RAW_IDS
+    )
+    if (processedScope && isNostrEventProcessed(processedScope, wrapId)) {
       return
     }
 
-    this.isProcessingQueue = true
-    const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
-    const toProcess = batch.filter((m) => !this.processedMessageIds.has(m.id))
-    for (const m of toProcess) {
-      this.processedMessageIds.add(m.id)
+    const unwrappedEvent = unwrapNip59EventOrNull(rawEvent, recipientSecretKey)
+    if (!unwrappedEvent) {
+      rememberBounded(failedGiftWrapIds, failedKey, NOSTR_MAX_FAILED_WRAP_IDS)
+      return
+    }
+    if (this.processedMessageIds.has(unwrappedEvent.id)) {
+      return
+    }
+    if (this.kind1059Subscription !== source) {
+      this.processedRawEventIds.delete(wrapId)
+      return
     }
 
-    if (toProcess.length > 0 && this._callback) {
-      try {
-        const result = this._callback(toProcess)
-        if (result instanceof Promise) {
-          await result
-        }
-      } catch {
-        // Callback error; caller is responsible for handling and surfacing to user
-      }
-    }
+    this.eventQueue.push({
+      content: unwrappedEvent,
+      created_at: unwrappedEvent.created_at ?? 0,
+      id: unwrappedEvent.id,
+      pubkey: event.pubkey,
+      wrapId
+    })
+    this.scheduleQueue()
+  }
 
-    this.isProcessingQueue = false
-    if (this.eventQueue.length > 0) {
-      setTimeout(() => this.processQueue(), NOSTR_PROCESSING_INTERVAL_MS)
+  private async enqueueGiftWrapSafely(
+    event: NDKEvent,
+    source: NDKSubscription,
+    recipientSecretKey: Uint8Array,
+    recipientPubKeyHex: string,
+    processedScope?: string
+  ): Promise<void> {
+    try {
+      await this.enqueueGiftWrap(
+        event,
+        source,
+        recipientSecretKey,
+        recipientPubKeyHex,
+        processedScope
+      )
+    } catch {
+      // A malformed wrap must not break the subscription; forget it so a
+      // later delivery is retried.
+      this.processedRawEventIds.delete(event.id)
     }
   }
 
   private _callback?: (messages: NostrMessage[]) => void | Promise<void>
 
+  /**
+   * Live gift-wrap (kind 1059) subscription for one recipient key. Calling it
+   * again on the same instance replaces the previous subscription.
+   */
   async subscribeToKind1059(
     recipientNsec: string,
     recipientNpub: string,
-    _callback: (messages: NostrMessage[]) => void | Promise<void>,
+    callback: (messages: NostrMessage[]) => void | Promise<void>,
     limit?: number,
     since?: number,
-    onEOSE?: (nsec: string) => void
+    onEOSE?: (nsec: string) => void,
+    options: NostrKind1059Options = {}
   ): Promise<void> {
     await this.connect()
-    if (!this.ndk) {
-      throw new Error('Failed to connect to relays')
+    const { ndk } = this
+    if (!ndk) {
+      throw new NostrNoRelaysError('Failed to connect to relays')
     }
 
     const recipientSecretNostrKey = getSecretFromNsec(recipientNsec)
@@ -1156,102 +1338,66 @@ export class NostrAPI {
       return
     }
 
+    this.stopGiftWrapIntake()
     this.setLoading(true)
-    this._callback = _callback
+    this._callback = callback
 
+    // NIP-59: wrap created_at is randomized up to two days into the past, so
+    // the filter reaches back by that much to not miss recent wraps.
     const sinceTimestamp =
       since && since > 0
         ? since - NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
         : undefined
 
-    const subscriptionQuery = {
-      '#p': [recipientPubKeyHex],
-      kinds: [nostrKinds.GiftWrap],
-      ...(limit && { limit }),
-      ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
-    }
+    const subscription = ndk.subscribe(
+      {
+        '#p': [recipientPubKeyHex],
+        kinds: [nostrKinds.GiftWrap],
+        ...(limit && { limit }),
+        ...(sinceTimestamp !== undefined && { since: sinceTimestamp })
+      },
+      { closeOnEose: false }
+    )
+    this.kind1059Subscription = subscription
+    this.activeSubscriptions.add(subscription)
 
-    let subscription: NDKSubscription | undefined
-    try {
-      subscription = this.ndk?.subscribe(subscriptionQuery, {
-        closeOnEose: false
-      })
-    } catch {
-      this.setLoading(false)
-      return
-    }
-    if (subscription) {
-      this.activeSubscriptions.add(subscription)
-    }
-
-    subscription?.on('event', async (event) => {
-      try {
-        const rawEvent = await event.toNostrEvent()
-        const rawId = rawEvent.id
-
-        if (rawId && this.processedRawEventIds.has(rawId)) {
-          return
-        }
-
-        const unwrappedEvent = unwrapNip59EventOrNull(
-          rawEvent,
-          recipientSecretNostrKey
-        )
-        if (!unwrappedEvent) {
-          return
-        }
-
-        if (rawId) {
-          if (this.processedRawEventIds.size >= NOSTR_MAX_PROCESSED_RAW_IDS) {
-            const entries = [...this.processedRawEventIds]
-            for (const id of entries.slice(0, Math.floor(entries.length / 2))) {
-              this.processedRawEventIds.delete(id)
-            }
-          }
-          this.processedRawEventIds.add(rawId)
-        }
-
-        if (!this.processedMessageIds.has(unwrappedEvent.id)) {
-          if (this.eventQueue.length >= NOSTR_MAX_QUEUE_SIZE) {
-            this.eventQueue.shift()
-          }
-          const message = {
-            content: unwrappedEvent,
-            created_at: unwrappedEvent.created_at ?? 0,
-            id: unwrappedEvent.id,
-            pubkey: event.pubkey
-          }
-          this.eventQueue.push(message)
-          this.processQueue()
-        }
-      } catch (error) {
-        // Malformed wrapped events must not crash the subscription, but a
-        // systematic failure (e.g. a missing table) must be visible in dev logs.
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.warn('[nostr] kind1059 event processing failed:', error)
-        }
-      }
+    subscription.on('event', (event: NDKEvent) => {
+      void this.enqueueGiftWrapSafely(
+        event,
+        subscription,
+        recipientSecretNostrKey,
+        recipientPubKeyHex,
+        options.processedScope
+      )
     })
 
-    subscription?.on('eose', () => {
+    subscription.on('eose', () => {
       onEOSE?.(recipientNsec)
       this.setLoading(false)
     })
 
-    subscription?.on('close', () => {
+    subscription.on('close', () => {
       this.activeSubscriptions.delete(subscription)
     })
   }
 
-  async flushQueue(): Promise<void> {
-    while (this.eventQueue.length > 0 && this._callback) {
-      await this.processQueue()
-      // Small delay between batches to avoid blocking the JS thread
-      await new Promise((resolve) => {
-        setTimeout(resolve, NOSTR_FLUSH_QUEUE_DELAY_MS)
-      })
+  /** Stops receiving gift wraps; already queued events stay for `flushQueue`. */
+  stopGiftWrapIntake() {
+    const previous = this.kind1059Subscription
+    if (!previous) {
+      return
     }
+    previous.stop()
+    this.activeSubscriptions.delete(previous)
+    this.kind1059Subscription = null
+  }
+
+  async flushQueue(): Promise<void> {
+    this.clearQueueTimer()
+    while (this._callback && (this.eventQueue.length > 0 || this.queueDrain)) {
+      await this.drainQueue()
+    }
+    this.clearQueueTimer()
   }
 
   closeAllSubscriptions() {
@@ -1259,6 +1405,8 @@ export class NostrAPI {
       subscription.stop()
     }
     this.activeSubscriptions.clear()
+    this.kind1059Subscription = null
+    this.clearQueueTimer()
     this.eventQueue = []
     this.processedRawEventIds.clear()
     this._callback = undefined
@@ -1277,6 +1425,8 @@ export class NostrAPI {
       }
     }
     this.activeSubscriptions.clear()
+    this.kind1059Subscription = null
+    this.clearQueueTimer()
     this.ndk = null
   }
 
@@ -1342,86 +1492,152 @@ export class NostrAPI {
 
   /**
    * Subscribes to legacy NIP-04 DMs involving the given identity — both
-   * addressed to it and authored by it (other-device sends). Decrypts each
-   * event before invoking the callback.
+   * addressed to it and authored by it (other-device sends). Events that
+   * `shouldDecrypt` rejects are skipped before decryption.
    */
   async subscribeToKind4(
     recipientNsec: string,
     recipientNpub: string,
-    onMessage: (message: {
-      content: string
-      createdAt: number
-      direction: 'in' | 'out'
-      id: string
-      peerPubkey: string
-    }) => void,
-    since?: number
+    onMessage: (message: NostrKind4ChatEvent) => void,
+    {
+      shouldDecrypt,
+      ...window
+    }: NostrSubscriptionWindow & {
+      shouldDecrypt?: (event: NostrChatEventRef) => boolean
+    } = {}
   ): Promise<void> {
-    await this.connect()
-    if (!this.ndk) {
-      throw new Error('Failed to connect to relays')
-    }
-
-    const secretNostrKey = getSecretFromNsec(recipientNsec)
-    const ownPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
-    if (!secretNostrKey || !ownPubKeyHex) {
-      return
-    }
-
-    const filters: NDKFilter[] = [
-      {
-        '#p': [ownPubKeyHex],
-        kinds: [nostrKinds.EncryptedDirectMessage],
-        ...(since && { since })
-      },
-      {
-        authors: [ownPubKeyHex],
-        kinds: [nostrKinds.EncryptedDirectMessage],
-        ...(since && { since })
-      }
-    ]
-
-    let subscription: NDKSubscription | undefined
-    try {
-      subscription = this.ndk?.subscribe(filters, {
-        closeOnEose: false
-      })
-    } catch {
-      return
-    }
-    if (subscription) {
-      this.activeSubscriptions.add(subscription)
-    }
-
-    subscription?.on('event', async (event) => {
-      try {
-        const isOwn = event.pubkey === ownPubKeyHex
-        const peerTag = event.tags.find((t) => t[0] === 'p')?.[1]
-        const peerPubkey = isOwn ? (peerTag ?? '') : event.pubkey
-        if (!peerPubkey || !/^[0-9a-f]{64}$/.test(peerPubkey)) {
-          return
+    const { ndk, pubkeyHex, secretKey } = await this.connectWithIdentityKeys(
+      recipientNsec,
+      recipientNpub
+    )
+    const windowFilter = NostrAPI.getSubscriptionWindowFilter(window)
+    const subscription = this.openTrackedSubscription(
+      ndk,
+      [
+        {
+          '#p': [pubkeyHex],
+          kinds: [nostrKinds.EncryptedDirectMessage],
+          ...windowFilter
+        },
+        {
+          authors: [pubkeyHex],
+          kinds: [nostrKinds.EncryptedDirectMessage],
+          ...windowFilter
         }
-        const plaintext = await nip04Decrypt(
-          secretNostrKey,
-          peerPubkey,
-          event.content
-        )
+      ],
+      window
+    )
+
+    subscription.on('event', (event: NDKEvent) => {
+      const ref = { createdAt: event.created_at ?? 0, id: event.id }
+      if (shouldDecrypt !== undefined && !shouldDecrypt(ref)) {
+        return
+      }
+      const isOwn = event.pubkey === pubkeyHex
+      const peerPubkey = isOwn
+        ? getNostrTagValue(event.tags, 'p')
+        : event.pubkey
+      if (peerPubkey === undefined || !NOSTR_HEX_PUBKEY_RE.test(peerPubkey)) {
+        return
+      }
+      try {
+        const plaintext = nip04Decrypt(secretKey, peerPubkey, event.content)
         onMessage({
           content: plaintext,
-          createdAt: event.created_at ?? 0,
+          createdAt: ref.createdAt,
           direction: isOwn ? 'out' : 'in',
-          id: event.id,
+          id: ref.id,
           peerPubkey
         })
-      } catch (error) {
-        // Undecryptable or malformed kind-4 events are ignored by design,
-        // but log in dev so real failures are diagnosable.
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.warn('[nostr] kind4 event processing failed:', error)
-        }
+      } catch {
+        // Undecryptable or malformed kind-4 events are ignored by design.
       }
     })
+  }
+
+  /**
+   * Subscribes to NIP-17 chat gift wraps addressed to an identity.
+   * `shouldUnwrap` sees only the outer wrap, so callers skip wraps they
+   * already processed without paying for decryption. A wrap that fails the
+   * NIP-17 checks is reported with a null rumor.
+   */
+  async subscribeToChatGiftWraps(
+    recipientNsec: string,
+    recipientNpub: string,
+    {
+      onWrap,
+      shouldUnwrap
+    }: {
+      onWrap: (wrap: NostrChatGiftWrap) => void
+      shouldUnwrap: (wrap: NostrChatEventRef) => boolean
+    },
+    window: NostrSubscriptionWindow = {}
+  ): Promise<void> {
+    const { ndk, pubkeyHex, secretKey } = await this.connectWithIdentityKeys(
+      recipientNsec,
+      recipientNpub
+    )
+    const subscription = this.openTrackedSubscription(
+      ndk,
+      [
+        {
+          '#p': [pubkeyHex],
+          kinds: [nostrKinds.GiftWrap],
+          ...NostrAPI.getSubscriptionWindowFilter(window)
+        }
+      ],
+      window
+    )
+
+    subscription.on('event', (event: NDKEvent) => {
+      const wrap = { createdAt: event.created_at ?? 0, id: event.id }
+      try {
+        if (wrap.id === '' || !shouldUnwrap(wrap)) {
+          return
+        }
+        onWrap({ ...wrap, rumor: unwrapNip59EventOrNull(event, secretKey) })
+      } catch {
+        // A failing consumer must not tear down the relay subscription.
+      }
+    })
+  }
+
+  private async connectWithIdentityKeys(nsec: string, npub: string) {
+    await this.connect()
+    const secretKey = getSecretFromNsec(nsec)
+    const pubkeyHex = getPubKeyHexFromNpub(npub)
+    if (!this.ndk || !secretKey || pubkeyHex === null) {
+      throw new Error('Invalid identity keys')
+    }
+    return { ndk: this.ndk, pubkeyHex, secretKey }
+  }
+
+  private openTrackedSubscription(
+    ndk: NDK,
+    filters: NDKFilter[],
+    { closeOnEose = false, onEose }: NostrSubscriptionWindow
+  ): NDKSubscription {
+    const subscription = ndk.subscribe(filters, { closeOnEose })
+    this.activeSubscriptions.add(subscription)
+    subscription.on('eose', () => {
+      onEose?.()
+    })
+    subscription.on('close', () => {
+      this.activeSubscriptions.delete(subscription)
+    })
+    return subscription
+  }
+
+  private static getSubscriptionWindowFilter({
+    limit,
+    since,
+    until
+  }: NostrSubscriptionWindow): NDKFilter {
+    return {
+      ...(limit !== undefined && { limit }),
+      ...(since !== undefined && { since }),
+      ...(until !== undefined && { until })
+    }
   }
 
   // 20 second timeout per relay for publish operations
@@ -1502,11 +1718,12 @@ export class NostrAPI {
     }
   }
 
+  /** Signs and publishes a kind 1 note; returns the signed event as sent. */
   async publishNote(
     nsec: string,
     content: string,
     tags?: string[][]
-  ): Promise<string> {
+  ): Promise<NostrFeedNoteLike> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
       throw new Error('Invalid nsec')
@@ -1514,12 +1731,10 @@ export class NostrAPI {
 
     const signer = new NDKPrivateKeySigner(secretKey)
     await this.connectForPublish()
-    if (!this.ndk) {
-      throw new Error('Failed to connect to relays')
-    }
+    const ndk = this.requireNdk()
 
-    this.ndk.signer = signer
-    const event = new NDKEvent(this.ndk, {
+    ndk.signer = signer
+    const event = new NDKEvent(ndk, {
       content,
       kind: nostrKinds.ShortTextNote,
       tags: tags ?? []
@@ -1527,7 +1742,7 @@ export class NostrAPI {
 
     await event.sign(signer)
     await this.publishEvent(event)
-    return event.id
+    return { id: event.id, ...NostrAPI.formatNdkEvent(event) }
   }
 
   async fetchPollResponses(
@@ -1581,7 +1796,7 @@ export class NostrAPI {
     )
 
     try {
-      await tempNdk.connect(NOSTR_NDK_CONNECT_TIMEOUT_MS)
+      await connectToFirstRelay(tempNdk, NOSTR_NDK_CONNECT_TIMEOUT_MS)
       tempNdk.signer = signer
 
       const event = new NDKEvent(tempNdk, {
@@ -1630,11 +1845,11 @@ export class NostrAPI {
       const results = await Promise.all(publishPromises)
       const succeeded = results.filter((result) => result.success)
       if (succeeded.length === 0) {
-        const errors = results
-          .filter((result) => !result.success)
-          .map((result) => `${result.url}: ${result.error}`)
-          .join('; ')
-        throw new Error(`Failed to publish to any relay: ${errors}`)
+        throw new NostrPublishError(
+          results.flatMap((result) =>
+            result.success ? [] : [{ reason: result.error, url: result.url }]
+          )
+        )
       }
 
       return event.id
@@ -1797,26 +2012,13 @@ export class NostrAPI {
       }
     }
 
-    const successfulPublishes = results.filter((r) => r.success)
-    const succeededUrls = new Set(successfulPublishes.map((r) => r.url))
-    const failedPublishes = results.filter(
-      (r) => !r.success && !succeededUrls.has(r.url)
+    if (results.some((r) => r.success)) {
+      return
+    }
+    throw new NostrPublishError(
+      results.flatMap((r) =>
+        r.success ? [] : [{ reason: r.error, url: r.url }]
+      )
     )
-    const attemptedUrls = new Set(results.map((r) => r.url))
-    const skippedUrls = intendedUrls.filter((url) => !attemptedUrls.has(url))
-
-    if (__DEV__ && (failedPublishes.length > 0 || skippedUrls.length > 0)) {
-      // eslint-disable-next-line no-console
-      console.warn('[nostr] publish incomplete', {
-        failed: failedPublishes.map((r) => `${r.url}: ${r.error}`),
-        ok: successfulPublishes.map((r) => r.url),
-        skipped: skippedUrls
-      })
-    }
-
-    if (successfulPublishes.length === 0) {
-      const errors = results.map((r) => `${r.url}: ${r.error}`).join('; ')
-      throw new Error(`Failed to publish to any relay: ${errors}`)
-    }
   }
 }

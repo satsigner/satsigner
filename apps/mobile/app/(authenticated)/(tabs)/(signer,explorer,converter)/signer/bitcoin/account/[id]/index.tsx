@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { type BdkWallet, Psbt } from 'react-native-bdk-sdk'
+import { Psbt } from 'react-native-bdk-sdk'
 import Animated, {
   Easing,
   useSharedValue,
@@ -92,7 +92,6 @@ import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
-import useNostrSync from '@/hooks/useNostrSync'
 import { useNow } from '@/hooks/useNow'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -128,6 +127,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
@@ -569,7 +569,7 @@ function SyncScanStats({
   currentBlockTimeSec?: number
   scanFromTimeSec?: number
 }) {
-  const [tracker] = useState(createScanThroughputTracker)
+  const trackerRef = useRef(createScanThroughputTracker())
   const [throughput, setThroughput] = useState<ScanThroughput>({
     blocksPerSec: null,
     etaSeconds: null,
@@ -586,20 +586,13 @@ function SyncScanStats({
 
   useEffect(() => {
     setThroughput(
-      tracker.update(
+      trackerRef.current.update(
         hasBlockProgress ? tasksDone : undefined,
         hasBlockProgress ? totalTasks : undefined,
         isSyncing && isInitialScan
       )
     )
-  }, [
-    hasBlockProgress,
-    isInitialScan,
-    isSyncing,
-    tasksDone,
-    totalTasks,
-    tracker
-  ])
+  }, [hasBlockProgress, isInitialScan, isSyncing, tasksDone, totalTasks])
 
   // Primary sync / last-synced copy lives in the toolbar title. This block only
   // adds initial-scan extras so the list does not jump for normal catch-ups.
@@ -697,7 +690,6 @@ function TotalTransactions({
   const display = useDisplayPreferences()
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
-  const nowMs = useNow()
   const [sortField, setSortField] = useState<TransactionSortField>('date')
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
 
@@ -708,6 +700,7 @@ function TotalTransactions({
   const hasDraft =
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
+  const nowMs = useNow()
   const activePayjoinSessions = useMemo(
     () =>
       payjoinSessions.filter(
@@ -1134,6 +1127,87 @@ function SSAddressList({
   )
 }
 
+type DerivedAddressSyncParams = {
+  account: Account
+  addressCount: number
+  network: ReturnType<typeof appNetworkToBdkNetwork>
+  perPage: number
+  setAddressCount: (count: number) => void
+  updateAccount: (account: Account) => void
+  wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>
+}
+
+async function syncDerivedAddressPage({
+  account,
+  addressCount,
+  network,
+  perPage,
+  setAddressCount,
+  updateAccount,
+  wallet
+}: DerivedAddressSyncParams) {
+  const result = await getLastUnusedAddressFromWallet(wallet)
+  if (!result) {
+    return
+  }
+  const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
+
+  // When `addressCount` defaults to `perPage` but `account.addresses` is still
+  // empty, `minItems <= addressCount` is true and we must not bail out or the
+  // Used Addresses tab never loads its first page.
+  const shouldSkip = minItems <= addressCount && account.addresses.length > 0
+
+  if (shouldSkip) {
+    return
+  }
+
+  if (account.addresses.length >= addressCount) {
+    let newAddresses = await getWalletAddresses(wallet, network, addressCount)
+    newAddresses = parseAccountAddressesDetails({
+      ...account,
+      addresses: newAddresses
+    })
+    updateAccount({ ...account, addresses: newAddresses })
+    return
+  }
+
+  let newAddresses = await getWalletAddresses(wallet, network, minItems)
+  newAddresses = parseAccountAddressesDetails({
+    ...account,
+    addresses: newAddresses
+  })
+  setAddressCount(minItems)
+  updateAccount({ ...account, addresses: newAddresses })
+}
+
+type RunRefreshAccountSyncParams = {
+  account: Account
+  forceFullScan: boolean
+  isImportAddress: boolean
+  syncAccountWithAddress: (account: Account) => Promise<Account>
+  syncAccountWithWallet: (
+    account: Account,
+    wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>,
+    forceFullScan?: boolean,
+    isPriority?: boolean
+  ) => Promise<Account | null>
+  wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>
+}
+
+function runRefreshAccountSync({
+  account,
+  forceFullScan,
+  isImportAddress,
+  syncAccountWithAddress,
+  syncAccountWithWallet,
+  wallet
+}: RunRefreshAccountSyncParams): Promise<Account | null> {
+  if (isImportAddress) {
+    return syncAccountWithAddress(account)
+  }
+  return syncAccountWithWallet(account, wallet, forceFullScan, true)
+}
+
 function DerivedAddresses({
   account,
   handleOnExpand,
@@ -1150,6 +1224,7 @@ function DerivedAddresses({
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
+  const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
@@ -1174,10 +1249,14 @@ function DerivedAddresses({
     sortDirection
   )
 
-  const keyDerivationPath = account.keys[0]?.derivationPath
-  const addressPath = keyDerivationPath
-    ? `${keyDerivationPath}/${change ? 1 : 0}`
-    : ''
+  function updateDerivationPath() {
+    if (isMultiAddressWatchOnly) {
+      return
+    }
+    if (account.keys[0].derivationPath) {
+      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
+    }
+  }
 
   function loadExactAccountAddresses() {
     setAddressCount(account.addresses.length)
@@ -1223,40 +1302,6 @@ function DerivedAddresses({
     updateAccount({ ...account, addresses: addrList })
   }
 
-  async function loadAddressesUpToLastUnused(wallet: BdkWallet) {
-    const result = await getLastUnusedAddressFromWallet(wallet)
-
-    if (!result) {
-      return
-    }
-    const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
-
-    // When `addressCount` defaults to `perPage` but `account.addresses` is still
-    // empty, `minItems <= addressCount` is true and we must not bail out or the
-    // Used Addresses tab never loads its first page.
-    if (minItems <= addressCount && account.addresses.length > 0) {
-      return
-    }
-
-    if (account.addresses.length >= addressCount) {
-      let newAddresses = await getWalletAddresses(wallet, network, addressCount)
-      newAddresses = parseAccountAddressesDetails({
-        ...account,
-        addresses: newAddresses
-      })
-      updateAccount({ ...account, addresses: newAddresses })
-      return
-    }
-
-    let newAddresses = await getWalletAddresses(wallet, network, minItems)
-    newAddresses = parseAccountAddressesDetails({
-      ...account,
-      addresses: newAddresses
-    })
-    setAddressCount(minItems)
-    updateAccount({ ...account, addresses: newAddresses })
-  }
-
   async function updateAddresses() {
     if (!wallet || isLoadingAddresses || isUpdatingAddresses.current) {
       return
@@ -1265,13 +1310,25 @@ function DerivedAddresses({
     isUpdatingAddresses.current = true
 
     try {
-      await loadAddressesUpToLastUnused(wallet)
+      await syncDerivedAddressPage({
+        account,
+        addressCount,
+        network,
+        perPage,
+        setAddressCount,
+        updateAccount,
+        wallet
+      })
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${'Failed to update addresses'}: ${reason}`)
     }
     isUpdatingAddresses.current = false
   }
+
+  useEffect(() => {
+    updateDerivationPath()
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateAddresses()
@@ -1876,7 +1933,6 @@ export default function AccountView() {
     )
   const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { fetchOnce, startSync, stopSync } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -1905,13 +1961,15 @@ export default function AccountView() {
     blockHeightSource
   } = useNetworkInfo()
 
+  const closePasteModalRef = useRef<() => void>(() => {
+    // set after useContentHandler; avoids circular hook order
+  })
+
   const bitcoinContentHandler = useBitcoinContentHandler({
     account: account!,
     accountId: id,
-    // closePasteModal comes from useContentHandler below (circular hook
-    // order); this only runs from handlers, after render.
     closePasteModal: () => {
-      closePasteModal()
+      closePasteModalRef.current()
     },
     onError: toast.error,
     onInfo: toast.info,
@@ -1933,6 +1991,10 @@ export default function AccountView() {
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
 
+  useEffect(() => {
+    closePasteModalRef.current = closePasteModal
+  }, [closePasteModal])
+
   useFocusEffect(
     useCallback(
       () => () => {
@@ -1944,114 +2006,6 @@ export default function AccountView() {
     )
   )
 
-  function animateTransition(expandState: boolean) {
-    animationValue.set(
-      withTiming(expandState ? 1 : 0, {
-        duration: 300,
-        easing: Easing.inOut(Easing.ease)
-      })
-    )
-  }
-
-  function syncAccountData(
-    accountToSync: Account,
-    isImportAddress: boolean,
-    forceFullScan: boolean
-  ) {
-    if (!isImportAddress) {
-      return syncAccountWithWallet(accountToSync, wallet!, forceFullScan, true)
-    }
-    return syncAccountWithAddress(accountToSync)
-  }
-
-  async function refreshAccount(forceFullScan = false) {
-    if (!account) {
-      return
-    }
-
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
-
-    if (isImportAddress && !watchOnlyWalletAddress) {
-      return
-    }
-    if (!isImportAddress && !wallet) {
-      return
-    }
-
-    // Cancel all other running syncs so this account gets the full connection.
-    // This is a no-op for Electrum/Esplora (fast enough not to matter) but
-    // makes a real difference for RPC backends where concurrent syncs congest
-    // the node.
-    if (!isImportAddress) {
-      prioritizeSync(account.id)
-    }
-
-    try {
-      const updatedAccount = await syncAccountData(
-        account,
-        isImportAddress,
-        forceFullScan
-      )
-      if (updatedAccount) {
-        updateAccount(updatedAccount)
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  function refreshAccountLabels() {
-    if (!account) {
-      return
-    }
-    // Fire-and-forget - don't block refresh completion for Nostr sync
-    if (account.nostr?.autoSync) {
-      fetchOnce(account)
-    }
-  }
-
-  async function handleOnRefresh(forceFullScan = false) {
-    setRefreshing(true)
-    await fetchPrices(fiatPriceApiUrl)
-    await refreshAccount(forceFullScan)
-    // Fire-and-forget - don't block refresh completion for Nostr sync
-    refreshAccountLabels()
-    setRefreshing(false)
-  }
-
-  // Long-press the refresh button to force a full rescan. This re-derives
-  // addresses using the current gap limit, so a bumped stopGap can discover
-  // transactions an incremental sync would never reveal.
-  function handleOnForceRescan() {
-    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
-    if (isImportAddress) {
-      return handleOnRefresh()
-    }
-    toast.info(t('account.sync.fullRescanStarted'))
-    return handleOnRefresh(true)
-  }
-
-  function handleOnExpand(state: boolean) {
-    setExpand(state)
-    animateTransition(state)
-  }
-
-  useEffect(() => {
-    // do not auto-fetch wallet upon the following conditions:
-    // - variables have not been initalized
-    // - connection mode is manual
-    // - wallet was recently synced already
-    if (!wallet || !account || connectionMode !== 'auto') {
-      return
-    }
-
-    if (!isAutoSyncDue(account, autoConnectDelay)) {
-      return
-    }
-
-    handleOnRefresh()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const hasNostrReady = Boolean(
     account?.nostr?.autoSync &&
     account?.nostr?.relays?.length &&
@@ -2062,17 +2016,19 @@ export default function AccountView() {
   // Keep the Nostr subscription open for the entire account session.
   // index.tsx stays mounted (not just focused) while navigating deeper into
   // the account stack, so useEffect cleanup only fires on true account exit.
+  // Only id and readiness restart it: the service reads the latest account
+  // from the store, so label or DM updates must not resubscribe.
   useEffect(() => {
-    if (hasNostrReady && account) {
-      startSync(account)
+    if (hasNostrReady && id) {
+      void nostrSyncService.startSync(id)
     }
 
     return () => {
       if (id) {
-        stopSync(id)
+        void nostrSyncService.stopSync(id)
       }
     }
-  }, [id, account, hasNostrReady, startSync, stopSync])
+  }, [id, hasNostrReady])
 
   // Memoize headerRight so React Navigation doesn't receive a new function
   // reference on every DM update, which would interrupt in-progress tap gestures.
@@ -2114,6 +2070,93 @@ export default function AccountView() {
     ),
     [account?.nostr?.autoSync, hasUnreadMessages, id, router] // eslint-disable-line react-hooks/exhaustive-deps
   )
+
+  function animateTransition(expandState: boolean) {
+    animationValue.set(
+      withTiming(expandState ? 1 : 0, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease)
+      })
+    )
+  }
+
+  async function refreshAccount(forceFullScan = false) {
+    if (!account) {
+      return
+    }
+
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+
+    if (isImportAddress && !watchOnlyWalletAddress) {
+      return
+    }
+    if (!isImportAddress && !wallet) {
+      return
+    }
+
+    if (!isImportAddress) {
+      prioritizeSync(account.id)
+    }
+
+    try {
+      const updatedAccount = await runRefreshAccountSync({
+        account,
+        forceFullScan,
+        isImportAddress,
+        syncAccountWithAddress,
+        syncAccountWithWallet,
+        wallet: wallet!
+      })
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  function refreshAccountLabels() {
+    if (!account) {
+      return
+    }
+    if (account.nostr?.autoSync) {
+      void nostrSyncService.fetchOnce(account.id)
+    }
+  }
+
+  async function handleOnRefresh(forceFullScan = false) {
+    setRefreshing(true)
+    await fetchPrices(fiatPriceApiUrl)
+    await refreshAccount(forceFullScan)
+    refreshAccountLabels()
+    setRefreshing(false)
+  }
+
+  function handleOnForceRescan() {
+    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
+    if (isImportAddress) {
+      return handleOnRefresh()
+    }
+    toast.info(t('account.sync.fullRescanStarted'))
+    return handleOnRefresh(true)
+  }
+
+  function handleOnExpand(state: boolean) {
+    setExpand(state)
+    animateTransition(state)
+  }
+
+  useEffect(() => {
+    if (!wallet || !account || connectionMode !== 'auto') {
+      return
+    }
+
+    if (!isAutoSyncDue(account, autoConnectDelay)) {
+      return
+    }
+
+    void handleOnRefresh()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) {
     return <Redirect href="/" />
@@ -2189,10 +2232,6 @@ export default function AccountView() {
         return null
       }
     }
-  }
-
-  if (!account) {
-    return <Redirect href="/" />
   }
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator

@@ -1,10 +1,16 @@
 import { getDb } from '@/db/connection'
 import {
+  cacheEvents,
+  cacheProfile,
+  clearIdentityCache,
+  deleteCachedEventsByAuthor,
   getCacheCounts,
   getCachedEvent,
   getCachedProfile,
+  getCachedZapReceipts,
   getCachedZapsByPubkey,
-  getNewestCachedTimestamp
+  getNewestCachedTimestamp,
+  getNewestCachedZapTimestamp
 } from '@/db/nostrCache'
 
 import { mockQueryResult } from './queryResult'
@@ -65,25 +71,147 @@ describe('nostr cache db', () => {
   })
 
   describe('getCachedZapsByPubkey', () => {
-    it('keeps matching receipts when another receipt has malformed tags', () => {
+    it('looks receipts up by target_pubkey in SQL with a LIMIT', () => {
+      execute.mockReturnValue(
+        mockQueryResult([makeEventRow({ event_id: 'zap-1', kind: 9735 })])
+      )
+
+      const zaps = getCachedZapsByPubkey('ABC', 10)
+
+      expect(zaps.map((zap) => zap.event_id)).toStrictEqual(['zap-1'])
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/kind = \? AND target_pubkey = \?/)
+      expect(sql).toMatch(/ORDER BY created_at DESC LIMIT \?/)
+      expect(params).toStrictEqual([9735, 'abc', 10])
+    })
+
+    it('pages with until', () => {
+      getCachedZapsByPubkey('abc', 5, 1_700_000_000)
+
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/created_at < \?/)
+      expect(params).toStrictEqual([9735, 'abc', 1_700_000_000, 5])
+    })
+  })
+
+  describe('getNewestCachedZapTimestamp', () => {
+    it('is scoped to the zapped pubkey', () => {
+      execute.mockReturnValue(mockQueryResult([{ max_ts: 1_700_000_500 }]))
+
+      expect(getNewestCachedZapTimestamp('ABC')).toBe(1_700_000_500)
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/target_pubkey = \?/)
+      expect(params).toStrictEqual([9735, 'abc'])
+    })
+  })
+
+  describe('getCachedZapReceipts', () => {
+    it('always applies a LIMIT and keeps only receipts for the note', () => {
+      const noteId = 'f'.repeat(64)
       execute.mockReturnValue(
         mockQueryResult([
           makeEventRow({
             event_id: 'zap-1',
             kind: 9735,
-            tags_json: JSON.stringify([['p', 'ABC']])
+            tags_json: JSON.stringify([['e', noteId]])
           }),
           makeEventRow({
             event_id: 'zap-2',
             kind: 9735,
-            tags_json: '[["p", 42]]'
+            tags_json: JSON.stringify([['p', noteId]])
           })
         ])
       )
 
-      const zaps = getCachedZapsByPubkey('abc', 10)
+      const zaps = getCachedZapReceipts(noteId, 25)
 
       expect(zaps.map((zap) => zap.event_id)).toStrictEqual(['zap-1'])
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/LIMIT \?/)
+      expect(params?.at(-1)).toBe(25)
+    })
+
+    it('rejects ids that are not hex', () => {
+      expect(getCachedZapReceipts("x' OR 1=1 --", 25)).toStrictEqual([])
+      expect(execute).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('cacheEvents', () => {
+    function insertedParams() {
+      return execute.mock.calls
+        .filter(([sql]) =>
+          sql.includes('INSERT OR REPLACE INTO nostr_event_cache')
+        )
+        .map(([, params]) => params)
+    }
+
+    it('stores the zapped pubkey (p tag) and marks zaps to own pubkeys as own', () => {
+      cacheEvents(
+        [
+          {
+            content: '',
+            created_at: 10,
+            id: 'zap-1',
+            kind: 9735,
+            pubkey: 'lnurl-server',
+            tags: [['p', 'OWN']]
+          },
+          {
+            content: 'hi',
+            created_at: 11,
+            id: 'note-1',
+            kind: 1,
+            pubkey: 'someone',
+            tags: [['p', 'own']]
+          }
+        ],
+        ['own']
+      )
+
+      const [zapParams, noteParams] = insertedParams()
+      expect(zapParams?.slice(-2)).toStrictEqual([1, 'own'])
+      expect(noteParams?.slice(-2)).toStrictEqual([0, null])
+    })
+  })
+
+  describe('cacheProfile', () => {
+    it('only replaces a cached profile with a newer one', () => {
+      cacheProfile('PUBKEY', { displayName: 'Alice' }, 'ev-1', 200)
+
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/ON CONFLICT\(pubkey\) DO UPDATE/)
+      expect(sql).toMatch(
+        /WHERE excluded\.created_at >= nostr_profile_cache\.created_at/
+      )
+      expect(params?.[0]).toBe('pubkey')
+      expect(params?.[7]).toBe(200)
+    })
+  })
+
+  describe('deleteCachedEventsByAuthor', () => {
+    it('only deletes events signed by the author', () => {
+      deleteCachedEventsByAuthor(['note-1', 'note-2'], 'AUTHOR')
+
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).toMatch(/WHERE pubkey = \? AND event_id IN \(\?,\?\)/)
+      expect(params).toStrictEqual(['author', 'note-1', 'note-2'])
+    })
+  })
+
+  describe('clearIdentityCache', () => {
+    it('removes the identity notes, received zaps and profile', () => {
+      clearIdentityCache('ABC')
+
+      expect(
+        execute.mock.calls.map(([sql, params]) => [sql, params])
+      ).toStrictEqual([
+        [
+          'DELETE FROM nostr_event_cache WHERE pubkey = ? OR target_pubkey = ?',
+          ['abc', 'abc']
+        ],
+        ['DELETE FROM nostr_profile_cache WHERE pubkey = ?', ['abc']]
+      ])
     })
   })
 

@@ -1,9 +1,6 @@
-import { useCallback, useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
-
 import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
-import { Label } from '@/types/bips/329'
+import { type Label } from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
@@ -15,197 +12,92 @@ import { useNostrDeviceAnnouncement } from './useNostrDeviceAnnouncement'
 import { useNostrDMStorage } from './useNostrDMStorage'
 import { useNostrLabelSync } from './useNostrLabelSync'
 import { useNostrMessageProcessor } from './useNostrMessageProcessor'
-import { useNostrSubscriptionManager } from './useNostrSubscriptionManager'
+
+type LoadingCallback = (loading: boolean) => void
+
+async function generateCommonNostrKeys(account?: Account) {
+  if (!account?.keys?.length) {
+    return
+  }
+
+  const tmpAccount = await getAccountWithDecryptedKeys(account)
+  const [firstKey] = tmpAccount.keys
+  const { secret } = firstKey
+
+  const walletData = await getWalletData(
+    tmpAccount,
+    appNetworkToBdkNetwork(tmpAccount.network)
+  )
+
+  const externalDescriptor = await resolveDescriptorForNostrCommonKeys(
+    tmpAccount,
+    firstKey,
+    secret,
+    walletData
+  )
+
+  if (!externalDescriptor) {
+    throw new Error('Failed to get wallet data')
+  }
+
+  if (/^addr\(/i.test(externalDescriptor)) {
+    throw new Error(
+      'Label sync needs a wallet descriptor; single imported addresses are not supported'
+    )
+  }
+
+  return deriveNostrKeysFromDescriptor(externalDescriptor)
+}
 
 /**
- * Hook for Nostr synchronization with fire-and-forget operations.
- * All sync operations return immediately and update status via events.
+ * Device sync entry points for screens. Sync operations go through
+ * nostrSyncService, which reads the latest account from the store and keeps
+ * one live subscription per purpose and account.
  */
 function useNostrSync() {
-  const subscriptionManager = useNostrSubscriptionManager()
   const messages = useNostrMessageProcessor()
   const labels = useNostrLabelSync()
   const dms = useNostrDMStorage()
   const device = useNostrDeviceAnnouncement()
+  const getSyncStatus = useNostrStore((state) => state.getSyncStatus)
 
-  const [getSyncStatus] = useNostrStore(
-    useShallow((state) => [state.getSyncStatus])
-  )
+  function startSync(accountId: string, onLoadingChange?: LoadingCallback) {
+    void nostrSyncService.startSync(accountId, onLoadingChange)
+  }
 
-  /**
-   * Start sync for an account - fire-and-forget (non-blocking)
-   * Use this for persistent subscriptions (e.g., when entering chat screen)
-   */
-  const startSync = useCallback(
-    (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
-        messages.processEventBatch(account, msgs)
-      )
-      nostrSyncService.startSync(account, onLoadingChange)
-    },
-    [messages]
-  )
+  function fetchOnce(accountId: string, onLoadingChange?: LoadingCallback) {
+    void nostrSyncService.fetchOnce(accountId, onLoadingChange)
+  }
 
-  /**
-   * Fetch once for an account - fire-and-forget (non-blocking)
-   * Use this for one-shot syncs (e.g., pull-to-refresh on wallet screen)
-   */
-  const fetchOnce = useCallback(
-    (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
-        messages.processEventBatch(account, msgs)
-      )
-      nostrSyncService.fetchOnce(account, onLoadingChange)
-    },
-    [messages]
-  )
+  function stopSync(accountId: string) {
+    void nostrSyncService.stopSync(accountId)
+  }
 
-  /**
-   * Stop sync for an account
-   * Use this when leaving a screen that had active sync
-   */
-  const stopSync = useCallback((accountId: string) => {
-    nostrSyncService.stopSync(accountId)
-  }, [])
+  function restartSync(accountId: string, onLoadingChange?: LoadingCallback) {
+    void nostrSyncService.restartSync(accountId, onLoadingChange)
+  }
 
-  /**
-   * Restart sync for an account - fire-and-forget (non-blocking)
-   * Use this when the relay list changes while autoSync is ON
-   */
-  const restartSync = useCallback(
-    (account: Account, onLoadingChange?: (loading: boolean) => void) => {
-      nostrSyncService.setMessageProcessor(account.id, (msgs) =>
-        messages.processEventBatch(account, msgs)
-      )
-      nostrSyncService.restartSync(account, onLoadingChange)
-    },
-    [messages]
-  )
+  async function sendLabelsToNostr(account?: Account, singleLabel?: Label) {
+    await labels.sync(account, singleLabel)
+  }
 
-  /**
-   * Check if an account has active subscriptions
-   */
-  const hasActiveSubscription = useCallback(
-    (accountId: string) => nostrSyncService.hasActiveSubscription(accountId),
-    []
-  )
-
-  /**
-   * Get sync status for an account
-   */
-  const getStatus = useCallback(
-    (accountId: string) => getSyncStatus(accountId),
-    [getSyncStatus]
-  )
-
-  const generateCommonNostrKeys = useCallback(async (account?: Account) => {
-    if (!account?.keys?.length) {
-      return
-    }
-
-    const tmpAccount = await getAccountWithDecryptedKeys(account)
-    const [firstKey] = tmpAccount.keys
-    const { secret } = firstKey
-
-    const walletData = await getWalletData(
-      tmpAccount,
-      appNetworkToBdkNetwork(tmpAccount.network)
-    )
-
-    const externalDescriptor = await resolveDescriptorForNostrCommonKeys(
-      tmpAccount,
-      firstKey,
-      secret,
-      walletData
-    )
-
-    if (!externalDescriptor) {
-      throw new Error('Failed to get wallet data')
-    }
-
-    const trimmed = externalDescriptor
-    if (/^addr\(/i.test(trimmed)) {
-      throw new Error(
-        'Label sync needs a wallet descriptor; single imported addresses are not supported'
-      )
-    }
-
-    return deriveNostrKeysFromDescriptor(trimmed)
-  }, [])
-
-  // Legacy API mappings for backward compatibility with consumers
-  // The subscription manager is still used for some operations
-  const nostrSyncSubscriptions = subscriptionManager.subscribe
-  const cleanupSubscriptions = subscriptionManager.cleanup
-  const protocolSubscription = subscriptionManager.createProtocolSubscription
-  const dataExchangeSubscription =
-    subscriptionManager.createDataExchangeSubscription
-  const { getActiveSubscriptions } = subscriptionManager
-
-  const sendLabelsToNostr = useCallback(
-    async (account?: Account, singleLabel?: Label) => {
-      await labels.sync(account, singleLabel)
-    },
-    [labels]
-  )
-
-  const loadStoredDMs = dms.load
-  const clearStoredDMs = dms.clear
-  const { processEvent } = messages
-  const deviceAnnouncement = device.announce
-
-  return useMemo(
-    () => ({
-      announceDevice: device.announce,
-      cleanup: subscriptionManager.cleanup,
-      cleanupSubscriptions,
-      clearDMs: dms.clear,
-      clearStoredDMs,
-      dataExchangeSubscription,
-      deviceAnnouncement,
-      fetchOnce,
-      generateCommonNostrKeys,
-      generateKeys: generateCommonNostrKeys,
-      getActiveSubscriptions,
-      getStatus,
-      hasActiveSubscription,
-      loadDMs: dms.load,
-      loadStoredDMs,
-      nostrSyncSubscriptions,
-      processEvent,
-      protocolSubscription,
-      restartSync,
-      sendLabelsToNostr,
-      startSync,
-      stopSync,
-      storeDM: dms.store,
-      subscribe: subscriptionManager.subscribe,
-      syncLabels: labels.sync
-    }),
-    [
-      startSync,
-      fetchOnce,
-      stopSync,
-      restartSync,
-      hasActiveSubscription,
-      getStatus,
-      subscriptionManager,
-      labels,
-      dms,
-      device,
-      generateCommonNostrKeys,
-      sendLabelsToNostr,
-      dataExchangeSubscription,
-      loadStoredDMs,
-      clearStoredDMs,
-      processEvent,
-      protocolSubscription,
-      cleanupSubscriptions,
-      deviceAnnouncement,
-      nostrSyncSubscriptions,
-      getActiveSubscriptions
-    ]
-  )
+  return {
+    announceDevice: device.announce,
+    clearStoredDMs: dms.clear,
+    deviceAnnouncement: device.announce,
+    fetchOnce,
+    generateCommonNostrKeys,
+    getStatus: getSyncStatus,
+    hasActiveSubscription: nostrSyncService.hasActiveSubscription,
+    loadStoredDMs: dms.load,
+    processEvent: messages.processEvent,
+    restartSync,
+    sendLabelsToNostr,
+    startSync,
+    stopSync,
+    storeDM: dms.store,
+    syncLabels: labels.sync
+  }
 }
 
 export default useNostrSync

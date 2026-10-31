@@ -182,11 +182,7 @@ export default function Developer() {
       },
       lnd: lightningState.config,
       nostr: {
-        lastDataExchangeEOSE: nostrState.lastDataExchangeEOSE,
-        lastProtocolEOSE: nostrState.lastProtocolEOSE,
         members: nostrState.members,
-        processedEvents: nostrState.processedEvents,
-        processedMessageIds: nostrState.processedMessageIds,
         profiles: nostrState.profiles,
         trustedDevices: nostrState.trustedDevices
       },
@@ -330,8 +326,8 @@ export default function Developer() {
     }
   }
 
-  function handleDeleteAccounts() {
-    resetNostrSync()
+  async function handleDeleteAccounts() {
+    await resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
     deleteAccounts()
     deleteWallets()
@@ -348,7 +344,7 @@ export default function Developer() {
         deleteItem(SALT_KEY),
         deleteItem(DURESS_PIN_KEY)
       ])
-      resetNostrSync()
+      await resetNostrSync()
       deleteAccounts()
       deleteWallets()
       useAuthStore.setState({

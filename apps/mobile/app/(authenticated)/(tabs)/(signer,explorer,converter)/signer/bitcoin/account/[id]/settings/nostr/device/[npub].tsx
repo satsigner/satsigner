@@ -10,8 +10,10 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
-import useNostrSync from '@/hooks/useNostrSync'
+import {
+  NOSTR_FALLBACK_NPUB_COLOR,
+  NOSTR_TRUST_SYNC_RESTART_DELAY_MS
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -20,7 +22,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import type { DeviceAliasSearchParams } from '@/types/navigation/searchParams'
 import { NostrNoRelaysError } from '@/utils/errors'
-import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
+import { nostrSyncService } from '@/utils/nostrSyncService'
 
 export default function DeviceAliasPage() {
   const { id: accountId, npub } =
@@ -33,12 +35,7 @@ export default function DeviceAliasPage() {
     ])
   )
 
-  const [
-    clearProcessedEvents,
-    setLastDataExchangeEOSE,
-    memberColor,
-    globalProfile
-  ] = useNostrStore(
+  const [memberColor, globalProfile] = useNostrStore(
     useShallow((state) => {
       const memberColorValue =
         !accountId || !npub
@@ -55,16 +52,10 @@ export default function DeviceAliasPage() {
                 ? NOSTR_FALLBACK_NPUB_COLOR
                 : member.color
             })()
-      return [
-        state.clearProcessedEvents,
-        state.setLastDataExchangeEOSE,
-        memberColorValue,
-        npub ? state.profiles[npub] : undefined
-      ]
+      return [memberColorValue, npub ? state.profiles[npub] : undefined]
     })
   )
 
-  const { restartSync } = useNostrSync()
   const trustSyncRestartRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(
     () => () => {
@@ -93,14 +84,11 @@ export default function DeviceAliasPage() {
   const memberProfile =
     npub && (displayName || picture) ? { displayName, picture } : undefined
 
-  const npubAliases = account?.nostr?.npubAliases
-  const currentAlias = npub && npubAliases?.[npub] ? npubAliases[npub] : ''
+  const currentAlias =
+    npub && account?.nostr?.npubAliases?.[npub]
+      ? account.nostr.npubAliases[npub]
+      : ''
   const [alias, setAlias] = useState(currentAlias)
-  const [aliasSource, setAliasSource] = useState({ npub, npubAliases })
-  if (aliasSource.npub !== npub || aliasSource.npubAliases !== npubAliases) {
-    setAliasSource({ npub, npubAliases })
-    setAlias(currentAlias)
-  }
   const [loadingFetchKind0, setLoadingFetchKind0] = useState(false)
 
   async function fetchKind0Profile() {
@@ -124,32 +112,10 @@ export default function DeviceAliasPage() {
     }
 
     setLoadingFetchKind0(true)
+    let profile: Awaited<ReturnType<NostrAPI['fetchKind0']>> | undefined
     try {
       const api = new NostrAPI(relays)
-      const fetchedProfile = await api.fetchKind0(npub)
-      const profile = kind0ProfileWithContent(fetchedProfile)
-      if (!profile) {
-        toast.info(t('account.nostrSync.fetchKind0NotFound'))
-        setLoadingFetchKind0(false)
-        return
-      }
-      const updated = {
-        ...account.nostr.npubProfiles,
-        [npub]: {
-          displayName: profile.displayName,
-          picture: profile.picture
-        }
-      }
-      const payload: Parameters<typeof updateAccountNostr>[1] = {
-        lastUpdated: new Date(),
-        npubProfiles: updated
-      }
-      if (npub === account.nostr.deviceNpub) {
-        payload.deviceDisplayName = profile.displayName
-        payload.devicePicture = profile.picture
-      }
-      updateAccountNostr(accountId, payload)
-      toast.success(t('account.nostrSync.fetchKind0Success'))
+      profile = await api.fetchKind0(npub)
     } catch (error) {
       toast.error(
         error instanceof NostrNoRelaysError
@@ -158,6 +124,29 @@ export default function DeviceAliasPage() {
       )
     }
     setLoadingFetchKind0(false)
+    if (!profile || (!profile.displayName && !profile.picture)) {
+      if (profile !== undefined) {
+        toast.info(t('account.nostrSync.fetchKind0NotFound'))
+      }
+      return
+    }
+    const updated = {
+      ...account.nostr.npubProfiles,
+      [npub]: {
+        displayName: profile.displayName,
+        picture: profile.picture
+      }
+    }
+    const payload: Parameters<typeof updateAccountNostr>[1] = {
+      lastUpdated: new Date(),
+      npubProfiles: updated
+    }
+    if (npub === account.nostr.deviceNpub) {
+      payload.deviceDisplayName = profile.displayName
+      payload.devicePicture = profile.picture
+    }
+    updateAccountNostr(accountId, payload)
+    toast.success(t('account.nostrSync.fetchKind0Success'))
   }
 
   function clearKind0Profile() {
@@ -177,6 +166,14 @@ export default function DeviceAliasPage() {
     updateAccountNostr(accountId, payload)
     toast.success(t('account.nostrSync.clearKind0Success'))
   }
+
+  useEffect(() => {
+    const aliasValue =
+      npub && account?.nostr?.npubAliases?.[npub]
+        ? account.nostr.npubAliases[npub]
+        : ''
+    setAlias(aliasValue)
+  }, [npub, account?.nostr?.npubAliases])
 
   function handleSave() {
     if (!accountId || !account?.nostr || !npub) {
@@ -226,18 +223,12 @@ export default function DeviceAliasPage() {
       if (trustSyncRestartRef.current) {
         clearTimeout(trustSyncRestartRef.current)
       }
-      const TRUST_SYNC_RESTART_DELAY_MS = 1500
+      // Events from this device were skipped while it was untrusted, so the
+      // data-exchange history is fetched again.
       trustSyncRestartRef.current = setTimeout(() => {
         trustSyncRestartRef.current = null
-        clearProcessedEvents(accountId)
-        setLastDataExchangeEOSE(accountId, 0)
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        if (current) {
-          restartSync(current, () => undefined)
-        }
-      }, TRUST_SYNC_RESTART_DELAY_MS)
+        void nostrSyncService.resyncDataExchangeAfterTrust(accountId)
+      }, NOSTR_TRUST_SYNC_RESTART_DELAY_MS)
       toast.success(t('account.nostrSync.deviceTrusted'))
     }
   }

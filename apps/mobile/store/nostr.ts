@@ -1,10 +1,13 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { type NostrAPI } from '@/api/nostr'
-import { NOSTR_MAX_PROCESSED_ITEMS } from '@/constants/nostr'
+import {
+  clearNostrProcessedEvents,
+  markNostrEventsProcessed
+} from '@/db/nostrProcessedEvents'
 import mmkvStorage from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
+import { type NostrErrorCode } from '@/types/models/Nostr'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { isRecord } from '@/utils/object'
 import { type TransactionData } from '@/utils/psbt'
@@ -16,18 +19,16 @@ type Member = {
 
 type NostrProfile = {
   displayName?: string
+  fetchedAt?: number
   picture?: string
 }
-
-// Object-based storage for O(1) lookups (instead of arrays which require O(n) includes())
-type ProcessedIdsMap = Record<string, true>
 
 // Sync status for tracking per-account sync state
 type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'error'
 
 interface NostrSyncStatus {
   status: SyncStatus
-  lastError?: string
+  lastError?: NostrErrorCode
   lastSyncAt?: number
   messagesReceived: number
   messagesProcessed: number
@@ -39,36 +40,69 @@ const DEFAULT_SYNC_STATUS: NostrSyncStatus = {
   status: 'idle'
 }
 
-// Prune oldest entries from a ProcessedIdsMap when it exceeds the limit
-// JavaScript objects maintain insertion order for string keys, so Object.keys() returns them in order
-function pruneProcessedIds(
-  ids: ProcessedIdsMap,
-  maxSize: number
-): ProcessedIdsMap {
-  const keys = Object.keys(ids)
-  if (keys.length <= maxSize) {
-    return ids
-  }
+const PERSIST_VERSION = 2
 
-  // Keep only the most recent entries (last maxSize keys)
-  const keysToKeep = keys.slice(-maxSize)
-  const pruned: ProcessedIdsMap = {}
-  for (const key of keysToKeep) {
-    pruned[key] = true
+/** SQLite dedupe rows; a failure must not block clearing the store state. */
+function clearProcessedEventsSafely(accountId?: string): void {
+  try {
+    clearNostrProcessedEvents(accountId)
+  } catch {
+    // Leftover rows only skip already-seen events on a later sync.
   }
-  return pruned
+}
+
+function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key))
+}
+
+/**
+ * v1 kept processed event ids in MMKV, which re-serialized the whole store on
+ * every event. They now live in SQLite; created_at is unknown for these rows.
+ */
+function moveProcessedEventsToSqlite(processedEvents: unknown): void {
+  if (!isRecord(processedEvents)) {
+    return
+  }
+  for (const [accountId, ids] of Object.entries(processedEvents)) {
+    const idList = Array.isArray(ids)
+      ? ids.filter((id) => typeof id === 'string')
+      : Object.keys(isRecord(ids) ? ids : {})
+    markNostrEventsProcessed(
+      accountId,
+      idList.map((id) => ({ createdAt: 0, id }))
+    )
+  }
+}
+
+function migrateNostrPersistedState(
+  persistedState: unknown,
+  version: number
+): Record<string, unknown> {
+  if (!isRecord(persistedState)) {
+    return {}
+  }
+  if (version >= PERSIST_VERSION) {
+    return persistedState
+  }
+  try {
+    moveProcessedEventsToSqlite(persistedState.processedEvents)
+  } catch {
+    // Dropping dedupe state only costs a re-process; handlers are idempotent.
+  }
+  return Object.fromEntries(
+    Object.entries(persistedState).filter(
+      ([key]) => key !== 'processedEvents' && key !== 'processedMessageIds'
+    )
+  )
 }
 
 type NostrState = {
   members: Record<string, Member[]>
   profiles: Record<string, NostrProfile>
-  processedMessageIds: Record<string, ProcessedIdsMap>
-  processedEvents: Record<string, ProcessedIdsMap>
   lastProtocolEOSE: Record<string, number>
   lastDataExchangeEOSE: Record<string, number>
   trustedDevices: Record<string, string[]>
   syncStatus: Record<string, NostrSyncStatus>
-  activeSubscriptions: Set<NostrAPI>
   syncingAccounts: Record<string, boolean>
   transactionToShare: {
     transaction: string
@@ -84,11 +118,7 @@ type NostrAction = {
   getMembers: (accountId: string) => Member[]
   clearAllNostrState: () => void
   clearNostrState: (accountId: string) => void
-  addProcessedMessageId: (accountId: string, messageId: string) => void
-  getProcessedMessageIds: (accountId: string) => string[]
-  clearProcessedMessageIds: (accountId: string) => void
-  addProcessedEvent: (accountId: string, eventId: string) => void
-  getProcessedEvents: (accountId: string) => string[]
+  removeAccountNostrState: (accountId: string) => void
   clearProcessedEvents: (accountId: string) => void
   setLastProtocolEOSE: (accountId: string, timestamp: number) => void
   setLastDataExchangeEOSE: (accountId: string, timestamp: number) => void
@@ -101,9 +131,6 @@ type NostrAction = {
   getSyncStatus: (accountId: string) => NostrSyncStatus
   incrementMessagesReceived: (accountId: string, count?: number) => void
   incrementMessagesProcessed: (accountId: string, count?: number) => void
-  addSubscription: (subscription: NostrAPI) => void
-  clearSubscriptions: () => void
-  getActiveSubscriptions: () => Set<NostrAPI>
   setSyncing: (accountId: string, isSyncing: boolean) => void
   isSyncing: (accountId: string) => boolean
   setTransactionToShare: (
@@ -114,7 +141,6 @@ type NostrAction = {
 const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
-      activeSubscriptions: new Set<NostrAPI>(),
       addMember: (accountId, npub) => {
         try {
           // Check if member already exists BEFORE generating color (expensive)
@@ -174,46 +200,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
           })
         }
       },
-      addProcessedEvent: (accountId, eventId) => {
-        set((state) => {
-          const currentEvents = state.processedEvents[accountId] || {}
-          if (currentEvents[eventId]) {
-            return state
-          }
-          const updated = { ...currentEvents, [eventId]: true as const }
-          const pruned = pruneProcessedIds(updated, NOSTR_MAX_PROCESSED_ITEMS)
-          return {
-            processedEvents: {
-              ...state.processedEvents,
-              [accountId]: pruned
-            }
-          }
-        })
-      },
-      addProcessedMessageId: (accountId, messageId) => {
-        set((state) => {
-          const currentIds = state.processedMessageIds[accountId] || {}
-          if (currentIds[messageId]) {
-            return state
-          }
-          const updated = { ...currentIds, [messageId]: true as const }
-          const pruned = pruneProcessedIds(updated, NOSTR_MAX_PROCESSED_ITEMS)
-          return {
-            processedMessageIds: {
-              ...state.processedMessageIds,
-              [accountId]: pruned
-            }
-          }
-        })
-      },
-      addSubscription: (subscription: NostrAPI) => {
-        set((state) => ({
-          activeSubscriptions: new Set([
-            ...state.activeSubscriptions,
-            subscription
-          ])
-        }))
-      },
       addTrustedDevice: (accountId, deviceNpub) => {
         set((state) => {
           const currentDevices = state.trustedDevices[accountId] || []
@@ -229,13 +215,11 @@ const useNostrStore = create<NostrState & NostrAction>()(
         })
       },
       clearAllNostrState: () => {
+        clearProcessedEventsSafely()
         set({
-          activeSubscriptions: new Set(),
           lastDataExchangeEOSE: {},
           lastProtocolEOSE: {},
           members: {},
-          processedEvents: {},
-          processedMessageIds: {},
           profiles: {},
           syncStatus: {},
           syncingAccounts: {},
@@ -244,6 +228,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
         })
       },
       clearNostrState: (accountId) => {
+        clearProcessedEventsSafely(accountId)
         set((state) => ({
           lastDataExchangeEOSE: {
             ...state.lastDataExchangeEOSE,
@@ -257,14 +242,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
             ...state.members,
             [accountId]: []
           },
-          processedEvents: {
-            ...state.processedEvents,
-            [accountId]: {}
-          },
-          processedMessageIds: {
-            ...state.processedMessageIds,
-            [accountId]: {}
-          },
           syncStatus: {
             ...state.syncStatus,
             [accountId]: DEFAULT_SYNC_STATUS
@@ -276,37 +253,12 @@ const useNostrStore = create<NostrState & NostrAction>()(
         }))
       },
       clearProcessedEvents: (accountId) => {
-        set((state) => ({
-          processedEvents: {
-            ...state.processedEvents,
-            [accountId]: {}
-          }
-        }))
+        clearProcessedEventsSafely(accountId)
       },
-      clearProcessedMessageIds: (accountId) => {
-        set((state) => ({
-          processedMessageIds: {
-            ...state.processedMessageIds,
-            [accountId]: {}
-          }
-        }))
-      },
-      clearSubscriptions: () => {
-        set({ activeSubscriptions: new Set() })
-      },
-      getActiveSubscriptions: () => get().activeSubscriptions,
       getLastDataExchangeEOSE: (accountId) =>
         get().lastDataExchangeEOSE[accountId],
       getLastProtocolEOSE: (accountId) => get().lastProtocolEOSE[accountId],
       getMembers: (accountId) => get().members[accountId] || [],
-      getProcessedEvents: (accountId) => {
-        const eventsMap = get().processedEvents[accountId] || {}
-        return Object.keys(eventsMap)
-      },
-      getProcessedMessageIds: (accountId) => {
-        const idsMap = get().processedMessageIds[accountId] || {}
-        return Object.keys(idsMap)
-      },
       getProfile: (npub) => get().profiles[npub],
       getSyncStatus: (accountId) =>
         get().syncStatus[accountId] || DEFAULT_SYNC_STATUS,
@@ -345,9 +297,18 @@ const useNostrStore = create<NostrState & NostrAction>()(
       lastDataExchangeEOSE: {},
       lastProtocolEOSE: {},
       members: {},
-      processedEvents: {},
-      processedMessageIds: {},
       profiles: {},
+      removeAccountNostrState: (accountId) => {
+        clearProcessedEventsSafely(accountId)
+        set((state) => ({
+          lastDataExchangeEOSE: omitKey(state.lastDataExchangeEOSE, accountId),
+          lastProtocolEOSE: omitKey(state.lastProtocolEOSE, accountId),
+          members: omitKey(state.members, accountId),
+          syncStatus: omitKey(state.syncStatus, accountId),
+          syncingAccounts: omitKey(state.syncingAccounts, accountId),
+          trustedDevices: omitKey(state.trustedDevices, accountId)
+        }))
+      },
       removeMember: (accountId, npub) => {
         set((state) => {
           const currentMembers = state.members[accountId] || []
@@ -389,7 +350,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
         set((state) => ({
           profiles: {
             ...state.profiles,
-            [npub]: { ...state.profiles[npub], ...profile }
+            [npub]: { ...profile, fetchedAt: profile.fetchedAt ?? Date.now() }
           }
         }))
       },
@@ -424,52 +385,23 @@ const useNostrStore = create<NostrState & NostrAction>()(
         ...currentState,
         ...(isRecord(persistedState) ? persistedState : {}),
         // Always ensure runtime-only fields start fresh on rehydration
-        activeSubscriptions: new Set<NostrAPI>(),
         syncingAccounts: {},
         transactionToShare: null
       }),
-      migrate: (persistedState, version) => {
-        if (!isRecord(persistedState)) {
-          return {}
-        }
-        if (version < 1) {
-          // v0 → v1: processedEvents and processedMessageIds changed from
-          // string[] to Record<string, true> for O(1) deduplication lookups
-          for (const field of [
-            'processedEvents',
-            'processedMessageIds'
-          ] as const) {
-            const idsByAccount = persistedState[field]
-            if (!isRecord(idsByAccount)) {
-              continue
-            }
-            for (const [accountId, value] of Object.entries(idsByAccount)) {
-              if (Array.isArray(value)) {
-                idsByAccount[accountId] = Object.fromEntries(
-                  value.map((id) => [id, true as const])
-                )
-              }
-            }
-          }
-        }
-        return persistedState
-      },
+      migrate: migrateNostrPersistedState,
       name: 'satsigner-nostr',
       partialize: (state) => ({
         lastDataExchangeEOSE: state.lastDataExchangeEOSE,
         lastProtocolEOSE: state.lastProtocolEOSE,
         members: state.members,
-        processedEvents: state.processedEvents,
-        processedMessageIds: state.processedMessageIds,
         profiles: state.profiles,
         trustedDevices: state.trustedDevices
-        // Excluded: syncStatus (runtime), activeSubscriptions (Set),
-        // syncingAccounts (runtime), transactionToShare (runtime)
       }),
       storage: createJSONStorage(() => mmkvStorage),
-      version: 1
+      version: PERSIST_VERSION
     }
   )
 )
 
-export { useNostrStore }
+export { migrateNostrPersistedState, useNostrStore }
+export type { NostrSyncStatus as NostrAccountSyncState }

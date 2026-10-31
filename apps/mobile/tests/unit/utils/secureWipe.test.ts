@@ -11,6 +11,8 @@ import {
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
+import * as nostrCache from '@/db/nostrCache'
+import * as nostrProcessedEvents from '@/db/nostrProcessedEvents'
 import { useAuthStore } from '@/store/auth'
 import { useEcashStore } from '@/store/ecash'
 import { getPin } from '@/utils/pin'
@@ -69,6 +71,19 @@ describe('secureWipeAfterMaxPinTries', () => {
     }
     expect(getSessionPinDigest()).toBeNull()
     await expect(getPin()).rejects.toThrow('PIN unavailable')
+  })
+
+  it('clears the nostr event cache and dedupe tables', async () => {
+    const clearCache = jest.spyOn(nostrCache, 'clearAllCache')
+    const clearProcessed = jest.spyOn(
+      nostrProcessedEvents,
+      'clearNostrProcessedEvents'
+    )
+
+    await secureWipeAfterMaxPinTries()
+
+    expect(clearCache).toHaveBeenCalledWith()
+    expect(clearProcessed).toHaveBeenCalledWith()
   })
 
   it('stays locked when the PIN material cannot be deleted', async () => {
