@@ -23,6 +23,7 @@ type MockApi = {
   getQueuedEventCount: jest.Mock
   relays: string[]
   setLoadingCallback: jest.Mock
+  stopGiftWrapIntake: jest.Mock
   subscribeToKind1059: jest.Mock
 }
 
@@ -39,6 +40,7 @@ function mockCreateApi(relays: string[]): MockApi {
     getQueuedEventCount: jest.fn().mockReturnValue(0),
     relays,
     setLoadingCallback: jest.fn(),
+    stopGiftWrapIntake: jest.fn(),
     subscribeToKind1059: jest.fn().mockResolvedValue(undefined)
   }
   mockApiSetup.configure?.(api)
@@ -322,8 +324,11 @@ describe('nostrSyncService', () => {
       await nostrSyncService.stopSync(ACCOUNT_ID)
 
       for (const api of mockApis) {
-        expect(api.flushQueue).toHaveBeenCalledWith()
-        expect(api.closeAllSubscriptions).toHaveBeenCalledWith()
+        const [stopOrder] = api.stopGiftWrapIntake.mock.invocationCallOrder
+        const [flushOrder] = api.flushQueue.mock.invocationCallOrder
+        const [closeOrder] = api.closeAllSubscriptions.mock.invocationCallOrder
+        expect(stopOrder).toBeLessThan(flushOrder)
+        expect(flushOrder).toBeLessThan(closeOrder)
       }
       expect(nostrSyncService.hasActiveSubscription(ACCOUNT_ID)).toBe(false)
       expect(useNostrStore.getState().getSyncStatus(ACCOUNT_ID).status).toBe(

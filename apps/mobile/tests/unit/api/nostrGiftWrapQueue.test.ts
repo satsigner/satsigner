@@ -76,7 +76,8 @@ async function subscribe(callback: jest.Mock, processedScope?: string) {
     deliver: async (wrap: WrapEvent) => {
       handlers.event(toNdkEvent(wrap))
       await jest.advanceTimersByTimeAsync(0)
-    }
+    },
+    handlers
   }
 }
 
@@ -178,6 +179,31 @@ describe('nostrAPI gift-wrap queue', () => {
     )
     expect(decrypt).not.toHaveBeenCalled()
     expect(callback).not.toHaveBeenCalled()
+  })
+
+  it('flushes only events queued before gift-wrap intake stopped', async () => {
+    const callback = jest.fn().mockResolvedValue(undefined)
+    const { api, deliver, handlers } = await subscribe(callback)
+    const queued = wrapTo(recipientPubkey, 'before shutdown')
+    const late = wrapTo(recipientPubkey, 'after shutdown')
+    const lateEvent: { resolve?: (wrap: WrapEvent) => void } = {}
+
+    await deliver(queued)
+    handlers.event({
+      id: late.id,
+      pubkey: late.pubkey,
+      toNostrEvent: () =>
+        new Promise<WrapEvent>((resolve) => {
+          lateEvent.resolve = resolve
+        })
+    })
+    api.stopGiftWrapIntake()
+    lateEvent.resolve?.(late)
+    await jest.advanceTimersByTimeAsync(0)
+    await api.flushQueue()
+
+    expect(deliveredIds(callback)).toHaveLength(1)
+    expect(callback.mock.calls[0][0][0].wrapId).toBe(queued.id)
   })
 
   it('does not decrypt a wrap again after it failed once', async () => {

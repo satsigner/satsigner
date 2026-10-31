@@ -327,7 +327,9 @@ async function openSubscription(
   return { api, eose }
 }
 
+// Intake stops first so the flush drains only events queued before shutdown.
 async function closeApi(api: NostrAPI): Promise<void> {
+  api.stopGiftWrapIntake()
   await api.flushQueue().catch(() => undefined)
   api.closeAllSubscriptions()
 }
