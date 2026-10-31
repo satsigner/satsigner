@@ -11,7 +11,10 @@ import { t } from '@/locales'
 import { isVideoCoolingDown, useNostrVideoStore } from '@/store/nostrVideo'
 import { Colors } from '@/styles'
 import type { NostrVideoEmbed } from '@/types/models/Nostr'
-import { registerVideoPlayer } from '@/utils/nostrVideoPlayers'
+import {
+  registerVideoPlayer,
+  unmuteVideoPlayer
+} from '@/utils/nostrVideoPlayers'
 
 type SSNostrVideoProps = {
   embed: NostrVideoEmbed
@@ -74,7 +77,7 @@ function SSNostrVideoPlayer({ embed }: SSNostrVideoProps) {
   })
 
   function handleEnableControls() {
-    player.muted = false
+    unmuteVideoPlayer(player)
     setControlsEnabled(true)
   }
 

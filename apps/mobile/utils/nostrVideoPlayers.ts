@@ -56,8 +56,17 @@ function registerVideoPlayer(url: string, player: VideoPlayer): void {
   applyPlayback(url, player, useNostrVideoStore.getState().activeUrl)
 }
 
+function unmuteVideoPlayer(player: VideoPlayer): void {
+  player.muted = false
+}
+
 function registeredVideoPlayerCount(): number {
   return playersByUrl.size
 }
 
-export { registeredVideoPlayerCount, registerVideoPlayer, syncPlayers }
+export {
+  registeredVideoPlayerCount,
+  registerVideoPlayer,
+  syncPlayers,
+  unmuteVideoPlayer
+}
