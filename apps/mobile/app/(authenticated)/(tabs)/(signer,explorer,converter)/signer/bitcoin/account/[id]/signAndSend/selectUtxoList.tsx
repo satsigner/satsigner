@@ -58,8 +58,9 @@ export default function SelectUtxoList() {
   const account = useAccountsStore(
     (state) => state.accounts.find((entry) => entry.id === id)!
   )
+  const display = useDisplayPreferences()
   const { btcPrice, currencyUnit, fiatCurrency, fiatEnabled, useZeroPadding } =
-    useDisplayPreferences()
+    display
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [inputs, hasInput, addInput, removeInput] = useTransactionBuilderStore(
     useShallow((state) => [
@@ -384,6 +385,7 @@ export default function SelectUtxoList() {
           {orphanedInputs.map((utxo) => (
             <View key={getUtxoOutpoint(utxo)} style={{ opacity: 0.6 }}>
               <SSUtxoItem
+                {...display}
                 utxo={utxo}
                 selected
                 onToggleSelected={removeInput}
@@ -417,6 +419,7 @@ export default function SelectUtxoList() {
               addressEntry !== null ? (addressEntry.index ?? idx) : undefined
             return (
               <SSUtxoItem
+                {...display}
                 utxo={item.utxo}
                 selected={inputs.has(getUtxoOutpoint(item.utxo))}
                 onToggleSelected={handleOnToggleSelected}

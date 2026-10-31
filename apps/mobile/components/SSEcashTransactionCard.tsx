@@ -1,6 +1,4 @@
-import { useEffect } from 'react'
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconIncoming,
@@ -9,58 +7,41 @@ import {
   SSIconOutgoingLightning
 } from '@/components/icons'
 import SSText from '@/components/SSText'
-import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useEcashStore } from '@/store/ecash'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSAmountDisplay from './SSAmountDisplay'
 import SSPressable from './SSPressable'
 import SSTimeAgoText from './SSTimeAgoText'
 
-type SSEcashTransactionCardProps = {
+type SSEcashTransactionCardProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'privacyMode'
+  | 'useZeroPadding'
+> & {
   transaction: EcashTransaction
+  mintLabel: string
   onPress: () => void
 }
 
 function SSEcashTransactionCard({
   transaction,
-  onPress
+  mintLabel,
+  onPress,
+  btcPrice,
+  currencyUnit,
+  fiatCurrency,
+  privacyMode,
+  useZeroPadding
 }: SSEcashTransactionCardProps) {
-  const [activeAccountId, allMints] = useEcashStore(
-    useShallow((state) => [state.activeAccountId, state.mints])
-  )
-  const accountMints = activeAccountId ? (allMints[activeAccountId] ?? []) : []
-  const mintLabel =
-    accountMints.find((m) => m.url === transaction.mintUrl)?.name ??
-    transaction.mintUrl.replace(/^https?:\/\//, '').split('/')[0]
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-
-  const [fiatCurrency, btcPrice, fetchPrices] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.btcPrice,
-      state.fetchPrices
-    ])
-  )
-  const { fiatPriceApiUrl } = useFiatData()
-
-  useEffect(() => {
-    fetchPrices(fiatPriceApiUrl)
-  }, [fetchPrices, fiatCurrency, fiatPriceApiUrl])
-
   const priceDisplay =
     btcPrice && !privacyMode
       ? `${formatFiatPrice(transaction.amount, btcPrice)} ${fiatCurrency}`

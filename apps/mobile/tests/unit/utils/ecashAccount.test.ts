@@ -1,7 +1,8 @@
 import type { MintQuote } from '@/types/models/Ecash'
 import {
   activeAccountItems,
-  activeAccountMintQuotes
+  activeAccountMintQuotes,
+  getEcashMintLabel
 } from '@/utils/ecashAccount'
 
 const MINT_QUOTE: MintQuote = {
@@ -37,6 +38,28 @@ describe('activeAccountMintQuotes', () => {
   it('returns the shared empty list without quotes', () => {
     expect(activeAccountMintQuotes({}, 'acc')).toBe(
       activeAccountItems({}, null)
+    )
+  })
+})
+
+describe('getEcashMintLabel', () => {
+  const MINT_URL = 'https://mint.example/path'
+
+  it('returns the name of the matching mint', () => {
+    const mints = [{ name: 'Example Mint', url: MINT_URL }]
+
+    expect(getEcashMintLabel(mints, MINT_URL)).toBe('Example Mint')
+  })
+
+  it('returns the URL host when no mint matches', () => {
+    expect(getEcashMintLabel([], MINT_URL)).toBe('mint.example')
+  })
+
+  it('returns the URL host when the matching mint has no name', () => {
+    const mints = [{ url: 'http://mint.example:3338/v1' }]
+
+    expect(getEcashMintLabel(mints, 'http://mint.example:3338/v1')).toBe(
+      'mint.example:3338'
     )
   })
 })
