@@ -1464,6 +1464,7 @@ function SpendableOutputs({
   currentBlockTimeSec,
   scanFromTimeSec
 }: SpendableOutputsProps) {
+  const display = useDisplayPreferences()
   const router = useRouter()
   const { width, height } = useWindowDimensions()
   const nowMs = useNow()
@@ -1683,6 +1684,7 @@ function SpendableOutputs({
               return (
                 <SSVStack gap="xs" style={{ paddingVertical: 4 }}>
                   <SSUtxoCard
+                    {...display}
                     utxo={item.utxo}
                     totalBalance={totalBalance}
                     addressIndex={addressIndex}

@@ -334,6 +334,9 @@ export default function NostrContactProfile() {
 
             <SSNostrFeedTabs
               npub={targetNpub}
+              btcPrice={btcPrice}
+              fiatCurrency={fiatCurrency}
+              privacyMode={privacyMode}
               relayConnected={relayConnected}
               relays={effectiveRelays}
               onNotePress={handleNotePress}

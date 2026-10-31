@@ -30,7 +30,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type {
   NostrFeedNoteLike,
@@ -38,6 +37,7 @@ import type {
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import {
@@ -62,7 +62,10 @@ import {
 
 import SSPressable from './SSPressable'
 
-type SSNostrFeedTabsProps = {
+type SSNostrFeedTabsProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'privacyMode'
+> & {
   npub: string
   onNotePress?: (payload: { id: string; kind: number; pubkey: string }) => void
   onZapPress?: (receipt: ZapReceiptInfo) => void
@@ -147,9 +150,11 @@ function SSNostrFeedTabs({
   onZapPress,
   onAuthorPress,
   relayConnected,
-  relays
+  relays,
+  btcPrice,
+  fiatCurrency,
+  privacyMode
 }: SSNostrFeedTabsProps) {
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
@@ -1037,6 +1042,9 @@ function SSNostrFeedTabs({
                     <SSZapAmountDisplay
                       amountSats={receipt.amountSats}
                       incoming={!isOutgoing}
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      privacyMode={privacyMode}
                     />
                   </SSVStack>
                 </SSHStack>

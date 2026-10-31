@@ -1783,7 +1783,12 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      <SSZapAmountDisplay amountSats={receipt.amountSats} />
+                      <SSZapAmountDisplay
+                        amountSats={receipt.amountSats}
+                        btcPrice={btcPrice}
+                        fiatCurrency={fiatCurrency}
+                        privacyMode={privacyMode}
+                      />
                     </SSVStack>
                   </SSHStack>
                 ))}
