@@ -13,12 +13,14 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as BlockchainNetwork } from '@/types/settings/blockchain'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getRawTransactionSizes } from '@/utils/transaction'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
-  ensureAddressesIncludeSeenOutputs
+  ensureAddressesIncludeSeenOutputs,
+  makeAddressEntry
 } from '@/utils/walletOwnership'
 
 function toAppNetwork(network: Network): BlockchainNetwork {
@@ -117,7 +119,12 @@ function revealKeychainThroughStopGap(
 
   const targetNextIndex = lastUsedIndex + stopGap + 1
   while (wallet.nextDerivationIndex(keychainKind) < targetNextIndex) {
-    wallet.revealNextAddress(keychainKind)
+    const revealed = wallet.revealNextAddress(keychainKind)
+    // A descriptor without a wildcard has one script, and BDK keeps its next
+    // derivation index at 0 after revealing it.
+    if (revealed.index >= wallet.nextDerivationIndex(keychainKind)) {
+      return
+    }
   }
 }
 
@@ -181,6 +188,24 @@ function revealKnownAddresses(
   wallet.persist()
 }
 
+function peekAddressesAtIndex(
+  wallet: BdkWallet,
+  network: Network,
+  index: number
+): Account['addresses'] {
+  const appNetwork = toAppNetwork(network)
+  const external = peekDerivedAddress(wallet, KeychainKind.External, index)
+  const internal = peekDerivedAddress(wallet, KeychainKind.Internal, index)
+  return [
+    ...(external
+      ? [makeAddressEntry(external.address, index, 'external', appNetwork)]
+      : []),
+    ...(internal
+      ? [makeAddressEntry(internal.address, index, 'internal', appNetwork)]
+      : [])
+  ]
+}
+
 function getWalletAddresses(
   wallet: BdkWallet,
   network: Network,
@@ -189,29 +214,11 @@ function getWalletAddresses(
   const addresses: Account['addresses'] = []
 
   for (let i = 0; i < count; i += 1) {
-    const receiveAddrInfo = wallet.peekAddress(KeychainKind.External, i)
-    addresses.push({
-      address: receiveAddrInfo.address,
-      index: i,
-      keychain: 'external',
-      label: '',
-      network: toAppNetwork(network),
-      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-      transactions: [],
-      utxos: []
-    })
-
-    const changeAddrInfo = wallet.peekAddress(KeychainKind.Internal, i)
-    addresses.push({
-      address: changeAddrInfo.address,
-      index: i,
-      keychain: 'internal',
-      label: '',
-      network: toAppNetwork(network),
-      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-      transactions: [],
-      utxos: []
-    })
+    const peeked = peekAddressesAtIndex(wallet, network, i)
+    if (peeked.length === 0) {
+      break
+    }
+    addresses.push(...peeked)
   }
 
   return addresses
@@ -235,35 +242,13 @@ function getWalletAddressesUsingStopGap(
   let lastIndexWithFunds = -1
 
   for (let i = 0; i < lastIndexWithFunds + stopGap; i += 1) {
-    const receiveAddr = wallet.peekAddress(KeychainKind.External, i).address
-    addresses.push({
-      address: receiveAddr,
-      index: i,
-      keychain: 'external',
-      label: '',
-      network: toAppNetwork(network),
-      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-      transactions: [],
-      utxos: []
-    })
-
-    if (seenAddresses[receiveAddr] !== undefined) {
-      lastIndexWithFunds = i
+    const peeked = peekAddressesAtIndex(wallet, network, i)
+    if (peeked.length === 0) {
+      break
     }
+    addresses.push(...peeked)
 
-    const changeAddr = wallet.peekAddress(KeychainKind.Internal, i).address
-    addresses.push({
-      address: changeAddr,
-      index: i,
-      keychain: 'internal',
-      label: '',
-      network: toAppNetwork(network),
-      summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-      transactions: [],
-      utxos: []
-    })
-
-    if (seenAddresses[changeAddr] !== undefined && i > lastIndexWithFunds) {
+    if (peeked.some(({ address }) => seenAddresses[address] !== undefined)) {
       lastIndexWithFunds = i
     }
   }

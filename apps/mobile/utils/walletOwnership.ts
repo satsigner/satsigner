@@ -5,6 +5,7 @@ import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { getAccountAddressSets } from '@/utils/address'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
 import {
   buildOwnedOutpoints,
   isOwnedOutpoint
@@ -79,13 +80,25 @@ function ensureAddressesIncludeSeenOutputs(
   const next = [...addresses]
 
   for (let index = 0; index < scanLimit && missingSet.size > 0; index += 1) {
-    const external = wallet.peekAddress(KeychainKind.External, index)?.address
+    const external = peekDerivedAddress(
+      wallet,
+      KeychainKind.External,
+      index
+    )?.address
+    const internal = peekDerivedAddress(
+      wallet,
+      KeychainKind.Internal,
+      index
+    )?.address
+    if (!external && !internal) {
+      break
+    }
+
     if (external && missingSet.has(external)) {
       next.push(makeAddressEntry(external, index, 'external', network))
       missingSet.delete(external)
     }
 
-    const internal = wallet.peekAddress(KeychainKind.Internal, index)?.address
     if (internal && missingSet.has(internal)) {
       next.push(makeAddressEntry(internal, index, 'internal', network))
       missingSet.delete(internal)
@@ -324,6 +337,7 @@ export {
   ensureAddressesIncludeSeenOutputs,
   getTransactionRunningBalances,
   getWalletTransactionEffect,
+  makeAddressEntry,
   MAX_OWNERSHIP_ADDRESS_SCAN,
   ownershipScanLimit
 }

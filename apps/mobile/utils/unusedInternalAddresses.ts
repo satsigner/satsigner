@@ -2,6 +2,8 @@ import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
 
 import { UNUSED_INTERNAL_ADDRESSES_NEEDED } from '@/constants/btc'
 import { type Account } from '@/types/models/Account'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
+import { isWifAccount } from '@/utils/wif'
 
 const MAX_INTERNAL_ADDRESS_SCAN = 1000
 
@@ -26,6 +28,15 @@ function getUnusedInternalAddresses(account?: Account, wallet?: BdkWallet) {
     return empty
   }
 
+  // The change keychain of a WIF wallet only exists because BDK needs two
+  // different descriptors. Change goes back to the one imported address.
+  if (isWifAccount(account)) {
+    return {
+      ...empty,
+      changeAddress: wallet.peekAddress(KeychainKind.External, 0).address
+    }
+  }
+
   const usedOutputAddresses = getUsedOutputAddresses(account)
   const unusedInternal: string[] = []
 
@@ -35,7 +46,11 @@ function getUnusedInternalAddresses(account?: Account, wallet?: BdkWallet) {
     unusedInternal.length < UNUSED_INTERNAL_ADDRESSES_NEEDED;
     i += 1
   ) {
-    const address = wallet.peekAddress(KeychainKind.Internal, i)?.address ?? ''
+    const peeked = peekDerivedAddress(wallet, KeychainKind.Internal, i)
+    if (!peeked) {
+      break
+    }
+    const { address } = peeked
     if (address && !usedOutputAddresses.has(address)) {
       unusedInternal.push(address)
     }

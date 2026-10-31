@@ -77,6 +77,9 @@ const { getPin } = jest.requireMock('@/utils/pin') as {
   getPin: jest.Mock
 }
 
+const WIF_PRIVATE_KEY_HEX =
+  '0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d'
+
 function setPin(pin: string | null) {
   if (pin === null) {
     getPin.mockRejectedValue(new Error('PIN unavailable'))
@@ -613,6 +616,75 @@ describe('performRecoverOverwrite restore', () => {
         createdAt: new Date('2025-06-01T00:00:00.000Z')
       })
     )
+  })
+
+  it('restores a WIF key from its private key', async () => {
+    const { aesEncrypt } = jest.requireMock('@/utils/crypto') as {
+      aesEncrypt: jest.Mock
+    }
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-wif',
+            keys: [
+              {
+                creationType: 'importWif',
+                index: 0,
+                name: 'k1',
+                privateKey: WIF_PRIVATE_KEY_HEX,
+                privateKeyCompressed: true,
+                scriptVersion: 'P2WPKH'
+              }
+            ],
+            name: 'Paper wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    const [[stored]] = aesEncrypt.mock.calls
+    expect(JSON.parse(stored)).toStrictEqual({
+      externalDescriptor: expect.stringMatching(/^wpkh\(/),
+      privateKey: WIF_PRIVATE_KEY_HEX,
+      privateKeyCompressed: true
+    })
+  })
+
+  it('refuses a WIF key whose private key is out of range', async () => {
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-wif',
+            keys: [
+              {
+                creationType: 'importWif',
+                index: 0,
+                name: 'k1',
+                privateKey: '00'.repeat(32),
+                privateKeyCompressed: true,
+                scriptVersion: 'P2WPKH'
+              }
+            ],
+            name: 'Paper wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({
+      error: 'Key missing seed data',
+      success: false
+    })
+    expect(addAccount).not.toHaveBeenCalled()
   })
 
   it('applies a known mnemonic word list and ignores an unknown one', async () => {

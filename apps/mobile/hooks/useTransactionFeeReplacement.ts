@@ -45,6 +45,7 @@ import { extractTransactionDataFromPSBT } from '@/utils/psbt'
 import { buildOwnedOutpoints } from '@/utils/sankeyInputOwnership'
 import { mapBuildTransactionError } from '@/utils/transaction'
 import { getUnusedInternalAddresses } from '@/utils/unusedInternalAddresses'
+import { isWifAccount } from '@/utils/wif'
 
 class FeeReplacementError extends Error {
   constructor(messageKey: string) {
@@ -94,12 +95,15 @@ async function buildReplacementPsbtAfterSync(
 
 function getOutputLabels(
   tx: Transaction,
+  changeAddresses: Set<string>,
   destination?: { address: string; label: string }
 ): Map<string, string> {
   const labels = new Map(
-    tx.vout.map(
-      (output) => [output.address, output.label || tx.label || ''] as const
-    )
+    tx.vout
+      .filter((output) => !changeAddresses.has(output.address))
+      .map(
+        (output) => [output.address, output.label || tx.label || ''] as const
+      )
   )
   if (destination) {
     labels.set(destination.address, destination.label)
@@ -157,17 +161,21 @@ async function buildRbfReplacement(
   const { account, feeRate, kind, tx, wallet } = input
   const sweepTo =
     kind === 'cancel' ? getSelfDestination(account, wallet) : undefined
+  // A WIF account sends change back to its one address, so that address is
+  // the change output to shrink and the target for the new change.
+  const changeAddress = isWifAccount(account)
+    ? getSelfDestination(account, wallet)
+    : undefined
+  const changeAddresses = changeAddress
+    ? new Set([changeAddress])
+    : getAccountAddressSets(account.addresses).internalAddresses
   const recipients =
-    kind === 'cancel'
-      ? []
-      : getBumpRecipients(
-          tx.vout,
-          getAccountAddressSets(account.addresses).internalAddresses
-        )
+    kind === 'cancel' ? [] : getBumpRecipients(tx.vout, changeAddresses)
   if (!recipients) {
     throw new FeeReplacementError('transaction.feeReplacement.error.failed')
   }
   const psbt = await buildReplacementPsbtAfterSync(input, {
+    changeAddress,
     feeRate,
     originalTxid: tx.id,
     recipients,
@@ -193,7 +201,7 @@ async function buildRbfReplacement(
       changeLabel: t('sign.changeAddressLabelDefault'),
       extracted,
       feeRate,
-      labelByAddress: getOutputLabels(tx, destination)
+      labelByAddress: getOutputLabels(tx, changeAddresses, destination)
     }),
     replacement: { psbt, replacesTxid: tx.id }
   }
