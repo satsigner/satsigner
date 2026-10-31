@@ -313,9 +313,8 @@ export default function NostrComposePage() {
       toast.error(
         `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      setSigningExport(false)
     }
+    setSigningExport(false)
   }
 
   async function handleQrSigned() {
@@ -341,16 +340,15 @@ export default function NostrComposePage() {
       const compact = JSON.stringify(signed)
       if (compact.length > NOSTR_SIGNED_EVENT_QR_MAX_CHARS) {
         toast.error(t('nostrIdentity.compose.signedEventTooLongForQr'))
-        return
+      } else {
+        setSignedQrPayload(compact)
       }
-      setSignedQrPayload(compact)
     } catch (error) {
       toast.error(
         `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      setSigningExport(false)
     }
+    setSigningExport(false)
   }
 
   async function handlePublish() {
@@ -382,9 +380,8 @@ export default function NostrComposePage() {
       toast.error(
         `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      setPublishing(false)
     }
+    setPublishing(false)
   }
 
   if (!identity) {

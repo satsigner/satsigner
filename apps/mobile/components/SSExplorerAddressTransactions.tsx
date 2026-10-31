@@ -5,13 +5,13 @@ import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import type { DisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useExplorerAddressTxDetails } from '@/hooks/useExplorerAddressTxDetails'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Layout } from '@/styles'
 import type { Transaction } from '@/types/models/Transaction'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 
 const tn = _tn('explorer.address')
 

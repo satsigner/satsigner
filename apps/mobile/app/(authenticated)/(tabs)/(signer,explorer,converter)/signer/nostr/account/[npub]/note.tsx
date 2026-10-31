@@ -246,19 +246,16 @@ export default function NostrNotePage() {
       return null
     }
     setManualSearching(true)
-    try {
-      const event = await NostrAPI.fetchEventFromRelays(
-        noteEventId,
-        searchRelays,
-        ownPubkeys
-      ).catch(() => null)
-      if (event) {
-        setManualEvent(event)
-      }
-      return event
-    } finally {
-      setManualSearching(false)
+    const event = await NostrAPI.fetchEventFromRelays(
+      noteEventId,
+      searchRelays,
+      ownPubkeys
+    ).catch(() => null)
+    if (event) {
+      setManualEvent(event)
     }
+    setManualSearching(false)
+    return event
   }
 
   async function handleTryHintedRelays() {
@@ -445,24 +442,21 @@ export default function NostrNotePage() {
     }
     setBookmarkLoading(true)
     const api = new NostrAPI(effectiveRelays)
+    const bookmarkUpdate = { eventId, ...action }
+    const successMessage =
+      action.type === 'remove'
+        ? t('nostrIdentity.note.bookmarkRemoved')
+        : t('nostrIdentity.note.bookmarkAdded')
     try {
-      await api.publishBookmarkUpdate(npub, identity.nsec, {
-        eventId,
-        ...action
-      })
-      toast.success(
-        action.type === 'remove'
-          ? t('nostrIdentity.note.bookmarkRemoved')
-          : t('nostrIdentity.note.bookmarkAdded')
-      )
+      await api.publishBookmarkUpdate(npub, identity.nsec, bookmarkUpdate)
+      toast.success(successMessage)
     } catch (error) {
       toast.error(
         `${t('nostrIdentity.note.bookmarkFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      api.disconnect()
-      setBookmarkLoading(false)
     }
+    api.disconnect()
+    setBookmarkLoading(false)
   }
 
   function handleBookmarkPress() {
@@ -1454,7 +1448,12 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      <SSZapAmountDisplay amountSats={receipt.amountSats} />
+                      <SSZapAmountDisplay
+                        amountSats={receipt.amountSats}
+                        btcPrice={btcPrice}
+                        fiatCurrency={fiatCurrency}
+                        privacyMode={privacyMode}
+                      />
                     </SSVStack>
                   </SSHStack>
                 ))}

@@ -1355,6 +1355,7 @@ export class NostrAPI {
 
   private async enqueueGiftWrap(
     event: NDKEvent,
+    source: NDKSubscription,
     recipientSecretKey: Uint8Array,
     recipientPubKeyHex: string,
     processedScope?: string
@@ -1386,6 +1387,10 @@ export class NostrAPI {
     if (this.processedMessageIds.has(unwrappedEvent.id)) {
       return
     }
+    if (this.kind1059Subscription !== source) {
+      this.processedRawEventIds.delete(wrapId)
+      return
+    }
 
     this.eventQueue.push({
       content: unwrappedEvent,
@@ -1399,6 +1404,7 @@ export class NostrAPI {
 
   private async enqueueGiftWrapSafely(
     event: NDKEvent,
+    source: NDKSubscription,
     recipientSecretKey: Uint8Array,
     recipientPubKeyHex: string,
     processedScope?: string
@@ -1406,6 +1412,7 @@ export class NostrAPI {
     try {
       await this.enqueueGiftWrap(
         event,
+        source,
         recipientSecretKey,
         recipientPubKeyHex,
         processedScope
@@ -1444,7 +1451,7 @@ export class NostrAPI {
       return
     }
 
-    this.stopKind1059Subscription()
+    this.stopGiftWrapIntake()
     this.setLoading(true)
     this._callback = callback
 
@@ -1470,6 +1477,7 @@ export class NostrAPI {
     subscription.on('event', (event: NDKEvent) => {
       void this.enqueueGiftWrapSafely(
         event,
+        subscription,
         recipientSecretNostrKey,
         recipientPubKeyHex,
         options.processedScope
@@ -1486,7 +1494,8 @@ export class NostrAPI {
     })
   }
 
-  private stopKind1059Subscription() {
+  /** Stops receiving gift wraps; already queued events stay for `flushQueue`. */
+  stopGiftWrapIntake() {
     const previous = this.kind1059Subscription
     if (!previous) {
       return

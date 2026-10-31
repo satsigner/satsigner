@@ -23,6 +23,7 @@ type MockApi = {
   getQueuedEventCount: jest.Mock
   relays: string[]
   setLoadingCallback: jest.Mock
+  stopGiftWrapIntake: jest.Mock
   subscribeToKind1059: jest.Mock
 }
 
@@ -39,6 +40,7 @@ function mockCreateApi(relays: string[]): MockApi {
     getQueuedEventCount: jest.fn().mockReturnValue(0),
     relays,
     setLoadingCallback: jest.fn(),
+    stopGiftWrapIntake: jest.fn(),
     subscribeToKind1059: jest.fn().mockResolvedValue(undefined)
   }
   mockApiSetup.configure?.(api)
@@ -322,8 +324,11 @@ describe('nostrSyncService', () => {
       await nostrSyncService.stopSync(ACCOUNT_ID)
 
       for (const api of mockApis) {
-        expect(api.flushQueue).toHaveBeenCalledWith()
-        expect(api.closeAllSubscriptions).toHaveBeenCalledWith()
+        const [stopOrder] = api.stopGiftWrapIntake.mock.invocationCallOrder
+        const [flushOrder] = api.flushQueue.mock.invocationCallOrder
+        const [closeOrder] = api.closeAllSubscriptions.mock.invocationCallOrder
+        expect(stopOrder).toBeLessThan(flushOrder)
+        expect(flushOrder).toBeLessThan(closeOrder)
       }
       expect(nostrSyncService.hasActiveSubscription(ACCOUNT_ID)).toBe(false)
       expect(useNostrStore.getState().getSyncStatus(ACCOUNT_ID).status).toBe(
@@ -403,6 +408,26 @@ describe('nostrSyncService', () => {
 
   describe('untrusted or forged input', () => {
     const YEAR_2100 = 4_102_444_800
+
+    it('keeps the cursor below a deferred event when a newer one is processed', async () => {
+      jest.mocked(processNostrEventBatch).mockResolvedValue({
+        deferred: [{ createdAt: 1_700_000_050, id: 'held' }],
+        failed: [],
+        ignored: [],
+        processed: [{ createdAt: 1_700_000_200, id: 'stored' }]
+      })
+      await nostrSyncService.startSync(ACCOUNT_ID)
+      const data = subscription(apiFor(DEVICE_NPUB))
+
+      await data.processor([
+        { content: {}, created_at: 1_700_000_050, id: 'held' }
+      ])
+      data.onEose()
+
+      expect(useNostrStore.getState().getLastDataExchangeEOSE(ACCOUNT_ID)).toBe(
+        1_700_000_049
+      )
+    })
 
     it('a deferred rumor dated 2100 does not move the cursor', async () => {
       useNostrStore

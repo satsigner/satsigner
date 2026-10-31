@@ -25,6 +25,7 @@ import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
 } from '@/constants/payjoin'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -42,18 +43,21 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
 import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
+import { isAddressUsed } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   findExternalAddressIndex,
+  hasSingleExternalAddress,
+  receiveAddressPath,
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
+import { fiatToSats, satsToFiat } from '@/utils/fiat'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
@@ -136,7 +140,10 @@ function peekNextExternalAddress(
   return {
     localAddress: address,
     localAddressNumber: nextIndex,
-    localAddressPath: `${account.keys[0].derivationPath}/0/${nextIndex}`,
+    localAddressPath: receiveAddressPath(
+      account.keys[0]?.derivationPath,
+      nextIndex
+    ),
     localAddressQR: address ? `bitcoin:${address}` : ''
   }
 }
@@ -189,7 +196,7 @@ export default function Receive() {
   const localAddressPath =
     storedAddressPath ??
     (account && localAddressNumber !== undefined
-      ? `${account.keys[0].derivationPath}/0/${localAddressNumber}`
+      ? receiveAddressPath(account.keys[0]?.derivationPath, localAddressNumber)
       : undefined)
   const [localCustomAmount, setLocalCustomAmount] = useState<string>(() => {
     const sats = amountSatsFromPayjoinSession(existingPayjoinSession)
@@ -240,13 +247,7 @@ export default function Receive() {
     cancelNFCScan
   } = useNFCEmitter()
 
-  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.btcPrice,
-      state.satsToFiat
-    ])
-  )
+  const { btcPrice, fiatCurrency, fiatEnabled } = useDisplayPreferences()
 
   const saveLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
@@ -443,13 +444,9 @@ export default function Receive() {
     if (!wallet || !account || !addressInfo.address) {
       return
     }
-    const derivationPath = account.keys[0]?.derivationPath
-    if (!derivationPath) {
-      return
-    }
     const activeSession = getActiveReceiverSession(id)
     const selection = resolveReceiveAddressSelection({
-      derivationPath,
+      derivationPath: account.keys[0]?.derivationPath,
       fallback: {
         address: addressInfo.address,
         index: addressInfo.index
@@ -559,7 +556,7 @@ export default function Receive() {
     if (!sats || Number.isNaN(Number(sats)) || Number(sats) <= 0) {
       return ''
     }
-    const fiatAmount = satsToFiat(Number(sats))
+    const fiatAmount = satsToFiat(Number(sats), btcPrice, fiatEnabled)
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
@@ -570,7 +567,7 @@ export default function Receive() {
     if (!btcPrice || btcPrice <= 0) {
       return null
     }
-    return Math.round((Number(fiat) / btcPrice) * SATS_PER_BITCOIN)
+    return fiatToSats(Number(fiat), btcPrice)
   }
 
   function getSatsDisplay(fiat: string): string {
@@ -586,7 +583,7 @@ export default function Receive() {
       return
     }
     if (localCustomAmount && Number(localCustomAmount) > 0) {
-      const fiat = satsToFiat(Number(localCustomAmount))
+      const fiat = satsToFiat(Number(localCustomAmount), btcPrice, fiatEnabled)
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -639,6 +636,13 @@ export default function Receive() {
     return <Redirect href="/" />
   }
 
+  const hasAddressPath = Boolean(account.keys[0]?.derivationPath)
+  const canGenerateAnother = !wallet || !hasSingleExternalAddress(wallet)
+  const addressUsageKey =
+    localAddress && isAddressUsed(account.transactions, localAddress)
+      ? 'receive.usedBefore'
+      : 'receive.neverUsed'
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
@@ -665,17 +669,19 @@ export default function Receive() {
               )}
             </SSVStack>
             <SSVStack gap="none" itemsCenter>
-              <SSHStack gap="sm">
-                <SSText color="muted" uppercase>
-                  {t('receive.path')}
-                </SSText>
-                {isLoading ? (
-                  <SSText color="muted">...</SSText>
-                ) : (
-                  <SSText>{localAddressPath}</SSText>
-                )}
-              </SSHStack>
-              <SSText>{t('receive.neverUsed')}</SSText>
+              {hasAddressPath && (
+                <SSHStack gap="sm">
+                  <SSText color="muted" uppercase>
+                    {t('receive.path')}
+                  </SSText>
+                  {isLoading ? (
+                    <SSText color="muted">...</SSText>
+                  ) : (
+                    <SSText>{localAddressPath}</SSText>
+                  )}
+                </SSHStack>
+              )}
+              <SSText>{t(addressUsageKey)}</SSText>
             </SSVStack>
             {payjoinCompleted ? (
               <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
@@ -1042,23 +1048,27 @@ export default function Receive() {
                   variant="secondary"
                   onPress={() => router.back()}
                 />
-                <SSButton
-                  label={t('receive.generateAnother')}
-                  variant="outline"
-                  loading={isGenerating}
-                  disabled={isGenerating || isLoading}
-                  onPress={generateAnotherAddress}
-                />
+                {canGenerateAnother && (
+                  <SSButton
+                    label={t('receive.generateAnother')}
+                    variant="outline"
+                    loading={isGenerating}
+                    disabled={isGenerating || isLoading}
+                    onPress={generateAnotherAddress}
+                  />
+                )}
               </>
             ) : (
               <>
-                <SSButton
-                  label={t('receive.generateAnother')}
-                  variant="secondary"
-                  loading={isGenerating}
-                  disabled={isGenerating || isLoading}
-                  onPress={generateAnotherAddress}
-                />
+                {canGenerateAnother && (
+                  <SSButton
+                    label={t('receive.generateAnother')}
+                    variant="secondary"
+                    loading={isGenerating}
+                    disabled={isGenerating || isLoading}
+                    onPress={generateAnotherAddress}
+                  />
+                )}
                 <SSButton
                   label={t('common.cancel')}
                   variant="ghost"

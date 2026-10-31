@@ -195,42 +195,42 @@ async function planMppQuotes(
   ])
 }
 
-function removePlannedQuotes(route: PaymentRoute, quotes: PlannedQuote[]) {
-  for (const item of quotes) {
-    route.removeMeltQuote(item.quote.quote)
-  }
-}
-
 /**
- * Melts the planned quotes in order. When a part fails after another one
- * settled, throws `EcashPaymentError` with how many parts were paid.
+ * Melts every planned quote at once: the payee only settles a multi-path
+ * payment after all parts arrive, so a part melted alone waits on parts that
+ * were never sent. When some parts fail and others settle, throws
+ * `EcashPaymentError` with how many parts were paid.
  */
 async function meltPlannedQuotes(
   route: PaymentRoute,
   plannedQuotes: PlannedQuote[]
 ) {
-  for (const [index, item] of plannedQuotes.entries()) {
-    try {
-      await route.meltProofsAndUpdateStore(
+  const proofs = route.getProofs()
+  const results = await Promise.allSettled(
+    plannedQuotes.map((item) =>
+      route.meltProofsAndUpdateStore(
         item.mintUrl,
         item.quote,
-        proofsForMint(route.getProofs(), item.mintUrl)
+        proofsForMint(proofs, item.mintUrl)
       )
-    } catch (error) {
-      removePlannedQuotes(route, plannedQuotes.slice(index + 1))
-      if (index === 0) {
-        throw error
-      }
-      throw new EcashPaymentError(
-        {
-          reason: 'mppPartialPayment',
-          settled: index,
-          total: plannedQuotes.length
-        },
-        { cause: error }
-      )
-    }
+    )
+  )
+  const failure = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  )
+  if (!failure) {
+    return
   }
+  const settled = results.filter(
+    (result) => result.status === 'fulfilled'
+  ).length
+  if (settled === 0) {
+    throw failure.reason
+  }
+  throw new EcashPaymentError(
+    { reason: 'mppPartialPayment', settled, total: plannedQuotes.length },
+    { cause: failure.reason }
+  )
 }
 
 /**

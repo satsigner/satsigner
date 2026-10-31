@@ -23,6 +23,7 @@ import {
   NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
 } from '@/constants/nostr'
 import { useContentHandler } from '@/hooks/useContentHandler'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -55,6 +56,7 @@ type AccountParams = {
 export default function NostrAccountLanding() {
   const router = useRouter()
   const { npub } = useLocalSearchParams<AccountParams>()
+  const { btcPrice, fiatCurrency, privacyMode } = useDisplayPreferences()
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -206,6 +208,8 @@ export default function NostrAccountLanding() {
         }}
       />
       <SSNostrFeedTabs
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
         header={
           <View>
             <SSNostrHeroCard
@@ -239,6 +243,7 @@ export default function NostrAccountLanding() {
           </View>
         }
         npub={npub}
+        privacyMode={privacyMode}
         relayConnected={identity.relayConnected === true}
         relays={effectiveRelays}
         onNotePress={handleNotePress}

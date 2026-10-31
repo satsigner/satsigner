@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
@@ -9,10 +8,9 @@ import SSTimeAgoText from '@/components/SSTimeAgoText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { ArkMovement } from '@/types/models/Ark'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
@@ -28,7 +26,14 @@ import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
 
 import SSPressable from './SSPressable'
 
-type SSArkMovementCardProps = {
+type SSArkMovementCardProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'privacyMode'
+  | 'useZeroPadding'
+> & {
   movement: ArkMovement
   onPress: () => void
   label?: string
@@ -40,19 +45,13 @@ const AMOUNT_CLUSTER_OFFSET_Y = 3
 function SSArkMovementCard({
   movement,
   onPress,
-  label = ''
+  label = '',
+  btcPrice,
+  currencyUnit,
+  fiatCurrency,
+  privacyMode,
+  useZeroPadding
 }: SSArkMovementCardProps) {
-  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.privacyMode,
-      state.useZeroPadding
-    ])
-  )
-  const [fiatCurrency, btcPrice] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.btcPrice])
-  )
-
   const kind = getArkMovementKind(movement)
   const amountSats = getArkMovementAmountSats(movement)
   const isLightning = isLightningMovement(movement)

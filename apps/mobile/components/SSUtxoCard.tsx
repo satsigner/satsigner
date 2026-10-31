@@ -1,13 +1,12 @@
 import { StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 import { utxoAmountTextSize } from '@/utils/utxoAmountTextSize'
@@ -20,7 +19,14 @@ import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 import SSUtxoBar from './SSUtxoBar'
 
-type SSUtxoCardProps = {
+type SSUtxoCardProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'fiatEnabled'
+  | 'useZeroPadding'
+> & {
   utxo: Utxo
   totalBalance?: number
   addressIndex?: number
@@ -35,15 +41,13 @@ function SSUtxoCard({
   addressIndex,
   excluded = false,
   onPress,
-  onToggleExcluded
+  onToggleExcluded,
+  btcPrice,
+  currencyUnit,
+  fiatCurrency,
+  fiatEnabled,
+  useZeroPadding
 }: SSUtxoCardProps) {
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
-  )
-
   const amountTextSize = utxoAmountTextSize(utxo.value)
   const displayLabel = normalizeUtxoLabelForDisplay(utxo.label || '')
 
@@ -82,7 +86,12 @@ function SSUtxoCard({
                   </SSText>
                 </SSHStack>
                 <SSHStack>
-                  <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
+                  <SSText>
+                    {formatNumber(
+                      satsToFiat(utxo.value, btcPrice, fiatEnabled),
+                      2
+                    )}
+                  </SSText>
                   <SSText style={{ color: Colors.gray[400] }}>
                     {fiatCurrency}
                   </SSText>

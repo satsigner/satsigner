@@ -112,39 +112,41 @@ export default function DeviceAliasPage() {
     }
 
     setLoadingFetchKind0(true)
+    let profile: Awaited<ReturnType<NostrAPI['fetchKind0']>> | undefined
     try {
       const api = new NostrAPI(relays)
-      const profile = await api.fetchKind0(npub)
-      if (!profile || (!profile.displayName && !profile.picture)) {
-        toast.info(t('account.nostrSync.fetchKind0NotFound'))
-        return
-      }
-      const updated = {
-        ...account.nostr.npubProfiles,
-        [npub]: {
-          displayName: profile.displayName,
-          picture: profile.picture
-        }
-      }
-      const payload: Parameters<typeof updateAccountNostr>[1] = {
-        lastUpdated: new Date(),
-        npubProfiles: updated
-      }
-      if (npub === account.nostr.deviceNpub) {
-        payload.deviceDisplayName = profile.displayName
-        payload.devicePicture = profile.picture
-      }
-      updateAccountNostr(accountId, payload)
-      toast.success(t('account.nostrSync.fetchKind0Success'))
+      profile = await api.fetchKind0(npub)
     } catch (error) {
       toast.error(
         error instanceof NostrNoRelaysError
           ? t('account.nostrSync.fetchKind0NoRelay')
           : t('account.nostrSync.fetchKind0Error')
       )
-    } finally {
-      setLoadingFetchKind0(false)
     }
+    setLoadingFetchKind0(false)
+    if (!profile || (!profile.displayName && !profile.picture)) {
+      if (profile !== undefined) {
+        toast.info(t('account.nostrSync.fetchKind0NotFound'))
+      }
+      return
+    }
+    const updated = {
+      ...account.nostr.npubProfiles,
+      [npub]: {
+        displayName: profile.displayName,
+        picture: profile.picture
+      }
+    }
+    const payload: Parameters<typeof updateAccountNostr>[1] = {
+      lastUpdated: new Date(),
+      npubProfiles: updated
+    }
+    if (npub === account.nostr.deviceNpub) {
+      payload.deviceDisplayName = profile.displayName
+      payload.devicePicture = profile.picture
+    }
+    updateAccountNostr(accountId, payload)
+    toast.success(t('account.nostrSync.fetchKind0Success'))
   }
 
   function clearKind0Profile() {

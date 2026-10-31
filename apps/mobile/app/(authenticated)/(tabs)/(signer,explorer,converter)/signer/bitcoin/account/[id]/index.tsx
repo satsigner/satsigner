@@ -120,6 +120,7 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import { getDraftIoCounts } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
+import { satsToFiat } from '@/utils/fiat'
 import {
   formatAddress,
   formatDate,
@@ -699,18 +700,20 @@ function TotalTransactions({
   const hasDraft =
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
-  const activePayjoinSessions = useMemo(() => {
-    const now = Date.now()
-    return payjoinSessions.filter(
-      (session) =>
-        session.accountId === account.id &&
-        session.expiresAt > now &&
-        ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
-        // Sender completed strips nativeState — hide those. Receiver completed
-        // stays visible until mempool sync or discard.
-        (session.role === 'receiver' || !!session.nativeState)
-    )
-  }, [account.id, payjoinSessions])
+  const nowMs = useNow()
+  const activePayjoinSessions = useMemo(
+    () =>
+      payjoinSessions.filter(
+        (session) =>
+          session.accountId === account.id &&
+          session.expiresAt > nowMs &&
+          ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
+          // Sender completed strips nativeState — hide those. Receiver completed
+          // stays visible until mempool sync or discard.
+          (session.role === 'receiver' || !!session.nativeState)
+      ),
+    [account.id, nowMs, payjoinSessions]
+  )
 
   // Drop completed receive cards once the payjoin tx shows up in the wallet
   // (typically after the sender broadcasts and we sync / see mempool).
@@ -778,7 +781,6 @@ function TotalTransactions({
   }, [balanceByTxId])
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
-  const nowMs = useNow()
   const isSyncing = syncStatus === 'syncing'
   const activityTitle = isSyncing
     ? syncProgressLabel(tasksDone, totalTasks)
@@ -1125,6 +1127,87 @@ function SSAddressList({
   )
 }
 
+type DerivedAddressSyncParams = {
+  account: Account
+  addressCount: number
+  network: ReturnType<typeof appNetworkToBdkNetwork>
+  perPage: number
+  setAddressCount: (count: number) => void
+  updateAccount: (account: Account) => void
+  wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>
+}
+
+async function syncDerivedAddressPage({
+  account,
+  addressCount,
+  network,
+  perPage,
+  setAddressCount,
+  updateAccount,
+  wallet
+}: DerivedAddressSyncParams) {
+  const result = await getLastUnusedAddressFromWallet(wallet)
+  if (!result) {
+    return
+  }
+  const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
+
+  // When `addressCount` defaults to `perPage` but `account.addresses` is still
+  // empty, `minItems <= addressCount` is true and we must not bail out or the
+  // Used Addresses tab never loads its first page.
+  const shouldSkip = minItems <= addressCount && account.addresses.length > 0
+
+  if (shouldSkip) {
+    return
+  }
+
+  if (account.addresses.length >= addressCount) {
+    let newAddresses = await getWalletAddresses(wallet, network, addressCount)
+    newAddresses = parseAccountAddressesDetails({
+      ...account,
+      addresses: newAddresses
+    })
+    updateAccount({ ...account, addresses: newAddresses })
+    return
+  }
+
+  let newAddresses = await getWalletAddresses(wallet, network, minItems)
+  newAddresses = parseAccountAddressesDetails({
+    ...account,
+    addresses: newAddresses
+  })
+  setAddressCount(minItems)
+  updateAccount({ ...account, addresses: newAddresses })
+}
+
+type RunRefreshAccountSyncParams = {
+  account: Account
+  forceFullScan: boolean
+  isImportAddress: boolean
+  syncAccountWithAddress: (account: Account) => Promise<Account>
+  syncAccountWithWallet: (
+    account: Account,
+    wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>,
+    forceFullScan?: boolean,
+    isPriority?: boolean
+  ) => Promise<Account | null>
+  wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>
+}
+
+function runRefreshAccountSync({
+  account,
+  forceFullScan,
+  isImportAddress,
+  syncAccountWithAddress,
+  syncAccountWithWallet,
+  wallet
+}: RunRefreshAccountSyncParams): Promise<Account | null> {
+  if (isImportAddress) {
+    return syncAccountWithAddress(account)
+  }
+  return syncAccountWithWallet(account, wallet, forceFullScan, true)
+}
+
 function DerivedAddresses({
   account,
   handleOnExpand,
@@ -1227,47 +1310,20 @@ function DerivedAddresses({
     isUpdatingAddresses.current = true
 
     try {
-      const result = await getLastUnusedAddressFromWallet(wallet)
-
-      if (!result) {
-        return
-      }
-      const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
-
-      // When `addressCount` defaults to `perPage` but `account.addresses` is still
-      // empty, `minItems <= addressCount` is true and we must not bail out or the
-      // Used Addresses tab never loads its first page.
-      if (minItems <= addressCount && account.addresses.length > 0) {
-        return
-      }
-
-      if (account.addresses.length >= addressCount) {
-        let newAddresses = await getWalletAddresses(
-          wallet,
-          network,
-          addressCount
-        )
-        newAddresses = parseAccountAddressesDetails({
-          ...account,
-          addresses: newAddresses
-        })
-        updateAccount({ ...account, addresses: newAddresses })
-        return
-      }
-
-      let newAddresses = await getWalletAddresses(wallet, network, minItems)
-      newAddresses = parseAccountAddressesDetails({
-        ...account,
-        addresses: newAddresses
+      await syncDerivedAddressPage({
+        account,
+        addressCount,
+        network,
+        perPage,
+        setAddressCount,
+        updateAccount,
+        wallet
       })
-      setAddressCount(minItems)
-      updateAccount({ ...account, addresses: newAddresses })
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown'
       toast.error(`${'Failed to update addresses'}: ${reason}`)
-    } finally {
-      isUpdatingAddresses.current = false
     }
+    isUpdatingAddresses.current = false
   }
 
   useEffect(() => {
@@ -1278,66 +1334,63 @@ function DerivedAddresses({
     updateAddresses()
   }, [account.id, account.keys[0]?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const renderItem = useCallback(
-    ({ item }: { item: Address }) => (
-      <SSPressable
-        onPress={() =>
-          router.navigate(
-            `/signer/bitcoin/account/${account.id}/address/${item.address}`
-          )
-        }
-      >
-        <SSHStack style={addressListStyles.row}>
-          <SSText
-            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
-          >
-            {item.index}
-          </SSText>
-          <SSText
-            type="mono"
-            style={[
-              addressListStyles.addressText,
-              addressListStyles.columnAddress
-            ]}
-          >
-            {formatAddress(item.address, 'default')}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnLabel,
-              { color: item.label ? '#fff' : '#333' }
-            ]}
-          >
-            {trimLabel(item.label)}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnSats,
-              { color: item.summary.balance === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            <SSStyledSatText amount={item.summary.balance} textSize="xs" />
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnTxs,
-              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.summary.transactions}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnUtxos,
-              { color: item.summary.utxos === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.summary.utxos}
-          </SSText>
-        </SSHStack>
-      </SSPressable>
-    ),
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+  const renderItem = ({ item }: { item: Address }) => (
+    <SSPressable
+      onPress={() =>
+        router.navigate(
+          `/signer/bitcoin/account/${account.id}/address/${item.address}`
+        )
+      }
+    >
+      <SSHStack style={addressListStyles.row}>
+        <SSText
+          style={[addressListStyles.indexText, addressListStyles.columnIndex]}
+        >
+          {item.index}
+        </SSText>
+        <SSText
+          type="mono"
+          style={[
+            addressListStyles.addressText,
+            addressListStyles.columnAddress
+          ]}
+        >
+          {formatAddress(item.address, 'default')}
+        </SSText>
+        <SSText
+          style={[
+            addressListStyles.columnLabel,
+            { color: item.label ? '#fff' : '#333' }
+          ]}
+        >
+          {trimLabel(item.label)}
+        </SSText>
+        <SSText
+          style={[
+            addressListStyles.columnSats,
+            { color: item.summary.balance === 0 ? '#333' : '#fff' }
+          ]}
+        >
+          <SSStyledSatText amount={item.summary.balance} textSize="xs" />
+        </SSText>
+        <SSText
+          style={[
+            addressListStyles.columnTxs,
+            { color: item.summary.transactions === 0 ? '#333' : '#fff' }
+          ]}
+        >
+          {item.summary.transactions}
+        </SSText>
+        <SSText
+          style={[
+            addressListStyles.columnUtxos,
+            { color: item.summary.utxos === 0 ? '#333' : '#fff' }
+          ]}
+        >
+          {item.summary.utxos}
+        </SSText>
+      </SSHStack>
+    </SSPressable>
   )
 
   return (
@@ -1468,6 +1521,7 @@ function SpendableOutputs({
   currentBlockTimeSec,
   scanFromTimeSec
 }: SpendableOutputsProps) {
+  const display = useDisplayPreferences()
   const router = useRouter()
   const { width, height } = useWindowDimensions()
   const nowMs = useNow()
@@ -1687,6 +1741,7 @@ function SpendableOutputs({
               return (
                 <SSVStack gap="xs" style={{ paddingVertical: 4 }}>
                   <SSUtxoCard
+                    {...display}
                     utxo={item.utxo}
                     totalBalance={totalBalance}
                     addressIndex={addressIndex}
@@ -1858,22 +1913,15 @@ export default function AccountView() {
     [account]
   )
 
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
-  )
-
-  const [fiatCurrency, satsToFiat, fetchPrices, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.fetchPrices,
-      state.btcPrice
-    ])
-  )
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
   const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
   const [lastKnownBlockHeight, connectionMode, autoConnectDelay] =
     useBlockchainStore(
@@ -1943,7 +1991,10 @@ export default function AccountView() {
 
   const { closeCameraModal, closeNFCModal, closePasteModal } = contentHandler
 
-  closePasteModalRef.current = closePasteModal
+  useEffect(() => {
+    closePasteModalRef.current = closePasteModal
+  }, [closePasteModal])
+
   useFocusEffect(
     useCallback(
       () => () => {
@@ -1954,22 +2005,6 @@ export default function AccountView() {
       [closeCameraModal, closeNFCModal, closePasteModal]
     )
   )
-
-  useEffect(() => {
-    // do not auto-fetch wallet upon the following conditions:
-    // - variables have not been initalized
-    // - connection mode is manual
-    // - wallet was recently synced already
-    if (!wallet || !account || connectionMode !== 'auto') {
-      return
-    }
-
-    if (!isAutoSyncDue(account, autoConnectDelay)) {
-      return
-    }
-
-    handleOnRefresh()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasNostrReady = Boolean(
     account?.nostr?.autoSync &&
@@ -2035,6 +2070,93 @@ export default function AccountView() {
     ),
     [account?.nostr?.autoSync, hasUnreadMessages, id, router] // eslint-disable-line react-hooks/exhaustive-deps
   )
+
+  function animateTransition(expandState: boolean) {
+    animationValue.set(
+      withTiming(expandState ? 1 : 0, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease)
+      })
+    )
+  }
+
+  async function refreshAccount(forceFullScan = false) {
+    if (!account) {
+      return
+    }
+
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+
+    if (isImportAddress && !watchOnlyWalletAddress) {
+      return
+    }
+    if (!isImportAddress && !wallet) {
+      return
+    }
+
+    if (!isImportAddress) {
+      prioritizeSync(account.id)
+    }
+
+    try {
+      const updatedAccount = await runRefreshAccountSync({
+        account,
+        forceFullScan,
+        isImportAddress,
+        syncAccountWithAddress,
+        syncAccountWithWallet,
+        wallet: wallet!
+      })
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  function refreshAccountLabels() {
+    if (!account) {
+      return
+    }
+    if (account.nostr?.autoSync) {
+      void nostrSyncService.fetchOnce(account.id)
+    }
+  }
+
+  async function handleOnRefresh(forceFullScan = false) {
+    setRefreshing(true)
+    await fetchPrices(fiatPriceApiUrl)
+    await refreshAccount(forceFullScan)
+    refreshAccountLabels()
+    setRefreshing(false)
+  }
+
+  function handleOnForceRescan() {
+    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
+    if (isImportAddress) {
+      return handleOnRefresh()
+    }
+    toast.info(t('account.sync.fullRescanStarted'))
+    return handleOnRefresh(true)
+  }
+
+  function handleOnExpand(state: boolean) {
+    setExpand(state)
+    animateTransition(state)
+  }
+
+  useEffect(() => {
+    if (!wallet || !account || connectionMode !== 'auto') {
+      return
+    }
+
+    if (!isAutoSyncDue(account, autoConnectDelay)) {
+      return
+    }
+
+    void handleOnRefresh()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) {
     return <Redirect href="/" />
@@ -2110,89 +2232,6 @@ export default function AccountView() {
         return null
       }
     }
-  }
-
-  function animateTransition(expandState: boolean) {
-    animationValue.set(
-      withTiming(expandState ? 1 : 0, {
-        duration: 300,
-        easing: Easing.inOut(Easing.ease)
-      })
-    )
-  }
-
-  async function refreshAccount(forceFullScan = false) {
-    if (!account) {
-      return
-    }
-
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
-
-    if (isImportAddress && !watchOnlyWalletAddress) {
-      return
-    }
-    if (!isImportAddress && !wallet) {
-      return
-    }
-
-    // Cancel all other running syncs so this account gets the full connection.
-    // This is a no-op for Electrum/Esplora (fast enough not to matter) but
-    // makes a real difference for RPC backends where concurrent syncs congest
-    // the node.
-    if (!isImportAddress) {
-      prioritizeSync(account.id)
-    }
-
-    try {
-      const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!, forceFullScan, true)
-        : await syncAccountWithAddress(account)
-      if (updatedAccount) {
-        updateAccount(updatedAccount)
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  function refreshAccountLabels() {
-    if (!account) {
-      return
-    }
-    // Fire-and-forget - don't block refresh completion for Nostr sync
-    if (account.nostr?.autoSync) {
-      void nostrSyncService.fetchOnce(account.id)
-    }
-  }
-
-  async function handleOnRefresh(forceFullScan = false) {
-    setRefreshing(true)
-    await fetchPrices(fiatPriceApiUrl)
-    await refreshAccount(forceFullScan)
-    // Fire-and-forget - don't block refresh completion for Nostr sync
-    refreshAccountLabels()
-    setRefreshing(false)
-  }
-
-  // Long-press the refresh button to force a full rescan. This re-derives
-  // addresses using the current gap limit, so a bumped stopGap can discover
-  // transactions an incremental sync would never reveal.
-  function handleOnForceRescan() {
-    const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
-    if (isImportAddress) {
-      return handleOnRefresh()
-    }
-    toast.info(t('account.sync.fullRescanStarted'))
-    return handleOnRefresh(true)
-  }
-
-  function handleOnExpand(state: boolean) {
-    setExpand(state)
-    animateTransition(state)
-  }
-
-  if (!account) {
-    return <Redirect href="/" />
   }
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
@@ -2413,7 +2452,14 @@ export default function AccountView() {
                     <SSText color="muted">
                       {privacyMode
                         ? '••••'
-                        : formatNumber(satsToFiat(accountTotalBalance), 2)}
+                        : formatNumber(
+                            satsToFiat(
+                              accountTotalBalance,
+                              btcPrice,
+                              fiatEnabled
+                            ),
+                            2
+                          )}
                     </SSText>
                     <SSText size="xs" style={{ color: Colors.gray[500] }}>
                       {fiatCurrency}

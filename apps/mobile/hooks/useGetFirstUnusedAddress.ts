@@ -6,6 +6,7 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { type Account } from '@/types/models/Account'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
 
 function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {
   const [firstUnusedAddress, setUnusedFirstAddress] = useState('')
@@ -39,7 +40,11 @@ function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {
       index += 1
 
       try {
-        addrInfo = wallet.peekAddress(KeychainKind.External, index)
+        const peeked = peekDerivedAddress(wallet, KeychainKind.External, index)
+        if (!peeked) {
+          break
+        }
+        addrInfo = peeked
         newAddress = addrInfo.address
 
         if (seenAddresses[newAddress] !== undefined) {
@@ -50,7 +55,7 @@ function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {
       }
     } while (seenAddresses[newAddress] !== undefined)
 
-    setAddressIndex(index)
+    setAddressIndex(addrInfo?.index ?? index)
     setUnusedFirstAddressInfo(addrInfo)
     setUnusedFirstAddress(newAddress)
   }

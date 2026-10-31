@@ -102,6 +102,26 @@ describe('revealKnownAddresses', () => {
     )
   })
 
+  it('reveals a descriptor without a wildcard once and stops', () => {
+    const wallet = {
+      nextDerivationIndex: jest.fn(() => 0),
+      persist: jest.fn(),
+      revealNextAddress: jest.fn((kind: KeychainKind) => ({
+        address: 'single',
+        index: 0,
+        keychain: kind
+      }))
+    }
+    const account = {
+      addresses: [addressAt(5, 'external'), addressAt(5, 'internal')]
+    } satisfies Pick<Account, 'addresses'>
+
+    revealKnownAddresses(wallet, account, STOP_GAP)
+
+    expect(wallet.revealNextAddress).toHaveBeenCalledTimes(2)
+    expect(wallet.persist).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps last-used plus stopGap when Core has no higher index', () => {
     const wallet = makeWallet(0, 0)
     const account = {

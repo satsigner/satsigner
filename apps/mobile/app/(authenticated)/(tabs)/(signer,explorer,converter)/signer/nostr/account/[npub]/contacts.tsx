@@ -90,19 +90,36 @@ export default function NostrContacts() {
     }
 
     setIsPublishing(true)
+    let result:
+      | Awaited<ReturnType<NostrAPI['fetchKind3FollowingPubkeys']>>
+      | undefined
     try {
       const sourceApi = new NostrAPI(contactsRelays)
-      const result = await sourceApi.fetchKind3FollowingPubkeys(npub)
+      result = await sourceApi.fetchKind3FollowingPubkeys(npub)
+    } catch (error) {
+      toast.error(
+        `${t('nostrIdentity.contacts.publishError')}: ${getNostrErrorMessage(error)}`
+      )
+      setIsPublishing(false)
+      return
+    }
+    setIsPublishing(false)
 
-      if (result.error) {
-        toast.error(getNostrErrorMessageForCode(result.error))
-        return
-      }
-      if (!result.data.kind3Found || result.data.pubkeys.length === 0) {
-        toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
-        return
-      }
+    if (!result) {
+      return
+    }
 
+    if (result.error) {
+      toast.error(getNostrErrorMessageForCode(result.error))
+      return
+    }
+    if (!result.data.kind3Found || result.data.pubkeys.length === 0) {
+      toast.error(t('nostrIdentity.contacts.kind3NotFoundNoConn'))
+      return
+    }
+
+    setIsPublishing(true)
+    try {
       const tags = result.data.pubkeys.map((pk) => ['p', pk])
 
       const targetApi = new NostrAPI(otherRelays)
@@ -128,9 +145,8 @@ export default function NostrContacts() {
       toast.error(
         `${t('nostrIdentity.contacts.publishError')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      setIsPublishing(false)
     }
+    setIsPublishing(false)
   }
 
   return (

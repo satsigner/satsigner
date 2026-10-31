@@ -16,25 +16,29 @@ import { t } from '@/locales'
 import { pickNostrProfiles, useNostrProfilesStore } from '@/store/nostrProfiles'
 import { Colors, Layout } from '@/styles'
 import type { ZapReceiptInfo } from '@/types/models/Nostr'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatNostrCardDate } from '@/utils/format'
 import { applyZapProfiles, getZapCounterpartyDisplay } from '@/utils/nostrZap'
 
 import SSPressable from './SSPressable'
 
-type ZapListRowProps = {
+type ZapListDisplayPreferences = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'privacyMode'
+>
+
+type ZapListRowProps = ZapListDisplayPreferences & {
   onZapPress?: (receipt: ZapReceiptInfo) => void
-  privacyMode: boolean
   receipt: ZapReceiptInfo
 }
 
-type SSNostrZapListProps = {
+type SSNostrZapListProps = ZapListDisplayPreferences & {
   fetchNextPage: () => void
   hasNextPage: boolean
   header: ReactElement
   isFetchingNextPage: boolean
   isLoading: boolean
   onZapPress?: (receipt: ZapReceiptInfo) => void
-  privacyMode: boolean
   relays: string[]
   zaps: ZapReceiptInfo[]
 }
@@ -45,7 +49,13 @@ function getZapPubkeys(receipt: ZapReceiptInfo): string[] {
     : [receipt.senderPubkey]
 }
 
-function ZapListRow({ onZapPress, privacyMode, receipt }: ZapListRowProps) {
+function ZapListRow({
+  btcPrice,
+  fiatCurrency,
+  onZapPress,
+  privacyMode,
+  receipt
+}: ZapListRowProps) {
   const profiles = useNostrProfilesStore(
     useShallow((state) =>
       pickNostrProfiles(state.profiles, getZapPubkeys(receipt))
@@ -98,6 +108,9 @@ function ZapListRow({ onZapPress, privacyMode, receipt }: ZapListRowProps) {
         <SSZapAmountDisplay
           amountSats={enriched.amountSats}
           incoming={!isOutgoing}
+          btcPrice={btcPrice}
+          fiatCurrency={fiatCurrency}
+          privacyMode={privacyMode}
         />
       </SSVStack>
     </SSHStack>
@@ -125,7 +138,9 @@ function keyExtractor(item: ZapReceiptInfo) {
 
 /** Zap receipts as a FlashList; sender/recipient profiles load per window. */
 function SSNostrZapList({
+  btcPrice,
   fetchNextPage,
+  fiatCurrency,
   hasNextPage,
   header,
   isFetchingNextPage,
@@ -151,6 +166,8 @@ function SSNostrZapList({
   function renderItem({ item }: { item: ZapReceiptInfo }) {
     return (
       <ZapListRow
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
         onZapPress={onZapPress}
         privacyMode={privacyMode}
         receipt={item}
@@ -159,11 +176,12 @@ function SSNostrZapList({
   }
 
   const showSpinner = isLoading || isFetchingNextPage
+  const displayPreferences = { btcPrice, fiatCurrency, privacyMode }
 
   return (
     <FlashList
       data={zaps}
-      extraData={privacyMode}
+      extraData={displayPreferences}
       keyExtractor={keyExtractor}
       ListEmptyComponent={
         showSpinner ? null : (

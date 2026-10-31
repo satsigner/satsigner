@@ -34,7 +34,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import type {
   NostrEngagementSigner,
@@ -42,6 +41,7 @@ import type {
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { filterFeedReplies } from '@/utils/nostrFeed'
 import {
@@ -54,27 +54,33 @@ import SSPressable from './SSPressable'
 
 type FeedTab = 'feed' | 'notes' | 'zaps'
 
+type FeedTabDisplayPreferences = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'privacyMode'
+>
+
 type FeedTabCallbacks = {
   onAuthorPress?: (authorNpub: string) => void
   onNotePress?: (payload: NostrNotePressPayload) => void
   onZapPress?: (receipt: ZapReceiptInfo) => void
 }
 
-type SSNostrFeedTabsProps = FeedTabCallbacks & {
-  /** Rendered above the tab bar, inside the scrolling list (e.g. hero card). */
-  header?: ReactElement
-  npub: string
-  relayConnected: boolean
-  relays: string[]
-}
+type SSNostrFeedTabsProps = FeedTabCallbacks &
+  FeedTabDisplayPreferences & {
+    /** Rendered above the tab bar, inside the scrolling list (e.g. hero card). */
+    header?: ReactElement
+    npub: string
+    relayConnected: boolean
+    relays: string[]
+  }
 
-type FeedTabContentProps = FeedTabCallbacks & {
-  header: ReactElement
-  identity?: NostrIdentity
-  npub: string
-  privacyMode: boolean
-  relays: string[]
-}
+type FeedTabContentProps = FeedTabCallbacks &
+  FeedTabDisplayPreferences & {
+    header: ReactElement
+    identity?: NostrIdentity
+    npub: string
+    relays: string[]
+  }
 
 /** Feed tab excludes bookmark filters — those are personal lists, not following-timeline content. */
 const FEED_KIND_FILTER_OPTIONS = NOSTR_NOTE_FILTER_OPTIONS.filter(
@@ -437,6 +443,8 @@ function FollowingTabContent({
 }
 
 function ZapsTabContent({
+  btcPrice,
+  fiatCurrency,
   header,
   npub,
   onZapPress,
@@ -497,11 +505,13 @@ function ZapsTabContent({
   return (
     <View style={styles.fill}>
       <SSNostrZapList
+        btcPrice={btcPrice}
         fetchNextPage={zaps.fetchNextPage}
         hasNextPage={zaps.hasNextPage}
         header={listHeader}
         isFetchingNextPage={zaps.isFetchingNextPage}
         isLoading={zaps.isLoading}
+        fiatCurrency={fiatCurrency}
         onZapPress={onZapPress}
         privacyMode={privacyMode}
         relays={relays}
@@ -521,15 +531,17 @@ function renderNothing() {
  * screen scrolls as one virtualized list.
  */
 function SSNostrFeedTabs({
+  btcPrice,
+  fiatCurrency,
   header,
   npub,
   onAuthorPress,
   onNotePress,
   onZapPress,
+  privacyMode,
   relayConnected,
   relays
 }: SSNostrFeedTabsProps) {
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
@@ -586,6 +598,8 @@ function SSNostrFeedTabs({
   )
 
   const contentProps: FeedTabContentProps = {
+    btcPrice,
+    fiatCurrency,
     header: tabsHeader,
     identity,
     npub,

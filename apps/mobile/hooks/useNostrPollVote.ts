@@ -116,10 +116,9 @@ export function useNostrPollVote({
       toast.error(
         `${t('nostrIdentity.note.pollVoteFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      api.disconnect()
-      setPollVoting(false)
     }
+    api.disconnect()
+    setPollVoting(false)
   }
 
   function handlePollOptionPress(optionId: string) {

@@ -5,6 +5,8 @@ import { MILLISATS_PER_SAT } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 type LNURLPayResponse = {
@@ -18,7 +20,10 @@ type LNURLPayResponse = {
   allowsNostr?: boolean
 }
 
-type SSLNURLDetailsProps = {
+type SSLNURLDetailsProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatEnabled'
+> & {
   lnurlDetails: LNURLPayResponse | null
   isFetching: boolean
   showCommentInfo?: boolean
@@ -29,7 +34,6 @@ type SSLNURLDetailsProps = {
   inputStyles?: Record<string, unknown>
   fiatCurrency: string
   privacyMode?: boolean
-  satsToFiat: (amount: number) => number
 }
 
 function extractServiceName(metadata: string): string {
@@ -58,7 +62,8 @@ function SSLNURLDetails({
   inputStyles,
   fiatCurrency,
   privacyMode = false,
-  satsToFiat
+  btcPrice,
+  fiatEnabled
 }: SSLNURLDetailsProps) {
   if (!lnurlDetails && !isFetching) {
     return null
@@ -122,7 +127,7 @@ function SSLNURLDetails({
                   {privacyMode
                     ? `≈ •••• ${fiatCurrency}`
                     : `≈ ${formatNumber(
-                        satsToFiat(Number(amount)),
+                        satsToFiat(Number(amount), btcPrice, fiatEnabled),
                         2
                       )} ${fiatCurrency}`}
                 </SSText>

@@ -40,6 +40,7 @@ import {
 } from '@/utils/descriptor'
 import { shareFile } from '@/utils/filesystem'
 import { singlesigDescriptorFromKeyPart } from '@/utils/getOutputDescriptorForKey'
+import { publicDescriptorFromPrivateKey } from '@/utils/wif'
 
 type DescriptorQrItemProps = {
   descriptor: string
@@ -88,63 +89,78 @@ async function buildDescriptorExports(account: Account, network: Network) {
         descriptorString = 'No key data available for single signature account'
       } else {
         const { secret } = key
-        let extendedPublicKey = ''
-        let fingerprint = ''
+        if (
+          key.creationType === 'importWif' &&
+          typeof secret === 'object' &&
+          secret.privateKey &&
+          secret.privateKeyCompressed !== undefined &&
+          key.scriptVersion
+        ) {
+          descriptorString =
+            publicDescriptorFromPrivateKey(
+              secret.privateKey,
+              secret.privateKeyCompressed,
+              key.scriptVersion
+            ) ?? 'No descriptor available for imported private key'
+        } else {
+          let extendedPublicKey = ''
+          let fingerprint = ''
 
-        fingerprint =
-          (typeof secret === 'object' && secret.fingerprint) ||
-          key.fingerprint ||
-          ''
+          fingerprint =
+            (typeof secret === 'object' && secret.fingerprint) ||
+            key.fingerprint ||
+            ''
 
-        if (typeof secret === 'object') {
-          if (secret.extendedPublicKey) {
-            ;({ extendedPublicKey } = secret)
-          } else if (secret.externalDescriptor) {
-            extendedPublicKey = getExtendedKeyFromDescriptor(
-              secret.externalDescriptor
-            )
-          } else if (secret.mnemonic) {
-            try {
-              const extendedKey = await getExtendedPublicKeyFromAccountKey(
-                {
-                  ...key,
-                  secret: {
-                    mnemonic: secret.mnemonic,
-                    passphrase: secret.passphrase
-                  }
-                },
-                appNetworkToBdkNetwork(network)
+          if (typeof secret === 'object') {
+            if (secret.extendedPublicKey) {
+              ;({ extendedPublicKey } = secret)
+            } else if (secret.externalDescriptor) {
+              extendedPublicKey = getExtendedKeyFromDescriptor(
+                secret.externalDescriptor
               )
-              if (extendedKey) {
-                extendedPublicKey = extendedKey
+            } else if (secret.mnemonic) {
+              try {
+                const extendedKey = await getExtendedPublicKeyFromAccountKey(
+                  {
+                    ...key,
+                    secret: {
+                      mnemonic: secret.mnemonic,
+                      passphrase: secret.passphrase
+                    }
+                  },
+                  appNetworkToBdkNetwork(network)
+                )
+                if (extendedKey) {
+                  extendedPublicKey = extendedKey
+                }
+              } catch {
+                // Failed to generate extended public key from mnemonic
               }
-            } catch {
-              // Failed to generate extended public key from mnemonic
             }
           }
-        }
 
-        if (!fingerprint && extendedPublicKey) {
-          fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
-        }
+          if (!fingerprint && extendedPublicKey) {
+            fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
+          }
 
-        if (!fingerprint && key.fingerprint) {
-          ;({ fingerprint } = key)
-        }
+          if (!fingerprint && key.fingerprint) {
+            ;({ fingerprint } = key)
+          }
 
-        if (fingerprint && extendedPublicKey) {
-          const derivationPath = key.derivationPath || ''
+          if (fingerprint && extendedPublicKey) {
+            const derivationPath = key.derivationPath || ''
 
-          const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
+            const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
 
-          const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}/<0;1>/*`
+            const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}/<0;1>/*`
 
-          descriptorString = addDescriptorChecksum(
-            singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
-          )
-        } else {
-          descriptorString =
-            'No descriptor available - missing fingerprint or extended public key'
+            descriptorString = addDescriptorChecksum(
+              singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
+            )
+          } else {
+            descriptorString =
+              'No descriptor available - missing fingerprint or extended public key'
+          }
         }
       }
     } else if (temporaryAccount.policyType === 'multisig') {
