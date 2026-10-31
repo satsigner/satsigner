@@ -77,4 +77,23 @@ describe('buildReplacementPsbt', () => {
     expect(params.changeAddress).toHaveBeenCalledWith(SELF)
     expect(wallet.replaceByFee).toHaveBeenCalledWith(params, [ORIGINAL_TXID])
   })
+
+  it('sends the new change to the given address without sweeping', async () => {
+    await buildReplacementPsbt(wallet, {
+      changeAddress: SELF,
+      feeRate: 6,
+      originalTxid: ORIGINAL_TXID,
+      recipients: [{ address: PAYMENT, amountSats: 50_000 }],
+      unspendable: []
+    })
+
+    const params = lastParams()
+    expect(params.addRecipients).toHaveBeenCalledWith([
+      { address: PAYMENT, amountSats: 50_000 }
+    ])
+    expect(params.manuallySelectedOnly).not.toHaveBeenCalled()
+    expect(params.coinSelection).not.toHaveBeenCalled()
+    expect(params.changeAddress).toHaveBeenCalledTimes(1)
+    expect(params.changeAddress).toHaveBeenCalledWith(SELF)
+  })
 })

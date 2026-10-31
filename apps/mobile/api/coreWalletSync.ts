@@ -24,6 +24,7 @@ import {
   type Network as BlockchainNetwork,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import { sleep } from '@/utils/time'
@@ -45,7 +46,8 @@ import {
   BitcoinCoreWallet,
   type CoreTxDetails,
   type CoreWalletInfo,
-  type CoreWalletListTx
+  type CoreWalletListTx,
+  type ImportDescriptorRequest
 } from './rpc'
 
 type CoreWalletSyncProgress = (
@@ -184,22 +186,34 @@ async function importDescriptorsIfNeeded(
     return !account.rpcLastBlockHash
   }
 
-  const results = await coreWallet.importDescriptors([
-    {
-      active: true,
-      desc: external,
-      internal: false,
-      range: [0, stopGap],
-      timestamp: 'now'
-    },
-    {
-      active: true,
-      desc: internal,
-      internal: true,
-      range: [0, stopGap],
-      timestamp: 'now'
-    }
-  ])
+  const ranged = external.includes('*')
+  const requests: ImportDescriptorRequest[] = ranged
+    ? [
+        {
+          active: true,
+          desc: external,
+          internal: false,
+          range: [0, stopGap],
+          timestamp: 'now'
+        },
+        {
+          active: true,
+          desc: internal,
+          internal: true,
+          range: [0, stopGap],
+          timestamp: 'now'
+        }
+      ]
+    : [
+        {
+          // Core rejects active descriptors that are not ranged.
+          active: false,
+          desc: external,
+          internal: false,
+          timestamp: 'now'
+        }
+      ]
+  const results = await coreWallet.importDescriptors(requests)
   const failed = results.find((result) => !result.success && result.error)
   if (failed?.error) {
     throw new Error(
@@ -559,7 +573,11 @@ function peekKeychainAddresses(
   let lastUsed = -1
 
   for (let i = 0; i < stopGap * 2; i += 1) {
-    const { address } = wallet.peekAddress(kind, i)
+    const peeked = peekDerivedAddress(wallet, kind, i)
+    if (!peeked) {
+      break
+    }
+    const { address } = peeked
     if (usedAddresses.has(address)) {
       lastUsed = i
     }

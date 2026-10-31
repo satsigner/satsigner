@@ -73,6 +73,10 @@ export function useKeySourceLabel({
       })
     }
 
+    if (keyDetails.creationType === 'importWif') {
+      return t('account.import.wif.title')
+    }
+
     if (keyDetails.creationType === 'importDescriptor') {
       return t('account.seed.external')
     }
