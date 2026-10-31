@@ -31,7 +31,7 @@ function getEcashMintLabel(
   mintUrl: string
 ) {
   return (
-    mints.find((mint) => mint.url === mintUrl)?.name ??
+    mints.find((mint) => mint.url === mintUrl)?.name ||
     mintUrl.replace(URL_SCHEME, '').split('/')[0]
   )
 }

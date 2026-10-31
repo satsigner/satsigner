@@ -62,4 +62,10 @@ describe('getEcashMintLabel', () => {
       'mint.example:3338'
     )
   })
+
+  it('returns the URL host when the matching mint has an empty name', () => {
+    const mints = [{ name: '', url: MINT_URL }]
+
+    expect(getEcashMintLabel(mints, MINT_URL)).toBe('mint.example')
+  })
 })
