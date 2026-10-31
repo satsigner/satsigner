@@ -297,6 +297,7 @@ async function openSubscription(
       )
     } catch (error) {
       recordBatchProgress(progress, {
+        deferred: [],
         failed: messages.map((message) => ({
           createdAt: message.created_at,
           id: message.id

@@ -701,17 +701,19 @@ function TotalTransactions({
     savedDraft !== undefined &&
     (Object.keys(savedDraft.inputs).length > 0 || savedDraft.outputs.length > 0)
   const nowMs = useNow()
-  const activePayjoinSessions = useMemo(() => {
-    return payjoinSessions.filter(
-      (session) =>
-        session.accountId === account.id &&
-        session.expiresAt > nowMs &&
-        ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
-        // Sender completed strips nativeState — hide those. Receiver completed
-        // stays visible until mempool sync or discard.
-        (session.role === 'receiver' || !!session.nativeState)
-    )
-  }, [account.id, nowMs, payjoinSessions])
+  const activePayjoinSessions = useMemo(
+    () =>
+      payjoinSessions.filter(
+        (session) =>
+          session.accountId === account.id &&
+          session.expiresAt > nowMs &&
+          ACTIVE_PAYJOIN_STATUSES.has(session.status) &&
+          // Sender completed strips nativeState — hide those. Receiver completed
+          // stays visible until mempool sync or discard.
+          (session.role === 'receiver' || !!session.nativeState)
+      ),
+    [account.id, nowMs, payjoinSessions]
+  )
 
   // Drop completed receive cards once the payjoin tx shows up in the wallet
   // (typically after the sender broadcasts and we sync / see mempool).
