@@ -1,4 +1,10 @@
 import type { Key, Secret } from '@/types/models/Account'
+import { getDescriptorsFromKey } from '@/utils/bip32'
+import {
+  getExtendedPublicKeyFromMnemonic,
+  getFingerprintFromMnemonic
+} from '@/utils/bip39'
+import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import {
   getOutputDescriptorStringForKey,
   resolveDescriptorForNostrCommonKeys
@@ -7,6 +13,8 @@ import { deriveNostrKeysFromDescriptor } from '@/utils/nostr'
 
 const DESCRIPTOR =
   "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*)#113CZT8y"
+const MNEMONIC =
+  'visa toddler sentence rival twin believe report person library security stadium hurt'
 
 function baseKey(overrides: Partial<Key> = {}): Key {
   return {
@@ -49,6 +57,51 @@ describe('getOutputDescriptorStringForKey', () => {
     await expect(
       getOutputDescriptorStringForKey(key, secret, 'testnet')
     ).resolves.toBe('sh(wsh(pk(tpubKEY/0/*)))')
+  })
+
+  it.each(['P2WSH', 'P2SH-P2WSH', 'P2SH'] as const)(
+    'matches a generated key for an imported %s multisig mnemonic',
+    async (scriptVersion) => {
+      const bdkNetwork = appNetworkToBdkNetwork('testnet')
+      const extendedPublicKey = getExtendedPublicKeyFromMnemonic(
+        MNEMONIC,
+        '',
+        bdkNetwork,
+        scriptVersion
+      )
+      const fingerprint = getFingerprintFromMnemonic(MNEMONIC)
+      const key = baseKey({ creationType: 'importMnemonic', scriptVersion })
+      const secret: Secret = {
+        extendedPublicKey,
+        fingerprint,
+        mnemonic: MNEMONIC
+      }
+      const { externalDescriptor } = getDescriptorsFromKey(
+        extendedPublicKey,
+        fingerprint,
+        scriptVersion,
+        bdkNetwork,
+        true
+      )
+
+      await expect(
+        getOutputDescriptorStringForKey(key, secret, 'testnet')
+      ).resolves.toBe(externalDescriptor)
+    }
+  )
+
+  it('falls back to the extended public key once the seed is dropped', async () => {
+    const key = baseKey({
+      creationType: 'importMnemonic',
+      scriptVersion: 'P2WSH'
+    })
+    const secret: Secret = {
+      extendedPublicKey: 'tpubKEY',
+      fingerprint: 'e5eda689'
+    }
+    await expect(
+      getOutputDescriptorStringForKey(key, secret, 'testnet')
+    ).resolves.toBe("wsh(pk([e5eda689/48'/1'/0'/2']tpubKEY/0/*))")
   })
 
   it('returns empty for unsupported creation types', async () => {
