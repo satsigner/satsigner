@@ -55,7 +55,7 @@ export default function DescriptorPage() {
     try {
       await getDescriptor()
     } catch {
-      toast.error('Failed to get descriptor')
+      toast.error(t('account.descriptors.fetchFailed'))
     }
     setIsLoading(false)
   }, [key, network])
