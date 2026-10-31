@@ -187,7 +187,9 @@ function clampToNow(createdAt: number): number {
 
 function recordBatchProgress(
   progress: NostrCursorProgress,
-  result: Pick<NostrBatchResult, 'failed' | 'processed'> | undefined
+  result:
+    | Pick<NostrBatchResult, 'deferred' | 'failed' | 'processed'>
+    | undefined
 ): void {
   if (!result) {
     return
@@ -198,7 +200,7 @@ function recordBatchProgress(
       clampToNow(event.createdAt)
     )
   }
-  for (const event of result.failed) {
+  for (const event of [...result.failed, ...(result.deferred ?? [])]) {
     const createdAt = clampToNow(event.createdAt)
     progress.oldestFailed = Math.min(
       progress.oldestFailed ?? createdAt,
@@ -295,6 +297,7 @@ async function openSubscription(
       )
     } catch (error) {
       recordBatchProgress(progress, {
+        deferred: [],
         failed: messages.map((message) => ({
           createdAt: message.created_at,
           id: message.id
@@ -324,7 +327,9 @@ async function openSubscription(
   return { api, eose }
 }
 
+// Intake stops first so the flush drains only events queued before shutdown.
 async function closeApi(api: NostrAPI): Promise<void> {
+  api.stopGiftWrapIntake()
   await api.flushQueue().catch(() => undefined)
   api.closeAllSubscriptions()
 }

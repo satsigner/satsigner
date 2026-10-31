@@ -13,6 +13,7 @@ import {
   type PayjoinCoordinationMode,
   type PayjoinSettings
 } from '@/types/payjoin'
+import { type CurrencyUnit } from '@/types/ui/displayPreferences'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {
@@ -27,7 +28,7 @@ type FiatPriceProvider = 'custom' | 'mempool'
 type SettingsState = {
   mnemonicWordList: WordListName
   useZeroPadding: boolean
-  currencyUnit: 'sats' | 'btc'
+  currencyUnit: CurrencyUnit
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean

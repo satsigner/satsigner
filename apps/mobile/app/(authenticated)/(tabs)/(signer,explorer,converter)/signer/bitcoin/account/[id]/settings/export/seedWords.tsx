@@ -16,13 +16,19 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/decryption'
+import { wifFromStoredSecret } from '@/utils/wif'
 
 async function decryptKeyMnemonic(key: Key) {
   const secret = await decryptKeySecret(key)
   return secret.mnemonic || ''
+}
+
+async function decryptKeyWif(key: Key, network: Account['network']) {
+  const secret = await decryptKeySecret(key)
+  return wifFromStoredSecret(secret, network) || ''
 }
 
 export default function SeedWordsPage() {
@@ -35,6 +41,7 @@ export default function SeedWordsPage() {
   )
 
   const [mnemonic, setMnemonic] = useState('')
+  const [wif, setWif] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
@@ -49,6 +56,12 @@ export default function SeedWordsPage() {
     }
 
     try {
+      if (key.creationType === 'importWif') {
+        const revealed = await decryptKeyWif(key, account.network)
+        setWif(revealed)
+        setNoMnemonicAvailable(!revealed)
+        return
+      }
       const decryptedMnemonic = await decryptKeyMnemonic(key)
       setMnemonic(decryptedMnemonic)
       setNoMnemonicAvailable(!decryptedMnemonic)
@@ -97,8 +110,10 @@ export default function SeedWordsPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {t('account.seed.viewSeedWords')} -{' '}
-              {key.name || `Key ${keyIndexNum + 1}`}
+              {key.creationType === 'importWif'
+                ? t('account.seed.viewPrivateKey')
+                : t('account.seed.viewSeedWords')}{' '}
+              - {key.name || `Key ${keyIndexNum + 1}`}
             </SSText>
           )
         }}
@@ -118,6 +133,21 @@ export default function SeedWordsPage() {
                 label={t('common.back')}
                 onPress={() => router.back()}
               />
+            </SSVStack>
+          ) : wif ? (
+            <SSVStack gap="md">
+              <SSText center uppercase>
+                {t('account.seed.viewPrivateKey')}
+              </SSText>
+              <SSText center color="muted">
+                {t('account.seed.keepItSecret')}
+              </SSText>
+              <SSText center type="mono" selectable>
+                {wif}
+              </SSText>
+              <SSClipboardCopy text={wif}>
+                <SSButton label={t('common.copy')} variant="outline" />
+              </SSClipboardCopy>
             </SSVStack>
           ) : mnemonic ? (
             <>

@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  type LayoutChangeEvent,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
@@ -23,6 +28,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes, Typography } from '@/styles'
+import { mainContainerPaddingHorizontalRatio } from '@/styles/layout'
 import {
   type BlockDifficulty,
   type DifficultyAdjustment
@@ -35,9 +41,6 @@ import {
 import { formatDate, formatNumber, formatTimeFromNow } from '@/utils/format'
 import { time } from '@/utils/time'
 import { weightToVsize } from '@/utils/transaction'
-
-const SCREEN_HEIGHT = Dimensions.get('screen').height
-const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
 
 const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 const MAX_EPOCH = 426
@@ -77,6 +80,8 @@ function ExplorerDifficulty() {
 
   const { width } = useWindowDimensions()
   const CANVAS_WIDTH = width
+  const canvasBleed = width * mainContainerPaddingHorizontalRatio
+  const [canvasHeight, setCanvasHeight] = useState(0)
 
   const [inputEpoch, setInputEpoch] = useState(MAX_EPOCH.toString())
   const [fetchedEpoch, setFetchedEpoch] = useState<string | null>(null)
@@ -173,6 +178,14 @@ function ExplorerDifficulty() {
     setModalVisible(false)
   }
 
+  // The Android keyboard (adjustResize) shrinks the container while the epoch
+  // input is focused. Keeping the largest height clips the spiral instead of
+  // resizing it or unmounting it at zero height.
+  function handleCanvasContainerLayout(event: LayoutChangeEvent) {
+    const { height } = event.nativeEvent.layout
+    setCanvasHeight((current) => Math.max(current, height))
+  }
+
   return (
     <SSMainLayout style={styles.mainContainer}>
       <Stack.Screen
@@ -245,15 +258,20 @@ function ExplorerDifficulty() {
           </SSText>
         </SSVStack>
       ) : (
-        <View style={styles.canvasContainer}>
-          <SSSpiralBlocks
-            data={data}
-            loading={isLoading}
-            maxBlocksPerSpiral={DIFFICULTY_ADJUSTMENT_INTERVAL}
-            canvasWidth={CANVAS_WIDTH}
-            canvasHeight={CANVAS_HEIGHT}
-            onBlockPress={selectBlock}
-          />
+        <View
+          style={[styles.canvasContainer, { marginHorizontal: -canvasBleed }]}
+          onLayout={handleCanvasContainerLayout}
+        >
+          {canvasHeight > 0 ? (
+            <SSSpiralBlocks
+              data={data}
+              loading={isLoading}
+              maxBlocksPerSpiral={DIFFICULTY_ADJUSTMENT_INTERVAL}
+              canvasWidth={CANVAS_WIDTH}
+              canvasHeight={canvasHeight}
+              onBlockPress={selectBlock}
+            />
+          ) : null}
         </View>
       )}
 
@@ -441,7 +459,8 @@ const styles = StyleSheet.create({
   },
   canvasContainer: {
     flex: 1,
-    marginTop: 24
+    marginTop: 24,
+    overflow: 'hidden'
   },
   chainWork: {
     color: Colors.gray['100'],

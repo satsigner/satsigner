@@ -350,7 +350,10 @@ export default function NostrContactProfile() {
               </SSVStack>
             </SSVStack>
           }
+          btcPrice={btcPrice}
+          fiatCurrency={fiatCurrency}
           npub={targetNpub}
+          privacyMode={privacyMode}
           relayConnected={relayConnected}
           relays={effectiveRelays}
           onNotePress={handleNotePress}

@@ -11,7 +11,6 @@ import {
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -19,8 +18,9 @@ import SSModal from '@/components/SSModal'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
-import { MILLISATS_PER_SAT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { LND_INVOICE_POLL_MS } from '@/constants/lightning'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
 import SSHStack from '@/layouts/SSHStack'
@@ -31,6 +31,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { fiatToSats, satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
@@ -67,14 +68,8 @@ export default function InvoicePage() {
   )
   const { config, createInvoice, getNewAddress, makeRequest } = useLND()
   const queryClient = useQueryClient()
-  const [fiatCurrency, satsToFiat, btcPrice, fetchPrices] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice,
-      state.fetchPrices
-    ])
-  )
+  const { btcPrice, fiatCurrency, fiatEnabled } = useDisplayPreferences()
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
   const { fiatPriceApiUrl } = useFiatData()
   useQuery({
     queryFn: () => fetchPrices(fiatPriceApiUrl),
@@ -145,7 +140,7 @@ export default function InvoicePage() {
     setLocalFiatAmount(cleaned)
     const fiat = Number(cleaned)
     if (!Number.isNaN(fiat) && btcPrice && btcPrice > 0) {
-      const sats = Math.round((fiat / btcPrice) * SATS_PER_BITCOIN)
+      const sats = fiatToSats(fiat, btcPrice)
       setInvoiceAmount(sats > 0 ? sats.toString() : '')
     }
   }
@@ -155,7 +150,11 @@ export default function InvoicePage() {
       return
     }
     if (invoiceAmount) {
-      const fiat = satsToFiat(Number.parseInt(invoiceAmount, 10))
+      const fiat = satsToFiat(
+        Number.parseInt(invoiceAmount, 10),
+        btcPrice,
+        fiatEnabled
+      )
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -479,7 +478,11 @@ export default function InvoicePage() {
                       ≈{' '}
                       {invoiceAmount
                         ? formatNumber(
-                            satsToFiat(Number.parseInt(invoiceAmount, 10)),
+                            satsToFiat(
+                              Number.parseInt(invoiceAmount, 10),
+                              btcPrice,
+                              fiatEnabled
+                            ),
                             2
                           )
                         : '0'}{' '}
@@ -631,7 +634,11 @@ export default function InvoicePage() {
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
-                          satsToFiat(Number.parseInt(currentAmount, 10)),
+                          satsToFiat(
+                            Number.parseInt(currentAmount, 10),
+                            btcPrice,
+                            fiatEnabled
+                          ),
                           2
                         )}{' '}
                         {fiatCurrency}

@@ -72,7 +72,7 @@ async function resumeAccountSync(accountId: string): Promise<boolean> {
   }
   await reconnectNdkForRelays(account.nostr.relays).catch(() => undefined)
   await nostrSyncService.restartSync(accountId)
-  return true
+  return nostrSyncService.hasActiveSubscription(accountId)
 }
 
 async function resumeAccountSyncSafely(accountId: string): Promise<boolean> {

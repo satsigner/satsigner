@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useFocusEffect } from 'expo-router'
+import { useIsFocused } from 'expo-router/react-navigation'
 import { useCallback, useState, useSyncExternalStore } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
@@ -72,9 +73,10 @@ export function useNostrChatSubscription(identity: ChatIdentity | undefined) {
     setRetrying(true)
     try {
       await restartChatPipeline(npub)
-    } finally {
-      setRetrying(false)
+    } catch {
+      // Relay outages are non-fatal; retry state still clears below.
     }
+    setRetrying(false)
   }
 
   return { retry, retrying, status }
@@ -140,9 +142,10 @@ export function useNostrChatThread(
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
+  const focused = useIsFocused()
 
   const { data } = useQuery({
-    enabled: Boolean(identity && peerPubkey),
+    enabled: focused && Boolean(identity && peerPubkey),
     placeholderData: keepPreviousData,
     queryFn: () =>
       loadChatThreadItems(identityNpub, protocol, peerPubkey ?? '', limit),
@@ -168,9 +171,11 @@ export function useNostrChatThread(
     try {
       const { exhausted } = await loadOlderChatHistory(identity.npub, protocol)
       setHistoryExhausted(exhausted)
-    } finally {
+    } catch (error) {
       setLoadingOlder(false)
+      throw error
     }
+    setLoadingOlder(false)
   }
 
   async function send(text: string) {
@@ -195,14 +200,17 @@ export function useNostrChatThread(
       )
     } catch (error) {
       setInput(text)
-      throw error
-    } finally {
-      // Refresh in both outcomes so the card flips to sent/failed at once.
       invalidateChatQueries(identity.npub)
       setSending(false)
       if (!pipelineApi) {
         api.closeAllSubscriptions()
       }
+      throw error
+    }
+    invalidateChatQueries(identity.npub)
+    setSending(false)
+    if (!pipelineApi) {
+      api.closeAllSubscriptions()
     }
   }
 

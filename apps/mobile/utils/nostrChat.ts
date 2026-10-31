@@ -895,7 +895,7 @@ async function loadOlderChatHistory(
     protocol,
     until
   )
-  if (oldest === null && !complete) {
+  if (!complete) {
     return { exhausted: false }
   }
   cursor.exhausted = oldest === null

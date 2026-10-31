@@ -1,4 +1,5 @@
 import {
+  fiatToSats,
   isHistoricalFiatAvailable,
   missingHistoricalFiatData,
   normalizeFiatPriceApiUrl,
@@ -19,6 +20,28 @@ describe('satsToFiat', () => {
     expect(satsToFiat(-1, 60_000, true)).toBe(0)
     expect(satsToFiat(Number.NaN, 60_000, true)).toBe(0)
     expect(satsToFiat(1000, 0, true)).toBe(0)
+  })
+})
+
+describe('fiatToSats', () => {
+  it('converts fiat at the given bitcoin price', () => {
+    expect(fiatToSats(30_000, 60_000)).toBe(50_000_000)
+  })
+
+  it('rounds to the nearest sat', () => {
+    expect(fiatToSats(0.01, 60_000)).toBe(17)
+  })
+
+  it('round-trips with satsToFiat', () => {
+    expect(fiatToSats(satsToFiat(123_456, 60_000, true), 60_000)).toBe(123_456)
+  })
+
+  it('is 0 for non-positive or invalid amounts and prices', () => {
+    expect(fiatToSats(0, 60_000)).toBe(0)
+    expect(fiatToSats(-1, 60_000)).toBe(0)
+    expect(fiatToSats(Number.NaN, 60_000)).toBe(0)
+    expect(fiatToSats(10, 0)).toBe(0)
+    expect(fiatToSats(10, Number.NaN)).toBe(0)
   })
 })
 

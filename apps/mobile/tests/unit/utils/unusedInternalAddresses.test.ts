@@ -1,4 +1,4 @@
-import { BdkWallet, Network } from 'react-native-bdk-sdk'
+import { BdkWallet, KeychainKind, Network } from 'react-native-bdk-sdk'
 
 import { UNUSED_INTERNAL_ADDRESSES_NEEDED } from '@/constants/btc'
 import type { Account, Key } from '@/types/models/Account'
@@ -134,6 +134,46 @@ describe('getUnusedInternalAddresses', () => {
     expect(wallet.peekAddress).toHaveBeenCalledTimes(
       UNUSED_INTERNAL_ADDRESSES_NEEDED
     )
+  })
+
+  it('sends change of a WIF account back to its one address', () => {
+    const wallet = makeWallet()
+    wallet.peekAddress.mockImplementation((keychain: unknown) => ({
+      address:
+        keychain === KeychainKind.External ? 'wif-receive' : 'wif-companion',
+      index: 0,
+      keychain
+    }))
+    const account = makeAccount({
+      keys: [makeKey({ creationType: 'importWif' })],
+      transactions: [makeTransactionWithOutputs(['wif-receive'])]
+    })
+
+    expect(getUnusedInternalAddresses(account, wallet)).toStrictEqual({
+      changeAddress: 'wif-receive',
+      decoyAddress: '',
+      secondChangeAddress: ''
+    })
+  })
+
+  it('stops at the one address of a descriptor without a wildcard', () => {
+    const wallet = makeWallet()
+    wallet.peekAddress.mockImplementation((keychain: unknown) => ({
+      address: 'single-internal',
+      index: 0,
+      keychain
+    }))
+    const account = makeAccount({
+      keys: [makeKey({ creationType: 'importDescriptor' })],
+      transactions: [makeTransactionWithOutputs(['single-internal'])]
+    })
+
+    expect(getUnusedInternalAddresses(account, wallet)).toStrictEqual({
+      changeAddress: '',
+      decoyAddress: '',
+      secondChangeAddress: ''
+    })
+    expect(wallet.peekAddress).toHaveBeenCalledTimes(2)
   })
 
   it('gives up after scanning the maximum number of addresses', () => {

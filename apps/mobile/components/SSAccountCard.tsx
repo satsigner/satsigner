@@ -8,17 +8,15 @@ import Animated, {
   withRepeat,
   withTiming
 } from 'react-native-reanimated'
-import { useShallow } from 'zustand/react/shallow'
 
 import { MS_PER_SECOND } from '@/constants/time'
-import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import { type Account } from '@/types/models/Account'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
@@ -33,7 +31,15 @@ export type SSAccountCardStat = {
   value: number
 }
 
-type SSAccountCardProps = {
+type SSAccountCardProps = Pick<
+  DisplayPreferences,
+  | 'btcPrice'
+  | 'currencyUnit'
+  | 'fiatCurrency'
+  | 'fiatEnabled'
+  | 'privacyMode'
+  | 'useZeroPadding'
+> & {
   onPress(): void
   onLongPress?: () => void
   delayLongPress?: number
@@ -62,24 +68,15 @@ function SSAccountCard({
   watchOnly = false,
   syncStatus,
   lastSyncedAt,
-  stats
+  stats,
+  btcPrice,
+  currencyUnit,
+  fiatCurrency,
+  fiatEnabled,
+  privacyMode,
+  useZeroPadding
 }: SSAccountCardProps) {
   const platform = Platform.OS
-  const { showCurrentFiat } = useFiatData()
-  const [fiatCurrency, satsToFiat, btcPrice] = usePriceStore(
-    useShallow((state) => [
-      state.fiatCurrency,
-      state.satsToFiat,
-      state.btcPrice
-    ])
-  )
-  const [currencyUnit, useZeroPadding, privacyMode] = useSettingsStore(
-    useShallow((state) => [
-      state.currencyUnit,
-      state.useZeroPadding,
-      state.privacyMode
-    ])
-  )
 
   const rotation = useSharedValue(0)
 
@@ -241,7 +238,7 @@ function SSAccountCard({
                 unitSize="xl"
               />
             </SSHStack>
-            {showCurrentFiat ? (
+            {fiatEnabled ? (
               <SSHStack
                 gap="xs"
                 style={{
@@ -254,7 +251,10 @@ function SSAccountCard({
                     ? '--'
                     : privacyMode
                       ? '••••'
-                      : formatNumber(satsToFiat(balance), 2)}
+                      : formatNumber(
+                          satsToFiat(balance, btcPrice, fiatEnabled),
+                          2
+                        )}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
                   {fiatCurrency}

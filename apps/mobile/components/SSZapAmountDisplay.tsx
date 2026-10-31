@@ -3,24 +3,25 @@ import { StyleSheet } from 'react-native'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
-import { usePriceStore } from '@/store/price'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatFiatPrice } from '@/utils/format'
 
-type SSZapAmountDisplayProps = {
+type SSZapAmountDisplayProps = Pick<
+  DisplayPreferences,
+  'btcPrice' | 'fiatCurrency' | 'privacyMode'
+> & {
   amountSats: number
   incoming?: boolean
 }
 
 export default function SSZapAmountDisplay({
   amountSats,
-  incoming
+  incoming,
+  btcPrice,
+  fiatCurrency,
+  privacyMode
 }: SSZapAmountDisplayProps) {
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
-  const btcPrice = usePriceStore((state) => state.btcPrice)
-  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
-
   if (privacyMode) {
     return (
       <SSText size="sm" weight="medium">

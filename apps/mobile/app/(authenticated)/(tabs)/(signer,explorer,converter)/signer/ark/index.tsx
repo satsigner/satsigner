@@ -12,6 +12,7 @@ import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/ark'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -52,6 +53,7 @@ export default function ArkAccountListPage() {
     useShallow((state) => [state.accounts, state.balances, state.stats])
   )
   useFetchBitcoinPrice()
+  const display = useDisplayPreferences()
 
   const [tabIndex, setTabIndex] = useState(0)
   const currentNetwork = ARK_SUPPORTED_NETWORKS[tabIndex]
@@ -137,6 +139,7 @@ export default function ArkAccountListPage() {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <SSAccountCard
+                {...display}
                 name={item.name}
                 balance={balances[item.id]?.spendableSats ?? 0}
                 stats={buildArkAccountCardStats(stats[item.id])}

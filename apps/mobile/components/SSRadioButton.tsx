@@ -39,6 +39,7 @@ function SSRadioButton({
         style
       ]}
       activeOpacity={variant === 'default' ? 0.6 : 1}
+      disabled={disabled}
       {...props}
     >
       {variant === 'outline' ? <SSOutlineGlassBorders /> : null}

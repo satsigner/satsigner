@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, View, type ViewInstance } from 'react-native'
-import { KeychainKind, walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,126 +9,56 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
+import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { CreationType } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { getDescriptorsFromKey } from '@/utils/bip32'
-import { getPublicDescriptorFromMnemonic } from '@/utils/bip39'
-import {
-  appNetworkToBdkNetwork,
-  getDerivationPathFromScriptVersion
-} from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
-import { singlesigDescriptorFromKeyPart } from '@/utils/getOutputDescriptorForKey'
+import { getOutputDescriptorStringForKey } from '@/utils/getOutputDescriptorForKey'
 
 export default function DescriptorPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
   const router = useRouter()
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const [getAccountData] = useAccountBuilderStore(
-    useShallow((state) => [state.getAccountData])
+  const keyIndexNum = Number.parseInt(keyIndex, 10)
+  const [accountName, key] = useAccountBuilderStore(
+    useShallow((state) => [state.name, state.keys[keyIndexNum]])
   )
 
   const [isLoading, setIsLoading] = useState(true)
   const [descriptor, setDescriptor] = useState('')
   const qrRef = useRef<ViewInstance>(null)
-  const [keyName, setKeyName] = useState('')
-  const [creationType, setCreationType] = useState<CreationType | null>()
-  const [scriptVersion, setScriptVersion] =
-    useState<ScriptVersionType>('P2WPKH')
 
-  useEffect(() => {
-    async function getDescriptor() {
-      if (!keyIndex) {
-        return
-      }
+  const keyName = key?.name || `Key ${keyIndexNum + 1}`
 
-      setIsLoading(true)
-
-      const accountData = getAccountData()
-      const keyIndexNum = Number.parseInt(keyIndex, 10)
-      const key = accountData.keys[keyIndexNum]
-
-      if (!key) {
-        toast.error('Key not found')
-        return
-      }
-
-      setKeyName(key.name || `Key ${keyIndexNum + 1}`)
-      setCreationType(key.creationType)
-      setScriptVersion(key.scriptVersion || 'P2WPKH')
-
-      let foundDescriptor = ''
-      if (typeof key.secret === 'object') {
-        const { secret } = key
-
-        if (secret.externalDescriptor) {
-          foundDescriptor = secret.externalDescriptor
-        } else if (secret.internalDescriptor) {
-          foundDescriptor = secret.internalDescriptor
-        } else if (secret.mnemonic) {
-          foundDescriptor = await getPublicDescriptorFromMnemonic(
-            secret.mnemonic,
-            scriptVersion,
-            KeychainKind.External,
-            secret.passphrase,
-            appNetworkToBdkNetwork(network)
-          )
-        } else if (secret.extendedPublicKey && secret.fingerprint) {
-          const keyScriptVersion = key.scriptVersion || 'P2WPKH'
-          try {
-            const descriptors = getDescriptorsFromKey(
-              secret.extendedPublicKey,
-              secret.fingerprint,
-              keyScriptVersion,
-              appNetworkToBdkNetwork(network)
-            )
-            foundDescriptor = descriptors.externalDescriptor
-            setDescriptor(descriptors.externalDescriptor)
-          } catch {
-            // Failed to generate descriptor from key data
-            // Fallback: try to construct descriptor manually
-            const derivationPath = getDerivationPathFromScriptVersion(
-              keyScriptVersion,
-              network
-            )
-            const keyPart = `[${secret.fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`
-
-            const externalDescriptor = singlesigDescriptorFromKeyPart(
-              keyPart,
-              key.scriptVersion
-            )
-
-            try {
-              walletNameFromDescriptor(
-                externalDescriptor,
-                undefined,
-                appNetworkToBdkNetwork(network)
-              )
-              foundDescriptor = externalDescriptor
-              setDescriptor(foundDescriptor)
-            } catch {
-              foundDescriptor = externalDescriptor
-              setDescriptor(externalDescriptor)
-            }
-          }
-        }
-      }
-
-      if (foundDescriptor) {
-        setDescriptor(foundDescriptor)
-      } else {
-        toast.error('No descriptors available for this key')
-      }
-      setIsLoading(false)
+  async function getDescriptor() {
+    if (!key) {
+      toast.error('Key not found')
+      return
     }
 
-    getDescriptor()
-  }, [keyIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+    const descriptorString =
+      typeof key.secret === 'object'
+        ? await getOutputDescriptorStringForKey(key, key.secret, network)
+        : ''
+    if (!descriptorString) {
+      toast.error('No descriptors available for this key')
+      return
+    }
+    setDescriptor(descriptorString)
+  }
+
+  useAsyncEffect(async () => {
+    setIsLoading(true)
+    try {
+      await getDescriptor()
+    } catch {
+      toast.error(t('account.descriptors.fetchFailed'))
+    }
+    setIsLoading(false)
+  }, [key, network])
 
   function exportDescriptor() {
     if (!descriptor) {
@@ -137,10 +66,9 @@ export default function DescriptorPage() {
       return
     }
 
-    const accountData = getAccountData()
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `Descriptor_${accountData.name}_${keyName}_${date}.${ext}`
+    const filename = `Descriptor_${accountName}_${keyName}_${date}.${ext}`
     shareFile({
       dialogTitle: t('export.file.save'),
       fileContent: descriptor,
@@ -163,11 +91,13 @@ export default function DescriptorPage() {
               {keyName}
             </SSText>
             <SSText center color="muted" size="sm">
-              {t('account.descriptor.creationType', { type: creationType })}
+              {t('account.descriptor.creationType', {
+                type: key?.creationType
+              })}
             </SSText>
             <SSText center color="muted" size="sm">
               {t('account.descriptor.scriptVersion', {
-                version: scriptVersion
+                version: key?.scriptVersion
               })}
             </SSText>
           </SSVStack>
