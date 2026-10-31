@@ -56,7 +56,8 @@ export default function ImportWif() {
     setPrivateKey,
     setKey,
     getAccountData,
-    clearKeyState
+    clearKeyState,
+    resetKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -68,7 +69,8 @@ export default function ImportWif() {
       state.setPrivateKey,
       state.setKey,
       state.getAccountData,
-      state.clearKeyState
+      state.clearKeyState,
+      state.resetKey
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -100,16 +102,31 @@ export default function ImportWif() {
     setScriptVersionModalVisible(false)
   }
 
+  function discardFailedImport() {
+    clearKeyState()
+    resetKey(Number(keyIndex))
+    toast.error(t('account.import.error.generic'))
+  }
+
+  function openCreatedAccount(
+    data: Awaited<ReturnType<typeof accountBuilderFinish>>
+  ) {
+    if (!data || !data.wallet) {
+      discardFailedImport()
+      return
+    }
+    router.navigate(
+      `/signer/bitcoin/account/add/created/${data.accountWithEncryptedSecret.id}`
+    )
+    setTimeout(clearAccount, 1500)
+  }
+
   async function handleImport() {
     if (!decoded.ok) {
       return
     }
     const secret = wifImportSecret(decoded, importScript)
-    if (!secret?.externalDescriptor || !secret.privateKey) {
-      toast.error(t('account.import.wif.invalid'))
-      return
-    }
-    if (secret.privateKeyCompressed === undefined) {
+    if (!secret) {
       toast.error(t('account.import.wif.invalid'))
       return
     }
@@ -123,17 +140,9 @@ export default function ImportWif() {
     try {
       const account = getAccountData()
       const data = await accountBuilderFinish(account)
-      if (!data?.wallet) {
-        toast.error(t('account.import.wif.invalid'))
-        return
-      }
-      router.navigate(
-        `/signer/bitcoin/account/add/created/${data.accountWithEncryptedSecret.id}`
-      )
-      setTimeout(clearAccount, 1500)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('account.import.wif.invalid')}: ${reason}`)
+      openCreatedAccount(data)
+    } catch {
+      discardFailedImport()
     }
   }
 

@@ -48,15 +48,17 @@ import {
   type BlockchainBackup
 } from '@/utils/blockchainBackup'
 import { aesEncrypt, randomIv } from '@/utils/crypto'
+import {
+  type BackupKeySecret,
+  hasBackupKeySecret,
+  secretFromBackupKey
+} from '@/utils/keyBackup'
 import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
 
-type BackupKey = Key & {
-  passphrase?: string
-  seedWords?: string
-}
+type BackupKey = Key & BackupKeySecret
 type BackupAccount = {
   birthdayDate?: string
   createdAt?: string
@@ -229,10 +231,7 @@ function assertBackupData(value: unknown): asserts value is BackupData {
 }
 
 function hasSeedData(key: unknown): boolean {
-  return (
-    isRecord(key) &&
-    (key.seedWords !== undefined || key.passphrase !== undefined)
-  )
+  return isRecord(key) && hasBackupKeySecret(key)
 }
 
 function isOptionalLndConfig(value: unknown): boolean {
@@ -302,15 +301,7 @@ async function prepareRestore(
   for (const [accountDisplayIndex, acc] of data.accounts.entries()) {
     const accountKeys: Key[] = []
     for (const k of acc.keys) {
-      const secretObj =
-        k.seedWords !== undefined || k.passphrase !== undefined
-          ? {
-              ...(k.seedWords !== undefined && { mnemonic: k.seedWords }),
-              ...(k.passphrase !== undefined && {
-                passphrase: k.passphrase
-              })
-            }
-          : undefined
+      const secretObj = secretFromBackupKey(k)
       if (secretObj === undefined) {
         throw new Error('Key missing seed data')
       }

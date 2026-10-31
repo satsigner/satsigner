@@ -994,6 +994,7 @@ function isUtxoInWallet(
 async function buildReplacementPsbt(
   wallet: BdkWallet,
   data: {
+    changeAddress?: string
     feeRate: number
     originalTxid: string
     recipients: FeeReplacementRecipient[]
@@ -1011,7 +1012,10 @@ async function buildReplacementPsbt(
     // spend every other wallet UTXO.
     params.manuallySelectedOnly()
     params.coinSelection(new SelectionStrategy.All())
-    params.changeAddress(data.sweepTo)
+  }
+  const drainTo = data.sweepTo ?? data.changeAddress
+  if (drainTo) {
+    params.changeAddress(drainTo)
   }
   const { psbt } = await wallet.replaceByFee(params, [data.originalTxid])
   return psbt

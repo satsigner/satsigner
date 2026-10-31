@@ -2,6 +2,8 @@ import { KeychainKind } from 'react-native-bdk-sdk'
 
 import {
   findExternalAddressIndex,
+  hasSingleExternalAddress,
+  receiveAddressPath,
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
 
@@ -17,6 +19,16 @@ function mockWallet(addresses: string[]) {
       }
       return { address, index }
     }
+  }
+}
+
+function singleScriptWallet(address: string) {
+  return {
+    peekAddress: jest.fn((keychain: KeychainKind) => ({
+      address,
+      index: 0,
+      keychain
+    }))
   }
 }
 
@@ -60,5 +72,37 @@ describe('externalAddress', () => {
     expect(selection.address).toBe('unused0')
     expect(selection.index).toBe(0)
     expect(selection.path).toBe("m/84'/1'/0'/0/0")
+  })
+
+  it('stops after the one address of a descriptor without a wildcard', () => {
+    const wallet = singleScriptWallet('wif-addr')
+    expect(findExternalAddressIndex(wallet, 'wif-addr')).toBe(0)
+    expect(findExternalAddressIndex(wallet, 'missing')).toBeUndefined()
+    expect(wallet.peekAddress).toHaveBeenCalledTimes(3)
+  })
+
+  it('tells a single address keychain from a ranged one', () => {
+    expect(hasSingleExternalAddress(singleScriptWallet('wif-addr'))).toBe(true)
+    expect(hasSingleExternalAddress(mockWallet(['addr0', 'addr1']))).toBe(false)
+  })
+
+  it('builds no path for a key without a derivation path', () => {
+    expect(receiveAddressPath(undefined, 0)).toBe('')
+    expect(receiveAddressPath('', 0)).toBe('')
+    expect(receiveAddressPath("m/84'/0'/0'", 4)).toBe("m/84'/0'/0'/0/4")
+  })
+
+  it('selects the one address of a WIF account without a path', () => {
+    const selection = resolveReceiveAddressSelection({
+      fallback: { address: 'wif-addr', index: 0 },
+      wallet: singleScriptWallet('wif-addr')
+    })
+
+    expect(selection).toStrictEqual({
+      address: 'wif-addr',
+      index: 0,
+      path: '',
+      qrUri: 'bitcoin:wif-addr'
+    })
   })
 })

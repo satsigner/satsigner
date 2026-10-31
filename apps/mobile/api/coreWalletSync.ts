@@ -24,6 +24,7 @@ import {
   type Network as BlockchainNetwork,
   type RpcCredentials
 } from '@/types/settings/blockchain'
+import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import { sleep } from '@/utils/time'
@@ -572,7 +573,11 @@ function peekKeychainAddresses(
   let lastUsed = -1
 
   for (let i = 0; i < stopGap * 2; i += 1) {
-    const { address } = wallet.peekAddress(kind, i)
+    const peeked = peekDerivedAddress(wallet, kind, i)
+    if (!peeked) {
+      break
+    }
+    const { address } = peeked
     if (usedAddresses.has(address)) {
       lastUsed = i
     }

@@ -16,7 +16,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { decryptKeySecret } from '@/utils/decryption'
 import { wifFromStoredSecret } from '@/utils/wif'
@@ -24,6 +24,11 @@ import { wifFromStoredSecret } from '@/utils/wif'
 async function decryptKeyMnemonic(key: Key) {
   const secret = await decryptKeySecret(key)
   return secret.mnemonic || ''
+}
+
+async function decryptKeyWif(key: Key, network: Account['network']) {
+  const secret = await decryptKeySecret(key)
+  return wifFromStoredSecret(secret, network) || ''
 }
 
 export default function SeedWordsPage() {
@@ -52,8 +57,7 @@ export default function SeedWordsPage() {
 
     try {
       if (key.creationType === 'importWif') {
-        const secret = await decryptKeySecret(key)
-        const revealed = wifFromStoredSecret(secret, account.network) || ''
+        const revealed = await decryptKeyWif(key, account.network)
         setWif(revealed)
         setNoMnemonicAvailable(!revealed)
         return

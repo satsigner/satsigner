@@ -1,6 +1,7 @@
 import { descriptorHasPrivateKeyMaterial } from '@/utils/descriptor'
 import {
   decodeWif,
+  encodeWif,
   isScriptVersionAllowedForWif,
   publicDescriptorFromPrivateKey,
   walletDescriptorsFromPrivateKey,
@@ -12,6 +13,9 @@ const PRIVATE_KEY_HEX =
   '0c28fca386c7a227600b2fe50b7cae11ec86d3bf1fbe471be89827e19d72aa1d'
 const COMPRESSED_WIF = 'KwdMAjGmerYanjeui5SHS7JkmpZvVipYvB2LJGU1ZxJwYvP98617'
 const UNCOMPRESSED_WIF = '5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ'
+const ZERO_KEY_HEX = '00'.repeat(32)
+const CURVE_ORDER_HEX =
+  'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141'
 
 describe('decodeWif', () => {
   it('keeps the 32-byte key and drops the WIF string', () => {
@@ -44,6 +48,16 @@ describe('decodeWif', () => {
       ok: false,
       reason: 'network'
     })
+  })
+
+  it('rejects a key outside the curve order without throwing', () => {
+    for (const keyHex of [ZERO_KEY_HEX, CURVE_ORDER_HEX]) {
+      const wif = encodeWif(keyHex, 'bitcoin', true) ?? ''
+      expect(decodeWif(wif, 'bitcoin')).toStrictEqual({
+        ok: false,
+        reason: 'invalid'
+      })
+    }
   })
 
   it('accepts the testnet version byte on testnet and signet', () => {
@@ -139,8 +153,8 @@ describe('walletDescriptorsFromPrivateKey', () => {
     expect(descriptors?.receive.startsWith(`pkh(${UNCOMPRESSED_WIF})`)).toBe(
       true
     )
-    expect(
-      descriptors?.change.startsWith(`sh(pkh(${UNCOMPRESSED_WIF}))`)
-    ).toBe(true)
+    expect(descriptors?.change.startsWith(`sh(pkh(${UNCOMPRESSED_WIF}))`)).toBe(
+      true
+    )
   })
 })

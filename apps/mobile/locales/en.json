@@ -2574,6 +2574,7 @@
     "includeLabel": "Label",
     "label": "Label",
     "neverUsed": "Never used",
+    "usedBefore": "Used before",
     "noPrefix": "Prefix",
     "pasteAmount": "Paste Amount",
     "pasteLabel": "Paste Label",

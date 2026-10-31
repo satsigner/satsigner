@@ -1,7 +1,7 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import bs58check from 'bs58check'
 
-import { type Secret } from '@/types/models/Account'
+import { type Account, type Secret } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { type Network } from '@/types/settings/blockchain'
 import { addDescriptorChecksum } from '@/utils/descriptor'
@@ -12,6 +12,7 @@ const WIF_VERSION_MAINNET = 0x80
 const WIF_VERSION_TESTNET = 0xef
 const WIF_COMPRESSED_FLAG = 0x01
 const COMPRESSED_PUBLIC_KEY_PREFIX_LENGTH = 1
+const HEX_PATTERN = /^[0-9a-f]+$/i
 
 const COMPRESSED_WIF_SCRIPT_VERSIONS = ['P2PKH', 'P2WPKH', 'P2TR'] as const
 const UNCOMPRESSED_WIF_SCRIPT_VERSIONS = ['P2PKH'] as const
@@ -106,7 +107,7 @@ export function decodeWif(wif: string, network: Network): WifDecodeResult {
   }
 
   const privateKey = payload.subarray(1, 1 + PRIVATE_KEY_BYTE_LENGTH)
-  if (!ecc.pointFromScalar(privateKey, true)) {
+  if (!ecc.isPrivate(privateKey)) {
     return { ok: false, reason: 'invalid' }
   }
 
@@ -115,6 +116,14 @@ export function decodeWif(wif: string, network: Network): WifDecodeResult {
     ok: true,
     privateKeyHex: Buffer.from(privateKey).toString('hex')
   }
+}
+
+export function isPrivateKeyHex(value: string) {
+  return (
+    value.length === PRIVATE_KEY_HEX_LENGTH &&
+    HEX_PATTERN.test(value) &&
+    ecc.isPrivate(Buffer.from(value, 'hex'))
+  )
 }
 
 function publicKeyHex(privateKeyHex: string, compressed: boolean) {
@@ -217,7 +226,7 @@ function companionPrivateDescriptor(
 export function wifImportSecret(
   decoded: Extract<WifDecodeResult, { ok: true }>,
   scriptVersion: ScriptVersionType
-): Secret | undefined {
+) {
   const externalDescriptor = publicDescriptorFromPrivateKey(
     decoded.privateKeyHex,
     decoded.compressed,
@@ -250,6 +259,10 @@ export function encodeWif(
       ])
     : Buffer.concat([Buffer.from([wifVersion(network)]), privateKey])
   return bs58check.encode(payload)
+}
+
+export function isWifAccount(account: Pick<Account, 'keys'>) {
+  return account.keys[0]?.creationType === 'importWif'
 }
 
 export function wifFromStoredSecret(secret: Secret, network: Network) {
