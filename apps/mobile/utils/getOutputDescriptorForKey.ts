@@ -103,7 +103,7 @@ export async function getOutputDescriptorStringForKey(
         bdkNetwork
       )
     }
-    return ''
+    return getOutputDescriptorFromExtendedPublicKey(key, secret, appNetwork)
   }
 
   if (key.creationType === 'importWif') {
@@ -145,30 +145,43 @@ export async function getOutputDescriptorStringForKey(
     return descriptorString
   }
 
-  if (key.creationType === 'importExtendedPub' && secret.extendedPublicKey) {
-    const fingerprint = secret.fingerprint || ''
-    if (fingerprint) {
-      try {
-        const descriptors = getDescriptorsFromKey(
-          secret.extendedPublicKey,
-          fingerprint,
-          key.scriptVersion || 'P2WPKH',
-          bdkNetwork
-        )
-        return descriptors.externalDescriptor
-      } catch {
-        // Fall through to manual construction (same as Export Descriptor).
-      }
-    }
-    const derivationPath = getDerivationPathFromScriptVersion(
-      key.scriptVersion || 'P2WPKH',
-      appNetwork
-    )
-    const keyPart = fingerprint
-      ? `[${fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`
-      : `${secret.extendedPublicKey}/0/*`
-    return singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
+  if (key.creationType === 'importExtendedPub') {
+    return getOutputDescriptorFromExtendedPublicKey(key, secret, appNetwork)
   }
 
   return ''
+}
+
+function getOutputDescriptorFromExtendedPublicKey(
+  key: Key,
+  secret: Secret,
+  appNetwork: AppNetwork
+): string {
+  const { extendedPublicKey } = secret
+  if (!extendedPublicKey) {
+    return ''
+  }
+
+  const fingerprint = secret.fingerprint || ''
+  if (fingerprint) {
+    try {
+      const descriptors = getDescriptorsFromKey(
+        extendedPublicKey,
+        fingerprint,
+        key.scriptVersion || 'P2WPKH',
+        appNetworkToBdkNetwork(appNetwork)
+      )
+      return descriptors.externalDescriptor
+    } catch {
+      // Fall through to manual construction (same as Export Descriptor).
+    }
+  }
+  const derivationPath = getDerivationPathFromScriptVersion(
+    key.scriptVersion || 'P2WPKH',
+    appNetwork
+  )
+  const keyPart = fingerprint
+    ? `[${fingerprint}/${derivationPath}]${extendedPublicKey}/0/*`
+    : `${extendedPublicKey}/0/*`
+  return singlesigDescriptorFromKeyPart(keyPart, key.scriptVersion)
 }
