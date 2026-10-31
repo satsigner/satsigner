@@ -28,6 +28,7 @@
     "descriptor.creationType": "Creation Type: %{type}",
     "descriptor.scriptVersion": "Script Version: %{version}",
     "descriptor.title": "Descriptor",
+    "descriptors.fetchFailed": "Failed to get descriptor",
     "descriptors.noAvailable": "No descriptors available",
     "enter.pin": "Enter pin",
     "entropy.biasWarningMixed": "Your input looks weak (biased or patterned). Device mixing still protects the seed — varied input is better.",
