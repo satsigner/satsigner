@@ -171,8 +171,9 @@ export function useNostrChatThread(
     try {
       const { exhausted } = await loadOlderChatHistory(identity.npub, protocol)
       setHistoryExhausted(exhausted)
-    } catch {
-      // History paging failures leave the thread unchanged.
+    } catch (error) {
+      setLoadingOlder(false)
+      throw error
     }
     setLoadingOlder(false)
   }

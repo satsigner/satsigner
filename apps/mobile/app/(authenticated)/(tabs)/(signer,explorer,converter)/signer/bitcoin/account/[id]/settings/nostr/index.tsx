@@ -745,6 +745,12 @@ export default function NostrSync() {
         return
       }
       if (keys && 'commonNsec' in keys && 'commonNpub' in keys) {
+        const accountStillExists = useAccountsStore
+          .getState()
+          .accounts.some((item) => item.id === accountId)
+        if (!accountStillExists) {
+          return
+        }
         setCommonNsec(keys.commonNsec)
         updateAccountNostr(accountId, {
           commonNpub: keys.commonNpub,
