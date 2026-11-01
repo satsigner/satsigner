@@ -11,6 +11,7 @@ const config = {
     '^react-native-nitro-sqlite$':
       '<rootDir>/tests/relay/support/nodeNitroSqlite.ts'
   },
+  setupFiles: ['<rootDir>/tests/relay/support/preloadWinter.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/relay/support/setup.ts'],
   testEnvironment: 'node',
   testMatch: ['<rootDir>/tests/relay/**/*.test.ts'],
