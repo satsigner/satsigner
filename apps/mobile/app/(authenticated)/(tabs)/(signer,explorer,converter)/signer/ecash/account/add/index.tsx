@@ -5,6 +5,7 @@ import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
@@ -108,6 +109,7 @@ export default function EcashAccountAddPage() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => (

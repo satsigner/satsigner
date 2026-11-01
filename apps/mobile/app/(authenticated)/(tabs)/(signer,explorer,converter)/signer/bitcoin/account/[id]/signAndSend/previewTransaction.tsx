@@ -13,6 +13,7 @@ import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSMnemonicWordCountSelectModal from '@/components/SSMnemonicWordCountSelectModal'
 import SSModal from '@/components/SSModal'
 import SSPsbtQRExportModal from '@/components/SSPsbtQRExportModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedWordsEntry from '@/components/SSSeedWordsEntry'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
@@ -486,8 +487,11 @@ function PreviewTransaction() {
     visible: nfcScanModalVisible
   }
 
+  const isSeedWordsSigning = wordCountModalVisible || seedWordsModalVisible
+
   return (
     <SSMainLayout style={styles.mainLayout}>
+      {isSeedWordsSigning && <SSScreenCaptureGuard />}
       <SSVStack justifyBetween>
         <ScrollView>
           <SSVStack>

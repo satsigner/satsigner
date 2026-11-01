@@ -5,6 +5,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -155,6 +156,7 @@ export default function ImportWif() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{name}</SSText>

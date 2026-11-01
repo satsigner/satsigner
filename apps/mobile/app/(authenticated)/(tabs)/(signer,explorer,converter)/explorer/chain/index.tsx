@@ -5,13 +5,14 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { DIFFICULTY_ADJUSTMENT_INTERVAL } from '@/constants/consensus'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
@@ -93,7 +94,7 @@ export default function ExplorerChain() {
         <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
           {/* Latest Block — from backend */}
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('latestBlock')}
               source={chainData?.source ?? null}
               sourceLabel={
@@ -105,13 +106,13 @@ export default function ExplorerChain() {
                 onPress={openTipBlock}
                 disabled={typeof height !== 'number'}
               >
-                <Row
+                <SSExplorerRow
                   label={tn('height')}
                   value={height?.toLocaleString() ?? '--'}
                   loading={isLoading}
                 />
               </Pressable>
-              <Row
+              <SSExplorerRow
                 label={tn('timestamp')}
                 value={
                   chainData?.timestamp
@@ -120,7 +121,7 @@ export default function ExplorerChain() {
                 }
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('difficulty')}
                 value={
                   difficulty?.toLocaleString(undefined, {
@@ -153,27 +154,27 @@ export default function ExplorerChain() {
               {tn('consensus')}
             </SSText>
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('difficultyEpoch')}
                 value={epoch?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('blocksInEpoch')}
                 value={blocksInEpoch?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('blocksUntilAdjustment')}
                 value={blocksUntilAdj?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('estNextAdjustment')}
                 value={estAdjDate ? formatDate(estAdjDate.getTime()) : '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('estHashRate')}
                 value={
                   estHashRate !== null ? `${estHashRate.toFixed(2)} EH/s` : '--'
@@ -195,33 +196,33 @@ export default function ExplorerChain() {
 
           {showExternal && difficultyAdjustment ? (
             <SSVStack gap="sm">
-              <SectionHeader
+              <SSExplorerSectionHeader
                 title={tn('preciseAdjustment')}
                 source="mempool"
                 sourceLabel="mempool.space"
               />
               <SSVStack gap="xs">
-                <Row
+                <SSExplorerRow
                   label={tn('difficultyChange')}
                   value={`${difficultyAdjustment.difficultyChange >= 0 ? '+' : ''}${difficultyAdjustment.difficultyChange.toFixed(2)}%`}
                   loading={isLoadingAdj}
                 />
-                <Row
+                <SSExplorerRow
                   label={tn('avgBlockTime')}
                   value={`${(difficultyAdjustment.timeAvg / 60_000).toFixed(1)} min`}
                   loading={isLoadingAdj}
                 />
-                <Row
+                <SSExplorerRow
                   label={tn('remainingBlocks')}
                   value={difficultyAdjustment.remainingBlocks.toLocaleString()}
                   loading={isLoadingAdj}
                 />
-                <Row
+                <SSExplorerRow
                   label={tn('progressPercent')}
                   value={`${difficultyAdjustment.progressPercent.toFixed(1)}%`}
                   loading={isLoadingAdj}
                 />
-                <Row
+                <SSExplorerRow
                   label={tn('estRetargetDate')}
                   value={formatDate(difficultyAdjustment.estimatedRetargetDate)}
                   loading={isLoadingAdj}
@@ -232,55 +233,6 @@ export default function ExplorerChain() {
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
-  )
-}
-
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: string | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
   )
 }
 
@@ -301,9 +253,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center'
   },
-  row: { alignItems: 'center', paddingVertical: 4 },
-  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
-  sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
-  sourceMempool: { color: Colors.gray['500'] },
-  valueText: { color: Colors.gray['100'] }
+  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 }
 })

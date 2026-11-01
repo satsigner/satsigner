@@ -286,7 +286,7 @@ export function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      error: 'invalid descriptor',
+      error: 'descriptorFormat',
       externalDescriptor: external,
       internalDescriptor: internal,
       isValid: false
@@ -306,7 +306,7 @@ export function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      error: 'invalid script version',
+      error: 'descriptorIncompatible',
       externalDescriptor: external,
       internalDescriptor: internal,
       isValid: false

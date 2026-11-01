@@ -4,13 +4,14 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useChainData } from '@/hooks/useChainData'
 import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
 import { useNow } from '@/hooks/useNow'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
@@ -70,17 +71,17 @@ export default function ExplorerNode() {
               {tn('serverConfig')}
             </SSText>
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('serverName')}
                 value={server.name || '--'}
                 loading={false}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('backend')}
                 value={server.backend || '--'}
                 loading={false}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('network')}
                 value={selectedNetwork}
                 loading={false}
@@ -98,7 +99,7 @@ export default function ExplorerNode() {
 
           {/* Current tip — from backend */}
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('currentTip')}
               source={chainData?.source ?? null}
               sourceLabel={
@@ -108,12 +109,12 @@ export default function ExplorerNode() {
               }
             />
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('height')}
                 value={chainData?.height?.toLocaleString() ?? '--'}
                 loading={isLoadingChain}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('timestamp')}
                 value={
                   chainData?.timestamp
@@ -122,7 +123,7 @@ export default function ExplorerNode() {
                 }
                 loading={isLoadingChain}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('blockAge')}
                 value={
                   chainData?.timestamp
@@ -137,18 +138,18 @@ export default function ExplorerNode() {
           {/* Backend server info — Electrum banner / Core subversion */}
           {showServerInfo && (
             <SSVStack gap="sm">
-              <SectionHeader
+              <SSExplorerSectionHeader
                 title={tn('serverInfo')}
                 source="backend"
                 sourceLabel={`${server.name} (${server.backend})`}
               />
               <SSVStack gap="xs">
-                <Row
+                <SSExplorerRow
                   label={tn('software')}
                   value={serverInfo?.serverSoftware || '--'}
                   loading={isLoadingInfo}
                 />
-                <Row
+                <SSExplorerRow
                   label={tn('protocolVersion')}
                   value={serverInfo?.protocolVersion || '--'}
                   loading={isLoadingInfo}
@@ -187,7 +188,7 @@ export default function ExplorerNode() {
 
           {showExternal && (
             <SSVStack gap="sm">
-              <SectionHeader
+              <SSExplorerSectionHeader
                 title={tn('bitnodesInfo')}
                 source="mempool"
                 sourceLabel="bitnodes.io"
@@ -204,22 +205,22 @@ export default function ExplorerNode() {
               )}
               {bitnodesInfo && (
                 <SSVStack gap="xs">
-                  <Row
+                  <SSExplorerRow
                     label={tn('address')}
                     value={bitnodesInfo.address}
                     loading={false}
                   />
-                  <Row
+                  <SSExplorerRow
                     label={tn('userAgent')}
                     value={bitnodesInfo.userAgent}
                     loading={false}
                   />
-                  <Row
+                  <SSExplorerRow
                     label={tn('nodeHeight')}
                     value={bitnodesInfo.height.toLocaleString()}
                     loading={false}
                   />
-                  <Row
+                  <SSExplorerRow
                     label={tn('lastSeen')}
                     value={formatDate(bitnodesInfo.lastSeen * MS_PER_SECOND)}
                     loading={false}
@@ -231,55 +232,6 @@ export default function ExplorerNode() {
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
-  )
-}
-
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: string | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
   )
 }
 
@@ -301,9 +253,5 @@ const styles = StyleSheet.create({
   labelText: { color: Colors.gray['400'] },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
-  row: { alignItems: 'center', paddingVertical: 4 },
-  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
-  sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
-  sourceMempool: { color: Colors.gray['500'] },
-  valueText: { color: Colors.gray['100'] }
+  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 }
 })

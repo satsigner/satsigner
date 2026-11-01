@@ -204,7 +204,8 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         customServers: state.customServers,
         selectedNetwork: state.selectedNetwork
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

@@ -18,6 +18,10 @@ import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network, Server } from '@/types/settings/blockchain'
 import {
+  applyIfLatest,
+  createLatestRequestTracker
+} from '@/utils/latestRequest'
+import {
   assignOutputDepthOrder,
   recalculateDepthH,
   weightToVsize
@@ -716,8 +720,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [requestTracker] = useState(createLatestRequestTracker)
 
   const fetchInputTransactions = useCallback(async () => {
+    const isLatestRequest = requestTracker.beginRequest()
+
     if (inputs.size === 0) {
       setTransactions(new Map())
       setError(null)
@@ -733,11 +740,11 @@ export function useInputTransactions(inputs: Map<string, Utxo>, levelDeep = 2) {
       levelDeep,
       selectedNetwork,
       server,
-      setError,
-      setLoading,
-      setTransactions
+      setError: applyIfLatest(isLatestRequest, setError),
+      setLoading: applyIfLatest(isLatestRequest, setLoading),
+      setTransactions: applyIfLatest(isLatestRequest, setTransactions)
     })
-  }, [inputs, server, levelDeep, selectedNetwork])
+  }, [inputs, server, levelDeep, selectedNetwork, requestTracker])
 
   useEffect(() => {
     fetchInputTransactions()

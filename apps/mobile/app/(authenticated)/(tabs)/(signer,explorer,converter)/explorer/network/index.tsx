@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSLoader from '@/components/SSLoader'
 import SSNetworkDots from '@/components/SSNetworkDots'
 import SSText from '@/components/SSText'
@@ -46,12 +48,12 @@ export default function ExplorerNetwork() {
               {tn('localView')}
             </SSText>
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('network')}
                 value={selectedNetwork}
                 loading={false}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('height')}
                 value={chainData?.height?.toLocaleString() ?? '--'}
                 loading={isLoadingChain}
@@ -77,13 +79,13 @@ export default function ExplorerNetwork() {
             <>
               {/* Network overview — Bitnodes */}
               <SSVStack gap="sm">
-                <SectionHeader
+                <SSExplorerSectionHeader
                   title={tn('networkOverview')}
                   source="mempool"
                   sourceLabel="bitnodes.io"
                 />
                 <SSVStack gap="xs">
-                  <Row
+                  <SSExplorerRow
                     label={tn('totalNodes')}
                     value={networkStats?.totalNodes?.toLocaleString() ?? '--'}
                     loading={isLoadingStats}
@@ -95,7 +97,7 @@ export default function ExplorerNetwork() {
               {networkStats?.versionDistribution &&
                 networkStats.versionDistribution.length > 0 && (
                   <SSVStack gap="sm">
-                    <SectionHeader
+                    <SSExplorerSectionHeader
                       title={tn('clientVersions')}
                       source="mempool"
                       sourceLabel="bitnodes.io"
@@ -127,7 +129,7 @@ export default function ExplorerNetwork() {
               {networkStats?.countryDistribution &&
                 networkStats.countryDistribution.length > 0 && (
                   <SSVStack gap="sm">
-                    <SectionHeader
+                    <SSExplorerSectionHeader
                       title={tn('countryDistribution')}
                       source="mempool"
                       sourceLabel="bitnodes.io"
@@ -182,55 +184,6 @@ export default function ExplorerNetwork() {
   )
 }
 
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: string | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
-  )
-}
-
 const styles = StyleSheet.create({
   container: { paddingTop: 0 },
   labelText: { color: Colors.gray['400'] },
@@ -238,7 +191,5 @@ const styles = StyleSheet.create({
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
   row: { alignItems: 'center', paddingVertical: 4 },
   sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
-  sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
-  sourceMempool: { color: Colors.gray['500'] },
   valueText: { color: Colors.gray['100'] }
 })

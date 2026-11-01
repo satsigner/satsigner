@@ -260,7 +260,8 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         return merged
       },
       name: 'settings-store',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

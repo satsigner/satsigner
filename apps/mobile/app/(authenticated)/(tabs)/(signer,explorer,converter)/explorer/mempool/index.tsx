@@ -4,6 +4,8 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSLoader from '@/components/SSLoader'
 import SSMempoolBlocks from '@/components/SSMempoolBlocks'
 import SSText from '@/components/SSText'
@@ -11,7 +13,6 @@ import {
   useMempoolBasicData,
   useMempoolExtendedData
 } from '@/hooks/useMempoolData'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
@@ -69,7 +70,7 @@ export default function ExplorerMempool() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="xl" style={{ paddingBottom: 32, paddingTop: 20 }}>
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('mempoolStats')}
               source={basicData?.source ?? null}
               sourceLabel={
@@ -78,13 +79,13 @@ export default function ExplorerMempool() {
             />
             <SSVStack gap="xs">
               {basicData?.count !== null && basicData?.count !== undefined ? (
-                <Row
+                <SSExplorerRow
                   label={tn('pendingTxs')}
                   value={basicData.count.toLocaleString()}
                   loading={isLoadingBasic}
                 />
               ) : null}
-              <Row
+              <SSExplorerRow
                 label={tn('mempoolSize')}
                 value={
                   backendVsize && backendVsize > 0
@@ -95,13 +96,13 @@ export default function ExplorerMempool() {
               />
               {basicData?.totalFee !== null &&
               basicData?.totalFee !== undefined ? (
-                <Row
+                <SSExplorerRow
                   label={tn('totalFees')}
                   value={`${basicData.totalFee.toLocaleString()} sats`}
                   loading={isLoadingBasic}
                 />
               ) : null}
-              <Row
+              <SSExplorerRow
                 label={tn('minFeeRate')}
                 value={
                   minFeeRate !== null
@@ -110,7 +111,7 @@ export default function ExplorerMempool() {
                 }
                 loading={isLoadingBasic}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('maxFeeRate')}
                 value={
                   maxFeeRate !== null
@@ -119,7 +120,7 @@ export default function ExplorerMempool() {
                 }
                 loading={isLoadingBasic}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('feeBands')}
                 value={
                   feeHistogram.length > 0
@@ -133,7 +134,7 @@ export default function ExplorerMempool() {
 
           {backendFees ? (
             <SSVStack gap="sm">
-              <SectionHeader
+              <SSExplorerSectionHeader
                 title={tn('feeRecommendations')}
                 source="backend"
                 sourceLabel={sourceLabel('backend')}
@@ -144,7 +145,7 @@ export default function ExplorerMempool() {
 
           {!showExternal && backendProjectedBlocks.length > 0 ? (
             <SSVStack gap="sm">
-              <SectionHeader
+              <SSExplorerSectionHeader
                 title={tn('pendingBlocks')}
                 source="backend"
                 sourceLabel={sourceLabel('backend')}
@@ -166,7 +167,7 @@ export default function ExplorerMempool() {
           {showExternal ? (
             <>
               <SSVStack gap="sm">
-                <SectionHeader
+                <SSExplorerSectionHeader
                   title={tn('feeRecommendations')}
                   source="mempool"
                   sourceLabel="mempool.space"
@@ -185,7 +186,7 @@ export default function ExplorerMempool() {
               </SSVStack>
 
               <SSVStack gap="sm">
-                <SectionHeader
+                <SSExplorerSectionHeader
                   title={tn('pendingBlocks')}
                   source="mempool"
                   sourceLabel="mempool.space"
@@ -213,17 +214,17 @@ export default function ExplorerMempool() {
 function FeeRows({ fees, loading }: { fees: MemPoolFees; loading: boolean }) {
   return (
     <SSVStack gap="xs">
-      <Row
+      <SSExplorerRow
         label={tn('feeHigh')}
         value={`${Math.round(fees.high)} sat/vB`}
         loading={loading}
       />
-      <Row
+      <SSExplorerRow
         label={tn('feeMedium')}
         value={`${Math.round(fees.medium)} sat/vB`}
         loading={loading}
       />
-      <Row
+      <SSExplorerRow
         label={tn('feeLow')}
         value={`${Math.round(fees.low)} sat/vB`}
         loading={loading}
@@ -232,64 +233,9 @@ function FeeRows({ fees, loading }: { fees: MemPoolFees; loading: boolean }) {
   )
 }
 
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: string | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
-  )
-}
-
 const styles = StyleSheet.create({
   container: { paddingTop: 0 },
-  labelText: { color: Colors.gray['400'] },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   privacyNote: { color: Colors.gray['600'], marginTop: 4, textAlign: 'center' },
-  row: { alignItems: 'center', paddingVertical: 4 },
-  sectionLoading: { alignItems: 'center', paddingVertical: 24 },
-  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
-  sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
-  sourceMempool: { color: Colors.gray['500'] },
-  valueText: { color: Colors.gray['100'] }
+  sectionLoading: { alignItems: 'center', paddingVertical: 24 }
 })

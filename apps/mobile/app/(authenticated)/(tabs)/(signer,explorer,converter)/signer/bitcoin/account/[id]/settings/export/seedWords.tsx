@@ -7,6 +7,7 @@ import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSPinAuth from '@/components/SSPinAuth'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -106,6 +107,7 @@ export default function SeedWordsPage() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => (

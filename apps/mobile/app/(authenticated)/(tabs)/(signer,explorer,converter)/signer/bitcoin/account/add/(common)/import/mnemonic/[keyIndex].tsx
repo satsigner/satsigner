@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedWordsEntry from '@/components/SSSeedWordsEntry'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
@@ -132,6 +133,7 @@ export default function ImportMnemonic() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{name}</SSText>

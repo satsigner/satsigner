@@ -44,7 +44,8 @@ const useEnergyStore = create<EnergyState & EnergyAction>()(
     }),
     {
       name: 'energy-store',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

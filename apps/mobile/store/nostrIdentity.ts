@@ -161,7 +161,8 @@ const useNostrIdentityStore = create<
         kind0FetchWarningDismissed: state.kind0FetchWarningDismissed,
         relays: state.relays
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

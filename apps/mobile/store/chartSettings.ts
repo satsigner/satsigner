@@ -102,7 +102,8 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
     }),
     {
       name: 'satsigner-chart-settings',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

@@ -2,6 +2,8 @@ import { Stack, useRouter } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSHalvingProgress from '@/components/SSHalvingProgress'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
@@ -96,43 +98,43 @@ export default function ExplorerHalving() {
 
           {/* Current epoch info — from backend */}
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('currentEpoch')}
               source={chainData?.source ?? null}
               sourceLabel={chainData?.source ? sourceLabel() : null}
             />
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('height')}
                 value={height?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('epoch')}
                 value={epoch?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('subsidy')}
                 value={subsidyBtc !== null ? `${subsidyBtc} BTC` : '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('blocksMinedThisEpoch')}
                 value={blocksThisEpoch?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('blocksUntilHalving')}
                 value={blocksRemaining?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('nextHalvingHeight')}
                 value={nextHalving?.toLocaleString() ?? '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('estHalvingDate')}
                 value={halvingDate ? formatDate(halvingDate.getTime()) : '--'}
                 loading={isLoading}
@@ -146,7 +148,7 @@ export default function ExplorerHalving() {
               {tn('supply')}
             </SSText>
             <SSVStack gap="xs">
-              <Row
+              <SSExplorerRow
                 label={tn('totalMined')}
                 value={
                   minedBtc !== null
@@ -155,12 +157,12 @@ export default function ExplorerHalving() {
                 }
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('percentIssued')}
                 value={issued !== null ? `${issued.toFixed(4)}%` : '--'}
                 loading={isLoading}
               />
-              <Row
+              <SSExplorerRow
                 label={tn('maxSupply')}
                 value="21,000,000 BTC"
                 loading={false}
@@ -263,55 +265,6 @@ export default function ExplorerHalving() {
   )
 }
 
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: string | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
-  )
-}
-
 const styles = StyleSheet.create({
   colCircle: {
     alignItems: 'center',
@@ -334,11 +287,6 @@ const styles = StyleSheet.create({
   },
   halvingPast: { color: Colors.gray['400'] },
   halvingRow: { alignItems: 'center', height: 28, overflow: 'visible' },
-  labelText: { color: Colors.gray['400'] },
   loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  row: { alignItems: 'center', paddingVertical: 4 },
-  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 },
-  sourceBackend: { color: Colors.mainGreen, opacity: 0.8 },
-  sourceMempool: { color: Colors.gray['500'] },
-  valueText: { color: Colors.gray['100'] }
+  sectionTitle: { color: Colors.gray['400'], letterSpacing: 1.5 }
 })

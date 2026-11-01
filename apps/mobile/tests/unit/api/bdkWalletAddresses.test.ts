@@ -1,6 +1,12 @@
-import { BdkWallet, KeychainKind, Network } from 'react-native-bdk-sdk'
+import {
+  BdkWallet,
+  KeychainKind,
+  Network,
+  addressFromScript
+} from 'react-native-bdk-sdk'
 
 import { getWalletAddresses, getWalletOverview } from '@/api/bdkWalletMappers'
+import { MS_PER_SECOND } from '@/constants/time'
 
 const RECEIVE_ADDRESS = 'wif-receive'
 const COMPANION_ADDRESS = 'wif-companion'
@@ -72,5 +78,64 @@ describe('wallet addresses of a descriptor without a wildcard', () => {
 
     expect(overview.addresses).toHaveLength(2)
     expect(wallet.peekAddress.mock.calls.length).toBeLessThan(10)
+  })
+})
+
+describe('wallet overview lookups', () => {
+  const TXID = 'bb'.repeat(32)
+  const CONFIRMED_AT_SECONDS = 1_700_000_000
+  const LATER_TXID = 'cc'.repeat(32)
+  const LATER_CONFIRMED_AT_SECONDS = 1_700_000_600
+
+  function confirmedTxDetails(txid = TXID, timestamp = CONFIRMED_AT_SECONDS) {
+    return {
+      ...receiveTxDetails(RECEIVE_ADDRESS),
+      confirmationBlockTime: { height: 100, timestamp },
+      txid
+    }
+  }
+
+  function localOutput(vout: number, scriptPubkeyHex: string, txid = TXID) {
+    return {
+      isSpent: false,
+      keychain: KeychainKind.External,
+      outpoint: { txid, vout },
+      txout: { scriptPubkeyHex, value: 1000 }
+    }
+  }
+
+  it('takes the transaction address from its first unspent output', () => {
+    const wallet = singleScriptWallet()
+    const firstScript = `0014${'11'.repeat(20)}`
+    wallet.transactions.mockReturnValue([confirmedTxDetails()])
+    wallet.listUnspent.mockReturnValue([
+      localOutput(0, firstScript),
+      localOutput(1, `0014${'22'.repeat(20)}`)
+    ])
+    jest.mocked(addressFromScript).mockClear()
+
+    const overview = getWalletOverview(wallet, Network.Testnet, 20)
+
+    expect(jest.mocked(addressFromScript).mock.calls[0][0]).toBe(firstScript)
+    expect(overview.transactions[0].address).toBe('mock-address')
+  })
+
+  it('dates each unspent output with its confirmed transaction', () => {
+    const wallet = singleScriptWallet()
+    wallet.transactions.mockReturnValue([
+      confirmedTxDetails(),
+      confirmedTxDetails(LATER_TXID, LATER_CONFIRMED_AT_SECONDS)
+    ])
+    wallet.listUnspent.mockReturnValue([
+      localOutput(0, P2WPKH_SCRIPT_HEX, LATER_TXID),
+      localOutput(0, P2WPKH_SCRIPT_HEX)
+    ])
+
+    const overview = getWalletOverview(wallet, Network.Testnet, 20)
+
+    expect(overview.utxos.map((utxo) => utxo.timestamp)).toStrictEqual([
+      new Date(LATER_CONFIRMED_AT_SECONDS * MS_PER_SECOND),
+      new Date(CONFIRMED_AT_SECONDS * MS_PER_SECOND)
+    ])
   })
 })

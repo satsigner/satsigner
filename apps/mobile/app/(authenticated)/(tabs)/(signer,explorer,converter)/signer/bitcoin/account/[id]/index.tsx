@@ -2126,8 +2126,10 @@ export default function AccountView() {
 
   async function handleOnRefresh(forceFullScan = false) {
     setRefreshing(true)
-    await fetchPrices(fiatPriceApiUrl)
-    await refreshAccount(forceFullScan)
+    await Promise.all([
+      fetchPrices(fiatPriceApiUrl),
+      refreshAccount(forceFullScan)
+    ])
     refreshAccountLabels()
     setRefreshing(false)
   }
