@@ -520,7 +520,8 @@ const useTransactionBuilderStore = create<
         accountId: state.accountId,
         drafts: state.drafts
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

@@ -259,7 +259,8 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const { pendingRecoverData: _, ...rest } = state
         return rest
       },
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )
