@@ -200,9 +200,8 @@ function useNostrZapFlow({
       toast.error(
         `${t('nostrIdentity.note.zapFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      setZapping(false)
     }
+    setZapping(false)
   }
 
   function zapOneTap(target: NostrZapTarget) {

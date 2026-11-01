@@ -267,16 +267,12 @@ export default function NostrComposePage() {
     }
 
     setMining(true)
-    try {
-      return await applyNostrProofOfWork({
-        content: noteContent,
-        difficulty: powDifficulty,
-        nsec,
-        tags: buildTags()
-      })
-    } finally {
-      setMining(false)
-    }
+    return await applyNostrProofOfWork({
+      content: noteContent,
+      difficulty: powDifficulty,
+      nsec,
+      tags: buildTags()
+    }).finally(() => setMining(false))
   }
 
   function handlePowToggle(selected: boolean) {

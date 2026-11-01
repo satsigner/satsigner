@@ -554,10 +554,9 @@ export default function NostrNotePage() {
       toast.error(
         `${t('nostrIdentity.note.requestDeletionFailed')}: ${getNostrErrorMessage(error)}`
       )
-    } finally {
-      api.disconnect()
-      setDeleting(false)
     }
+    api.disconnect()
+    setDeleting(false)
   }
 
   function handleDeleteFromSelectedRelays() {
