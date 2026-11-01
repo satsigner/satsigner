@@ -139,10 +139,7 @@ function describeNip11(info: Nip11Info | null): string {
     return 'no NIP-11 info'
   }
   const software = info.software?.split('/').at(-1)
-  return [
-    software ?? null,
-    info.authRequired ? 'auth required' : null
-  ]
+  return [software ?? null, info.authRequired ? 'auth required' : null]
     .filter(Boolean)
     .join(', ')
 }
