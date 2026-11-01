@@ -1,4 +1,4 @@
-import Slider from '@react-native-community/slider'
+import { Slider } from '@miblanchard/react-native-slider'
 import * as bitcoin from 'bitcoinjs-lib'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -401,6 +401,14 @@ export default function Energy() {
 
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
+
+  function handleMiningIntensityChange([intensity]: number[]) {
+    setMiningIntensity(intensity)
+  }
+
+  function handleMiningIntervalTimeChange([intervalTime]: number[]) {
+    setMiningIntervalTime(intervalTime)
+  }
   const [miningStats, setMiningStats] = useState({
     attempts: 0,
     hashesPerSecond: 0,
@@ -1332,12 +1340,12 @@ export default function Energy() {
                   </SSText>
                 </SSHStack>
                 <Slider
-                  style={styles.slider}
+                  containerStyle={styles.slider}
                   minimumValue={0}
                   maximumValue={2000}
                   step={miningIntensity > 200 ? 100 : 10}
                   value={miningIntensity}
-                  onValueChange={setMiningIntensity}
+                  onValueChange={handleMiningIntensityChange}
                   disabled={isMining}
                   minimumTrackTintColor={
                     miningIntensity > 500
@@ -1370,12 +1378,12 @@ export default function Energy() {
                   </SSText>
                 </SSHStack>
                 <Slider
-                  style={styles.slider}
+                  containerStyle={styles.slider}
                   minimumValue={1}
                   maximumValue={10_000}
                   step={1}
                   value={miningIntervalTime}
-                  onValueChange={setMiningIntervalTime}
+                  onValueChange={handleMiningIntervalTimeChange}
                   disabled={isMining}
                   minimumTrackTintColor={Colors.white}
                   maximumTrackTintColor={Colors.gray[500]}
