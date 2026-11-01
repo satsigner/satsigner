@@ -13,6 +13,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSModal from '@/components/SSModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
@@ -141,6 +142,7 @@ export default function Confirm() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{name}</SSText>
