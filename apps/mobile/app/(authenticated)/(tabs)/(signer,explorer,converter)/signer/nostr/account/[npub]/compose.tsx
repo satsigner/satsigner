@@ -259,11 +259,11 @@ export default function NostrComposePage() {
     2
   )
 
-  async function tagsForSigning(
+  async function prepareNoteForSigning(
     nsec: string
-  ): Promise<{ createdAt?: number; tags: string[][] }> {
+  ): Promise<{ content: string; createdAt?: number; tags: string[][] }> {
     if (!powEnabled) {
-      return { tags: buildTags() }
+      return { content: noteContent, tags: buildTags() }
     }
 
     setMining(true)
@@ -300,10 +300,10 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
-      const prepared = await tagsForSigning(identity.nsec)
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        noteContent,
+        prepared.content,
         prepared.tags,
         prepared.createdAt
       )
@@ -330,10 +330,10 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
-      const prepared = await tagsForSigning(identity.nsec)
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        noteContent,
+        prepared.content,
         prepared.tags,
         prepared.createdAt
       )
@@ -364,11 +364,11 @@ export default function NostrComposePage() {
 
     setPublishing(true)
     try {
-      const prepared = await tagsForSigning(identity.nsec)
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const api = new NostrAPI(effectiveRelays)
       const published = await api.publishNote(
         identity.nsec,
-        noteContent,
+        prepared.content,
         prepared.tags,
         prepared.createdAt
       )

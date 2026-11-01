@@ -1,3 +1,4 @@
+import { generateContentTags } from '@nostr-dev-kit/ndk'
 import { getPublicKey } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import { getEventHash } from 'nostr-tools/pure'
@@ -106,9 +107,9 @@ export async function mineNostrPow(
 
 export async function applyNostrProofOfWork(
   input: ApplyNostrProofOfWorkInput
-): Promise<{ createdAt?: number; tags: string[][] }> {
+): Promise<{ content: string; createdAt?: number; tags: string[][] }> {
   if (input.difficulty === null) {
-    return { tags: input.tags }
+    return { content: input.content, tags: input.tags }
   }
 
   const secretKey = getSecretFromNsec(input.nsec)
@@ -116,15 +117,22 @@ export async function applyNostrProofOfWork(
     throw new Error('Invalid nsec')
   }
 
+  // NDK rewrites mentions and adds p/q/t tags while signing. Mining the
+  // already-tagged event keeps the signed id equal to the mined id.
+  const tagged = await generateContentTags(input.content, [...input.tags])
   const mined = await mineNostrPow({
-    content: input.content,
+    content: tagged.content,
     createdAt: Math.floor(Date.now() / 1000),
     difficulty: input.difficulty,
     kind: input.kind ?? nostrKinds.ShortTextNote,
     onProgress: input.onProgress,
     pubkey: getPublicKey(secretKey),
-    tags: input.tags
+    tags: tagged.tags
   })
 
-  return { createdAt: mined.createdAt, tags: mined.tags }
+  return {
+    content: tagged.content,
+    createdAt: mined.createdAt,
+    tags: mined.tags
+  }
 }
