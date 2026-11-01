@@ -126,6 +126,7 @@ export default function AccountSettings() {
 
   function handleClosePinEntry() {
     setPinEntryModalVisible(false)
+    setPinEntryReason(null)
   }
 
   async function handleSuccessPin() {
@@ -142,6 +143,12 @@ export default function AccountSettings() {
 
   function handlePinTriesOver() {
     setPinEntryModalVisible(false)
+    setPinEntryReason(null)
+  }
+
+  function handleCloseMnemonicModal() {
+    setMnemonicModalVisible(false)
+    setPinEntryReason(null)
   }
 
   function saveChanges() {
@@ -584,7 +591,7 @@ export default function AccountSettings() {
       <SSModal
         fullOpacity
         visible={mnemonicModalVisible}
-        onClose={() => setMnemonicModalVisible(false)}
+        onClose={handleCloseMnemonicModal}
         closeButtonVariant="ghost"
         label={t('common.close')}
       >
