@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { nip19 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
@@ -27,6 +27,7 @@ function useNostrDeviceChatProfilesFetch(
   const sortedAuthors = missingAuthors.toSorted()
   return useQuery({
     enabled: relays.length > 0 && sortedAuthors.length > 0,
+    placeholderData: keepPreviousData,
     queryFn: () => fetchAuthorProfiles(relays, sortedAuthors),
     queryKey: ['nostr', 'device-chat-profiles', relays, sortedAuthors],
     staleTime: NOSTR_PROFILE_CACHE_TTL_SECS * MS_PER_SECOND

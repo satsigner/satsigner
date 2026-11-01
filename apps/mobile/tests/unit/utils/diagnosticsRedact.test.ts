@@ -33,6 +33,14 @@ describe('diagnostics redaction', () => {
     expect(redacted).toContain('npub1[…]')
   })
 
+  it('redacts bare ipv6 addresses', () => {
+    const address = '2001:db8:85a3::8a2e:370:7334'
+    expect(redactLine(`connect ${address} refused`)).toBe(
+      'connect [ip] refused'
+    )
+    expect(redactLine(`connect ${address} refused`)).not.toContain(address)
+  })
+
   it('formats a redacted plain-text report', () => {
     const text = formatDiagnosticsReport(
       [

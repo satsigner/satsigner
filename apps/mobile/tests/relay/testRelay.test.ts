@@ -79,6 +79,34 @@ describe('test relay', () => {
       expect(idsOf(limited)).toStrictEqual([newest.id, middle.id])
     })
 
+    it('applies limit to each filter in one request', async () => {
+      const notes = [
+        makeEvent({ created_at: BASE_CREATED_AT }),
+        makeEvent({ created_at: BASE_CREATED_AT + 1 })
+      ]
+      const metadata = [
+        makeEvent({ created_at: BASE_CREATED_AT, kind: METADATA_KIND }),
+        makeEvent({ created_at: BASE_CREATED_AT + 1, kind: METADATA_KIND })
+      ]
+      relay().seed([...notes, ...metadata])
+
+      const events = await client().query('both', [
+        { kinds: [TEXT_NOTE_KIND], limit: 1 },
+        { kinds: [METADATA_KIND], limit: 1 }
+      ])
+
+      expect(events).toHaveLength(2)
+      expect(
+        events
+          .map((event) =>
+            typeof event === 'object' && event !== null && 'kind' in event
+              ? event.kind
+              : null
+          )
+          .toSorted()
+      ).toStrictEqual([METADATA_KIND, TEXT_NOTE_KIND])
+    })
+
     it('filters by ids, authors, kinds, tags, since and until', async () => {
       const alice = fixturePubkey(0xa)
       const bob = fixturePubkey(0xb)
@@ -246,6 +274,21 @@ describe('test relay', () => {
       expect(storedIds(relay()).toSorted()).toStrictEqual(
         [foreign.id, deletion.id].toSorted()
       )
+    })
+
+    it('stores an event that a different author deleted before it arrived', () => {
+      const author = fixturePubkey(1)
+      const deleter = fixturePubkey(2)
+      const target = makeEvent({ pubkey: author })
+      const deletion = makeEvent({
+        kind: DELETION_KIND,
+        pubkey: deleter,
+        tags: [['e', target.id]]
+      })
+
+      relay().seed([deletion, target])
+
+      expect(storedIds(relay())).toContain(target.id)
     })
   })
 

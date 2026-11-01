@@ -41,13 +41,6 @@ function SSNostrVideoPoster({ embed, failed }: SSNostrVideoPosterProps) {
       onPress={handleLoad}
     >
       <View style={styles.frame}>
-        {embed.thumbnailUrl ? (
-          <Image
-            contentFit="cover"
-            source={{ uri: embed.thumbnailUrl }}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
         <View style={styles.overlay}>
           <SSText size="sm" weight="medium" style={styles.overlayText}>
             {failed

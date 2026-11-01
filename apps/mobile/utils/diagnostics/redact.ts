@@ -10,6 +10,8 @@ const BECH32_ADDRESS_RE = /\b(bc|tb|bcrt)1[02-9ac-hj-np-z]{8,}\b/gi
 const BASE58_ADDRESS_RE = /\b[123mn][1-9A-HJ-NP-Za-km-z]{25,34}\b/g
 const HEX_ID_RE = /\b[0-9a-f]{64}\b/gi
 const IPV4_RE = /\b\d{1,3}(\.\d{1,3}){3}\b/g
+const IPV6_RE =
+  /\b(?:[0-9a-f]{1,4}:){1,7}:?(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4}\b/gi
 const PRIVATE_IPV4_RE =
   /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/
 
@@ -58,6 +60,7 @@ function redactLine(line: string): string {
     .replace(BASE58_ADDRESS_RE, '[address]')
     .replace(HEX_ID_RE, '[hex]')
     .replace(IPV4_RE, (ip) => `[${classifyHost(ip)}-ip]`)
+    .replace(IPV6_RE, '[ip]')
 }
 
 function redactResult(result: DiagnosticResult): DiagnosticResult {

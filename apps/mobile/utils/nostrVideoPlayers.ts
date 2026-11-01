@@ -28,6 +28,7 @@ function applyPlayback(
 function syncPlayers(activeUrl: string | null, loadedUrls: string[]) {
   for (const [url, player] of playersByUrl) {
     if (!loadedUrls.includes(url)) {
+      applyPlayback(url, player, null)
       playersByUrl.delete(url)
       continue
     }

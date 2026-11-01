@@ -191,7 +191,10 @@ export function useNip46SessionManager() {
 
           const permission = currentSession.permissions[request.method]
           const now = Date.now()
-          if (shouldRecordNip46Activity(currentSession.lastActiveAt, now)) {
+          if (
+            now < currentSession.lastActiveAt ||
+            shouldRecordNip46Activity(currentSession.lastActiveAt, now)
+          ) {
             updateSession(session.id, { lastActiveAt: now })
           }
 

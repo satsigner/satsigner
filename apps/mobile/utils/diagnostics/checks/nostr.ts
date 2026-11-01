@@ -140,7 +140,6 @@ function describeNip11(info: Nip11Info | null): string {
   }
   const software = info.software?.split('/').at(-1)
   return [
-    info.name ? `"${info.name}"` : null,
     software ?? null,
     info.authRequired ? 'auth required' : null
   ]

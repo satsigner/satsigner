@@ -226,14 +226,16 @@ function newestFirst(a: Event, b: Event) {
 
 function createEventStore(verifySignatures: boolean) {
   const stored = new Map<string, Event>()
-  const deletedIds = new Set<string>()
+  const deletedByAuthor = new Map<string, Set<string>>()
 
   function applyDeletion(deletion: Event) {
     for (const [name, id] of deletion.tags) {
       if (name !== 'e') {
         continue
       }
-      deletedIds.add(id)
+      const authors = deletedByAuthor.get(id) ?? new Set<string>()
+      authors.add(deletion.pubkey)
+      deletedByAuthor.set(id, authors)
       const target = stored.get(id)
       if (target?.pubkey === deletion.pubkey) {
         stored.delete(id)
@@ -256,7 +258,7 @@ function createEventStore(verifySignatures: boolean) {
     if (stored.has(event.id)) {
       return { accepted: false, message: 'duplicate: already have this event' }
     }
-    if (deletedIds.has(event.id)) {
+    if (deletedByAuthor.get(event.id)?.has(event.pubkey)) {
       return { accepted: false, message: 'blocked: event was deleted' }
     }
     const replaced = findReplaced(event)
@@ -274,14 +276,18 @@ function createEventStore(verifySignatures: boolean) {
   }
 
   function query(filters: Filter[]) {
-    const matching = [...stored.values()]
-      .filter((event) => matchesAnyFilter(filters, event))
-      .toSorted(newestFirst)
-    const limits = filters.map((filter) => filter.limit)
-    if (limits.some((limit) => limit === undefined)) {
-      return matching
+    const selected = new Map<string, Event>()
+    for (const filter of filters) {
+      const matching = all().filter((event) =>
+        matchesAnyFilter([filter], event)
+      )
+      const limited =
+        filter.limit === undefined ? matching : matching.slice(0, filter.limit)
+      for (const event of limited) {
+        selected.set(event.id, event)
+      }
     }
-    return matching.slice(0, Math.max(...limits.map(Number)))
+    return [...selected.values()].toSorted(newestFirst)
   }
 
   function all() {

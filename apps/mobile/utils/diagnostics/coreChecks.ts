@@ -325,9 +325,15 @@ async function fetchRawEventWithRetries(
   eventId: string,
   attemptsLeft = LIVE_RETRIEVE_ATTEMPTS
 ): Promise<Event | null> {
-  const event = await api.fetchRawEventById(eventId).catch(() => null)
-  if (event || attemptsLeft <= 1) {
-    return event
+  try {
+    const event = await api.fetchRawEventById(eventId)
+    if (event || attemptsLeft <= 1) {
+      return event
+    }
+  } catch (error) {
+    if (attemptsLeft <= 1) {
+      throw error
+    }
   }
   await sleep(LIVE_RETRIEVE_DELAY_MS)
   return fetchRawEventWithRetries(api, eventId, attemptsLeft - 1)

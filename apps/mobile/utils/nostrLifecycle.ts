@@ -6,6 +6,7 @@ import {
 } from 'react-native'
 
 import { reconnectNdkForRelays } from '@/api/nostr'
+import { queryClient } from '@/lib/queryClient'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { isReadyForSync, nostrSyncService } from '@/utils/nostrSyncService'
@@ -153,6 +154,9 @@ function handleConnectivityChange(state: NetInfoState): void {
   const { wasOnline } = listeners
   listeners.wasOnline = online
   if (online && wasOnline === false) {
+    void queryClient.invalidateQueries({
+      queryKey: ['nostr', 'identity', 'reachability']
+    })
     void resumeNostr()
   }
 }

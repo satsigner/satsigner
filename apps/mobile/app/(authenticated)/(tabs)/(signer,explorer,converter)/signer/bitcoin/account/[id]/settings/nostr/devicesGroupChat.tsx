@@ -190,6 +190,7 @@ export default function DevicesGroupChat() {
     new Map()
   )
   const [failedSends, setFailedSends] = useState<Record<string, string[]>>({})
+  const retryingIds = useRef(new Set<string>())
   const [isShareModalVisible, setIsShareModalVisible] = useState(false)
   const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
@@ -286,6 +287,10 @@ export default function DevicesGroupChat() {
     if (!accountId || !message || !failedDevices) {
       return
     }
+    if (retryingIds.current.has(messageId)) {
+      return
+    }
+    retryingIds.current.add(messageId)
     try {
       recordSendOutcome(
         await retryDeviceChatMessage(accountId, message, failedDevices)
@@ -294,6 +299,8 @@ export default function DevicesGroupChat() {
       toast.error(t('common.error.failedToSendMessage'), {
         description: getNostrErrorMessage(error)
       })
+    } finally {
+      retryingIds.current.delete(messageId)
     }
   }
 

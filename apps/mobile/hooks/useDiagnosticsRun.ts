@@ -22,17 +22,29 @@ function upsertResult(
 export function useDiagnosticsRun() {
   const [results, setResults] = useState<DiagnosticResult[]>([])
   const [runningIds, setRunningIds] = useState<string[]>([])
+  const [runError, setRunError] = useState<string | null>(null)
+  const [runProgress, setRunProgress] = useState({ done: 0, total: 0 })
 
   function recordResult(result: DiagnosticResult) {
     setResults((previous) => upsertResult(previous, result))
     setRunningIds((previous) => previous.filter((id) => id !== result.id))
+    setRunProgress((previous) => ({ ...previous, done: previous.done + 1 }))
   }
 
   const mutation = useMutation({
     mutationFn: async (checks: DiagnosticCheck[]) => {
+      setRunError(null)
+      setRunProgress({ done: 0, total: checks.length })
       setRunningIds(checks.map((check) => check.id))
-      const ctx = await buildDiagnosticsContext()
-      return runDiagnostics(checks, ctx, { onResult: recordResult })
+      try {
+        const ctx = await buildDiagnosticsContext()
+        return await runDiagnostics(checks, ctx, { onResult: recordResult })
+      } catch (error) {
+        setRunError(
+          error instanceof Error ? error.message : 'diagnostics failed'
+        )
+        throw error
+      }
     },
     onSettled: () => setRunningIds([])
   })
@@ -41,6 +53,8 @@ export function useDiagnosticsRun() {
     isRunning: mutation.isPending,
     results,
     run: mutation.mutate,
+    runError,
+    runProgress,
     runningIds
   }
 }
