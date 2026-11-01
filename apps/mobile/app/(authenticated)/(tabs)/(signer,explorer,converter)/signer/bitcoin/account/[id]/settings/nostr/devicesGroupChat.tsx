@@ -299,9 +299,8 @@ export default function DevicesGroupChat() {
       toast.error(t('common.error.failedToSendMessage'), {
         description: getNostrErrorMessage(error)
       })
-    } finally {
-      retryingIds.current.delete(messageId)
     }
+    retryingIds.current.delete(messageId)
   }
 
   async function handleGoToSignFlowClick(messageContent: string) {
