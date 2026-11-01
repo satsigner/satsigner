@@ -12,6 +12,8 @@ import { CartesianChart, Line } from 'victory-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSExplorerCapabilityBanner from '@/components/SSExplorerCapabilityBanner'
+import SSExplorerRow from '@/components/SSExplorerRow'
+import SSExplorerSectionHeader from '@/components/SSExplorerSectionHeader'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSLoader from '@/components/SSLoader'
 import SSText from '@/components/SSText'
@@ -148,7 +150,7 @@ export default function ChainTip() {
         <SSVStack gap="xl" widthFull style={styles.scrollStack}>
           {/* Latest Block */}
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('latestBlock')}
               source={chainData?.blockSource ?? null}
               sourceLabel={
@@ -162,13 +164,13 @@ export default function ChainTip() {
                 onPress={openTipBlock}
                 disabled={typeof chainData?.height !== 'number'}
               >
-                <Row
+                <SSExplorerRow
                   label={tn('height')}
                   value={chainData?.height?.toLocaleString() ?? '--'}
                   loading={isLoading}
                 />
               </Pressable>
-              <Row
+              <SSExplorerRow
                 label={tn('timestamp')}
                 value={
                   chainData?.block?.timestamp
@@ -178,21 +180,21 @@ export default function ChainTip() {
                 loading={isLoading}
               />
               {chainData?.block?.tx_count !== undefined && (
-                <Row
+                <SSExplorerRow
                   label={tn('transactions')}
                   value={chainData.block.tx_count.toLocaleString()}
                   loading={isLoading}
                 />
               )}
               {chainData?.block?.size !== undefined && (
-                <Row
+                <SSExplorerRow
                   label={tn('size')}
                   value={formatBytes(chainData.block.size)}
                   loading={isLoading}
                 />
               )}
               {chainData?.block?.weight !== undefined && (
-                <Row
+                <SSExplorerRow
                   label={tn('weight')}
                   value={formatBytes(chainData.block.weight)}
                   loading={isLoading}
@@ -218,7 +220,7 @@ export default function ChainTip() {
 
           {/* Mempool (from backend if available) */}
           <SSVStack gap="sm">
-            <SectionHeader
+            <SSExplorerSectionHeader
               title={tn('mempool')}
               source={chainData?.mempoolSource ?? null}
               sourceLabel={
@@ -229,13 +231,13 @@ export default function ChainTip() {
             />
             <SSVStack gap="xs">
               {chainData?.mempool?.count !== undefined && (
-                <Row
+                <SSExplorerRow
                   label={tn('mempoolTxs')}
                   value={chainData.mempool.count.toLocaleString()}
                   loading={isLoading}
                 />
               )}
-              <Row
+              <SSExplorerRow
                 label={tn('mempoolSize')}
                 value={
                   chainData?.mempool?.vsize
@@ -245,7 +247,7 @@ export default function ChainTip() {
                 loading={isLoading}
               />
               {chainData?.mempool?.total_fee !== undefined && (
-                <Row
+                <SSExplorerRow
                   label={tn('mempoolFees')}
                   value={`${chainData.mempool.total_fee.toLocaleString()} sats`}
                   loading={isLoading}
@@ -335,7 +337,7 @@ function PriceSection({
 
   return (
     <SSVStack gap="sm" widthFull>
-      <SectionHeader
+      <SSExplorerSectionHeader
         title={tn('price')}
         source="mempool"
         sourceLabel="mempool.space"
@@ -418,83 +420,34 @@ function FeeRatesSection({
 }) {
   return (
     <SSVStack gap="sm">
-      <SectionHeader
+      <SSExplorerSectionHeader
         title={tn('fees')}
         source={source}
         sourceLabel={sourceLabel}
       />
       <SSVStack gap="xs">
-        <Row
+        <SSExplorerRow
           label={tn('feesHigh')}
           value={fees ? `${fees.high} sat/vB` : '--'}
           loading={loading}
         />
-        <Row
+        <SSExplorerRow
           label={tn('feesMedium')}
           value={fees ? `${fees.medium} sat/vB` : '--'}
           loading={loading}
         />
-        <Row
+        <SSExplorerRow
           label={tn('feesLow')}
           value={fees ? `${fees.low} sat/vB` : '--'}
           loading={loading}
         />
-        <Row
+        <SSExplorerRow
           label={tn('feesNone')}
           value={fees ? `${fees.none} sat/vB` : '--'}
           loading={loading}
         />
       </SSVStack>
     </SSVStack>
-  )
-}
-
-function SectionHeader({
-  title,
-  source,
-  sourceLabel
-}: {
-  title: string
-  source: DataSource | null
-  sourceLabel: string | null
-}) {
-  return (
-    <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-      <SSText uppercase size="md" style={styles.sectionTitle}>
-        {title}
-      </SSText>
-      {source && sourceLabel && (
-        <SSText
-          size="xxs"
-          style={
-            source === 'backend' ? styles.sourceBackend : styles.sourceMempool
-          }
-        >
-          {sourceLabel}
-        </SSText>
-      )}
-    </SSHStack>
-  )
-}
-
-function Row({
-  label,
-  value,
-  loading
-}: {
-  label: string
-  value: string
-  loading: boolean
-}) {
-  return (
-    <SSHStack justifyBetween style={styles.row}>
-      <SSText size="sm" style={styles.labelText}>
-        {label}
-      </SSText>
-      <SSText size="sm" style={styles.valueText}>
-        {loading ? '--' : value}
-      </SSText>
-    </SSHStack>
   )
 }
 
@@ -536,10 +489,6 @@ const styles = StyleSheet.create({
   priceSpotRow: {
     alignItems: 'baseline'
   },
-  row: {
-    alignItems: 'center',
-    paddingVertical: 4
-  },
   scrollContent: {
     width: '100%'
   },
@@ -547,19 +496,5 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     paddingTop: 20,
     width: '100%'
-  },
-  sectionTitle: {
-    color: Colors.gray['400'],
-    letterSpacing: 1.5
-  },
-  sourceBackend: {
-    color: Colors.mainGreen,
-    opacity: 0.8
-  },
-  sourceMempool: {
-    color: Colors.gray['500']
-  },
-  valueText: {
-    color: Colors.gray['100']
   }
 })

@@ -5,6 +5,7 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
@@ -57,6 +58,7 @@ export default function CreateNostrIdentity() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => (

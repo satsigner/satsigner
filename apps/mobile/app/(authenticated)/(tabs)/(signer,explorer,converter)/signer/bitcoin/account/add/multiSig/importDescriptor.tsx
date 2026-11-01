@@ -25,6 +25,7 @@ import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getXpubFingerprint } from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
 import {
   validateDescriptor,
   validateDescriptorScriptVersion
@@ -215,12 +216,13 @@ export default function ImportDescriptor() {
   }
 
   function importNFCData(data: NFCReadResult | null) {
-    if (data && typeof data === 'string') {
-      handleDescriptorChange(data)
-      toast.success(t('watchonly.success.nfcRead'))
-    } else {
+    const text = data?.text ? sanitizeScannedText(data.text) : ''
+    if (!text) {
       toast.error(t('watchonly.read.nfcErrorNoData'))
+      return
     }
+    handleDescriptorChange(text)
+    toast.success(t('watchonly.success.nfcRead'))
   }
 
   async function handleScanNFC() {

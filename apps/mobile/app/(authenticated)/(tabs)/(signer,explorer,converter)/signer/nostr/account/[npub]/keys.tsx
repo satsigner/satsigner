@@ -15,6 +15,7 @@ import { toast } from 'sonner-native'
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
@@ -172,8 +173,11 @@ export default function NostrIdentityKeys() {
   const { isWatchOnly } = identity
   const npubColor = generateColorFromNpub(identity.npub)
 
+  const isSecretRevealed = nsecRevealed || seedWordsRevealed
+
   return (
     <SSMainLayout style={styles.mainLayout}>
+      {isSecretRevealed && <SSScreenCaptureGuard />}
       <Stack.Screen
         options={{
           headerTitle: () => (

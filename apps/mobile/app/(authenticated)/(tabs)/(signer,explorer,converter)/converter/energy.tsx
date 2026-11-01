@@ -1,4 +1,4 @@
-import Slider from '@react-native-community/slider'
+import { Slider } from '@miblanchard/react-native-slider'
 import * as bitcoin from 'bitcoinjs-lib'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -401,6 +401,14 @@ export default function Energy() {
 
   const [miningIntensity, setMiningIntensity] = useState(10)
   const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
+
+  function handleMiningIntensityChange([intensity]: number[]) {
+    setMiningIntensity(intensity)
+  }
+
+  function handleMiningIntervalTimeChange([intervalTime]: number[]) {
+    setMiningIntervalTime(intervalTime)
+  }
   const [miningStats, setMiningStats] = useState({
     attempts: 0,
     hashesPerSecond: 0,
@@ -1331,34 +1339,36 @@ export default function Energy() {
                     {tn('miningIntensityRate', { intensity: miningIntensity })}
                   </SSText>
                 </SSHStack>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={2000}
-                  step={miningIntensity > 200 ? 100 : 10}
-                  value={miningIntensity}
-                  onValueChange={setMiningIntensity}
-                  disabled={isMining}
-                  minimumTrackTintColor={
-                    miningIntensity > 500
-                      ? Colors.error
-                      : miningIntensity > 300
-                        ? Colors.warning
-                        : miningIntensity > 200
-                          ? Colors.success
-                          : Colors.white
-                  }
-                  maximumTrackTintColor={Colors.gray[500]}
-                  thumbTintColor={
-                    miningIntensity > 500
-                      ? Colors.error
-                      : miningIntensity > 300
-                        ? Colors.warning
-                        : miningIntensity > 200
-                          ? Colors.success
-                          : Colors.white
-                  }
-                />
+                <View style={isMining ? styles.sliderDisabled : undefined}>
+                  <Slider
+                    containerStyle={styles.slider}
+                    minimumValue={0}
+                    maximumValue={2000}
+                    step={miningIntensity > 200 ? 100 : 10}
+                    value={miningIntensity}
+                    onValueChange={handleMiningIntensityChange}
+                    disabled={isMining}
+                    minimumTrackTintColor={
+                      miningIntensity > 500
+                        ? Colors.error
+                        : miningIntensity > 300
+                          ? Colors.warning
+                          : miningIntensity > 200
+                            ? Colors.success
+                            : Colors.white
+                    }
+                    maximumTrackTintColor={Colors.gray[500]}
+                    thumbTintColor={
+                      miningIntensity > 500
+                        ? Colors.error
+                        : miningIntensity > 300
+                          ? Colors.warning
+                          : miningIntensity > 200
+                            ? Colors.success
+                            : Colors.white
+                    }
+                  />
+                </View>
               </SSVStack>
               <SSVStack gap="sm" style={{ width: '100%' }}>
                 <SSHStack justifyBetween>
@@ -1369,18 +1379,20 @@ export default function Energy() {
                     {miningIntervalTime}ms
                   </SSText>
                 </SSHStack>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={1}
-                  maximumValue={10_000}
-                  step={1}
-                  value={miningIntervalTime}
-                  onValueChange={setMiningIntervalTime}
-                  disabled={isMining}
-                  minimumTrackTintColor={Colors.white}
-                  maximumTrackTintColor={Colors.gray[500]}
-                  thumbTintColor={Colors.white}
-                />
+                <View style={isMining ? styles.sliderDisabled : undefined}>
+                  <Slider
+                    containerStyle={styles.slider}
+                    minimumValue={1}
+                    maximumValue={10_000}
+                    step={1}
+                    value={miningIntervalTime}
+                    onValueChange={handleMiningIntervalTimeChange}
+                    disabled={isMining}
+                    minimumTrackTintColor={Colors.white}
+                    maximumTrackTintColor={Colors.gray[500]}
+                    thumbTintColor={Colors.white}
+                  />
+                </View>
               </SSVStack>
               <SSButton
                 label={tn(
@@ -1867,6 +1879,9 @@ const styles = StyleSheet.create({
     height: 60,
     marginHorizontal: 0,
     width: '100%'
+  },
+  sliderDisabled: {
+    opacity: 0.3
   },
   statsContainer: {
     paddingVertical: 20,

@@ -59,6 +59,21 @@ export function groupBy<T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> {
   return groups
 }
 
+/** Maps each key to the first item that has it, matching `Array#find`. */
+export function indexFirstBy<T, K>(
+  items: T[],
+  getKey: (item: T) => K
+): Map<K, T> {
+  const index = new Map<K, T>()
+  for (const item of items) {
+    const key = getKey(item)
+    if (!index.has(key)) {
+      index.set(key, item)
+    }
+  }
+  return index
+}
+
 /**
  * Narrows untyped input (parsed JSON, native payloads) to an array of numbers,
  * such as serialized script or transaction bytes.

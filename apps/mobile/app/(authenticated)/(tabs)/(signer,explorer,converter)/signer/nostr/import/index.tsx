@@ -10,6 +10,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSNostrKind0FetchWarningModal from '@/components/SSNostrKind0FetchWarningModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -324,6 +325,7 @@ export default function ImportNostrIdentity() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => (

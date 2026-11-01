@@ -87,7 +87,8 @@ const usePriceStore = create<PriceState & PriceAction>()(
     {
       name: 'price-store',
       partialize: (state) => ({ fiatCurrency: state.fiatCurrency }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

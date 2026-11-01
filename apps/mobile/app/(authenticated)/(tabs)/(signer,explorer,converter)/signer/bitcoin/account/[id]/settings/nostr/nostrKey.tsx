@@ -17,6 +17,7 @@ import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
@@ -402,8 +403,11 @@ function NostrKeys() {
     return <Redirect href="/" />
   }
 
+  const isSecretRevealed = nsecRevealed || seedRevealed || commonNsecRevealed
+
   return (
     <SSMainLayout style={styles.mainLayout}>
+      {isSecretRevealed && <SSScreenCaptureGuard />}
       <Stack.Screen
         options={{
           headerRight: () => null,

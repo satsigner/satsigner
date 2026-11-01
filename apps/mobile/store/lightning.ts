@@ -86,7 +86,8 @@ export const useLightningStore = create<LightningState>()(
           nodeInfo: state.status.nodeInfo
         }
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

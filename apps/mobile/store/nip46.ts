@@ -124,7 +124,8 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
       partialize: (state) => ({
         sessions: state.sessions
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )

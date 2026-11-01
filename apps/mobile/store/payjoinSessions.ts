@@ -164,7 +164,8 @@ const usePayjoinSessionsStore = create<
     }),
     {
       name: 'payjoin-sessions-store',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 0
     }
   )
 )
