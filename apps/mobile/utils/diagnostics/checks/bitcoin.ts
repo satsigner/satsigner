@@ -90,8 +90,10 @@ const accountSyncCheck: DiagnosticCheck = {
         : null
       const ageMs = syncedAt === null ? null : now - syncedAt
       const stale = ageMs === null || ageMs > DIAGNOSTIC_STALE_SYNC_MS
+      const failed = account.syncStatus === 'error'
       const stuck = account.isSyncing === true && stale
       return {
+        failed,
         line: `account ${index + 1} (${account.policyType}): ${account.syncStatus}, ${
           ageMs === null
             ? 'never synced'
@@ -102,7 +104,7 @@ const accountSyncCheck: DiagnosticCheck = {
     })
     return Promise.resolve({
       lines: rows.map((row) => row.line),
-      status: rows.some((row) => row.stale) ? 'warn' : 'ok'
+      status: rows.some((row) => row.stale || row.failed) ? 'warn' : 'ok'
     })
   }
 }

@@ -87,13 +87,13 @@ function buildLabelMessage(jsonl: string): string {
 async function publishLabelChunks(
   account: Account,
   chunks: string[]
-): Promise<void> {
+): Promise<boolean> {
   const { deviceNsec, relays } = account.nostr
   const trustedDevices =
     useAccountsStore.getState().accounts.find((a) => a.id === account.id)?.nostr
       ?.trustedMemberDevices ?? []
   if (trustedDevices.length === 0 || !deviceNsec) {
-    return
+    return false
   }
 
   const nostrApi = new NostrAPI(relays)
@@ -102,6 +102,7 @@ async function publishLabelChunks(
   } finally {
     nostrApi.closeAllSubscriptions()
   }
+  return true
 }
 
 async function publishToTrustedDevices(
@@ -165,8 +166,11 @@ async function syncLabelsToNostr(account?: Account, singleLabel?: Label) {
   }
 
   try {
-    await publishLabelChunks(account, buildLabelChunks(labels, singleLabel))
-    if (!singleLabel) {
+    const published = await publishLabelChunks(
+      account,
+      buildLabelChunks(labels, singleLabel)
+    )
+    if (published && !singleLabel) {
       useAccountsStore
         .getState()
         .updateAccountNostr(account.id, { lastBackupFingerprint: fingerprint })

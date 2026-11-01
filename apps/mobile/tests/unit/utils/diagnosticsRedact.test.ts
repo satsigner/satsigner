@@ -38,7 +38,9 @@ describe('diagnostics redaction', () => {
     expect(redactLine(`connect ${address} refused`)).toBe(
       'connect [ip] refused'
     )
-    expect(redactLine(`connect ${address} refused`)).not.toContain(address)
+    expect(redactLine('connect ::1 refused')).toBe('connect [ip] refused')
+    expect(redactLine('connect fe80:: refused')).toBe('connect [ip] refused')
+    expect(redactLine('connect 2001:: refused')).toBe('connect [ip] refused')
   })
 
   it('formats a redacted plain-text report', () => {

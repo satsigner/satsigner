@@ -46,7 +46,8 @@ export function useDiagnosticsRun() {
         throw error
       }
     },
-    onSettled: () => setRunningIds([])
+    onSettled: () => setRunningIds([]),
+    scope: { id: 'diagnostics' }
   })
 
   return {
