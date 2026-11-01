@@ -43,6 +43,8 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
 
 type Validation = ReturnType<typeof useAccountNameValidation>
 
+let renderer: ReturnType<typeof create> | null = null
+
 function renderValidation() {
   const result: { current: Validation | null } = { current: null }
   function Harness() {
@@ -50,7 +52,7 @@ function renderValidation() {
     return null
   }
   act(() => {
-    create(createElement(Harness))
+    renderer = create(createElement(Harness))
   })
   return result
 }
@@ -63,7 +65,16 @@ function typeName(result: { current: Validation | null }, text: string) {
 
 describe('useAccountNameValidation', () => {
   beforeEach(() => {
-    useAccountsStore.setState({ accounts: [makeAccount()] })
+    act(() => {
+      useAccountsStore.setState({ accounts: [makeAccount()] })
+    })
+  })
+
+  afterEach(() => {
+    act(() => {
+      renderer?.unmount()
+    })
+    renderer = null
   })
 
   it('does not accept a name made only of spaces', () => {
