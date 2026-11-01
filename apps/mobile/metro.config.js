@@ -29,4 +29,6 @@ defaultConfig.transformer.babelTransformerPath =
 
 const { withStorybook } = require('@storybook/react-native/metro/withStorybook')
 
-module.exports = withStorybook(defaultConfig)
+const config = withStorybook(defaultConfig)
+
+module.exports = config

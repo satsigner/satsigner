@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
@@ -235,6 +236,7 @@ export default function TxDetails() {
               : undefined
           }
         />
+        {displayTx.branta ? <SSBrantaPayee payee={displayTx.branta} /> : null}
         {feeReplacement?.assessment.unconfirmed ? (
           <SSVStack gap="xs">
             <SSFeeReplacementFlags

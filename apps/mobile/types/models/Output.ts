@@ -1,3 +1,5 @@
+import { type BrantaPayee } from '@/types/models/Branta'
+
 type OutputKind = 'fakeMix' | 'change'
 
 export type Output = {
@@ -6,4 +8,5 @@ export type Output = {
   amount: number
   label: string
   kind?: OutputKind
+  branta?: BrantaPayee
 }
