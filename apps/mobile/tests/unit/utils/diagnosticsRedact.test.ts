@@ -41,6 +41,16 @@ describe('diagnostics redaction', () => {
     expect(redactLine('connect ::1 refused')).toBe('connect [ip] refused')
     expect(redactLine('connect fe80:: refused')).toBe('connect [ip] refused')
     expect(redactLine('connect 2001:: refused')).toBe('connect [ip] refused')
+    expect(
+      redactLine('connect 2001:0db8:0000:0000:0000:ff00:0042:8329 refused')
+    ).toBe('connect [ip] refused')
+  })
+
+  it('keeps timestamps and clock times', () => {
+    expect(redactLine('2026-11-01T10:20:30.123Z')).toBe(
+      '2026-11-01T10:20:30.123Z'
+    )
+    expect(redactLine('last event 10:20:30')).toBe('last event 10:20:30')
   })
 
   it('formats a redacted plain-text report', () => {

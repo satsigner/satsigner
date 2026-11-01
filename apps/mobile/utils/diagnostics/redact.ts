@@ -10,8 +10,10 @@ const BECH32_ADDRESS_RE = /\b(bc|tb|bcrt)1[02-9ac-hj-np-z]{8,}\b/gi
 const BASE58_ADDRESS_RE = /\b[123mn][1-9A-HJ-NP-Za-km-z]{25,34}\b/g
 const HEX_ID_RE = /\b[0-9a-f]{64}\b/gi
 const IPV4_RE = /\b\d{1,3}(\.\d{1,3}){3}\b/g
+// Full eight-group form or a compressed form with `::`, so clock times such as
+// 10:20:30 are not taken for addresses.
 const IPV6_RE =
-  /(?<![0-9a-f:])(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?![0-9a-f:])/gi
+  /(?<![0-9a-f:])(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:)*[0-9a-f]{0,4}::(?:[0-9a-f]{1,4}:)*[0-9a-f]{0,4})(?![0-9a-f:])/gi
 const PRIVATE_IPV4_RE =
   /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/
 
