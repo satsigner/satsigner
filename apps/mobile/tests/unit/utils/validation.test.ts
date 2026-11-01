@@ -1,5 +1,7 @@
+import { t } from '@/locales'
 import {
   validateAddress,
+  validateCombinedDescriptor,
   validateDerivationPath,
   validateExtendedKey,
   validateFingerprint
@@ -129,5 +131,33 @@ describe('validates extended keys', () => {
     for (const key of validExtendedKeys) {
       expect(validateExtendedKey(key)).toBe(true)
     }
+  })
+})
+
+describe('validates combined descriptors', () => {
+  const combinedDescriptor =
+    "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#3qsy06cj"
+
+  function translateError(error: string | undefined) {
+    return t(`account.import.error.${error}`)
+  }
+
+  it('returns a translated error for an invalid descriptor', () => {
+    const { error, isValid } = validateCombinedDescriptor('not a descriptor')
+
+    expect(isValid).toBe(false)
+    expect(error).toBe('descriptorFormat')
+    expect(translateError(error)).not.toMatch(/missing/i)
+  })
+
+  it('returns a translated error for a script version mismatch', () => {
+    const { error, isValid } = validateCombinedDescriptor(
+      combinedDescriptor,
+      'P2TR'
+    )
+
+    expect(isValid).toBe(false)
+    expect(error).toBe('descriptorIncompatible')
+    expect(translateError(error)).not.toMatch(/missing/i)
   })
 })
