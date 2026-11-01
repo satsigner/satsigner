@@ -938,7 +938,7 @@ export default function Receive() {
                         alwaysTriggerOnChange
                         style={styles.amountTextInput}
                       />
-                      {btcPrice > 0 && (
+                      {btcPrice > 0 && fiatEnabled ? (
                         <SSText
                           color="muted"
                           size="sm"
@@ -950,7 +950,7 @@ export default function Receive() {
                             ? getFiatAmount(localCustomAmount)
                             : `${t('receive.enterIn')} ${fiatCurrency}`}
                         </SSText>
-                      )}
+                      ) : null}
                     </>
                   ) : (
                     <>

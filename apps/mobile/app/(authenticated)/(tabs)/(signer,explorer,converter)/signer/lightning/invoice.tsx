@@ -461,33 +461,35 @@ export default function InvoicePage() {
                     />
                   )}
                   {amountMode === 'sats' ? (
-                    <SSText
-                      color="muted"
-                      size="sm"
-                      onPress={
-                        btcPrice && btcPrice > 0
-                          ? handleSwitchToFiat
-                          : undefined
-                      }
-                      style={
-                        btcPrice && btcPrice > 0
-                          ? styles.switchableAmount
-                          : undefined
-                      }
-                    >
-                      ≈{' '}
-                      {invoiceAmount
-                        ? formatNumber(
-                            satsToFiat(
-                              Number.parseInt(invoiceAmount, 10),
-                              btcPrice,
-                              fiatEnabled
-                            ),
-                            2
-                          )
-                        : '0'}{' '}
-                      {fiatCurrency}
-                    </SSText>
+                    fiatEnabled ? (
+                      <SSText
+                        color="muted"
+                        size="sm"
+                        onPress={
+                          btcPrice && btcPrice > 0
+                            ? handleSwitchToFiat
+                            : undefined
+                        }
+                        style={
+                          btcPrice && btcPrice > 0
+                            ? styles.switchableAmount
+                            : undefined
+                        }
+                      >
+                        ≈{' '}
+                        {invoiceAmount
+                          ? formatNumber(
+                              satsToFiat(
+                                Number.parseInt(invoiceAmount, 10),
+                                btcPrice,
+                                fiatEnabled
+                              ),
+                              2
+                            )
+                          : '0'}{' '}
+                        {fiatCurrency}
+                      </SSText>
+                    ) : null
                   ) : (
                     <SSText
                       color="muted"
@@ -631,18 +633,20 @@ export default function InvoicePage() {
                       <SSText weight="medium">
                         {formatNumber(Number.parseInt(currentAmount, 10))} sats
                       </SSText>
-                      <SSText color="muted" size="sm">
-                        ≈{' '}
-                        {formatNumber(
-                          satsToFiat(
-                            Number.parseInt(currentAmount, 10),
-                            btcPrice,
-                            fiatEnabled
-                          ),
-                          2
-                        )}{' '}
-                        {fiatCurrency}
-                      </SSText>
+                      {fiatEnabled ? (
+                        <SSText color="muted" size="sm">
+                          ≈{' '}
+                          {formatNumber(
+                            satsToFiat(
+                              Number.parseInt(currentAmount, 10),
+                              btcPrice,
+                              fiatEnabled
+                            ),
+                            2
+                          )}{' '}
+                          {fiatCurrency}
+                        </SSText>
+                      ) : null}
                     </SSHStack>
                   </SSHStack>
                   <SSHStack gap="xs" style={styles.detailRow}>

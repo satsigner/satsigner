@@ -110,6 +110,7 @@ export default function ExplorerAddressDetail() {
     capability,
     loadFromMempool,
     needsMempool,
+    refetch,
     useMempool
   } = useExplorerAddress(resolvedAddress)
   const invalidAddressMessage =
@@ -190,6 +191,13 @@ export default function ExplorerAddressDetail() {
             <SSText color="muted" center>
               {useMempool ? tn('mempoolLoadError') : tn('notFound')}
             </SSText>
+            {useMempool ? (
+              <SSButton
+                label={t('common.retry')}
+                variant="outline"
+                onPress={refetch}
+              />
+            ) : null}
             {!useMempool ? (
               <>
                 <SSText

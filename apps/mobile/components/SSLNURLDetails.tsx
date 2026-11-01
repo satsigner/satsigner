@@ -121,7 +121,7 @@ function SSLNURLDetails({
               keyboardType="numeric"
               editable={!isFetching}
             />
-            {amount && !Number.isNaN(Number(amount)) && (
+            {fiatEnabled && amount && !Number.isNaN(Number(amount)) ? (
               <SSHStack gap="xs" style={styles.fiatAmount}>
                 <SSText color="muted" size="sm">
                   {privacyMode
@@ -132,7 +132,7 @@ function SSLNURLDetails({
                       )} ${fiatCurrency}`}
                 </SSText>
               </SSHStack>
-            )}
+            ) : null}
           </SSVStack>
           {onCommentChange && (
             <SSVStack gap="xs">

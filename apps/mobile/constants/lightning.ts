@@ -36,6 +36,8 @@ export const LNDCONNECT_DEFAULT_REST_PORT = '8080'
 export const LND_GRPC_LISTEN_PORT = '10009'
 /** TLS + HTTP timeout for LND REST (self-signed pairing cert). */
 export const LND_REST_TIMEOUT_MS = 30_000
+/** Cap a single LND REST body so a peer cannot grow memory without bound. */
+export const LND_REST_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 export const LND_INVOICE_POLL_MS = 3000
 export const LND_SUCCESS_NAVIGATE_DELAY_MS = 2000
 export const LND_SETTINGS_PEERS_MAX = 32

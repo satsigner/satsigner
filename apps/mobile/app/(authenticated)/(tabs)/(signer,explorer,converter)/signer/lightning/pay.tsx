@@ -532,7 +532,7 @@ export default function PayPage() {
                         )}
                         value={amount}
                       />
-                      {parsePositiveSats(amount) !== null ? (
+                      {fiatEnabled && parsePositiveSats(amount) !== null ? (
                         <SSText color="muted" size="sm">
                           {privacyMode
                             ? `≈ •••• ${fiatCurrency}`

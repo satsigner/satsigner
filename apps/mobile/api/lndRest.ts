@@ -2,7 +2,10 @@ import { Buffer } from 'buffer'
 
 import TcpSocket from 'react-native-tcp-socket'
 
-import { LND_REST_TIMEOUT_MS } from '@/constants/lightning'
+import {
+  LND_REST_MAX_RESPONSE_BYTES,
+  LND_REST_TIMEOUT_MS
+} from '@/constants/lightning'
 import type { LNDConfig } from '@/types/models/Lightning'
 import { isSuccessfulHttpStatus } from '@/utils/http'
 import {
@@ -93,6 +96,7 @@ function readHttpResponse(
 ): Promise<{ body: Buffer; status: number; retryHttp2: boolean }> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
+    let receivedBytes = 0
     let settled = false
     let wrote = false
     let http2Status: number | null = null
@@ -155,6 +159,14 @@ function readHttpResponse(
           }
         }
         if (frame.type === 0x00) {
+          if (
+            receivedBytes + frame.payload.length >
+            LND_REST_MAX_RESPONSE_BYTES
+          ) {
+            finish(new Error('LND REST response exceeded the size limit'), null)
+            return
+          }
+          receivedBytes += frame.payload.length
           dataParts.push(frame.payload)
           const endsStream = (frame.flags & 0x01) === 0x01
           if (!endsStream && frame.payload.length > 0) {
@@ -200,6 +212,11 @@ function readHttpResponse(
       const chunk = toBuffer(data)
       try {
         if (version === 'http1') {
+          if (receivedBytes + chunk.length > LND_REST_MAX_RESPONSE_BYTES) {
+            finish(new Error('LND REST response exceeded the size limit'), null)
+            return
+          }
+          receivedBytes += chunk.length
           chunks.push(chunk)
           const raw = Buffer.concat(chunks)
           if (looksLikeHttp2Session(raw) && !startsWithHttp1Response(raw)) {
