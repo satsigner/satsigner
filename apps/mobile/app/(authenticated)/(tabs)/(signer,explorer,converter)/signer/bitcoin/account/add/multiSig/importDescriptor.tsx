@@ -216,11 +216,12 @@ export default function ImportDescriptor() {
   }
 
   function importNFCData(data: NFCReadResult | null) {
-    if (!data?.text) {
+    const text = data?.text ? sanitizeScannedText(data.text) : ''
+    if (!text) {
       toast.error(t('watchonly.read.nfcErrorNoData'))
       return
     }
-    handleDescriptorChange(sanitizeScannedText(data.text))
+    handleDescriptorChange(text)
     toast.success(t('watchonly.success.nfcRead'))
   }
 
