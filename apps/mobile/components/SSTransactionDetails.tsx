@@ -11,15 +11,12 @@ import { type Account } from '@/types/models/Account'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatTxId } from '@/utils/format'
 import {
-  extractIndividualSignedPsbts,
-  extractOriginalPsbt,
   extractTransactionDataFromPSBTEnhanced,
-  extractTransactionIdFromPSBT,
   findMatchingAccount,
   type KeyFingerprintsByAccount,
-  getMultisigInfoFromPsbt,
   type TransactionData
 } from '@/utils/psbt'
+import { parsePsbtDetails } from '@/utils/psbtDetails'
 import {
   buildKnownTxIds,
   buildOutpointLabelsByRef,
@@ -41,6 +38,14 @@ type SSTransactionDetailsProps = {
   onOpenLinkedTx?: (accountId: string, txId: string) => void
 }
 
+function extractTransactionData(originalPsbt: string, account: Account) {
+  try {
+    return extractTransactionDataFromPSBTEnhanced(originalPsbt, account)
+  } catch {
+    return null
+  }
+}
+
 function SSTransactionDetails({
   transactionData,
   account,
@@ -51,18 +56,14 @@ function SSTransactionDetails({
   onGoToSignFlow,
   onOpenLinkedTx
 }: SSTransactionDetailsProps) {
-  const { combinedPsbt } = transactionData
-  const originalPsbt = extractOriginalPsbt(combinedPsbt)
-  const txid = extractTransactionIdFromPSBT(combinedPsbt)
-  const multisigInfo = getMultisigInfoFromPsbt(combinedPsbt)
-
-  const accountMatch = findMatchingAccount(
-    originalPsbt,
-    accounts,
-    keyFingerprintsByAccount
-  )
-
-  const signedPsbts = extractIndividualSignedPsbts(combinedPsbt, originalPsbt)
+  const details = parsePsbtDetails(transactionData.combinedPsbt)
+  const accountMatch = details
+    ? findMatchingAccount(
+        details.originalPsbt,
+        accounts,
+        keyFingerprintsByAccount
+      )
+    : null
   const matchedAccount = accountMatch?.account || account
   const { ownAddresses, internalAddresses } = getAccountAddressSets(
     matchedAccount?.addresses ?? []
@@ -86,7 +87,7 @@ function SSTransactionDetails({
     utxos: matchedAccount?.utxos
   })
 
-  if (!txid) {
+  if (!details) {
     return (
       <SSText size="sm" color="muted">
         {t('account.nostrSync.devicesGroupChat.invalidPsbt')}
@@ -94,21 +95,12 @@ function SSTransactionDetails({
     )
   }
 
-  const keysRequired = multisigInfo?.required || 0
-  const keyCount = multisigInfo?.total || 0
+  const { collectedSignatures, keyCount, keysRequired, originalPsbt, txid } =
+    details
   const isMultisig = keyCount > 1
-
-  let extractedData = null
-  if (originalPsbt && matchedAccount) {
-    try {
-      extractedData = extractTransactionDataFromPSBTEnhanced(
-        originalPsbt,
-        matchedAccount
-      )
-    } catch {
-      extractedData = null
-    }
-  }
+  const extractedData = matchedAccount
+    ? extractTransactionData(originalPsbt, matchedAccount)
+    : null
 
   const finalInputs = extractedData?.inputs || []
   const finalOutputs = extractedData?.outputs || []
@@ -117,7 +109,6 @@ function SSTransactionDetails({
     finalInputs.length,
     finalOutputs.length
   )
-  const collectedSignatures = Object.keys(signedPsbts || {}).map(Number)
   const vin = finalInputs.map((input) => ({
     label: input.label || '',
     previousOutput: { txid: input.txid, vout: input.vout },

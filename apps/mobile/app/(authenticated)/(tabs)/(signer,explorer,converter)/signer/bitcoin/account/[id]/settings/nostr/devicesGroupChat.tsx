@@ -1,4 +1,9 @@
 import {
+  FlashList,
+  type FlashListRef,
+  type ListRenderItemInfo
+} from '@shopify/flash-list'
+import {
   Redirect,
   router,
   Stack,
@@ -6,21 +11,38 @@ import {
   useLocalSearchParams
 } from 'expo-router'
 import { useHeaderHeight } from 'expo-router/react-navigation'
-import { nip19 } from 'nostr-tools'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View
+} from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import { MS_PER_SECOND } from '@/constants/time'
+import {
+  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
+  NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
+  NOSTR_GROUP_CHAT_PAGE_SIZE,
+  NOSTR_GROUP_CHAT_SCROLL_THRESHOLD
+} from '@/constants/nostr'
 import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
+import { useNostrDeviceChatProfilesFetch } from '@/hooks/useNostrDeviceChatProfilesFetch'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
@@ -32,147 +54,107 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
+import { type Account } from '@/types/models/Account'
+import { type NostrDM } from '@/types/models/Nostr'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNpub } from '@/utils/format'
-import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
-import { kind0ProfileWithContent } from '@/utils/nostrSyncSettings'
-import { type TransactionData } from '@/utils/psbt'
+import { parseNostrTransaction } from '@/utils/nostr'
+import {
+  buildAuthorDisplayMap,
+  getAuthorsMissingProfiles
+} from '@/utils/nostrAuthorDisplay'
+import {
+  type DeviceChatSendOutcome,
+  retryDeviceChatMessage,
+  sendDeviceChatMessage
+} from '@/utils/nostrDeviceChat'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
+import {
+  type KeyFingerprintsByAccount,
+  type TransactionData
+} from '@/utils/psbt'
 
-// In-memory color cache; keyed by pubkey hex.
-// Display text is NOT cached here — it's recomputed whenever profiles update.
-const colorCache = new Map<string, string>()
+type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
+
+type GroupChatRowContextValue = {
+  account: Account
+  accounts: Account[]
+  failedSends: Record<string, string[]>
+  formattedNpubs: Map<string, AuthorDisplayInfo>
+  keyFingerprintsByAccount: KeyFingerprintsByAccount
+  onAuthorPress: (npub: string) => void
+  onGoToSignFlow: (messageContent: string) => void
+  onOpenLinkedTx: (accountId: string, txId: string) => void
+  onRetry: (messageId: string) => void
+  onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
+  visibleComponents: VisibleComponents
+}
+
+const GroupChatRowContext = createContext<GroupChatRowContextValue | null>(null)
 
 const EMPTY_MEMBERS: { npub: string; color: string }[] = []
+const EMPTY_DMS: NostrDM[] = []
 
-function getAuthorColor(
-  pubkey: string,
-  members: { npub: string; color: string }[]
-): string {
-  const cached = colorCache.get(pubkey)
-  if (cached) {
-    return cached
-  }
-
-  try {
-    const npub = nip19.npubEncode(pubkey)
-    const member = members.find((m) => m.npub === npub)
-    const color = member?.color || Colors.gray[500]
-    colorCache.set(pubkey, color)
-    return color
-  } catch {
-    return Colors.gray[500]
-  }
-}
-
-function formatNpubText(pubkey: string): string {
-  const npub = safeNpubEncode(pubkey, '')
-  return npub ? formatNpub(npub) : pubkey.slice(0, 8)
-}
-
-function createPendingDm(
-  deviceNpub: string,
-  description: string
-): NostrDM | null {
-  const decoded = nip19.decode(deviceNpub)
-  const devicePubkeyHex =
-    decoded?.type === 'npub' && typeof decoded.data === 'string'
-      ? decoded.data
-      : null
-  if (!devicePubkeyHex) {
+function GroupChatRow({ item }: { item: NostrDM }) {
+  const context = use(GroupChatRowContext)
+  if (!context) {
     return null
   }
-  const created_at = Math.floor(Date.now() / MS_PER_SECOND)
-  return {
-    author: devicePubkeyHex,
-    content: {
-      created_at,
-      description,
-      pubkey: devicePubkeyHex
-    },
-    created_at,
-    description,
-    event: '',
-    id: `pending-${Date.now()}`,
-    label: 1,
-    pending: true
-  }
+  return (
+    <SSNostrMessage
+      item={item}
+      account={context.account}
+      accounts={context.accounts}
+      keyFingerprintsByAccount={context.keyFingerprintsByAccount}
+      formattedNpubs={context.formattedNpubs}
+      visibleComponents={context.visibleComponents}
+      onToggleVisibility={context.onToggleVisibility}
+      onGoToSignFlow={context.onGoToSignFlow}
+      onAuthorPress={context.onAuthorPress}
+      onOpenLinkedTx={context.onOpenLinkedTx}
+      failed={(context.failedSends[item.id]?.length ?? 0) > 0}
+      onRetry={context.onRetry}
+    />
+  )
 }
 
-function appendDmSorted(dms: NostrDM[] | undefined, dm: NostrDM) {
-  return [...(dms ?? []), dm].toSorted((a, b) => a.created_at - b.created_at)
+function renderGroupChatRow({ item }: ListRenderItemInfo<NostrDM>) {
+  return <GroupChatRow item={item} />
 }
 
-type AuthorDisplaySource = Pick<
-  NostrAccount,
-  | 'deviceDisplayName'
-  | 'deviceNpub'
-  | 'devicePicture'
-  | 'npubAliases'
-  | 'npubProfiles'
->
-
-function buildFormattedNpubs(
-  messages: NostrDM[],
-  members: { npub: string; color: string }[],
-  profiles: ReturnType<typeof useNostrStore.getState>['profiles'],
-  source: AuthorDisplaySource
-) {
-  const formattedNpubs = new Map<string, AuthorDisplayInfo>()
-  const aliases = source.npubAliases ?? {}
-
-  for (const msg of messages) {
-    if (!msg.author) {
-      continue
-    }
-    const color = getAuthorColor(msg.author, members)
-    const npub = safeNpubEncode(msg.author, '')
-    const profile = npub ? profiles[npub] : undefined
-    const accountProfile = npub ? source.npubProfiles?.[npub] : undefined
-    const isCurrentDevice = npub === source.deviceNpub
-    const deviceDisplayName = isCurrentDevice
-      ? source.deviceDisplayName
-      : undefined
-    const devicePicture = isCurrentDevice ? source.devicePicture : undefined
-    const alias = npub ? (aliases[npub] ?? '').trim() : ''
-    const npubShort = npub ? formatNpubText(msg.author) : msg.author.slice(0, 8)
-    formattedNpubs.set(msg.author, {
-      alias: alias || undefined,
-      color,
-      displayName:
-        profile?.displayName ??
-        accountProfile?.displayName ??
-        deviceDisplayName,
-      npubShort,
-      picture: profile?.picture ?? accountProfile?.picture ?? devicePicture
-    })
-  }
-
-  return formattedNpubs
+function getMessageKey(item: NostrDM) {
+  return item.id
 }
 
-const INITIAL_PAGE_SIZE = 50
-const PAGE_SIZE = 50
-const SCROLL_THRESHOLD = 40
+function isScrolledToBottom({
+  contentOffset,
+  contentSize,
+  layoutMeasurement
+}: NativeScrollEvent): boolean {
+  return (
+    contentOffset.y + layoutMeasurement.height >=
+    contentSize.height - NOSTR_GROUP_CHAT_SCROLL_THRESHOLD
+  )
+}
+
+function withoutKey(record: Record<string, string[]>, key: string) {
+  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key))
+}
 
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const headerHeight = useHeaderHeight()
-  const flatListRef = useRef<FlatList>(null)
-  const { sendDM, sendPSBT } = useNostrPublish()
+  const listRef = useRef<FlashListRef<NostrDM>>(null)
+  const { sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
-  const [accounts, account, updateAccountNostr, markDmsAsRead] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts,
-        state.accounts.find((acc) => acc.id === accountId),
-        state.updateAccountNostr,
-        state.markDmsAsRead
-      ])
-    )
+  const account = useAccountsStore((state) =>
+    state.accounts.find((acc) => acc.id === accountId)
+  )
+  const markDmsAsRead = useAccountsStore((state) => state.markDmsAsRead)
+  // The group chat belongs to this account; its PSBTs are matched against it.
+  const chatAccounts = account ? [account] : []
   const { data: keyFingerprintsByAccount = {} } =
-    useAccountKeyFingerprints(accounts)
+    useAccountKeyFingerprints(chatAccounts)
 
   useFocusEffect(
     useCallback(() => {
@@ -186,131 +168,139 @@ export default function DevicesGroupChat() {
     }, [accountId, markDmsAsRead])
   )
 
-  const accountMembers = useNostrStore((state) =>
-    accountId ? state.members?.[accountId] : undefined
+  const members =
+    useNostrStore((state) =>
+      accountId ? state.members?.[accountId] : undefined
+    ) ?? EMPTY_MEMBERS
+  const storeProfiles = useNostrStore((state) => state.profiles)
+  const syncStatus = useNostrStore((state) =>
+    accountId ? state.syncStatus[accountId]?.status : undefined
   )
-  const members = accountMembers || EMPTY_MEMBERS
-  const [profiles, setProfile] = useNostrStore(
-    useShallow((state) => [state.profiles, state.setProfile])
+  const isAccountSyncing = useNostrStore((state) =>
+    accountId ? (state.syncingAccounts[accountId] ?? false) : false
   )
-  const [transactionToShare, setTransactionToShare] = useNostrStore(
-    useShallow((state) => [
-      state.transactionToShare,
-      state.setTransactionToShare
-    ])
+  const transactionToShare = useNostrStore((state) => state.transactionToShare)
+  const setTransactionToShare = useNostrStore(
+    (state) => state.setTransactionToShare
   )
 
   const [isLoading, setIsLoading] = useState(false)
   const [messageInput, setMessageInput] = useState('')
-  const [visibleComponents, setVisibleComponents] = useState(
-    new Map<string, { sankey: boolean; status: boolean }>()
+  const [visibleComponents, setVisibleComponents] = useState<VisibleComponents>(
+    new Map()
   )
+  const [failedSends, setFailedSends] = useState<Record<string, string[]>>({})
+  const retryingIds = useRef(new Set<string>())
   const [isShareModalVisible, setIsShareModalVisible] = useState(false)
   const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
     useState<TransactionData | null>(null)
-  const isAtBottomRef = useRef(true)
-  const [showNewMessageButton, setShowNewMessageButton] = useState(false)
-  const [displayCount, setDisplayCount] = useState(INITIAL_PAGE_SIZE)
-  const lastLoadMoreAtRef = useRef(0)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const [seenNewestId, setSeenNewestId] = useState<string>()
+  const [displayCount, setDisplayCount] = useState(NOSTR_GROUP_CHAT_PAGE_SIZE)
 
-  const messages = useMemo(
-    () => account?.nostr?.dms || [],
-    [account?.nostr?.dms]
+  const messages = account?.nostr?.dms ?? EMPTY_DMS
+  const displayedMessages = messages.slice(-displayCount)
+  const newestId = messages.at(-1)?.id
+  const showNewMessageButton =
+    !isAtBottom && seenNewestId !== undefined && newestId !== seenNewestId
+  const isSyncInProgress = syncStatus === 'connecting' || isAccountSyncing
+
+  const authorInput = account?.nostr
+    ? {
+        dms: messages,
+        members,
+        nostr: account.nostr,
+        profiles: storeProfiles
+      }
+    : null
+  const missingAuthors = authorInput
+    ? getAuthorsMissingProfiles(authorInput)
+    : []
+  const { data: fetchedProfiles } = useNostrDeviceChatProfilesFetch(
+    account?.nostr?.relays ?? [],
+    missingAuthors
   )
+  const formattedNpubs = authorInput
+    ? buildAuthorDisplayMap({
+        ...authorInput,
+        profiles: { ...storeProfiles, ...fetchedProfiles }
+      })
+    : new Map<string, AuthorDisplayInfo>()
 
-  const displayedMessages = useMemo(
-    () => messages.slice(-displayCount).reverse(),
-    [messages, displayCount]
-  )
-
-  const prevMessageCountRef = useRef(messages.length)
-
-  const memoizedMessages = messages
-
-  const membersList = useMemo(
-    () =>
-      members.map((member: { npub: string; color?: string }) => ({
-        color: member.color || Colors.gray[500],
-        npub: member.npub
-      })),
-    [members]
-  )
-
-  function markPendingDmSent(pendingId: string | null) {
-    if (!pendingId || !accountId) {
+  function recordSendOutcome(outcome: DeviceChatSendOutcome | null) {
+    if (!outcome) {
       return
     }
-    const current = useAccountsStore
-      .getState()
-      .accounts.find((a) => a.id === accountId)
-    const dms = (current?.nostr?.dms ?? []).map((m) =>
-      m.id === pendingId ? { ...m, pending: false } : m
+    const { error, failedDevices, messageId } = outcome
+    setFailedSends((prev) =>
+      failedDevices.length > 0
+        ? { ...prev, [messageId]: failedDevices }
+        : withoutKey(prev, messageId)
     )
-    updateAccountNostr(accountId, { dms })
+    if (failedDevices.length > 0) {
+      toast.error(t('common.error.failedToSendMessage'), {
+        description: getNostrErrorMessage(error)
+      })
+    }
   }
 
   async function handleSendMessage() {
-    if (!messageInput.trim()) {
+    const trimmed = messageInput.trim()
+    if (!trimmed) {
       toast.error(t('common.error.messageCannotBeEmpty'))
       return
     }
-
     if (!account?.nostr?.autoSync) {
       toast.error(t('common.error.autoSyncMustBeEnabled'))
       return
     }
-
     if (
-      !account?.nostr?.deviceNsec ||
-      !account?.nostr?.deviceNpub ||
-      !account?.nostr?.relays?.length
+      !accountId ||
+      !account.nostr.deviceNsec ||
+      !account.nostr.deviceNpub ||
+      !account.nostr.relays?.length
     ) {
       toast.error(t('common.error.missingRequiredNostrConfig'))
       return
     }
 
-    const trimmed = messageInput.trim()
-    let pendingId: string | null = null
-    try {
-      const optimisticMessage = createPendingDm(
-        account.nostr.deviceNpub,
-        trimmed
-      )
-      if (!optimisticMessage) {
-        toast.error(t('common.error.missingRequiredNostrConfig'))
-        return
-      }
-      pendingId = optimisticMessage.id
-      updateAccountNostr(accountId, {
-        dms: appendDmSorted(account.nostr.dms, optimisticMessage)
-      })
-      setMessageInput('')
-    } catch {
-      toast.error(t('common.error.failedToSendMessage'))
-      return
-    }
-
+    setMessageInput('')
     setIsLoading(true)
     try {
-      await sendDM(account, trimmed)
-      // Mark as sent: many relays don't echo events back to the sender, so we
-      // clear pending when publish succeeds instead of waiting for the echo.
-      markPendingDmSent(pendingId)
-    } catch {
-      toast.error(t('common.error.failedToSendMessage'))
-      if (pendingId && accountId) {
-        const current = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        const dms = (current?.nostr?.dms ?? []).filter(
-          (m) => m.id !== pendingId
-        )
-        updateAccountNostr(accountId, { dms })
-      }
+      recordSendOutcome(await sendDeviceChatMessage(accountId, trimmed))
+    } catch (error) {
+      toast.error(t('common.error.failedToSendMessage'), {
+        description: getNostrErrorMessage(error)
+      })
       setMessageInput(trimmed)
+      setIsLoading(false)
+      return
     }
+    listRef.current?.scrollToEnd({ animated: true })
     setIsLoading(false)
+  }
+
+  async function handleRetry(messageId: string) {
+    const message = messages.find((dm) => dm.id === messageId)
+    const failedDevices = failedSends[messageId]
+    if (!accountId || !message || !failedDevices) {
+      return
+    }
+    if (retryingIds.current.has(messageId)) {
+      return
+    }
+    retryingIds.current.add(messageId)
+    try {
+      recordSendOutcome(
+        await retryDeviceChatMessage(accountId, message, failedDevices)
+      )
+    } catch (error) {
+      toast.error(t('common.error.failedToSendMessage'), {
+        description: getNostrErrorMessage(error)
+      })
+    }
+    retryingIds.current.delete(messageId)
   }
 
   async function handleGoToSignFlowClick(messageContent: string) {
@@ -320,7 +310,6 @@ export default function DevicesGroupChat() {
         toast.error(t('common.error.transactionDataParseFailed'))
         return
       }
-
       await handleGoToSignFlow(transactionData)
     } catch {
       toast.error(t('common.error.openSignFlowFailed'))
@@ -332,27 +321,38 @@ export default function DevicesGroupChat() {
     component: 'sankey' | 'status'
   ) {
     setVisibleComponents((prev) => {
-      const newMap = new Map(prev)
-      const current = newMap.get(msgId) || {
-        sankey: false,
-        status: false
-      }
-      newMap.set(msgId, { ...current, [component]: true })
-      return newMap
+      const next = new Map(prev)
+      const current = next.get(msgId) || { sankey: false, status: false }
+      next.set(msgId, { ...current, [component]: true })
+      return next
     })
+  }
+
+  function handleAuthorPress(npub: string) {
+    router.push({
+      params: { id: accountId, npub },
+      pathname: '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
+    })
+  }
+
+  function handleOpenLinkedTx(matchedAccountId: string, linkedTxId: string) {
+    router.push(
+      `/signer/bitcoin/account/${matchedAccountId}/transaction/${linkedTxId}`
+    )
   }
 
   async function handleShareInChat() {
     if (!account || !transactionToShareLocal) {
       return
     }
-
     setIsLoading(true)
     try {
       await sendPSBT(account, transactionToShareLocal)
       toast.success(t('account.nostrSync.transactionDataSentToGroupChat'))
-    } catch {
-      toast.error(t('account.nostrSync.failedToSendTransactionData'))
+    } catch (error) {
+      toast.error(t('account.nostrSync.failedToSendTransactionData'), {
+        description: getNostrErrorMessage(error)
+      })
     }
     setIsShareModalVisible(false)
     setTransactionToShareLocal('')
@@ -366,111 +366,29 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
-  const formattedNpubs = buildFormattedNpubs(
-    memoizedMessages,
-    membersList,
-    profiles,
-    {
-      deviceDisplayName: account?.nostr?.deviceDisplayName,
-      deviceNpub: account?.nostr?.deviceNpub,
-      devicePicture: account?.nostr?.devicePicture,
-      npubAliases: account?.nostr?.npubAliases,
-      npubProfiles: account?.nostr?.npubProfiles
-    }
-  )
+  function handleScrollToBottom() {
+    listRef.current?.scrollToEnd({ animated: true })
+    setIsAtBottom(true)
+  }
 
-  // Fetch kind0 profiles for authors we haven't resolved yet.
-  // Fire-and-forget: results land in the persisted nostr store.
-  useEffect(() => {
-    if (!account?.nostr?.relays?.length) {
+  function handleListScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const atBottom = isScrolledToBottom(event.nativeEvent)
+    if (atBottom === isAtBottom) {
       return
     }
-
-    const { relays } = account.nostr
-    const fetchedRef = new Set<string>()
-
-    async function fetchMissingProfiles() {
-      for (const msg of memoizedMessages) {
-        if (!msg.author) {
-          continue
-        }
-        let npub: string
-        try {
-          npub = nip19.npubEncode(msg.author)
-        } catch {
-          continue
-        }
-        if (
-          profiles[npub]?.displayName ||
-          profiles[npub]?.picture ||
-          fetchedRef.has(npub)
-        ) {
-          continue
-        }
-        fetchedRef.add(npub)
-
-        try {
-          const api = new NostrAPI(relays)
-          const fetchedProfile = await api.fetchKind0(npub)
-          const result = kind0ProfileWithContent(fetchedProfile)
-          if (!result) {
-            continue
-          }
-          setProfile(npub, {
-            displayName: result.displayName,
-            picture: result.picture
-          })
-        } catch {
-          // ignore fetch errors — truncated npub remains as fallback
-        }
-      }
-    }
-    fetchMissingProfiles()
-  }, [memoizedMessages, profiles, account?.nostr?.relays, setProfile])
-
-  useEffect(() => {
-    const prevCount = prevMessageCountRef.current
-    if (messages.length > prevCount && !isAtBottomRef.current) {
-      setShowNewMessageButton(true)
-    }
-    prevMessageCountRef.current = messages.length
-  }, [messages.length])
-
-  function handleScrollToBottom() {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ animated: true, offset: 0 })
-      isAtBottomRef.current = true
-      setShowNewMessageButton(false)
+    setIsAtBottom(atBottom)
+    if (!atBottom) {
+      setSeenNewestId(newestId)
     }
   }
 
-  function handleListScroll(e: {
-    nativeEvent: {
-      contentOffset: { y: number }
-      layoutMeasurement: { height: number }
-      contentSize: { height: number }
+  function handleLoadOlder() {
+    if (displayCount >= messages.length) {
+      return
     }
-  }) {
-    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
-    const atBottom = contentOffset.y <= SCROLL_THRESHOLD
-    if (isAtBottomRef.current !== atBottom) {
-      isAtBottomRef.current = atBottom
-      if (atBottom) {
-        setShowNewMessageButton(false)
-      }
-    }
-    const nearTop =
-      contentSize.height > layoutMeasurement.height &&
-      contentOffset.y >=
-        contentSize.height - layoutMeasurement.height - SCROLL_THRESHOLD
-    if (
-      nearTop &&
-      displayCount < messages.length &&
-      Date.now() - lastLoadMoreAtRef.current > 300
-    ) {
-      lastLoadMoreAtRef.current = Date.now()
-      setDisplayCount((c) => Math.min(c + PAGE_SIZE, messages.length))
-    }
+    setDisplayCount((count) =>
+      Math.min(count + NOSTR_GROUP_CHAT_PAGE_SIZE, messages.length)
+    )
   }
 
   useEffect(() => {
@@ -485,6 +403,24 @@ export default function DevicesGroupChat() {
   if (!accountId || !account) {
     return <Redirect href="/" />
   }
+
+  const rowContext: GroupChatRowContextValue = {
+    account,
+    accounts: chatAccounts,
+    failedSends,
+    formattedNpubs,
+    keyFingerprintsByAccount,
+    onAuthorPress: handleAuthorPress,
+    onGoToSignFlow: handleGoToSignFlowClick,
+    onOpenLinkedTx: handleOpenLinkedTx,
+    onRetry: handleRetry,
+    onToggleVisibility: handleToggleVisibility,
+    visibleComponents
+  }
+
+  const emptyText = isSyncInProgress
+    ? t('account.nostrSync.devicesGroupChat.loadingMessages')
+    : t('account.nostrSync.devicesGroupChat.noMessages')
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
@@ -504,66 +440,42 @@ export default function DevicesGroupChat() {
         style={styles.keyboardAvoiding}
       >
         <SSVStack gap="sm" style={styles.chatContent}>
-          <SSVStack gap="sm">
-            <SSVStack gap="xs">
-              <SSText center uppercase color="muted">
-                {t('account.nostrSync.devicesGroupChat.title')}
-                {account.nostr.autoSync
-                  ? t('account.nostrSync.devicesGroupChat.syncOn')
-                  : t('account.nostrSync.devicesGroupChat.syncOff')}
-              </SSText>
-            </SSVStack>
-          </SSVStack>
+          <SSText center uppercase color="muted">
+            {t('account.nostrSync.devicesGroupChat.title')}
+            {account.nostr.autoSync
+              ? t('account.nostrSync.devicesGroupChat.syncOn')
+              : t('account.nostrSync.devicesGroupChat.syncOff')}
+          </SSText>
 
           <View style={styles.messagesContainer}>
-            {messages.length === 0 && (
-              <View style={styles.loadingContainer}>
+            {messages.length === 0 ? (
+              <View style={styles.emptyContainer}>
                 <SSText center color="muted">
-                  {t('account.nostrSync.devicesGroupChat.loadingMessages')}
+                  {emptyText}
                 </SSText>
               </View>
-            )}
-            <FlatList
-              ref={flatListRef}
-              data={displayedMessages}
-              renderItem={({ item }) => (
-                <SSNostrMessage
-                  item={item}
-                  account={account}
-                  accounts={accounts}
-                  keyFingerprintsByAccount={keyFingerprintsByAccount}
-                  formattedNpubs={formattedNpubs}
-                  visibleComponents={visibleComponents}
-                  onToggleVisibility={handleToggleVisibility}
-                  onGoToSignFlow={handleGoToSignFlowClick}
-                  onAuthorPress={(npub) =>
-                    router.push({
-                      params: { id: accountId, npub },
-                      pathname:
-                        '/signer/bitcoin/account/[id]/settings/nostr/device/[npub]'
-                    })
-                  }
-                  onOpenLinkedTx={(matchedAccountId, linkedTxId) =>
-                    router.push(
-                      `/signer/bitcoin/account/${matchedAccountId}/transaction/${linkedTxId}`
-                    )
-                  }
+            ) : (
+              <GroupChatRowContext
+                // oxlint-disable-next-line react/jsx-no-constructed-context-values -- React Compiler memoizes rowContext on its inputs
+                value={rowContext}
+              >
+                <FlashList
+                  ref={listRef}
+                  data={displayedMessages}
+                  renderItem={renderGroupChatRow}
+                  keyExtractor={getMessageKey}
+                  extraData={rowContext}
+                  maintainVisibleContentPosition={{
+                    autoscrollToBottomThreshold:
+                      NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
+                    startRenderingFromBottom: true
+                  }}
+                  onStartReached={handleLoadOlder}
+                  onScroll={handleListScroll}
+                  scrollEventThrottle={16}
                 />
-              )}
-              keyExtractor={(item) => item.id}
-              ListEmptyComponent={
-                messages.length > 0 ? (
-                  <SSText center color="muted">
-                    {t('account.nostrSync.devicesGroupChat.noMessages')}
-                  </SSText>
-                ) : undefined
-              }
-              inverted
-              initialNumToRender={25}
-              maxToRenderPerBatch={15}
-              onScroll={handleListScroll}
-              scrollEventThrottle={16}
-            />
+              </GroupChatRowContext>
+            )}
             {showNewMessageButton && (
               <View style={styles.newMessageButtonContainer}>
                 <SSButton
@@ -584,7 +496,7 @@ export default function DevicesGroupChat() {
               )}
               placeholderTextColor={Colors.gray[500]}
               multiline
-              maxLength={500}
+              maxLength={NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH}
             />
             <SSButton
               style={styles.sendButton}
@@ -612,7 +524,7 @@ export default function DevicesGroupChat() {
                 <SSTransactionDetails
                   transactionData={transactionDataForModal}
                   account={account}
-                  accounts={accounts}
+                  accounts={chatAccounts}
                   keyFingerprintsByAccount={keyFingerprintsByAccount}
                 />
               ) : (
@@ -621,7 +533,7 @@ export default function DevicesGroupChat() {
                 </SSText>
               )}
             </ScrollView>
-            <SSVStack gap="xs" style={{ marginTop: 2 }}>
+            <SSVStack gap="xs" style={styles.modalActions}>
               <SSButton
                 label={t('account.nostrSync.shareInChat')}
                 onPress={handleShareInChat}
@@ -641,18 +553,13 @@ export default function DevicesGroupChat() {
 }
 
 const styles = StyleSheet.create({
-  authorIndicator: {
-    borderRadius: 4,
-    height: 8,
-    marginRight: 3,
-    marginTop: 1,
-    width: 8
-  },
   chatContent: {
     flex: 1
   },
-  deviceMessage: {
-    backgroundColor: Colors.gray[800]
+  emptyContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center'
   },
   input: {
     backgroundColor: Colors.gray[900],
@@ -670,27 +577,12 @@ const styles = StyleSheet.create({
   keyboardAvoiding: {
     flex: 1
   },
-  loadingContainer: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1
-  },
-  message: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    marginTop: 8,
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5
-  },
   messagesContainer: {
     flex: 1,
     paddingBottom: 8
+  },
+  modalActions: {
+    marginTop: 2
   },
   modalContainer: {
     alignItems: 'center',
@@ -725,15 +617,5 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     flex: 0.2
-  },
-  signFlowButton: {
-    alignSelf: 'flex-start',
-    marginTop: 8
-  },
-  statusContainer: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center'
   }
 })

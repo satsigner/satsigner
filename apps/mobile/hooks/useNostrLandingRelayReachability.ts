@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { reconnectNdkForRelays, testNostrRelaysReachable } from '@/api/nostr'
+import { NOSTR_RELAY_REACHABILITY_STALE_TIME_MS } from '@/constants/nostr'
+import { nostrKeys } from '@/db/keys'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
+import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 
 type UseNostrLandingRelayReachabilityArgs = {
   activeIdentityNpub: string | null
@@ -12,120 +15,58 @@ type UseNostrLandingRelayReachabilityArgs = {
   relays: string[]
 }
 
-type RelayReachabilityPlan =
-  | { info: NostrRelayConnectionInfo | null; kind: 'settled' }
-  | { kind: 'probe'; urls: string[] }
-
-const CHECKING_CONNECTION_INFO: NostrRelayConnectionInfo = {
-  status: 'checking'
+const ALL_FAILED: NostrRelayConnectionInfo = {
+  reason: 'all_failed',
+  status: 'disconnected'
 }
 
-function getRelayReachabilityPlan({
-  activeIdentityNpub,
-  identities,
-  relays
-}: UseNostrLandingRelayReachabilityArgs): RelayReachabilityPlan {
-  if (!activeIdentityNpub) {
-    return { info: null, kind: 'settled' }
-  }
-
-  const identity = identities.find((i) => i.npub === activeIdentityNpub)
-  if (!identity) {
-    return { info: null, kind: 'settled' }
-  }
-
-  if (!identity.relayConnected) {
-    return {
-      info: { reason: 'user_disabled', status: 'disconnected' },
-      kind: 'settled'
+/** Probes the relays once, reconnecting and re-probing when all failed. */
+async function checkRelayReachability(
+  urls: string[]
+): Promise<NostrRelayConnectionInfo> {
+  try {
+    const info = await testNostrRelaysReachable(urls)
+    if (info.status !== 'disconnected' || info.reason !== 'all_failed') {
+      return info
     }
+    await reconnectNdkForRelays(urls)
+    return await testNostrRelaysReachable(urls)
+  } catch {
+    return ALL_FAILED
   }
-
-  const urls = identity.relays?.length ? identity.relays : relays
-
-  if (urls.length === 0) {
-    return {
-      info: { reason: 'no_relays', status: 'disconnected' },
-      kind: 'settled'
-    }
-  }
-
-  return { kind: 'probe', urls }
-}
-
-function getPlanConnectionInfo(plan: RelayReachabilityPlan) {
-  return plan.kind === 'settled' ? plan.info : CHECKING_CONNECTION_INFO
-}
-
-function hasSameReachabilityInputs(
-  a: UseNostrLandingRelayReachabilityArgs,
-  b: UseNostrLandingRelayReachabilityArgs
-) {
-  return (
-    a.activeIdentityNpub === b.activeIdentityNpub &&
-    a.identities === b.identities &&
-    a.relays === b.relays
-  )
 }
 
 export function useNostrLandingRelayReachability({
   activeIdentityNpub,
   identities,
   relays
-}: UseNostrLandingRelayReachabilityArgs) {
-  const inputs = { activeIdentityNpub, identities, relays }
-  const [activeConnectionInfo, setActiveConnectionInfo] = useState(() =>
-    getPlanConnectionInfo(getRelayReachabilityPlan(inputs))
-  )
-  const [checkedInputs, setCheckedInputs] = useState(inputs)
-  const effectGenerationRef = useRef(0)
+}: UseNostrLandingRelayReachabilityArgs): NostrRelayConnectionInfo | null {
+  const identity = activeIdentityNpub
+    ? identities.find((i) => i.npub === activeIdentityNpub)
+    : undefined
+  const urls = identity?.relays?.length ? identity.relays : relays
+  const relaysKey = getNostrContactsRelaysKey(urls)
+  const relayConnected = identity?.relayConnected === true
 
-  if (!hasSameReachabilityInputs(checkedInputs, inputs)) {
-    setCheckedInputs(inputs)
-    setActiveConnectionInfo(
-      getPlanConnectionInfo(getRelayReachabilityPlan(inputs))
-    )
+  const query = useQuery({
+    enabled: relayConnected && urls.length > 0,
+    queryFn: () => checkRelayReachability(urls),
+    queryKey: nostrKeys.identityReachability(
+      activeIdentityNpub ?? '',
+      relaysKey
+    ),
+    retry: false,
+    staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
+  })
+
+  if (!identity) {
+    return null
   }
-
-  useEffect(() => {
-    const plan = getRelayReachabilityPlan({
-      activeIdentityNpub,
-      identities,
-      relays
-    })
-    if (plan.kind === 'settled') {
-      return
-    }
-
-    const { urls } = plan
-    effectGenerationRef.current += 1
-    const generation = effectGenerationRef.current
-
-    const run = async () => {
-      const info = await testNostrRelaysReachable(urls)
-      if (generation !== effectGenerationRef.current) {
-        return
-      }
-      setActiveConnectionInfo(info)
-
-      if (info.status === 'disconnected' && info.reason === 'all_failed') {
-        await reconnectNdkForRelays(urls)
-        if (generation !== effectGenerationRef.current) {
-          return
-        }
-        const retryInfo = await testNostrRelaysReachable(urls)
-        if (generation !== effectGenerationRef.current) {
-          return
-        }
-        setActiveConnectionInfo(retryInfo)
-      }
-    }
-    run()
-
-    return () => {
-      effectGenerationRef.current += 1
-    }
-  }, [activeIdentityNpub, identities, relays])
-
-  return activeConnectionInfo
+  if (!relayConnected) {
+    return { reason: 'user_disabled', status: 'disconnected' }
+  }
+  if (urls.length === 0) {
+    return { reason: 'no_relays', status: 'disconnected' }
+  }
+  return query.data ?? { status: 'checking' }
 }

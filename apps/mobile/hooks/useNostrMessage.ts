@@ -1,13 +1,13 @@
-import { nip19 } from 'nostr-tools'
-import { useMemo } from 'react'
-
-import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import {
+  NOSTR_FALLBACK_NPUB_COLOR,
+  NOSTR_PUBKEY_HEX_LENGTH
+} from '@/constants/nostr'
 import { t } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
 import { formatNpub } from '@/utils/format'
-import { parseNostrTransaction } from '@/utils/nostr'
+import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
 
 export type AuthorDisplayInfo = {
   displayName?: string
@@ -25,77 +25,52 @@ type UseNostrMessageParams = {
   ownNpub?: string
 }
 
-function buildNostrMessageData({
+function getMessageContent(msg: NostrDM): string {
+  if (typeof msg.content === 'object' && 'description' in msg.content) {
+    return msg.content.description
+  }
+  if (typeof msg.content === 'string') {
+    return msg.content
+  }
+  return t('account.nostrSync.devicesGroupChat.displayError')
+}
+
+/** Callers that already hold npub authors (DM threads) skip the encode. */
+function getAuthorNpub(author: string): string {
+  if (author.startsWith('npub')) {
+    return author
+  }
+  return safeNpubEncode(
+    author.padStart(NOSTR_PUBKEY_HEX_LENGTH, '0').toLowerCase(),
+    ''
+  )
+}
+
+function getNostrMessageDisplay({
   msg,
   account,
   formattedNpubs,
   ownNpub
 }: UseNostrMessageParams) {
-  try {
-    const hexString = msg.author.startsWith('npub')
-      ? msg.author
-      : msg.author.padStart(64, '0').toLowerCase()
+  const authorNpub = getAuthorNpub(msg.author)
+  const messageContent = getMessageContent(msg)
+  const transactionData = parseNostrTransaction(messageContent)
 
-    const msgAuthorNpub = msg.author.startsWith('npub')
-      ? msg.author
-      : nip19.npubEncode(hexString)
-
-    const isDeviceMessage =
-      msgAuthorNpub === (account?.nostr?.deviceNpub ?? ownNpub)
-    const authorDisplayName = formattedNpubs.get(msg.author) || {
+  return {
+    authorDisplayName: formattedNpubs.get(msg.author) ?? {
       color: NOSTR_FALLBACK_NPUB_COLOR,
-      npubShort: formatNpub(msgAuthorNpub)
-    }
-
-    const messageContent =
-      typeof msg.content === 'object' && 'description' in msg.content
-        ? msg.content.description
-        : typeof msg.content === 'string'
-          ? msg.content
-          : t('account.nostrSync.devicesGroupChat.displayError')
-
-    const transactionData = parseNostrTransaction(messageContent)
-    const hasSignFlow = transactionData !== null
-
-    const formattedDate = formatDateShort(msg.created_at)
-
-    return {
-      authorDisplayName,
-      authorNpub: msgAuthorNpub,
-      error: null,
-      formattedDate,
-      hasSignFlow,
-      isDeviceMessage,
-      messageContent,
-      transactionData
-    }
-  } catch (error) {
-    return {
-      authorDisplayName: { color: '', npubShort: '' },
-      authorNpub: '',
-      error:
-        error instanceof Error
-          ? error
-          : new Error('Failed to process Nostr message'),
-      formattedDate: '',
-      hasSignFlow: false,
-      isDeviceMessage: false,
-      messageContent: '',
-      transactionData: null
-    }
+      npubShort: formatNpub(authorNpub)
+    },
+    authorNpub,
+    error: authorNpub ? null : new Error('Invalid Nostr message author'),
+    formattedDate: formatDateShort(msg.created_at),
+    hasSignFlow: transactionData !== null,
+    isDeviceMessage: authorNpub === (account?.nostr?.deviceNpub ?? ownNpub),
+    messageContent,
+    transactionData
   }
 }
 
-export function useNostrMessage({
-  msg,
-  account,
-  formattedNpubs,
-  ownNpub
-}: UseNostrMessageParams) {
-  const data = useMemo(
-    () => buildNostrMessageData({ account, formattedNpubs, msg, ownNpub }),
-    [msg, account, formattedNpubs, ownNpub]
-  )
-
-  return data
+export function useNostrMessage(params: UseNostrMessageParams) {
+  return getNostrMessageDisplay(params)
 }

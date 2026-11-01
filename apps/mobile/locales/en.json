@@ -2034,7 +2034,7 @@
     "account.eventNotFound": "Event not found on relays",
     "account.fetchingNote": "Fetching note from relays...",
     "account.followingEmpty": "No follows found on relays for this identity yet.",
-    "account.followingLoading": "Loading people you follow...",
+    "account.followingLoading": "Looking up your follow list on relays. This can take a few seconds.",
     "account.followingTitle": "Following",
     "account.lud16NotSet": "Lightning address not set",
     "account.nip05NotSet": "NIP-05 not set",
@@ -3035,6 +3035,7 @@
     "developer.diagnosis.checks.accountSync.title": "Wallet sync freshness",
     "developer.diagnosis.checks.nostrRelays.title": "Nostr relays",
     "developer.diagnosis.checks.nostrConnections.title": "Nostr relay pools",
+    "developer.diagnosis.checks.nostrFollows.title": "Nostr follow list",
     "developer.diagnosis.checks.nostrCache.title": "Nostr cache",
     "developer.diagnosis.checks.nostrCacheFreshness.title": "Nostr cache vs relays",
     "developer.diagnosis.checks.nostrOrphans.title": "Leftover nostr data",
@@ -3581,7 +3582,7 @@
     "partialSend": "Sent to {{delivered}} of {{total}} devices. Retry to reach the rest.",
     "publishFailed": "No relay accepted the event. Try again or check your relays.",
     "source": {
-      "cache": "Offline — showing saved data",
+      "cache": "Showing saved data",
       "retry": "Retry",
       "stale": "Showing older saved data — relays didn't answer"
     },

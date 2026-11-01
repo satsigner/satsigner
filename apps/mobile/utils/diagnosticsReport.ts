@@ -10,11 +10,12 @@ import {
 } from '@/constants/nostr'
 import { randomKey } from '@/utils/crypto'
 import {
-  type CheckResults,
+  type DiagnosticResult,
+  type DiagnosticStatus,
   resolveLiveRoundtripRelays
 } from '@/utils/diagnostics'
 
-export const DIAGNOSTICS_REPORT_VERSION = 1
+export const DIAGNOSTICS_REPORT_VERSION = 2
 
 export type DiagnosticsReportPayload = {
   v: number
@@ -24,26 +25,23 @@ export type DiagnosticsReportPayload = {
   deviceModel?: string
   network: string
   ts: number
-  checks: Record<string, 'ok' | 'failed'>
+  checks: Record<string, DiagnosticStatus>
 }
 
 /**
- * Builds the outbound diagnostics report. Pass/fail per executed check plus
+ * Builds the outbound diagnostics report. Status per executed check plus
  * coarse environment info (app version, platform, OS version, device model
  * where the OS exposes it) — enough to spot device- or release-correlated
  * failures across users. Never includes check log lines (they can contain
  * relay URLs and error details) and never any RNG samples.
  */
 export function buildDiagnosticsReport(
-  results: CheckResults,
+  results: DiagnosticResult[],
   network: string
 ): DiagnosticsReportPayload {
-  const checks: Record<string, 'ok' | 'failed'> = {}
-  for (const [id, result] of Object.entries(results)) {
-    if (result?.kind === 'ok' || result?.kind === 'failed') {
-      checks[id] = result.kind
-    }
-  }
+  const checks = Object.fromEntries(
+    results.map((result) => [result.id, result.status])
+  )
 
   // platform.ios.model is the hardware identifier ("iPhone15,2"), not the
   // user-set device name, so it carries no personal info. Null in simulator.
