@@ -1,12 +1,28 @@
-const BrantaServerBaseUrl = {
+const BrantaEnvironment = {
   Localhost: 'Localhost',
   Production: 'Production',
   Staging: 'Staging'
 }
 
-const PrivacyMode = {
-  Loose: 'loose',
-  Strict: 'strict'
+const BrantaPaymentExceptionReason = {
+  CryptoUnavailable: 'crypto_unavailable'
+}
+
+// oxlint-disable-next-line eslint-plugin-unicorn/custom-error-definition -- mirrors the SDK class name
+class BrantaPaymentException extends Error {
+  reason?: string
+
+  constructor(message: string, reason?: string) {
+    super(message)
+    this.name = 'BrantaPaymentException'
+    this.reason = reason
+  }
+}
+
+class BrantaService {
+  verify() {
+    return Promise.resolve({ status: 'unknown', verifyUrl: '' })
+  }
 }
 
 function createNobleCryptoProvider() {
@@ -17,4 +33,10 @@ function createNobleCryptoProvider() {
   }
 }
 
-export { BrantaServerBaseUrl, PrivacyMode, createNobleCryptoProvider }
+export {
+  BrantaEnvironment,
+  BrantaPaymentException,
+  BrantaPaymentExceptionReason,
+  BrantaService,
+  createNobleCryptoProvider
+}

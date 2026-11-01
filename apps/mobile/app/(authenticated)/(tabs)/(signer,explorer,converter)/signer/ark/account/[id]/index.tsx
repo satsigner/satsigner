@@ -219,7 +219,7 @@ export default function ArkAccountDetailPage() {
 
   async function handleScanned(content: DetectedContent) {
     setCameraVisible(false)
-    await handleContentReady(content, 'qr')
+    await handleContentReady(content)
   }
 
   function handleTabChange(index: number) {

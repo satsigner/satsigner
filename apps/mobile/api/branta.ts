@@ -1,9 +1,11 @@
 import {
-  BrantaServerBaseUrl,
-  PrivacyMode,
-  createNobleCryptoProvider
+  BrantaEnvironment,
+  BrantaPaymentException,
+  BrantaPaymentExceptionReason,
+  BrantaService,
+  createNobleCryptoProvider,
+  type VerifyResult
 } from '@branta-ops/branta'
-import { BrantaService } from '@branta-ops/branta/v2'
 import { gcm } from '@noble/ciphers/aes.js'
 import { hmac } from '@noble/hashes/hmac'
 import { sha256 } from '@noble/hashes/sha2'
@@ -13,18 +15,18 @@ import Constants from 'expo-constants'
 import { BRANTA_LOOKUP_TIMEOUT_MS } from '@/constants/branta'
 import { useSettingsStore } from '@/store/settings'
 import {
-  type BrantaLookupSource,
+  type BrantaLookupNotice,
   type BrantaPayee
 } from '@/types/models/Branta'
 import { toBrantaPayee } from '@/utils/brantaPayee'
 import { createBrantaTorFetch } from '@/utils/brantaTorFetch'
 
-const QR_URI_PATTERN = /^(bitcoin|lightning):/i
+type BrantaLookupClient = Pick<BrantaService, 'verify'>
 
-type BrantaLookupClient = Pick<
-  BrantaService,
-  'getPayments' | 'getPaymentsByQrCode'
->
+type BrantaLookupResult = {
+  notice: BrantaLookupNotice | null
+  payee: BrantaPayee | null
+}
 
 let service: BrantaService | undefined
 let serviceKey = ''
@@ -46,6 +48,10 @@ function takeBrantaLookupPermit() {
   return true
 }
 
+function skippedLookup(): BrantaLookupResult {
+  return { notice: null, payee: null }
+}
+
 function isProductionBranta(extra: unknown): boolean {
   if (!extra || typeof extra !== 'object') {
     return false
@@ -56,11 +62,11 @@ function isProductionBranta(extra: unknown): boolean {
   return extra.brantaEnvironment === 'production'
 }
 
-function brantaServerBaseUrl() {
+function brantaEnvironment() {
   if (isProductionBranta(Constants.expoConfig?.extra)) {
-    return BrantaServerBaseUrl.Production
+    return BrantaEnvironment.Production
   }
-  return BrantaServerBaseUrl.Staging
+  return BrantaEnvironment.Staging
 }
 
 /**
@@ -70,53 +76,61 @@ function brantaServerBaseUrl() {
  */
 function getBrantaService(): BrantaService {
   const torEnabled = useSettingsStore.getState().brantaTorEnabled
-  const baseUrl = brantaServerBaseUrl()
-  const key = `${baseUrl}:${torEnabled}`
+  const environment = brantaEnvironment()
+  const key = `${environment}:${torEnabled}`
   if (!service || serviceKey !== key) {
-    service = new BrantaService(
-      {
-        baseUrl,
-        privacy: PrivacyMode.Strict
-      },
-      {
-        crypto: createNobleCryptoProvider({ gcm, hmac, randomBytes, sha256 }),
-        ...(torEnabled ? { fetchImpl: createBrantaTorFetch() } : {})
-      }
-    )
+    service = new BrantaService({
+      crypto: createNobleCryptoProvider({ gcm, hmac, randomBytes, sha256 }),
+      environment,
+      ...(torEnabled ? { fetchImpl: createBrantaTorFetch() } : {})
+    })
     serviceKey = key
   }
   return service
 }
 
-/**
- * A pasted `bitcoin:` or `lightning:` string is the QR payload. Only
- * getPaymentsByQrCode reads `branta_id` and `branta_secret`. Plain text
- * such as a bolt11 invoice still uses getPayments.
- */
-function usesQrLookup(input: string, source: BrantaLookupSource): boolean {
-  return source === 'qr' || QR_URI_PATTERN.test(input)
+function payeeFromVerify(result: VerifyResult): BrantaLookupResult {
+  if (result.status === 'match') {
+    return { notice: null, payee: toBrantaPayee(result) }
+  }
+  if (result.status === 'tampered') {
+    return { notice: 'tampered', payee: null }
+  }
+  if (result.status === 'incomplete') {
+    return { notice: 'incomplete', payee: null }
+  }
+  return skippedLookup()
+}
+
+function noticeFromLookupError(error: unknown): BrantaLookupNotice {
+  if (
+    error instanceof BrantaPaymentException &&
+    error.reason === BrantaPaymentExceptionReason.CryptoUnavailable
+  ) {
+    return 'unavailable'
+  }
+  return 'incomplete'
 }
 
 /**
- * Looks up a scanned or pasted destination. A miss or a failure is not shown
- * to the user — the destination simply has no Branta record.
- * Pass the full QR or pasted text. Do not split a unified URI first.
+ * Looks up a scanned or pasted destination. Pass the full QR or pasted text.
+ * `verify` reads `branta_id` / `branta_secret` and derived-key payments.
+ * Unknown is not shown. Tampered, incomplete, and missing crypto are.
  */
 async function lookupBrantaPayee(
   input: string,
-  source: BrantaLookupSource,
   client?: BrantaLookupClient
-): Promise<BrantaPayee | null> {
+): Promise<BrantaLookupResult> {
   if (useSettingsStore.getState().brantaLookupMode === 'off') {
-    return null
+    return skippedLookup()
   }
   if (!takeBrantaLookupPermit()) {
-    return null
+    return skippedLookup()
   }
 
   const trimmed = input.trim()
   if (!trimmed) {
-    return null
+    return skippedLookup()
   }
 
   const lookupClient = client ?? getBrantaService()
@@ -127,25 +141,14 @@ async function lookupBrantaPayee(
   }, BRANTA_LOOKUP_TIMEOUT_MS)
 
   try {
-    const result = usesQrLookup(trimmed, source)
-      ? await lookupClient.getPaymentsByQrCode(
-          trimmed,
-          undefined,
-          controller.signal
-        )
-      : await lookupClient.getPayments(
-          trimmed,
-          undefined,
-          undefined,
-          controller.signal
-        )
-
-    if (result.payments.length === 0) {
-      return null
-    }
-    return toBrantaPayee(result)
-  } catch {
-    return null
+    const result = await lookupClient.verify(
+      trimmed,
+      undefined,
+      controller.signal
+    )
+    return payeeFromVerify(result)
+  } catch (error) {
+    return { notice: noticeFromLookupError(error), payee: null }
   } finally {
     clearTimeout(timer)
   }

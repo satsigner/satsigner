@@ -13,6 +13,7 @@ import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaLookupNotice from '@/components/SSBrantaLookupNotice'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -40,7 +41,6 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Typography } from '@/styles'
-import { type BrantaLookupSource } from '@/types/models/Branta'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse
@@ -143,6 +143,7 @@ export default function PayPage() {
     adopt: adoptBrantaPayee,
     lookup: lookupBrantaDestination,
     mode: brantaLookupMode,
+    notice: brantaNotice,
     payee: brantaPayee,
     verifyLatest: verifyBrantaDestination
   } = useBrantaPayeeLookup()
@@ -204,13 +205,10 @@ export default function PayPage() {
     }
   }
 
-  async function handlePaymentRequestChange(
-    text: string,
-    source?: BrantaLookupSource
-  ) {
+  async function handlePaymentRequestChange(text: string, lookupPayee = false) {
     setPaymentRequest(text)
-    if (source) {
-      void lookupBrantaDestination(text, source)
+    if (lookupPayee) {
+      void lookupBrantaDestination(text)
     } else {
       adoptBrantaPayee(null)
     }
@@ -327,13 +325,13 @@ export default function PayPage() {
         return
       }
       setOnchainAddress(address)
-      void lookupBrantaDestination(raw, 'qr')
+      void lookupBrantaDestination(raw)
       return
     }
     const cleanText = content.cleaned.replace(/^lightning:/i, '')
 
     if (isLightningPaymentInput(cleanText)) {
-      void handlePaymentRequestChange(cleanText, 'qr')
+      void handlePaymentRequestChange(cleanText, true)
     } else {
       toast.error(t('lightning.pay.invalidQr'))
     }
@@ -356,12 +354,12 @@ export default function PayPage() {
           return
         }
         setOnchainAddress(address)
-        void lookupBrantaDestination(cleanText, 'paste')
+        void lookupBrantaDestination(cleanText)
         return
       }
 
       if (isLightningPaymentInput(cleanText)) {
-        await handlePaymentRequestChange(cleanText, 'paste')
+        await handlePaymentRequestChange(cleanText, true)
       } else {
         toast.error(t('lightning.pay.invalidClipboard'))
       }
@@ -486,6 +484,7 @@ export default function PayPage() {
             />
             <SSBrantaLookupModal />
             {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+            <SSBrantaLookupNotice notice={brantaNotice} />
             {brantaLookupMode === 'manual' ? (
               <SSButton
                 label={t('settings.branta.verify')}

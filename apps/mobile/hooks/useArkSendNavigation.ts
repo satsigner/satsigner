@@ -4,7 +4,6 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { type ArkDestinationDraft } from '@/types/models/Ark'
-import { type BrantaLookupSource } from '@/types/models/Branta'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getLNURLType } from '@/utils/lnurl'
@@ -24,8 +23,7 @@ export function useArkSendNavigation(accountId: string | undefined) {
 
   function goToConfirm(
     cleanedDestination: string,
-    draft: ArkDestinationDraft,
-    source: BrantaLookupSource = 'paste'
+    draft: ArkDestinationDraft
   ) {
     if (!accountId) {
       return
@@ -36,7 +34,6 @@ export function useArkSendNavigation(accountId: string | undefined) {
     )
     router.navigate({
       params: {
-        brantaSource: source,
         destination: cleanedDestination,
         id: accountId
       },
@@ -54,10 +51,7 @@ export function useArkSendNavigation(accountId: string | undefined) {
     })
   }
 
-  async function processDestination(
-    raw: string,
-    source: BrantaLookupSource = 'paste'
-  ): Promise<boolean> {
+  async function processDestination(raw: string): Promise<boolean> {
     const trimmed = raw.trim()
     if (!trimmed) {
       return false
@@ -72,16 +66,13 @@ export function useArkSendNavigation(accountId: string | undefined) {
       toast.error(t('ark.send.error.invalidDestination'))
       return false
     }
-    goToConfirm(trimmed, parsed.draft, source)
+    goToConfirm(trimmed, parsed.draft)
     return true
   }
 
-  function handleContentReady(
-    content: DetectedContent,
-    source: BrantaLookupSource
-  ): Promise<boolean> {
+  function handleContentReady(content: DetectedContent): Promise<boolean> {
     const raw = content.raw ?? content.cleaned
-    return processDestination(raw, source)
+    return processDestination(raw)
   }
 
   return {

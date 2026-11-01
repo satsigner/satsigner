@@ -1,4 +1,9 @@
 import {
+  BrantaPaymentException,
+  BrantaPaymentExceptionReason
+} from '@branta-ops/branta'
+
+import {
   allowBrantaLookup,
   lookupBrantaPayee,
   resetBrantaLookupPermits
@@ -19,10 +24,15 @@ const payment = {
   platformLogoUrl: 'https://guardrail.branta.pro/logo.png'
 }
 
-function clientWith(result: { payments: unknown[]; verifyUrl: string }) {
+const missed = { notice: null, payee: null }
+
+function clientWith(result: {
+  payments?: unknown[]
+  status: string
+  verifyUrl: string
+}) {
   return {
-    getPayments: jest.fn(async () => result),
-    getPaymentsByQrCode: jest.fn(async () => result)
+    verify: jest.fn(async () => result)
   }
 }
 
@@ -49,115 +59,157 @@ describe('lookupBrantaPayee', () => {
     resetBrantaLookupPermits()
     const client = clientWith({
       payments: [payment],
+      status: 'match',
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(
-      lookupBrantaPayee('bc1qexample', 'paste', client)
-    ).resolves.toBeNull()
-    expect(client.getPayments).not.toHaveBeenCalled()
-    expect(client.getPaymentsByQrCode).not.toHaveBeenCalled()
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
+      missed
+    )
+    expect(client.verify).not.toHaveBeenCalled()
   })
 
   it('does not contact Branta while lookup is off', async () => {
     useSettingsStore.setState({ brantaLookupMode: 'off' })
     const client = clientWith({
       payments: [payment],
+      status: 'match',
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(
-      lookupBrantaPayee('bc1qexample', 'paste', client)
-    ).resolves.toBeNull()
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
+      missed
+    )
 
-    expect(client.getPayments).not.toHaveBeenCalled()
-    expect(client.getPaymentsByQrCode).not.toHaveBeenCalled()
+    expect(client.verify).not.toHaveBeenCalled()
   })
 
   it('does not call Branta for an empty destination', async () => {
-    const client = clientWith({ payments: [], verifyUrl: '' })
+    const client = clientWith({ status: 'unknown', verifyUrl: '' })
 
-    await expect(lookupBrantaPayee('   ', 'paste', client)).resolves.toBeNull()
+    await expect(lookupBrantaPayee('   ', client)).resolves.toStrictEqual(missed)
 
-    expect(client.getPayments).not.toHaveBeenCalled()
-    expect(client.getPaymentsByQrCode).not.toHaveBeenCalled()
+    expect(client.verify).not.toHaveBeenCalled()
   })
 
-  it('looks up a scanned QR with the full payload', async () => {
+  it('verifies a scanned QR with the full payload', async () => {
     const qr = 'bitcoin:bc1qexample?branta_id=1&branta_secret=2'
     const client = clientWith({
       payments: [payment],
+      status: 'match',
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(lookupBrantaPayee(qr, 'qr', client)).resolves.toStrictEqual(
+    await expect(lookupBrantaPayee(qr, client)).resolves.toStrictEqual({
+      notice: null,
       payee
-    )
+    })
 
-    expect(client.getPaymentsByQrCode).toHaveBeenCalledWith(
+    expect(client.verify).toHaveBeenCalledWith(
       qr,
       undefined,
       expect.any(AbortSignal)
     )
-    expect(client.getPayments).not.toHaveBeenCalled()
   })
 
-  it('looks up a pasted bitcoin URI with the QR parser', async () => {
+  it('verifies a pasted bitcoin URI with the full payload', async () => {
     const uri = 'bitcoin:bc1qexample?branta_id=1&branta_secret=2'
     const client = clientWith({
       payments: [payment],
+      status: 'match',
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(
-      lookupBrantaPayee(uri, 'paste', client)
-    ).resolves.toStrictEqual(payee)
+    await expect(lookupBrantaPayee(uri, client)).resolves.toStrictEqual({
+      notice: null,
+      payee
+    })
 
-    expect(client.getPaymentsByQrCode).toHaveBeenCalledWith(
+    expect(client.verify).toHaveBeenCalledWith(
       uri,
       undefined,
       expect.any(AbortSignal)
     )
-    expect(client.getPayments).not.toHaveBeenCalled()
   })
 
-  it('looks up pasted text with getPayments', async () => {
+  it('verifies pasted text with the same call', async () => {
     const pasted = 'lnbc1example'
     const client = clientWith({
       payments: [payment],
+      status: 'match',
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(
-      lookupBrantaPayee(pasted, 'paste', client)
-    ).resolves.toStrictEqual(payee)
+    await expect(lookupBrantaPayee(pasted, client)).resolves.toStrictEqual({
+      notice: null,
+      payee
+    })
 
-    expect(client.getPayments).toHaveBeenCalledWith(
+    expect(client.verify).toHaveBeenCalledWith(
       pasted,
-      undefined,
       undefined,
       expect.any(AbortSignal)
     )
   })
 
-  it('returns null when the destination is unknown', async () => {
-    const client = clientWith({ payments: [], verifyUrl: '' })
+  it('returns no payee when the destination is unknown', async () => {
+    const client = clientWith({ status: 'unknown', verifyUrl: '' })
 
-    await expect(
-      lookupBrantaPayee('bc1qexample', 'paste', client)
-    ).resolves.toBeNull()
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
+      missed
+    )
   })
 
-  it('returns null when the lookup fails', async () => {
+  it('warns when the destination was altered', async () => {
+    const client = clientWith({
+      status: 'tampered',
+      verifyUrl: payee.verifyUrl
+    })
+
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+      notice: 'tampered',
+      payee: null
+    })
+  })
+
+  it('warns when the lookup does not finish', async () => {
+    const client = clientWith({
+      status: 'incomplete',
+      verifyUrl: ''
+    })
+
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+      notice: 'incomplete',
+      payee: null
+    })
+  })
+
+  it('does not treat a failed lookup as unknown', async () => {
     const client = {
-      getPayments: jest.fn(async () => {
+      verify: jest.fn(async () => {
         throw new Error('network')
-      }),
-      getPaymentsByQrCode: jest.fn()
+      })
     }
 
-    await expect(
-      lookupBrantaPayee('bc1qexample', 'paste', client)
-    ).resolves.toBeNull()
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+      notice: 'incomplete',
+      payee: null
+    })
+  })
+
+  it('does not treat missing crypto as unknown', async () => {
+    const client = {
+      verify: jest.fn(async () => {
+        throw new BrantaPaymentException(
+          'crypto',
+          BrantaPaymentExceptionReason.CryptoUnavailable
+        )
+      })
+    }
+
+    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+      notice: 'unavailable',
+      payee: null
+    })
   })
 })

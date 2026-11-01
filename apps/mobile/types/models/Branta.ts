@@ -1,6 +1,6 @@
 export type BrantaLookupMode = 'always' | 'manual' | 'off'
 
-export type BrantaLookupSource = 'qr' | 'paste'
+export type BrantaLookupNotice = 'incomplete' | 'tampered' | 'unavailable'
 
 export type BrantaPayee = {
   description: string

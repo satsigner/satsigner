@@ -29,12 +29,12 @@ export default function ArkSendEntryPage() {
 
   async function handleScanned(content: DetectedContent) {
     setCameraVisible(false)
-    await handleContentReady(content, 'qr')
+    await handleContentReady(content)
   }
 
   async function handlePasted(content: DetectedContent) {
     setPasteVisible(false)
-    await handleContentReady(content, 'paste')
+    await handleContentReady(content)
   }
 
   async function handleContinue() {

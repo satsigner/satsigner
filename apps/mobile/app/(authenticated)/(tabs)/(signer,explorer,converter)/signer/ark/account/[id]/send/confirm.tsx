@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaLookupNotice from '@/components/SSBrantaLookupNotice'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -34,7 +35,6 @@ import type {
   ArkSendOutcome,
   ArkDestinationDraft
 } from '@/types/models/Ark'
-import { type BrantaLookupSource } from '@/types/models/Branta'
 import { arkSendFeeRequest } from '@/utils/ark'
 import { parseArkDestination } from '@/utils/arkDestination'
 import { truncateArkCounterparty } from '@/utils/arkMovement'
@@ -45,27 +45,19 @@ import { validateAddress } from '@/utils/validation'
 
 import { ArkInvoiceStats, styles } from '../../[id]/pay-invoice'
 
-function brantaLookupSource(
-  value: string | string[] | undefined
-): BrantaLookupSource {
-  const source = Array.isArray(value) ? value[0] : value
-  return source === 'qr' ? 'qr' : 'paste'
-}
-
 export default function ArkSendConfirmPage() {
   const router = useRouter()
-  const { brantaSource, destination, id } = useLocalSearchParams<{
-    brantaSource?: string
+  const { destination, id } = useLocalSearchParams<{
     destination: string
     id: string
   }>()
   const {
     lookup: lookupBrantaDestination,
     mode: brantaLookupMode,
+    notice: brantaNotice,
     payee: brantaPayee,
     verifyLatest: verifyBrantaDestination
   } = useBrantaPayeeLookup()
-  const source = brantaLookupSource(brantaSource)
   const automaticLookup = brantaLookupMode === 'always'
 
   const parsedQuery = useQuery<ArkDestinationDraft>({
@@ -83,8 +75,8 @@ export default function ArkSendConfirmPage() {
 
   const payeeQuery = useQuery({
     enabled: Boolean(destination) && automaticLookup,
-    queryFn: () => lookupBrantaDestination(destination ?? '', source),
-    queryKey: ['branta', 'payee', destination, source],
+    queryFn: () => lookupBrantaDestination(destination ?? ''),
+    queryKey: ['branta', 'payee', destination],
     staleTime: Infinity
   })
 
@@ -238,6 +230,7 @@ export default function ArkSendConfirmPage() {
               </SSVStack>
               <SSBrantaLookupModal />
               {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+              <SSBrantaLookupNotice notice={brantaNotice} />
               {brantaLookupMode === 'manual' ? (
                 <SSButton
                   label={t('settings.branta.verify')}

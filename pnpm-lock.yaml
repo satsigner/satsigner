@@ -118,8 +118,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       '@branta-ops/branta':
-        specifier: ^3.2.2
-        version: 3.2.5
+        specifier: ^4.0.3
+        version: 4.0.3
       '@cashu/cashu-ts':
         specifier: ^3.0.0
         version: 3.6.2
@@ -978,8 +978,8 @@ packages:
   '@bitcoinerlab/secp256k1@1.2.0':
     resolution: {integrity: sha512-jeujZSzb3JOZfmJYI0ph1PVpCRV5oaexCgy+RvCXV8XlY+XFB/2n3WOcvBsKLsOw78KYgnQrQWb2HrKE4be88Q==}
 
-  '@branta-ops/branta@3.2.5':
-    resolution: {integrity: sha512-uj7xVZyzLrqdRssaEzxBP+ZIm5Jcl/0e9r4StVk5seuNeIgy1Ly8awfPKL+czpK5fcYFWvgaCO67Ae2f15vn+w==}
+  '@branta-ops/branta@4.0.3':
+    resolution: {integrity: sha512-Q1rjfasfk6W5UnXGrZ6o/piEHlGTlLzcNpI1e2a7iSv63ZoG8rOHlK4ZFgz6anBEJqZWCZbMyKQur1xsfOE4Cw==}
 
   '@cashu/cashu-ts@3.6.2':
     resolution: {integrity: sha512-wdlX1rIFC+cdr+qVnVl2ko6ShKeNSJCGnQFQ1NyeS+EwZ8e0t6BQXF5uLgGnA8DB44RkfCgiH2Iw5RHTDkb6YQ==}
@@ -9983,7 +9983,7 @@ snapshots:
     dependencies:
       '@noble/curves': 1.9.7
 
-  '@branta-ops/branta@3.2.5': {}
+  '@branta-ops/branta@4.0.3': {}
 
   '@cashu/cashu-ts@3.6.2':
     dependencies:

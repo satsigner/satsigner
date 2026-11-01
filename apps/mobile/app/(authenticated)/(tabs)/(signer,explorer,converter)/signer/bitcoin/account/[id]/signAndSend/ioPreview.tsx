@@ -27,6 +27,7 @@ import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaLookupNotice from '@/components/SSBrantaLookupNotice'
 import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -75,7 +76,6 @@ import {
   type LoadingAutoSelectUtxosAlgorithm
 } from '@/types/models/AutoSelectUtxos'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type BrantaLookupSource } from '@/types/models/Branta'
 import { type Utxo } from '@/types/models/Utxo'
 import { type IoPreviewSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
@@ -534,6 +534,7 @@ export default function IOPreview() {
     adopt: adoptBrantaPayee,
     lookup: lookupBrantaPayeeForOutput,
     mode: brantaLookupMode,
+    notice: brantaNotice,
     payee: brantaPayee,
     settled: settledBrantaPayee,
     verifyLatest: verifyBrantaDestination
@@ -605,15 +606,12 @@ export default function IOPreview() {
     return parsed
   }
 
-  function handlePasteFromClipboard(
-    content: string,
-    source: BrantaLookupSource = 'paste'
-  ) {
+  function handlePasteFromClipboard(content: string) {
     if (addingOutputRef.current) {
       return
     }
     const trimmedContent = content.trim()
-    void lookupBrantaPayeeForOutput(trimmedContent, source)
+    void lookupBrantaPayeeForOutput(trimmedContent)
 
     const bip21Result = parseBitcoinPaymentUri(trimmedContent)
     if (bip21Result) {
@@ -866,7 +864,7 @@ export default function IOPreview() {
 
     // Same Payjoin-aware path as paste (raw keeps bitcoin: + pj=).
     const raw = content.raw.trim() || content.cleaned.trim()
-    handlePasteFromClipboard(raw, 'qr')
+    handlePasteFromClipboard(raw)
     setCameraModalVisible(false)
   }
 
@@ -1736,6 +1734,7 @@ export default function IOPreview() {
                 </SSVStack>
                 <SSBrantaLookupModal />
                 {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+                <SSBrantaLookupNotice notice={brantaNotice} />
                 {brantaLookupMode === 'manual' ? (
                   <SSButton
                     label={t('settings.branta.verify')}
