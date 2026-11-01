@@ -1,4 +1,9 @@
-import { groupBy, isNumberArray, isStringArray } from '@/utils/array'
+import {
+  groupBy,
+  indexFirstBy,
+  isNumberArray,
+  isStringArray
+} from '@/utils/array'
 
 describe('groupBy', () => {
   it('returns an empty map for no items', () => {
@@ -74,5 +79,24 @@ describe('isStringArray', () => {
     expect(isStringArray({ 0: 'e' })).toBe(false)
     expect(isStringArray('e')).toBe(false)
     expect(isStringArray(null)).toBe(false)
+  })
+})
+
+describe('indexFirstBy', () => {
+  it('returns an empty map for no items', () => {
+    expect(indexFirstBy([], (n: number) => n).size).toBe(0)
+  })
+
+  it('keeps the first item for a repeated key, like Array#find', () => {
+    const rows = [
+      { id: 'a', v: 1 },
+      { id: 'b', v: 2 },
+      { id: 'a', v: 3 }
+    ]
+    const indexed = indexFirstBy(rows, (row) => row.id)
+
+    expect(indexed.get('a')).toBe(rows.find((row) => row.id === 'a'))
+    expect(indexed.get('b')).toStrictEqual({ id: 'b', v: 2 })
+    expect(indexed.get('c')).toBeUndefined()
   })
 })

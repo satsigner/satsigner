@@ -13,6 +13,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network as BlockchainNetwork } from '@/types/settings/blockchain'
+import { indexFirstBy } from '@/utils/array'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getRawTransactionSizes } from '@/utils/transaction'
@@ -280,12 +281,30 @@ function getWalletOverview(
   const localOutputs = wallet.listUnspent()
   const txDetailsList = wallet.transactions()
 
+  const localOutputsByTxid = indexFirstBy(
+    localOutputs,
+    (localOutput) => localOutput?.outpoint?.txid
+  )
+  const txDetailsByTxid = indexFirstBy(
+    txDetailsList,
+    (txDetails) => txDetails.txid
+  )
+
   const transactions: Transaction[] = txDetailsList.map((txDetails) =>
-    parseTxDetailsToTransaction(txDetails, localOutputs, network, wallet)
+    parseTxDetailsToTransaction(
+      txDetails,
+      localOutputsByTxid.get(txDetails.txid),
+      network,
+      wallet
+    )
   )
 
   const utxos: Utxo[] = localOutputs.map((localOutput) =>
-    parseLocalOutputToUtxo(localOutput, txDetailsList, network)
+    parseLocalOutputToUtxo(
+      localOutput,
+      txDetailsByTxid.get(localOutput.outpoint.txid),
+      network
+    )
   )
 
   let addresses = getWalletAddressesUsingStopGap(
@@ -347,12 +366,11 @@ function getWalletOverview(
 
 function parseTxDetailsToTransaction(
   txDetails: TxDetailsN,
-  utxos: LocalOutputN[],
+  utxo: LocalOutputN | undefined,
   network: Network,
   wallet: BdkWallet
 ): Transaction {
   let address = ''
-  const utxo = utxos.find((utxo) => utxo?.outpoint?.txid === txDetails.txid)
   if (utxo) {
     try {
       address = addressFromScript(utxo.txout.scriptPubkeyHex, network)
@@ -421,7 +439,7 @@ function parseTxDetailsToTransaction(
 
 function parseLocalOutputToUtxo(
   localOutput: LocalOutputN,
-  txDetailsList: TxDetailsN[],
+  txDetails: TxDetailsN | undefined,
   network: Network
 ): Utxo {
   let addressTo = ''
@@ -431,7 +449,6 @@ function parseLocalOutputToUtxo(
     // Non-standard scripts
   }
   const transactionId = localOutput.outpoint.txid
-  const txDetails = txDetailsList.find((td) => td.txid === transactionId)
   const script = [...hex.decode(localOutput.txout.scriptPubkeyHex)]
 
   return {
