@@ -19,6 +19,7 @@ import SSModal from '@/components/SSModal'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinAuth from '@/components/SSPinAuth'
 import SSPressable from '@/components/SSPressable'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
@@ -215,6 +216,7 @@ export default function AccountSettings() {
 
   return (
     <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
+      {pinEntryReason === 'mnemonic' && <SSScreenCaptureGuard />}
       <Stack.Screen
         options={{
           headerRight: () => (

@@ -7,6 +7,7 @@ import { getDescriptorString, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
@@ -160,6 +161,7 @@ export default function GenerateMnemonic() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{name}</SSText>

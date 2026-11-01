@@ -6,6 +6,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSPinAuth from '@/components/SSPinAuth'
+import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -58,6 +59,7 @@ export default function EcashSeedPage() {
 
   return (
     <SSMainLayout>
+      <SSScreenCaptureGuard />
       <Stack.Screen
         options={{
           headerTitle: () => (
