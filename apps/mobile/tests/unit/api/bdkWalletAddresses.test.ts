@@ -84,20 +84,22 @@ describe('wallet addresses of a descriptor without a wildcard', () => {
 describe('wallet overview lookups', () => {
   const TXID = 'bb'.repeat(32)
   const CONFIRMED_AT_SECONDS = 1_700_000_000
+  const LATER_TXID = 'cc'.repeat(32)
+  const LATER_CONFIRMED_AT_SECONDS = 1_700_000_600
 
-  function confirmedTxDetails() {
+  function confirmedTxDetails(txid = TXID, timestamp = CONFIRMED_AT_SECONDS) {
     return {
       ...receiveTxDetails(RECEIVE_ADDRESS),
-      confirmationBlockTime: { height: 100, timestamp: CONFIRMED_AT_SECONDS },
-      txid: TXID
+      confirmationBlockTime: { height: 100, timestamp },
+      txid
     }
   }
 
-  function localOutput(vout: number, scriptPubkeyHex: string) {
+  function localOutput(vout: number, scriptPubkeyHex: string, txid = TXID) {
     return {
       isSpent: false,
       keychain: KeychainKind.External,
-      outpoint: { txid: TXID, vout },
+      outpoint: { txid, vout },
       txout: { scriptPubkeyHex, value: 1000 }
     }
   }
@@ -120,13 +122,20 @@ describe('wallet overview lookups', () => {
 
   it('dates each unspent output with its confirmed transaction', () => {
     const wallet = singleScriptWallet()
-    wallet.transactions.mockReturnValue([confirmedTxDetails()])
-    wallet.listUnspent.mockReturnValue([localOutput(0, P2WPKH_SCRIPT_HEX)])
+    wallet.transactions.mockReturnValue([
+      confirmedTxDetails(),
+      confirmedTxDetails(LATER_TXID, LATER_CONFIRMED_AT_SECONDS)
+    ])
+    wallet.listUnspent.mockReturnValue([
+      localOutput(0, P2WPKH_SCRIPT_HEX, LATER_TXID),
+      localOutput(0, P2WPKH_SCRIPT_HEX)
+    ])
 
     const overview = getWalletOverview(wallet, Network.Testnet, 20)
 
-    expect(overview.utxos[0].timestamp).toStrictEqual(
+    expect(overview.utxos.map((utxo) => utxo.timestamp)).toStrictEqual([
+      new Date(LATER_CONFIRMED_AT_SECONDS * MS_PER_SECOND),
       new Date(CONFIRMED_AT_SECONDS * MS_PER_SECOND)
-    )
+    ])
   })
 })
