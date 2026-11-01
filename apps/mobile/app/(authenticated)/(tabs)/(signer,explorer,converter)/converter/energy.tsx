@@ -1339,34 +1339,36 @@ export default function Energy() {
                     {tn('miningIntensityRate', { intensity: miningIntensity })}
                   </SSText>
                 </SSHStack>
-                <Slider
-                  containerStyle={styles.slider}
-                  minimumValue={0}
-                  maximumValue={2000}
-                  step={miningIntensity > 200 ? 100 : 10}
-                  value={miningIntensity}
-                  onValueChange={handleMiningIntensityChange}
-                  disabled={isMining}
-                  minimumTrackTintColor={
-                    miningIntensity > 500
-                      ? Colors.error
-                      : miningIntensity > 300
-                        ? Colors.warning
-                        : miningIntensity > 200
-                          ? Colors.success
-                          : Colors.white
-                  }
-                  maximumTrackTintColor={Colors.gray[500]}
-                  thumbTintColor={
-                    miningIntensity > 500
-                      ? Colors.error
-                      : miningIntensity > 300
-                        ? Colors.warning
-                        : miningIntensity > 200
-                          ? Colors.success
-                          : Colors.white
-                  }
-                />
+                <View style={isMining ? styles.sliderDisabled : undefined}>
+                  <Slider
+                    containerStyle={styles.slider}
+                    minimumValue={0}
+                    maximumValue={2000}
+                    step={miningIntensity > 200 ? 100 : 10}
+                    value={miningIntensity}
+                    onValueChange={handleMiningIntensityChange}
+                    disabled={isMining}
+                    minimumTrackTintColor={
+                      miningIntensity > 500
+                        ? Colors.error
+                        : miningIntensity > 300
+                          ? Colors.warning
+                          : miningIntensity > 200
+                            ? Colors.success
+                            : Colors.white
+                    }
+                    maximumTrackTintColor={Colors.gray[500]}
+                    thumbTintColor={
+                      miningIntensity > 500
+                        ? Colors.error
+                        : miningIntensity > 300
+                          ? Colors.warning
+                          : miningIntensity > 200
+                            ? Colors.success
+                            : Colors.white
+                    }
+                  />
+                </View>
               </SSVStack>
               <SSVStack gap="sm" style={{ width: '100%' }}>
                 <SSHStack justifyBetween>
@@ -1377,18 +1379,20 @@ export default function Energy() {
                     {miningIntervalTime}ms
                   </SSText>
                 </SSHStack>
-                <Slider
-                  containerStyle={styles.slider}
-                  minimumValue={1}
-                  maximumValue={10_000}
-                  step={1}
-                  value={miningIntervalTime}
-                  onValueChange={handleMiningIntervalTimeChange}
-                  disabled={isMining}
-                  minimumTrackTintColor={Colors.white}
-                  maximumTrackTintColor={Colors.gray[500]}
-                  thumbTintColor={Colors.white}
-                />
+                <View style={isMining ? styles.sliderDisabled : undefined}>
+                  <Slider
+                    containerStyle={styles.slider}
+                    minimumValue={1}
+                    maximumValue={10_000}
+                    step={1}
+                    value={miningIntervalTime}
+                    onValueChange={handleMiningIntervalTimeChange}
+                    disabled={isMining}
+                    minimumTrackTintColor={Colors.white}
+                    maximumTrackTintColor={Colors.gray[500]}
+                    thumbTintColor={Colors.white}
+                  />
+                </View>
               </SSVStack>
               <SSButton
                 label={tn(
@@ -1875,6 +1879,9 @@ const styles = StyleSheet.create({
     height: 60,
     marginHorizontal: 0,
     width: '100%'
+  },
+  sliderDisabled: {
+    opacity: 0.3
   },
   statsContainer: {
     paddingVertical: 20,
