@@ -9,14 +9,15 @@ import { toast } from 'sonner-native'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSNostrKind0FetchWarningModal from '@/components/SSNostrKind0FetchWarningModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useNostrIdentityAdd } from '@/hooks/useNostrIdentityAdd'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
@@ -37,7 +38,13 @@ async function getTrimmedClipboardText() {
 
 export default function ImportNostrIdentity() {
   const router = useRouter()
-  const addIdentity = useNostrIdentityStore((state) => state.addIdentity)
+  const {
+    fetchProfile,
+    fetchProfileAlways,
+    requestAdd,
+    saveWithoutFetching,
+    warningVisible
+  } = useNostrIdentityAdd(handleIdentityAdded)
   const layout = Dimensions.get('window')
   const [tabIndex, setTabIndex] = useState(0)
 
@@ -46,6 +53,11 @@ export default function ImportNostrIdentity() {
   const [npub, setNpub] = useState('')
   const [cameraVisible, setCameraVisible] = useState(false)
   const [scanTarget, setScanTarget] = useState<'nsec' | 'npub'>('nsec')
+
+  function handleIdentityAdded() {
+    toast.success(t('nostrIdentity.import.success'))
+    router.navigate('/signer/nostr')
+  }
 
   async function handlePasteNsec() {
     try {
@@ -107,15 +119,12 @@ export default function ImportNostrIdentity() {
       return
     }
 
-    addIdentity({
+    requestAdd({
       createdAt: Date.now(),
       isWatchOnly: false,
       npub: derivedNpub,
       nsec: trimmed
     })
-
-    toast.success(t('nostrIdentity.import.success'))
-    router.navigate('/signer/nostr')
   }
 
   function handleImportSeedWords() {
@@ -125,16 +134,13 @@ export default function ImportNostrIdentity() {
 
     try {
       const keys = deriveNostrKeysFromMnemonic(validMnemonic)
-      addIdentity({
+      requestAdd({
         createdAt: Date.now(),
         isWatchOnly: false,
         mnemonic: validMnemonic,
         npub: keys.npub,
         nsec: keys.nsec
       })
-
-      toast.success(t('nostrIdentity.import.success'))
-      router.navigate('/signer/nostr')
     } catch {
       toast.error(t('nostrIdentity.import.derivationError'))
     }
@@ -147,14 +153,11 @@ export default function ImportNostrIdentity() {
       return
     }
 
-    addIdentity({
+    requestAdd({
       createdAt: Date.now(),
       isWatchOnly: true,
       npub: trimmed
     })
-
-    toast.success(t('nostrIdentity.import.success'))
-    router.navigate('/signer/nostr')
   }
 
   function renderScene({
@@ -340,6 +343,12 @@ export default function ImportNostrIdentity() {
         visible={cameraVisible}
         onClose={() => setCameraVisible(false)}
         onContentScanned={handleQRScanned}
+      />
+      <SSNostrKind0FetchWarningModal
+        visible={warningVisible}
+        onFetch={fetchProfile}
+        onFetchAlways={fetchProfileAlways}
+        onSaveWithoutFetching={saveWithoutFetching}
       />
     </SSMainLayout>
   )

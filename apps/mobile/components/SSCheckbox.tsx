@@ -35,6 +35,7 @@ function SSCheckbox({
 }: SSCheckboxProps) {
   return (
     <SSPressable
+      style={styles.pressable}
       onPress={() => (onPress && !disabled ? onPress(selected) : null)}
     >
       <View
@@ -46,12 +47,13 @@ function SSCheckbox({
       >
         <BouncyCheckbox
           isChecked={selected}
+          disableText
           useBuiltInState={false}
           fillColor={Colors.gray[700]}
           unFillColor={Colors.gray[700]}
           size={Sizes.checkbox.height}
           iconStyle={styles.iconStyleBase}
-          style={{ width: Sizes.checkbox.height }}
+          style={styles.checkbox}
           innerIconStyle={[
             styles.innerIconStyleBase,
             { borderColor: selected ? Colors.white : Colors.transparent }
@@ -61,7 +63,7 @@ function SSCheckbox({
           {...props}
         />
         {label && (
-          <SSVStack gap="none" style={{ flex: 1 }}>
+          <SSVStack gap="none" style={styles.label}>
             <SSText color={disabled ? 'muted' : 'white'} {...labelProps}>
               {label}
             </SSText>
@@ -74,9 +76,14 @@ function SSCheckbox({
 }
 
 const styles = StyleSheet.create({
+  checkbox: {
+    flexGrow: 0,
+    width: Sizes.checkbox.height
+  },
   containerBase: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexGrow: 0,
     gap: Sizes.checkbox.height / 2
   },
   disabled: {
@@ -88,6 +95,13 @@ const styles = StyleSheet.create({
   innerIconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius,
     borderWidth: Sizes.checkbox.borderWidth
+  },
+  label: {
+    flexShrink: 1
+  },
+  pressable: {
+    alignSelf: 'flex-start',
+    flexGrow: 0
   }
 })
 

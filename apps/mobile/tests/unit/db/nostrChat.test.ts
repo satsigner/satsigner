@@ -1,5 +1,9 @@
 import { getDb } from '@/db/connection'
-import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
+import {
+  getNewestSentChatMessageCreatedAt,
+  listChatConversations,
+  listChatThread
+} from '@/db/queries/nostrChat'
 
 import { mockQueryResult } from './queryResult'
 
@@ -14,23 +18,23 @@ describe('nostr chat queries', () => {
   })
 
   describe('listChatConversations', () => {
-    it('reads each conversation with its latest message as preview', () => {
-      execute
-        .mockReturnValueOnce(
-          mockQueryResult([
-            {
-              last_message_at: 1_700_000_002,
-              peer_pubkey: 'peer-1',
-              unread_count: 2
-            },
-            {
-              last_message_at: 1_700_000_001,
-              peer_pubkey: 'peer-2',
-              unread_count: null
-            }
-          ])
-        )
-        .mockReturnValueOnce(mockQueryResult([{ content: 'latest' }]))
+    it('reads every conversation with its latest preview in one query', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([
+          {
+            last_message_at: 1_700_000_002,
+            last_message_preview: 'latest',
+            peer_pubkey: 'peer-1',
+            unread_count: 2
+          },
+          {
+            last_message_at: 1_700_000_001,
+            last_message_preview: 'older thread',
+            peer_pubkey: 'peer-2',
+            unread_count: null
+          }
+        ])
+      )
 
       expect(listChatConversations('npub1me', 'nip17')).toStrictEqual([
         {
@@ -41,11 +45,36 @@ describe('nostr chat queries', () => {
         },
         {
           lastMessageAt: 1_700_000_001,
-          lastMessagePreview: '',
+          lastMessagePreview: 'older thread',
           peerPubkey: 'peer-2',
           unreadCount: 0
         }
       ])
+      expect(execute).toHaveBeenCalledTimes(1)
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('GROUP BY peer_pubkey'),
+        ['npub1me', 'nip17']
+      )
+    })
+  })
+
+  describe('chat cursors', () => {
+    it('reads the newest relay-confirmed message as the catch-up cursor', () => {
+      execute.mockReturnValueOnce(mockQueryResult([{ newest: 1_700_000_005 }]))
+
+      expect(getNewestSentChatMessageCreatedAt('npub1me', 'nip04')).toBe(
+        1_700_000_005
+      )
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining("status = 'sent'"),
+        ['npub1me', 'nip04']
+      )
+    })
+
+    it('returns null when nothing is stored', () => {
+      execute.mockReturnValueOnce(mockQueryResult([{ newest: null }]))
+
+      expect(getNewestSentChatMessageCreatedAt('npub1me', 'nip17')).toBeNull()
     })
   })
 
@@ -78,7 +107,7 @@ describe('nostr chat queries', () => {
         ])
       )
 
-      expect(listChatThread('npub1me', 'nip04', 'peer-1')).toStrictEqual([
+      expect(listChatThread('npub1me', 'nip04', 'peer-1', 50)).toStrictEqual([
         {
           content: 'hello',
           created_at: 1_700_000_000,

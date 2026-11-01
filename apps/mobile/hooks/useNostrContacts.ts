@@ -1,8 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { nostrKeys } from '@/db/keys'
-import { getNostrFollowCache } from '@/storage/mmkv'
-import { type NostrContactItem } from '@/types/models/Nostr'
+import {
+  type NostrContactItem,
+  type NostrDataSource,
+  type NostrErrorCode
+} from '@/types/models/Nostr'
 import {
   fetchNostrContacts,
   getNostrContactsPlaceholder,
@@ -13,10 +16,14 @@ import {
 type UseNostrContactsResult = {
   connectedRelayCount: number
   contacts: NostrContactItem[]
+  error?: NostrErrorCode
   isError: boolean
   isLoading: boolean
+  isRefetching: boolean
   kind3Found: boolean
+  refetch: () => void
   relaysQueried: string[]
+  source: NostrDataSource
 }
 
 export function useNostrContacts(
@@ -26,7 +33,6 @@ export function useNostrContacts(
   const queryClient = useQueryClient()
   const relaysKey = getNostrContactsRelaysKey(contactsRelays)
   const queryKey = nostrKeys.contacts(npub ?? '', relaysKey)
-  const hasFollowCache = Boolean(npub && getNostrFollowCache(npub)?.length)
 
   const enabled = Boolean(npub && contactsRelays.length > 0)
 
@@ -52,15 +58,19 @@ export function useNostrContacts(
   })
 
   const contacts = query.data?.contacts ?? []
-  const showFetchError =
-    query.isError && !hasFollowCache && contacts.length === 0
+  const failedWithoutData =
+    contacts.length === 0 && (query.isError || Boolean(query.data?.error))
 
   return {
     connectedRelayCount: query.data?.connectedRelayCount ?? 0,
     contacts,
-    isError: showFetchError,
+    error: query.data?.error ?? (query.isError ? 'unknown' : undefined),
+    isError: failedWithoutData,
     isLoading: query.isLoading && contacts.length === 0,
+    isRefetching: query.isFetching && !query.isLoading,
     kind3Found: query.data?.kind3Found ?? false,
-    relaysQueried: query.data?.relaysQueried ?? []
+    refetch: query.refetch,
+    relaysQueried: query.data?.relaysQueried ?? [],
+    source: query.data?.source ?? 'relay'
   }
 }

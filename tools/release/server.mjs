@@ -202,7 +202,10 @@ async function pushBranch() {
 }
 
 function releaseChannel(value) {
-  return value === 'primary' ? 'primary' : 'dev'
+  if (value === 'primary' || value === 'generic') {
+    return value
+  }
+  return 'dev'
 }
 
 async function publishZapstore(notes, only, channel) {
@@ -228,6 +231,11 @@ async function releaseChannels() {
     dev: {
       appName: getVariantAppName(true, branch),
       packageId: getVariantPackageId(true, branch),
+      versionName
+    },
+    generic: {
+      appName: getVariantAppName(true, ''),
+      packageId: getVariantPackageId(true, ''),
       versionName
     },
     primary: {
@@ -280,8 +288,14 @@ async function releaseApk() {
   }
 }
 
-function buildLocalApk(profile) {
-  return run('pnpm', buildApkArgs(profile))
+function buildLocalApk(body) {
+  return run(
+    'pnpm',
+    buildApkArgs({
+      identity: typeof body.identity === 'string' ? body.identity : 'branch',
+      kind: typeof body.kind === 'string' ? body.kind : 'all'
+    })
+  )
 }
 
 const actions = {
@@ -291,8 +305,7 @@ const actions = {
       'announce',
       body.channel
     ),
-  apk: (body) =>
-    buildLocalApk(typeof body.profile === 'string' ? body.profile : 'branch'),
+  apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
   zapstore: (body) =>

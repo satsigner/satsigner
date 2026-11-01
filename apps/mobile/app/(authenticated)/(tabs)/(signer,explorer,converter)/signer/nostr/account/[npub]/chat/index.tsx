@@ -1,12 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { nip19 } from 'nostr-tools'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
-import { TabView } from 'react-native-tab-view'
+import { SceneMap, TabView } from 'react-native-tab-view'
 
 import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
+import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
@@ -22,6 +22,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
+import { isNonEmptyString } from '@/utils/string'
 
 type ChatParams = {
   npub: string
@@ -32,45 +33,22 @@ type ChatRoute = {
   title: string
 }
 
-export default function NostrIdentityChat() {
+function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
   const { npub } = useLocalSearchParams<ChatParams>()
   const router = useRouter()
-  const layout = Dimensions.get('window')
-  const [tabIndex, setTabIndex] = useState(0)
-
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
-
-  // DM pipeline is held while any chat screen of this identity is focused.
-  useNostrChatSubscription(identity)
-
-  const routes: ChatRoute[] = [
-    { key: 'nip4', title: t('nostrIdentity.chat.tabNip4') },
-    { key: 'nip17', title: t('nostrIdentity.chat.tabNip17') },
-    { key: 'marmot', title: t('nostrIdentity.chat.tabMarmot') },
-    { key: 'mesh', title: t('nostrIdentity.chat.tabMesh') }
-  ]
-  const activeProtocol: NostrChatProtocol =
-    routes[tabIndex].key === 'nip4' ? 'nip04' : 'nip17'
-
-  const nip17Conversations = useNostrChatConversations(npub, 'nip17')
-  const nip04Conversations = useNostrChatConversations(npub, 'nip04')
-
+  const conversations = useNostrChatConversations(npub, protocol)
   // Fetch kind 0 (name/picture) for every DM peer so conversations render
   // with profiles instead of raw npubs.
-  const peerNpubs = useMemo(
-    () =>
-      [...nip17Conversations, ...nip04Conversations].map((conversation) =>
-        nip19.npubEncode(conversation.peerPubkey)
-      ),
-    [nip17Conversations, nip04Conversations]
+  useNostrChatProfiles(
+    identity?.relays,
+    conversations.map((conversation) => conversation.peerNpub)
   )
-  useNostrChatProfiles(identity?.relays, peerNpubs)
 
-  function handleOpenPeer(peerNpub: string, protocol: NostrChatProtocol) {
-    if (!npub) {
+  function handleOpenPeer(peerNpub: string) {
+    if (!isNonEmptyString(npub)) {
       return
     }
     router.push({
@@ -80,41 +58,91 @@ export default function NostrIdentityChat() {
   }
 
   function handleNewChat() {
-    if (!npub) {
+    if (!isNonEmptyString(npub)) {
       return
     }
     router.push({
-      params: { npub, protocol: activeProtocol },
+      params: { npub, protocol },
       pathname: '/signer/nostr/account/[npub]/chat/new'
     })
   }
 
-  const renderScene = ({ route }: { route: ChatRoute }) => {
-    if (route.key === 'marmot' || route.key === 'mesh') {
-      return (
-        <SSVStack gap="md" itemsCenter style={styles.scene}>
-          <SSText color="muted">{t('nostrIdentity.chat.comingSoon')}</SSText>
-        </SSVStack>
-      )
-    }
-    const protocol = route.key === 'nip4' ? 'nip04' : 'nip17'
-    const conversations =
-      protocol === 'nip17' ? nip17Conversations : nip04Conversations
-    return (
-      <SSVStack gap="sm" style={styles.chatScene}>
-        <SSNostrConversationList
-          conversations={conversations}
-          onOpenPeer={(peerNpub) => handleOpenPeer(peerNpub, protocol)}
-        />
-        <SSButton
-          label={t('nostrIdentity.chat.newMessage')}
-          variant="secondary"
-          disabled={!identity?.nsec}
-          onPress={handleNewChat}
-        />
-      </SSVStack>
-    )
+  return (
+    <SSVStack gap="sm" style={styles.chatScene}>
+      <SSNostrConversationList
+        conversations={conversations}
+        onOpenPeer={handleOpenPeer}
+      />
+      <SSButton
+        label={t('nostrIdentity.chat.newMessage')}
+        variant="secondary"
+        disabled={!isNonEmptyString(identity?.nsec)}
+        onPress={handleNewChat}
+      />
+    </SSVStack>
+  )
+}
+
+function getChatHeaderTitle(
+  privacyMode: boolean,
+  displayName: string | undefined
+): string {
+  if (!isNonEmptyString(displayName)) {
+    return t('nostrIdentity.title')
   }
+  return privacyMode ? NOSTR_PRIVACY_MASK : displayName
+}
+
+function Nip04Scene() {
+  return <ChatConversationsScene protocol="nip04" />
+}
+
+function Nip17Scene() {
+  return <ChatConversationsScene protocol="nip17" />
+}
+
+function ComingSoonScene() {
+  return (
+    <SSVStack gap="md" itemsCenter style={styles.scene}>
+      <SSText color="muted">{t('nostrIdentity.chat.comingSoon')}</SSText>
+    </SSVStack>
+  )
+}
+
+const renderScene = SceneMap({
+  marmot: ComingSoonScene,
+  mesh: ComingSoonScene,
+  nip17: Nip17Scene,
+  nip4: Nip04Scene
+})
+
+export default function NostrIdentityChat() {
+  const { npub } = useLocalSearchParams<ChatParams>()
+  const layout = Dimensions.get('window')
+  const [tabIndex, setTabIndex] = useState(0)
+
+  const identity = useNostrIdentityStore((state) =>
+    state.identities.find((i) => i.npub === npub)
+  )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+
+  // DM pipeline is held while any chat screen of this identity is focused.
+  const {
+    retry: retryPipeline,
+    retrying,
+    status
+  } = useNostrChatSubscription(identity)
+
+  function handleRetry() {
+    void retryPipeline()
+  }
+
+  const routes: ChatRoute[] = [
+    { key: 'nip4', title: t('nostrIdentity.chat.tabNip4') },
+    { key: 'nip17', title: t('nostrIdentity.chat.tabNip17') },
+    { key: 'marmot', title: t('nostrIdentity.chat.tabMarmot') },
+    { key: 'mesh', title: t('nostrIdentity.chat.tabMesh') }
+  ]
 
   const renderTabBar = () => {
     const tabWidth = `${100 / routes.length}%` as const
@@ -125,7 +153,9 @@ export default function NostrIdentityChat() {
           <SSActionButton
             key={route.key}
             style={[styles.tabButton, { width: tabWidth }]}
-            onPress={() => setTabIndex(i)}
+            onPress={() => {
+              setTabIndex(i)
+            }}
           >
             <View style={styles.tabButtonWrap}>
               <SSVStack gap="none" itemsCenter style={styles.tabButtonInner}>
@@ -163,13 +193,19 @@ export default function NostrIdentityChat() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {privacyMode && identity.displayName
-                ? NOSTR_PRIVACY_MASK
-                : identity.displayName || t('nostrIdentity.title')}
+              {getChatHeaderTitle(privacyMode, identity.displayName)}
             </SSText>
           )
         }}
       />
+      {status.state === 'error' ? (
+        <SSNostrSourceBanner
+          source="cache"
+          error={status.errorCode}
+          onRetry={handleRetry}
+          retrying={retrying}
+        />
+      ) : null}
       <TabView
         navigationState={{ index: tabIndex, routes }}
         renderScene={renderScene}

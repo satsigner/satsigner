@@ -310,7 +310,31 @@ const SCHEMA_V10 = `
 ALTER TABLE accounts ADD COLUMN display_index INTEGER NOT NULL DEFAULT 0
 `
 
+// Nostr dedupe state moves out of the persisted zustand store (rewritten in
+// full on every event) into one table. `scope` is an account id for device
+// sync, or `chat:<npub>` for identity chat gift wraps already decrypted.
+// Zap receipts are signed by the LNURL server, so the zapped pubkey (p tag)
+// is stored separately to look receipts up without parsing tags in JS.
 const SCHEMA_V11 = `
+CREATE TABLE IF NOT EXISTS nostr_processed_events (
+  scope TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (scope, event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_npe_scope_created
+  ON nostr_processed_events(scope, created_at);
+
+ALTER TABLE nostr_event_cache ADD COLUMN target_pubkey TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_nec_kind_target_created
+  ON nostr_event_cache(kind, target_pubkey, created_at);
+CREATE INDEX IF NOT EXISTS idx_nec_kind_pubkey_created
+  ON nostr_event_cache(kind, pubkey, created_at)
+`
+
+const SCHEMA_V12 = `
 CREATE TABLE IF NOT EXISTS branta_payees (
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   tx_id TEXT NOT NULL,
@@ -336,7 +360,8 @@ const SCHEMAS = [
   SCHEMA_V8,
   SCHEMA_V9,
   SCHEMA_V10,
-  SCHEMA_V11
+  SCHEMA_V11,
+  SCHEMA_V12
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
@@ -410,4 +435,4 @@ function runMigrations(db: NitroSQLiteConnection) {
   ensureAccountsColumns(db)
 }
 
-export { runMigrations }
+export { CURRENT_VERSION as DB_SCHEMA_VERSION, getSchemaVersion, runMigrations }

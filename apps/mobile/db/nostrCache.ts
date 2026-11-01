@@ -7,11 +7,13 @@ import {
 import {
   NOSTR_EVENT_CACHE_MAX_ROWS,
   NOSTR_EVENT_CACHE_MAX_AGE,
+  NOSTR_EVENT_ID_RE,
+  NOSTR_PROCESSED_EVENTS_QUERY_CHUNK,
   NOSTR_PROFILE_CACHE_MAX_AGE_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import type { NostrKind0Profile } from '@/types/models/Nostr'
-import { isStringArray } from '@/utils/array'
+import { chunk, isStringArray } from '@/utils/array'
 
 import { getDb, runTransaction } from './connection'
 
@@ -82,6 +84,15 @@ type CachedProfileRow = {
   cached_at: number
 }
 
+type CacheableEvent = {
+  id: string
+  kind: number
+  pubkey: string
+  content: string
+  tags: string[][]
+  created_at: number
+}
+
 type CountRow = { cnt: number }
 
 type NewestTimestampRow = { max_ts: number | null }
@@ -123,15 +134,17 @@ function countRows(
   return db.execute<CountRow>(sql, params).rows.item(0)?.cnt ?? 0
 }
 
+/** Zap receipts are signed by the LNURL server; the zapped pubkey is the p tag. */
+function getZapTargetPubkey(event: CacheableEvent): string | null {
+  if (event.kind !== nostrKinds.Zap) {
+    return null
+  }
+  const pTag = event.tags.find((tag) => tag[0] === 'p' && tag[1])
+  return pTag?.[1]?.toLowerCase() ?? null
+}
+
 export function cacheEvents(
-  events: {
-    id: string
-    kind: number
-    pubkey: string
-    content: string
-    tags: string[][]
-    created_at: number
-  }[],
+  events: CacheableEvent[],
   ownPubkeys: string[]
 ): void {
   if (events.length === 0) {
@@ -147,11 +160,13 @@ export function cacheEvents(
   try {
     runTransaction(() => {
       for (const e of events) {
-        const isOwn = ownSet.has(e.pubkey.toLowerCase()) ? 1 : 0
+        const targetPubkey = getZapTargetPubkey(e)
+        const ownerPubkey = targetPubkey ?? e.pubkey.toLowerCase()
+        const isOwn = ownSet.has(ownerPubkey) ? 1 : 0
         db.execute(
           `INSERT OR REPLACE INTO nostr_event_cache
-           (event_id, kind, pubkey, content, tags_json, created_at, cached_at, is_own)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (event_id, kind, pubkey, content, tags_json, created_at, cached_at, is_own, target_pubkey)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             e.id,
             e.kind,
@@ -160,7 +175,8 @@ export function cacheEvents(
             JSON.stringify(e.tags),
             e.created_at,
             now,
-            isOwn
+            isOwn,
+            targetPubkey
           ]
         )
       }
@@ -217,17 +233,97 @@ export function getCachedEvent(eventId: string): CachedEvent | null {
   }
 }
 
-export function getCachedZapReceipts(eventIdHex: string): CachedEvent[] {
+export function getCachedNotesByAuthors(
+  authors: string[],
+  kinds: number[],
+  limit: number,
+  until?: number
+): CachedEvent[] {
   const db = safeGetDb()
-  if (!db) {
+  if (!db || authors.length === 0 || kinds.length === 0) {
+    return []
+  }
+  try {
+    const authorList = authors.map((pk) => pk.toLowerCase())
+    const authorPlaceholders = authorList.map(() => '?').join(',')
+    const kindPlaceholders = kinds.map(() => '?').join(',')
+    const untilClause = until ? 'AND created_at < ?' : ''
+    const sql = `SELECT * FROM nostr_event_cache
+       WHERE kind IN (${kindPlaceholders})
+       AND pubkey IN (${authorPlaceholders}) ${untilClause}
+       ORDER BY created_at DESC LIMIT ?`
+    const params: SQLiteValue[] = [
+      ...kinds,
+      ...authorList,
+      ...(until ? [until] : []),
+      limit
+    ]
+    const { rows } = db.execute<CachedEventRow>(sql, params)
+    return rows._array.map((r) => rowToCachedEvent(r))
+  } catch {
+    return []
+  }
+}
+
+export function getCachedEvents(eventIds: string[]): CachedEvent[] {
+  const db = safeGetDb()
+  if (!db || eventIds.length === 0) {
+    return []
+  }
+  try {
+    return chunk(eventIds, NOSTR_PROCESSED_EVENTS_QUERY_CHUNK).flatMap(
+      (ids) => {
+        const placeholders = ids.map(() => '?').join(',')
+        const { rows } = db.execute<CachedEventRow>(
+          `SELECT * FROM nostr_event_cache
+           WHERE event_id IN (${placeholders}) LIMIT ?`,
+          [...ids, ids.length]
+        )
+        return rows._array.map((r) => rowToCachedEvent(r))
+      }
+    )
+  } catch {
+    return []
+  }
+}
+
+/** NIP-09: only the author may delete, so deletions are scoped to them. */
+export function deleteCachedEventsByAuthor(
+  eventIds: string[],
+  authorPubkey: string
+): void {
+  const db = safeGetDb()
+  if (!db || eventIds.length === 0) {
+    return
+  }
+  try {
+    for (const ids of chunk(eventIds, NOSTR_PROCESSED_EVENTS_QUERY_CHUNK)) {
+      const placeholders = ids.map(() => '?').join(',')
+      db.execute(
+        `DELETE FROM nostr_event_cache
+         WHERE pubkey = ? AND event_id IN (${placeholders})`,
+        [authorPubkey.toLowerCase(), ...ids]
+      )
+    }
+  } catch {
+    // DB not ready — deletes are best-effort
+  }
+}
+
+export function getCachedZapReceipts(
+  eventIdHex: string,
+  limit: number
+): CachedEvent[] {
+  const db = safeGetDb()
+  if (!db || !NOSTR_EVENT_ID_RE.test(eventIdHex)) {
     return []
   }
   try {
     const { rows } = db.execute<CachedEventRow>(
       `SELECT * FROM nostr_event_cache
-       WHERE kind = ${nostrKinds.Zap}
-       ORDER BY created_at DESC`,
-      []
+       WHERE kind = ? AND tags_json LIKE ?
+       ORDER BY created_at DESC LIMIT ?`,
+      [nostrKinds.Zap, `%["e","${eventIdHex}"%`, limit]
     )
     return rows._array
       .map(rowToCachedEvent)
@@ -252,21 +348,39 @@ export function getCachedZapsByPubkey(
     const pk = pubkey.toLowerCase()
     const sql = until
       ? `SELECT * FROM nostr_event_cache
-         WHERE kind = ${nostrKinds.Zap} AND created_at < ?
-         ORDER BY created_at DESC`
+         WHERE kind = ? AND target_pubkey = ? AND created_at < ?
+         ORDER BY created_at DESC LIMIT ?`
       : `SELECT * FROM nostr_event_cache
-         WHERE kind = ${nostrKinds.Zap}
-         ORDER BY created_at DESC`
-    const params = until ? [until] : []
+         WHERE kind = ? AND target_pubkey = ?
+         ORDER BY created_at DESC LIMIT ?`
+    const params = until
+      ? [nostrKinds.Zap, pk, until, limit]
+      : [nostrKinds.Zap, pk, limit]
     const { rows } = db.execute<CachedEventRow>(sql, params)
-    return rows._array
-      .map(rowToCachedEvent)
-      .filter((e) =>
-        e.tags.some((tag) => tag[0] === 'p' && tag[1]?.toLowerCase() === pk)
-      )
-      .slice(0, limit)
+    return rows._array.map(rowToCachedEvent)
   } catch {
     return []
+  }
+}
+
+export function getNewestCachedZapTimestamp(
+  targetPubkey: string
+): number | null {
+  const db = safeGetDb()
+  if (!db) {
+    return null
+  }
+  try {
+    const val = db
+      .execute<NewestTimestampRow>(
+        `SELECT MAX(created_at) as max_ts FROM nostr_event_cache
+         WHERE kind = ? AND target_pubkey = ?`,
+        [nostrKinds.Zap, targetPubkey.toLowerCase()]
+      )
+      .rows.item(0)?.max_ts
+    return typeof val === 'number' ? val : null
+  } catch {
+    return null
   }
 }
 
@@ -292,6 +406,7 @@ export function getNewestCachedTimestamp(
   }
 }
 
+/** Replaceable event (kind 0): an older version never overwrites a newer one. */
 export function cacheProfile(
   pubkey: string,
   profile: NostrKind0Profile,
@@ -305,9 +420,19 @@ export function cacheProfile(
   try {
     const now = nowUnix()
     db.execute(
-      `INSERT OR REPLACE INTO nostr_profile_cache
+      `INSERT INTO nostr_profile_cache
        (pubkey, display_name, picture, banner, nip05, lud16, event_id, created_at, cached_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(pubkey) DO UPDATE SET
+         display_name = excluded.display_name,
+         picture = excluded.picture,
+         banner = excluded.banner,
+         nip05 = excluded.nip05,
+         lud16 = excluded.lud16,
+         event_id = excluded.event_id,
+         created_at = excluded.created_at,
+         cached_at = excluded.cached_at
+       WHERE excluded.created_at >= nostr_profile_cache.created_at`,
       [
         pubkey.toLowerCase(),
         profile.displayName ?? null,
@@ -416,7 +541,8 @@ export function getCacheCounts(ownPubkeyHex: string): CacheCounts {
     )
     const ownZaps = countRows(
       db,
-      `SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE is_own = 1 AND kind = ${nostrKinds.Zap}`
+      'SELECT COUNT(*) as cnt FROM nostr_event_cache WHERE kind = ? AND target_pubkey = ?',
+      [nostrKinds.Zap, pk]
     )
     const feedNotes = countRows(
       db,
@@ -458,10 +584,12 @@ export function clearCacheCategory(
       break
     }
     case 'ownZaps': {
-      db.execute(
-        `DELETE FROM nostr_event_cache WHERE is_own = 1 AND kind = ${nostrKinds.Zap}`,
-        []
-      )
+      if (pk) {
+        db.execute(
+          'DELETE FROM nostr_event_cache WHERE kind = ? AND target_pubkey = ?',
+          [nostrKinds.Zap, pk]
+        )
+      }
       break
     }
     case 'feedNotes': {
@@ -495,4 +623,22 @@ export function clearAllCache(): void {
   }
   db.execute('DELETE FROM nostr_event_cache', [])
   db.execute('DELETE FROM nostr_profile_cache', [])
+}
+
+/** Drops everything cached for one identity: its notes, zaps it received and its profile. */
+export function clearIdentityCache(hexPubkey: string): void {
+  const db = safeGetDb()
+  if (!db) {
+    return
+  }
+  const pk = hexPubkey.toLowerCase()
+  try {
+    db.execute(
+      'DELETE FROM nostr_event_cache WHERE pubkey = ? OR target_pubkey = ?',
+      [pk, pk]
+    )
+    db.execute('DELETE FROM nostr_profile_cache WHERE pubkey = ?', [pk])
+  } catch {
+    // DB not ready — nothing cached to clear
+  }
 }

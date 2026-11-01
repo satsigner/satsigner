@@ -1,42 +1,72 @@
+import { createContext, useContext } from 'react'
 import {
+  Extrapolation,
+  interpolate,
+  type SharedValue,
   useAnimatedStyle,
-  useDerivedValue,
-  withSequence,
-  withSpring,
+  useSharedValue,
   withTiming
 } from 'react-native-reanimated'
 
-const SCALE_DEFAULT = 1
-const SCALE_POP = 1.14
+import { selectionFromIndex } from '@/hooks/useTabBarIndicator'
+
 const ACTIVE_OPACITY = 1
 const INACTIVE_OPACITY = 0.55
-const OPACITY_DURATION = 180
-const POP_DURATION = 70
-const SPRING_DAMPING = 14
-const SPRING_MASS = 0.4
-const SPRING_STIFFNESS = 280
+const PRESS_IN_MS = 90
+const PRESS_OUT_MS = 140
+const PRESS_SCALE = 0.97
 
-export function useTabBarButtonAnimation(isSelected: boolean) {
-  const scale = useDerivedValue(() =>
-    isSelected
-      ? withSequence(
-          withTiming(SCALE_POP, { duration: POP_DURATION }),
-          withSpring(SCALE_DEFAULT, {
-            damping: SPRING_DAMPING,
-            mass: SPRING_MASS,
-            stiffness: SPRING_STIFFNESS
-          })
-        )
-      : SCALE_DEFAULT
-  )
-  const opacity = useDerivedValue(() =>
-    withTiming(isSelected ? ACTIVE_OPACITY : INACTIVE_OPACITY, {
-      duration: OPACITY_DURATION
-    })
-  )
+export const TabBarIndicatorContext = createContext<SharedValue<number> | null>(
+  null
+)
 
-  return useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }]
-  }))
+export function useTabBarButtonAnimation(segmentIndex: number) {
+  const indicator = useContext(TabBarIndicatorContext)
+  const pressed = useSharedValue(0)
+  const fallback = useSharedValue(segmentIndex)
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const source = indicator ?? fallback
+    const selected = selectionFromIndex(source, segmentIndex)
+    return {
+      opacity:
+        INACTIVE_OPACITY + (ACTIVE_OPACITY - INACTIVE_OPACITY) * selected,
+      transform: [
+        {
+          scale: interpolate(
+            pressed.get(),
+            [0, 1],
+            [1, PRESS_SCALE],
+            Extrapolation.CLAMP
+          )
+        }
+      ]
+    }
+  })
+
+  function pressIn() {
+    pressed.set(withTiming(1, { duration: PRESS_IN_MS }))
+  }
+
+  function pressOut() {
+    pressed.set(withTiming(0, { duration: PRESS_OUT_MS }))
+  }
+
+  return { animatedStyle, pressIn, pressOut }
+}
+
+export function useTabBarIconCrossfade(segmentIndex: number) {
+  const indicator = useContext(TabBarIndicatorContext)
+  const fallback = useSharedValue(segmentIndex)
+
+  const activeStyle = useAnimatedStyle(() => {
+    const source = indicator ?? fallback
+    return { opacity: selectionFromIndex(source, segmentIndex) }
+  })
+  const inactiveStyle = useAnimatedStyle(() => {
+    const source = indicator ?? fallback
+    return { opacity: 1 - selectionFromIndex(source, segmentIndex) }
+  })
+
+  return { activeStyle, inactiveStyle }
 }

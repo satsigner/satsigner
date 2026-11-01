@@ -1,5 +1,4 @@
-import { Stack, useFocusEffect, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useRouter } from 'expo-router'
 import { ScrollView, StyleSheet } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -31,7 +30,6 @@ export default function NostrLanding() {
     (state) => state.setAllRelayConnected
   )
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
-  const [listRenderEpoch, setListRenderEpoch] = useState(0)
 
   const activeConnectionInfo = useNostrLandingRelayReachability({
     activeIdentityNpub,
@@ -39,14 +37,10 @@ export default function NostrLanding() {
     relays
   })
 
-  const { clearKind0FetchCache } = useNostrLandingKind0Sync({
+  useNostrLandingKind0Sync({
     identities,
     relays,
     updateIdentity
-  })
-
-  useFocusEffect(() => {
-    setListRenderEpoch((n) => n + 1)
   })
 
   function handleAddIdentity() {
@@ -74,12 +68,7 @@ export default function NostrLanding() {
   const anyRelayConnected = identities.some((i) => i.relayConnected === true)
 
   function handleRelayConnectToggle() {
-    if (anyRelayConnected) {
-      setAllRelayConnected(false)
-    } else {
-      setAllRelayConnected(true)
-    }
-    clearKind0FetchCache()
+    setAllRelayConnected(!anyRelayConnected)
   }
 
   function renderAddIdentityButton() {
@@ -125,7 +114,7 @@ export default function NostrLanding() {
             <SSVStack gap="sm" style={styles.listContainer}>
               {identitiesForList.map((identity) => (
                 <SSNostrAccountCard
-                  key={`${identity.npub}-${listRenderEpoch}-${activeIdentityNpub ?? 'none'}`}
+                  key={identity.npub}
                   identity={identity}
                   isActive={identity.npub === activeIdentityNpub}
                   connectionInfo={

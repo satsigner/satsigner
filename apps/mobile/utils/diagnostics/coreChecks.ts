@@ -1,5 +1,5 @@
 import NetInfo from '@react-native-community/netinfo'
-import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
@@ -23,29 +23,12 @@ import {
   LEGACY_KDF_CONFIG,
   safeEqualHex
 } from '@/utils/pinKdf'
+import { sleep } from '@/utils/time'
 
-export type DiagnosticResult = {
+export type LegacyDiagnosticResult = {
   ok: boolean
   lines: string[]
 }
-
-type CheckState =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'ok'; lines: string[] }
-  | { kind: 'failed'; lines: string[] }
-
-export type CheckResults = Partial<Record<DiagnosticCheckId, CheckState>>
-
-export type DiagnosticCheckId =
-  | 'crypto'
-  | 'entropy'
-  | 'nip17'
-  | 'nip17Live'
-  | 'pinKdf'
-  | 'relayPersistence'
-  | 'secureStore'
-  | 'sqlite'
 
 const SECURE_STORE_PROBE_KEY = 'diagnostic_probe'
 const LIVE_RETRIEVE_INITIAL_WAIT_MS = 3000
@@ -76,7 +59,7 @@ async function runGuarded(
 }
 
 /** AES-256 encrypt/decrypt roundtrip + PBKDF2 determinism + IV uniqueness. */
-export async function checkCryptoRoundtrip(): Promise<DiagnosticResult> {
+export async function checkCryptoRoundtrip(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, async () => {
     const key = await pbkdf2Encrypt('diagnostic-pin', 'diagnostic-salt')
@@ -104,7 +87,7 @@ export async function checkCryptoRoundtrip(): Promise<DiagnosticResult> {
 }
 
 /** PIN KDF: derive under the legacy config, verify determinism + safeEqualHex. */
-export async function checkPinKdf(): Promise<DiagnosticResult> {
+export async function checkPinKdf(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, async () => {
     const digest = await derivePinDigest(
@@ -142,7 +125,7 @@ export async function checkPinKdf(): Promise<DiagnosticResult> {
 }
 
 /** SecureStore (Keychain/Keystore) write → read → delete roundtrip. */
-export async function checkSecureStore(): Promise<DiagnosticResult> {
+export async function checkSecureStore(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, async () => {
     const value = `probe-${Date.now()}`
@@ -164,7 +147,7 @@ export async function checkSecureStore(): Promise<DiagnosticResult> {
 }
 
 /** SQLite: connection opens and PRAGMA integrity_check passes. */
-export async function checkSqlite(): Promise<DiagnosticResult> {
+export async function checkSqlite(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, () => {
     const db = getDb()
@@ -186,7 +169,7 @@ export async function checkSqlite(): Promise<DiagnosticResult> {
  * NIP-17/NIP-59 gift-wrap roundtrip to self with a throwaway keypair.
  * Pure crypto — no relay involved. Validates the security-report path.
  */
-export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
+export async function checkNip17Roundtrip(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, async () => {
     // Same generation path as NostrAPI.generateNostrKeys (randomKey), since
@@ -224,7 +207,7 @@ export async function checkNip17Roundtrip(): Promise<DiagnosticResult> {
  * crypto; this check validates the real native RNG on the running device —
  * a duplicated output here means the RNG is broken (Trust-Wallet-2023 class).
  */
-export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
+export async function checkEntropyCollisions(): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
   const ok = await runGuarded(lines, async () => {
     let started = Date.now()
@@ -278,9 +261,9 @@ export async function checkEntropyCollisions(): Promise<DiagnosticResult> {
  * after the initial handshake — the failure mode behind "connected but no
  * messages arrive".
  */
-async function checkRelayPersistence(
+export async function checkRelayPersistence(
   relayUrls: string[] = []
-): Promise<DiagnosticResult> {
+): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
@@ -335,6 +318,27 @@ async function checkRelayPersistence(
   return { lines, ok }
 }
 
+// Relays need a moment to index a fresh event, and a timeout on one attempt
+// is not a verdict, so retrieval retries before failing.
+async function fetchRawEventWithRetries(
+  api: NostrAPI,
+  eventId: string,
+  attemptsLeft = LIVE_RETRIEVE_ATTEMPTS
+): Promise<Event | null> {
+  try {
+    const event = await api.fetchRawEventById(eventId)
+    if (event || attemptsLeft <= 1) {
+      return event
+    }
+  } catch (error) {
+    if (attemptsLeft <= 1) {
+      throw error
+    }
+  }
+  await sleep(LIVE_RETRIEVE_DELAY_MS)
+  return fetchRawEventWithRetries(api, eventId, attemptsLeft - 1)
+}
+
 /** Configured relays when present, otherwise well-known DM-capable ones. */
 export function resolveLiveRoundtripRelays(configured: string[]): string[] {
   return configured.length > 0 ? configured : NOSTR_LIVE_CHECK_FALLBACK_RELAYS
@@ -348,9 +352,9 @@ export function resolveLiveRoundtripRelays(configured: string[]): string[] {
  * NIP-59-unwraps to the exact payload. Falls back to well-known relays when
  * the user has not configured any.
  */
-async function checkNip17LiveRoundtrip(
+export async function checkNip17LiveRoundtrip(
   relayUrls: string[] = []
-): Promise<DiagnosticResult> {
+): Promise<LegacyDiagnosticResult> {
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
@@ -402,16 +406,7 @@ async function checkNip17LiveRoundtrip(
       setTimeout(resolve, LIVE_RETRIEVE_INITIAL_WAIT_MS)
     })
 
-    let fetchedSelf: Awaited<ReturnType<NostrAPI['fetchRawEventById']>> = null
-    for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
-      fetchedSelf = await api.fetchRawEventById(selfWrap.id)
-      if (fetchedSelf) {
-        break
-      }
-      await new Promise((resolve) => {
-        setTimeout(resolve, LIVE_RETRIEVE_DELAY_MS)
-      })
-    }
+    const fetchedSelf = await fetchRawEventWithRetries(api, selfWrap.id)
     if (!fetchedSelf) {
       throw new Error('self wrap not retrievable after publish ACK')
     }
@@ -423,70 +418,11 @@ async function checkNip17LiveRoundtrip(
     }
     lines.push('retrieved wrap decrypts to exact payload')
 
-    let fetchedReport: Awaited<ReturnType<NostrAPI['fetchRawEventById']>> = null
-    for (let attempt = 0; attempt < LIVE_RETRIEVE_ATTEMPTS; attempt += 1) {
-      fetchedReport = await api.fetchRawEventById(reportWrap.id)
-      if (fetchedReport) {
-        break
-      }
-      await new Promise((resolve) => {
-        setTimeout(resolve, LIVE_RETRIEVE_DELAY_MS)
-      })
-    }
+    const fetchedReport = await fetchRawEventWithRetries(api, reportWrap.id)
     if (!fetchedReport) {
       throw new Error('security-report wrap not retrievable after publish ACK')
     }
     lines.push('security-report wrap is retrievable on the relays')
   })
   return { lines, ok }
-}
-
-export const DIAGNOSTIC_CHECKS: {
-  id: DiagnosticCheckId
-  requiresNetwork?: boolean
-}[] = [
-  { id: 'crypto' },
-  { id: 'entropy' },
-  { id: 'pinKdf' },
-  { id: 'secureStore' },
-  { id: 'sqlite' },
-  { id: 'nip17' },
-  { id: 'nip17Live', requiresNetwork: true },
-  { id: 'relayPersistence', requiresNetwork: true }
-]
-
-export function runDiagnosticCheck(
-  id: DiagnosticCheckId,
-  ctx: { relayUrls?: string[] } = {}
-): Promise<DiagnosticResult> {
-  switch (id) {
-    case 'crypto': {
-      return checkCryptoRoundtrip()
-    }
-    case 'entropy': {
-      return checkEntropyCollisions()
-    }
-    case 'nip17': {
-      return checkNip17Roundtrip()
-    }
-    case 'nip17Live': {
-      return checkNip17LiveRoundtrip(ctx.relayUrls ?? [])
-    }
-    case 'pinKdf': {
-      return checkPinKdf()
-    }
-    case 'relayPersistence': {
-      return checkRelayPersistence(ctx.relayUrls ?? [])
-    }
-    case 'secureStore': {
-      return checkSecureStore()
-    }
-    case 'sqlite': {
-      return checkSqlite()
-    }
-    default: {
-      const _exhaustive: never = id
-      throw new Error(`unknown diagnostic check: ${_exhaustive}`)
-    }
-  }
 }

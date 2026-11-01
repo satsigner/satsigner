@@ -1,5 +1,8 @@
 import { Nip46BunkerService } from '@/api/nostrNip446'
-import { NOSTR_NIP46_SUPPORTED_METHODS } from '@/constants/nostr'
+import {
+  NIP46_ACTIVITY_WRITE_INTERVAL_MS,
+  NOSTR_NIP46_SUPPORTED_METHODS
+} from '@/constants/nostr'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
@@ -22,6 +25,14 @@ import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 // Module-level maps shared across all hook instances
 const servicesMap = new Map<string, Nip46BunkerService>()
 const secretKeysMap = new Map<string, Uint8Array>()
+
+function isNip46SessionActive(sessionId: string): boolean {
+  return servicesMap.get(sessionId)?.isConnected() ?? false
+}
+
+function shouldRecordNip46Activity(lastActiveAt: number, now: number) {
+  return now - lastActiveAt >= NIP46_ACTIVITY_WRITE_INTERVAL_MS
+}
 
 async function fireAndForget(promise: Promise<unknown>): Promise<void> {
   try {
@@ -179,7 +190,13 @@ export function useNip46SessionManager() {
           }
 
           const permission = currentSession.permissions[request.method]
-          updateSession(session.id, { lastActiveAt: Date.now() })
+          const now = Date.now()
+          if (
+            now < currentSession.lastActiveAt ||
+            shouldRecordNip46Activity(currentSession.lastActiveAt, now)
+          ) {
+            updateSession(session.id, { lastActiveAt: now })
+          }
 
           // A stored "always allow" is honored only for requests that are
           // safe to auto-approve; decryption and sensitive sign_event kinds
@@ -306,17 +323,14 @@ export function useNip46SessionManager() {
     servicesMap.clear()
   }
 
-  function isSessionActive(sessionId: string): boolean {
-    const service = servicesMap.get(sessionId)
-    return service?.isConnected() ?? false
-  }
-
   return {
     approveRequest,
-    isSessionActive,
+    isSessionActive: isNip46SessionActive,
     rejectRequest,
     startSession,
     stopAllSessions,
     stopSession
   }
 }
+
+export { isNip46SessionActive, shouldRecordNip46Activity }

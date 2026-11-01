@@ -13,14 +13,27 @@ function createEphemeralNdk(explicitRelayUrls: string[]): NDK {
   return createMobileNdk(explicitRelayUrls)
 }
 
+/**
+ * Tears a pool down for good. Relays are removed from the pool rather than
+ * only disconnected: when most of a pool drops at once NDK treats it as a
+ * network outage and reconnects every relay still in the pool, leaving
+ * sockets open on an instance nothing references any more.
+ */
 function disconnectNdkPool(ndk: NDK): void {
-  try {
-    ndk.pool?.removeAllListeners?.()
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      relay.disconnect()
-    }
-  } catch {
-    // best-effort cleanup
+  const { pool } = ndk
+  if (!pool) {
+    return
+  }
+  pool.removeAllListeners()
+  for (const relay of pool.relays.values()) {
+    // A socket can open after the relay leaves the pool. NDK then logs
+    // "relay not found in pool" from the connect handler still attached here.
+    relay.removeAllListeners()
+    relay.disconnect()
+  }
+  const urls = [...pool.relays.keys()]
+  for (const url of urls) {
+    pool.relays.delete(url)
   }
 }
 
@@ -43,13 +56,7 @@ function resetNdkForRelays(relays: string[]): NDK {
   const key = [...relays].toSorted().join(',')
   const existing = ndkRegistry.get(key)
   if (existing) {
-    for (const relay of existing.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
+    disconnectNdkPool(existing)
     ndkRegistry.delete(key)
   }
   const ndk = createMobileNdk(relays)
@@ -59,13 +66,7 @@ function resetNdkForRelays(relays: string[]): NDK {
 
 export function clearNdkRegistry(): void {
   for (const ndk of ndkRegistry.values()) {
-    for (const relay of ndk.pool?.relays.values() ?? []) {
-      try {
-        relay.disconnect()
-      } catch {
-        // best-effort
-      }
-    }
+    disconnectNdkPool(ndk)
   }
   ndkRegistry.clear()
 }

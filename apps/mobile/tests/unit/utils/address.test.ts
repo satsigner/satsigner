@@ -1,4 +1,4 @@
-import { getScriptVersionType } from '@/utils/address'
+import { getScriptVersionType, isAddressUsed } from '@/utils/address'
 
 const MAINNET_P2PKH = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'
 const SIGNET_P2PKH_1 = 'mgjgqdtwXciPiQufZef9q4gEM3HYt8pLbn'
@@ -40,6 +40,27 @@ describe('address Utils', () => {
 
     it('should return null for invalid addresses', () => {
       expect(getScriptVersionType('bc1invalidbitcoinaddress')).toBeNull()
+    })
+  })
+
+  describe('isAddressUsed', () => {
+    const transactions = [
+      {
+        vout: [MAINNET_P2WPKH, MAINNET_P2TR].map((address) => ({
+          address,
+          script: '',
+          value: 1000
+        }))
+      }
+    ]
+
+    it('is true for an address that received an output', () => {
+      expect(isAddressUsed(transactions, MAINNET_P2TR)).toBe(true)
+    })
+
+    it('is false for an address no output paid', () => {
+      expect(isAddressUsed(transactions, MAINNET_P2PKH)).toBe(false)
+      expect(isAddressUsed([], MAINNET_P2PKH)).toBe(false)
     })
   })
 })

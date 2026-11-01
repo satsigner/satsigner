@@ -101,27 +101,73 @@ function parseTwitchClipEmbed(url: string): NostrVideoEmbed | null {
   }
 }
 
-function parseDirectVideoEmbed(url: string): NostrVideoEmbed | null {
+type ImetaInfo = { aspectRatio?: number; image?: string; mime?: string }
+
+const IMETA_DIM_RE = /^(\d+)x(\d+)$/
+
+function aspectRatioFromDim(dim: string | undefined): number | undefined {
+  const match = dim ? IMETA_DIM_RE.exec(dim) : null
+  const width = Number(match?.[1])
+  const height = Number(match?.[2])
+  return width > 0 && height > 0 ? width / height : undefined
+}
+
+function imetaField(tag: string[], name: string): string | undefined {
+  const prefix = `${name} `
+  return tag
+    .find((part) => typeof part === 'string' && part.startsWith(prefix))
+    ?.slice(prefix.length)
+    .trim()
+}
+
+/** NIP-92 `imeta` details (dimensions, poster image, mime type) per url. */
+function parseImetaByUrl(tags: string[][]): Map<string, ImetaInfo> {
+  return new Map(
+    tags.flatMap((tag) => {
+      const url = tag[0] === 'imeta' ? imetaField(tag, 'url') : undefined
+      if (!url) {
+        return []
+      }
+      const info: ImetaInfo = {
+        aspectRatio: aspectRatioFromDim(imetaField(tag, 'dim')),
+        image: imetaField(tag, 'image'),
+        mime: imetaField(tag, 'm')
+      }
+      return [[url, info]]
+    })
+  )
+}
+
+function parseDirectVideoEmbed(
+  url: string,
+  imeta?: ImetaInfo
+): NostrVideoEmbed | null {
   const u = url.trim()
   if (!/^https?:\/\//i.test(u)) {
     return null
   }
-  if (!/\.(?:mp4|webm|mov|m3u8)(?:\?[^\s]*)?$/i.test(u)) {
+  const declaredVideo = imeta?.mime?.startsWith('video/') === true
+  if (!declaredVideo && !/\.(?:mp4|webm|mov|m3u8)(?:\?[^\s]*)?$/i.test(u)) {
     return null
   }
   return {
+    ...(imeta?.aspectRatio ? { aspectRatio: imeta.aspectRatio } : {}),
     provider: 'direct',
+    ...(imeta?.image ? { thumbnailUrl: imeta.image } : {}),
     watchUrl: u
   }
 }
 
-function parseVideoEmbedFromUrl(url: string): NostrVideoEmbed | null {
+function parseVideoEmbedFromUrl(
+  url: string,
+  imeta?: ImetaInfo
+): NostrVideoEmbed | null {
   return (
     parseYouTubeEmbed(url) ||
     parseVimeoEmbed(url) ||
     parseTwitchVodEmbed(url) ||
     parseTwitchClipEmbed(url) ||
-    parseDirectVideoEmbed(url)
+    parseDirectVideoEmbed(url, imeta)
   )
 }
 
@@ -134,14 +180,16 @@ export function extractVideoEmbedsFromNote(
   tags: string[][]
 ): NostrVideoEmbed[] {
   const urls = collectHttpUrlsFromNote(content, tags)
+  const imetaByUrl = parseImetaByUrl(tags)
   const out: NostrVideoEmbed[] = []
   const seenWatch = new Set<string>()
 
   for (const u of urls) {
-    if (isPlausibleImageHttpUrl(u)) {
+    const imeta = imetaByUrl.get(u)
+    if (isPlausibleImageHttpUrl(u) && !imeta?.mime?.startsWith('video/')) {
       continue
     }
-    const embed = parseVideoEmbedFromUrl(u)
+    const embed = parseVideoEmbedFromUrl(u, imeta)
     if (!embed) {
       continue
     }

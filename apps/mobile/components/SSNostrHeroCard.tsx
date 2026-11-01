@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   Image,
@@ -27,6 +28,8 @@ import {
 } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { generateColorFromNpub } from '@/utils/nostr'
+import { nostrConnectedDetail } from '@/utils/nostrIdentity'
+import { nostrAccountHref } from '@/utils/nostrNavigation'
 
 function disconnectReasonLabel(
   reason?: NostrRelayConnectionInfo['reason']
@@ -69,8 +72,16 @@ function buildDisconnectLabel(info: NostrRelayConnectionInfo): string {
   return `${reason} — ${details}`
 }
 
+function buildConnectedLabel(
+  info: NostrRelayConnectionInfo,
+  configuredCount: number
+): string {
+  return nostrConnectedDetail(info, configuredCount)
+}
+
 type SSNostrHeroCardProps = {
   identity: NostrIdentity
+  configuredRelayCount?: number
   connectionInfo?: NostrRelayConnectionInfo
   nip05Valid?: boolean | null
   style?: StyleProp<ViewStyle>
@@ -78,10 +89,12 @@ type SSNostrHeroCardProps = {
 
 function SSNostrHeroCard({
   identity,
+  configuredRelayCount = 0,
   connectionInfo,
   nip05Valid,
   style
 }: SSNostrHeroCardProps) {
+  const { push } = useRouter()
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [profileImageExpanded, setProfileImageExpanded] = useState(false)
   const nip05Value = identity.nip05?.trim()
@@ -205,24 +218,29 @@ function SSNostrHeroCard({
           </SSText>
         )}
         {connectionInfo ? (
-          <SSText
-            center
-            size="xs"
-            color={connectionInfo.status === 'connected' ? 'white' : 'muted'}
-            style={
-              connectionInfo.status === 'connected'
-                ? styles.relayTagConnected
-                : connectionInfo.status === 'checking'
-                  ? styles.relayTagChecking
-                  : undefined
-            }
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => push(nostrAccountHref(identity.npub, 'relays'))}
           >
-            {connectionInfo.status === 'checking'
-              ? t('nostrIdentity.account.relayChecking')
-              : connectionInfo.status === 'connected'
-                ? `${t('nostrIdentity.account.relayConnected')} · ${connectionInfo.relayDetails?.filter((r) => r.connected).length ?? 0}`
-                : buildDisconnectLabel(connectionInfo)}
-          </SSText>
+            <SSText
+              center
+              size="xs"
+              color={connectionInfo.status === 'connected' ? 'white' : 'muted'}
+              style={
+                connectionInfo.status === 'connected'
+                  ? styles.relayTagConnected
+                  : connectionInfo.status === 'checking'
+                    ? styles.relayTagChecking
+                    : styles.relayTagLink
+              }
+            >
+              {connectionInfo.status === 'checking'
+                ? t('nostrIdentity.account.relayChecking')
+                : connectionInfo.status === 'connected'
+                  ? buildConnectedLabel(connectionInfo, configuredRelayCount)
+                  : buildDisconnectLabel(connectionInfo)}
+            </SSText>
+          </Pressable>
         ) : null}
         {identity.isWatchOnly && (
           <SSText size="xs" color="muted" uppercase>
@@ -315,7 +333,11 @@ const styles = StyleSheet.create({
     opacity: 0.75
   },
   relayTagConnected: {
-    color: Colors.mainGreen
+    color: Colors.mainGreen,
+    opacity: 0.55
+  },
+  relayTagLink: {
+    textDecorationLine: 'underline'
   }
 })
 

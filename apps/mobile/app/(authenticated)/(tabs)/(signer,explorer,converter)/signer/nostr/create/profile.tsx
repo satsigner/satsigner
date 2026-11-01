@@ -4,15 +4,16 @@ import { Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import SSNostrKind0FetchWarningModal from '@/components/SSNostrKind0FetchWarningModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
+import { useNostrIdentityAdd } from '@/hooks/useNostrIdentityAdd'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 
 type ProfileParams = {
@@ -24,7 +25,13 @@ type ProfileParams = {
 export default function ProfileSetup() {
   const router = useRouter()
   const params = useLocalSearchParams<ProfileParams>()
-  const addIdentity = useNostrIdentityStore((state) => state.addIdentity)
+  const {
+    fetchProfile,
+    fetchProfileAlways,
+    requestAdd,
+    saveWithoutFetching,
+    warningVisible
+  } = useNostrIdentityAdd(handleIdentityAdded)
 
   const [displayName, setDisplayName] = useState('')
   const [pictureUrl, setPictureUrl] = useState('')
@@ -40,13 +47,18 @@ export default function ProfileSetup() {
     }
   }
 
+  function handleIdentityAdded() {
+    toast.success(t('nostrIdentity.create.success'))
+    router.navigate('/signer/nostr')
+  }
+
   function handleSave() {
     if (!params.npub || !params.nsec) {
       toast.error(t('nostrIdentity.error.missingKeys'))
       return
     }
 
-    addIdentity({
+    requestAdd({
       createdAt: Date.now(),
       displayName: displayName || undefined,
       isWatchOnly: false,
@@ -57,9 +69,6 @@ export default function ProfileSetup() {
       nsec: params.nsec,
       picture: pictureUrl || undefined
     })
-
-    toast.success(t('nostrIdentity.create.success'))
-    router.navigate('/signer/nostr')
   }
 
   return (
@@ -169,6 +178,12 @@ export default function ProfileSetup() {
           />
         </SSVStack>
       </SSScrollView>
+      <SSNostrKind0FetchWarningModal
+        visible={warningVisible}
+        onFetch={fetchProfile}
+        onFetchAlways={fetchProfileAlways}
+        onSaveWithoutFetching={saveWithoutFetching}
+      />
     </SSMainLayout>
   )
 }

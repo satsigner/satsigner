@@ -1,8 +1,8 @@
-import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -20,10 +20,7 @@ import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconChevronDown from '@/components/icons/SSIconChevronDown'
 import SSIconChevronUp from '@/components/icons/SSIconChevronUp'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
-import SSIconHeart from '@/components/icons/SSIconHeart'
 import SSIconQR from '@/components/icons/SSIconQR'
-import SSIconRepost from '@/components/icons/SSIconRepost'
-import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
@@ -33,49 +30,54 @@ import {
   SSNostrFeedAuthorRow,
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
+import SSNostrNoteActions from '@/components/SSNostrNoteActions'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
+import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
+import SSNostrZapSheets from '@/components/SSNostrZapSheets'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
-import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
-  NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT,
-  NOSTR_ZAP_DEFAULT_PRESETS
+  NOSTR_PROFILE_QUERY_STALE_TIME_MS,
+  NOSTR_RELAYS
 } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
+import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
+import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
+import {
+  useNostrNoteFetch,
+  useNostrNoteLookupFetch
+} from '@/hooks/useNostrNoteFetch'
+import { useNostrNoteZapsFetch } from '@/hooks/useNostrNoteZapsFetch'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
-import { useNow } from '@/hooks/useNow'
+import { useNostrProfilesFetch } from '@/hooks/useNostrProfilesFetch'
+import { useNostrZapFlow } from '@/hooks/useNostrZapFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useArkStore } from '@/store/ark'
-import { useEcashStore } from '@/store/ecash'
-import { useLightningStore } from '@/store/lightning'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useNostrProfilesStore } from '@/store/nostrProfiles'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors } from '@/styles'
 import type {
-  NostrKind0Profile,
   NostrDecodedContent,
   NostrFetchedNoteData,
   NostrFeedNoteLike,
   ZapReceiptInfo,
   ZapSortField
 } from '@/types/models/Nostr'
-import { type PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
+import { getDecodedContentRelays } from '@/utils/nostrDecodedContent'
 import {
-  getDecodedContentRelays,
-  getDecodedContentTags
-} from '@/utils/nostrDecodedContent'
+  getNostrErrorCode,
+  getNostrErrorMessage
+} from '@/utils/nostrErrorMessage'
 import {
   decodeNostrContent,
   extractEnhancedZapTags,
@@ -83,6 +85,11 @@ import {
 } from '@/utils/nostrIdentity'
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import { nostrAuthorProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
+import {
+  getJsonNoteData,
+  type NostrNoteEvent,
+  withAuthorProfile
+} from '@/utils/nostrNoteDetail'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import { getResolvedEventId } from '@/utils/nostrNoteQuotes'
@@ -94,26 +101,17 @@ import {
 import { extractVideoEmbedsFromNote } from '@/utils/nostrNoteVideoUrls'
 import { extractPollInfo, isPollExpired } from '@/utils/nostrPoll'
 import {
+  applyZapProfiles,
   countQualifyingZaps,
-  enrichZapReceipts,
-  fetchZapReceipts,
-  initiateZap,
   sortZapReceipts
 } from '@/utils/nostrZap'
-import { buildPaymentMethods } from '@/utils/paymentMethods'
+
+const NO_ZAP_RECEIPTS: ZapReceiptInfo[] = []
+const NO_PUBKEYS: string[] = []
 
 type NoteParams = {
   npub: string
   nostrUri: string
-}
-
-async function fetchKind0OrNull(api: NostrAPI, npub: string) {
-  try {
-    return await api.fetchKind0(npub)
-  } catch {
-    // non-critical: callers render without the profile
-    return null
-  }
 }
 
 export default function NostrNotePage() {
@@ -132,368 +130,156 @@ export default function NostrNotePage() {
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
   const effectiveRelays = identity?.relays ?? globalRelays
-  const nowMs = useNow()
 
-  const [fetched, setFetched] = useState<NostrFetchedNoteData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
+  const [manualEvent, setManualEvent] = useState<NostrNoteEvent | null>(null)
+  const [manualSearching, setManualSearching] = useState(false)
   const [triedHints, setTriedHints] = useState(false)
   const [triedBroadSearch, setTriedBroadSearch] = useState(false)
-  const paymentSheetRef = useRef<BottomSheetMethods>(null)
-  const [payAmount, setPayAmount] = useState(0)
   const [customAmount, setCustomAmount] = useState('')
-  const [zapLoading, setZapLoading] = useState(false)
-  const [zapReceipts, setZapReceipts] = useState<ZapReceiptInfo[]>([])
-  const [replyParent, setReplyParent] = useState<NostrFetchedNoteData | null>(
-    null
-  )
-  const [replyParentLoading, setReplyParentLoading] = useState(false)
-  const [replyParentMissing, setReplyParentMissing] = useState(false)
-  const [replyParentKind0Pending, setReplyParentKind0Pending] = useState(false)
-  const [quotedNote, setQuotedNote] = useState<NostrFeedNoteLike | null>(null)
-  const [quotedNoteProfile, setQuotedNoteProfile] =
-    useState<
-      Parameters<typeof SSNostrFeedNoteRow>[0]['resolvedQuotedNoteProfile']
-    >(undefined)
-  const effectiveRelaysRef = useRef(effectiveRelays)
-  useEffect(() => {
-    effectiveRelaysRef.current = effectiveRelays
-  }, [effectiveRelays])
-  const fetchedRef = useRef(false)
-  const pendingInvoiceRef = useRef<{
-    invoice: string
-    zapRequestJson: string
-  } | null>(null)
-  const zapSheetRef = useRef<BottomSheetMethods>(null)
-  const [sheetCustomAmount, setSheetCustomAmount] = useState('')
-  const [sheetZapComment, setSheetZapComment] = useState('')
   const [showJson, setShowJson] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
   const [formatMarkdownByNoteId, setFormatMarkdownByNoteId] = useState<
     Record<string, boolean>
   >({})
   const [qrModalVisible, setQrModalVisible] = useState(false)
-  const [nip05Valid, setNip05Valid] = useState<boolean | null>(null)
   const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
   const [zapSortAsc, setZapSortAsc] = useState(false)
-  const [zapReceiptsLoading, setZapReceiptsLoading] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
   const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
-  const [mentionProfiles, setMentionProfiles] = useState<
-    Record<string, NostrKind0Profile | null>
-  >({})
-
-  const zapPrefs = identity?.zapPreferences
-  const zapPresets = zapPrefs?.presetAmounts ?? NOSTR_ZAP_DEFAULT_PRESETS
-  const oneTapAmount =
-    zapPrefs?.oneTapAmount ?? NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT
-
-  const lightningConfig = useLightningStore((state) => state.config)
-  const lightningNodeAlias = useLightningStore(
-    (state) => state.status.nodeInfo?.alias
-  )
-  const ecashAccounts = useEcashStore((state) => state.accounts)
-  const ecashAllMints = useEcashStore((state) => state.mints)
-  const setEcashActiveAccountId = useEcashStore(
-    (state) => state.setActiveAccountId
-  )
-  const arkAccounts = useArkStore((state) => state.accounts)
-
-  const pendingZap = useZapFlowStore((state) => state.pendingZap)
-  const zapResult = useZapFlowStore((state) => state.zapResult)
-  const clearPendingZap = useZapFlowStore((state) => state.clearPendingZap)
-  const setZapResult = useZapFlowStore((state) => state.setZapResult)
+  const [deletionModalVisible, setDeletionModalVisible] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const decoded = nostrUri ? decodeNostrContent(nostrUri) : null
 
-  const availablePaymentMethods = buildPaymentMethods(
-    lightningConfig ? { ...lightningConfig, alias: lightningNodeAlias } : null,
-    ecashAccounts,
-    ecashAllMints,
-    arkAccounts
-  )
-
   const ownPubkeyHex = getPubKeyHexFromNpub(npub ?? '') ?? ''
   const [ownPubkeys] = useState<string[]>(() =>
     ownPubkeyHex ? [ownPubkeyHex] : []
   )
 
-  async function loadZapReceipts(eventIdHex: string) {
-    setZapReceiptsLoading(true)
-    try {
-      const receipts = await fetchZapReceipts(
-        eventIdHex,
-        effectiveRelaysRef.current,
-        ownPubkeys
-      )
-      setZapReceipts(receipts)
-      setZapReceiptsLoading(false)
-      await enrichZapReceipts(receipts, effectiveRelaysRef.current)
-      setZapReceipts([...receipts])
-    } catch {
-      setZapReceiptsLoading(false)
-    }
-  }
-
   const relayHints =
     decoded?.kind === 'nevent' ? getDecodedContentRelays(decoded) : undefined
 
-  async function loadQuotedNote(quotedEventId: string) {
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-    try {
-      let quotedEvent = await api.fetchEvent(quotedEventId)
-      if (!quotedEvent) {
-        quotedEvent = await NostrAPI.fetchEventFromRelays(
-          quotedEventId,
-          NostrAPI.INDEXING_RELAYS,
-          ownPubkeys
-        )
-      }
-      if (!quotedEvent) {
-        return
-      }
-      setQuotedNote({
-        content: quotedEvent.content,
-        created_at: quotedEvent.created_at,
-        id: quotedEventId,
-        kind: quotedEvent.kind,
-        pubkey: quotedEvent.pubkey,
-        tags: quotedEvent.tags
-      })
-      try {
-        const profile = await api.fetchKind0(
-          nip19.npubEncode(quotedEvent.pubkey)
-        )
-        setQuotedNoteProfile(profile)
-      } catch {
-        // non-critical
-      }
-    } catch {
-      // fetch failed — quoted note stays hidden
+  const noteEventId =
+    decoded?.kind === 'note' || decoded?.kind === 'nevent' ? decoded.data : ''
+  const noteQuery = useNostrNoteFetch({
+    eventId: noteEventId,
+    ownPubkeys,
+    relays: effectiveRelays
+  })
+  const noteEvent = manualEvent ?? noteQuery.data ?? null
+  const authorNpub = noteEvent?.pubkey
+    ? nip19.npubEncode(noteEvent.pubkey)
+    : undefined
+  const authorProfileQuery = useNostrContactProfile(
+    authorNpub,
+    effectiveRelays,
+    Boolean(noteEvent)
+  )
+  const fetched =
+    getJsonNoteData(decoded) ??
+    withAuthorProfile(noteEvent, authorProfileQuery.data)
+  const isLoading = noteQuery.isLoading || manualSearching
+  const profileLoading = Boolean(noteEvent) && authorProfileQuery.isLoading
+  const noteRelayError = noteQuery.isError
+    ? getNostrErrorCode(noteQuery.error)
+    : undefined
+  const notFound =
+    !fetched && !isLoading && (noteQuery.isSuccess || noteQuery.isError)
+
+  const authorNip05 = fetched?.authorNip05
+  const { data: nip05ValidResult } = useQuery({
+    enabled: Boolean(noteEvent?.pubkey && authorNip05),
+    queryFn: () => validateNip05(noteEvent?.pubkey ?? '', authorNip05 ?? ''),
+    queryKey: ['nostr', 'nip05-valid', authorNpub, authorNip05],
+    staleTime: NOSTR_PROFILE_QUERY_STALE_TIME_MS
+  })
+  const nip05Valid = nip05ValidResult ?? null
+
+  const zapsQuery = useNostrNoteZapsFetch({
+    enabled: Boolean(noteEvent),
+    eventId: noteEventId,
+    ownPubkeys,
+    relays: effectiveRelays
+  })
+  const storeProfiles = useNostrProfilesStore((state) => state.profiles)
+  const zapReceipts = (zapsQuery.data?.data ?? NO_ZAP_RECEIPTS).map((receipt) =>
+    applyZapProfiles(receipt, (pk) => storeProfiles[pk.toLowerCase()])
+  )
+  const zapReceiptsLoading = zapsQuery.isLoading
+  const zapFlow = useNostrZapFlow({
+    identity,
+    npub: npub ?? '',
+    onZapSuccess: () => {
+      void zapsQuery.refetch()
+    },
+    relays: effectiveRelays
+  })
+
+  const quotedEventId = noteEvent
+    ? (getResolvedEventId({ ...noteEvent, id: noteEventId }) ?? '')
+    : ''
+  const quotedQuery = useNostrNoteLookupFetch({
+    eventId: quotedEventId,
+    fallbackRelaySets: [NostrAPI.INDEXING_RELAYS],
+    ownPubkeys,
+    relays: effectiveRelays
+  })
+  const quotedNote: NostrFeedNoteLike | null = quotedQuery.data
+    ? { ...quotedQuery.data, id: quotedEventId }
+    : null
+  const { data: quotedNoteProfile } = useNostrContactProfile(
+    quotedNote ? nip19.npubEncode(quotedNote.pubkey) : undefined,
+    effectiveRelays,
+    Boolean(quotedNote)
+  )
+
+  const mentionProfiles = useNostrProfilesFetch(
+    noteEvent ? extractMentionPubkeys(noteEvent.content) : NO_PUBKEYS,
+    effectiveRelays
+  )
+
+  async function searchRelaysForNote(searchRelays: string[]) {
+    if (!noteEventId) {
+      return null
     }
+    setManualSearching(true)
+    const event = await NostrAPI.fetchEventFromRelays(
+      noteEventId,
+      searchRelays,
+      ownPubkeys
+    ).catch(() => null)
+    if (event) {
+      setManualEvent(event)
+    }
+    setManualSearching(false)
+    return event
   }
-
-  async function fetchMentionProfiles(pubkeys: string[]) {
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-    const resolved: Record<string, NostrKind0Profile | null> = {}
-    await Promise.allSettled(
-      pubkeys.map(async (pubkey) => {
-        try {
-          resolved[pubkey] = await api.fetchKind0(nip19.npubEncode(pubkey))
-        } catch {
-          resolved[pubkey] = null
-        }
-      })
-    )
-    setMentionProfiles(resolved)
-  }
-
-  async function handleEventFound(event: {
-    content: string
-    pubkey: string
-    kind: number
-    tags: string[][]
-    created_at: number
-  }) {
-    setFetched({
-      content: event.content,
-      created_at: event.created_at,
-      kind: event.kind,
-      pubkey: event.pubkey,
-      tags: event.tags
-    })
-    setIsLoading(false)
-    setNotFound(false)
-
-    if (decoded?.data) {
-      loadZapReceipts(decoded.data)
-    }
-
-    const quotedEventId = getResolvedEventId({
-      content: event.content,
-      created_at: event.created_at,
-      id: decoded?.data ?? '',
-      kind: event.kind,
-      pubkey: event.pubkey,
-      tags: event.tags
-    })
-    if (quotedEventId) {
-      void loadQuotedNote(quotedEventId)
-    }
-
-    const mentionPubkeys = extractMentionPubkeys(event.content)
-    if (mentionPubkeys.length > 0) {
-      void fetchMentionProfiles(mentionPubkeys)
-    }
-
-    const authorNpub = nip19.npubEncode(event.pubkey)
-    const profileApi = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-    try {
-      const profile = await profileApi.fetchKind0(authorNpub)
-      if (!profile) {
-        setProfileLoading(false)
-        return
-      }
-      setFetched((prev) => {
-        if (!prev) {
-          return prev
-        }
-        return {
-          ...prev,
-          authorLud16: profile.lud16,
-          authorName: profile.displayName,
-          authorNip05: profile.nip05,
-          authorPicture: profile.picture
-        }
-      })
-      setProfileLoading(false)
-      if (profile.nip05) {
-        setNip05Valid(await validateNip05(event.pubkey, profile.nip05))
-      }
-    } catch {
-      setProfileLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!decoded || fetchedRef.current) {
-      return
-    }
-    if (
-      decoded.kind !== 'note' &&
-      decoded.kind !== 'nevent' &&
-      decoded.kind !== 'json_note'
-    ) {
-      return
-    }
-
-    fetchedRef.current = true
-
-    if (decoded.kind === 'json_note' && decoded.metadata) {
-      setFetched({
-        content:
-          typeof decoded.metadata.content === 'string'
-            ? decoded.metadata.content
-            : '',
-        created_at: 0,
-        kind:
-          typeof decoded.metadata.kind === 'number' ? decoded.metadata.kind : 1,
-        pubkey: '',
-        tags: getDecodedContentTags(decoded)
-      })
-      setIsLoading(false)
-      setProfileLoading(false)
-      return
-    }
-
-    async function fetchNote() {
-      if (!decoded) {
-        return
-      }
-      const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-      try {
-        const event = await api.fetchEvent(decoded.data)
-        if (!event) {
-          setIsLoading(false)
-          setProfileLoading(false)
-          setNotFound(true)
-          return
-        }
-        await handleEventFound(event)
-      } catch {
-        setIsLoading(false)
-        setProfileLoading(false)
-        setNotFound(true)
-      }
-    }
-
-    void fetchNote()
-  }, [decoded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleTryHintedRelays() {
-    if (!decoded?.data || !relayHints?.length) {
+    if (!relayHints?.length) {
       return
     }
-    setIsLoading(true)
-    setNotFound(false)
     setTriedHints(true)
-    try {
-      const event = await NostrAPI.fetchEventFromRelays(
-        decoded.data,
-        relayHints,
-        ownPubkeys
-      )
-      if (event) {
-        handleEventFound(event)
-      } else {
-        setIsLoading(false)
-        setNotFound(true)
-      }
-    } catch {
-      setIsLoading(false)
-      setNotFound(true)
-    }
+    await searchRelaysForNote(relayHints)
   }
 
   async function handleBroadSearch() {
-    if (!decoded?.data) {
-      return
-    }
-    const alreadyTried = new Set([
-      ...effectiveRelaysRef.current,
-      ...(relayHints ?? [])
-    ])
+    const alreadyTried = new Set([...effectiveRelays, ...(relayHints ?? [])])
     const searchRelays = NostrAPI.INDEXING_RELAYS.filter(
       (url) => !alreadyTried.has(url)
     )
     if (searchRelays.length === 0) {
       return
     }
-
-    setIsLoading(true)
-    setNotFound(false)
     setTriedBroadSearch(true)
-    try {
-      const event = await NostrAPI.fetchEventFromRelays(
-        decoded.data,
-        searchRelays,
-        ownPubkeys
-      )
-      if (event) {
-        handleEventFound(event)
-      } else {
-        setIsLoading(false)
-        setNotFound(true)
-        toast.error(t('nostrIdentity.account.eventNotFound'))
-      }
-    } catch {
-      setIsLoading(false)
-      setNotFound(true)
+    const event = await searchRelaysForNote(searchRelays)
+    if (!event) {
       toast.error(t('nostrIdentity.account.eventNotFound'))
     }
   }
-
-  useEffect(() => {
-    if (zapResult === 'success' && pendingZap) {
-      toast.success(
-        `${t('nostrIdentity.note.zapSuccess')} (${
-          privacyMode ? NOSTR_PRIVACY_MASK : pendingZap.amountSats
-        } sats)`
-      )
-      if (decoded?.data) {
-        loadZapReceipts(decoded.data)
-      }
-      clearPendingZap()
-      setZapResult(null)
-    } else if (zapResult === 'cancelled') {
-      clearPendingZap()
-      setZapResult(null)
-    }
-  }, [zapResult, privacyMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pubpayTags = extractPubpayTags(fetched?.tags ?? [])
 
@@ -535,109 +321,34 @@ export default function NostrNotePage() {
       ? undefined
       : getRelayHintForEventId(fetched.tags, replyParentId)
 
-  useEffect(() => {
-    let cancelled = false
-
-    if (!replyParentId) {
-      setReplyParent(null)
-      setReplyParentKind0Pending(false)
-      setReplyParentLoading(false)
-      setReplyParentMissing(false)
-      return
-    }
-
-    setReplyParent(null)
-    setReplyParentKind0Pending(false)
-    setReplyParentMissing(false)
-    setReplyParentLoading(true)
-
-    const api = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-
-    async function loadReplyParent(parentId: string) {
-      let event = await api.fetchEvent(parentId)
-      if (!event && replyParentRelayHint) {
-        event = await NostrAPI.fetchEventFromRelays(
-          parentId,
-          [replyParentRelayHint],
-          ownPubkeys
-        )
-      }
-      if (!event) {
-        event = await NostrAPI.fetchEventFromRelays(
-          parentId,
-          NostrAPI.INDEXING_RELAYS,
-          ownPubkeys
-        )
-      }
-      if (cancelled) {
-        return
-      }
-      if (!event) {
-        setReplyParentMissing(true)
-        setReplyParentLoading(false)
-        return
-      }
-
-      const base: NostrFetchedNoteData = {
-        content: event.content,
-        created_at: event.created_at,
-        kind: event.kind,
-        pubkey: event.pubkey,
-        tags: event.tags
-      }
-      setReplyParent(base)
-      setReplyParentLoading(false)
-
-      const authorNpub = nip19.npubEncode(event.pubkey)
-      const profileApi = new NostrAPI(effectiveRelaysRef.current, ownPubkeys)
-      setReplyParentKind0Pending(true)
-      const profile = await fetchKind0OrNull(profileApi, authorNpub)
-      if (cancelled) {
-        return
-      }
-      if (profile) {
-        setReplyParent((prev) => {
-          if (!prev || prev.pubkey !== event.pubkey) {
-            return prev
-          }
-          return {
-            ...prev,
-            authorLud16: profile.lud16,
-            authorName: profile.displayName,
-            authorNip05: profile.nip05,
-            authorPicture: profile.picture
-          }
-        })
-      }
-      setReplyParentKind0Pending(false)
-    }
-
-    async function fetchReplyParent() {
-      if (!replyParentId) {
-        return
-      }
-      try {
-        await loadReplyParent(replyParentId)
-      } catch {
-        if (!cancelled) {
-          setReplyParentMissing(true)
-          setReplyParentLoading(false)
-        }
-      }
-    }
-
-    void fetchReplyParent()
-
-    return () => {
-      cancelled = true
-    }
-  }, [replyParentId, replyParentRelayHint, ownPubkeys])
+  const replyParentQuery = useNostrNoteLookupFetch({
+    eventId: replyParentId ?? '',
+    fallbackRelaySets: replyParentRelayHint
+      ? [[replyParentRelayHint], NostrAPI.INDEXING_RELAYS]
+      : [NostrAPI.INDEXING_RELAYS],
+    ownPubkeys,
+    relays: effectiveRelays
+  })
+  const replyParentEvent = replyParentId ? replyParentQuery.data : null
+  const replyParentProfileQuery = useNostrContactProfile(
+    replyParentEvent ? nip19.npubEncode(replyParentEvent.pubkey) : undefined,
+    effectiveRelays,
+    Boolean(replyParentEvent)
+  )
+  const replyParent = withAuthorProfile(
+    replyParentEvent,
+    replyParentProfileQuery.data
+  )
+  const replyParentLoading =
+    Boolean(replyParentId) && replyParentQuery.isLoading
+  const replyParentMissing =
+    Boolean(replyParentId) && !replyParentQuery.isLoading && !replyParentEvent
+  const replyParentKind0Pending =
+    Boolean(replyParentEvent) && replyParentProfileQuery.isLoading
 
   const pollInfo =
     fetched?.kind === nostrKinds.Poll ? extractPollInfo(fetched.tags) : null
-  const pollExpired = pollInfo
-    ? isPollExpired(pollInfo.endsAt, Math.floor(nowMs / MS_PER_SECOND))
-    : false
+  const pollExpired = pollInfo ? isPollExpired(pollInfo.endsAt) : false
   const {
     handlePollOptionPress,
     handlePollSubmitMultiple,
@@ -654,6 +365,18 @@ export default function NostrNotePage() {
     nsec: identity?.nsec,
     ownPubkeys,
     pollInfo,
+    relays: effectiveRelays
+  })
+
+  const engagement = useNostrNoteEngagement({
+    enabled: !privacyMode,
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    note:
+      noteEvent && noteEventId
+        ? { id: noteEventId, kind: noteEvent.kind, pubkey: noteEvent.pubkey }
+        : null,
+    nsec: identity?.nsec,
+    ownPubkey: ownPubkeyHex,
     relays: effectiveRelays
   })
 
@@ -719,19 +442,18 @@ export default function NostrNotePage() {
     }
     setBookmarkLoading(true)
     const api = new NostrAPI(effectiveRelays)
+    const bookmarkUpdate = { eventId, ...action }
     const successMessage =
       action.type === 'remove'
         ? t('nostrIdentity.note.bookmarkRemoved')
         : t('nostrIdentity.note.bookmarkAdded')
     try {
-      await api.publishBookmarkUpdate(npub, identity.nsec, {
-        eventId,
-        ...action
-      })
+      await api.publishBookmarkUpdate(npub, identity.nsec, bookmarkUpdate)
       toast.success(successMessage)
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.note.bookmarkFailed')}: ${reason}`)
+      toast.error(
+        `${t('nostrIdentity.note.bookmarkFailed')}: ${getNostrErrorMessage(error)}`
+      )
     }
     api.disconnect()
     setBookmarkLoading(false)
@@ -741,168 +463,42 @@ export default function NostrNotePage() {
     setBookmarkModalVisible(true)
   }
 
-  function presentZapInvoice(
-    invoice: string,
-    zapRequestJson: string,
-    amountSats: number
-  ) {
-    pendingInvoiceRef.current = { invoice, zapRequestJson }
-
-    if (zapPrefs?.autoApprove && zapPrefs.autoApproveWalletId) {
-      const autoWallet = availablePaymentMethods.find(
-        (m) => m.id === zapPrefs.autoApproveWalletId
-      )
-      if (autoWallet) {
-        navigateToPayment(autoWallet, invoice, zapRequestJson, amountSats)
-        return
-      }
-    }
-
-    if (availablePaymentMethods.length === 1) {
-      navigateToPayment(
-        availablePaymentMethods[0],
-        invoice,
-        zapRequestJson,
-        amountSats
-      )
-      return
-    }
-
-    setPayAmount(amountSats)
-    paymentSheetRef.current?.snapToIndex(0)
-  }
-
-  async function handleZap(amountSats: number, comment?: string) {
-    if (!amountSats || amountSats <= 0) {
-      return
-    }
-    if (availablePaymentMethods.length === 0) {
-      return
-    }
-
-    if (!effectiveLud16) {
-      toast.error(t('nostrIdentity.note.zapEndpointNotFound'))
-      return
-    }
-
-    if (!identity?.nsec) {
-      toast.error(t('nostrIdentity.error.missingKeys'))
-      return
-    }
-
-    if (!fetched) {
-      return
-    }
-
-    setZapLoading(true)
-    const eventIdHex = decoded?.data
-    try {
-      const { invoice, zapRequestJson } = await initiateZap({
-        amountSats,
-        comment,
-        eventIdHex,
-        eventKind: fetched.kind,
-        eventTags: fetched.tags,
-        recipientLud16: effectiveLud16,
-        recipientPubkeyHex: fetched.pubkey,
-        relays: effectiveRelays,
-        senderNsec: identity.nsec
-      })
-
-      setZapLoading(false)
-      presentZapInvoice(invoice, zapRequestJson, amountSats)
-    } catch (error) {
-      setZapLoading(false)
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(`${t('nostrIdentity.note.zapFailed')}: ${reason}`)
-    }
-  }
-
-  function navigateToPayment(
-    method: PaymentMethod,
-    invoice?: string,
-    zapRequestJson?: string,
-    amountSats?: number
-  ) {
-    paymentSheetRef.current?.close()
-
-    const pending = pendingInvoiceRef.current
-    const bolt11 = invoice || pending?.invoice
-    const reqJson = zapRequestJson || pending?.zapRequestJson || ''
-    const sats = amountSats ?? payAmount
-    pendingInvoiceRef.current = null
-
-    if (bolt11 && npub && nostrUri) {
-      useZapFlowStore.getState().setPendingZap({
-        amountSats: sats,
-        invoice: bolt11,
-        nostrUri,
-        noteNpub: npub,
-        paymentMethod: method,
-        zapRequestJson: reqJson
-      })
-    }
-
-    if (method.type === 'lightning') {
-      router.navigate({
-        params: bolt11 ? { invoice: bolt11 } : undefined,
-        pathname: '/signer/lightning/pay'
-      })
-    } else if (method.type === 'ecash') {
-      if (method.accountId) {
-        setEcashActiveAccountId(method.accountId)
-      }
-      router.navigate({
-        params: bolt11 ? { invoice: bolt11 } : undefined,
-        pathname: '/signer/ecash/send'
-      })
-    } else if (method.type === 'ark' && method.accountId && bolt11) {
-      router.navigate({
-        params: {
-          amountSats: String(sats),
-          id: method.accountId,
-          invoice: bolt11
-        },
-        pathname: '/signer/ark/account/[id]/pay-invoice'
-      })
-    }
-  }
+  const zapTarget =
+    fetched && decoded?.data
+      ? {
+          id: decoded.data,
+          kind: fetched.kind,
+          lud16: effectiveLud16,
+          pubkey: fetched.pubkey,
+          tags: fetched.tags
+        }
+      : null
 
   function handleAmountSelected(sats: number) {
     setCustomAmount('')
-    handleZap(sats)
+    if (zapTarget) {
+      void zapFlow.zap(zapTarget, sats)
+    }
   }
 
   function handleCustomAmountSubmit() {
     const sats = Number.parseInt(customAmount, 10)
-    if (!sats || sats <= 0) {
+    if (!sats || sats <= 0 || !zapTarget) {
       return
     }
-    handleZap(sats)
+    void zapFlow.zap(zapTarget, sats)
   }
 
   function handleOneTapZap() {
-    handleZap(oneTapAmount)
+    if (zapTarget) {
+      zapFlow.zapOneTap(zapTarget)
+    }
   }
 
   function handleOpenZapSheet() {
-    setSheetCustomAmount('')
-    setSheetZapComment('')
-    zapSheetRef.current?.snapToIndex(0)
-  }
-
-  function handleSheetAmountSelected(sats: number) {
-    zapSheetRef.current?.close()
-    handleZap(sats, sheetZapComment || undefined)
-  }
-
-  function handleSheetCustomSubmit() {
-    const sats = Number.parseInt(sheetCustomAmount, 10)
-    if (!sats || sats <= 0) {
-      return
+    if (zapTarget) {
+      zapFlow.openZapOptions(zapTarget)
     }
-    zapSheetRef.current?.close()
-    handleZap(sats, sheetZapComment || undefined)
   }
 
   function handleZapSortPress(field: 'date' | 'amount') {
@@ -926,6 +522,50 @@ export default function NostrNotePage() {
   const formatMarkdown = noteHexId
     ? formatMarkdownByNoteId[noteHexId] === true
     : false
+
+  const listedRelayUrls = NOSTR_RELAYS.map((relay) => relay.url)
+  const canRequestDeletion =
+    fetched?.pubkey === ownPubkeyHex &&
+    ownPubkeyHex.length > 0 &&
+    Boolean(identity?.nsec) &&
+    !identity?.isWatchOnly
+
+  function openDeletionModal() {
+    setDeletionModalVisible(true)
+  }
+
+  function closeDeletionModal() {
+    setDeletionModalVisible(false)
+  }
+
+  async function requestNoteDeletion(relays: string[]) {
+    if (!identity?.nsec || !noteHexId || relays.length === 0) {
+      return
+    }
+
+    setDeletionModalVisible(false)
+    setDeleting(true)
+    const api = new NostrAPI(relays)
+    try {
+      await api.requestDeletion([noteHexId], identity.nsec)
+      toast.success(t('nostrIdentity.note.requestDeletionSuccess'))
+      router.back()
+    } catch (error) {
+      toast.error(
+        `${t('nostrIdentity.note.requestDeletionFailed')}: ${getNostrErrorMessage(error)}`
+      )
+    }
+    api.disconnect()
+    setDeleting(false)
+  }
+
+  function handleDeleteFromSelectedRelays() {
+    void requestNoteDeletion(effectiveRelays)
+  }
+
+  function handleDeleteFromListedRelays() {
+    void requestNoteDeletion(listedRelayUrls)
+  }
 
   function handlePlainTextViewPress() {
     if (!noteHexId) {
@@ -1247,44 +887,59 @@ export default function NostrNotePage() {
             ) : null}
 
             {fetched ? (
-              <SSHStack gap="none" style={styles.actionRow}>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.qrTitle')}
-                  style={styles.actionButton}
-                  disabled={!noteNeventId}
-                  onPress={() => setQrModalVisible(true)}
-                >
-                  <SSIconQR width={18} height={18} />
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.repostTitle')}
-                  style={styles.actionButton}
-                  disabled
-                >
-                  <SSIconRepost width={18} height={16} />
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.likeTitle')}
-                  style={styles.actionButton}
-                  disabled
-                >
-                  <SSIconHeart width={18} height={16} />
-                </SSIconButton>
-                <SSIconButton
-                  accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
-                  style={styles.actionButton}
-                  disabled={
-                    bookmarkLoading || !decoded?.data || !identity?.nsec
-                  }
-                  onPress={handleBookmarkPress}
-                >
-                  <SSIconBookmark
-                    width={14}
-                    height={18}
-                    color={Colors.gray[300]}
-                  />
-                </SSIconButton>
-              </SSHStack>
+              <SSNostrNoteActions
+                canEngage={engagement.canEngage}
+                likeCount={engagement.likeCount}
+                likedByMe={engagement.likedByMe}
+                onLikePress={engagement.handleLikePress}
+                onRepostPress={engagement.handleRepostPress}
+                repostCount={engagement.repostCount}
+                repostedByMe={engagement.repostedByMe}
+                showCounts={!privacyMode}
+                style={styles.actionRow}
+                toggling={engagement.toggling}
+                zap={{
+                  canZap: zapFlow.canZap && Boolean(effectiveLud16),
+                  onLongPress: handleOpenZapSheet,
+                  onPress: handleOneTapZap,
+                  zapping: zapFlow.zapping
+                }}
+              >
+                <SSHStack gap="none" style={styles.actionRowEnd}>
+                  <SSIconButton
+                    accessibilityLabel={t('nostrIdentity.note.qrTitle')}
+                    style={styles.actionButton}
+                    disabled={!noteNeventId}
+                    onPress={() => setQrModalVisible(true)}
+                  >
+                    <SSIconQR width={18} height={18} />
+                  </SSIconButton>
+                  <SSIconButton
+                    accessibilityLabel={t('nostrIdentity.note.bookmarkTitle')}
+                    style={styles.actionButton}
+                    disabled={
+                      bookmarkLoading || !decoded?.data || !identity?.nsec
+                    }
+                    onPress={handleBookmarkPress}
+                  >
+                    <SSIconBookmark
+                      width={20}
+                      height={20}
+                      color={Colors.gray[300]}
+                    />
+                  </SSIconButton>
+                </SSHStack>
+              </SSNostrNoteActions>
+            ) : null}
+
+            {canRequestDeletion ? (
+              <SSButton
+                label={t('nostrIdentity.note.requestDeletion')}
+                variant="danger"
+                disabled={deleting}
+                loading={deleting}
+                onPress={openDeletionModal}
+              />
             ) : null}
 
             {fetched ? (
@@ -1432,7 +1087,7 @@ export default function NostrNotePage() {
               </SSVStack>
             ) : null}
 
-            {fetched && availablePaymentMethods.length > 0 && (
+            {fetched && zapFlow.sheets.paymentMethods.length > 0 && (
               <SSVStack gap="sm">
                 {profileLoading ? (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
@@ -1516,7 +1171,7 @@ export default function NostrNotePage() {
                       <SSButton
                         label={`${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : enhancedZap.zapMin?.toLocaleString()} sats`}
                         variant="secondary"
-                        disabled={zapLoading || !effectiveLud16}
+                        disabled={zapFlow.zapping || !effectiveLud16}
                         onPress={() =>
                           handleAmountSelected(enhancedZap.zapMin!)
                         }
@@ -1547,7 +1202,7 @@ export default function NostrNotePage() {
                             <SSPressable
                               key={sats}
                               style={styles.presetButton}
-                              disabled={zapLoading || !effectiveLud16}
+                              disabled={zapFlow.zapping || !effectiveLud16}
                               onPress={() => handleAmountSelected(sats)}
                               activeOpacity={0.6}
                             >
@@ -1583,7 +1238,7 @@ export default function NostrNotePage() {
                           }
                           variant="secondary"
                           disabled={
-                            zapLoading ||
+                            zapFlow.zapping ||
                             !effectiveLud16 ||
                             !customAmount ||
                             Number.parseInt(customAmount, 10) <
@@ -1618,7 +1273,7 @@ export default function NostrNotePage() {
                             <SSButton
                               label={t('nostrIdentity.note.zap')}
                               variant="secondary"
-                              disabled={zapLoading || !effectiveLud16}
+                              disabled={zapFlow.zapping || !effectiveLud16}
                               onPress={() => handleAmountSelected(tag.amount)}
                               style={styles.zapButton}
                             />
@@ -1638,11 +1293,11 @@ export default function NostrNotePage() {
                             privacyMode
                               ? `${NOSTR_PRIVACY_MASK} sats`
                               : t('nostrIdentity.note.zapOneTap', {
-                                  amount: oneTapAmount
+                                  amount: zapFlow.oneTapAmount
                                 })
                           }
                           variant="outline"
-                          disabled={zapLoading}
+                          disabled={zapFlow.zapping}
                           onPress={handleOneTapZap}
                           onLongPress={handleOpenZapSheet}
                           delayLongPress={400}
@@ -1651,7 +1306,7 @@ export default function NostrNotePage() {
                         <SSButton
                           label={t('nostrIdentity.note.more')}
                           variant="outline"
-                          disabled={zapLoading}
+                          disabled={zapFlow.zapping}
                           onPress={handleOpenZapSheet}
                           style={{ flex: 1 }}
                         />
@@ -1666,7 +1321,7 @@ export default function NostrNotePage() {
                   </>
                 )}
 
-                {zapLoading && (
+                {zapFlow.zapping && (
                   <SSHStack gap="sm" style={styles.zapLoadingRow}>
                     <ActivityIndicator color={Colors.white} size="small" />
                     <SSText size="sm" color="muted">
@@ -1682,6 +1337,15 @@ export default function NostrNotePage() {
                 {t('nostrIdentity.keys.watchOnly')}
               </SSText>
             )}
+
+            {zapsQuery.data ? (
+              <SSNostrSourceBanner
+                error={zapsQuery.data.error}
+                onRetry={zapsQuery.refetch}
+                retrying={zapsQuery.isRefetching}
+                source={zapsQuery.data.source}
+              />
+            ) : null}
 
             {zapReceipts.length > 0 && (
               <SSVStack gap="sm">
@@ -1783,7 +1447,12 @@ export default function NostrNotePage() {
                           {formatNostrCardDate(receipt.createdAt)}
                         </SSText>
                       )}
-                      <SSZapAmountDisplay amountSats={receipt.amountSats} />
+                      <SSZapAmountDisplay
+                        amountSats={receipt.amountSats}
+                        btcPrice={btcPrice}
+                        fiatCurrency={fiatCurrency}
+                        privacyMode={privacyMode}
+                      />
                     </SSVStack>
                   </SSHStack>
                 ))}
@@ -1806,9 +1475,18 @@ export default function NostrNotePage() {
 
             {notFound && !fetched && (
               <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>
-                <SSText color="muted">
-                  {t('nostrIdentity.note.notFoundOnYourRelays')}
-                </SSText>
+                {noteRelayError ? (
+                  <SSNostrSourceBanner
+                    error={noteRelayError}
+                    onRetry={noteQuery.refetch}
+                    retrying={noteQuery.isRefetching}
+                    source="cache"
+                  />
+                ) : (
+                  <SSText color="muted">
+                    {t('nostrIdentity.note.notFoundOnYourRelays')}
+                  </SSText>
+                )}
                 <SSText size="xs" type="mono" color="muted">
                   {formatNpub(decoded.raw, 'xl')}
                 </SSText>
@@ -1927,15 +1605,43 @@ export default function NostrNotePage() {
         </ScrollView>
       )}
 
-      <SSPaymentMethodPicker
-        ref={paymentSheetRef}
-        onSelect={(method) => navigateToPayment(method)}
-        methods={availablePaymentMethods}
-        amountSats={payAmount}
+      <SSNostrZapSheets
+        {...zapFlow.sheets}
         btcPrice={btcPrice}
         fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
 
+      <SSModal
+        visible={deletionModalVisible}
+        onClose={closeDeletionModal}
+        label={t('common.cancel')}
+      >
+        <SSVStack gap="sm" style={styles.deletionModal}>
+          <SSText center uppercase>
+            {t('nostrIdentity.note.requestDeletionConfirm')}
+          </SSText>
+          <SSText center color="muted" size="sm">
+            {t('nostrIdentity.note.requestDeletion')}
+          </SSText>
+          <SSButton
+            label={t('nostrIdentity.note.requestDeletionSelected', {
+              count: effectiveRelays.length
+            })}
+            variant="danger"
+            disabled={effectiveRelays.length === 0 || deleting}
+            onPress={handleDeleteFromSelectedRelays}
+          />
+          <SSButton
+            label={t('nostrIdentity.note.requestDeletionAll', {
+              count: listedRelayUrls.length
+            })}
+            variant="danger"
+            disabled={listedRelayUrls.length === 0 || deleting}
+            onPress={handleDeleteFromListedRelays}
+          />
+        </SSVStack>
+      </SSModal>
       <SSModal
         visible={bookmarkModalVisible}
         onClose={() => setBookmarkModalVisible(false)}
@@ -2003,61 +1709,6 @@ export default function NostrNotePage() {
           </SSShareableQR>
         </SSVStack>
       </SSModal>
-
-      <SSBottomSheet
-        ref={zapSheetRef}
-        title={t('nostrIdentity.note.zapChooseAmount')}
-      >
-        <SSVStack gap="sm" style={styles.sheetContent}>
-          <SSHStack gap="sm">
-            {zapPresets.map((sats) => (
-              <SSButton
-                key={sats}
-                label={privacyMode ? NOSTR_PRIVACY_MASK : sats.toLocaleString()}
-                variant="outline"
-                onPress={() => handleSheetAmountSelected(sats)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </SSHStack>
-          <TextInput
-            style={styles.customInput}
-            placeholderTextColor={Colors.gray[500]}
-            placeholder={t('nostrIdentity.note.customAmount')}
-            keyboardType="number-pad"
-            value={sheetCustomAmount}
-            onChangeText={setSheetCustomAmount}
-            returnKeyType="next"
-          />
-          <TextInput
-            style={styles.customInput}
-            placeholderTextColor={Colors.gray[500]}
-            placeholder={t('nostrIdentity.note.zapCommentPlaceholder')}
-            value={sheetZapComment}
-            onChangeText={setSheetZapComment}
-            returnKeyType="done"
-            onSubmitEditing={handleSheetCustomSubmit}
-          />
-          <SSButton
-            label={
-              sheetCustomAmount && Number.parseInt(sheetCustomAmount, 10) > 0
-                ? `${t('nostrIdentity.note.zap')} ${privacyMode ? NOSTR_PRIVACY_MASK : Number.parseInt(sheetCustomAmount, 10).toLocaleString()} sats`
-                : t('nostrIdentity.note.zap')
-            }
-            variant="gradient"
-            gradientType="special"
-            disabled={
-              !sheetCustomAmount || Number.parseInt(sheetCustomAmount, 10) <= 0
-            }
-            onPress={handleSheetCustomSubmit}
-          />
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => zapSheetRef.current?.close()}
-          />
-        </SSVStack>
-      </SSBottomSheet>
     </SSMainLayout>
   )
 }
@@ -2133,8 +1784,10 @@ const styles = StyleSheet.create({
   actionRow: {
     borderBottomWidth: 1,
     borderColor: Colors.gray[800],
-    justifyContent: 'flex-end',
     paddingBottom: 4
+  },
+  actionRowEnd: {
+    marginLeft: 'auto'
   },
   authorAvatar: {
     borderRadius: 24,
@@ -2169,6 +1822,9 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     padding: 12
+  },
+  deletionModal: {
+    width: '100%'
   },
   goalHeader: {
     alignItems: 'center',
@@ -2350,9 +2006,6 @@ const styles = StyleSheet.create({
   },
   retrySection: {
     width: '100%'
-  },
-  sheetContent: {
-    paddingBottom: 24
   },
   tagTypeBadge: {
     backgroundColor: Colors.gray[800],

@@ -14,6 +14,8 @@ import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 
+const RETRY_HIT_SLOP = 8
+
 type SSNostrMessageProps = {
   item: NostrDM
   account: Account | undefined
@@ -31,6 +33,8 @@ type SSNostrMessageProps = {
   onOpenLinkedTx?: (accountId: string, txId: string) => void
   /** Marks a failed outgoing message (DM send status). */
   failed?: boolean
+  /** Called with the message id to re-send a failed message. */
+  onRetry?: (msgId: string) => void
 }
 
 function SSNostrMessage({
@@ -45,7 +49,8 @@ function SSNostrMessage({
   ownNpub,
   onAuthorPress,
   onOpenLinkedTx,
-  failed
+  failed,
+  onRetry
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -57,6 +62,10 @@ function SSNostrMessage({
     formattedDate,
     error
   } = useNostrMessage({ account, formattedNpubs, msg, ownNpub })
+
+  function handleRetryPress() {
+    onRetry?.(msg.id)
+  }
 
   function handleAuthorPress() {
     if (!authorNpub) {
@@ -178,6 +187,13 @@ function SSNostrMessage({
               ({t('nostrIdentity.chat.status.failed')})
             </SSText>
           ) : null}
+          {failed && onRetry ? (
+            <Pressable onPress={handleRetryPress} hitSlop={RETRY_HIT_SLOP}>
+              <SSText size="xs" style={styles.retryText}>
+                {t('nostrErrors.source.retry')}
+              </SSText>
+            </Pressable>
+          ) : null}
         </SSHStack>
       </SSHStack>
       <View style={styles.messageContentWrap}>
@@ -249,6 +265,10 @@ const styles = StyleSheet.create({
   },
   npubRow: {
     marginTop: -4
+  },
+  retryText: {
+    color: Colors.white,
+    textDecorationLine: 'underline'
   }
 })
 

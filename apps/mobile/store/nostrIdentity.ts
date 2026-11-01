@@ -3,8 +3,11 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { clearNdkRegistry } from '@/api/nostr'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
-import mmkvStorage from '@/storage/mmkv'
+import { clearIdentityCache } from '@/db/nostrCache'
+import mmkvStorage, { clearNostrFollowCache } from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/Nostr'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { closeActiveChatPipeline } from '@/utils/nostrChat'
 import {
   deleteNostrIdentitySecretSafe,
   persistIdentitySecretsSafe
@@ -14,6 +17,7 @@ type NostrIdentityState = {
   identities: NostrIdentity[]
   activeIdentityNpub: string | null
   relays: string[]
+  kind0FetchWarningDismissed: boolean
 }
 
 type NostrIdentityActions = {
@@ -27,6 +31,7 @@ type NostrIdentityActions = {
   addRelay: (url: string) => void
   removeRelay: (url: string) => void
   clearAll: () => void
+  dismissKind0FetchWarning: () => void
 }
 
 const DEFAULT_RELAYS: string[] = []
@@ -70,8 +75,13 @@ const useNostrIdentityStore = create<
         set({
           activeIdentityNpub: null,
           identities: [],
+          kind0FetchWarningDismissed: false,
           relays: DEFAULT_RELAYS
         })
+      },
+
+      dismissKind0FetchWarning: () => {
+        set({ kind0FetchWarningDismissed: true })
       },
 
       getActiveIdentity: () => {
@@ -81,11 +91,19 @@ const useNostrIdentityStore = create<
 
       identities: [],
 
+      kind0FetchWarningDismissed: false,
+
       relays: DEFAULT_RELAYS,
 
       removeIdentity: (npub) => {
         void deleteNostrIdentitySecretSafe(npub)
+        closeActiveChatPipeline()
         deleteChatMessagesForIdentity(npub)
+        clearNostrFollowCache(npub)
+        const hexPubkey = getPubKeyHexFromNpub(npub)
+        if (hexPubkey) {
+          clearIdentityCache(hexPubkey)
+        }
         set((state) => ({
           activeIdentityNpub:
             state.activeIdentityNpub === npub ? null : state.activeIdentityNpub,
@@ -140,6 +158,7 @@ const useNostrIdentityStore = create<
           const { mnemonic: _mnemonic, nsec: _nsec, ...safe } = identity
           return safe
         }),
+        kind0FetchWarningDismissed: state.kind0FetchWarningDismissed,
         relays: state.relays
       }),
       storage: createJSONStorage(() => mmkvStorage)

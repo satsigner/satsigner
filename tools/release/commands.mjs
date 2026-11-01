@@ -49,18 +49,33 @@ function buildPushArgs() {
   return ['push', 'origin', 'HEAD']
 }
 
-const APK_PROFILES = {
-  branch: ['--apk', '--release'],
-  pixel: ['--apk', '--release', '--abi', 'arm64-v8a'],
-  prod: ['--apk', '--release', '--prod', '--plain']
+const APK_IDENTITIES = {
+  branch: [],
+  generic: ['--plain'],
+  prod: ['--prod', '--plain']
 }
 
-function buildApkArgs(profile = 'branch') {
-  const flags = APK_PROFILES[profile]
-  if (!flags) {
-    throw new Error(`unknown apk profile: ${profile}`)
+const APK_KINDS = {
+  all: [],
+  pixel: ['--abi', 'arm64-v8a']
+}
+
+function buildApkArgs({ identity = 'branch', kind = 'all' } = {}) {
+  const identityFlags = APK_IDENTITIES[identity]
+  const kindFlags = APK_KINDS[kind]
+  if (!identityFlags || !kindFlags) {
+    throw new Error(`unknown apk selection: ${identity} ${kind}`)
   }
-  return ['--dir', 'apps/mobile', 'variant', '--', ...flags]
+  return [
+    '--dir',
+    'apps/mobile',
+    'variant',
+    '--',
+    '--apk',
+    '--release',
+    ...identityFlags,
+    ...kindFlags
+  ]
 }
 
 function isApkName(name) {

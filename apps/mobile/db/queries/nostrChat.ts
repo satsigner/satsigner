@@ -19,8 +19,9 @@ type ChatMessageRow = {
 }
 
 type ChatConversationRow = {
-  peer_pubkey: string
   last_message_at: number
+  last_message_preview: string
+  peer_pubkey: string
   unread_count: number | null
 }
 
@@ -43,9 +44,11 @@ function listChatConversations(
   identityNpub: string,
   protocol: NostrChatProtocol
 ): NostrChatConversation[] {
-  const db = getDb()
-  const { rows } = db.execute<ChatConversationRow>(
+  // SQLite fills bare columns (content) from the row that produced MAX(),
+  // so one grouped query yields each conversation's latest preview.
+  const { rows } = getDb().execute<ChatConversationRow>(
     `SELECT peer_pubkey,
+            content AS last_message_preview,
             MAX(created_at) AS last_message_at,
             SUM(CASE WHEN read = 0 AND direction = 'in' THEN 1 ELSE 0 END)
               AS unread_count
@@ -56,40 +59,70 @@ function listChatConversations(
     [identityNpub, protocol]
   )
 
-  return rows._array.map((row) => {
-    const { rows: previewRows } = db.execute<{ content: string }>(
-      `SELECT content FROM nostr_chat_messages
-        WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
-        ORDER BY created_at DESC LIMIT 1`,
-      [identityNpub, protocol, row.peer_pubkey]
-    )
-    return {
-      lastMessageAt: row.last_message_at,
-      lastMessagePreview: previewRows.item(0)?.content ?? '',
-      peerPubkey: row.peer_pubkey,
-      unreadCount: row.unread_count ?? 0
-    }
-  })
+  return rows._array.map((row) => ({
+    lastMessageAt: row.last_message_at,
+    lastMessagePreview: row.last_message_preview ?? '',
+    peerPubkey: row.peer_pubkey,
+    unreadCount: row.unread_count ?? 0
+  }))
 }
 
 function listChatThread(
   identityNpub: string,
   protocol: NostrChatProtocol,
   peerPubkey: string,
-  limit = 100,
-  before?: number
+  limit: number
 ): NostrChatMessage[] {
-  const db = getDb()
-  const { rows } = db.execute<ChatMessageRow>(
+  const { rows } = getDb().execute<ChatMessageRow>(
     `SELECT * FROM nostr_chat_messages
       WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
-        ${before ? 'AND created_at < ?' : ''}
       ORDER BY created_at DESC LIMIT ?`,
-    before
-      ? [identityNpub, protocol, peerPubkey, before, limit]
-      : [identityNpub, protocol, peerPubkey, limit]
+    [identityNpub, protocol, peerPubkey, limit]
   )
   return rows._array.map((row) => rowToChatMessage(row)).toReversed()
 }
 
-export { listChatConversations, listChatThread }
+/** Newest relay-confirmed message: the live subscription's catch-up cursor. */
+function getNewestSentChatMessageCreatedAt(
+  identityNpub: string,
+  protocol: NostrChatProtocol
+): number | null {
+  const row = getDb()
+    .execute<{ newest: number | null }>(
+      `SELECT MAX(created_at) AS newest FROM nostr_chat_messages
+        WHERE identity_npub = ? AND protocol = ? AND status = 'sent'`,
+      [identityNpub, protocol]
+    )
+    .rows.item(0)
+  return row?.newest ?? null
+}
+
+function getOldestChatMessageCreatedAt(
+  identityNpub: string,
+  protocol: NostrChatProtocol
+): number | null {
+  const row = getDb()
+    .execute<{ oldest: number | null }>(
+      `SELECT MIN(created_at) AS oldest FROM nostr_chat_messages
+        WHERE identity_npub = ? AND protocol = ?`,
+      [identityNpub, protocol]
+    )
+    .rows.item(0)
+  return row?.oldest ?? null
+}
+
+function hasChatMessage(identityNpub: string, id: string): boolean {
+  const { rows } = getDb().execute<{ id: string }>(
+    'SELECT id FROM nostr_chat_messages WHERE identity_npub = ? AND id = ? LIMIT 1',
+    [identityNpub, id]
+  )
+  return rows.length > 0
+}
+
+export {
+  getNewestSentChatMessageCreatedAt,
+  getOldestChatMessageCreatedAt,
+  hasChatMessage,
+  listChatConversations,
+  listChatThread
+}

@@ -2,6 +2,7 @@ import * as nostrKinds from 'nostr-tools/kinds'
 
 import {
   DAYS_PER_WEEK,
+  MS_PER_SECOND,
   SECONDS_PER_DAY,
   SECONDS_PER_HOUR,
   SECONDS_PER_MINUTE
@@ -23,11 +24,26 @@ export const NOSTR_DEFAULT_RETRY_CONFIG = {
 
 // NETWORK
 export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15_000
-export const NOSTR_DELAY_BETWEEN_PUBLISHES_MS = 400
+
+/** Most relays cap a REQ near this, so counts on very popular notes are a floor. */
+export const NOSTR_ENGAGEMENT_FETCH_LIMIT = 2000
+/** Notes per engagement REQ when batching a feed window. */
+export const NOSTR_ENGAGEMENT_BATCH_SIZE = 50
+/** How long note rows can ask for engagement before one batched REQ goes out. */
+export const NOSTR_ENGAGEMENT_BATCH_DELAY_MS = 50
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
 export const NOSTR_CHAT_THREAD_PAGE_SIZE = 200
+// First open of a chat with nothing stored fetches only this many recent events.
+export const NOSTR_CHAT_INITIAL_HISTORY_LIMIT = 100
+export const NOSTR_CHAT_CATCH_UP_LIMIT = 500
+export const NOSTR_CHAT_HISTORY_PAGE_LIMIT = 100
+// Kind 4 timestamps come from the sender's clock; overlap the cursor a little.
+export const NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC = 10 * SECONDS_PER_MINUTE
+export const NOSTR_HEX_PUBKEY_RE = /^[0-9a-f]{64}$/
+// Relay events are coalesced before UI queries rerun.
+export const NOSTR_UI_FLUSH_INTERVAL_MS = 250
 // NIP-59 gift wraps backdate created_at by up to two days.
 export const NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_EOSE_TIMEOUT_MS = 15_000
@@ -37,15 +53,11 @@ export const NOSTR_PUBLISH_RETRY_DEADLINE_MS = 4000
 export const NOSTR_RELAY_PROBE_COUNT = 3
 export const NOSTR_EVENT_CACHE_MAX_AGE = 3 * SECONDS_PER_DAY
 export const NOSTR_EVENT_CACHE_MAX_ROWS = 5000
-export const NOSTR_FLUSH_QUEUE_DELAY_MS = 50
-export const NOSTR_MAX_PROCESSED_ITEMS = 2000
 export const NOSTR_MAX_PROCESSED_RAW_IDS = 5000
-export const NOSTR_MAX_QUEUE_SIZE = 300
 export const NOSTR_NDK_CONNECT_TIMEOUT_MS = 20_000
 // Default limit for fetchNotes/fetchFollowingTimelineNotes when the caller
 // doesn't specify one.
 export const NOSTR_NOTES_FETCH_DEFAULT_LIMIT = 20
-export const NOSTR_PROCESSING_INTERVAL_MS = 350
 export const NOSTR_PROFILE_CACHE_MAX_AGE_SECS = DAYS_PER_WEEK * SECONDS_PER_DAY
 export const NOSTR_PROFILE_CACHE_TTL_SECS = SECONDS_PER_HOUR
 export const NOSTR_PROTOCOL_SUBSCRIPTION_LIMIT = 5000
@@ -58,6 +70,38 @@ export const NOSTR_SIGNED_EVENT_QR_MAX_CHARS = 2400
 // fetch a single event from an explicit relay list.
 export const NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS = 8000
 export const NOSTR_WS_CONNECT_TIMEOUT_MS = 15_000
+export const NOSTR_RELAY_COOLDOWN_MS = 2 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_FIRST_RELAY_CONNECT_TIMEOUT_MS = 12_000
+// Stays under SQLite's default bound-parameter limit (999) with room for scope.
+export const NOSTR_PROCESSED_EVENTS_QUERY_CHUNK = 500
+
+// VIDEO
+export const NOSTR_VIDEO_MAX_PLAYERS = 3
+export const NOSTR_VIDEO_ACTIVE_SETTLE_MS = 120
+export const NOSTR_VIDEO_FAILURE_COOLDOWN_MS = 30 * MS_PER_SECOND
+export const NOSTR_VIDEO_DEFAULT_ASPECT_RATIO = 16 / 9
+export const NOSTR_VIDEO_VIEWABILITY_THRESHOLD_PERCENT = 50
+// Device sync queue: at most this many relay events per processor flush.
+export const NOSTR_QUEUE_BATCH_SIZE = 100
+export const NOSTR_MAX_FAILED_WRAP_IDS = 2000
+export const NOSTR_PROCESSOR_CHUNK_SIZE = 20
+export const NOSTR_PENDING_DM_ID_PREFIX = 'pending-'
+export const NOSTR_PENDING_MATCH_CREATED_AT_TOLERANCE_SEC = 10
+export const NOSTR_TRUST_SYNC_RESTART_DELAY_MS = 1500
+export const NOSTR_SYNCING_MESSAGE_ROTATE_MS = 2500
+export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
+export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
+export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
+export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
+export const NOSTR_PSBT_DETAILS_CACHE_MAX = 100
+// NIP-44 encrypts at most 65535 bytes; Bitcoin Safe chunks label sync at 60k.
+export const NOSTR_LABELS_MAX_CHUNK_BYTES = 60_000
+export const NOSTR_BACKUP_FINGERPRINT_LENGTH = 8
+// Rumors dated further ahead than this are deferred and never move a cursor.
+export const NOSTR_EVENT_FUTURE_TOLERANCE_SEC = 5 * SECONDS_PER_MINUTE
+// After this many handler failures an event is given up (marked processed).
+export const NOSTR_EVENT_MAX_HANDLER_ATTEMPTS = 3
+export const NOSTR_EVENT_FAILURE_TRACK_MAX = 2000
 
 // UI
 export const NOSTR_EMPTY_STATE_PADDING_VERTICAL = 48
@@ -140,6 +184,7 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Bostr', url: 'wss://bostr.online' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
+  { name: 'Coracle Indexer', url: 'wss://indexer.coracle.social' },
   { name: 'Creatr', url: 'wss://creatr.nostr.wine' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
   { name: 'Data Haus', url: 'wss://nostr.data.haus' },
@@ -151,6 +196,7 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Lume', url: 'wss://relay.lume.nu' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
   { name: 'Mutinywallet', url: 'wss://nostr.mutinywallet.com' },
+  { name: 'Nos', url: 'wss://relay.nos.social' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
   { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
   { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
@@ -191,9 +237,16 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 
 // NIPS
 export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
+export const NOSTR_POW_DEFAULT_DIFFICULTY = 16
+export const NOSTR_POW_HASHES_PER_YIELD = 1024
+export const NOSTR_POW_MAX_DIFFICULTY = 24
+export const NOSTR_POW_MIN_DIFFICULTY = 8
+export const NOSTR_POW_NONCE_TAG = 'nonce'
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+export const NIP46_ACTIVITY_WRITE_INTERVAL_MS =
+  SECONDS_PER_MINUTE * MS_PER_SECOND
 export const NOSTR_NIP46_SUPPORTED_METHODS: Nip46Method[] = [
   'connect',
   'get_public_key',
@@ -350,6 +403,8 @@ export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
 export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15_000
 export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
+export const NOSTR_PUBPAY_HASHTAG = 'pubpay'
+export const NOSTR_HASHTAG_TAG = 't'
 export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-goal',
   'zap-lnurl',
@@ -358,3 +413,40 @@ export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-payer',
   'zap-uses'
 ])
+export const NOSTR_ZAP_CONNECT_TIMEOUT_MS = 10_000
+export const NOSTR_ZAP_COLLECT_TIMEOUT_MS = 15_000
+
+// IDENTITY FEED
+export const NOSTR_FEED_PAGE_SIZE = 20
+export const NOSTR_FEED_WINDOW_MAX_ITEMS = 600
+export const NOSTR_FEED_MAX_EMPTY_PAGES = 3
+export const NOSTR_FEED_FOLLOWING_MAX_AUTHORS = 200
+export const NOSTR_FEED_NEW_NOTES_POLL_MS = 60_000
+export const NOSTR_FEED_STALE_TIME_MS = 2 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_FOLLOWS_STALE_TIME_MS =
+  5 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_PROFILE_QUERY_STALE_TIME_MS =
+  SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_RELAY_REACHABILITY_STALE_TIME_MS =
+  5 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_FEED_END_REACHED_THRESHOLD = 0.5
+export const NOSTR_NOTE_ROW_MAX_IMAGES = 6
+export const NOSTR_NOTE_ROW_MAX_VIDEOS = 4
+export const NOSTR_NOTE_QUOTE_MAX_IMAGES = 2
+export const NOSTR_NOTE_CONTENT_CACHE_MAX_ENTRIES = 500
+
+// VISIBLE WINDOW
+export const NOSTR_VISIBLE_WINDOW_AHEAD = 6
+export const NOSTR_VISIBLE_WINDOW_BEHIND = 2
+
+// PROFILE LOADER
+export const NOSTR_PROFILE_BATCH_BUFFER_MS = 200
+export const NOSTR_PROFILE_BATCH_FLUSH_AT = 100
+export const NOSTR_PROFILE_FETCH_EOSE_TIMEOUT_MS = 5000
+export const NOSTR_PROFILE_BACKOFF_BASE_MS = 30 * MS_PER_SECOND
+export const NOSTR_PROFILE_BACKOFF_MAX_MS =
+  30 * SECONDS_PER_MINUTE * MS_PER_SECOND
+
+// EVENT CACHE
+export const NOSTR_ZAP_CACHE_LOOKUP_LIMIT = 200
+export const NOSTR_DELETION_FETCH_LIMIT = 100

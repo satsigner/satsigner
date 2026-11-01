@@ -32,6 +32,7 @@ function NostrContactRow({ item, onPress }: NostrContactRowProps) {
     <SSNostrAccountCard
       identity={contactToIdentity(item)}
       onPress={handlePress}
+      showRelayCount={false}
     />
   )
 }

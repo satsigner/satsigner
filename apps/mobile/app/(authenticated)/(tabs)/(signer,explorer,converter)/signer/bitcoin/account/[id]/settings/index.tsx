@@ -430,7 +430,7 @@ export default function AccountSettings() {
           <SSButton
             style={styles.button}
             label={t('account.nostrSync.sync')}
-            variant="outline"
+            variant="subtle"
             onPress={() =>
               router.navigate(
                 `/signer/bitcoin/account/${currentAccountId}/settings/nostr`
@@ -443,6 +443,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.labels')}
+              variant="subtle"
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/export/labels`
@@ -452,6 +453,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.import.labels')}
+              variant="subtle"
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/import/labels`
@@ -461,6 +463,20 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
+          {account.keys[0].creationType === 'importWif' &&
+            account.policyType !== 'multisig' && (
+              <SSHStack>
+                <SSButton
+                  style={styles.button}
+                  label={t('account.viewPrivateKey')}
+                  onPress={() =>
+                    router.navigate(
+                      `/signer/bitcoin/account/${currentAccountId}/settings/export/seedWords?keyIndex=0`
+                    )
+                  }
+                />
+              </SSHStack>
+            )}
           {(account.keys[0].creationType === 'generateMnemonic' ||
             account.keys[0].creationType === 'importMnemonic') &&
             account.policyType !== 'multisig' && (
@@ -468,6 +484,7 @@ export default function AccountSettings() {
                 <SSButton
                   style={styles.button}
                   label={t('account.viewMnemonic')}
+                  variant="subtle"
                   onPress={() => handleOnViewMnemonic()}
                 />
               </SSHStack>
@@ -476,6 +493,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.descriptors')}
+              variant="subtle"
               onPress={() =>
                 router.navigate(
                   `/signer/bitcoin/account/${currentAccountId}/settings/export/descriptors`
@@ -485,6 +503,7 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.pubkeys')}
+              variant="subtle"
               disabled={account.keys[0].creationType === 'importAddress'}
               onPress={() =>
                 router.navigate(
@@ -499,7 +518,7 @@ export default function AccountSettings() {
           {account.keys[0].creationType !== 'importAddress' && (
             <SSButton
               label={t('account.rescan.title')}
-              variant="outline"
+              variant="subtle"
               onPress={() => setRescanModalVisible(true)}
             />
           )}

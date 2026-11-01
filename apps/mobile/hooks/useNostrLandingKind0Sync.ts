@@ -1,134 +1,97 @@
-import { useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
-import { NostrAPI } from '@/api/nostr'
-import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
-import { getCachedProfile } from '@/db/nostrCache'
+import { fetchProfilesCoalesced } from '@/api/nostrProfileFetcher'
+import { NOSTR_PROFILE_QUERY_STALE_TIME_MS } from '@/constants/nostr'
+import { nostrKeys } from '@/db/keys'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import {
+  getNostrContactsRelaysKey,
+  getNostrIdentityRelays
+} from '@/utils/nostrContacts'
+import { getIdentityProfileUpdate } from '@/utils/nostrProfile'
+
+type UpdateIdentity = (npub: string, updates: Partial<NostrIdentity>) => void
 
 type UseNostrLandingKind0SyncArgs = {
   identities: NostrIdentity[]
   relays: string[]
-  updateIdentity: (npub: string, updates: Partial<NostrIdentity>) => void
+  updateIdentity: UpdateIdentity
 }
 
-type Kind0RelayGroup = {
-  groupIdentities: NostrIdentity[]
-  groupRelays: string[]
+type IdentityRelayGroup = {
+  npubs: string[]
+  relays: string[]
+  relaysKey: string
 }
 
-async function fetchMissingProfiles(
-  relayGroups: Map<string, Kind0RelayGroup>,
-  fetchedNpubs: Set<string>,
-  updateIdentity: UseNostrLandingKind0SyncArgs['updateIdentity']
-) {
-  for (const { groupIdentities, groupRelays } of relayGroups.values()) {
-    const hexPubkeys = groupIdentities
-      .map((i) => getPubKeyHexFromNpub(i.npub))
-      .filter((pk): pk is string => !!pk)
-
-    const api = new NostrAPI(groupRelays)
-    try {
-      const profiles = await api.fetchKind0Batch(hexPubkeys)
-      for (const identity of groupIdentities) {
-        const pk = getPubKeyHexFromNpub(identity.npub)
-        const profile = pk ? profiles.get(pk) : undefined
-        if (profile) {
-          updateIdentity(identity.npub, {
-            banner: profile.banner || identity.banner,
-            displayName: profile.displayName || identity.displayName,
-            lud16: profile.lud16 || identity.lud16,
-            nip05: profile.nip05 || identity.nip05,
-            picture: profile.picture || identity.picture
-          })
-        } else {
-          fetchedNpubs.delete(identity.npub)
-        }
-      }
-    } catch {
-      for (const identity of groupIdentities) {
-        fetchedNpubs.delete(identity.npub)
-      }
-    } finally {
-      api.disconnect()
+/** Connected identities grouped by relay set: one batched load per set. */
+function groupConnectedIdentities(
+  identities: NostrIdentity[],
+  storeRelays: string[]
+): IdentityRelayGroup[] {
+  const groups = new Map<string, IdentityRelayGroup>()
+  for (const identity of identities) {
+    if (identity.relayConnected !== true) {
+      continue
     }
+    const relays = getNostrIdentityRelays(identity.relays, storeRelays)
+    const relaysKey = getNostrContactsRelaysKey(relays)
+    const group = groups.get(relaysKey) ?? { npubs: [], relays, relaysKey }
+    group.npubs.push(identity.npub)
+    groups.set(relaysKey, group)
   }
+  return [...groups.values()]
 }
 
+async function syncIdentityProfiles(
+  groups: IdentityRelayGroup[],
+  updateIdentity: UpdateIdentity
+): Promise<number> {
+  const results = await Promise.all(
+    groups.map(async ({ npubs, relays }) => {
+      const hexByNpub = new Map(
+        npubs.flatMap((npub): [string, string][] => {
+          const hex = getPubKeyHexFromNpub(npub)
+          return hex ? [[npub, hex]] : []
+        })
+      )
+      const profiles = await fetchProfilesCoalesced(
+        [...hexByNpub.values()],
+        relays
+      )
+      return [...hexByNpub].flatMap(([npub, hex]) => {
+        const profile = profiles.get(hex)
+        return profile ? [{ npub, profile }] : []
+      })
+    })
+  )
+  const updates = results.flat()
+  for (const { npub, profile } of updates) {
+    updateIdentity(npub, getIdentityProfileUpdate(profile))
+  }
+  return updates.length
+}
+
+/**
+ * Keeps connected identities' names and pictures in sync with their kind 0.
+ * Keyed by the identity/relay sets, so updating an identity never refetches.
+ */
 export function useNostrLandingKind0Sync({
   identities,
   relays,
   updateIdentity
 }: UseNostrLandingKind0SyncArgs) {
-  const fetchedRef = useRef(new Set<string>())
+  const groups = groupConnectedIdentities(identities, relays)
+  const groupsKey = groups
+    .map((group) => `${group.relaysKey}=${group.npubs.toSorted().join(',')}`)
+    .toSorted()
+    .join('|')
 
-  function clearKind0FetchCache() {
-    fetchedRef.current.clear()
-  }
-
-  useEffect(() => {
-    if (identities.length === 0) {
-      return
-    }
-
-    const toFetch = identities.filter(
-      (i) => i.relayConnected === true && !fetchedRef.current.has(i.npub)
-    )
-    if (toFetch.length === 0) {
-      return
-    }
-
-    for (const i of toFetch) {
-      fetchedRef.current.add(i.npub)
-    }
-
-    const now = Math.floor(Date.now() / MS_PER_SECOND)
-
-    // Apply cache hits immediately; collect misses for a batch relay fetch
-    const missIdentities: NostrIdentity[] = []
-    for (const identity of toFetch) {
-      const hexPk = getPubKeyHexFromNpub(identity.npub)
-      if (hexPk) {
-        const cached = getCachedProfile(hexPk)
-        if (cached && now - cached.cached_at < NOSTR_PROFILE_CACHE_TTL_SECS) {
-          updateIdentity(identity.npub, {
-            banner: cached.banner || identity.banner,
-            displayName: cached.displayName || identity.displayName,
-            lud16: cached.lud16 || identity.lud16,
-            nip05: cached.nip05 || identity.nip05,
-            picture: cached.picture || identity.picture
-          })
-          continue
-        }
-      }
-      const effectiveRelays = getNostrIdentityRelays(identity.relays, relays)
-      if (effectiveRelays.length > 0) {
-        missIdentities.push(identity)
-      }
-    }
-
-    if (missIdentities.length === 0) {
-      return
-    }
-
-    // Group misses by relay set — one batch request per group instead of
-    // one NostrAPI instance per identity
-    const relayGroups = new Map<string, Kind0RelayGroup>()
-    for (const identity of missIdentities) {
-      const groupRelays = getNostrIdentityRelays(identity.relays, relays)
-      const key = JSON.stringify([...groupRelays].toSorted())
-      const existing = relayGroups.get(key)
-      if (existing) {
-        existing.groupIdentities.push(identity)
-      } else {
-        relayGroups.set(key, { groupIdentities: [identity], groupRelays })
-      }
-    }
-
-    void fetchMissingProfiles(relayGroups, fetchedRef.current, updateIdentity)
-  }, [identities, relays, updateIdentity])
-
-  return { clearKind0FetchCache }
+  useQuery({
+    enabled: groups.length > 0,
+    queryFn: () => syncIdentityProfiles(groups, updateIdentity),
+    queryKey: nostrKeys.identityProfiles(groupsKey),
+    staleTime: NOSTR_PROFILE_QUERY_STALE_TIME_MS
+  })
 }

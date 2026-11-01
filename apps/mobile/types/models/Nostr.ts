@@ -238,7 +238,9 @@ export const NostrMessageSchema = z.object({
   decryptedContent: z.string().optional(),
   id: z.string(),
   isSender: z.boolean().optional(),
-  pubkey: z.string().optional()
+  pubkey: z.string().optional(),
+  /** Id of the NIP-59 gift wrap that carried this rumor. */
+  wrapId: z.string().optional()
 })
 
 export const NostrRelayReachabilitySchema = z.enum([
@@ -288,6 +290,7 @@ export const NostrVideoProviderSchema = z.enum([
 ])
 
 export const NostrVideoEmbedSchema = z.object({
+  aspectRatio: z.number().positive().optional(),
   provider: NostrVideoProviderSchema,
   thumbnailUrl: z.string().optional(),
   watchUrl: z.string()
@@ -325,6 +328,7 @@ export type NostrFetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrZapPreferences = z.infer<typeof NostrZapPreferencesSchema>
 export type NostrContactItem = z.infer<typeof NostrContactItemSchema>
 export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
 export type NostrMessage = z.infer<typeof NostrMessageSchema>
@@ -397,6 +401,33 @@ export type NostrFeedNoteLike = {
   kind: number
   tags: string[][]
   created_at: number
+}
+
+export type NostrEngagementEvent = {
+  content: string
+  created_at: number
+  id: string
+  kind: number
+  pubkey: string
+  targetId: string
+}
+
+export type NostrEngagementDeletion = {
+  pubkey: string
+  tags: string[][]
+}
+
+export type NostrEngagementSigner = {
+  isWatchOnly: boolean
+  nsec?: string
+  ownPubkey: string
+}
+
+export type NostrNoteEngagement = {
+  likeCount: number
+  ownLikeIds: string[]
+  ownRepostIds: string[]
+  repostCount: number
 }
 
 export type NostrPollOption = {
@@ -507,4 +538,74 @@ export type NostrChatConversation = {
   lastMessagePreview: string
   peerPubkey: string
   unreadCount: number
+}
+
+export type NostrChatConversationItem = NostrChatConversation & {
+  peerNpub: string
+}
+
+export type NostrChatPipelineStatus = {
+  errorCode?: NostrErrorCode
+  state: 'connecting' | 'error' | 'idle' | 'live'
+}
+
+export type NostrSubscriptionWindow = {
+  closeOnEose?: boolean
+  limit?: number
+  onEose?: () => void
+  since?: number
+  until?: number
+}
+
+export type NostrKind4ChatEvent = {
+  content: string
+  createdAt: number
+  direction: 'in' | 'out'
+  id: string
+  peerPubkey: string
+}
+
+export type NostrChatEventRef = {
+  createdAt: number
+  id: string
+}
+
+export type NostrChatGiftWrap = NostrChatEventRef & {
+  rumor: NostrUnwrappedKind1059Event | null
+}
+
+export type NostrChatThreadItem = {
+  dm: NostrDM
+  failed: boolean
+}
+
+export type NostrErrorCode =
+  | 'noRelays'
+  | 'partialSend'
+  | 'publishFailed'
+  | 'timeout'
+  | 'unknown'
+
+/** Where fetched data came from: live relays, the local cache, or an expired cache entry. */
+export type NostrDataSource = 'cache' | 'relay' | 'stale'
+
+export type NostrFetchResult<T> = {
+  data: T
+  error?: NostrErrorCode
+  source: NostrDataSource
+}
+
+export type NostrFollowList = {
+  connectedRelayCount: number
+  kind3Found: boolean
+  pubkeys: string[]
+  relaysQueried: string[]
+}
+
+export type NostrNotesQuery = {
+  kinds?: number[]
+  limit?: number
+  /** Only notes newer than this (exclusive of the cached head). */
+  since?: number
+  until?: number
 }

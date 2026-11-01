@@ -53,6 +53,7 @@ import {
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import { saveFile } from '@/utils/filesystem'
+import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
@@ -109,8 +110,7 @@ export default function Developer() {
           name: key.name,
           scriptVersion: key.scriptVersion
         }
-        let seedWords: string | undefined
-        let passphrase: string | undefined
+        let secretFields: BackupKeySecret = {}
         if (pin) {
           try {
             const secret = await decryptAccountKeySecretUsingPin(
@@ -118,17 +118,12 @@ export default function Developer() {
               key.index,
               pin
             )
-            seedWords = secret.mnemonic
-            passphrase = secret.passphrase
+            secretFields = backupKeySecretFields(secret)
           } catch {
-            // leave seedWords/passphrase undefined
+            // leave the key without secret fields
           }
         }
-        result.push({
-          ...base,
-          ...(passphrase !== undefined && { passphrase }),
-          ...(seedWords !== undefined && { seedWords })
-        })
+        result.push({ ...base, ...secretFields })
       }
       return result
     }
@@ -189,11 +184,7 @@ export default function Developer() {
       },
       lnd: lightningState.config,
       nostr: {
-        lastDataExchangeEOSE: nostrState.lastDataExchangeEOSE,
-        lastProtocolEOSE: nostrState.lastProtocolEOSE,
         members: nostrState.members,
-        processedEvents: nostrState.processedEvents,
-        processedMessageIds: nostrState.processedMessageIds,
         profiles: nostrState.profiles,
         trustedDevices: nostrState.trustedDevices
       },
@@ -337,8 +328,8 @@ export default function Developer() {
     }
   }
 
-  function handleDeleteAccounts() {
-    resetNostrSync()
+  async function handleDeleteAccounts() {
+    await resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
     deleteAccounts()
     deleteWallets()
@@ -355,7 +346,7 @@ export default function Developer() {
         deleteItem(SALT_KEY),
         deleteItem(DURESS_PIN_KEY)
       ])
-      resetNostrSync()
+      await resetNostrSync()
       deleteAccounts()
       deleteWallets()
       useAuthStore.setState({
