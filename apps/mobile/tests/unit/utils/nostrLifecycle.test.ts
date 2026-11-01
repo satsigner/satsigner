@@ -76,6 +76,7 @@ describe('nostrLifecycle', () => {
     jest
       .mocked(nostrSyncService.getActiveAccountIds)
       .mockReturnValue(['account-1'])
+    jest.mocked(nostrSyncService.hasActiveSubscription).mockReturnValue(false)
   })
 
   afterEach(() => {
@@ -85,6 +86,8 @@ describe('nostrLifecycle', () => {
   // NDK re-opens a dropped socket without re-sending running REQs, so a live
   // looking sync is re-subscribed too.
   it('re-subscribes every live account sync on resume from its cursor', async () => {
+    jest.mocked(nostrSyncService.hasActiveSubscription).mockReturnValue(true)
+
     await resumeNostr()
 
     expect(reconnectNdkForRelays).toHaveBeenCalledWith(['wss://relay.test'])

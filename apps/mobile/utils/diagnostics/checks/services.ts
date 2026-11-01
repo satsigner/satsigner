@@ -159,6 +159,9 @@ const lightningCheck: DiagnosticCheck = {
       return { lines: [`getinfo HTTP ${response.status}`], status: 'fail' }
     }
     const info = parseLndNodeInfo(await response.json())
+    if (!info) {
+      return { lines: ['getinfo response is invalid'], status: 'fail' }
+    }
     const lines = [
       `getinfo ok in ${latencyMs}ms`,
       `synced to chain ${String(info?.synced_to_chain ?? 'unknown')}`,
@@ -238,7 +241,9 @@ const pricesCheck: DiagnosticCheck = {
       timedProbe(`mempool prices ${mempoolUrl}`, () =>
         new MempoolOracle(mempoolUrl).getPrices()
       ),
-      timedProbe(`fiat api ${fiatUrl}`, () => fetchReachable(fiatUrl))
+      timedProbe(`fiat api ${fiatUrl}`, () =>
+        new MempoolOracle(fiatUrl).getPrices()
+      )
     ])
     return summarizeProbes(probes)
   }

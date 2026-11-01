@@ -11,7 +11,10 @@ import { t } from '@/locales'
 import { isVideoCoolingDown, useNostrVideoStore } from '@/store/nostrVideo'
 import { Colors } from '@/styles'
 import type { NostrVideoEmbed } from '@/types/models/Nostr'
-import { registerVideoPlayer } from '@/utils/nostrVideoPlayers'
+import {
+  registerVideoPlayer,
+  unmuteVideoPlayer
+} from '@/utils/nostrVideoPlayers'
 
 type SSNostrVideoProps = {
   embed: NostrVideoEmbed
@@ -38,13 +41,6 @@ function SSNostrVideoPoster({ embed, failed }: SSNostrVideoPosterProps) {
       onPress={handleLoad}
     >
       <View style={styles.frame}>
-        {embed.thumbnailUrl ? (
-          <Image
-            contentFit="cover"
-            source={{ uri: embed.thumbnailUrl }}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
         <View style={styles.overlay}>
           <SSText size="sm" weight="medium" style={styles.overlayText}>
             {failed
@@ -74,7 +70,7 @@ function SSNostrVideoPlayer({ embed }: SSNostrVideoProps) {
   })
 
   function handleEnableControls() {
-    player.muted = false
+    unmuteVideoPlayer(player)
     setControlsEnabled(true)
   }
 

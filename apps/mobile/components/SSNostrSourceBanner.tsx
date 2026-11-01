@@ -29,7 +29,7 @@ function SSNostrSourceBanner({
 
   return (
     <View style={styles.container}>
-      {sourceLabel && !error ? (
+      {sourceLabel ? (
         <SSText center style={styles.text}>
           {sourceLabel}
         </SSText>

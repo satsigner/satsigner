@@ -29,7 +29,7 @@ function probe(url) {
     }
   })
 }
-Promise.all(urls.map(probe)).then((results) => {
+Promise.all(urls.map((url) => probe(url).catch(() => null))).then((results) => {
   process.stdout.write(JSON.stringify(results.filter(Boolean)))
   process.exit(0)
 })

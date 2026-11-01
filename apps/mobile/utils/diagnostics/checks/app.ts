@@ -37,7 +37,7 @@ const connectivityCheck: DiagnosticCheck = {
     if (state.isConnected === false) {
       return { lines, status: 'fail' }
     }
-    if (state.isInternetReachable === false) {
+    if (state.isInternetReachable !== true) {
       return { lines, status: 'warn' }
     }
     return { lines, status: 'ok' }

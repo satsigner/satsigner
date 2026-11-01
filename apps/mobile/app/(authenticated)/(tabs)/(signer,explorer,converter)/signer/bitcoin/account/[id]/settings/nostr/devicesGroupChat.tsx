@@ -190,6 +190,7 @@ export default function DevicesGroupChat() {
     new Map()
   )
   const [failedSends, setFailedSends] = useState<Record<string, string[]>>({})
+  const retryingIds = useRef(new Set<string>())
   const [isShareModalVisible, setIsShareModalVisible] = useState(false)
   const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
@@ -268,15 +269,16 @@ export default function DevicesGroupChat() {
     setIsLoading(true)
     try {
       recordSendOutcome(await sendDeviceChatMessage(accountId, trimmed))
-      listRef.current?.scrollToEnd({ animated: true })
     } catch (error) {
       toast.error(t('common.error.failedToSendMessage'), {
         description: getNostrErrorMessage(error)
       })
       setMessageInput(trimmed)
-    } finally {
       setIsLoading(false)
+      return
     }
+    listRef.current?.scrollToEnd({ animated: true })
+    setIsLoading(false)
   }
 
   async function handleRetry(messageId: string) {
@@ -285,6 +287,10 @@ export default function DevicesGroupChat() {
     if (!accountId || !message || !failedDevices) {
       return
     }
+    if (retryingIds.current.has(messageId)) {
+      return
+    }
+    retryingIds.current.add(messageId)
     try {
       recordSendOutcome(
         await retryDeviceChatMessage(accountId, message, failedDevices)
@@ -294,6 +300,7 @@ export default function DevicesGroupChat() {
         description: getNostrErrorMessage(error)
       })
     }
+    retryingIds.current.delete(messageId)
   }
 
   async function handleGoToSignFlowClick(messageContent: string) {
@@ -346,12 +353,11 @@ export default function DevicesGroupChat() {
       toast.error(t('account.nostrSync.failedToSendTransactionData'), {
         description: getNostrErrorMessage(error)
       })
-    } finally {
-      setIsShareModalVisible(false)
-      setTransactionToShareLocal('')
-      setTransactionDataForModal(null)
-      setIsLoading(false)
     }
+    setIsShareModalVisible(false)
+    setTransactionToShareLocal('')
+    setTransactionDataForModal(null)
+    setIsLoading(false)
   }
 
   function handleCancelShare() {

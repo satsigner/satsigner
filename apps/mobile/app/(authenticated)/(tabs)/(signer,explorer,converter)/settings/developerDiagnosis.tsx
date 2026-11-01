@@ -261,9 +261,14 @@ export default function DeveloperDiagnosis() {
               {diagnostics.isRunning ? (
                 <SSText color="muted" size="sm" center>
                   {t('settings.developer.diagnosis.progress', {
-                    done: finishedCount,
-                    total: FULL_RUN_CHECKS.length
+                    done: diagnostics.runProgress.done,
+                    total: diagnostics.runProgress.total
                   })}
+                </SSText>
+              ) : null}
+              {diagnostics.runError ? (
+                <SSText color="muted" size="sm" center>
+                  {diagnostics.runError}
                 </SSText>
               ) : null}
               {finishedCount > 0 ? (

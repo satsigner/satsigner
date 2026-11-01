@@ -98,9 +98,11 @@ export default function NostrAccountLanding() {
         if (profile) {
           updateIdentity(npub, getIdentityProfileUpdate(profile))
         }
-        return profile
-      } finally {
         api.disconnect()
+        return profile
+      } catch (error) {
+        api.disconnect()
+        throw error
       }
     },
     queryKey: ['nostr', 'profile', npub],
