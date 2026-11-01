@@ -8,12 +8,17 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
+import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import {
   NOSTR_NIP01_MAX_NOTE_LENGTH,
+  NOSTR_POW_DEFAULT_DIFFICULTY,
+  NOSTR_POW_MAX_DIFFICULTY,
+  NOSTR_POW_MIN_DIFFICULTY,
   NOSTR_PRIVACY_MASK,
   NOSTR_SIGNED_EVENT_QR_MAX_CHARS
 } from '@/constants/nostr'
@@ -34,8 +39,15 @@ import {
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   buildEnhancedZapTags,
-  extractEnhancedZapTags
+  contentWithPubpayHashtag,
+  extractEnhancedZapTags,
+  withPubpayHashtag
 } from '@/utils/nostrIdentity'
+import {
+  applyNostrProofOfWork,
+  expectedPowHashes,
+  stripNonceTags
+} from '@/utils/nostrPow'
 
 type ComposeParams = {
   npub: string
@@ -66,6 +78,12 @@ export default function NostrComposePage() {
   const [customLnurl, setCustomLnurl] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showJson, setShowJson] = useState(false)
+  const [powEnabled, setPowEnabled] = useState(false)
+  const [powHelpOpen, setPowHelpOpen] = useState(false)
+  const [powDifficulty, setPowDifficulty] = useState(
+    NOSTR_POW_DEFAULT_DIFFICULTY
+  )
+  const [mining, setMining] = useState(false)
   const [signingExport, setSigningExport] = useState(false)
   const [signedQrPayload, setSignedQrPayload] = useState<string | null>(null)
   const [baseTags, setBaseTags] = useState<string[][]>([])
@@ -115,6 +133,7 @@ export default function NostrComposePage() {
     content.trim().length > 0 &&
     charCount <= NOSTR_NIP01_MAX_NOTE_LENGTH &&
     !publishing &&
+    !mining &&
     !!identity?.nsec
 
   const canExportSigned = canPublish && !signingExport
@@ -140,7 +159,7 @@ export default function NostrComposePage() {
             zapUses: maxUses ? Number.parseInt(maxUses, 10) : undefined
           })
 
-    return [...baseTags, ...zapTags]
+    return withPubpayHashtag([...baseTags, ...zapTags], amountMode !== 'none')
   }
 
   function applyKind1Draft(draft: NostrKind1DraftImport): boolean {
@@ -150,7 +169,7 @@ export default function NostrComposePage() {
     }
 
     setContent(draft.content)
-    setBaseTags(stripZapTags(draft.tags))
+    setBaseTags(stripNonceTags(stripZapTags(draft.tags)))
 
     const ez = extractEnhancedZapTags(draft.tags)
     if (ez.zapMin !== undefined && ez.zapMax !== undefined) {
@@ -227,15 +246,42 @@ export default function NostrComposePage() {
     toast.success(t('nostrIdentity.compose.importSuccess'))
   }
 
+  const paymentRequestSelected = amountMode !== 'none'
+  const noteContent = contentWithPubpayHashtag(content, paymentRequestSelected)
+
   const draftEventJson = JSON.stringify(
     {
-      content: content.trim(),
+      content: noteContent,
       kind: nostrKinds.ShortTextNote,
       tags: buildTags()
     },
     null,
     2
   )
+
+  async function prepareNoteForSigning(
+    nsec: string
+  ): Promise<{ content: string; createdAt?: number; tags: string[][] }> {
+    if (!powEnabled) {
+      return { content: noteContent, tags: buildTags() }
+    }
+
+    setMining(true)
+    return await applyNostrProofOfWork({
+      content: noteContent,
+      difficulty: powDifficulty,
+      nsec,
+      tags: buildTags()
+    }).finally(() => setMining(false))
+  }
+
+  function handlePowToggle(selected: boolean) {
+    setPowEnabled(!selected)
+  }
+
+  function togglePowHelp() {
+    setPowHelpOpen((open) => !open)
+  }
 
   async function handleCopySigned() {
     if (!canExportSigned || !identity?.nsec) {
@@ -250,10 +296,12 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        content.trim(),
-        buildTags()
+        prepared.content,
+        prepared.tags,
+        prepared.createdAt
       )
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
@@ -278,10 +326,12 @@ export default function NostrComposePage() {
 
     setSigningExport(true)
     try {
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const signed = await NostrAPI.signKind1Note(
         identity.nsec,
-        content.trim(),
-        buildTags()
+        prepared.content,
+        prepared.tags,
+        prepared.createdAt
       )
       const compact = JSON.stringify(signed)
       if (compact.length > NOSTR_SIGNED_EVENT_QR_MAX_CHARS) {
@@ -310,12 +360,13 @@ export default function NostrComposePage() {
 
     setPublishing(true)
     try {
-      const tags = buildTags()
+      const prepared = await prepareNoteForSigning(identity.nsec)
       const api = new NostrAPI(effectiveRelays)
       const published = await api.publishNote(
         identity.nsec,
-        content.trim(),
-        tags
+        prepared.content,
+        prepared.tags,
+        prepared.createdAt
       )
       cacheEvents([published], [published.pubkey])
 
@@ -442,6 +493,12 @@ export default function NostrComposePage() {
               ))}
             </SSHStack>
 
+            {paymentRequestSelected ? (
+              <SSText size="xxs" color="muted">
+                {t('nostrIdentity.compose.pubpayHashtag')}
+              </SSText>
+            ) : null}
+
             {amountMode === 'fixed' && (
               <TextInput
                 style={styles.amountInput}
@@ -551,6 +608,46 @@ export default function NostrComposePage() {
             )}
           </SSVStack>
 
+          <SSVStack gap="sm" style={styles.zapTagsSection}>
+            <SSHStack gap="sm" justifyBetween>
+              <SSCheckbox
+                label={t('nostrIdentity.compose.pow')}
+                selected={powEnabled}
+                labelProps={{ size: 'xs' }}
+                onPress={handlePowToggle}
+              />
+              <SSPressable onPress={togglePowHelp} activeOpacity={0.6}>
+                <SSText size="xs" color="muted">
+                  {powHelpOpen
+                    ? t('nostrIdentity.compose.powCollapse')
+                    : t('nostrIdentity.compose.powExpand')}
+                </SSText>
+              </SSPressable>
+            </SSHStack>
+            {powEnabled ? (
+              <SSSlider
+                min={NOSTR_POW_MIN_DIFFICULTY}
+                max={NOSTR_POW_MAX_DIFFICULTY}
+                value={powDifficulty}
+                suffix={t('nostrIdentity.compose.powBits')}
+                onValueChange={setPowDifficulty}
+              />
+            ) : null}
+            {powHelpOpen ? (
+              <SSVStack gap="none">
+                <SSText size="xxs" weight="medium">
+                  {t('nostrIdentity.compose.powLevelTitle', {
+                    bits: powDifficulty,
+                    hashes: expectedPowHashes(powDifficulty)
+                  })}
+                </SSText>
+                <SSText size="xxs" color="muted">
+                  {t(`nostrIdentity.compose.powLevel${powDifficulty}`)}
+                </SSText>
+              </SSVStack>
+            ) : null}
+          </SSVStack>
+
           <SSVStack gap="sm">
             <SSButton
               label={
@@ -575,9 +672,11 @@ export default function NostrComposePage() {
 
           <SSButton
             label={
-              publishing
-                ? t('nostrIdentity.compose.publishing')
-                : t('nostrIdentity.compose.publish')
+              mining
+                ? t('nostrIdentity.compose.mining')
+                : publishing
+                  ? t('nostrIdentity.compose.publishing')
+                  : t('nostrIdentity.compose.publish')
             }
             variant="gradient"
             gradientType="special"

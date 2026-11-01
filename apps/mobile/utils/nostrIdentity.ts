@@ -3,11 +3,17 @@ import { getPublicKey, nip19 } from 'nostr-tools'
 
 import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
-import { NOSTR_NIP06_DERIVATION_PATH } from '@/constants/nostr'
+import {
+  NOSTR_HASHTAG_TAG,
+  NOSTR_NIP06_DERIVATION_PATH,
+  NOSTR_PUBPAY_HASHTAG
+} from '@/constants/nostr'
+import { t } from '@/locales'
 import type {
   NostrDecodedContent,
   NostrDerivedKeys,
-  NostrEnhancedZapTags
+  NostrEnhancedZapTags,
+  NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
 import { generateMnemonic, mnemonicToSeed } from '@/utils/bip39'
 import { deriveNpubFromNsec } from '@/utils/nostr'
@@ -190,6 +196,37 @@ export function extractEnhancedZapTags(tags: string[][]): NostrEnhancedZapTags {
   return result
 }
 
+const PUBPAY_HASHTAG_PATTERN = /(?:^|\s)#pubpay\b/i
+
+export function contentWithPubpayHashtag(
+  content: string,
+  paymentRequestSelected: boolean
+): string {
+  const trimmed = content.trim()
+  if (!paymentRequestSelected || PUBPAY_HASHTAG_PATTERN.test(trimmed)) {
+    return trimmed
+  }
+  return trimmed.length > 0 ? `${trimmed}\n#pubpay` : '#pubpay'
+}
+
+export function withPubpayHashtag(
+  tags: string[][],
+  paymentRequestSelected: boolean
+): string[][] {
+  if (!paymentRequestSelected) {
+    return tags
+  }
+  const alreadyTagged = tags.some(
+    (tag) =>
+      tag[0] === NOSTR_HASHTAG_TAG &&
+      tag[1]?.toLowerCase() === NOSTR_PUBPAY_HASHTAG
+  )
+  if (alreadyTagged) {
+    return tags
+  }
+  return [...tags, [NOSTR_HASHTAG_TAG, NOSTR_PUBPAY_HASHTAG]]
+}
+
 export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
   const tags: string[][] = []
   if (config.zapMin !== undefined && config.zapMin > 0) {
@@ -215,4 +252,120 @@ export function buildEnhancedZapTags(config: NostrEnhancedZapTags): string[][] {
 
 export function npubFromNsec(nsec: string): string | null {
   return deriveNpubFromNsec(nsec)
+}
+
+export function hasNostrRelaysSelected(
+  identityRelays: string[] | undefined,
+  storeRelays: string[]
+): boolean {
+  return (identityRelays?.length ?? 0) > 0 || storeRelays.length > 0
+}
+
+/** Relays the connection probe actually reached. */
+export function connectedRelayUrls(
+  info: NostrRelayConnectionInfo | undefined
+): string[] {
+  if (info?.status !== 'connected') {
+    return []
+  }
+  return (
+    info.relayDetails
+      ?.filter((relay) => relay.connected)
+      .map((relay) => relay.url) ?? []
+  )
+}
+
+/**
+ * Count shown on the account card. A live connection counts the relays that
+ * answered; otherwise the configured list (including indexer fallback).
+ */
+export function nostrAccountRelayCount(
+  configuredRelays: string[],
+  info: NostrRelayConnectionInfo | undefined
+): number {
+  const connected = connectedRelayUrls(info)
+  return connected.length > 0 ? connected.length : configuredRelays.length
+}
+
+function normalizeRelayUrl(url: string): string {
+  return url.trim().replace(/\/$/, '').toLowerCase()
+}
+
+export type RelayStatusNote = {
+  label: string
+  tone: 'bad' | 'ok' | 'pending'
+}
+
+/** Connected, the failure, or a pending check for one relay in a probe result. */
+export function relayStatusNote(
+  url: string,
+  info: NostrRelayConnectionInfo | undefined,
+  pending: boolean
+): RelayStatusNote | null {
+  const detail = info?.relayDetails?.find(
+    (relay) => normalizeRelayUrl(relay.url) === normalizeRelayUrl(url)
+  )
+  if (!detail) {
+    return pending
+      ? { label: t('nostrIdentity.account.relayChecking'), tone: 'pending' }
+      : null
+  }
+  if (detail.connected) {
+    return { label: t('nostrIdentity.relays.statusConnected'), tone: 'ok' }
+  }
+  const label =
+    !detail.error || detail.error === 'timeout'
+      ? t('nostrIdentity.relays.statusTimeout')
+      : detail.error
+  return { label, tone: 'bad' }
+}
+
+/** "1 of 8 connected" when the saved list is larger than the live connection. */
+export function nostrConnectedSummary(
+  info: NostrRelayConnectionInfo | undefined,
+  configuredCount: number
+): string {
+  const connectedCount = connectedRelayUrls(info).length
+  if (connectedCount === 0 || configuredCount <= connectedCount) {
+    return t('nostrIdentity.account.relayConnected')
+  }
+  return t('nostrIdentity.account.relayConnectedOf', {
+    connected: connectedCount,
+    total: configuredCount
+  })
+}
+
+/** Profile line: count only, no relay hosts. */
+export function nostrConnectedDetail(
+  info: NostrRelayConnectionInfo | undefined,
+  configuredCount: number
+): string {
+  const connectedCount = connectedRelayUrls(info).length
+  const total = configuredCount > 0 ? configuredCount : connectedCount
+  if (connectedCount === 0 || total === 0) {
+    return t('nostrIdentity.account.relayConnected')
+  }
+  return t('nostrIdentity.account.relayConnectedCount', {
+    connected: connectedCount,
+    total
+  })
+}
+
+/**
+ * Checklist state for the identity relay editor. An explicit list wins.
+ * With none saved, only the relays that are connected are checked — the
+ * rest of the catalog stays available to add.
+ */
+export function relayEditorSelection(
+  explicitRelays: string[],
+  connectedRelays: string[],
+  override: string[] | null
+): string[] {
+  if (override) {
+    return override
+  }
+  if (explicitRelays.length > 0) {
+    return explicitRelays
+  }
+  return connectedRelays
 }

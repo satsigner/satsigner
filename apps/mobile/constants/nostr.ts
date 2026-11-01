@@ -24,6 +24,13 @@ export const NOSTR_DEFAULT_RETRY_CONFIG = {
 
 // NETWORK
 export const NOSTR_DEFAULT_FETCH_TIMEOUT_MS = 15_000
+
+/** Most relays cap a REQ near this, so counts on very popular notes are a floor. */
+export const NOSTR_ENGAGEMENT_FETCH_LIMIT = 2000
+/** Notes per engagement REQ when batching a feed window. */
+export const NOSTR_ENGAGEMENT_BATCH_SIZE = 50
+/** How long note rows can ask for engagement before one batched REQ goes out. */
+export const NOSTR_ENGAGEMENT_BATCH_DELAY_MS = 50
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
@@ -177,6 +184,7 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Bostr', url: 'wss://bostr.online' },
   { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
   { name: 'Coracle', url: 'wss://bucket.coracle.social' },
+  { name: 'Coracle Indexer', url: 'wss://indexer.coracle.social' },
   { name: 'Creatr', url: 'wss://creatr.nostr.wine' },
   { name: 'Damus', url: 'wss://relay.damus.io' },
   { name: 'Data Haus', url: 'wss://nostr.data.haus' },
@@ -188,6 +196,7 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Lume', url: 'wss://relay.lume.nu' },
   { name: 'Mostro', url: 'wss://relay.mostro.network' },
   { name: 'Mutinywallet', url: 'wss://nostr.mutinywallet.com' },
+  { name: 'Nos', url: 'wss://relay.nos.social' },
   { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
   { name: 'Nostr Band', url: 'wss://relay.nostr.band' },
   { name: 'Nostr BG', url: 'wss://relay.nostr.bg' },
@@ -228,6 +237,11 @@ export const NOSTR_RELAYS: NostrRelay[] = [
 
 // NIPS
 export const NOSTR_NIP01_MAX_NOTE_LENGTH = 5000
+export const NOSTR_POW_DEFAULT_DIFFICULTY = 16
+export const NOSTR_POW_HASHES_PER_YIELD = 1024
+export const NOSTR_POW_MAX_DIFFICULTY = 24
+export const NOSTR_POW_MIN_DIFFICULTY = 8
+export const NOSTR_POW_NONCE_TAG = 'nonce'
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
@@ -389,6 +403,8 @@ export const NOSTR_ZAP_DEFAULT_PRESETS = [21, 100, 500, 1000]
 export const NOSTR_ZAP_DEFAULT_ONE_TAP_AMOUNT = 21
 export const NOSTR_ZAP_INVOICE_TIMEOUT_MS = 15_000
 export const NOSTR_ZAP_RECEIPT_FETCH_LIMIT = 50
+export const NOSTR_PUBPAY_HASHTAG = 'pubpay'
+export const NOSTR_HASHTAG_TAG = 't'
 export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-goal',
   'zap-lnurl',

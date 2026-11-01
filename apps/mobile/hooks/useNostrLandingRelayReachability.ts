@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { reconnectNdkForRelays, testNostrRelaysReachable } from '@/api/nostr'
+import { probeIdentityRelays, reconnectNdkForRelays } from '@/api/nostr'
 import { NOSTR_RELAY_REACHABILITY_STALE_TIME_MS } from '@/constants/nostr'
-import { nostrKeys } from '@/db/keys'
 import {
   type NostrIdentity,
   type NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
-import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
+import {
+  getNostrIdentityRelays,
+  identityRelayConnectionQueryKey
+} from '@/utils/nostrContacts'
 
 type UseNostrLandingRelayReachabilityArgs = {
   activeIdentityNpub: string | null
@@ -25,12 +27,12 @@ async function checkRelayReachability(
   urls: string[]
 ): Promise<NostrRelayConnectionInfo> {
   try {
-    const info = await testNostrRelaysReachable(urls)
+    const info = await probeIdentityRelays(urls)
     if (info.status !== 'disconnected' || info.reason !== 'all_failed') {
       return info
     }
     await reconnectNdkForRelays(urls)
-    return await testNostrRelaysReachable(urls)
+    return await probeIdentityRelays(urls)
   } catch {
     return ALL_FAILED
   }
@@ -44,17 +46,13 @@ export function useNostrLandingRelayReachability({
   const identity = activeIdentityNpub
     ? identities.find((i) => i.npub === activeIdentityNpub)
     : undefined
-  const urls = identity?.relays?.length ? identity.relays : relays
-  const relaysKey = getNostrContactsRelaysKey(urls)
+  const urls = identity ? getNostrIdentityRelays(identity.relays, relays) : []
   const relayConnected = identity?.relayConnected === true
 
   const query = useQuery({
     enabled: relayConnected && urls.length > 0,
     queryFn: () => checkRelayReachability(urls),
-    queryKey: nostrKeys.identityReachability(
-      activeIdentityNpub ?? '',
-      relaysKey
-    ),
+    queryKey: identityRelayConnectionQueryKey(activeIdentityNpub ?? '', urls),
     retry: false,
     staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
   })

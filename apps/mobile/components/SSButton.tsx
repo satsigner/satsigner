@@ -13,9 +13,32 @@ import { Colors, Sizes } from '@/styles'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
-import SSOutlineGlassBorders from './SSOutlineGlassBorders'
 import SSPressable from './SSPressable'
 import SSText, { type SSTextProps } from './SSText'
+
+const TOP_LIGHT_PEAK = 0.04
+const TOP_LIGHT_TAIL = 0.03
+const TOP_EDGE_EDGE = 0.07
+const TOP_EDGE_PEAK = 0.12
+const STACK_LIGHT_FALLOFF = 0.78
+
+function whiteAlpha(alpha: number) {
+  return `rgba(255,255,255,${alpha.toFixed(3)})`
+}
+
+function stackLightScale(
+  verticalIndex: number | undefined,
+  totalButtonsVertical: number | undefined
+) {
+  if (
+    verticalIndex === undefined ||
+    totalButtonsVertical === undefined ||
+    totalButtonsVertical <= 1
+  ) {
+    return 1
+  }
+  return 1 - (verticalIndex / (totalButtonsVertical - 1)) * STACK_LIGHT_FALLOFF
+}
 
 export type SSButtonProps = {
   label?: string
@@ -76,6 +99,13 @@ function SSButton({
     (variant === 'gradient' && gradientType === 'special')
   const showDefaultGradient =
     variant === 'gradient' && gradientType === 'default'
+  const showTopLight =
+    variant === 'default' ||
+    variant === 'subtle' ||
+    variant === 'outline' ||
+    variant === 'gradient' ||
+    variant === 'danger'
+  const lightScale = stackLightScale(verticalIndex, totalButtonsVertical)
 
   const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
 
@@ -173,9 +203,34 @@ function SSButton({
           />
         </>
       )}
-      {variant === 'outline' && <SSOutlineGlassBorders />}
       {showDefaultGradient && (
         <SSBackgroundGradient style={styles.buttonGradient} />
+      )}
+      {showTopLight && (
+        <>
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={styles.buttonGradient}
+            colors={[
+              whiteAlpha(TOP_LIGHT_PEAK * lightScale),
+              whiteAlpha(TOP_LIGHT_TAIL * lightScale)
+            ]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+          />
+          <LinearGradient
+            pointerEvents={decorationPointerEvents}
+            style={[styles.glassBorder, styles.glassBorderTop]}
+            colors={[
+              whiteAlpha(TOP_EDGE_EDGE * lightScale),
+              whiteAlpha(TOP_EDGE_PEAK * lightScale),
+              whiteAlpha(TOP_EDGE_EDGE * lightScale)
+            ]}
+            locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        </>
       )}
       {!loading ? (
         icon ? (
@@ -225,7 +280,7 @@ function getButtonVariantStyle(
     return styles.buttonSecondary
   }
   if (variant === 'outline') {
-    return styles.buttonOutline
+    return styles.buttonSubtle
   }
   if (variant === 'ghost') {
     return styles.buttonGhost
@@ -307,11 +362,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     maxWidth: '100%',
     paddingHorizontal: 12
-  },
-  buttonOutline: {
-    backgroundColor: Colors.transparent,
-    borderWidth: 0,
-    overflow: 'hidden'
   },
   buttonSecondary: {
     backgroundColor: Colors.white

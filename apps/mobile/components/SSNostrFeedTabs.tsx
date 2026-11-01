@@ -11,11 +11,13 @@ import {
   ssnostrKindFilterRowStyle
 } from '@/components/SSNostrKindFilter'
 import SSNostrNoteList, {
+  type NoteListZap,
   type NostrNotePressPayload,
   type OwnAuthorFallback
 } from '@/components/SSNostrNoteList'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNostrZapList from '@/components/SSNostrZapList'
+import SSNostrZapSheets from '@/components/SSNostrZapSheets'
 import SSText from '@/components/SSText'
 import {
   NOSTR_BOOKMARKS_FILTER_IDS,
@@ -25,13 +27,16 @@ import { useNostrFeedFetch } from '@/hooks/useNostrFeedFetch'
 import { useNostrFollowsFetch } from '@/hooks/useNostrFollowsFetch'
 import { useNostrNewNotesPoll } from '@/hooks/useNostrNewNotesPoll'
 import { useNostrNotesFetch } from '@/hooks/useNostrNotesFetch'
+import { useNostrZapFlow } from '@/hooks/useNostrZapFlow'
 import { useNostrZapsFetch } from '@/hooks/useNostrZapsFetch'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { usePriceStore } from '@/store/price'
 import { Colors, Layout } from '@/styles'
 import type {
+  NostrEngagementSigner,
   NostrIdentity,
   ZapReceiptInfo,
   ZapSortField
@@ -107,6 +112,27 @@ function getOwnAuthorFallback(
   }
 }
 
+function getEngagementSigner(
+  identity: NostrIdentity | undefined
+): NostrEngagementSigner {
+  return {
+    isWatchOnly: Boolean(identity?.isWatchOnly),
+    nsec: identity?.nsec,
+    ownPubkey: identity ? (getPubKeyHexFromNpub(identity.npub) ?? '') : ''
+  }
+}
+
+function getNoteListZap(
+  zapFlow: ReturnType<typeof useNostrZapFlow>
+): NoteListZap {
+  return {
+    canZap: zapFlow.canZap,
+    onZap: zapFlow.zapOneTap,
+    onZapOptions: zapFlow.openZapOptions,
+    zapping: zapFlow.zapping
+  }
+}
+
 function getZapSortLabel(sort: ZapSortState, field: ZapSortField): string {
   const label = t(`nostrIdentity.zapSort.${field}`)
   if (sort.field !== field) {
@@ -168,6 +194,9 @@ function NotesTabContent({
   const [excludeReplies, setExcludeReplies] = useState(true)
   const isBookmarks = NOSTR_BOOKMARKS_FILTER_IDS.has(kindFilterId)
   const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+  const zapFlow = useNostrZapFlow({ identity, npub, relays })
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const notes = useNostrNotesFetch({
     enabled: true,
@@ -235,6 +264,7 @@ function NotesTabContent({
   return (
     <View style={styles.fill}>
       <SSNostrNoteList
+        engagementSigner={getEngagementSigner(identity)}
         emptyLabel={t('nostrIdentity.feed.noNotes')}
         fetchNextPage={notes.fetchNextPage}
         hasNextPage={notes.hasNextPage}
@@ -249,6 +279,13 @@ function NotesTabContent({
         privateIds={notes.privateIds}
         relays={relays}
         resolved={notes.resolved}
+        zap={getNoteListZap(zapFlow)}
+      />
+      <SSNostrZapSheets
+        {...zapFlow.sheets}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
       <SSNostrKindFilterSheet
         visible={sheetOpen}
@@ -274,6 +311,9 @@ function FollowingTabContent({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [excludeReplies, setExcludeReplies] = useState(true)
   const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+  const zapFlow = useNostrZapFlow({ identity, npub, relays })
+  const btcPrice = usePriceStore((state) => state.btcPrice)
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   const follows = useNostrFollowsFetch({ enabled: true, npub, relays })
   const authors = follows.data?.data.pubkeys ?? NO_AUTHORS
@@ -364,6 +404,7 @@ function FollowingTabContent({
   return (
     <View style={styles.fill}>
       <SSNostrNoteList
+        engagementSigner={getEngagementSigner(identity)}
         emptyLabel={
           followingEmpty
             ? t('nostrIdentity.feed.noFollowing')
@@ -382,6 +423,13 @@ function FollowingTabContent({
         privateIds={NO_PRIVATE_IDS}
         relays={relays}
         resolved={feed.resolved}
+        zap={getNoteListZap(zapFlow)}
+      />
+      <SSNostrZapSheets
+        {...zapFlow.sheets}
+        btcPrice={btcPrice}
+        fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
       <SSNostrKindFilterSheet
         visible={sheetOpen}

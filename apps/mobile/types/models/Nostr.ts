@@ -328,6 +328,7 @@ export type NostrFetchedNoteData = z.infer<typeof NostrFetchedNoteDataSchema>
 export type NostrIdentity = z.infer<typeof NostrIdentitySchema>
 export type NostrKeys = z.infer<typeof NostrKeysSchema>
 export type NostrKind0Profile = z.infer<typeof NostrKind0ProfileSchema>
+export type NostrZapPreferences = z.infer<typeof NostrZapPreferencesSchema>
 export type NostrContactItem = z.infer<typeof NostrContactItemSchema>
 export type NostrMessageData = z.infer<typeof NostrMessageDataSchema>
 export type NostrMessage = z.infer<typeof NostrMessageSchema>
@@ -400,6 +401,33 @@ export type NostrFeedNoteLike = {
   kind: number
   tags: string[][]
   created_at: number
+}
+
+export type NostrEngagementEvent = {
+  content: string
+  created_at: number
+  id: string
+  kind: number
+  pubkey: string
+  targetId: string
+}
+
+export type NostrEngagementDeletion = {
+  pubkey: string
+  tags: string[][]
+}
+
+export type NostrEngagementSigner = {
+  isWatchOnly: boolean
+  nsec?: string
+  ownPubkey: string
+}
+
+export type NostrNoteEngagement = {
+  likeCount: number
+  ownLikeIds: string[]
+  ownRepostIds: string[]
+  repostCount: number
 }
 
 export type NostrPollOption = {
