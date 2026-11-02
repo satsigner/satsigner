@@ -50,7 +50,7 @@ function explorerTxFromHex(rawHex: string): ExplorerTransaction {
   const outputs: ExplorerTxOutput[] = tx.outs.map((out, i) => ({
     index: i,
     script: hex.encode(out.script),
-    value: out.value
+    value: Number(out.value)
   }))
 
   return {

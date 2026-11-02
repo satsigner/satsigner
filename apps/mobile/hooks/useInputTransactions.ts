@@ -238,7 +238,7 @@ async function loadInputTransactions({
                   selectedNetwork === 'bitcoin'
                     ? bitcoinjs.networks.bitcoin
                     : bitcoinjs.networks.testnet
-                const outputScriptToAddress = (script: Buffer): string => {
+                const outputScriptToAddress = (script: Uint8Array): string => {
                   try {
                     return bitcoinjs.address.fromOutputScript(
                       script,
@@ -283,7 +283,7 @@ async function loadInputTransactions({
                       : '',
                     label: undefined,
                     script: [...output.script],
-                    value: output.value
+                    value: Number(output.value)
                   })),
                   vsize: parsedTx.virtualSize(),
                   weight: parsedTx.weight()
@@ -452,7 +452,7 @@ async function loadInputTransactions({
                     ? bitcoinjs.networks.bitcoin
                     : bitcoinjs.networks.testnet
 
-                const outputScriptToAddress = (script: Buffer): string => {
+                const outputScriptToAddress = (script: Uint8Array): string => {
                   try {
                     return bitcoinjs.address.fromOutputScript(
                       script,
@@ -484,7 +484,11 @@ async function loadInputTransactions({
                     const prevTxid = outpointHashBytesToTxid(input.hash)
                     const prevVout = input.index
                     const prevTx = prevTxsMap.get(prevTxid)
-                    const value = prevTx?.outs[prevVout]?.value
+                    const prevOutValue = prevTx?.outs[prevVout]?.value
+                    const value =
+                      prevOutValue === undefined
+                        ? undefined
+                        : Number(prevOutValue)
 
                     let address = 'unknown'
                     if (prevTx) {
@@ -516,7 +520,7 @@ async function loadInputTransactions({
                       : '',
                     label: undefined, // TODO: add label
                     script: [...output.script],
-                    value: output.value
+                    value: Number(output.value)
                   })),
                   vsize: parsedTx.virtualSize(),
                   weight: parsedTx.weight()

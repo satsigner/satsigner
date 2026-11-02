@@ -761,7 +761,7 @@ describe('transaction builder previews', () => {
       index: utxo.vout,
       sequence: 0xff_ff_ff_fd
     })
-    psbt.addOutput({ address, value: output.amount })
+    psbt.addOutput({ address, value: BigInt(output.amount) })
 
     const tx = bitcoinjs.Transaction.fromHex(
       getPreviewTransactionHex(
@@ -869,7 +869,7 @@ describe('getFinalizedTransactionSize', () => {
   it('reads size and vsize of a raw transaction', () => {
     const transaction = new bitcoinjs.Transaction()
     transaction.addInput(Buffer.alloc(32), 0)
-    transaction.addOutput(Buffer.from(`0014${'00'.repeat(20)}`, 'hex'), 1000)
+    transaction.addOutput(Buffer.from(`0014${'00'.repeat(20)}`, 'hex'), 1000n)
     expect(getFinalizedTransactionSize(transaction.toHex())).toStrictEqual({
       size: transaction.byteLength(true),
       vsize: transaction.virtualSize()
@@ -955,7 +955,7 @@ describe('getRawTransactionSizes', () => {
     const transaction = new bitcoinjs.Transaction()
     transaction.version = 2
     transaction.addInput(Buffer.alloc(32, 1), 0)
-    transaction.addOutput(P2WPKH_OUTPUT, 1000)
+    transaction.addOutput(P2WPKH_OUTPUT, 1000n)
     return transaction
   }
 

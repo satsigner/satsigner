@@ -32,9 +32,9 @@ function buildMultisigPsbt(outputValue = 90_000) {
     hash: Buffer.alloc(32, 0x11),
     index: 0,
     witnessScript: P2WSH.redeem?.output,
-    witnessUtxo: { script, value: 100_000 }
+    witnessUtxo: { script, value: 100_000n }
   })
-  psbt.addOutput({ script, value: outputValue })
+  psbt.addOutput({ script, value: BigInt(outputValue) })
   return psbt.toBase64()
 }
 
@@ -237,9 +237,9 @@ describe('useCosignerSignatures', () => {
     })
     const combined = hook.current?.combineCollectedSignaturesForSharing() ?? ''
 
-    expect(
+    const pubkey =
       bitcoinjs.Psbt.fromBase64(combined).data.inputs[0].partialSig?.[0].pubkey
-    ).toStrictEqual(PUBKEYS[1])
+    expect(pubkey && Buffer.from(pubkey)).toStrictEqual(PUBKEYS[1])
   })
 
   it('reports that there is nothing to share without a PSBT', async () => {

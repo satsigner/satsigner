@@ -22,7 +22,7 @@ function psbtWithFingerprint(fingerprint: string): string {
     index: 0,
     witnessUtxo: {
       script: Buffer.from(`0014${'00'.repeat(20)}`, 'hex'),
-      value: 1000
+      value: 1000n
     }
   })
   return psbt.toBase64()

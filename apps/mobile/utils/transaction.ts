@@ -387,7 +387,7 @@ export function buildPreviewTransactionHex(
   for (const output of outputs) {
     transaction.addOutput(
       bitcoinjs.address.toOutputScript(output.to, bitcoinjsNet),
-      output.amount
+      BigInt(output.amount)
     )
   }
 

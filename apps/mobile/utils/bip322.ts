@@ -13,6 +13,7 @@ import * as varuint from 'varuint-bitcoin'
 import { HASH_BYTE_LENGTH, NULL_PREVOUT_INDEX } from '@/constants/btc'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork, getScriptTypeFromAddress } from '@/utils/bitcoin'
+import { bytesEqual } from '@/utils/byteArray'
 import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
 
 initEccLib(ecc)
@@ -30,7 +31,7 @@ const KNOWN_VARIANT_PREFIXES = [SIMPLE_VARIANT_PREFIX, 'ful']
 
 function taggedHash(tag: Buffer, data: Buffer): Buffer {
   const tagHash = bcrypto.sha256(tag)
-  return bcrypto.sha256(Buffer.concat([tagHash, tagHash, data]))
+  return Buffer.from(bcrypto.sha256(Buffer.concat([tagHash, tagHash, data])))
 }
 
 /** Exported for testing against the official BIP-322 test vectors. */
@@ -40,7 +41,7 @@ export function bip322MessageHash(message: string): Buffer {
 
 /** Exported for testing against the official BIP-322 test vectors. */
 export function buildToSpendTx(
-  scriptPubKey: Buffer,
+  scriptPubKey: Uint8Array,
   message: string
 ): Transaction {
   const tx = new Transaction()
@@ -48,7 +49,7 @@ export function buildToSpendTx(
   tx.locktime = 0
   const scriptSig = bscript.compile([opcodes.OP_0, bip322MessageHash(message)])
   tx.addInput(ZERO_HASH, NULL_PREVOUT_INDEX, 0, scriptSig)
-  tx.addOutput(scriptPubKey, 0)
+  tx.addOutput(scriptPubKey, 0n)
   return tx
 }
 
@@ -57,20 +58,20 @@ function buildToSignTxSkeleton(toSpendTx: Transaction): Transaction {
   toSignTx.version = 0
   toSignTx.locktime = 0
   toSignTx.addInput(toSpendTx.getHash(), 0, 0)
-  toSignTx.addOutput(bscript.compile([opcodes.OP_RETURN]), 0)
+  toSignTx.addOutput(bscript.compile([opcodes.OP_RETURN]), 0n)
   return toSignTx
 }
 
 function taprootSighash(
   toSignTx: Transaction,
-  scriptPubKey: Buffer,
+  scriptPubKey: Uint8Array,
   hashType: number
-): Buffer {
-  return toSignTx.hashForWitnessV1(0, [scriptPubKey], [0], hashType)
+): Uint8Array {
+  return toSignTx.hashForWitnessV1(0, [scriptPubKey], [0n], hashType)
 }
 
 /** The BIP-143 "scriptCode" for a P2WPKH output (also used for the P2WPKH redeem of a P2SH-P2WPKH output). */
-function p2wpkhScriptCode(pubkeyHash: Buffer): Buffer {
+function p2wpkhScriptCode(pubkeyHash: Uint8Array): Uint8Array {
   return bscript.compile([
     opcodes.OP_DUP,
     opcodes.OP_HASH160,
@@ -80,11 +81,14 @@ function p2wpkhScriptCode(pubkeyHash: Buffer): Buffer {
   ])
 }
 
-function segwitV0Sighash(toSignTx: Transaction, pubkeyHash: Buffer): Buffer {
+function segwitV0Sighash(
+  toSignTx: Transaction,
+  pubkeyHash: Uint8Array
+): Uint8Array {
   return toSignTx.hashForWitnessV0(
     0,
     p2wpkhScriptCode(pubkeyHash),
-    0,
+    0n,
     Transaction.SIGHASH_ALL
   )
 }
@@ -106,8 +110,8 @@ function tweakPrivateKey(privateKey: Buffer): Buffer {
   return Buffer.from(tweaked)
 }
 
-function encodeWitness(items: Buffer[]): Buffer {
-  const chunks = [varuint.encode(items.length)]
+function encodeWitness(items: Uint8Array[]): Buffer {
+  const chunks: Uint8Array[] = [varuint.encode(items.length)]
   for (const item of items) {
     chunks.push(varuint.encode(item.length), item)
   }
@@ -137,11 +141,11 @@ function stripVariantPrefix(signatureBase64: string): string {
   return prefix ? signatureBase64.slice(prefix.length) : signatureBase64
 }
 
-function encodeSimpleSignature(witness: Buffer[]): string {
+function encodeSimpleSignature(witness: Uint8Array[]): string {
   return SIMPLE_VARIANT_PREFIX + encodeWitness(witness).toString('base64')
 }
 
-function getTaprootOutputKey(scriptPubKey: Buffer): Buffer | null {
+function getTaprootOutputKey(scriptPubKey: Uint8Array): Uint8Array | null {
   if (scriptPubKey.length !== 34 || scriptPubKey[0] !== opcodes.OP_1) {
     return null
   }
@@ -234,7 +238,7 @@ export function verifyMessageBip322Taproot(
  * incrementing extra entropy until found) so the signature stays a
  * consistent, compact size - matching Bitcoin Core, LND, and bitcoinjs-lib.
  */
-function signLowR(hash: Buffer, privateKey: Buffer): Buffer {
+function signLowR(hash: Uint8Array, privateKey: Buffer): Buffer {
   let signature = ecc.sign(hash, privateKey)
   let counter = 0
   while (!isLowR(signature)) {
@@ -302,8 +306,8 @@ export function verifyMessageBip322SegwitV0(
       redeem: { output: p2wpkhOutput }
     }).output
     const matchesScriptPubKey =
-      p2wpkhOutput.equals(scriptPubKey) ||
-      (p2shOutput ? p2shOutput.equals(scriptPubKey) : false)
+      bytesEqual(p2wpkhOutput, scriptPubKey) ||
+      (p2shOutput ? bytesEqual(p2shOutput, scriptPubKey) : false)
     if (!matchesScriptPubKey) {
       return false
     }
@@ -313,7 +317,7 @@ export function verifyMessageBip322SegwitV0(
     const sighash = toSignTx.hashForWitnessV0(
       0,
       p2wpkhScriptCode(pubkeyHash),
-      0,
+      0n,
       hashType
     )
     return ecc.verify(sighash, pubkey, signature)
