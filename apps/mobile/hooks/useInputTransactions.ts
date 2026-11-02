@@ -310,13 +310,13 @@ async function loadInputTransactions({
               )
               const rawTx = await rpc.getRawTransaction(txid).catch(() => null)
               if (rawTx) {
-                let blockHeight: number | undefined
-                if (rawTx.confirmations && rawTx.blockhash) {
-                  blockHeight = await rpc
-                    .getBlock(rawTx.blockhash)
-                    .then((block) => block.height)
-                    .catch(() => undefined)
-                }
+                const blockHeight: number | undefined =
+                  rawTx.confirmations && rawTx.blockhash
+                    ? await rpc
+                        .getBlock(rawTx.blockhash)
+                        .then((block) => block.height)
+                        .catch(() => undefined)
+                    : undefined
                 const mappedTx: ExtendedTransaction = {
                   address: undefined,
                   blockHeight,

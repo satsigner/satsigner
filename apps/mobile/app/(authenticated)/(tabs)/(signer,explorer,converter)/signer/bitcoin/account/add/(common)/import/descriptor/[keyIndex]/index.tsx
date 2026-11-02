@@ -152,13 +152,10 @@ export default function ImportDescriptor() {
       isValid: true
     }
 
-    let scriptVersionValidation = true
-    if (basicValidation && scriptVersion) {
-      scriptVersionValidation = validateDescriptorScriptVersion(
-        descriptor,
-        scriptVersion
-      )
-    }
+    const scriptVersionValidation =
+      basicValidation && scriptVersion
+        ? validateDescriptorScriptVersion(descriptor, scriptVersion)
+        : true
     const validExternalDescriptor =
       basicValidation && networkValidation.isValid && scriptVersionValidation
 
@@ -203,13 +200,10 @@ export default function ImportDescriptor() {
       isValid: true
     }
 
-    let scriptVersionValidation = true
-    if (basicValidation && scriptVersion) {
-      scriptVersionValidation = validateDescriptorScriptVersion(
-        descriptor,
-        scriptVersion
-      )
-    }
+    const scriptVersionValidation =
+      basicValidation && scriptVersion
+        ? validateDescriptorScriptVersion(descriptor, scriptVersion)
+        : true
 
     const validInternalDescriptor =
       basicValidation && networkValidation.isValid && scriptVersionValidation
