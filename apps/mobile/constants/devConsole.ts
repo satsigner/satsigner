@@ -6,3 +6,8 @@ export const DEV_CONSOLE_MAX_ENTRIES = 500
 export const DEV_CONSOLE_PERSISTED_SLOTS = 300
 
 export const DEV_CONSOLE_MAX_MESSAGE_LENGTH = 400
+
+// Tapping the PIN screen title this many times within the window turns the
+// console on or off in dev builds.
+export const DEV_CONSOLE_SECRET_TAP_COUNT = 7
+export const DEV_CONSOLE_SECRET_TAP_WINDOW_MS = 3000

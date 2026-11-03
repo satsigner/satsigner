@@ -10,11 +10,20 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import { error, gray, warning } from '@/styles/colors'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
+import { registerDevConsoleSecretTap } from '@/utils/devConsole'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 void loadAuthenticatedSession()
 
 const ERASE_WARNING_TRIES_LEFT = 2
+
+function handleTitlePress() {
+  const enabled = registerDevConsoleSecretTap()
+  if (enabled === null) {
+    return
+  }
+  toast(enabled ? t('devConsole.turnedOn') : t('devConsole.turnedOff'))
+}
 
 export default function Unlock() {
   const router = useRouter()
@@ -95,6 +104,7 @@ export default function Unlock() {
       <SSPinAuth
         onSuccess={handleSuccess}
         onFail={handleFailure}
+        onTitlePress={handleTitlePress}
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}
         feedbackColor={getWarningColor()}

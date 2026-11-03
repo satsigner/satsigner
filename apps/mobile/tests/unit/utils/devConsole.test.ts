@@ -1,4 +1,8 @@
-import { DEV_CONSOLE_MAX_MESSAGE_LENGTH } from '@/constants/devConsole'
+import {
+  DEV_CONSOLE_MAX_MESSAGE_LENGTH,
+  DEV_CONSOLE_SECRET_TAP_COUNT,
+  DEV_CONSOLE_SECRET_TAP_WINDOW_MS
+} from '@/constants/devConsole'
 import { readPreviousDevConsoleSession } from '@/storage/devConsoleLog'
 import { useDevConsoleStore } from '@/store/devConsole'
 import {
@@ -11,6 +15,7 @@ import {
   hideDevConsole,
   isDevVariantPackage,
   pauseDevSteps,
+  registerDevConsoleSecretTap,
   releaseNextDevStep,
   resumeDevSteps,
   toggleDevConsoleDock,
@@ -185,5 +190,46 @@ describe('panel controls', () => {
     ).toBe(
       '23:05:19.440 STEP [session] load wallets\n23:05:19.440 ERROR [ark] boom'
     )
+  })
+})
+
+describe('registerDevConsoleSecretTap', () => {
+  beforeEach(() => {
+    resumeDevSteps()
+    clearDevConsole()
+    useDevConsoleStore.getState().setEnabled(false)
+  })
+
+  function tapTimes(count: number, start: number, gapMs: number) {
+    return Array.from({ length: count }, (_, index) =>
+      registerDevConsoleSecretTap(start + index * gapMs)
+    )
+  }
+
+  it('turns the console on at the seventh quick tap', () => {
+    const results = tapTimes(DEV_CONSOLE_SECRET_TAP_COUNT, 1_000_000, 100)
+
+    expect(results.slice(0, -1).every((result) => result === null)).toBe(true)
+    expect(results.at(-1)).toBe(true)
+    expect(useDevConsoleStore.getState().enabled).toBe(true)
+  })
+
+  it('ignores taps that are too far apart', () => {
+    const results = tapTimes(
+      DEV_CONSOLE_SECRET_TAP_COUNT,
+      2_000_000,
+      DEV_CONSOLE_SECRET_TAP_WINDOW_MS
+    )
+
+    expect(results.every((result) => result === null)).toBe(true)
+    expect(useDevConsoleStore.getState().enabled).toBe(false)
+  })
+
+  it('turns the console off again with another seven taps', () => {
+    tapTimes(DEV_CONSOLE_SECRET_TAP_COUNT, 3_000_000, 100)
+    const results = tapTimes(DEV_CONSOLE_SECRET_TAP_COUNT, 3_010_000, 100)
+
+    expect(results.at(-1)).toBe(false)
+    expect(useDevConsoleStore.getState().enabled).toBe(false)
   })
 })

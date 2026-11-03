@@ -1020,6 +1020,8 @@
     "resume": "Resume",
     "showingCurrent": "This run · %{count} lines",
     "showingPrevious": "Last run · %{count} lines (before the app was closed)",
+    "turnedOff": "Dev console off",
+    "turnedOn": "Dev console on",
     "waiting": "Waiting at %{step}"
   },
   "ecash": {
@@ -2828,7 +2830,7 @@
     "developer.description": "Development-only tools for faster local testing and debugging.",
     "developer.design": "Design",
     "developer.devConsole": "Dev console",
-    "developer.devConsoleDescription": "Shows app logs on screen and keeps the last run's logs. Pause stops startup before each step.",
+    "developer.devConsoleDescription": "Shows app logs on screen and keeps the last run's logs. Pause stops startup before each step. Off by default; tap the PIN screen title 7 times to turn it on.",
     "developer.icons": "Icons",
     "developer.recoverData": "Recover data",
     "developer.recoverDecrypt": "Decrypt",
