@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { SOURCE_REPOSITORY, zspPublishArgs } from './zapstore-publish-args.mjs'
+import { zspPublishArgs } from './zapstore-publish-args.mjs'
 
 const BASE = ['publish', '--json', '--quiet', '--skip-preview']
 
-test('links a local APK to the source repository and its commit', () => {
+test('links a local build to its commit', () => {
   assert.deepEqual(
     zspPublishArgs({
       commit: 'abc123',
       indexerMode: false,
-      target: 'app.apk',
-      usingConfig: false
+      localBuild: true,
+      target: 'zapstore.yaml'
     }),
-    [...BASE, '-r', SOURCE_REPOSITORY, '--commit', 'abc123', 'app.apk']
+    [...BASE, '--commit', 'abc123', 'zapstore.yaml']
   )
 })
 
@@ -22,22 +22,22 @@ test('skips the commit when the build had local changes', () => {
     zspPublishArgs({
       commit: '',
       indexerMode: false,
-      target: 'app.apk',
-      usingConfig: false
+      localBuild: true,
+      target: 'zapstore.yaml'
     }),
-    [...BASE, '-r', SOURCE_REPOSITORY, 'app.apk']
+    [...BASE, 'zapstore.yaml']
   )
 })
 
-test('leaves repository details to a config yaml', () => {
+test('leaves the commit out for a custom config', () => {
   assert.deepEqual(
     zspPublishArgs({
       commit: 'abc123',
       indexerMode: false,
-      target: 'zapstore.yaml',
-      usingConfig: true
+      localBuild: false,
+      target: 'custom.yaml'
     }),
-    [...BASE, 'zapstore.yaml']
+    [...BASE, 'custom.yaml']
   )
 })
 
@@ -46,9 +46,9 @@ test('keeps indexer mode before the target', () => {
     zspPublishArgs({
       commit: '',
       indexerMode: true,
-      target: 'app.apk',
-      usingConfig: false
+      localBuild: true,
+      target: 'zapstore.yaml'
     }),
-    [...BASE, '--indexer-mode', '-r', SOURCE_REPOSITORY, 'app.apk']
+    [...BASE, '--indexer-mode', 'zapstore.yaml']
   )
 })

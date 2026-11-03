@@ -38,8 +38,15 @@
 
 import { execFileSync, spawn } from 'child_process'
 import { createHash } from 'crypto'
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'fs'
 import { createRequire } from 'module'
+import { tmpdir } from 'os'
 import path from 'path'
 import readline from 'readline'
 import { fileURLToPath } from 'url'
@@ -65,7 +72,8 @@ import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
 } from './zapstore-identity.mjs'
-import { zspPublishArgs } from './zapstore-publish-args.mjs'
+import { publishConfig, readListing } from './zapstore-listing.mjs'
+import { SOURCE_REPOSITORY, zspPublishArgs } from './zapstore-publish-args.mjs'
 import { parseZspEvents, verifyOnZapstore } from './zapstore-verify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -130,6 +138,7 @@ const CHANNEL = flags.channel ?? ''
 const CONFIG_YAML = flags.config
   ? path.resolve(REPO_ROOT, flags.config)
   : path.join(REPO_ROOT, 'zapstore.yaml')
+const LISTING_DIR = path.join(MOBILE_DIR, 'zapstore')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
 const EAS_PROFILE = 'development'
@@ -421,6 +430,48 @@ function sourceFingerprint() {
   return hash.digest('hex')
 }
 
+// ── zsp ───────────────────────────────────────────────────────────────────────
+
+function writeListingConfig(apkPath) {
+  const { description, images, summary } = readListing(LISTING_DIR)
+  console.log(
+    `  Listing: summary ${summary.length}, description ${description.length} characters, ${images.length} screenshots`
+  )
+  const dir = mkdtempSync(path.join(tmpdir(), 'satsigner-zapstore-'))
+  const file = path.join(dir, 'zapstore.yaml')
+  writeFileSync(
+    file,
+    publishConfig({
+      apkPath,
+      description,
+      images,
+      repository: SOURCE_REPOSITORY,
+      summary
+    })
+  )
+  return { dir, file }
+}
+
+function removeListingConfig(listing) {
+  if (listing) {
+    rmSync(listing.dir, { force: true, recursive: true })
+  }
+}
+
+async function runZspPublish(args, signWith, listing) {
+  try {
+    return await run(ZSP_BIN, args, {
+      cwd: REPO_ROOT,
+      env: {
+        BLOSSOM_URL,
+        SIGN_WITH: signWith
+      }
+    })
+  } finally {
+    removeListingConfig(listing)
+  }
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
@@ -590,8 +641,8 @@ async function main() {
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
     )
 
-    // Pass the yaml config OR the local APK path — never both
-    const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
+    const listing = usingCustomConfig ? null : writeListingConfig(apkPath)
+    const zspTarget = listing ? listing.file : CONFIG_YAML
     // --json keeps zsp non-interactive but still reports errors, and prints
     // every event it published. --quiet alone hides a run that publishes nothing.
     // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
@@ -599,21 +650,21 @@ async function main() {
     const zspFlags = zspPublishArgs({
       commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
       indexerMode: isAgent && !usingCustomConfig,
-      target: zspTarget,
-      usingConfig: usingCustomConfig
+      localBuild: !usingCustomConfig,
+      target: zspTarget
     })
 
     if (dryRun) {
+      if (listing) {
+        console.log(
+          `  [dry-run] zsp config:\n${readFileSync(listing.file, 'utf8')}`
+        )
+      }
+      removeListingConfig(listing)
       console.log('  [dry-run] Skipping zsp publish.')
     } else {
       try {
-        const output = await run(ZSP_BIN, zspFlags, {
-          cwd: REPO_ROOT,
-          env: {
-            BLOSSOM_URL,
-            SIGN_WITH: signWith
-          }
-        })
+        const output = await runZspPublish(zspFlags, signWith, listing)
         const events = parseZspEvents(output)
         if (events.length === 0) {
           throw new Error(
