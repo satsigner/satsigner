@@ -53,6 +53,7 @@ import {
 import * as nip06 from 'nostr-tools/nip06'
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
+import { hasReleaseKeystore } from '../../../tools/release/keystore.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MOBILE_DIR = path.resolve(__dirname, '..')
@@ -357,6 +358,14 @@ async function buildReleaseApk() {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
     }
     return APK_OUTPUT
+  }
+
+  if (!hasReleaseKeystore()) {
+    throw new Error(
+      'No Android release keystore at ~/.satsigner/release.p12.\n' +
+        'Create one with: pnpm --dir tools/release keystore\n' +
+        'Write down the 12 words. Zapstore rejects the public debug key.'
+    )
   }
 
   if (CHANNEL === 'primary') {

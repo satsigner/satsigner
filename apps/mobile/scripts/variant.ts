@@ -27,6 +27,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signingEnv } from '../../../tools/release/keystore.mjs'
 import {
   ANDROID_ABI_ARM64,
   ANDROID_ABI_X86_64,
@@ -238,7 +239,8 @@ function buildApk({
     : [gradleTask]
 
   const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew'
-  run(gradlew, gradleArgs, withAndroidSdk(androidDir, env), androidDir)
+  const signedEnv = buildType === 'release' ? signingEnv(env) : env
+  run(gradlew, gradleArgs, withAndroidSdk(androidDir, signedEnv), androidDir)
 
   const builtApk = join(
     androidDir,

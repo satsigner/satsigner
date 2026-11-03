@@ -36,7 +36,27 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 | Sign in           | A NIP-07 extension in the browser                                                                        |
 | Sync with ngit    | `ngit` on `PATH`                                                                                         |
 | Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
-| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set)                                 |
+| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore       |
+
+## Android release key
+
+Zapstore rejects APKs signed with the public debug keystore. Create a key once. The 12 words rebuild the same keystore. They are not your Nostr key.
+
+```bash
+pnpm --dir tools/release keystore
+```
+
+Write the words down, then publish again from the release page. To rebuild the keystore on another machine:
+
+```bash
+pnpm --dir tools/release keystore:restore
+```
+
+To check a written phrase against the keystore already on this machine:
+
+```bash
+pnpm --dir tools/release keystore:confirm
+```
 
 ## Tests
 

@@ -6,9 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "test": "node --test commands.test.mjs"
+    "keystore": "node create-keystore.mjs",
+    "keystore:restore": "node create-keystore.mjs --restore",
+    "keystore:confirm": "node confirm-keystore.mjs",
+    "test": "node --test commands.test.mjs keystore.test.mjs"
   },
   "dependencies": {
+    "@scure/bip39": "2.0.1",
     "ws": "8.20.0"
   }
 }
