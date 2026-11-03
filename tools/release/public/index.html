@@ -354,10 +354,28 @@
       .app-card textarea {
         min-height: 4.5rem;
       }
-      .guide {
+      .key-warning {
         margin-top: 20px;
-        padding-top: 14px;
-        border-top: 1px solid #242424;
+        padding: 12px 14px;
+        border: 1px solid #5a3030;
+        border-radius: 4px;
+        background: #1f0f0f;
+        color: #f0c8c8;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .key-warning strong {
+        color: #ffd0d0;
+      }
+      .key-warning ul {
+        margin: 8px 0 0;
+        padding-left: 1.25rem;
+      }
+      .key-warning li + li {
+        margin-top: 6px;
+      }
+      .guide {
+        margin-top: 14px;
       }
       .guide summary {
         cursor: pointer;
@@ -671,6 +689,25 @@
                 package id. The APK already on Zapstore stays.
               </p>
               <div id="apps"></div>
+            </div>
+            <div class="key-warning" role="note">
+              <strong>Keep the 12 words safe.</strong> They are the only backup
+              of the Android release key.
+              <ul>
+                <li>
+                  <strong>If they are lost</strong> along with this computer's
+                  keystore, no one can sign updates for apps signed with this
+                  key again. Android refuses an update signed with another key,
+                  so every user must uninstall and reinstall, which deletes the
+                  app's data, including wallets that are not backed up. On
+                  Zapstore the app starts over under a new certificate.
+                </li>
+                <li>
+                  <strong>If they leak,</strong> anyone holding them can sign
+                  updates that phones install as genuine Satsigner releases.
+                  Treat them like a wallet seed.
+                </li>
+              </ul>
             </div>
             <details class="guide">
               <summary>Sign releases on another computer</summary>

@@ -46,6 +46,12 @@ Zapstore rejects APKs signed with the public debug keystore. Create a key once. 
 pnpm --dir tools/release keystore
 ```
 
+> [!WARNING]
+> The 12 words are the only backup of the Android release key. Treat them like a wallet seed.
+>
+> - **Lost** along with the keystore in `~/.satsigner`: no one can sign updates for apps signed with this key again. Android refuses an update signed with another key, so every user must uninstall and reinstall, which deletes the app's data, including wallets that are not backed up. On Zapstore the app starts over under a new certificate.
+> - **Leaked:** anyone holding them can sign updates that phones install as genuine Satsigner releases.
+
 Write the words down, then publish again from the release page. To check a written phrase against the keystore already on this machine:
 
 ```bash
