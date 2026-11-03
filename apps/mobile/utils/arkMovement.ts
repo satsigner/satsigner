@@ -88,15 +88,20 @@ function isFeeOnlyMovement(movement: ArkMovement): boolean {
   )
 }
 
-export function isArkRefreshSubsystemName(subsystemName: string): boolean {
-  return subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
-}
+type ArkMovementSubsystem = Pick<ArkMovement, 'subsystemKind' | 'subsystemName'>
 
-function matchesArkSubsystem(movement: ArkMovement, keyword: string): boolean {
+function matchesArkSubsystem(
+  movement: ArkMovementSubsystem,
+  keyword: string
+): boolean {
   return (
     movement.subsystemKind.toLowerCase() === keyword ||
     movement.subsystemName.toLowerCase().includes(keyword)
   )
+}
+
+export function isArkRefreshMovement(movement: ArkMovementSubsystem): boolean {
+  return matchesArkSubsystem(movement, REFRESH_SUBSYSTEM_KEYWORD)
 }
 
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
@@ -106,7 +111,7 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   if (matchesArkSubsystem(movement, BOARD_SUBSYSTEM_KEYWORD)) {
     return 'board'
   }
-  if (isArkRefreshSubsystemName(movement.subsystemName)) {
+  if (isArkRefreshMovement(movement)) {
     return 'refresh'
   }
   if (movement.effectiveBalanceSats > 0) {

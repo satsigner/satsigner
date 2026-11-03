@@ -46,7 +46,7 @@ import type {
   ArkWalletProvider
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
-import { isArkRefreshSubsystemName } from '@/utils/arkMovement'
+import { isArkRefreshMovement } from '@/utils/arkMovement'
 import { filterCurrentArkVtxos } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 
@@ -605,7 +605,7 @@ function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
   return raceMovementCreated(
     'ark-refresh',
     accountId,
-    (movement) => isArkRefreshSubsystemName(movement.subsystemName),
+    isArkRefreshMovement,
     refreshWalletVtxos(wallet, vtxoIds)
   )
 }

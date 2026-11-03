@@ -471,6 +471,17 @@ describe('bark provider', () => {
     expect(__countWalletNotificationListeners()).toBe(0)
   })
 
+  it('refreshVtxos resolves pending on a round movement with the refresh kind', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockReturnValue(new Promise(() => {}))
+    })
+    await openWallet('ref6', wallet)
+    const pending = provider.refreshVtxos('ref6', ['vtxo1'])
+    __emitWalletNotification(movementCreatedEvent('refresh', 'bark.round'))
+    await expect(pending).resolves.toBe('pending')
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
   it('refreshVtxos ignores movement notifications of other subsystems', async () => {
     const wallet = buildFakeWallet({
       refreshVtxos: jest.fn().mockResolvedValue('txid-late')
