@@ -1,6 +1,12 @@
 import { createInterface } from 'node:readline'
 
-import { hasReleaseKeystore, keystorePath, phraseMatchesKeystore } from './keystore.mjs'
+import { certificateFingerprint } from './certificate.mjs'
+import {
+  hasReleaseKeystore,
+  keystorePath,
+  phraseMatchesKeystore,
+  storedIdentity
+} from './keystore.mjs'
 
 function readPhrase(question) {
   const input = createInterface({
@@ -19,6 +25,10 @@ if (!hasReleaseKeystore()) {
   console.error(`No release keystore at ${keystorePath}`)
   process.exit(1)
 }
+
+console.log(
+  `Certificate SHA-256: ${certificateFingerprint(storedIdentity().certificate)}`
+)
 
 const phrase = await readPhrase('12 words: ')
 

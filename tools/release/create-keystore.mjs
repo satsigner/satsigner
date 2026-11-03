@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline'
 
+import { certificateFingerprint } from './certificate.mjs'
 import {
   createMnemonic,
   hasReleaseKeystore,
@@ -29,17 +30,20 @@ if (hasReleaseKeystore() && !force) {
   process.exit(1)
 }
 
-const phrase = restore
-  ? await readPhrase('12 words: ')
-  : createMnemonic()
+const phrase = restore ? await readPhrase('12 words: ') : createMnemonic()
 
-writeKeystore(phrase)
+const { certificate } = writeKeystore(phrase)
 
 if (!restore) {
   console.log(phrase)
   console.log('')
-  console.log('Write these 12 words down. They are the only backup of this Android key.')
-  console.log('They are not your Nostr key. Losing them means this package id cannot be updated.')
+  console.log(
+    'Write these 12 words down. They are the only backup of this Android key.'
+  )
+  console.log(
+    'They are not your Nostr key. Losing them means this package id cannot be updated.'
+  )
 }
 
 console.log(`Keystore: ${keystorePath}`)
+console.log(`Certificate SHA-256: ${certificateFingerprint(certificate)}`)

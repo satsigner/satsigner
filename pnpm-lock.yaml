@@ -499,6 +499,9 @@ importers:
 
   tools/release:
     dependencies:
+      '@noble/curves':
+        specifier: 2.0.1
+        version: 2.0.1
       '@scure/bip39':
         specifier: 2.0.1
         version: 2.0.1

@@ -53,6 +53,7 @@ import {
 import * as nip06 from 'nostr-tools/nip06'
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
+
 import { hasReleaseKeystore } from '../../../tools/release/keystore.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

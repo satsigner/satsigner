@@ -36,7 +36,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 | Sign in           | A NIP-07 extension in the browser                                                                        |
 | Sync with ngit    | `ngit` on `PATH`                                                                                         |
 | Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
-| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore       |
+| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore        |
 
 ## Android release key
 
