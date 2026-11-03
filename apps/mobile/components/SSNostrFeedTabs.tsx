@@ -194,6 +194,7 @@ function NotesTabContent({
   const [excludeReplies, setExcludeReplies] = useState(true)
   const isBookmarks = NOSTR_BOOKMARKS_FILTER_IDS.has(kindFilterId)
   const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+  const hideReplies = excludeReplies && isShortText
   const zapFlow = useNostrZapFlow({ identity, npub, relays })
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
@@ -209,6 +210,7 @@ function NotesTabContent({
   const newCount = useNostrNewNotesPoll({
     authors: NO_AUTHORS,
     enabled: !isBookmarks,
+    excludeReplies: hideReplies,
     kindFilterId,
     newestCreatedAt: notes.notes[0]?.created_at ?? 0,
     npub,
@@ -271,7 +273,7 @@ function NotesTabContent({
         header={listHeader}
         isFetchingNextPage={notes.isFetchingNextPage}
         isLoading={notes.isLoading}
-        notes={filterFeedReplies(notes.notes, excludeReplies && isShortText)}
+        notes={filterFeedReplies(notes.notes, hideReplies)}
         onAuthorPress={onAuthorPress}
         onNotePress={onNotePress}
         ownAuthor={getOwnAuthorFallback(identity)}
@@ -311,6 +313,7 @@ function FollowingTabContent({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [excludeReplies, setExcludeReplies] = useState(true)
   const isShortText = kindFilterId === SHORT_TEXT_FILTER_ID
+  const hideReplies = excludeReplies && isShortText
   const zapFlow = useNostrZapFlow({ identity, npub, relays })
   const btcPrice = usePriceStore((state) => state.btcPrice)
   const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
@@ -329,6 +332,7 @@ function FollowingTabContent({
   const newCount = useNostrNewNotesPoll({
     authors,
     enabled: authors.length > 0,
+    excludeReplies: hideReplies,
     kindFilterId,
     newestCreatedAt: feed.notes[0]?.created_at ?? 0,
     npub,
@@ -415,7 +419,7 @@ function FollowingTabContent({
         header={listHeader}
         isFetchingNextPage={feed.isFetchingNextPage}
         isLoading={followsStillLooking || feed.isLoading}
-        notes={filterFeedReplies(feed.notes, excludeReplies && isShortText)}
+        notes={filterFeedReplies(feed.notes, hideReplies)}
         onAuthorPress={onAuthorPress}
         onNotePress={onNotePress}
         ownAuthor={getOwnAuthorFallback(identity)}
