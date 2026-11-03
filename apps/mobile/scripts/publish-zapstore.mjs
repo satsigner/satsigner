@@ -37,7 +37,8 @@
  */
 
 import { execFileSync, spawn } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
+import { createHash } from 'crypto'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { createRequire } from 'module'
 import path from 'path'
 import readline from 'readline'
@@ -54,7 +55,11 @@ import * as nip06 from 'nostr-tools/nip06'
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
 
-import { hasReleaseKeystore } from '../../../tools/release/keystore.mjs'
+import {
+  hasReleaseKeystore,
+  keystorePath as releaseKeystorePath
+} from '../../../tools/release/keystore.mjs'
+import { parseZspEvents, verifyOnZapstore } from './zapstore-verify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MOBILE_DIR = path.resolve(__dirname, '..')
@@ -62,9 +67,16 @@ const REPO_ROOT = path.resolve(MOBILE_DIR, '../..')
 const require = createRequire(import.meta.url)
 const { version: APP_VERSION } = require('../package.json')
 const {
+  ANDROID_ABI_ARM64,
+  ANDROID_ABI_LABELS,
   getVariantPackageId,
   sanitizePackageSegment
 } = require('../constants/variant.cjs')
+
+// zsp expects an arm64-v8a APK. A universal build carries every CPU type and
+// passes 400 MB, which never reached Zapstore's Blossom server.
+const ZAPSTORE_ABI = ANDROID_ABI_ARM64
+const GIT_MAX_BUFFER = 256 * 1024 * 1024
 
 const { values: flags } = parseArgs({
   args: process.argv.slice(2),
@@ -84,6 +96,11 @@ const { values: flags } = parseArgs({
 const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
 const yes = flags.yes === true || isAgent
 const dryRun = flags['dry-run'] === true
+const ZSP_BIN =
+  process.env.ZSP_BIN ??
+  (process.platform === 'win32'
+    ? `${process.env.USERPROFILE}\\go\\bin\\zsp.exe`
+    : `${process.env.HOME}/go/bin/zsp`)
 
 // Key resolution — env takes precedence, interactive prompt is the fallback
 const envSignWith = process.env.SIGN_WITH ?? ''
@@ -231,7 +248,7 @@ async function resolveSecretKey() {
 
 function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
   return new Promise((resolve, reject) => {
-    const lines = []
+    const chunks = []
     // On Windows, spawn needs shell:true to find .cmd shims (pnpm.cmd, etc.)
     const isWindows = process.platform === 'win32'
     const proc = spawn(cmd, args, {
@@ -244,7 +261,7 @@ function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
     proc.stdout.on('data', (chunk) => {
       const text = chunk.toString()
       process.stdout.write(text)
-      lines.push(...text.split('\n'))
+      chunks.push(text)
     })
 
     proc.stderr.on('data', (chunk) => {
@@ -255,7 +272,7 @@ function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
       if (code !== 0) {
         reject(new Error(`"${cmd} ${args.join(' ')}" exited with code ${code}`))
       } else {
-        resolve(lines)
+        resolve(chunks.join('').split('\n'))
       }
     })
   })
@@ -332,6 +349,37 @@ function checkPrerequisites() {
   }
 }
 
+function git(args) {
+  return execFileSync('git', args, {
+    cwd: REPO_ROOT,
+    maxBuffer: GIT_MAX_BUFFER
+  })
+}
+
+function readTextFile(filePath) {
+  return existsSync(filePath) ? readFileSync(filePath, 'utf8') : null
+}
+
+// Covers committed code, uncommitted edits, untracked files and the signing
+// key, so a reused APK is always the one a fresh build would produce.
+function sourceFingerprint() {
+  const hash = createHash('sha256')
+  hash.update(git(['rev-parse', 'HEAD']))
+  hash.update(git(['diff', 'HEAD', '--binary']))
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '-z'])
+    .toString()
+    .split('\0')
+    .filter(Boolean)
+  for (const file of untracked) {
+    hash.update(file)
+    hash.update(readFileSync(path.join(REPO_ROOT, file)))
+  }
+  if (hasReleaseKeystore()) {
+    hash.update(readFileSync(releaseKeystorePath))
+  }
+  return hash.digest('hex')
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 4
@@ -387,7 +435,9 @@ async function buildReleaseApk() {
     'variant',
     '--',
     '--apk',
-    '--release'
+    '--release',
+    '--abi',
+    ZAPSTORE_ABI
   ]
   if (CHANNEL === 'primary') variantArgs.push('--prod', '--plain')
   if (CHANNEL === 'generic') variantArgs.push('--plain')
@@ -398,8 +448,6 @@ async function buildReleaseApk() {
         ? '  Generic dev: shared dev name and package id, no branch suffix\n'
         : '  Branch release: branch name and package id\n'
   )
-  await run('pnpm', variantArgs, { cwd: REPO_ROOT })
-
   const segment =
     CHANNEL === 'dev' ? sanitizePackageSegment(gitBranch()) || 'plain' : 'plain'
   const label = CHANNEL === 'primary' ? 'prod' : 'dev'
@@ -407,11 +455,21 @@ async function buildReleaseApk() {
     MOBILE_DIR,
     'dist',
     'apks',
-    `satsigner-${label}-${segment}-release.apk`
+    `satsigner-${label}-${segment}-release-${ANDROID_ABI_LABELS.get(ZAPSTORE_ABI)}.apk`
   )
+  const sourcePath = `${apkPath}.source`
+  const source = sourceFingerprint()
+  if (existsSync(apkPath) && readTextFile(sourcePath) === source) {
+    console.log('  Reusing the APK already built from this exact source\n')
+    return apkPath
+  }
+
+  rmSync(sourcePath, { force: true })
+  await run('pnpm', variantArgs, { cwd: REPO_ROOT })
   if (!existsSync(apkPath)) {
     throw new Error(`APK not found at expected path:\n  ${apkPath}`)
   }
+  writeFileSync(sourcePath, source)
   return apkPath
 }
 
@@ -479,22 +537,16 @@ async function main() {
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
     )
 
-    const zspBin =
-      process.env.ZSP_BIN ??
-      (process.platform === 'win32'
-        ? `${process.env.USERPROFILE}\\go\\bin\\zsp.exe`
-        : `${process.env.HOME}/go/bin/zsp`)
     // Pass the yaml config OR the local APK path — never both
     const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
-    const zspFlags = ['publish', '--quiet', '--skip-preview']
+    // --json keeps zsp non-interactive but still reports errors, and prints
+    // every event it published. --quiet alone hides a run that publishes nothing.
+    const zspFlags = ['publish', '--json', '--quiet', '--skip-preview']
 
     // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
-    // when we're using the default yaml. For custom configs (--config), use
-    // --json instead for machine-readable output without the override.
+    // when we're using the default yaml.
     if (isAgent && !usingCustomConfig) {
       zspFlags.push('--indexer-mode')
-    } else if (isAgent) {
-      zspFlags.push('--json')
     }
 
     zspFlags.push(zspTarget)
@@ -503,14 +555,22 @@ async function main() {
       console.log('  [dry-run] Skipping zsp publish.')
     } else {
       try {
-        await run(zspBin, zspFlags, {
+        const output = await run(ZSP_BIN, zspFlags, {
           cwd: REPO_ROOT,
           env: {
             BLOSSOM_URL,
             SIGN_WITH: signWith
           }
         })
-      } catch {
+        const events = parseZspEvents(output)
+        if (events.length === 0) {
+          throw new Error(
+            'zsp published no events. This version may already be on Zapstore.'
+          )
+        }
+        await verifyOnZapstore(events)
+      } catch (error) {
+        console.log(`\n  ${error.message}`)
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
         // Interactive combined runs can still continue to the announcement prompt.
         // Zapstore-only and --yes runs must fail instead of reporting success.
@@ -518,12 +578,12 @@ async function main() {
           secretKey?.fill(0)
           throw new Error(
             ZAPSTORE_ONLY
-              ? 'zsp publish failed'
-              : 'zsp publish failed; announcement skipped'
+              ? 'Zapstore publish failed'
+              : 'Zapstore publish failed; announcement skipped'
           )
         }
         console.log(
-          '\n  zsp exited with errors — continuing to announcement step.'
+          '\n  Zapstore publish failed — continuing to announcement step.'
         )
       }
     }

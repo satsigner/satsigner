@@ -29,8 +29,7 @@ import { fileURLToPath } from 'node:url'
 
 import { signingEnv } from '../../../tools/release/keystore.mjs'
 import {
-  ANDROID_ABI_ARM64,
-  ANDROID_ABI_X86_64,
+  ANDROID_ABI_LABELS,
   APP_VARIANT_PRODUCTION,
   getVariantAppName,
   getVariantPackageId,
@@ -70,11 +69,6 @@ function removeNativeDir(path: string) {
   }
 }
 
-const APK_ABI_LABELS = new Map([
-  [ANDROID_ABI_ARM64, 'arm64'],
-  [ANDROID_ABI_X86_64, 'x86_64']
-])
-
 type VariantArgs = {
   abi: string | undefined
   apk: boolean
@@ -112,7 +106,7 @@ function parseArgs(argv: string[]) {
     switch (arg) {
       case '--abi': {
         const abi = remaining.shift()
-        if (!abi || !APK_ABI_LABELS.has(abi)) {
+        if (!abi || !ANDROID_ABI_LABELS.has(abi)) {
           console.error(`unsupported abi: ${abi ?? '(missing)'}`)
           process.exit(1)
         }
@@ -257,7 +251,7 @@ function buildApk({
 
   const variantLabel = variant === APP_VARIANT_PRODUCTION ? 'prod' : 'dev'
   const suffixLabel = segment || 'plain'
-  const abiLabel = abi ? `-${APK_ABI_LABELS.get(abi) ?? abi}` : ''
+  const abiLabel = abi ? `-${ANDROID_ABI_LABELS.get(abi) ?? abi}` : ''
   const outApk = join(
     outDir,
     `satsigner-${variantLabel}-${suffixLabel}-${buildType}${abiLabel}.apk`
