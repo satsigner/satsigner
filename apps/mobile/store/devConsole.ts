@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { DEV_CONSOLE_MAX_ENTRIES } from '@/constants/devConsole'
 import mmkvStorage from '@/storage/mmkv'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
+import { isRecord } from '@/utils/object'
 
 export type DevConsoleDock = 'bottom' | 'top'
 
@@ -39,7 +40,7 @@ export const useDevConsoleStore = create<DevConsoleState & DevConsoleAction>()(
         })),
       clearEntries: () => set({ entries: [], previousEntries: [] }),
       dock: 'top',
-      enabled: true,
+      enabled: false,
       entries: [],
       panelOpen: false,
       pausedSteps: [],
@@ -55,6 +56,14 @@ export const useDevConsoleStore = create<DevConsoleState & DevConsoleAction>()(
       stepMode: false
     }),
     {
+      // Version 1 turns the console off once for installs that had it on
+      // by default before it became opt-in.
+      migrate: (persisted, version) => {
+        if (version < 1 && isRecord(persisted)) {
+          return { ...persisted, enabled: false }
+        }
+        return persisted
+      },
       name: 'satsigner-dev-console',
       // Only the switches persist; Pause must survive a restart so startup
       // can stop before its first step.
@@ -63,7 +72,8 @@ export const useDevConsoleStore = create<DevConsoleState & DevConsoleAction>()(
         enabled: state.enabled,
         stepMode: state.stepMode
       }),
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      version: 1
     }
   )
 )

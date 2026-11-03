@@ -1,7 +1,11 @@
 /* eslint-disable no-console */
 import Constants from 'expo-constants'
 
-import { DEV_CONSOLE_MAX_MESSAGE_LENGTH } from '@/constants/devConsole'
+import {
+  DEV_CONSOLE_MAX_MESSAGE_LENGTH,
+  DEV_CONSOLE_SECRET_TAP_COUNT,
+  DEV_CONSOLE_SECRET_TAP_WINDOW_MS
+} from '@/constants/devConsole'
 import { PACKAGE_ID_DEV } from '@/constants/variant'
 import {
   clearDevConsoleStorage,
@@ -32,6 +36,7 @@ const CONSOLE_LEVELS: Record<ConsoleMethod, DevConsoleLevel> = {
 const CONSOLE_METHODS: ConsoleMethod[] = ['error', 'info', 'log', 'warn']
 
 const pendingSteps: PendingStep[] = []
+const secretTaps: number[] = []
 const counter = { nextId: 0 }
 
 export function isDevVariantPackage(packageId: string): boolean {
@@ -164,6 +169,33 @@ export function hideDevConsole(): void {
   const { setEnabled, setPanelOpen } = useDevConsoleStore.getState()
   setPanelOpen(false)
   setEnabled(false)
+}
+
+/**
+ * Counts taps on the PIN screen title. The seventh tap within the window
+ * toggles the console and returns whether it is now on; other taps return
+ * null. Production builds never toggle.
+ */
+export function registerDevConsoleSecretTap(now = Date.now()): boolean | null {
+  if (!isDevConsoleAvailable()) {
+    return null
+  }
+  const recent = secretTaps.filter(
+    (time) => now - time < DEV_CONSOLE_SECRET_TAP_WINDOW_MS
+  )
+  secretTaps.splice(0, secretTaps.length, ...recent, now)
+  if (secretTaps.length < DEV_CONSOLE_SECRET_TAP_COUNT) {
+    return null
+  }
+  secretTaps.splice(0)
+  const { enabled, setEnabled } = useDevConsoleStore.getState()
+  if (enabled) {
+    hideDevConsole()
+    return false
+  }
+  setEnabled(true)
+  devLog('console', 'turned on from the PIN screen')
+  return true
 }
 
 export function toggleDevConsoleDock(): void {
