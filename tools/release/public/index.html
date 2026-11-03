@@ -136,14 +136,21 @@
       }
       .tabs {
         display: flex;
-        gap: 8px;
+        border-bottom: 1px solid #2a2a2a;
       }
       .tabs button {
         flex: 1;
+        height: 40px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+        color: #a3a3a3;
       }
       .tabs button[aria-selected='true'] {
-        background: #ffffff;
-        color: #000000;
+        background: transparent;
+        color: #ffffff;
+        border-bottom-color: #ffffff;
       }
       .panels {
         margin-top: 8px;
@@ -250,22 +257,39 @@
         width: 100%;
         margin-top: 0;
       }
-      .actions .primary {
+      .actions .primary,
+      .actions .span {
         grid-column: 1 / -1;
       }
       .channel {
         display: flex;
-        gap: 8px;
+        gap: 0;
         margin-top: 10px;
+        border-bottom: 1px solid #2a2a2a;
       }
       .channel button {
         flex: 1;
         width: auto;
+        height: 40px;
         margin-top: 0;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+        color: #a3a3a3;
       }
       .channel button[aria-pressed='true'] {
-        background: #ffffff;
-        color: #000000;
+        background: transparent;
+        color: #ffffff;
+        border-bottom-color: #ffffff;
+      }
+      .channel button.danger {
+        background: transparent;
+        color: #e8b4b4;
+      }
+      .channel button.danger[aria-pressed='true'] {
+        color: #ffd0d0;
+        border-bottom-color: #c45c5c;
       }
       .app-card {
         margin-top: 12px;
@@ -522,18 +546,18 @@
                   <button id="announce" class="ghost" type="button" disabled>
                     Send announcement
                   </button>
+                  <button
+                    id="manage-listings"
+                    class="ghost span"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="listings"
+                  >
+                    Manage listings and posts
+                  </button>
                 </div>
               </li>
             </ol>
-            <button
-              id="manage-listings"
-              class="ghost"
-              type="button"
-              aria-expanded="false"
-              aria-controls="listings"
-            >
-              Manage listings and posts
-            </button>
             <div id="listings" hidden>
               <ul id="releases"></ul>
               <h2 class="manager">Published apps</h2>
