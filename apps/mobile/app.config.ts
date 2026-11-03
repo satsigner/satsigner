@@ -7,6 +7,9 @@ import {
   getVariantPackageId,
   getVariantScheme
 } from './constants/variant.cjs'
+import { getAndroidVersionCode } from './constants/versionCode.cjs'
+
+const APP_VERSION = '0.3.6'
 
 const projectId = process.env.EXPO_PROJECT_ID
 
@@ -28,7 +31,8 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         foregroundImage: './assets/adaptive-icon.png'
       },
       package: getUniqueIdentifier(),
-      permissions: ['NFC']
+      permissions: ['NFC'],
+      versionCode: getAndroidVersionCode(APP_VERSION)
     },
     assetBundlePatterns: ['**/*'],
     description: 'Privacy-first Bitcoin signer with complete UTXO control',
@@ -127,7 +131,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
     scheme: getScheme(),
     slug: 'satsigner',
     userInterfaceStyle: 'dark',
-    version: '0.3.6',
+    version: APP_VERSION,
     web: {
       favicon: './assets/favicon.png'
     }
