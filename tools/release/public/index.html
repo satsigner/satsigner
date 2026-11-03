@@ -261,6 +261,10 @@
       .actions .span {
         grid-column: 1 / -1;
       }
+      .actions .hint {
+        margin: -2px 0 4px;
+        font-size: 13px;
+      }
       .channel {
         display: flex;
         gap: 8px;
@@ -578,6 +582,12 @@
                   >
                     Uninstall from device
                   </button>
+                  <p id="uninstall-hint" class="hint span" hidden>
+                    Removes this app and all its data, including any wallets,
+                    from every Android device connected over USB. Use it before
+                    installing a build signed with a different key, which
+                    Android refuses to install over the old one.
+                  </p>
                   <button
                     id="manage-listings"
                     class="ghost span"
@@ -1295,6 +1305,7 @@
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
       const uninstallButton = document.querySelector('#uninstall')
+      const uninstallHint = document.querySelector('#uninstall-hint')
       const identityButtons = [...document.querySelectorAll('[data-identity]')]
       const kindButtons = [...document.querySelectorAll('[data-kind]')]
       const buildApkButton = document.querySelector('#build-apk')
@@ -1616,6 +1627,7 @@
           listing.packageId && installed.includes(listing.packageId)
         )
         uninstallButton.hidden = !onDevice
+        uninstallHint.hidden = !onDevice
         uninstallButton.textContent = onDevice
           ? `Uninstall ${listing.packageId}`
           : 'Uninstall from device'
