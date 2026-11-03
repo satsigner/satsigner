@@ -6,11 +6,14 @@ import {
   devLog,
   devStep,
   formatConsoleArgs,
+  formatDevConsoleEntries,
   formatDevConsoleTime,
+  hideDevConsole,
   isDevVariantPackage,
   pauseDevSteps,
   releaseNextDevStep,
   resumeDevSteps,
+  toggleDevConsoleDock,
   truncateDevMessage
 } from '@/utils/devConsole'
 
@@ -134,5 +137,53 @@ describe('formatting', () => {
   it('formats time with milliseconds', () => {
     const time = new Date(2026, 10, 3, 9, 5, 7, 42).getTime()
     expect(formatDevConsoleTime(time)).toBe('09:05:07.042')
+  })
+})
+
+describe('panel controls', () => {
+  beforeEach(() => {
+    resumeDevSteps()
+    clearDevConsole()
+    useDevConsoleStore.getState().setEnabled(true)
+    useDevConsoleStore.getState().setDock('top')
+  })
+
+  it('hide turns the console off and releases waiting steps', async () => {
+    pauseDevSteps()
+    const waiting = devStep('session', 'load wallets')
+    useDevConsoleStore.getState().setPanelOpen(true)
+
+    hideDevConsole()
+    await waiting
+
+    const state = useDevConsoleStore.getState()
+    expect(state.enabled).toBe(false)
+    expect(state.panelOpen).toBe(false)
+    expect(state.stepMode).toBe(false)
+  })
+
+  it('moves the panel between top and bottom', () => {
+    toggleDevConsoleDock()
+    expect(useDevConsoleStore.getState().dock).toBe('bottom')
+    toggleDevConsoleDock()
+    expect(useDevConsoleStore.getState().dock).toBe('top')
+  })
+
+  it('formats entries for copying', () => {
+    const time = new Date(2026, 10, 3, 23, 5, 19, 440).getTime()
+    expect(
+      formatDevConsoleEntries([
+        {
+          id: 0,
+          level: 'step',
+          message: 'load wallets',
+          scope: 'session',
+          time
+        },
+        { id: 1, level: 'error', message: 'boom', scope: 'ark', time }
+      ])
+    ).toBe(
+      '23:05:19.440 STEP [session] load wallets\n23:05:19.440 ERROR [ark] boom'
+    )
   })
 })
