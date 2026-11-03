@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   type AddressInfo,
+  BdkElectrumClient,
   BdkPsbtParams,
   BdkRpcClient,
   BdkTxBuilder,
@@ -55,6 +56,7 @@ import {
   getFingerprint,
   PrivateKeyDescriptorError
 } from '@/utils/descriptor'
+import { devLog } from '@/utils/devConsole'
 import { estimateBirthHeight } from '@/utils/rpcScanStartHeight'
 import { isCombinedDescriptor } from '@/utils/validation'
 import {
@@ -727,6 +729,28 @@ function createThrottledRpcProgress(
   }
 }
 
+function electrumHost(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return 'invalid url'
+  }
+}
+
+/**
+ * The BDK Electrum client connects inside its constructor, which is a
+ * synchronous native call: until the TCP connect returns, the JS thread is
+ * blocked. Logged so the dev console shows how long that took.
+ */
+function connectElectrum(url: string): BdkElectrumClient {
+  const host = electrumHost(url)
+  const startedAt = Date.now()
+  devLog('bdk', `electrum connect ${host}`)
+  const client = new BdkElectrumClient(url)
+  devLog('bdk', `electrum connected ${host} in ${Date.now() - startedAt} ms`)
+  return client
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
@@ -788,10 +812,10 @@ async function syncWallet(
     })
   } else if (isFullScan) {
     await (backend === 'electrum'
-      ? wallet.fullScanWithElectrum(url, stopGap)
+      ? wallet.fullScanWithElectrum(connectElectrum(url), stopGap)
       : wallet.fullScanWithEsplora(url, stopGap))
   } else if (backend === 'electrum') {
-    await wallet.syncWithElectrum(url, stopGap)
+    await wallet.syncWithElectrum(connectElectrum(url), stopGap)
   } else {
     await wallet.syncWithEsplora(url, stopGap)
   }
