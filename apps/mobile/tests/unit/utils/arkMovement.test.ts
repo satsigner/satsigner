@@ -408,12 +408,12 @@ describe('arkMovement utils', () => {
       expect(getArkMovementCounterparty(movement)).toBe('alice@ln.example')
     })
 
-    it('returns first received address for receive movements', () => {
+    it('returns null for receive movements, which only list our own addresses', () => {
       const movement = buildMovement({
         effectiveBalanceSats: 1000,
-        receivedOnAddresses: ['bob@ln.example']
+        receivedOnAddresses: ['tark1ownaddress']
       })
-      expect(getArkMovementCounterparty(movement)).toBe('bob@ln.example')
+      expect(getArkMovementCounterparty(movement)).toBeNull()
     })
 
     it('returns counterparty for failed sends via intended balance fallback', () => {

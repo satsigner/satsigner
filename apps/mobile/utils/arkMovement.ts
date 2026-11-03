@@ -322,17 +322,15 @@ export function getArkRefreshVtxoLabel(movement: ArkMovement): string {
   return t('ark.movement.refreshLabel')
 }
 
+// Only outgoing movements have a counterparty: `receivedOnAddresses` lists our
+// own receiving destinations, never the sender.
 export function getArkMovementCounterparty(
   movement: ArkMovement
 ): string | null {
-  const kind = getArkMovementKind(movement)
-  if (kind === 'refresh') {
+  if (!isOutgoingArkMovementKind(getArkMovementKind(movement))) {
     return null
   }
-  const list = isOutgoingArkMovementKind(kind)
-    ? movement.sentToAddresses
-    : movement.receivedOnAddresses
-  const [first] = list
+  const [first] = movement.sentToAddresses
   if (!first) {
     return null
   }
