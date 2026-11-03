@@ -57,8 +57,14 @@ import { SimplePool } from 'nostr-tools/pool'
 
 import {
   hasReleaseKeystore,
-  keystorePath as releaseKeystorePath
+  readKeystorePassword,
+  keystorePath as releaseKeystorePath,
+  storedCertificateHash
 } from '../../../tools/release/keystore.mjs'
+import {
+  KIND_IDENTITY_PROOF,
+  ensureIdentityProof
+} from './zapstore-identity.mjs'
 import { parseZspEvents, verifyOnZapstore } from './zapstore-verify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -280,16 +286,46 @@ function run(cmd, args, { env = {}, cwd = MOBILE_DIR } = {}) {
 
 // ── nostr announcement ────────────────────────────────────────────────────────
 
-async function signWithBunker(unsigned) {
+async function withBunker(callback) {
   const parsed = await parseBunkerInput(bunkerUrl)
   if (!parsed?.pubkey || parsed.relays.length === 0) {
     throw new Error('bunker URL is missing a pubkey or relay')
   }
   const signer = BunkerSigner.fromBunker(generateSecretKey(), parsed)
   await signer.connect()
-  const signed = await signer.signEvent(unsigned)
-  await signer.close()
-  return signed
+  try {
+    return await callback(signer)
+  } finally {
+    await signer.close()
+  }
+}
+
+function signWithBunker(unsigned) {
+  return withBunker((signer) => signer.signEvent(unsigned))
+}
+
+function publisherPubkey(secretKey) {
+  return secretKey
+    ? Promise.resolve(getPublicKey(secretKey))
+    : withBunker((signer) => signer.getPublicKey())
+}
+
+async function signIdentityProof(signWith) {
+  const output = await run(
+    ZSP_BIN,
+    ['identity', '--link-key', releaseKeystorePath, '--offline'],
+    {
+      cwd: REPO_ROOT,
+      env: { KEYSTORE_PASSWORD: readKeystorePassword(), SIGN_WITH: signWith }
+    }
+  )
+  const proof = parseZspEvents(output).find(
+    (event) => event.kind === KIND_IDENTITY_PROOF
+  )
+  if (!proof) {
+    throw new Error('zsp did not print a signed identity proof')
+  }
+  return proof
 }
 
 async function publishAnnouncement(secretKey, releaseNotes) {
@@ -382,7 +418,7 @@ function sourceFingerprint() {
 
 // ── main ──────────────────────────────────────────────────────────────────────
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 function step(n, label) {
   console.log(`\n[${n}/${TOTAL_STEPS}] ${label}`)
@@ -489,9 +525,12 @@ async function main() {
       : '  1. You enter your nsec or seed words (hidden, never saved)'
   )
   console.log('  2. EAS builds the Android APK locally')
-  console.log('  3. zsp uploads APK to Blossom and publishes to Zapstore relay')
   console.log(
-    '  4. A kind 1 nostr note is signed and posted as release announcement'
+    '  3. The signing key is linked to your npub, once per key (NIP-C1)'
+  )
+  console.log('  4. zsp uploads APK to Blossom and publishes to Zapstore relay')
+  console.log(
+    '  5. A kind 1 nostr note is signed and posted as release announcement'
   )
   console.log('')
 
@@ -531,7 +570,16 @@ async function main() {
       )
     }
 
-    step(3, 'Publish to Zapstore')
+    if (!usingCustomConfig && !dryRun) {
+      step(3, 'Link signing key to your npub')
+      await ensureIdentityProof({
+        certHash: storedCertificateHash(),
+        pubkey: await publisherPubkey(secretKey),
+        signProof: () => signIdentityProof(signWith)
+      })
+    }
+
+    step(4, 'Publish to Zapstore')
     console.log(`  Uploading APK to Blossom (${BLOSSOM_URL})`)
     console.log(
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
@@ -595,7 +643,7 @@ async function main() {
     process.exit(0)
   }
 
-  step(4, 'Post release announcement')
+  step(5, 'Post release announcement')
 
   if (dryRun) {
     console.log('  [dry-run] Skipping announcement.')

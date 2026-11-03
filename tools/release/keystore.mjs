@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import {
   X509Certificate,
+  createHash,
   createPrivateKey,
   hkdfSync,
   timingSafeEqual
@@ -151,7 +152,7 @@ function privateKeysMatch(left, right) {
 
 function readPkcs12(dir, sectionArg) {
   const files = keystoreFiles(dir)
-  const password = readFileSync(files.password, 'utf8').trim()
+  const password = readKeystorePassword(dir)
   return execFileSync(
     'openssl',
     [
@@ -194,12 +195,22 @@ function hasReleaseKeystore(dir = releaseDir) {
   return existsSync(files.keystore) && existsSync(files.password)
 }
 
+function readKeystorePassword(dir = releaseDir) {
+  return readFileSync(keystoreFiles(dir).password, 'utf8').trim()
+}
+
+function storedCertificateHash(dir = releaseDir) {
+  return createHash('sha256')
+    .update(storedIdentity(dir).certificate)
+    .digest('hex')
+}
+
 function signingEnv(baseEnv) {
   if (!hasReleaseKeystore()) {
     return baseEnv
   }
   const files = keystoreFiles(releaseDir)
-  const password = readFileSync(files.password, 'utf8').trim()
+  const password = readKeystorePassword()
   return {
     ...baseEnv,
     'ORG_GRADLE_PROJECT_android.injected.signing.key.alias': KEY_ALIAS,
@@ -219,8 +230,10 @@ export {
   keystorePath,
   phraseMatchesKeystore,
   privateKeysMatch,
+  readKeystorePassword,
   releaseIdentityFromMnemonic,
   signingEnv,
+  storedCertificateHash,
   storedIdentity,
   writeKeystore
 }
