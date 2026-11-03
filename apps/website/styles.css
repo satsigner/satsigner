@@ -1176,6 +1176,16 @@ html[data-theme="light"] .as-seen-in-logo--light {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
+@media (max-width: 639px) {
+  #features .feature-grid {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+  #features .feature-grid-card {
+    width: 100%;
+  }
+}
 @media (min-width: 640px) {
   #features .feature-grid {
     grid-template-columns: repeat(3, 1fr);
