@@ -37,13 +37,13 @@ function getBackupVariantLabels(packageId = ''): {
   return { suffixLabel: 'plain', variantLabel: 'dev' }
 }
 
-function getBackupFilename(now = Date.now()): string {
+function getBackupFilename(appVersion: string, now = Date.now()): string {
   const packageId =
     Constants.expoConfig?.android?.package ??
     Constants.expoConfig?.ios?.bundleIdentifier ??
     ''
   const { suffixLabel, variantLabel } = getBackupVariantLabels(packageId)
-  return `satsigner-backup-${variantLabel}-${suffixLabel}-${now}.json`
+  return `satsigner-backup-${variantLabel}-${suffixLabel}-v${appVersion}-${now}.json`
 }
 
 export { getBackupFilename, getBackupVariantLabels }

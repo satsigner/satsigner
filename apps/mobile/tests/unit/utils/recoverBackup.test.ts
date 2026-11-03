@@ -26,6 +26,7 @@ jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
 }))
 
 jest.mock<typeof import('@/utils/arkBackup')>('@/utils/arkBackup', () => ({
+  deleteLeftoverArkDatadirs: jest.fn().mockResolvedValue(undefined),
   prepareArkMnemonics: (
     mnemonics: Record<string, string | null> | undefined
   ) => {
@@ -37,7 +38,6 @@ jest.mock<typeof import('@/utils/arkBackup')>('@/utils/arkBackup', () => ({
       .map(([accountId, mnemonic]) => ({ accountId, mnemonic }))
   },
   releaseArkWalletsForRestore: jest.fn(),
-  restoreArkDatadirsFromBackup: jest.fn().mockResolvedValue(undefined),
   restoreArkLabelsFromBackup: jest.fn(),
   restoreArkStoreFromBackup: jest.fn()
 }))
@@ -833,7 +833,7 @@ describe('performRecoverOverwrite restore', () => {
     expect(setConnected).toHaveBeenCalledWith(true)
   })
 
-  it('restores ark mnemonics, labels, store, and datadirs', async () => {
+  it('restores ark mnemonics, labels, and store, ignoring legacy datadirs', async () => {
     const { storeArkMnemonic, deleteArkMnemonic } = jest.requireMock(
       '@/storage/encrypted'
     ) as {
@@ -842,12 +842,12 @@ describe('performRecoverOverwrite restore', () => {
     }
     const {
       releaseArkWalletsForRestore,
-      restoreArkDatadirsFromBackup,
+      deleteLeftoverArkDatadirs,
       restoreArkLabelsFromBackup,
       restoreArkStoreFromBackup
     } = jest.requireMock('@/utils/arkBackup') as {
       releaseArkWalletsForRestore: jest.Mock
-      restoreArkDatadirsFromBackup: jest.Mock
+      deleteLeftoverArkDatadirs: jest.Mock
       restoreArkLabelsFromBackup: jest.Mock
       restoreArkStoreFromBackup: jest.Mock
     }
@@ -921,11 +921,7 @@ describe('performRecoverOverwrite restore', () => {
     expect(releaseArkWalletsForRestore).toHaveBeenCalledWith([
       { id: 'old-ark', serverId: 'second' }
     ])
-    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
-      datadirs,
-      ['old-ark'],
-      ['ark-1']
-    )
+    expect(deleteLeftoverArkDatadirs).toHaveBeenCalledWith(['old-ark'])
   })
 
   it('restores ark account metadata from old backups without mnemonics or datadirs', async () => {
@@ -935,9 +931,9 @@ describe('performRecoverOverwrite restore', () => {
     const {
       restoreArkStoreFromBackup,
       restoreArkLabelsFromBackup,
-      restoreArkDatadirsFromBackup
+      deleteLeftoverArkDatadirs
     } = jest.requireMock('@/utils/arkBackup') as {
-      restoreArkDatadirsFromBackup: jest.Mock
+      deleteLeftoverArkDatadirs: jest.Mock
       restoreArkLabelsFromBackup: jest.Mock
       restoreArkStoreFromBackup: jest.Mock
     }
@@ -974,11 +970,7 @@ describe('performRecoverOverwrite restore', () => {
       ['ark-1']
     )
     expect(storeArkMnemonic).not.toHaveBeenCalled()
-    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
-      undefined,
-      [],
-      ['ark-1']
-    )
+    expect(deleteLeftoverArkDatadirs).toHaveBeenCalledWith([])
   })
 
   it('restores when ark is present without an accounts array', async () => {
@@ -992,12 +984,12 @@ describe('performRecoverOverwrite restore', () => {
     })
     const {
       releaseArkWalletsForRestore,
-      restoreArkDatadirsFromBackup,
+      deleteLeftoverArkDatadirs,
       restoreArkLabelsFromBackup,
       restoreArkStoreFromBackup
     } = jest.requireMock('@/utils/arkBackup') as {
       releaseArkWalletsForRestore: jest.Mock
-      restoreArkDatadirsFromBackup: jest.Mock
+      deleteLeftoverArkDatadirs: jest.Mock
       restoreArkLabelsFromBackup: jest.Mock
       restoreArkStoreFromBackup: jest.Mock
     }
@@ -1025,10 +1017,6 @@ describe('performRecoverOverwrite restore', () => {
       ['old-ark'],
       []
     )
-    expect(restoreArkDatadirsFromBackup).toHaveBeenCalledWith(
-      undefined,
-      ['old-ark'],
-      []
-    )
+    expect(deleteLeftoverArkDatadirs).toHaveBeenCalledWith(['old-ark'])
   })
 })

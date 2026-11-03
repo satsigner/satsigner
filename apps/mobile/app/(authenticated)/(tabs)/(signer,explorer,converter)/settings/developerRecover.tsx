@@ -16,9 +16,16 @@ import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Colors, Typography } from '@/styles'
 import { BackupJsonSchema } from '@/types/models/Backup'
+import {
+  type LoadBackupResult,
+  type LoadedBackup,
+  loadBackupText,
+  pickBackupFile,
+  shouldHoldBackupOffscreen
+} from '@/utils/backupFile'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
-import { pickFile } from '@/utils/filesystem'
+import { formatBytes } from '@/utils/format'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 const ENCRYPTED_BACKUP_MAX_HEIGHT = 240
@@ -36,20 +43,44 @@ export default function DeveloperRecover() {
     )
 
   const [recoverEncryptedInput, setRecoverEncryptedInput] = useState('')
+  const [recoverBackupFile, setRecoverBackupFile] =
+    useState<LoadedBackup | null>(null)
   const [recoverPassphrase, setRecoverPassphrase] = useState('')
   const [recoverDecrypted, setRecoverDecrypted] = useState<string | null>(null)
   const [recoverConfirmOverwrite, setRecoverConfirmOverwrite] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
+  function holdBackupOffscreen(result: LoadBackupResult) {
+    if (result.status === 'cancelled') {
+      return
+    }
+    if (result.status === 'tooLarge') {
+      toast.error(t('settings.developer.recoverFileTooLarge'))
+      return
+    }
+    setRecoverEncryptedInput('')
+    setRecoverBackupFile(result.backup)
+    toast.success(t('common.success.dataPasted'))
+  }
+
+  function clearRecoverBackupFile() {
+    setRecoverBackupFile(null)
+  }
+
   async function handleRecoverPaste() {
     try {
       const text = await Clipboard.getStringAsync()
-      if (text) {
-        setRecoverEncryptedInput(text)
-        toast.success(t('common.success.dataPasted'))
-      } else {
+      if (!text) {
         toast.error(t('common.error.noClipboardData'))
+        return
       }
+      if (shouldHoldBackupOffscreen(text)) {
+        holdBackupOffscreen(loadBackupText(text))
+        return
+      }
+      setRecoverBackupFile(null)
+      setRecoverEncryptedInput(text)
+      toast.success(t('common.success.dataPasted'))
     } catch {
       toast.error(t('common.error.pasteFromClipboard'))
     }
@@ -59,6 +90,7 @@ export default function DeveloperRecover() {
     if (content.type !== 'encrypted_backup') {
       return
     }
+    setRecoverBackupFile(null)
     setRecoverEncryptedInput(content.cleaned)
     setCameraModalVisible(false)
     toast.success(t('common.success.qrScanned'))
@@ -66,19 +98,14 @@ export default function DeveloperRecover() {
 
   async function handleRecoverUploadFile() {
     try {
-      const text = await pickFile({ type: 'application/json' })
-      if (!text) {
-        return
-      }
-      setRecoverEncryptedInput(text)
-      toast.success(t('common.success.dataPasted'))
+      holdBackupOffscreen(await pickBackupFile())
     } catch {
       toast.error(t('settings.developer.recoverUploadError'))
     }
   }
 
   async function handleRecoverDecrypt() {
-    const raw = recoverEncryptedInput.trim()
+    const raw = (recoverBackupFile?.text ?? recoverEncryptedInput).trim()
     if (!raw || !recoverPassphrase.trim()) {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
@@ -139,16 +166,32 @@ export default function DeveloperRecover() {
                 <SSText color="muted" size="sm">
                   {t('settings.developer.recoverEncryptedLabel')}
                 </SSText>
-                <TextInput
-                  multiline
-                  placeholder={t(
-                    'settings.developer.recoverEncryptedPlaceholder'
-                  )}
-                  scrollEnabled
-                  style={styles.encryptedInput}
-                  value={recoverEncryptedInput}
-                  onChangeText={setRecoverEncryptedInput}
-                />
+                {recoverBackupFile ? (
+                  <SSHStack justifyBetween style={styles.loadedFileRow}>
+                    <SSText size="sm">
+                      {t('settings.developer.recoverFileLoaded', {
+                        size: formatBytes(recoverBackupFile.sizeBytes)
+                      })}
+                    </SSText>
+                    <SSButton
+                      label={t('common.clear')}
+                      onPress={clearRecoverBackupFile}
+                      variant="ghost"
+                      style={styles.clearFileButton}
+                    />
+                  </SSHStack>
+                ) : (
+                  <TextInput
+                    multiline
+                    placeholder={t(
+                      'settings.developer.recoverEncryptedPlaceholder'
+                    )}
+                    scrollEnabled
+                    style={styles.encryptedInput}
+                    value={recoverEncryptedInput}
+                    onChangeText={setRecoverEncryptedInput}
+                  />
+                )}
                 <SSHStack gap="xs" style={styles.actionRow}>
                   <SSButton
                     label={t('common.paste')}
@@ -238,6 +281,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0
   },
+  clearFileButton: {
+    width: 'auto'
+  },
   encryptedInput: {
     alignSelf: 'stretch',
     borderColor: Colors.gray[500],
@@ -250,6 +296,14 @@ const styles = StyleSheet.create({
     minHeight: 120,
     padding: 8,
     textAlignVertical: 'top',
+    width: '100%'
+  },
+  loadedFileRow: {
+    alignSelf: 'stretch',
+    borderColor: Colors.gray[500],
+    borderRadius: 3,
+    borderWidth: 1,
+    paddingLeft: 12,
     width: '100%'
   },
   passphraseInput: {
