@@ -136,6 +136,16 @@
         align-items: center;
         gap: 12px;
       }
+      .job {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #d4d4d4;
+        font-size: 14px;
+      }
+      .job[hidden] {
+        display: none;
+      }
       .identity {
         display: flex;
         align-items: center;
@@ -547,6 +557,10 @@
         </p>
       </div>
       <div class="login">
+        <div id="job" class="job" hidden>
+          <span id="job-label"></span>
+          <button id="cancel" class="danger" type="button">Cancel</button>
+        </div>
         <div id="identity" class="identity" hidden>
           <img id="avatar" alt="" width="32" height="32" hidden />
           <span id="display-name"></span>
@@ -827,6 +841,9 @@
       const displayNameEl = document.querySelector('#display-name')
       const logEl = document.querySelector('#log')
       const connectButton = document.querySelector('#connect')
+      const jobEl = document.querySelector('#job')
+      const jobLabelEl = document.querySelector('#job-label')
+      const cancelButton = document.querySelector('#cancel')
       const publishStep = document.querySelector('#publish-step')
       const ngitTitle = document.querySelector('#ngit-title')
       const tabs = [...document.querySelectorAll('[role="tab"]')]
@@ -1496,6 +1513,15 @@
 
       let signerPubkey = ''
       let busy = false
+      const JOB_LABELS = {
+        announce: 'Sending the announcement',
+        apk: 'Building the APK',
+        publish: 'Publishing the repository',
+        push: 'Pushing the branch',
+        uninstall: 'Uninstalling',
+        zapstore: 'Building, publishing, and announcing',
+        zapstoreOnly: 'Publishing to Zapstore'
+      }
       let profileFor = ''
 
       const PROFILE_RELAYS = [
@@ -1622,7 +1648,10 @@
       function setBusy(next) {
         busy = next
         const connected = signerPubkey.length > 0
-        connectButton.disabled = busy || connected
+        // A running job may be waiting for a signature, so signing in stays
+        // possible while busy.
+        connectButton.disabled = connected
+        jobEl.hidden = !busy
         connectButton.textContent = connected ? 'Signed in' : 'Sign in'
         identityEl.hidden = !connected
         if (!connected) {
@@ -1828,7 +1857,36 @@
           ? `Release APK from the Android project on disk, all CPU architectures. Current app-release.apk: ${formatBytes(release.bytes)} · ${release.modifiedAt.slice(0, 16).replace('T', ' ')}.`
           : "Release APK from the Android project on disk, all CPU architectures. It keeps that project's package id. No release APK is on disk yet."
         setBusy(status.busy)
+        showJob(status.job)
         await refreshApks()
+      }
+
+      function showJob(job) {
+        if (!job) {
+          jobLabelEl.textContent = 'Running…'
+          jobLabelEl.title = ''
+          cancelButton.disabled = false
+          return
+        }
+        const label = JOB_LABELS[job.action] ?? job.action
+        jobLabelEl.textContent = job.cancelling ? 'Cancelling…' : `${label}…`
+        jobLabelEl.title = job.command
+        cancelButton.disabled = job.cancelling
+      }
+
+      async function cancelJob() {
+        const confirmed = window.confirm(
+          'Stop the running command? A build in progress is thrown away.'
+        )
+        if (!confirmed) return
+        cancelButton.disabled = true
+        jobLabelEl.textContent = 'Cancelling…'
+        const response = await fetch('/api/cancel', { method: 'POST' })
+        if (!response.ok) {
+          const body = await response.json()
+          writeLog(`${body.error}\n`, 'error')
+        }
+        await refreshStatus()
       }
 
       function connectSigner() {
@@ -1961,12 +2019,19 @@
         })
       }
       buildApkButton.addEventListener('click', () => runAction('apk'))
+      cancelButton.addEventListener('click', () => {
+        cancelJob().catch((error) => writeLog(`${error.message}\n`, 'error'))
+      })
 
       const logs = new EventSource('/api/logs')
       logs.onmessage = (event) => {
         const { kind, text } = JSON.parse(event.data)
         writeLog(text, kind)
-        if (text === 'done' || text.startsWith('error:')) {
+        if (
+          text === 'done' ||
+          text === 'cancelled' ||
+          text.startsWith('error:')
+        ) {
           refreshStatus()
           refreshListings()
         }

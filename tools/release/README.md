@@ -29,6 +29,8 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 | Production        | Production package id, no branch suffix, ARM CPUs only       |
 | Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
+**Cancel.** While a command runs, the header shows it with a **Cancel** button. Cancel stops the command and everything it started, such as `pnpm` and `gradlew`, so a half-done build is thrown away. Sign in stays available during a run, because a publish may be waiting for a signature.
+
 ## Tools the actions expect
 
 | Action            | Needs                                                                                                    |
