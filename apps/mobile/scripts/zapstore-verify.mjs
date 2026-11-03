@@ -3,7 +3,7 @@ import { SimplePool } from 'nostr-tools/pool'
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev'
 const ZAPSTORE_APPS_URL = 'https://zapstore.dev/apps'
 const QUERY_MAX_WAIT_MS = 8000
-const VERIFY_ATTEMPTS = 6
+const VERIFY_ATTEMPTS = 18
 const VERIFY_DELAY_MS = 5000
 const HTTP_OK = 200
 
@@ -117,9 +117,12 @@ async function waitForZapstore(events, attemptsLeft) {
 }
 
 // relay.zapstore.dev answers OK to new listings and holds them as "pending"
-// until its own checks pass, so zsp reports success either way.
+// until its own checks pass, so zsp reports success either way. The checks
+// read the APK in the background and take up to about a minute.
 async function verifyOnZapstore(events) {
-  console.log('\n  Checking that Zapstore saved the release...')
+  console.log(
+    '\n  Checking that Zapstore saved the release. This can take a minute...'
+  )
   const status = await waitForZapstore(events, VERIFY_ATTEMPTS)
   console.log(describeStatus(events, status))
   if (!isLive(events, status)) {
