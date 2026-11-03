@@ -30,6 +30,8 @@ import { certificatePem, selfSignedCertificate } from './certificate.mjs'
 const KEY_INFO = 'satsigner android release key v1'
 const PASSWORD_INFO = 'satsigner android keystore password v1'
 const KEY_ALIAS = 'satsigner'
+const RELEASE_WORD_COUNT = 12
+const RELEASE_ENTROPY_BITS = 128
 const PRIVATE_DIR_MODE = 0o700
 const PRIVATE_FILE_MODE = 0o600
 const P256_ORDER =
@@ -68,13 +70,22 @@ function privateKeyBytes(seed) {
 }
 
 function normalizeMnemonic(phrase) {
-  return phrase.trim().toLowerCase().split(/\s+/).join(' ')
+  return typeof phrase === 'string'
+    ? phrase.trim().toLowerCase().split(/\s+/).join(' ')
+    : ''
+}
+
+function isReleaseMnemonic(mnemonic) {
+  return (
+    mnemonic.split(' ').length === RELEASE_WORD_COUNT &&
+    validateMnemonic(mnemonic, wordlist)
+  )
 }
 
 function releaseIdentityFromMnemonic(phrase) {
   const mnemonic = normalizeMnemonic(phrase)
-  if (!validateMnemonic(mnemonic, wordlist)) {
-    throw new Error('those are not 12 valid words')
+  if (!isReleaseMnemonic(mnemonic)) {
+    throw new Error(`those are not ${RELEASE_WORD_COUNT} valid words`)
   }
   const seed = mnemonicToSeedSync(mnemonic)
   const secret = privateKeyBytes(seed)
@@ -221,7 +232,7 @@ function signingEnv(baseEnv) {
 }
 
 function createMnemonic() {
-  return generateMnemonic(wordlist, 128)
+  return generateMnemonic(wordlist, RELEASE_ENTROPY_BITS)
 }
 
 export {
