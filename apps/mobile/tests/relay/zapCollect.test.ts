@@ -1,15 +1,54 @@
+import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
+
 import { clearNdkRegistry } from '@/api/ndkRegistry'
 import { resetRelayHealth } from '@/api/nostrRelayHealth'
 import { NOSTR_ZAP_COLLECT_TIMEOUT_MS } from '@/constants/nostr'
-import { fetchZapsByPubkey } from '@/utils/nostrZap'
+import { fetchZapsByPubkey, fetchZapsSentByPubkey } from '@/utils/nostrZap'
 
-import { fixturePubkey } from './support/fixtures'
+import { BASE_CREATED_AT, fixturePubkey } from './support/fixtures'
 import { startTestRelay, type TestRelay } from './support/testRelay'
 
 const ANSWERED_WELL_BEFORE_TIMEOUT_MS = NOSTR_ZAP_COLLECT_TIMEOUT_MS / 3
 const PROFILE_PUBKEY = fixturePubkey(42)
+const ZAP_REQUEST_KIND = 9734
+const ZAP_RECEIPT_KIND = 9735
+const ZAP_AMOUNT_MSATS = '21000'
 const SLOW_EOSE_MS = 300
 const UNREACHABLE_RELAY_URL = 'ws://127.0.0.1:1'
+
+function signedZapReceipt(
+  zapperKey: Uint8Array,
+  lnurlServerKey: Uint8Array,
+  claimedZapper = getPublicKey(zapperKey)
+) {
+  const recipient = fixturePubkey(7)
+  const signedRequest = finalizeEvent(
+    {
+      content: 'thanks',
+      created_at: BASE_CREATED_AT,
+      kind: ZAP_REQUEST_KIND,
+      tags: [
+        ['p', recipient],
+        ['amount', ZAP_AMOUNT_MSATS]
+      ]
+    },
+    zapperKey
+  )
+  const zapRequest = { ...signedRequest, pubkey: claimedZapper }
+  return finalizeEvent(
+    {
+      content: '',
+      created_at: BASE_CREATED_AT + 1,
+      kind: ZAP_RECEIPT_KIND,
+      tags: [
+        ['p', recipient],
+        ['P', claimedZapper],
+        ['description', JSON.stringify(zapRequest)]
+      ]
+    },
+    lnurlServerKey
+  )
+}
 
 describe('zap receipts against a relay that never sends EOSE', () => {
   const relays: TestRelay[] = []
@@ -93,5 +132,41 @@ describe('zap receipts against a relay that never sends EOSE', () => {
     expect(result.error).toBeUndefined()
     expect(result.source).toBe('relay')
     expect(elapsedMs).toBeLessThan(ANSWERED_WELL_BEFORE_TIMEOUT_MS)
+  })
+})
+
+describe('outgoing zap receipts', () => {
+  const relays: TestRelay[] = []
+
+  afterEach(async () => {
+    clearNdkRegistry()
+    await Promise.all(relays.splice(0).map((relay) => relay.stop()))
+  })
+
+  it('finds receipts signed by the LNURL server through the zapper P tag', async () => {
+    const zapperKey = generateSecretKey()
+    const relay = await startTestRelay()
+    relays.push(relay)
+    relay.seed([signedZapReceipt(zapperKey, generateSecretKey())])
+
+    const sent = await fetchZapsSentByPubkey(getPublicKey(zapperKey), [
+      relay.url
+    ])
+
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.direction).toBe('outgoing')
+  })
+
+  it('ignores receipts whose zap request was not signed by the zapper', async () => {
+    const victim = getPublicKey(generateSecretKey())
+    const relay = await startTestRelay()
+    relays.push(relay)
+    relay.seed([
+      signedZapReceipt(generateSecretKey(), generateSecretKey(), victim)
+    ])
+
+    await expect(
+      fetchZapsSentByPubkey(victim, [relay.url])
+    ).resolves.toStrictEqual([])
   })
 })

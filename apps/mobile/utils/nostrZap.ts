@@ -4,7 +4,14 @@ import {
   type NDKRelay
 } from '@nostr-dev-kit/ndk'
 import type NDK from '@nostr-dev-kit/ndk'
-import { finalizeEvent, nip19, nip57 } from 'nostr-tools'
+import {
+  type Event,
+  finalizeEvent,
+  nip19,
+  nip57,
+  validateEvent,
+  verifyEvent
+} from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { createEphemeralNdk, disconnectNdkPool } from '@/api/ndkRegistry'
@@ -575,9 +582,41 @@ export async function fetchZapsByPubkey(
   }
 }
 
+function parseSignedEvent(json: string): Event | null {
+  try {
+    const value: unknown = JSON.parse(json)
+    if (
+      !isRecord(value) ||
+      !validateEvent(value) ||
+      typeof value.id !== 'string' ||
+      typeof value.sig !== 'string'
+    ) {
+      return null
+    }
+    return { ...value, id: value.id, sig: value.sig }
+  } catch {
+    return null
+  }
+}
+
 /**
- * Kind 9735 receipts authored by this pubkey (when relays index it), kept
- * only when this profile is the zapper. Throws when relays are unreachable.
+ * The P tag and the zap request are both chosen by whoever publishes the
+ * receipt, so only a zap request signed by this pubkey proves it zapped.
+ */
+function isZapSignedBy(receipt: NDKEvent, pubkeyHex: string): boolean {
+  const description = receipt.tags.find((tag) => tag[0] === 'description')?.[1]
+  const zapRequest = description ? parseSignedEvent(description) : null
+  return (
+    zapRequest?.kind === nostrKinds.ZapRequest &&
+    zapRequest.pubkey === pubkeyHex &&
+    verifyEvent(zapRequest)
+  )
+}
+
+/**
+ * Kind 9735 receipts whose zapper (NIP-57 uppercase P tag) is this pubkey.
+ * Receipts are signed by the LNURL server, so they can't be found by author.
+ * Throws when relays are unreachable.
  */
 export async function fetchZapsSentByPubkey(
   pubkeyHex: string,
@@ -586,7 +625,7 @@ export async function fetchZapsSentByPubkey(
   until?: number
 ): Promise<ZapReceiptInfo[]> {
   const filter: NDKFilter = {
-    authors: [pubkeyHex],
+    '#P': [pubkeyHex],
     kinds: [nostrKinds.Zap],
     limit
   }
@@ -595,6 +634,7 @@ export async function fetchZapsSentByPubkey(
   }
   const events = await collectFromRelays(relays, filter)
   return [...events]
+    .filter((event) => isZapSignedBy(event, pubkeyHex))
     .flatMap((event) => {
       const parsed = parseZapReceiptFromEvent(event, pubkeyHex)
       return parsed?.direction === 'outgoing'
