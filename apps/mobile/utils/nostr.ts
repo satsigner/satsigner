@@ -209,34 +209,89 @@ export function extractInboxRelayUrls(
   return [...new Set(urls)]
 }
 
+function parseKind0Record(contentJson: string): Record<string, unknown> {
+  try {
+    const content: unknown = JSON.parse(contentJson)
+    return isRecord(content) ? content : {}
+  } catch {
+    return {}
+  }
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+const KIND0_KEYS_BY_FIELD: Record<keyof NostrKind0Profile, string[]> = {
+  banner: ['banner'],
+  displayName: ['name', 'display_name'],
+  lud16: ['lud16'],
+  nip05: ['nip05'],
+  picture: ['picture']
+}
+
+const KIND0_PROFILE_FIELDS: (keyof NostrKind0Profile)[] = [
+  'banner',
+  'displayName',
+  'lud16',
+  'nip05',
+  'picture'
+]
+
+/** Profile fields whose value differs; cleared fields map to undefined. */
+export function getChangedProfileFields(
+  before: NostrKind0Profile,
+  after: NostrKind0Profile
+): Partial<NostrKind0Profile> {
+  const changed: Partial<NostrKind0Profile> = {}
+  for (const field of KIND0_PROFILE_FIELDS) {
+    const value = after[field] || undefined
+    if (value !== (before[field] || undefined)) {
+      changed[field] = value
+    }
+  }
+  return changed
+}
+
+/**
+ * Kind 0 content with only the changed fields written over the latest
+ * published content, so fields edited elsewhere or unknown to this app
+ * (about, website, …) survive.
+ */
+export function buildKind0Content(
+  latestContentJson: string | undefined,
+  changes: Partial<NostrKind0Profile>
+): string {
+  const content = latestContentJson ? parseKind0Record(latestContentJson) : {}
+  const changedFields = KIND0_PROFILE_FIELDS.filter((field) => field in changes)
+  for (const field of changedFields) {
+    const value = changes[field]
+    for (const key of KIND0_KEYS_BY_FIELD[field]) {
+      if (value) {
+        content[key] = value
+      } else {
+        delete content[key]
+      }
+    }
+  }
+  return JSON.stringify(content)
+}
+
 /** Parses kind 0 content JSON into a profile; null when nothing usable. */
 export function getProfileFromKind0Content(
   contentJson: string
 ): NostrKind0Profile | null {
-  try {
-    const content: unknown = JSON.parse(contentJson)
-    if (!isRecord(content)) {
-      return null
-    }
-    const displayName =
-      typeof content.name === 'string'
-        ? content.name
-        : typeof content.display_name === 'string'
-          ? content.display_name
-          : typeof content.username === 'string'
-            ? content.username
-            : undefined
-    const picture =
-      typeof content.picture === 'string' ? content.picture : undefined
-    const banner =
-      typeof content.banner === 'string' ? content.banner : undefined
-    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
-    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
-    if (!displayName && !picture && !banner && !nip05 && !lud16) {
-      return null
-    }
-    return { banner, displayName, lud16, nip05, picture }
-  } catch {
+  const content = parseKind0Record(contentJson)
+  const displayName =
+    optionalString(content.name) ??
+    optionalString(content.display_name) ??
+    optionalString(content.username)
+  const picture = optionalString(content.picture)
+  const banner = optionalString(content.banner)
+  const nip05 = optionalString(content.nip05)
+  const lud16 = optionalString(content.lud16)
+  if (!displayName && !picture && !banner && !nip05 && !lud16) {
     return null
   }
+  return { banner, displayName, lud16, nip05, picture }
 }
