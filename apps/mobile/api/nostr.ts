@@ -86,6 +86,7 @@ import {
   getPubKeyHexFromNpub,
   getSecretFromNsec
 } from '@/utils/nostr'
+import { parseCalendarDate } from '@/utils/nostrCalendar'
 import {
   NOSTR_ENGAGEMENT_KINDS,
   NOSTR_LIKE_CONTENT,
@@ -450,18 +451,18 @@ export class NostrAPI {
           return event.tags.find((tag) => tag[0] === name)?.[1]
         }
 
-        const start = Number(getTagValue('start'))
-        if (!Number.isFinite(start)) {
+        const start = parseCalendarDate(getTagValue('start'))
+        if (start === null) {
           return []
         }
 
-        const endValue = Number(getTagValue('end'))
+        const end = parseCalendarDate(getTagValue('end'))
         const location = getTagValue('location')
 
         return [
           {
             description: event.content,
-            ...(Number.isFinite(endValue) ? { end: endValue } : {}),
+            ...(end === null ? {} : { end }),
             id: event.id,
             kind: event.kind ?? nostrKinds.Date,
             ...(location ? { location } : {}),

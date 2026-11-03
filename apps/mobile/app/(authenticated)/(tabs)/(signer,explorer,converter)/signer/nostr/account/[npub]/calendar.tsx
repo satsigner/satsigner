@@ -29,9 +29,11 @@ type CalendarEvent = {
 
 function formatEventDate(unixTs: number): string {
   const date = new Date(unixTs * MS_PER_SECOND)
+  // YYYY-MM-DD dates are parsed as UTC midnight; show that same calendar day.
   return date.toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
+    timeZone: 'UTC',
     year: 'numeric'
   })
 }
