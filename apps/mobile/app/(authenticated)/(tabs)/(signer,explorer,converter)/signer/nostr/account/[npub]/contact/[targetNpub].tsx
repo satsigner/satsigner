@@ -33,6 +33,7 @@ import {
   encodeContactNprofile,
   getContactShareProfileName
 } from '@/utils/nostrContactProfile'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import {
   nostrAuthorProfileHref,
   nostrZapDetailHref
@@ -55,7 +56,7 @@ export default function NostrContactProfile() {
     state.identities.find((i) => i.npub === npub)
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const effectiveRelays = owner?.relays ?? globalRelays
+  const effectiveRelays = getNostrIdentityRelays(owner?.relays, globalRelays)
 
   const [openedAt] = useState(Date.now)
   const relayConnected = owner?.relayConnected === true

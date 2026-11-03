@@ -28,6 +28,7 @@ import { Colors } from '@/styles'
 import { type ZapReceiptInfo } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import { isNostrRelayUnavailableError } from '@/utils/nostrFeed'
 import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
@@ -56,7 +57,7 @@ export default function NostrZapDetail() {
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
-  const effectiveRelays = identity?.relays?.length ? identity.relays : relays
+  const effectiveRelays = getNostrIdentityRelays(identity?.relays, relays)
   const profileHex = npub ? getPubKeyHexFromNpub(npub) : null
 
   const receiptQuery = useQuery({
@@ -116,11 +117,6 @@ export default function NostrZapDetail() {
     if (!receipt?.zappedEventId || !npub || !identity) {
       return
     }
-    const effectiveRelays = identity.relays?.length ? identity.relays : relays
-    if (effectiveRelays.length === 0) {
-      return
-    }
-
     const note = await NostrAPI.fetchEventFromRelays(
       receipt.zappedEventId,
       effectiveRelays

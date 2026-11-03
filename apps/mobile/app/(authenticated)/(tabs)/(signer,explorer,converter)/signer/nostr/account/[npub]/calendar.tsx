@@ -11,6 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
 type CalendarParams = {
   npub: string
@@ -51,9 +52,7 @@ export default function NostrCalendar() {
     state.identities.find((i) => i.npub === npub)
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const effectiveRelays = identity?.relays?.length
-    ? identity.relays
-    : globalRelays
+  const effectiveRelays = getNostrIdentityRelays(identity?.relays, globalRelays)
 
   const relayConnected = identity?.relayConnected === true
   const relaysAvailable = effectiveRelays.length > 0

@@ -4,7 +4,6 @@ import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { fetchKind10063Servers } from '@/api/blossom'
-import { NostrAPI } from '@/api/nostr'
 import SSIconX from '@/components/icons/SSIconX'
 import SSButton from '@/components/SSButton'
 import SSPressable from '@/components/SSPressable'
@@ -22,6 +21,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
 type BlossomParams = {
   npub: string
@@ -64,6 +64,7 @@ export default function NostrBlossomServers() {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
+  const globalRelays = useNostrIdentityStore((state) => state.relays)
   const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
 
   const [servers, setServers] = useState<string[]>(
@@ -105,9 +106,7 @@ export default function NostrBlossomServers() {
     if (!pubkeyHex) {
       return
     }
-    const relays = identity?.relays?.length
-      ? identity.relays
-      : NostrAPI.INDEXING_RELAYS
+    const relays = getNostrIdentityRelays(identity?.relays, globalRelays)
     setIsImporting(true)
     try {
       const discovered = await fetchKind10063Servers(pubkeyHex, relays)
