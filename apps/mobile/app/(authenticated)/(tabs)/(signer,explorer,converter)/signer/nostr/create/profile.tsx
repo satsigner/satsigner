@@ -15,6 +15,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { nostrIndexHref } from '@/utils/nostrNavigation'
 
 type ProfileParams = {
   mnemonic: string
@@ -49,7 +50,7 @@ export default function ProfileSetup() {
 
   function handleIdentityAdded() {
     toast.success(t('nostrIdentity.create.success'))
-    router.navigate('/signer/nostr')
+    router.dismissTo(nostrIndexHref())
   }
 
   function handleSave() {

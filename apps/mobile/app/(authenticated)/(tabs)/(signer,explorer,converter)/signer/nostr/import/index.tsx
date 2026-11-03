@@ -26,6 +26,7 @@ import {
   deriveNostrKeysFromMnemonic,
   npubFromNsec
 } from '@/utils/nostrIdentity'
+import { nostrIndexHref } from '@/utils/nostrNavigation'
 
 const ROUTES = [
   { key: 'nsec', title: 'nsec' },
@@ -58,7 +59,7 @@ export default function ImportNostrIdentity() {
 
   function handleIdentityAdded() {
     toast.success(t('nostrIdentity.import.success'))
-    router.navigate('/signer/nostr')
+    router.dismissTo(nostrIndexHref())
   }
 
   async function handlePasteNsec() {
