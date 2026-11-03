@@ -316,6 +316,12 @@
       .app-card textarea {
         min-height: 4.5rem;
       }
+      .field-label {
+        display: block;
+        margin-top: 12px;
+        color: #a3a3a3;
+        font-size: 12px;
+      }
       .app-actions {
         display: flex;
         gap: 8px;
@@ -878,6 +884,14 @@
         })
       }
 
+      function fieldLabel(text, inputId) {
+        const label = document.createElement('label')
+        label.className = 'field-label'
+        label.htmlFor = inputId
+        label.textContent = text
+        return label
+      }
+
       function renderApps(events) {
         publishedApps.clear()
         appsEl.replaceChildren()
@@ -903,12 +917,15 @@
           title.textContent = packageId
           const name = document.createElement('input')
           name.dataset.field = 'name'
+          name.id = `app-name-${event.id}`
           name.value = tagValue(event, 'name')
-          name.setAttribute('aria-label', 'App name')
+          const nameLabel = fieldLabel('App name', name.id)
           const content = document.createElement('textarea')
           content.dataset.field = 'content'
+          content.id = `app-description-${event.id}`
           content.value = event.content ?? ''
-          content.setAttribute('aria-label', 'App description')
+          content.placeholder = 'Shown on the Zapstore app page'
+          const contentLabel = fieldLabel('Description', content.id)
           const actions = document.createElement('div')
           actions.className = 'app-actions'
           const button = document.createElement('button')
@@ -924,7 +941,7 @@
           remove.disabled =
             !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           actions.append(button, remove)
-          card.append(title, name, content, actions)
+          card.append(title, nameLabel, name, contentLabel, content, actions)
           if (readDeletedIds(DELETED_APPS_KEY).has(packageId)) {
             const tag = document.createElement('p')
             tag.className = 'hint'
@@ -944,6 +961,61 @@
         renderApps(events)
       }
 
+      function nextCreatedAt(event) {
+        return Math.max(
+          Math.floor(Date.now() / 1000),
+          (event.created_at ?? 0) + 1
+        )
+      }
+
+      function signListing(original, name, content) {
+        const tags = original.tags.map((tag) =>
+          tag[0] === 'name' ? ['name', name] : tag
+        )
+        if (!tags.some((tag) => tag[0] === 'name')) tags.push(['name', name])
+        return window.nostr.signEvent({
+          kind: 32267,
+          created_at: nextCreatedAt(original),
+          tags,
+          content
+        })
+      }
+
+      // relay.zapstore.dev saves a lone listing edit only when no release or
+      // asset of that app is pending for the key. Assets left by failed
+      // publishes stay pending, so the edit travels with a re-signed copy of
+      // the stored release, which the relay checks against the stored asset.
+      function resignRelease(release) {
+        return window.nostr.signEvent({
+          kind: release.kind,
+          created_at: nextCreatedAt(release),
+          tags: release.tags,
+          content: release.content
+        })
+      }
+
+      async function latestRelease(pubkey, packageId) {
+        const releases = await fetchEvents(ZAPSTORE_RELAY, {
+          kinds: [30063],
+          authors: [pubkey],
+          '#i': [packageId]
+        })
+        return releases.toSorted((a, b) => b.created_at - a.created_at)[0]
+      }
+
+      async function sendToZapstore(event, label) {
+        writeLog(`  sending ${label} ${event.id}\n`)
+        const [reply] = await publishEventTo([ZAPSTORE_RELAY], event)
+        logRelayReply(reply)
+        return reply
+      }
+
+      function failReplace(button, packageId, status, reason) {
+        button.disabled = false
+        statusEl.textContent = status
+        writeLog(`Replace ${packageId} failed: ${reason}\n`, 'error')
+      }
+
       async function replaceApp(id, button) {
         const original = publishedApps.get(id)
         const card = button.closest('.app-card')
@@ -957,40 +1029,57 @@
           statusEl.textContent = 'A listing needs a name.'
           return
         }
+        const packageId = tagValue(original, 'd')
         button.disabled = true
-        statusEl.textContent = 'Approve the replacement in the extension.'
-        const tags = original.tags.map((tag) =>
-          tag[0] === 'name' ? ['name', name] : tag
-        )
-        if (!tags.some((tag) => tag[0] === 'name')) tags.push(['name', name])
-        const createdAt = Math.max(
-          Math.floor(Date.now() / 1000),
-          (original.created_at ?? 0) + 1
-        )
+        statusEl.textContent = 'Approve the signatures in the extension.'
+        writeLog(`Replace listing ${packageId}\n`, 'milestone')
+        writeLog(`  name "${name}", description ${content.length} characters\n`)
         try {
-          const signed = await window.nostr.signEvent({
-            kind: 32267,
-            created_at: createdAt,
-            tags,
-            content
-          })
-          const [accepted] = await publishEventTo([ZAPSTORE_RELAY], signed)
-          if (!accepted) {
-            button.disabled = false
-            statusEl.textContent = 'Zapstore rejected the replacement.'
-            writeLog(
-              `replace ${tagValue(original, 'd')} was rejected\n`,
-              'error'
+          const release = await latestRelease(original.pubkey, packageId)
+          writeLog(
+            release
+              ? `  re-signing release ${tagValue(release, 'version')} (${release.id}) so Zapstore saves the listing with it\n`
+              : '  no stored release, sending the listing alone\n'
+          )
+          writeLog('  waiting for the extension to sign\n')
+          const listing = await signListing(original, name, content)
+          const resigned = release ? await resignRelease(release) : null
+          const listingReply = await sendToZapstore(listing, 'listing')
+          if (!listingReply.accepted) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore rejected the replacement.',
+              listingReply.message || 'rejected'
+            )
+            return
+          }
+          const releaseReply = resigned
+            ? await sendToZapstore(resigned, 'release')
+            : null
+          if (releaseReply && !releaseReply.accepted) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore rejected the re-signed release.',
+              releaseReply.message || 'release rejected'
+            )
+            return
+          }
+          if (!(await confirmSaved(listing, 'the new listing'))) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore holds the replacement as pending and has not saved it. Your edits are still in the form.',
+              `Zapstore did not save it (${listingReply.message || 'no reason given'})`
             )
             return
           }
           statusEl.textContent = 'Listing replaced.'
-          writeLog(`replaced ${tagValue(original, 'd')}\n`, 'success')
+          writeLog(`Replaced ${packageId}\n`, 'success')
           await loadApps()
         } catch (error) {
-          button.disabled = false
-          statusEl.textContent = error.message
-          writeLog(`${error.message}\n`, 'error')
+          failReplace(button, packageId, error.message, error.message)
         }
       }
 
@@ -1003,6 +1092,9 @@
         const packageId = tagValue(original, 'd')
         button.disabled = true
         statusEl.textContent = 'Approve the deletion in the extension.'
+        writeLog(`Delete listing ${packageId}\n`, 'milestone')
+        writeLog(`  deletes listing event ${original.id}\n`)
+        writeLog('  waiting for the extension to sign\n')
         try {
           const signed = await window.nostr.signEvent({
             kind: 5,
@@ -1014,17 +1106,33 @@
             ],
             content: ''
           })
-          const [accepted] = await publishEventTo([ZAPSTORE_RELAY], signed)
-          if (!accepted) {
+          writeLog(`  signed deletion request ${signed.id}\n`)
+          const [reply] = await publishEventTo([ZAPSTORE_RELAY], signed)
+          logRelayReply(reply)
+          if (!reply.accepted) {
             button.disabled = false
             statusEl.textContent = 'Zapstore rejected the deletion request.'
-            writeLog(`delete ${packageId} was rejected\n`, 'error')
+            writeLog(`Delete ${packageId} failed\n`, 'error')
+            return
+          }
+          const saved = await confirmSaved(signed, 'the deletion request')
+          const listing = await fetchEventById(ZAPSTORE_RELAY, original.id)
+          writeLog(
+            listing
+              ? '  the relay still serves the listing\n'
+              : '  ok      the relay no longer serves the listing\n',
+            listing ? 'detail' : 'success'
+          )
+          if (!saved && listing) {
+            button.disabled = false
+            statusEl.textContent = 'Zapstore did not save the deletion request.'
+            writeLog(`Delete ${packageId} failed\n`, 'error')
             return
           }
           rememberDeleted(packageId, DELETED_APPS_KEY)
           statusEl.textContent =
             'Deletion requested. Zapstore may still show the page.'
-          writeLog(`delete request ${packageId}\n`)
+          writeLog(`Delete requested for ${packageId}\n`, 'success')
           await loadApps()
         } catch (error) {
           button.disabled = false
@@ -1037,6 +1145,72 @@
         return publishEventTo(RELEASE_RELAYS, event)
       }
 
+      function logRelayReply({ accepted, message, relay }) {
+        const reply = message ? `: ${message}` : ''
+        writeLog(
+          `  ${relay} ${accepted ? 'OK' : 'rejected'}${reply}\n`,
+          accepted ? 'detail' : 'error'
+        )
+      }
+
+      function fetchEvents(url, filter) {
+        return new Promise((resolve) => {
+          const found = []
+          const socket = new WebSocket(url)
+          const finish = () => {
+            clearTimeout(timer)
+            socket.close()
+            resolve(found)
+          }
+          const timer = setTimeout(finish, RELEASE_QUERY_MS)
+          socket.addEventListener('open', () => {
+            socket.send(JSON.stringify(['REQ', 'query', filter]))
+          })
+          socket.addEventListener('message', (message) => {
+            try {
+              const frame = JSON.parse(message.data)
+              if (frame[0] === 'EVENT' && typeof frame[2]?.id === 'string') {
+                found.push(frame[2])
+              }
+              if (frame[0] === 'EOSE' || frame[0] === 'CLOSED') finish()
+            } catch {
+              finish()
+            }
+          })
+          socket.addEventListener('error', finish)
+        })
+      }
+
+      async function fetchEventById(url, id) {
+        const events = await fetchEvents(url, { ids: [id] })
+        return events.find((event) => event.id === id) ?? null
+      }
+
+      async function waitForSavedEvent(url, id, attemptsLeft) {
+        const saved = await fetchEventById(url, id)
+        if (saved || attemptsLeft <= 1) return saved
+        await new Promise((resolve) => setTimeout(resolve, SAVE_CHECK_DELAY_MS))
+        return waitForSavedEvent(url, id, attemptsLeft - 1)
+      }
+
+      async function confirmSaved(signed, label) {
+        writeLog(
+          `  checking that ${ZAPSTORE_RELAY} saved ${label}, this can take a minute\n`
+        )
+        const saved = await waitForSavedEvent(
+          ZAPSTORE_RELAY,
+          signed.id,
+          SAVE_CHECK_ATTEMPTS
+        )
+        writeLog(
+          saved
+            ? `  ok      ${label} is saved (${signed.id})\n`
+            : `  missing ${label} is not saved (${signed.id})\n`,
+          saved ? 'success' : 'error'
+        )
+        return Boolean(saved)
+      }
+
       function publishEventTo(relays, event) {
         return Promise.all(
           relays.map(
@@ -1045,7 +1219,7 @@
                 const socket = new WebSocket(url)
                 const timer = setTimeout(() => {
                   socket.close()
-                  resolve(false)
+                  resolve({ accepted: false, message: 'no reply', relay: url })
                 }, RELEASE_QUERY_MS)
                 socket.addEventListener('open', () => {
                   socket.send(JSON.stringify(['EVENT', event]))
@@ -1060,11 +1234,19 @@
                   if (frame[0] !== 'OK' || frame[1] !== event.id) return
                   clearTimeout(timer)
                   socket.close()
-                  resolve(frame[2] === true)
+                  resolve({
+                    accepted: frame[2] === true,
+                    message: typeof frame[3] === 'string' ? frame[3] : '',
+                    relay: url
+                  })
                 })
                 socket.addEventListener('error', () => {
                   clearTimeout(timer)
-                  resolve(false)
+                  resolve({
+                    accepted: false,
+                    message: 'connection failed',
+                    relay: url
+                  })
                 })
               })
           )
@@ -1086,7 +1268,8 @@
             content: ''
           })
           const results = await publishEvent(signed)
-          if (!results.some(Boolean)) {
+          for (const result of results) logRelayReply(result)
+          if (!results.some((result) => result.accepted)) {
             button.disabled = false
             statusEl.textContent = 'Relays rejected the deletion request.'
             writeLog(`delete ${id} was rejected\n`, 'error')
@@ -1170,6 +1353,10 @@
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
+      // Zapstore saves a developer listing after reading its APK, off the
+      // request path, which takes up to about a minute.
+      const SAVE_CHECK_ATTEMPTS = 18
+      const SAVE_CHECK_DELAY_MS = 5000
 
       function logLine(text, kind) {
         const line = document.createElement('span')
