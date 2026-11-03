@@ -97,6 +97,40 @@
       button:disabled {
         opacity: 0.35;
       }
+      button {
+        transition:
+          filter 120ms ease,
+          transform 120ms ease,
+          box-shadow 120ms ease,
+          border-color 120ms ease;
+      }
+      button:not(:disabled) {
+        cursor: pointer;
+      }
+      button:not(:disabled):hover {
+        filter: brightness(1.2);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+      }
+      button.primary:not(:disabled):hover {
+        filter: brightness(0.88);
+      }
+      button.ghost:not(:disabled):hover {
+        border-color: #6a6a6a;
+      }
+      button:not(:disabled):active {
+        transform: translateY(0);
+        filter: brightness(0.95);
+        box-shadow: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        button {
+          transition: none;
+        }
+        button:not(:disabled):hover {
+          transform: none;
+        }
+      }
       .login {
         display: flex;
         align-items: center;
