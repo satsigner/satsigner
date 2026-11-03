@@ -82,6 +82,10 @@ body:has(#flow-view:not([hidden])) .catalog {
   padding: 0;
 }
 
+body:has(#personas-view:not([hidden])) .catalog {
+  max-width: none;
+}
+
 .view-toggle {
   position: fixed;
   top: 1.25rem;
@@ -123,7 +127,7 @@ html[data-theme="light"] .view-toggle::before {
   gap: 0.5rem;
   pointer-events: auto;
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 300;
   letter-spacing: 0.14em;
   line-height: 1;
@@ -172,6 +176,7 @@ html.is-embed .view-toggle,
 html.is-embed #catalog-views {
   display: none !important;
 }
+
 
 .view-toggle button {
   pointer-events: auto;
@@ -241,7 +246,8 @@ html.is-embed #catalog-views {
 }
 
 html[data-theme="light"] .stage-home,
-html[data-theme="light"] .stage-flows button {
+html[data-theme="light"] .stage-flows button,
+html[data-theme="light"] .persona-picker select {
   border-color: rgba(0, 0, 0, 0.22);
   color: #111;
 }

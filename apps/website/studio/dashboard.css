@@ -11,6 +11,42 @@
 .dash-actions button:hover { border-color: var(--line-hot); }
 .dash-actions .dash-cta { background: var(--ink); color: var(--page); border-color: var(--ink); }
 .dashboard section + section { margin-top: 56px; }
+#personas-view.dashboard { max-width: 1200px; padding-top: 28px; }
+.dash-persona-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; row-gap: 14px; align-items: start; }
+.dash-persona { display: grid; grid-template-rows: subgrid; grid-row: span 11; min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.dash-persona-slider { position: relative; width: 100%; aspect-ratio: 1; }
+.dash-persona-slider > img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; border-radius: 8px; display: block; }
+.dash-persona-nav { position: absolute; top: 50%; display: grid; place-items: center; width: 22px; height: 22px; margin-top: -11px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; opacity: 0.4; }
+.dash-persona-slider:hover .dash-persona-nav,
+.dash-persona-nav:focus-visible { opacity: 0.9; }
+.dash-persona-nav.is-prev { left: 6px; }
+.dash-persona-nav.is-next { right: 6px; }
+.dash-persona-nav::before { content: ""; width: 6px; height: 6px; border-top: 1px solid #fff; border-right: 1px solid #fff; filter: drop-shadow(0 0 1px rgba(0,0,0,0.85)); }
+.dash-persona-nav.is-prev::before { transform: translateX(1px) rotate(-135deg); }
+.dash-persona-nav.is-next::before { transform: translateX(-1px) rotate(45deg); }
+.dash-persona-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 5px; }
+.dash-persona-dot { width: 5px; height: 5px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,0.35); box-shadow: 0 0 0 1px rgba(0,0,0,0.28); cursor: pointer; }
+.dash-persona-dot.is-on { background: rgba(255,255,255,0.92); }
+.dash-persona h3 { margin: 0; font-size: 22px; font-weight: 400; }
+.dash-persona h4 { margin: 0 0 6px; font-size: 11px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-muted); }
+.dash-persona p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+.dash-persona-role { margin: 0 0 4px; color: var(--ink-muted); font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; }
+.dash-persona-personality { color: var(--ink); }
+.dash-persona-points { margin: 0; padding: 0 0 0 1.1em; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+.dash-persona-points li + li { margin-top: 4px; }
+.dash-persona-wallets { margin: 0; padding: 0; list-style: none; }
+.dash-persona-wallets li { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
+.dash-persona-wallets span { color: var(--ink-muted); }
+.dash-persona-wallets code { font-size: 12px; }
+.dash-persona-labels { display: flex; flex-wrap: wrap; gap: 6px; }
+.dash-persona-labels span { padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink); font-size: 12px; }
+.dash-persona-nostr { display: flex; gap: 12px; align-items: flex-start; }
+.dash-persona-nostr img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+.dash-persona [data-load-persona] { justify-self: start; align-self: end; height: 32px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--ink); color: var(--page); font: inherit; font-size: 13px; cursor: pointer; }
+@media (max-width: 1024px) {
+  .dash-persona-grid { grid-template-columns: 1fr; }
+  .dash-persona-slider { max-width: 420px; }
+}
 .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
 .dash-stat { display: flex; flex-direction: column; gap: 4px; padding: 20px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .dash-stat strong { font-size: 32px; font-weight: 300; font-variant-numeric: tabular-nums; }

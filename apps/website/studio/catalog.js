@@ -575,6 +575,7 @@ const phone = document.getElementById('phone-view')
 const componentsView = document.getElementById('components-view')
 const distributionViewEl = document.getElementById('distribution-view')
 const dashboardView = document.getElementById('dashboard-view')
+const personasView = document.getElementById('personas-view')
 const catalog = document.getElementById('catalog-views')
 const buttons = document.querySelectorAll('[data-view]')
 
@@ -814,7 +815,7 @@ components.forEach((component) => {
 const viewAliases = { phone: 'prototype', list: 'screens', flow: 'map', promotion: 'distribution' }
 
 function isLayoutMode(mode) {
-  return mode === 'dashboard' || mode === 'prototype' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components' || mode === 'distribution'
+  return mode === 'dashboard' || mode === 'prototype' || mode === 'personas' || mode === 'screens' || mode === 'table' || mode === 'map' || mode === 'components' || mode === 'distribution'
 }
 
 function viewFromUrl() {
@@ -833,6 +834,7 @@ function setView(mode, updateUrl) {
   componentsView.hidden = mode !== 'components'
   if (distributionViewEl) distributionViewEl.hidden = mode !== 'distribution'
   dashboardView.hidden = mode !== 'dashboard'
+  if (personasView) personasView.hidden = mode !== 'personas'
   if (catalog) catalog.hidden = mode === 'prototype'
   buttons.forEach((button) => {
     button.classList.toggle('is-active', button.getAttribute('data-view') === mode)

@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="/studio/generated/tokens.css">
   <link rel="stylesheet" href="/studio/tokens.css">
   <link rel="stylesheet" href="/studio/components.css">
-  <link rel="stylesheet" href="/studio/screen.css">
-  <link rel="stylesheet" href="/studio/catalog.css?v=32">
-  <link rel="stylesheet" href="/studio/dashboard.css">
+  <link rel="stylesheet" href="/studio/screen.css?v=2">
+  <link rel="stylesheet" href="/studio/catalog.css?v=36">
+  <link rel="stylesheet" href="/studio/dashboard.css?v=8">
   <link rel="stylesheet" href="/studio/distribution.css?v=39">
 </head>
 <body>
@@ -24,6 +24,7 @@
     <span class="studio-brand"><a href="/" aria-label="SatSigner"><img src="/imgs/satSigner_symbol.png" alt=""></a><a href="/studio/"><span>SATSIGNER STUDIO</span></a></span>
     <button type="button" data-view="dashboard">Dashboard</button>
     <button type="button" data-view="prototype">Prototype</button>
+    <button type="button" data-view="personas">Personas</button>
     <button type="button" data-view="screens">Screens</button>
     <button type="button" data-view="table">Table</button>
     <button type="button" data-view="map">Map</button>
@@ -314,10 +315,14 @@
         </div>
       </div>
       <button type="button" class="stage-home" id="stage-home">Home</button>
+      <label class="persona-picker" id="persona-picker-wrap">
+        <select id="persona-picker" aria-label="Demo persona"></select>
+      </label>
     </div>
   </main>
   <div class="catalog" id="catalog-views" hidden>
     <div class="dashboard" id="dashboard-view" hidden></div>
+    <div class="dashboard" id="personas-view" hidden></div>
     <div class="flow" id="flow-view" hidden></div>
     <div class="screen-grid" id="list-view"></div>
     <div class="component-grid" id="components-view" hidden></div>
@@ -353,6 +358,7 @@
   <script src="/studio/screens/bitcoin-settings.js?v=3"></script>
   <script src="/studio/screens/bitcoin-add.js?v=3"></script>
   <script src="/studio/screens/nostr.js?v=3"></script>
+  <script src="/studio/personas.js?v=13"></script>
   <script src="/studio/screens/ark-lightning.js?v=2"></script>
   <script src="/studio/screens/ecash-shell.js?v=2"></script>
   <script src="/studio/screens/legacy-bitcoin.js?v=7"></script>
@@ -362,8 +368,8 @@
   <script src="/studio/generated/routes.js"></script>
   <script src="/studio/generated/coverage.js"></script>
   <script src="/studio/generated/meta.js"></script>
-  <script src="/studio/catalog.js?v=30"></script>
-  <script src="/studio/dashboard.js"></script>
+  <script src="/studio/catalog.js?v=33"></script>
+  <script src="/studio/dashboard.js?v=3"></script>
   <script src="/release/data.js?v=4"></script>
   <script src="/studio/distribution.js?v=80"></script>
   <script src="/studio/market.js?v=4"></script>

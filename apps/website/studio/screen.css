@@ -116,6 +116,22 @@ svg text {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.persona-picker select {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--white);
+  font: inherit;
+  font-size: var(--font-sm);
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.persona-picker select:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .phone {
   color: var(--white);
   color-scheme: dark;
