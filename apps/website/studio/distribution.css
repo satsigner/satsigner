@@ -420,6 +420,75 @@ body:has(#distribution-view:not([hidden])) .catalog {
   margin-top: 72px;
 }
 
+.promo-marks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 28px;
+  flex: none;
+  align-self: flex-end;
+  margin-bottom: 88px;
+  z-index: 1;
+}
+
+.promo-marks img {
+  display: block;
+  height: 72px;
+  width: auto;
+  max-width: 300px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.promo-marks img.is-badge {
+  height: 84px;
+  max-width: 320px;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.promo-social-portrait .promo-marks,
+.promo-social-story .promo-marks {
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  max-width: 880px;
+  margin-bottom: 0;
+}
+
+.promo-social-portrait .promo-marks img,
+.promo-social-story .promo-marks img {
+  object-position: center;
+}
+
+.promo-social-portrait .promo-marks img.is-badge {
+  height: 96px;
+}
+
+.promo-social-story .promo-marks {
+  gap: 36px 40px;
+  max-width: 920px;
+}
+
+.promo-social-story .promo-marks img {
+  height: 88px;
+}
+
+.promo-social-story .promo-marks img.is-badge {
+  height: 108px;
+  max-width: 400px;
+}
+
+.promo-social-landscape .promo-marks {
+  margin-bottom: 72px;
+}
+
+.promo-social-landscape .promo-marks img.is-badge {
+  height: 78px;
+}
+
 /* Phone-free post: soft white gradient and grain on black */
 .promo-orb {
   align-items: center;

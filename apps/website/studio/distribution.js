@@ -184,6 +184,26 @@ function sphereBoard(className, scale, w, h, file, caption) {
   return board(className, scale, node)
 }
 
+function marksBoard(className, scale, kicker, title, sub, marks, w, h, file, caption) {
+  const node = document.createElement('div')
+  node.dataset.w = w
+  node.dataset.h = h
+  node.dataset.file = file
+  if (caption) node.dataset.caption = caption
+  node.appendChild(copyBlock(kicker, title, sub, true))
+  const pile = document.createElement('div')
+  pile.className = 'promo-marks'
+  marks.forEach((mark) => {
+    const img = document.createElement('img')
+    img.src = mark.src
+    img.alt = mark.alt
+    if (mark.badge) img.className = 'is-badge'
+    pile.appendChild(img)
+  })
+  node.appendChild(pile)
+  return board(className, scale, node)
+}
+
 function shotBoard(className, scale, shot, w, h, file) {
   const node = document.createElement('div')
   node.dataset.w = w
@@ -463,6 +483,26 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
       title: 'Sign off-line.',
       sub: 'Animated QR for an air-gapped signer.',
       screen: 'psbt-qr'
+    },
+    {
+      slug: 'the-stack',
+      title: 'The stack\nis public.',
+      sub: 'Bitcoin Dev Kit. React Native.\nEvery review stays on the diff.',
+      marks: [
+        { src: '/imgs/bdk.png', alt: 'Bitcoin Dev Kit' },
+        { src: '/imgs/react-native.svg', alt: 'React Native' },
+        { src: '/imgs/coderabbit.svg', alt: 'CodeRabbit' },
+        { src: '/imgs/gitworkshop.svg', alt: 'gitworkshop.dev' }
+      ]
+    },
+    {
+      slug: 'next-release',
+      title: 'The next release\nis on the way.',
+      sub: 'Zapstore and TestFlight.',
+      marks: [
+        { src: '/imgs/get-it-on-zapstore.svg', alt: 'Get it on Zapstore', badge: true },
+        { src: '/imgs/get-it-on-testflight.svg', alt: 'Get it on TestFlight', badge: true }
+      ]
     }
   ]
   const formats = [
@@ -473,10 +513,25 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
   ]
   const social = section(
     'Social posts',
-    'Two posts, each in the frame those networks accept. Square is the feed image. Portrait is the 4:5 feed. Story is 9:16, with the top and bottom 250px left clear of the network’s own controls. Landscape is the wide image post. Type stays inside the inset so a crop still reads.'
+    'Each post in the frame those networks accept. Square is the feed image. Portrait is the 4:5 feed. Story is 9:16, with the top and bottom 250px left clear of the network’s own controls. Landscape is the wide image post. Type stays inside the inset so a crop still reads.'
   )
   posts.forEach((post) => {
     formats.forEach((format) => {
+      if (post.marks) {
+        social.row.appendChild(marksBoard(
+          'promo-social promo-social-' + format.id,
+          format.scale,
+          'SATSIGNER',
+          post.title,
+          post.sub,
+          post.marks,
+          format.w,
+          format.h,
+          'social-' + post.slug + '-' + format.id,
+          format.label
+        ))
+        return
+      }
       social.row.appendChild(wideBoard(
         'promo-social promo-social-' + format.id,
         format.scale,
