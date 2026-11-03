@@ -354,6 +354,35 @@
       .app-card textarea {
         min-height: 4.5rem;
       }
+      .guide {
+        margin-top: 20px;
+        padding-top: 14px;
+        border-top: 1px solid #242424;
+      }
+      .guide summary {
+        cursor: pointer;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .guide-steps {
+        margin: 10px 0 0;
+        padding-left: 1.25rem;
+        color: #d4d4d4;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .guide-steps li + li {
+        margin-top: 6px;
+      }
+      .guide code {
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: #1c1c1c;
+        font-family: 'SF Mono', ui-monospace, monospace;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
       .field-label {
         display: block;
         margin-top: 12px;
@@ -643,6 +672,48 @@
               </p>
               <div id="apps"></div>
             </div>
+            <details class="guide">
+              <summary>Sign releases on another computer</summary>
+              <p class="hint">
+                The 12 words rebuild the same Android key and certificate, so
+                releases from the new computer update the installed app.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Install the tools this page needs, plus OpenSSL 3 (<code
+                    >brew install openssl</code
+                  >
+                  on macOS).
+                </li>
+                <li>
+                  Clone the repository and run <code>pnpm install</code> at its
+                  root.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:restore</code> and
+                  type the 12 words. Add <code>--force</code> if a keystore is
+                  already in <code>~/.satsigner</code>.
+                </li>
+                <li>
+                  Check that the printed certificate SHA-256 is
+                  <code
+                    >E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7</code
+                  >. Any other value means a word is wrong.
+                </li>
+                <li>
+                  Start this page with <code>pnpm --dir tools/release dev</code>
+                  and sign in with the same npub.
+                </li>
+                <li>
+                  Publish. The existing link between the key and your npub is
+                  found and renewed only when it nears expiry.
+                </li>
+              </ol>
+              <p class="hint">
+                Type the words only into the restore prompt. Never save them in
+                a file, a chat or the repository.
+              </p>
+            </details>
           </section>
           <section id="apk-panel" hidden>
             <p class="hint">
