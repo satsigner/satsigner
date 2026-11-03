@@ -115,7 +115,9 @@ describe('transaction decoding', () => {
 
       it('decodes the output values', () => {
         for (let i = 0; i < expected.voutCount; i += 1) {
-          expect(decodedTx.getOutputValue(i).value).toBe(expected.voutSats[i])
+          expect(decodedTx.getOutputValue(i).value).toBe(
+            String(expected.voutSats[i])
+          )
         }
       })
 
@@ -149,4 +151,12 @@ describe('transaction decoding', () => {
       })
     })
   }
+
+  it('keeps output values above the safe integer range exact', () => {
+    const tx = new bitcoinjs.Transaction()
+    tx.addInput(new Uint8Array(32), 0)
+    tx.addOutput(Uint8Array.from([bitcoinjs.opcodes.OP_RETURN]), 2n ** 53n + 1n)
+    const decodedTx = TxDecoded.fromHex(tx.toHex())
+    expect(decodedTx.getOutputValue(0).value).toBe('9007199254740993')
+  })
 })
