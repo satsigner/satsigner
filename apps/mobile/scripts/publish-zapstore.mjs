@@ -65,6 +65,7 @@ import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
 } from './zapstore-identity.mjs'
+import { zspPublishArgs } from './zapstore-publish-args.mjs'
 import { parseZspEvents, verifyOnZapstore } from './zapstore-verify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -398,6 +399,10 @@ function readTextFile(filePath) {
 
 // Covers committed code, uncommitted edits, untracked files and the signing
 // key, so a reused APK is always the one a fresh build would produce.
+function isCleanTree() {
+  return git(['status', '--porcelain']).toString().trim() === ''
+}
+
 function sourceFingerprint() {
   const hash = createHash('sha256')
   hash.update(git(['rev-parse', 'HEAD']))
@@ -589,15 +594,14 @@ async function main() {
     const zspTarget = usingCustomConfig ? CONFIG_YAML : apkPath
     // --json keeps zsp non-interactive but still reports errors, and prints
     // every event it published. --quiet alone hides a run that publishes nothing.
-    const zspFlags = ['publish', '--json', '--quiet', '--skip-preview']
-
     // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
     // when we're using the default yaml.
-    if (isAgent && !usingCustomConfig) {
-      zspFlags.push('--indexer-mode')
-    }
-
-    zspFlags.push(zspTarget)
+    const zspFlags = zspPublishArgs({
+      commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
+      indexerMode: isAgent && !usingCustomConfig,
+      target: zspTarget,
+      usingConfig: usingCustomConfig
+    })
 
     if (dryRun) {
       console.log('  [dry-run] Skipping zsp publish.')
