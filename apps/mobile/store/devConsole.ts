@@ -5,7 +5,10 @@ import { DEV_CONSOLE_MAX_ENTRIES } from '@/constants/devConsole'
 import mmkvStorage from '@/storage/mmkv'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 
+export type DevConsoleDock = 'bottom' | 'top'
+
 type DevConsoleState = {
+  dock: DevConsoleDock
   enabled: boolean
   entries: DevConsoleEntry[]
   panelOpen: boolean
@@ -18,6 +21,7 @@ type DevConsoleState = {
 type DevConsoleAction = {
   addEntry: (entry: DevConsoleEntry) => void
   clearEntries: () => void
+  setDock: (dock: DevConsoleDock) => void
   setEnabled: (enabled: boolean) => void
   setPanelOpen: (open: boolean) => void
   setPausedSteps: (steps: string[]) => void
@@ -34,11 +38,13 @@ export const useDevConsoleStore = create<DevConsoleState & DevConsoleAction>()(
           entries: [...state.entries, entry].slice(-DEV_CONSOLE_MAX_ENTRIES)
         })),
       clearEntries: () => set({ entries: [], previousEntries: [] }),
+      dock: 'top',
       enabled: true,
       entries: [],
       panelOpen: false,
       pausedSteps: [],
       previousEntries: [],
+      setDock: (dock) => set({ dock }),
       setEnabled: (enabled) => set({ enabled }),
       setPanelOpen: (panelOpen) => set({ panelOpen }),
       setPausedSteps: (pausedSteps) => set({ pausedSteps }),
@@ -53,6 +59,7 @@ export const useDevConsoleStore = create<DevConsoleState & DevConsoleAction>()(
       // Only the switches persist; Pause must survive a restart so startup
       // can stop before its first step.
       partialize: (state) => ({
+        dock: state.dock,
         enabled: state.enabled,
         stepMode: state.stepMode
       }),

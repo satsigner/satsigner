@@ -9,7 +9,11 @@ import {
   rotateDevConsoleSession
 } from '@/storage/devConsoleLog'
 import { useDevConsoleStore } from '@/store/devConsole'
-import type { DevConsoleLevel } from '@/types/models/DevConsole'
+import type {
+  DevConsoleEntry,
+  DevConsoleLevel
+} from '@/types/models/DevConsole'
+import { setClipboard } from '@/utils/clipboard'
 
 type PendingStep = {
   name: string
@@ -152,6 +156,36 @@ export function openDevConsole(): void {
 
 export function closeDevConsole(): void {
   useDevConsoleStore.getState().setPanelOpen(false)
+}
+
+/** Turns the console off, as the Developer settings switch does. */
+export function hideDevConsole(): void {
+  resumeDevSteps()
+  const { setEnabled, setPanelOpen } = useDevConsoleStore.getState()
+  setPanelOpen(false)
+  setEnabled(false)
+}
+
+export function toggleDevConsoleDock(): void {
+  const { dock, setDock } = useDevConsoleStore.getState()
+  setDock(dock === 'top' ? 'bottom' : 'top')
+}
+
+export function formatDevConsoleEntries(entries: DevConsoleEntry[]): string {
+  return entries
+    .map(
+      (entry) =>
+        `${formatDevConsoleTime(entry.time)} ${entry.level.toUpperCase()} [${entry.scope}] ${entry.message}`
+    )
+    .join('\n')
+}
+
+export function copyDevConsoleEntries(): Promise<boolean> {
+  const { entries, previousEntries, showPrevious } =
+    useDevConsoleStore.getState()
+  return setClipboard(
+    formatDevConsoleEntries(showPrevious ? previousEntries : entries)
+  )
 }
 
 export function toggleDevConsoleSession(): void {
