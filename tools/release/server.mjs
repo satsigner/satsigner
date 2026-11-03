@@ -311,7 +311,15 @@ async function installedPackages() {
   const names = new Set()
   for (const serial of serials) {
     const listed = parsePackageList(
-      await adbText(['-s', serial, 'shell', 'pm', 'list', 'packages', 'com.satsigner'])
+      await adbText([
+        '-s',
+        serial,
+        'shell',
+        'pm',
+        'list',
+        'packages',
+        'com.satsigner'
+      ])
     )
     for (const name of listed) {
       names.add(name)
@@ -330,8 +338,16 @@ async function uninstallPackage(channel) {
   if (serials.length === 0) {
     throw new Error('no Android device is connected')
   }
+  const failed = []
   for (const serial of serials) {
-    await run('adb', ['-s', serial, 'uninstall', selected.packageId])
+    try {
+      await run('adb', ['-s', serial, 'uninstall', selected.packageId])
+    } catch {
+      failed.push(serial)
+    }
+  }
+  if (failed.length > 0) {
+    throw new Error(`could not uninstall from ${failed.join(', ')}`)
   }
 }
 
@@ -476,9 +492,9 @@ const server = createServer(async (req, res) => {
       busy: child !== null,
       channels: await releaseChannels(),
       connected: bunkerUrl.startsWith('bunker://'),
+      installedPackages: await installedPackages(),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
-      installedPackages: await installedPackages(),
       releaseApk: await releaseApk()
     })
     return

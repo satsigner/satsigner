@@ -1566,7 +1566,17 @@
         runAction('zapstoreOnly')
       )
       announceButton.addEventListener('click', () => runAction('announce'))
-      uninstallButton.addEventListener('click', () => runAction('uninstall'))
+      uninstallButton.addEventListener('click', () => {
+        const listing = releaseStatus?.channels?.[releaseChannel] ?? {}
+        const confirmed = window.confirm(
+          `Uninstall ${listing.packageId} from every connected Android device?\n\n` +
+            'This deletes the app and all its data, including any wallets in it. ' +
+            'Make sure their seeds are backed up.'
+        )
+        if (confirmed) {
+          runAction('uninstall')
+        }
+      })
       for (const button of identityButtons) {
         button.addEventListener('click', () => {
           apkIdentity = button.dataset.identity
