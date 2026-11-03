@@ -1,4 +1,8 @@
-import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import {
+  type NDKEvent,
+  type NDKFilter,
+  type NDKRelay
+} from '@nostr-dev-kit/ndk'
 import type NDK from '@nostr-dev-kit/ndk'
 import { finalizeEvent, nip19, nip57 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
@@ -9,6 +13,7 @@ import { connectToFirstRelay } from '@/api/nostrRelayHealth'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
   NOSTR_PROFILE_BATCH_SIZE,
+  NOSTR_ZAP_ANSWER_CHECK_MS,
   NOSTR_ZAP_CACHE_LOOKUP_LIMIT,
   NOSTR_ZAP_COLLECT_TIMEOUT_MS,
   NOSTR_ZAP_CONNECT_TIMEOUT_MS,
@@ -51,9 +56,9 @@ type ZapPageQuery = {
 }
 
 /**
- * Collects events until a connected relay answers EOSE. A timeout with
- * nothing collected and no EOSE throws NostrRelayTimeoutError, so an outage
- * never looks like "no zaps".
+ * Collects events until every connected relay has answered (EOSE or CLOSED).
+ * Ending with nothing collected and no EOSE throws NostrRelayTimeoutError, so
+ * an outage never looks like "no zaps".
  */
 function subscribeAndCollect(
   ndk: NDK,
@@ -71,6 +76,7 @@ function subscribeAndCollect(
       }
       state.settled = true
       clearTimeout(timer)
+      clearInterval(answerCheck)
       sub.stop()
       if (!answered && collected.size === 0) {
         reject(new NostrRelayTimeoutError('No relay answered the zap REQ'))
@@ -79,7 +85,21 @@ function subscribeAndCollect(
       resolve(collected)
     }
 
-    const timer = setTimeout(() => finish(false), timeoutMs)
+    const closedRelayUrls = new Set<string>()
+
+    function haveConnectedRelaysAnswered() {
+      const answeredUrls = new Set([
+        ...closedRelayUrls,
+        ...[...sub.eosesSeen].map((relay) => relay.url)
+      ])
+      const connected = ndk.pool.connectedRelays()
+      return (
+        connected.length > 0 &&
+        connected.every((relay) => answeredUrls.has(relay.url))
+      )
+    }
+
+    const timer = setTimeout(() => finish(sub.eosesSeen.size > 0), timeoutMs)
 
     sub.on('event', (event: NDKEvent) => {
       collected.add(event)
@@ -89,6 +109,17 @@ function subscribeAndCollect(
         finish(true)
       }
     })
+    sub.on('closed', (relay: NDKRelay) => {
+      closedRelayUrls.add(relay.url)
+    })
+    // NDK only emits EOSE once enough relays sent one, and relays that refuse
+    // the kind (CLOSED) never send it, so check every relay's answer here.
+    // Only CLOSED answers (rate limit, auth, …) count as an outage.
+    const answerCheck = setInterval(() => {
+      if (haveConnectedRelaysAnswered()) {
+        finish(sub.eosesSeen.size > 0)
+      }
+    }, NOSTR_ZAP_ANSWER_CHECK_MS)
   })
 }
 
