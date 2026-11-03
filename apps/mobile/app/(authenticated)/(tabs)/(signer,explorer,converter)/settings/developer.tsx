@@ -20,6 +20,7 @@ import {
   PIN_KEY,
   SALT_KEY
 } from '@/config/auth'
+import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -171,7 +172,9 @@ export default function Developer() {
 
     const backupData = {
       accounts: accountsWithSeeds,
+      appVersion: APP_VERSION,
       ark: arkState,
+      buildNumber: BUILD_NUMBER,
       ecash: {
         accounts: ecashState.accounts,
         activeAccountId: ecashState.activeAccountId,
@@ -206,7 +209,7 @@ export default function Developer() {
       version: 1
     }
 
-    return JSON.stringify(backupData, null, 2)
+    return JSON.stringify(backupData)
   }
 
   async function openBackupPreview() {
@@ -280,7 +283,7 @@ export default function Developer() {
       })
       const result = await Share.share({
         message: encryptedPayload,
-        title: getBackupFilename()
+        title: getBackupFilename(APP_VERSION)
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
@@ -301,7 +304,7 @@ export default function Developer() {
       showBackupPassphraseError()
       return
     }
-    const filename = getBackupFilename()
+    const filename = getBackupFilename(APP_VERSION)
     try {
       const salt = await generateSalt()
       const key = await pbkdf2Encrypt(backupPassphrase, salt)

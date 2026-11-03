@@ -34,9 +34,9 @@ import type {
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
+  deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
-  restoreArkDatadirsFromBackup,
   restoreArkLabelsFromBackup,
   restoreArkStoreFromBackup,
   type ArkBackupSection
@@ -518,9 +518,9 @@ async function writeKeychain(
  * pendingRecoverData is set. Uses stored PIN from secure storage.
  *
  * Order is: validate → encrypt secrets in memory → snapshot stores → apply
- * store changes → write keychain → release open Ark wallets → restore Ark
- * datadirs and labels. Any failure during apply rolls back stores to their
- * pre-restore state. Keychain writes happen last; rollback for those is
+ * store changes → write keychain → release open Ark wallets → delete leftover
+ * Ark datadirs → restore Ark labels. Any failure during apply rolls back
+ * stores to their pre-restore state. Keychain writes happen last; rollback for those is
  * best-effort since secure-storage reads are PIN-bound.
  */
 export async function performRecoverOverwrite(
@@ -578,11 +578,7 @@ export async function performRecoverOverwrite(
       leftoverArkAccountIds
     )
     releaseArkWalletsForRestore(arkAccountsToRelease)
-    await restoreArkDatadirsFromBackup(
-      data.ark?.datadirs,
-      leftoverArkAccountIds,
-      restoredArkAccountIds
-    )
+    await deleteLeftoverArkDatadirs(leftoverArkAccountIds)
     restoreArkLabelsFromBackup(
       data.ark?.labels,
       leftoverArkAccountIds,
