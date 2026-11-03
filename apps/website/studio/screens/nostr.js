@@ -7,7 +7,7 @@ document.head.insertAdjacentHTML(
   'beforeend',
   `<style>
   /* Avatars: SSNostrAccountCard / SSNostrHeroCard / feed rows (fallback letter discs) */
-  .no-avatar { display: inline-flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18); background: var(--gray-800); color: var(--white); font-weight: var(--sizes-text-font-weight-bold); }
+  .no-avatar { display: inline-flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18); background: var(--gray-800); color: var(--white); font-weight: var(--sizes-text-font-weight-bold); object-fit: cover; }
   .no-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 4px; }
   .no-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
   .no-list { display: flex; flex-direction: column; gap: 8px; }
@@ -293,6 +293,9 @@ function noRemember(id) {
 const noBack = (id, fallback) => () => noReturn[id] || fallback
 
 function noAvatar(person, size = 36) {
+  if (person.picture) {
+    return `<img class="no-avatar" src="${ss.esc(person.picture)}" alt="${ss.esc(person.pictureAlt || person.name || '')}" style="width:${size}px;height:${size}px">`
+  }
   const letter = (person.name || person.npub || 'N').replace(/^npub1/, '')[0].toUpperCase()
   return `<span class="no-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px">${ss.esc(letter)}</span>`
 }
@@ -1089,6 +1092,7 @@ registerScreen('nostr-zap', {
   render: () => {
     noRemember('nostr-zap')
     const z = noZaps.find((x) => x.id === noState.zap) || noZaps[0]
+    if (!z) return ss.vstack({ style: 'padding:24px 0' }, ss.text({ color: 'muted' }, 'No zaps yet'))
     const who = z.incoming ? z.from : z.to
     const field = (label, value) => ss.vstack({ gap: 'xs' }, ss.text({ size: 'xxs', color: 'muted', uppercase: true }, label), value)
     const note = noNotes.find((x) => x.id === z.note)
@@ -1152,7 +1156,7 @@ function noProfileForm(withBanner) {
 function noBindProfile(body, done) {
   body.querySelector('[name="no-displayName"]').addEventListener('input', (e) => {
     const av = body.querySelector('.no-profile-head .no-avatar, .no-create-avatar .no-avatar')
-    if (av) av.textContent = (e.target.value || 'N')[0].toUpperCase()
+    if (av && av.tagName !== 'IMG') av.textContent = (e.target.value || 'N')[0].toUpperCase()
   })
   noOn(body, (e) => {
     const up = e.target.closest('[data-upload]')
