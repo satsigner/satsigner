@@ -21,6 +21,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   deriveNostrKeysFromMnemonic,
   npubFromNsec
@@ -149,7 +150,7 @@ export default function ImportNostrIdentity() {
 
   function handleImportNpub() {
     const trimmed = npub.trim()
-    if (!trimmed.startsWith('npub1') || trimmed.length < 60) {
+    if (!getPubKeyHexFromNpub(trimmed)) {
       toast.error(t('nostrIdentity.import.invalidNpub'))
       return
     }

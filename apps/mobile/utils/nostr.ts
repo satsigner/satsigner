@@ -16,9 +16,16 @@ import { type TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 
+function getNip19Type(value: string): string | null {
+  try {
+    return nip19.decode(value).type
+  } catch {
+    return null
+  }
+}
+
 export function generateColorFromNpub(npub: string): string {
-  const decoded = nip19.decode(npub)
-  if (!decoded || decoded.type !== 'npub') {
+  if (getNip19Type(npub) !== 'npub') {
     return NOSTR_FALLBACK_NPUB_COLOR
   }
   const pubkey = npub

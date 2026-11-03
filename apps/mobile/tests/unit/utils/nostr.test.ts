@@ -105,16 +105,16 @@ describe('generateColorFromNpub', () => {
     jest.clearAllMocks()
   })
 
-  it('throws for invalid npub', () => {
+  it('returns default color for undecodable npub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockImplementation(() => {
       throw new Error('Invalid bech32')
     })
-    expect(() => generateColorFromNpub(nostrKeys.invalid.npub)).toThrow(
-      expect.any(Error)
+    expect(generateColorFromNpub(nostrKeys.invalid.npub)).toBe(
+      NOSTR_FALLBACK_NPUB_COLOR
     )
-    expect(() => generateColorFromNpub(nostrKeys.invalid.notBech32)).toThrow(
-      expect.any(Error)
+    expect(generateColorFromNpub(nostrKeys.invalid.notBech32)).toBe(
+      NOSTR_FALLBACK_NPUB_COLOR
     )
   })
 
