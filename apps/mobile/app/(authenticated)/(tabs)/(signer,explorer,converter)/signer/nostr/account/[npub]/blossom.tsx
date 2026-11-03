@@ -184,17 +184,18 @@ export default function NostrBlossomServers() {
                 <SSText size="sm" color="muted" uppercase>
                   {t('nostrIdentity.blossom.yourServers')}
                 </SSText>
-                <SSButton
-                  label={
-                    isImporting
-                      ? t('nostrIdentity.blossom.importing')
-                      : t('nostrIdentity.blossom.importFromNostr')
-                  }
-                  variant="ghost"
-                  onPress={handleImportFromNostr}
+                <SSPressable
+                  activeOpacity={0.6}
                   disabled={isImporting}
-                  style={styles.importButton}
-                />
+                  hitSlop={8}
+                  onPress={handleImportFromNostr}
+                >
+                  <SSText size="sm" uppercase>
+                    {isImporting
+                      ? t('nostrIdentity.blossom.importing')
+                      : t('nostrIdentity.blossom.importFromNostr')}
+                  </SSText>
+                </SSPressable>
               </SSHStack>
               {servers.map((url, index) => (
                 <ServerRow
@@ -274,11 +275,6 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     paddingVertical: 60
-  },
-  importButton: {
-    height: 'auto',
-    paddingVertical: 0,
-    width: 'auto'
   },
   popularRow: {
     alignItems: 'center',
