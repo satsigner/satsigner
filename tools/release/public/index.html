@@ -547,6 +547,14 @@
                     Send announcement
                   </button>
                   <button
+                    id="uninstall"
+                    class="danger span"
+                    type="button"
+                    hidden
+                  >
+                    Uninstall from device
+                  </button>
+                  <button
                     id="manage-listings"
                     class="ghost span"
                     type="button"
@@ -1082,6 +1090,7 @@
       const zapstoreButton = document.querySelector('#zapstore')
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
+      const uninstallButton = document.querySelector('#uninstall')
       const identityButtons = [...document.querySelectorAll('[data-identity]')]
       const kindButtons = [...document.querySelectorAll('[data-kind]')]
       const buildApkButton = document.querySelector('#build-apk')
@@ -1258,6 +1267,7 @@
         zapstoreButton.disabled = busy || !connected
         zapstoreOnlyButton.disabled = busy || !connected
         announceButton.disabled = busy || !connected
+        uninstallButton.disabled = busy
         for (const button of [...identityButtons, ...kindButtons]) {
           button.disabled = busy
         }
@@ -1392,6 +1402,14 @@
         zapstoreButton.classList.toggle('danger', releaseChannel === 'primary')
         zapstoreButton.classList.toggle('primary', releaseChannel !== 'primary')
         renderZapstorePreview(listing)
+        const installed = releaseStatus?.installedPackages ?? []
+        const onDevice = Boolean(
+          listing.packageId && installed.includes(listing.packageId)
+        )
+        uninstallButton.hidden = !onDevice
+        uninstallButton.textContent = onDevice
+          ? `Uninstall ${listing.packageId}`
+          : 'Uninstall from device'
       }
 
       function renderZapstorePreview(listing) {
@@ -1503,7 +1521,9 @@
         statusEl.textContent =
           action === 'apk'
             ? 'Building the APK.'
-            : 'Running. Approve prompts in the extension.'
+            : action === 'uninstall'
+              ? 'Uninstalling from the connected device.'
+              : 'Running. Approve prompts in the extension.'
         const response = await fetch('/api/run', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -1546,6 +1566,7 @@
         runAction('zapstoreOnly')
       )
       announceButton.addEventListener('click', () => runAction('announce'))
+      uninstallButton.addEventListener('click', () => runAction('uninstall'))
       for (const button of identityButtons) {
         button.addEventListener('click', () => {
           apkIdentity = button.dataset.identity

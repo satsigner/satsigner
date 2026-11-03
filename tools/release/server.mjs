@@ -16,6 +16,8 @@ import {
   buildPushArgs,
   isApkName,
   isNostrRemote,
+  parseAdbDevices,
+  parsePackageList,
   redactSecrets
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
@@ -288,6 +290,51 @@ async function releaseApk() {
   }
 }
 
+function adbText(args) {
+  return new Promise((resolve) => {
+    const proc = spawn('adb', args, {
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
+    let output = ''
+    proc.stdout.on('data', (chunk) => {
+      output += chunk.toString()
+    })
+    proc.on('close', (code) => {
+      resolve(code === 0 ? output : '')
+    })
+    proc.on('error', () => resolve(''))
+  })
+}
+
+async function installedPackages() {
+  const serials = parseAdbDevices(await adbText(['devices']))
+  const names = new Set()
+  for (const serial of serials) {
+    const listed = parsePackageList(
+      await adbText(['-s', serial, 'shell', 'pm', 'list', 'packages', 'com.satsigner'])
+    )
+    for (const name of listed) {
+      names.add(name)
+    }
+  }
+  return [...names]
+}
+
+async function uninstallPackage(channel) {
+  const channels = await releaseChannels()
+  const selected = channels[releaseChannel(channel)]
+  if (!selected?.packageId) {
+    throw new Error('unknown release channel')
+  }
+  const serials = parseAdbDevices(await adbText(['devices']))
+  if (serials.length === 0) {
+    throw new Error('no Android device is connected')
+  }
+  for (const serial of serials) {
+    await run('adb', ['-s', serial, 'uninstall', selected.packageId])
+  }
+}
+
 function buildLocalApk(body) {
   return run(
     'pnpm',
@@ -308,6 +355,7 @@ const actions = {
   apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
+  uninstall: (body) => uninstallPackage(body.channel),
   zapstore: (body) =>
     publishZapstore(
       typeof body.notes === 'string' ? body.notes : '',
@@ -430,6 +478,7 @@ const server = createServer(async (req, res) => {
       connected: bunkerUrl.startsWith('bunker://'),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
+      installedPackages: await installedPackages(),
       releaseApk: await releaseApk()
     })
     return
@@ -479,7 +528,11 @@ const server = createServer(async (req, res) => {
     send(res, 400, { error: 'unknown action' })
     return
   }
-  if (body.action !== 'apk' && !bunkerUrl.startsWith('bunker://')) {
+  if (
+    body.action !== 'apk' &&
+    body.action !== 'uninstall' &&
+    !bunkerUrl.startsWith('bunker://')
+  ) {
     send(res, 400, { error: 'connect the extension first' })
     return
   }

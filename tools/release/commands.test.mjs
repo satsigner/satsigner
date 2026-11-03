@@ -8,6 +8,8 @@ import {
   buildPushArgs,
   isApkName,
   isNostrRemote,
+  parseAdbDevices,
+  parsePackageList,
   redactSecrets
 } from './commands.mjs'
 import { acceptConnect } from './nip46-bridge.mjs'
@@ -69,4 +71,18 @@ test('accepts only plain apk file names', () => {
   assert.equal(isApkName('satsigner-dev-main-release.apk'), true)
   assert.equal(isApkName('../secret.apk'), false)
   assert.equal(isApkName('notes.txt'), false)
+})
+
+test('reads connected devices and satsigner packages', () => {
+  assert.deepEqual(
+    parseAdbDevices('List of devices attached\nemulator-5554 device\n'),
+    ['emulator-5554']
+  )
+  assert.deepEqual(parseAdbDevices('offline-1 offline\n'), [])
+  assert.deepEqual(
+    parsePackageList(
+      'package:com.satsigner.satsigner.dev\npackage:com.other.app\n'
+    ),
+    ['com.satsigner.satsigner.dev', 'com.other.app']
+  )
 })

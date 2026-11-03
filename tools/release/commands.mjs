@@ -89,6 +89,27 @@ function pathBasename(name) {
   return slash === -1 ? name : name.slice(slash + 1)
 }
 
+function parseAdbDevices(text) {
+  const serials = []
+  for (const line of text.split('\n')) {
+    const [serial, state] = line.trim().split(/\s+/)
+    if (state === 'device' && serial) {
+      serials.push(serial)
+    }
+  }
+  return serials
+}
+
+function parsePackageList(text) {
+  return text.split('\n').flatMap((line) => {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('package:')) {
+      return []
+    }
+    return [trimmed.slice('package:'.length)]
+  })
+}
+
 export {
   REPO_IDENTIFIER,
   SIGNER_ALIAS,
@@ -98,5 +119,7 @@ export {
   buildPushArgs,
   isApkName,
   isNostrRemote,
+  parseAdbDevices,
+  parsePackageList,
   redactSecrets
 }
