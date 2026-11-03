@@ -980,6 +980,7 @@
             !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           const remove = document.createElement('button')
           remove.type = 'button'
+          remove.className = 'danger'
           remove.dataset.removeApp = event.id
           remove.textContent = 'Delete listing'
           remove.disabled =
