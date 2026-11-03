@@ -110,6 +110,55 @@ function parsePackageList(text) {
   })
 }
 
+const LOG_KIND_PATTERNS = [
+  [
+    'error',
+    [
+      /^\s*error\b/i,
+      /^\s*missing\b/,
+      /^\s*FAILURE\b/,
+      /\bBUILD FAILED\b/,
+      /\bFAILED$/,
+      /exited with code [1-9]/,
+      /\bhas not saved it\b/,
+      /\bpublish failed\b/i,
+      /^aborted$/
+    ]
+  ],
+  [
+    'success',
+    [
+      /^\s*ok\b/,
+      /\bBUILD SUCCESSFUL\b/,
+      /^\s*done\.?$/i,
+      /\bis live on Zapstore\b/
+    ]
+  ],
+  [
+    'milestone',
+    [
+      /^\s*\[\d+\/\d+\]/,
+      /^\s*=== /,
+      /^\$ /,
+      /^\s*(APK|Package|Install|Store page|Keystore):/,
+      /^\s*(Checking that Zapstore|Reusing the APK|Uploading APK|Signing and publishing)\b/
+    ]
+  ],
+  ['signer', [/^signer (relay|bridge):/]]
+]
+
+function classifyLogLine(line) {
+  const match = LOG_KIND_PATTERNS.find(([, patterns]) =>
+    patterns.some((pattern) => pattern.test(line))
+  )
+  return match ? match[0] : 'detail'
+}
+
+function splitCompleteLines(pending, chunk) {
+  const parts = `${pending}${chunk}`.split('\n')
+  return { lines: parts.slice(0, -1), pending: parts.at(-1) }
+}
+
 export {
   REPO_IDENTIFIER,
   SIGNER_ALIAS,
@@ -117,9 +166,11 @@ export {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  classifyLogLine,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
-  redactSecrets
+  redactSecrets,
+  splitCompleteLines
 }

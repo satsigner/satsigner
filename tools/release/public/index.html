@@ -392,6 +392,24 @@
         white-space: pre;
         tab-size: 4;
       }
+      .log-detail {
+        color: #8a8a8a;
+      }
+      .log-signer {
+        color: #5f6b7a;
+      }
+      .log-milestone {
+        color: #ffffff;
+        font-weight: 600;
+      }
+      .log-success {
+        color: #6fcf7f;
+        font-weight: 600;
+      }
+      .log-error {
+        color: #ff7b72;
+        font-weight: 600;
+      }
       pre:empty::before {
         color: #777777;
         content: 'Build and publish output appears here.';
@@ -960,16 +978,19 @@
           if (!accepted) {
             button.disabled = false
             statusEl.textContent = 'Zapstore rejected the replacement.'
-            writeLog(`replace ${tagValue(original, 'd')} was rejected\n`)
+            writeLog(
+              `replace ${tagValue(original, 'd')} was rejected\n`,
+              'error'
+            )
             return
           }
           statusEl.textContent = 'Listing replaced.'
-          writeLog(`replaced ${tagValue(original, 'd')}\n`)
+          writeLog(`replaced ${tagValue(original, 'd')}\n`, 'success')
           await loadApps()
         } catch (error) {
           button.disabled = false
           statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          writeLog(`${error.message}\n`, 'error')
         }
       }
 
@@ -997,7 +1018,7 @@
           if (!accepted) {
             button.disabled = false
             statusEl.textContent = 'Zapstore rejected the deletion request.'
-            writeLog(`delete ${packageId} was rejected\n`)
+            writeLog(`delete ${packageId} was rejected\n`, 'error')
             return
           }
           rememberDeleted(packageId, DELETED_APPS_KEY)
@@ -1008,7 +1029,7 @@
         } catch (error) {
           button.disabled = false
           statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          writeLog(`${error.message}\n`, 'error')
         }
       }
 
@@ -1068,7 +1089,7 @@
           if (!results.some(Boolean)) {
             button.disabled = false
             statusEl.textContent = 'Relays rejected the deletion request.'
-            writeLog(`delete ${id} was rejected\n`)
+            writeLog(`delete ${id} was rejected\n`, 'error')
             return
           }
           rememberDeleted(id)
@@ -1079,7 +1100,7 @@
         } catch (error) {
           button.disabled = false
           statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          writeLog(`${error.message}\n`, 'error')
         }
       }
 
@@ -1150,16 +1171,17 @@
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
 
-      function writeLog(text) {
+      function logLine(text, kind) {
+        const line = document.createElement('span')
+        line.className = `log-${kind}`
         const time = new Date().toLocaleTimeString('en-GB', { hour12: false })
-        const stamped = text
-          .split('\n')
-          .map((line) => {
-            if (line.length === 0) return ''
-            return `${time}\t${line}`
-          })
-          .join('\n')
-        logEl.textContent += stamped
+        line.textContent = text.length === 0 ? '\n' : `${time}\t${text}\n`
+        return line
+      }
+
+      function writeLog(text, kind = 'detail') {
+        const lines = text.endsWith('\n') ? text.slice(0, -1) : text
+        logEl.append(...lines.split('\n').map((line) => logLine(line, kind)))
         requestAnimationFrame(() => {
           logEl.scrollTop = logEl.scrollHeight
         })
@@ -1495,7 +1517,7 @@
                 error: error.message
               })
             )
-            writeLog(`${error.message}\n`)
+            writeLog(`${error.message}\n`, 'error')
           }
         })
         return new Promise((resolve, reject) => {
@@ -1507,7 +1529,7 @@
             setBusy(busy)
             void showProfile(signerPubkey)
             refreshListings()
-            writeLog('extension connected\n')
+            writeLog('extension connected\n', 'success')
             resolve()
           })
           socket.addEventListener('error', () => {
@@ -1537,7 +1559,7 @@
         })
         if (!response.ok) {
           const body = await response.json()
-          writeLog(`${body.error}\n`)
+          writeLog(`${body.error}\n`, 'error')
           setBusy(false)
         }
       }
@@ -1593,8 +1615,9 @@
 
       const logs = new EventSource('/api/logs')
       logs.onmessage = (event) => {
-        writeLog(JSON.parse(event.data))
-        if (event.data.includes('done') || event.data.includes('error:')) {
+        const { kind, text } = JSON.parse(event.data)
+        writeLog(text, kind)
+        if (text === 'done' || text.startsWith('error:')) {
           refreshStatus()
           refreshListings()
         }

@@ -14,11 +14,13 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  classifyLogLine,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
-  redactSecrets
+  redactSecrets,
+  splitCompleteLines
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
@@ -68,8 +70,36 @@ function send(res, status, body, type = 'application/json') {
 function log(line) {
   const text = redactSecrets(line.endsWith('\n') ? line : `${line}\n`)
   process.stdout.write(text)
-  for (const listener of listeners) {
-    listener.write(`data: ${JSON.stringify(text)}\n\n`)
+  for (const entry of text.slice(0, -1).split('\n')) {
+    const message = JSON.stringify({
+      kind: classifyLogLine(entry),
+      text: entry
+    })
+    for (const listener of listeners) {
+      listener.write(`data: ${message}\n\n`)
+    }
+  }
+}
+
+function lineLogger() {
+  const state = { pending: '' }
+  return {
+    flush() {
+      if (state.pending) {
+        log(state.pending)
+        state.pending = ''
+      }
+    },
+    write(chunk) {
+      const { lines, pending } = splitCompleteLines(
+        state.pending,
+        chunk.toString()
+      )
+      state.pending = pending
+      for (const line of lines) {
+        log(line)
+      }
+    }
   }
 }
 
@@ -130,7 +160,11 @@ function run(command, args, env = {}) {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     child = proc
+    const stdout = lineLogger()
+    const stderr = lineLogger()
     const finish = (code) => {
+      stdout.flush()
+      stderr.flush()
       if (child === proc) {
         child = null
       }
@@ -140,8 +174,8 @@ function run(command, args, env = {}) {
         reject(new Error(`${command} exited with code ${code}`))
       }
     }
-    proc.stdout.on('data', (chunk) => log(chunk.toString()))
-    proc.stderr.on('data', (chunk) => log(chunk.toString()))
+    proc.stdout.on('data', (chunk) => stdout.write(chunk))
+    proc.stderr.on('data', (chunk) => stderr.write(chunk))
     proc.on('error', (error) => {
       if (child === proc) {
         child = null

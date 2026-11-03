@@ -6,11 +6,13 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  classifyLogLine,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
-  redactSecrets
+  redactSecrets,
+  splitCompleteLines
 } from './commands.mjs'
 import { acceptConnect } from './nip46-bridge.mjs'
 
@@ -85,4 +87,48 @@ test('reads connected devices and satsigner packages', () => {
     ),
     ['com.satsigner.satsigner.dev', 'com.other.app']
   )
+})
+
+test('sorts console lines into kinds', () => {
+  const cases = [
+    ['[3/4] Publish to Zapstore', 'milestone'],
+    ['=== SatSigner Zapstore Publisher ===', 'milestone'],
+    ['$ node apps/mobile/scripts/publish-zapstore.mjs --yes', 'milestone'],
+    ['  APK: /tmp/satsigner-dev-plain-release-arm64.apk', 'milestone'],
+    ['  Checking that Zapstore saved the release...', 'milestone'],
+    ['  Reusing the APK already built from this exact source', 'milestone'],
+    ['BUILD SUCCESSFUL in 4m 26s', 'success'],
+    ['    ok      Release      3579fcad', 'success'],
+    ['  The release is live on Zapstore.', 'success'],
+    ['Done.', 'success'],
+    ['done', 'success'],
+    ['    missing App listing  5dea0e7a', 'error'],
+    ['Error: Zapstore publish failed', 'error'],
+    ['error: node exited with code 1', 'error'],
+    ['> Task :app:mergeReleaseResources FAILED', 'error'],
+    ['BUILD FAILED in 12s', 'error'],
+    [
+      '  Zapstore accepted the release but has not saved it. The relay holds',
+      'error'
+    ],
+    ['signer bridge: sign_event', 'signer'],
+    ['signer relay: event kind 24133', 'signer'],
+    ['> Task :app:compileReleaseKotlin', 'detail'],
+    ['1728 actionable tasks: 1696 executed, 32 up-to-date', 'detail'],
+    ['{"kind":32267,"id":"5dea0e7a"}', 'detail'],
+    ['', 'detail']
+  ]
+  for (const [line, kind] of cases) {
+    assert.equal(classifyLogLine(line), kind, line)
+  }
+})
+
+test('keeps a line split across output chunks together', () => {
+  const first = splitCompleteLines('', 'BUILD SUCC')
+  assert.deepEqual(first, { lines: [], pending: 'BUILD SUCC' })
+  const second = splitCompleteLines(first.pending, 'ESSFUL\n[3/4] Pub')
+  assert.deepEqual(second, {
+    lines: ['BUILD SUCCESSFUL'],
+    pending: '[3/4] Pub'
+  })
 })
