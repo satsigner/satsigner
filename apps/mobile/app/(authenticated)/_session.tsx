@@ -28,6 +28,7 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { devLog, devStep } from '@/utils/devConsole'
 import { startNostrLifecycle, stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
@@ -172,6 +173,7 @@ function AuthenticatedSession() {
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
     for (const account of useAccountsStore.getState().accounts) {
+      await devStep('session', `sync account ${account.name}`)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         if (isImportAddress) {
@@ -195,6 +197,7 @@ function AuthenticatedSession() {
       } catch (error) {
         const label = account.name ?? account.id
         const reason = error instanceof Error ? error.message : String(error)
+        devLog('session', `sync ${label} failed: ${reason}`, 'error')
         toast.error(`${label}: ${reason}`)
       }
       await yieldToUi()
@@ -210,6 +213,7 @@ function AuthenticatedSession() {
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
 
+      await devStep('session', 'migrate nostr and service secrets')
       try {
         await migrateAndHydrateNostrSecrets()
         await migrateAndHydrateServiceSecrets()
@@ -218,7 +222,9 @@ function AuthenticatedSession() {
       }
 
       if (ju && pending) {
+        await devStep('session', 'restore backup')
         const { success } = await performRecoverOverwrite(pending)
+        devLog('session', `restore backup ${success ? 'done' : 'failed'}`)
         setPendingRecoverData(null)
         if (success) {
           toast.success(t('settings.developer.recoverSuccess'))
@@ -227,7 +233,9 @@ function AuthenticatedSession() {
         }
       }
       setJustUnlocked(false)
+      await devStep('session', 'load wallets')
       await loadWallets()
+      devLog('session', 'wallets loaded')
       void syncLoadedWallets()
 
       try {
@@ -236,6 +244,7 @@ function AuthenticatedSession() {
         // non-critical — cache prune failure should not block startup
       }
       if (session.active) {
+        await devStep('session', 'start nostr sync')
         startNostrLifecycle()
       }
 

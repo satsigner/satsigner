@@ -29,6 +29,7 @@ import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
@@ -52,15 +53,24 @@ import {
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
+import { isDevConsoleAvailable } from '@/utils/devConsole'
 import { saveFile } from '@/utils/filesystem'
 import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
+const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
+
 const BACKUP_PIN_MAX_TRIES = 3
 
+function toggleDevConsole() {
+  const { enabled, setEnabled } = useDevConsoleStore.getState()
+  setEnabled(!enabled)
+}
+
 export default function Developer() {
+  const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
@@ -409,6 +419,21 @@ export default function Developer() {
               onPress={() => setClearStorageModalVisible(true)}
             />
           </SSVStack>
+          {DEV_CONSOLE_AVAILABLE ? (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack gap="xs">
+                <SSCheckbox
+                  label={t('settings.developer.devConsole')}
+                  selected={devConsoleEnabled}
+                  onPress={toggleDevConsole}
+                />
+                <SSText color="muted" size="sm">
+                  {t('settings.developer.devConsoleDescription')}
+                </SSText>
+              </SSVStack>
+            </>
+          ) : null}
           {__DEV__ ? (
             <>
               <SSSeparator color="gradient" />
