@@ -110,10 +110,7 @@ function getCachedWallet(accountId: string): WalletLike {
 // Since bark 0.12, boarding, exits and the daemon use the onchain wallet
 // supplied at open time (`WalletOpenArgs.onchain`), so it must be created
 // upfront instead of lazily.
-async function openWalletWithOnchain(
-  args: ArkWalletArgs,
-  runDaemon: boolean
-): Promise<void> {
+async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
   const onchainWallet = await OnchainWallet.default_(
     appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
@@ -130,7 +127,7 @@ async function openWalletWithOnchain(
         createWithoutServer: false,
         datadir: args.datadir,
         onchain: onchainWallet,
-        runDaemon,
+        runDaemon: true,
         skipRecovery: false
       }
     )
@@ -145,12 +142,14 @@ async function openWalletWithOnchain(
   walletArgsCache.set(args.accountId, args)
 }
 
+// The created wallet stays cached and openWallet skips cached wallets, so the
+// daemon has to start here or it never runs for this wallet until a restart.
 async function createWallet(args: ArkWalletArgs): Promise<void> {
-  await openWalletWithOnchain(args, false)
+  await openWalletWithOnchain(args)
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
-  await openWalletWithOnchain(args, true)
+  await openWalletWithOnchain(args)
   const wallet = getCachedWallet(args.accountId)
   try {
     await wallet.sync()

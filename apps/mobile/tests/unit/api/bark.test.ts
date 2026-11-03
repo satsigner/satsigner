@@ -114,6 +114,22 @@ describe('bark provider', () => {
     jest.clearAllMocks()
   })
 
+  it('createWallet starts the daemon so live notifications work', async () => {
+    Wallet.open.mockResolvedValue(buildFakeWallet())
+    await provider.createWallet({
+      accountId: 'create1',
+      datadir: '/tmp/create1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    expect(Wallet.open).toHaveBeenCalledWith(
+      expect.anything(),
+      MNEMONIC,
+      expect.anything(),
+      expect.objectContaining({ runDaemon: true })
+    )
+  })
+
   it('fetchBalance converts bigint fields to numbers', async () => {
     const wallet = buildFakeWallet({
       balance: jest.fn().mockResolvedValue({
