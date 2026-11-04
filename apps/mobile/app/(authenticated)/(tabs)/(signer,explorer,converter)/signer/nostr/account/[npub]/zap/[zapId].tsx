@@ -28,7 +28,10 @@ import { Colors } from '@/styles'
 import { type ZapReceiptInfo } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
-import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import {
+  getNostrContactsRelaysKey,
+  getNostrIdentityRelays
+} from '@/utils/nostrContacts'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import { isNostrRelayUnavailableError } from '@/utils/nostrFeed'
 import { nostrContactProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
@@ -58,6 +61,7 @@ export default function NostrZapDetail() {
   const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const effectiveRelays = getNostrIdentityRelays(identity?.relays, relays)
+  const relaysKey = getNostrContactsRelaysKey(effectiveRelays)
   const profileHex = npub ? getPubKeyHexFromNpub(npub) : null
 
   const receiptQuery = useQuery({
@@ -75,7 +79,7 @@ export default function NostrZapDetail() {
       const [enriched] = await enrichZapReceipts([r], effectiveRelays)
       return enriched ?? r
     },
-    queryKey: ['nostr', 'zap-receipt', npub, zapId]
+    queryKey: ['nostr', 'zap-receipt', npub, zapId, relaysKey]
   })
 
   const receipt = receiptQuery.data ?? null
@@ -100,7 +104,12 @@ export default function NostrZapDetail() {
       }
       return { content, tags } satisfies ReferencedNotePreview
     },
-    queryKey: ['nostr', 'zap-referenced-note', receipt?.zappedEventId]
+    queryKey: [
+      'nostr',
+      'zap-referenced-note',
+      receipt?.zappedEventId,
+      relaysKey
+    ]
   })
 
   const referencedNote = referencedNoteQuery.data ?? null

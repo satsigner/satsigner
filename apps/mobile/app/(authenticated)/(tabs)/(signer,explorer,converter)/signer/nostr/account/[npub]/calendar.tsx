@@ -11,7 +11,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
-import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import {
+  getNostrContactsRelaysKey,
+  getNostrIdentityRelays
+} from '@/utils/nostrContacts'
 
 type CalendarParams = {
   npub: string
@@ -66,7 +69,12 @@ export default function NostrCalendar() {
   } = useQuery({
     enabled: !!npub && relayConnected && relaysAvailable,
     queryFn: () => fetchCalendarEvents(effectiveRelays, npub),
-    queryKey: ['nostr', 'calendar', npub],
+    queryKey: [
+      'nostr',
+      'calendar',
+      npub,
+      getNostrContactsRelaysKey(effectiveRelays)
+    ],
     staleTime: 5 * 60_000
   })
 
