@@ -1,3 +1,4 @@
+import { type DevConsoleEntry } from '@/types/models/DevConsole'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
@@ -12,7 +13,9 @@ export const DESIGN_FEATURE_IDS = [
   'autocomplete',
   'lightningNode',
   'transactionCard',
-  'historyChart'
+  'historyChart',
+  'pinInput',
+  'devConsole'
 ] as const
 
 export type DesignFeatureId = (typeof DESIGN_FEATURE_IDS)[number]
@@ -280,3 +283,32 @@ export const DESIGN_SAMPLE_LIGHTNING_CHANNELS: LightningBubbleChannelRow[] = [
     remoteSats: 910_000
   }
 ]
+
+const DESIGN_SAMPLE_LOG_START = Date.UTC(2026, 0, 3, 18, 15, 5)
+const DESIGN_SAMPLE_LOG_INTERVAL_MS = 137
+
+const DESIGN_SAMPLE_LOG_LINES: Pick<
+  DevConsoleEntry,
+  'level' | 'message' | 'scope'
+>[] = [
+  { level: 'step', message: 'hydrate stores', scope: 'startup' },
+  { level: 'info', message: 'loaded 3 accounts', scope: 'accounts' },
+  { level: 'step', message: 'connect electrum', scope: 'startup' },
+  {
+    level: 'info',
+    message: 'ssl://electrum.blockstream.info:50002',
+    scope: 'electrum'
+  },
+  { level: 'warn', message: 'fee estimate stale, retrying', scope: 'fees' },
+  { level: 'info', message: 'synced 42 transactions', scope: 'sync' },
+  { level: 'error', message: 'nostr relay timed out', scope: 'nostr' }
+]
+
+export const DESIGN_SAMPLE_DEV_CONSOLE_ENTRIES: DevConsoleEntry[] =
+  DESIGN_SAMPLE_LOG_LINES.map((entry, index) => ({
+    ...entry,
+    id: index,
+    time: DESIGN_SAMPLE_LOG_START + index * DESIGN_SAMPLE_LOG_INTERVAL_MS
+  }))
+
+export const DESIGN_SAMPLE_DEV_CONSOLE_PAUSED_STEPS = ['load accounts']

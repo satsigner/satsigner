@@ -5,11 +5,16 @@ import { Network } from 'react-native-bdk-sdk'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSDesignSection from '@/components/SSDesignSection'
+import SSDevConsolePanel, {
+  type DevConsolePanelActions
+} from '@/components/SSDevConsolePanel'
 import SSHistoryChart from '@/components/SSHistoryChart'
+import SSKeyboard from '@/components/SSKeyboard'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSLightningChannelLiquidityBar from '@/components/SSLightningChannelLiquidityBar'
 import SSLightningChannelsBubbleChart from '@/components/SSLightningChannelsBubbleChart'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
+import SSPinInput from '@/components/SSPinInput'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeedWordsEntry from '@/components/SSSeedWordsEntry'
 import SSSeparator from '@/components/SSSeparator'
@@ -22,18 +27,28 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSUtxoBar from '@/components/SSUtxoBar'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import { PIN_SIZE } from '@/config/auth'
+import {
+  DESIGN_CHANNEL_SETS,
+  DESIGN_FEATURE_SET_NAMES,
+  DESIGN_HISTORY_SETS,
+  DESIGN_LOG_SETS,
+  DESIGN_SAMPLE_SET_LABEL_KEYS,
+  DESIGN_SANKEY_SETS,
+  DESIGN_TAG_STATES,
+  DESIGN_TRANSACTION_CARD_STATES,
+  DESIGN_TRANSACTION_CHART_SETS,
+  DESIGN_UTXO_SETS,
+  DESIGN_WORD_STATES,
+  type DesignSampleSetName
+} from '@/constants/designSampleVariations'
 import {
   DESIGN_SAMPLE_BLOCK_HEIGHT,
-  DESIGN_SAMPLE_FEE_RATE,
-  DESIGN_SAMPLE_LIGHTNING_CHANNELS,
+  DESIGN_SAMPLE_DEV_CONSOLE_ENTRIES,
+  DESIGN_SAMPLE_DEV_CONSOLE_PAUSED_STEPS,
   DESIGN_SAMPLE_MULTISIG_MAX_KEYS,
-  DESIGN_SAMPLE_OWN_ADDRESSES,
-  DESIGN_SAMPLE_SANKEY_OUTPUTS,
   DESIGN_SAMPLE_SCRIPT_HEX,
-  DESIGN_SAMPLE_TAGS,
-  DESIGN_SAMPLE_TRANSACTIONS,
   DESIGN_SAMPLE_TX_HEX,
-  DESIGN_SAMPLE_UTXOS,
   type DesignFeatureId
 } from '@/constants/designSystem'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -42,44 +57,39 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { mainContainerPaddingHorizontalRatio } from '@/styles/layout'
-import { getTransactionRunningBalances } from '@/utils/walletOwnership'
+import type { Utxo } from '@/types/models/Utxo'
+import { emptyPin } from '@/utils/pin'
 
 const tn = _tn('settings.developer.designSystem.features')
 
 const CHART_HEIGHT_RATIO = 0.6
+const DEV_CONSOLE_PREVIEW_HEIGHT = 320
+const PREVIEW_LIST_LIMIT = 30
+const NO_PAUSED_STEPS: string[] = []
+const NO_INPUTS: Utxo[] = []
 const MULTISIG_INITIAL_REQUIRED = 2
 const MULTISIG_INITIAL_TOTAL = 3
 const SEED_WORD_COUNT = 12
 const WORD_LIST = 'english'
-const SANKEY_INPUTS = new Map(
-  DESIGN_SAMPLE_UTXOS.slice(0, 2).map((utxo) => [
-    `${utxo.txid}:${utxo.vout}`,
-    utxo
-  ])
-)
-const SPEND_TRANSACTION = DESIGN_SAMPLE_TRANSACTIONS.find(
-  (transaction) => transaction.type === 'send'
-)
-const INTERNAL_ADDRESSES = new Set(
-  DESIGN_SAMPLE_UTXOS.filter((utxo) => utxo.keychain === 'internal').flatMap(
-    (utxo) => (utxo.addressTo ? [utxo.addressTo] : [])
-  )
-)
-const UTXO_TOTAL = DESIGN_SAMPLE_UTXOS.reduce(
-  (total, utxo) => total + utxo.value,
-  0
-)
-const LIGHTNING_TOTAL = DESIGN_SAMPLE_LIGHTNING_CHANNELS.reduce(
-  (total, channel) => total + channel.localSats + channel.remoteSats,
-  0
-)
-const RUNNING_BALANCES = getTransactionRunningBalances(
-  DESIGN_SAMPLE_TRANSACTIONS
-)
-const TRANSACTIONS_NEWEST_FIRST = DESIGN_SAMPLE_TRANSACTIONS.toReversed()
 
 function NOOP() {
   // design preview only
+}
+
+const DEV_CONSOLE_PREVIEW_ACTIONS: DevConsolePanelActions = {
+  onClear: NOOP,
+  onClose: NOOP,
+  onCopy: NOOP,
+  onHide: NOOP,
+  onNextStep: NOOP,
+  onPause: NOOP,
+  onResume: NOOP,
+  onToggleDock: NOOP,
+  onToggleSession: NOOP
+}
+
+type SetPreviewProps = {
+  setIndex: number
 }
 
 function useContentSize() {
@@ -90,67 +100,81 @@ function useContentSize() {
   }
 }
 
-function SankeyPreview() {
+function SankeyPreview({ setIndex }: SetPreviewProps) {
   const { chartHeight } = useContentSize()
+  const sample = DESIGN_SANKEY_SETS[setIndex].data
+
+  if (sample.chart === 'transaction') {
+    return (
+      <SSScrollView showsVerticalScrollIndicator={false}>
+        <SSTransactionChart
+          transaction={sample.transaction}
+          ownAddresses={sample.ownAddresses}
+          internalAddresses={sample.internalAddresses}
+          ownedOutpoints={sample.ownedOutpoints}
+        />
+      </SSScrollView>
+    )
+  }
 
   return (
     <View style={{ height: chartHeight }}>
       <SSCurrentTransactionChart
-        inputs={SANKEY_INPUTS}
-        outputs={DESIGN_SAMPLE_SANKEY_OUTPUTS}
-        feeRate={DESIGN_SAMPLE_FEE_RATE}
-        ownAddresses={DESIGN_SAMPLE_OWN_ADDRESSES}
+        inputs={sample.inputs}
+        outputs={sample.outputs}
+        feeRate={sample.feeRate}
+        ownAddresses={sample.ownAddresses}
       />
     </View>
   )
 }
 
-function TransactionChartPreview() {
-  if (!SPEND_TRANSACTION) {
-    return null
-  }
+function TransactionChartPreview({ setIndex }: SetPreviewProps) {
+  const sample = DESIGN_TRANSACTION_CHART_SETS[setIndex].data
 
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
       <SSTransactionChart
-        transaction={SPEND_TRANSACTION}
-        ownAddresses={DESIGN_SAMPLE_OWN_ADDRESSES}
-        internalAddresses={INTERNAL_ADDRESSES}
+        transaction={sample.transaction}
+        ownAddresses={sample.ownAddresses}
+        internalAddresses={sample.internalAddresses}
       />
     </SSScrollView>
   )
 }
 
-function UtxoChartPreview() {
+function UtxoChartPreview({ setIndex }: SetPreviewProps) {
   const display = useDisplayPreferences()
   const { chartHeight, contentWidth } = useContentSize()
+  const { utxos, total } = DESIGN_UTXO_SETS[setIndex].data
+  const listed = utxos.slice(0, PREVIEW_LIST_LIMIT)
 
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
       <SSVStack gap="lg" style={styles.scrollContent}>
         <SSBubbleChart
           canvasSize={{ height: chartHeight, width: contentWidth }}
-          utxos={DESIGN_SAMPLE_UTXOS}
-          inputs={[]}
+          utxos={utxos}
+          inputs={NO_INPUTS}
           onPress={NOOP}
         />
         <SSSeparator />
         <SSDesignSection title={tn('utxoBars')}>
           <SSVStack gap="sm">
-            {DESIGN_SAMPLE_UTXOS.map((utxo) => (
+            {listed.map((utxo) => (
               <SSUtxoBar
                 key={`bar-${utxo.txid}:${utxo.vout}`}
                 utxoValue={utxo.value}
-                totalBalance={UTXO_TOTAL}
+                totalBalance={total}
               />
             ))}
           </SSVStack>
-          {DESIGN_SAMPLE_UTXOS.map((utxo, index) => (
+          {listed.map((utxo, index) => (
             <SSUtxoCard
               key={`card-${utxo.txid}:${utxo.vout}`}
               {...display}
               utxo={utxo}
-              totalBalance={UTXO_TOTAL}
+              totalBalance={total}
               addressIndex={index}
               onPress={NOOP}
               onToggleExcluded={NOOP}
@@ -222,24 +246,71 @@ function SeedWordInputPreview() {
   )
 }
 
-function AutocompletePreview() {
-  const [wordStart, setWordStart] = useState('')
-  const [tags, setTags] = useState(DESIGN_SAMPLE_TAGS)
-  const [selectedTags, setSelectedTags] = useState(
-    DESIGN_SAMPLE_TAGS.slice(0, 1)
-  )
+type WordSuggestionStateProps = {
+  title: string
+  wordStart: string
+}
 
-  function handleWordSelected(word: string) {
-    setWordStart(word)
-  }
+const STATIC_WORD_SELECTOR_STYLE = {
+  opacity: 1,
+  position: 'relative' as const,
+  zIndex: 0
+}
+
+function WordSuggestionState({ title, wordStart }: WordSuggestionStateProps) {
+  return (
+    <SSDesignSection title={title}>
+      <SSText size="sm" color="muted">
+        {wordStart}
+      </SSText>
+      <SSKeyboardWordSelector
+        visible
+        wordStart={wordStart}
+        wordListName={WORD_LIST}
+        onWordSelected={NOOP}
+        style={STATIC_WORD_SELECTOR_STYLE}
+      />
+    </SSDesignSection>
+  )
+}
+
+type TagStateProps = {
+  title: string
+  tags: string[]
+  selected: number
+}
+
+function TagState({ title, tags, selected }: TagStateProps) {
+  const [allTags, setAllTags] = useState(tags)
+  const [selectedTags, setSelectedTags] = useState(tags.slice(0, selected))
 
   function handleAddTag(tag: string) {
-    setTags((current) => [...current, tag])
+    setAllTags((current) => [...current, tag])
     setSelectedTags((current) => [...current, tag])
   }
 
   function handleRemoveTag(tag: string) {
     setSelectedTags((current) => current.filter((item) => item !== tag))
+  }
+
+  return (
+    <SSDesignSection title={title}>
+      <SSTagInput
+        tags={allTags}
+        selectedTags={selectedTags}
+        onAdd={handleAddTag}
+        onSelect={setSelectedTags}
+        onRemove={handleRemoveTag}
+      />
+    </SSDesignSection>
+  )
+}
+
+function AutocompletePreview() {
+  const [wordStart, setWordStart] = useState('')
+
+  function handleWordSelected(word: string) {
+    setWordStart(word)
   }
 
   return (
@@ -249,7 +320,8 @@ function AutocompletePreview() {
         keyboardShouldPersistTaps="handled"
       >
         <SSVStack gap="lg" style={styles.scrollContent}>
-          <SSDesignSection title={tn('wordSuggestions')}>
+          <SSText uppercase>{tn('wordSuggestions')}</SSText>
+          <SSDesignSection title={tn('wordsLive')}>
             <SSTextInput
               value={wordStart}
               placeholder={tn('typeToSuggest')}
@@ -258,16 +330,23 @@ function AutocompletePreview() {
               onChangeText={setWordStart}
             />
           </SSDesignSection>
-          <SSSeparator />
-          <SSDesignSection title={tn('tagSuggestions')}>
-            <SSTagInput
-              tags={tags}
-              selectedTags={selectedTags}
-              onAdd={handleAddTag}
-              onSelect={setSelectedTags}
-              onRemove={handleRemoveTag}
+          {DESIGN_WORD_STATES.map((state) => (
+            <WordSuggestionState
+              key={state.title}
+              title={tn(state.title)}
+              wordStart={state.wordStart}
             />
-          </SSDesignSection>
+          ))}
+          <SSSeparator />
+          <SSText uppercase>{tn('tagSuggestions')}</SSText>
+          {DESIGN_TAG_STATES.map((state) => (
+            <TagState
+              key={state.title}
+              title={tn(state.title)}
+              tags={state.tags}
+              selected={state.selected}
+            />
+          ))}
         </SSVStack>
       </SSScrollView>
       <SSKeyboardWordSelector
@@ -280,9 +359,10 @@ function AutocompletePreview() {
   )
 }
 
-function LightningNodePreview() {
+function LightningNodePreview({ setIndex }: SetPreviewProps) {
   const display = useDisplayPreferences()
   const { contentWidth } = useContentSize()
+  const { rows, total } = DESIGN_CHANNEL_SETS[setIndex].data
 
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
@@ -290,14 +370,14 @@ function LightningNodePreview() {
         <SSLightningChannelsBubbleChart
           width={contentWidth}
           height={contentWidth}
-          rows={DESIGN_SAMPLE_LIGHTNING_CHANNELS}
+          rows={rows}
           privacyMode={display.privacyMode}
           onChannelPress={NOOP}
         />
         <SSSeparator />
         <SSDesignSection title={tn('liquidity')}>
           <SSVStack gap="md">
-            {DESIGN_SAMPLE_LIGHTNING_CHANNELS.map((channel) => (
+            {rows.slice(0, PREVIEW_LIST_LIMIT).map((channel) => (
               <SSVStack key={channel.chanId} gap="xs">
                 <SSHStack justifyBetween>
                   <SSText size="sm">{channel.peerLabel}</SSText>
@@ -310,7 +390,7 @@ function LightningNodePreview() {
                   channelCapacity={channel.localSats + channel.remoteSats}
                   localSats={channel.localSats}
                   remoteSats={channel.remoteSats}
-                  nodeTotalCapacity={LIGHTNING_TOTAL}
+                  nodeTotalCapacity={total}
                   privacyMode={display.privacyMode}
                 />
               </SSVStack>
@@ -327,25 +407,20 @@ function TransactionCardPreview() {
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
       <SSVStack gap="lg" style={styles.scrollContent}>
-        {[false, true].map((expand) => (
+        {DESIGN_TRANSACTION_CARD_STATES.map((state) => (
           <SSDesignSection
-            key={String(expand)}
-            title={expand ? tn('expanded') : tn('collapsed')}
+            key={`${state.title}-${state.count ?? ''}`}
+            title={tn(state.title, { count: state.count })}
           >
-            <SSVStack gap="none">
-              {TRANSACTIONS_NEWEST_FIRST.map((transaction) => (
-                <SSTransactionCard
-                  key={transaction.id}
-                  {...display}
-                  transaction={transaction}
-                  blockHeight={DESIGN_SAMPLE_BLOCK_HEIGHT}
-                  walletBalance={RUNNING_BALANCES.get(transaction.id)}
-                  expand={expand}
-                  onPress={NOOP}
-                  onOpenFiatSettings={NOOP}
-                />
-              ))}
-            </SSVStack>
+            <SSTransactionCard
+              {...display}
+              transaction={state.transaction}
+              blockHeight={DESIGN_SAMPLE_BLOCK_HEIGHT}
+              walletBalance={state.walletBalance}
+              expand={state.expand}
+              onPress={NOOP}
+              onOpenFiatSettings={NOOP}
+            />
           </SSDesignSection>
         ))}
       </SSVStack>
@@ -353,14 +428,15 @@ function TransactionCardPreview() {
   )
 }
 
-function HistoryChartPreview() {
+function HistoryChartPreview({ setIndex }: SetPreviewProps) {
   const { chartHeight } = useContentSize()
+  const { transactions, utxos } = DESIGN_HISTORY_SETS[setIndex].data
 
   return (
     <View style={{ height: chartHeight }}>
       <SSHistoryChart
-        transactions={DESIGN_SAMPLE_TRANSACTIONS}
-        utxos={DESIGN_SAMPLE_UTXOS}
+        transactions={transactions}
+        utxos={utxos}
         blockchainHeight={DESIGN_SAMPLE_BLOCK_HEIGHT}
         onOpenUtxo={NOOP}
         onOpenTransaction={NOOP}
@@ -369,12 +445,71 @@ function HistoryChartPreview() {
   )
 }
 
-const FEATURE_PREVIEWS: Record<DesignFeatureId, () => React.ReactNode> = {
+function DevConsolePreview({ setIndex }: SetPreviewProps) {
+  return (
+    <SSScrollView showsVerticalScrollIndicator={false}>
+      <SSVStack gap="lg" style={styles.scrollContent}>
+        <SSDesignSection title={tn('devConsoleRunning')}>
+          <SSDevConsolePanel
+            actions={DEV_CONSOLE_PREVIEW_ACTIONS}
+            dock="top"
+            entries={DESIGN_LOG_SETS[setIndex].data}
+            pausedSteps={NO_PAUSED_STEPS}
+            showPrevious={false}
+            stepMode={false}
+            style={styles.devConsole}
+          />
+        </SSDesignSection>
+        <SSSeparator />
+        <SSDesignSection title={tn('devConsolePaused')}>
+          <SSDevConsolePanel
+            actions={DEV_CONSOLE_PREVIEW_ACTIONS}
+            dock="top"
+            entries={DESIGN_SAMPLE_DEV_CONSOLE_ENTRIES.slice(0, 2)}
+            pausedSteps={DESIGN_SAMPLE_DEV_CONSOLE_PAUSED_STEPS}
+            showPrevious={false}
+            stepMode
+            style={styles.devConsole}
+          />
+        </SSDesignSection>
+      </SSVStack>
+    </SSScrollView>
+  )
+}
+
+function PinInputPreview() {
+  const [pin, setPin] = useState(() => emptyPin(PIN_SIZE))
+
+  return (
+    <SSScrollView showsVerticalScrollIndicator={false}>
+      <SSVStack gap="lg" style={styles.scrollContent}>
+        <SSDesignSection title={tn('pinEntry')}>
+          <SSPinInput pin={pin} setPin={setPin} />
+        </SSDesignSection>
+        <SSSeparator />
+        <SSDesignSection title={tn('keypadSetPin')}>
+          <SSKeyboard withClear={false} onPress={NOOP} onDelete={NOOP} />
+        </SSDesignSection>
+        <SSSeparator />
+        <SSDesignSection title={tn('keypadShuffled')}>
+          <SSKeyboard random onPress={NOOP} onDelete={NOOP} onClear={NOOP} />
+        </SSDesignSection>
+      </SSVStack>
+    </SSScrollView>
+  )
+}
+
+const FEATURE_PREVIEWS: Record<
+  DesignFeatureId,
+  (props: SetPreviewProps) => React.ReactNode
+> = {
   autocomplete: AutocompletePreview,
   decoded: DecodedPreview,
+  devConsole: DevConsolePreview,
   historyChart: HistoryChartPreview,
   lightningNode: LightningNodePreview,
   multisigSelector: MultisigSelectorPreview,
+  pinInput: PinInputPreview,
   sankey: SankeyPreview,
   seedWordInput: SeedWordInputPreview,
   transactionCard: TransactionCardPreview,
@@ -382,21 +517,59 @@ const FEATURE_PREVIEWS: Record<DesignFeatureId, () => React.ReactNode> = {
   utxoChart: UtxoChartPreview
 }
 
-type SSDesignFeaturePreviewProps = {
-  feature: DesignFeatureId
+type SetStatusProps = {
+  names: DesignSampleSetName[]
+  setIndex: number
 }
 
-function SSDesignFeaturePreview({ feature }: SSDesignFeaturePreviewProps) {
+function SetStatus({ names, setIndex }: SetStatusProps) {
+  return (
+    <SSText size="xs" color="muted" uppercase style={styles.status}>
+      {tn('setStatus', {
+        count: names.length,
+        index: setIndex + 1,
+        name: tn(DESIGN_SAMPLE_SET_LABEL_KEYS[names[setIndex]])
+      })}
+    </SSText>
+  )
+}
+
+type SSDesignFeaturePreviewProps = {
+  feature: DesignFeatureId
+  setIndex: number
+}
+
+function SSDesignFeaturePreview({
+  feature,
+  setIndex
+}: SSDesignFeaturePreviewProps) {
   const Preview = FEATURE_PREVIEWS[feature]
-  return <Preview />
+  const names = DESIGN_FEATURE_SET_NAMES[feature]
+
+  if (!names) {
+    return <Preview setIndex={0} />
+  }
+
+  return (
+    <View style={styles.flex}>
+      <SetStatus names={names} setIndex={setIndex} />
+      <Preview setIndex={setIndex} />
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
+  devConsole: {
+    height: DEV_CONSOLE_PREVIEW_HEIGHT
+  },
   flex: {
     flex: 1
   },
   scrollContent: {
     paddingBottom: 64
+  },
+  status: {
+    paddingBottom: 12
   }
 })
 
