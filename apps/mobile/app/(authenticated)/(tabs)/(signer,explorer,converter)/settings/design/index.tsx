@@ -6,6 +6,7 @@ import {
   SSIconHistoryChart,
   SSIconTable
 } from '@/components/icons'
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSSettingsCard from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -15,7 +16,7 @@ import { t } from '@/locales'
 
 const CARD_ICON_SIZE = 24
 
-export default function DesignIndex() {
+function DesignIndexScreen() {
   const router = useRouter()
 
   function handleOpenTypography() {
@@ -96,5 +97,13 @@ export default function DesignIndex() {
         </SSScrollView>
       </SSMainLayout>
     </>
+  )
+}
+
+export default function DesignIndex() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignIndexScreen />
+    </SSDevOnlyRoute>
   )
 }

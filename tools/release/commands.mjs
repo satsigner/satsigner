@@ -78,6 +78,12 @@ function buildApkArgs({ identity = 'branch', kind = 'all' } = {}) {
   ]
 }
 
+const RELEASE_CHANNELS = new Set(['dev', 'generic', 'primary'])
+
+function parseReleaseChannel(value) {
+  return RELEASE_CHANNELS.has(value) ? value : undefined
+}
+
 function isApkName(name) {
   return (
     name === pathBasename(name) && name.endsWith('.apk') && !name.includes('/')
@@ -198,6 +204,7 @@ export {
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
+  parseReleaseChannel,
   redactSecrets,
   splitCompleteLines
 }

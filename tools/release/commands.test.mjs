@@ -12,6 +12,7 @@ import {
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
+  parseReleaseChannel,
   redactSecrets,
   splitCompleteLines
 } from './commands.mjs'
@@ -198,4 +199,13 @@ test('refuses production when the current version is unknown', () => {
       }),
     /not confirmed/
   )
+})
+
+test('accepts only the known release channels', () => {
+  for (const channel of ['dev', 'generic', 'primary']) {
+    assert.equal(parseReleaseChannel(channel), channel)
+  }
+  for (const value of [undefined, '', 'prod', 'DEV', '__proto__', 1]) {
+    assert.equal(parseReleaseChannel(value), undefined)
+  }
 })

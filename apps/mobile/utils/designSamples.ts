@@ -119,7 +119,7 @@ export function sampleAddress(random: SampleRandom): string {
   const body = Array.from({ length: ADDRESS_BODY_LENGTH }, () =>
     pick(random, BECH32_CHARACTERS)
   ).join('')
-  return `bc1q${body}`
+  return `tb1q${body}`
 }
 
 function sampleLabel(random: SampleRandom): string | undefined {

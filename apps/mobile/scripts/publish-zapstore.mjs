@@ -72,7 +72,9 @@ import {
   hasReleaseKeystore,
   readKeystorePassword,
   keystorePath as releaseKeystorePath,
-  storedCertificateHash
+  requireReleaseKeystore,
+  signingEnv,
+  storedIdentity
 } from '../../../tools/release/keystore.mjs'
 import {
   PRODUCTION_CHANNEL,
@@ -537,6 +539,8 @@ function step(n, label) {
 }
 
 async function buildReleaseApk() {
+  requireReleaseKeystore()
+
   if (CHANNEL !== 'primary' && CHANNEL !== 'dev' && CHANNEL !== 'generic') {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
@@ -549,7 +553,7 @@ async function buildReleaseApk() {
       process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
     await run('./gradlew', ['assembleRelease'], {
       cwd: ANDROID_DIR,
-      env: { ANDROID_HOME: androidHome }
+      env: signingEnv({ ...process.env, ANDROID_HOME: androidHome })
     })
     if (!existsSync(APK_OUTPUT)) {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
@@ -669,7 +673,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certHash: storedCertificateHash(),
+        certificate: storedIdentity().certificate,
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })

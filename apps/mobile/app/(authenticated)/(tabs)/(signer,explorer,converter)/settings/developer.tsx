@@ -54,7 +54,11 @@ import {
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
-import { isDevConsoleAvailable } from '@/utils/devConsole'
+import {
+  isDevConsoleAvailable,
+  toggleDevConsoleEnabled,
+  wipeDevConsoleLog
+} from '@/utils/devConsole'
 import { saveFile } from '@/utils/filesystem'
 import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
@@ -64,11 +68,6 @@ import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
 
 const BACKUP_PIN_MAX_TRIES = 3
-
-function toggleDevConsole() {
-  const { enabled, setEnabled } = useDevConsoleStore.getState()
-  setEnabled(!enabled)
-}
 
 export default function Developer() {
   const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
@@ -351,6 +350,7 @@ export default function Developer() {
   async function handleClearStorage() {
     try {
       clearAllStorage()
+      wipeDevConsoleLog()
       await Promise.all([
         deleteItem(PIN_KEY),
         deleteItem(PIN_KDF_COMMIT_KEY),
@@ -429,7 +429,7 @@ export default function Developer() {
                 <SSCheckbox
                   label={t('settings.developer.devConsole')}
                   selected={devConsoleEnabled}
-                  onPress={toggleDevConsole}
+                  onPress={toggleDevConsoleEnabled}
                 />
                 <SSText color="muted" size="sm">
                   {t('settings.developer.devConsoleDescription')}
@@ -462,11 +462,13 @@ export default function Developer() {
               onPress={() => router.navigate('/settings/developerDiagnosis')}
               variant="outline"
             />
-            <SSButton
-              label={t('settings.developer.design')}
-              onPress={() => router.navigate('/settings/design')}
-              variant="outline"
-            />
+            {DEV_CONSOLE_AVAILABLE ? (
+              <SSButton
+                label={t('settings.developer.design')}
+                onPress={() => router.navigate('/settings/design')}
+                variant="outline"
+              />
+            ) : null}
           </SSVStack>
         </SSVStack>
       </SSMainLayout>

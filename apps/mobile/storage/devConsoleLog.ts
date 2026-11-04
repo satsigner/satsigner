@@ -1,10 +1,48 @@
-import { createMMKV } from 'react-native-mmkv'
+import * as SecureStore from 'expo-secure-store'
+import { createMMKV, type MMKV } from 'react-native-mmkv'
+import QuickCrypto from 'react-native-quick-crypto'
 
 import { DEV_CONSOLE_PERSISTED_SLOTS } from '@/constants/devConsole'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import { isRecord } from '@/utils/object'
 
-const storage = createMMKV({ id: 'mmkv.devconsole' })
+const STORAGE_ID = 'mmkv.devconsole'
+export const DEV_CONSOLE_LOG_KEY_STORE_KEY = 'dev_console_log_key'
+// MMKV's AES-256 takes at most 32 key bytes: 16 random bytes as hex.
+const ENCRYPTION_KEY_BYTES = 16
+
+const opened: { storage: MMKV | null } = { storage: null }
+
+function createEncryptionKey(): string {
+  const key = Buffer.from(
+    QuickCrypto.randomBytes(ENCRYPTION_KEY_BYTES)
+  ).toString('hex')
+  SecureStore.setItem(DEV_CONSOLE_LOG_KEY_STORE_KEY, key)
+  return key
+}
+
+/**
+ * Opened on first use so production builds, which never log, never touch the
+ * keychain. The key lives in secure storage, so the log file is unreadable
+ * on its own.
+ */
+function getStorage(): MMKV {
+  if (opened.storage) {
+    return opened.storage
+  }
+  const storedKey = SecureStore.getItem(DEV_CONSOLE_LOG_KEY_STORE_KEY)
+  const storage = createMMKV({
+    encryptionKey: storedKey ?? createEncryptionKey(),
+    encryptionType: 'AES-256',
+    id: STORAGE_ID
+  })
+  if (!storedKey) {
+    // Whatever is on disk was written without this key: drop it.
+    storage.clearAll()
+  }
+  opened.storage = storage
+  return storage
+}
 
 const CURRENT_SLOT_PREFIX = 'current:'
 const PREVIOUS_SESSION_KEY = 'previous'
@@ -39,6 +77,7 @@ function parseEntry(raw: string | undefined): DevConsoleEntry | null {
 }
 
 function readCurrentSession(): DevConsoleEntry[] {
+  const storage = getStorage()
   return storage
     .getAllKeys()
     .filter((key) => key.startsWith(CURRENT_SLOT_PREFIX))
@@ -48,7 +87,7 @@ function readCurrentSession(): DevConsoleEntry[] {
 }
 
 export function persistDevConsoleEntry(entry: DevConsoleEntry): void {
-  storage.set(slotKey(entry.id), JSON.stringify(entry))
+  getStorage().set(slotKey(entry.id), JSON.stringify(entry))
 }
 
 /**
@@ -56,6 +95,7 @@ export function persistDevConsoleEntry(entry: DevConsoleEntry): void {
  * empty current one. Call once per app launch.
  */
 export function rotateDevConsoleSession(): DevConsoleEntry[] {
+  const storage = getStorage()
   const previous = readCurrentSession()
   for (const key of storage.getAllKeys()) {
     if (key.startsWith(CURRENT_SLOT_PREFIX)) {
@@ -70,7 +110,7 @@ export function rotateDevConsoleSession(): DevConsoleEntry[] {
 }
 
 export function readPreviousDevConsoleSession(): DevConsoleEntry[] {
-  const raw = storage.getString(PREVIOUS_SESSION_KEY)
+  const raw = getStorage().getString(PREVIOUS_SESSION_KEY)
   if (!raw) {
     return []
   }
@@ -83,5 +123,5 @@ export function readPreviousDevConsoleSession(): DevConsoleEntry[] {
 }
 
 export function clearDevConsoleStorage(): void {
-  storage.clearAll()
+  getStorage().clearAll()
 }
