@@ -57,6 +57,7 @@ import {
   DESIGN_SAMPLE_TXID,
   DESIGN_SAMPLE_UTXOS
 } from '@/constants/designSystem'
+import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -76,6 +77,17 @@ const NUMBER_INPUT_MAX = 100
 const SATS_INPUT_MAX = 21_000_000
 const TABLE_INDEX_COLUMN_WIDTH = 28
 const TABLE_AMOUNT_COLUMN_WIDTH = 110
+
+const CONNECTION_STATUS_SAMPLES: {
+  isPrivateConnection: boolean
+  label: string
+  status: ConnectionVerifyStatus
+}[] = [
+  { isPrivateConnection: false, label: 'statusChecking', status: 'checking' },
+  { isPrivateConnection: false, label: 'statusConnected', status: 'connected' },
+  { isPrivateConnection: true, label: 'statusPrivate', status: 'connected' },
+  { isPrivateConnection: false, label: 'statusFailed', status: 'failed' }
+]
 
 const BOTTOM_NAV_ITEMS = [
   {
@@ -615,22 +627,17 @@ export default function DesignComponents() {
             <SSDesignSection title={tn('status')}>
               <SSVStack gap="md">
                 <SSHStack gap="lg">
-                  <SSConnectionStatusIndicator
-                    status="checking"
-                    isPrivateConnection={false}
-                  />
-                  <SSConnectionStatusIndicator
-                    status="connected"
-                    isPrivateConnection={false}
-                  />
-                  <SSConnectionStatusIndicator
-                    status="connected"
-                    isPrivateConnection
-                  />
-                  <SSConnectionStatusIndicator
-                    status="failed"
-                    isPrivateConnection={false}
-                  />
+                  {CONNECTION_STATUS_SAMPLES.map((sample) => (
+                    <SSVStack key={sample.label} gap="xs" itemsCenter>
+                      <SSConnectionStatusIndicator
+                        status={sample.status}
+                        isPrivateConnection={sample.isPrivateConnection}
+                      />
+                      <SSText size="xs" color="muted" uppercase>
+                        {tn(sample.label)}
+                      </SSText>
+                    </SSVStack>
+                  ))}
                 </SSHStack>
                 <SSHStack gap="lg">
                   <SSChecksumStatus valid />
