@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
@@ -28,6 +29,8 @@ import {
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
+
+const execFileAsync = promisify(execFile)
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(HERE, '../..')
@@ -371,28 +374,16 @@ async function releaseApk() {
   }
 }
 
-function adbOutput(args) {
-  return new Promise((resolve) => {
-    const proc = spawn('adb', args, {
-      stdio: ['ignore', 'pipe', 'ignore']
+async function adbOutput(args) {
+  try {
+    const { stdout } = await execFileAsync('adb', args, {
+      killSignal: 'SIGKILL',
+      timeout: ADB_TIMEOUT_MS
     })
-    const chunks = []
-    const timer = setTimeout(() => {
-      proc.kill('SIGKILL')
-      resolve({ ok: false, output: '' })
-    }, ADB_TIMEOUT_MS)
-    proc.stdout.on('data', (chunk) => {
-      chunks.push(chunk)
-    })
-    proc.on('close', (code) => {
-      clearTimeout(timer)
-      resolve({ ok: code === 0, output: Buffer.concat(chunks).toString() })
-    })
-    proc.on('error', () => {
-      clearTimeout(timer)
-      resolve({ ok: false, output: '' })
-    })
-  })
+    return { ok: true, output: stdout }
+  } catch {
+    return { ok: false, output: '' }
+  }
 }
 
 async function adbText(args) {
