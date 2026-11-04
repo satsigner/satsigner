@@ -2,12 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  TRUNCATED_LINE_MARKER,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  hasInstalledPackage,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
@@ -125,14 +127,46 @@ test('sorts console lines into kinds', () => {
   }
 })
 
+const MAX_PENDING = 16
+const EMPTY_LINE_STATE = { pending: '', skipping: false }
+
 test('keeps a line split across output chunks together', () => {
-  const first = splitCompleteLines('', 'BUILD SUCC')
-  assert.deepEqual(first, { lines: [], pending: 'BUILD SUCC' })
-  const second = splitCompleteLines(first.pending, 'ESSFUL\n[3/4] Pub')
+  const first = splitCompleteLines(EMPTY_LINE_STATE, 'BUILD SUCC', 64)
+  assert.deepEqual(first, { lines: [], pending: 'BUILD SUCC', skipping: false })
+  const second = splitCompleteLines(first, 'ESSFUL\n[3/4] Pub', 64)
   assert.deepEqual(second, {
     lines: ['BUILD SUCCESSFUL'],
-    pending: '[3/4] Pub'
+    pending: '[3/4] Pub',
+    skipping: false
   })
+})
+
+test('truncates an unterminated line that outgrows the pending cap', () => {
+  const first = splitCompleteLines(
+    EMPTY_LINE_STATE,
+    'ok\nabcdefghijklmnopqrstuvwxyz',
+    MAX_PENDING
+  )
+  assert.deepEqual(first, {
+    lines: ['ok', `abcdefghijklmnop${TRUNCATED_LINE_MARKER}`],
+    pending: '',
+    skipping: true
+  })
+  const second = splitCompleteLines(first, 'more of the same line', MAX_PENDING)
+  assert.deepEqual(second, { lines: [], pending: '', skipping: true })
+  const third = splitCompleteLines(second, 'end\nnext\npart', MAX_PENDING)
+  assert.deepEqual(third, {
+    lines: ['next'],
+    pending: 'part',
+    skipping: false
+  })
+})
+
+test('finds an exact package in pm list output', () => {
+  const output = 'package:com.satsigner.dev\npackage:com.satsigner.app\n'
+  assert.equal(hasInstalledPackage(output, 'com.satsigner.app'), true)
+  assert.equal(hasInstalledPackage(output, 'com.satsigner'), false)
+  assert.equal(hasInstalledPackage('', 'com.satsigner.app'), false)
 })
 
 test('builds zapstore args for dev channels without a production confirmation', () => {

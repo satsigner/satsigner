@@ -186,20 +186,41 @@ function classifyLogLine(line) {
   return match ? match[0] : 'detail'
 }
 
-function splitCompleteLines(pending, chunk) {
-  const parts = `${pending}${chunk}`.split('\n')
-  return { lines: parts.slice(0, -1), pending: parts.at(-1) }
+const TRUNCATED_LINE_MARKER = ' [line truncated]'
+
+function splitCompleteLines(state, chunk, maxPending) {
+  const parts = `${state.pending}${chunk}`.split('\n')
+  const complete = parts.slice(0, -1)
+  const tail = parts.at(-1)
+  if (state.skipping && complete.length === 0) {
+    return { lines: [], pending: '', skipping: true }
+  }
+  const lines = state.skipping ? complete.slice(1) : complete
+  if (tail.length <= maxPending) {
+    return { lines, pending: tail, skipping: false }
+  }
+  return {
+    lines: [...lines, `${tail.slice(0, maxPending)}${TRUNCATED_LINE_MARKER}`],
+    pending: '',
+    skipping: true
+  }
+}
+
+function hasInstalledPackage(text, packageId) {
+  return parsePackageList(text).includes(packageId)
 }
 
 export {
   REPO_IDENTIFIER,
   SIGNER_ALIAS,
+  TRUNCATED_LINE_MARKER,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  hasInstalledPackage,
   isApkName,
   isNostrRemote,
   parseAdbDevices,

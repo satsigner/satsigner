@@ -16,6 +16,7 @@ import {
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  hasInstalledPackage,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
@@ -53,6 +54,8 @@ const HOST = '127.0.0.1'
 const PORT = 4717
 const SIGNER_RELAY = startLocalRelay(log)
 const MAX_BODY = 8192
+const MAX_PENDING_LOG_LINE = 64 * 1024
+const ADB_TIMEOUT_MS = 5000
 
 const listeners = new Set()
 let bunkerUrl = ''
@@ -86,20 +89,23 @@ function log(line) {
 }
 
 function lineLogger() {
-  const state = { pending: '' }
+  const state = { pending: '', skipping: false }
   return {
     flush() {
       if (state.pending) {
         log(state.pending)
-        state.pending = ''
       }
+      state.pending = ''
+      state.skipping = false
     },
     write(chunk) {
-      const { lines, pending } = splitCompleteLines(
-        state.pending,
-        chunk.toString()
+      const { lines, pending, skipping } = splitCompleteLines(
+        state,
+        chunk.toString(),
+        MAX_PENDING_LOG_LINE
       )
       state.pending = pending
+      state.skipping = skipping
       for (const line of lines) {
         log(line)
       }
@@ -365,20 +371,49 @@ async function releaseApk() {
   }
 }
 
-function adbText(args) {
+function adbOutput(args) {
   return new Promise((resolve) => {
     const proc = spawn('adb', args, {
       stdio: ['ignore', 'pipe', 'ignore']
     })
-    let output = ''
+    const chunks = []
+    const timer = setTimeout(() => {
+      proc.kill('SIGKILL')
+      resolve({ ok: false, output: '' })
+    }, ADB_TIMEOUT_MS)
     proc.stdout.on('data', (chunk) => {
-      output += chunk.toString()
+      chunks.push(chunk)
     })
     proc.on('close', (code) => {
-      resolve(code === 0 ? output : '')
+      clearTimeout(timer)
+      resolve({ ok: code === 0, output: Buffer.concat(chunks).toString() })
     })
-    proc.on('error', () => resolve(''))
+    proc.on('error', () => {
+      clearTimeout(timer)
+      resolve({ ok: false, output: '' })
+    })
   })
+}
+
+async function adbText(args) {
+  const { ok, output } = await adbOutput(args)
+  return ok ? output : ''
+}
+
+async function serialHasPackage(serial, packageId) {
+  const { ok, output } = await adbOutput([
+    '-s',
+    serial,
+    'shell',
+    'pm',
+    'list',
+    'packages',
+    packageId
+  ])
+  if (!ok) {
+    throw new Error(`could not check installed packages on ${serial}`)
+  }
+  return hasInstalledPackage(output, packageId)
 }
 
 async function installedPackages() {
@@ -416,6 +451,10 @@ async function uninstallPackage(channel) {
   }
   const failed = []
   for (const serial of serials) {
+    if (!(await serialHasPackage(serial, selected.packageId))) {
+      log(`${selected.packageId} is not installed on ${serial}, skipping\n`)
+      continue
+    }
     try {
       await run('adb', ['-s', serial, 'uninstall', selected.packageId])
     } catch {
