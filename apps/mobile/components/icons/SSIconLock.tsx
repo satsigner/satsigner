@@ -1,8 +1,15 @@
 import Svg, { G, Path, Rect, type SvgProps } from 'react-native-svg'
 
+import { getIconStrokeProps, type IconStrokeProps } from './iconStroke'
+
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconLock({ width, height }: IconProps) {
+export default function SSIconLock({
+  width,
+  height,
+  screenStrokeWidth
+}: IconProps & IconStrokeProps) {
+  const strokeProps = getIconStrokeProps(screenStrokeWidth)
   return (
     <Svg width={width} height={height} viewBox="0 0 22.137 30.143">
       <G id="lock" transform="translate(-0.265 -0.451)">
@@ -16,7 +23,7 @@ export default function SSIconLock({ width, height }: IconProps) {
             transform="translate(0.765 14.584)"
             fill="none"
             stroke="#828282"
-            strokeWidth="1"
+            {...strokeProps}
           />
           <Path
             id="Path_34"
@@ -24,7 +31,7 @@ export default function SSIconLock({ width, height }: IconProps) {
             d="M4.56,14.5H18.108V7.451a6.5,6.5,0,0,0-6.5-6.5H11.06a6.5,6.5,0,0,0-6.5,6.5Z"
             fill="none"
             stroke="#828282"
-            strokeWidth="1"
+            {...strokeProps}
           />
           <Path
             id="Path_35"
@@ -32,7 +39,7 @@ export default function SSIconLock({ width, height }: IconProps) {
             d="M6.984,14.5h8.7V7.726a4.35,4.35,0,1,0-8.7,0Z"
             fill="none"
             stroke="#828282"
-            strokeWidth="1"
+            {...strokeProps}
           />
         </G>
         <Path
@@ -41,7 +48,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M4.954,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_37"
@@ -49,7 +56,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M2.824,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_38"
@@ -57,7 +64,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M6.46,20.832,3.448,23.844"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_39"
@@ -65,7 +72,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M3.448,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_40"
@@ -73,7 +80,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M11.333,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_41"
@@ -81,7 +88,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M9.2,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_42"
@@ -89,7 +96,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M12.839,20.832,9.827,23.844"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_43"
@@ -97,7 +104,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M9.827,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_44"
@@ -105,7 +112,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M17.712,20.207v4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_45"
@@ -113,7 +120,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M15.582,22.338h4.26"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_46"
@@ -121,7 +128,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M19.218,20.832l-3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
         <Path
           id="Path_47"
@@ -129,7 +136,7 @@ export default function SSIconLock({ width, height }: IconProps) {
           d="M16.206,20.832l3.012,3.012"
           fill="none"
           stroke="#fff"
-          strokeWidth="1"
+          {...strokeProps}
         />
       </G>
     </Svg>
