@@ -25,6 +25,19 @@ jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   storeKeySecret: jest.fn().mockResolvedValue(undefined)
 }))
 
+jest.mock<typeof import('@/utils/restoreRollback')>(
+  '@/utils/restoreRollback',
+  () => ({
+    rollbackPersistedState: jest.fn().mockResolvedValue(undefined),
+    snapshotPersistedState: jest.fn().mockResolvedValue({
+      accounts: [],
+      arkMnemonics: [],
+      ecashMnemonics: [],
+      keySecrets: []
+    })
+  })
+)
+
 jest.mock<typeof import('@/utils/arkBackup')>('@/utils/arkBackup', () => ({
   deleteLeftoverArkDatadirs: jest.fn().mockResolvedValue(undefined),
   prepareArkMnemonics: (
@@ -831,6 +844,108 @@ describe('performRecoverOverwrite restore', () => {
     expect(setNodeInfo).toHaveBeenCalledWith(nodeInfo)
     expect(setChannels).toHaveBeenCalledWith([])
     expect(setConnected).toHaveBeenCalledWith(true)
+  })
+
+  function minimalBackup(extra: Record<string, unknown> = {}) {
+    return JSON.stringify({
+      accounts: [
+        {
+          id: 'acc-1',
+          keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+          name: 'Wallet',
+          network: 'bitcoin',
+          policyType: 'singlesig'
+        }
+      ],
+      settings: {
+        currencyUnit: 'sats',
+        mnemonicWordList: 'english',
+        useZeroPadding: false
+      },
+      version: 1,
+      ...extra
+    })
+  }
+
+  it('rolls back accounts and secrets on disk when the keychain write fails', async () => {
+    const { storeKeySecret, deleteEcashMnemonic } = jest.requireMock(
+      '@/storage/encrypted'
+    ) as { deleteEcashMnemonic: jest.Mock; storeKeySecret: jest.Mock }
+    const { rollbackPersistedState, snapshotPersistedState } = jest.requireMock(
+      '@/utils/restoreRollback'
+    ) as {
+      rollbackPersistedState: jest.Mock
+      snapshotPersistedState: jest.Mock
+    }
+    const { deleteLeftoverArkDatadirs } = jest.requireMock(
+      '@/utils/arkBackup'
+    ) as { deleteLeftoverArkDatadirs: jest.Mock }
+    const { useEcashStore } = jest.requireMock('@/store/ecash') as {
+      useEcashStore: { getState: jest.Mock }
+    }
+    useEcashStore.getState.mockReturnValue({
+      ...useEcashStore.getState(),
+      accounts: [{ id: 'old-ecash' }]
+    })
+    const persisted = {
+      accounts: [{ id: 'old-account' }],
+      arkMnemonics: [],
+      ecashMnemonics: [{ accountId: 'old-ecash', mnemonic: 'old words' }],
+      keySecrets: [{ accountId: 'old-account', index: 0, iv: 'i', secret: 's' }]
+    }
+    snapshotPersistedState.mockResolvedValueOnce(persisted)
+    storeKeySecret.mockRejectedValueOnce(new Error('keychain full'))
+
+    const result = await performRecoverOverwrite(
+      minimalBackup({ ecash: { mnemonics: { 'new-ecash': 'new words' } } })
+    )
+
+    expect(result).toStrictEqual({ error: 'keychain full', success: false })
+    expect(rollbackPersistedState).toHaveBeenCalledWith(persisted, {
+      arkAccountIds: [],
+      ecashAccountIds: ['new-ecash']
+    })
+    expect(deleteEcashMnemonic).not.toHaveBeenCalled()
+    expect(deleteLeftoverArkDatadirs).not.toHaveBeenCalled()
+  })
+
+  it('changes nothing when the persisted state cannot be snapshotted', async () => {
+    const { storeKeySecret } = jest.requireMock('@/storage/encrypted') as {
+      storeKeySecret: jest.Mock
+    }
+    const { snapshotPersistedState } = jest.requireMock(
+      '@/utils/restoreRollback'
+    ) as { snapshotPersistedState: jest.Mock }
+    snapshotPersistedState.mockRejectedValueOnce(
+      new Error('secure storage locked')
+    )
+
+    const result = await performRecoverOverwrite(minimalBackup())
+
+    expect(result).toStrictEqual({
+      error: 'secure storage locked',
+      success: false
+    })
+    expect(deleteAccounts).not.toHaveBeenCalled()
+    expect(storeKeySecret).not.toHaveBeenCalled()
+  })
+
+  it('deletes leftover secrets only after a successful restore', async () => {
+    const { deleteEcashMnemonic } = jest.requireMock('@/storage/encrypted') as {
+      deleteEcashMnemonic: jest.Mock
+    }
+    const { useEcashStore } = jest.requireMock('@/store/ecash') as {
+      useEcashStore: { getState: jest.Mock }
+    }
+    useEcashStore.getState.mockReturnValue({
+      ...useEcashStore.getState(),
+      accounts: [{ id: 'old-ecash' }]
+    })
+
+    const result = await performRecoverOverwrite(minimalBackup())
+
+    expect(result).toStrictEqual({ success: true })
+    expect(deleteEcashMnemonic).toHaveBeenCalledWith('old-ecash')
   })
 
   it('restores ark mnemonics, labels, and store, ignoring legacy datadirs', async () => {
