@@ -11,6 +11,15 @@ import { getAndroidVersionCode } from './constants/versionCode.cjs'
 
 const APP_VERSION = '0.3.6'
 
+// Satsigner never records audio or draws over other apps, and has no use for
+// Google Play's install referrer. Blocking them also strips the copies that
+// libraries (expo-camera, the Expo template) merge into the manifest.
+const ANDROID_BLOCKED_PERMISSIONS = [
+  'android.permission.RECORD_AUDIO',
+  'android.permission.SYSTEM_ALERT_WINDOW',
+  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE'
+]
+
 const projectId = process.env.EXPO_PROJECT_ID
 
 const IS_DEV = process.env.APP_VARIANT !== APP_VARIANT_PRODUCTION
@@ -30,6 +39,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         backgroundColor: '#ffffff',
         foregroundImage: './assets/adaptive-icon.png'
       },
+      blockedPermissions: ANDROID_BLOCKED_PERMISSIONS,
       package: getUniqueIdentifier(),
       permissions: ['NFC'],
       versionCode: getAndroidVersionCode(APP_VERSION)
@@ -93,7 +103,9 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       [
         'expo-camera',
         {
-          cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera'
+          cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
+          microphonePermission: false,
+          recordAudioAndroid: false
         }
       ],
       'expo-localization',
