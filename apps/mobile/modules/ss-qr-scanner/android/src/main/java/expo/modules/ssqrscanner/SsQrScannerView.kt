@@ -2,12 +2,15 @@ package expo.modules.ssqrscanner
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.Size
 import android.view.ViewGroup
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -23,6 +26,11 @@ import zxingcpp.BarcodeReader
 // in front of the camera doesn't flood JS with one event per frame. Animated
 // multi-part QR codes change payload every frame and are always reported.
 private const val REPEAT_INTERVAL_MS = 1_000L
+
+// CameraX analyses at 640x480 by default, too coarse for dense PSBT, UR and
+// BBQr frames. Full HD keeps their modules resolvable without the decode cost
+// of the sensor's maximum resolution.
+private val ANALYSIS_TARGET_SIZE = Size(1920, 1080)
 
 class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   override val shouldUseAndroidLayout = true
@@ -86,6 +94,16 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
         it.surfaceProvider = previewView.surfaceProvider
       }
       val analysis = ImageAnalysis.Builder()
+        .setResolutionSelector(
+          ResolutionSelector.Builder()
+            .setResolutionStrategy(
+              ResolutionStrategy(
+                ANALYSIS_TARGET_SIZE,
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+              )
+            )
+            .build()
+        )
         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
         .build()
       analysis.setAnalyzer(analysisExecutor, ::analyze)
