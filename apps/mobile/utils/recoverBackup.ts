@@ -1,3 +1,4 @@
+import { RESTORE_ROLLBACK_ATTEMPTS } from '@/constants/backup'
 import {
   deleteArkMnemonic,
   deleteEcashMnemonic,
@@ -59,6 +60,7 @@ import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
 import {
   type PersistedSnapshot,
+  type RestoredIds,
   rollbackPersistedState,
   snapshotPersistedState
 } from '@/utils/restoreRollback'
@@ -153,7 +155,7 @@ type StoreSnapshot = {
 }
 
 export type RecoverResult =
-  | { success: false; error: string }
+  | { success: false; error: string; rollbackIncomplete?: true }
   | { success: true }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
@@ -419,6 +421,10 @@ function arkAccountIdsFromBackup(data: BackupData): string[] {
   return data.ark?.accounts?.map((account) => account.id) ?? []
 }
 
+function nostrIdentityNpubsFromBackup(data: BackupData): string[] {
+  return data.nostrIdentities?.identities.map((identity) => identity.npub) ?? []
+}
+
 async function replaceAccounts(restoredAccounts: Account[]): Promise<void> {
   const accountsStore = useAccountsStore.getState()
   await accountsStore.deleteAccounts()
@@ -428,7 +434,7 @@ async function replaceAccounts(restoredAccounts: Account[]): Promise<void> {
   }
 }
 
-function applyStoreRestore(data: BackupData): void {
+async function applyStoreRestore(data: BackupData): Promise<void> {
   useNostrStore.getState().clearAllNostrState()
   useEcashStore.getState().clearAllData()
   if (data.nostr) {
@@ -473,7 +479,7 @@ function applyStoreRestore(data: BackupData): void {
     }
   }
   restoreLightningFromBackup(data)
-  useNostrIdentityStore.getState().clearAll()
+  await useNostrIdentityStore.getState().clearAll()
   if (data.nostrIdentities) {
     for (const identity of data.nostrIdentities.identities) {
       useNostrIdentityStore.getState().addIdentity(identity)
@@ -526,6 +532,36 @@ async function removeLeftovers(
   ])
 }
 
+async function rollbackWithRetries(
+  snapshot: PersistedSnapshot,
+  restored: RestoredIds,
+  attemptsLeft: number
+): Promise<boolean> {
+  const rolledBack = await rollbackPersistedState(snapshot, restored).then(
+    () => true,
+    () => false
+  )
+  if (rolledBack || attemptsLeft <= 1) {
+    return rolledBack
+  }
+  return rollbackWithRetries(snapshot, restored, attemptsLeft - 1)
+}
+
+async function snapshotBeforeRestore(
+  existingArkAccountIds: string[],
+  existingEcashAccountIds: string[]
+): Promise<{ snapshot: PersistedSnapshot } | { error: string }> {
+  try {
+    const snapshot = await snapshotPersistedState({
+      arkAccountIds: existingArkAccountIds,
+      ecashAccountIds: existingEcashAccountIds
+    })
+    return { snapshot }
+  } catch (error) {
+    return { error: errorMessage(error) }
+  }
+}
+
 /**
  * Overwrites app data with the decrypted backup. Call after PIN unlock when
  * pendingRecoverData is set. Uses stored PIN from secure storage.
@@ -533,9 +569,9 @@ async function removeLeftovers(
  * Order: validate → encrypt secrets in memory → snapshot the stores and the
  * persisted accounts and secrets → replace accounts → apply stores → write
  * keychain → release Ark wallets → restore Ark labels. A failure there rolls
- * back both the stores and what is on disk (SQLite accounts, key secrets,
- * mnemonics). Deleting leftover secrets and Ark datadirs, which cannot be
- * undone, runs only once everything else succeeded.
+ * back both the stores and what is on disk (SQLite accounts, key and nostr
+ * secrets, mnemonics). Deleting leftover secrets and Ark datadirs, which
+ * cannot be undone, runs only once everything else succeeded.
  */
 export async function performRecoverOverwrite(
   decrypted: string
@@ -575,22 +611,20 @@ export async function performRecoverOverwrite(
       restoredArkIds.has(account.id)
   )
   const snapshot = snapshotStores()
-  let persisted: PersistedSnapshot
-  try {
-    persisted = await snapshotPersistedState({
-      arkAccountIds: existingArkAccounts.map((account) => account.id),
-      ecashAccountIds: existingEcashAccountIds
-    })
-  } catch (error) {
+  const persisted = await snapshotBeforeRestore(
+    existingArkAccounts.map((account) => account.id),
+    existingEcashAccountIds
+  )
+  if ('error' in persisted) {
     // Nothing has changed yet; without a snapshot there is no safe rollback.
-    return { error: errorMessage(error), success: false }
+    return { error: persisted.error, success: false }
   }
   // Running subscriptions must be closed before their accounts are replaced.
   await resetNostrSync()
 
   try {
     await replaceAccounts(prepared.accounts)
-    applyStoreRestore(data)
+    await applyStoreRestore(data)
     await writeKeychain(prepared)
     releaseArkWalletsForRestore(arkAccountsToRelease)
     restoreArkLabelsFromBackup(
@@ -599,11 +633,23 @@ export async function performRecoverOverwrite(
       restoredArkAccountIds
     )
   } catch (error) {
-    await rollbackPersistedState(persisted, {
-      arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
-      ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId)
-    }).catch(() => undefined)
+    const rolledBack = await rollbackWithRetries(
+      persisted.snapshot,
+      {
+        arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
+        ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId),
+        nostrIdentityNpubs: nostrIdentityNpubsFromBackup(data)
+      },
+      RESTORE_ROLLBACK_ATTEMPTS
+    )
     rollbackStores(snapshot)
+    if (!rolledBack) {
+      return {
+        error: errorMessage(error),
+        rollbackIncomplete: true,
+        success: false
+      }
+    }
     return { error: errorMessage(error), success: false }
   }
 

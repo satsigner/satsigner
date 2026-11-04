@@ -14,11 +14,13 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  buildZapstoreArgs,
   classifyLogLine,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
+  parseReleaseChannel,
   redactSecrets,
   splitCompleteLines
 } from './commands.mjs'
@@ -276,31 +278,32 @@ async function pushBranch() {
 }
 
 function releaseChannel(value) {
-  if (value === 'primary' || value === 'generic') {
-    return value
-  }
-  return 'dev'
+  return parseReleaseChannel(value) ?? 'dev'
 }
 
-async function publishZapstore(notes, only, channel) {
-  const args = [
-    'apps/mobile/scripts/publish-zapstore.mjs',
-    '--yes',
-    '--channel',
-    releaseChannel(channel)
-  ]
-  if (only) {
-    args.push('--only', only)
-  }
-  await run('node', args, { RELEASE_NOTES: notes, SIGN_WITH: bunkerUrl })
+async function appVersion() {
+  const pkg = JSON.parse(
+    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
+  )
+  return typeof pkg.version === 'string' ? pkg.version : ''
+}
+
+async function publishZapstore(body, only) {
+  const args = buildZapstoreArgs({
+    channel: releaseChannel(body.channel),
+    confirmedVersion: body.confirmedVersion,
+    currentVersion: await appVersion(),
+    only
+  })
+  await run('node', args, {
+    RELEASE_NOTES: typeof body.notes === 'string' ? body.notes : '',
+    SIGN_WITH: bunkerUrl
+  })
 }
 
 async function releaseChannels() {
   const branch = await gitBranch()
-  const pkg = JSON.parse(
-    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
-  )
-  const versionName = typeof pkg.version === 'string' ? pkg.version : ''
+  const versionName = await appVersion()
   return {
     dev: {
       appName: getVariantAppName(true, branch),
@@ -401,11 +404,12 @@ async function installedPackages() {
 }
 
 async function uninstallPackage(channel) {
-  const channels = await releaseChannels()
-  const selected = channels[releaseChannel(channel)]
-  if (!selected?.packageId) {
+  const known = parseReleaseChannel(channel)
+  if (!known) {
     throw new Error('unknown release channel')
   }
+  const channels = await releaseChannels()
+  const selected = channels[known]
   const serials = parseAdbDevices(await adbText(['devices']))
   if (serials.length === 0) {
     throw new Error('no Android device is connected')
@@ -434,28 +438,13 @@ function buildLocalApk(body) {
 }
 
 const actions = {
-  announce: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'announce',
-      body.channel
-    ),
+  announce: (body) => publishZapstore(body, 'announce'),
   apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
   uninstall: (body) => uninstallPackage(body.channel),
-  zapstore: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      '',
-      body.channel
-    ),
-  zapstoreOnly: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'zapstore',
-      body.channel
-    )
+  zapstore: (body) => publishZapstore(body, ''),
+  zapstoreOnly: (body) => publishZapstore(body, 'zapstore')
 }
 
 const ALLOWED_HOSTS = new Set([

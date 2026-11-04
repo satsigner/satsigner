@@ -27,6 +27,7 @@ import { type DetectedContent } from '@/utils/contentDetector'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatBytes } from '@/utils/format'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { showRecoverResultToast } from '@/utils/recoverToast'
 
 const ENCRYPTED_BACKUP_MAX_HEIGHT = 240
 
@@ -130,12 +131,8 @@ export default function DeveloperRecover() {
       return
     }
     if (skipPin) {
-      const { success } = await performRecoverOverwrite(recoverDecrypted)
-      if (success) {
-        toast.success(t('settings.developer.recoverSuccess'))
-      } else {
-        toast.error(t('settings.developer.recoverOverwriteError'))
-      }
+      const result = await performRecoverOverwrite(recoverDecrypted)
+      showRecoverResultToast(result)
       router.back()
       return
     }

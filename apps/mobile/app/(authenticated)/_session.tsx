@@ -18,7 +18,6 @@ import { useArkNotifications } from '@/hooks/useArkNotifications'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -33,6 +32,7 @@ import { startNostrLifecycle, stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 
@@ -235,14 +235,13 @@ function AuthenticatedSession() {
 
       if (ju && pending) {
         await devStep('session', 'restore backup')
-        const { success } = await performRecoverOverwrite(pending)
-        devLog('session', `restore backup ${success ? 'done' : 'failed'}`)
+        const result = await performRecoverOverwrite(pending)
+        devLog(
+          'session',
+          `restore backup ${result.success ? 'done' : 'failed'}`
+        )
         setPendingRecoverData(null)
-        if (success) {
-          toast.success(t('settings.developer.recoverSuccess'))
-        } else {
-          toast.error(t('settings.developer.recoverOverwriteError'))
-        }
+        showRecoverResultToast(result)
       }
       setJustUnlocked(false)
       await devStep('session', 'load wallets')

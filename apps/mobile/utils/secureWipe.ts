@@ -21,6 +21,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useNostrVideoStore } from '@/store/nostrVideo'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
+import { wipeDevConsoleLog } from '@/utils/devConsole'
 import { closeActiveChatPipeline } from '@/utils/nostrChat'
 import { stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { deleteAllNostrSecretsForWipe } from '@/utils/nostrSecrets'
@@ -101,11 +102,12 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useEcashStore.getState().clearAllData()
   useArkStore.getState().clearAllData()
   useTransactionBuilderStore.getState().clearAllData()
-  useNostrIdentityStore.getState().clearAll()
+  await useNostrIdentityStore.getState().clearAll()
   useNostrStore.getState().clearAllNostrState()
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
   clearNostrFollowCaches()
+  wipeDevConsoleLog()
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 
