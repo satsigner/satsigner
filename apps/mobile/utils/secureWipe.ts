@@ -95,7 +95,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   )
 
   const { deleteAccounts, deleteTags } = useAccountsStore.getState()
-  deleteAccounts()
+  await deleteAccounts()
   deleteTags()
   useWalletsStore.getState().deleteWallets()
   useEcashStore.getState().clearAllData()

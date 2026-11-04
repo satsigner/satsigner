@@ -342,7 +342,7 @@ export default function Developer() {
   async function handleDeleteAccounts() {
     await resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
-    deleteAccounts()
+    await deleteAccounts()
     deleteWallets()
     setDeleteAccountsModalVisible(false)
     toast.error(t('settings.developer.accountsDeleted'))
@@ -358,7 +358,7 @@ export default function Developer() {
         deleteItem(DURESS_PIN_KEY)
       ])
       await resetNostrSync()
-      deleteAccounts()
+      await deleteAccounts()
       deleteWallets()
       useAuthStore.setState({
         duressPinEnabled: false,
