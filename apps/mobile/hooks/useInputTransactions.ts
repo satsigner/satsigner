@@ -492,8 +492,6 @@ async function loadInputTransactions({
 
                     let address = 'unknown'
                     if (prevTx) {
-                      // Ensure prevTx.outs[prevVout].script is a Buffer
-                      // TxDecoded stores script as Buffer, so direct use should be fine.
                       address =
                         prevTx.generateOutputScriptAddress(
                           prevVout,
