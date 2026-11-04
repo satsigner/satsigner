@@ -101,7 +101,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useEcashStore.getState().clearAllData()
   useArkStore.getState().clearAllData()
   useTransactionBuilderStore.getState().clearAllData()
-  useNostrIdentityStore.getState().clearAll()
+  await useNostrIdentityStore.getState().clearAll()
   useNostrStore.getState().clearAllNostrState()
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()

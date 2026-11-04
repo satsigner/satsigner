@@ -20,9 +20,17 @@ jest.mock<typeof import('@/utils/nostrSyncService')>(
 jest.mock<typeof import('@/storage/encrypted')>('@/storage/encrypted', () => ({
   deleteArkMnemonic: jest.fn().mockResolvedValue(undefined),
   deleteEcashMnemonic: jest.fn().mockResolvedValue(undefined),
+  deleteNostrIdentitySecret: jest.fn().mockResolvedValue(undefined),
+  getArkMnemonic: jest.fn().mockResolvedValue(null),
+  getEcashMnemonic: jest.fn().mockResolvedValue(null),
+  getKeySecret: jest.fn().mockResolvedValue(null),
+  getNostrAccountSecret: jest.fn().mockResolvedValue(null),
+  getNostrIdentitySecret: jest.fn().mockResolvedValue(null),
   storeArkMnemonic: jest.fn().mockResolvedValue(undefined),
   storeEcashMnemonic: jest.fn().mockResolvedValue(undefined),
-  storeKeySecret: jest.fn().mockResolvedValue(undefined)
+  storeKeySecret: jest.fn().mockResolvedValue(undefined),
+  storeNostrAccountSecret: jest.fn().mockResolvedValue(undefined),
+  storeNostrIdentitySecret: jest.fn().mockResolvedValue(undefined)
 }))
 
 jest.mock<typeof import('@/utils/restoreRollback')>(
@@ -33,7 +41,9 @@ jest.mock<typeof import('@/utils/restoreRollback')>(
       accounts: [],
       arkMnemonics: [],
       ecashMnemonics: [],
-      keySecrets: []
+      keySecrets: [],
+      nostrAccountSecrets: [],
+      nostrIdentitySecrets: []
     })
   })
 )
@@ -903,10 +913,81 @@ describe('performRecoverOverwrite restore', () => {
     expect(result).toStrictEqual({ error: 'keychain full', success: false })
     expect(rollbackPersistedState).toHaveBeenCalledWith(persisted, {
       arkAccountIds: [],
-      ecashAccountIds: ['new-ecash']
+      ecashAccountIds: ['new-ecash'],
+      nostrIdentityNpubs: []
     })
     expect(deleteEcashMnemonic).not.toHaveBeenCalled()
     expect(deleteLeftoverArkDatadirs).not.toHaveBeenCalled()
+  })
+
+  it('puts nostr identity secrets back on disk when the restore fails after clearing them', async () => {
+    const encrypted = jest.requireMock('@/storage/encrypted') as {
+      deleteNostrIdentitySecret: jest.Mock
+      getNostrIdentitySecret: jest.Mock
+      storeNostrIdentitySecret: jest.Mock
+    }
+    const rollback = jest.requireMock('@/utils/restoreRollback') as {
+      rollbackPersistedState: jest.Mock
+      snapshotPersistedState: jest.Mock
+    }
+    const actualRollback = jest.requireActual<
+      typeof import('@/utils/restoreRollback')
+    >('@/utils/restoreRollback')
+    rollback.snapshotPersistedState.mockImplementationOnce(
+      actualRollback.snapshotPersistedState
+    )
+    rollback.rollbackPersistedState.mockImplementationOnce(
+      actualRollback.rollbackPersistedState
+    )
+    const { restoreArkStoreFromBackup } = jest.requireMock(
+      '@/utils/arkBackup'
+    ) as { restoreArkStoreFromBackup: jest.Mock }
+    const { useAccountsStore } = jest.requireMock('@/store/accounts') as {
+      useAccountsStore: { getState: jest.Mock }
+    }
+    const { useNostrIdentityStore } = jest.requireMock(
+      '@/store/nostrIdentity'
+    ) as { useNostrIdentityStore: { getState: jest.Mock } }
+    useAccountsStore.getState.mockReturnValue({
+      accounts: [],
+      addAccount,
+      deleteAccounts
+    })
+    useNostrIdentityStore.getState.mockReturnValue({
+      addIdentity,
+      clearAll: clearAllIdentities,
+      identities: [{ npub: 'npub1old' }],
+      setActiveIdentity,
+      setRelays
+    })
+    encrypted.getNostrIdentitySecret.mockResolvedValueOnce({
+      iv: 'old-iv',
+      secret: 'old-cipher'
+    })
+    restoreArkStoreFromBackup.mockImplementationOnce(() => {
+      throw new Error('ark store broken')
+    })
+
+    const result = await performRecoverOverwrite(
+      minimalBackup({
+        nostrIdentities: {
+          activeIdentityNpub: null,
+          identities: [{ npub: 'npub1backup' }],
+          relays: []
+        }
+      })
+    )
+
+    expect(result).toStrictEqual({ error: 'ark store broken', success: false })
+    expect(clearAllIdentities).toHaveBeenCalledTimes(1)
+    expect(encrypted.storeNostrIdentitySecret).toHaveBeenCalledWith(
+      'npub1old',
+      'old-cipher',
+      'old-iv'
+    )
+    expect(encrypted.deleteNostrIdentitySecret).toHaveBeenCalledWith(
+      'npub1backup'
+    )
   })
 
   it('changes nothing when the persisted state cannot be snapshotted', async () => {

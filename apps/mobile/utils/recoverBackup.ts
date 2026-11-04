@@ -419,6 +419,10 @@ function arkAccountIdsFromBackup(data: BackupData): string[] {
   return data.ark?.accounts?.map((account) => account.id) ?? []
 }
 
+function nostrIdentityNpubsFromBackup(data: BackupData): string[] {
+  return data.nostrIdentities?.identities.map((identity) => identity.npub) ?? []
+}
+
 async function replaceAccounts(restoredAccounts: Account[]): Promise<void> {
   const accountsStore = useAccountsStore.getState()
   await accountsStore.deleteAccounts()
@@ -428,7 +432,7 @@ async function replaceAccounts(restoredAccounts: Account[]): Promise<void> {
   }
 }
 
-function applyStoreRestore(data: BackupData): void {
+async function applyStoreRestore(data: BackupData): Promise<void> {
   useNostrStore.getState().clearAllNostrState()
   useEcashStore.getState().clearAllData()
   if (data.nostr) {
@@ -473,7 +477,7 @@ function applyStoreRestore(data: BackupData): void {
     }
   }
   restoreLightningFromBackup(data)
-  useNostrIdentityStore.getState().clearAll()
+  await useNostrIdentityStore.getState().clearAll()
   if (data.nostrIdentities) {
     for (const identity of data.nostrIdentities.identities) {
       useNostrIdentityStore.getState().addIdentity(identity)
@@ -533,9 +537,9 @@ async function removeLeftovers(
  * Order: validate → encrypt secrets in memory → snapshot the stores and the
  * persisted accounts and secrets → replace accounts → apply stores → write
  * keychain → release Ark wallets → restore Ark labels. A failure there rolls
- * back both the stores and what is on disk (SQLite accounts, key secrets,
- * mnemonics). Deleting leftover secrets and Ark datadirs, which cannot be
- * undone, runs only once everything else succeeded.
+ * back both the stores and what is on disk (SQLite accounts, key and nostr
+ * secrets, mnemonics). Deleting leftover secrets and Ark datadirs, which
+ * cannot be undone, runs only once everything else succeeded.
  */
 export async function performRecoverOverwrite(
   decrypted: string
@@ -590,7 +594,7 @@ export async function performRecoverOverwrite(
 
   try {
     await replaceAccounts(prepared.accounts)
-    applyStoreRestore(data)
+    await applyStoreRestore(data)
     await writeKeychain(prepared)
     releaseArkWalletsForRestore(arkAccountsToRelease)
     restoreArkLabelsFromBackup(
@@ -601,7 +605,8 @@ export async function performRecoverOverwrite(
   } catch (error) {
     await rollbackPersistedState(persisted, {
       arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
-      ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId)
+      ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId),
+      nostrIdentityNpubs: nostrIdentityNpubsFromBackup(data)
     }).catch(() => undefined)
     rollbackStores(snapshot)
     return { error: errorMessage(error), success: false }
