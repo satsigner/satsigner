@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { X509Certificate, createHash } from 'node:crypto'
 import {
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -465,4 +467,30 @@ test('release signing points gradle at the release keystore', (t) => {
     env['ORG_GRADLE_PROJECT_android.injected.signing.key.alias'],
     'satsigner'
   )
+})
+
+test('a replace that fails midway keeps the old keystore and password together', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(OTHER_PHRASE, dir)
+  const before = keystoreBytes(dir)
+  mkdirSync(join(dir, 'release.pass.bak', 'blocker'), { recursive: true })
+  assert.throws(() => writeKeystore(PHRASE, dir))
+  assert.deepEqual(keystoreBytes(dir), before)
+  assert.equal(phraseMatchesKeystore(OTHER_PHRASE, dir), true)
+  for (const name of [
+    'release.p12.tmp',
+    'release.pass.tmp',
+    'release.p12.bak'
+  ]) {
+    assert.equal(existsSync(join(dir, name)), false)
+  }
+})
+
+test('a successful replace leaves no backups behind', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(OTHER_PHRASE, dir)
+  writeKeystore(PHRASE, dir)
+  for (const name of ['release.p12.bak', 'release.pass.bak']) {
+    assert.equal(existsSync(join(dir, name)), false)
+  }
 })
