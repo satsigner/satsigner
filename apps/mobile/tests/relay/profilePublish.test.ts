@@ -2,7 +2,8 @@ import {
   finalizeEvent,
   generateSecretKey,
   getPublicKey,
-  nip19
+  nip19,
+  verifyEvent
 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
@@ -27,13 +28,18 @@ function signedProfile(
   )
 }
 
-function newestProfileContent(relay: TestRelay, pubkey: string) {
+function newestProfileEvent(relay: TestRelay, pubkey: string) {
   const [newest] = relay
     .events()
     .filter(
       (event) => event.kind === nostrKinds.Metadata && event.pubkey === pubkey
     )
     .toSorted((a, b) => b.created_at - a.created_at)
+  return newest
+}
+
+function newestProfileContent(relay: TestRelay, pubkey: string) {
+  const newest = newestProfileEvent(relay, pubkey)
   return newest ? JSON.parse(newest.content) : null
 }
 
@@ -76,6 +82,8 @@ describe('publishing a Nostr profile', () => {
       { displayName: 'satoshi' }
     )
 
+    const newest = newestProfileEvent(relay, pubkey)
+    expect(newest && verifyEvent(newest)).toBe(true)
     expect(newestProfileContent(relay, pubkey)).toStrictEqual({
       about: 'bitcoiner',
       name: 'satoshi',

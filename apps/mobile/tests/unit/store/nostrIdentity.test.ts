@@ -62,6 +62,7 @@ describe('nostrIdentity store', () => {
       npub: 'npub1owned',
       nsec: 'nsec1owned'
     })
+    const original = useNostrIdentityStore.getState().identities
     const persistSecrets = jest
       .spyOn(nostrSecrets, 'persistIdentitySecretsSafe')
       .mockResolvedValue()
@@ -73,9 +74,7 @@ describe('nostrIdentity store', () => {
     })
 
     expect(persistSecrets).not.toHaveBeenCalled()
-    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
-      expect.objectContaining({ isWatchOnly: false, nsec: 'nsec1owned' })
-    ])
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual(original)
     persistSecrets.mockRestore()
   })
 
