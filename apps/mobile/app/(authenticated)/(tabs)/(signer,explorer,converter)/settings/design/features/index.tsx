@@ -1,6 +1,20 @@
 import { Stack, useRouter } from 'expo-router'
 
-import SSButton from '@/components/SSButton'
+import {
+  SSIconBubbles,
+  SSIconChartSettings,
+  SSIconDev,
+  SSIconHistoryChart,
+  SSIconLightning,
+  SSIconList,
+  SSIconLock,
+  SSIconMultiSignature,
+  SSIconScriptsP2pkh,
+  SSIconSearch,
+  SSIconSeed,
+  SSIconTransaction
+} from '@/components/icons'
+import SSSettingsCard from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import {
   DESIGN_FEATURE_IDS,
@@ -13,21 +27,40 @@ import { tn as _tn } from '@/locales'
 
 const tn = _tn('settings.developer.designSystem.features')
 
-type FeatureButtonProps = {
+const CARD_ICON_SIZE = 24
+
+const FEATURE_ICONS = {
+  autocomplete: SSIconSearch,
+  decoded: SSIconScriptsP2pkh,
+  devConsole: SSIconDev,
+  historyChart: SSIconHistoryChart,
+  lightningNode: SSIconLightning,
+  multisigSelector: SSIconMultiSignature,
+  pinInput: SSIconLock,
+  sankey: SSIconTransaction,
+  seedWordInput: SSIconSeed,
+  transactionCard: SSIconList,
+  transactionChart: SSIconChartSettings,
+  utxoChart: SSIconBubbles
+} satisfies Record<DesignFeatureId, unknown>
+
+type FeatureCardProps = {
   feature: DesignFeatureId
   onOpen: (feature: DesignFeatureId) => void
 }
 
-function FeatureButton({ feature, onOpen }: FeatureButtonProps) {
+function FeatureCard({ feature, onOpen }: FeatureCardProps) {
+  const Icon = FEATURE_ICONS[feature]
+
   function handlePress() {
     onOpen(feature)
   }
 
   return (
-    <SSButton
-      label={tn(feature)}
-      variant="outline"
-      withSelect
+    <SSSettingsCard
+      title={tn(feature)}
+      description={tn(`${feature}Description`)}
+      icon={<Icon width={CARD_ICON_SIZE} height={CARD_ICON_SIZE} />}
       onPress={handlePress}
     />
   )
@@ -52,12 +85,9 @@ export default function DesignFeatures() {
       />
       <SSMainLayout>
         <SSScrollView showsVerticalScrollIndicator={false}>
-          <SSVStack gap="sm">
-            <SSText size="sm" color="muted">
-              {tn('description')}
-            </SSText>
+          <SSVStack gap="none">
             {DESIGN_FEATURE_IDS.map((feature) => (
-              <FeatureButton
+              <FeatureCard
                 key={feature}
                 feature={feature}
                 onOpen={handleOpenFeature}
