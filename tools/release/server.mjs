@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
@@ -14,12 +15,22 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  buildZapstoreArgs,
+  classifyLogLine,
+  hasInstalledPackage,
   isApkName,
   isNostrRemote,
-  redactSecrets
+  parseAdbDevices,
+  parsePackageList,
+  parseReleaseChannel,
+  redactSecrets,
+  splitCompleteLines
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
+import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
+
+const execFileAsync = promisify(execFile)
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(HERE, '../..')
@@ -46,12 +57,15 @@ const HOST = '127.0.0.1'
 const PORT = 4717
 const SIGNER_RELAY = startLocalRelay(log)
 const MAX_BODY = 8192
+const MAX_PENDING_LOG_LINE = 64 * 1024
+const ADB_TIMEOUT_MS = 5000
 
 const listeners = new Set()
 let bunkerUrl = ''
 let bridge = null
 let pageSocket = null
 let child = null
+let job = null
 const signWaiters = new Map()
 
 function send(res, status, body, type = 'application/json') {
@@ -66,8 +80,39 @@ function send(res, status, body, type = 'application/json') {
 function log(line) {
   const text = redactSecrets(line.endsWith('\n') ? line : `${line}\n`)
   process.stdout.write(text)
-  for (const listener of listeners) {
-    listener.write(`data: ${JSON.stringify(text)}\n\n`)
+  for (const entry of text.slice(0, -1).split('\n')) {
+    const message = JSON.stringify({
+      kind: classifyLogLine(entry),
+      text: entry
+    })
+    for (const listener of listeners) {
+      listener.write(`data: ${message}\n\n`)
+    }
+  }
+}
+
+function lineLogger() {
+  const state = { pending: '', skipping: false }
+  return {
+    flush() {
+      if (state.pending) {
+        log(state.pending)
+      }
+      state.pending = ''
+      state.skipping = false
+    },
+    write(chunk) {
+      const { lines, pending, skipping } = splitCompleteLines(
+        state,
+        chunk.toString(),
+        MAX_PENDING_LOG_LINE
+      )
+      state.pending = pending
+      state.skipping = skipping
+      for (const line of lines) {
+        log(line)
+      }
+    }
   }
 }
 
@@ -121,14 +166,27 @@ function commandEnv(extra) {
 
 function run(command, args, env = {}) {
   return new Promise((resolve, reject) => {
-    log(`$ ${command} ${args.map(redactSecrets).join(' ')}\n`)
+    if (job?.cancelled) {
+      reject(new Error('cancelled'))
+      return
+    }
+    const commandLine = `${command} ${args.map(redactSecrets).join(' ')}`
+    log(`$ ${commandLine}\n`)
     const proc = spawn(command, args, {
       cwd: REPO_ROOT,
+      detached: true,
       env: commandEnv(env),
       stdio: ['ignore', 'pipe', 'pipe']
     })
     child = proc
+    if (job) {
+      job.command = commandLine
+    }
+    const stdout = lineLogger()
+    const stderr = lineLogger()
     const finish = (code) => {
+      stdout.flush()
+      stderr.flush()
       if (child === proc) {
         child = null
       }
@@ -138,8 +196,8 @@ function run(command, args, env = {}) {
         reject(new Error(`${command} exited with code ${code}`))
       }
     }
-    proc.stdout.on('data', (chunk) => log(chunk.toString()))
-    proc.stderr.on('data', (chunk) => log(chunk.toString()))
+    proc.stdout.on('data', (chunk) => stdout.write(chunk))
+    proc.stderr.on('data', (chunk) => stderr.write(chunk))
     proc.on('error', (error) => {
       if (child === proc) {
         child = null
@@ -150,13 +208,40 @@ function run(command, args, env = {}) {
   })
 }
 
-function abortChild() {
-  if (!child) {
-    return
+function cancelJob() {
+  if (!job || job.cancelled) {
+    return false
   }
-  child.kill('SIGTERM')
-  child = null
-  log('aborted\n')
+  job.cancelled = true
+  if (child) {
+    stopProcessGroup(child)
+  }
+  log('cancelling\n')
+  return true
+}
+
+async function runJob(name, action) {
+  job = { action: name, cancelled: false, command: '', startedAt: Date.now() }
+  try {
+    await action()
+    log('done\n')
+  } catch (error) {
+    log(job.cancelled ? 'cancelled\n' : `error: ${error.message}\n`)
+  } finally {
+    job = null
+  }
+}
+
+function jobStatus() {
+  if (!job) {
+    return null
+  }
+  return {
+    action: job.action,
+    cancelling: job.cancelled,
+    command: job.command,
+    startedAt: new Date(job.startedAt).toISOString()
+  }
 }
 
 function gitLine(args) {
@@ -202,31 +287,32 @@ async function pushBranch() {
 }
 
 function releaseChannel(value) {
-  if (value === 'primary' || value === 'generic') {
-    return value
-  }
-  return 'dev'
+  return parseReleaseChannel(value) ?? 'dev'
 }
 
-async function publishZapstore(notes, only, channel) {
-  const args = [
-    'apps/mobile/scripts/publish-zapstore.mjs',
-    '--yes',
-    '--channel',
-    releaseChannel(channel)
-  ]
-  if (only) {
-    args.push('--only', only)
-  }
-  await run('node', args, { RELEASE_NOTES: notes, SIGN_WITH: bunkerUrl })
+async function appVersion() {
+  const pkg = JSON.parse(
+    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
+  )
+  return typeof pkg.version === 'string' ? pkg.version : ''
+}
+
+async function publishZapstore(body, only) {
+  const args = buildZapstoreArgs({
+    channel: releaseChannel(body.channel),
+    confirmedVersion: body.confirmedVersion,
+    currentVersion: await appVersion(),
+    only
+  })
+  await run('node', args, {
+    RELEASE_NOTES: typeof body.notes === 'string' ? body.notes : '',
+    SIGN_WITH: bunkerUrl
+  })
 }
 
 async function releaseChannels() {
   const branch = await gitBranch()
-  const pkg = JSON.parse(
-    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
-  )
-  const versionName = typeof pkg.version === 'string' ? pkg.version : ''
+  const versionName = await appVersion()
   return {
     dev: {
       appName: getVariantAppName(true, branch),
@@ -288,6 +374,89 @@ async function releaseApk() {
   }
 }
 
+async function adbOutput(args) {
+  try {
+    const { stdout } = await execFileAsync('adb', args, {
+      killSignal: 'SIGKILL',
+      timeout: ADB_TIMEOUT_MS
+    })
+    return { ok: true, output: stdout }
+  } catch {
+    return { ok: false, output: '' }
+  }
+}
+
+async function adbText(args) {
+  const { ok, output } = await adbOutput(args)
+  return ok ? output : ''
+}
+
+async function serialHasPackage(serial, packageId) {
+  const { ok, output } = await adbOutput([
+    '-s',
+    serial,
+    'shell',
+    'pm',
+    'list',
+    'packages',
+    packageId
+  ])
+  if (!ok) {
+    throw new Error(`could not check installed packages on ${serial}`)
+  }
+  return hasInstalledPackage(output, packageId)
+}
+
+async function installedPackages() {
+  const serials = parseAdbDevices(await adbText(['devices']))
+  const names = new Set()
+  for (const serial of serials) {
+    const listed = parsePackageList(
+      await adbText([
+        '-s',
+        serial,
+        'shell',
+        'pm',
+        'list',
+        'packages',
+        'com.satsigner'
+      ])
+    )
+    for (const name of listed) {
+      names.add(name)
+    }
+  }
+  return [...names]
+}
+
+async function uninstallPackage(channel) {
+  const known = parseReleaseChannel(channel)
+  if (!known) {
+    throw new Error('unknown release channel')
+  }
+  const channels = await releaseChannels()
+  const selected = channels[known]
+  const serials = parseAdbDevices(await adbText(['devices']))
+  if (serials.length === 0) {
+    throw new Error('no Android device is connected')
+  }
+  const failed = []
+  for (const serial of serials) {
+    if (!(await serialHasPackage(serial, selected.packageId))) {
+      log(`${selected.packageId} is not installed on ${serial}, skipping\n`)
+      continue
+    }
+    try {
+      await run('adb', ['-s', serial, 'uninstall', selected.packageId])
+    } catch {
+      failed.push(serial)
+    }
+  }
+  if (failed.length > 0) {
+    throw new Error(`could not uninstall from ${failed.join(', ')}`)
+  }
+}
+
 function buildLocalApk(body) {
   return run(
     'pnpm',
@@ -299,27 +468,13 @@ function buildLocalApk(body) {
 }
 
 const actions = {
-  announce: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'announce',
-      body.channel
-    ),
+  announce: (body) => publishZapstore(body, 'announce'),
   apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
-  zapstore: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      '',
-      body.channel
-    ),
-  zapstoreOnly: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'zapstore',
-      body.channel
-    )
+  uninstall: (body) => uninstallPackage(body.channel),
+  zapstore: (body) => publishZapstore(body, ''),
+  zapstoreOnly: (body) => publishZapstore(body, 'zapstore')
 }
 
 const ALLOWED_HOSTS = new Set([
@@ -425,9 +580,11 @@ const server = createServer(async (req, res) => {
     const branch = await gitBranch()
     send(res, 200, {
       branch,
-      busy: child !== null,
+      busy: job !== null,
       channels: await releaseChannels(),
       connected: bunkerUrl.startsWith('bunker://'),
+      installedPackages: await installedPackages(),
+      job: jobStatus(),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
       releaseApk: await releaseApk()
@@ -447,8 +604,13 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/cancel') {
+    send(res, 200, { cancelled: cancelJob() })
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/abort') {
-    abortChild()
+    cancelJob()
     bunkerUrl = ''
     bridge?.close()
     bridge = null
@@ -479,22 +641,21 @@ const server = createServer(async (req, res) => {
     send(res, 400, { error: 'unknown action' })
     return
   }
-  if (body.action !== 'apk' && !bunkerUrl.startsWith('bunker://')) {
+  if (
+    body.action !== 'apk' &&
+    body.action !== 'uninstall' &&
+    !bunkerUrl.startsWith('bunker://')
+  ) {
     send(res, 400, { error: 'connect the extension first' })
     return
   }
-  if (child) {
+  if (job) {
     send(res, 409, { error: 'a command is already running' })
     return
   }
 
   send(res, 202, { ok: true })
-  try {
-    await action(body)
-    log('done\n')
-  } catch (error) {
-    log(`error: ${error.message}\n`)
-  }
+  await runJob(body.action, () => action(body))
 })
 
 function apkNameFromPath(pathname) {
@@ -578,6 +739,18 @@ pageSockets.on('connection', (socket) => {
     }
   })
 })
+
+// Jobs run in their own process group, so Ctrl+C on the console no longer
+// reaches them; stop the running one before exiting.
+function stopRunningJobAndExit() {
+  if (child) {
+    signalProcessGroup(child.pid, 'SIGTERM')
+  }
+  process.exit(0)
+}
+
+process.once('SIGINT', stopRunningJobAndExit)
+process.once('SIGTERM', stopRunningJobAndExit)
 
 server.listen(PORT, HOST, () => {
   log(`release console at http://${HOST}:${PORT}\n`)

@@ -1,11 +1,6 @@
 import { getDecodedToken } from '@cashu/cashu-ts'
 import { Slider } from '@miblanchard/react-native-slider'
-import {
-  type AvailableLenses,
-  type BarcodeScanningResult,
-  CameraView,
-  useCameraPermissions
-} from 'expo-camera'
+import { type AvailableLenses, useCameraPermissions } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -13,6 +8,7 @@ import { toast } from 'sonner-native'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
+import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import SSVStack from '@/layouts/SSVStack'
@@ -214,7 +210,7 @@ function SSCameraModal({
   // Refs hold the hot-path scanner state so the async barcode handler can
   // read current values without being re-created on every setState. This is
   // the core fix for "Maximum update depth exceeded" under rapid frame
-  // callbacks from CameraView.
+  // callbacks from the scanner.
   const rawStateRef = useRef<RawState | null>(null)
   const urDecoderRef = useRef<URStreamDecoder | null>(null)
   const processingRef = useRef(false)
@@ -226,7 +222,7 @@ function SSCameraModal({
   // depend on the callback identities. Parents typically pass inline arrows
   // (e.g. `onClose={() => setVisible(false)}`), which change on every render.
   // Without this indirection, every parent render would cascade into a brand
-  // new `onBarcodeScanned` closure, re-register the native camera listener,
+  // new scan callback, re-register the native camera listener,
   // and — combined with the rapid frame rate — can push React into the
   // "Maximum update depth exceeded" guard. Keeping the refs stable lets us
   // build the scan pipeline once with an empty dep array.
@@ -560,7 +556,7 @@ function SSCameraModal({
     [routeQRCode]
   )
 
-  // The scan entry point reads from a ref so `CameraView` sees the same
+  // The scan entry point reads from a ref so the scanner sees the same
   // function reference across every render. Even if `handleQRCodeScanned`
   // changes identity, native listener registration is stable.
   const handleQRCodeScannedRef = useRef(handleQRCodeScanned)
@@ -568,14 +564,7 @@ function SSCameraModal({
     handleQRCodeScannedRef.current = handleQRCodeScanned
   }, [handleQRCodeScanned])
 
-  const onBarcodeScanned = useCallback((res: BarcodeScanningResult) => {
-    // expo-camera's `raw` field is only populated for certain barcode formats
-    // and is frequently undefined for plain QR codes; `data` is the reliable
-    // field for the decoded payload. Fall back to `raw` only as a last resort.
-    const payload = res?.data ?? res?.raw
-    if (!payload) {
-      return
-    }
+  const onScan = useCallback((payload: string) => {
     void handleQRCodeScannedRef.current(payload)
   }, [])
 
@@ -613,11 +602,11 @@ function SSCameraModal({
             width: CAMERA_SIZE
           }}
         >
-          {/* Mounted only once granted: a CameraView created before the
+          {/* Mounted only once granted: a camera view created before the
               permission prompt never starts its session. */}
           {permission?.granted ? (
-            <CameraView
-              onBarcodeScanned={isFinalizing ? undefined : onBarcodeScanned}
+            <SSQrScanner
+              onScan={isFinalizing ? undefined : onScan}
               onAvailableLensesChanged={(event: AvailableLenses) => {
                 const lenses = event.lenses.map((lens) => lens.deviceType)
                 if (lenses.length < 2) {
@@ -626,7 +615,6 @@ function SSCameraModal({
                 setAvailableLenses(lenses)
                 setSelectedLens((prev) => prev ?? lenses[0])
               }}
-              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               zoom={zoom}
               selectedLens={selectedLens}
               style={{ height: CAMERA_SIZE, width: CAMERA_SIZE }}

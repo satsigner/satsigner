@@ -7,6 +7,18 @@ import {
   getVariantPackageId,
   getVariantScheme
 } from './constants/variant.cjs'
+import { getAndroidVersionCode } from './constants/versionCode.cjs'
+
+const APP_VERSION = '0.3.12'
+
+// Satsigner never records audio or draws over other apps, and has no use for
+// Google Play's install referrer. Blocking them also strips the copies that
+// libraries (expo-camera, the Expo template) merge into the manifest.
+const ANDROID_BLOCKED_PERMISSIONS = [
+  'android.permission.RECORD_AUDIO',
+  'android.permission.SYSTEM_ALERT_WINDOW',
+  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE'
+]
 
 const projectId = process.env.EXPO_PROJECT_ID
 
@@ -27,8 +39,10 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         backgroundColor: '#ffffff',
         foregroundImage: './assets/adaptive-icon.png'
       },
+      blockedPermissions: ANDROID_BLOCKED_PERMISSIONS,
       package: getUniqueIdentifier(),
-      permissions: ['NFC']
+      permissions: ['NFC'],
+      versionCode: getAndroidVersionCode(APP_VERSION)
     },
     assetBundlePatterns: ['**/*'],
     description: 'Privacy-first Bitcoin signer with complete UTXO control',
@@ -89,9 +103,15 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       [
         'expo-camera',
         {
-          cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera'
+          // Android decodes QR codes with modules/ss-qr-scanner (zxing-cpp)
+          // instead of Google ML Kit. iOS uses AVFoundation either way.
+          barcodeScannerEnabled: false,
+          cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
+          microphonePermission: false,
+          recordAudioAndroid: false
         }
       ],
+      './plugins/withoutGoogleDocumentScanner.cjs',
       'expo-localization',
       [
         'expo-build-properties',
@@ -127,7 +147,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
     scheme: getScheme(),
     slug: 'satsigner',
     userInterfaceStyle: 'dark',
-    version: '0.3.6',
+    version: APP_VERSION,
     web: {
       favicon: './assets/favicon.png'
     }

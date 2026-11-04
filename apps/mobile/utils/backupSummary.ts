@@ -1,6 +1,7 @@
 import { isRecord } from '@/utils/object'
 
 export type BackupPayloadSummary = {
+  appVersion: string | null
   ark: {
     accounts: number
     datadirs: number
@@ -20,6 +21,7 @@ export type BackupPayloadSummary = {
     secrets: number
     transactions: number
   }
+  exportedAt: string | null
   lightning: {
     channels: number
     hasConfig: boolean
@@ -42,6 +44,18 @@ function countKeys(value: unknown): number {
 
 function isNonEmptyString(value: unknown): boolean {
   return typeof value === 'string' && value.length > 0
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function readDateString(value: unknown): string | null {
+  const text = readString(value)
+  if (text === null || Number.isNaN(Date.parse(text))) {
+    return null
+  }
+  return text
 }
 
 function countNestedArrays(value: unknown): number {
@@ -113,6 +127,7 @@ function countNostrSecrets(identities: unknown): number {
 
 function emptySummary(bytes: number, parseable: boolean): BackupPayloadSummary {
   return {
+    appVersion: null,
     ark: { accounts: 0, datadirs: 0, labels: 0, secrets: 0 },
     bitcoin: { accounts: 0, labels: 0, secrets: 0 },
     bytes,
@@ -123,6 +138,7 @@ function emptySummary(bytes: number, parseable: boolean): BackupPayloadSummary {
       secrets: 0,
       transactions: 0
     },
+    exportedAt: null,
     lightning: { channels: 0, hasConfig: false },
     nostr: { accounts: 0, relays: 0, secrets: 0 },
     parseable
@@ -146,6 +162,7 @@ export function summarizeBackupPayload(payload: string): BackupPayloadSummary {
       ? parsed.nostrIdentities
       : undefined
     return {
+      appVersion: readString(parsed.appVersion),
       ark: {
         accounts: countArray(ark?.accounts),
         datadirs: countKeys(ark?.datadirs),
@@ -165,6 +182,7 @@ export function summarizeBackupPayload(payload: string): BackupPayloadSummary {
         secrets: countNonEmptyStringsInRecord(ecash?.mnemonics),
         transactions: countNestedArrays(ecash?.transactions)
       },
+      exportedAt: readDateString(parsed.exportedAt),
       lightning: {
         channels: countArray(lightning?.channels),
         hasConfig:

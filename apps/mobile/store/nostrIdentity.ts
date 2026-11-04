@@ -30,7 +30,7 @@ type NostrIdentityActions = {
   setRelays: (relays: string[]) => void
   addRelay: (url: string) => void
   removeRelay: (url: string) => void
-  clearAll: () => void
+  clearAll: () => Promise<void>
   dismissKind0FetchWarning: () => void
 }
 
@@ -79,11 +79,11 @@ const useNostrIdentityStore = create<
         })
       },
 
-      clearAll: () => {
+      // Resolves once the identity secrets are gone, so a restore that writes
+      // secrets under the same npubs right after cannot lose them to a late
+      // delete.
+      clearAll: async () => {
         const { identities } = get()
-        for (const identity of identities) {
-          void deleteNostrIdentitySecretSafe(identity.npub)
-        }
         clearNdkRegistry()
         set({
           activeIdentityNpub: null,
@@ -91,6 +91,11 @@ const useNostrIdentityStore = create<
           kind0FetchWarningDismissed: false,
           relays: DEFAULT_RELAYS
         })
+        await Promise.all(
+          identities.map((identity) =>
+            deleteNostrIdentitySecretSafe(identity.npub)
+          )
+        )
       },
 
       dismissKind0FetchWarning: () => {

@@ -3,6 +3,9 @@ import { type ViewStyle } from 'react-native'
 /** Raster size for header glyphs (square); SVGs use a 24×24 viewBox. */
 export const HEADER_CHROME_ICON_SIZE = 24
 
+/** Stroke for header chrome glyphs. */
+export const HEADER_ICON_STROKE = '#828282'
+
 /** Settings (cog) icon — slightly smaller than other header chrome icons. */
 export const HEADER_CHROME_SETTINGS_ICON_SIZE = 20
 

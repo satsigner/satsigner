@@ -16,6 +16,11 @@ const ANDROID_ABI_ARMV7 = 'armeabi-v7a'
 const ANDROID_ABI_X86 = 'x86'
 const ANDROID_ABI_X86_64 = 'x86_64'
 
+const ANDROID_ABI_LABELS = new Map([
+  [ANDROID_ABI_ARM64, 'arm64'],
+  [ANDROID_ABI_X86_64, 'x86_64']
+])
+
 const ANDROID_ABIS_DEV = [
   ANDROID_ABI_ARMV7,
   ANDROID_ABI_ARM64,
@@ -77,6 +82,7 @@ function getVariantAndroidAbis(isDev) {
 
 module.exports = {
   ANDROID_ABI_ARM64,
+  ANDROID_ABI_LABELS,
   ANDROID_ABI_X86_64,
   APP_NAME_DEV,
   APP_NAME_PROD,
