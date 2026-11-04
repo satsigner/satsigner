@@ -1998,8 +1998,7 @@
       // Production updates every user who installed Satsigner from Zapstore,
       // so it asks before doing anything. The publish script refuses
       // Production unless it receives the version confirmed here.
-      function confirmProductionPublish() {
-        const listing = releaseStatus?.channels?.primary ?? {}
+      function confirmProductionPublish(listing) {
         return window.confirm(
           `Publish ${listing.packageId} ${listing.versionName} to Production?\n\n` +
             'This is the real Satsigner app. Everyone who installed it from Zapstore ' +
@@ -2007,12 +2006,20 @@
         )
       }
       function runPublishAction(action) {
+        const listing = releaseStatus?.channels?.[releaseChannel]
+        if (!listing?.packageId || !listing.versionName) {
+          writeLog(
+            'Release status has not loaded yet. Try again in a moment.\n',
+            'error'
+          )
+          return
+        }
         if (releaseChannel !== 'primary') {
           runAction(action)
           return
         }
-        if (confirmProductionPublish()) {
-          runAction(action, releaseStatus?.channels?.primary?.versionName ?? '')
+        if (confirmProductionPublish(listing)) {
+          runAction(action, listing.versionName)
         }
       }
       zapstoreButton.addEventListener('click', () =>
