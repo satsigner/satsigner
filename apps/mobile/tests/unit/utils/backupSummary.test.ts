@@ -15,6 +15,7 @@ describe('summarizeBackupPayload', () => {
           labels: { tx2: { label: 'coffee' }, tx3: { label: 'food' } }
         }
       ],
+      appVersion: '0.3.7',
       ark: {
         accounts: [{ id: 'ark-1' }],
         labels: { 'ark-1': { vout1: { label: 'board' } } },
@@ -27,6 +28,7 @@ describe('summarizeBackupPayload', () => {
         proofs: { 'ecash-1': [{ C: 'a' }, { C: 'b' }] },
         transactions: { 'ecash-1': [{ id: 'tx-1' }] }
       },
+      exportedAt: '2026-11-03T10:00:00.000Z',
       lightning: {
         channels: [{ channelPoint: 'a:0' }],
         config: { host: '127.0.0.1' }
@@ -38,6 +40,7 @@ describe('summarizeBackupPayload', () => {
     })
 
     expect(summarizeBackupPayload(payload)).toStrictEqual({
+      appVersion: '0.3.7',
       ark: { accounts: 1, datadirs: 0, labels: 1, secrets: 1 },
       bitcoin: { accounts: 2, labels: 3, secrets: 1 },
       bytes: new TextEncoder().encode(payload).length,
@@ -48,6 +51,7 @@ describe('summarizeBackupPayload', () => {
         secrets: 1,
         transactions: 1
       },
+      exportedAt: '2026-11-03T10:00:00.000Z',
       lightning: { channels: 1, hasConfig: true },
       nostr: { accounts: 1, relays: 1, secrets: 1 },
       parseable: true
@@ -66,9 +70,19 @@ describe('summarizeBackupPayload', () => {
     expect(summarizeBackupPayload(payload).ark.datadirs).toBe(1)
   })
 
+  it('reports unknown app version and export date for older backups', () => {
+    const summary = summarizeBackupPayload(
+      JSON.stringify({ accounts: [], exportedAt: 'not-a-date' })
+    )
+
+    expect(summary.appVersion).toBeNull()
+    expect(summary.exportedAt).toBeNull()
+  })
+
   it('marks invalid JSON as unparseable and still reports size', () => {
     const payload = '{not-json'
     expect(summarizeBackupPayload(payload)).toStrictEqual({
+      appVersion: null,
       ark: { accounts: 0, datadirs: 0, labels: 0, secrets: 0 },
       bitcoin: { accounts: 0, labels: 0, secrets: 0 },
       bytes: new TextEncoder().encode(payload).length,
@@ -79,6 +93,7 @@ describe('summarizeBackupPayload', () => {
         secrets: 0,
         transactions: 0
       },
+      exportedAt: null,
       lightning: { channels: 0, hasConfig: false },
       nostr: { accounts: 0, relays: 0, secrets: 0 },
       parseable: false

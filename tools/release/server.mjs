@@ -14,6 +14,7 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  buildZapstoreArgs,
   classifyLogLine,
   isApkName,
   isNostrRemote,
@@ -25,6 +26,7 @@ import {
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
+import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(HERE, '../..')
@@ -57,6 +59,7 @@ let bunkerUrl = ''
 let bridge = null
 let pageSocket = null
 let child = null
+let job = null
 const signWaiters = new Map()
 
 function send(res, status, body, type = 'application/json') {
@@ -154,13 +157,22 @@ function commandEnv(extra) {
 
 function run(command, args, env = {}) {
   return new Promise((resolve, reject) => {
-    log(`$ ${command} ${args.map(redactSecrets).join(' ')}\n`)
+    if (job?.cancelled) {
+      reject(new Error('cancelled'))
+      return
+    }
+    const commandLine = `${command} ${args.map(redactSecrets).join(' ')}`
+    log(`$ ${commandLine}\n`)
     const proc = spawn(command, args, {
       cwd: REPO_ROOT,
+      detached: true,
       env: commandEnv(env),
       stdio: ['ignore', 'pipe', 'pipe']
     })
     child = proc
+    if (job) {
+      job.command = commandLine
+    }
     const stdout = lineLogger()
     const stderr = lineLogger()
     const finish = (code) => {
@@ -187,13 +199,40 @@ function run(command, args, env = {}) {
   })
 }
 
-function abortChild() {
-  if (!child) {
-    return
+function cancelJob() {
+  if (!job || job.cancelled) {
+    return false
   }
-  child.kill('SIGTERM')
-  child = null
-  log('aborted\n')
+  job.cancelled = true
+  if (child) {
+    stopProcessGroup(child)
+  }
+  log('cancelling\n')
+  return true
+}
+
+async function runJob(name, action) {
+  job = { action: name, cancelled: false, command: '', startedAt: Date.now() }
+  try {
+    await action()
+    log('done\n')
+  } catch (error) {
+    log(job.cancelled ? 'cancelled\n' : `error: ${error.message}\n`)
+  } finally {
+    job = null
+  }
+}
+
+function jobStatus() {
+  if (!job) {
+    return null
+  }
+  return {
+    action: job.action,
+    cancelling: job.cancelled,
+    command: job.command,
+    startedAt: new Date(job.startedAt).toISOString()
+  }
 }
 
 function gitLine(args) {
@@ -242,25 +281,29 @@ function releaseChannel(value) {
   return parseReleaseChannel(value) ?? 'dev'
 }
 
-async function publishZapstore(notes, only, channel) {
-  const args = [
-    'apps/mobile/scripts/publish-zapstore.mjs',
-    '--yes',
-    '--channel',
-    releaseChannel(channel)
-  ]
-  if (only) {
-    args.push('--only', only)
-  }
-  await run('node', args, { RELEASE_NOTES: notes, SIGN_WITH: bunkerUrl })
+async function appVersion() {
+  const pkg = JSON.parse(
+    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
+  )
+  return typeof pkg.version === 'string' ? pkg.version : ''
+}
+
+async function publishZapstore(body, only) {
+  const args = buildZapstoreArgs({
+    channel: releaseChannel(body.channel),
+    confirmedVersion: body.confirmedVersion,
+    currentVersion: await appVersion(),
+    only
+  })
+  await run('node', args, {
+    RELEASE_NOTES: typeof body.notes === 'string' ? body.notes : '',
+    SIGN_WITH: bunkerUrl
+  })
 }
 
 async function releaseChannels() {
   const branch = await gitBranch()
-  const pkg = JSON.parse(
-    await readFile(path.join(REPO_ROOT, 'apps/mobile/package.json'), 'utf8')
-  )
-  const versionName = typeof pkg.version === 'string' ? pkg.version : ''
+  const versionName = await appVersion()
   return {
     dev: {
       appName: getVariantAppName(true, branch),
@@ -395,28 +438,13 @@ function buildLocalApk(body) {
 }
 
 const actions = {
-  announce: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'announce',
-      body.channel
-    ),
+  announce: (body) => publishZapstore(body, 'announce'),
   apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
   uninstall: (body) => uninstallPackage(body.channel),
-  zapstore: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      '',
-      body.channel
-    ),
-  zapstoreOnly: (body) =>
-    publishZapstore(
-      typeof body.notes === 'string' ? body.notes : '',
-      'zapstore',
-      body.channel
-    )
+  zapstore: (body) => publishZapstore(body, ''),
+  zapstoreOnly: (body) => publishZapstore(body, 'zapstore')
 }
 
 const ALLOWED_HOSTS = new Set([
@@ -522,10 +550,11 @@ const server = createServer(async (req, res) => {
     const branch = await gitBranch()
     send(res, 200, {
       branch,
-      busy: child !== null,
+      busy: job !== null,
       channels: await releaseChannels(),
       connected: bunkerUrl.startsWith('bunker://'),
       installedPackages: await installedPackages(),
+      job: jobStatus(),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
       releaseApk: await releaseApk()
@@ -545,8 +574,13 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/cancel') {
+    send(res, 200, { cancelled: cancelJob() })
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/abort') {
-    abortChild()
+    cancelJob()
     bunkerUrl = ''
     bridge?.close()
     bridge = null
@@ -585,18 +619,13 @@ const server = createServer(async (req, res) => {
     send(res, 400, { error: 'connect the extension first' })
     return
   }
-  if (child) {
+  if (job) {
     send(res, 409, { error: 'a command is already running' })
     return
   }
 
   send(res, 202, { ok: true })
-  try {
-    await action(body)
-    log('done\n')
-  } catch (error) {
-    log(`error: ${error.message}\n`)
-  }
+  await runJob(body.action, () => action(body))
 })
 
 function apkNameFromPath(pathname) {
@@ -680,6 +709,18 @@ pageSockets.on('connection', (socket) => {
     }
   })
 })
+
+// Jobs run in their own process group, so Ctrl+C on the console no longer
+// reaches them; stop the running one before exiting.
+function stopRunningJobAndExit() {
+  if (child) {
+    signalProcessGroup(child.pid, 'SIGTERM')
+  }
+  process.exit(0)
+}
+
+process.once('SIGINT', stopRunningJobAndExit)
+process.once('SIGTERM', stopRunningJobAndExit)
 
 server.listen(PORT, HOST, () => {
   log(`release console at http://${HOST}:${PORT}\n`)

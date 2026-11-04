@@ -1,6 +1,6 @@
 {
   "name": "@satsigner/mobile",
-  "version": "0.3.6",
+  "version": "0.3.12",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "main": "./index.js",
@@ -30,7 +30,7 @@
     "test:int:payjoin": "jest ./tests/int/api/payjoin-signet.test.ts",
     "test:unit": "jest ./tests/unit",
     "test:relay": "jest -c jest.relay.config.js",
-    "test:scripts": "node --test scripts/zapstore-verify.test.mjs scripts/zapstore-identity.test.mjs",
+    "test:scripts": "node --test scripts/zapstore-verify.test.mjs scripts/zapstore-identity.test.mjs scripts/zapstore-publish-args.test.mjs scripts/zapstore-listing.test.mjs scripts/zapstore-channel.test.mjs",
     "test:relay:live": "cross-env NOSTR_RELAY_LIVE=1 jest -c jest.relay.config.js --passWithNoTests tests/relay/live",
     "maestro:prep": "bash .maestro/scripts/prep-android.sh",
     "maestro:link-studio": "bash .maestro/scripts/link-studio-workspace.sh",
@@ -125,7 +125,6 @@
     "react-native": "0.88.0",
     "react-native-bdk-sdk": "0.8.0",
     "react-native-bouncy-checkbox": "^4.1.4",
-    "react-native-device-info": "^15.0.2",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "~1.11.0",
@@ -192,6 +191,11 @@
   },
   "expo": {
     "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-camera"
+        ]
+      },
       "nativeModulesDir": "./modules"
     },
     "doctor": {

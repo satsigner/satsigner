@@ -5,6 +5,7 @@ import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { getArkAccountOrThrow } from '@/store/ark'
 import { getArkServer } from '@/utils/ark'
+import { devLog, devStep } from '@/utils/devConsole'
 
 async function ensureWalletOpen(accountId: string): Promise<true> {
   const account = getArkAccountOrThrow(accountId)
@@ -20,12 +21,14 @@ async function ensureWalletOpen(accountId: string): Promise<true> {
   }
 
   const datadir = await ensureArkDatadir(accountId)
+  await devStep('ark', `open wallet for screen ${account.name}`)
   await openArkWallet({
     accountId,
     datadir,
     mnemonic,
     server
   })
+  devLog('ark', `wallet open for screen ${account.name}`)
   return true
 }
 

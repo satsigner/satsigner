@@ -18,6 +18,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSDevConsole from '@/components/SSDevConsole'
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import SSIntroAnimation from '@/components/SSIntroAnimation'
 import { MS_PER_SECOND } from '@/constants/time'
@@ -27,14 +28,19 @@ import {
   setLastBackgroundTimestamp
 } from '@/storage/mmkv'
 import { useAuthStore } from '@/store/auth'
+import { useDevConsoleStore } from '@/store/devConsole'
 import { useIntroStore } from '@/store/intro'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
+import { installDevConsole, isDevConsoleAvailable } from '@/utils/devConsole'
 import { installDevErrorReporting } from '@/utils/devErrorReporting'
 
 // Dev-only: crashes/rejections log symbolicated source file:line to the
 // Metro console. Installed before any component code runs.
 installDevErrorReporting()
+installDevConsole()
+
+const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
 
 async function setAndroidBackgroundColor() {
   try {
@@ -68,6 +74,8 @@ export default function RootLayout() {
       state.hideIntro
     ])
   )
+
+  const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
 
   const appState = useRef(AppState.currentState)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
@@ -172,6 +180,9 @@ export default function RootLayout() {
                 zIndex: 999_999
               }}
             />
+            {DEV_CONSOLE_AVAILABLE && devConsoleEnabled ? (
+              <SSDevConsole />
+            ) : null}
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

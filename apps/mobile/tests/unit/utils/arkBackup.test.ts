@@ -1,9 +1,9 @@
 import type { ArkAccount } from '@/types/models/Ark'
 import {
   collectArkBackup,
+  deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
-  restoreArkDatadirsFromBackup,
   restoreArkLabelsFromBackup,
   restoreArkStoreFromBackup
 } from '@/utils/arkBackup'
@@ -38,8 +38,7 @@ jest.mock<typeof import('@/db/queries/arkLabels')>(
 jest.mock<typeof import('@/storage/arkDatadir')>(
   '@/storage/arkDatadir',
   () => ({
-    deleteArkDatadir: jest.fn(),
-    writeArkDatadirFiles: jest.fn()
+    deleteArkDatadir: jest.fn()
   })
 )
 
@@ -245,50 +244,34 @@ describe('restoreArkLabelsFromBackup', () => {
   })
 })
 
-describe('restoreArkDatadirsFromBackup', () => {
+describe('deleteLeftoverArkDatadirs', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
+  })
+
+  it('deletes datadirs of accounts that are not in the backup', async () => {
+    const { deleteArkDatadir } = jest.requireMock('@/storage/arkDatadir') as {
       deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
     }
     deleteArkDatadir.mockResolvedValue(undefined)
-    writeArkDatadirFiles.mockResolvedValue(undefined)
-  })
 
-  it('deletes leftover datadirs and writes restored files', async () => {
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
-      deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
-    }
-    const files = [{ base64: 'ZGI=', filename: 'bark.db' }]
+    await deleteLeftoverArkDatadirs(['old-ark', 'older-ark'])
 
-    await restoreArkDatadirsFromBackup(
-      { 'ark-1': { files } },
+    expect(deleteArkDatadir.mock.calls).toStrictEqual([
       ['old-ark'],
-      ['ark-1']
-    )
-
-    expect(deleteArkDatadir).toHaveBeenCalledWith('old-ark')
-    expect(writeArkDatadirFiles).toHaveBeenCalledWith('ark-1', files)
+      ['older-ark']
+    ])
   })
 
-  it('leaves local sqlite files in place when a restored account has no datadir blob', async () => {
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
+  it('keeps going when a datadir cannot be deleted', async () => {
+    const { deleteArkDatadir } = jest.requireMock('@/storage/arkDatadir') as {
       deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
     }
+    deleteArkDatadir.mockRejectedValueOnce(new Error('busy'))
 
-    await restoreArkDatadirsFromBackup(undefined, [], ['ark-1'])
-
-    expect(deleteArkDatadir).not.toHaveBeenCalled()
-    expect(writeArkDatadirFiles).not.toHaveBeenCalled()
+    await expect(
+      deleteLeftoverArkDatadirs(['old-ark'])
+    ).resolves.toBeUndefined()
   })
 })
 
