@@ -530,6 +530,21 @@ async function removeLeftovers(
   ])
 }
 
+async function snapshotBeforeRestore(
+  existingArkAccountIds: string[],
+  existingEcashAccountIds: string[]
+): Promise<{ snapshot: PersistedSnapshot } | { error: string }> {
+  try {
+    const snapshot = await snapshotPersistedState({
+      arkAccountIds: existingArkAccountIds,
+      ecashAccountIds: existingEcashAccountIds
+    })
+    return { snapshot }
+  } catch (error) {
+    return { error: errorMessage(error) }
+  }
+}
+
 /**
  * Overwrites app data with the decrypted backup. Call after PIN unlock when
  * pendingRecoverData is set. Uses stored PIN from secure storage.
@@ -579,15 +594,13 @@ export async function performRecoverOverwrite(
       restoredArkIds.has(account.id)
   )
   const snapshot = snapshotStores()
-  let persisted: PersistedSnapshot
-  try {
-    persisted = await snapshotPersistedState({
-      arkAccountIds: existingArkAccounts.map((account) => account.id),
-      ecashAccountIds: existingEcashAccountIds
-    })
-  } catch (error) {
+  const persisted = await snapshotBeforeRestore(
+    existingArkAccounts.map((account) => account.id),
+    existingEcashAccountIds
+  )
+  if ('error' in persisted) {
     // Nothing has changed yet; without a snapshot there is no safe rollback.
-    return { error: errorMessage(error), success: false }
+    return { error: persisted.error, success: false }
   }
   // Running subscriptions must be closed before their accounts are replaced.
   await resetNostrSync()
@@ -603,7 +616,7 @@ export async function performRecoverOverwrite(
       restoredArkAccountIds
     )
   } catch (error) {
-    await rollbackPersistedState(persisted, {
+    await rollbackPersistedState(persisted.snapshot, {
       arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
       ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId),
       nostrIdentityNpubs: nostrIdentityNpubsFromBackup(data)
