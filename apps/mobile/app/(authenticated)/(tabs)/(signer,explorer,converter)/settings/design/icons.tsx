@@ -2,6 +2,7 @@ import { FlashList } from '@shopify/flash-list'
 import { Stack } from 'expo-router'
 import { StyleSheet } from 'react-native'
 
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSText from '@/components/SSText'
 import {
   DESIGN_ICON_COUNT,
@@ -56,7 +57,7 @@ function getItemType(item: DesignIconRow<DesignIconEntry>) {
   return item.type
 }
 
-export default function DesignIcons() {
+function DesignIconsScreen() {
   return (
     <>
       <Stack.Screen
@@ -99,3 +100,11 @@ const styles = StyleSheet.create({
     marginBottom: 4
   }
 })
+
+export default function DesignIcons() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignIconsScreen />
+    </SSDevOnlyRoute>
+  )
+}

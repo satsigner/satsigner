@@ -132,21 +132,57 @@ function exportPkcs12({ certificate, key, password }, dir, outPath) {
   }
 }
 
+function moveAll(moves) {
+  const done = []
+  try {
+    for (const move of moves) {
+      renameSync(move.from, move.to)
+      done.unshift(move)
+    }
+  } catch (error) {
+    for (const move of done) {
+      renameSync(move.to, move.from)
+    }
+    throw error
+  }
+}
+
+function replacePair(files, pending) {
+  const names = Object.keys(files)
+  const backups = names
+    .filter((name) => existsSync(files[name]))
+    .map((name) => ({ from: files[name], to: `${files[name]}.bak` }))
+  const installs = names.map((name) => ({
+    from: pending[name],
+    to: files[name]
+  }))
+  moveAll([...backups, ...installs])
+  for (const backup of backups) {
+    rmSync(backup.to, { force: true })
+  }
+}
+
 function writeKeystore(phrase, dir = releaseDir) {
   const identity = releaseIdentityFromMnemonic(phrase)
   const files = keystoreFiles(dir)
-  const pendingKeystore = `${files.keystore}.tmp`
-  const pendingPassword = `${files.password}.tmp`
+  const pending = {
+    keystore: `${files.keystore}.tmp`,
+    password: `${files.password}.tmp`
+  }
   mkdirSync(dir, { mode: PRIVATE_DIR_MODE, recursive: true })
   chmodSync(dir, PRIVATE_DIR_MODE)
-  exportPkcs12(identity, dir, pendingKeystore)
-  chmodSync(pendingKeystore, PRIVATE_FILE_MODE)
-  writeFileSync(pendingPassword, `${identity.password}\n`, {
-    mode: PRIVATE_FILE_MODE
-  })
-  chmodSync(pendingPassword, PRIVATE_FILE_MODE)
-  renameSync(pendingKeystore, files.keystore)
-  renameSync(pendingPassword, files.password)
+  try {
+    exportPkcs12(identity, dir, pending.keystore)
+    chmodSync(pending.keystore, PRIVATE_FILE_MODE)
+    writeFileSync(pending.password, `${identity.password}\n`, {
+      mode: PRIVATE_FILE_MODE
+    })
+    chmodSync(pending.password, PRIVATE_FILE_MODE)
+    replacePair(files, pending)
+  } finally {
+    rmSync(pending.keystore, { force: true })
+    rmSync(pending.password, { force: true })
+  }
   return identity
 }
 
@@ -216,12 +252,21 @@ function storedCertificateHash(dir = releaseDir) {
     .digest('hex')
 }
 
-function signingEnv(baseEnv) {
-  if (!hasReleaseKeystore()) {
-    return baseEnv
+function requireReleaseKeystore(dir = releaseDir) {
+  if (hasReleaseKeystore(dir)) {
+    return
   }
-  const files = keystoreFiles(releaseDir)
-  const password = readKeystorePassword()
+  throw new Error(
+    `No Android release keystore at ${keystoreFiles(dir).keystore}.\n` +
+      'Create one with: pnpm --dir tools/release keystore\n' +
+      'Release builds never fall back to the public debug key.'
+  )
+}
+
+function signingEnv(baseEnv, dir = releaseDir) {
+  requireReleaseKeystore(dir)
+  const files = keystoreFiles(dir)
+  const password = readKeystorePassword(dir)
   return {
     ...baseEnv,
     'ORG_GRADLE_PROJECT_android.injected.signing.key.alias': KEY_ALIAS,
@@ -243,6 +288,7 @@ export {
   privateKeysMatch,
   readKeystorePassword,
   releaseIdentityFromMnemonic,
+  requireReleaseKeystore,
   signingEnv,
   storedCertificateHash,
   storedIdentity,

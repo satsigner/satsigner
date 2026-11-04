@@ -25,7 +25,7 @@ export function isDesignFeatureId(value: unknown): value is DesignFeatureId {
 }
 
 export const DESIGN_SAMPLE_ADDRESS =
-  'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+  'tb1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjaq5ayy'
 export const DESIGN_SAMPLE_TXID =
   'f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16'
 export const DESIGN_SAMPLE_XPUB =
@@ -68,12 +68,12 @@ export const DESIGN_SAMPLE_MULTISIG_MAX_KEYS = 12
 const SAMPLE_PRICES = { USD: 65_000 }
 const SAMPLE_SCRIPT = '0014cc5159408ffdbb39adfd5ed60ac49da7d18a4f4a'
 
-const ADDRESS_RECEIVE_A = 'bc1q9h7garjjpvgd9jx6dfwdhqqrw3mdxwzqk7dzjl'
-const ADDRESS_RECEIVE_B = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
-const ADDRESS_RECEIVE_C = 'bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde'
-const ADDRESS_CHANGE = 'bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h'
+const ADDRESS_RECEIVE_A = 'tb1q9h7garjjpvgd9jx6dfwdhqqrw3mdxwzqz97crr'
+const ADDRESS_RECEIVE_B = 'tb1qar0srrr7xfkvy5l643lydnw9re59gtzzy00gkn'
+const ADDRESS_RECEIVE_C = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+const ADDRESS_CHANGE = 'tb1qm34lsc65zpw79lxes69zkqmk6ee3ewf0cc9r2y'
 const ADDRESS_EXTERNAL =
-  'bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3'
+  'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'
 
 const TXID_RECEIVE_A =
   'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d'

@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { SSIconArrowsClockwise } from '@/components/icons'
 import SSDesignFeaturePreview from '@/components/SSDesignFeaturePreview'
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSHeaderSettingsButton from '@/components/SSHeaderSettingsButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
@@ -42,7 +43,7 @@ function RefreshHeader({ onRefresh }: RefreshHeaderProps) {
   )
 }
 
-export default function DesignFeature() {
+function DesignFeatureScreen() {
   const { feature } = useLocalSearchParams<{ feature: string }>()
   const [setIndex, setSetIndex] = useState(0)
 
@@ -78,5 +79,13 @@ export default function DesignFeature() {
         />
       </SSMainLayout>
     </>
+  )
+}
+
+export default function DesignFeature() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignFeatureScreen />
+    </SSDevOnlyRoute>
   )
 }

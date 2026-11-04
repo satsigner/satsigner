@@ -14,6 +14,12 @@
  *   --blossom   Blossom server URL (default: https://cdn.zapstore.dev)
  *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
  *   --yes       Publish the announcement without a second prompt
+ *   --channel   primary (Production), generic or dev. Production asks you to
+ *               type the version in a terminal; it never runs unconfirmed,
+ *               even with --yes, CI=true or AGENT=true.
+ *   --confirm-production <version>
+ *               Production confirmation for runs without a terminal. Only the
+ *               release console passes it, after its own confirm dialog.
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
  *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
  *               zsp fetches the APK from the configured source — no local build.
@@ -66,9 +72,16 @@ import {
   hasReleaseKeystore,
   readKeystorePassword,
   keystorePath as releaseKeystorePath,
-  storedCertificateHash
+  requireReleaseKeystore,
+  signingEnv,
+  storedIdentity
 } from '../../../tools/release/keystore.mjs'
-import { assertChannelCanPublish } from './zapstore-channel.mjs'
+import {
+  PRODUCTION_CHANNEL,
+  assertChannelCanPublish,
+  assertProductionConfirmed,
+  assertProductionSource
+} from './zapstore-channel.mjs'
 import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
@@ -100,6 +113,7 @@ const { values: flags } = parseArgs({
     blossom: { type: 'string' },
     channel: { type: 'string' },
     config: { type: 'string' },
+    'confirm-production': { type: 'string' },
     'dry-run': { type: 'boolean' },
     notes: { type: 'string' },
     only: { type: 'string' },
@@ -413,6 +427,23 @@ function isCleanTree() {
   return git(['status', '--porcelain']).toString().trim() === ''
 }
 
+function isHeadOnRemote() {
+  return (
+    git(['branch', '--remotes', '--contains', 'HEAD']).toString().trim() !== ''
+  )
+}
+
+function checkProductionSource() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun || ANNOUNCE_ONLY) {
+    return
+  }
+  assertProductionSource({
+    channel: CHANNEL,
+    cleanTree: isCleanTree(),
+    onRemote: isHeadOnRemote()
+  })
+}
+
 function sourceFingerprint() {
   const hash = createHash('sha256')
   hash.update(git(['rev-parse', 'HEAD']))
@@ -473,6 +504,32 @@ async function runZspPublish(args, signWith, listing) {
   }
 }
 
+// ── production confirmation ───────────────────────────────────────────────────
+
+function readProductionConfirmation() {
+  if (flags['confirm-production'] !== undefined) {
+    return Promise.resolve(flags['confirm-production'])
+  }
+  if (!process.stdin.isTTY) {
+    return Promise.resolve(undefined)
+  }
+  console.log(
+    '  Production updates everyone who installed Satsigner from Zapstore.'
+  )
+  return prompt(`  Type ${APP_VERSION} to publish it to Production: `)
+}
+
+async function confirmProduction() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun) {
+    return
+  }
+  assertProductionConfirmed({
+    channel: CHANNEL,
+    confirmedVersion: await readProductionConfirmation(),
+    version: APP_VERSION
+  })
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
@@ -482,11 +539,13 @@ function step(n, label) {
 }
 
 async function buildReleaseApk() {
+  requireReleaseKeystore()
+
   if (CHANNEL !== 'primary' && CHANNEL !== 'dev' && CHANNEL !== 'generic') {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
         'android/ is prebuilt with the production package id. ' +
-          'Production APKs are disabled until a release keystore is in place.'
+          'Publish Production with --channel primary, which builds and signs it with the release keystore.'
       )
     }
     console.log('  Running: ./gradlew assembleRelease\n')
@@ -494,7 +553,7 @@ async function buildReleaseApk() {
       process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
     await run('./gradlew', ['assembleRelease'], {
       cwd: ANDROID_DIR,
-      env: { ANDROID_HOME: androidHome }
+      env: signingEnv({ ...process.env, ANDROID_HOME: androidHome })
     })
     if (!existsSync(APK_OUTPUT)) {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
@@ -578,6 +637,8 @@ async function main() {
   }
 
   checkPrerequisites()
+  checkProductionSource()
+  await confirmProduction()
 
   step(1, bunkerUrl ? 'Sign in — browser bunker' : 'Sign in — enter your key')
   console.log(
@@ -612,7 +673,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certHash: storedCertificateHash(),
+        certificate: storedIdentity().certificate,
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })

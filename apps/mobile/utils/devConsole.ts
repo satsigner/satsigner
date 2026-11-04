@@ -18,6 +18,7 @@ import type {
   DevConsoleLevel
 } from '@/types/models/DevConsole'
 import { setClipboard } from '@/utils/clipboard'
+import { redactSecrets } from '@/utils/redactSecrets'
 
 type PendingStep = {
   name: string
@@ -100,7 +101,7 @@ export function devLog(
   const entry = {
     id: counter.nextId,
     level,
-    message: truncateDevMessage(message),
+    message: truncateDevMessage(redactSecrets(message)),
     scope,
     time: Date.now()
   }
@@ -163,12 +164,16 @@ export function closeDevConsole(): void {
   useDevConsoleStore.getState().setPanelOpen(false)
 }
 
-/** Turns the console off, as the Developer settings switch does. */
+/**
+ * Turns the console off, as the Developer settings switch does, and drops
+ * everything it recorded.
+ */
 export function hideDevConsole(): void {
   resumeDevSteps()
   const { setEnabled, setPanelOpen } = useDevConsoleStore.getState()
   setPanelOpen(false)
   setEnabled(false)
+  clearDevConsole()
 }
 
 /**
@@ -188,13 +193,21 @@ export function registerDevConsoleSecretTap(now = Date.now()): boolean | null {
     return null
   }
   secretTaps.splice(0)
+  const enabled = toggleDevConsoleEnabled()
+  if (enabled) {
+    devLog('console', 'turned on from the PIN screen')
+  }
+  return enabled
+}
+
+/** Flips the console on or off and returns whether it is now on. */
+export function toggleDevConsoleEnabled(): boolean {
   const { enabled, setEnabled } = useDevConsoleStore.getState()
   if (enabled) {
     hideDevConsole()
     return false
   }
   setEnabled(true)
-  devLog('console', 'turned on from the PIN screen')
   return true
 }
 
@@ -228,6 +241,14 @@ export function toggleDevConsoleSession(): void {
 export function clearDevConsole(): void {
   useDevConsoleStore.getState().clearEntries()
   clearDevConsoleStorage()
+}
+
+/** Drops recorded logs on wipes. Production builds never recorded any. */
+export function wipeDevConsoleLog(): void {
+  if (!isDevConsoleAvailable()) {
+    return
+  }
+  clearDevConsole()
 }
 
 export function formatDevConsoleTime(time: number): string {
