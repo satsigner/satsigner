@@ -3,7 +3,10 @@ import {
   DEV_CONSOLE_SECRET_TAP_COUNT,
   DEV_CONSOLE_SECRET_TAP_WINDOW_MS
 } from '@/constants/devConsole'
-import { readPreviousDevConsoleSession } from '@/storage/devConsoleLog'
+import {
+  readPreviousDevConsoleSession,
+  rotateDevConsoleSession
+} from '@/storage/devConsoleLog'
 import { useDevConsoleStore } from '@/store/devConsole'
 import {
   clearDevConsole,
@@ -19,6 +22,7 @@ import {
   releaseNextDevStep,
   resumeDevSteps,
   toggleDevConsoleDock,
+  toggleDevConsoleEnabled,
   truncateDevMessage
 } from '@/utils/devConsole'
 
@@ -165,6 +169,27 @@ describe('panel controls', () => {
     expect(state.enabled).toBe(false)
     expect(state.panelOpen).toBe(false)
     expect(state.stepMode).toBe(false)
+  })
+
+  it('hide drops what the console recorded', () => {
+    devLog('session', 'wallet sync failed')
+    rotateDevConsoleSession()
+    devLog('session', 'still running')
+
+    hideDevConsole()
+
+    expect(useDevConsoleStore.getState().entries).toStrictEqual([])
+    expect(readPreviousDevConsoleSession()).toStrictEqual([])
+    expect(rotateDevConsoleSession()).toStrictEqual([])
+  })
+
+  it('turning the console off from settings drops what it recorded', () => {
+    devLog('session', 'wallet sync failed')
+
+    expect(toggleDevConsoleEnabled()).toBe(false)
+
+    expect(useDevConsoleStore.getState().entries).toStrictEqual([])
+    expect(rotateDevConsoleSession()).toStrictEqual([])
   })
 
   it('moves the panel between top and bottom', () => {
