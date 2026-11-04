@@ -576,7 +576,6 @@
     "movement.detail.updatedAt": "Updated",
     "movement.empty": "No movements yet",
     "movement.feeLabel": "fee %{amount} %{unit}",
-    "movement.fromLabel": "from %{value}",
     "movement.kind.board": "Board",
     "movement.kind.offboard": "Offboard",
     "movement.kind.receive": "Receive",

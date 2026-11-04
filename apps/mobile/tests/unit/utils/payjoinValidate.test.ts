@@ -19,12 +19,12 @@ function buildPsbt(params: {
       sequence: 0xff_ff_ff_fd,
       witnessUtxo: {
         script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
-        value: 100_000
+        value: 100_000n
       }
     })
   }
   for (const output of params.outputs) {
-    psbt.addOutput({ script: output.script, value: output.value })
+    psbt.addOutput({ script: output.script, value: BigInt(output.value) })
   }
   return psbt
 }

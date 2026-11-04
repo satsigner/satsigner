@@ -20,9 +20,9 @@ function buildMultisigPsbt(): string {
     hash: Buffer.alloc(32, 0x11),
     index: 0,
     witnessScript: redeem.output,
-    witnessUtxo: { script: p2wsh.output ?? Buffer.alloc(0), value: 100_000 }
+    witnessUtxo: { script: p2wsh.output ?? Buffer.alloc(0), value: 100_000n }
   })
-  psbt.addOutput({ script: p2wsh.output ?? Buffer.alloc(0), value: 90_000 })
+  psbt.addOutput({ script: p2wsh.output ?? Buffer.alloc(0), value: 90_000n })
   return psbt.toBase64()
 }
 

@@ -151,7 +151,7 @@ export default function ArkAccountSettingsPage() {
       await deleteAccount(id)
       setDeleteModalVisible(false)
       toast.success(t('ark.account.deleteSuccess'))
-      router.replace('/signer/ark')
+      router.dismissTo('/signer/ark')
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t('ark.error.delete')

@@ -306,13 +306,10 @@ function SSMultisigKeyControl({
       keyDetails.secret.extendedPublicKey) ||
     ''
 
-  let formattedPubKey = extendedPublicKey
-  if (extendedPublicKey && extendedPublicKey.length > 12) {
-    formattedPubKey = `${extendedPublicKey.slice(
-      0,
-      7
-    )}...${extendedPublicKey.slice(-4)}`
-  }
+  const formattedPubKey =
+    extendedPublicKey && extendedPublicKey.length > 12
+      ? `${extendedPublicKey.slice(0, 7)}...${extendedPublicKey.slice(-4)}`
+      : extendedPublicKey
 
   function renderCompletedKeyActions() {
     return (

@@ -9,32 +9,32 @@ export const slides = [
     items: [
       {
         description: t('upcoming.lightning.description_1'),
-        image: require('@/assets/images/ln_1.jpg'),
+        image: require('@/assets/images/ln_1.webp'),
         title: t('upcoming.lightning.title_1')
       },
       {
         description: t('upcoming.lightning.description_2'),
-        image: require('@/assets/images/ln_2.jpg'),
+        image: require('@/assets/images/ln_2.webp'),
         title: t('upcoming.lightning.title_2')
       },
       {
         description: t('upcoming.lightning.description_3'),
-        image: require('@/assets/images/ln_3.jpg'),
+        image: require('@/assets/images/ln_3.webp'),
         title: t('upcoming.lightning.title_3')
       },
       {
         description: t('upcoming.lightning.description_4'),
-        image: require('@/assets/images/ln_4.jpg'),
+        image: require('@/assets/images/ln_4.webp'),
         title: t('upcoming.lightning.title_4')
       },
       {
         description: t('upcoming.lightning.description_5'),
-        image: require('@/assets/images/ln_5.jpg'),
+        image: require('@/assets/images/ln_5.webp'),
         title: t('upcoming.lightning.title_5')
       },
       {
         description: t('upcoming.lightning.description_6'),
-        image: require('@/assets/images/ln_6.jpg'),
+        image: require('@/assets/images/ln_6.webp'),
         title: t('upcoming.lightning.title_6')
       }
     ],
@@ -44,12 +44,12 @@ export const slides = [
     items: [
       {
         description: t('upcoming.ecash.description_1'),
-        image: require('@/assets/images/ecash_1.jpg'),
+        image: require('@/assets/images/ecash_1.webp'),
         title: t('upcoming.ecash.title_1')
       },
       {
         description: t('upcoming.ecash.description_2'),
-        image: require('@/assets/images/ecash_2.jpg'),
+        image: require('@/assets/images/ecash_2.webp'),
         title: t('upcoming.ecash.title_2')
       }
     ],
@@ -59,17 +59,17 @@ export const slides = [
     items: [
       {
         description: t('upcoming.nostr.description_1'),
-        image: require('@/assets/images/nostr_1.jpg'),
+        image: require('@/assets/images/nostr_1.webp'),
         title: t('upcoming.nostr.title_1')
       },
       {
         description: t('upcoming.nostr.description_2'),
-        image: require('@/assets/images/nostr_2.jpg'),
+        image: require('@/assets/images/nostr_2.webp'),
         title: t('upcoming.nostr.title_2')
       },
       {
         description: t('upcoming.nostr.description_3'),
-        image: require('@/assets/images/nostr_3.jpg'),
+        image: require('@/assets/images/nostr_3.webp'),
         title: t('upcoming.nostr.title_3')
       }
     ],
@@ -79,7 +79,7 @@ export const slides = [
     items: [
       {
         description: t('upcoming.chaintip.description'),
-        image: require('@/assets/images/chaintip.jpg'),
+        image: require('@/assets/images/chaintip.webp'),
         title: t('upcoming.chaintip.title')
       }
     ],
@@ -89,7 +89,7 @@ export const slides = [
     items: [
       {
         description: t('upcoming.mempool.description'),
-        image: require('@/assets/images/mempool.jpg'),
+        image: require('@/assets/images/mempool.webp'),
         title: t('upcoming.mempool.title')
       }
     ],
@@ -99,7 +99,7 @@ export const slides = [
     items: [
       {
         description: t('upcoming.difficulty.description'),
-        image: require('@/assets/images/difficulty.jpg'),
+        image: require('@/assets/images/difficulty.webp'),
         title: t('upcoming.difficulty.title')
       }
     ],
@@ -109,12 +109,12 @@ export const slides = [
     items: [
       {
         description: t('upcoming.halving.description_1'),
-        image: require('@/assets/images/halving_1.jpg'),
+        image: require('@/assets/images/halving_1.webp'),
         title: t('upcoming.halving.title_1')
       },
       {
         description: t('upcoming.halving.description_2'),
-        image: require('@/assets/images/halving_2.jpg'),
+        image: require('@/assets/images/halving_2.webp'),
         title: t('upcoming.halving.title_2')
       }
     ],
@@ -124,17 +124,17 @@ export const slides = [
     items: [
       {
         description: t('upcoming.chain.description_1'),
-        image: require('@/assets/images/chain_1.jpg'),
+        image: require('@/assets/images/chain_1.webp'),
         title: t('upcoming.chain.title_1')
       },
       {
         description: t('upcoming.chain.description_2'),
-        image: require('@/assets/images/chain_2.jpg'),
+        image: require('@/assets/images/chain_2.webp'),
         title: t('upcoming.chain.title_2')
       },
       {
         description: t('upcoming.chain.description_3'),
-        image: require('@/assets/images/chain_3.jpg'),
+        image: require('@/assets/images/chain_3.webp'),
         title: t('upcoming.chain.title_3')
       }
     ],
@@ -144,12 +144,12 @@ export const slides = [
     items: [
       {
         description: t('upcoming.currency.description_1'),
-        image: require('@/assets/images/currency_1.jpg'),
+        image: require('@/assets/images/currency_1.webp'),
         title: t('upcoming.currency.title_1')
       },
       {
         description: t('upcoming.currency.description_2'),
-        image: require('@/assets/images/currency_2.jpg'),
+        image: require('@/assets/images/currency_2.webp'),
         title: t('upcoming.currency.title_2')
       }
     ],
@@ -159,12 +159,12 @@ export const slides = [
     items: [
       {
         description: t('upcoming.time.description_1'),
-        image: require('@/assets/images/time_1.jpg'),
+        image: require('@/assets/images/time_1.webp'),
         title: t('upcoming.time.title_1')
       },
       {
         description: t('upcoming.time.description_2'),
-        image: require('@/assets/images/time_2.jpg'),
+        image: require('@/assets/images/time_2.webp'),
         title: t('upcoming.time.title_2')
       }
     ],
@@ -174,12 +174,12 @@ export const slides = [
     items: [
       {
         description: t('upcoming.energy.description_1'),
-        image: require('@/assets/images/energy_1.jpg'),
+        image: require('@/assets/images/energy_1.webp'),
         title: t('upcoming.energy.title_1')
       },
       {
         description: t('upcoming.energy.description_2'),
-        image: require('@/assets/images/energy_2.jpg'),
+        image: require('@/assets/images/energy_2.webp'),
         title: t('upcoming.energy.title_2')
       }
     ],

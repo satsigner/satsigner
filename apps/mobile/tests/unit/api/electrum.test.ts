@@ -22,7 +22,7 @@ function buildFundingTx(value: number, outputScript = SCRIPT) {
   const tx = new bitcoinjs.Transaction()
   tx.version = 2
   tx.addInput(Buffer.alloc(32, 0xaa), 0)
-  tx.addOutput(outputScript, value)
+  tx.addOutput(outputScript, BigInt(value))
   return tx
 }
 
@@ -172,7 +172,7 @@ describe('electrumClient address transactions', () => {
     const tx = new bitcoinjs.Transaction()
     tx.version = 2
     tx.addInput(fundingTx.getHash(), 0)
-    tx.addOutput(SCRIPT, 90_000)
+    tx.addOutput(SCRIPT, 90_000n)
     return tx
   }
 

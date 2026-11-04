@@ -33,7 +33,7 @@ const ADDRESS = bitcoinjs.payments.p2wpkh({
 function routePsbtBase64() {
   const psbt = new bitcoinjs.Psbt()
   psbt.addInput({ hash: Buffer.alloc(32, 0x11), index: 0 })
-  psbt.addOutput({ address: ADDRESS ?? '', value: 90_000 })
+  psbt.addOutput({ address: ADDRESS ?? '', value: 90_000n })
   return psbt.toBase64()
 }
 

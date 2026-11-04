@@ -1,5 +1,4 @@
-import { toOutputScript } from 'bitcoinjs-lib/src/address'
-import { toASM } from 'bitcoinjs-lib/src/script'
+import { address as bjsAddress, script as bscript } from 'bitcoinjs-lib'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions } from 'react-native'
@@ -41,11 +40,11 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 function getAddressScriptAsm(address: Address) {
   const addressNetwork = address.network || 'signet'
   try {
-    const rawScript = toOutputScript(
+    const rawScript = bjsAddress.toOutputScript(
       address.address,
       bitcoinjsNetwork(addressNetwork)
     )
-    return toASM(rawScript)
+    return bscript.toASM(rawScript)
   } catch {
     return ''
   }

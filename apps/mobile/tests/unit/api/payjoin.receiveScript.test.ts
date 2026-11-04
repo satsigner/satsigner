@@ -32,9 +32,12 @@ describe('receiver session receive script', () => {
       network: 'signet'
     })
 
-    const expected = bitcoinjs.address
-      .toOutputScript(RECEIVE_ADDRESS, bitcoinjs.networks.testnet)
-      .toString('hex')
+    const expected = Buffer.from(
+      bitcoinjs.address.toOutputScript(
+        RECEIVE_ADDRESS,
+        bitcoinjs.networks.testnet
+      )
+    ).toString('hex')
 
     expect(session.nativeState).toBeTruthy()
     expect(nativeStateField(session.nativeState!, 'receiveScriptHex')).toBe(

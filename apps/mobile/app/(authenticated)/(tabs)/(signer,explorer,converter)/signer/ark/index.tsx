@@ -2,7 +2,6 @@ import { FlashList } from '@shopify/flash-list'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard, {
   type SSAccountCardStat
@@ -12,6 +11,7 @@ import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/ark'
+import { useArkAccountSummary } from '@/hooks/useArkAccountSummary'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
@@ -22,6 +22,7 @@ import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
 import { Colors } from '@/styles'
 import type { ArkAccount, ArkAccountStats } from '@/types/models/Ark'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { arkNetworkLabel } from '@/utils/ark'
 
 function buildArkAccountCardStats(
@@ -47,11 +48,32 @@ function buildArkAccountCardStats(
   ]
 }
 
+type ArkAccountListItemProps = DisplayPreferences & {
+  account: ArkAccount
+  onPress: (account: ArkAccount) => void
+}
+
+function ArkAccountListItem({
+  account,
+  onPress,
+  ...display
+}: ArkAccountListItemProps) {
+  const { balance, stats } = useArkAccountSummary(account.id)
+
+  return (
+    <SSAccountCard
+      {...display}
+      name={account.name}
+      balance={balance?.spendableSats ?? 0}
+      stats={buildArkAccountCardStats(stats)}
+      onPress={() => onPress(account)}
+    />
+  )
+}
+
 export default function ArkAccountListPage() {
   const router = useRouter()
-  const [accounts, balances, stats] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances, state.stats])
-  )
+  const accounts = useArkStore((state) => state.accounts)
   useFetchBitcoinPrice()
   const display = useDisplayPreferences()
 
@@ -138,12 +160,10 @@ export default function ArkAccountListPage() {
             data={filteredAccounts}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <SSAccountCard
+              <ArkAccountListItem
                 {...display}
-                name={item.name}
-                balance={balances[item.id]?.spendableSats ?? 0}
-                stats={buildArkAccountCardStats(stats[item.id])}
-                onPress={() => handleAccountPress(item)}
+                account={item}
+                onPress={handleAccountPress}
               />
             )}
             ItemSeparatorComponent={() => (

@@ -36,14 +36,14 @@ function preparePayjoinPsbtForWalletSign(params: {
 
     const patch: {
       nonWitnessUtxo?: Buffer
-      witnessUtxo?: { script: Buffer; value: number }
+      witnessUtxo?: { script: Buffer; value: bigint }
     } = {}
 
     const scriptHex = utxoScriptHex(utxo)
     if (!psbt.data.inputs[index]?.witnessUtxo && scriptHex) {
       patch.witnessUtxo = {
         script: Buffer.from(scriptHex, 'hex'),
-        value: utxo.value
+        value: BigInt(utxo.value)
       }
     }
 

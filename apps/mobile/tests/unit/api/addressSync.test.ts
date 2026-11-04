@@ -95,7 +95,7 @@ function esploraTx(txid: string, blockHeight?: number): EsploraTx {
 function rawTxHex(seed: number) {
   const tx = new bitcoinjs.Transaction()
   tx.addInput(Buffer.alloc(32, seed), 0)
-  tx.addOutput(bitcoinjs.address.toOutputScript(ADDRESS), 1000)
+  tx.addOutput(bitcoinjs.address.toOutputScript(ADDRESS), 1000n)
   return tx.toHex()
 }
 

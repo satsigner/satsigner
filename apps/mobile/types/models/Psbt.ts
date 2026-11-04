@@ -7,10 +7,10 @@ export type MockPsbt = PsbtLike
 export type PsbtBuildStatus = 'building' | 'error' | 'idle'
 
 export type PsbtInputWithSignatures = {
-  witnessScript?: Buffer
+  witnessScript?: Uint8Array
   partialSig?: {
-    pubkey: Buffer
-    signature: Buffer
+    pubkey: Uint8Array
+    signature: Uint8Array
   }[]
 }
 
