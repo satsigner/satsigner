@@ -1,6 +1,7 @@
 import {
   type AvailableLenses,
   type BarcodeScanningResult,
+  type BarcodeSettings,
   CameraView
 } from 'expo-camera'
 import { Platform, type StyleProp, type ViewStyle } from 'react-native'
@@ -8,7 +9,7 @@ import { Platform, type StyleProp, type ViewStyle } from 'react-native'
 import { type CodeScannedEvent, SsQrScannerView } from '@/modules/ss-qr-scanner'
 import { scannedPayload } from '@/utils/qrScan'
 
-const QR_ONLY = { barcodeTypes: ['qr' as const] }
+const QR_ONLY: BarcodeSettings = { barcodeTypes: ['qr'] }
 
 type SSQrScannerProps = {
   /** Called with each decoded payload. Leave undefined to pause scanning. */
@@ -40,10 +41,14 @@ export default function SSQrScanner({
     }
   }
 
+  function handleCodeScanned(event: CodeScannedEvent) {
+    handleCode(event.nativeEvent)
+  }
+
   if (Platform.OS === 'android') {
     return (
       <SsQrScannerView
-        onCodeScanned={(event) => handleCode(event.nativeEvent)}
+        onCodeScanned={handleCodeScanned}
         scanning={onScan !== undefined}
         style={style}
         zoom={zoom}
