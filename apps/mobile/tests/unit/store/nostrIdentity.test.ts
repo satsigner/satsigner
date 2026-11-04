@@ -94,6 +94,23 @@ describe('nostrIdentity store', () => {
     ])
   })
 
+  it('addIdentity keeps a disconnect choice when it restores keys', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({ createdAt: Date.now(), isWatchOnly: true, npub: 'npub1off' })
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1off',
+      nsec: 'nsec1off',
+      relayConnected: false
+    })
+
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
+      expect.objectContaining({ nsec: 'nsec1off', relayConnected: false })
+    ])
+  })
+
   it('addIdentity preserves an explicit disconnect choice', () => {
     useNostrIdentityStore.getState().addIdentity({
       createdAt: Date.now(),

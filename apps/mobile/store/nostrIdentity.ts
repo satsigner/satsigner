@@ -52,7 +52,11 @@ const useNostrIdentityStore = create<
             get().updateIdentity(identity.npub, {
               isWatchOnly: false,
               mnemonic: identity.mnemonic,
-              nsec: identity.nsec
+              nsec: identity.nsec,
+              // "Save without fetching" on the re-import still means offline.
+              ...(identity.relayConnected === false
+                ? { relayConnected: false }
+                : {})
             })
           }
           return
