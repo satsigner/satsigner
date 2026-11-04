@@ -14,6 +14,12 @@
  *   --blossom   Blossom server URL (default: https://cdn.zapstore.dev)
  *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
  *   --yes       Publish the announcement without a second prompt
+ *   --channel   primary (Production), generic or dev. Production asks you to
+ *               type the version in a terminal; it never runs unconfirmed,
+ *               even with --yes, CI=true or AGENT=true.
+ *   --confirm-production <version>
+ *               Production confirmation for runs without a terminal. Only the
+ *               release console passes it, after its own confirm dialog.
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
  *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
  *               zsp fetches the APK from the configured source — no local build.
@@ -27,8 +33,8 @@
  *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
  *
  * Security note:
- *   --channel primary is BLOCKED until a release keystore is in place.
- *   The public debug.keystore (password "android") must never be used for production.
+ *   Every channel needs the release keystore (~/.satsigner/release.p12). The
+ *   public debug.keystore (password "android") must never sign a release.
  *
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
@@ -71,6 +77,12 @@ import {
   storedIdentity
 } from '../../../tools/release/keystore.mjs'
 import {
+  PRODUCTION_CHANNEL,
+  assertChannelCanPublish,
+  assertProductionConfirmed,
+  assertProductionSource
+} from './zapstore-channel.mjs'
+import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
 } from './zapstore-identity.mjs'
@@ -101,6 +113,7 @@ const { values: flags } = parseArgs({
     blossom: { type: 'string' },
     channel: { type: 'string' },
     config: { type: 'string' },
+    'confirm-production': { type: 'string' },
     'dry-run': { type: 'boolean' },
     notes: { type: 'string' },
     only: { type: 'string' },
@@ -414,6 +427,23 @@ function isCleanTree() {
   return git(['status', '--porcelain']).toString().trim() === ''
 }
 
+function isHeadOnRemote() {
+  return (
+    git(['branch', '--remotes', '--contains', 'HEAD']).toString().trim() !== ''
+  )
+}
+
+function checkProductionSource() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun || ANNOUNCE_ONLY) {
+    return
+  }
+  assertProductionSource({
+    channel: CHANNEL,
+    cleanTree: isCleanTree(),
+    onRemote: isHeadOnRemote()
+  })
+}
+
 function sourceFingerprint() {
   const hash = createHash('sha256')
   hash.update(git(['rev-parse', 'HEAD']))
@@ -474,6 +504,32 @@ async function runZspPublish(args, signWith, listing) {
   }
 }
 
+// ── production confirmation ───────────────────────────────────────────────────
+
+function readProductionConfirmation() {
+  if (flags['confirm-production'] !== undefined) {
+    return Promise.resolve(flags['confirm-production'])
+  }
+  if (!process.stdin.isTTY) {
+    return Promise.resolve(undefined)
+  }
+  console.log(
+    '  Production updates everyone who installed Satsigner from Zapstore.'
+  )
+  return prompt(`  Type ${APP_VERSION} to publish it to Production: `)
+}
+
+async function confirmProduction() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun) {
+    return
+  }
+  assertProductionConfirmed({
+    channel: CHANNEL,
+    confirmedVersion: await readProductionConfirmation(),
+    version: APP_VERSION
+  })
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
@@ -489,7 +545,7 @@ async function buildReleaseApk() {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
         'android/ is prebuilt with the production package id. ' +
-          'Production APKs are disabled until a release keystore is in place.'
+          'Publish Production with --channel primary, which builds and signs it with the release keystore.'
       )
     }
     console.log('  Running: ./gradlew assembleRelease\n')
@@ -505,17 +561,7 @@ async function buildReleaseApk() {
     return APK_OUTPUT
   }
 
-  if (CHANNEL === 'primary') {
-    // Production channel uses com.satsigner.satsigner — the same package id as
-    // the official release. Publishing this APK signed with the public debug.keystore
-    // (password "android") would let anyone push a spoofed update over it.
-    // Block primary until a real release keystore is configured.
-    throw new Error(
-      '--channel primary is disabled until a release keystore is in place.\n' +
-        'Production APKs must be signed with the same key as the official release.\n' +
-        'Set up release signing (EAS credentials or GitHub secrets) first.'
-    )
-  }
+  assertChannelCanPublish({ hasKeystore: hasReleaseKeystore() })
 
   const variantArgs = [
     '--dir',
@@ -591,6 +637,8 @@ async function main() {
   }
 
   checkPrerequisites()
+  checkProductionSource()
+  await confirmProduction()
 
   step(1, bunkerUrl ? 'Sign in — browser bunker' : 'Sign in — enter your key')
   console.log(

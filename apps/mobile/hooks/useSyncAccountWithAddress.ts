@@ -3,6 +3,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { fetchAddressSnapshot } from '@/api/addressSync'
+import { assertElectrumReachable } from '@/api/electrumReachability'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -16,6 +17,10 @@ import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
+import {
+  type SyncErrorReporter,
+  reportSyncFailure
+} from '@/utils/syncFailureToasts'
 
 // Convert timestamps to Date objects and collect unix timestamps
 // Skip transactions that already have a cached price — they are immutable
@@ -122,7 +127,8 @@ function useSyncAccountWithAddress() {
 
   async function syncAccountWithAddressDescriptor(
     account: Account,
-    addressDescriptor: string
+    addressDescriptor: string,
+    reportError: SyncErrorReporter
   ) {
     setLoading(true)
     setSyncStatus(account.id, 'syncing')
@@ -144,6 +150,9 @@ function useSyncAccountWithAddress() {
     }
 
     try {
+      if (backend === 'electrum') {
+        await assertElectrumReachable(url)
+      }
       const address = parseAddressDescriptorToAddress(addressDescriptor)
       const snapshot = await fetchAddressSnapshot(
         { backend, network, url },
@@ -180,10 +189,10 @@ function useSyncAccountWithAddress() {
       setLoading(false)
 
       return updatedAccount
-    } catch {
+    } catch (error) {
       setSyncStatus(account.id, 'error')
       setLoading(false)
-      toast.error(`${account.name ?? account.id}: ${t('account.syncFailed')}`)
+      reportError(account.name ?? account.id, error)
       return {
         ...updatedAccount,
         syncStatus: 'error'
@@ -200,7 +209,10 @@ function useSyncAccountWithAddress() {
       .filter((descriptor) => descriptor.startsWith('addr'))
   }
 
-  async function syncAccountWithAddress(account: Account): Promise<Account> {
+  async function syncAccountWithAddress(
+    account: Account,
+    reportError: SyncErrorReporter = reportSyncFailure
+  ): Promise<Account> {
     const latest =
       useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
       account
@@ -224,7 +236,8 @@ function useSyncAccountWithAddress() {
     for (const addressDescriptor of addressDescriptors) {
       const updatedData = await syncAccountWithAddressDescriptor(
         updatedAccount,
-        addressDescriptor
+        addressDescriptor,
+        reportError
       )
 
       const newSummary = updatedData.summary
