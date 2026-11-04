@@ -61,7 +61,7 @@ import {
   keystorePath as releaseKeystorePath,
   requireReleaseKeystore,
   signingEnv,
-  storedCertificateHash
+  storedIdentity
 } from '../../../tools/release/keystore.mjs'
 import {
   KIND_IDENTITY_PROOF,
@@ -569,7 +569,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certHash: storedCertificateHash(),
+        certificate: storedIdentity().certificate,
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })
