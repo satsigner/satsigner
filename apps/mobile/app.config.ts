@@ -9,7 +9,7 @@ import {
 } from './constants/variant.cjs'
 import { getAndroidVersionCode } from './constants/versionCode.cjs'
 
-const APP_VERSION = '0.3.6'
+const APP_VERSION = '0.3.12'
 
 // Satsigner never records audio or draws over other apps, and has no use for
 // Google Play's install referrer. Blocking them also strips the copies that
@@ -103,11 +103,15 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       [
         'expo-camera',
         {
+          // Android decodes QR codes with modules/ss-qr-scanner (zxing-cpp)
+          // instead of Google ML Kit. iOS uses AVFoundation either way.
+          barcodeScannerEnabled: false,
           cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
           microphonePermission: false,
           recordAudioAndroid: false
         }
       ],
+      './plugins/withoutGoogleDocumentScanner.cjs',
       'expo-localization',
       [
         'expo-build-properties',

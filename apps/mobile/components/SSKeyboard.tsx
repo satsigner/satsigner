@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useId } from 'react'
 import { DimensionValue, StyleSheet, View } from 'react-native'
 import Animated, {
   interpolate,
@@ -7,6 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes } from '@/styles'
@@ -54,6 +56,8 @@ const KEY_LIGHT_MIN_INTENSITY = 0.5
 const KEY_LIGHT_ALPHAS = [0.11, 0.03, 0.08] as const
 const KEY_PRESS_IN_MS = 140
 const KEY_PRESS_OUT_MS = 560
+const KEY_PRESS_GLOW_RADIUS =
+  '75%' /** Glow reaches the key edges, centered so the tap lights the middle of the key. */
 const KEY_PRESS_OVERLAY_OPACITY = 0.42 /** Peak opacity of the press highlight gradient wash. */
 
 export default function SSKeyboard({
@@ -152,6 +156,7 @@ function SSKeyboardCell({
   onKeyPress
 }: SSKeyboardCellProps) {
   const press = useSharedValue(0)
+  const pressGlowId = `key-press-glow-${useId().replaceAll(':', '')}`
 
   const pressOverlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(press.value, [0, 1], [0, KEY_PRESS_OVERLAY_OPACITY])
@@ -209,17 +214,33 @@ function SSKeyboardCell({
             pointerEvents="none"
             style={[styles.keyPressOverlay, pressOverlayStyle]}
           >
-            <LinearGradient
-              colors={[
-                'rgba(255,255,255,0.26)',
-                'rgba(255,255,255,0.1)',
-                'rgba(255,255,255,0.04)'
-              ]}
-              end={{ x: 0.92, y: 1 }}
-              locations={[0, 0.45, 1]}
-              start={{ x: 0.08, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
+            <Svg style={StyleSheet.absoluteFill}>
+              <Defs>
+                <RadialGradient
+                  id={pressGlowId}
+                  cx="50%"
+                  cy="50%"
+                  r={KEY_PRESS_GLOW_RADIUS}
+                >
+                  <Stop
+                    offset="0%"
+                    stopColor={Colors.white}
+                    stopOpacity={0.3}
+                  />
+                  <Stop
+                    offset="55%"
+                    stopColor={Colors.white}
+                    stopOpacity={0.1}
+                  />
+                  <Stop
+                    offset="100%"
+                    stopColor={Colors.white}
+                    stopOpacity={0}
+                  />
+                </RadialGradient>
+              </Defs>
+              <Rect width="100%" height="100%" fill={`url(#${pressGlowId})`} />
+            </Svg>
           </Animated.View>
           <SSPressable
             onPress={() => onKeyPress(item)}

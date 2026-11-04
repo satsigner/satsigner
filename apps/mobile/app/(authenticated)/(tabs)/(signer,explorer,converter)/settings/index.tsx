@@ -17,6 +17,8 @@ import { useFiatData } from '@/hooks/useFiatData'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
+const SETTINGS_ICON_STROKE_WIDTH = 1.2
+
 export default function Settings() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
@@ -35,45 +37,87 @@ export default function Settings() {
           <SSSettingsCards
             title={t('settings.network.title')}
             description={t('settings.network.description')}
-            icon={<SSIconNetwork height={24} width={24} />}
+            icon={
+              <SSIconNetwork
+                height={24}
+                width={24}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/network')}
           />
           <SSSettingsCards
             title={t('settings.ark.title')}
             description={t('settings.ark.description')}
-            icon={<SSIconTriangle height={24} width={24} />}
+            icon={
+              <SSIconTriangle
+                height={24}
+                width={24}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/ark')}
           />
           <SSSettingsCards
             title={t('settings.features.title')}
             description={t('settings.features.description')}
-            icon={<SSIconFeature height={24} width={24} />}
+            icon={
+              <SSIconFeature
+                height={24}
+                width={24}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/features')}
           />
           {showCurrentFiat ? (
             <SSSettingsCards
               title={t('settings.fiat.title')}
               description={t('settings.fiat.description')}
-              icon={<SSIconFiat height={16} width={24} />}
+              icon={
+                <SSIconFiat
+                  height={16}
+                  width={24}
+                  screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+                />
+              }
               onPress={() => router.navigate('/settings/fiat')}
             />
           ) : null}
           <SSSettingsCards
             title={t('settings.security.title')}
             description={t('settings.security.description')}
-            icon={<SSIconLock height={32} width={24} />}
+            icon={
+              <SSIconLock
+                height={32}
+                width={24}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/security')}
           />
           <SSSettingsCards
             title={t('settings.about.title')}
             description={t('settings.about.description')}
-            icon={<SSIconAbout height={26} width={26} />}
+            icon={
+              <SSIconAbout
+                height={26}
+                width={26}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/about')}
           />
           <SSSettingsCards
             title={t('settings.developer.title')}
             description={t('settings.developer.description')}
-            icon={<SSIconDev height={24} width={24} />}
+            icon={
+              <SSIconDev
+                height={24}
+                width={24}
+                screenStrokeWidth={SETTINGS_ICON_STROKE_WIDTH}
+              />
+            }
             onPress={() => router.navigate('/settings/developer')}
           />
         </SSVStack>

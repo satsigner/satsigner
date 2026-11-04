@@ -21,6 +21,10 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
+import {
+  type SyncErrorReporter,
+  reportSyncFailure
+} from '@/utils/syncFailureToasts'
 import { reconcileTransactions } from '@/utils/transaction'
 
 // Module-level sync state shared across all hook instances.
@@ -324,7 +328,8 @@ function useSyncAccountWithWallet() {
     account: Account,
     wallet: BdkWallet,
     forceFullScan = false,
-    isPriority = false
+    isPriority = false,
+    reportError: SyncErrorReporter = reportSyncFailure
   ): Promise<Account | null> {
     const latest =
       useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
@@ -375,7 +380,7 @@ function useSyncAccountWithWallet() {
         }
 
         setSyncStatus(latest.id, 'error')
-        toast.error(`${latest.name ?? latest.id}: ${t('account.syncFailed')}`)
+        reportError(latest.name ?? latest.id, error)
         return latest
       })
       .finally(() => {
