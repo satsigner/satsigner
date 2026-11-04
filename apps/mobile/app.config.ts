@@ -9,7 +9,7 @@ import {
 } from './constants/variant.cjs'
 import { getAndroidVersionCode } from './constants/versionCode.cjs'
 
-const APP_VERSION = '0.3.11'
+const APP_VERSION = '0.3.12'
 
 const projectId = process.env.EXPO_PROJECT_ID
 
