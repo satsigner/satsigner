@@ -46,7 +46,7 @@ export default function NostrIdentitySettings() {
   function handleConfirmDelete() {
     setDeleteModalVisible(false)
     removeIdentity(npub)
-    router.navigate(nostrIndexHref())
+    router.dismissTo(nostrIndexHref())
   }
 
   if (!identity) {

@@ -91,5 +91,9 @@ class NDK {
   }
 }
 
+function tryNormalizeRelayUrl(url) {
+  return url
+}
+
 export default NDK
-export { NDKEvent, NDKPrivateKeySigner }
+export { NDKEvent, NDKPrivateKeySigner, tryNormalizeRelayUrl }

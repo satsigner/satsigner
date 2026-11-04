@@ -74,17 +74,15 @@ export async function listBlossomFiles(
 ): Promise<BlobDescriptor[]> {
   const base = serverUrl.replace(/\/$/, '')
   const url = `${base}/list/${pubkeyHex}`
-  const response = await fetch(url)
-  if (response.status === HTTP_STATUS.UNAUTHORIZED && nsec) {
-    const secretKey = getSecretFromNsec(nsec)
-    if (secretKey) {
-      const authHeader = buildListAuthHeader(secretKey, base)
-      const retryResponse = await fetch(url, {
-        headers: { Authorization: authHeader }
-      })
-      return parseBlossomList(retryResponse)
-    }
-  }
+  // Servers disagree on how they ask for auth (primal answers 400, others
+  // 401), so sign the request up front whenever the identity can. Never over
+  // plain http, where the auth event could be read and replayed.
+  const secretKey =
+    nsec && base.startsWith('https://') ? getSecretFromNsec(nsec) : null
+  const headers = secretKey
+    ? { Authorization: buildListAuthHeader(secretKey, base) }
+    : undefined
+  const response = await fetch(url, { headers })
   return parseBlossomList(response)
 }
 
@@ -188,7 +186,7 @@ function buildListAuthHeader(secretKey: Uint8Array, serverUrl: string): string {
       kind: NOSTR_BLOSSOM_AUTH_KIND,
       tags: [
         ['t', 'list'],
-        ['server', serverUrl],
+        ['server', new URL(serverUrl).hostname],
         ['expiration', String(now + NOSTR_BLOSSOM_AUTH_EXPIRY_SECS)]
       ]
     },
