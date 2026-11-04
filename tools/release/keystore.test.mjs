@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { X509Certificate, createHash } from 'node:crypto'
 import {
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -21,6 +23,7 @@ import {
   phraseMatchesKeystore,
   privateKeysMatch,
   releaseIdentityFromMnemonic,
+  signingEnv,
   storedCertificateHash,
   storedIdentity,
   writeKeystore
@@ -436,4 +439,58 @@ test('confirm fails when the password file does not open the keystore', (t) => {
   writeKeystore(phrase, dir)
   writeFileSync(join(dir, 'release.pass'), 'not-the-password\n')
   assert.throws(() => phraseMatchesKeystore(phrase, dir))
+})
+
+test('release signing refuses to build without a release keystore', (t) => {
+  const dir = tempDir(t)
+  assert.throws(
+    () => signingEnv({ PATH: '/bin' }, dir),
+    /No Android release keystore/
+  )
+})
+
+test('release signing points gradle at the release keystore', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(PHRASE, dir)
+  const env = signingEnv({ PATH: '/bin' }, dir)
+  const password = readFileSync(join(dir, 'release.pass'), 'utf8').trim()
+  assert.equal(env.PATH, '/bin')
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.store.file'],
+    join(dir, 'release.p12')
+  )
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.store.password'],
+    password
+  )
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.key.alias'],
+    'satsigner'
+  )
+})
+
+test('a replace that fails midway keeps the old keystore and password together', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(OTHER_PHRASE, dir)
+  const before = keystoreBytes(dir)
+  mkdirSync(join(dir, 'release.pass.bak', 'blocker'), { recursive: true })
+  assert.throws(() => writeKeystore(PHRASE, dir))
+  assert.deepEqual(keystoreBytes(dir), before)
+  assert.equal(phraseMatchesKeystore(OTHER_PHRASE, dir), true)
+  for (const name of [
+    'release.p12.tmp',
+    'release.pass.tmp',
+    'release.p12.bak'
+  ]) {
+    assert.equal(existsSync(join(dir, name)), false)
+  }
+})
+
+test('a successful replace leaves no backups behind', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(OTHER_PHRASE, dir)
+  writeKeystore(PHRASE, dir)
+  for (const name of ['release.p12.bak', 'release.pass.bak']) {
+    assert.equal(existsSync(join(dir, name)), false)
+  }
 })
