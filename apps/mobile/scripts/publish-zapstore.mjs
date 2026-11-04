@@ -27,8 +27,8 @@
  *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
  *
  * Security note:
- *   --channel primary is BLOCKED until a release keystore is in place.
- *   The public debug.keystore (password "android") must never be used for production.
+ *   Every channel needs the release keystore (~/.satsigner/release.p12). The
+ *   public debug.keystore (password "android") must never sign a release.
  *
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
@@ -68,6 +68,7 @@ import {
   keystorePath as releaseKeystorePath,
   storedCertificateHash
 } from '../../../tools/release/keystore.mjs'
+import { assertChannelCanPublish } from './zapstore-channel.mjs'
 import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
@@ -501,25 +502,7 @@ async function buildReleaseApk() {
     return APK_OUTPUT
   }
 
-  if (!hasReleaseKeystore()) {
-    throw new Error(
-      'No Android release keystore at ~/.satsigner/release.p12.\n' +
-        'Create one with: pnpm --dir tools/release keystore\n' +
-        'Write down the 12 words. Zapstore rejects the public debug key.'
-    )
-  }
-
-  if (CHANNEL === 'primary') {
-    // Production channel uses com.satsigner.satsigner — the same package id as
-    // the official release. Publishing this APK signed with the public debug.keystore
-    // (password "android") would let anyone push a spoofed update over it.
-    // Block primary until a real release keystore is configured.
-    throw new Error(
-      '--channel primary is disabled until a release keystore is in place.\n' +
-        'Production APKs must be signed with the same key as the official release.\n' +
-        'Set up release signing (EAS credentials or GitHub secrets) first.'
-    )
-  }
+  assertChannelCanPublish({ hasKeystore: hasReleaseKeystore() })
 
   const variantArgs = [
     '--dir',
