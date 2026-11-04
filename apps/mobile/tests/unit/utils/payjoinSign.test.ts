@@ -11,7 +11,7 @@ describe('preparePayjoinPsbtForWalletSign', () => {
     const funding = new bitcoinjs.Transaction()
     funding.version = 2
     funding.addInput(Buffer.alloc(32), 0)
-    funding.addOutput(script, 50_000)
+    funding.addOutput(script, 50_000n)
     const fundingTxid = funding.getId()
 
     const psbt = new bitcoinjs.Psbt({ network })
@@ -22,7 +22,7 @@ describe('preparePayjoinPsbtForWalletSign', () => {
     })
     psbt.addOutput({
       script: Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),
-      value: 49_000
+      value: 49_000n
     })
 
     const prepared = preparePayjoinPsbtForWalletSign({
@@ -43,7 +43,7 @@ describe('preparePayjoinPsbtForWalletSign', () => {
     })
 
     const next = bitcoinjs.Psbt.fromBase64(prepared)
-    expect(next.data.inputs[0]?.witnessUtxo?.value).toBe(50_000)
+    expect(next.data.inputs[0]?.witnessUtxo?.value).toBe(50_000n)
     expect(next.data.inputs[0]?.nonWitnessUtxo?.length).toBeGreaterThan(0)
   })
 })

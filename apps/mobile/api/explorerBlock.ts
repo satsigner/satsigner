@@ -18,7 +18,9 @@ export type ExplorerBlock = PartialSome<
 >
 
 /** bitcoinjs header hashes are internal LE; reverse for canonical display hex. */
-function hashBytesToDisplayHex(hash: Buffer | undefined): string | undefined {
+function hashBytesToDisplayHex(
+  hash: Uint8Array | undefined
+): string | undefined {
   if (!hash || hash.length === 0) {
     return undefined
   }

@@ -39,11 +39,11 @@ function buildPsbt(inputs: { txid: string; vout: number }[]) {
       index: input.vout,
       witnessUtxo: {
         script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
-        value: 100_000
+        value: 100_000n
       }
     })
   }
-  psbt.addOutput({ script: PAYMENT_SCRIPT, value: 50_000 })
+  psbt.addOutput({ script: PAYMENT_SCRIPT, value: 50_000n })
   return psbt.toBase64()
 }
 

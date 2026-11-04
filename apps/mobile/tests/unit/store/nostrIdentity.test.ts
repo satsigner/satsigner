@@ -9,6 +9,7 @@ import { getDb } from '@/db/connection'
 import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import * as nostrSecrets from '@/utils/nostrSecrets'
 
 describe('getNostrIdentityRelays', () => {
   it('prefers the identity relay list', () => {
@@ -51,6 +52,63 @@ describe('nostrIdentity store', () => {
     expect(useNostrIdentityStore.getState().identities[0].relayConnected).toBe(
       true
     )
+  })
+
+  it('addIdentity leaves an existing identity and its stored secrets alone', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1owned',
+      nsec: 'nsec1owned'
+    })
+    const original = useNostrIdentityStore.getState().identities
+    const persistSecrets = jest
+      .spyOn(nostrSecrets, 'persistIdentitySecretsSafe')
+      .mockResolvedValue()
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: true,
+      npub: 'npub1owned'
+    })
+
+    expect(persistSecrets).not.toHaveBeenCalled()
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual(original)
+    persistSecrets.mockRestore()
+  })
+
+  it('addIdentity restores the keys of a known identity that has none', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({ createdAt: Date.now(), isWatchOnly: true, npub: 'npub1keys' })
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1keys',
+      nsec: 'nsec1keys'
+    })
+
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
+      expect.objectContaining({ isWatchOnly: false, nsec: 'nsec1keys' })
+    ])
+  })
+
+  it('addIdentity keeps a disconnect choice when it restores keys', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({ createdAt: Date.now(), isWatchOnly: true, npub: 'npub1off' })
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1off',
+      nsec: 'nsec1off',
+      relayConnected: false
+    })
+
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
+      expect.objectContaining({ nsec: 'nsec1off', relayConnected: false })
+    ])
   })
 
   it('addIdentity preserves an explicit disconnect choice', () => {

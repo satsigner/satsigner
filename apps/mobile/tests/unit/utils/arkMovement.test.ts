@@ -7,7 +7,7 @@ import {
   getArkMovementTxids,
   getArkRefreshVtxoCounts,
   getArkRefreshVtxoLabel,
-  isArkRefreshSubsystemName,
+  isArkRefreshMovement,
   isLightningMovement,
   isMutedArkMovement,
   isStaleArkExitMovement,
@@ -112,15 +112,38 @@ describe('arkMovement utils', () => {
     })
   })
 
-  describe('isArkRefreshSubsystemName', () => {
-    it('matches subsystem names containing "refresh" case-insensitively', () => {
-      expect(isArkRefreshSubsystemName('bark.refresh')).toBe(true)
-      expect(isArkRefreshSubsystemName('Bark.Refresh')).toBe(true)
+  describe('isArkRefreshMovement', () => {
+    it('matches the refresh subsystem kind of round movements', () => {
+      expect(
+        isArkRefreshMovement({
+          subsystemKind: 'refresh',
+          subsystemName: 'bark.round'
+        })
+      ).toBe(true)
     })
 
-    it('rejects unrelated subsystem names', () => {
-      expect(isArkRefreshSubsystemName('bark.send')).toBe(false)
-      expect(isArkRefreshSubsystemName('bark.offboard')).toBe(false)
+    it('matches subsystem names containing "refresh" case-insensitively', () => {
+      expect(
+        isArkRefreshMovement({
+          subsystemKind: 'round',
+          subsystemName: 'Bark.Refresh'
+        })
+      ).toBe(true)
+    })
+
+    it('rejects unrelated subsystems', () => {
+      expect(
+        isArkRefreshMovement({
+          subsystemKind: 'arkoor',
+          subsystemName: 'bark.send'
+        })
+      ).toBe(false)
+      expect(
+        isArkRefreshMovement({
+          subsystemKind: 'send_onchain',
+          subsystemName: 'bark.round'
+        })
+      ).toBe(false)
     })
   })
 
@@ -385,12 +408,12 @@ describe('arkMovement utils', () => {
       expect(getArkMovementCounterparty(movement)).toBe('alice@ln.example')
     })
 
-    it('returns first received address for receive movements', () => {
+    it('returns null for receive movements, which only list our own addresses', () => {
       const movement = buildMovement({
         effectiveBalanceSats: 1000,
-        receivedOnAddresses: ['bob@ln.example']
+        receivedOnAddresses: ['tark1ownaddress']
       })
-      expect(getArkMovementCounterparty(movement)).toBe('bob@ln.example')
+      expect(getArkMovementCounterparty(movement)).toBeNull()
     })
 
     it('returns counterparty for failed sends via intended balance fallback', () => {

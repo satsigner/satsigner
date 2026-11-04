@@ -114,6 +114,22 @@ describe('bark provider', () => {
     jest.clearAllMocks()
   })
 
+  it('createWallet starts the daemon so live notifications work', async () => {
+    Wallet.open.mockResolvedValue(buildFakeWallet())
+    await provider.createWallet({
+      accountId: 'create1',
+      datadir: '/tmp/create1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    expect(Wallet.open).toHaveBeenCalledWith(
+      expect.anything(),
+      MNEMONIC,
+      expect.anything(),
+      expect.objectContaining({ runDaemon: true })
+    )
+  })
+
   it('fetchBalance converts bigint fields to numbers', async () => {
     const wallet = buildFakeWallet({
       balance: jest.fn().mockResolvedValue({
@@ -451,6 +467,17 @@ describe('bark provider', () => {
     await openWallet('ref2', wallet)
     const pending = provider.refreshVtxos('ref2', ['vtxo1'])
     __emitWalletNotification(movementCreatedEvent('round', 'bark.refresh'))
+    await expect(pending).resolves.toBe('pending')
+    expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('refreshVtxos resolves pending on a round movement with the refresh kind', async () => {
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest.fn().mockReturnValue(new Promise(() => {}))
+    })
+    await openWallet('ref6', wallet)
+    const pending = provider.refreshVtxos('ref6', ['vtxo1'])
+    __emitWalletNotification(movementCreatedEvent('refresh', 'bark.round'))
     await expect(pending).resolves.toBe('pending')
     expect(__countWalletNotificationListeners()).toBe(0)
   })

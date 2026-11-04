@@ -87,10 +87,10 @@ describe('signedTransactionMatchesPsbt', () => {
     psbt.addInput({
       hash: Buffer.alloc(32, 0x11),
       index: 0,
-      witnessUtxo: { script, value: 100_000 }
+      witnessUtxo: { script, value: 100_000n }
     })
-    psbt.addOutput({ address, value: 90_000 })
-    psbt.addOutput({ address, value: 5000 })
+    psbt.addOutput({ address, value: 90_000n })
+    psbt.addOutput({ address, value: 5000n })
     return psbt
   }
 
@@ -112,7 +112,7 @@ describe('signedTransactionMatchesPsbt', () => {
     const tx = bitcoinjs.Transaction.fromBuffer(
       psbt.data.globalMap.unsignedTx.toBuffer()
     )
-    tx.outs[0].value = 10 // attacker reroutes nearly everything to fees
+    tx.outs[0].value = 10n // attacker reroutes nearly everything to fees
     expect(signedTransactionMatchesPsbt(psbt.toBase64(), tx.toHex())).toBe(
       false
     )
@@ -343,9 +343,9 @@ describe('2-of-2 multisig signatures', () => {
       hash: Buffer.alloc(32, 0x11),
       index: 0,
       witnessScript: p2wsh.redeem?.output,
-      witnessUtxo: { script: required(p2wsh.output), value: 100_000 }
+      witnessUtxo: { script: required(p2wsh.output), value: 100_000n }
     })
-    psbt.addOutput({ script: required(p2wsh.output), value: 90_000 })
+    psbt.addOutput({ script: required(p2wsh.output), value: 90_000n })
     return psbt.toBase64()
   }
 
@@ -413,7 +413,7 @@ describe('2-of-2 multisig signatures', () => {
   it('rejects a cosigner PSBT for a different transaction', () => {
     const original = buildMultisigPsbt()
     const other = bitcoinjs.Psbt.fromBase64(original)
-    other.addOutput({ script: required(p2wsh.output), value: 1000 })
+    other.addOutput({ script: required(p2wsh.output), value: 1000n })
 
     expect(
       bindImportedSignature(other.toBase64(), original, false, jest.fn())
@@ -436,7 +436,7 @@ describe('2-of-2 multisig signatures', () => {
     const tx = bitcoinjs.Transaction.fromBuffer(
       bitcoinjs.Psbt.fromBase64(original).data.globalMap.unsignedTx.toBuffer()
     )
-    tx.outs[0].value = 10
+    tx.outs[0].value = 10n
 
     expect(
       bindImportedSignature(tx.toHex(), original, false, jest.fn())
@@ -517,7 +517,7 @@ describe('bindScannedDataToPsbt', () => {
   )
   const psbt = new bitcoinjs.Psbt()
   psbt.addInput({ hash: Buffer.alloc(32, 0x11), index: 0 })
-  psbt.addOutput({ address, value: 90_000 })
+  psbt.addOutput({ address, value: 90_000n })
   const psbtBase64 = psbt.toBase64()
   const unsignedTxHex = bitcoinjs.Transaction.fromBuffer(
     psbt.data.globalMap.unsignedTx.toBuffer()
@@ -544,7 +544,7 @@ describe('bindScannedDataToPsbt', () => {
 
   it('rejects a transaction that does not match', () => {
     const tx = bitcoinjs.Transaction.fromHex(unsignedTxHex)
-    tx.outs[0].value = 10
+    tx.outs[0].value = 10n
     expect(bindScannedDataToPsbt(tx.toHex(), psbtBase64, convert)).toBeNull()
   })
 
@@ -631,20 +631,20 @@ describe('extractTransactionDataFromPSBT', () => {
   it('reads input values from witness and non-witness UTXOs', () => {
     const prevTx = new bitcoinjs.Transaction()
     prevTx.addInput(Buffer.alloc(32, 0x22), 0)
-    prevTx.addOutput(script, 50_000)
+    prevTx.addOutput(script, 50_000n)
 
     const psbt = new bitcoinjs.Psbt({ network })
     psbt.addInput({
       hash: Buffer.alloc(32, 0x11),
       index: 0,
-      witnessUtxo: { script, value: 100_000 }
+      witnessUtxo: { script, value: 100_000n }
     })
     psbt.addInput({
       hash: prevTx.getHash(),
       index: 0,
       nonWitnessUtxo: prevTx.toBuffer()
     })
-    psbt.addOutput({ address, value: 140_000 })
+    psbt.addOutput({ address, value: 140_000n })
 
     const data = extractTransactionDataFromPSBT(psbt.toBase64(), 'bitcoin')
 
@@ -671,9 +671,9 @@ describe('readPartiallySignedPsbt', () => {
     psbt.addInput({
       hash: Buffer.alloc(32, 0x11),
       index: 0,
-      witnessUtxo: { script: required(script), value: 100_000 }
+      witnessUtxo: { script: required(script), value: 100_000n }
     })
-    psbt.addOutput({ script: required(script), value: 90_000 })
+    psbt.addOutput({ script: required(script), value: 90_000n })
     return psbt
   }
 

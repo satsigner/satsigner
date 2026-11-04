@@ -138,6 +138,19 @@ describe('relay health against real sockets', () => {
     sub.stop()
   })
 
+  it('reports a live shared pool as connected without probing again', async () => {
+    const [relay] = await startRelays(1)
+    const url = relay?.url ?? ''
+    const ndk = getOrCreateNdk([url])
+    await ndk.connect(CONNECT_TIMEOUT_MS)
+    relay?.setFault({ type: 'refuse' })
+
+    const info = await testNostrRelaysReachable([url])
+
+    expect(info.status).toBe('connected')
+    expect(relay?.connectionCount()).toBe(1)
+  })
+
   it('accepts a publish when at least one relay takes it', async () => {
     const [good, bad] = await startRelays(2)
     bad?.setFault({ reason: 'blocked', type: 'rejectPublish' })

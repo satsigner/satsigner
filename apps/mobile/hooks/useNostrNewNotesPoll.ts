@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_FEED_NEW_NOTES_POLL_MS } from '@/constants/nostr'
 import { nostrKeys } from '@/db/keys'
+import { type NostrFeedNoteLike } from '@/types/models/Nostr'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
+import { filterFeedReplies } from '@/utils/nostrFeed'
 import {
   fetchFollowingFeedPage,
   fetchOwnNotesPage,
@@ -13,12 +15,15 @@ import {
 type UseNostrNewNotesPollOptions = {
   authors: string[]
   enabled: boolean
+  excludeReplies: boolean
   kindFilterId: string
   newestCreatedAt: number
   npub: string
   relays: string[]
   tab: 'feed' | 'notes'
 }
+
+const NO_NEW_NOTES: NostrFeedNoteLike[] = []
 
 function initialPollTime() {
   return Date.now()
@@ -31,6 +36,7 @@ function initialPollTime() {
 function useNostrNewNotesPoll({
   authors,
   enabled,
+  excludeReplies,
   kindFilterId,
   newestCreatedAt,
   npub,
@@ -39,7 +45,7 @@ function useNostrNewNotesPoll({
 }: UseNostrNewNotesPollOptions) {
   const query = useQuery({
     enabled: enabled && relays.length > 0 && newestCreatedAt > 0,
-    initialData: 0,
+    initialData: NO_NEW_NOTES,
     initialDataUpdatedAt: initialPollTime,
     queryFn: async () => {
       const api = new NostrAPI(relays)
@@ -52,7 +58,7 @@ function useNostrNewNotesPoll({
         tab === 'feed'
           ? await fetchFollowingFeedPage(api, authors, pageQuery)
           : await fetchOwnNotesPage(api, npub, pageQuery)
-      return page.data.length
+      return page.data
     },
     queryKey: nostrKeys.identityNewNotes(
       tab,
@@ -62,6 +68,8 @@ function useNostrNewNotesPoll({
       newestCreatedAt
     ),
     refetchInterval: NOSTR_FEED_NEW_NOTES_POLL_MS,
+    // Count only what the list will show, so hidden replies don't inflate it.
+    select: (notes) => filterFeedReplies(notes, excludeReplies).length,
     staleTime: NOSTR_FEED_NEW_NOTES_POLL_MS
   })
 

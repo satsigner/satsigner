@@ -1,3 +1,5 @@
+import { fetchKind10063Servers } from '@/api/blossom'
+import { NOSTR_BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import {
   buildBlossomFileDetailItems,
   deduplicateBlossomFilesBySha256,
@@ -8,8 +10,14 @@ import {
   getBlossomFileDisplayName,
   getBlossomFileExtension,
   isBlossomImageMime,
-  mimeToFileCategory
+  mimeToFileCategory,
+  resolveBlossomServers
 } from '@/utils/blossomFiles'
+
+jest.mock<typeof import('@/api/blossom')>('@/api/blossom', () => ({
+  ...jest.requireActual<typeof import('@/api/blossom')>('@/api/blossom'),
+  fetchKind10063Servers: jest.fn()
+}))
 
 jest.mock<typeof import('@/locales')>('@/locales', () => ({
   t: (key: string) => key
@@ -176,5 +184,33 @@ describe('buildBlossomFileDetailItems', () => {
     expect(items).toHaveLength(8)
     expect(items[0][0]).toBe('nostrIdentity.files.detail.name')
     expect(items[7][0]).toBe('nostrIdentity.files.detail.url')
+  })
+})
+
+describe('resolveBlossomServers', () => {
+  const PUBKEY_HEX = 'a'.repeat(64)
+  const RELAYS = ['wss://relay.example']
+
+  it('prefers the configured servers', async () => {
+    await expect(
+      resolveBlossomServers(PUBKEY_HEX, ['https://mine.example'], RELAYS)
+    ).resolves.toStrictEqual(['https://mine.example'])
+    expect(fetchKind10063Servers).not.toHaveBeenCalled()
+  })
+
+  it('uses the kind 10063 list when nothing is configured', async () => {
+    jest
+      .mocked(fetchKind10063Servers)
+      .mockResolvedValueOnce(['https://listed.example'])
+    await expect(
+      resolveBlossomServers(PUBKEY_HEX, [], RELAYS)
+    ).resolves.toStrictEqual(['https://listed.example'])
+  })
+
+  it('falls back to the default upload server', async () => {
+    jest.mocked(fetchKind10063Servers).mockResolvedValueOnce([])
+    await expect(
+      resolveBlossomServers(PUBKEY_HEX, [], RELAYS)
+    ).resolves.toStrictEqual([NOSTR_BLOSSOM_DEFAULT_SERVER])
   })
 })

@@ -54,9 +54,8 @@ function normalizeBip77FragmentDelimiters(pjUrl: string): string {
     return pjUrl
   }
   const base = pjUrl.slice(0, hashIndex)
-  let fragment = pjUrl.slice(hashIndex + 1)
   // Accept legacy `+` separators by normalizing to `-` for comparisons.
-  fragment = fragment.replaceAll('+', '-')
+  const fragment = pjUrl.slice(hashIndex + 1).replaceAll('+', '-')
   return `${base}#${fragment}`
 }
 

@@ -1,17 +1,23 @@
+import { decode as decodeBolt11 } from '@gandlaf21/bolt11-decode'
+import { sha256 } from '@noble/hashes/sha2'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils'
 import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
-import type NDK from '@nostr-dev-kit/ndk'
-import { finalizeEvent, nip19, nip57 } from 'nostr-tools'
+import {
+  type Event,
+  finalizeEvent,
+  nip19,
+  nip57,
+  validateEvent,
+  verifyEvent
+} from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import { createEphemeralNdk, disconnectNdkPool } from '@/api/ndkRegistry'
 import { fetchProfilesCoalesced } from '@/api/nostrProfileFetcher'
-import { connectToFirstRelay } from '@/api/nostrRelayHealth'
+import { collectFromRelays } from '@/api/nostrRelayCollect'
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import {
   NOSTR_PROFILE_BATCH_SIZE,
   NOSTR_ZAP_CACHE_LOOKUP_LIMIT,
-  NOSTR_ZAP_COLLECT_TIMEOUT_MS,
-  NOSTR_ZAP_CONNECT_TIMEOUT_MS,
   NOSTR_ZAP_INVOICE_TIMEOUT_MS,
   NOSTR_ZAP_RECEIPT_FETCH_LIMIT
 } from '@/constants/nostr'
@@ -32,7 +38,6 @@ import {
   ZapFlowResult,
   ZapSortField
 } from '@/types/models/Nostr'
-import { NostrNoRelaysError, NostrRelayTimeoutError } from '@/utils/errors'
 import { formatNpub } from '@/utils/format'
 import { fetchLNURLPayDetails } from '@/utils/lnurl'
 import { getSecretFromNsec } from '@/utils/nostr'
@@ -48,65 +53,6 @@ type ZapPageQuery = {
   pubkeyHex: string
   relays: string[]
   until?: number
-}
-
-/**
- * Collects events until a connected relay answers EOSE. A timeout with
- * nothing collected and no EOSE throws NostrRelayTimeoutError, so an outage
- * never looks like "no zaps".
- */
-function subscribeAndCollect(
-  ndk: NDK,
-  filter: NDKFilter,
-  timeoutMs: number
-): Promise<Set<NDKEvent>> {
-  return new Promise((resolve, reject) => {
-    const state = { settled: false }
-    const collected = new Set<NDKEvent>()
-    const sub = ndk.subscribe(filter, { closeOnEose: false })
-
-    function finish(answered: boolean) {
-      if (state.settled) {
-        return
-      }
-      state.settled = true
-      clearTimeout(timer)
-      sub.stop()
-      if (!answered && collected.size === 0) {
-        reject(new NostrRelayTimeoutError('No relay answered the zap REQ'))
-        return
-      }
-      resolve(collected)
-    }
-
-    const timer = setTimeout(() => finish(false), timeoutMs)
-
-    sub.on('event', (event: NDKEvent) => {
-      collected.add(event)
-    })
-    sub.on('eose', () => {
-      if (ndk.pool.connectedRelays().length > 0) {
-        finish(true)
-      }
-    })
-  })
-}
-
-/** One short-lived pool per zap query; always torn down. */
-async function collectFromRelays(
-  relays: string[],
-  filter: NDKFilter
-): Promise<Set<NDKEvent>> {
-  if (relays.length === 0) {
-    throw new NostrNoRelaysError('No relays configured')
-  }
-  const ndk = createEphemeralNdk(relays)
-  try {
-    await connectToFirstRelay(ndk, NOSTR_ZAP_CONNECT_TIMEOUT_MS)
-    return await subscribeAndCollect(ndk, filter, NOSTR_ZAP_COLLECT_TIMEOUT_MS)
-  } finally {
-    disconnectNdkPool(ndk)
-  }
 }
 
 function toStringTags(event: NDKEvent): string[][] {
@@ -544,9 +490,94 @@ export async function fetchZapsByPubkey(
   }
 }
 
+function parseSignedEvent(json: string): Event | null {
+  try {
+    const value: unknown = JSON.parse(json)
+    if (
+      !isRecord(value) ||
+      !validateEvent(value) ||
+      typeof value.id !== 'string' ||
+      typeof value.sig !== 'string'
+    ) {
+      return null
+    }
+    return { ...value, id: value.id, sig: value.sig }
+  } catch {
+    return null
+  }
+}
+
+function getTag(tags: string[][], name: string): string | undefined {
+  return tags.find((tag) => tag[0] === name)?.[1]
+}
+
+function getBolt11DescriptionHash(bolt11: string): string | null {
+  try {
+    const section = decodeBolt11(bolt11).sections.find(
+      (s: { name: string }) => s.name === 'description_hash'
+    )
+    return section?.value instanceof Uint8Array
+      ? bytesToHex(section.value)
+      : null
+  } catch {
+    return null
+  }
+}
+
 /**
- * Kind 9735 receipts authored by this pubkey (when relays index it), kept
- * only when this profile is the zapper. Throws when relays are unreachable.
+ * NIP-57: the receipt must pay exactly what the zap request asked for. A
+ * signed request can be copied into a receipt with other tags, so the
+ * recipient, note and amount are checked against it, and the invoice must
+ * commit to the request through its description hash.
+ */
+function doesReceiptMatchRequest(
+  receipt: NDKEvent,
+  zapRequest: Event,
+  description: string
+): boolean {
+  const bolt11 = getTag(receipt.tags, 'bolt11')
+  if (!bolt11) {
+    return false
+  }
+  if (getTag(receipt.tags, 'p') !== getTag(zapRequest.tags, 'p')) {
+    return false
+  }
+  if (getTag(receipt.tags, 'e') !== getTag(zapRequest.tags, 'e')) {
+    return false
+  }
+  const requestedMsats = getTag(zapRequest.tags, 'amount')
+  const invoiceMsats =
+    nip57.getSatoshisAmountFromBolt11(bolt11) * MILLISATS_PER_SAT
+  if (requestedMsats && Number(requestedMsats) !== invoiceMsats) {
+    return false
+  }
+  return (
+    getBolt11DescriptionHash(bolt11) ===
+    bytesToHex(sha256(utf8ToBytes(description)))
+  )
+}
+
+/**
+ * The P tag and the zap request are both chosen by whoever publishes the
+ * receipt, so only a zap request signed by this pubkey, which the receipt
+ * matches, proves it zapped.
+ */
+function isZapSignedBy(receipt: NDKEvent, pubkeyHex: string): boolean {
+  const description = getTag(receipt.tags, 'description')
+  const zapRequest = description ? parseSignedEvent(description) : null
+  return (
+    description !== undefined &&
+    zapRequest?.kind === nostrKinds.ZapRequest &&
+    zapRequest.pubkey === pubkeyHex &&
+    verifyEvent(zapRequest) &&
+    doesReceiptMatchRequest(receipt, zapRequest, description)
+  )
+}
+
+/**
+ * Kind 9735 receipts whose zapper (NIP-57 uppercase P tag) is this pubkey.
+ * Receipts are signed by the LNURL server, so they can't be found by author.
+ * Throws when relays are unreachable.
  */
 export async function fetchZapsSentByPubkey(
   pubkeyHex: string,
@@ -555,7 +586,7 @@ export async function fetchZapsSentByPubkey(
   until?: number
 ): Promise<ZapReceiptInfo[]> {
   const filter: NDKFilter = {
-    authors: [pubkeyHex],
+    '#P': [pubkeyHex],
     kinds: [nostrKinds.Zap],
     limit
   }
@@ -564,6 +595,7 @@ export async function fetchZapsSentByPubkey(
   }
   const events = await collectFromRelays(relays, filter)
   return [...events]
+    .filter((event) => isZapSignedBy(event, pubkeyHex))
     .flatMap((event) => {
       const parsed = parseZapReceiptFromEvent(event, pubkeyHex)
       return parsed?.direction === 'outgoing'

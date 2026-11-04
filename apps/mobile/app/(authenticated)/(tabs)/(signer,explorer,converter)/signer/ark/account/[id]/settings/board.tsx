@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
+import { StyleSheet, View, type ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -25,6 +25,7 @@ import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
@@ -207,7 +208,7 @@ export default function ArkBoardPage() {
           headerTitle: () => <SSText uppercase>{t('ark.board.title')}</SSText>
         }}
       />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.container}>
           <SSText color="muted" size="xs">
             {showPayjoin
@@ -613,7 +614,7 @@ export default function ArkBoardPage() {
             )}
           </SSHStack>
         </SSVStack>
-      </ScrollView>
+      </SSScrollView>
     </SSMainLayout>
   )
 }

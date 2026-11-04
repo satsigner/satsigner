@@ -11,6 +11,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
+import {
+  getNostrContactsRelaysKey,
+  getNostrIdentityRelays
+} from '@/utils/nostrContacts'
 
 type CalendarParams = {
   npub: string
@@ -28,9 +32,11 @@ type CalendarEvent = {
 
 function formatEventDate(unixTs: number): string {
   const date = new Date(unixTs * MS_PER_SECOND)
+  // YYYY-MM-DD dates are parsed as UTC midnight; show that same calendar day.
   return date.toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
+    timeZone: 'UTC',
     year: 'numeric'
   })
 }
@@ -51,9 +57,7 @@ export default function NostrCalendar() {
     state.identities.find((i) => i.npub === npub)
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const effectiveRelays = identity?.relays?.length
-    ? identity.relays
-    : globalRelays
+  const effectiveRelays = getNostrIdentityRelays(identity?.relays, globalRelays)
 
   const relayConnected = identity?.relayConnected === true
   const relaysAvailable = effectiveRelays.length > 0
@@ -65,7 +69,12 @@ export default function NostrCalendar() {
   } = useQuery({
     enabled: !!npub && relayConnected && relaysAvailable,
     queryFn: () => fetchCalendarEvents(effectiveRelays, npub),
-    queryKey: ['nostr', 'calendar', npub],
+    queryKey: [
+      'nostr',
+      'calendar',
+      npub,
+      getNostrContactsRelaysKey(effectiveRelays)
+    ],
     staleTime: 5 * 60_000
   })
 
@@ -129,7 +138,7 @@ function CalendarRow({ event }: CalendarRowProps) {
         <SSText size="sm">{event.title}</SSText>
         <SSText size="xs" color="muted">
           {formatEventDate(event.start)}
-          {event.end ? ` → ${formatEventDate(event.end)}` : ''}
+          {event.end === undefined ? '' : ` → ${formatEventDate(event.end)}`}
         </SSText>
         {event.location ? (
           <SSText size="xs" color="muted">

@@ -36,6 +36,7 @@ import {
   parseKind1DraftFromJson,
   stripZapTags
 } from '@/utils/nostrComposeImport'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   buildEnhancedZapTags,
@@ -64,7 +65,7 @@ export default function NostrComposePage() {
   )
   const privacyMode = useSettingsStore((state) => state.privacyMode)
   const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const effectiveRelays = identity?.relays ?? globalRelays
+  const effectiveRelays = getNostrIdentityRelays(identity?.relays, globalRelays)
 
   const [content, setContent] = useState('')
   const [publishing, setPublishing] = useState(false)

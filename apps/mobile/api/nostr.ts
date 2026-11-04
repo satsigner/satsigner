@@ -16,6 +16,7 @@ import {
   fetchProfilesCoalesced,
   queueProfileFetches
 } from '@/api/nostrProfileFetcher'
+import { collectFromRelays } from '@/api/nostrRelayCollect'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_ENGAGEMENT_FETCH_LIMIT,
@@ -81,10 +82,14 @@ import {
   NostrRelayTimeoutError
 } from '@/utils/errors'
 import {
+  buildKind0Content,
   extractInboxRelayUrls,
+  getProfileFromKind0Content,
   getPubKeyHexFromNpub,
-  getSecretFromNsec
+  getSecretFromNsec,
+  parseKind0Object
 } from '@/utils/nostr'
+import { parseCalendarDate } from '@/utils/nostrCalendar'
 import {
   NOSTR_ENGAGEMENT_KINDS,
   NOSTR_LIKE_CONTENT,
@@ -116,8 +121,8 @@ import {
   createEphemeralNdk,
   createMobileNdk,
   disconnectNdkPool,
-  getOrCreateNdk,
-  ndkRegistry
+  findNdkForRelays,
+  getOrCreateNdk
 } from './ndkRegistry'
 import {
   connectToFirstRelay,
@@ -193,8 +198,7 @@ export async function testNostrRelaysReachable(
   // Check the shared registry NDK first — if it has live connections, trust
   // its pool state instead of probing with a fresh NDK (which would race
   // against existing sockets and often report "unreachable" while data flows).
-  const registryKey = [...relayUrls].toSorted().join(',')
-  const registryNdk = ndkRegistry.get(registryKey)
+  const registryNdk = findNdkForRelays(relayUrls)
   if (!options?.waitForAll && registryNdk?.pool) {
     const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
     if (connected.length > 0) {
@@ -449,18 +453,18 @@ export class NostrAPI {
           return event.tags.find((tag) => tag[0] === name)?.[1]
         }
 
-        const start = Number(getTagValue('start'))
-        if (!Number.isFinite(start)) {
+        const start = parseCalendarDate(getTagValue('start'))
+        if (start === null) {
           return []
         }
 
-        const endValue = Number(getTagValue('end'))
+        const end = parseCalendarDate(getTagValue('end'))
         const location = getTagValue('location')
 
         return [
           {
             description: event.content,
-            ...(Number.isFinite(endValue) ? { end: endValue } : {}),
+            ...(end === null ? {} : { end }),
             id: event.id,
             kind: event.kind ?? nostrKinds.Date,
             ...(location ? { location } : {}),
@@ -1831,6 +1835,60 @@ export class NostrAPI {
         tag.filter((v): v is string => typeof v === 'string')
       )
     }
+  }
+
+  /**
+   * Publishes kind 0 with only the changed fields written over the newest
+   * relay copy signed by this key, so fields edited elsewhere survive. Falls
+   * back to `localProfile` when relays have no usable copy. Throws when
+   * relays don't answer rather than overwriting the profile blindly. Returns
+   * the profile as published.
+   */
+  async publishProfile(
+    nsec: string,
+    changes: Partial<NostrKind0Profile>,
+    localProfile: NostrKind0Profile
+  ): Promise<NostrKind0Profile> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+
+    const signer = new NDKPrivateKeySigner(secretKey)
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    // Every relay, not NDK's first EOSE: a newer copy on a slow relay would
+    // otherwise be replaced by one built on older content.
+    const relayEvents = await collectFromRelays(
+      this.relays,
+      { authors: [signer.pubkey], kinds: [nostrKinds.Metadata] },
+      { waitForEveryRelay: true }
+    )
+    // NDK only samples signatures, and this content gets re-signed.
+    const [latest] = [...relayEvents]
+      .filter(
+        (event) =>
+          event.pubkey === signer.pubkey && verifyEvent(event.rawEvent())
+      )
+      .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
+
+    const baseContent =
+      latest && parseKind0Object(latest.content)
+        ? latest.content
+        : buildKind0Content(undefined, localProfile)
+    const content = buildKind0Content(baseContent, changes)
+    const nowSec = Math.floor(Date.now() / MS_PER_SECOND)
+    const event = new NDKEvent(ndk, {
+      content,
+      // A relay copy dated ahead of this clock would otherwise stay newest.
+      created_at: Math.max(nowSec, (latest?.created_at ?? 0) + 1),
+      kind: nostrKinds.Metadata,
+      tags: []
+    })
+    await event.sign(signer)
+    await this.publishEvent(event)
+    return getProfileFromKind0Content(content) ?? {}
   }
 
   /** Signs and publishes a kind 1 note; returns the signed event as sent. */
