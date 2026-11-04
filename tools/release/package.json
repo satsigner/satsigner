@@ -9,7 +9,7 @@
     "keystore": "node create-keystore.mjs",
     "keystore:restore": "node create-keystore.mjs --restore",
     "keystore:confirm": "node confirm-keystore.mjs",
-    "test": "node --test commands.test.mjs keystore.test.mjs process-group.test.mjs"
+    "test": "node --test commands.test.mjs hidden-prompt.test.mjs keystore.test.mjs process-group.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.0.1",

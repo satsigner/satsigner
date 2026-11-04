@@ -314,7 +314,8 @@ function main() {
   }
   runArgs.push(...args.device)
 
-  run('npx', runArgs, env)
+  const signAndroidRelease = args.release && !args.ios
+  run('npx', runArgs, signAndroidRelease ? signingEnv(env) : env)
 }
 
 main()

@@ -1,4 +1,7 @@
+import { X509Certificate, createHash, verify } from 'node:crypto'
+
 import { SimplePool } from 'nostr-tools/pool'
+import { verifyEvent } from 'nostr-tools/pure'
 
 // NIP-C1: a kind 30509 event, keyed by the APK certificate hash, proves that
 // the npub controls the Android signing key. Zapstore holds releases signed
@@ -18,13 +21,33 @@ function tagValue(event, name) {
   return event.tags.find((tag) => tag[0] === name)?.[1]
 }
 
-function activeProof(events, certHash, nowSeconds) {
+function proofMessage(event) {
+  return `Verifying at ${event.created_at} until ${tagValue(event, 'expiry')} that I control the following Nostr public key: ${event.pubkey}`
+}
+
+function certificateSigned(event, certKey) {
+  const signature = tagValue(event, 'signature')
+  if (!signature) {
+    return false
+  }
+  return verify(
+    'sha256',
+    Buffer.from(proofMessage(event)),
+    { dsaEncoding: 'der', key: certKey },
+    Buffer.from(signature, 'base64')
+  )
+}
+
+function activeProof(events, { certHash, certKey, pubkey }, nowSeconds) {
   return events.find(
     (event) =>
       event.kind === KIND_IDENTITY_PROOF &&
+      event.pubkey === pubkey &&
       tagValue(event, 'd') === certHash &&
       tagValue(event, 'revoked') === undefined &&
-      Number(tagValue(event, 'expiry')) > nowSeconds + RENEW_BEFORE_SECONDS
+      Number(tagValue(event, 'expiry')) > nowSeconds + RENEW_BEFORE_SECONDS &&
+      verifyEvent(event) &&
+      certificateSigned(event, certKey)
   )
 }
 
@@ -32,12 +55,12 @@ async function findProofs(pubkey, certHash) {
   const pool = new SimplePool()
   try {
     return await pool.querySync(
-      IDENTITY_RELAYS,
+      [REQUIRED_RELAY],
       { '#d': [certHash], authors: [pubkey], kinds: [KIND_IDENTITY_PROOF] },
       { maxWait: QUERY_MAX_WAIT_MS }
     )
   } finally {
-    pool.close(IDENTITY_RELAYS)
+    pool.close([REQUIRED_RELAY])
   }
 }
 
@@ -63,11 +86,20 @@ function expiryDate(event) {
     .slice(0, 10)
 }
 
-async function ensureIdentityProof({ certHash, pubkey, signProof }) {
+function certificateIdentity(certificate, pubkey) {
+  return {
+    certHash: createHash('sha256').update(certificate).digest('hex'),
+    certKey: new X509Certificate(certificate).publicKey,
+    pubkey
+  }
+}
+
+async function ensureIdentityProof({ certificate, pubkey, signProof }) {
   const nowSeconds = Math.floor(Date.now() / 1000)
+  const identity = certificateIdentity(certificate, pubkey)
   const existing = activeProof(
-    await findProofs(pubkey, certHash),
-    certHash,
+    await findProofs(pubkey, identity.certHash),
+    identity,
     nowSeconds
   )
   if (existing) {
@@ -79,7 +111,7 @@ async function ensureIdentityProof({ certHash, pubkey, signProof }) {
 
   console.log('  Linking the signing key to your npub. Approve the signature.')
   const proof = await signProof()
-  if (!activeProof([proof], certHash, nowSeconds)) {
+  if (!activeProof([proof], identity, nowSeconds)) {
     throw new Error('zsp did not return an identity proof for this key')
   }
   const results = await publishProof(proof)

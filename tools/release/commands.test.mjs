@@ -11,6 +11,7 @@ import {
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
+  parseReleaseChannel,
   redactSecrets,
   splitCompleteLines
 } from './commands.mjs'
@@ -131,4 +132,13 @@ test('keeps a line split across output chunks together', () => {
     lines: ['BUILD SUCCESSFUL'],
     pending: '[3/4] Pub'
   })
+})
+
+test('accepts only the known release channels', () => {
+  for (const channel of ['dev', 'generic', 'primary']) {
+    assert.equal(parseReleaseChannel(channel), channel)
+  }
+  for (const value of [undefined, '', 'prod', 'DEV', '__proto__', 1]) {
+    assert.equal(parseReleaseChannel(value), undefined)
+  }
 })
