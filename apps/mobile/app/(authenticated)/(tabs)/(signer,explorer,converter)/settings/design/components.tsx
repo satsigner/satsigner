@@ -29,6 +29,7 @@ import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicato
 import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDesignSection from '@/components/SSDesignSection'
 import SSDetailsList from '@/components/SSDetailsList'
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSEcashLightningTabs from '@/components/SSEcashLightningTabs'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -213,7 +214,7 @@ function UtxoTablePreview() {
   )
 }
 
-export default function DesignComponents() {
+function DesignComponentsScreen() {
   const [checked, setChecked] = useState(false)
   const [radioSelected, setRadioSelected] = useState<'a' | 'b'>('a')
   const [pairedTab, setPairedTab] = useState<PairedTabKey>('send')
@@ -748,3 +749,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   }
 })
+
+export default function DesignComponents() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignComponentsScreen />
+    </SSDevOnlyRoute>
+  )
+}

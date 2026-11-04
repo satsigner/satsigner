@@ -14,6 +14,7 @@ import {
   SSIconSeed,
   SSIconTransaction
 } from '@/components/icons'
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSSettingsCard from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import {
@@ -66,7 +67,7 @@ function FeatureCard({ feature, onOpen }: FeatureCardProps) {
   )
 }
 
-export default function DesignFeatures() {
+function DesignFeaturesScreen() {
   const router = useRouter()
 
   function handleOpenFeature(feature: DesignFeatureId) {
@@ -97,5 +98,13 @@ export default function DesignFeatures() {
         </SSScrollView>
       </SSMainLayout>
     </>
+  )
+}
+
+export default function DesignFeatures() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignFeaturesScreen />
+    </SSDevOnlyRoute>
   )
 }

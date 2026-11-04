@@ -31,25 +31,28 @@ function SSPinAuth({
   })
   const { shakeStyle } = useAnimatedShake()
 
+  const titleText = (
+    <SSText
+      uppercase
+      size="lg"
+      color="muted"
+      center
+      style={{ color: gray[300] }}
+    >
+      {verifying ? t('auth.unlocking') : title}
+    </SSText>
+  )
+
   return (
     <SSVStack
       itemsCenter
       gap={title ? 'lg' : 'none'}
       style={{ flex: 1, width: '100%' }}
     >
-      {title && (
-        <Pressable disabled={!onTitlePress} onPress={onTitlePress}>
-          <SSText
-            uppercase
-            size="lg"
-            color="muted"
-            center
-            style={{ color: gray[300] }}
-          >
-            {verifying ? t('auth.unlocking') : title}
-          </SSText>
-        </Pressable>
+      {title && onTitlePress && (
+        <Pressable onPress={onTitlePress}>{titleText}</Pressable>
       )}
+      {title && !onTitlePress && titleText}
       <Animated.View style={[{ flex: 1, width: '100%' }, shakeStyle]}>
         {pin !== null && !verifying && (
           <SSPinInput

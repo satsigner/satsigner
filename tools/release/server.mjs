@@ -19,6 +19,7 @@ import {
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
+  parseReleaseChannel,
   redactSecrets,
   splitCompleteLines
 } from './commands.mjs'
@@ -276,10 +277,7 @@ async function pushBranch() {
 }
 
 function releaseChannel(value) {
-  if (value === 'primary' || value === 'generic') {
-    return value
-  }
-  return 'dev'
+  return parseReleaseChannel(value) ?? 'dev'
 }
 
 async function publishZapstore(notes, only, channel) {
@@ -401,11 +399,12 @@ async function installedPackages() {
 }
 
 async function uninstallPackage(channel) {
-  const channels = await releaseChannels()
-  const selected = channels[releaseChannel(channel)]
-  if (!selected?.packageId) {
+  const known = parseReleaseChannel(channel)
+  if (!known) {
     throw new Error('unknown release channel')
   }
+  const channels = await releaseChannels()
+  const selected = channels[known]
   const serials = parseAdbDevices(await adbText(['devices']))
   if (serials.length === 0) {
     throw new Error('no Android device is connected')
