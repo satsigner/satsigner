@@ -541,7 +541,7 @@ async function buildReleaseApk() {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
         'android/ is prebuilt with the production package id. ' +
-          'Production APKs are disabled until a release keystore is in place.'
+          'Publish Production with --channel primary, which builds and signs it with the release keystore.'
       )
     }
     console.log('  Running: ./gradlew assembleRelease\n')
