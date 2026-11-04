@@ -459,11 +459,13 @@ export default function Developer() {
               onPress={() => router.navigate('/settings/developerDiagnosis')}
               variant="outline"
             />
-            <SSButton
-              label={t('settings.developer.design')}
-              onPress={() => router.navigate('/settings/design')}
-              variant="outline"
-            />
+            {DEV_CONSOLE_AVAILABLE ? (
+              <SSButton
+                label={t('settings.developer.design')}
+                onPress={() => router.navigate('/settings/design')}
+                variant="outline"
+              />
+            ) : null}
           </SSVStack>
         </SSVStack>
       </SSMainLayout>

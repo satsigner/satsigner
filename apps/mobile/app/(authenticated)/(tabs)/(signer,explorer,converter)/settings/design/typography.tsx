@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSDesignSection from '@/components/SSDesignSection'
+import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -57,7 +58,7 @@ function TokenRow({ token, children }: TokenRowProps) {
   )
 }
 
-export default function DesignTypography() {
+function DesignTypographyScreen() {
   return (
     <>
       <Stack.Screen
@@ -396,3 +397,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap'
   }
 })
+
+export default function DesignTypography() {
+  return (
+    <SSDevOnlyRoute>
+      <DesignTypographyScreen />
+    </SSDevOnlyRoute>
+  )
+}
