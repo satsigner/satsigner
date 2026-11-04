@@ -9,7 +9,7 @@ import {
 } from './constants/variant.cjs'
 import { getAndroidVersionCode } from './constants/versionCode.cjs'
 
-const APP_VERSION = '0.3.6'
+const APP_VERSION = '0.3.12'
 
 // Satsigner never records audio or draws over other apps, and has no use for
 // Google Play's install referrer. Blocking them also strips the copies that
