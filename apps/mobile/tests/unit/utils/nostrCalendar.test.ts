@@ -10,6 +10,7 @@ describe('parseCalendarDate', () => {
 
   it('reads unix seconds written by other clients', () => {
     expect(parseCalendarDate('1795000000')).toBe(1_795_000_000)
+    expect(parseCalendarDate('-86400')).toBe(-86_400)
   })
 
   it('rejects missing, malformed and impossible dates', () => {

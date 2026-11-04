@@ -1,7 +1,7 @@
 import { MS_PER_SECOND } from '@/constants/time'
 
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
-const UNIX_SECONDS_RE = /^\d+$/
+const UNIX_SECONDS_RE = /^-?\d+$/
 
 function toUnixSeconds(date: Date): number | null {
   const ms = date.getTime()

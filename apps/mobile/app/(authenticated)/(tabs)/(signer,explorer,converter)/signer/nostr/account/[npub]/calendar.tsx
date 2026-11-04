@@ -138,7 +138,7 @@ function CalendarRow({ event }: CalendarRowProps) {
         <SSText size="sm">{event.title}</SSText>
         <SSText size="xs" color="muted">
           {formatEventDate(event.start)}
-          {event.end ? ` → ${formatEventDate(event.end)}` : ''}
+          {event.end === undefined ? '' : ` → ${formatEventDate(event.end)}`}
         </SSText>
         {event.location ? (
           <SSText size="xs" color="muted">
