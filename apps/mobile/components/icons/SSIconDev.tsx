@@ -1,8 +1,17 @@
-import Svg, { G, Path, type SvgProps } from 'react-native-svg'
+import Svg, { G, Path, Rect, type SvgProps } from 'react-native-svg'
+
+import { getIconStrokeProps, type IconStrokeProps } from './iconStroke'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconDev({ width, height }: IconProps) {
+const DEV_FRAME_RADIUS = 1.1
+
+export default function SSIconDev({
+  width,
+  height,
+  screenStrokeWidth
+}: IconProps & IconStrokeProps) {
+  const strokeProps = getIconStrokeProps(screenStrokeWidth)
   return (
     <Svg width={width} height={height} viewBox="0 0 16 16">
       <G id="dev" transform="translate(1049 -7662)">
@@ -12,13 +21,17 @@ export default function SSIconDev({ width, height }: IconProps) {
           transform="translate(-1060.467 7606.515)"
           fill="#fff"
         />
-        <Path
-          id="material-symbols-light--logo-dev-outline"
-          d="M5.616,20A1.58,1.58,0,0,1,4,18.384V5.616A1.582,1.582,0,0,1,5.616,4H18.385A1.58,1.58,0,0,1,20,5.616V18.385A1.579,1.579,0,0,1,18.384,20Zm0-1H18.385a.59.59,0,0,0,.423-.192A.584.584,0,0,0,19,18.384V5.616a.591.591,0,0,0-.192-.424A.584.584,0,0,0,18.384,5H5.616a.591.591,0,0,0-.424.192A.584.584,0,0,0,5,5.616V18.385a.59.59,0,0,0,.192.423A.583.583,0,0,0,5.615,19M5,5V5Z"
-          transform="translate(-1053 7658)"
-          fill="#828282"
-        />
       </G>
+      <Rect
+        x={0.5}
+        y={0.5}
+        width={15}
+        height={15}
+        rx={DEV_FRAME_RADIUS}
+        fill="none"
+        stroke="#828282"
+        {...strokeProps}
+      />
     </Svg>
   )
 }
