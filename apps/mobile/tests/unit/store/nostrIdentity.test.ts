@@ -9,6 +9,7 @@ import { getDb } from '@/db/connection'
 import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
+import * as nostrSecrets from '@/utils/nostrSecrets'
 
 describe('getNostrIdentityRelays', () => {
   it('prefers the identity relay list', () => {
@@ -51,6 +52,31 @@ describe('nostrIdentity store', () => {
     expect(useNostrIdentityStore.getState().identities[0].relayConnected).toBe(
       true
     )
+  })
+
+  it('addIdentity leaves an existing identity and its stored secrets alone', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1owned',
+      nsec: 'nsec1owned'
+    })
+    const persistSecrets = jest
+      .spyOn(nostrSecrets, 'persistIdentitySecretsSafe')
+      .mockResolvedValue()
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: true,
+      npub: 'npub1owned'
+    })
+
+    expect(persistSecrets).not.toHaveBeenCalled()
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
+      expect.objectContaining({ isWatchOnly: false, nsec: 'nsec1owned' })
+    ])
+    persistSecrets.mockRestore()
   })
 
   it('addIdentity preserves an explicit disconnect choice', () => {
