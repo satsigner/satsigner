@@ -2977,6 +2977,7 @@
     "developer.recoverOverwrite": "Overwrite and recover data",
     "developer.recoverOverwriteError": "Failed to restore backup",
     "developer.recoverPassphrasePlaceholder": "Enter passphrase to decrypt",
+    "developer.recoverRollbackIncomplete": "Restore failed and your previous data could not be fully put back. Do not close the app. Try the restore again.",
     "developer.recoverScanModalTitle": "Scan encrypted backup",
     "developer.recoverScanQr": "Scan QR",
     "developer.recoverSuccess": "Backup restored",

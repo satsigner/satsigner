@@ -1,0 +1,6 @@
+{
+  "android": {
+    "modules": ["expo.modules.ssqrscanner.SsQrScannerModule"]
+  },
+  "platforms": ["android"]
+}
