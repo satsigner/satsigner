@@ -2,13 +2,13 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
 
 import { clearNdkRegistry } from '@/api/ndkRegistry'
 import { resetRelayHealth } from '@/api/nostrRelayHealth'
-import { NOSTR_ZAP_COLLECT_TIMEOUT_MS } from '@/constants/nostr'
+import { NOSTR_COLLECT_TIMEOUT_MS } from '@/constants/nostr'
 import { fetchZapsByPubkey, fetchZapsSentByPubkey } from '@/utils/nostrZap'
 
 import { BASE_CREATED_AT, fixturePubkey } from './support/fixtures'
 import { startTestRelay, type TestRelay } from './support/testRelay'
 
-const ANSWERED_WELL_BEFORE_TIMEOUT_MS = NOSTR_ZAP_COLLECT_TIMEOUT_MS / 3
+const ANSWERED_WELL_BEFORE_TIMEOUT_MS = NOSTR_COLLECT_TIMEOUT_MS / 3
 const PROFILE_PUBKEY = fixturePubkey(42)
 const ZAP_REQUEST_KIND = 9734
 const ZAP_RECEIPT_KIND = 9735

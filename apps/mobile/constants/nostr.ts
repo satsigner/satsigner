@@ -413,9 +413,9 @@ export const NOSTR_ZAP_TAG_NAMES = new Set([
   'zap-payer',
   'zap-uses'
 ])
-export const NOSTR_ZAP_CONNECT_TIMEOUT_MS = 10_000
-export const NOSTR_ZAP_COLLECT_TIMEOUT_MS = 15_000
-export const NOSTR_ZAP_ANSWER_CHECK_MS = 100
+export const NOSTR_COLLECT_CONNECT_TIMEOUT_MS = 10_000
+export const NOSTR_COLLECT_TIMEOUT_MS = 15_000
+export const NOSTR_COLLECT_ANSWER_CHECK_MS = 100
 
 // IDENTITY FEED
 export const NOSTR_FEED_PAGE_SIZE = 20

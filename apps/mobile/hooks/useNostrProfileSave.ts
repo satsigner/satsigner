@@ -2,11 +2,12 @@ import { useMutation } from '@tanstack/react-query'
 
 import { NostrAPI } from '@/api/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useNostrProfilesStore } from '@/store/nostrProfiles'
 import {
   type NostrIdentity,
   type NostrKind0Profile
 } from '@/types/models/Nostr'
-import { getChangedProfileFields } from '@/utils/nostr'
+import { getChangedProfileFields, getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
 function getLocalProfile(identity: NostrIdentity): NostrKind0Profile {
@@ -19,21 +20,33 @@ function getLocalProfile(identity: NostrIdentity): NostrKind0Profile {
   }
 }
 
-async function publishProfileChanges(
+/** The profile as published, which keeps fields changed on other clients. */
+function publishProfileChanges(
   identity: NostrIdentity,
   profile: NostrKind0Profile,
   relays: string[]
-) {
+): Promise<NostrKind0Profile> {
   const localProfile = getLocalProfile(identity)
   const changes = getChangedProfileFields(localProfile, profile)
   if (!identity.nsec || Object.keys(changes).length === 0) {
-    return
+    return Promise.resolve(profile)
   }
-  await new NostrAPI(relays).publishProfile(
+  return new NostrAPI(relays).publishProfile(
     identity.nsec,
     changes,
     localProfile
   )
+}
+
+/** Feed rows read the profiles cache, not the identity. */
+function showProfileInFeeds(npub: string, profile: NostrKind0Profile) {
+  const pubkeyHex = getPubKeyHexFromNpub(npub)
+  if (!pubkeyHex) {
+    return
+  }
+  useNostrProfilesStore
+    .getState()
+    .setProfiles([pubkeyHex], new Map([[pubkeyHex, profile]]))
 }
 
 /**
@@ -50,11 +63,14 @@ function useNostrProfileSave(identity: NostrIdentity | undefined) {
       if (!identity) {
         return
       }
-      if (publishes) {
-        const relays = getNostrIdentityRelays(identity.relays, globalRelays)
-        await publishProfileChanges(identity, profile, relays)
+      if (!publishes) {
+        updateIdentity(identity.npub, profile)
+        return
       }
-      updateIdentity(identity.npub, profile)
+      const relays = getNostrIdentityRelays(identity.relays, globalRelays)
+      const published = await publishProfileChanges(identity, profile, relays)
+      updateIdentity(identity.npub, published)
+      showProfileInFeeds(identity.npub, published)
     }
   })
 

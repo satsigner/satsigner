@@ -365,6 +365,13 @@ describe('buildKind0Content', () => {
     ).toStrictEqual({ about: 'bitcoiner' })
   })
 
+  it('drops the username fallback when the display name is cleared', () => {
+    const latest = JSON.stringify({ name: 'satoshi', username: 'satoshi' })
+    expect(
+      JSON.parse(buildKind0Content(latest, { displayName: undefined }))
+    ).toStrictEqual({})
+  })
+
   it('ignores published content that is not a JSON object', () => {
     expect(JSON.parse(buildKind0Content('not json', {}))).toStrictEqual({})
     expect(JSON.parse(buildKind0Content('[1,2]', {}))).toStrictEqual({})

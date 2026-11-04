@@ -209,13 +209,20 @@ export function extractInboxRelayUrls(
   return [...new Set(urls)]
 }
 
-function parseKind0Record(contentJson: string): Record<string, unknown> {
+/** Kind 0 content as a JSON object; null when it is not one. */
+export function parseKind0Object(
+  contentJson: string
+): Record<string, unknown> | null {
   try {
     const content: unknown = JSON.parse(contentJson)
-    return isRecord(content) ? content : {}
+    return isRecord(content) ? content : null
   } catch {
-    return {}
+    return null
   }
+}
+
+function parseKind0Record(contentJson: string): Record<string, unknown> {
+  return parseKind0Object(contentJson) ?? {}
 }
 
 function optionalString(value: unknown): string | undefined {
@@ -228,6 +235,13 @@ const KIND0_KEYS_BY_FIELD: Record<keyof NostrKind0Profile, string[]> = {
   lud16: ['lud16'],
   nip05: ['nip05'],
   picture: ['picture']
+}
+
+// Keys read as a fallback only, never written; clearing the field drops them.
+const KIND0_FALLBACK_KEYS_BY_FIELD: Partial<
+  Record<keyof NostrKind0Profile, string[]>
+> = {
+  displayName: ['username']
 }
 
 const KIND0_PROFILE_FIELDS: (keyof NostrKind0Profile)[] = [
@@ -265,16 +279,26 @@ export function buildKind0Content(
   const content = latestContentJson ? parseKind0Record(latestContentJson) : {}
   const changedFields = KIND0_PROFILE_FIELDS.filter((field) => field in changes)
   for (const field of changedFields) {
-    const value = changes[field]
-    for (const key of KIND0_KEYS_BY_FIELD[field]) {
-      if (value) {
-        content[key] = value
-      } else {
-        delete content[key]
-      }
-    }
+    applyKind0Field(content, field, changes[field])
   }
   return JSON.stringify(content)
+}
+
+function applyKind0Field(
+  content: Record<string, unknown>,
+  field: keyof NostrKind0Profile,
+  value: string | undefined
+) {
+  if (value) {
+    for (const key of KIND0_KEYS_BY_FIELD[field]) {
+      content[key] = value
+    }
+    return
+  }
+  const fallbackKeys = KIND0_FALLBACK_KEYS_BY_FIELD[field] ?? []
+  for (const key of [...KIND0_KEYS_BY_FIELD[field], ...fallbackKeys]) {
+    delete content[key]
+  }
 }
 
 /** Parses kind 0 content JSON into a profile; null when nothing usable. */

@@ -16,6 +16,7 @@ import {
   fetchProfilesCoalesced,
   queueProfileFetches
 } from '@/api/nostrProfileFetcher'
+import { collectFromRelays } from '@/api/nostrRelayCollect'
 import {
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_ENGAGEMENT_FETCH_LIMIT,
@@ -83,8 +84,10 @@ import {
 import {
   buildKind0Content,
   extractInboxRelayUrls,
+  getProfileFromKind0Content,
   getPubKeyHexFromNpub,
-  getSecretFromNsec
+  getSecretFromNsec,
+  parseKind0Object
 } from '@/utils/nostr'
 import { parseCalendarDate } from '@/utils/nostrCalendar'
 import {
@@ -1838,14 +1841,15 @@ export class NostrAPI {
   /**
    * Publishes kind 0 with only the changed fields written over the newest
    * relay copy signed by this key, so fields edited elsewhere survive. Falls
-   * back to `localProfile` when relays have none. Throws when relays don't
-   * answer rather than overwriting the profile blindly.
+   * back to `localProfile` when relays have no usable copy. Throws when
+   * relays don't answer rather than overwriting the profile blindly. Returns
+   * the profile as published.
    */
   async publishProfile(
     nsec: string,
     changes: Partial<NostrKind0Profile>,
     localProfile: NostrKind0Profile
-  ): Promise<void> {
+  ): Promise<NostrKind0Profile> {
     const secretKey = getSecretFromNsec(nsec)
     if (!secretKey) {
       throw new Error('Invalid nsec')
@@ -1855,10 +1859,12 @@ export class NostrAPI {
     await this.connectForPublish()
     const ndk = this.requireNdk()
 
-    const relayEvents = await NostrAPI.fetchManyWithTimeout(
-      ndk,
+    // Every relay, not NDK's first EOSE: a newer copy on a slow relay would
+    // otherwise be replaced by one built on older content.
+    const relayEvents = await collectFromRelays(
+      this.relays,
       { authors: [signer.pubkey], kinds: [nostrKinds.Metadata] },
-      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+      { waitForEveryRelay: true }
     )
     // NDK only samples signatures, and this content gets re-signed.
     const [latest] = [...relayEvents]
@@ -1869,10 +1875,13 @@ export class NostrAPI {
       .toSorted((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
 
     const baseContent =
-      latest?.content ?? buildKind0Content(undefined, localProfile)
+      latest && parseKind0Object(latest.content)
+        ? latest.content
+        : buildKind0Content(undefined, localProfile)
+    const content = buildKind0Content(baseContent, changes)
     const nowSec = Math.floor(Date.now() / MS_PER_SECOND)
     const event = new NDKEvent(ndk, {
-      content: buildKind0Content(baseContent, changes),
+      content,
       // A relay copy dated ahead of this clock would otherwise stay newest.
       created_at: Math.max(nowSec, (latest?.created_at ?? 0) + 1),
       kind: nostrKinds.Metadata,
@@ -1880,6 +1889,7 @@ export class NostrAPI {
     })
     await event.sign(signer)
     await this.publishEvent(event)
+    return getProfileFromKind0Content(content) ?? {}
   }
 
   /** Signs and publishes a kind 1 note; returns the signed event as sent. */

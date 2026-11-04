@@ -14,6 +14,18 @@ import { BASE_CREATED_AT } from './support/fixtures'
 import { startTestRelay, type TestRelay } from './support/testRelay'
 
 const FORGED_LATER_BY_SEC = 100
+const NEWER_BY_SEC = 10
+
+function signedProfile(
+  secretKey: Uint8Array,
+  content: string,
+  createdAt = BASE_CREATED_AT
+) {
+  return finalizeEvent(
+    { content, created_at: createdAt, kind: nostrKinds.Metadata, tags: [] },
+    secretKey
+  )
+}
 
 function newestProfileContent(relay: TestRelay, pubkey: string) {
   const [newest] = relay
@@ -67,6 +79,57 @@ describe('publishing a Nostr profile', () => {
     expect(newestProfileContent(relay, pubkey)).toStrictEqual({
       about: 'bitcoiner',
       name: 'satoshi',
+      nip05: 'satoshi@example.com'
+    })
+  })
+
+  it('builds on the newest copy across relays', async () => {
+    const secretKey = generateSecretKey()
+    const pubkey = getPublicKey(secretKey)
+    const [first, second, newest] = await Promise.all([
+      startTestRelay(),
+      startTestRelay(),
+      startTestRelay()
+    ])
+    relays.push(first, second, newest)
+    const oldCopy = signedProfile(secretKey, JSON.stringify({ name: 'old' }))
+    first.seed([oldCopy])
+    second.seed([oldCopy])
+    newest.seed([
+      signedProfile(
+        secretKey,
+        JSON.stringify({ about: 'edited elsewhere', name: 'new' }),
+        BASE_CREATED_AT + NEWER_BY_SEC
+      )
+    ])
+
+    await new NostrAPI(relays.map(({ url }) => url)).publishProfile(
+      nip19.nsecEncode(secretKey),
+      { nip05: 'satoshi@example.com' },
+      {}
+    )
+
+    expect(newestProfileContent(first, pubkey)).toStrictEqual({
+      about: 'edited elsewhere',
+      name: 'new',
+      nip05: 'satoshi@example.com'
+    })
+  })
+
+  it('falls back to the local profile when the relay copy is not an object', async () => {
+    const secretKey = generateSecretKey()
+    const relay = await startTestRelay()
+    relays.push(relay)
+    relay.seed([signedProfile(secretKey, 'not json')])
+
+    const published = await new NostrAPI([relay.url]).publishProfile(
+      nip19.nsecEncode(secretKey),
+      { nip05: 'satoshi@example.com' },
+      { displayName: 'satoshi' }
+    )
+
+    expect(published).toMatchObject({
+      displayName: 'satoshi',
       nip05: 'satoshi@example.com'
     })
   })
