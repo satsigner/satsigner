@@ -18,6 +18,7 @@ import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { bytesEqual } from '@/utils/byteArray'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'
@@ -275,8 +276,8 @@ class BaseElectrumClient {
       const out = prevTx?.outs[utxo.tx_pos]
       if (
         !out ||
-        out.value !== utxo.value ||
-        !out.script.equals(expectedScript)
+        Number(out.value) !== utxo.value ||
+        !bytesEqual(out.script, expectedScript)
       ) {
         throw new Error(
           'Electrum server returned UTXO data inconsistent with the blockchain'
@@ -403,7 +404,7 @@ class ElectrumClient extends BaseElectrumClient {
       const { value } = prevTx.outs[vout]
       vin.push({
         ...tx.vin[i],
-        value
+        value: Number(value)
       })
     }
     return vin

@@ -4,6 +4,7 @@ import {
   type PayjoinBip78Error,
   type PayjoinBip78ErrorCode
 } from '@/types/payjoin'
+import { bytesEqual } from '@/utils/byteArray'
 import { isRecord } from '@/utils/object'
 
 type ValidateProposalResult = { ok: true } | { ok: false; reason: string }
@@ -52,9 +53,9 @@ function checkPaymentOutputs(params: {
     const paidToNonOwned = params.proposal.txOutputs.reduce(
       (sum, output) =>
         params.isScriptOwned(scriptHexOf(output)) ? sum : sum + output.value,
-      0
+      0n
     )
-    if (paidToNonOwned > 0 && paidToNonOwned < params.paymentAmountSats) {
+    if (paidToNonOwned > 0n && paidToNonOwned < params.paymentAmountSats) {
       return { ok: false, reason: 'receiver payment amount reduced' }
     }
     return { ok: true }
@@ -64,7 +65,7 @@ function checkPaymentOutputs(params: {
   for (const index of paymentIndices) {
     const originalOut = params.original.txOutputs[index]
     const proposalOut = params.proposal.txOutputs[index]
-    if (!proposalOut || !originalOut.script.equals(proposalOut.script)) {
+    if (!proposalOut || !bytesEqual(originalOut.script, proposalOut.script)) {
       return { ok: false, reason: 'payment output substituted or removed' }
     }
     if (proposalOut.value < originalOut.value) {
@@ -80,14 +81,14 @@ function checkPaymentOutputs(params: {
 function sumNewInputValues(
   proposal: bitcoinjs.Psbt,
   originalOutpoints: Set<string>
-): number {
+): bigint {
   return proposal.txInputs.reduce((sum, input, index) => {
     const key = outpointKey(txidFromPsbtInputHash(input.hash), input.index)
     if (originalOutpoints.has(key)) {
       return sum
     }
-    return sum + (proposal.data.inputs[index]?.witnessUtxo?.value ?? 0)
-  }, 0)
+    return sum + (proposal.data.inputs[index]?.witnessUtxo?.value ?? 0n)
+  }, 0n)
 }
 
 /**
@@ -109,9 +110,11 @@ function checkSenderChange(params: {
   const newOutputSats = params.proposal.txOutputs.reduce(
     (sum, output) =>
       originalScripts.has(scriptHexOf(output)) ? sum : sum + output.value,
-    0
+    0n
   )
-  const maxChangeDecrease = Math.max(0, newInputSats - newOutputSats)
+  const receiverNetContribution = newInputSats - newOutputSats
+  const maxChangeDecrease =
+    receiverNetContribution > 0n ? receiverNetContribution : 0n
   const sameOutputCount =
     params.proposal.txOutputs.length === params.original.txOutputs.length
 
@@ -121,12 +124,12 @@ function checkSenderChange(params: {
       continue
     }
     const matched = params.proposal.txOutputs.find((output) =>
-      output.script.equals(originalOut.script)
+      bytesEqual(output.script, originalOut.script)
     )
     const fallback = sameOutputCount
       ? params.proposal.txOutputs[index]
       : undefined
-    const proposalChange = (matched ?? fallback)?.value ?? 0
+    const proposalChange = (matched ?? fallback)?.value ?? 0n
     if (originalOut.value - proposalChange > maxChangeDecrease) {
       return { ok: false, reason: 'sender change drained' }
     }
@@ -188,7 +191,7 @@ function validatePayjoinProposal(params: {
       const o = original.txOutputs[i]
       const p = proposal.txOutputs[i]
       // with pjos=0, BIP78 requires payment output script unchanged.
-      if (!o.script.equals(p.script)) {
+      if (!bytesEqual(o.script, p.script)) {
         return { ok: false, reason: 'payment output script substituted' }
       }
     }

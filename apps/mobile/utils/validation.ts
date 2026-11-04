@@ -293,13 +293,9 @@ export function validateCombinedDescriptor(
     }
   }
 
-  let scriptVersionValidation = false
-  if (scriptVersion) {
-    scriptVersionValidation = validateDescriptorScriptVersion(
-      combinedDescriptor,
-      scriptVersion
-    )
-  }
+  const scriptVersionValidation = scriptVersion
+    ? validateDescriptorScriptVersion(combinedDescriptor, scriptVersion)
+    : false
 
   if (!scriptVersionValidation) {
     const { external, internal } =

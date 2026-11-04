@@ -19,7 +19,6 @@ import {
   getArkMovementTxids,
   isLightningMovement,
   isMutedArkMovement,
-  isOutgoingArkMovementKind,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
 import { formatFiatPrice, formatNumber, formatTxId } from '@/utils/format'
@@ -118,12 +117,9 @@ function SSArkMovementCard({
           )}
           {counterparty && (
             <SSText size="xxs" style={styles.counterparty}>
-              {t(
-                isOutgoingArkMovementKind(kind)
-                  ? 'ark.movement.toLabel'
-                  : 'ark.movement.fromLabel',
-                { value: truncateArkCounterparty(counterparty) }
-              )}
+              {t('ark.movement.toLabel', {
+                value: truncateArkCounterparty(counterparty)
+              })}
             </SSText>
           )}
           {txid ? (

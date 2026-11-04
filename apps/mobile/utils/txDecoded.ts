@@ -175,7 +175,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = toBigUInt64LE(value)
     const field = TxField.TxOutValue
     const placeholders = { output: index }
-    return { field, hex, placeholders, value }
+    return { field, hex, placeholders, value: value.toString() }
   }
 
   getOutputScriptVarInt(index: number): TxDecodedField {
@@ -308,9 +308,9 @@ function toUInt32LE(value: number) {
   return hex.encode(buffer)
 }
 
-function toBigUInt64LE(value: number) {
+function toBigUInt64LE(value: bigint) {
   const buffer = Buffer.alloc(8)
-  buffer.writeBigUInt64LE(BigInt(value))
+  buffer.writeBigUInt64LE(value)
   return hex.encode(buffer)
 }
 

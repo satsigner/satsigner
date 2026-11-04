@@ -16,15 +16,24 @@ import { type TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 
+function getNip19Type(value: string): string | null {
+  try {
+    return nip19.decode(value).type
+  } catch {
+    return null
+  }
+}
+
 export function generateColorFromNpub(npub: string): string {
-  const decoded = nip19.decode(npub)
-  if (!decoded || decoded.type !== 'npub') {
+  if (getNip19Type(npub) !== 'npub') {
     return NOSTR_FALLBACK_NPUB_COLOR
   }
   const pubkey = npub
 
   // Generate color from hash - match Python's hashlib.sha256() output
-  const hash = bitcoinjs.crypto.sha256(Buffer.from(pubkey)).toString('hex')
+  const hash = Buffer.from(
+    bitcoinjs.crypto.sha256(Buffer.from(pubkey))
+  ).toString('hex')
   const seed = BigInt(`0x${hash}`)
   const hue = Number(seed % 360n) // Map to a hue value between 0-359
 
@@ -202,34 +211,113 @@ export function extractInboxRelayUrls(
   return [...new Set(urls)]
 }
 
+/** Kind 0 content as a JSON object; null when it is not one. */
+export function parseKind0Object(
+  contentJson: string
+): Record<string, unknown> | null {
+  try {
+    const content: unknown = JSON.parse(contentJson)
+    return isRecord(content) ? content : null
+  } catch {
+    return null
+  }
+}
+
+function parseKind0Record(contentJson: string): Record<string, unknown> {
+  return parseKind0Object(contentJson) ?? {}
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+const KIND0_KEYS_BY_FIELD: Record<keyof NostrKind0Profile, string[]> = {
+  banner: ['banner'],
+  displayName: ['name', 'display_name'],
+  lud16: ['lud16'],
+  nip05: ['nip05'],
+  picture: ['picture']
+}
+
+// Keys read as a fallback only, never written; clearing the field drops them.
+const KIND0_FALLBACK_KEYS_BY_FIELD: Partial<
+  Record<keyof NostrKind0Profile, string[]>
+> = {
+  displayName: ['username']
+}
+
+const KIND0_PROFILE_FIELDS: (keyof NostrKind0Profile)[] = [
+  'banner',
+  'displayName',
+  'lud16',
+  'nip05',
+  'picture'
+]
+
+/** Profile fields whose value differs; cleared fields map to undefined. */
+export function getChangedProfileFields(
+  before: NostrKind0Profile,
+  after: NostrKind0Profile
+): Partial<NostrKind0Profile> {
+  const changed: Partial<NostrKind0Profile> = {}
+  for (const field of KIND0_PROFILE_FIELDS) {
+    const value = after[field] || undefined
+    if (value !== (before[field] || undefined)) {
+      changed[field] = value
+    }
+  }
+  return changed
+}
+
+/**
+ * Kind 0 content with only the changed fields written over the latest
+ * published content, so fields edited elsewhere or unknown to this app
+ * (about, website, …) survive.
+ */
+export function buildKind0Content(
+  latestContentJson: string | undefined,
+  changes: Partial<NostrKind0Profile>
+): string {
+  const content = latestContentJson ? parseKind0Record(latestContentJson) : {}
+  const changedFields = KIND0_PROFILE_FIELDS.filter((field) => field in changes)
+  for (const field of changedFields) {
+    applyKind0Field(content, field, changes[field])
+  }
+  return JSON.stringify(content)
+}
+
+function applyKind0Field(
+  content: Record<string, unknown>,
+  field: keyof NostrKind0Profile,
+  value: string | undefined
+) {
+  if (value) {
+    for (const key of KIND0_KEYS_BY_FIELD[field]) {
+      content[key] = value
+    }
+    return
+  }
+  const fallbackKeys = KIND0_FALLBACK_KEYS_BY_FIELD[field] ?? []
+  for (const key of [...KIND0_KEYS_BY_FIELD[field], ...fallbackKeys]) {
+    delete content[key]
+  }
+}
+
 /** Parses kind 0 content JSON into a profile; null when nothing usable. */
 export function getProfileFromKind0Content(
   contentJson: string
 ): NostrKind0Profile | null {
-  try {
-    const content: unknown = JSON.parse(contentJson)
-    if (!isRecord(content)) {
-      return null
-    }
-    const displayName =
-      typeof content.name === 'string'
-        ? content.name
-        : typeof content.display_name === 'string'
-          ? content.display_name
-          : typeof content.username === 'string'
-            ? content.username
-            : undefined
-    const picture =
-      typeof content.picture === 'string' ? content.picture : undefined
-    const banner =
-      typeof content.banner === 'string' ? content.banner : undefined
-    const nip05 = typeof content.nip05 === 'string' ? content.nip05 : undefined
-    const lud16 = typeof content.lud16 === 'string' ? content.lud16 : undefined
-    if (!displayName && !picture && !banner && !nip05 && !lud16) {
-      return null
-    }
-    return { banner, displayName, lud16, nip05, picture }
-  } catch {
+  const content = parseKind0Record(contentJson)
+  const displayName =
+    optionalString(content.name) ??
+    optionalString(content.display_name) ??
+    optionalString(content.username)
+  const picture = optionalString(content.picture)
+  const banner = optionalString(content.banner)
+  const nip05 = optionalString(content.nip05)
+  const lud16 = optionalString(content.lud16)
+  if (!displayName && !picture && !banner && !nip05 && !lud16) {
     return null
   }
+  return { banner, displayName, lud16, nip05, picture }
 }

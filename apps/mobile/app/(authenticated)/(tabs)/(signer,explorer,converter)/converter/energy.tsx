@@ -42,6 +42,8 @@ const tn = _tn('converter.energy')
 
 const BTC_UNIT = 'BTC'
 const BLOCK_SIZE_UNIT = 'MB'
+// Module scope: React Compiler cannot lower bigint literals inside components.
+const OP_RETURN_OUTPUT_SATS = 0n
 
 const MINING_ADDRESS_PREFIXES = ['bcrt1', 'bcrt', 'bc1', 'bc', 'tb1', 'tb']
 
@@ -171,7 +173,7 @@ function createMerkleRoot(transactions: BlockTemplateTransaction[]) {
         // Concatenate hashes and double SHA256
         const concat = Buffer.concat([left, right])
         const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
-        newHashes.push(hash)
+        newHashes.push(Buffer.from(hash))
       }
       hashes = newHashes
     }
@@ -715,7 +717,7 @@ export default function Energy() {
       // Use BIP34 compliant height encoding
       const heightScript = encodeScriptNum(template.height)
 
-      let coinbaseScript: Buffer
+      let coinbaseScript: Uint8Array
       if (useExtraNonce) {
         const extraNonceBytes = Buffer.alloc(8)
         extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
@@ -748,12 +750,12 @@ export default function Energy() {
         template.coinbasevalue,
         Number.MAX_SAFE_INTEGER
       )
-      tx.addOutput(outputScript, safeValue)
+      tx.addOutput(outputScript, BigInt(safeValue))
 
       if (opReturnContent) {
         const data = Buffer.from(opReturnContent)
         const script = bitcoin.script.compile([bitcoin.opcodes.OP_RETURN, data])
-        tx.addOutput(script, 0)
+        tx.addOutput(script, OP_RETURN_OUTPUT_SATS)
       }
 
       if (!tx.isCoinbase()) {
@@ -763,7 +765,7 @@ export default function Energy() {
       return {
         data: tx.toHex(),
         depends: [],
-        hash: tx.getHash().toString('hex'),
+        hash: Buffer.from(tx.getHash()).toString('hex'),
         txid: tx.getId()
       }
     },

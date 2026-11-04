@@ -9,6 +9,7 @@ import * as varuint from 'varuint-bitcoin'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { bytesEqual } from '@/utils/byteArray'
 import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'
 
 initEccLib(ecc)
@@ -33,8 +34,10 @@ function isRecoveryId(value: number): value is RecoveryIdType {
 function magicHash(message: string): Buffer {
   const messageBuffer = Buffer.from(message, 'utf8')
   const lengthPrefix = varuint.encode(messageBuffer.length)
-  return bcrypto.hash256(
-    Buffer.concat([MESSAGE_MAGIC_PREFIX, lengthPrefix, messageBuffer])
+  return Buffer.from(
+    bcrypto.hash256(
+      Buffer.concat([MESSAGE_MAGIC_PREFIX, lengthPrefix, messageBuffer])
+    )
   )
 }
 
@@ -120,7 +123,7 @@ export function verifyMessageBip137(
     }
     const pubkeyBuffer = Buffer.from(pubkey)
 
-    let candidateScript: Buffer | undefined
+    let candidateScript: Uint8Array | undefined
     if (isP2sh) {
       candidateScript = payments.p2sh({
         redeem: payments.p2wpkh({ pubkey: pubkeyBuffer })
@@ -138,7 +141,7 @@ export function verifyMessageBip137(
       address,
       bitcoinjsNetwork(network)
     )
-    return candidateScript.equals(targetScript)
+    return bytesEqual(candidateScript, targetScript)
   } catch {
     return false
   }

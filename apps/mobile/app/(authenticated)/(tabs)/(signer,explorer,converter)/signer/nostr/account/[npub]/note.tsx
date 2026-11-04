@@ -73,6 +73,7 @@ import type {
 } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
+import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 import { getDecodedContentRelays } from '@/utils/nostrDecodedContent'
 import {
   getNostrErrorCode,
@@ -129,7 +130,7 @@ export default function NostrNotePage() {
     state.identities.find((i) => i.npub === npub)
   )
   const globalRelays = useNostrIdentityStore((state) => state.relays)
-  const effectiveRelays = identity?.relays ?? globalRelays
+  const effectiveRelays = getNostrIdentityRelays(identity?.relays, globalRelays)
 
   const [manualEvent, setManualEvent] = useState<NostrNoteEvent | null>(null)
   const [manualSearching, setManualSearching] = useState(false)

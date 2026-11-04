@@ -21,10 +21,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   deriveNostrKeysFromMnemonic,
   npubFromNsec
 } from '@/utils/nostrIdentity'
+import { nostrIndexHref } from '@/utils/nostrNavigation'
 
 const ROUTES = [
   { key: 'nsec', title: 'nsec' },
@@ -57,7 +59,7 @@ export default function ImportNostrIdentity() {
 
   function handleIdentityAdded() {
     toast.success(t('nostrIdentity.import.success'))
-    router.navigate('/signer/nostr')
+    router.dismissTo(nostrIndexHref())
   }
 
   async function handlePasteNsec() {
@@ -149,7 +151,7 @@ export default function ImportNostrIdentity() {
 
   function handleImportNpub() {
     const trimmed = npub.trim()
-    if (!trimmed.startsWith('npub1') || trimmed.length < 60) {
+    if (!getPubKeyHexFromNpub(trimmed)) {
       toast.error(t('nostrIdentity.import.invalidNpub'))
       return
     }

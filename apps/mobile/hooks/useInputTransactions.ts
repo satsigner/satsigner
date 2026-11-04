@@ -238,7 +238,7 @@ async function loadInputTransactions({
                   selectedNetwork === 'bitcoin'
                     ? bitcoinjs.networks.bitcoin
                     : bitcoinjs.networks.testnet
-                const outputScriptToAddress = (script: Buffer): string => {
+                const outputScriptToAddress = (script: Uint8Array): string => {
                   try {
                     return bitcoinjs.address.fromOutputScript(
                       script,
@@ -283,7 +283,7 @@ async function loadInputTransactions({
                       : '',
                     label: undefined,
                     script: [...output.script],
-                    value: output.value
+                    value: Number(output.value)
                   })),
                   vsize: parsedTx.virtualSize(),
                   weight: parsedTx.weight()
@@ -310,13 +310,13 @@ async function loadInputTransactions({
               )
               const rawTx = await rpc.getRawTransaction(txid).catch(() => null)
               if (rawTx) {
-                let blockHeight: number | undefined
-                if (rawTx.confirmations && rawTx.blockhash) {
-                  blockHeight = await rpc
-                    .getBlock(rawTx.blockhash)
-                    .then((block) => block.height)
-                    .catch(() => undefined)
-                }
+                const blockHeight: number | undefined =
+                  rawTx.confirmations && rawTx.blockhash
+                    ? await rpc
+                        .getBlock(rawTx.blockhash)
+                        .then((block) => block.height)
+                        .catch(() => undefined)
+                    : undefined
                 const mappedTx: ExtendedTransaction = {
                   address: undefined,
                   blockHeight,
@@ -452,7 +452,7 @@ async function loadInputTransactions({
                     ? bitcoinjs.networks.bitcoin
                     : bitcoinjs.networks.testnet
 
-                const outputScriptToAddress = (script: Buffer): string => {
+                const outputScriptToAddress = (script: Uint8Array): string => {
                   try {
                     return bitcoinjs.address.fromOutputScript(
                       script,
@@ -484,12 +484,14 @@ async function loadInputTransactions({
                     const prevTxid = outpointHashBytesToTxid(input.hash)
                     const prevVout = input.index
                     const prevTx = prevTxsMap.get(prevTxid)
-                    const value = prevTx?.outs[prevVout]?.value
+                    const prevOutValue = prevTx?.outs[prevVout]?.value
+                    const value =
+                      prevOutValue === undefined
+                        ? undefined
+                        : Number(prevOutValue)
 
                     let address = 'unknown'
                     if (prevTx) {
-                      // Ensure prevTx.outs[prevVout].script is a Buffer
-                      // TxDecoded stores script as Buffer, so direct use should be fine.
                       address =
                         prevTx.generateOutputScriptAddress(
                           prevVout,
@@ -516,7 +518,7 @@ async function loadInputTransactions({
                       : '',
                     label: undefined, // TODO: add label
                     script: [...output.script],
-                    value: output.value
+                    value: Number(output.value)
                   })),
                   vsize: parsedTx.virtualSize(),
                   weight: parsedTx.weight()

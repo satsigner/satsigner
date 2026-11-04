@@ -1,10 +1,17 @@
-import NDK from '@nostr-dev-kit/ndk'
+import NDK, { tryNormalizeRelayUrl } from '@nostr-dev-kit/ndk'
+
+// NDK keys a subscription's relays by these URLs but its partial-EOSE check
+// matches them against the pool's normalized URLs (trailing slash). Without
+// normalizing, one silent relay makes every subscription wait for its EOSE.
+function normalizeRelayUrls(urls: string[]): string[] {
+  return [...new Set(urls.flatMap((url) => tryNormalizeRelayUrl(url) ?? []))]
+}
 
 function createMobileNdk(explicitRelayUrls: string[]): NDK {
   return new NDK({
     autoConnectUserRelays: false,
     enableOutboxModel: false,
-    explicitRelayUrls
+    explicitRelayUrls: normalizeRelayUrls(explicitRelayUrls)
   })
 }
 
@@ -41,8 +48,13 @@ function disconnectNdkPool(ndk: NDK): void {
 // Prevents duplicate WebSocket connections when multiple screens use the same relays.
 const ndkRegistry = new Map<string, NDK>()
 
+// Keyed by normalized URLs so "wss://x" and "wss://x/" share one pool.
+function registryKey(relays: string[]): string {
+  return normalizeRelayUrls(relays).toSorted().join(',')
+}
+
 function getOrCreateNdk(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
+  const key = registryKey(relays)
   const existing = ndkRegistry.get(key)
   if (existing) {
     return existing
@@ -52,8 +64,12 @@ function getOrCreateNdk(relays: string[]): NDK {
   return ndk
 }
 
+function findNdkForRelays(relays: string[]): NDK | undefined {
+  return ndkRegistry.get(registryKey(relays))
+}
+
 function resetNdkForRelays(relays: string[]): NDK {
-  const key = [...relays].toSorted().join(',')
+  const key = registryKey(relays)
   const existing = ndkRegistry.get(key)
   if (existing) {
     disconnectNdkPool(existing)
@@ -75,6 +91,7 @@ export {
   createEphemeralNdk,
   createMobileNdk,
   disconnectNdkPool,
+  findNdkForRelays,
   getOrCreateNdk,
   ndkRegistry,
   resetNdkForRelays

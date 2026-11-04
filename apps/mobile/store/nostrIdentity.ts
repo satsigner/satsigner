@@ -43,18 +43,31 @@ const useNostrIdentityStore = create<
     (set, get) => ({
       activeIdentityNpub: null,
       addIdentity: (identity) => {
-        set((state) => {
-          if (state.identities.some((i) => i.npub === identity.npub)) {
-            return state
+        const existing = get().identities.find((i) => i.npub === identity.npub)
+        if (existing) {
+          // Re-adding a known npub must not persist the new record's empty
+          // secrets over the stored ones, but its keys can restore an
+          // identity that has none (watch-only, or keys lost).
+          if (identity.nsec && !existing.nsec) {
+            get().updateIdentity(identity.npub, {
+              isWatchOnly: false,
+              mnemonic: identity.mnemonic,
+              nsec: identity.nsec,
+              // "Save without fetching" on the re-import still means offline.
+              ...(identity.relayConnected === false
+                ? { relayConnected: false }
+                : {})
+            })
           }
-          const next: NostrIdentity = {
-            ...identity,
-            // New identities connect by default: adding one is explicit
-            // intent to use nostr. The landing-page toggle disconnects.
-            relayConnected: identity.relayConnected ?? true
-          }
-          return { identities: [...state.identities, next] }
-        })
+          return
+        }
+        const next: NostrIdentity = {
+          ...identity,
+          // New identities connect by default: adding one is explicit
+          // intent to use nostr. The landing-page toggle disconnects.
+          relayConnected: identity.relayConnected ?? true
+        }
+        set((state) => ({ identities: [...state.identities, next] }))
         void persistIdentitySecretsSafe(identity)
       },
       addRelay: (url) => {

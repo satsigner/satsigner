@@ -72,14 +72,18 @@ function deriveSampleSignetWallet() {
     network: SIGNET_NETWORK,
     pubkey: Buffer.from(changeNode.publicKey)
   }).address!
-  const receiveScript = bitcoinjs.payments.p2wpkh({
-    network: SIGNET_NETWORK,
-    pubkey: Buffer.from(receiveNode.publicKey)
-  }).output!
-  const changeScript = bitcoinjs.payments.p2wpkh({
-    network: SIGNET_NETWORK,
-    pubkey: Buffer.from(changeNode.publicKey)
-  }).output!
+  const receiveScript = Buffer.from(
+    bitcoinjs.payments.p2wpkh({
+      network: SIGNET_NETWORK,
+      pubkey: Buffer.from(receiveNode.publicKey)
+    }).output!
+  )
+  const changeScript = Buffer.from(
+    bitcoinjs.payments.p2wpkh({
+      network: SIGNET_NETWORK,
+      pubkey: Buffer.from(changeNode.publicKey)
+    }).output!
+  )
 
   return {
     changeAddress,
@@ -107,11 +111,14 @@ function buildOriginalPsbt(params: {
     sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
-      value: inputValue
+      value: BigInt(inputValue)
     }
   })
-  psbt.addOutput({ script: params.paymentScript, value: params.paymentSats })
-  psbt.addOutput({ script: params.changeScript, value: changeSats })
+  psbt.addOutput({
+    script: params.paymentScript,
+    value: BigInt(params.paymentSats)
+  })
+  psbt.addOutput({ script: params.changeScript, value: BigInt(changeSats) })
   return psbt
 }
 
@@ -129,7 +136,7 @@ function buildProposalPsbt(params: {
     sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
-      value: 100_000
+      value: 100_000n
     }
   })
   psbt.addInput({
@@ -138,13 +145,16 @@ function buildProposalPsbt(params: {
     sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'44'.repeat(20)}`, 'hex'),
-      value: 100_000
+      value: 100_000n
     }
   })
-  psbt.addOutput({ script: params.paymentScript, value: params.paymentSats })
+  psbt.addOutput({
+    script: params.paymentScript,
+    value: BigInt(params.paymentSats)
+  })
   psbt.addOutput({
     script: params.changeScript,
-    value: 100_000 + 100_000 - params.paymentSats - 500
+    value: BigInt(100_000 + 100_000 - params.paymentSats - 500)
   })
   return psbt
 }

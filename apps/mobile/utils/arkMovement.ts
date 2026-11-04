@@ -88,15 +88,20 @@ function isFeeOnlyMovement(movement: ArkMovement): boolean {
   )
 }
 
-export function isArkRefreshSubsystemName(subsystemName: string): boolean {
-  return subsystemName.toLowerCase().includes(REFRESH_SUBSYSTEM_KEYWORD)
-}
+type ArkMovementSubsystem = Pick<ArkMovement, 'subsystemKind' | 'subsystemName'>
 
-function matchesArkSubsystem(movement: ArkMovement, keyword: string): boolean {
+function matchesArkSubsystem(
+  movement: ArkMovementSubsystem,
+  keyword: string
+): boolean {
   return (
     movement.subsystemKind.toLowerCase() === keyword ||
     movement.subsystemName.toLowerCase().includes(keyword)
   )
+}
+
+export function isArkRefreshMovement(movement: ArkMovementSubsystem): boolean {
+  return matchesArkSubsystem(movement, REFRESH_SUBSYSTEM_KEYWORD)
 }
 
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
@@ -106,7 +111,7 @@ export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   if (matchesArkSubsystem(movement, BOARD_SUBSYSTEM_KEYWORD)) {
     return 'board'
   }
-  if (isArkRefreshSubsystemName(movement.subsystemName)) {
+  if (isArkRefreshMovement(movement)) {
     return 'refresh'
   }
   if (movement.effectiveBalanceSats > 0) {
@@ -317,17 +322,15 @@ export function getArkRefreshVtxoLabel(movement: ArkMovement): string {
   return t('ark.movement.refreshLabel')
 }
 
+// Only outgoing movements have a counterparty: `receivedOnAddresses` lists our
+// own receiving destinations, never the sender.
 export function getArkMovementCounterparty(
   movement: ArkMovement
 ): string | null {
-  const kind = getArkMovementKind(movement)
-  if (kind === 'refresh') {
+  if (!isOutgoingArkMovementKind(getArkMovementKind(movement))) {
     return null
   }
-  const list = isOutgoingArkMovementKind(kind)
-    ? movement.sentToAddresses
-    : movement.receivedOnAddresses
-  const [first] = list
+  const [first] = movement.sentToAddresses
   if (!first) {
     return null
   }

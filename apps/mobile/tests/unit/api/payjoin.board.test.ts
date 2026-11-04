@@ -45,11 +45,11 @@ function buildOriginalPsbt(boardSats = 50_000): string {
     sequence: 0xff_ff_ff_fd,
     witnessUtxo: {
       script: Buffer.from(`0014${'11'.repeat(20)}`, 'hex'),
-      value: 100_000
+      value: 100_000n
     }
   })
-  psbt.addOutput({ script: boardScript, value: boardSats })
-  psbt.addOutput({ script: changeScript, value: 49_000 })
+  psbt.addOutput({ script: boardScript, value: BigInt(boardSats) })
+  psbt.addOutput({ script: changeScript, value: 49_000n })
   return psbt.toBase64()
 }
 
