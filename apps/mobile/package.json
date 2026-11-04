@@ -192,7 +192,9 @@
   "expo": {
     "autolinking": {
       "android": {
-        "buildFromSource": ["expo-camera"]
+        "buildFromSource": [
+          "expo-camera"
+        ]
       },
       "nativeModulesDir": "./modules"
     },
