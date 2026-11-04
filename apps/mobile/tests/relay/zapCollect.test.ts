@@ -2,9 +2,11 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
 
 import { clearNdkRegistry } from '@/api/ndkRegistry'
 import { resetRelayHealth } from '@/api/nostrRelayHealth'
+import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { NOSTR_COLLECT_TIMEOUT_MS } from '@/constants/nostr'
 import { fetchZapsByPubkey, fetchZapsSentByPubkey } from '@/utils/nostrZap'
 
+import { zapInvoice } from './support/bolt11'
 import { BASE_CREATED_AT, fixturePubkey } from './support/fixtures'
 import { startTestRelay, type TestRelay } from './support/testRelay'
 
@@ -12,16 +14,23 @@ const ANSWERED_WELL_BEFORE_TIMEOUT_MS = NOSTR_COLLECT_TIMEOUT_MS / 3
 const PROFILE_PUBKEY = fixturePubkey(42)
 const ZAP_REQUEST_KIND = 9734
 const ZAP_RECEIPT_KIND = 9735
-const ZAP_AMOUNT_MSATS = '21000'
+const ZAP_AMOUNT_SATS = 21
 const SLOW_EOSE_MS = 300
 const UNREACHABLE_RELAY_URL = 'ws://127.0.0.1:1'
+
+type ReceiptTampering = {
+  claimedZapper?: string
+  receiptRecipient?: string
+  invoiceSats?: number
+}
 
 function signedZapReceipt(
   zapperKey: Uint8Array,
   lnurlServerKey: Uint8Array,
-  claimedZapper = getPublicKey(zapperKey)
+  tampering: ReceiptTampering = {}
 ) {
   const recipient = fixturePubkey(7)
+  const claimedZapper = tampering.claimedZapper ?? getPublicKey(zapperKey)
   const signedRequest = finalizeEvent(
     {
       content: 'thanks',
@@ -29,21 +38,32 @@ function signedZapReceipt(
       kind: ZAP_REQUEST_KIND,
       tags: [
         ['p', recipient],
-        ['amount', ZAP_AMOUNT_MSATS]
+        ['amount', String(ZAP_AMOUNT_SATS * MILLISATS_PER_SAT)]
       ]
     },
     zapperKey
   )
-  const zapRequest = { ...signedRequest, pubkey: claimedZapper }
+  const description = JSON.stringify({
+    ...signedRequest,
+    pubkey: claimedZapper
+  })
   return finalizeEvent(
     {
       content: '',
       created_at: BASE_CREATED_AT + 1,
       kind: ZAP_RECEIPT_KIND,
       tags: [
-        ['p', recipient],
+        ['p', tampering.receiptRecipient ?? recipient],
         ['P', claimedZapper],
-        ['description', JSON.stringify(zapRequest)]
+        [
+          'bolt11',
+          zapInvoice(
+            tampering.invoiceSats ?? ZAP_AMOUNT_SATS,
+            description,
+            BASE_CREATED_AT
+          )
+        ],
+        ['description', description]
       ]
     },
     lnurlServerKey
@@ -162,11 +182,30 @@ describe('outgoing zap receipts', () => {
     const relay = await startTestRelay()
     relays.push(relay)
     relay.seed([
-      signedZapReceipt(generateSecretKey(), generateSecretKey(), victim)
+      signedZapReceipt(generateSecretKey(), generateSecretKey(), {
+        claimedZapper: victim
+      })
     ])
 
     await expect(
       fetchZapsSentByPubkey(victim, [relay.url])
     ).resolves.toStrictEqual([])
   })
+
+  it.each([
+    ['recipient', { receiptRecipient: fixturePubkey(8) }],
+    ['amount', { invoiceSats: ZAP_AMOUNT_SATS + 1 }]
+  ])(
+    'ignores receipts whose %s differs from the signed zap request',
+    async (_field, tampering) => {
+      const zapperKey = generateSecretKey()
+      const relay = await startTestRelay()
+      relays.push(relay)
+      relay.seed([signedZapReceipt(zapperKey, generateSecretKey(), tampering)])
+
+      await expect(
+        fetchZapsSentByPubkey(getPublicKey(zapperKey), [relay.url])
+      ).resolves.toStrictEqual([])
+    }
+  )
 })

@@ -1,3 +1,6 @@
+import { decode as decodeBolt11 } from '@gandlaf21/bolt11-decode'
+import { sha256 } from '@noble/hashes/sha2'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils'
 import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
 import {
   type Event,
@@ -504,17 +507,70 @@ function parseSignedEvent(json: string): Event | null {
   }
 }
 
+function getTag(tags: string[][], name: string): string | undefined {
+  return tags.find((tag) => tag[0] === name)?.[1]
+}
+
+function getBolt11DescriptionHash(bolt11: string): string | null {
+  try {
+    const section = decodeBolt11(bolt11).sections.find(
+      (s: { name: string }) => s.name === 'description_hash'
+    )
+    return section?.value instanceof Uint8Array
+      ? bytesToHex(section.value)
+      : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * NIP-57: the receipt must pay exactly what the zap request asked for. A
+ * signed request can be copied into a receipt with other tags, so the
+ * recipient, note and amount are checked against it, and the invoice must
+ * commit to the request through its description hash.
+ */
+function doesReceiptMatchRequest(
+  receipt: NDKEvent,
+  zapRequest: Event,
+  description: string
+): boolean {
+  const bolt11 = getTag(receipt.tags, 'bolt11')
+  if (!bolt11) {
+    return false
+  }
+  if (getTag(receipt.tags, 'p') !== getTag(zapRequest.tags, 'p')) {
+    return false
+  }
+  if (getTag(receipt.tags, 'e') !== getTag(zapRequest.tags, 'e')) {
+    return false
+  }
+  const requestedMsats = getTag(zapRequest.tags, 'amount')
+  const invoiceMsats =
+    nip57.getSatoshisAmountFromBolt11(bolt11) * MILLISATS_PER_SAT
+  if (requestedMsats && Number(requestedMsats) !== invoiceMsats) {
+    return false
+  }
+  return (
+    getBolt11DescriptionHash(bolt11) ===
+    bytesToHex(sha256(utf8ToBytes(description)))
+  )
+}
+
 /**
  * The P tag and the zap request are both chosen by whoever publishes the
- * receipt, so only a zap request signed by this pubkey proves it zapped.
+ * receipt, so only a zap request signed by this pubkey, which the receipt
+ * matches, proves it zapped.
  */
 function isZapSignedBy(receipt: NDKEvent, pubkeyHex: string): boolean {
-  const description = receipt.tags.find((tag) => tag[0] === 'description')?.[1]
+  const description = getTag(receipt.tags, 'description')
   const zapRequest = description ? parseSignedEvent(description) : null
   return (
+    description !== undefined &&
     zapRequest?.kind === nostrKinds.ZapRequest &&
     zapRequest.pubkey === pubkeyHex &&
-    verifyEvent(zapRequest)
+    verifyEvent(zapRequest) &&
+    doesReceiptMatchRequest(receipt, zapRequest, description)
   )
 }
 
