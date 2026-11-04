@@ -79,6 +79,22 @@ describe('nostrIdentity store', () => {
     persistSecrets.mockRestore()
   })
 
+  it('addIdentity restores the keys of a known identity that has none', () => {
+    const { addIdentity } = useNostrIdentityStore.getState()
+    addIdentity({ createdAt: Date.now(), isWatchOnly: true, npub: 'npub1keys' })
+
+    addIdentity({
+      createdAt: Date.now(),
+      isWatchOnly: false,
+      npub: 'npub1keys',
+      nsec: 'nsec1keys'
+    })
+
+    expect(useNostrIdentityStore.getState().identities).toStrictEqual([
+      expect.objectContaining({ isWatchOnly: false, nsec: 'nsec1keys' })
+    ])
+  })
+
   it('addIdentity preserves an explicit disconnect choice', () => {
     useNostrIdentityStore.getState().addIdentity({
       createdAt: Date.now(),

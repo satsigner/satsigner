@@ -43,9 +43,18 @@ const useNostrIdentityStore = create<
     (set, get) => ({
       activeIdentityNpub: null,
       addIdentity: (identity) => {
-        // Re-adding a known npub (e.g. importing it watch-only) must not
-        // persist the new record's empty secrets over the stored nsec.
-        if (get().identities.some((i) => i.npub === identity.npub)) {
+        const existing = get().identities.find((i) => i.npub === identity.npub)
+        if (existing) {
+          // Re-adding a known npub must not persist the new record's empty
+          // secrets over the stored ones, but its keys can restore an
+          // identity that has none (watch-only, or keys lost).
+          if (identity.nsec && !existing.nsec) {
+            get().updateIdentity(identity.npub, {
+              isWatchOnly: false,
+              mnemonic: identity.mnemonic,
+              nsec: identity.nsec
+            })
+          }
           return
         }
         const next: NostrIdentity = {
