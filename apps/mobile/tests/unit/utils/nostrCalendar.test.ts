@@ -18,5 +18,13 @@ describe('parseCalendarDate', () => {
     expect(parseCalendarDate('20 Nov 2026')).toBeNull()
     expect(parseCalendarDate('2026-13-01')).toBeNull()
     expect(parseCalendarDate('2026-02-30')).toBeNull()
+    expect(parseCalendarDate('9'.repeat(400))).toBeNull()
+    expect(parseCalendarDate('9999999999999999')).toBeNull()
+  })
+
+  it('keeps years below 100', () => {
+    const date = new Date(0)
+    date.setUTCFullYear(99, 0, 1)
+    expect(parseCalendarDate('0099-01-01')).toBe(date.getTime() / MS_PER_SECOND)
   })
 })
