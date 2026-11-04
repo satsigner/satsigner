@@ -76,6 +76,7 @@ import {
   signingEnv,
   storedIdentity
 } from '../../../tools/release/keystore.mjs'
+import { LOCAL_ENV_FILES, buildEnvEntries } from './zapstore-build-env.mjs'
 import {
   PRODUCTION_CHANNEL,
   assertChannelCanPublish,
@@ -458,6 +459,16 @@ function sourceFingerprint() {
   }
   if (hasReleaseKeystore()) {
     hash.update(readFileSync(releaseKeystorePath))
+  }
+  for (const [name, value] of buildEnvEntries(process.env)) {
+    hash.update(`${name}\0${value}\0`)
+  }
+  for (const file of LOCAL_ENV_FILES) {
+    const envPath = path.join(MOBILE_DIR, file)
+    if (existsSync(envPath)) {
+      hash.update(file)
+      hash.update(readFileSync(envPath))
+    }
   }
   return hash.digest('hex')
 }
