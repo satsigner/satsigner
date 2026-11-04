@@ -1949,7 +1949,7 @@
         })
       }
 
-      async function runAction(action) {
+      async function runAction(action, confirmedVersion = '') {
         setBusy(true)
         statusEl.textContent =
           action === 'apk'
@@ -1963,6 +1963,7 @@
           body: JSON.stringify({
             action,
             channel: releaseChannel,
+            confirmedVersion,
             identity: apkIdentity,
             kind: apkKind,
             notes: notesEl.value
@@ -1994,11 +1995,42 @@
           showChannel()
         })
       }
-      zapstoreButton.addEventListener('click', () => runAction('zapstore'))
-      zapstoreOnlyButton.addEventListener('click', () =>
-        runAction('zapstoreOnly')
+      // Production updates every user who installed Satsigner from Zapstore,
+      // so it asks before doing anything. The publish script refuses
+      // Production unless it receives the version confirmed here.
+      function confirmProductionPublish(listing) {
+        return window.confirm(
+          `Publish ${listing.packageId} ${listing.versionName} to Production?\n\n` +
+            'This is the real Satsigner app. Everyone who installed it from Zapstore ' +
+            'will be offered this update.'
+        )
+      }
+      function runPublishAction(action) {
+        const listing = releaseStatus?.channels?.[releaseChannel]
+        if (!listing?.packageId || !listing.versionName) {
+          writeLog(
+            'Release status has not loaded yet. Try again in a moment.\n',
+            'error'
+          )
+          return
+        }
+        if (releaseChannel !== 'primary') {
+          runAction(action)
+          return
+        }
+        if (confirmProductionPublish(listing)) {
+          runAction(action, listing.versionName)
+        }
+      }
+      zapstoreButton.addEventListener('click', () =>
+        runPublishAction('zapstore')
       )
-      announceButton.addEventListener('click', () => runAction('announce'))
+      zapstoreOnlyButton.addEventListener('click', () =>
+        runPublishAction('zapstoreOnly')
+      )
+      announceButton.addEventListener('click', () =>
+        runPublishAction('announce')
+      )
       uninstallButton.addEventListener('click', () => {
         const listing = releaseStatus?.channels?.[releaseChannel] ?? {}
         const confirmed = window.confirm(
