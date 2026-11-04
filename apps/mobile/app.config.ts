@@ -103,11 +103,15 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       [
         'expo-camera',
         {
+          // Android decodes QR codes with modules/ss-qr-scanner (zxing-cpp)
+          // instead of Google ML Kit. iOS uses AVFoundation either way.
+          barcodeScannerEnabled: false,
           cameraPermission: 'Allow $(PRODUCT_NAME) to access your camera',
           microphonePermission: false,
           recordAudioAndroid: false
         }
       ],
+      './plugins/withoutGoogleDocumentScanner.cjs',
       'expo-localization',
       [
         'expo-build-properties',

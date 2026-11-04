@@ -153,6 +153,32 @@ const LOG_KIND_PATTERNS = [
   ['signer', [/^signer (relay|bridge):/]]
 ]
 
+const PUBLISH_SCRIPT = 'apps/mobile/scripts/publish-zapstore.mjs'
+
+// The script never publishes Production without a confirmation, so the console
+// forwards only the version the operator confirmed in the browser, and only
+// while it is still the version on disk.
+function buildZapstoreArgs({
+  channel,
+  confirmedVersion,
+  currentVersion,
+  only
+}) {
+  const args = [PUBLISH_SCRIPT, '--yes', '--channel', channel]
+  if (only) {
+    args.push('--only', only)
+  }
+  if (channel !== 'primary') {
+    return args
+  }
+  if (!currentVersion || confirmedVersion !== currentVersion) {
+    throw new Error(
+      'Production was not confirmed for the current version. Reload the page and try again.'
+    )
+  }
+  return [...args, '--confirm-production', currentVersion]
+}
+
 function classifyLogLine(line) {
   const match = LOG_KIND_PATTERNS.find(([, patterns]) =>
     patterns.some((pattern) => pattern.test(line))
@@ -172,6 +198,7 @@ export {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  buildZapstoreArgs,
   classifyLogLine,
   isApkName,
   isNostrRemote,
