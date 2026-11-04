@@ -6,6 +6,7 @@ import {
   buildInitArgs,
   buildLoginArgs,
   buildPushArgs,
+  buildZapstoreArgs,
   classifyLogLine,
   isApkName,
   isNostrRemote,
@@ -131,4 +132,70 @@ test('keeps a line split across output chunks together', () => {
     lines: ['BUILD SUCCESSFUL'],
     pending: '[3/4] Pub'
   })
+})
+
+test('builds zapstore args for dev channels without a production confirmation', () => {
+  assert.deepEqual(
+    buildZapstoreArgs({
+      channel: 'dev',
+      confirmedVersion: '',
+      currentVersion: '0.3.12',
+      only: 'zapstore'
+    }),
+    [
+      'apps/mobile/scripts/publish-zapstore.mjs',
+      '--yes',
+      '--channel',
+      'dev',
+      '--only',
+      'zapstore'
+    ]
+  )
+})
+
+test('forwards the confirmed version for production', () => {
+  assert.deepEqual(
+    buildZapstoreArgs({
+      channel: 'primary',
+      confirmedVersion: '0.3.12',
+      currentVersion: '0.3.12',
+      only: ''
+    }),
+    [
+      'apps/mobile/scripts/publish-zapstore.mjs',
+      '--yes',
+      '--channel',
+      'primary',
+      '--confirm-production',
+      '0.3.12'
+    ]
+  )
+})
+
+test('refuses production without a matching browser confirmation', () => {
+  for (const confirmedVersion of [undefined, '', '0.3.11', true]) {
+    assert.throws(
+      () =>
+        buildZapstoreArgs({
+          channel: 'primary',
+          confirmedVersion,
+          currentVersion: '0.3.12',
+          only: ''
+        }),
+      /not confirmed/
+    )
+  }
+})
+
+test('refuses production when the current version is unknown', () => {
+  assert.throws(
+    () =>
+      buildZapstoreArgs({
+        channel: 'primary',
+        confirmedVersion: '',
+        currentVersion: '',
+        only: ''
+      }),
+    /not confirmed/
+  )
 })

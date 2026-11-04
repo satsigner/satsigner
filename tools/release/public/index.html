@@ -1949,7 +1949,7 @@
         })
       }
 
-      async function runAction(action) {
+      async function runAction(action, confirmedVersion = '') {
         setBusy(true)
         statusEl.textContent =
           action === 'apk'
@@ -1963,6 +1963,7 @@
           body: JSON.stringify({
             action,
             channel: releaseChannel,
+            confirmedVersion,
             identity: apkIdentity,
             kind: apkKind,
             notes: notesEl.value
@@ -1995,9 +1996,9 @@
         })
       }
       // Production updates every user who installed Satsigner from Zapstore,
-      // so it asks before doing anything.
+      // so it asks before doing anything. The publish script refuses
+      // Production unless it receives the version confirmed here.
       function confirmProductionPublish() {
-        if (releaseChannel !== 'primary') return true
         const listing = releaseStatus?.channels?.primary ?? {}
         return window.confirm(
           `Publish ${listing.packageId} ${listing.versionName} to Production?\n\n` +
@@ -2006,8 +2007,12 @@
         )
       }
       function runPublishAction(action) {
-        if (confirmProductionPublish()) {
+        if (releaseChannel !== 'primary') {
           runAction(action)
+          return
+        }
+        if (confirmProductionPublish()) {
+          runAction(action, releaseStatus?.channels?.primary?.versionName ?? '')
         }
       }
       zapstoreButton.addEventListener('click', () =>

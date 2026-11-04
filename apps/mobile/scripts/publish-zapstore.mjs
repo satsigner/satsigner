@@ -14,6 +14,12 @@
  *   --blossom   Blossom server URL (default: https://cdn.zapstore.dev)
  *   --notes     Pre-fill the kind 1 announcement text (skips the interactive prompt)
  *   --yes       Publish the announcement without a second prompt
+ *   --channel   primary (Production), generic or dev. Production asks you to
+ *               type the version in a terminal; it never runs unconfirmed,
+ *               even with --yes, CI=true or AGENT=true.
+ *   --confirm-production <version>
+ *               Production confirmation for runs without a terminal. Only the
+ *               release console passes it, after its own confirm dialog.
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
  *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
  *               zsp fetches the APK from the configured source — no local build.
@@ -68,7 +74,11 @@ import {
   keystorePath as releaseKeystorePath,
   storedCertificateHash
 } from '../../../tools/release/keystore.mjs'
-import { assertChannelCanPublish } from './zapstore-channel.mjs'
+import {
+  PRODUCTION_CHANNEL,
+  assertChannelCanPublish,
+  assertProductionConfirmed
+} from './zapstore-channel.mjs'
 import {
   KIND_IDENTITY_PROOF,
   ensureIdentityProof
@@ -100,6 +110,7 @@ const { values: flags } = parseArgs({
     blossom: { type: 'string' },
     channel: { type: 'string' },
     config: { type: 'string' },
+    'confirm-production': { type: 'string' },
     'dry-run': { type: 'boolean' },
     notes: { type: 'string' },
     only: { type: 'string' },
@@ -473,6 +484,32 @@ async function runZspPublish(args, signWith, listing) {
   }
 }
 
+// ── production confirmation ───────────────────────────────────────────────────
+
+function readProductionConfirmation() {
+  if (flags['confirm-production'] !== undefined) {
+    return Promise.resolve(flags['confirm-production'])
+  }
+  if (!process.stdin.isTTY) {
+    return Promise.resolve(undefined)
+  }
+  console.log(
+    '  Production updates everyone who installed Satsigner from Zapstore.'
+  )
+  return prompt(`  Type ${APP_VERSION} to publish it to Production: `)
+}
+
+async function confirmProduction() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun) {
+    return
+  }
+  assertProductionConfirmed({
+    channel: CHANNEL,
+    confirmedVersion: await readProductionConfirmation(),
+    version: APP_VERSION
+  })
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
@@ -578,6 +615,7 @@ async function main() {
   }
 
   checkPrerequisites()
+  await confirmProduction()
 
   step(1, bunkerUrl ? 'Sign in — browser bunker' : 'Sign in — enter your key')
   console.log(
