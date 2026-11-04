@@ -216,12 +216,21 @@ function storedCertificateHash(dir = releaseDir) {
     .digest('hex')
 }
 
-function signingEnv(baseEnv) {
-  if (!hasReleaseKeystore()) {
-    return baseEnv
+function requireReleaseKeystore(dir = releaseDir) {
+  if (hasReleaseKeystore(dir)) {
+    return
   }
-  const files = keystoreFiles(releaseDir)
-  const password = readKeystorePassword()
+  throw new Error(
+    `No Android release keystore at ${keystoreFiles(dir).keystore}.\n` +
+      'Create one with: pnpm --dir tools/release keystore\n' +
+      'Release builds never fall back to the public debug key.'
+  )
+}
+
+function signingEnv(baseEnv, dir = releaseDir) {
+  requireReleaseKeystore(dir)
+  const files = keystoreFiles(dir)
+  const password = readKeystorePassword(dir)
   return {
     ...baseEnv,
     'ORG_GRADLE_PROJECT_android.injected.signing.key.alias': KEY_ALIAS,
@@ -243,6 +252,7 @@ export {
   privateKeysMatch,
   readKeystorePassword,
   releaseIdentityFromMnemonic,
+  requireReleaseKeystore,
   signingEnv,
   storedCertificateHash,
   storedIdentity,

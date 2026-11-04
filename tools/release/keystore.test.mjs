@@ -21,6 +21,7 @@ import {
   phraseMatchesKeystore,
   privateKeysMatch,
   releaseIdentityFromMnemonic,
+  signingEnv,
   storedCertificateHash,
   storedIdentity,
   writeKeystore
@@ -436,4 +437,32 @@ test('confirm fails when the password file does not open the keystore', (t) => {
   writeKeystore(phrase, dir)
   writeFileSync(join(dir, 'release.pass'), 'not-the-password\n')
   assert.throws(() => phraseMatchesKeystore(phrase, dir))
+})
+
+test('release signing refuses to build without a release keystore', (t) => {
+  const dir = tempDir(t)
+  assert.throws(
+    () => signingEnv({ PATH: '/bin' }, dir),
+    /No Android release keystore/
+  )
+})
+
+test('release signing points gradle at the release keystore', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(PHRASE, dir)
+  const env = signingEnv({ PATH: '/bin' }, dir)
+  const password = readFileSync(join(dir, 'release.pass'), 'utf8').trim()
+  assert.equal(env.PATH, '/bin')
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.store.file'],
+    join(dir, 'release.p12')
+  )
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.store.password'],
+    password
+  )
+  assert.equal(
+    env['ORG_GRADLE_PROJECT_android.injected.signing.key.alias'],
+    'satsigner'
+  )
 })
