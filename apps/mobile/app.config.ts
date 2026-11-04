@@ -37,6 +37,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
       typedRoutes: true
     },
     extra: {
+      brantaEnvironment: IS_DEV ? 'staging' : 'production',
       eas: { projectId },
       router: {
         origin: false

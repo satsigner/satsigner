@@ -134,6 +134,8 @@ export default function Developer() {
         excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
+        // branta_payees stay on the device. The payee name is already in
+        // labels when that setting is on.
         labels: account.labels,
         name: account.name,
         network: account.network,
@@ -360,6 +362,11 @@ export default function Developer() {
         skipPin: false
       })
       useSettingsStore.setState({
+        brantaClearnetLogoAllowed: false,
+        brantaLabelSyncEnabled: false,
+        brantaLookupMode: 'off',
+        brantaLookupWarningDismissed: false,
+        brantaTorEnabled: false,
         currencyUnit: 'sats',
         mnemonicWordList: DEFAULT_WORD_LIST,
         showWarning: true,

@@ -1,5 +1,6 @@
 import { type Transaction } from '@/types/models/Transaction'
 import { groupBy } from '@/utils/array'
+import { attachBrantaPayees } from '@/utils/brantaPayee'
 
 import { getDb } from '../connection'
 import {
@@ -8,6 +9,7 @@ import {
   type TxOutputRow,
   rowToTransaction
 } from '../mappers'
+import { getBrantaPayeesByAccount } from './brantaPayees'
 
 /**
  * Bulk fetching of parent/child rows.
@@ -53,13 +55,17 @@ function hydrateTransactionRows(
 ): Transaction[] {
   const inputsByTxId = getTxInputsByAccount(accountId)
   const outputsByTxId = getTxOutputsByAccount(accountId)
+  const payees = getBrantaPayeesByAccount(accountId)
 
-  return txRows.map((txRow) =>
-    rowToTransaction(
-      txRow,
-      inputsByTxId.get(txRow.id) ?? [],
-      outputsByTxId.get(txRow.id) ?? []
-    )
+  return attachBrantaPayees(
+    txRows.map((txRow) =>
+      rowToTransaction(
+        txRow,
+        inputsByTxId.get(txRow.id) ?? [],
+        outputsByTxId.get(txRow.id) ?? []
+      )
+    ),
+    payees
   )
 }
 

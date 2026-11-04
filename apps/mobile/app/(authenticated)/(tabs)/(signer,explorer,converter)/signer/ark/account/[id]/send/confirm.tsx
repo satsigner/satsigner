@@ -5,6 +5,9 @@ import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaLookupNotice from '@/components/SSBrantaLookupNotice'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
@@ -17,6 +20,7 @@ import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLnurlPayDetails } from '@/hooks/useArkLnurlPay'
 import { useArkSend } from '@/hooks/useArkSend'
+import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -43,10 +47,18 @@ import { ArkInvoiceStats, styles } from '../../[id]/pay-invoice'
 
 export default function ArkSendConfirmPage() {
   const router = useRouter()
-  const { id, destination } = useLocalSearchParams<{
-    id: string
+  const { destination, id } = useLocalSearchParams<{
     destination: string
+    id: string
   }>()
+  const {
+    lookup: lookupBrantaDestination,
+    mode: brantaLookupMode,
+    notice: brantaNotice,
+    payee: brantaPayee,
+    verifyLatest: verifyBrantaDestination
+  } = useBrantaPayeeLookup()
+  const automaticLookup = brantaLookupMode === 'always'
 
   const parsedQuery = useQuery<ArkDestinationDraft>({
     enabled: Boolean(destination),
@@ -58,6 +70,13 @@ export default function ArkSendConfirmPage() {
       return parsed.draft
     },
     queryKey: ['ark', 'send', 'parse', destination],
+    staleTime: Infinity
+  })
+
+  const payeeQuery = useQuery({
+    enabled: Boolean(destination) && automaticLookup,
+    queryFn: () => lookupBrantaDestination(destination ?? ''),
+    queryKey: ['branta', 'payee', destination],
     staleTime: Infinity
   })
 
@@ -130,7 +149,8 @@ export default function ArkSendConfirmPage() {
     !sendMutation.isPending &&
     onchainAddressNetworkValid &&
     lnurlAmountInRange &&
-    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading)
+    (draft.kind !== 'lnurl' || !lnurlPayDetailsQuery.isLoading) &&
+    !(automaticLookup && payeeQuery.isPending)
 
   function handleAmountChange(text: string) {
     setAmountInput(text.replaceAll(/[^0-9]/g, ''))
@@ -208,6 +228,18 @@ export default function ArkSendConfirmPage() {
                   </SSText>
                 )}
               </SSVStack>
+              <SSBrantaLookupModal />
+              {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+              <SSBrantaLookupNotice notice={brantaNotice} />
+              {brantaLookupMode === 'manual' ? (
+                <SSButton
+                  label={t('settings.branta.verify')}
+                  variant="outline"
+                  onPress={() => {
+                    void verifyBrantaDestination(destination ?? '')
+                  }}
+                />
+              ) : null}
               {draft.kind === 'bolt11' && draft.description && (
                 <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>

@@ -5,6 +5,7 @@ import {
   SSIconBubbles,
   SSIconFiat,
   SSIconHistoryChart,
+  SSIconLock,
   SSIconSeed,
   SSIconZero
 } from '@/components/icons'
@@ -86,6 +87,14 @@ export default function Features() {
                 icon={<SSIconBubbles width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/features/payjoin')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.branta.title')}
+                description={t('settings.branta.description')}
+                icon={<SSIconLock width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/features/branta')
                 }}
               />
             </SSVStack>

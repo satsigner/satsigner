@@ -79,7 +79,7 @@ export function buildChartData(
       balance: sum,
       date: new Date(transaction?.timestamp ?? currentDate),
       id: transaction.id,
-      memo: transaction.label ?? '',
+      memo: transaction.branta?.name || transaction.label || '',
       type: transaction.type ?? 'receive'
     }
   })
