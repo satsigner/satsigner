@@ -66,7 +66,9 @@ import {
   hasReleaseKeystore,
   readKeystorePassword,
   keystorePath as releaseKeystorePath,
-  storedCertificateHash
+  requireReleaseKeystore,
+  signingEnv,
+  storedIdentity
 } from '../../../tools/release/keystore.mjs'
 import {
   KIND_IDENTITY_PROOF,
@@ -481,6 +483,8 @@ function step(n, label) {
 }
 
 async function buildReleaseApk() {
+  requireReleaseKeystore()
+
   if (CHANNEL !== 'primary' && CHANNEL !== 'dev' && CHANNEL !== 'generic') {
     if (apkPackageId() === getVariantPackageId(false, '')) {
       throw new Error(
@@ -493,20 +497,12 @@ async function buildReleaseApk() {
       process.env.ANDROID_HOME ?? `${process.env.HOME}/Library/Android/sdk`
     await run('./gradlew', ['assembleRelease'], {
       cwd: ANDROID_DIR,
-      env: { ANDROID_HOME: androidHome }
+      env: signingEnv({ ...process.env, ANDROID_HOME: androidHome })
     })
     if (!existsSync(APK_OUTPUT)) {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
     }
     return APK_OUTPUT
-  }
-
-  if (!hasReleaseKeystore()) {
-    throw new Error(
-      'No Android release keystore at ~/.satsigner/release.p12.\n' +
-        'Create one with: pnpm --dir tools/release keystore\n' +
-        'Write down the 12 words. Zapstore rejects the public debug key.'
-    )
   }
 
   if (CHANNEL === 'primary') {
@@ -629,7 +625,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certHash: storedCertificateHash(),
+        certificate: storedIdentity().certificate,
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })
