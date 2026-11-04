@@ -676,20 +676,16 @@ export default function DesignComponents() {
         </SSScrollView>
       </SSMainLayout>
 
-      <SSModal visible={modalVisible} onClose={handleCloseModal} fullOpacity>
-        <SSVStack gap="lg" itemsCenter>
-          <SSText size="xl" weight="medium" uppercase>
-            {tn('modalTitle')}
-          </SSText>
-          <SSText color="muted" center>
-            {tn('modalBody')}
-          </SSText>
-          <SSButton
-            label={t('common.confirm')}
-            variant="gradient"
-            onPress={handleCloseModal}
-          />
-        </SSVStack>
+      <SSModal
+        visible={modalVisible}
+        title={tn('modalTitle')}
+        onConfirm={handleCloseModal}
+        onClose={handleCloseModal}
+        fullOpacity
+      >
+        <SSText color="muted" center>
+          {tn('modalBody')}
+        </SSText>
       </SSModal>
     </>
   )
