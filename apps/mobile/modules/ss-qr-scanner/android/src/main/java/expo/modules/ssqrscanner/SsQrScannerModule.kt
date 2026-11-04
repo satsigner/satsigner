@@ -8,7 +8,7 @@ class SsQrScannerModule : Module() {
     Name("SsQrScanner")
 
     View(SsQrScannerView::class) {
-      Events("onCodeScanned")
+      Events("onCodeScanned", "onCameraError")
 
       Prop("scanning") { view: SsQrScannerView, scanning: Boolean ->
         view.scanning = scanning

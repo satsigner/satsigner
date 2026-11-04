@@ -36,6 +36,7 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
   override val shouldUseAndroidLayout = true
 
   private val onCodeScanned by EventDispatcher()
+  private val onCameraError by EventDispatcher()
   private val previewView = PreviewView(context).apply {
     layoutParams = ViewGroup.LayoutParams(
       ViewGroup.LayoutParams.MATCH_PARENT,
@@ -56,6 +57,7 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
   private var zoom = 0f
   private var lastPayload: String? = null
   private var lastReportedAt = 0L
+  private var released = false
 
   @Volatile
   var scanning = true
@@ -80,42 +82,66 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
   }
 
   fun release() {
+    released = true
     cameraProvider?.unbindAll()
     analysisExecutor.shutdown()
   }
 
   private fun startCamera() {
+    if (released) {
+      return
+    }
     val lifecycleOwner = appContext.currentActivity as? LifecycleOwner ?: return
     val providerFuture = ProcessCameraProvider.getInstance(context)
     providerFuture.addListener({
-      val provider = providerFuture.get()
-      cameraProvider = provider
-      val preview = Preview.Builder().build().also {
-        it.surfaceProvider = previewView.surfaceProvider
+      // The provider resolves asynchronously: the view may have been released
+      // or detached meanwhile, and binding then would leave the camera on with
+      // nothing left to unbind it.
+      if (released || !isAttachedToWindow) {
+        return@addListener
       }
-      val analysis = ImageAnalysis.Builder()
-        .setResolutionSelector(
-          ResolutionSelector.Builder()
-            .setResolutionStrategy(
-              ResolutionStrategy(
-                ANALYSIS_TARGET_SIZE,
-                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
-              )
-            )
-            .build()
-        )
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .build()
-      analysis.setAnalyzer(analysisExecutor, ::analyze)
-      provider.unbindAll()
-      camera = provider.bindToLifecycle(
-        lifecycleOwner,
-        CameraSelector.DEFAULT_BACK_CAMERA,
-        preview,
-        analysis
-      )
-      camera?.cameraControl?.setLinearZoom(zoom)
+      try {
+        bindCamera(providerFuture.get(), lifecycleOwner)
+      } catch (error: Exception) {
+        reportCameraError(error)
+      }
     }, ContextCompat.getMainExecutor(context))
+  }
+
+  private fun bindCamera(provider: ProcessCameraProvider, lifecycleOwner: LifecycleOwner) {
+    cameraProvider = provider
+    val preview = Preview.Builder().build().also {
+      it.surfaceProvider = previewView.surfaceProvider
+    }
+    val analysis = ImageAnalysis.Builder()
+      .setResolutionSelector(
+        ResolutionSelector.Builder()
+          .setResolutionStrategy(
+            ResolutionStrategy(
+              ANALYSIS_TARGET_SIZE,
+              ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+            )
+          )
+          .build()
+      )
+      .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+      .build()
+    analysis.setAnalyzer(analysisExecutor, ::analyze)
+    provider.unbindAll()
+    camera = provider.bindToLifecycle(
+      lifecycleOwner,
+      CameraSelector.DEFAULT_BACK_CAMERA,
+      preview,
+      analysis
+    )
+    camera?.cameraControl?.setLinearZoom(zoom)
+  }
+
+  // No back camera, camera in use by another app, or disabled by device policy.
+  private fun reportCameraError(error: Exception) {
+    camera = null
+    cameraProvider?.unbindAll()
+    onCameraError(mapOf("message" to (error.message ?: error.javaClass.simpleName)))
   }
 
   private fun analyze(image: ImageProxy) {
