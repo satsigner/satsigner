@@ -10,7 +10,10 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout } from '@/styles'
 import { error, gray, warning } from '@/styles/colors'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
-import { registerDevConsoleSecretTap } from '@/utils/devConsole'
+import {
+  isDevConsoleAvailable,
+  registerDevConsoleSecretTap
+} from '@/utils/devConsole'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 void loadAuthenticatedSession()
@@ -24,6 +27,9 @@ function handleTitlePress() {
   }
   toast(enabled ? t('devConsole.turnedOn') : t('devConsole.turnedOff'))
 }
+
+// Production gets a plain title, so screen readers do not announce a button.
+const titlePressHandler = isDevConsoleAvailable() ? handleTitlePress : undefined
 
 export default function Unlock() {
   const router = useRouter()
@@ -104,7 +110,7 @@ export default function Unlock() {
       <SSPinAuth
         onSuccess={handleSuccess}
         onFail={handleFailure}
-        onTitlePress={handleTitlePress}
+        onTitlePress={titlePressHandler}
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}
         feedbackColor={getWarningColor()}
