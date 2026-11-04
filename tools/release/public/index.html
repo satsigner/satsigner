@@ -690,9 +690,10 @@
                   </button>
                   <p id="uninstall-hint" class="hint span" hidden>
                     Removes this app and all its data, including any wallets,
-                    from every Android device connected over USB. Use it before
-                    installing a build signed with a different key, which
-                    Android refuses to install over the old one.
+                    from every device adb lists as ready, including emulators
+                    and wireless connections. Use it before installing a build
+                    signed with a different key, which Android refuses to
+                    install over the old one.
                   </p>
                   <button
                     id="manage-listings"
@@ -902,6 +903,12 @@
       function rememberDeleted(id, key = DELETED_RELEASES_KEY) {
         const ids = readDeletedIds(key)
         ids.add(id)
+        localStorage.setItem(key, JSON.stringify([...ids]))
+      }
+
+      function forgetDeleted(id, key = DELETED_RELEASES_KEY) {
+        const ids = readDeletedIds(key)
+        if (!ids.delete(id)) return
         localStorage.setItem(key, JSON.stringify([...ids]))
       }
 
@@ -1139,7 +1146,32 @@
           return
         }
         const events = await fetchPublishedApps(signerPubkey)
+        await clearUnconfirmedAppDeletions(events)
         renderApps(events)
+      }
+
+      async function clearUnconfirmedAppDeletions(listings) {
+        const deleted = readDeletedIds(DELETED_APPS_KEY)
+        const marked = listings.filter((event) =>
+          deleted.has(tagValue(event, 'd'))
+        )
+        if (marked.length === 0) return
+        const { complete, events } = await queryEvents(ZAPSTORE_RELAY, {
+          kinds: [5],
+          authors: [signerPubkey],
+          '#e': marked.map((event) => event.id)
+        })
+        if (!complete) return
+        const requested = new Set(
+          events.flatMap((event) =>
+            event.tags.filter((tag) => tag[0] === 'e').map((tag) => tag[1])
+          )
+        )
+        for (const listing of marked) {
+          if (!requested.has(listing.id)) {
+            forgetDeleted(tagValue(listing, 'd'), DELETED_APPS_KEY)
+          }
+        }
       }
 
       function nextCreatedAt(event) {
@@ -1297,16 +1329,15 @@
             return
           }
           const saved = await confirmSaved(signed, 'the deletion request')
-          const listing = await fetchEventById(ZAPSTORE_RELAY, original.id)
-          writeLog(
-            listing
-              ? '  the relay still serves the listing\n'
-              : '  ok      the relay no longer serves the listing\n',
-            listing ? 'detail' : 'success'
-          )
-          if (!saved && listing) {
+          const listing = await readEventById(ZAPSTORE_RELAY, original.id)
+          const [listingLog, listingKind] = LISTING_READ_LOGS[listing.status]
+          writeLog(listingLog, listingKind)
+          if (!saved && listing.status !== 'missing') {
             button.disabled = false
-            statusEl.textContent = 'Zapstore did not save the deletion request.'
+            statusEl.textContent =
+              listing.status === 'unknown'
+                ? 'Could not confirm the deletion. Try again later.'
+                : 'Zapstore did not save the deletion request.'
             writeLog(`Delete ${packageId} failed\n`, 'error')
             return
           }
@@ -1334,16 +1365,16 @@
         )
       }
 
-      function fetchEvents(url, filter) {
+      function queryEvents(url, filter) {
         return new Promise((resolve) => {
           const found = []
           const socket = new WebSocket(url)
-          const finish = () => {
+          const finish = (complete) => {
             clearTimeout(timer)
             socket.close()
-            resolve(found)
+            resolve({ complete, events: found })
           }
-          const timer = setTimeout(finish, RELEASE_QUERY_MS)
+          const timer = setTimeout(() => finish(false), RELEASE_QUERY_MS)
           socket.addEventListener('open', () => {
             socket.send(JSON.stringify(['REQ', 'query', filter]))
           })
@@ -1353,18 +1384,31 @@
               if (frame[0] === 'EVENT' && typeof frame[2]?.id === 'string') {
                 found.push(frame[2])
               }
-              if (frame[0] === 'EOSE' || frame[0] === 'CLOSED') finish()
+              if (frame[0] === 'EOSE') finish(true)
+              if (frame[0] === 'CLOSED') finish(false)
             } catch {
-              finish()
+              finish(false)
             }
           })
-          socket.addEventListener('error', finish)
+          socket.addEventListener('error', () => finish(false))
         })
       }
 
+      async function fetchEvents(url, filter) {
+        const { events } = await queryEvents(url, filter)
+        return events
+      }
+
+      async function readEventById(url, id) {
+        const { complete, events } = await queryEvents(url, { ids: [id] })
+        const event = events.find((item) => item.id === id) ?? null
+        if (event) return { event, status: 'found' }
+        return { event: null, status: complete ? 'missing' : 'unknown' }
+      }
+
       async function fetchEventById(url, id) {
-        const events = await fetchEvents(url, { ids: [id] })
-        return events.find((event) => event.id === id) ?? null
+        const { event } = await readEventById(url, id)
+        return event
       }
 
       async function waitForSavedEvent(url, id, attemptsLeft) {
@@ -1544,6 +1588,15 @@
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
+      const STATUS_REFRESH_MS = 15000
+      const LISTING_READ_LOGS = {
+        found: ['  the relay still serves the listing\n', 'detail'],
+        missing: [
+          '  ok      the relay no longer serves the listing\n',
+          'success'
+        ],
+        unknown: ['  could not read the listing back from the relay\n', 'error']
+      }
       // Zapstore saves a developer listing after reading its APK, off the
       // request path, which takes up to about a minute.
       const SAVE_CHECK_ATTEMPTS = 18
@@ -1834,6 +1887,20 @@
         )
       }
 
+      const loggedStatus = { origin: '' }
+      const statusRefresh = { pending: null }
+
+      function refreshStatusInBackground() {
+        if (statusRefresh.pending || document.visibilityState !== 'visible') {
+          return
+        }
+        statusRefresh.pending = refreshStatus()
+          .catch(() => {})
+          .finally(() => {
+            statusRefresh.pending = null
+          })
+      }
+
       async function refreshStatus() {
         const response = await fetch('/api/status')
         const status = await response.json()
@@ -1850,9 +1917,10 @@
         pushButton.textContent = status.published
           ? `Sync ${branch}`
           : `Push ${branch}`
-        if (status.origin) {
+        if (status.origin && status.origin !== loggedStatus.origin) {
           writeLog(`origin ${status.origin}\n`)
         }
+        loggedStatus.origin = status.origin
         releaseStatus = status
         showChannel()
         showApkSelection()
@@ -2074,6 +2142,9 @@
       }
       refreshStatus()
       refreshListings()
+      setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
+      window.addEventListener('focus', refreshStatusInBackground)
+      document.addEventListener('visibilitychange', refreshStatusInBackground)
     </script>
   </body>
 </html>
