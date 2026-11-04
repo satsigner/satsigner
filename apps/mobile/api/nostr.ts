@@ -121,8 +121,8 @@ import {
   createEphemeralNdk,
   createMobileNdk,
   disconnectNdkPool,
-  getOrCreateNdk,
-  ndkRegistry
+  findNdkForRelays,
+  getOrCreateNdk
 } from './ndkRegistry'
 import {
   connectToFirstRelay,
@@ -198,8 +198,7 @@ export async function testNostrRelaysReachable(
   // Check the shared registry NDK first — if it has live connections, trust
   // its pool state instead of probing with a fresh NDK (which would race
   // against existing sockets and often report "unreachable" while data flows).
-  const registryKey = [...relayUrls].toSorted().join(',')
-  const registryNdk = ndkRegistry.get(registryKey)
+  const registryNdk = findNdkForRelays(relayUrls)
   if (!options?.waitForAll && registryNdk?.pool) {
     const connected = registryNdk.pool.connectedRelays().map((r) => r.url)
     if (connected.length > 0) {

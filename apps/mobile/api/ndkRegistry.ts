@@ -64,6 +64,10 @@ function getOrCreateNdk(relays: string[]): NDK {
   return ndk
 }
 
+function findNdkForRelays(relays: string[]): NDK | undefined {
+  return ndkRegistry.get(registryKey(relays))
+}
+
 function resetNdkForRelays(relays: string[]): NDK {
   const key = registryKey(relays)
   const existing = ndkRegistry.get(key)
@@ -87,6 +91,7 @@ export {
   createEphemeralNdk,
   createMobileNdk,
   disconnectNdkPool,
+  findNdkForRelays,
   getOrCreateNdk,
   ndkRegistry,
   resetNdkForRelays
