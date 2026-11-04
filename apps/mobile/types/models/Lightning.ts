@@ -5,7 +5,7 @@ export type Bolt11Decoded = {
 
 export type Bolt11Section = {
   name: string
-  value: string | number
+  value: string | number | Uint8Array
 }
 
 export type LightningChannelHistoryRow = {

@@ -7,6 +7,16 @@ import type {
   LNDDecodedInvoice
 } from '@/types/models/Lightning'
 
+// The decoder returns byte sections (payment hash, payment secret) as
+// Buffers; toString() would decode them as UTF-8 instead of hex.
+function bolt11SectionToString(section: Bolt11Section | undefined): string {
+  const value = section?.value
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value).toString('hex')
+  }
+  return (value || '').toString()
+}
+
 function mapBolt11DecodeToDecodedInvoice(
   bolt11Decoded: Bolt11Decoded,
   originalInvoice: string
@@ -50,9 +60,9 @@ function mapBolt11DecodeToDecodedInvoice(
     num_msat: numMsats.toString(),
     num_satoshis: numSatoshis,
     payment_addr: '',
-    payment_hash: (paymentHashSection?.value || '').toString(),
+    payment_hash: bolt11SectionToString(paymentHashSection),
     payment_request: originalInvoice,
-    payment_secret: (paymentSecretSection?.value || '').toString(),
+    payment_secret: bolt11SectionToString(paymentSecretSection),
     route_hints: bolt11Decoded.route_hints || [],
     timestamp: (timestampSection?.value || '').toString(),
     value: numSatoshis

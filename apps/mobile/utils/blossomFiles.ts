@@ -5,7 +5,10 @@ import {
 } from '@/api/blossom'
 import { NostrAPI } from '@/api/nostr'
 import { BYTES_PER_KIB } from '@/constants/format'
-import { NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH } from '@/constants/nostr'
+import {
+  NOSTR_BLOSSOM_DEFAULT_SERVER,
+  NOSTR_BLOSSOM_FILE_DISPLAY_HASH_LENGTH
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
 import {
@@ -200,16 +203,21 @@ export function blossomFilesQueryKey(pubkeyHex: string, servers: string[]) {
   return ['blossom', 'files', pubkeyHex, servers.join(',')] as const
 }
 
-export function resolveBlossomServers(
+/**
+ * Configured servers, else the kind 10063 list, else the server uploads use
+ * by default, so files uploaded from this app are always listed.
+ */
+export async function resolveBlossomServers(
   pubkeyHex: string,
   configuredServers: string[],
   relays: string[]
 ): Promise<string[]> {
   if (configuredServers.length > 0) {
-    return Promise.resolve(configuredServers)
+    return configuredServers
   }
 
-  return fetchKind10063Servers(pubkeyHex, relays)
+  const discovered = await fetchKind10063Servers(pubkeyHex, relays)
+  return discovered.length > 0 ? discovered : [NOSTR_BLOSSOM_DEFAULT_SERVER]
 }
 
 export function getBlossomRelays(

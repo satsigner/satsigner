@@ -1,4 +1,10 @@
+import { generateSecretKey, nip19 } from 'nostr-tools'
+
 import { listBlossomFiles } from '@/api/blossom'
+
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
 
 const SERVER_URL = 'https://blossom.example'
 const PUBKEY_HEX = 'a'.repeat(64)
@@ -80,5 +86,36 @@ describe('listBlossomFiles', () => {
     await expect(
       listBlossomFiles(SERVER_URL, PUBKEY_HEX)
     ).resolves.toStrictEqual([])
+  })
+
+  it('signs the first list request when the identity has an nsec', async () => {
+    mockFetchOnce(JSON.stringify([blob]))
+    const nsec = nip19.nsecEncode(generateSecretKey())
+
+    await expect(
+      listBlossomFiles(SERVER_URL, PUBKEY_HEX, nsec)
+    ).resolves.toStrictEqual([blob])
+
+    const [, init] = jest.mocked(global.fetch).mock.lastCall ?? []
+    const authorization = new Headers(init?.headers).get('Authorization') ?? ''
+    const authEvent = JSON.parse(
+      Buffer.from(authorization.replace('Nostr ', ''), 'base64').toString()
+    )
+    expect(authEvent.tags).toContainEqual(['server', 'blossom.example'])
+    expect(authEvent.tags).toContainEqual(['t', 'list'])
+  })
+
+  it('sends no auth without an nsec or over plain http', async () => {
+    const nsec = nip19.nsecEncode(generateSecretKey())
+
+    mockFetchOnce(JSON.stringify([blob]))
+    await listBlossomFiles(SERVER_URL, PUBKEY_HEX)
+    const [, withoutNsec] = jest.mocked(global.fetch).mock.lastCall ?? []
+    expect(new Headers(withoutNsec?.headers).has('Authorization')).toBe(false)
+
+    mockFetchOnce(JSON.stringify([blob]))
+    await listBlossomFiles('http://blossom.example', PUBKEY_HEX, nsec)
+    const [, overHttp] = jest.mocked(global.fetch).mock.lastCall ?? []
+    expect(new Headers(overHttp?.headers).has('Authorization')).toBe(false)
   })
 })

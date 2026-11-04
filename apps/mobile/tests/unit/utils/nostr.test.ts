@@ -1,10 +1,12 @@
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import {
+  buildKind0Content,
   compressMessage,
   decompressMessage,
   deriveNostrKeysFromDescriptor,
   extractInboxRelayUrls,
   generateColorFromNpub,
+  getChangedProfileFields,
   getProfileFromKind0Content,
   getPubKeyHexFromNpub,
   parseNostrTransaction
@@ -105,16 +107,16 @@ describe('generateColorFromNpub', () => {
     jest.clearAllMocks()
   })
 
-  it('throws for invalid npub', () => {
+  it('returns default color for undecodable npub', () => {
     const { nip19 } = require('nostr-tools')
     nip19.decode.mockImplementation(() => {
       throw new Error('Invalid bech32')
     })
-    expect(() => generateColorFromNpub(nostrKeys.invalid.npub)).toThrow(
-      expect.any(Error)
+    expect(generateColorFromNpub(nostrKeys.invalid.npub)).toBe(
+      NOSTR_FALLBACK_NPUB_COLOR
     )
-    expect(() => generateColorFromNpub(nostrKeys.invalid.notBech32)).toThrow(
-      expect.any(Error)
+    expect(generateColorFromNpub(nostrKeys.invalid.notBech32)).toBe(
+      NOSTR_FALLBACK_NPUB_COLOR
     )
   })
 
@@ -304,5 +306,74 @@ describe('getProfileFromKind0Content', () => {
     expect(getProfileFromKind0Content('null')).toBeNull()
     expect(getProfileFromKind0Content('["Satoshi"]')).toBeNull()
     expect(getProfileFromKind0Content('not json')).toBeNull()
+  })
+})
+
+describe('getChangedProfileFields', () => {
+  it('returns only the fields that changed, with cleared ones as undefined', () => {
+    expect(
+      getChangedProfileFields(
+        { displayName: 'Satoshi', lud16: 'old@ln.tips', nip05: 'a@b.c' },
+        { displayName: 'Satoshi', lud16: '', nip05: 'new@b.c' }
+      )
+    ).toStrictEqual({ lud16: undefined, nip05: 'new@b.c' })
+  })
+
+  it('treats empty and missing values as the same', () => {
+    expect(getChangedProfileFields({ banner: '' }, {})).toStrictEqual({})
+  })
+})
+
+describe('buildKind0Content', () => {
+  it('writes the changed fields when there is no published profile', () => {
+    expect(
+      JSON.parse(
+        buildKind0Content(undefined, {
+          displayName: 'Satoshi',
+          picture: 'https://example.com/avatar.png'
+        })
+      )
+    ).toStrictEqual({
+      display_name: 'Satoshi',
+      name: 'Satoshi',
+      picture: 'https://example.com/avatar.png'
+    })
+  })
+
+  it('leaves fields that did not change untouched', () => {
+    const latest = JSON.stringify({
+      about: 'bitcoiner',
+      display_name: 'Satoshi Nakamoto',
+      lud16: 'satoshi@ln.tips',
+      name: 'satoshi'
+    })
+    expect(
+      JSON.parse(buildKind0Content(latest, { nip05: 'satoshi@example.com' }))
+    ).toStrictEqual({
+      about: 'bitcoiner',
+      display_name: 'Satoshi Nakamoto',
+      lud16: 'satoshi@ln.tips',
+      name: 'satoshi',
+      nip05: 'satoshi@example.com'
+    })
+  })
+
+  it('removes fields that were cleared', () => {
+    const latest = JSON.stringify({ about: 'bitcoiner', lud16: 'old@ln.tips' })
+    expect(
+      JSON.parse(buildKind0Content(latest, { lud16: undefined }))
+    ).toStrictEqual({ about: 'bitcoiner' })
+  })
+
+  it('drops the username fallback when the display name is cleared', () => {
+    const latest = JSON.stringify({ name: 'satoshi', username: 'satoshi' })
+    expect(
+      JSON.parse(buildKind0Content(latest, { displayName: undefined }))
+    ).toStrictEqual({})
+  })
+
+  it('ignores published content that is not a JSON object', () => {
+    expect(JSON.parse(buildKind0Content('not json', {}))).toStrictEqual({})
+    expect(JSON.parse(buildKind0Content('[1,2]', {}))).toStrictEqual({})
   })
 })

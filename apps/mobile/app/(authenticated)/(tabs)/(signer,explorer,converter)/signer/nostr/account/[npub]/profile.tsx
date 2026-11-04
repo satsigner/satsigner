@@ -8,12 +8,14 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_BLOSSOM_DEFAULT_SERVER } from '@/constants/nostr'
 import useBlossomImageUpload from '@/hooks/useBlossomImageUpload'
+import { useNostrProfileSave } from '@/hooks/useNostrProfileSave'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 
 type ProfileParams = {
   npub: string
@@ -26,7 +28,11 @@ export default function NostrIdentityProfile() {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
-  const updateIdentity = useNostrIdentityStore((state) => state.updateIdentity)
+  const {
+    isPending: isSaving,
+    mutate: saveProfile,
+    publishes
+  } = useNostrProfileSave(identity)
 
   const [displayName, setDisplayName] = useState(identity?.displayName ?? '')
   const [pictureUrl, setPictureUrl] = useState(identity?.picture ?? '')
@@ -55,21 +61,28 @@ export default function NostrIdentityProfile() {
     }
   }
 
-  function handleSave() {
-    if (!npub) {
-      return
-    }
-
-    updateIdentity(npub, {
-      banner: bannerUrl || undefined,
-      displayName: displayName || undefined,
-      lud16: lud16 || undefined,
-      nip05: nip05 || undefined,
-      picture: pictureUrl || undefined
-    })
-
+  function handleSaveSuccess() {
     toast.success(t('nostrIdentity.settings.saved'))
     router.back()
+  }
+
+  function handleSaveError(error: Error) {
+    toast.error(
+      `${t('nostrIdentity.profile.publishFailed')}: ${getNostrErrorMessage(error)}`
+    )
+  }
+
+  function handleSave() {
+    saveProfile(
+      {
+        banner: bannerUrl || undefined,
+        displayName: displayName || undefined,
+        lud16: lud16 || undefined,
+        nip05: nip05 || undefined,
+        picture: pictureUrl || undefined
+      },
+      { onError: handleSaveError, onSuccess: handleSaveSuccess }
+    )
   }
 
   if (!identity) {
@@ -226,8 +239,13 @@ export default function NostrIdentityProfile() {
           </SSVStack>
 
           <SSButton
-            label={t('nostrIdentity.settings.save')}
+            label={
+              publishes
+                ? t('nostrIdentity.profile.saveAndPublish')
+                : t('nostrIdentity.settings.save')
+            }
             variant="secondary"
+            loading={isSaving}
             onPress={handleSave}
           />
         </SSVStack>
