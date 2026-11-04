@@ -35,8 +35,27 @@ function assertProductionConfirmed({ channel, confirmedVersion, version }) {
   }
 }
 
+// zsp tags the release with HEAD, so production must be built from a commit
+// anyone can find on the remote.
+function assertProductionSource({ channel, cleanTree, onRemote }) {
+  if (channel !== PRODUCTION_CHANNEL) {
+    return
+  }
+  if (!cleanTree) {
+    throw new Error(
+      'Production must be built from a clean tree. Commit or stash your changes first.'
+    )
+  }
+  if (!onRemote) {
+    throw new Error(
+      'Production must be built from a pushed commit. Push HEAD to the remote first.'
+    )
+  }
+}
+
 export {
   PRODUCTION_CHANNEL,
   assertChannelCanPublish,
-  assertProductionConfirmed
+  assertProductionConfirmed,
+  assertProductionSource
 }

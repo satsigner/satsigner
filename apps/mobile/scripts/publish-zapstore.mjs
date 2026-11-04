@@ -77,7 +77,8 @@ import {
 import {
   PRODUCTION_CHANNEL,
   assertChannelCanPublish,
-  assertProductionConfirmed
+  assertProductionConfirmed,
+  assertProductionSource
 } from './zapstore-channel.mjs'
 import {
   KIND_IDENTITY_PROOF,
@@ -424,6 +425,23 @@ function isCleanTree() {
   return git(['status', '--porcelain']).toString().trim() === ''
 }
 
+function isHeadOnRemote() {
+  return (
+    git(['branch', '--remotes', '--contains', 'HEAD']).toString().trim() !== ''
+  )
+}
+
+function checkProductionSource() {
+  if (CHANNEL !== PRODUCTION_CHANNEL || dryRun || ANNOUNCE_ONLY) {
+    return
+  }
+  assertProductionSource({
+    channel: CHANNEL,
+    cleanTree: isCleanTree(),
+    onRemote: isHeadOnRemote()
+  })
+}
+
 function sourceFingerprint() {
   const hash = createHash('sha256')
   hash.update(git(['rev-parse', 'HEAD']))
@@ -615,6 +633,7 @@ async function main() {
   }
 
   checkPrerequisites()
+  checkProductionSource()
   await confirmProduction()
 
   step(1, bunkerUrl ? 'Sign in — browser bunker' : 'Sign in — enter your key')

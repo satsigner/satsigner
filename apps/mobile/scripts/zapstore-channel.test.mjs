@@ -3,7 +3,8 @@ import test from 'node:test'
 
 import {
   assertChannelCanPublish,
-  assertProductionConfirmed
+  assertProductionConfirmed,
+  assertProductionSource
 } from './zapstore-channel.mjs'
 
 test('refuses to publish without the release keystore', () => {
@@ -63,6 +64,48 @@ test('accepts production when the confirmed version matches', () => {
       channel: 'primary',
       confirmedVersion: ' 0.3.12 ',
       version: '0.3.12'
+    })
+  )
+})
+
+test('dev and generic channels publish from any tree', () => {
+  for (const channel of ['dev', 'generic']) {
+    assert.doesNotThrow(() =>
+      assertProductionSource({ channel, cleanTree: false, onRemote: false })
+    )
+  }
+})
+
+test('refuses production from a dirty tree', () => {
+  assert.throws(
+    () =>
+      assertProductionSource({
+        channel: 'primary',
+        cleanTree: false,
+        onRemote: true
+      }),
+    /clean tree/
+  )
+})
+
+test('refuses production from an unpushed commit', () => {
+  assert.throws(
+    () =>
+      assertProductionSource({
+        channel: 'primary',
+        cleanTree: true,
+        onRemote: false
+      }),
+    /pushed commit/
+  )
+})
+
+test('allows production from a clean, pushed commit', () => {
+  assert.doesNotThrow(() =>
+    assertProductionSource({
+      channel: 'primary',
+      cleanTree: true,
+      onRemote: true
     })
   )
 })
