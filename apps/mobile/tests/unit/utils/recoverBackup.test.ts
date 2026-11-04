@@ -1,3 +1,4 @@
+import { RESTORE_ROLLBACK_ATTEMPTS } from '@/constants/backup'
 import { useSettingsStore } from '@/store/settings'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
@@ -988,6 +989,45 @@ describe('performRecoverOverwrite restore', () => {
     expect(encrypted.deleteNostrIdentitySecret).toHaveBeenCalledWith(
       'npub1backup'
     )
+  })
+
+  it('reports an incomplete rollback when every rollback attempt fails', async () => {
+    const { storeKeySecret } = jest.requireMock('@/storage/encrypted') as {
+      storeKeySecret: jest.Mock
+    }
+    const { rollbackPersistedState } = jest.requireMock(
+      '@/utils/restoreRollback'
+    ) as { rollbackPersistedState: jest.Mock }
+    storeKeySecret.mockRejectedValueOnce(new Error('keychain full'))
+    rollbackPersistedState.mockRejectedValue(new Error('disk gone'))
+
+    const result = await performRecoverOverwrite(minimalBackup())
+
+    rollbackPersistedState.mockResolvedValue(undefined)
+    expect(result).toStrictEqual({
+      error: 'keychain full',
+      rollbackIncomplete: true,
+      success: false
+    })
+    expect(rollbackPersistedState).toHaveBeenCalledTimes(
+      RESTORE_ROLLBACK_ATTEMPTS
+    )
+  })
+
+  it('retries a rollback that fails once and reports a plain failure', async () => {
+    const { storeKeySecret } = jest.requireMock('@/storage/encrypted') as {
+      storeKeySecret: jest.Mock
+    }
+    const { rollbackPersistedState } = jest.requireMock(
+      '@/utils/restoreRollback'
+    ) as { rollbackPersistedState: jest.Mock }
+    storeKeySecret.mockRejectedValueOnce(new Error('keychain full'))
+    rollbackPersistedState.mockRejectedValueOnce(new Error('busy'))
+
+    const result = await performRecoverOverwrite(minimalBackup())
+
+    expect(result).toStrictEqual({ error: 'keychain full', success: false })
+    expect(rollbackPersistedState).toHaveBeenCalledTimes(2)
   })
 
   it('changes nothing when the persisted state cannot be snapshotted', async () => {

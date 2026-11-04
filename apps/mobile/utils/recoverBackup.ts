@@ -1,3 +1,4 @@
+import { RESTORE_ROLLBACK_ATTEMPTS } from '@/constants/backup'
 import {
   deleteArkMnemonic,
   deleteEcashMnemonic,
@@ -59,6 +60,7 @@ import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
 import {
   type PersistedSnapshot,
+  type RestoredIds,
   rollbackPersistedState,
   snapshotPersistedState
 } from '@/utils/restoreRollback'
@@ -153,7 +155,7 @@ type StoreSnapshot = {
 }
 
 export type RecoverResult =
-  | { success: false; error: string }
+  | { success: false; error: string; rollbackIncomplete?: true }
   | { success: true }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
@@ -530,6 +532,21 @@ async function removeLeftovers(
   ])
 }
 
+async function rollbackWithRetries(
+  snapshot: PersistedSnapshot,
+  restored: RestoredIds,
+  attemptsLeft: number
+): Promise<boolean> {
+  const rolledBack = await rollbackPersistedState(snapshot, restored).then(
+    () => true,
+    () => false
+  )
+  if (rolledBack || attemptsLeft <= 1) {
+    return rolledBack
+  }
+  return rollbackWithRetries(snapshot, restored, attemptsLeft - 1)
+}
+
 async function snapshotBeforeRestore(
   existingArkAccountIds: string[],
   existingEcashAccountIds: string[]
@@ -616,12 +633,23 @@ export async function performRecoverOverwrite(
       restoredArkAccountIds
     )
   } catch (error) {
-    await rollbackPersistedState(persisted.snapshot, {
-      arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
-      ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId),
-      nostrIdentityNpubs: nostrIdentityNpubsFromBackup(data)
-    }).catch(() => undefined)
+    const rolledBack = await rollbackWithRetries(
+      persisted.snapshot,
+      {
+        arkAccountIds: prepared.arkMnemonics.map((m) => m.accountId),
+        ecashAccountIds: prepared.ecashMnemonics.map((m) => m.accountId),
+        nostrIdentityNpubs: nostrIdentityNpubsFromBackup(data)
+      },
+      RESTORE_ROLLBACK_ATTEMPTS
+    )
     rollbackStores(snapshot)
+    if (!rolledBack) {
+      return {
+        error: errorMessage(error),
+        rollbackIncomplete: true,
+        success: false
+      }
+    }
     return { error: errorMessage(error), success: false }
   }
 
