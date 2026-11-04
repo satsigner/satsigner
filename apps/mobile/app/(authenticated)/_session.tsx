@@ -148,7 +148,7 @@ function AuthenticatedSession() {
   useFetchBitcoinPrice()
 
   useEffect(() => {
-    void initRpcUrlAdjustments()
+    initRpcUrlAdjustments()
   }, [])
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''

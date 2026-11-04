@@ -125,7 +125,6 @@
     "react-native": "0.88.0",
     "react-native-bdk-sdk": "0.8.0",
     "react-native-bouncy-checkbox": "^4.1.4",
-    "react-native-device-info": "^15.0.2",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "~1.11.0",
