@@ -18,6 +18,7 @@ import type {
   DevConsoleLevel
 } from '@/types/models/DevConsole'
 import { setClipboard } from '@/utils/clipboard'
+import { redactSecrets } from '@/utils/redactSecrets'
 
 type PendingStep = {
   name: string
@@ -100,7 +101,7 @@ export function devLog(
   const entry = {
     id: counter.nextId,
     level,
-    message: truncateDevMessage(message),
+    message: truncateDevMessage(redactSecrets(message)),
     scope,
     time: Date.now()
   }
