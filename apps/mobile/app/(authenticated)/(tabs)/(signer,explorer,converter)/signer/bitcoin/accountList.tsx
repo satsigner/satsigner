@@ -67,6 +67,7 @@ import {
   isSampleWalletLoaded,
   type SampleWallet
 } from '@/utils/sampleWallet'
+import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 import { time } from '@/utils/time'
 
 function accountShowsFingerprint(account: Account) {
@@ -257,18 +258,28 @@ export default function AccountList() {
         )
     )
 
+    const failures = createSyncFailureBatch()
     await Promise.allSettled(
       addressAccounts.map((account) =>
-        syncAccountWithAddress(account).then((u) => updateAccount(u))
+        syncAccountWithAddress(account, failures.report).then((u) =>
+          updateAccount(u)
+        )
       )
     )
 
     for (const account of walletAccounts) {
-      const u = await syncAccountWithWallet(account, wallets[account.id]!)
+      const u = await syncAccountWithWallet(
+        account,
+        wallets[account.id]!,
+        false,
+        false,
+        failures.report
+      )
       if (u) {
         updateAccount(u)
       }
     }
+    failures.flush()
   }
 
   useEffect(() => {

@@ -11,6 +11,17 @@ type ReachabilityCheck = {
 
 const checks = new Map<string, ReachabilityCheck>()
 
+/** Thrown when an Electrum server does not answer the reachability ping. */
+export class ElectrumUnreachableError extends Error {
+  readonly server: string
+
+  constructor(server: string) {
+    super(`Electrum server ${server} is unreachable`)
+    this.name = 'ElectrumUnreachableError'
+    this.server = server
+  }
+}
+
 function serverLabel(url: string): string {
   try {
     return new URL(url).host
@@ -45,7 +56,7 @@ export async function assertElectrumReachable(
 ): Promise<void> {
   const reachable = await currentCheck(url, now).reachable
   if (!reachable) {
-    throw new Error(`Electrum server ${serverLabel(url)} is unreachable`)
+    throw new ElectrumUnreachableError(serverLabel(url))
   }
 }
 

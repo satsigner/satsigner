@@ -34,6 +34,7 @@ import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
+import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 
 function yieldToUi() {
   return new Promise<void>((resolve) => {
@@ -172,6 +173,7 @@ function AuthenticatedSession() {
     }
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
+    const failures = createSyncFailureBatch()
     for (const account of useAccountsStore.getState().accounts) {
       await devStep('session', `sync account ${account.name}`)
       try {
@@ -180,7 +182,10 @@ function AuthenticatedSession() {
           if (!currentAddresses[account.id]) {
             continue
           }
-          const updatedAccount = await syncAccountWithAddress(account)
+          const updatedAccount = await syncAccountWithAddress(
+            account,
+            failures.report
+          )
           if (updatedAccount) {
             updateAccount(updatedAccount)
           }
@@ -190,7 +195,13 @@ function AuthenticatedSession() {
         if (!wallet) {
           continue
         }
-        const updatedAccount = await syncAccountWithWallet(account, wallet)
+        const updatedAccount = await syncAccountWithWallet(
+          account,
+          wallet,
+          false,
+          false,
+          failures.report
+        )
         if (updatedAccount) {
           updateAccount(updatedAccount)
         }
@@ -198,10 +209,11 @@ function AuthenticatedSession() {
         const label = account.name ?? account.id
         const reason = error instanceof Error ? error.message : String(error)
         devLog('session', `sync ${label} failed: ${reason}`, 'error')
-        toast.error(`${label}: ${reason}`)
+        failures.report(label, error)
       }
       await yieldToUi()
     }
+    failures.flush()
   }
 
   useEffect(() => {
