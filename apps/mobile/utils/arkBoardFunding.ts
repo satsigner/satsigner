@@ -199,13 +199,33 @@ function buildArkBoardCosignPsbt({
   }
 }
 
+// Bech32 addresses may be written in uppercase. Both spellings pay the same
+// script, so a board output must match its intent either way.
+function canonicalAddress(address: string): string {
+  try {
+    const { data, prefix, version } = bitcoinjs.address.fromBech32(address)
+    return bitcoinjs.address.toBech32(data, version, prefix)
+  } catch {
+    return address
+  }
+}
+
 function findArkBoardIntent(
   outputAddresses: (string | undefined)[],
   boardIntents: Record<string, ArkBoardIntent>
 ): ArkBoardIntent | undefined {
+  const intentsByAddress = new Map(
+    Object.values(boardIntents).map((intent) => [
+      canonicalAddress(intent.address),
+      intent
+    ])
+  )
   for (const address of outputAddresses) {
-    if (address && Object.hasOwn(boardIntents, address)) {
-      return boardIntents[address]
+    const intent = address
+      ? intentsByAddress.get(canonicalAddress(address))
+      : undefined
+    if (intent) {
+      return intent
     }
   }
   return undefined

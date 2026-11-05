@@ -268,6 +268,12 @@ describe('findArkBoardIntent', () => {
     expect(findArkBoardIntent(['a', BOARD_ADDRESS], boardIntents)).toBe(intent)
   })
 
+  it('finds the intent when the output spells the address in uppercase', () => {
+    expect(
+      findArkBoardIntent([BOARD_ADDRESS.toUpperCase()], boardIntents)
+    ).toBe(intent)
+  })
+
   it('ignores outputs paying other addresses', () => {
     expect(findArkBoardIntent(['a', undefined], boardIntents)).toBeUndefined()
     expect(findArkBoardIntent([BOARD_ADDRESS], {})).toBeUndefined()
