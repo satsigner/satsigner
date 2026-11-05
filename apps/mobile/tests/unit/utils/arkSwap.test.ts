@@ -4,7 +4,8 @@ import {
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
   ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
   ARK_SWAP_RETRY_BASE_DELAY_MS,
-  ARK_SWAP_RETRY_MAX_DELAY_MS
+  ARK_SWAP_RETRY_MAX_DELAY_MS,
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -45,6 +46,7 @@ import {
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   resolveArkSwapRoute,
   willInvoiceOutlastBoard
@@ -389,6 +391,29 @@ describe('isArkSwapJobRetryDue', () => {
     expect(
       isArkSwapJobRetryDue(failures, lastFailedAt + ARK_SWAP_RETRY_MAX_DELAY_MS)
     ).toBe(true)
+  })
+})
+
+describe('isArkSwapSendReconcileDue', () => {
+  const sendAttemptedAt = 1_000_000
+
+  it('waits out the grace period after the last send attempt', () => {
+    expect(
+      isArkSwapSendReconcileDue(
+        { sendAttemptedAt },
+        sendAttemptedAt + ARK_SWAP_SEND_RECONCILE_GRACE_MS - 1
+      )
+    ).toBe(false)
+    expect(
+      isArkSwapSendReconcileDue(
+        { sendAttemptedAt },
+        sendAttemptedAt + ARK_SWAP_SEND_RECONCILE_GRACE_MS
+      )
+    ).toBe(true)
+  })
+
+  it('reconciles a send with no recorded attempt', () => {
+    expect(isArkSwapSendReconcileDue({}, sendAttemptedAt)).toBe(true)
   })
 })
 

@@ -4,7 +4,8 @@ import {
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
   ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
   ARK_SWAP_RETRY_BASE_DELAY_MS,
-  ARK_SWAP_RETRY_MAX_DELAY_MS
+  ARK_SWAP_RETRY_MAX_DELAY_MS,
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -20,6 +21,7 @@ import {
   type ArkMovementEvent
 } from '@/types/models/Ark'
 import {
+  type ArkLightningToOnchainJob,
   type ArkOnchainToLightningJob,
   type ArkSwapEndpointKind,
   type ArkSwapJob,
@@ -283,6 +285,16 @@ function isArkSwapJobRetryDue(
     ARK_SWAP_RETRY_MAX_DELAY_MS
   )
   return nowMs - failures.lastFailedAt >= delayMs
+}
+
+function isArkSwapSendReconcileDue(
+  job: Pick<ArkLightningToOnchainJob, 'sendAttemptedAt'>,
+  nowMs: number
+): boolean {
+  if (job.sendAttemptedAt === undefined) {
+    return true
+  }
+  return nowMs - job.sendAttemptedAt >= ARK_SWAP_SEND_RECONCILE_GRACE_MS
 }
 
 function canDismissArkSwapJob(job: Pick<ArkSwapJob, 'status'>): boolean {
@@ -652,6 +664,7 @@ export {
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   resolveArkSwapRoute,
   willInvoiceOutlastBoard

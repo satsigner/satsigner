@@ -17,8 +17,7 @@ import {
 } from '@/api/ark'
 import {
   ARK_LIGHTNING_RECEIVE_AWAITING_STATE,
-  ARK_PENDING_TXID,
-  ARK_SWAP_SEND_RECONCILE_GRACE_MS
+  ARK_PENDING_TXID
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
@@ -59,6 +58,7 @@ import {
   hasInvoiceTimeToPay,
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   willInvoiceOutlastBoard
 } from '@/utils/arkSwap'
@@ -730,6 +730,7 @@ async function sendLightningPayout(
     feeSats: receiveFee.feeSats + payout.feeSats,
     payoutSats: payout.amountSats,
     receivedSats,
+    sendAttemptedAt: Date.now(),
     status: 'sending'
   }
   saveJob(sending)
@@ -745,7 +746,11 @@ async function sendLightningPayout(
     }
     saveJob({ ...sending, status: 'completed', txid })
   } catch (error) {
-    saveJob({ ...sending, error: errorMessage(error) })
+    saveJob({
+      ...sending,
+      error: errorMessage(error),
+      sendAttemptedAt: Date.now()
+    })
   }
 }
 
@@ -786,7 +791,7 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
  * Ark. It is never sent again automatically.
  */
 async function reconcileSendingJob(job: ArkLightningToOnchainJob) {
-  if (Date.now() - job.updatedAt < ARK_SWAP_SEND_RECONCILE_GRACE_MS) {
+  if (!isArkSwapSendReconcileDue(job, Date.now())) {
     return
   }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
