@@ -895,9 +895,11 @@ async function advanceAccountJobs(arkAccountId: string): Promise<boolean> {
   }
   const statusesBefore = readJobStatuses(arkAccountId)
   await ensureArkWalletOpen(arkAccountId)
-  await Promise.all(
-    jobIds.map((jobId) => withJobLock(jobId, () => advanceJob(jobId)))
-  )
+  // One at a time: concurrent sends from one Bark wallet compete for the
+  // same VTXOs, and the loser is later failed as an interrupted send.
+  for (const jobId of jobIds) {
+    await withJobLock(jobId, () => advanceJob(jobId))
+  }
   return readJobStatuses(arkAccountId) !== statusesBefore
 }
 
