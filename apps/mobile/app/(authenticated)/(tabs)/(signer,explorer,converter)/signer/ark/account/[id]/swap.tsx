@@ -461,7 +461,7 @@ export default function ArkSwapPage() {
                 {t('ark.swap.amount')} ({t('bitcoin.sats')})
               </SSText>
               <SSAmountInput
-                key={formVersion}
+                key={`${formVersion}-${amountRange.minSats}-${amountRange.maxSats}`}
                 btcPrice={btcPrice}
                 fiatCurrency={fiatCurrency}
                 fiatEnabled={fiatEnabled}
