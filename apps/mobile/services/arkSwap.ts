@@ -595,7 +595,7 @@ async function payJobInvoice(job: ArkOnchainToLightningJob) {
       invoice
     )
     if (result.preimage) {
-      saveJob({ ...paying, preimage: result.preimage, status: 'completed' })
+      saveJob({ ...paying, status: 'completed' })
     }
   } catch (error) {
     saveJob({ ...paying, error: errorMessage(error) })
@@ -659,8 +659,8 @@ async function advancePayingJob(job: ArkOnchainToLightningJob) {
   if (!outcome) {
     return
   }
-  if (outcome.status === 'completed') {
-    saveJob({ ...job, error: undefined, ...outcome })
+  if (outcome === 'completed') {
+    saveJob({ ...job, error: undefined, status: 'completed' })
     return
   }
   saveJob({

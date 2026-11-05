@@ -35,7 +35,6 @@ export type ArkOnchainToLightningJob = ArkSwapJobBase & {
   invoice?: string
   invoiceExpiresAt?: number
   paymentHash?: string
-  preimage?: string
 }
 
 // Receives a lightning payment into Ark, then sends it on-chain to a fresh

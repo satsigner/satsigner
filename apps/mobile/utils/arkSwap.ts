@@ -632,15 +632,12 @@ function getArkSwapBoardProgress({
  */
 function getLightningSendOutcome(
   state: ArkLightningSendState
-):
-  | { status: 'completed'; preimage: string }
-  | { status: 'failed' }
-  | undefined {
+): 'completed' | 'failed' | undefined {
   if (state.status === 'paid') {
-    return { preimage: state.preimage, status: 'completed' }
+    return 'completed'
   }
   if (state.status === 'unknown') {
-    return { status: 'failed' }
+    return 'failed'
   }
   return undefined
 }

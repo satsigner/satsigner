@@ -850,16 +850,14 @@ describe('board sizing', () => {
 })
 
 describe('getLightningSendOutcome', () => {
-  it('completes a paid send with its preimage', () => {
+  it('completes a paid send', () => {
     expect(
       getLightningSendOutcome({ preimage: 'cd'.repeat(32), status: 'paid' })
-    ).toStrictEqual({ preimage: 'cd'.repeat(32), status: 'completed' })
+    ).toBe('completed')
   })
 
   it('fails an unknown send and waits on one in progress', () => {
-    expect(getLightningSendOutcome({ status: 'unknown' })).toStrictEqual({
-      status: 'failed'
-    })
+    expect(getLightningSendOutcome({ status: 'unknown' })).toBe('failed')
     expect(getLightningSendOutcome({ status: 'inProgress' })).toBeUndefined()
   })
 })
