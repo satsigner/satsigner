@@ -87,6 +87,7 @@ export default function ArkOnchainWalletPage() {
     spendInFlight,
     sweep
   })
+  const sweepDisabled = !!blocker || !!previewQuery.error
 
   function handleToggleAutoBoard() {
     setAutoBoardEnabled(id, autoBoardDisabled)
@@ -97,7 +98,7 @@ export default function ArkOnchainWalletPage() {
   }
 
   function handleSweep() {
-    if (!destination || !preview || blocker) {
+    if (!destination || !preview || sweepDisabled) {
       return
     }
     const sweepInput = {
@@ -228,7 +229,7 @@ export default function ArkOnchainWalletPage() {
             }
             onPress={handleSweep}
             loading={sweepMutation.isPending}
-            disabled={!!blocker}
+            disabled={sweepDisabled}
             variant="secondary"
           />
         </SSVStack>
