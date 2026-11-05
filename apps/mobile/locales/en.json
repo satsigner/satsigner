@@ -514,6 +514,7 @@
     "board.amountEmpty": "Nothing in this boarding wallet yet. Send coins here first, then board.",
     "board.balancePendingHint": "%{amount} %{unit} incoming",
     "board.broadcastFromLinked": "Broadcast from %{name}",
+    "board.cosign.error.belowSwapAmount": "This board is smaller than the swap needs to pay its invoice. Set the board output back to the swap amount and sign again.",
     "board.cosign.error.duplicateBoardOutput": "This transaction pays the board address more than once. Keep a single board output.",
     "board.cosign.error.invalidBoardAddress": "The board address is not valid on this network.",
     "board.cosign.error.invalidPsbt": "Could not read the signed transaction. Sign it again.",

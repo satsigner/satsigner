@@ -307,6 +307,23 @@ function getArkSwapPayoutAddresses(
 }
 
 /**
+ * Board amount a swap waiting on this board address needs. A smaller board
+ * cannot pay the swap's invoice.
+ */
+function getArkSwapRequiredBoardSats(
+  jobs: ArkSwapJob[],
+  boardAddress: string
+): number | undefined {
+  const job = jobs.find(
+    (candidate) =>
+      candidate.kind === 'onchainToLightning' &&
+      candidate.status === 'awaitingFunding' &&
+      candidate.boardAddress === boardAddress
+  )
+  return job?.amountSats
+}
+
+/**
  * Whether an Ark movement is the lightning payment of a swap that forwards it
  * on-chain, so it is not a receive the user keeps in Ark.
  */
@@ -567,6 +584,7 @@ export {
   getArkSwapJobAccountId,
   getArkSwapMinSats,
   getArkSwapPayoutAddresses,
+  getArkSwapRequiredBoardSats,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,

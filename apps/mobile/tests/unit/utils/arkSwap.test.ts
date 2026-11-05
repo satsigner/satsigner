@@ -34,6 +34,7 @@ import {
   getArkSwapJobAccountId,
   getArkSwapMinSats,
   getArkSwapPayoutAddresses,
+  getArkSwapRequiredBoardSats,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
@@ -385,6 +386,27 @@ describe('findArkSwapAccountForWallet', () => {
         keys: [keyWith('P2WPKH')],
         network: 'testnet'
       })
+    ).toBeUndefined()
+  })
+})
+
+describe('getArkSwapRequiredBoardSats', () => {
+  it('gives the board amount of the swap waiting on that board', () => {
+    expect(
+      getArkSwapRequiredBoardSats([ONCHAIN_TO_LIGHTNING_JOB], 'tb1qboard')
+    ).toBe(50_000)
+  })
+
+  it('ignores boards no waiting swap funds', () => {
+    const boardingJob: ArkOnchainToLightningJob = {
+      ...ONCHAIN_TO_LIGHTNING_JOB,
+      status: 'boarding'
+    }
+    expect(
+      getArkSwapRequiredBoardSats([ONCHAIN_TO_LIGHTNING_JOB], 'tb1qother')
+    ).toBeUndefined()
+    expect(
+      getArkSwapRequiredBoardSats([boardingJob], 'tb1qboard')
     ).toBeUndefined()
   })
 })

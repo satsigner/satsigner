@@ -8,6 +8,7 @@ import {
 import { t } from '@/locales'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
+import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
@@ -18,6 +19,7 @@ import {
   canAccountFundArkBoard,
   isArkBoardIntentFresh
 } from '@/utils/arkBoardFunding'
+import { getArkSwapRequiredBoardSats } from '@/utils/arkSwap'
 import { autoSelectUtxos } from '@/utils/contentProcessor'
 
 type CosignArkBoardFundingParams = {
@@ -135,6 +137,16 @@ export async function cosignArkBoardFunding({
   })
   if (!cosign.ok) {
     throw new Error(t(`ark.board.cosign.error.${cosign.reason}`))
+  }
+  const requiredBoardSats = getArkSwapRequiredBoardSats(
+    useArkSwapsStore.getState().jobs,
+    intent.address
+  )
+  if (
+    requiredBoardSats !== undefined &&
+    cosign.amountSats < requiredBoardSats
+  ) {
+    throw new Error(t('ark.board.cosign.error.belowSwapAmount'))
   }
 
   await ensureArkWalletOpen(intent.arkAccountId)
