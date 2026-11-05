@@ -55,6 +55,7 @@ import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
+import { useArkSwapActiveCount } from '@/hooks/useArkSwaps'
 import { useArkSync } from '@/hooks/useArkSync'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
@@ -137,6 +138,7 @@ export default function ArkAccountDetailPage() {
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
+  const activeSwapCount = useArkSwapActiveCount(id)
 
   const balance = balanceQuery.data ?? cachedBalance
   const onchainBalanceQuery = useArkOnchainBalance(id)
@@ -220,6 +222,13 @@ export default function ArkAccountDetailPage() {
     router.navigate({
       params: { id },
       pathname: '/signer/ark/account/[id]/receive'
+    })
+  }
+
+  function handleSwap() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/swap'
     })
   }
 
@@ -755,6 +764,16 @@ export default function ArkAccountDetailPage() {
               onCamera={handleCamera}
               onReceive={handleReceive}
             />
+            <SSButton
+              label={
+                activeSwapCount > 0
+                  ? t('ark.swap.entryActive', { count: activeSwapCount })
+                  : t('ark.swap.entry')
+              }
+              onPress={handleSwap}
+              variant="outline"
+              style={styles.swapButton}
+            />
           </View>
         </SSVStack>
       )}
@@ -980,6 +999,9 @@ const styles = StyleSheet.create({
   separator: {
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth
+  },
+  swapButton: {
+    marginTop: 12
   },
   tab: {
     width: TAB_WIDTH

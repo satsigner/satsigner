@@ -10,6 +10,10 @@
 // We are (temporarily) hardcoding the value.
 // TODO: make it possible for users to configure the channel threshold.
 export const LIGHTNING_CHANNEL_THRESHOLD = 1_000_000
+// BOLT 11: an invoice without an expiry field expires an hour after creation.
+export const BOLT11_DEFAULT_EXPIRY_SECONDS = 3600
+// Payment hashes are SHA-256 digests, hex encoded.
+export const BOLT11_PAYMENT_HASH_HEX_PATTERN = /^[0-9a-f]{64}$/
 
 /** Default LND `--minchansize` (sats) for new channel funding. */
 export const LND_OPEN_CHANNEL_MIN_FUNDING_SAT = 20_000

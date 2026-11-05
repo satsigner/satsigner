@@ -9,6 +9,7 @@ import {
 } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkSwapsStore } from '@/store/arkSwaps'
 import type { Label } from '@/types/bips/329'
 import type {
   ArkAccount,
@@ -57,6 +58,7 @@ export function restoreArkStoreFromBackup(
 ): void {
   const store = useArkStore.getState()
   store.clearAllData()
+  useArkSwapsStore.getState().clearAllData()
   if (!data) {
     return
   }

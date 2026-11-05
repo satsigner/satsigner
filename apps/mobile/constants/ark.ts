@@ -23,6 +23,7 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
 }
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 export const ARK_LIGHTNING_RECEIVE_SETTLED_STATE = 'settled'
+export const ARK_LIGHTNING_RECEIVE_AWAITING_STATE = 'awaiting-payment'
 // bark's MAX_NB_BOARD_FUNDING_INPUTS: the server refuses to cosign a board
 // funded by more inputs than this.
 export const ARK_BOARD_MAX_FUNDING_INPUTS = 100
@@ -80,3 +81,17 @@ export const ARK_SAT_PER_KWU_PER_SAT_PER_VB = 250
 export const ARK_ONCHAIN_SWEEP_OVERHEAD_VBYTES = 11
 export const ARK_ONCHAIN_SWEEP_INPUT_VBYTES = 68
 export const ARK_ONCHAIN_SWEEP_OUTPUT_VBYTES = 43
+export const ARK_SWAP_POLL_INTERVAL_MS = 15_000
+export const ARK_SWAP_RUNNER_QUERY_KEY = ['ark', 'swapRunner']
+export const ARK_SWAP_BLOCK_INTERVAL_SECONDS = 600
+// Rounds to settle a board amount that also covers its own amount-based fee.
+export const ARK_SWAP_BOARD_FEE_MAX_ROUNDS = 4
+// Blocks rarely arrive on schedule, so an up-front invoice is only held for a
+// board when it would outlive twice the expected confirmation wait.
+export const ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR = 2
+// An invoice with less time left than this is not paid: the payment could
+// still be routing when it expires.
+export const ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS = 300
+// A send that threw may still be running server side; its movement is only
+// looked for once this long has passed, before the job is called failed.
+export const ARK_SWAP_SEND_RECONCILE_GRACE_MS = 120_000
