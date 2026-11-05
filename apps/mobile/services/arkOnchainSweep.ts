@@ -4,7 +4,7 @@ import {
   sendArkOnchainWalletFunds
 } from '@/api/ark'
 import { t } from '@/locales'
-import { deriveFreshReceiveAddress } from '@/services/accountReceiveAddress'
+import { reserveFreshReceiveAddress } from '@/services/accountReceiveAddress'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useAccountsStore } from '@/store/accounts'
 import { getArkAccountOrThrow } from '@/store/ark'
@@ -58,7 +58,7 @@ export async function sweepArkOnchainWallet({
   }
 
   const [address, utxos] = await Promise.all([
-    deriveFreshReceiveAddress(destination),
+    reserveFreshReceiveAddress(destination),
     listArkOnchainUtxos(arkAccount.serverId, arkAccountId)
   ])
   const sweep = computeArkOnchainSweep({ feeRateSatPerVb, utxos })

@@ -20,7 +20,10 @@ import {
   ARK_SWAP_SEND_RECONCILE_GRACE_MS
 } from '@/constants/ark'
 import { t } from '@/locales'
-import { deriveFreshReceiveAddress } from '@/services/accountReceiveAddress'
+import {
+  peekFreshReceiveAddress,
+  reserveFreshReceiveAddress
+} from '@/services/accountReceiveAddress'
 import { prepareArkBoardFromAccount } from '@/services/arkBoardFunding'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useAccountsStore } from '@/store/accounts'
@@ -45,6 +48,7 @@ import {
   computeMaxInvoiceSats,
   computeRequiredBoardSats,
   findRequiredBoardSats,
+  getArkSwapPayoutAddresses,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
@@ -134,7 +138,7 @@ async function sendArkToAccount(
   const arkAccount = getArkAccountOrThrow(arkAccountId)
   const destination = requireDestination(destinationAccountId, arkAccount)
   const [address] = await Promise.all([
-    deriveFreshReceiveAddress(destination),
+    reserveFreshReceiveAddress(destination),
     ensureArkWalletOpen(arkAccountId)
   ])
   await sendArkOnchain(arkAccount.serverId, arkAccountId, address, amountSats)
@@ -435,7 +439,7 @@ async function quoteToAccount(
   viaLightning: boolean
 ): Promise<ArkSwapQuote> {
   const destination = requireDestination(destinationAccountId, arkAccount)
-  const address = await deriveFreshReceiveAddress(destination)
+  const address = await peekFreshReceiveAddress(destination)
   const receiveFee = viaLightning
     ? await estimateLightningReceiveFeeSats(arkAccount, amountSats)
     : 0
@@ -661,7 +665,13 @@ async function sendLightningPayout(
     })
     return
   }
-  const address = await deriveFreshReceiveAddress(destination)
+  const address = await reserveFreshReceiveAddress(
+    destination,
+    getArkSwapPayoutAddresses(
+      useArkSwapsStore.getState().jobs,
+      job.destinationAccountId
+    )
+  )
   const receiveFee = await estimateArkLightningReceiveFee(
     arkAccount.serverId,
     job.arkAccountId,

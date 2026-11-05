@@ -33,6 +33,7 @@ import {
   getArkSwapHops,
   getArkSwapJobAccountId,
   getArkSwapMinSats,
+  getArkSwapPayoutAddresses,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
@@ -385,6 +386,24 @@ describe('findArkSwapAccountForWallet', () => {
         network: 'testnet'
       })
     ).toBeUndefined()
+  })
+})
+
+describe('getArkSwapPayoutAddresses', () => {
+  it('lists the payout addresses taken from one destination wallet', () => {
+    const jobs = [
+      ONCHAIN_TO_LIGHTNING_JOB,
+      LIGHTNING_TO_ONCHAIN_JOB,
+      { ...LIGHTNING_TO_ONCHAIN_JOB, destinationAddress: 'tb1qpayout1' },
+      {
+        ...LIGHTNING_TO_ONCHAIN_JOB,
+        destinationAccountId: 'btc-other',
+        destinationAddress: 'tb1qpayout2'
+      }
+    ]
+    expect(getArkSwapPayoutAddresses(jobs, 'btc-destination')).toStrictEqual([
+      'tb1qpayout1'
+    ])
   })
 })
 

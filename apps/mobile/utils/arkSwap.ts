@@ -290,6 +290,23 @@ function getArkSwapJobAccountId(job: ArkSwapJob): string {
 }
 
 /**
+ * Addresses of a wallet that swap payouts already took. They stay reserved
+ * until the wallet's own transactions show them.
+ */
+function getArkSwapPayoutAddresses(
+  jobs: ArkSwapJob[],
+  destinationAccountId: string
+): string[] {
+  return jobs.flatMap((job) =>
+    job.kind === 'lightningToOnchain' &&
+    job.destinationAccountId === destinationAccountId &&
+    job.destinationAddress
+      ? [job.destinationAddress]
+      : []
+  )
+}
+
+/**
  * Whether an Ark movement is the lightning payment of a swap that forwards it
  * on-chain, so it is not a receive the user keeps in Ark.
  */
@@ -549,6 +566,7 @@ export {
   getArkSwapHops,
   getArkSwapJobAccountId,
   getArkSwapMinSats,
+  getArkSwapPayoutAddresses,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
