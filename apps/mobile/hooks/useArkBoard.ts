@@ -209,12 +209,15 @@ export function useArkAutoBoard({
   const balanceQuery = useArkOnchainBalance(accountId)
   const serverInfoQuery = useArkServerInfo(accountId)
   const boardMutation = useArkBoardMutation(accountId)
-  const arkBalanceQuery = useArkBalance(accountId)
+  const arkBalanceQuery = useArkBalance(accountId, {
+    refetchIntervalMs: ONCHAIN_BALANCE_REFETCH_INTERVAL_MS
+  })
   // Several screens of one Ark account can mount this hook at once, and a
   // sweep spends the same wallet, so only fire when nothing else is spending.
   const spendInFlight = useArkOnchainSpendInFlight(accountId)
   // Exits pay their CPFP fees from the on-chain wallet, so never board while
-  // one is in progress, nor before the balance says whether one is.
+  // one is in progress, nor before the balance says whether one is. The
+  // balance polls with the on-chain one so a finished exit stops blocking.
   const exitClear = arkBalanceQuery.data?.pendingExitSats === 0
   const hasFiredRef = useRef(false)
 
