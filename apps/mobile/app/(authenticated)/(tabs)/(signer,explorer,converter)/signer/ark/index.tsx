@@ -59,13 +59,13 @@ function ArkAccountListItem({
   onPress,
   ...display
 }: ArkAccountListItemProps) {
-  const { balance, stats } = useArkAccountSummary(account.id)
+  const { stats, totalSats } = useArkAccountSummary(account.id)
 
   return (
     <SSAccountCard
       {...display}
       name={account.name}
-      balance={balance?.spendableSats ?? 0}
+      balance={totalSats}
       stats={buildArkAccountCardStats(stats)}
       onPress={() => onPress(account)}
     />
