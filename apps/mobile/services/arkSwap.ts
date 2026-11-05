@@ -43,6 +43,7 @@ import {
 } from '@/types/models/ArkSwap'
 import { getArkMinBoardAmount } from '@/utils/arkBoard'
 import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
+import { ArkOperationBusyError } from '@/utils/arkError'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 import {
   type ArkSwapInvoice,
@@ -761,6 +762,12 @@ async function sendLightningPayout(
     }
     saveJob({ ...sending, status: 'completed', txid })
   } catch (error) {
+    if (error instanceof ArkOperationBusyError) {
+      // Refused before anything was sent: back to awaiting the settled
+      // receive, so a later tick tries the payout again.
+      saveJob({ ...job, error: errorMessage(error), receivedSats })
+      return
+    }
     saveJob({
       ...sending,
       error: errorMessage(error),
