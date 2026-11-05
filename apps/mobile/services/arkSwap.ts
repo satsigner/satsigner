@@ -6,6 +6,7 @@ import {
   estimateArkLightningReceiveFee,
   estimateArkLightningSendFee,
   estimateArkSendOnchainFee,
+  fetchArkBalance,
   fetchArkLightningReceive,
   fetchArkMovements,
   fetchArkServerInfo,
@@ -229,6 +230,13 @@ async function assertInvoiceFitsBoard(
   })
   if (requiredSats > boardSats) {
     throw new Error(t('ark.swap.error.boardTooSmall'))
+  }
+}
+
+async function assertArkCoversSend(arkAccount: ArkAccount, sendSats: number) {
+  const balance = await fetchArkBalance(arkAccount.serverId, arkAccount.id)
+  if (sendSats > balance.spendableSats) {
+    throw new Error(t('ark.send.error.insufficientBalanceWithFee'))
   }
 }
 
@@ -463,11 +471,9 @@ async function quoteToAccount(
     inArkSats
   )
   if (!viaLightning) {
-    return {
-      feeSats: sendFee.feeSats,
-      receiveSats: amountSats,
-      sendSats: amountSats + sendFee.feeSats
-    }
+    const sendSats = amountSats + sendFee.feeSats
+    await assertArkCoversSend(arkAccount, sendSats)
+    return { feeSats: sendFee.feeSats, receiveSats: amountSats, sendSats }
   }
   const feeSats = receiveFee + sendFee.feeSats
   return { feeSats, receiveSats: amountSats - feeSats, sendSats: amountSats }
@@ -502,10 +508,12 @@ async function quoteArkToLightning(
     arkAccount.id,
     invoice.amountSats
   )
+  const sendSats = invoice.amountSats + estimate.feeSats
+  await assertArkCoversSend(arkAccount, sendSats)
   return {
     feeSats: estimate.feeSats,
     receiveSats: invoice.amountSats,
-    sendSats: invoice.amountSats + estimate.feeSats
+    sendSats
   }
 }
 
