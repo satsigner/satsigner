@@ -41,7 +41,11 @@ import {
   isArkVtxoExitUneconomical
 } from '@/utils/arkVtxoDetail'
 import { setClipboard } from '@/utils/clipboard'
-import { formatFiatPrice, formatNumber } from '@/utils/format'
+import {
+  formatFiatPrice,
+  formatMaskedNumber,
+  formatNumber
+} from '@/utils/format'
 
 const EXPIRY_COLORS: Record<ArkVtxoExpiryUrgency, string> = {
   expired: Colors.mainRed,
@@ -100,10 +104,11 @@ function ExpirySection({ expiry, expiryHeight }: ExpirySectionProps) {
 
 type RefreshActionProps = {
   accountId: string
+  privacyMode: boolean
   vtxoId: string
 }
 
-function RefreshAction({ accountId, vtxoId }: RefreshActionProps) {
+function RefreshAction({ accountId, privacyMode, vtxoId }: RefreshActionProps) {
   const refreshMutation = useArkRefresh(accountId)
   const feeQuery = useArkFeeEstimate({
     accountId,
@@ -127,7 +132,7 @@ function RefreshAction({ accountId, vtxoId }: RefreshActionProps) {
       {feeQuery.data && (
         <SSText size="xs" color="muted">
           {t('ark.refresh.feeLabel', {
-            amount: formatNumber(feeQuery.data.feeSats),
+            amount: formatMaskedNumber(feeQuery.data.feeSats, privacyMode),
             unit: t('bitcoin.sats')
           })}
         </SSText>
@@ -167,12 +172,14 @@ type ExitSectionProps = {
   amountSats: number
   decoded: ArkVtxoDecoded
   estimatedFeeSats?: number
+  privacyMode: boolean
 }
 
 function ExitSection({
   amountSats,
   decoded,
-  estimatedFeeSats
+  estimatedFeeSats,
+  privacyMode
 }: ExitSectionProps) {
   const satsUnit = t('bitcoin.sats')
   const { data } = decoded
@@ -194,13 +201,13 @@ function ExitSection({
       {data.totalFees > 0 && (
         <SSDetailRow
           label={t('ark.vtxo.detail.exit.treeFees')}
-          value={`${formatNumber(data.totalFees)} ${satsUnit}`}
+          value={`${formatMaskedNumber(data.totalFees, privacyMode)} ${satsUnit}`}
         />
       )}
       {estimatedFeeSats !== undefined && (
         <SSDetailRow
           label={t('ark.vtxo.detail.exit.estimatedFee')}
-          value={`~${formatNumber(estimatedFeeSats)} ${satsUnit}`}
+          value={`~${formatMaskedNumber(estimatedFeeSats, privacyMode)} ${satsUnit}`}
         />
       )}
       <SSDetailRow
@@ -413,7 +420,13 @@ export default function ArkVtxoDetailPage() {
             <ExpirySection expiry={expiry} expiryHeight={expiryHeight} />
           )}
 
-          {vtxo?.spendable && <RefreshAction accountId={id} vtxoId={vtxoId} />}
+          {vtxo?.spendable && (
+            <RefreshAction
+              accountId={id}
+              privacyMode={privacyMode}
+              vtxoId={vtxoId}
+            />
+          )}
 
           <SSVStack gap="md" style={styles.section}>
             <SectionHeader
@@ -455,6 +468,7 @@ export default function ArkVtxoDetailPage() {
               amountSats={amountSats}
               decoded={decoded}
               estimatedFeeSats={exitFeeQuery.data?.feeSats}
+              privacyMode={privacyMode}
             />
           )}
 
