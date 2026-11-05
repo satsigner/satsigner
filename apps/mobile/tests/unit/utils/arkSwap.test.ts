@@ -34,6 +34,7 @@ import {
   getArkSwapJobAccountId,
   getArkSwapMinSats,
   getArkSwapPayoutAddresses,
+  getArkSwapPayoutOutcome,
   getArkSwapRequiredBoardSats,
   getBoardedSwapStatus,
   getLightningSendOutcome,
@@ -387,6 +388,44 @@ describe('findArkSwapAccountForWallet', () => {
         network: 'testnet'
       })
     ).toBeUndefined()
+  })
+})
+
+describe('getArkSwapPayoutOutcome', () => {
+  const ADDRESS = 'tb1qpayout'
+
+  function sentTo(address: string, status: string) {
+    return { sentToAddresses: [address], status }
+  }
+
+  it('completes only once a movement to the address is successful', () => {
+    expect(
+      getArkSwapPayoutOutcome(
+        [sentTo(ADDRESS, 'failed'), sentTo(ADDRESS, 'successful')],
+        ADDRESS
+      )
+    ).toBe('completed')
+    expect(getArkSwapPayoutOutcome([sentTo(ADDRESS, 'pending')], ADDRESS)).toBe(
+      'pending'
+    )
+  })
+
+  it('fails when every movement to the address failed or was canceled', () => {
+    expect(
+      getArkSwapPayoutOutcome(
+        [sentTo(ADDRESS, 'failed'), sentTo(ADDRESS, 'canceled')],
+        ADDRESS
+      )
+    ).toBe('failed')
+  })
+
+  it('finds nothing without a movement to the address', () => {
+    expect(
+      getArkSwapPayoutOutcome([sentTo('tb1qother', 'successful')], ADDRESS)
+    ).toBe('notFound')
+    expect(
+      getArkSwapPayoutOutcome([sentTo(ADDRESS, 'successful')], undefined)
+    ).toBe('notFound')
   })
 })
 

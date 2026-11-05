@@ -14,6 +14,7 @@ import { type Account } from '@/types/models/Account'
 import {
   type ArkAccount,
   type ArkLightningSendState,
+  type ArkMovement,
   type ArkMovementEvent
 } from '@/types/models/Ark'
 import {
@@ -561,6 +562,30 @@ function getLightningSendOutcome(
   return undefined
 }
 
+/**
+ * What the Ark movements paying a payout's destination say about the send.
+ * Only a successful movement completes it: a pending one can still fail and
+ * return the sats to Ark.
+ */
+function getArkSwapPayoutOutcome(
+  movements: Pick<ArkMovement, 'sentToAddresses' | 'status'>[],
+  destinationAddress: string | undefined
+): 'completed' | 'pending' | 'failed' | 'notFound' {
+  if (destinationAddress === undefined) {
+    return 'notFound'
+  }
+  const statuses = movements
+    .filter((movement) => movement.sentToAddresses.includes(destinationAddress))
+    .map((movement) => movement.status)
+  if (statuses.includes('successful')) {
+    return 'completed'
+  }
+  if (statuses.some((status) => status !== 'failed' && status !== 'canceled')) {
+    return 'pending'
+  }
+  return statuses.length > 0 ? 'failed' : 'notFound'
+}
+
 export {
   type ArkSwapAmountRange,
   type ArkSwapForm,
@@ -584,6 +609,7 @@ export {
   getArkSwapJobAccountId,
   getArkSwapMinSats,
   getArkSwapPayoutAddresses,
+  getArkSwapPayoutOutcome,
   getArkSwapRequiredBoardSats,
   getBoardedSwapStatus,
   getLightningSendOutcome,

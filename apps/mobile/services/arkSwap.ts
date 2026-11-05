@@ -49,6 +49,7 @@ import {
   computeRequiredBoardSats,
   findRequiredBoardSats,
   getArkSwapPayoutAddresses,
+  getArkSwapPayoutOutcome,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
@@ -714,11 +715,10 @@ async function sendLightningPayout(
       address,
       payout.amountSats
     )
-    saveJob({
-      ...sending,
-      status: 'completed',
-      txid: txid === ARK_PENDING_TXID ? undefined : txid
-    })
+    if (txid === ARK_PENDING_TXID) {
+      return
+    }
+    saveJob({ ...sending, status: 'completed', txid })
   } catch (error) {
     saveJob({ ...sending, error: errorMessage(error) })
   }
@@ -755,9 +755,10 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
 }
 
 /**
- * A send that threw (or was cut off by a restart) may still have gone out.
- * Its movement decides: found means sent, none after the grace period means
- * the funds stayed in Ark. It is never sent again automatically.
+ * A send that is still pending, threw, or was cut off by a restart may still
+ * go out. Its movement decides once the grace period has passed: successful
+ * means sent, pending keeps waiting, failed or none means the funds stayed in
+ * Ark. It is never sent again automatically.
  */
 async function reconcileSendingJob(job: ArkLightningToOnchainJob) {
   if (Date.now() - job.updatedAt < ARK_SWAP_SEND_RECONCILE_GRACE_MS) {
@@ -768,16 +769,16 @@ async function reconcileSendingJob(job: ArkLightningToOnchainJob) {
     arkAccount.serverId,
     job.arkAccountId
   )
-  const { destinationAddress } = job
-  const sent = movements.some(
-    (movement) =>
-      destinationAddress !== undefined &&
-      movement.sentToAddresses.includes(destinationAddress) &&
-      movement.status !== 'failed' &&
-      movement.status !== 'canceled'
-  )
-  if (sent) {
+  const outcome = getArkSwapPayoutOutcome(movements, job.destinationAddress)
+  if (outcome === 'pending') {
+    return
+  }
+  if (outcome === 'completed') {
     saveJob({ ...job, error: undefined, status: 'completed' })
+    return
+  }
+  if (outcome === 'failed') {
+    saveJob({ ...job, error: t('ark.swap.error.sendFailed'), status: 'failed' })
     return
   }
   saveJob({

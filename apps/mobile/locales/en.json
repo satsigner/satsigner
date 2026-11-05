@@ -782,6 +782,7 @@
     "swap.error.notAwaitingInvoice": "This swap is not waiting for an invoice",
     "swap.error.paymentFailed": "The Lightning payment failed. The sats are back in your Ark balance.",
     "swap.error.payoutBelowDust": "Too little arrived to send on-chain. The sats stay in your Ark balance.",
+    "swap.error.sendFailed": "The on-chain send failed. The sats remain in your Ark balance.",
     "swap.error.sendInterrupted": "The on-chain send was interrupted. The sats remain in your Ark balance.",
     "swap.from": "From",
     "swap.insufficientBalance": "Not enough balance for this swap. The minimum is %{amount} %{unit}.",
