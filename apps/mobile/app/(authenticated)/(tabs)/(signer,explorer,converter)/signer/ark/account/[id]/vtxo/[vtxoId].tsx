@@ -339,7 +339,7 @@ export default function ArkVtxoDetailPage() {
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,
     enabled: Boolean(vtxo?.spendable),
-    vtxos: vtxo ? [vtxo] : []
+    vtxoIds: vtxo ? [vtxo.id] : []
   })
 
   const amountSats = vtxo?.amountSats ?? decoded?.data.amount
@@ -490,7 +490,7 @@ export default function ArkVtxoDetailPage() {
             <ExitSection
               amountSats={amountSats}
               decoded={decoded}
-              estimatedFeeSats={exitFeeQuery.data?.feeSats}
+              estimatedFeeSats={exitFeeQuery.data?.totalFeeSats}
               privacyMode={privacyMode}
             />
           )}

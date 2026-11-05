@@ -22,6 +22,28 @@ export const LightningSendStatus_Tags = {
   Unknown: 'Unknown'
 } as const
 
+export const ExitState_Tags = {
+  AwaitingDelta: 'AwaitingDelta',
+  Canceled: 'Canceled',
+  ClaimInProgress: 'ClaimInProgress',
+  Claimable: 'Claimable',
+  Claimed: 'Claimed',
+  Processing: 'Processing',
+  Start: 'Start',
+  VtxoAlreadySpent: 'VtxoAlreadySpent',
+  VtxoSwept: 'VtxoSwept'
+} as const
+
+export const ExitTxStatus_Tags = {
+  AwaitingConfirmation: 'AwaitingConfirmation',
+  AwaitingCpfpBroadcast: 'AwaitingCpfpBroadcast',
+  AwaitingInputConfirmation: 'AwaitingInputConfirmation',
+  Confirmed: 'Confirmed',
+  VerifyInputs: 'VerifyInputs'
+} as const
+
+export const extractTxFromPsbt = jest.fn()
+
 export const Config = {
   create: (config: Record<string, unknown>) => config
 }

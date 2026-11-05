@@ -35,7 +35,7 @@ describe('arkSync', () => {
     })
   })
 
-  it('invalidates balance, movements and vtxos queries', async () => {
+  it('invalidates balance, movements, vtxos and exits queries', async () => {
     const queryClient = buildQueryClient()
     await invalidateArkAccountQueries(queryClient, ACCOUNT_ID)
     const keys = jest
@@ -44,7 +44,8 @@ describe('arkSync', () => {
     expect(keys).toStrictEqual([
       ['ark', 'balance', ACCOUNT_ID],
       ['ark', 'movements', ACCOUNT_ID],
-      ['ark', 'vtxos', ACCOUNT_ID]
+      ['ark', 'vtxos', ACCOUNT_ID],
+      ['ark', 'exits', ACCOUNT_ID]
     ])
   })
 
@@ -53,7 +54,7 @@ describe('arkSync', () => {
     const queryClient = buildQueryClient()
     await syncArkAccountAndInvalidate(queryClient, ACCOUNT_ID)
     expect(syncArkWalletMock).toHaveBeenCalledWith('second', ACCOUNT_ID)
-    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(3)
+    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(4)
   })
 
   it('still invalidates when the wallet sync fails', async () => {
@@ -62,7 +63,7 @@ describe('arkSync', () => {
     await expect(
       syncArkAccountAndInvalidate(queryClient, ACCOUNT_ID)
     ).resolves.toBeUndefined()
-    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(3)
+    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(4)
   })
 
   it('never rejects even when invalidation fails', async () => {
@@ -79,6 +80,6 @@ describe('arkSync', () => {
     const queryClient = buildQueryClient()
     await syncArkAccountAndInvalidate(queryClient, 'missing')
     expect(syncArkWalletMock).not.toHaveBeenCalled()
-    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(3)
+    expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(4)
   })
 })

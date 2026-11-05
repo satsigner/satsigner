@@ -139,6 +139,72 @@ export type ArkVtxo = {
   exitDepth: number
 }
 
+export type ArkExitStatus =
+  | 'starting'
+  | 'processing'
+  | 'awaitingDelta'
+  | 'claimable'
+  | 'claimInProgress'
+  | 'claimed'
+  | 'alreadySpent'
+  | 'swept'
+  | 'canceled'
+
+export type ArkExit = {
+  vtxoId: string
+  // Unknown for finished exits whose VTXO the wallet no longer stores.
+  amountSats?: number
+  status: ArkExitStatus
+  tipHeight: number
+  confirmedTxCount?: number
+  totalTxCount?: number
+  // An exit transaction is ready for its fee-paying child, which the wallet
+  // can only broadcast once its on-chain wallet holds enough to pay for it.
+  awaitingCpfpBroadcast?: boolean
+  claimableAtHeight?: number
+  claimTxid?: string
+}
+
+export type ArkExitClaimDraft = {
+  psbtBase64: string
+  feeSats: number
+  vtxoIds: string[]
+  skippedVtxoIds: string[]
+}
+
+export type ArkExitClaimBroadcastStatus =
+  | 'broadcasting'
+  | 'broadcast'
+  | 'failed'
+
+// A signed claim kept until the wallet sees it spend the exits. Only this exact
+// transaction may be (re)broadcast meanwhile, so a crash can never lead to a
+// second, different claim of the same exits.
+export type ArkExitClaimRecord = {
+  txid: string
+  txHex: string
+  arkAccountId: string
+  vtxoIds: string[]
+  amountSats: number
+  feeSats: number
+  destinationAccountId: string
+  broadcastStatus: ArkExitClaimBroadcastStatus
+  createdAt: string
+}
+
+export type ArkEmergencyExitFee = {
+  exitBroadcastFeeSats: number
+  claimFeeSats: number
+  totalFeeSats: number
+  feeRateSatPerVb: number
+}
+
+export type ArkOnchainFeeRates = {
+  slowSatPerVb: number
+  regularSatPerVb: number
+  fastSatPerVb: number
+}
+
 export type ArkDerivedAddress = {
   index: number
   address: string
@@ -284,6 +350,19 @@ export interface ArkWalletProvider {
   listAllVtxos: (accountId: string) => Promise<ArkVtxo[]>
   refreshVtxos: (accountId: string, vtxoIds: string[]) => Promise<string>
   startExit: (accountId: string, vtxoIds?: string[]) => Promise<void>
+  listExits: (accountId: string) => Promise<ArkExit[]>
+  syncExits: (accountId: string) => Promise<void>
+  estimateEmergencyExitFee: (
+    accountId: string,
+    vtxoIds: string[]
+  ) => Promise<ArkEmergencyExitFee>
+  buildExitClaim: (
+    accountId: string,
+    vtxoIds: string[],
+    bitcoinAddress: string,
+    feeRateSatPerVb: number
+  ) => Promise<ArkExitClaimDraft>
+  signExitClaim: (accountId: string, psbtBase64: string) => Promise<string>
   estimateRefreshFee: (
     accountId: string,
     vtxoIds: string[]
@@ -315,6 +394,7 @@ export interface ArkWalletProvider {
   ) => Promise<ArkFeeEstimate>
   fetchOnchainBalance: (accountId: string) => Promise<ArkOnchainBalance>
   fetchOnchainFeeRate: (accountId: string) => Promise<number>
+  fetchOnchainFeeRates: (accountId: string) => Promise<ArkOnchainFeeRates>
   newOnchainAddress: (accountId: string) => Promise<string>
   board: (accountId: string, amountSats?: number) => Promise<ArkPendingBoard>
   boardFundingAddress: (accountId: string) => Promise<ArkBoardFundingInfo>
