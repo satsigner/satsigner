@@ -134,7 +134,7 @@ export function shouldAnnounceArkReceive(
     return false
   }
   if (isArkBoardMovement(event)) {
-    return event.type === 'updated' && event.status === 'successful'
+    return event.status === 'successful'
   }
   return event.type === 'created'
 }

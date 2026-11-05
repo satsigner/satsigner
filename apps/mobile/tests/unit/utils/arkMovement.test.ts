@@ -498,4 +498,10 @@ describe('shouldAnnounceArkReceive', () => {
       )
     ).toBe(true)
   })
+
+  it('announces a board first reported as already successful', () => {
+    expect(
+      shouldAnnounceArkReceive(buildEvent({ ...BOARD, status: 'successful' }))
+    ).toBe(true)
+  })
 })
