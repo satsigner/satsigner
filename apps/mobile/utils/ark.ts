@@ -12,6 +12,7 @@ import {
   type ArkBalance,
   type ArkDestinationDraft,
   type ArkFeeRequest,
+  type ArkOnchainBalance,
   ArkServer,
   type ArkVtxo
 } from '@/types/models/Ark'
@@ -39,16 +40,67 @@ export function getArkServer(
   return ARK_SERVERS[network].find((server) => server.id === id)
 }
 
-export function getArkPendingSats(balance: ArkBalance): number {
-  return (
-    balance.pendingInRoundSats +
-    balance.pendingBoardSats +
-    balance.claimableLightningReceiveSats
-  )
+export type ArkBalanceRowKey =
+  | 'offchain'
+  | 'needsRefresh'
+  | 'onchain'
+  | 'onchainPending'
+  | 'pendingBoard'
+  | 'pendingInRound'
+  | 'pendingArkoorSend'
+  | 'pendingLightningSend'
+  | 'claimableLightningReceive'
+  | 'pendingOffboard'
+  | 'pendingExit'
+
+export type ArkBalanceRow = {
+  key: ArkBalanceRowKey
+  amountSats: number
 }
 
-export function getArkTotalSats(balance: ArkBalance): number {
-  return balance.spendableSats + getArkPendingSats(balance)
+export type ArkBalanceBreakdown = {
+  totalSats: number
+  rows: ArkBalanceRow[]
+  showBreakdown: boolean
+}
+
+/**
+ * Every bucket bark reports is disjoint, so the total is their plain sum.
+ * `spendableSats` excludes `needsRefreshSats`, and the hidden on-chain wallet
+ * is a separate BDK wallet.
+ */
+export function getArkBalanceBreakdown(
+  balance: ArkBalance | undefined,
+  onchainBalance: ArkOnchainBalance | undefined
+): ArkBalanceBreakdown {
+  const allRows: ArkBalanceRow[] = [
+    { amountSats: balance?.spendableSats ?? 0, key: 'offchain' },
+    { amountSats: balance?.needsRefreshSats ?? 0, key: 'needsRefresh' },
+    { amountSats: onchainBalance?.confirmedSats ?? 0, key: 'onchain' },
+    { amountSats: onchainBalance?.pendingSats ?? 0, key: 'onchainPending' },
+    { amountSats: balance?.pendingBoardSats ?? 0, key: 'pendingBoard' },
+    { amountSats: balance?.pendingInRoundSats ?? 0, key: 'pendingInRound' },
+    {
+      amountSats: balance?.pendingArkoorSendSats ?? 0,
+      key: 'pendingArkoorSend'
+    },
+    {
+      amountSats: balance?.pendingLightningSendSats ?? 0,
+      key: 'pendingLightningSend'
+    },
+    {
+      amountSats: balance?.claimableLightningReceiveSats ?? 0,
+      key: 'claimableLightningReceive'
+    },
+    { amountSats: balance?.pendingOffboardSats ?? 0, key: 'pendingOffboard' },
+    { amountSats: balance?.pendingExitSats ?? 0, key: 'pendingExit' }
+  ]
+  const rows = allRows.filter((row) => row.amountSats > 0)
+  return {
+    rows,
+    showBreakdown: rows.some((row) => row.key !== 'offchain'),
+    totalSats: rows.reduce((total, row) => total + row.amountSats, 0)
+  }
 }
 
 /**

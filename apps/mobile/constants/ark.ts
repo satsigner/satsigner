@@ -73,3 +73,10 @@ export const ARK_SUPPORTED_NETWORKS: Network[] = ['bitcoin', 'signet']
 export const ARK_ONCHAIN_MIN_FEE_RATE_SAT_PER_VB = 1
 // BDK reports fee rates per kilo weight unit; one vbyte is four weight units.
 export const ARK_SAT_PER_KWU_PER_SAT_PER_VB = 250
+// Sweep size bounds for the hidden on-chain wallet: P2WPKH inputs (the larger
+// of the native-segwit spends) and a P2TR output, so the estimate never comes
+// in under the real fee. The overshoot is smaller than the cost of a change
+// output, so BDK folds it into the fee instead of leaving change behind.
+export const ARK_ONCHAIN_SWEEP_OVERHEAD_VBYTES = 11
+export const ARK_ONCHAIN_SWEEP_INPUT_VBYTES = 68
+export const ARK_ONCHAIN_SWEEP_OUTPUT_VBYTES = 43

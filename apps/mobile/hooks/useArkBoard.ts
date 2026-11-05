@@ -1,4 +1,5 @@
 import {
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -28,9 +29,26 @@ import {
 } from '@/utils/arkBoard'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
+import { useArkBalance } from './useArkBalance'
 import { useArkWallet } from './useArkWallet'
 
 const ONCHAIN_BALANCE_REFETCH_INTERVAL_MS = 15_000
+
+// Boards and sweeps both spend the hidden on-chain wallet, so they share a
+// key prefix to let each one see when the other is in flight.
+export function arkOnchainSpendMutationKey(
+  accountId: string | null | undefined
+) {
+  return ['ark', 'onchain-spend', accountId]
+}
+
+export function useArkOnchainSpendInFlight(
+  accountId: string | null | undefined
+): boolean {
+  return (
+    useIsMutating({ mutationKey: arkOnchainSpendMutationKey(accountId) }) > 0
+  )
+}
 
 export function invalidateArkBoardQueries(
   queryClient: QueryClient,
@@ -157,6 +175,7 @@ export function useArkBoardMutation(accountId: string | null | undefined) {
       const account = getArkAccountOrThrow(accountId)
       return boardArk(account.serverId, accountId, amountSats)
     },
+    mutationKey: [...arkOnchainSpendMutationKey(accountId), 'board'],
     onSuccess: () => {
       if (!accountId) {
         return
@@ -190,6 +209,13 @@ export function useArkAutoBoard({
   const balanceQuery = useArkOnchainBalance(accountId)
   const serverInfoQuery = useArkServerInfo(accountId)
   const boardMutation = useArkBoardMutation(accountId)
+  const arkBalanceQuery = useArkBalance(accountId)
+  // Several screens of one Ark account can mount this hook at once, and a
+  // sweep spends the same wallet, so only fire when nothing else is spending.
+  const spendInFlight = useArkOnchainSpendInFlight(accountId)
+  // Exits pay their CPFP fees from the on-chain wallet, so never board while
+  // one is in progress, nor before the balance says whether one is.
+  const exitClear = arkBalanceQuery.data?.pendingExitSats === 0
   const hasFiredRef = useRef(false)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
@@ -216,8 +242,10 @@ export function useArkAutoBoard({
     }
     const shouldBoard =
       enabled &&
+      exitClear &&
       status === 'readyToBoard' &&
       boardMutation.isIdle &&
+      !spendInFlight &&
       !hasFiredRef.current
     if (!shouldBoard) {
       return
@@ -227,7 +255,16 @@ export function useArkAutoBoard({
       { amountSats: undefined },
       { onSuccess: () => onBoarded?.() }
     )
-  }, [enabled, status, confirmedSats, minAmountSats, boardMutation, onBoarded])
+  }, [
+    enabled,
+    status,
+    confirmedSats,
+    minAmountSats,
+    boardMutation,
+    exitClear,
+    spendInFlight,
+    onBoarded
+  ])
 
   function retry() {
     hasFiredRef.current = false

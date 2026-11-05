@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconArrowsClockwise,
+  SSIconBitcoin,
   SSIconBoardCircle,
   SSIconOffboardCircle,
   SSIconSignOut
@@ -104,6 +105,13 @@ export default function ArkAccountSettingsPage() {
     setRefreshModalVisible(false)
   }
 
+  function handleOnchainWallet() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/settings/onchain'
+    })
+  }
+
   function handleBoard() {
     router.navigate({
       params: { id },
@@ -182,6 +190,17 @@ export default function ArkAccountSettingsPage() {
             />
           }
           onPress={handleRefreshAll}
+        />
+        <SSSettingsCards
+          title={t('ark.onchain.title')}
+          description={t('ark.onchain.settingsDescription')}
+          icon={
+            <SSIconBitcoin
+              height={SETTINGS_ICON_SIZE}
+              width={SETTINGS_ICON_SIZE}
+            />
+          }
+          onPress={handleOnchainWallet}
         />
         <SSSettingsCards
           title={t('ark.board.allTitle')}

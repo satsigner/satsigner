@@ -32,6 +32,7 @@ type ArkState = {
   // address. Any transaction paying one must be cosigned before broadcast,
   // whatever happened to the draft in between.
   boardIntents: Record<string, ArkBoardIntent>
+  autoBoardDisabledIds: string[]
 }
 
 type ArkAction = {
@@ -40,6 +41,7 @@ type ArkAction = {
   addBoardIntent: (intent: ArkBoardIntent) => void
   markBoardIntentCosigned: (address: string, board: ArkPendingBoard) => void
   removeAccount: (accountId: string) => void
+  setAutoBoardEnabled: (accountId: string, enabled: boolean) => void
   updateBalance: (accountId: string, balance: ArkBalance) => void
   updateStats: (accountId: string, stats: Partial<ArkAccountStats>) => void
   clearAllData: () => void
@@ -64,12 +66,14 @@ export const useArkStore = create<ArkState & ArkAction>()(
         set((state) => ({
           boardIntents: { ...state.boardIntents, [intent.address]: intent }
         })),
+      autoBoardDisabledIds: [],
       balances: {},
       boardFundingTxids: [],
       boardIntents: {},
       clearAllData: () =>
         set({
           accounts: [],
+          autoBoardDisabledIds: [],
           balances: {},
           boardFundingTxids: [],
           boardIntents: {},
@@ -94,8 +98,20 @@ export const useArkStore = create<ArkState & ArkAction>()(
           const { [accountId]: _s, ...remainingStats } = state.stats
           return {
             accounts: state.accounts.filter((a) => a.id !== accountId),
+            autoBoardDisabledIds: state.autoBoardDisabledIds.filter(
+              (id) => id !== accountId
+            ),
             balances: remainingBalances,
             stats: remainingStats
+          }
+        }),
+      setAutoBoardEnabled: (accountId, enabled) =>
+        set((state) => {
+          const others = state.autoBoardDisabledIds.filter(
+            (id) => id !== accountId
+          )
+          return {
+            autoBoardDisabledIds: enabled ? others : [...others, accountId]
           }
         }),
       stats: {},
@@ -119,6 +135,7 @@ export const useArkStore = create<ArkState & ArkAction>()(
       name: 'satsigner-ark',
       partialize: (state) => ({
         accounts: state.accounts,
+        autoBoardDisabledIds: state.autoBoardDisabledIds,
         balances: state.balances,
         boardFundingTxids: state.boardFundingTxids,
         boardIntents: state.boardIntents,

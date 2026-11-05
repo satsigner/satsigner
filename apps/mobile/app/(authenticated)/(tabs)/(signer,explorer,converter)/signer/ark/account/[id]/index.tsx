@@ -22,10 +22,10 @@ import {
   SSIconSignOut,
   SSIconTriangle
 } from '@/components/icons'
-import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
+import SSArkBalanceBreakdown from '@/components/SSArkBalanceBreakdown'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
@@ -47,6 +47,7 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkAutoBoard, useArkOnchainBalance } from '@/hooks/useArkBoard'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
@@ -67,7 +68,7 @@ import { useArkStore } from '@/store/ark'
 import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
-import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
+import { getArkBalanceBreakdown } from '@/utils/ark'
 import { countUsedArkAddresses } from '@/utils/arkAddress'
 import {
   getArkMovementLabelRef,
@@ -103,8 +104,12 @@ export default function ArkAccountDetailPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
-  const [accounts, cachedBalance] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances[id]])
+  const [accounts, cachedBalance, autoBoardDisabled] = useArkStore(
+    useShallow((state) => [
+      state.accounts,
+      state.balances[id],
+      state.autoBoardDisabledIds.includes(id)
+    ])
   )
   const account = accounts.find((a) => a.id === id)
 
@@ -134,8 +139,13 @@ export default function ArkAccountDetailPage() {
   const syncMutation = useArkSync(id)
 
   const balance = balanceQuery.data ?? cachedBalance
-  const total = balance ? getArkTotalSats(balance) : 0
-  const pending = balance ? getArkPendingSats(balance) : 0
+  const onchainBalanceQuery = useArkOnchainBalance(id)
+  const breakdown = getArkBalanceBreakdown(balance, onchainBalanceQuery.data)
+  const total = breakdown.totalSats
+  const autoBoard = useArkAutoBoard({
+    accountId: id,
+    enabled: !autoBoardDisabled
+  })
   const totalSize = total > 1_000_000_000 ? '4xl' : '6xl'
   const isLoading =
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
@@ -710,13 +720,21 @@ export default function ArkAccountDetailPage() {
                 </SSText>
               </SSHStack>
             )}
-            {pending > 0 && !privacyMode && (
-              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                <SSIconTime width={13} height={13} />
-                <SSText color="muted" size="xs">
-                  {t('ark.balance.pending', { amount: formatNumber(pending) })}
-                </SSText>
-              </SSHStack>
+            {breakdown.showBreakdown && (
+              <SSArkBalanceBreakdown
+                rows={breakdown.rows}
+                privacyMode={privacyMode}
+              />
+            )}
+            {autoBoard.status === 'failed' && (
+              <SSText
+                size="xs"
+                center
+                style={{ color: Colors.warning }}
+                onPress={autoBoard.retry}
+              >
+                {t('ark.autoBoard.failed')}
+              </SSText>
             )}
             {isLoading && (
               <SSText color="muted" size="xs">
@@ -919,6 +937,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     paddingBottom: 12,
     paddingTop: 24
   },
