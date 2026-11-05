@@ -2,7 +2,9 @@ import {
   ARK_SWAP_BLOCK_INTERVAL_SECONDS,
   ARK_SWAP_BOARD_FEE_MAX_ROUNDS,
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
-  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS
+  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
+  ARK_SWAP_RETRY_BASE_DELAY_MS,
+  ARK_SWAP_RETRY_MAX_DELAY_MS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -40,6 +42,7 @@ import {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
   parseArkSwapInvoice,
@@ -362,6 +365,30 @@ describe('job predicates', () => {
     expect(getArkSwapJobAccountId(LIGHTNING_TO_ONCHAIN_JOB)).toBe(
       'btc-destination'
     )
+  })
+})
+
+describe('isArkSwapJobRetryDue', () => {
+  const lastFailedAt = 1_000_000
+
+  it('runs a job that has not failed', () => {
+    expect(isArkSwapJobRetryDue(undefined, lastFailedAt)).toBe(true)
+  })
+
+  it('doubles the wait after each failure', () => {
+    const failures = { count: 3, lastFailedAt }
+    const delayMs = ARK_SWAP_RETRY_BASE_DELAY_MS * 4
+    expect(isArkSwapJobRetryDue(failures, lastFailedAt + delayMs - 1)).toBe(
+      false
+    )
+    expect(isArkSwapJobRetryDue(failures, lastFailedAt + delayMs)).toBe(true)
+  })
+
+  it('caps the wait', () => {
+    const failures = { count: 50, lastFailedAt }
+    expect(
+      isArkSwapJobRetryDue(failures, lastFailedAt + ARK_SWAP_RETRY_MAX_DELAY_MS)
+    ).toBe(true)
   })
 })
 

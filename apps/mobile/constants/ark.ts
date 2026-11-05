@@ -82,6 +82,10 @@ export const ARK_ONCHAIN_SWEEP_OVERHEAD_VBYTES = 11
 export const ARK_ONCHAIN_SWEEP_INPUT_VBYTES = 68
 export const ARK_ONCHAIN_SWEEP_OUTPUT_VBYTES = 43
 export const ARK_SWAP_POLL_INTERVAL_MS = 15_000
+// A job that keeps throwing is retried with a doubling delay, capped so a
+// recovered server is picked up again within minutes.
+export const ARK_SWAP_RETRY_BASE_DELAY_MS = ARK_SWAP_POLL_INTERVAL_MS
+export const ARK_SWAP_RETRY_MAX_DELAY_MS = 600_000
 export const ARK_SWAP_RUNNER_QUERY_KEY = ['ark', 'swapRunner']
 export const ARK_SWAP_BLOCK_INTERVAL_SECONDS = 600
 // Rounds to settle a board amount that also covers its own amount-based fee.

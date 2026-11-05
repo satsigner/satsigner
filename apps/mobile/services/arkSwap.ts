@@ -46,6 +46,7 @@ import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 import {
   type ArkSwapInvoice,
+  type ArkSwapJobFailures,
   canSubmitArkSwapInvoice,
   computeArkSwapPayout,
   computeMaxInvoiceSats,
@@ -56,6 +57,7 @@ import {
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   parseArkSwapInvoice,
   willInvoiceOutlastBoard
@@ -66,6 +68,10 @@ const MS_PER_SECOND = 1000
 // Jobs advanced right now in this JS context. Persisted statuses guard
 // against repeats across restarts; this guards against overlapping ticks.
 const runningJobIds = new Set<string>()
+
+// Consecutive failures per job in this JS context, for retry backoff. A
+// restart retries every job straight away.
+const jobFailures = new Map<string, ArkSwapJobFailures>()
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / MS_PER_SECOND)
@@ -846,7 +852,12 @@ async function advanceJob(jobId: string) {
     await (job.kind === 'onchainToLightning'
       ? advanceOnchainToLightning(job)
       : advanceLightningToOnchain(job))
+    jobFailures.delete(jobId)
   } catch (error) {
+    jobFailures.set(jobId, {
+      count: (jobFailures.get(jobId)?.count ?? 0) + 1,
+      lastFailedAt: Date.now()
+    })
     const latest = getArkSwapJob(jobId)
     if (latest) {
       saveJob({ ...latest, error: errorMessage(error) })
@@ -863,12 +874,14 @@ function readJobStatuses(arkAccountId: string): string {
 }
 
 async function advanceAccountJobs(arkAccountId: string): Promise<boolean> {
+  const now = Date.now()
   const jobIds = useArkSwapsStore
     .getState()
     .jobs.filter(
       (job) =>
         job.arkAccountId === arkAccountId &&
         isArkSwapJobRunnable(job) &&
+        isArkSwapJobRetryDue(jobFailures.get(job.id), now) &&
         !runningJobIds.has(job.id)
     )
     .map((job) => job.id)

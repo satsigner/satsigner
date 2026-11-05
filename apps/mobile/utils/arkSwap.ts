@@ -2,7 +2,9 @@ import {
   ARK_SWAP_BLOCK_INTERVAL_SECONDS,
   ARK_SWAP_BOARD_FEE_MAX_ROUNDS,
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
-  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS
+  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
+  ARK_SWAP_RETRY_BASE_DELAY_MS,
+  ARK_SWAP_RETRY_MAX_DELAY_MS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -262,6 +264,25 @@ function isArkSwapJobTerminal(job: Pick<ArkSwapJob, 'status'>): boolean {
 
 function isArkSwapJobRunnable(job: Pick<ArkSwapJob, 'status'>): boolean {
   return !isArkSwapJobTerminal(job) && job.status !== 'awaitingInvoice'
+}
+
+type ArkSwapJobFailures = {
+  count: number
+  lastFailedAt: number
+}
+
+function isArkSwapJobRetryDue(
+  failures: ArkSwapJobFailures | undefined,
+  nowMs: number
+): boolean {
+  if (!failures) {
+    return true
+  }
+  const delayMs = Math.min(
+    ARK_SWAP_RETRY_BASE_DELAY_MS * 2 ** (failures.count - 1),
+    ARK_SWAP_RETRY_MAX_DELAY_MS
+  )
+  return nowMs - failures.lastFailedAt >= delayMs
 }
 
 function canDismissArkSwapJob(job: Pick<ArkSwapJob, 'status'>): boolean {
@@ -603,6 +624,7 @@ export {
   type ArkSwapForm,
   type ArkSwapInvoice,
   type ArkSwapInvoiceRejection,
+  type ArkSwapJobFailures,
   type ArkSwapPayout,
   buildArkSwapRequest,
   canDismissArkSwapJob,
@@ -627,6 +649,7 @@ export {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
   parseArkSwapInvoice,
