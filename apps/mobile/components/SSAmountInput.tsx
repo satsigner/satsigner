@@ -38,6 +38,9 @@ function SSAmountInput({
   fiatEnabled
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(value)
+  // The slider throws when its range runs backwards, which happens whenever
+  // the balance is below the minimum amount.
+  const sliderMax = Math.max(min, max)
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')
 
   function satsToFiat(sats: number) {
@@ -150,7 +153,8 @@ function SSAmountInput({
       </SSHStack>
       <Slider
         minimumValue={min}
-        maximumValue={max}
+        maximumValue={sliderMax}
+        disabled={max <= min}
         value={localValue}
         onValueChange={(value) => {
           const [sats] = value
