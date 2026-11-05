@@ -17,6 +17,7 @@ import {
   useArkBoardMutation,
   useArkOnchainAddress,
   useArkOnchainBalance,
+  useArkOnchainSpendInFlight,
   useArkPendingBoards,
   useArkServerInfo
 } from '@/hooks/useArkBoard'
@@ -90,6 +91,7 @@ export default function ArkBoardPage() {
   const pendingBoardsQuery = useArkPendingBoards(id)
   const serverInfoQuery = useArkServerInfo(id)
   const boardMutation = useArkBoardMutation(id)
+  const onchainSpendInFlight = useArkOnchainSpendInFlight(id)
   const boardFromAccount = useArkBoardFromAccount(id)
   const { linkedAccount, resumeLinkedBroadcast } = useArkBoardDeposit(account)
   const boardPayjoin = useArkBoardPayjoin(account)
@@ -174,8 +176,13 @@ export default function ArkBoardPage() {
   })
   const feeSats = feeQuery.data?.feeSats
   const busy = boardMutation.isPending || boardFromAccount.isPending
+  const boardingWalletBusy = fromBoardingWallet && onchainSpendInFlight
   const canSubmit =
-    !!selectedSource && validation.valid && !busy && feeSats !== undefined
+    !!selectedSource &&
+    validation.valid &&
+    !busy &&
+    !boardingWalletBusy &&
+    feeSats !== undefined
 
   async function handleCopyAddress() {
     if (!depositAddress) {
