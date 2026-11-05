@@ -6,6 +6,7 @@ import {
   ARK_SWAP_RETRY_BASE_DELAY_MS,
   ARK_SWAP_RETRY_MAX_DELAY_MS,
   ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS,
   ARK_VTXO_STATE
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -296,6 +297,13 @@ function isArkSwapSendReconcileDue(
     return true
   }
   return nowMs - job.sendAttemptedAt >= ARK_SWAP_SEND_RECONCILE_GRACE_MS
+}
+
+function isArkSwapInvoiceAbandoned(
+  invoiceExpiresAt: number,
+  nowSeconds: number
+): boolean {
+  return nowSeconds >= invoiceExpiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 }
 
 function canDismissArkSwapJob(job: Pick<ArkSwapJob, 'status'>): boolean {
@@ -693,6 +701,7 @@ export {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapInvoiceAbandoned,
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,

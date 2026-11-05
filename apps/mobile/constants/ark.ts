@@ -104,6 +104,9 @@ export const ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS = 300
 // A send that threw may still be running server side; its movement is only
 // looked for once this long has passed, before the job is called failed.
 export const ARK_SWAP_SEND_RECONCILE_GRACE_MS = 120_000
+// An HTLC accepted just before the invoice expired can still settle after
+// it, so an unpaid receive is only given up this long past expiry.
+export const ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS = 600
 // With about a day of blocks left a VTXO should be refreshed, or the Ark
 // server may sweep it once it expires.
 export const ARK_VTXO_EXPIRY_WARNING_BLOCKS = 144

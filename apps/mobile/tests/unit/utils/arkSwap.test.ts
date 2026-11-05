@@ -5,7 +5,8 @@ import {
   ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
   ARK_SWAP_RETRY_BASE_DELAY_MS,
   ARK_SWAP_RETRY_MAX_DELAY_MS,
-  ARK_SWAP_SEND_RECONCILE_GRACE_MS
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -44,6 +45,7 @@ import {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapInvoiceAbandoned,
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
@@ -459,6 +461,29 @@ describe('getArkSwapBoardProgress', () => {
         isBoardPending: false
       })
     ).toBe('exited')
+  })
+})
+
+describe('isArkSwapInvoiceAbandoned', () => {
+  const expiresAt = 1_000_000
+
+  it('keeps waiting for a payment through the grace period past expiry', () => {
+    expect(isArkSwapInvoiceAbandoned(expiresAt, expiresAt)).toBe(false)
+    expect(
+      isArkSwapInvoiceAbandoned(
+        expiresAt,
+        expiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS - 1
+      )
+    ).toBe(false)
+  })
+
+  it('gives up once the grace period has passed', () => {
+    expect(
+      isArkSwapInvoiceAbandoned(
+        expiresAt,
+        expiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
+      )
+    ).toBe(true)
   })
 })
 

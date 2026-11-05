@@ -58,6 +58,7 @@ import {
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
+  isArkSwapInvoiceAbandoned,
   isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapSendReconcileDue,
@@ -776,7 +777,7 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
     job.paymentHash
   )
   if (receive.state === ARK_LIGHTNING_RECEIVE_AWAITING_STATE) {
-    if (nowSeconds() >= job.invoiceExpiresAt) {
+    if (isArkSwapInvoiceAbandoned(job.invoiceExpiresAt, nowSeconds())) {
       saveJob({
         ...job,
         error: t('ark.swap.error.invoiceUnpaid'),
