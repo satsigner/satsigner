@@ -891,17 +891,24 @@ export async function advanceArkSwapJobs(): Promise<string[]> {
   )
 }
 
-async function payLateInvoice(jobId: string, rawInvoice: string) {
+function getJobAwaitingInvoice(jobId: string): ArkOnchainToLightningJob {
   const job = getArkSwapJob(jobId)
   if (job?.kind !== 'onchainToLightning' || !canSubmitArkSwapInvoice(job)) {
     throw new Error(t('ark.swap.error.notAwaitingInvoice'))
   }
+  return job
+}
+
+async function payLateInvoice(jobId: string, rawInvoice: string) {
+  const job = getJobAwaitingInvoice(jobId)
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
   const invoice = requirePayableInvoice(rawInvoice, arkAccount)
   await ensureArkWalletOpen(job.arkAccountId)
   await assertInvoiceFitsBoard(arkAccount, invoice.amountSats, job.amountSats)
+  // The job may have been dismissed while the checks above awaited.
+  const current = getJobAwaitingInvoice(jobId)
   await payJobInvoice({
-    ...job,
+    ...current,
     invoice: invoice.invoice,
     invoiceExpiresAt: invoice.expiresAt,
     paymentHash: invoice.paymentHash
