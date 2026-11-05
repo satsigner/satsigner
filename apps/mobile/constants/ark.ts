@@ -20,6 +20,7 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   onchain: 'ark.send.kind.onchain'
 }
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
+export const ARK_LIGHTNING_RECEIVE_SETTLED_STATE = 'settled'
 // `false` disables waiting for lightning-send confirmation before returning.
 export const ARK_LIGHTNING_SEND_WAIT = false
 // `undefined` leaves how long the Ark server keeps retrying a lightning
@@ -53,3 +54,6 @@ export const ARK_SERVERS: Record<Network, ArkServer[]> = {
   testnet: []
 }
 export const ARK_SUPPORTED_NETWORKS: Network[] = ['bitcoin', 'signet']
+export const ARK_ONCHAIN_MIN_FEE_RATE_SAT_PER_VB = 1
+// BDK reports fee rates per kilo weight unit; one vbyte is four weight units.
+export const ARK_SAT_PER_KWU_PER_SAT_PER_VB = 250

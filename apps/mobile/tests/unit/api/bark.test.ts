@@ -10,11 +10,16 @@ import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
 type BarkTestHelpers = {
   __countWalletNotificationListeners: () => number
   __emitWalletNotification: (event: unknown) => void
+  OnchainWallet: { default_: jest.Mock }
   Wallet: { open: jest.Mock }
 }
 
-const { __countWalletNotificationListeners, __emitWalletNotification, Wallet } =
-  barkModule as unknown as BarkTestHelpers
+const {
+  __countWalletNotificationListeners,
+  __emitWalletNotification,
+  OnchainWallet,
+  Wallet
+} = barkModule as unknown as BarkTestHelpers
 
 type Deferred<T> = {
   promise: Promise<T>
@@ -94,12 +99,17 @@ async function openWallet(
   })
 }
 
-function movementCreatedEvent(subsystemKind: string, subsystemName = '') {
+function movementCreatedEvent(
+  subsystemKind: string,
+  subsystemName = '',
+  paymentHash?: string
+) {
   return {
     inner: {
       movement: {
         effectiveBalanceSats: 0n,
         id: 1,
+        paymentHash,
         status: 'pending',
         subsystemKind,
         subsystemName
@@ -134,22 +144,55 @@ describe('bark provider', () => {
     const wallet = buildFakeWallet({
       balance: jest.fn().mockResolvedValue({
         claimableLightningReceiveSats: 1n,
+        needsRefreshSats: 6n,
+        pendingArkoorSendSats: 7n,
         pendingBoardSats: 2n,
         pendingExitSats: 3n,
         pendingInRoundSats: 4n,
         pendingLightningSendSats: 5n,
+        pendingOffboardSats: 8n,
         spendableSats: 21_000_000n
       })
     })
     await openWallet('bal1', wallet)
     await expect(provider.fetchBalance('bal1')).resolves.toStrictEqual({
       claimableLightningReceiveSats: 1,
+      needsRefreshSats: 6,
+      pendingArkoorSendSats: 7,
       pendingBoardSats: 2,
       pendingExitSats: 3,
       pendingInRoundSats: 4,
       pendingLightningSendSats: 5,
+      pendingOffboardSats: 8,
       spendableSats: 21_000_000
     })
+  })
+
+  async function openWalletWithOnchainFeeRate(
+    accountId: string,
+    regularSatPerKwu: bigint
+  ): Promise<void> {
+    OnchainWallet.default_.mockResolvedValueOnce({
+      balance: jest.fn(),
+      feeRates: jest.fn().mockResolvedValue({
+        fastSatPerKwu: regularSatPerKwu * 2n,
+        regularSatPerKwu,
+        slowSatPerKwu: regularSatPerKwu
+      }),
+      newAddress: jest.fn(),
+      sync: jest.fn()
+    })
+    await openWallet(accountId, buildFakeWallet())
+  }
+
+  it('fetchOnchainFeeRate converts sat/kwu to sat/vB rounding up', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee1', 1001n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee1')).resolves.toBe(5)
+  })
+
+  it('fetchOnchainFeeRate never goes below 1 sat/vB', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee2', 100n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee2')).resolves.toBe(1)
   })
 
   it('startExit exits the entire wallet only when ids are omitted', async () => {
@@ -401,6 +444,26 @@ describe('bark provider', () => {
       provider.offboardVtxos('off1', ['vtxo1'], 'tb1qdest')
     ).resolves.toBe('txid-offboard')
     expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('subscribeNotifications forwards the movement payment hash', async () => {
+    await openWallet('notify1', buildFakeWallet())
+    const listener = jest.fn()
+    const unsubscribe = provider.subscribeNotifications('notify1', listener)
+    __emitWalletNotification(
+      movementCreatedEvent('lightning_receive', '', 'ab')
+    )
+    unsubscribe()
+    expect(listener).toHaveBeenCalledWith({
+      accountId: 'notify1',
+      effectiveBalanceSats: 0,
+      movementId: 1,
+      paymentHash: 'ab',
+      status: 'pending',
+      subsystemKind: 'lightning_receive',
+      subsystemName: '',
+      type: 'created'
+    })
   })
 
   it('offboardVtxos resolves pending when the movement notification wins', async () => {
