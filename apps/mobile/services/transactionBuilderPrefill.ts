@@ -1,4 +1,3 @@
-import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { autoSelectUtxos } from '@/utils/contentProcessor'
@@ -8,27 +7,28 @@ type PrefillSendFromAccountParams = {
   address: string
   amountSats: number
   label: string
+  // Must be an estimate for the account's own network.
+  feeRateSatPerVb: number | null
 }
 
 /**
  * Starts a fresh transaction in the builder that pays one output from the
- * account, with coins already picked at the next-block fee rate.
+ * account, with coins already picked at the given fee rate.
  */
 export function prefillSendFromAccount({
   account,
   address,
   amountSats,
-  label
+  label,
+  feeRateSatPerVb
 }: PrefillSendFromAccountParams): void {
   const store = useTransactionBuilderStore.getState()
   store.setAccountId(account.id)
   store.clearTransaction()
   store.setAccountId(account.id)
   store.addOutput({ amount: amountSats, label, to: address })
-  autoSelectUtxos(
-    account,
-    amountSats,
-    useBlockchainStore.getState().nextBlockFee,
-    { addInput: store.addInput, setFeeRate: store.setFeeRate }
-  )
+  autoSelectUtxos(account, amountSats, feeRateSatPerVb, {
+    addInput: store.addInput,
+    setFeeRate: store.setFeeRate
+  })
 }

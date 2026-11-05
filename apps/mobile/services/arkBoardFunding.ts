@@ -6,7 +6,10 @@ import {
   listArkPendingBoards
 } from '@/api/ark'
 import { t } from '@/locales'
-import { ensureArkWalletOpen } from '@/services/arkWallet'
+import {
+  ensureArkWalletOpen,
+  fetchArkNextBlockFeeRate
+} from '@/services/arkWallet'
 import { prefillSendFromAccount } from '@/services/transactionBuilderPrefill'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
@@ -96,6 +99,7 @@ export async function prepareArkBoardFromAccount({
     account: fundingAccount,
     address: fundingInfo.address,
     amountSats,
+    feeRateSatPerVb: await fetchArkNextBlockFeeRate(arkAccountId),
     label: t('ark.board.fromWallet.outputLabel')
   })
   return intent

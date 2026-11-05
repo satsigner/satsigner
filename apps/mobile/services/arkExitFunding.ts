@@ -1,7 +1,10 @@
 import { newArkOnchainAddress } from '@/api/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
-import { ensureArkWalletOpen } from '@/services/arkWallet'
+import {
+  ensureArkWalletOpen,
+  fetchArkNextBlockFeeRate
+} from '@/services/arkWallet'
 import { prefillSendFromAccount } from '@/services/transactionBuilderPrefill'
 import { useAccountsStore } from '@/store/accounts'
 import { getArkAccountOrThrow } from '@/store/ark'
@@ -47,6 +50,7 @@ export async function prepareArkExitFunding({
     account: fundingAccount,
     address,
     amountSats,
+    feeRateSatPerVb: await fetchArkNextBlockFeeRate(arkAccountId),
     label: t('ark.exit.funding.outputLabel')
   })
 }
