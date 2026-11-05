@@ -198,13 +198,17 @@ function getArkSwapAmountRange(
 
 /**
  * The amount to request: what the user picked, capped by the current range,
- * so switching to a poorer wallet never requests more than it holds.
+ * so switching to a poorer wallet never requests more than it holds. Below
+ * the minimum there is nothing to request.
  */
 function clampArkSwapAmount(
   amountSats: number,
   range: ArkSwapAmountRange | undefined
 ): number {
-  return range ? Math.min(amountSats, range.maxSats) : 0
+  if (!range || amountSats < range.minSats) {
+    return 0
+  }
+  return Math.min(amountSats, range.maxSats)
 }
 
 /**

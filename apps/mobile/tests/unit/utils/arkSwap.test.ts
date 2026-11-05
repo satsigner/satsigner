@@ -226,6 +226,11 @@ describe('clampArkSwapAmount', () => {
   it('is zero without a range', () => {
     expect(clampArkSwapAmount(3000, undefined)).toBe(0)
   })
+
+  it('is zero below the minimum', () => {
+    expect(clampArkSwapAmount(DUST_LIMIT - 1, range)).toBe(0)
+    expect(clampArkSwapAmount(DUST_LIMIT, range)).toBe(DUST_LIMIT)
+  })
 })
 
 describe('buildArkSwapRequest', () => {
