@@ -54,6 +54,9 @@ function SSProxyFormFields({ proxy, onProxyChange }: SSProxyFormFieldsProps) {
             <SSTextInput
               value={proxy.host}
               onChangeText={handleHostChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
               placeholder={t('settings.network.server.proxy.host.placeholder')}
             />
           </SSVStack>

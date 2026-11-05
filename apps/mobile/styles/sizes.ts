@@ -27,6 +27,15 @@ export const text = {
 export type TextFontSize = keyof (typeof text)['fontSize']
 export type TextFontWeight = keyof (typeof text)['fontWeight']
 
+// Geist digits rise 0.726em above the baseline and the font descends 0.295em.
+// When lineHeight is below the font's own line height, iOS keeps the whole
+// descent and trims the top, so a 1em line clips the top of the digits.
+const DIGIT_LINE_HEIGHT_RATIO = 1.1
+
+export function getDigitLineHeight(size: TextFontSize) {
+  return Math.ceil(text.fontSize[size] * DIGIT_LINE_HEIGHT_RATIO)
+}
+
 export const button = {
   borderRadius: 3,
   fontSize: text.fontSize.sm,

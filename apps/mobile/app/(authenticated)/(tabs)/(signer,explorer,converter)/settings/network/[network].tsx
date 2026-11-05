@@ -437,6 +437,9 @@ export default function CustomNetwork() {
                 <SSTextInput
                   value={formData.host}
                   onChangeText={(value) => updateField('host', value)}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
                   multiline
                   style={{ height: 'auto', minHeight: 70 }}
                   placeholder={t(

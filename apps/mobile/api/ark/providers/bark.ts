@@ -1,10 +1,13 @@
 import {
   Config,
   type FeeEstimate,
+  type LightningReceive,
   type LightningSendStatus,
   LightningSendStatus_Tags,
   type Movement,
   Network as BarkNetwork,
+  type OnchainUtxo,
+  OnchainUtxo_Tags,
   OnchainWallet,
   type OnchainWalletLike,
   type PendingBoard,
@@ -19,12 +22,15 @@ import {
 import { registerArkProvider } from '@/api/ark/registry'
 import {
   ARK_BOARD_PAYJOIN_NATIVE_MISSING,
+  ARK_LIGHTNING_RECEIVE_SETTLED_STATE,
   ARK_LIGHTNING_RETRY_FOR_SECS,
   ARK_LIGHTNING_SEND_WAIT,
   ARK_NO_HTLC_VTXOS_LOCKED,
+  ARK_ONCHAIN_MIN_FEE_RATE_SAT_PER_VB,
   ARK_PENDING_RACE_TIMEOUT_MS,
   ARK_PENDING_TXID,
-  ARK_ROUND_TX_REQUIRED_CONFIRMATIONS
+  ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
+  ARK_SAT_PER_KWU_PER_SAT_PER_VB
 } from '@/constants/ark'
 import type {
   ArkBalance,
@@ -32,12 +38,15 @@ import type {
   ArkBolt11Invoice,
   ArkDerivedAddress,
   ArkFeeEstimate,
+  ArkLightningReceive,
   ArkLightningSendResult,
+  ArkLightningSendState,
   ArkMovement,
   ArkMovementEvent,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
   ArkOnchainBalance,
+  ArkOnchainUtxo,
   ArkPendingBoard,
   ArkServer,
   ArkServerInfo,
@@ -46,6 +55,7 @@ import type {
   ArkWalletProvider
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
+import { ArkOperationBusyError } from '@/utils/arkError'
 import { isArkRefreshMovement } from '@/utils/arkMovement'
 import { filterCurrentArkVtxos } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
@@ -57,6 +67,10 @@ const inflightOpens = new Map<string, Promise<void>>()
 const inflightSyncs = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
 const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
+// Operations still running in the wallet that block a new one with the same
+// key, counted so each one releases only its own hold. Starting the same one
+// again before it settles could spend the same funds twice.
+const heldOperations = new Map<string, number>()
 
 function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   switch (network) {
@@ -202,7 +216,10 @@ function mapWalletNotification(
       accountId,
       effectiveBalanceSats: Number(event.inner.movement.effectiveBalanceSats),
       movementId: event.inner.movement.id,
+      paymentHash: event.inner.movement.paymentHash,
       status: event.inner.movement.status,
+      subsystemKind: event.inner.movement.subsystemKind,
+      subsystemName: event.inner.movement.subsystemName,
       type: 'created'
     }
   }
@@ -211,7 +228,10 @@ function mapWalletNotification(
       accountId,
       effectiveBalanceSats: Number(event.inner.movement.effectiveBalanceSats),
       movementId: event.inner.movement.id,
+      paymentHash: event.inner.movement.paymentHash,
       status: event.inner.movement.status,
+      subsystemKind: event.inner.movement.subsystemKind,
+      subsystemName: event.inner.movement.subsystemName,
       type: 'updated'
     }
   }
@@ -324,7 +344,8 @@ async function createBolt11Invoice(
   )
   return {
     amountSats: Number(invoice.amountSats),
-    invoice: invoice.invoice
+    invoice: invoice.invoice,
+    paymentHash: invoice.paymentHash
   }
 }
 
@@ -381,6 +402,29 @@ function mapLightningSendStatus(
     htlcVtxoCount: ARK_NO_HTLC_VTXOS_LOCKED,
     invoice: fallbackInvoice
   }
+}
+
+function mapLightningSendState(
+  status: LightningSendStatus
+): ArkLightningSendState {
+  if (status.tag === LightningSendStatus_Tags.Paid) {
+    return { preimage: status.inner.preimage, status: 'paid' }
+  }
+  if (status.tag === LightningSendStatus_Tags.InProgress) {
+    return { status: 'inProgress' }
+  }
+  return { status: 'unknown' }
+}
+
+async function checkLightningSend(
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningSendState> {
+  const status = await getCachedWallet(accountId).checkLightningPayment(
+    paymentHash,
+    ARK_LIGHTNING_SEND_WAIT
+  )
+  return mapLightningSendState(status)
 }
 
 async function sendArkoor(
@@ -506,13 +550,47 @@ async function startExit(accountId: string, vtxoIds?: string[]): Promise<void> {
   await wallet.startExitForVtxos(vtxoIds)
 }
 
+function holdOperation(operationKey: string) {
+  heldOperations.set(operationKey, (heldOperations.get(operationKey) ?? 0) + 1)
+}
+
+function releaseOperation(operationKey: string) {
+  const remaining = (heldOperations.get(operationKey) ?? 0) - 1
+  if (remaining > 0) {
+    heldOperations.set(operationKey, remaining)
+    return
+  }
+  heldOperations.delete(operationKey)
+}
+
+/**
+ * A timed-out operation holds its key until it settles. An exclusive one
+ * holds it from the start, because a concurrent one with the same matcher
+ * could take its movement notification.
+ */
 function raceMovementCreated(
   label: string,
   accountId: string,
   matchesMovement: (movement: Movement) => boolean,
-  operation: Promise<string>
+  startOperation: () => Promise<string>,
+  { exclusive = false }: { exclusive?: boolean } = {}
 ): Promise<string> {
+  const operationKey = `${accountId}:${label}`
+  if (heldOperations.has(operationKey)) {
+    return Promise.reject(new ArkOperationBusyError())
+  }
+  const hold = { held: false }
+  function holdOnce() {
+    if (!hold.held) {
+      hold.held = true
+      holdOperation(operationKey)
+    }
+  }
+  if (exclusive) {
+    holdOnce()
+  }
   const notifications = getOrCreateNotifications(accountId)
+  const operation = startOperation()
   return new Promise<string>((resolve, reject) => {
     let settled = false
 
@@ -527,9 +605,10 @@ function raceMovementCreated(
     }
 
     const timer = setTimeout(() => {
-      settle(() =>
+      settle(() => {
+        holdOnce()
         reject(new Error(`${label}: no movement created within timeout`))
-      )
+      })
     }, ARK_PENDING_RACE_TIMEOUT_MS)
 
     const unsubscribe = notifications.subscribe((event) => {
@@ -550,6 +629,10 @@ function raceMovementCreated(
         settle(() => resolve(txid))
       } catch (error) {
         settle(() => reject(error))
+      } finally {
+        if (hold.held) {
+          releaseOperation(operationKey)
+        }
       }
     }
 
@@ -576,7 +659,7 @@ function offboardVtxos(
     'ark-offboard',
     accountId,
     (movement) => movement.subsystemKind === 'offboard',
-    offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
+    () => offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
   )
 }
 
@@ -606,7 +689,7 @@ function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
     'ark-refresh',
     accountId,
     isArkRefreshMovement,
-    refreshWalletVtxos(wallet, vtxoIds)
+    () => refreshWalletVtxos(wallet, vtxoIds)
   )
 }
 
@@ -638,7 +721,8 @@ function sendOnchain(
     'ark-sendOnchain',
     accountId,
     (movement) => movement.subsystemKind === 'send_onchain',
-    offboardToAddress(wallet, bitcoinAddress, amountSats)
+    () => offboardToAddress(wallet, bitcoinAddress, amountSats),
+    { exclusive: true }
   )
 }
 
@@ -728,6 +812,15 @@ async function boardPsbt(
   return mapPendingBoard(pendingBoard)
 }
 
+async function estimateLightningReceiveFee(
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  const wallet = getCachedWallet(accountId)
+  const estimate = await wallet.estimateLightningReceiveFee(BigInt(amountSats))
+  return mapFeeEstimate(estimate)
+}
+
 async function estimateBoardFee(
   accountId: string,
   amountSats: number
@@ -755,8 +848,11 @@ async function fetchServerInfo(
     return null
   }
   return {
+    maxVtxoExitDepth: info.maxVtxoExitDepth,
     minBoardAmountSats: Number(info.minBoardAmountSats),
-    requiredBoardConfirmations: info.requiredBoardConfirmations
+    requiredBoardConfirmations: info.requiredBoardConfirmations,
+    vtxoExitDelta: info.vtxoExitDelta,
+    vtxoLifetime: info.vtxoLifetime
   }
 }
 
@@ -767,32 +863,134 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
     claimableLightningReceiveSats: Number(
       balance.claimableLightningReceiveSats
     ),
+    needsRefreshSats: Number(balance.needsRefreshSats),
+    pendingArkoorSendSats: Number(balance.pendingArkoorSendSats),
     pendingBoardSats: Number(balance.pendingBoardSats),
     pendingExitSats: Number(balance.pendingExitSats),
     pendingInRoundSats: Number(balance.pendingInRoundSats),
     pendingLightningSendSats: Number(balance.pendingLightningSendSats),
+    pendingOffboardSats: Number(balance.pendingOffboardSats),
     spendableSats: Number(balance.spendableSats)
   }
+}
+
+function fetchTipHeight(accountId: string): Promise<number> {
+  return getCachedOnchainWallet(accountId).tipHeight()
+}
+
+function fetchVtxoEncoded(accountId: string, vtxoId: string): Promise<string> {
+  return getCachedWallet(accountId).vtxoEncoded(vtxoId)
+}
+
+async function fetchVtxoState(
+  accountId: string,
+  vtxoId: string
+): Promise<string> {
+  const vtxo = await getCachedWallet(accountId).getVtxoById(vtxoId)
+  return vtxo.state.tag
+}
+
+function mapLightningReceive(receive: LightningReceive): ArkLightningReceive {
+  return {
+    amountSats:
+      receive.amountSats === undefined ? undefined : Number(receive.amountSats),
+    invoice: receive.invoice,
+    paymentHash: receive.paymentHash,
+    settled: receive.state === ARK_LIGHTNING_RECEIVE_SETTLED_STATE,
+    state: receive.state
+  }
+}
+
+async function fetchLightningReceive(
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningReceive> {
+  const receive =
+    await getCachedWallet(accountId).lightningReceiveState(paymentHash)
+  return mapLightningReceive(receive)
+}
+
+async function claimLightningReceive(
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningReceive> {
+  const receive = await getCachedWallet(accountId).tryClaimLightningReceive(
+    paymentHash,
+    false
+  )
+  return mapLightningReceive(receive)
+}
+
+function mapOnchainUtxo(utxo: OnchainUtxo): ArkOnchainUtxo | null {
+  if (utxo.tag !== OnchainUtxo_Tags.Local) {
+    return null
+  }
+  const { outpoint, amountSats, confirmationHeight } = utxo.inner
+  return {
+    amountSats: Number(amountSats),
+    confirmed: confirmationHeight !== undefined,
+    outpoint: `${outpoint.txid}:${outpoint.vout}`
+  }
+}
+
+async function listOnchainUtxos(accountId: string): Promise<ArkOnchainUtxo[]> {
+  const onchainWallet = getCachedOnchainWallet(accountId)
+  await onchainWallet.sync()
+  const utxos = await onchainWallet.utxos()
+  return utxos
+    .map(mapOnchainUtxo)
+    .filter((utxo): utxo is ArkOnchainUtxo => utxo !== null)
+}
+
+async function fetchOnchainFeeRate(accountId: string): Promise<number> {
+  const { regularSatPerKwu } =
+    await getCachedOnchainWallet(accountId).feeRates()
+  return Math.max(
+    ARK_ONCHAIN_MIN_FEE_RATE_SAT_PER_VB,
+    Math.ceil(Number(regularSatPerKwu) / ARK_SAT_PER_KWU_PER_SAT_PER_VB)
+  )
+}
+
+function sendFromOnchain(
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number,
+  feeRateSatPerVb: number
+): Promise<string> {
+  return getCachedOnchainWallet(accountId).send(
+    bitcoinAddress,
+    BigInt(amountSats),
+    BigInt(feeRateSatPerVb)
+  )
 }
 
 const barkProvider: ArkWalletProvider = {
   board,
   boardFundingAddress,
   boardPsbt,
+  checkLightningSend,
+  claimLightningReceive,
   createBolt11Invoice,
   createWallet,
   deriveAddresses,
   estimateArkoorFee,
   estimateBoardFee,
+  estimateLightningReceiveFee,
   estimateLightningSendFee,
   estimateOffboardFee,
   estimateRefreshFee,
   estimateSendOnchainFee,
   fetchBalance,
+  fetchLightningReceive,
   fetchMovements,
   fetchOnchainBalance,
+  fetchOnchainFeeRate,
   fetchServerInfo,
+  fetchTipHeight,
+  fetchVtxoEncoded,
+  fetchVtxoState,
   listAllVtxos,
+  listOnchainUtxos,
   listPendingBoards,
   listSpendableVtxos,
   newAddress,
@@ -804,6 +1002,7 @@ const barkProvider: ArkWalletProvider = {
   refreshVtxos,
   releaseWallet,
   sendArkoor,
+  sendFromOnchain,
   sendOnchain,
   serverId: 'second',
   startExit,

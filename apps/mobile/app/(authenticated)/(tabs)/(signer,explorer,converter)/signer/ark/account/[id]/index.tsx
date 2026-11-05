@@ -22,10 +22,10 @@ import {
   SSIconSignOut,
   SSIconTriangle
 } from '@/components/icons'
-import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
+import SSArkBalanceBreakdown from '@/components/SSArkBalanceBreakdown'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
@@ -47,6 +47,7 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkAutoBoard, useArkOnchainBalance } from '@/hooks/useArkBoard'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
@@ -54,6 +55,7 @@ import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
+import { useArkSwapActiveCount } from '@/hooks/useArkSwaps'
 import { useArkSync } from '@/hooks/useArkSync'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
@@ -67,7 +69,7 @@ import { useArkStore } from '@/store/ark'
 import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
-import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
+import { getArkBalanceBreakdown } from '@/utils/ark'
 import { countUsedArkAddresses } from '@/utils/arkAddress'
 import {
   getArkMovementLabelRef,
@@ -82,6 +84,7 @@ import {
   filterSelectableVtxoIds,
   getArkNextExpiryHeight
 } from '@/utils/arkVtxo'
+import { getArkVtxoRoute } from '@/utils/arkVtxoDetail'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 
@@ -103,9 +106,15 @@ export default function ArkAccountDetailPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
-  const [accounts, cachedBalance] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances[id]])
-  )
+  const [accounts, cachedBalance, cachedOnchainBalance, autoBoardDisabled] =
+    useArkStore(
+      useShallow((state) => [
+        state.accounts,
+        state.balances[id],
+        state.onchainBalances[id],
+        state.autoBoardDisabledIds.includes(id)
+      ])
+    )
   const account = accounts.find((a) => a.id === id)
 
   const walletQuery = useArkWallet(id)
@@ -132,10 +141,19 @@ export default function ArkAccountDetailPage() {
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
+  const activeSwapCount = useArkSwapActiveCount(id)
 
   const balance = balanceQuery.data ?? cachedBalance
-  const total = balance ? getArkTotalSats(balance) : 0
-  const pending = balance ? getArkPendingSats(balance) : 0
+  const onchainBalanceQuery = useArkOnchainBalance(id)
+  const breakdown = getArkBalanceBreakdown(
+    balance,
+    onchainBalanceQuery.data ?? cachedOnchainBalance
+  )
+  const total = breakdown.totalSats
+  const autoBoard = useArkAutoBoard({
+    accountId: id,
+    enabled: !autoBoardDisabled
+  })
   const totalSize = total > 1_000_000_000 ? '4xl' : '6xl'
   const isLoading =
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
@@ -213,6 +231,13 @@ export default function ArkAccountDetailPage() {
     })
   }
 
+  function handleSwap() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/swap'
+    })
+  }
+
   function handleCamera() {
     setCameraVisible(true)
   }
@@ -240,6 +265,10 @@ export default function ArkAccountDetailPage() {
         ? prev.filter((selectedId) => selectedId !== vtxoId)
         : [...prev, vtxoId]
     )
+  }
+
+  function handleOpenVtxo(vtxoId: string) {
+    router.navigate(getArkVtxoRoute(id, vtxoId))
   }
 
   function handleToggleVtxosView() {
@@ -420,6 +449,7 @@ export default function ArkAccountDetailPage() {
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
+        onPress={handleOpenVtxo}
       />
     )
   }
@@ -710,13 +740,21 @@ export default function ArkAccountDetailPage() {
                 </SSText>
               </SSHStack>
             )}
-            {pending > 0 && !privacyMode && (
-              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                <SSIconTime width={13} height={13} />
-                <SSText color="muted" size="xs">
-                  {t('ark.balance.pending', { amount: formatNumber(pending) })}
-                </SSText>
-              </SSHStack>
+            {breakdown.showBreakdown && (
+              <SSArkBalanceBreakdown
+                rows={breakdown.rows}
+                privacyMode={privacyMode}
+              />
+            )}
+            {autoBoard.status === 'failed' && (
+              <SSText
+                size="xs"
+                center
+                style={{ color: Colors.warning }}
+                onPress={autoBoard.retry}
+              >
+                {t('ark.autoBoard.failed')}
+              </SSText>
             )}
             {isLoading && (
               <SSText color="muted" size="xs">
@@ -736,6 +774,16 @@ export default function ArkAccountDetailPage() {
               onSend={handleSend}
               onCamera={handleCamera}
               onReceive={handleReceive}
+            />
+            <SSButton
+              label={
+                activeSwapCount > 0
+                  ? t('ark.swap.entryActive', { count: activeSwapCount })
+                  : t('ark.swap.entry')
+              }
+              onPress={handleSwap}
+              variant="outline"
+              style={styles.swapButton}
             />
           </View>
         </SSVStack>
@@ -919,6 +967,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     paddingBottom: 12,
     paddingTop: 24
   },
@@ -961,6 +1010,9 @@ const styles = StyleSheet.create({
   separator: {
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth
+  },
+  swapButton: {
+    marginTop: 12
   },
   tab: {
     width: TAB_WIDTH

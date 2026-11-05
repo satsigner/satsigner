@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet } from 'react-native'
 
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -12,6 +12,7 @@ import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatTxId } from '@/utils/format'
 
 const CHECKBOX_SIZE = 18
+const CHECKBOX_HIT_SLOP = 12
 
 type SSArkVtxoCardProps = Pick<
   DisplayPreferences,
@@ -20,17 +21,20 @@ type SSArkVtxoCardProps = Pick<
   vtxo: ArkVtxo
   selected?: boolean
   onToggle?: (id: string) => void
+  onPress?: (id: string) => void
 }
 
 function SSArkVtxoCard({
   vtxo,
   selected = false,
   onToggle,
+  onPress,
   currencyUnit,
   privacyMode,
   useZeroPadding
 }: SSArkVtxoCardProps) {
   const selectable = onToggle !== undefined
+  const handlePress = onPress ?? onToggle
 
   const content = (
     <SSHStack
@@ -40,14 +44,18 @@ function SSArkVtxoCard({
     >
       <SSHStack gap="sm" style={styles.leftColumn}>
         {selectable ? (
-          <View style={styles.checkboxWrapper}>
+          <Pressable
+            hitSlop={CHECKBOX_HIT_SLOP}
+            style={styles.checkboxWrapper}
+            onPress={() => onToggle(vtxo.id)}
+          >
             <SSCheckbox
               selected={selected}
               size={CHECKBOX_SIZE}
               style={styles.checkbox}
               onPress={() => onToggle(vtxo.id)}
             />
-          </View>
+          </Pressable>
         ) : null}
         <SSVStack gap="xxs" style={styles.leftColumn}>
           <SSHStack gap="xs" style={styles.amountRow}>
@@ -79,11 +87,11 @@ function SSArkVtxoCard({
     </SSHStack>
   )
 
-  if (!selectable) {
+  if (!handlePress) {
     return content
   }
 
-  return <Pressable onPress={() => onToggle(vtxo.id)}>{content}</Pressable>
+  return <Pressable onPress={() => handlePress(vtxo.id)}>{content}</Pressable>
 }
 
 const styles = StyleSheet.create({

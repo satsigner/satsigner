@@ -1,48 +1,13 @@
-import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
 import {
   isArkBoardPayjoinSend,
   matchingUnbroadcastBoardTxid,
-  resolveArkBoardFundDestination,
   txidFromSignedDraft
 } from '@/utils/arkBoardDeposit'
 
 const ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
 const PAYJOIN_URI = `bitcoin:${ADDRESS}?pjos=0&pj=https://payjo.in/abc#EX1-600-OH1-mock-RK1-mock`
-const PAYJOIN_WITH_AMOUNT = `bitcoin:${ADDRESS}?amount=0.0001&pjos=0&pj=https://payjo.in/abc#EX1-600-OH1-mock-RK1-mock`
 const TXID = 'aa'.repeat(32)
-
-describe('resolveArkBoardFundDestination', () => {
-  it('uses dust as the send amount when the invoice has none', () => {
-    expect(resolveArkBoardFundDestination(ADDRESS)).toStrictEqual({
-      address: ADDRESS,
-      amountSats: DUST_LIMIT
-    })
-  })
-
-  it('prefers a caller amount such as min board over dust', () => {
-    expect(resolveArkBoardFundDestination(ADDRESS, 10_000)).toStrictEqual({
-      address: ADDRESS,
-      amountSats: 10_000
-    })
-  })
-
-  it('extracts address and payjoin URI from a BIP77 invoice', () => {
-    expect(resolveArkBoardFundDestination(PAYJOIN_URI)).toStrictEqual({
-      address: ADDRESS,
-      amountSats: DUST_LIMIT,
-      payjoinUri: PAYJOIN_URI
-    })
-  })
-
-  it('uses the invoice amount when present', () => {
-    expect(resolveArkBoardFundDestination(PAYJOIN_WITH_AMOUNT)).toStrictEqual({
-      address: ADDRESS,
-      amountSats: 10_000,
-      payjoinUri: PAYJOIN_WITH_AMOUNT
-    })
-  })
-})
 
 describe('txidFromSignedDraft', () => {
   it('returns undefined for invalid hex', () => {

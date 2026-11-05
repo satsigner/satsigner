@@ -4,6 +4,7 @@ import {
   getBitcoinUriAmountSats,
   isAutoSelectFromUriSearchParam,
   isUriPaymentAmount,
+  resolveUriAutoSelectAlgorithm,
   shouldApplyDefaultAutoSelectFromUri,
   shouldAutoSelectUtxosFromBitcoinUri,
   shouldAutoSelectUtxosFromParsedAmount
@@ -63,6 +64,35 @@ describe('autoSelectUtxos helpers', () => {
           'bitcoin:bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26?amount=0.001'
         )
       ).toBe(true)
+    })
+  })
+
+  describe('resolveUriAutoSelectAlgorithm', () => {
+    it('keeps the default for a plain send', () => {
+      expect(
+        resolveUriAutoSelectAlgorithm({
+          defaultAlgorithm: 'privacy',
+          isArkBoardFunding: false,
+          isPayjoin: false
+        })
+      ).toBe('privacy')
+    })
+
+    it('uses efficiency for payjoin invoices and Ark boards', () => {
+      expect(
+        resolveUriAutoSelectAlgorithm({
+          defaultAlgorithm: 'privacy',
+          isArkBoardFunding: false,
+          isPayjoin: true
+        })
+      ).toBe('efficiency')
+      expect(
+        resolveUriAutoSelectAlgorithm({
+          defaultAlgorithm: 'privacy',
+          isArkBoardFunding: true,
+          isPayjoin: false
+        })
+      ).toBe('efficiency')
     })
   })
 

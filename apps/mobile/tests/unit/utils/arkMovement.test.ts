@@ -1,4 +1,8 @@
-import type { ArkMovement, ArkMovementStatus } from '@/types/models/Ark'
+import type {
+  ArkMovement,
+  ArkMovementEvent,
+  ArkMovementStatus
+} from '@/types/models/Ark'
 import {
   getArkMovementAmountSats,
   getArkMovementCounterparty,
@@ -14,6 +18,7 @@ import {
   parseArkCounterparty,
   selectArkRefreshes,
   selectArkTransactions,
+  shouldAnnounceArkReceive,
   sortArkMovements,
   truncateArkCounterparty
 } from '@/utils/arkMovement'
@@ -445,5 +450,58 @@ describe('arkMovement utils', () => {
         getArkMovementLabelRef(settled)
       )
     })
+  })
+})
+
+describe('shouldAnnounceArkReceive', () => {
+  function buildEvent(
+    overrides: Partial<ArkMovementEvent> = {}
+  ): ArkMovementEvent {
+    return {
+      accountId: 'ark-1',
+      effectiveBalanceSats: 5000,
+      movementId: 1,
+      status: 'pending',
+      subsystemKind: 'receive',
+      subsystemName: 'bark.lightning_receive',
+      type: 'created',
+      ...overrides
+    }
+  }
+
+  const BOARD = { subsystemKind: 'board', subsystemName: 'bark.board' }
+
+  it('announces an incoming movement when it is created', () => {
+    expect(shouldAnnounceArkReceive(buildEvent())).toBe(true)
+    expect(shouldAnnounceArkReceive(buildEvent({ type: 'updated' }))).toBe(
+      false
+    )
+  })
+
+  it('skips outgoing and zero-amount movements', () => {
+    expect(
+      shouldAnnounceArkReceive(buildEvent({ effectiveBalanceSats: -5000 }))
+    ).toBe(false)
+    expect(
+      shouldAnnounceArkReceive(buildEvent({ effectiveBalanceSats: 0 }))
+    ).toBe(false)
+  })
+
+  it('announces a board only once it succeeds', () => {
+    expect(shouldAnnounceArkReceive(buildEvent(BOARD))).toBe(false)
+    expect(
+      shouldAnnounceArkReceive(buildEvent({ ...BOARD, type: 'updated' }))
+    ).toBe(false)
+    expect(
+      shouldAnnounceArkReceive(
+        buildEvent({ ...BOARD, status: 'successful', type: 'updated' })
+      )
+    ).toBe(true)
+  })
+
+  it('announces a board first reported as already successful', () => {
+    expect(
+      shouldAnnounceArkReceive(buildEvent({ ...BOARD, status: 'successful' }))
+    ).toBe(true)
   })
 })

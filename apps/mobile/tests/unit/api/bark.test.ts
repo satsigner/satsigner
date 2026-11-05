@@ -4,17 +4,23 @@ import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
 import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
+import { ArkOperationBusyError } from '@/utils/arkError'
 
 // jest.config.js maps @secondts/bark-react-native to the manual mock in
 // __mocks__; these test-only helpers exist there, not in the real package.
 type BarkTestHelpers = {
   __countWalletNotificationListeners: () => number
   __emitWalletNotification: (event: unknown) => void
+  OnchainWallet: { default_: jest.Mock }
   Wallet: { open: jest.Mock }
 }
 
-const { __countWalletNotificationListeners, __emitWalletNotification, Wallet } =
-  barkModule as unknown as BarkTestHelpers
+const {
+  __countWalletNotificationListeners,
+  __emitWalletNotification,
+  OnchainWallet,
+  Wallet
+} = barkModule as unknown as BarkTestHelpers
 
 type Deferred<T> = {
   promise: Promise<T>
@@ -94,12 +100,17 @@ async function openWallet(
   })
 }
 
-function movementCreatedEvent(subsystemKind: string, subsystemName = '') {
+function movementCreatedEvent(
+  subsystemKind: string,
+  subsystemName = '',
+  paymentHash?: string
+) {
   return {
     inner: {
       movement: {
         effectiveBalanceSats: 0n,
         id: 1,
+        paymentHash,
         status: 'pending',
         subsystemKind,
         subsystemName
@@ -134,22 +145,55 @@ describe('bark provider', () => {
     const wallet = buildFakeWallet({
       balance: jest.fn().mockResolvedValue({
         claimableLightningReceiveSats: 1n,
+        needsRefreshSats: 6n,
+        pendingArkoorSendSats: 7n,
         pendingBoardSats: 2n,
         pendingExitSats: 3n,
         pendingInRoundSats: 4n,
         pendingLightningSendSats: 5n,
+        pendingOffboardSats: 8n,
         spendableSats: 21_000_000n
       })
     })
     await openWallet('bal1', wallet)
     await expect(provider.fetchBalance('bal1')).resolves.toStrictEqual({
       claimableLightningReceiveSats: 1,
+      needsRefreshSats: 6,
+      pendingArkoorSendSats: 7,
       pendingBoardSats: 2,
       pendingExitSats: 3,
       pendingInRoundSats: 4,
       pendingLightningSendSats: 5,
+      pendingOffboardSats: 8,
       spendableSats: 21_000_000
     })
+  })
+
+  async function openWalletWithOnchainFeeRate(
+    accountId: string,
+    regularSatPerKwu: bigint
+  ): Promise<void> {
+    OnchainWallet.default_.mockResolvedValueOnce({
+      balance: jest.fn(),
+      feeRates: jest.fn().mockResolvedValue({
+        fastSatPerKwu: regularSatPerKwu * 2n,
+        regularSatPerKwu,
+        slowSatPerKwu: regularSatPerKwu / 2n
+      }),
+      newAddress: jest.fn(),
+      sync: jest.fn()
+    })
+    await openWallet(accountId, buildFakeWallet())
+  }
+
+  it('fetchOnchainFeeRate converts sat/kwu to sat/vB rounding up', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee1', 1001n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee1')).resolves.toBe(5)
+  })
+
+  it('fetchOnchainFeeRate never goes below 1 sat/vB', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee2', 100n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee2')).resolves.toBe(1)
   })
 
   it('startExit exits the entire wallet only when ids are omitted', async () => {
@@ -290,6 +334,20 @@ describe('bark provider', () => {
     ])
   })
 
+  it('fetchVtxoState returns the state tag of the VTXO', async () => {
+    const wallet = buildFakeWallet({
+      getVtxoById: jest.fn().mockResolvedValue({
+        ...buildFakeVtxo('board', 100n, 10),
+        state: { tag: 'Locked' }
+      })
+    })
+    await openWallet('vtxostate1', wallet)
+    await expect(provider.fetchVtxoState('vtxostate1', 'board')).resolves.toBe(
+      'Locked'
+    )
+    expect(wallet.getVtxoById).toHaveBeenCalledWith('board')
+  })
+
   it('payBolt11 returns the preimage and given amount for a Paid status', async () => {
     const wallet = buildFakeWallet({
       payLightningInvoice: jest.fn().mockResolvedValue({
@@ -401,6 +459,26 @@ describe('bark provider', () => {
       provider.offboardVtxos('off1', ['vtxo1'], 'tb1qdest')
     ).resolves.toBe('txid-offboard')
     expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('subscribeNotifications forwards the movement payment hash', async () => {
+    await openWallet('notify1', buildFakeWallet())
+    const listener = jest.fn()
+    const unsubscribe = provider.subscribeNotifications('notify1', listener)
+    __emitWalletNotification(
+      movementCreatedEvent('lightning_receive', '', 'ab')
+    )
+    unsubscribe()
+    expect(listener).toHaveBeenCalledWith({
+      accountId: 'notify1',
+      effectiveBalanceSats: 0,
+      movementId: 1,
+      paymentHash: 'ab',
+      status: 'pending',
+      subsystemKind: 'lightning_receive',
+      subsystemName: '',
+      type: 'created'
+    })
   })
 
   it('offboardVtxos resolves pending when the movement notification wins', async () => {
@@ -537,5 +615,88 @@ describe('bark provider', () => {
     ])
     expect(__countWalletNotificationListeners()).toBe(0)
     jest.useRealTimers()
+  })
+
+  it('sendOnchain refuses a second send while the first is still running', async () => {
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendBusy1', wallet)
+    const first = provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await expect(first).resolves.toBe('first-txid')
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
+  })
+
+  it('a finishing refresh keeps the guard of another one that timed out', async () => {
+    jest.useFakeTimers()
+    const firstRefresh = createDeferred<string>()
+    const secondRefresh = createDeferred<string>()
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest
+        .fn()
+        .mockReturnValueOnce(firstRefresh.promise)
+        .mockReturnValueOnce(secondRefresh.promise)
+    })
+    await openWallet('refGuard1', wallet)
+    const timedOut = provider.refreshVtxos('refGuard1', ['vtxo1'])
+    await jest.advanceTimersByTimeAsync(10_000)
+    const finishing = provider.refreshVtxos('refGuard1', ['vtxo2'])
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(20_001)
+    ])
+    secondRefresh.resolve('second-txid')
+    await expect(finishing).resolves.toBe('second-txid')
+    jest.useRealTimers()
+
+    await expect(
+      provider.refreshVtxos('refGuard1', ['vtxo3'])
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+
+    firstRefresh.resolve('first-txid')
+    await firstRefresh.promise
+  })
+
+  it('sendOnchain refuses a retry while a timed-out send still runs', async () => {
+    jest.useFakeTimers()
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendRetry1', wallet)
+    const timedOut = provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(30_001)
+    ])
+    jest.useRealTimers()
+
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).rejects.toThrow('still running')
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await firstSend.promise
+    await Promise.resolve()
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
   })
 })

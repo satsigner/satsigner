@@ -11,6 +11,7 @@ import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import {
   hasUnfinishedDraft,
@@ -257,6 +258,10 @@ export function useTransactionFeeReplacement({
     ])
   )
 
+  const isArkBoardFunding = useArkStore((state) =>
+    tx ? state.boardFundingTxids.includes(tx.id) : false
+  )
+
   const isAvailable =
     account !== undefined &&
     tx !== undefined &&
@@ -264,6 +269,7 @@ export function useTransactionFeeReplacement({
     getFeeReplacementOptions({
       account,
       backend,
+      isArkBoardFunding,
       ownedOutpoints: buildOwnedOutpoints(account),
       tx
     }).actions[kind]
