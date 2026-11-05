@@ -103,6 +103,23 @@ describe('useArkStore', () => {
     expect(state.boardFundingTxids).toStrictEqual(['txid-a1'])
   })
 
+  it('updateOnchainBalance caches the balance until the account is removed', () => {
+    const onchainBalance = {
+      confirmedSats: 700,
+      pendingSats: 0,
+      totalSats: 700
+    }
+    useArkStore.getState().addAccount(buildAccount('a1'))
+    useArkStore.getState().updateOnchainBalance('a1', onchainBalance)
+    expect(useArkStore.getState().onchainBalances.a1).toStrictEqual(
+      onchainBalance
+    )
+
+    useArkStore.getState().removeAccount('a1')
+
+    expect('a1' in useArkStore.getState().onchainBalances).toBe(false)
+  })
+
   it('removeAccount of an unknown id leaves state intact', () => {
     useArkStore.getState().addAccount(buildAccount('a1'))
     useArkStore.getState().removeAccount('missing')

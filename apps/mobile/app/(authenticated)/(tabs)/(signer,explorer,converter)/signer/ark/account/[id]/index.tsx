@@ -106,13 +106,15 @@ export default function ArkAccountDetailPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
-  const [accounts, cachedBalance, autoBoardDisabled] = useArkStore(
-    useShallow((state) => [
-      state.accounts,
-      state.balances[id],
-      state.autoBoardDisabledIds.includes(id)
-    ])
-  )
+  const [accounts, cachedBalance, cachedOnchainBalance, autoBoardDisabled] =
+    useArkStore(
+      useShallow((state) => [
+        state.accounts,
+        state.balances[id],
+        state.onchainBalances[id],
+        state.autoBoardDisabledIds.includes(id)
+      ])
+    )
   const account = accounts.find((a) => a.id === id)
 
   const walletQuery = useArkWallet(id)
@@ -143,7 +145,10 @@ export default function ArkAccountDetailPage() {
 
   const balance = balanceQuery.data ?? cachedBalance
   const onchainBalanceQuery = useArkOnchainBalance(id)
-  const breakdown = getArkBalanceBreakdown(balance, onchainBalanceQuery.data)
+  const breakdown = getArkBalanceBreakdown(
+    balance,
+    onchainBalanceQuery.data ?? cachedOnchainBalance
+  )
   const total = breakdown.totalSats
   const autoBoard = useArkAutoBoard({
     accountId: id,

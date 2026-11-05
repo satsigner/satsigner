@@ -15,7 +15,7 @@ import {
   listArkPendingBoards,
   newArkOnchainAddress
 } from '@/api/ark'
-import { getArkAccountOrThrow } from '@/store/ark'
+import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import type {
   ArkBoardFundingInfo,
   ArkOnchainBalance,
@@ -75,14 +75,19 @@ export function invalidateArkBoardQueries(
 
 export function useArkOnchainBalance(accountId: string | null | undefined) {
   const { data: walletReady } = useArkWallet(accountId)
+  const updateOnchainBalance = useArkStore(
+    (state) => state.updateOnchainBalance
+  )
   return useQuery<ArkOnchainBalance, Error>({
     enabled: Boolean(walletReady && accountId),
-    queryFn: () => {
+    queryFn: async () => {
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
       const account = getArkAccountOrThrow(accountId)
-      return fetchArkOnchainBalance(account.serverId, accountId)
+      const balance = await fetchArkOnchainBalance(account.serverId, accountId)
+      updateOnchainBalance(accountId, balance)
+      return balance
     },
     queryKey: ['ark', 'onchain-balance', accountId],
     refetchInterval: ONCHAIN_BALANCE_REFETCH_INTERVAL_MS
