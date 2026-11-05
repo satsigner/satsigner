@@ -497,6 +497,7 @@ function computeMaxInvoiceSats({
 type RequiredBoardSearch = {
   invoiceSats: number
   lightningFeeSats: number
+  minBoardSats: number
   estimateBoardFeeSats: (boardSats: number) => Promise<number>
 }
 
@@ -521,16 +522,17 @@ async function searchRequiredBoardSats(
 }
 
 /**
- * Smallest board that covers an invoice. The board fee grows with the board
- * amount, so the amount is raised until it also covers its own fee.
- * Undefined when that does not settle within the allowed rounds.
+ * Smallest board that covers an invoice, never below the server's minimum
+ * board. The board fee grows with the board amount, so the amount is raised
+ * until it also covers its own fee. Undefined when that does not settle
+ * within the allowed rounds.
  */
 function findRequiredBoardSats(
   search: RequiredBoardSearch
 ): Promise<number | undefined> {
   return searchRequiredBoardSats(
     search,
-    search.invoiceSats + search.lightningFeeSats,
+    Math.max(search.minBoardSats, search.invoiceSats + search.lightningFeeSats),
     ARK_SWAP_BOARD_FEE_MAX_ROUNDS
   )
 }

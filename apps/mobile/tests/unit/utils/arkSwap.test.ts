@@ -663,7 +663,8 @@ describe('board sizing', () => {
     const boardSats = await findRequiredBoardSats({
       estimateBoardFeeSats,
       invoiceSats: 10_000,
-      lightningFeeSats: 50
+      lightningFeeSats: 50,
+      minBoardSats: DUST_LIMIT
     })
     const finalFee = Math.ceil(boardSats / 100)
     expect(boardSats).toBeGreaterThanOrEqual(10_050 + finalFee)
@@ -678,10 +679,24 @@ describe('board sizing', () => {
       findRequiredBoardSats({
         estimateBoardFeeSats,
         invoiceSats: 10_000,
-        lightningFeeSats: 50
+        lightningFeeSats: 50,
+        minBoardSats: DUST_LIMIT
       })
     ).resolves.toBe(10_550)
     expect(estimateBoardFeeSats).toHaveBeenCalledTimes(2)
+  })
+
+  it('starts at the minimum board when the invoice is smaller', async () => {
+    const estimateBoardFeeSats = jest.fn(() => Promise.resolve(500))
+    await expect(
+      findRequiredBoardSats({
+        estimateBoardFeeSats,
+        invoiceSats: 1000,
+        lightningFeeSats: 50,
+        minBoardSats: 20_000
+      })
+    ).resolves.toBe(20_000)
+    expect(estimateBoardFeeSats).toHaveBeenCalledWith(20_000)
   })
 
   it('gives no board when the fee never settles', async () => {
@@ -692,7 +707,8 @@ describe('board sizing', () => {
       findRequiredBoardSats({
         estimateBoardFeeSats,
         invoiceSats: 10_000,
-        lightningFeeSats: 0
+        lightningFeeSats: 0,
+        minBoardSats: DUST_LIMIT
       })
     ).resolves.toBeUndefined()
     expect(estimateBoardFeeSats).toHaveBeenCalledTimes(

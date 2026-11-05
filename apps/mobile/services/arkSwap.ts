@@ -19,6 +19,7 @@ import {
   ARK_PENDING_TXID,
   ARK_SWAP_SEND_RECONCILE_GRACE_MS
 } from '@/constants/ark'
+import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
 import {
   peekFreshReceiveAddress,
@@ -39,6 +40,7 @@ import {
   type ArkSwapRequest,
   type ArkSwapStartResult
 } from '@/types/models/ArkSwap'
+import { getArkMinBoardAmount } from '@/utils/arkBoard'
 import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 import {
@@ -252,11 +254,14 @@ async function computeBoardForInvoice(
   arkAccount: ArkAccount,
   invoiceSats: number
 ): Promise<number> {
-  const lightningFee = await estimateArkLightningSendFee(
-    arkAccount.serverId,
-    arkAccount.id,
-    invoiceSats
-  )
+  const [lightningFee, serverInfo] = await Promise.all([
+    estimateArkLightningSendFee(
+      arkAccount.serverId,
+      arkAccount.id,
+      invoiceSats
+    ),
+    fetchArkServerInfo(arkAccount.serverId, arkAccount.id)
+  ])
   async function estimateBoardFeeSats(boardSats: number) {
     const boardFee = await estimateArkBoardFee(
       arkAccount.serverId,
@@ -268,7 +273,9 @@ async function computeBoardForInvoice(
   const boardSats = await findRequiredBoardSats({
     estimateBoardFeeSats,
     invoiceSats,
-    lightningFeeSats: lightningFee.feeSats
+    lightningFeeSats: lightningFee.feeSats,
+    minBoardSats:
+      getArkMinBoardAmount(serverInfo?.minBoardAmountSats) ?? DUST_LIMIT
   })
   if (boardSats === undefined) {
     throw new Error(t('ark.swap.error.boardFeeUnsettled'))
