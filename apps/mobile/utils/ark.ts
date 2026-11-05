@@ -4,7 +4,8 @@ import {
   ARK_EXIT_CPFP_CHILD_VBYTES_PER_LEVEL,
   ARK_EXIT_FEE_RATE_SAFETY_MULTIPLIER,
   ARK_EXIT_TX_VBYTES_PER_LEVEL,
-  ARK_SERVERS
+  ARK_SERVERS,
+  ARK_SUPPORTED_NETWORKS
 } from '@/constants/ark'
 import { t } from '@/locales'
 import {
@@ -21,6 +22,14 @@ export function arkNetworkLabel(network: Network): string {
     return t('ark.network.bitcoin')
   }
   return t('ark.network.signet')
+}
+
+/**
+ * The Ark network tab to open on: the app's selected network when Ark runs on
+ * it, otherwise the first supported one.
+ */
+export function getArkNetworkTabIndex(selectedNetwork: Network): number {
+  return Math.max(ARK_SUPPORTED_NETWORKS.indexOf(selectedNetwork), 0)
 }
 
 export function getArkServer(
