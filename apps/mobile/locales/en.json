@@ -523,6 +523,7 @@
     "board.cosign.error.missingPrevout": "The transaction is missing input details the Ark server needs. Sign it again.",
     "board.cosign.error.networkMismatch": "The Ark account and the funding wallet are on different networks.",
     "board.cosign.error.nonNativeSegwitInput": "Boarding needs native SegWit or Taproot inputs. Legacy and wrapped SegWit coins change the transaction id after signing.",
+    "board.cosign.error.otherBoardOutput": "This transaction also pays another board address. Keep a single board output.",
     "board.cosign.error.staleIntent": "This board draft is too old. Start the board again to get a fresh funding address.",
     "board.cosign.error.tooManyInputs": "Too many inputs. The Ark server accepts at most 100. Board a smaller amount or consolidate first.",
     "board.cosign.error.txidMismatch": "The signed transaction does not match the one the Ark server cosigned. Nothing was broadcast.",

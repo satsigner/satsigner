@@ -129,9 +129,13 @@ export async function cosignArkBoardFunding({
     throw new Error(t('ark.board.cosign.error.networkMismatch'))
   }
 
+  const otherBoardAddresses = Object.keys(
+    useArkStore.getState().boardIntents
+  ).filter((address) => address !== intent.address)
   const cosign = buildArkBoardCosignPsbt({
     boardAddress: intent.address,
     network,
+    otherBoardAddresses,
     psbtBase64,
     signedTxHex
   })

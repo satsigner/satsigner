@@ -23,6 +23,7 @@ type ArkBoardCosignRejection =
   | 'missingBoardOutput'
   | 'missingPrevout'
   | 'nonNativeSegwitInput'
+  | 'otherBoardOutput'
   | 'tooManyInputs'
   | 'txidMismatch'
 
@@ -34,6 +35,9 @@ type BuildArkBoardCosignPsbtParams = {
   psbtBase64: string
   signedTxHex: string
   boardAddress: string
+  // Board addresses of other intents. Only one board is registered per
+  // cosign, so a second board output would be broadcast unregistered.
+  otherBoardAddresses: string[]
   network: Network
 }
 
@@ -144,6 +148,7 @@ function buildArkBoardCosignPsbt({
   psbtBase64,
   signedTxHex,
   boardAddress,
+  otherBoardAddresses,
   network
 }: BuildArkBoardCosignPsbtParams): ArkBoardCosignPsbt {
   const source = parsePsbt(psbtBase64)
@@ -179,6 +184,16 @@ function buildArkBoardCosignPsbt({
   }
   if (boardOutputs.length > 1) {
     return reject('duplicateBoardOutput')
+  }
+  const otherBoardScripts = otherBoardAddresses.flatMap((address) => {
+    const script = outputScriptFor(address, network)
+    return script ? [script] : []
+  })
+  const paysOtherBoard = source.txOutputs.some((output) =>
+    otherBoardScripts.some((script) => bytesEqual(output.script, script))
+  )
+  if (paysOtherBoard) {
+    return reject('otherBoardOutput')
   }
 
   const signedTxid = parseTxid(signedTxHex)

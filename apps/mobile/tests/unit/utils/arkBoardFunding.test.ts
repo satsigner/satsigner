@@ -22,6 +22,11 @@ const BOARD_SCRIPT = Buffer.from(`5120${GENERATOR_X_ONLY}`, 'hex')
 const CHANGE_SCRIPT = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
 
 const BOARD_ADDRESS = bitcoinjs.address.fromOutputScript(BOARD_SCRIPT, NETWORK)
+const OTHER_BOARD_SCRIPT = Buffer.from(`5120${'44'.repeat(32)}`, 'hex')
+const OTHER_BOARD_ADDRESS = bitcoinjs.address.fromOutputScript(
+  OTHER_BOARD_SCRIPT,
+  NETWORK
+)
 const BOARD_AMOUNT = 50_000n
 const PREVOUT_VALUE = 100_000n
 const DUMMY_SIGNATURE = Buffer.alloc(64, 1)
@@ -96,6 +101,7 @@ describe('buildArkBoardCosignPsbt', () => {
     const result = buildArkBoardCosignPsbt({
       boardAddress: BOARD_ADDRESS,
       network: 'signet',
+      otherBoardAddresses: [],
       psbtBase64: psbt.toBase64(),
       signedTxHex
     })
@@ -123,6 +129,7 @@ describe('buildArkBoardCosignPsbt', () => {
     const result = buildArkBoardCosignPsbt({
       boardAddress: BOARD_ADDRESS,
       network: 'signet',
+      otherBoardAddresses: [],
       psbtBase64: psbt.toBase64(),
       signedTxHex: signedHexFor(psbt)
     })
@@ -140,6 +147,7 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt)
       })
@@ -156,6 +164,7 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt)
       })
@@ -173,6 +182,7 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt)
       })
@@ -189,6 +199,7 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt)
       })
@@ -208,10 +219,31 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt)
       })
     ).toStrictEqual({ ok: false, reason: 'duplicateBoardOutput' })
+  })
+
+  it('rejects a funding tx that also pays another board address', () => {
+    const psbt = buildFundingPsbt(
+      [{ prevoutScript: P2WPKH_SCRIPT }],
+      [
+        { script: BOARD_SCRIPT, value: 40_000n },
+        { script: OTHER_BOARD_SCRIPT, value: 40_000n }
+      ]
+    )
+
+    expect(
+      buildArkBoardCosignPsbt({
+        boardAddress: BOARD_ADDRESS,
+        network: 'signet',
+        otherBoardAddresses: [OTHER_BOARD_ADDRESS],
+        psbtBase64: psbt.toBase64(),
+        signedTxHex: signedHexFor(psbt)
+      })
+    ).toStrictEqual({ ok: false, reason: 'otherBoardOutput' })
   })
 
   it('rejects a signed tx whose txid differs from the PSBT', () => {
@@ -224,6 +256,7 @@ describe('buildArkBoardCosignPsbt', () => {
       buildArkBoardCosignPsbt({
         boardAddress: BOARD_ADDRESS,
         network: 'signet',
+        otherBoardAddresses: [],
         psbtBase64: psbt.toBase64(),
         signedTxHex: signedHexFor(psbt, { scriptSig: Buffer.from('00', 'hex') })
       })
@@ -238,6 +271,7 @@ describe('buildArkBoardCosignPsbt', () => {
     const base = {
       boardAddress: BOARD_ADDRESS,
       network: 'signet' as const,
+      otherBoardAddresses: [],
       psbtBase64: psbt.toBase64(),
       signedTxHex: signedHexFor(psbt)
     }
