@@ -202,6 +202,13 @@ export default function ArkSwapPage() {
     })
   )
   const quote = request ? quoteQuery.data : undefined
+  // Starting runs at once with no confirmation, so it waits until the quote
+  // on screen is the one for this exact request.
+  const quoteIsCurrent =
+    debouncedAmountSats === requestAmountSats &&
+    debouncedInvoice === invoice &&
+    quoteQuery.isSuccess &&
+    !quoteQuery.isPlaceholderData
 
   const hopLabels = getArkSwapHops(fromKind, toKind).map((kind, index) => {
     if (kind !== 'onchain') {
@@ -526,7 +533,7 @@ export default function ArkSwapPage() {
               label={actionLabel}
               onPress={handleStart}
               loading={startMutation.isPending}
-              disabled={!request || !!quoteQuery.error}
+              disabled={!request || !quoteIsCurrent}
               variant="gradient"
               gradientType="special"
             />
