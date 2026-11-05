@@ -849,6 +849,14 @@ function fetchVtxoEncoded(accountId: string, vtxoId: string): Promise<string> {
   return getCachedWallet(accountId).vtxoEncoded(vtxoId)
 }
 
+async function fetchVtxoState(
+  accountId: string,
+  vtxoId: string
+): Promise<string> {
+  const vtxo = await getCachedWallet(accountId).getVtxoById(vtxoId)
+  return vtxo.state.tag
+}
+
 function mapLightningReceive(receive: LightningReceive): ArkLightningReceive {
   return {
     amountSats:
@@ -947,6 +955,7 @@ const barkProvider: ArkWalletProvider = {
   fetchServerInfo,
   fetchTipHeight,
   fetchVtxoEncoded,
+  fetchVtxoState,
   listAllVtxos,
   listOnchainUtxos,
   listPendingBoards,

@@ -24,6 +24,11 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 export const ARK_LIGHTNING_RECEIVE_SETTLED_STATE = 'settled'
 export const ARK_LIGHTNING_RECEIVE_AWAITING_STATE = 'awaiting-payment'
+export const ARK_VTXO_STATE = {
+  exited: 'Exited',
+  spendable: 'Spendable',
+  spent: 'Spent'
+} as const
 // bark's MAX_NB_BOARD_FUNDING_INPUTS: the server refuses to cosign a board
 // funded by more inputs than this.
 export const ARK_BOARD_MAX_FUNDING_INPUTS = 100

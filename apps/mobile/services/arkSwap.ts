@@ -10,6 +10,7 @@ import {
   fetchArkLightningReceive,
   fetchArkMovements,
   fetchArkServerInfo,
+  fetchArkVtxoState,
   listArkPendingBoards,
   payArkBolt11,
   sendArkOnchain,
@@ -51,6 +52,7 @@ import {
   computeMaxInvoiceSats,
   computeRequiredBoardSats,
   findRequiredBoardSats,
+  getArkSwapBoardProgress,
   getArkSwapPayoutAddresses,
   getArkSwapPayoutOutcome,
   getBoardedSwapStatus,
@@ -607,11 +609,23 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
   }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
   await syncArkWallet(arkAccount.serverId, job.arkAccountId)
-  const pendingBoards = await listArkPendingBoards(
-    arkAccount.serverId,
-    job.arkAccountId
-  )
-  if (pendingBoards.some((board) => board.txid === cosigned.txid)) {
+  const [pendingBoards, boardVtxoState] = await Promise.all([
+    listArkPendingBoards(arkAccount.serverId, job.arkAccountId),
+    fetchArkVtxoState(arkAccount.serverId, job.arkAccountId, cosigned.vtxoId)
+  ])
+  const progress = getArkSwapBoardProgress({
+    boardVtxoState,
+    isBoardPending: pendingBoards.some((board) => board.txid === cosigned.txid)
+  })
+  if (progress === 'pending') {
+    return
+  }
+  if (progress === 'exited') {
+    saveJob({
+      ...job,
+      error: t('ark.swap.error.boardExited'),
+      status: 'failed'
+    })
     return
   }
   const nextStatus = getBoardedSwapStatus(job.invoiceExpiresAt, nowSeconds())

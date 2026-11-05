@@ -333,6 +333,20 @@ describe('bark provider', () => {
     ])
   })
 
+  it('fetchVtxoState returns the state tag of the VTXO', async () => {
+    const wallet = buildFakeWallet({
+      getVtxoById: jest.fn().mockResolvedValue({
+        ...buildFakeVtxo('board', 100n, 10),
+        state: { tag: 'Locked' }
+      })
+    })
+    await openWallet('vtxostate1', wallet)
+    await expect(provider.fetchVtxoState('vtxostate1', 'board')).resolves.toBe(
+      'Locked'
+    )
+    expect(wallet.getVtxoById).toHaveBeenCalledWith('board')
+  })
+
   it('payBolt11 returns the preimage and given amount for a Paid status', async () => {
     const wallet = buildFakeWallet({
       payLightningInvoice: jest.fn().mockResolvedValue({

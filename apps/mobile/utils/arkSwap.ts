@@ -5,7 +5,8 @@ import {
   ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
   ARK_SWAP_RETRY_BASE_DELAY_MS,
   ARK_SWAP_RETRY_MAX_DELAY_MS,
-  ARK_SWAP_SEND_RECONCILE_GRACE_MS
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_VTXO_STATE
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -587,6 +588,35 @@ function getBoardedSwapStatus(
   return 'paying'
 }
 
+type ArkSwapBoardProgress = 'pending' | 'spendable' | 'exited'
+
+/**
+ * Whether a swap's board can back its lightning payment. Leaving the pending
+ * list is not enough on its own: the board VTXO must have been released too,
+ * or the payment would be drawn from the rest of the Ark balance.
+ */
+function getArkSwapBoardProgress({
+  isBoardPending,
+  boardVtxoState
+}: {
+  isBoardPending: boolean
+  boardVtxoState: string
+}): ArkSwapBoardProgress {
+  if (isBoardPending) {
+    return 'pending'
+  }
+  if (boardVtxoState === ARK_VTXO_STATE.exited) {
+    return 'exited'
+  }
+  if (
+    boardVtxoState === ARK_VTXO_STATE.spendable ||
+    boardVtxoState === ARK_VTXO_STATE.spent
+  ) {
+    return 'spendable'
+  }
+  return 'pending'
+}
+
 /**
  * Maps the wallet's view of a started lightning send onto the job. An
  * unknown send never went out or was revoked, so it is reported as failed and
@@ -633,6 +663,7 @@ function getArkSwapPayoutOutcome(
 
 export {
   type ArkSwapAmountRange,
+  type ArkSwapBoardProgress,
   type ArkSwapForm,
   type ArkSwapInvoice,
   type ArkSwapInvoiceRejection,
@@ -650,6 +681,7 @@ export {
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,
+  getArkSwapBoardProgress,
   getArkSwapDestinationKinds,
   getArkSwapHops,
   getArkSwapJobAccountId,

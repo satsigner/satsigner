@@ -32,6 +32,7 @@ import {
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,
+  getArkSwapBoardProgress,
   getArkSwapDestinationKinds,
   getArkSwapHops,
   getArkSwapJobAccountId,
@@ -414,6 +415,50 @@ describe('isArkSwapSendReconcileDue', () => {
 
   it('reconciles a send with no recorded attempt', () => {
     expect(isArkSwapSendReconcileDue({}, sendAttemptedAt)).toBe(true)
+  })
+})
+
+describe('getArkSwapBoardProgress', () => {
+  it('waits while the board is pending', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spendable',
+        isBoardPending: true
+      })
+    ).toBe('pending')
+  })
+
+  it('waits while the board VTXO is still locked', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Locked',
+        isBoardPending: false
+      })
+    ).toBe('pending')
+  })
+
+  it('pays once the board VTXO is spendable or already moved on in Ark', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spendable',
+        isBoardPending: false
+      })
+    ).toBe('spendable')
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spent',
+        isBoardPending: false
+      })
+    ).toBe('spendable')
+  })
+
+  it('reports a board that left Ark through an exit', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Exited',
+        isBoardPending: false
+      })
+    ).toBe('exited')
   })
 })
 

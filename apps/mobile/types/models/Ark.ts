@@ -332,6 +332,7 @@ export interface ArkWalletProvider {
   fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
   fetchTipHeight: (accountId: string) => Promise<number>
   fetchVtxoEncoded: (accountId: string, vtxoId: string) => Promise<string>
+  fetchVtxoState: (accountId: string, vtxoId: string) => Promise<string>
   checkLightningSend: (
     accountId: string,
     paymentHash: string
