@@ -31,6 +31,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { useNow } from '@/hooks/useNow'
@@ -55,7 +56,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
-import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
@@ -303,11 +303,7 @@ export default function SignTransaction() {
   const [rawTx, setRawTx] = useState('')
 
   const trimmedRawTx = rawTx.trim()
-  const boardIntents = useArkStore((state) => state.boardIntents)
-  const arkBoardIntent = findArkBoardIntent(
-    outputs.map((output) => output.to),
-    boardIntents
-  )
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
   const isArkBoardFunding = arkBoardIntent !== undefined
   // A board funding tx must reach the network only after the Ark server
   // cosigned it, so it is never handed out for external broadcast.

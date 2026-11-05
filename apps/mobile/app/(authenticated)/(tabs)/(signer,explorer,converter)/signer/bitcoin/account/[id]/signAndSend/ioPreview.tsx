@@ -49,6 +49,7 @@ import {
   IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS,
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -62,7 +63,6 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -76,7 +76,6 @@ import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Utxo } from '@/types/models/Utxo'
 import { type IoPreviewSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
-import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
@@ -163,7 +162,6 @@ export default function IOPreview() {
   const defaultAutoSelectUtxos = useSettingsStore(
     (state) => state.defaultAutoSelectUtxos
   )
-  const boardIntents = useArkStore((state) => state.boardIntents)
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [
     inputs,
@@ -452,13 +450,10 @@ export default function IOPreview() {
     return selectionSucceeded
   }
 
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
   const uriAutoSelectAlgorithm = resolveUriAutoSelectAlgorithm({
     defaultAlgorithm: defaultAutoSelectUtxos,
-    isArkBoardFunding:
-      findArkBoardIntent(
-        outputs.map((output) => output.to),
-        boardIntents
-      ) !== undefined,
+    isArkBoardFunding: arkBoardIntent !== undefined,
     isPayjoin: Boolean(payjoinUri && hasPayjoinParam(payjoinUri))
   })
 
