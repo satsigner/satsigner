@@ -177,7 +177,7 @@ describe('bark provider', () => {
       feeRates: jest.fn().mockResolvedValue({
         fastSatPerKwu: regularSatPerKwu * 2n,
         regularSatPerKwu,
-        slowSatPerKwu: regularSatPerKwu
+        slowSatPerKwu: regularSatPerKwu / 2n
       }),
       newAddress: jest.fn(),
       sync: jest.fn()
