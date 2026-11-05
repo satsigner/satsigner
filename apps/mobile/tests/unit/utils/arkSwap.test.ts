@@ -684,15 +684,17 @@ describe('board sizing', () => {
     expect(estimateBoardFeeSats).toHaveBeenCalledTimes(2)
   })
 
-  it('stops after the maximum rounds', async () => {
+  it('gives no board when the fee never settles', async () => {
     const estimateBoardFeeSats = jest.fn((boardSats: number) =>
       Promise.resolve(boardSats)
     )
-    await findRequiredBoardSats({
-      estimateBoardFeeSats,
-      invoiceSats: 10_000,
-      lightningFeeSats: 0
-    })
+    await expect(
+      findRequiredBoardSats({
+        estimateBoardFeeSats,
+        invoiceSats: 10_000,
+        lightningFeeSats: 0
+      })
+    ).resolves.toBeUndefined()
     expect(estimateBoardFeeSats).toHaveBeenCalledTimes(
       ARK_SWAP_BOARD_FEE_MAX_ROUNDS
     )

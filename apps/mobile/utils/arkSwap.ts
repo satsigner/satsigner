@@ -504,15 +504,18 @@ async function searchRequiredBoardSats(
   search: RequiredBoardSearch,
   candidateSats: number,
   roundsLeft: number
-): Promise<number> {
+): Promise<number | undefined> {
+  if (roundsLeft <= 0) {
+    return undefined
+  }
   const boardFeeSats = await search.estimateBoardFeeSats(candidateSats)
   const requiredSats = computeRequiredBoardSats({
     boardFeeSats,
     invoiceSats: search.invoiceSats,
     lightningFeeSats: search.lightningFeeSats
   })
-  if (requiredSats <= candidateSats || roundsLeft <= 1) {
-    return Math.max(requiredSats, candidateSats)
+  if (requiredSats <= candidateSats) {
+    return candidateSats
   }
   return searchRequiredBoardSats(search, requiredSats, roundsLeft - 1)
 }
@@ -520,8 +523,11 @@ async function searchRequiredBoardSats(
 /**
  * Smallest board that covers an invoice. The board fee grows with the board
  * amount, so the amount is raised until it also covers its own fee.
+ * Undefined when that does not settle within the allowed rounds.
  */
-function findRequiredBoardSats(search: RequiredBoardSearch): Promise<number> {
+function findRequiredBoardSats(
+  search: RequiredBoardSearch
+): Promise<number | undefined> {
   return searchRequiredBoardSats(
     search,
     search.invoiceSats + search.lightningFeeSats,

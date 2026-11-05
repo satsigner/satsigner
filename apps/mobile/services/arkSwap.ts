@@ -265,11 +265,15 @@ async function computeBoardForInvoice(
     )
     return boardFee.feeSats
   }
-  return findRequiredBoardSats({
+  const boardSats = await findRequiredBoardSats({
     estimateBoardFeeSats,
     invoiceSats,
     lightningFeeSats: lightningFee.feeSats
   })
+  if (boardSats === undefined) {
+    throw new Error(t('ark.swap.error.boardFeeUnsettled'))
+  }
+  return boardSats
 }
 
 async function canHoldInvoiceForBoard(

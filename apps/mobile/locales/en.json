@@ -770,6 +770,7 @@
     "swap.endpoint.onchain": "On-chain",
     "swap.entry": "Swap",
     "swap.entryActive": "Swap · %{count} in progress",
+    "swap.error.boardFeeUnsettled": "Could not size a board that covers its own fee. Try again later.",
     "swap.error.boardTooSmall": "The boarded amount does not cover this invoice and its fees",
     "swap.error.busy": "This swap is busy. Try again in a moment.",
     "swap.error.destinationIneligible": "This wallet cannot receive from Ark on this network",
