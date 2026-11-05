@@ -15,6 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Label } from '@/types/bips/329'
@@ -22,6 +23,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 import { removeReplacedTransaction } from '@/utils/feeReplacement'
 import { formatAddress } from '@/utils/format'
 import { getRawTransactionSizes } from '@/utils/transaction'
@@ -126,10 +128,27 @@ export default function TransactionConfirmation() {
     setExternalWarningModalVisible(false)
   }
 
+  const boardIntents = useArkStore((state) => state.boardIntents)
+  const arkBoardIntent = findArkBoardIntent(
+    outputs.map((output) => output.to),
+    boardIntents
+  )
+  const isArkBoardFunding = arkBoardIntent !== undefined
+
   function handleBackToHome() {
     clearTransaction()
     router.dismissAll()
     router.navigate(`/signer/bitcoin/account/${id}`)
+  }
+
+  function handleOpenArkAccount() {
+    if (!arkBoardIntent) {
+      return
+    }
+    const { arkAccountId } = arkBoardIntent
+    clearTransaction()
+    router.dismissAll()
+    router.navigate(`/signer/ark/account/${arkAccountId}`)
   }
 
   const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
@@ -371,6 +390,15 @@ export default function TransactionConfirmation() {
                 <SSText>{formatAddress(psbt.txid())}</SSText>
               </SSVStack>
             </Animated.View>
+            {isArkBoardFunding && (
+              <Animated.View
+                entering={FadeIn.delay(DETAILS_DELAY_MS).duration(400)}
+              >
+                <SSText color="muted" center>
+                  {t('ark.board.fundingBroadcastedHint')}
+                </SSText>
+              </Animated.View>
+            )}
           </SSVStack>
           <Animated.View entering={FadeIn.delay(BUTTON_DELAY_MS).duration(300)}>
             <SSVStack>
@@ -385,8 +413,15 @@ export default function TransactionConfirmation() {
                 label={t('sent.viewOnMempool')}
                 onPress={handleViewOnMempool}
               />
+              {isArkBoardFunding && (
+                <SSButton
+                  variant="secondary"
+                  label={t('ark.board.openArkAccount')}
+                  onPress={handleOpenArkAccount}
+                />
+              )}
               <SSButton
-                variant="secondary"
+                variant={isArkBoardFunding ? 'outline' : 'secondary'}
                 label={t('common.backToAccountHome')}
                 onPress={handleBackToHome}
               />

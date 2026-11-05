@@ -17,6 +17,7 @@ import type {
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
+import { shouldAnnounceArkReceive } from '@/utils/arkMovement'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
@@ -59,7 +60,7 @@ function shouldSkipDuplicateReceiveEvent(key: string): boolean {
 }
 
 function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
-  if (event.type !== 'created' || event.effectiveBalanceSats <= 0) {
+  if (!shouldAnnounceArkReceive(event)) {
     return
   }
   const key = `${account.id}:${event.movementId}`

@@ -5,7 +5,9 @@ import mmkvStorage from '@/storage/mmkv'
 import type {
   ArkAccount,
   ArkAccountStats,
-  ArkBalance
+  ArkBalance,
+  ArkBoardIntent,
+  ArkPendingBoard
 } from '@/types/models/Ark'
 
 type BalanceMap = Record<string, ArkBalance | undefined>
@@ -23,10 +25,20 @@ type ArkState = {
   accounts: ArkAccount[]
   balances: BalanceMap
   stats: StatsMap
+  // Funding txs cosigned by the Ark server. Replacing one (RBF) would orphan
+  // the board, so fee-bump and cancel stay disabled for these txids.
+  boardFundingTxids: string[]
+  // Board funding addresses handed to the transaction builder, keyed by
+  // address. Any transaction paying one must be cosigned before broadcast,
+  // whatever happened to the draft in between.
+  boardIntents: Record<string, ArkBoardIntent>
 }
 
 type ArkAction = {
   addAccount: (account: ArkAccount) => void
+  addBoardFundingTxid: (txid: string) => void
+  addBoardIntent: (intent: ArkBoardIntent) => void
+  markBoardIntentCosigned: (address: string, board: ArkPendingBoard) => void
   removeAccount: (accountId: string) => void
   updateBalance: (accountId: string, balance: ArkBalance) => void
   updateStats: (accountId: string, stats: Partial<ArkAccountStats>) => void
@@ -42,12 +54,39 @@ export const useArkStore = create<ArkState & ArkAction>()(
           accounts: [...state.accounts, account],
           balances: { ...state.balances, [account.id]: undefined }
         })),
+      addBoardFundingTxid: (txid) =>
+        set((state) =>
+          state.boardFundingTxids.includes(txid)
+            ? state
+            : { boardFundingTxids: [...state.boardFundingTxids, txid] }
+        ),
+      addBoardIntent: (intent) =>
+        set((state) => ({
+          boardIntents: { ...state.boardIntents, [intent.address]: intent }
+        })),
       balances: {},
+      boardFundingTxids: [],
+      boardIntents: {},
       clearAllData: () =>
         set({
           accounts: [],
           balances: {},
+          boardFundingTxids: [],
+          boardIntents: {},
           stats: {}
+        }),
+      markBoardIntentCosigned: (address, board) =>
+        set((state) => {
+          const intent = state.boardIntents[address]
+          if (!intent) {
+            return state
+          }
+          return {
+            boardIntents: {
+              ...state.boardIntents,
+              [address]: { ...intent, cosigned: board }
+            }
+          }
         }),
       removeAccount: (accountId) =>
         set((state) => {
@@ -81,6 +120,8 @@ export const useArkStore = create<ArkState & ArkAction>()(
       partialize: (state) => ({
         accounts: state.accounts,
         balances: state.balances,
+        boardFundingTxids: state.boardFundingTxids,
+        boardIntents: state.boardIntents,
         stats: state.stats
       }),
       storage: createJSONStorage(() => mmkvStorage),

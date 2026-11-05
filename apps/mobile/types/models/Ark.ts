@@ -98,6 +98,16 @@ export type ArkServerInfo = {
   maxVtxoExitDepth: number
 }
 
+// A board funded by a Satsigner on-chain account in a single transaction. The
+// funding output only becomes a unilaterally exitable VTXO once the server
+// cosigns the exact funding txid, so the intent travels with the draft until
+// broadcast.
+export type ArkBoardIntent = ArkBoardFundingInfo & {
+  arkAccountId: string
+  serverId: ArkServerId
+  cosigned?: ArkPendingBoard
+}
+
 export type ArkLightningReceiveState =
   | 'awaiting-payment'
   | 'htlcs-ready'

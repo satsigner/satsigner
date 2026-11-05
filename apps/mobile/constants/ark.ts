@@ -1,5 +1,7 @@
 import type { ArkSendKind, ArkServer } from '@/types/models/Ark'
+import type { ScriptVersionType } from '@/types/models/Script'
 import type { Network } from '@/types/settings/blockchain'
+import type { AddressScriptType } from '@/utils/bitcoin'
 
 export const ARK_ADDRESS_MAX_SCAN = 1000
 /** Thrown when JS calls boardFundingAddress/boardPsbt on a Bark build that lacks them. */
@@ -21,6 +23,20 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
 }
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 export const ARK_LIGHTNING_RECEIVE_SETTLED_STATE = 'settled'
+// bark's MAX_NB_BOARD_FUNDING_INPUTS: the server refuses to cosign a board
+// funded by more inputs than this.
+export const ARK_BOARD_MAX_FUNDING_INPUTS = 100
+export const ARK_BOARDING_WALLET_SOURCE_ID = 'ark-boarding-wallet'
+// Script versions whose inputs carry an empty scriptSig. Any other input gains
+// a scriptSig when finalized, changing the txid the board VTXO commits to.
+export const ARK_BOARD_NATIVE_SEGWIT_SCRIPT_VERSIONS: readonly ScriptVersionType[] =
+  ['P2WPKH', 'P2WSH', 'P2TR']
+// A board funding output is sweepable by the server alone once its expiry
+// height passes, so a drafted board must still have at least this share of
+// the VTXO lifetime left when it is cosigned and broadcast.
+export const ARK_BOARD_INTENT_MIN_LIFETIME_RATIO = 0.5
+export const ARK_BOARD_NATIVE_SEGWIT_OUTPUT_TYPES: readonly AddressScriptType[] =
+  ['p2wpkh', 'p2wsh', 'p2tr']
 // `false` disables waiting for lightning-send confirmation before returning.
 export const ARK_LIGHTNING_SEND_WAIT = false
 // `undefined` leaves how long the Ark server keeps retrying a lightning

@@ -38,6 +38,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
+import { cosignArkBoardFunding } from '@/services/arkBoardFunding'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -54,6 +55,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
+import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
@@ -301,7 +303,16 @@ export default function SignTransaction() {
   const [rawTx, setRawTx] = useState('')
 
   const trimmedRawTx = rawTx.trim()
+  const boardIntents = useArkStore((state) => state.boardIntents)
+  const arkBoardIntent = findArkBoardIntent(
+    outputs.map((output) => output.to),
+    boardIntents
+  )
+  const isArkBoardFunding = arkBoardIntent !== undefined
+  // A board funding tx must reach the network only after the Ark server
+  // cosigned it, so it is never handed out for external broadcast.
   const canCopySignedTx =
+    !isArkBoardFunding &&
     signed &&
     !!rawTx &&
     trimmedRawTx.length >= 20 &&
@@ -411,7 +422,25 @@ export default function SignTransaction() {
     throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
   }
 
+  async function cosignArkBoardBeforeBroadcast() {
+    if (!arkBoardIntent || !account) {
+      return
+    }
+    const psbtBase64 = psbt?.toBase64()
+    if (!psbtBase64 || !signedTx) {
+      throw new Error(t('ark.board.cosign.error.invalidPsbt'))
+    }
+    await cosignArkBoardFunding({
+      intent: arkBoardIntent,
+      network: account.network,
+      psbtBase64,
+      signedTxHex: signedTx
+    })
+  }
+
   async function broadcastAndNavigate() {
+    await cosignArkBoardBeforeBroadcast()
+
     if (signedTx) {
       await handleBroadcastMultiSig()
     } else if (psbt) {
@@ -443,6 +472,9 @@ export default function SignTransaction() {
         router.replace(`/signer/ark/account/${arkAccountId}`)
         return
       }
+    }
+    if (isArkBoardFunding) {
+      toast.success(t('ark.board.fundingBroadcasted'))
     }
     router.navigate(
       `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
@@ -1106,6 +1138,7 @@ export default function SignTransaction() {
             />
           )}
           {signed &&
+            !isArkBoardFunding &&
             account?.nostr?.autoSync &&
             (psbt?.toBase64() ?? signedTx) && (
               <SSButton
