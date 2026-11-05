@@ -381,9 +381,9 @@ function evaluateArkSwapInvoice(
   }
 }
 
-function parsePositiveNumber(value: string): number | undefined {
+function parseNonNegativeNumber(value: string): number | undefined {
   const parsed = Number(value)
-  return value !== '' && Number.isFinite(parsed) && parsed > 0
+  return value !== '' && Number.isFinite(parsed) && parsed >= 0
     ? parsed
     : undefined
 }
@@ -395,7 +395,7 @@ function decodeSwapInvoiceFields(
     const decoded = decodeLightningInvoice(invoice)
     return {
       amountSats: bolt11AmountSats(decoded),
-      expirySeconds: parsePositiveNumber(decoded.expiry),
+      expirySeconds: parseNonNegativeNumber(decoded.expiry),
       invoice,
       invoiceNetwork: getBolt11Network(invoice),
       paymentHash: decoded.payment_hash,

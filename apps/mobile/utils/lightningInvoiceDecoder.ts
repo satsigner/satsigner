@@ -54,7 +54,7 @@ function mapBolt11DecodeToDecodedInvoice(
 
   return {
     description: (descriptionSection?.value || '').toString(),
-    expiry: (expirySection?.value || '').toString(),
+    expiry: (expirySection?.value ?? '').toString(),
     features: {},
     min_final_cltv_expiry: (minFinalCltvExpirySection?.value || '').toString(),
     num_msat: numMsats.toString(),

@@ -537,6 +537,16 @@ describe('evaluateArkSwapInvoice', () => {
     )
   })
 
+  it('treats an explicit zero expiry as already expired', () => {
+    expect(
+      evaluateArkSwapInvoice(
+        { ...INVOICE_FIELDS, expirySeconds: 0 },
+        'signet',
+        NOW
+      )
+    ).toStrictEqual({ ok: false, reason: 'expired' })
+  })
+
   it('rejects an invoice for another network', () => {
     expect(
       evaluateArkSwapInvoice(INVOICE_FIELDS, 'bitcoin', NOW)
