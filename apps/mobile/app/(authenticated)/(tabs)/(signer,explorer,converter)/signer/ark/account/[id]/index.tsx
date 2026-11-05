@@ -84,6 +84,7 @@ import {
   filterSelectableVtxoIds,
   getArkNextExpiryHeight
 } from '@/utils/arkVtxo'
+import { getArkVtxoRoute } from '@/utils/arkVtxoDetail'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 
@@ -259,6 +260,10 @@ export default function ArkAccountDetailPage() {
         ? prev.filter((selectedId) => selectedId !== vtxoId)
         : [...prev, vtxoId]
     )
+  }
+
+  function handleOpenVtxo(vtxoId: string) {
+    router.navigate(getArkVtxoRoute(id, vtxoId))
   }
 
   function handleToggleVtxosView() {
@@ -439,6 +444,7 @@ export default function ArkAccountDetailPage() {
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
+        onPress={handleOpenVtxo}
       />
     )
   }

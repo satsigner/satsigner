@@ -1,10 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconChevronRight } from '@/components/icons'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkMovementIcon from '@/components/SSArkMovementIcon'
+import SSDetailRow from '@/components/SSDetailRow'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSText from '@/components/SSText'
 import { useArkLabels } from '@/hooks/useArkLabels'
@@ -29,6 +31,7 @@ import {
   isLightningMovement,
   parseArkCounterparty
 } from '@/utils/arkMovement'
+import { getArkVtxoRoute } from '@/utils/arkVtxoDetail'
 import {
   formatDate,
   formatFiatPrice,
@@ -37,6 +40,8 @@ import {
 } from '@/utils/format'
 
 const ICON_SIZE = 28
+const CHEVRON_HEIGHT = 11.6
+const CHEVRON_WIDTH = 6
 
 function formatSignedSats(amount: number) {
   if (amount === 0) {
@@ -66,25 +71,6 @@ function parseMetadata(raw: string) {
   } catch {
     return raw
   }
-}
-
-type DetailRowProps = {
-  label: string
-  value: string
-  valueStyle?: { color: string }
-}
-
-function DetailRow({ label, value, valueStyle }: DetailRowProps) {
-  return (
-    <SSHStack justifyBetween style={styles.detailRow}>
-      <SSText color="muted" size="sm">
-        {label}
-      </SSText>
-      <SSText size="sm" style={[styles.detailValue, valueStyle]}>
-        {value}
-      </SSText>
-    </SSHStack>
-  )
 }
 
 type AddressListProps = {
@@ -123,6 +109,39 @@ function AddressList({ label, values }: AddressListProps) {
             {parseArkCounterparty(value)}
           </SSText>
         </View>
+      ))}
+    </SSVStack>
+  )
+}
+
+type VtxoListProps = {
+  accountId: string
+  label: string
+  vtxoIds: string[]
+}
+
+function VtxoList({ accountId, label, vtxoIds }: VtxoListProps) {
+  if (vtxoIds.length === 0) {
+    return null
+  }
+  return (
+    <SSVStack style={styles.section} gap="xs">
+      <SSText color="muted" size="sm">
+        {label}
+      </SSText>
+      {vtxoIds.map((vtxoId) => (
+        <Pressable
+          key={vtxoId}
+          accessibilityRole="link"
+          onPress={() => router.navigate(getArkVtxoRoute(accountId, vtxoId))}
+        >
+          <SSHStack gap="sm" style={styles.codeBox}>
+            <SSText size="xs" style={[styles.monospace, styles.vtxoId]}>
+              {vtxoId}
+            </SSText>
+            <SSIconChevronRight height={CHEVRON_HEIGHT} width={CHEVRON_WIDTH} />
+          </SSHStack>
+        </Pressable>
       ))}
     </SSVStack>
   )
@@ -243,45 +262,45 @@ export default function ArkMovementDetailPage() {
             />
             <TxidList txids={getArkMovementTxids(movement)} />
             <SSVStack gap="none" style={styles.section}>
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.kind')}
                 value={getArkMovementKindLabel(getArkMovementKind(movement))}
               />
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.status')}
                 value={getArkMovementStatusLabel(movement.status)}
                 valueStyle={{
                   color: getArkMovementStatusColor(movement.status)
                 }}
               />
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.subsystem')}
                 value={`${movement.subsystemKind} · ${movement.subsystemName}`}
               />
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.effectiveBalance')}
                 value={`${formatSignedSats(movement.effectiveBalanceSats)} ${satsUnit}`}
               />
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.intendedBalance')}
                 value={`${formatSignedSats(movement.intendedBalanceSats)} ${satsUnit}`}
               />
               {movement.offchainFeeSats > 0 && (
-                <DetailRow
+                <SSDetailRow
                   label={t('ark.movement.detail.fee')}
                   value={`${formatNumber(movement.offchainFeeSats)} ${satsUnit}`}
                 />
               )}
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.createdAt')}
                 value={formatTimestamp(movement.createdAt) ?? ''}
               />
-              <DetailRow
+              <SSDetailRow
                 label={t('ark.movement.detail.updatedAt')}
                 value={formatTimestamp(movement.updatedAt) ?? ''}
               />
               {movement.completedAt && (
-                <DetailRow
+                <SSDetailRow
                   label={t('ark.movement.detail.completedAt')}
                   value={formatTimestamp(movement.completedAt) ?? ''}
                 />
@@ -295,17 +314,20 @@ export default function ArkMovementDetailPage() {
               label={t('ark.movement.detail.addressesReceived')}
               values={movement.receivedOnAddresses}
             />
-            <AddressList
+            <VtxoList
+              accountId={id}
               label={t('ark.movement.detail.inputVtxos')}
-              values={movement.inputVtxoIds}
+              vtxoIds={movement.inputVtxoIds}
             />
-            <AddressList
+            <VtxoList
+              accountId={id}
               label={t('ark.movement.detail.outputVtxos')}
-              values={movement.outputVtxoIds}
+              vtxoIds={movement.outputVtxoIds}
             />
-            <AddressList
+            <VtxoList
+              accountId={id}
               label={t('ark.movement.detail.exitedVtxos')}
-              values={movement.exitedVtxoIds}
+              vtxoIds={movement.exitedVtxoIds}
             />
             <SSVStack style={styles.section} gap="xs">
               <SSText color="muted" size="sm">
@@ -338,15 +360,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20
   },
-  detailRow: {
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 8
-  },
-  detailValue: {
-    flexShrink: 1,
-    textAlign: 'right'
-  },
   loading: {
     paddingTop: 60
   },
@@ -358,5 +371,8 @@ const styles = StyleSheet.create({
   },
   summary: {
     paddingVertical: 12
+  },
+  vtxoId: {
+    flex: 1
   }
 })
