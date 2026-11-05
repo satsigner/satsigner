@@ -2,6 +2,7 @@ import { ARK_EXIT_CLAIM_MAX_FEE_RATE_MULTIPLIER } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import { type ArkExitClaimDraft } from '@/types/models/Ark'
 import { type Network } from '@/types/settings/blockchain'
+import { getScriptTypeFromOutputScript } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import {
   inputOutpoint,
@@ -25,12 +26,17 @@ type ArkExitClaimRejection =
   | 'txidMismatch'
   | 'unexpectedInputs'
   | 'unexpectedOutputs'
+  | 'unsigned'
+  | 'unverifiableInput'
 
-type VerifiedArkExitClaim = {
-  txid: string
+type ArkExitClaimTerms = {
   amountSats: number
   feeSats: number
   vtxoIds: string[]
+}
+
+type VerifiedArkExitClaim = ArkExitClaimTerms & {
+  txid: string
 }
 
 type ArkExitClaimCheck<T> =
@@ -71,6 +77,12 @@ function hasSameMembers(left: string[], right: string[]): boolean {
 
 function sumPrevoutSats(prevouts: Prevout[]): bigint {
   return prevouts.reduce((total, prevout) => total + prevout.value, 0n)
+}
+
+// A taproot signature commits to the amounts of every input, so a signed
+// claim with a misstated input amount is invalid rather than overpaying.
+function isTaprootPrevout(prevout: Prevout): boolean {
+  return getScriptTypeFromOutputScript(prevout.script) === 'p2tr'
 }
 
 function spendsKnownAmounts(
@@ -133,6 +145,9 @@ function verifyArkExitClaimDraft({
   if (knownPrevouts.length !== prevouts.length) {
     return reject('missingPrevout')
   }
+  if (!knownPrevouts.every(isTaprootPrevout)) {
+    return reject('unverifiableInput')
+  }
   if (!spendsKnownAmounts(spentVtxoIds, knownPrevouts, knownAmounts)) {
     return reject('inputAmountMismatch')
   }
@@ -179,6 +194,9 @@ function verifyArkExitClaimSignedTx({
   if (signedTx.getId() !== claim.txid) {
     return reject('txidMismatch')
   }
+  if (signedTx.ins.some((input) => input.witness.length === 0)) {
+    return reject('unsigned')
+  }
   const maxFeeSats = maxArkExitClaimFeeSats(
     signedTx.virtualSize(),
     feeRateSatPerVb
@@ -189,8 +207,22 @@ function verifyArkExitClaimSignedTx({
   return { ok: true, txid: claim.txid }
 }
 
+/** The claim about to be signed is the one the user approved. */
+function matchesApprovedArkExitClaim(
+  claim: ArkExitClaimTerms,
+  approved: ArkExitClaimTerms
+): boolean {
+  return (
+    claim.amountSats === approved.amountSats &&
+    claim.feeSats === approved.feeSats &&
+    hasSameMembers(claim.vtxoIds, approved.vtxoIds)
+  )
+}
+
 export {
   type ArkExitClaimRejection,
+  type ArkExitClaimTerms,
+  matchesApprovedArkExitClaim,
   type VerifiedArkExitClaim,
   verifyArkExitClaimDraft,
   verifyArkExitClaimSignedTx

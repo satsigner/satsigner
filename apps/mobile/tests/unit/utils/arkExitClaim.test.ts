@@ -2,6 +2,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { type ArkExitClaimDraft } from '@/types/models/Ark'
 import {
+  matchesApprovedArkExitClaim,
   type VerifiedArkExitClaim,
   verifyArkExitClaimDraft,
   verifyArkExitClaimSignedTx
@@ -22,6 +23,7 @@ const DUMMY_SIGNATURE = Buffer.alloc(64, 1)
 type ClaimInput = {
   value?: bigint
   attach?: 'witnessUtxo' | 'none'
+  script?: Buffer
 }
 
 function buildExitTx(nonce: number, value: bigint): bitcoinjs.Transaction {
@@ -40,13 +42,14 @@ function buildClaimPsbt(
   outputs: { script: Buffer; value: bigint }[]
 ): bitcoinjs.Psbt {
   const psbt = new bitcoinjs.Psbt({ network: NETWORK })
-  for (const [index, { value = EXIT_VALUE, attach }] of inputs.entries()) {
+  for (const [
+    index,
+    { value = EXIT_VALUE, attach, script = EXIT_SCRIPT }
+  ] of inputs.entries()) {
     psbt.addInput({
       hash: buildExitTx(index, value).getHash(),
       index: 0,
-      ...(attach !== 'none' && {
-        witnessUtxo: { script: EXIT_SCRIPT, value }
-      })
+      ...(attach !== 'none' && { witnessUtxo: { script, value } })
     })
   }
   for (const output of outputs) {
@@ -210,6 +213,15 @@ describe('verifyArkExitClaimDraft', () => {
     })
   })
 
+  it('rejects an input whose amount a signature would not commit to', () => {
+    const psbt = buildClaimPsbt([{ script: OTHER_SCRIPT }], [claimOutput()])
+
+    expect(verifyDraft(draftFor(psbt))).toStrictEqual({
+      ok: false,
+      reason: 'unverifiableInput'
+    })
+  })
+
   it('rejects an input amount that differs from the exit amount', () => {
     const psbt = buildClaimPsbt([{}], [claimOutput()])
 
@@ -288,6 +300,21 @@ describe('verifyArkExitClaimSignedTx', () => {
     ).toStrictEqual({ ok: false, reason: 'txidMismatch' })
   })
 
+  it('rejects a transaction that is not signed', () => {
+    const psbt = buildClaimPsbt([{}], [claimOutput()])
+    const unsignedHex = bitcoinjs.Transaction.fromBuffer(
+      psbt.data.globalMap.unsignedTx.toBuffer()
+    ).toHex()
+
+    expect(
+      verifyArkExitClaimSignedTx({
+        claim: verifiedClaim(psbt),
+        feeRateSatPerVb: 3,
+        signedTxHex: unsignedHex
+      })
+    ).toStrictEqual({ ok: false, reason: 'unsigned' })
+  })
+
   it('rejects a fee far above the chosen rate', () => {
     const psbt = buildClaimPsbt([{}], [claimOutput()])
 
@@ -298,5 +325,37 @@ describe('verifyArkExitClaimSignedTx', () => {
         signedTxHex: signedHexFor(psbt)
       })
     ).toStrictEqual({ ok: false, reason: 'feeTooHigh' })
+  })
+})
+
+describe('matchesApprovedArkExitClaim', () => {
+  const approved = {
+    amountSats: 49_700,
+    feeSats: 300,
+    vtxoIds: [exitOutpoint(0), exitOutpoint(1)]
+  }
+
+  it('accepts the approved exits in any order', () => {
+    expect(
+      matchesApprovedArkExitClaim(
+        { ...approved, vtxoIds: approved.vtxoIds.toReversed() },
+        approved
+      )
+    ).toBe(true)
+  })
+
+  it('rejects a different amount, fee or set of exits', () => {
+    expect(
+      matchesApprovedArkExitClaim({ ...approved, amountSats: 49_000 }, approved)
+    ).toBe(false)
+    expect(
+      matchesApprovedArkExitClaim({ ...approved, feeSats: 1000 }, approved)
+    ).toBe(false)
+    expect(
+      matchesApprovedArkExitClaim(
+        { ...approved, vtxoIds: [exitOutpoint(0)] },
+        approved
+      )
+    ).toBe(false)
   })
 })

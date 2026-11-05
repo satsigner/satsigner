@@ -14,6 +14,7 @@ import {
   discardArkExitClaim,
   retryArkExitClaimBroadcast
 } from '@/services/arkExitClaim'
+import mmkvStorage from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
@@ -78,11 +79,17 @@ signedClaimTx.setWitness(0, [Buffer.alloc(64, 1)])
 const SIGNED_HEX = signedClaimTx.toHex()
 const CLAIM_TXID = signedClaimTx.getId()
 
-const REQUEST = {
+const SUBMISSION = {
+  approved: {
+    amountSats: Number(EXIT_VALUE) - FEE_SATS,
+    feeSats: FEE_SATS,
+    vtxoIds: [VTXO_ID]
+  },
   arkAccountId: ARK_ACCOUNT_ID,
   destinationAccountId: DESTINATION_ID,
   feeRateSatPerVb: FEE_RATE
 }
+const CLAIMS_STORAGE_KEY = 'satsigner-ark-exit-claims'
 
 function claimableExit(): ArkExit {
   return {
@@ -167,7 +174,7 @@ describe('claimArkExits', () => {
       return Promise.resolve(CLAIM_TXID)
     })
 
-    await expect(claimArkExits(REQUEST)).resolves.toStrictEqual({
+    await expect(claimArkExits(SUBMISSION)).resolves.toStrictEqual({
       amountSats: Number(EXIT_VALUE) - FEE_SATS,
       destinationName: 'Savings',
       txid: CLAIM_TXID
@@ -190,9 +197,9 @@ describe('claimArkExits', () => {
   })
 
   it('refuses a second claim while the first still runs', async () => {
-    const pending = claimArkExits(REQUEST)
+    const pending = claimArkExits(SUBMISSION)
 
-    await expect(claimArkExits(REQUEST)).rejects.toThrow(
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
       t('ark.exit.claim.blocker.claimInProgress')
     )
     await pending
@@ -200,9 +207,9 @@ describe('claimArkExits', () => {
   })
 
   it('refuses a new claim while a kept one waits to settle', async () => {
-    await claimArkExits(REQUEST)
+    await claimArkExits(SUBMISSION)
 
-    await expect(claimArkExits(REQUEST)).rejects.toThrow(
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
       t('ark.exit.claim.blocker.claimInProgress')
     )
     expect(buildArkExitClaim).toHaveBeenCalledTimes(1)
@@ -218,7 +225,7 @@ describe('claimArkExits', () => {
         )
       )
 
-    await expect(claimArkExits(REQUEST)).rejects.toThrow(
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
       t('ark.exit.claim.rejection.unexpectedOutputs')
     )
     expect(signArkExitClaim).not.toHaveBeenCalled()
@@ -228,7 +235,7 @@ describe('claimArkExits', () => {
 
   it('refuses a fractional fee rate', async () => {
     await expect(
-      claimArkExits({ ...REQUEST, feeRateSatPerVb: 1.5 })
+      claimArkExits({ ...SUBMISSION, feeRateSatPerVb: 1.5 })
     ).rejects.toThrow(t('ark.exit.claim.error.invalidFeeRate'))
     expect(buildArkExitClaim).not.toHaveBeenCalled()
   })
@@ -238,7 +245,7 @@ describe('claimArkExits', () => {
       .mocked(broadcastRawTransaction)
       .mockRejectedValueOnce(new Error('offline'))
 
-    await expect(claimArkExits(REQUEST)).rejects.toThrow('offline')
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow('offline')
     expect(savedClaims()).toMatchObject([{ broadcastStatus: 'failed' }])
 
     await retryArkExitClaimBroadcast(ARK_ACCOUNT_ID, CLAIM_TXID)
@@ -253,7 +260,7 @@ describe('claimArkExits', () => {
   })
 
   it('drops a kept claim once the wallet sees it spend the exits', async () => {
-    await claimArkExits(REQUEST)
+    await claimArkExits(SUBMISSION)
     jest
       .mocked(listArkExits)
       .mockResolvedValue([
@@ -267,15 +274,78 @@ describe('claimArkExits', () => {
   })
 
   it('discards only claims that failed to broadcast', async () => {
-    await claimArkExits(REQUEST)
+    await claimArkExits(SUBMISSION)
 
-    discardArkExitClaim(CLAIM_TXID)
+    await discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
     expect(savedClaims()).toHaveLength(1)
 
     useArkExitClaimsStore
       .getState()
       .saveClaim({ ...savedClaims()[0], broadcastStatus: 'failed' })
-    discardArkExitClaim(CLAIM_TXID)
+    await discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
     expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('still blocks a new claim when a discarded one reached the network', async () => {
+    jest
+      .mocked(broadcastRawTransaction)
+      .mockRejectedValueOnce(new Error('timeout'))
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow('timeout')
+    jest
+      .mocked(listArkExits)
+      .mockResolvedValue([
+        { ...claimableExit(), claimTxid: CLAIM_TXID, status: 'claimInProgress' }
+      ])
+
+    await discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
+
+    expect(syncArkExits).toHaveBeenCalledTimes(2)
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
+      t('ark.exit.claim.blocker.claimInProgress')
+    )
+    expect(buildArkExitClaim).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to sign a claim that changed since it was approved', async () => {
+    await expect(
+      claimArkExits({
+        ...SUBMISSION,
+        approved: { ...SUBMISSION.approved, feeSats: FEE_SATS - 100 }
+      })
+    ).rejects.toThrow(t('ark.exit.claim.error.changed'))
+    expect(signArkExitClaim).not.toHaveBeenCalled()
+    expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('does not bring back a claim cleared while it was broadcast', async () => {
+    jest.mocked(broadcastRawTransaction).mockImplementation(() => {
+      useArkExitClaimsStore.getState().clearAllData()
+      return Promise.resolve(CLAIM_TXID)
+    })
+
+    await claimArkExits(SUBMISSION)
+
+    expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('resends the kept claim after the app restarts', async () => {
+    jest
+      .mocked(broadcastRawTransaction)
+      .mockRejectedValueOnce(new Error('offline'))
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow('offline')
+    const persisted = await mmkvStorage.getItem(CLAIMS_STORAGE_KEY)
+    useArkExitClaimsStore.setState({ claims: [] })
+    await mmkvStorage.setItem(CLAIMS_STORAGE_KEY, persisted ?? '')
+
+    await useArkExitClaimsStore.persist.rehydrate()
+    expect(savedClaims()).toMatchObject([{ broadcastStatus: 'failed' }])
+    await retryArkExitClaimBroadcast(ARK_ACCOUNT_ID, CLAIM_TXID)
+
+    expect(broadcastRawTransaction).toHaveBeenLastCalledWith(
+      SIGNED_HEX,
+      expect.anything(),
+      'signet'
+    )
+    expect(buildArkExitClaim).toHaveBeenCalledTimes(1)
   })
 })

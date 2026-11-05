@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type ArkExit, type ArkExitClaimRecord } from '@/types/models/Ark'
-import { getClaimableArkExits, pruneArkExitClaimRecords } from '@/utils/arkExit'
+import { pruneArkExitClaimRecords } from '@/utils/arkExit'
 
 type ArkExitClaimsState = {
   claims: ArkExitClaimRecord[]
@@ -14,7 +14,13 @@ type ArkExitClaimsState = {
 type ArkExitClaimsAction = {
   saveClaim: (record: ArkExitClaimRecord) => void
   removeClaim: (txid: string) => void
-  reconcileAccount: (arkAccountId: string, exits: ArkExit[]) => void
+  // No-op when the record is gone, e.g. after a wipe while it was broadcast.
+  updateClaimStatus: (
+    txid: string,
+    broadcastStatus: ArkExitClaimRecord['broadcastStatus']
+  ) => void
+  pruneAccountClaims: (arkAccountId: string, exits: ArkExit[]) => void
+  setAnnouncedClaimable: (arkAccountId: string, vtxoIds: string[]) => void
   removeAccountData: (arkAccountId: string) => void
   clearAllData: () => void
 }
@@ -27,14 +33,8 @@ export const useArkExitClaimsStore = create<
       announcedClaimableIds: {},
       claims: [],
       clearAllData: () => set({ announcedClaimableIds: {}, claims: [] }),
-      reconcileAccount: (arkAccountId, exits) =>
+      pruneAccountClaims: (arkAccountId, exits) =>
         set((state) => ({
-          announcedClaimableIds: {
-            ...state.announcedClaimableIds,
-            [arkAccountId]: getClaimableArkExits(exits).map(
-              (exit) => exit.vtxoId
-            )
-          },
           claims: pruneArkExitClaimRecords(state.claims, arkAccountId, exits)
         })),
       removeAccountData: (arkAccountId) =>
@@ -58,6 +58,19 @@ export const useArkExitClaimsStore = create<
             record,
             ...state.claims.filter((claim) => claim.txid !== record.txid)
           ]
+        })),
+      setAnnouncedClaimable: (arkAccountId, vtxoIds) =>
+        set((state) => ({
+          announcedClaimableIds: {
+            ...state.announcedClaimableIds,
+            [arkAccountId]: vtxoIds
+          }
+        })),
+      updateClaimStatus: (txid, broadcastStatus) =>
+        set((state) => ({
+          claims: state.claims.map((claim) =>
+            claim.txid === txid ? { ...claim, broadcastStatus } : claim
+          )
         }))
     }),
     {

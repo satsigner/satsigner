@@ -27,6 +27,8 @@ import {
 } from '@/types/models/Ark'
 import { getArkExitClaimBlocker, getClaimableArkExits } from '@/utils/arkExit'
 import {
+  type ArkExitClaimTerms,
+  matchesApprovedArkExitClaim,
   type VerifiedArkExitClaim,
   verifyArkExitClaimDraft,
   verifyArkExitClaimSignedTx
@@ -42,11 +44,14 @@ type ArkExitClaimRequest = {
   feeRateSatPerVb: number
 }
 
-type ArkExitClaimPreview = {
-  amountSats: number
-  feeSats: number
-  vtxoCount: number
+type ArkExitClaimPreview = ArkExitClaimTerms & {
   skippedCount: number
+}
+
+type ArkExitClaimSubmission = ArkExitClaimRequest & {
+  // What the user saw and approved. A claim that no longer matches it is
+  // refused before signing.
+  approved: ArkExitClaimTerms
 }
 
 type ArkExitClaimResult = {
@@ -93,7 +98,7 @@ async function refreshArkExits(arkAccountId: string): Promise<ArkExit[]> {
   await ensureArkWalletOpen(arkAccountId)
   await syncArkExits(serverId, arkAccountId)
   const exits = await listArkExits(serverId, arkAccountId)
-  useArkExitClaimsStore.getState().reconcileAccount(arkAccountId, exits)
+  useArkExitClaimsStore.getState().pruneAccountClaims(arkAccountId, exits)
   return exits
 }
 
@@ -162,30 +167,22 @@ async function previewArkExitClaim(
     amountSats: claim.amountSats,
     feeSats: claim.feeSats,
     skippedCount: claim.skippedCount,
-    vtxoCount: claim.vtxoIds.length
+    vtxoIds: claim.vtxoIds
   }
-}
-
-function saveClaimStatus(
-  record: ArkExitClaimRecord,
-  broadcastStatus: ArkExitClaimRecord['broadcastStatus']
-): ArkExitClaimRecord {
-  const updated = { ...record, broadcastStatus }
-  useArkExitClaimsStore.getState().saveClaim(updated)
-  return updated
 }
 
 async function broadcastClaimRecord(record: ArkExitClaimRecord): Promise<void> {
   const { network } = getArkAccountOrThrow(record.arkAccountId)
   const { server } = useBlockchainStore.getState().configs[network]
-  saveClaimStatus(record, 'broadcasting')
+  const claims = useArkExitClaimsStore.getState()
+  claims.saveClaim({ ...record, broadcastStatus: 'broadcasting' })
   try {
     await broadcastRawTransaction(record.txHex, server, network)
   } catch (error) {
-    saveClaimStatus(record, 'failed')
+    claims.updateClaimStatus(record.txid, 'failed')
     throw error
   }
-  saveClaimStatus(record, 'broadcast')
+  claims.updateClaimStatus(record.txid, 'broadcast')
 }
 
 async function withClaimLock<T>(
@@ -203,9 +200,10 @@ async function withClaimLock<T>(
   }
 }
 
-async function buildSignAndBroadcastClaim(
-  request: ArkExitClaimRequest
-): Promise<ArkExitClaimResult> {
+async function buildSignAndBroadcastClaim({
+  approved,
+  ...request
+}: ArkExitClaimSubmission): Promise<ArkExitClaimResult> {
   const { arkAccount, destination } = resolveClaimRequest(request)
   const exits = await refreshArkExits(arkAccount.id)
   assertCanClaim(arkAccount.id, exits)
@@ -217,6 +215,9 @@ async function buildSignAndBroadcastClaim(
     address,
     request.feeRateSatPerVb
   )
+  if (!matchesApprovedArkExitClaim(claim, approved)) {
+    throw new Error(t('ark.exit.claim.error.changed'))
+  }
   const txHex = await signArkExitClaim(
     arkAccount.serverId,
     arkAccount.id,
@@ -254,13 +255,13 @@ async function buildSignAndBroadcastClaim(
 
 /**
  * Claims every claimable exit of the account to a fresh receive address of
- * one of the user's wallets, at the fee rate the user saw in the preview.
+ * one of the user's wallets, exactly as the user approved it in the preview.
  */
 function claimArkExits(
-  request: ArkExitClaimRequest
+  submission: ArkExitClaimSubmission
 ): Promise<ArkExitClaimResult> {
-  return withClaimLock(request.arkAccountId, () =>
-    buildSignAndBroadcastClaim(request)
+  return withClaimLock(submission.arkAccountId, () =>
+    buildSignAndBroadcastClaim(submission)
   )
 }
 
@@ -288,19 +289,38 @@ function retryArkExitClaimBroadcast(
   return withClaimLock(arkAccountId, () => rebroadcastClaim(arkAccountId, txid))
 }
 
-/** Forgets a claim that failed to broadcast so a new one can be built. */
-function discardArkExitClaim(txid: string): void {
+async function discardFailedClaim(
+  arkAccountId: string,
+  txid: string
+): Promise<void> {
+  // A broadcast reported as failed may still have reached the network. The
+  // refresh drops the record if the wallet now sees it spend the exits.
+  await refreshArkExits(arkAccountId)
   const record = getArkExitClaimRecord(txid)
-  if (record?.broadcastStatus !== 'failed') {
+  if (
+    record?.arkAccountId !== arkAccountId ||
+    record.broadcastStatus !== 'failed'
+  ) {
     return
   }
   useArkExitClaimsStore.getState().removeClaim(txid)
+}
+
+/** Forgets a claim that failed to broadcast so a new one can be built. */
+function discardArkExitClaim(
+  arkAccountId: string,
+  txid: string
+): Promise<void> {
+  return withClaimLock(arkAccountId, () =>
+    discardFailedClaim(arkAccountId, txid)
+  )
 }
 
 export {
   type ArkExitClaimPreview,
   type ArkExitClaimRequest,
   type ArkExitClaimResult,
+  type ArkExitClaimSubmission,
   claimArkExits,
   discardArkExitClaim,
   previewArkExitClaim,

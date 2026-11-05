@@ -15,6 +15,7 @@ import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
 import {
   useArkExitClaim,
   useArkExitClaimPreview,
+  useArkExitClaimDiscard,
   useArkExitClaimRetry,
   useArkExitClaims,
   useArkExitFunding,
@@ -28,7 +29,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { discardArkExitClaim } from '@/services/arkExitClaim'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { Colors } from '@/styles'
@@ -74,6 +74,7 @@ export default function ArkExitsPage() {
   const feeRatesQuery = useArkOnchainFeeRates(id)
   const claimMutation = useArkExitClaim(id)
   const retryMutation = useArkExitClaimRetry(id)
+  const discardMutation = useArkExitClaimDiscard(id)
   const fundingMutation = useArkExitFunding(id)
   const refreshExits = useArkExitsRefresh(id)
 
@@ -119,6 +120,7 @@ export default function ArkExitsPage() {
   const feeEstimateQuery = useArkExitFeeEstimate({
     accountId: id,
     enabled: unconfirmedIds.length > 0,
+    poll: true,
     vtxoIds: unconfirmedIds
   })
   const shortfallSats = feeEstimateQuery.data?.shortfallSats ?? 0
@@ -157,16 +159,25 @@ export default function ArkExitsPage() {
     previewQuery.refetch()
   }
 
+  function handleRetryFeeRates() {
+    feeRatesQuery.refetch()
+  }
+
+  function handleRetryFeeEstimate() {
+    feeEstimateQuery.refetch()
+  }
+
   function handleClaim() {
-    if (!canClaim || !destination || feeRate === undefined) {
+    if (!canClaim || !destination || !preview || feeRate === undefined) {
       return
     }
-    const request = {
+    const submission = {
+      approved: preview,
       arkAccountId: id,
       destinationAccountId: destination.id,
       feeRateSatPerVb: feeRate
     }
-    claimMutation.mutate(request, {
+    claimMutation.mutate(submission, {
       onError: (error) => {
         toast.error(`${t('ark.exit.claim.error.generic')}: ${error.message}`)
       },
@@ -190,7 +201,11 @@ export default function ArkExitsPage() {
   }
 
   function handleDiscardClaim(txid: string) {
-    discardArkExitClaim(txid)
+    discardMutation.mutate(txid, {
+      onError: (error) => {
+        toast.error(`${t('ark.exit.claim.error.discard')}: ${error.message}`)
+      }
+    })
   }
 
   function handleFund() {
@@ -243,6 +258,19 @@ export default function ArkExitsPage() {
               onPress={handleRefresh}
             >
               {t('ark.exit.loadError')}
+            </SSText>
+          )}
+
+          {feeEstimateQuery.error && (
+            <SSText
+              size="sm"
+              center
+              style={styles.warningText}
+              onPress={handleRetryFeeEstimate}
+            >
+              {t('ark.exit.funding.error.estimate', {
+                reason: feeEstimateQuery.error.message
+              })}
             </SSText>
           )}
 
@@ -313,6 +341,10 @@ export default function ArkExitsPage() {
                     retryMutation.isPending &&
                     retryMutation.variables === record.txid
                   }
+                  discarding={
+                    discardMutation.isPending &&
+                    discardMutation.variables === record.txid
+                  }
                   onRetry={handleRetryClaim}
                   onDiscard={handleDiscardClaim}
                   onCopyTxid={handleCopyTxid}
@@ -369,6 +401,17 @@ export default function ArkExitsPage() {
                   }}
                   onChange={setFeeSpeed}
                 />
+              )}
+              {feeRatesQuery.error && (
+                <SSText
+                  size="xs"
+                  style={styles.warningText}
+                  onPress={handleRetryFeeRates}
+                >
+                  {t('ark.exit.claim.error.feeRates', {
+                    reason: feeRatesQuery.error.message
+                  })}
+                </SSText>
               )}
 
               {preview && (

@@ -20,6 +20,7 @@ import { t } from '@/locales'
 import {
   type ArkExitClaimRequest,
   claimArkExits,
+  discardArkExitClaim,
   previewArkExitClaim,
   refreshArkExits,
   retryArkExitClaimBroadcast
@@ -124,6 +125,15 @@ export function useArkExitClaim(accountId: string) {
   return useMutation({
     mutationFn: claimArkExits,
     mutationKey: ['ark', 'exit-claim', accountId],
+    onSettled: () => invalidateArkExitQueries(queryClient, accountId)
+  })
+}
+
+export function useArkExitClaimDiscard(accountId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (txid: string) => discardArkExitClaim(accountId, txid),
+    mutationKey: ['ark', 'exit-claim', accountId, 'discard'],
     onSettled: () => invalidateArkExitQueries(queryClient, accountId)
   })
 }

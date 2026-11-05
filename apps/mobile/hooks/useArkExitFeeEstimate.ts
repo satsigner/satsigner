@@ -25,20 +25,15 @@ type UseArkExitFeeEstimateArgs = {
   accountId: string | null | undefined
   vtxoIds: string[]
   enabled: boolean
+  // Keeps the estimate fresh while the exits it covers are under way, since
+  // fee rates and the on-chain balance move on their own.
+  poll?: boolean
 }
 
 export function arkExitFeeEstimateQueryKey(
   accountId: string | null | undefined
 ) {
   return ['ark', 'exit-fee-estimate', accountId]
-}
-
-function fundingRefetchInterval(
-  estimate: ArkExitFeeEstimate | undefined
-): number | false {
-  const waitingForFunds =
-    !!estimate && (estimate.shortfallSats > 0 || estimate.fundingConfirming)
-  return waitingForFunds ? ARK_EXIT_POLL_INTERVAL_MS : false
 }
 
 async function fetchArkExitFeeEstimate(
@@ -70,7 +65,8 @@ async function fetchArkExitFeeEstimate(
 export function useArkExitFeeEstimate({
   accountId,
   vtxoIds,
-  enabled
+  enabled,
+  poll = false
 }: UseArkExitFeeEstimateArgs) {
   const { data: walletReady } = useArkWallet(accountId)
   const sortedIds = vtxoIds.toSorted()
@@ -80,7 +76,7 @@ export function useArkExitFeeEstimate({
       ? () => fetchArkExitFeeEstimate(accountId, sortedIds)
       : skipToken,
     queryKey: [...arkExitFeeEstimateQueryKey(accountId), sortedIds],
-    refetchInterval: (query) => fundingRefetchInterval(query.state.data),
+    refetchInterval: poll ? ARK_EXIT_POLL_INTERVAL_MS : false,
     retry: false,
     staleTime: ARK_QUERY_STALE_TIME_MS
   })
