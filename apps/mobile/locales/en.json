@@ -857,6 +857,7 @@
     "vtxo.detail.lineage.unsigned": "Unsigned",
     "vtxo.detail.lineage.viewAnchor": "View anchor transaction",
     "vtxo.detail.lineage.virtual": "This VTXO is the on-chain output itself, so it needs no exit transactions.",
+    "vtxo.detail.loadError": "Could not load this VTXO: %{message}",
     "vtxo.detail.notFound": "This VTXO is not in this wallet.",
     "vtxo.detail.notInWallet": "Not in wallet",
     "vtxo.detail.refresh": "Refresh this VTXO",

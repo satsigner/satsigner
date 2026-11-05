@@ -297,6 +297,16 @@ function getVtxoStatusLabel(vtxo: ArkVtxo | undefined) {
   return `${t('ark.vtxo.locked')} · ${vtxo.state}`
 }
 
+function getVtxoUnavailableMessage(isLoading: boolean, error: Error | null) {
+  if (isLoading) {
+    return t('common.loading')
+  }
+  if (error) {
+    return t('ark.vtxo.detail.loadError', { message: error.message })
+  }
+  return t('ark.vtxo.detail.notFound')
+}
+
 export default function ArkVtxoDetailPage() {
   const { id, vtxoId } = useLocalSearchParams<{
     id: string
@@ -347,6 +357,7 @@ export default function ArkVtxoDetailPage() {
     vtxoId
   )
   const isLoading = vtxosQuery.isLoading || decodeQuery.isLoading
+  const loadError = vtxosQuery.error ?? decodeQuery.error
 
   async function handleCopyEncoded() {
     if (!decoded) {
@@ -356,6 +367,11 @@ export default function ArkVtxoDetailPage() {
     if (copied) {
       toast.success(t('common.copiedToClipboard'))
     }
+  }
+
+  function handleRetryLoad() {
+    vtxosQuery.refetch()
+    decodeQuery.refetch()
   }
 
   function handleOpenAnchor() {
@@ -370,10 +386,17 @@ export default function ArkVtxoDetailPage() {
   function renderBody() {
     if (amountSats === undefined) {
       return (
-        <SSVStack itemsCenter style={styles.loading}>
-          <SSText color="muted">
-            {isLoading ? t('common.loading') : t('ark.vtxo.detail.notFound')}
+        <SSVStack itemsCenter gap="md" style={styles.loading}>
+          <SSText color="muted" center>
+            {getVtxoUnavailableMessage(isLoading, loadError)}
           </SSText>
+          {!isLoading && loadError && (
+            <SSButton
+              variant="outline"
+              label={t('common.retry')}
+              onPress={handleRetryLoad}
+            />
+          )}
         </SSVStack>
       )
     }
