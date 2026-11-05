@@ -15,6 +15,7 @@ import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
+import { useArkExitWatcher } from '@/hooks/useArkExits'
 import { useArkSwapRunner } from '@/hooks/useArkSwaps'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -144,6 +145,7 @@ function AuthenticatedSession() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
+  useArkExitWatcher()
   useArkSwapRunner()
   useFetchBitcoinPrice()
 
