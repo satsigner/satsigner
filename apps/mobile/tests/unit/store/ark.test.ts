@@ -1,5 +1,5 @@
 import { useArkStore } from '@/store/ark'
-import type { ArkAccount, ArkBalance } from '@/types/models/Ark'
+import type { ArkAccount, ArkBalance, ArkBoardIntent } from '@/types/models/Ark'
 
 function buildAccount(id: string): ArkAccount {
   return {
@@ -20,6 +20,16 @@ function buildBalance(spendableSats: number): ArkBalance {
     pendingInRoundSats: 0,
     pendingLightningSendSats: 0,
     spendableSats
+  }
+}
+
+function buildIntent(address: string, arkAccountId: string): ArkBoardIntent {
+  return {
+    address,
+    arkAccountId,
+    expiryHeight: 900_000,
+    keypairIndex: 0,
+    serverId: 'second'
   }
 }
 
@@ -76,6 +86,21 @@ describe('useArkStore', () => {
     expect('a1' in state.balances).toBe(false)
     expect('a1' in state.stats).toBe(false)
     expect(state.balances.a2?.spendableSats).toBe(2500)
+  })
+
+  it('removeAccount drops its board intents but keeps funding txids', () => {
+    const store = useArkStore.getState()
+    store.addAccount(buildAccount('a1'))
+    store.addAccount(buildAccount('a2'))
+    store.addBoardIntent(buildIntent('tb1qa1', 'a1'))
+    store.addBoardIntent(buildIntent('tb1qa2', 'a2'))
+    store.addBoardFundingTxid('txid-a1')
+
+    useArkStore.getState().removeAccount('a1')
+
+    const state = useArkStore.getState()
+    expect(Object.keys(state.boardIntents)).toStrictEqual(['tb1qa2'])
+    expect(state.boardFundingTxids).toStrictEqual(['txid-a1'])
   })
 
   it('removeAccount of an unknown id leaves state intact', () => {

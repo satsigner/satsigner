@@ -96,12 +96,19 @@ export const useArkStore = create<ArkState & ArkAction>()(
         set((state) => {
           const { [accountId]: _b, ...remainingBalances } = state.balances
           const { [accountId]: _s, ...remainingStats } = state.stats
+          // boardFundingTxids stay: replacing a funding tx would still orphan
+          // the board, and its funds outlive the account.
           return {
             accounts: state.accounts.filter((a) => a.id !== accountId),
             autoBoardDisabledIds: state.autoBoardDisabledIds.filter(
               (id) => id !== accountId
             ),
             balances: remainingBalances,
+            boardIntents: Object.fromEntries(
+              Object.entries(state.boardIntents).filter(
+                ([, intent]) => intent.arkAccountId !== accountId
+              )
+            ),
             stats: remainingStats
           }
         }),
