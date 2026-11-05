@@ -82,3 +82,25 @@ describe('getAddressTxs', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('broadcastTransaction', () => {
+  beforeEach(() => {
+    jest.spyOn(global, 'fetch').mockReset()
+  })
+
+  afterAll(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('explains a rate limited server', async () => {
+    jest.mocked(global.fetch).mockResolvedValueOnce({
+      headers: { get: () => 'application/json' },
+      ok: false,
+      status: 429
+    })
+
+    await expect(
+      new Esplora('https://x').broadcastTransaction('00')
+    ).rejects.toThrow('Too many requests')
+  })
+})

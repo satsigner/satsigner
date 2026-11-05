@@ -30,5 +30,10 @@ export const ESPLORA_ERROR_MESSAGES = [
   {
     error: 'NetworkError',
     reason: 'Network error - check your internet connection'
+  },
+  {
+    error: 'Status: 429',
+    reason:
+      'Too many requests - the server is rate limiting, try again later or switch servers'
   }
 ]
