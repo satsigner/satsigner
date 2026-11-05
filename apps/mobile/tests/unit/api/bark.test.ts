@@ -4,6 +4,7 @@ import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
 import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
+import { ArkOperationBusyError } from '@/utils/arkError'
 
 // jest.config.js maps @secondts/bark-react-native to the manual mock in
 // __mocks__; these test-only helpers exist there, not in the real package.
@@ -614,6 +615,59 @@ describe('bark provider', () => {
     ])
     expect(__countWalletNotificationListeners()).toBe(0)
     jest.useRealTimers()
+  })
+
+  it('sendOnchain refuses a second send while the first is still running', async () => {
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendBusy1', wallet)
+    const first = provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await expect(first).resolves.toBe('first-txid')
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
+  })
+
+  it('a finishing refresh keeps the guard of another one that timed out', async () => {
+    jest.useFakeTimers()
+    const firstRefresh = createDeferred<string>()
+    const secondRefresh = createDeferred<string>()
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest
+        .fn()
+        .mockReturnValueOnce(firstRefresh.promise)
+        .mockReturnValueOnce(secondRefresh.promise)
+    })
+    await openWallet('refGuard1', wallet)
+    const timedOut = provider.refreshVtxos('refGuard1', ['vtxo1'])
+    await jest.advanceTimersByTimeAsync(10_000)
+    const finishing = provider.refreshVtxos('refGuard1', ['vtxo2'])
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(20_001)
+    ])
+    secondRefresh.resolve('second-txid')
+    await expect(finishing).resolves.toBe('second-txid')
+    jest.useRealTimers()
+
+    await expect(
+      provider.refreshVtxos('refGuard1', ['vtxo3'])
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+
+    firstRefresh.resolve('first-txid')
+    await firstRefresh.promise
   })
 
   it('sendOnchain refuses a retry while a timed-out send still runs', async () => {
