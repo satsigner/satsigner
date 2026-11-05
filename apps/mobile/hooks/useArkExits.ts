@@ -28,7 +28,8 @@ import {
 import { prepareArkExitFunding } from '@/services/arkExitFunding'
 import {
   type ClaimableArkExitsNotice,
-  findNewlyClaimableArkExits
+  findNewlyClaimableArkExits,
+  markArkExitsAnnounced
 } from '@/services/arkExitWatch'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
@@ -177,6 +178,7 @@ async function announceClaimableArkExits(): Promise<number> {
   const notices = await findNewlyClaimableArkExits()
   for (const notice of notices) {
     showClaimableNotice(notice)
+    markArkExitsAnnounced(notice)
   }
   return notices.length
 }

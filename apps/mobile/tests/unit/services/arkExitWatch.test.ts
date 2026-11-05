@@ -1,6 +1,9 @@
 import { listArkExits, syncArkExits } from '@/api/ark'
 import { refreshArkExits } from '@/services/arkExitClaim'
-import { findNewlyClaimableArkExits } from '@/services/arkExitWatch'
+import {
+  findNewlyClaimableArkExits,
+  markArkExitsAnnounced
+} from '@/services/arkExitWatch'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
 import { type ArkExit } from '@/types/models/Ark'
@@ -49,29 +52,60 @@ describe('findNewlyClaimableArkExits', () => {
       .mockResolvedValue([exit('a:0', 'claimable'), exit('b:0', 'processing')])
   })
 
+  async function announce() {
+    const notices = await findNewlyClaimableArkExits()
+    for (const notice of notices) {
+      markArkExitsAnnounced(notice)
+    }
+    return notices
+  }
+
   it('announces claimable exits once', async () => {
-    await expect(findNewlyClaimableArkExits()).resolves.toStrictEqual([
-      { accountId: ARK_ACCOUNT_ID, accountName: 'Ark', count: 1 }
+    await expect(announce()).resolves.toStrictEqual([
+      {
+        accountId: ARK_ACCOUNT_ID,
+        accountName: 'Ark',
+        claimableIds: ['a:0'],
+        count: 1
+      }
     ])
-    await expect(findNewlyClaimableArkExits()).resolves.toStrictEqual([])
+    await expect(announce()).resolves.toStrictEqual([])
+  })
+
+  it('announces again when the notice was never shown', async () => {
+    await findNewlyClaimableArkExits()
+
+    await expect(findNewlyClaimableArkExits()).resolves.toHaveLength(1)
   })
 
   it('still announces exits a screen refresh saw first', async () => {
     await refreshArkExits(ARK_ACCOUNT_ID)
 
-    await expect(findNewlyClaimableArkExits()).resolves.toStrictEqual([
-      { accountId: ARK_ACCOUNT_ID, accountName: 'Ark', count: 1 }
-    ])
+    await expect(announce()).resolves.toHaveLength(1)
   })
 
   it('announces only the exits that became claimable since', async () => {
-    await findNewlyClaimableArkExits()
+    await announce()
     jest
       .mocked(listArkExits)
       .mockResolvedValue([exit('a:0', 'claimable'), exit('b:0', 'claimable')])
 
-    await expect(findNewlyClaimableArkExits()).resolves.toStrictEqual([
-      { accountId: ARK_ACCOUNT_ID, accountName: 'Ark', count: 1 }
+    await expect(announce()).resolves.toStrictEqual([
+      {
+        accountId: ARK_ACCOUNT_ID,
+        accountName: 'Ark',
+        claimableIds: ['a:0', 'b:0'],
+        count: 1
+      }
     ])
+  })
+
+  it('announces an exit again after it stopped being claimable', async () => {
+    await announce()
+    jest.mocked(listArkExits).mockResolvedValue([exit('a:0', 'processing')])
+    await announce()
+    jest.mocked(listArkExits).mockResolvedValue([exit('a:0', 'claimable')])
+
+    await expect(announce()).resolves.toHaveLength(1)
   })
 })
