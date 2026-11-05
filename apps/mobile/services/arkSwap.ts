@@ -937,7 +937,8 @@ async function payLateInvoice(jobId: string, rawInvoice: string) {
 /**
  * Pays an invoice supplied after boarding, or after an earlier payment of
  * the swap failed. Only valid once the board is spendable, and only for an
- * invoice the boarded amount covers, so it never dips into other Ark funds.
+ * invoice the boarded amount covers. Bark cannot pin a payment to the board's
+ * VTXOs, so it is paid from the Ark balance, capped at the boarded amount.
  */
 export async function submitArkSwapInvoice(
   jobId: string,
