@@ -34,7 +34,7 @@ import {
   getArkOnchainSweepBlocker,
   getArkSweepDestinations
 } from '@/utils/arkOnchainSweep'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedNumber, formatNumber } from '@/utils/format'
 
 const BLOCKER_MESSAGE_KEYS: Record<
   Exclude<ArkOnchainSweepBlocker, 'loading'>,
@@ -112,7 +112,7 @@ export default function ArkOnchainWalletPage() {
       onSuccess: ({ amountSats, destinationName }) => {
         toast.success(
           t('ark.onchain.sweep.success', {
-            amount: formatNumber(amountSats),
+            amount: formatMaskedNumber(amountSats, privacyMode),
             name: destinationName,
             unit: t('bitcoin.sats')
           })
