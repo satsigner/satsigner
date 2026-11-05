@@ -1,3 +1,4 @@
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { ArkAccount } from '@/types/models/Ark'
 import {
   collectArkBackup,
@@ -198,6 +199,16 @@ describe('restoreArkStoreFromBackup', () => {
     expect(addAccount).toHaveBeenCalledWith(ACCOUNT)
     expect(updateBalance).toHaveBeenCalledWith('ark-1', balance)
     expect(updateStats).toHaveBeenCalledWith('ark-1', stats)
+  })
+
+  it('drops transaction drafts that could pay a board address', () => {
+    const builder = useTransactionBuilderStore.getState()
+    builder.setAccountId('btc-1')
+    builder.addOutput({ amount: 10_000, label: '', to: 'tb1qboard' })
+    expect(useTransactionBuilderStore.getState().drafts).toHaveProperty('btc-1')
+    restoreArkStoreFromBackup({ accounts: [ACCOUNT] })
+    expect(useTransactionBuilderStore.getState().drafts).toStrictEqual({})
+    expect(useTransactionBuilderStore.getState().outputs).toStrictEqual([])
   })
 
   it('clears the store when ark data is missing (old backup without ark)', () => {
