@@ -601,4 +601,34 @@ describe('bark provider', () => {
     expect(__countWalletNotificationListeners()).toBe(0)
     jest.useRealTimers()
   })
+
+  it('sendOnchain refuses a retry while a timed-out send still runs', async () => {
+    jest.useFakeTimers()
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendRetry1', wallet)
+    const timedOut = provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(30_001)
+    ])
+    jest.useRealTimers()
+
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).rejects.toThrow('still running')
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await firstSend.promise
+    await Promise.resolve()
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
+  })
 })

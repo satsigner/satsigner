@@ -32,6 +32,7 @@ import {
   ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
   ARK_SAT_PER_KWU_PER_SAT_PER_VB
 } from '@/constants/ark'
+import { t } from '@/locales'
 import type {
   ArkBalance,
   ArkBoardFundingInfo,
@@ -66,6 +67,9 @@ const inflightOpens = new Map<string, Promise<void>>()
 const inflightSyncs = new Map<string, Promise<void>>()
 const notificationsCache = new Map<string, WalletNotifications>()
 const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
+// Operations that timed out but keep running in the wallet. Starting the same
+// one again before it settles could spend the same funds twice.
+const unsettledOperations = new Set<string>()
 
 function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   switch (network) {
@@ -549,9 +553,14 @@ function raceMovementCreated(
   label: string,
   accountId: string,
   matchesMovement: (movement: Movement) => boolean,
-  operation: Promise<string>
+  startOperation: () => Promise<string>
 ): Promise<string> {
+  const operationKey = `${accountId}:${label}`
+  if (unsettledOperations.has(operationKey)) {
+    return Promise.reject(new Error(t('ark.error.operationStillRunning')))
+  }
   const notifications = getOrCreateNotifications(accountId)
+  const operation = startOperation()
   return new Promise<string>((resolve, reject) => {
     let settled = false
 
@@ -566,9 +575,10 @@ function raceMovementCreated(
     }
 
     const timer = setTimeout(() => {
-      settle(() =>
+      settle(() => {
+        unsettledOperations.add(operationKey)
         reject(new Error(`${label}: no movement created within timeout`))
-      )
+      })
     }, ARK_PENDING_RACE_TIMEOUT_MS)
 
     const unsubscribe = notifications.subscribe((event) => {
@@ -589,6 +599,8 @@ function raceMovementCreated(
         settle(() => resolve(txid))
       } catch (error) {
         settle(() => reject(error))
+      } finally {
+        unsettledOperations.delete(operationKey)
       }
     }
 
@@ -615,7 +627,7 @@ function offboardVtxos(
     'ark-offboard',
     accountId,
     (movement) => movement.subsystemKind === 'offboard',
-    offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
+    () => offboardWalletVtxos(wallet, vtxoIds, bitcoinAddress)
   )
 }
 
@@ -645,7 +657,7 @@ function refreshVtxos(accountId: string, vtxoIds: string[]): Promise<string> {
     'ark-refresh',
     accountId,
     isArkRefreshMovement,
-    refreshWalletVtxos(wallet, vtxoIds)
+    () => refreshWalletVtxos(wallet, vtxoIds)
   )
 }
 
@@ -677,7 +689,7 @@ function sendOnchain(
     'ark-sendOnchain',
     accountId,
     (movement) => movement.subsystemKind === 'send_onchain',
-    offboardToAddress(wallet, bitcoinAddress, amountSats)
+    () => offboardToAddress(wallet, bitcoinAddress, amountSats)
   )
 }
 

@@ -583,6 +583,7 @@
     "error.exportDbNotFound": "Ark database not found for this wallet",
     "error.invalidAmount": "Enter an amount greater than zero",
     "error.invoiceGeneration": "Failed to create Lightning invoice",
+    "error.operationStillRunning": "The previous attempt is still running in the Ark wallet. Wait for it to finish before trying again.",
     "error.walletLoad": "Failed to load Ark wallet",
     "exit.action": "Emergency Exit",
     "exit.allConfirmTitle": "Emergency exit all VTXOs?",
