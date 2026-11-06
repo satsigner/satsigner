@@ -540,7 +540,7 @@
     "board.fee": "Board fee",
     "board.feeEstimating": "Estimating…",
     "board.feeUnavailable": "Fee unavailable — tap to retry",
-    "board.fromWallet.action": "Review transaction",
+    "board.fromWallet.action": "Review",
     "board.fromWallet.boardingWallet": "Ark boarding wallet",
     "board.fromWallet.boardingWalletHint": "Coins received on the boarding address",
     "board.fromWallet.description": "Board in one transaction from one of your wallets. The Ark server cosigns it right before it is broadcast.",
