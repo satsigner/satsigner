@@ -385,6 +385,14 @@ export function fetchArkVtxoEncoded(
   return getArkProvider(serverId).fetchVtxoEncoded(accountId, vtxoId)
 }
 
+export function fetchArkVtxoState(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoId: string
+): Promise<string> {
+  return getArkProvider(serverId).fetchVtxoState(accountId, vtxoId)
+}
+
 export function fetchArkLightningReceive(
   serverId: ArkServerId,
   accountId: string,

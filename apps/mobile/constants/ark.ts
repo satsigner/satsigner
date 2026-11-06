@@ -29,6 +29,11 @@ export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
 export const ARK_LNURL_DETAILS_STALE_MS = 60_000
 export const ARK_LIGHTNING_RECEIVE_SETTLED_STATE = 'settled'
 export const ARK_LIGHTNING_RECEIVE_AWAITING_STATE = 'awaiting-payment'
+export const ARK_VTXO_STATE = {
+  exited: 'Exited',
+  spendable: 'Spendable',
+  spent: 'Spent'
+} as const
 // bark's MAX_NB_BOARD_FUNDING_INPUTS: the server refuses to cosign a board
 // funded by more inputs than this.
 export const ARK_BOARD_MAX_FUNDING_INPUTS = 100
@@ -87,6 +92,10 @@ export const ARK_ONCHAIN_SWEEP_OVERHEAD_VBYTES = 11
 export const ARK_ONCHAIN_SWEEP_INPUT_VBYTES = 68
 export const ARK_ONCHAIN_SWEEP_OUTPUT_VBYTES = 43
 export const ARK_SWAP_POLL_INTERVAL_MS = 15_000
+// A job that keeps throwing is retried with a doubling delay, capped so a
+// recovered server is picked up again within minutes.
+export const ARK_SWAP_RETRY_BASE_DELAY_MS = ARK_SWAP_POLL_INTERVAL_MS
+export const ARK_SWAP_RETRY_MAX_DELAY_MS = 600_000
 export const ARK_SWAP_RUNNER_QUERY_KEY = ['ark', 'swapRunner']
 export const ARK_SWAP_BLOCK_INTERVAL_SECONDS = 600
 // Rounds to settle a board amount that also covers its own amount-based fee.
@@ -100,6 +109,9 @@ export const ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS = 300
 // A send that threw may still be running server side; its movement is only
 // looked for once this long has passed, before the job is called failed.
 export const ARK_SWAP_SEND_RECONCILE_GRACE_MS = 120_000
+// An HTLC accepted just before the invoice expired can still settle after
+// it, so an unpaid receive is only given up this long past expiry.
+export const ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS = 600
 // With about a day of blocks left a VTXO should be refreshed, or the Ark
 // server may sweep it once it expires.
 export const ARK_VTXO_EXPIRY_WARNING_BLOCKS = 144

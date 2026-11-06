@@ -35,7 +35,6 @@ export type ArkOnchainToLightningJob = ArkSwapJobBase & {
   invoice?: string
   invoiceExpiresAt?: number
   paymentHash?: string
-  preimage?: string
 }
 
 // Receives a lightning payment into Ark, then sends it on-chain to a fresh
@@ -58,6 +57,9 @@ export type ArkLightningToOnchainJob = ArkSwapJobBase & {
   payoutSats?: number
   feeSats?: number
   txid?: string
+  // When the payout send last started or threw. Unlike updatedAt, a runner
+  // error does not move it, so the reconcile grace period still runs out.
+  sendAttemptedAt?: number
 }
 
 export type ArkSwapJob = ArkOnchainToLightningJob | ArkLightningToOnchainJob

@@ -57,14 +57,13 @@ export async function sweepArkOnchainWallet({
     throw new Error(t('ark.onchain.sweep.error.exitInProgress'))
   }
 
-  const [address, utxos] = await Promise.all([
-    reserveFreshReceiveAddress(destination),
-    listArkOnchainUtxos(arkAccount.serverId, arkAccountId)
-  ])
+  const utxos = await listArkOnchainUtxos(arkAccount.serverId, arkAccountId)
   const sweep = computeArkOnchainSweep({ feeRateSatPerVb, utxos })
   if (!sweep.ok) {
     throw new Error(t(`ark.onchain.sweep.error.${sweep.reason}`))
   }
+  // Reserved only once the sweep can go ahead: a WIF wallet has one address.
+  const address = await reserveFreshReceiveAddress(destination)
 
   const txid = await sendArkOnchainWalletFunds(
     arkAccount.serverId,

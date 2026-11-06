@@ -2,7 +2,11 @@ import {
   ARK_SWAP_BLOCK_INTERVAL_SECONDS,
   ARK_SWAP_BOARD_FEE_MAX_ROUNDS,
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
-  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS
+  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
+  ARK_SWAP_RETRY_BASE_DELAY_MS,
+  ARK_SWAP_RETRY_MAX_DELAY_MS,
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -29,6 +33,7 @@ import {
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,
+  getArkSwapBoardProgress,
   getArkSwapDestinationKinds,
   getArkSwapHops,
   getArkSwapJobAccountId,
@@ -40,8 +45,11 @@ import {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapInvoiceAbandoned,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   resolveArkSwapRoute,
   willInvoiceOutlastBoard
@@ -362,6 +370,120 @@ describe('job predicates', () => {
     expect(getArkSwapJobAccountId(LIGHTNING_TO_ONCHAIN_JOB)).toBe(
       'btc-destination'
     )
+  })
+})
+
+describe('isArkSwapJobRetryDue', () => {
+  const lastFailedAt = 1_000_000
+
+  it('runs a job that has not failed', () => {
+    expect(isArkSwapJobRetryDue(undefined, lastFailedAt)).toBe(true)
+  })
+
+  it('doubles the wait after each failure', () => {
+    const failures = { count: 3, lastFailedAt }
+    const delayMs = ARK_SWAP_RETRY_BASE_DELAY_MS * 4
+    expect(isArkSwapJobRetryDue(failures, lastFailedAt + delayMs - 1)).toBe(
+      false
+    )
+    expect(isArkSwapJobRetryDue(failures, lastFailedAt + delayMs)).toBe(true)
+  })
+
+  it('caps the wait', () => {
+    const failures = { count: 50, lastFailedAt }
+    expect(
+      isArkSwapJobRetryDue(failures, lastFailedAt + ARK_SWAP_RETRY_MAX_DELAY_MS)
+    ).toBe(true)
+  })
+})
+
+describe('isArkSwapSendReconcileDue', () => {
+  const sendAttemptedAt = 1_000_000
+
+  it('waits out the grace period after the last send attempt', () => {
+    expect(
+      isArkSwapSendReconcileDue(
+        { sendAttemptedAt },
+        sendAttemptedAt + ARK_SWAP_SEND_RECONCILE_GRACE_MS - 1
+      )
+    ).toBe(false)
+    expect(
+      isArkSwapSendReconcileDue(
+        { sendAttemptedAt },
+        sendAttemptedAt + ARK_SWAP_SEND_RECONCILE_GRACE_MS
+      )
+    ).toBe(true)
+  })
+
+  it('reconciles a send with no recorded attempt', () => {
+    expect(isArkSwapSendReconcileDue({}, sendAttemptedAt)).toBe(true)
+  })
+})
+
+describe('getArkSwapBoardProgress', () => {
+  it('waits while the board is pending', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spendable',
+        isBoardPending: true
+      })
+    ).toBe('pending')
+  })
+
+  it('waits while the board VTXO is still locked', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Locked',
+        isBoardPending: false
+      })
+    ).toBe('pending')
+  })
+
+  it('pays once the board VTXO is spendable or already moved on in Ark', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spendable',
+        isBoardPending: false
+      })
+    ).toBe('spendable')
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Spent',
+        isBoardPending: false
+      })
+    ).toBe('spendable')
+  })
+
+  it('reports a board that left Ark through an exit', () => {
+    expect(
+      getArkSwapBoardProgress({
+        boardVtxoState: 'Exited',
+        isBoardPending: false
+      })
+    ).toBe('exited')
+  })
+})
+
+describe('isArkSwapInvoiceAbandoned', () => {
+  const expiresAt = 1_000_000
+
+  it('keeps waiting for a payment through the grace period past expiry', () => {
+    expect(isArkSwapInvoiceAbandoned(expiresAt, expiresAt)).toBe(false)
+    expect(
+      isArkSwapInvoiceAbandoned(
+        expiresAt,
+        expiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS - 1
+      )
+    ).toBe(false)
+  })
+
+  it('gives up once the grace period has passed', () => {
+    expect(
+      isArkSwapInvoiceAbandoned(
+        expiresAt,
+        expiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
+      )
+    ).toBe(true)
   })
 })
 
@@ -728,16 +850,14 @@ describe('board sizing', () => {
 })
 
 describe('getLightningSendOutcome', () => {
-  it('completes a paid send with its preimage', () => {
+  it('completes a paid send', () => {
     expect(
       getLightningSendOutcome({ preimage: 'cd'.repeat(32), status: 'paid' })
-    ).toStrictEqual({ preimage: 'cd'.repeat(32), status: 'completed' })
+    ).toBe('completed')
   })
 
   it('fails an unknown send and waits on one in progress', () => {
-    expect(getLightningSendOutcome({ status: 'unknown' })).toStrictEqual({
-      status: 'failed'
-    })
+    expect(getLightningSendOutcome({ status: 'unknown' })).toBe('failed')
     expect(getLightningSendOutcome({ status: 'inProgress' })).toBeUndefined()
   })
 })

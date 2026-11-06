@@ -11,11 +11,11 @@ import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Label } from '@/types/bips/329'
@@ -23,7 +23,6 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 import { removeReplacedTransaction } from '@/utils/feeReplacement'
 import { formatAddress } from '@/utils/format'
 import { getRawTransactionSizes } from '@/utils/transaction'
@@ -128,11 +127,7 @@ export default function TransactionConfirmation() {
     setExternalWarningModalVisible(false)
   }
 
-  const boardIntents = useArkStore((state) => state.boardIntents)
-  const arkBoardIntent = findArkBoardIntent(
-    outputs.map((output) => output.to),
-    boardIntents
-  )
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
   const isArkBoardFunding = arkBoardIntent !== undefined
 
   function handleBackToHome() {

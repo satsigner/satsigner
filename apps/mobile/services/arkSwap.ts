@@ -10,6 +10,7 @@ import {
   fetchArkLightningReceive,
   fetchArkMovements,
   fetchArkServerInfo,
+  fetchArkVtxoState,
   listArkPendingBoards,
   payArkBolt11,
   sendArkOnchain,
@@ -17,8 +18,7 @@ import {
 } from '@/api/ark'
 import {
   ARK_LIGHTNING_RECEIVE_AWAITING_STATE,
-  ARK_PENDING_TXID,
-  ARK_SWAP_SEND_RECONCILE_GRACE_MS
+  ARK_PENDING_TXID
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
@@ -43,20 +43,26 @@ import {
 } from '@/types/models/ArkSwap'
 import { getArkMinBoardAmount } from '@/utils/arkBoard'
 import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
+import { ArkOperationBusyError } from '@/utils/arkError'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 import {
   type ArkSwapInvoice,
+  type ArkSwapJobFailures,
   canSubmitArkSwapInvoice,
   computeArkSwapPayout,
   computeMaxInvoiceSats,
   computeRequiredBoardSats,
   findRequiredBoardSats,
+  getArkSwapBoardProgress,
   getArkSwapPayoutAddresses,
   getArkSwapPayoutOutcome,
   getBoardedSwapStatus,
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
+  isArkSwapInvoiceAbandoned,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   willInvoiceOutlastBoard
 } from '@/utils/arkSwap'
@@ -66,6 +72,10 @@ const MS_PER_SECOND = 1000
 // Jobs advanced right now in this JS context. Persisted statuses guard
 // against repeats across restarts; this guards against overlapping ticks.
 const runningJobIds = new Set<string>()
+
+// Consecutive failures per job in this JS context, for retry backoff. A
+// restart retries every job straight away.
+const jobFailures = new Map<string, ArkSwapJobFailures>()
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / MS_PER_SECOND)
@@ -586,7 +596,7 @@ async function payJobInvoice(job: ArkOnchainToLightningJob) {
       invoice
     )
     if (result.preimage) {
-      saveJob({ ...paying, preimage: result.preimage, status: 'completed' })
+      saveJob({ ...paying, status: 'completed' })
     }
   } catch (error) {
     saveJob({ ...paying, error: errorMessage(error) })
@@ -601,11 +611,23 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
   }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
   await syncArkWallet(arkAccount.serverId, job.arkAccountId)
-  const pendingBoards = await listArkPendingBoards(
-    arkAccount.serverId,
-    job.arkAccountId
-  )
-  if (pendingBoards.some((board) => board.txid === cosigned.txid)) {
+  const [pendingBoards, boardVtxoState] = await Promise.all([
+    listArkPendingBoards(arkAccount.serverId, job.arkAccountId),
+    fetchArkVtxoState(arkAccount.serverId, job.arkAccountId, cosigned.vtxoId)
+  ])
+  const progress = getArkSwapBoardProgress({
+    boardVtxoState,
+    isBoardPending: pendingBoards.some((board) => board.txid === cosigned.txid)
+  })
+  if (progress === 'pending') {
+    return
+  }
+  if (progress === 'exited') {
+    saveJob({
+      ...job,
+      error: t('ark.swap.error.boardExited'),
+      status: 'failed'
+    })
     return
   }
   const nextStatus = getBoardedSwapStatus(job.invoiceExpiresAt, nowSeconds())
@@ -638,8 +660,8 @@ async function advancePayingJob(job: ArkOnchainToLightningJob) {
   if (!outcome) {
     return
   }
-  if (outcome.status === 'completed') {
-    saveJob({ ...job, error: undefined, ...outcome })
+  if (outcome === 'completed') {
+    saveJob({ ...job, error: undefined, status: 'completed' })
     return
   }
   saveJob({
@@ -724,6 +746,7 @@ async function sendLightningPayout(
     feeSats: receiveFee.feeSats + payout.feeSats,
     payoutSats: payout.amountSats,
     receivedSats,
+    sendAttemptedAt: Date.now(),
     status: 'sending'
   }
   saveJob(sending)
@@ -739,7 +762,17 @@ async function sendLightningPayout(
     }
     saveJob({ ...sending, status: 'completed', txid })
   } catch (error) {
-    saveJob({ ...sending, error: errorMessage(error) })
+    if (error instanceof ArkOperationBusyError) {
+      // Refused before anything was sent: back to awaiting the settled
+      // receive, so a later tick tries the payout again.
+      saveJob({ ...job, error: errorMessage(error), receivedSats })
+      return
+    }
+    saveJob({
+      ...sending,
+      error: errorMessage(error),
+      sendAttemptedAt: Date.now()
+    })
   }
 }
 
@@ -751,7 +784,7 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
     job.paymentHash
   )
   if (receive.state === ARK_LIGHTNING_RECEIVE_AWAITING_STATE) {
-    if (nowSeconds() >= job.invoiceExpiresAt) {
+    if (isArkSwapInvoiceAbandoned(job.invoiceExpiresAt, nowSeconds())) {
       saveJob({
         ...job,
         error: t('ark.swap.error.invoiceUnpaid'),
@@ -780,7 +813,7 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
  * Ark. It is never sent again automatically.
  */
 async function reconcileSendingJob(job: ArkLightningToOnchainJob) {
-  if (Date.now() - job.updatedAt < ARK_SWAP_SEND_RECONCILE_GRACE_MS) {
+  if (!isArkSwapSendReconcileDue(job, Date.now())) {
     return
   }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
@@ -846,7 +879,12 @@ async function advanceJob(jobId: string) {
     await (job.kind === 'onchainToLightning'
       ? advanceOnchainToLightning(job)
       : advanceLightningToOnchain(job))
+    jobFailures.delete(jobId)
   } catch (error) {
+    jobFailures.set(jobId, {
+      count: (jobFailures.get(jobId)?.count ?? 0) + 1,
+      lastFailedAt: Date.now()
+    })
     const latest = getArkSwapJob(jobId)
     if (latest) {
       saveJob({ ...latest, error: errorMessage(error) })
@@ -863,12 +901,14 @@ function readJobStatuses(arkAccountId: string): string {
 }
 
 async function advanceAccountJobs(arkAccountId: string): Promise<boolean> {
+  const now = Date.now()
   const jobIds = useArkSwapsStore
     .getState()
     .jobs.filter(
       (job) =>
         job.arkAccountId === arkAccountId &&
         isArkSwapJobRunnable(job) &&
+        isArkSwapJobRetryDue(jobFailures.get(job.id), now) &&
         !runningJobIds.has(job.id)
     )
     .map((job) => job.id)
@@ -877,9 +917,11 @@ async function advanceAccountJobs(arkAccountId: string): Promise<boolean> {
   }
   const statusesBefore = readJobStatuses(arkAccountId)
   await ensureArkWalletOpen(arkAccountId)
-  await Promise.all(
-    jobIds.map((jobId) => withJobLock(jobId, () => advanceJob(jobId)))
-  )
+  // One at a time: concurrent sends from one Bark wallet compete for the
+  // same VTXOs, and the loser is later failed as an interrupted send.
+  for (const jobId of jobIds) {
+    await withJobLock(jobId, () => advanceJob(jobId))
+  }
   return readJobStatuses(arkAccountId) !== statusesBefore
 }
 

@@ -7,10 +7,13 @@ import type {
   ArkAccountStats,
   ArkBalance,
   ArkBoardIntent,
+  ArkOnchainBalance,
   ArkPendingBoard
 } from '@/types/models/Ark'
 
 type BalanceMap = Record<string, ArkBalance | undefined>
+
+type OnchainBalanceMap = Record<string, ArkOnchainBalance | undefined>
 
 type StatsMap = Record<string, ArkAccountStats | undefined>
 
@@ -24,6 +27,9 @@ const DEFAULT_ACCOUNT_STATS: ArkAccountStats = {
 type ArkState = {
   accounts: ArkAccount[]
   balances: BalanceMap
+  // Last known on-chain wallet balances, shown while a fresh sync is missing
+  // or failing instead of counting the wallet as empty.
+  onchainBalances: OnchainBalanceMap
   stats: StatsMap
   // Funding txs cosigned by the Ark server. Replacing one (RBF) would orphan
   // the board, so fee-bump and cancel stay disabled for these txids.
@@ -43,6 +49,7 @@ type ArkAction = {
   removeAccount: (accountId: string) => void
   setAutoBoardEnabled: (accountId: string, enabled: boolean) => void
   updateBalance: (accountId: string, balance: ArkBalance) => void
+  updateOnchainBalance: (accountId: string, balance: ArkOnchainBalance) => void
   updateStats: (accountId: string, stats: Partial<ArkAccountStats>) => void
   clearAllData: () => void
 }
@@ -77,6 +84,7 @@ export const useArkStore = create<ArkState & ArkAction>()(
           balances: {},
           boardFundingTxids: [],
           boardIntents: {},
+          onchainBalances: {},
           stats: {}
         }),
       markBoardIntentCosigned: (address, board) =>
@@ -92,16 +100,27 @@ export const useArkStore = create<ArkState & ArkAction>()(
             }
           }
         }),
+      onchainBalances: {},
       removeAccount: (accountId) =>
         set((state) => {
           const { [accountId]: _b, ...remainingBalances } = state.balances
           const { [accountId]: _s, ...remainingStats } = state.stats
+          const { [accountId]: _o, ...remainingOnchainBalances } =
+            state.onchainBalances
+          // boardFundingTxids stay: replacing a funding tx would still orphan
+          // the board, and its funds outlive the account.
           return {
             accounts: state.accounts.filter((a) => a.id !== accountId),
             autoBoardDisabledIds: state.autoBoardDisabledIds.filter(
               (id) => id !== accountId
             ),
             balances: remainingBalances,
+            boardIntents: Object.fromEntries(
+              Object.entries(state.boardIntents).filter(
+                ([, intent]) => intent.arkAccountId !== accountId
+              )
+            ),
+            onchainBalances: remainingOnchainBalances,
             stats: remainingStats
           }
         }),
@@ -118,6 +137,10 @@ export const useArkStore = create<ArkState & ArkAction>()(
       updateBalance: (accountId, balance) =>
         set((state) => ({
           balances: { ...state.balances, [accountId]: balance }
+        })),
+      updateOnchainBalance: (accountId, balance) =>
+        set((state) => ({
+          onchainBalances: { ...state.onchainBalances, [accountId]: balance }
         })),
       updateStats: (accountId, stats) =>
         set((state) => ({
@@ -139,6 +162,7 @@ export const useArkStore = create<ArkState & ArkAction>()(
         balances: state.balances,
         boardFundingTxids: state.boardFundingTxids,
         boardIntents: state.boardIntents,
+        onchainBalances: state.onchainBalances,
         stats: state.stats
       }),
       storage: createJSONStorage(() => mmkvStorage),

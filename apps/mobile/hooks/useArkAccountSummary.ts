@@ -17,15 +17,16 @@ export function useArkAccountSummary(accountId: string) {
   useArkAddresses(accountId)
   const onchainBalanceQuery = useArkOnchainBalance(accountId)
 
-  const { balance, stats } = useArkStore(
+  const { balance, cachedOnchainBalance, stats } = useArkStore(
     useShallow((state) => ({
       balance: state.balances[accountId],
+      cachedOnchainBalance: state.onchainBalances[accountId],
       stats: state.stats[accountId]
     }))
   )
   const { totalSats } = getArkBalanceBreakdown(
     balance,
-    onchainBalanceQuery.data
+    onchainBalanceQuery.data ?? cachedOnchainBalance
   )
   return { stats, totalSats }
 }

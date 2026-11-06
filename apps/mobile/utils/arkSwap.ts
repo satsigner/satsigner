@@ -2,7 +2,12 @@ import {
   ARK_SWAP_BLOCK_INTERVAL_SECONDS,
   ARK_SWAP_BOARD_FEE_MAX_ROUNDS,
   ARK_SWAP_BOARD_WAIT_SAFETY_FACTOR,
-  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS
+  ARK_SWAP_INVOICE_MIN_REMAINING_SECONDS,
+  ARK_SWAP_RETRY_BASE_DELAY_MS,
+  ARK_SWAP_RETRY_MAX_DELAY_MS,
+  ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS,
+  ARK_VTXO_STATE
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
@@ -18,6 +23,7 @@ import {
   type ArkMovementEvent
 } from '@/types/models/Ark'
 import {
+  type ArkLightningToOnchainJob,
   type ArkOnchainToLightningJob,
   type ArkSwapEndpointKind,
   type ArkSwapJob,
@@ -262,6 +268,42 @@ function isArkSwapJobTerminal(job: Pick<ArkSwapJob, 'status'>): boolean {
 
 function isArkSwapJobRunnable(job: Pick<ArkSwapJob, 'status'>): boolean {
   return !isArkSwapJobTerminal(job) && job.status !== 'awaitingInvoice'
+}
+
+type ArkSwapJobFailures = {
+  count: number
+  lastFailedAt: number
+}
+
+function isArkSwapJobRetryDue(
+  failures: ArkSwapJobFailures | undefined,
+  nowMs: number
+): boolean {
+  if (!failures) {
+    return true
+  }
+  const delayMs = Math.min(
+    ARK_SWAP_RETRY_BASE_DELAY_MS * 2 ** (failures.count - 1),
+    ARK_SWAP_RETRY_MAX_DELAY_MS
+  )
+  return nowMs - failures.lastFailedAt >= delayMs
+}
+
+function isArkSwapSendReconcileDue(
+  job: Pick<ArkLightningToOnchainJob, 'sendAttemptedAt'>,
+  nowMs: number
+): boolean {
+  if (job.sendAttemptedAt === undefined) {
+    return true
+  }
+  return nowMs - job.sendAttemptedAt >= ARK_SWAP_SEND_RECONCILE_GRACE_MS
+}
+
+function isArkSwapInvoiceAbandoned(
+  invoiceExpiresAt: number,
+  nowSeconds: number
+): boolean {
+  return nowSeconds >= invoiceExpiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 }
 
 function canDismissArkSwapJob(job: Pick<ArkSwapJob, 'status'>): boolean {
@@ -554,6 +596,35 @@ function getBoardedSwapStatus(
   return 'paying'
 }
 
+type ArkSwapBoardProgress = 'pending' | 'spendable' | 'exited'
+
+/**
+ * Whether a swap's board can back its lightning payment. Leaving the pending
+ * list is not enough on its own: the board VTXO must have been released too,
+ * or the payment would be drawn from the rest of the Ark balance.
+ */
+function getArkSwapBoardProgress({
+  isBoardPending,
+  boardVtxoState
+}: {
+  isBoardPending: boolean
+  boardVtxoState: string
+}): ArkSwapBoardProgress {
+  if (isBoardPending) {
+    return 'pending'
+  }
+  if (boardVtxoState === ARK_VTXO_STATE.exited) {
+    return 'exited'
+  }
+  if (
+    boardVtxoState === ARK_VTXO_STATE.spendable ||
+    boardVtxoState === ARK_VTXO_STATE.spent
+  ) {
+    return 'spendable'
+  }
+  return 'pending'
+}
+
 /**
  * Maps the wallet's view of a started lightning send onto the job. An
  * unknown send never went out or was revoked, so it is reported as failed and
@@ -561,15 +632,12 @@ function getBoardedSwapStatus(
  */
 function getLightningSendOutcome(
   state: ArkLightningSendState
-):
-  | { status: 'completed'; preimage: string }
-  | { status: 'failed' }
-  | undefined {
+): 'completed' | 'failed' | undefined {
   if (state.status === 'paid') {
-    return { preimage: state.preimage, status: 'completed' }
+    return 'completed'
   }
   if (state.status === 'unknown') {
-    return { status: 'failed' }
+    return 'failed'
   }
   return undefined
 }
@@ -600,9 +668,11 @@ function getArkSwapPayoutOutcome(
 
 export {
   type ArkSwapAmountRange,
+  type ArkSwapBoardProgress,
   type ArkSwapForm,
   type ArkSwapInvoice,
   type ArkSwapInvoiceRejection,
+  type ArkSwapJobFailures,
   type ArkSwapPayout,
   buildArkSwapRequest,
   canDismissArkSwapJob,
@@ -616,6 +686,7 @@ export {
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,
+  getArkSwapBoardProgress,
   getArkSwapDestinationKinds,
   getArkSwapHops,
   getArkSwapJobAccountId,
@@ -627,8 +698,11 @@ export {
   getLightningSendOutcome,
   hasInvoiceTimeToPay,
   isArkSwapForwardedPayment,
+  isArkSwapInvoiceAbandoned,
+  isArkSwapJobRetryDue,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal,
+  isArkSwapSendReconcileDue,
   parseArkSwapInvoice,
   resolveArkSwapRoute,
   willInvoiceOutlastBoard
