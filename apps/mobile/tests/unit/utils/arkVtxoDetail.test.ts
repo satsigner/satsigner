@@ -166,7 +166,7 @@ describe('buildArkVtxoLineage', () => {
         siblingCount: 1,
         siblingSats: 25_000,
         signed: false,
-        transition: 'lightning',
+        transition: 'roundLeaf',
         txid: 'leaf'
       }
     ])

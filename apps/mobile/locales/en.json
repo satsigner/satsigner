@@ -964,7 +964,7 @@
     "vtxo.detail.lineage.title": "Path to the chain",
     "vtxo.detail.lineage.transition.arkoor": "Arkoor",
     "vtxo.detail.lineage.transition.cosigned": "Cosigned",
-    "vtxo.detail.lineage.transition.lightning": "Lightning HTLC",
+    "vtxo.detail.lineage.transition.roundLeaf": "Round leaf",
     "vtxo.detail.lineage.unsigned": "Unsigned",
     "vtxo.detail.lineage.viewAnchor": "View anchor transaction",
     "vtxo.detail.lineage.virtual": "This VTXO is the on-chain output itself, so it needs no exit transactions.",

@@ -22,7 +22,7 @@ export type ArkVtxoEta = {
   count: number
 }
 
-export type ArkVtxoTransitionKind = 'cosigned' | 'arkoor' | 'lightning'
+export type ArkVtxoTransitionKind = 'cosigned' | 'arkoor' | 'roundLeaf'
 
 export type ArkVtxoLineageStep = {
   txid: string
@@ -101,7 +101,7 @@ function getArkVtxoTransitionKind(
     }
     case 'hash-locked-cosigned':
     case 'hash-locked-cosigned-v1': {
-      return 'lightning'
+      return 'roundLeaf'
     }
     default: {
       const unreachable: never = kind
