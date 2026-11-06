@@ -101,7 +101,8 @@ const styles = StyleSheet.create({
   },
   pressable: {
     alignSelf: 'flex-start',
-    flexGrow: 0
+    flexGrow: 0,
+    maxWidth: '100%'
   }
 })
 
