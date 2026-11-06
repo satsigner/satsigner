@@ -1562,6 +1562,7 @@
     "block.percentageFull": "%{percentage}%\nfull",
     "block.prevHash": "Previous block hash",
     "block.title": "Block",
+    "block.transactions.headerTitle": "Transactions",
     "block.transactions.title": "Transactions - Block %{block}",
     "block.transactions.wrongBackend": "This page is only available to Esplora backends. Please choose a Esplora-compatible backend in Network Settings.",
     "block.txCount": "Transactions",
