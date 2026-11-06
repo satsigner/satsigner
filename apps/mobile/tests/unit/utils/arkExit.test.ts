@@ -48,6 +48,7 @@ function claimRecord(
     createdAt: '2026-01-01T00:00:00.000Z',
     destinationAccountId: 'wallet-1',
     feeSats: 1000,
+    inputAddresses: {},
     txHex: '00',
     txid: `txid-${vtxoIds.join('-')}`,
     vtxoIds,

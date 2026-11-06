@@ -276,6 +276,7 @@ describe('verifyArkExitClaimSignedTx', () => {
     return {
       amountSats: Number(EXIT_VALUE) - feeSats,
       feeSats,
+      inputAddresses: { [exitOutpoint(0)]: EXIT_ADDRESS },
       txid: bitcoinjs.Transaction.fromHex(signedHexFor(psbt)).getId(),
       vtxoIds: [exitOutpoint(0)]
     }

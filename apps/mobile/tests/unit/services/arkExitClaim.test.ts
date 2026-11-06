@@ -117,6 +117,7 @@ function destinationAccount(): Account {
   return {
     addresses: [],
     createdAt: new Date(0),
+    displayIndex: 0,
     id: DESTINATION_ID,
     keyCount: 1,
     keys: [{ creationType: 'importExtendedPub', index: 0, iv: '', secret: '' }],
