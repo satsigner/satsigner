@@ -102,7 +102,10 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
             usesCleartextTraffic: IS_DEV
           },
           ios: {
-            deploymentTarget: '16.4'
+            deploymentTarget: '16.4',
+            // Release builds crash at launch when linked against the
+            // precompiled Expo module XCFrameworks.
+            usePrecompiledModules: false
           }
         }
       ],
