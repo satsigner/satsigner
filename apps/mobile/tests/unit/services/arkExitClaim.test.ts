@@ -7,6 +7,7 @@ import {
   syncArkExits
 } from '@/api/ark'
 import { broadcastRawTransaction } from '@/api/broadcast'
+import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
 import { reserveFreshReceiveAddress } from '@/services/accountReceiveAddress'
 import {
@@ -30,6 +31,12 @@ jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
 jest.mock<typeof import('@/api/broadcast')>('@/api/broadcast', () => ({
   broadcastRawTransaction: jest.fn()
 }))
+jest.mock<typeof import('@/api/transactionOutspends')>(
+  '@/api/transactionOutspends',
+  () => ({
+    fetchTransactionOutspends: jest.fn()
+  })
+)
 jest.mock<typeof import('@/services/accountReceiveAddress')>(
   '@/services/accountReceiveAddress',
   () => ({
@@ -47,7 +54,11 @@ jest.mock<typeof import('@/services/arkWallet')>(
 const ARK_ACCOUNT_ID = 'ark-1'
 const DESTINATION_ID = 'wallet-1'
 const NETWORK = bitcoinjs.networks.testnet
-const EXIT_SCRIPT = Buffer.from(`5120${'55'.repeat(32)}`, 'hex')
+// Taproot output keyed to the secp256k1 generator, a valid curve point.
+const EXIT_SCRIPT = Buffer.from(
+  '512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+  'hex'
+)
 const DESTINATION_SCRIPT = Buffer.from(`0014${'11'.repeat(20)}`, 'hex')
 const DESTINATION = bitcoinjs.address.fromOutputScript(
   DESTINATION_SCRIPT,
@@ -56,6 +67,8 @@ const DESTINATION = bitcoinjs.address.fromOutputScript(
 const EXIT_VALUE = 50_000n
 const FEE_SATS = 300
 const FEE_RATE = 3
+
+const EXIT_ADDRESS = bitcoinjs.address.fromOutputScript(EXIT_SCRIPT, NETWORK)
 
 const exitTx = new bitcoinjs.Transaction()
 exitTx.addInput(Buffer.alloc(32, 7), 0)
@@ -135,6 +148,20 @@ function destinationAccount(): Account {
   }
 }
 
+function exitOutputSpent(spent: boolean) {
+  jest
+    .mocked(fetchTransactionOutspends)
+    .mockImplementation((_server, _txid, outputs) =>
+      Promise.resolve(new Map(outputs.map(({ vout }) => [vout, { spent }])))
+    )
+}
+
+function markSavedClaimFailed() {
+  useArkExitClaimsStore
+    .getState()
+    .saveClaim({ ...savedClaims()[0], broadcastStatus: 'failed' })
+}
+
 function savedClaims() {
   return useArkExitClaimsStore.getState().claims
 }
@@ -164,6 +191,7 @@ describe('claimArkExits', () => {
     })
     jest.mocked(signArkExitClaim).mockResolvedValue(SIGNED_HEX)
     jest.mocked(broadcastRawTransaction).mockResolvedValue(CLAIM_TXID)
+    exitOutputSpent(false)
   })
 
   it('keeps the signed claim before broadcasting it', async () => {
@@ -279,11 +307,43 @@ describe('claimArkExits', () => {
     await discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
     expect(savedClaims()).toHaveLength(1)
 
-    useArkExitClaimsStore
-      .getState()
-      .saveClaim({ ...savedClaims()[0], broadcastStatus: 'failed' })
+    markSavedClaimFailed()
     await discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
     expect(savedClaims()).toStrictEqual([])
+    expect(fetchTransactionOutspends).toHaveBeenCalledWith(
+      expect.anything(),
+      exitTx.getId(),
+      [{ address: EXIT_ADDRESS, vout: 0 }]
+    )
+  })
+
+  it('keeps a failed claim whose exits the server already sees spent', async () => {
+    await claimArkExits(SUBMISSION)
+    markSavedClaimFailed()
+    exitOutputSpent(true)
+
+    await expect(
+      discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
+    ).rejects.toThrow(t('ark.exit.claim.error.reachedNetwork'))
+
+    expect(savedClaims()).toHaveLength(1)
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
+      t('ark.exit.claim.blocker.claimInProgress')
+    )
+  })
+
+  it('keeps a failed claim when the server cannot say if it was spent', async () => {
+    await claimArkExits(SUBMISSION)
+    markSavedClaimFailed()
+    jest
+      .mocked(fetchTransactionOutspends)
+      .mockRejectedValue(new Error('offline'))
+
+    await expect(
+      discardArkExitClaim(ARK_ACCOUNT_ID, CLAIM_TXID)
+    ).rejects.toThrow('offline')
+
+    expect(savedClaims()).toHaveLength(1)
   })
 
   it('still blocks a new claim when a discarded one reached the network', async () => {

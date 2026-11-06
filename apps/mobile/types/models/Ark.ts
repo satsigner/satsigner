@@ -185,6 +185,9 @@ export type ArkExitClaimRecord = {
   txHex: string
   arkAccountId: string
   vtxoIds: string[]
+  // Address of the exit output each VTXO id spends, to ask the user's own
+  // server whether the claim reached the network.
+  inputAddresses: Record<string, string>
   amountSats: number
   feeSats: number
   destinationAccountId: string

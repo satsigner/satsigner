@@ -605,6 +605,7 @@
     "exit.claim.error.ineligible": "That wallet cannot receive this claim",
     "exit.claim.error.invalidFeeRate": "Choose a valid fee rate",
     "exit.claim.error.preview": "Could not prepare the claim: %{reason}. Tap to retry.",
+    "exit.claim.error.reachedNetwork": "Your server already sees these exits spent, so this claim may have gone through. Wait for it to confirm",
     "exit.claim.exited": "Exited",
     "exit.claim.fee": "Network fee",
     "exit.claim.previewLoading": "Preparing the claim…",

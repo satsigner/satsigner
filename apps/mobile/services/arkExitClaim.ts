@@ -5,6 +5,7 @@ import {
   syncArkExits
 } from '@/api/ark'
 import { broadcastRawTransaction } from '@/api/broadcast'
+import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
 import {
   peekFreshReceiveAddress,
@@ -37,6 +38,7 @@ import {
   canAccountReceiveArkSweep,
   isValidArkOnchainFeeRate
 } from '@/utils/arkOnchainSweep'
+import { parseOutpoint } from '@/utils/outpoint'
 
 type ArkExitClaimRequest = {
   arkAccountId: string
@@ -171,9 +173,16 @@ async function previewArkExitClaim(
   }
 }
 
-async function broadcastClaimRecord(record: ArkExitClaimRecord): Promise<void> {
+function getClaimServer(record: ArkExitClaimRecord) {
   const { network } = getArkAccountOrThrow(record.arkAccountId)
-  const { server } = useBlockchainStore.getState().configs[network]
+  return {
+    network,
+    server: useBlockchainStore.getState().configs[network].server
+  }
+}
+
+async function broadcastClaimRecord(record: ArkExitClaimRecord): Promise<void> {
+  const { network, server } = getClaimServer(record)
   const claims = useArkExitClaimsStore.getState()
   claims.saveClaim({ ...record, broadcastStatus: 'broadcasting' })
   try {
@@ -241,6 +250,7 @@ async function buildSignAndBroadcastClaim({
     createdAt: new Date().toISOString(),
     destinationAccountId: destination.id,
     feeSats: claim.feeSats,
+    inputAddresses: claim.inputAddresses,
     txHex,
     txid: claim.txid,
     vtxoIds: claim.vtxoIds
@@ -289,12 +299,38 @@ function retryArkExitClaimBroadcast(
   return withClaimLock(arkAccountId, () => rebroadcastClaim(arkAccountId, txid))
 }
 
+async function isClaimInputUnspent(
+  record: ArkExitClaimRecord,
+  vtxoId: string
+): Promise<boolean> {
+  const outpoint = parseOutpoint(vtxoId)
+  const address = record.inputAddresses[vtxoId]
+  if (!outpoint || !address) {
+    return false
+  }
+  const { server } = getClaimServer(record)
+  const outspends = await fetchTransactionOutspends(server, outpoint.txid, [
+    { address, vout: outpoint.vout }
+  ])
+  return outspends.get(outpoint.vout)?.spent === false
+}
+
+async function areClaimInputsUnspent(
+  record: ArkExitClaimRecord
+): Promise<boolean> {
+  const unspent = await Promise.all(
+    record.vtxoIds.map((vtxoId) => isClaimInputUnspent(record, vtxoId))
+  )
+  return unspent.every(Boolean)
+}
+
 async function discardFailedClaim(
   arkAccountId: string,
   txid: string
 ): Promise<void> {
   // A broadcast reported as failed may still have reached the network. The
-  // refresh drops the record if the wallet now sees it spend the exits.
+  // refresh drops the record once the wallet sees it spend the exits, and the
+  // user's own server is asked too, as the wallet's chain source can lag.
   await refreshArkExits(arkAccountId)
   const record = getArkExitClaimRecord(txid)
   if (
@@ -303,10 +339,16 @@ async function discardFailedClaim(
   ) {
     return
   }
+  if (!(await areClaimInputsUnspent(record))) {
+    throw new Error(t('ark.exit.claim.error.reachedNetwork'))
+  }
   useArkExitClaimsStore.getState().removeClaim(txid)
 }
 
-/** Forgets a claim that failed to broadcast so a new one can be built. */
+/**
+ * Forgets a claim that failed to broadcast so a new one can be built, once
+ * the user's server confirms none of its exits were spent.
+ */
 function discardArkExitClaim(
   arkAccountId: string,
   txid: string

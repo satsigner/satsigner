@@ -5,6 +5,7 @@ import { type Network } from '@/types/settings/blockchain'
 import { getScriptTypeFromOutputScript } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import {
+  addressForScript,
   inputOutpoint,
   outputScriptFor,
   parsePsbt,
@@ -36,6 +37,7 @@ type ArkExitClaimTerms = {
 }
 
 type VerifiedArkExitClaim = ArkExitClaimTerms & {
+  inputAddresses: Record<string, string>
   txid: string
 }
 
@@ -151,6 +153,18 @@ function verifyArkExitClaimDraft({
   if (!spendsKnownAmounts(spentVtxoIds, knownPrevouts, knownAmounts)) {
     return reject('inputAmountMismatch')
   }
+  const inputAddresses = spentVtxoIds.flatMap(
+    (vtxoId, index): [string, string][] => {
+      const inputAddress = addressForScript(
+        knownPrevouts[index].script,
+        network
+      )
+      return inputAddress ? [[vtxoId, inputAddress]] : []
+    }
+  )
+  if (inputAddresses.length !== spentVtxoIds.length) {
+    return reject('unverifiableInput')
+  }
 
   const feeSats = sumPrevoutSats(knownPrevouts) - output.value
   if (feeSats < 0n || feeSats !== BigInt(draft.feeSats)) {
@@ -163,6 +177,7 @@ function verifyArkExitClaimDraft({
   return {
     amountSats: Number(output.value),
     feeSats: Number(feeSats),
+    inputAddresses: Object.fromEntries(inputAddresses),
     ok: true,
     txid: unsignedTxid(psbt),
     vtxoIds: spentVtxoIds

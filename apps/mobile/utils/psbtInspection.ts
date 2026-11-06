@@ -30,6 +30,14 @@ function outputScriptFor(address: string, network: Network): Uint8Array | null {
   }
 }
 
+function addressForScript(script: Uint8Array, network: Network): string | null {
+  try {
+    return bitcoinjs.address.fromOutputScript(script, bitcoinjsNetwork(network))
+  } catch {
+    return null
+  }
+}
+
 function prevoutFromNonWitnessUtxo(
   nonWitnessUtxo: Uint8Array,
   outpoint: { hash: Uint8Array; index: number }
@@ -73,6 +81,7 @@ function inputOutpoint(input: { hash: Uint8Array; index: number }): string {
 }
 
 export {
+  addressForScript,
   inputOutpoint,
   outputScriptFor,
   parsePsbt,

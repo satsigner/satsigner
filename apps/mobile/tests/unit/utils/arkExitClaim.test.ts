@@ -9,7 +9,12 @@ import {
 } from '@/utils/arkExitClaim'
 
 const NETWORK = bitcoinjs.networks.testnet
-const EXIT_SCRIPT = Buffer.from(`5120${'55'.repeat(32)}`, 'hex')
+// Taproot output keyed to the secp256k1 generator, a valid curve point.
+const EXIT_SCRIPT = Buffer.from(
+  '512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+  'hex'
+)
+const EXIT_ADDRESS = bitcoinjs.address.fromOutputScript(EXIT_SCRIPT, NETWORK)
 const DESTINATION_SCRIPT = Buffer.from(`0014${'11'.repeat(20)}`, 'hex')
 const OTHER_SCRIPT = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
 const DESTINATION = bitcoinjs.address.fromOutputScript(
@@ -113,6 +118,7 @@ describe('verifyArkExitClaimDraft', () => {
     expect(result).toStrictEqual({
       amountSats: Number(EXIT_VALUE) - FEE_SATS,
       feeSats: FEE_SATS,
+      inputAddresses: { [exitOutpoint(0)]: EXIT_ADDRESS },
       ok: true,
       txid: bitcoinjs.Transaction.fromHex(signedHexFor(psbt)).getId(),
       vtxoIds: [exitOutpoint(0)]
@@ -215,6 +221,18 @@ describe('verifyArkExitClaimDraft', () => {
 
   it('rejects an input whose amount a signature would not commit to', () => {
     const psbt = buildClaimPsbt([{ script: OTHER_SCRIPT }], [claimOutput()])
+
+    expect(verifyDraft(draftFor(psbt))).toStrictEqual({
+      ok: false,
+      reason: 'unverifiableInput'
+    })
+  })
+
+  it('rejects a taproot input whose key is not on the curve', () => {
+    const psbt = buildClaimPsbt(
+      [{ script: Buffer.from(`5120${'55'.repeat(32)}`, 'hex') }],
+      [claimOutput()]
+    )
 
     expect(verifyDraft(draftFor(psbt))).toStrictEqual({
       ok: false,
