@@ -14,6 +14,14 @@ import {
   getScriptTypeFromOutputScript
 } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
+import {
+  outputScriptFor,
+  parsePsbt,
+  parseTransaction,
+  type Prevout,
+  prevoutForInput,
+  unsignedTxid
+} from '@/utils/psbtInspection'
 
 type ArkBoardCosignRejection =
   | 'duplicateBoardOutput'
@@ -41,63 +49,8 @@ type BuildArkBoardCosignPsbtParams = {
   network: Network
 }
 
-type Prevout = { script: Uint8Array; value: bigint }
-
 function reject(reason: ArkBoardCosignRejection): ArkBoardCosignPsbt {
   return { ok: false, reason }
-}
-
-function parsePsbt(psbtBase64: string): bitcoinjs.Psbt | null {
-  try {
-    return bitcoinjs.Psbt.fromBase64(psbtBase64)
-  } catch {
-    return null
-  }
-}
-
-function parseTxid(txHex: string): string | null {
-  try {
-    return bitcoinjs.Transaction.fromHex(txHex).getId()
-  } catch {
-    return null
-  }
-}
-
-function outputScriptFor(address: string, network: Network): Uint8Array | null {
-  try {
-    return bitcoinjs.address.toOutputScript(address, bitcoinjsNetwork(network))
-  } catch {
-    return null
-  }
-}
-
-function prevoutFromNonWitnessUtxo(
-  nonWitnessUtxo: Uint8Array,
-  outpoint: { hash: Uint8Array; index: number }
-): Prevout | undefined {
-  try {
-    const prevTx = bitcoinjs.Transaction.fromBuffer(nonWitnessUtxo)
-    if (!bytesEqual(prevTx.getHash(), outpoint.hash)) {
-      return undefined
-    }
-    return prevTx.outs[outpoint.index]
-  } catch {
-    return undefined
-  }
-}
-
-function prevoutForInput(
-  psbt: bitcoinjs.Psbt,
-  index: number
-): Prevout | undefined {
-  const { witnessUtxo, nonWitnessUtxo } = psbt.data.inputs[index]
-  if (witnessUtxo) {
-    return witnessUtxo
-  }
-  if (!nonWitnessUtxo) {
-    return undefined
-  }
-  return prevoutFromNonWitnessUtxo(nonWitnessUtxo, psbt.txInputs[index])
 }
 
 function isNativeSegwitScript(script: Uint8Array): boolean {
@@ -106,12 +59,6 @@ function isNativeSegwitScript(script: Uint8Array): boolean {
     scriptType !== null &&
     ARK_BOARD_NATIVE_SEGWIT_OUTPUT_TYPES.includes(scriptType)
   )
-}
-
-function unsignedTxid(psbt: bitcoinjs.Psbt): string {
-  return bitcoinjs.Transaction.fromBuffer(
-    psbt.data.globalMap.unsignedTx.toBuffer()
-  ).getId()
 }
 
 function buildUnsignedPsbt(
@@ -196,13 +143,13 @@ function buildArkBoardCosignPsbt({
     return reject('otherBoardOutput')
   }
 
-  const signedTxid = parseTxid(signedTxHex)
-  if (!signedTxid) {
+  const signedTx = parseTransaction(signedTxHex)
+  if (!signedTx) {
     return reject('invalidSignedTx')
   }
   const cosignPsbt = buildUnsignedPsbt(source, knownPrevouts, network)
   const txid = unsignedTxid(cosignPsbt)
-  if (txid !== signedTxid) {
+  if (txid !== signedTx.getId()) {
     return reject('txidMismatch')
   }
 

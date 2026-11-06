@@ -26,6 +26,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
 import SSArkBalanceBreakdown from '@/components/SSArkBalanceBreakdown'
+import SSArkExitConfirmModal from '@/components/SSArkExitConfirmModal'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
@@ -50,6 +51,7 @@ import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkAutoBoard, useArkOnchainBalance } from '@/hooks/useArkBoard'
 import { useArkExit } from '@/hooks/useArkExit'
 import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import { useArkExits } from '@/hooks/useArkExits'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
@@ -57,6 +59,7 @@ import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
 import { useArkSwapActiveCount } from '@/hooks/useArkSwaps'
 import { useArkSync } from '@/hooks/useArkSync'
+import { useArkTipHeight } from '@/hooks/useArkTipHeight'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -71,6 +74,11 @@ import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
 import { getArkBalanceBreakdown } from '@/utils/ark'
 import { countUsedArkAddresses } from '@/utils/arkAddress'
+import {
+  countArkVtxosNearExpiry,
+  getArkExitsRoute,
+  summarizeArkExits
+} from '@/utils/arkExit'
 import {
   getArkMovementLabelRef,
   selectArkRefreshes,
@@ -142,6 +150,8 @@ export default function ArkAccountDetailPage() {
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
   const activeSwapCount = useArkSwapActiveCount(id)
+  const exitsQuery = useArkExits(id)
+  const tipHeightQuery = useArkTipHeight(id)
 
   const balance = balanceQuery.data ?? cachedBalance
   const onchainBalanceQuery = useArkOnchainBalance(id)
@@ -186,8 +196,15 @@ export default function ArkAccountDetailPage() {
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,
     enabled: exitModalVisible,
-    vtxos: selectedVtxos
+    vtxoIds: selectedSpendableIds
   })
+  const nearExpiryCount = countArkVtxosNearExpiry(
+    selectedVtxos,
+    tipHeightQuery.data
+  )
+  const exitSummary = summarizeArkExits(exitsQuery.data ?? [])
+  const showExitsEntry =
+    exitSummary.totalCount > 0 || (balance?.pendingExitSats ?? 0) > 0
 
   const tabConfig: {
     key: ArkTabKey
@@ -236,6 +253,22 @@ export default function ArkAccountDetailPage() {
       params: { id },
       pathname: '/signer/ark/account/[id]/swap'
     })
+  }
+
+  function handleExits() {
+    router.navigate(getArkExitsRoute(id))
+  }
+
+  function getExitsEntryLabel() {
+    if (exitSummary.claimableCount > 0) {
+      return t('ark.exit.entryClaimable', {
+        count: exitSummary.claimableCount
+      })
+    }
+    if (exitSummary.liveCount > 0) {
+      return t('ark.exit.entryActive', { count: exitSummary.liveCount })
+    }
+    return t('ark.exit.entry')
   }
 
   function handleCamera() {
@@ -346,8 +379,21 @@ export default function ArkAccountDetailPage() {
         toast.success(t('ark.exit.success'))
         setSelectedIds([])
         setExitModalVisible(false)
+        router.navigate(getArkExitsRoute(id))
       }
     })
+  }
+
+  function handleCloseExitModal() {
+    setExitModalVisible(false)
+  }
+
+  function handleRetryExitFee() {
+    exitFeeQuery.refetch()
+  }
+
+  function handleRetryExpiryCheck() {
+    tipHeightQuery.refetch()
   }
 
   function renderHeaderRight() {
@@ -775,16 +821,28 @@ export default function ArkAccountDetailPage() {
               onCamera={handleCamera}
               onReceive={handleReceive}
             />
-            <SSButton
-              label={
-                activeSwapCount > 0
-                  ? t('ark.swap.entryActive', { count: activeSwapCount })
-                  : t('ark.swap.entry')
-              }
-              onPress={handleSwap}
-              variant="outline"
-              style={styles.swapButton}
-            />
+            <SSHStack gap="sm" style={styles.secondaryActions}>
+              <SSButton
+                label={
+                  activeSwapCount > 0
+                    ? t('ark.swap.entryActive', { count: activeSwapCount })
+                    : t('ark.swap.entry')
+                }
+                onPress={handleSwap}
+                variant="outline"
+                style={styles.secondaryAction}
+              />
+              {showExitsEntry && (
+                <SSButton
+                  label={getExitsEntryLabel()}
+                  onPress={handleExits}
+                  variant={
+                    exitSummary.claimableCount > 0 ? 'secondary' : 'outline'
+                  }
+                  style={styles.secondaryAction}
+                />
+              )}
+            </SSHStack>
           </View>
         </SSVStack>
       )}
@@ -896,61 +954,23 @@ export default function ArkAccountDetailPage() {
           />
         </SSVStack>
       </SSModal>
-      <SSModal
+      <SSArkExitConfirmModal
         visible={exitModalVisible}
-        onClose={() => setExitModalVisible(false)}
-        label={t('common.cancel')}
-        closeButtonVariant="ghost"
-        fullOpacity
-      >
-        <SSVStack gap="lg" style={styles.modalContent}>
-          <SSVStack gap="sm" itemsCenter>
-            <SSText center uppercase size="md" weight="medium">
-              {t('ark.exit.confirmTitle', {
-                count: selectedSpendableIds.length
-              })}
-            </SSText>
-            <SSText center color="muted">
-              {t('ark.exit.confirmDescription')}
-            </SSText>
-            {exitFeeQuery.isLoading && (
-              <SSText color="muted" size="sm">
-                {t('common.loading')}
-              </SSText>
-            )}
-            {exitFeeQuery.data ? (
-              <SSVStack gap="xxs" itemsCenter>
-                <SSText color="muted" size="sm">
-                  {t('ark.exit.feeLabel', {
-                    amount: formatNumber(exitFeeQuery.data.feeSats),
-                    feeRate: exitFeeQuery.data.feeRateSatPerVb,
-                    unit: t('bitcoin.sats')
-                  })}
-                </SSText>
-                <SSText color="muted" size="xs" center>
-                  {t('ark.exit.feeHint')}
-                </SSText>
-              </SSVStack>
-            ) : null}
-            {exitFeeQuery.error ? (
-              <SSText
-                size="sm"
-                style={{ color: Colors.warning }}
-                onPress={() => exitFeeQuery.refetch()}
-              >
-                {t('ark.exit.feeUnavailable')}
-              </SSText>
-            ) : null}
-          </SSVStack>
-          <SSButton
-            label={t('ark.exit.confirm')}
-            variant="danger"
-            loading={exitMutation.isPending}
-            disabled={exitMutation.isPending || exitFeeQuery.isLoading}
-            onPress={handleConfirmEmergencyExit}
-          />
-        </SSVStack>
-      </SSModal>
+        title={t('ark.exit.confirmTitle', {
+          count: selectedSpendableIds.length
+        })}
+        estimate={exitFeeQuery.data}
+        estimateLoading={exitFeeQuery.isLoading}
+        estimateFailed={Boolean(exitFeeQuery.error)}
+        nearExpiryCount={nearExpiryCount}
+        expiryCheckLoading={tipHeightQuery.isLoading}
+        privacyMode={privacyMode}
+        confirming={exitMutation.isPending}
+        onConfirm={handleConfirmEmergencyExit}
+        onClose={handleCloseExitModal}
+        onRetryEstimate={handleRetryExitFee}
+        onRetryExpiryCheck={handleRetryExpiryCheck}
+      />
     </SSMainLayout>
   )
 }
@@ -1011,7 +1031,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth
   },
-  swapButton: {
+  secondaryAction: {
+    flex: 1
+  },
+  secondaryActions: {
     marginTop: 12
   },
   tab: {

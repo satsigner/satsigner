@@ -6,11 +6,13 @@ import {
   listArkPendingBoards
 } from '@/api/ark'
 import { t } from '@/locales'
-import { ensureArkWalletOpen } from '@/services/arkWallet'
+import {
+  ensureArkWalletOpen,
+  fetchArkNextBlockFeeRate
+} from '@/services/arkWallet'
+import { prefillSendFromAccount } from '@/services/transactionBuilderPrefill'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import { useBlockchainStore } from '@/store/blockchain'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type ArkBoardIntent, type ArkPendingBoard } from '@/types/models/Ark'
 import { type Network } from '@/types/settings/blockchain'
@@ -20,7 +22,6 @@ import {
   isArkBoardIntentFresh
 } from '@/utils/arkBoardFunding'
 import { getArkSwapRequiredBoardSats } from '@/utils/arkSwap'
-import { autoSelectUtxos } from '@/utils/contentProcessor'
 
 type CosignArkBoardFundingParams = {
   intent: ArkBoardIntent
@@ -94,21 +95,13 @@ export async function prepareArkBoardFromAccount({
   }
   useArkStore.getState().addBoardIntent(intent)
 
-  const store = useTransactionBuilderStore.getState()
-  store.setAccountId(fundingAccount.id)
-  store.clearTransaction()
-  store.setAccountId(fundingAccount.id)
-  store.addOutput({
-    amount: amountSats,
-    label: t('ark.board.fromWallet.outputLabel'),
-    to: fundingInfo.address
-  })
-  autoSelectUtxos(
-    fundingAccount,
+  prefillSendFromAccount({
+    account: fundingAccount,
+    address: fundingInfo.address,
     amountSats,
-    useBlockchainStore.getState().nextBlockFee,
-    { addInput: store.addInput, setFeeRate: store.setFeeRate }
-  )
+    feeRateSatPerVb: await fetchArkNextBlockFeeRate(arkAccountId),
+    label: t('ark.board.fromWallet.outputLabel')
+  })
   return intent
 }
 

@@ -5,6 +5,7 @@ import { deleteArkLabelsByAccount } from '@/db/mutations/arkLabels'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
 import { useArkSwapsStore } from '@/store/arkSwaps'
 import { clearArkDerivedAddresses } from '@/utils/arkAddress'
 
@@ -13,6 +14,9 @@ export function useArkDeleteAccount() {
   const removeAccount = useArkStore((state) => state.removeAccount)
   const removeAccountSwapJobs = useArkSwapsStore(
     (state) => state.removeAccountJobs
+  )
+  const removeAccountExitClaims = useArkExitClaimsStore(
+    (state) => state.removeAccountData
   )
 
   async function deleteAccount(accountId: string): Promise<void> {
@@ -28,6 +32,7 @@ export function useArkDeleteAccount() {
     deleteArkLabelsByAccount(accountId)
     removeAccount(accountId)
     removeAccountSwapJobs(accountId)
+    removeAccountExitClaims(accountId)
     clearArkDerivedAddresses(accountId)
 
     queryClient.removeQueries({

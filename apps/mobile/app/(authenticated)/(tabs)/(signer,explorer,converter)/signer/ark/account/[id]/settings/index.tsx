@@ -12,6 +12,7 @@ import {
   SSIconSignOut
 } from '@/components/icons'
 import SSIconWarning from '@/components/icons/SSIconWarning'
+import SSArkExitConfirmModal from '@/components/SSArkExitConfirmModal'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSSettingsCards from '@/components/SSSettingsCard'
@@ -23,18 +24,22 @@ import { useArkExportDatadir } from '@/hooks/useArkExportDatadir'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkSpendableVtxos } from '@/hooks/useArkSpendableVtxos'
+import { useArkTipHeight } from '@/hooks/useArkTipHeight'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { Colors, Layout } from '@/styles'
+import { countArkVtxosNearExpiry, getArkExitsRoute } from '@/utils/arkExit'
 import { formatNumber } from '@/utils/format'
 
 const SETTINGS_ICON_SIZE = 24
 
 export default function ArkAccountSettingsPage() {
   const router = useRouter()
+  const { privacyMode } = useDisplayPreferences()
   const { id } = useLocalSearchParams<{ id: string }>()
   const account = useArkStore(
     useShallow((state) => state.accounts.find((a) => a.id === id))
@@ -51,6 +56,7 @@ export default function ArkAccountSettingsPage() {
   const vtxosQuery = useArkVtxos(id)
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
+  const tipHeightQuery = useArkTipHeight(id)
 
   const spendableVtxos = spendableVtxosQuery.data ?? []
   const allVtxos = vtxosQuery.data ?? []
@@ -64,8 +70,12 @@ export default function ArkAccountSettingsPage() {
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,
     enabled: exitModalVisible,
-    vtxos: allVtxos
+    vtxoIds: allVtxos.map((vtxo) => vtxo.id)
   })
+  const nearExpiryCount = countArkVtxosNearExpiry(
+    allVtxos,
+    tipHeightQuery.data
+  )
 
   async function handleExportDb() {
     if (!account) {
@@ -146,8 +156,21 @@ export default function ArkAccountSettingsPage() {
       onSuccess: () => {
         toast.success(t('ark.exit.success'))
         setExitModalVisible(false)
+        router.navigate(getArkExitsRoute(id))
       }
     })
+  }
+
+  function handleCloseExitModal() {
+    setExitModalVisible(false)
+  }
+
+  function handleRetryExitFee() {
+    exitFeeQuery.refetch()
+  }
+
+  function handleRetryExpiryCheck() {
+    tipHeightQuery.refetch()
   }
 
   async function handleConfirmDelete() {
@@ -299,65 +322,21 @@ export default function ArkAccountSettingsPage() {
           />
         </SSVStack>
       </SSModal>
-      <SSModal
+      <SSArkExitConfirmModal
         visible={exitModalVisible}
-        onClose={() => setExitModalVisible(false)}
-        label={t('common.cancel')}
-        closeButtonVariant="ghost"
-        fullOpacity
-      >
-        <SSVStack gap="lg" style={styles.modalContent}>
-          <SSVStack gap="sm" itemsCenter>
-            <SSIconWarning
-              height={20}
-              width={20}
-              fill="transparent"
-              stroke={Colors.error}
-            />
-            <SSText center uppercase size="md" weight="medium">
-              {t('ark.exit.allConfirmTitle')}
-            </SSText>
-            <SSText center color="muted">
-              {t('ark.exit.confirmDescription')}
-            </SSText>
-            {exitFeeQuery.isLoading && (
-              <SSText color="muted" size="sm">
-                {t('common.loading')}
-              </SSText>
-            )}
-            {exitFeeQuery.data ? (
-              <SSVStack gap="xxs" itemsCenter>
-                <SSText color="muted" size="sm">
-                  {t('ark.exit.feeLabel', {
-                    amount: formatNumber(exitFeeQuery.data.feeSats),
-                    feeRate: exitFeeQuery.data.feeRateSatPerVb,
-                    unit: t('bitcoin.sats')
-                  })}
-                </SSText>
-                <SSText color="muted" size="xs" center>
-                  {t('ark.exit.feeHint')}
-                </SSText>
-              </SSVStack>
-            ) : null}
-            {exitFeeQuery.error ? (
-              <SSText
-                size="sm"
-                style={{ color: Colors.warning }}
-                onPress={() => exitFeeQuery.refetch()}
-              >
-                {t('ark.exit.feeUnavailable')}
-              </SSText>
-            ) : null}
-          </SSVStack>
-          <SSButton
-            label={t('ark.exit.confirm')}
-            variant="danger"
-            loading={exitMutation.isPending}
-            disabled={exitMutation.isPending || exitFeeQuery.isLoading}
-            onPress={handleConfirmEmergencyExitAll}
-          />
-        </SSVStack>
-      </SSModal>
+        title={t('ark.exit.allConfirmTitle')}
+        estimate={exitFeeQuery.data}
+        estimateLoading={exitFeeQuery.isLoading}
+        estimateFailed={Boolean(exitFeeQuery.error)}
+        nearExpiryCount={nearExpiryCount}
+        expiryCheckLoading={tipHeightQuery.isLoading}
+        privacyMode={privacyMode}
+        confirming={exitMutation.isPending}
+        onConfirm={handleConfirmEmergencyExitAll}
+        onClose={handleCloseExitModal}
+        onRetryEstimate={handleRetryExitFee}
+        onRetryExpiryCheck={handleRetryExpiryCheck}
+      />
       <SSModal
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}

@@ -9,6 +9,7 @@ import {
 } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
 import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Label } from '@/types/bips/329'
@@ -65,6 +66,7 @@ export function restoreArkStoreFromBackup(
   const store = useArkStore.getState()
   store.clearAllData()
   useArkSwapsStore.getState().clearAllData()
+  useArkExitClaimsStore.getState().clearAllData()
   // Clearing the board intents would let a saved draft paying a board address
   // broadcast without the Ark server cosigning it, so the drafts go too.
   useTransactionBuilderStore.getState().clearAllData()

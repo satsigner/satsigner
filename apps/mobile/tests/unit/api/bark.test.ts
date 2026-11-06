@@ -11,6 +11,7 @@ import { ArkOperationBusyError } from '@/utils/arkError'
 type BarkTestHelpers = {
   __countWalletNotificationListeners: () => number
   __emitWalletNotification: (event: unknown) => void
+  extractTxFromPsbt: jest.Mock
   OnchainWallet: { default_: jest.Mock }
   Wallet: { open: jest.Mock }
 }
@@ -18,6 +19,7 @@ type BarkTestHelpers = {
 const {
   __countWalletNotificationListeners,
   __emitWalletNotification,
+  extractTxFromPsbt,
   OnchainWallet,
   Wallet
 } = barkModule as unknown as BarkTestHelpers
@@ -698,5 +700,167 @@ describe('bark provider', () => {
     await expect(
       provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
     ).resolves.toBe('second-txid')
+  })
+
+  describe('exits', () => {
+    const TIP = 300
+
+    function exitStatus(vtxoId: string, tag: string, inner = {}) {
+      return { state: { inner: { tipHeight: TIP, ...inner }, tag }, vtxoId }
+    }
+
+    function exitTx(tag: string) {
+      return { status: { tag } }
+    }
+
+    it('listExits maps every exit state and its progress', async () => {
+      const wallet = buildFakeWallet({
+        getVtxoById: jest.fn((id: string) =>
+          id === 'gone'
+            ? Promise.reject(new Error('not found'))
+            : Promise.resolve({ amountSats: 5000n })
+        ),
+        listAllExits: jest.fn().mockResolvedValue([
+          exitStatus('start', 'Start'),
+          exitStatus('proc', 'Processing', {
+            transactions: [
+              exitTx('Confirmed'),
+              exitTx('AwaitingCpfpBroadcast'),
+              exitTx('AwaitingConfirmation')
+            ]
+          }),
+          exitStatus('delta', 'AwaitingDelta', { claimableHeight: 320 }),
+          exitStatus('ready', 'Claimable', {
+            claimableSince: { height: 310 }
+          }),
+          exitStatus('claiming', 'ClaimInProgress', { claimTxid: 'c1' }),
+          exitStatus('gone', 'Claimed', { txid: 'c2' }),
+          exitStatus('spent', 'VtxoAlreadySpent'),
+          exitStatus('swept', 'VtxoSwept'),
+          exitStatus('cancel', 'Canceled')
+        ])
+      })
+      await openWallet('exits1', wallet)
+
+      const exits = await provider.listExits('exits1')
+
+      expect(wallet.listAllExits).toHaveBeenCalledWith(false, false)
+      expect(exits.map((exit) => exit.status)).toStrictEqual([
+        'starting',
+        'processing',
+        'awaitingDelta',
+        'claimable',
+        'claimInProgress',
+        'claimed',
+        'alreadySpent',
+        'swept',
+        'canceled'
+      ])
+      expect(exits[1]).toMatchObject({
+        amountSats: 5000,
+        awaitingCpfpBroadcast: true,
+        confirmedTxCount: 1,
+        tipHeight: TIP,
+        totalTxCount: 3
+      })
+      expect(exits[2].claimableAtHeight).toBe(320)
+      expect(exits[3].claimableAtHeight).toBe(310)
+      expect(exits[4].claimTxid).toBe('c1')
+      expect(exits[5]).toMatchObject({
+        amountSats: undefined,
+        claimTxid: 'c2',
+        vtxoId: 'gone'
+      })
+    })
+
+    it('estimateEmergencyExitFee converts bigint fees', async () => {
+      const wallet = buildFakeWallet({
+        estimateEmergencyExitFee: jest.fn().mockResolvedValue({
+          claimFeeSats: 200n,
+          exitBroadcastFeeSats: 1000n,
+          feeRateSatPerVb: 3n,
+          totalFeeSats: 1200n
+        })
+      })
+      await openWallet('exitFee1', wallet)
+
+      await expect(
+        provider.estimateEmergencyExitFee('exitFee1', ['v1'])
+      ).resolves.toStrictEqual({
+        claimFeeSats: 200,
+        exitBroadcastFeeSats: 1000,
+        feeRateSatPerVb: 3,
+        totalFeeSats: 1200
+      })
+      expect(wallet.estimateEmergencyExitFee).toHaveBeenCalledWith(
+        ['v1'],
+        undefined,
+        undefined,
+        undefined
+      )
+    })
+
+    it('buildExitClaim drains only the given exits to the address', async () => {
+      const wallet = buildFakeWallet({
+        drainExits: jest.fn().mockResolvedValue({
+          feeSats: 150n,
+          psbtBase64: 'cHNidP8=',
+          skippedVtxoIds: ['v2'],
+          vtxoIds: ['v1']
+        })
+      })
+      await openWallet('exitClaim1', wallet)
+
+      await expect(
+        provider.buildExitClaim('exitClaim1', ['v1', 'v2'], 'tb1qdest', 2)
+      ).resolves.toStrictEqual({
+        feeSats: 150,
+        psbtBase64: 'cHNidP8=',
+        skippedVtxoIds: ['v2'],
+        vtxoIds: ['v1']
+      })
+      expect(wallet.drainExits).toHaveBeenCalledWith(
+        ['v1', 'v2'],
+        false,
+        'tb1qdest',
+        2n
+      )
+    })
+
+    it('buildExitClaim refuses an empty selection', async () => {
+      const wallet = buildFakeWallet({ drainExits: jest.fn() })
+      await openWallet('exitClaim2', wallet)
+
+      await expect(
+        provider.buildExitClaim('exitClaim2', [], 'tb1qdest', 2)
+      ).rejects.toThrow('No exits selected for claim')
+      expect(wallet.drainExits).not.toHaveBeenCalled()
+    })
+
+    it('signExitClaim extracts the signed transaction', async () => {
+      const wallet = buildFakeWallet({
+        signExitClaimInputs: jest.fn().mockResolvedValue('signed-psbt')
+      })
+      extractTxFromPsbt.mockReturnValue('signed-hex')
+      await openWallet('exitSign1', wallet)
+
+      await expect(
+        provider.signExitClaim('exitSign1', 'unsigned-psbt')
+      ).resolves.toBe('signed-hex')
+      expect(wallet.signExitClaimInputs).toHaveBeenCalledWith('unsigned-psbt')
+      expect(extractTxFromPsbt).toHaveBeenCalledWith('signed-psbt')
+    })
+
+    it('fetchOnchainFeeRates converts every speed to sat/vB', async () => {
+      await openWalletWithOnchainFeeRate('exitRates1', 2000n)
+
+      await expect(
+        provider.fetchOnchainFeeRates('exitRates1')
+      ).resolves.toStrictEqual({
+        fastSatPerVb: 16,
+        regularSatPerVb: 8,
+        slowSatPerVb: 4
+      })
+    })
   })
 })

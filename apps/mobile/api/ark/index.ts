@@ -4,6 +4,9 @@ import type {
   ArkBoardFundingInfo,
   ArkBolt11Invoice,
   ArkDerivedAddress,
+  ArkEmergencyExitFee,
+  ArkExit,
+  ArkExitClaimDraft,
   ArkFeeEstimate,
   ArkFeeRequest,
   ArkLightningReceive,
@@ -13,6 +16,7 @@ import type {
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
   ArkOnchainBalance,
+  ArkOnchainFeeRates,
   ArkOnchainUtxo,
   ArkPendingBoard,
   ArkServerId,
@@ -190,6 +194,51 @@ export function startArkExit(
   return getArkProvider(serverId).startExit(accountId, vtxoIds)
 }
 
+export function listArkExits(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkExit[]> {
+  return getArkProvider(serverId).listExits(accountId)
+}
+
+export function syncArkExits(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<void> {
+  return getArkProvider(serverId).syncExits(accountId)
+}
+
+export function estimateArkEmergencyExitFee(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<ArkEmergencyExitFee> {
+  return getArkProvider(serverId).estimateEmergencyExitFee(accountId, vtxoIds)
+}
+
+export function buildArkExitClaim(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[],
+  bitcoinAddress: string,
+  feeRateSatPerVb: number
+): Promise<ArkExitClaimDraft> {
+  return getArkProvider(serverId).buildExitClaim(
+    accountId,
+    vtxoIds,
+    bitcoinAddress,
+    feeRateSatPerVb
+  )
+}
+
+export function signArkExitClaim(
+  serverId: ArkServerId,
+  accountId: string,
+  psbtBase64: string
+): Promise<string> {
+  return getArkProvider(serverId).signExitClaim(accountId, psbtBase64)
+}
+
 export function refreshArkVtxos(
   serverId: ArkServerId,
   accountId: string,
@@ -253,6 +302,13 @@ export function fetchArkOnchainFeeRate(
   accountId: string
 ): Promise<number> {
   return getArkProvider(serverId).fetchOnchainFeeRate(accountId)
+}
+
+export function fetchArkOnchainFeeRates(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkOnchainFeeRates> {
+  return getArkProvider(serverId).fetchOnchainFeeRates(accountId)
 }
 
 export function newArkOnchainAddress(
