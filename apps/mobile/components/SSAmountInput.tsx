@@ -132,7 +132,9 @@ function SSAmountInput({
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode && min > 0 ? PRIVACY_MASK : min}</SSText>
+          <SSText>
+            {privacyMode && min > 0 ? PRIVACY_MASK : formatNumber(min, 0)}
+          </SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
         {remainingSats !== undefined && (
@@ -147,7 +149,7 @@ function SSAmountInput({
           </SSHStack>
         )}
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-          <SSText>{privacyMode ? PRIVACY_MASK : max}</SSText>
+          <SSText>{privacyMode ? PRIVACY_MASK : formatNumber(max, 0)}</SSText>
           <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
       </SSHStack>
