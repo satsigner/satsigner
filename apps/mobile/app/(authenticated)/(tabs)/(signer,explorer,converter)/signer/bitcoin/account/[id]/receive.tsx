@@ -19,7 +19,7 @@ import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { MAX_SUPPLY_SATS } from '@/constants/consensus'
 import {
   PAYJOIN_DEFAULT_PJOS,
@@ -200,7 +200,7 @@ export default function Receive() {
       : undefined)
   const [localCustomAmount, setLocalCustomAmount] = useState<string>(() => {
     const sats = amountSatsFromPayjoinSession(existingPayjoinSession)
-    return sats ? String(sats) : String(DUST_LIMIT)
+    return sats ? String(sats) : ''
   })
   const [localFiatAmount, setLocalFiatAmount] = useState<string>()
   const [amountMode, setAmountMode] = useState<'sats' | 'fiat'>('sats')

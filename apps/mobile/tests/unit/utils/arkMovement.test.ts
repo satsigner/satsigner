@@ -11,6 +11,7 @@ import {
   getArkMovementTxids,
   getArkRefreshVtxoCounts,
   getArkRefreshVtxoLabel,
+  getQueuedRefreshInputVtxoIds,
   isArkRefreshMovement,
   isLightningMovement,
   isMutedArkMovement,
@@ -450,6 +451,29 @@ describe('arkMovement utils', () => {
         getArkMovementLabelRef(settled)
       )
     })
+  })
+})
+
+describe('getQueuedRefreshInputVtxoIds', () => {
+  it('returns the inputs of refreshes still waiting for their round', () => {
+    const movements = [
+      buildMovement({
+        inputVtxoIds: ['queued'],
+        status: 'pending',
+        subsystemName: 'bark.refresh'
+      }),
+      buildMovement({
+        inputVtxoIds: ['done'],
+        status: 'successful',
+        subsystemName: 'bark.refresh'
+      }),
+      buildMovement({
+        inputVtxoIds: ['sending'],
+        status: 'pending',
+        subsystemName: 'bark.send'
+      })
+    ]
+    expect(getQueuedRefreshInputVtxoIds(movements)).toStrictEqual(['queued'])
   })
 })
 
