@@ -108,6 +108,17 @@ export function isArkRefreshMovement(movement: ArkMovementSubsystem): boolean {
   return matchesArkSubsystem(movement, REFRESH_SUBSYSTEM_KEYWORD)
 }
 
+export function getQueuedRefreshInputVtxoIds(
+  movements: ArkMovement[]
+): string[] {
+  return movements
+    .filter(
+      (movement) =>
+        movement.status === 'pending' && isArkRefreshMovement(movement)
+    )
+    .flatMap((movement) => movement.inputVtxoIds)
+}
+
 function isArkBoardMovement(movement: ArkMovementSubsystem): boolean {
   return (
     !matchesArkSubsystem(movement, OFFBOARD_SUBSYSTEM_KEYWORD) &&

@@ -60,18 +60,20 @@ type FakeWallet = Record<string, jest.Mock>
 
 function buildFakeWallet(overrides: Partial<FakeWallet> = {}): FakeWallet {
   return {
-    allVtxos: jest.fn(),
+    allVtxos: jest.fn().mockResolvedValue([]),
     balance: jest.fn(),
     bolt11Invoice: jest.fn(),
     estimateArkoorPaymentFee: jest.fn(),
-    history: jest.fn(),
+    getExitVtxos: jest.fn().mockResolvedValue([]),
+    history: jest.fn().mockResolvedValue([]),
     newAddress: jest.fn(),
     offboardVtxos: jest.fn(),
     payLightningInvoice: jest.fn(),
     peekAddress: jest.fn(),
+    pendingRoundInputVtxos: jest.fn().mockResolvedValue([]),
     sendArkoorPayment: jest.fn(),
     sendOnchain: jest.fn(),
-    spendableVtxos: jest.fn(),
+    spendableVtxos: jest.fn().mockResolvedValue([]),
     sync: jest.fn().mockResolvedValue(undefined),
     ...overrides
   }
@@ -334,6 +336,81 @@ describe('bark provider', () => {
       ['a', true, 100],
       ['b', false, 200]
     ])
+  })
+
+  it('listAllVtxos keeps exiting and round-queued vtxos out of selection', async () => {
+    const free = buildFakeVtxo('free', 100n, 10)
+    const exiting = buildFakeVtxo('exiting', 200n, 20)
+    const inRound = buildFakeVtxo('inRound', 300n, 30)
+    const queued = buildFakeVtxo('queued', 350n, 35)
+    const canceled = buildFakeVtxo('canceled', 400n, 40)
+    const all = [free, exiting, inRound, queued, canceled]
+    const wallet = buildFakeWallet({
+      allVtxos: jest.fn().mockResolvedValue(all),
+      getExitVtxos: jest.fn().mockResolvedValue([
+        { state: { tag: 'Processing' }, vtxoId: 'exiting' },
+        { state: { tag: 'Canceled' }, vtxoId: 'canceled' }
+      ]),
+      history: jest.fn().mockResolvedValue([
+        {
+          effectiveBalanceSats: 0n,
+          exitedVtxoIds: [],
+          id: 7,
+          inputVtxoIds: ['queued'],
+          intendedBalanceSats: 0n,
+          offchainFeeSats: 0n,
+          outputVtxoIds: [],
+          receivedOnAddresses: [],
+          sentToAddresses: [],
+          status: 'pending',
+          subsystemKind: 'round',
+          subsystemName: 'bark.refresh'
+        }
+      ]),
+      pendingRoundInputVtxos: jest.fn().mockResolvedValue([inRound]),
+      spendableVtxos: jest.fn().mockResolvedValue(all)
+    })
+    await openWallet('busy1', wallet)
+    const vtxos = await provider.listAllVtxos('busy1')
+    expect(vtxos.map((v) => [v.id, v.spendable])).toStrictEqual([
+      ['free', true],
+      ['exiting', false],
+      ['inRound', false],
+      ['queued', false],
+      ['canceled', true]
+    ])
+  })
+
+  it('fetchBalance moves exiting vtxo sats from spendable to pending exit', async () => {
+    const wallet = buildFakeWallet({
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 0n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 27_000n
+      }),
+      getExitVtxos: jest
+        .fn()
+        .mockResolvedValue([
+          { state: { tag: 'Processing' }, vtxoId: 'exiting' }
+        ]),
+      spendableVtxos: jest
+        .fn()
+        .mockResolvedValue([
+          buildFakeVtxo('free', 25_000n, 10),
+          buildFakeVtxo('exiting', 2000n, 20)
+        ])
+    })
+    await openWallet('busy2', wallet)
+    await expect(provider.fetchBalance('busy2')).resolves.toMatchObject({
+      pendingExitSats: 2000,
+      spendableSats: 25_000
+    })
   })
 
   it('fetchVtxoState returns the state tag of the VTXO', async () => {

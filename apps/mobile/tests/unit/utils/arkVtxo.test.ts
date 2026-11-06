@@ -1,11 +1,13 @@
 import { PRIVACY_MASK } from '@/constants/privacy'
-import type { ArkVtxo } from '@/types/models/Ark'
+import type { ArkBalance, ArkVtxo } from '@/types/models/Ark'
 import {
   arkVtxosToBubbleData,
   buildArkVtxoSections,
   filterCurrentArkVtxos,
   filterSelectableVtxoIds,
   getArkNextExpiryHeight,
+  isArkVtxoBusy,
+  moveBusyArkVtxosOutOfSpendable,
   sumArkVtxoSats
 } from '@/utils/arkVtxo'
 import { formatNumber } from '@/utils/format'
@@ -168,5 +170,77 @@ describe('arkVtxosToBubbleData', () => {
     )
     expect(data[0].label).toBe(PRIVACY_MASK)
     expect(data[0].value).toBe(1000)
+  })
+})
+
+describe('isArkVtxoBusy', () => {
+  const busy = { exiting: new Set(['e']), inRound: new Set(['r']) }
+
+  it('flags vtxos that are exiting or queued for a round', () => {
+    expect(isArkVtxoBusy('e', busy)).toBe(true)
+    expect(isArkVtxoBusy('r', busy)).toBe(true)
+    expect(isArkVtxoBusy('free', busy)).toBe(false)
+  })
+})
+
+describe('moveBusyArkVtxosOutOfSpendable', () => {
+  const balance: ArkBalance = {
+    claimableLightningReceiveSats: 0,
+    needsRefreshSats: 0,
+    pendingBoardSats: 0,
+    pendingExitSats: 0,
+    pendingInRoundSats: 0,
+    pendingLightningSendSats: 0,
+    spendableSats: 6000
+  }
+  const vtxos = [
+    buildVtxo({ amountSats: 1000, id: 'free' }),
+    buildVtxo({ amountSats: 2000, id: 'exiting' }),
+    buildVtxo({ amountSats: 3000, id: 'queued' })
+  ]
+
+  it('moves exiting sats to pending exit and queued sats to pending round', () => {
+    const result = moveBusyArkVtxosOutOfSpendable(balance, vtxos, {
+      exiting: new Set(['exiting']),
+      inRound: new Set(['queued'])
+    })
+    expect(result).toMatchObject({
+      pendingExitSats: 2000,
+      pendingInRoundSats: 3000,
+      spendableSats: 1000
+    })
+  })
+
+  it('counts a vtxo that is both exiting and queued only once', () => {
+    const result = moveBusyArkVtxosOutOfSpendable(balance, vtxos, {
+      exiting: new Set(['exiting']),
+      inRound: new Set(['exiting'])
+    })
+    expect(result).toMatchObject({
+      pendingExitSats: 2000,
+      pendingInRoundSats: 0,
+      spendableSats: 4000
+    })
+  })
+
+  it('takes from needs-refresh once spendable runs out, keeping the total', () => {
+    const result = moveBusyArkVtxosOutOfSpendable(
+      { ...balance, needsRefreshSats: 2000, spendableSats: 1000 },
+      [buildVtxo({ amountSats: 2500, id: 'exiting' })],
+      { exiting: new Set(['exiting']), inRound: new Set() }
+    )
+    expect(result).toMatchObject({
+      needsRefreshSats: 500,
+      pendingExitSats: 2500,
+      spendableSats: 0
+    })
+  })
+
+  it('ignores busy ids that bark no longer lists as spendable', () => {
+    const result = moveBusyArkVtxosOutOfSpendable(balance, vtxos, {
+      exiting: new Set(['gone']),
+      inRound: new Set()
+    })
+    expect(result).toMatchObject({ pendingExitSats: 0, spendableSats: 6000 })
   })
 })
