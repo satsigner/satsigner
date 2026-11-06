@@ -392,6 +392,10 @@ export default function ArkAccountDetailPage() {
     exitFeeQuery.refetch()
   }
 
+  function handleRetryExpiryCheck() {
+    tipHeightQuery.refetch()
+  }
+
   function renderHeaderRight() {
     return (
       <SSIconButton
@@ -959,11 +963,13 @@ export default function ArkAccountDetailPage() {
         estimateLoading={exitFeeQuery.isLoading}
         estimateFailed={Boolean(exitFeeQuery.error)}
         nearExpiryCount={nearExpiryCount}
+        expiryCheckLoading={tipHeightQuery.isLoading}
         privacyMode={privacyMode}
         confirming={exitMutation.isPending}
         onConfirm={handleConfirmEmergencyExit}
         onClose={handleCloseExitModal}
         onRetryEstimate={handleRetryExitFee}
+        onRetryExpiryCheck={handleRetryExpiryCheck}
       />
     </SSMainLayout>
   )

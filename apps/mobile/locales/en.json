@@ -653,6 +653,7 @@
     "exit.entryActive": "Exits · %{count} active",
     "exit.entryClaimable": "Claim · %{count} ready",
     "exit.error": "Failed to start emergency exit",
+    "exit.expiryUnavailable": "Expiry check unavailable — tap to retry",
     "exit.failure.alreadySpent": "This VTXO was already spent, so there is nothing to exit.",
     "exit.failure.canceled": "This exit was canceled.",
     "exit.failure.swept": "The Ark server swept this VTXO before the exit confirmed.",

@@ -203,10 +203,10 @@ describe('countArkVtxosNearExpiry', () => {
     ).toBe(1)
   })
 
-  it('counts nothing until the tip height is known', () => {
+  it('cannot count until the tip height is known', () => {
     expect(
       countArkVtxosNearExpiry([{ expiryHeight: nearExpiry }], undefined)
-    ).toBe(0)
+    ).toBeUndefined()
   })
 })
 

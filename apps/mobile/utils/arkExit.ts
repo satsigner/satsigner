@@ -144,9 +144,9 @@ function isWithinExpiryWarning(expiryHeight: number, tipHeight: number) {
 function countArkVtxosNearExpiry(
   vtxos: Pick<ArkVtxo, 'expiryHeight'>[],
   tipHeight: number | undefined
-): number {
+): number | undefined {
   if (tipHeight === undefined) {
-    return 0
+    return undefined
   }
   return vtxos.filter((vtxo) =>
     isWithinExpiryWarning(vtxo.expiryHeight, tipHeight)

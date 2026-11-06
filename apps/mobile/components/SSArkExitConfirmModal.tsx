@@ -19,12 +19,14 @@ type SSArkExitConfirmModalProps = {
   estimate: ArkExitFeeEstimate | undefined
   estimateLoading: boolean
   estimateFailed: boolean
-  nearExpiryCount: number
+  nearExpiryCount: number | undefined
+  expiryCheckLoading: boolean
   privacyMode: boolean
   confirming: boolean
   onConfirm: () => void
   onClose: () => void
   onRetryEstimate: () => void
+  onRetryExpiryCheck: () => void
 }
 
 function SSArkExitConfirmModal({
@@ -34,13 +36,16 @@ function SSArkExitConfirmModal({
   estimateLoading,
   estimateFailed,
   nearExpiryCount,
+  expiryCheckLoading,
   privacyMode,
   confirming,
   onConfirm,
   onClose,
-  onRetryEstimate
+  onRetryEstimate,
+  onRetryExpiryCheck
 }: SSArkExitConfirmModalProps) {
   const unit = t('bitcoin.sats')
+  const expiryCheckFailed = nearExpiryCount === undefined && !expiryCheckLoading
 
   function satsLabel(amountSats: number) {
     return `${formatMaskedNumber(amountSats, privacyMode)} ${unit}`
@@ -69,14 +74,24 @@ function SSArkExitConfirmModal({
             {t('ark.exit.confirmDescription')}
           </SSText>
         </SSVStack>
-        {nearExpiryCount > 0 && (
+        {nearExpiryCount !== undefined && nearExpiryCount > 0 && (
           <View style={styles.notice}>
             <SSText size="sm" style={styles.warningText}>
               {t('ark.exit.nearExpiryWarning', { count: nearExpiryCount })}
             </SSText>
           </View>
         )}
-        {estimateLoading && (
+        {expiryCheckFailed && (
+          <SSText
+            size="sm"
+            center
+            style={styles.warningText}
+            onPress={onRetryExpiryCheck}
+          >
+            {t('ark.exit.expiryUnavailable')}
+          </SSText>
+        )}
+        {(estimateLoading || expiryCheckLoading) && (
           <SSText color="muted" size="sm" center>
             {t('common.loading')}
           </SSText>
@@ -138,7 +153,7 @@ function SSArkExitConfirmModal({
           label={t('ark.exit.confirm')}
           variant="danger"
           loading={confirming}
-          disabled={confirming || estimateLoading}
+          disabled={confirming || estimateLoading || expiryCheckLoading}
           onPress={onConfirm}
         />
       </SSVStack>

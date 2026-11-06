@@ -169,6 +169,10 @@ export default function ArkAccountSettingsPage() {
     exitFeeQuery.refetch()
   }
 
+  function handleRetryExpiryCheck() {
+    tipHeightQuery.refetch()
+  }
+
   async function handleConfirmDelete() {
     if (!id) {
       return
@@ -325,11 +329,13 @@ export default function ArkAccountSettingsPage() {
         estimateLoading={exitFeeQuery.isLoading}
         estimateFailed={Boolean(exitFeeQuery.error)}
         nearExpiryCount={nearExpiryCount}
+        expiryCheckLoading={tipHeightQuery.isLoading}
         privacyMode={privacyMode}
         confirming={exitMutation.isPending}
         onConfirm={handleConfirmEmergencyExitAll}
         onClose={handleCloseExitModal}
         onRetryEstimate={handleRetryExitFee}
+        onRetryExpiryCheck={handleRetryExpiryCheck}
       />
       <SSModal
         visible={deleteModalVisible}
