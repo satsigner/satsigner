@@ -665,8 +665,12 @@ function mapExitState(state: ExitState): ArkExitStateFields {
     case ExitState_Tags.VtxoSwept: {
       return { status: 'swept', tipHeight }
     }
-    default: {
+    case ExitState_Tags.Canceled: {
       return { status: 'canceled', tipHeight }
+    }
+    default: {
+      const unreachable: never = state
+      return unreachable
     }
   }
 }
