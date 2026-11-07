@@ -178,9 +178,16 @@ function showClaimableNotice({
   })
 }
 
-async function announceClaimableArkExits(): Promise<number> {
+async function announceClaimableArkExits(
+  queryClient: ReturnType<typeof useQueryClient>
+): Promise<number> {
   const notices = await findNewlyClaimableArkExits()
   for (const notice of notices) {
+    // The notice opens the exits screen, which must already list them as
+    // claimable.
+    queryClient.invalidateQueries({
+      queryKey: arkExitsQueryKey(notice.accountId)
+    })
     showClaimableNotice(notice)
     markArkExitsAnnounced(notice)
   }
@@ -192,6 +199,7 @@ async function announceClaimableArkExits(): Promise<number> {
  * one becomes claimable, whichever screen they are on.
  */
 export function useArkExitWatcher() {
+  const queryClient = useQueryClient()
   const hasPendingExits = useArkStore((state) =>
     Object.values(state.balances).some(
       (balance) => (balance?.pendingExitSats ?? 0) > 0
@@ -199,7 +207,7 @@ export function useArkExitWatcher() {
   )
   return useQuery({
     enabled: hasPendingExits,
-    queryFn: announceClaimableArkExits,
+    queryFn: () => announceClaimableArkExits(queryClient),
     queryKey: ARK_EXIT_WATCH_QUERY_KEY,
     refetchInterval: ARK_EXIT_WATCH_INTERVAL_MS,
     retry: false
