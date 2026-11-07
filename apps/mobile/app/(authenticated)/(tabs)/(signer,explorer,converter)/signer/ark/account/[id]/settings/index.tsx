@@ -9,6 +9,7 @@ import {
   SSIconBitcoin,
   SSIconBoardCircle,
   SSIconOffboardCircle,
+  SSIconRepost,
   SSIconSignOut
 } from '@/components/icons'
 import SSIconWarning from '@/components/icons/SSIconWarning'
@@ -127,6 +128,17 @@ export default function ArkAccountSettingsPage() {
     })
   }
 
+  function handleSwap() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/swap'
+    })
+  }
+
+  function handleExits() {
+    router.navigate(getArkExitsRoute(id))
+  }
+
   function handleBoard() {
     router.navigate({
       params: { id },
@@ -231,6 +243,18 @@ export default function ArkAccountSettingsPage() {
           onPress={handleOnchainWallet}
         />
         <SSSettingsCards
+          title={t('ark.swap.title')}
+          description={t('ark.swap.settingsDescription')}
+          icon={
+            <SSIconRepost
+              height={SETTINGS_ICON_SIZE}
+              width={SETTINGS_ICON_SIZE}
+              color={Colors.gray[200]}
+            />
+          }
+          onPress={handleSwap}
+        />
+        <SSSettingsCards
           title={t('ark.board.allTitle')}
           description={t('ark.board.allDescription')}
           icon={
@@ -251,6 +275,17 @@ export default function ArkAccountSettingsPage() {
             />
           }
           onPress={handleOffboardAll}
+        />
+        <SSSettingsCards
+          title={t('ark.exit.title')}
+          description={t('ark.exit.settingsDescription')}
+          icon={
+            <SSIconSignOut
+              height={SETTINGS_ICON_SIZE}
+              width={SETTINGS_ICON_SIZE}
+            />
+          }
+          onPress={handleExits}
         />
         <SSSettingsCards
           title={t('ark.exit.allTitle')}
