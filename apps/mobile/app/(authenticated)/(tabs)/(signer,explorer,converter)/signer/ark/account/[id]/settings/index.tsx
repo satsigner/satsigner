@@ -72,10 +72,7 @@ export default function ArkAccountSettingsPage() {
     enabled: exitModalVisible,
     vtxoIds: allVtxos.map((vtxo) => vtxo.id)
   })
-  const nearExpiryCount = countArkVtxosNearExpiry(
-    allVtxos,
-    tipHeightQuery.data
-  )
+  const nearExpiryCount = countArkVtxosNearExpiry(allVtxos, tipHeightQuery.data)
 
   async function handleExportDb() {
     if (!account) {

@@ -1027,15 +1027,15 @@ const styles = StyleSheet.create({
   sceneContainer: {
     flex: 1
   },
-  separator: {
-    backgroundColor: Colors.gray[800],
-    height: StyleSheet.hairlineWidth
-  },
   secondaryAction: {
     flex: 1
   },
   secondaryActions: {
     marginTop: 12
+  },
+  separator: {
+    backgroundColor: Colors.gray[800],
+    height: StyleSheet.hairlineWidth
   },
   tab: {
     width: TAB_WIDTH

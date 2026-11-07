@@ -140,8 +140,7 @@ export default function ArkExitsPage() {
   }
 
   function destinationName(accountId: string) {
-    return bitcoinAccounts.find((candidate) => candidate.id === accountId)
-      ?.name
+    return bitcoinAccounts.find((candidate) => candidate.id === accountId)?.name
   }
 
   async function handleCopyTxid(txid: string) {
@@ -333,9 +332,7 @@ export default function ArkExitsPage() {
                 <SSArkExitClaimRecordCard
                   key={record.txid}
                   record={record}
-                  destinationName={destinationName(
-                    record.destinationAccountId
-                  )}
+                  destinationName={destinationName(record.destinationAccountId)}
                   privacyMode={privacyMode}
                   retrying={
                     retryMutation.isPending &&
