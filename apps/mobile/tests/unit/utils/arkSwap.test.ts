@@ -13,12 +13,10 @@ import {
   BOLT11_DEFAULT_EXPIRY_SECONDS,
   LIGHTNING_CHANNEL_THRESHOLD
 } from '@/constants/lightning'
-import { type Key } from '@/types/models/Account'
 import {
   type ArkLightningToOnchainJob,
   type ArkOnchainToLightningJob
 } from '@/types/models/ArkSwap'
-import { type ScriptVersionType } from '@/types/models/Script'
 import {
   type ArkSwapForm,
   buildArkSwapRequest,
@@ -29,7 +27,6 @@ import {
   computeMaxInvoiceSats,
   computeRequiredBoardSats,
   evaluateArkSwapInvoice,
-  findArkSwapAccountForWallet,
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,
@@ -101,10 +98,6 @@ const INVOICE_FIELDS = {
   invoiceNetwork: 'signet' as const,
   paymentHash: PAYMENT_HASH,
   timestamp: NOW
-}
-
-function keyWith(scriptVersion: ScriptVersionType | undefined): Key {
-  return { index: 0, iv: '', scriptVersion, secret: '' }
 }
 
 describe('resolveArkSwapRoute', () => {
@@ -484,37 +477,6 @@ describe('isArkSwapInvoiceAbandoned', () => {
         expiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
       )
     ).toBe(true)
-  })
-})
-
-describe('findArkSwapAccountForWallet', () => {
-  const arkAccounts = [
-    { id: 'ark-main', network: 'bitcoin' as const },
-    { id: 'ark-signet', network: 'signet' as const }
-  ]
-
-  it('picks the Ark account on the wallet network', () => {
-    expect(
-      findArkSwapAccountForWallet(arkAccounts, {
-        keys: [keyWith('P2TR')],
-        network: 'signet'
-      })
-    ).toBe('ark-signet')
-  })
-
-  it('skips wallets that cannot fund a board', () => {
-    expect(
-      findArkSwapAccountForWallet(arkAccounts, {
-        keys: [keyWith('P2PKH')],
-        network: 'signet'
-      })
-    ).toBeUndefined()
-    expect(
-      findArkSwapAccountForWallet(arkAccounts, {
-        keys: [keyWith('P2WPKH')],
-        network: 'testnet'
-      })
-    ).toBeUndefined()
   })
 })
 

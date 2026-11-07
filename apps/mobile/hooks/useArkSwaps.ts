@@ -21,14 +21,11 @@ import {
   startArkSwap,
   submitArkSwapInvoice
 } from '@/services/arkSwap'
-import { useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import { type Account } from '@/types/models/Account'
 import { type ArkSwapJob, type ArkSwapRequest } from '@/types/models/ArkSwap'
 import { arkBoardIoPreviewHref } from '@/utils/arkBoardDeposit'
 import {
   canSubmitArkSwapInvoice,
-  findArkSwapAccountForWallet,
   isArkSwapJobRunnable,
   isArkSwapJobTerminal
 } from '@/utils/arkSwap'
@@ -44,14 +41,6 @@ export function useArkSwapJobs(arkAccountId: string | undefined) {
     useShallow((state) =>
       state.jobs.filter((job) => job.arkAccountId === arkAccountId)
     )
-  )
-}
-
-export function useArkSwapAccountForWallet(
-  wallet: Pick<Account, 'keys' | 'network'> | undefined
-) {
-  return useArkStore((state) =>
-    wallet ? findArkSwapAccountForWallet(state.accounts, wallet) : undefined
   )
 }
 

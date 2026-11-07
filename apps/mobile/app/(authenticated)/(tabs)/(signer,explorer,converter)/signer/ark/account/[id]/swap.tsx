@@ -133,19 +133,17 @@ async function copyValue(value: string) {
 export default function ArkSwapPage() {
   const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
     useDisplayPreferences()
-  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>()
+  const { id } = useLocalSearchParams<{ id: string }>()
   const account = useArkStore((state) =>
     state.accounts.find((arkAccount) => arkAccount.id === id)
   )
   const bitcoinAccounts = useAccountsStore((state) => state.accounts)
   const removeJob = useArkSwapsStore((state) => state.removeJob)
 
-  const [fromKind, setFromKind] = useState<ArkSwapEndpointKind>(
-    from ? 'onchain' : 'ark'
-  )
+  const [fromKind, setFromKind] = useState<ArkSwapEndpointKind>('ark')
   const [pickedToKind, setPickedToKind] =
     useState<ArkSwapEndpointKind>('lightning')
-  const [pickedSourceId, setPickedSourceId] = useState(from)
+  const [pickedSourceId, setPickedSourceId] = useState<string>()
   const [pickedDestinationId, setPickedDestinationId] = useState<string>()
   const [amountSats, setAmountSats] = useState(0)
   const [invoice, setInvoice] = useState('')

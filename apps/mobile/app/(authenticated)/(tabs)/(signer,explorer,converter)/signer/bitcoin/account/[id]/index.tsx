@@ -85,7 +85,6 @@ import {
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
 import { MS_PER_SECOND } from '@/constants/time'
-import { useArkSwapAccountForWallet } from '@/hooks/useArkSwaps'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -1905,7 +1904,6 @@ export default function AccountView() {
 
   const wallet = useGetAccountWallet(id)
   const watchOnlyWalletAddress = useGetAccountAddress(id)
-  const arkSwapAccountId = useArkSwapAccountForWallet(account)
 
   const isMultiAddressWatchOnly = useMemo(
     () =>
@@ -2148,16 +2146,6 @@ export default function AccountView() {
   function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
-  }
-
-  function handleArkSwap() {
-    if (!arkSwapAccountId) {
-      return
-    }
-    router.navigate({
-      params: { from: id, id: arkSwapAccountId },
-      pathname: '/signer/ark/account/[id]/swap'
-    })
   }
 
   useEffect(() => {
@@ -2493,14 +2481,6 @@ export default function AccountView() {
                     onReceive={contentHandler.handleReceive}
                   />
                 )}
-                {arkSwapAccountId && (
-                  <SSButton
-                    label={t('ark.swap.entry')}
-                    onPress={handleArkSwap}
-                    variant="outline"
-                    style={styles.arkSwapButton}
-                  />
-                )}
                 {account.keys[0].creationType === 'importAddress' &&
                   account.keys.length === 1 && (
                     <SSVStack gap="xs">
@@ -2631,9 +2611,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 18,
     paddingHorizontal: 8
-  },
-  arkSwapButton: {
-    marginTop: 8
   },
   controlsActiveDot: {
     backgroundColor: Colors.white,

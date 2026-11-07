@@ -15,9 +15,7 @@ import {
   BOLT11_PAYMENT_HASH_HEX_PATTERN,
   LIGHTNING_CHANNEL_THRESHOLD
 } from '@/constants/lightning'
-import { type Account } from '@/types/models/Account'
 import {
-  type ArkAccount,
   type ArkLightningSendState,
   type ArkMovement,
   type ArkMovementEvent
@@ -31,7 +29,6 @@ import {
   type ArkSwapRoute
 } from '@/types/models/ArkSwap'
 import { type Network } from '@/types/settings/blockchain'
-import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
 import { getBolt11Network } from '@/utils/bolt11Network'
 import {
   bolt11AmountSats,
@@ -315,19 +312,6 @@ function canSubmitArkSwapInvoice(job: ArkSwapJob): boolean {
     job.kind === 'onchainToLightning' &&
     (job.status === 'awaitingInvoice' || job.status === 'failed')
   )
-}
-
-/**
- * The Ark account an on-chain wallet can swap through: the first one on the
- * same network, and only when the wallet can fund a board.
- */
-function findArkSwapAccountForWallet(
-  arkAccounts: Pick<ArkAccount, 'id' | 'network'>[],
-  wallet: Pick<Account, 'keys' | 'network'>
-): string | undefined {
-  return arkAccounts.find((arkAccount) =>
-    canAccountFundArkBoard(wallet, arkAccount.network)
-  )?.id
 }
 
 function getArkSwapJobAccountId(job: ArkSwapJob): string {
@@ -682,7 +666,6 @@ export {
   computeMaxInvoiceSats,
   computeRequiredBoardSats,
   evaluateArkSwapInvoice,
-  findArkSwapAccountForWallet,
   findRequiredBoardSats,
   getArkSwapAmountRange,
   getArkSwapAmountSource,

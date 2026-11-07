@@ -879,7 +879,6 @@
     "swap.endpoint.ark": "Ark",
     "swap.endpoint.lightning": "Lightning",
     "swap.endpoint.onchain": "On-chain",
-    "swap.entry": "Swap",
     "swap.error.boardExited": "The boarded sats left Ark through an exit, so this swap cannot pay the invoice",
     "swap.error.boardFeeUnsettled": "Could not size a board that covers its own fee. Try again later.",
     "swap.error.boardTooSmall": "The boarded amount does not cover this invoice and its fees",
