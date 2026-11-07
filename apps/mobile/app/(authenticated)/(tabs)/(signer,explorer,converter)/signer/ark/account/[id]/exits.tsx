@@ -1,8 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
 import { RefreshControl, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSArkExitCard from '@/components/SSArkExitCard'
 import SSArkExitClaimRecordCard from '@/components/SSArkExitClaimRecordCard'
@@ -11,21 +9,9 @@ import SSDetailRow from '@/components/SSDetailRow'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSText from '@/components/SSText'
 import SSWalletSourceRow from '@/components/SSWalletSourceRow'
-import {
-  useArkExitFeeEstimate,
-  useArkExitFeeFunding
-} from '@/hooks/useArkExitFeeEstimate'
-import {
-  useArkExitClaim,
-  useArkExitClaimPreview,
-  useArkExitClaimDiscard,
-  useArkExitClaimRetry,
-  useArkExitClaims,
-  useArkExitFunding,
-  useArkExits,
-  useArkExitsRefresh,
-  useArkOnchainFeeRates
-} from '@/hooks/useArkExits'
+import { useArkExitClaimFlow } from '@/hooks/useArkExitClaimFlow'
+import { useArkExitFundingFlow } from '@/hooks/useArkExitFundingFlow'
+import { useArkExits, useArkExitsRefresh } from '@/hooks/useArkExits'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -33,24 +19,14 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useArkStore } from '@/store/ark'
 import { Colors } from '@/styles'
 import { getAccountTotalBalance } from '@/utils/account'
 import { getAccountKindLabelFromAccount } from '@/utils/accountKindLabel'
 import {
   type ArkExitClaimBlocker,
   type ArkExitClaimFeeSpeed,
-  getArkExitClaimBlocker,
-  getArkExitClaimFeeRate,
-  getArkExitFundingAmount,
-  getArkExitIncomingFundingSats,
-  getArkExitFundingSources,
-  getClaimableArkExits,
-  getUnconfirmedArkExits,
-  sortArkExits,
-  sumArkExitSats
+  sortArkExits
 } from '@/utils/arkExit'
-import { getArkSweepDestinations } from '@/utils/arkOnchainSweep'
 import { setClipboard } from '@/utils/clipboard'
 import { formatMaskedNumber } from '@/utils/format'
 
@@ -63,85 +39,50 @@ const BLOCKER_MESSAGE_KEYS: Record<
   nothingClaimable: 'ark.exit.claim.blocker.nothingClaimable'
 }
 
-const DEFAULT_FEE_SPEED: ArkExitClaimFeeSpeed = 'regular'
+function ArkExitsHeaderTitle() {
+  return <SSText uppercase>{t('ark.exit.title')}</SSText>
+}
+
+const SCREEN_OPTIONS = { headerTitle: ArkExitsHeaderTitle }
+
+async function handleCopyTxid(txid: string) {
+  const copied = await setClipboard(txid)
+  if (copied) {
+    toast.success(t('common.copiedToClipboard'))
+  }
+}
 
 export default function ArkExitsPage() {
   const { privacyMode } = useDisplayPreferences()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const account = useArkStore(
-    useShallow((state) => state.accounts.find((a) => a.id === id))
-  )
   const bitcoinAccounts = useAccountsStore((state) => state.accounts)
 
   const exitsQuery = useArkExits(id)
-  const claims = useArkExitClaims(id)
-  const feeRatesQuery = useArkOnchainFeeRates(id)
-  const claimMutation = useArkExitClaim(id)
-  const retryMutation = useArkExitClaimRetry(id)
-  const discardMutation = useArkExitClaimDiscard(id)
-  const fundingMutation = useArkExitFunding(id)
   const refreshExits = useArkExitsRefresh(id)
-
-  const [pickedDestinationId, setPickedDestinationId] = useState<string>()
-  const [pickedFundingId, setPickedFundingId] = useState<string>()
-  const [feeSpeed, setFeeSpeed] =
-    useState<ArkExitClaimFeeSpeed>(DEFAULT_FEE_SPEED)
-
-  const unit = t('bitcoin.sats')
   const exits = exitsQuery.data
   const sortedExits = sortArkExits(exits ?? [])
-  const claimable = getClaimableArkExits(exits ?? [])
-  const claimableSats = sumArkExitSats(claimable)
-  const unconfirmedIds = getUnconfirmedArkExits(exits ?? []).map(
-    (exit) => exit.vtxoId
-  )
+  const {
+    blocker,
+    claimMutation,
+    claimable,
+    claimableSats,
+    claims,
+    destination,
+    destinations,
+    discardMutation,
+    feeRate,
+    feeRatesQuery,
+    feeSpeed,
+    preview,
+    previewQuery,
+    retryMutation,
+    selectDestination,
+    selectFeeSpeed,
+    submission
+  } = useArkExitClaimFlow(id, exits)
+  const funding = useArkExitFundingFlow(id, exits)
 
-  const destinations = account
-    ? getArkSweepDestinations(bitcoinAccounts, account.network)
-    : []
-  const destination =
-    destinations.find((candidate) => candidate.id === pickedDestinationId) ??
-    destinations[0]
-  const feeRate = getArkExitClaimFeeRate(feeRatesQuery.data, feeSpeed)
-  const blocker = getArkExitClaimBlocker({
-    exits,
-    hasDestination: !!destination,
-    pendingClaims: claims
-  })
-  const previewQuery = useArkExitClaimPreview(
-    !blocker && destination && feeRate !== undefined
-      ? {
-          arkAccountId: id,
-          destinationAccountId: destination.id,
-          feeRateSatPerVb: feeRate
-        }
-      : undefined
-  )
-  const preview = previewQuery.isPlaceholderData ? undefined : previewQuery.data
-  const canClaim =
-    !blocker && !!preview && feeRate !== undefined && !claimMutation.isPending
-
-  const feeEstimateQuery = useArkExitFeeEstimate({
-    accountId: id,
-    enabled: unconfirmedIds.length > 0,
-    poll: true,
-    vtxoIds: unconfirmedIds
-  })
-  const { balanceQuery: fundingBalanceQuery, funding } = useArkExitFeeFunding({
-    accountId: id,
-    enabled: unconfirmedIds.length > 0,
-    exitBroadcastFeeSats: feeEstimateQuery.data?.exitBroadcastFeeSats
-  })
-  const fundingError = feeEstimateQuery.error ?? fundingBalanceQuery.error
-  const shortfallSats = funding?.shortfallSats ?? 0
-  const incomingFundingSats = getArkExitIncomingFundingSats(funding)
-  const fundingAmountSats = getArkExitFundingAmount(shortfallSats)
-  const fundingSources = account
-    ? getArkExitFundingSources(bitcoinAccounts, account.network)
-    : []
-  const fundingSource =
-    fundingSources.find((source) => source.id === pickedFundingId) ??
-    fundingSources[0]
+  const unit = t('bitcoin.sats')
 
   function satsLabel(amountSats: number) {
     return `${formatMaskedNumber(amountSats, privacyMode)} ${unit}`
@@ -149,13 +90,6 @@ export default function ArkExitsPage() {
 
   function destinationName(accountId: string) {
     return bitcoinAccounts.find((candidate) => candidate.id === accountId)?.name
-  }
-
-  async function handleCopyTxid(txid: string) {
-    const copied = await setClipboard(txid)
-    if (copied) {
-      toast.success(t('common.copiedToClipboard'))
-    }
   }
 
   function handleRefresh() {
@@ -170,20 +104,9 @@ export default function ArkExitsPage() {
     feeRatesQuery.refetch()
   }
 
-  function handleRetryFeeEstimate() {
-    feeEstimateQuery.refetch()
-    fundingBalanceQuery.refetch()
-  }
-
   function handleClaim() {
-    if (!canClaim || !destination || !preview || feeRate === undefined) {
+    if (!submission) {
       return
-    }
-    const submission = {
-      approved: preview,
-      arkAccountId: id,
-      destinationAccountId: destination.id,
-      feeRateSatPerVb: feeRate
     }
     claimMutation.mutate(submission, {
       onError: (error) => {
@@ -217,14 +140,10 @@ export default function ArkExitsPage() {
   }
 
   function handleFund() {
-    if (!fundingSource) {
+    if (!funding.fundingInput) {
       return
     }
-    const fundingInput = {
-      amountSats: fundingAmountSats,
-      fundingAccountId: fundingSource.id
-    }
-    fundingMutation.mutate(fundingInput, {
+    funding.fundingMutation.mutate(funding.fundingInput, {
       onError: (error) => {
         toast.error(`${t('ark.exit.funding.error.generic')}: ${error.message}`)
       }
@@ -233,11 +152,7 @@ export default function ArkExitsPage() {
 
   return (
     <SSMainLayout>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{t('ark.exit.title')}</SSText>
-        }}
-      />
+      <Stack.Screen options={SCREEN_OPTIONS} />
       <SSScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -269,35 +184,35 @@ export default function ArkExitsPage() {
             </SSText>
           )}
 
-          {fundingError && (
+          {funding.error && (
             <SSText
               size="sm"
               center
               style={styles.warningText}
-              onPress={handleRetryFeeEstimate}
+              onPress={funding.retry}
             >
               {t('ark.exit.funding.error.estimate', {
-                reason: fundingError.message
+                reason: funding.error.message
               })}
             </SSText>
           )}
 
-          {shortfallSats > 0 && (
+          {funding.shortfallSats > 0 && (
             <SSVStack gap="sm" style={styles.panel}>
               <SSVStack gap="xxs">
                 <SSText uppercase>{t('ark.exit.funding.title')}</SSText>
                 <SSText size="sm" style={styles.warningText}>
                   {t('ark.exit.funding.description', {
-                    amount: satsLabel(shortfallSats)
+                    amount: satsLabel(funding.shortfallSats)
                   })}
                 </SSText>
               </SSVStack>
-              {fundingSources.length === 0 && (
+              {funding.sources.length === 0 && (
                 <SSText color="muted" size="xs">
                   {t('ark.exit.funding.noSource')}
                 </SSText>
               )}
-              {fundingSources.map((source) => (
+              {funding.sources.map((source) => (
                 <SSWalletSourceRow
                   key={source.id}
                   id={source.id}
@@ -305,30 +220,30 @@ export default function ArkExitsPage() {
                   subtitle={getAccountKindLabelFromAccount(source)}
                   availableSats={getAccountTotalBalance(source.summary)}
                   privacyMode={privacyMode}
-                  selected={source.id === fundingSource?.id}
-                  onSelect={setPickedFundingId}
+                  selected={source.id === funding.source?.id}
+                  onSelect={funding.selectSource}
                 />
               ))}
-              {fundingSource && (
+              {funding.source && (
                 <SSButton
                   label={t('ark.exit.funding.action', {
-                    amount: satsLabel(fundingAmountSats),
-                    name: fundingSource.name
+                    amount: satsLabel(funding.amountSats),
+                    name: funding.source.name
                   })}
                   onPress={handleFund}
-                  loading={fundingMutation.isPending}
+                  loading={funding.fundingMutation.isPending}
                   variant="secondary"
                 />
               )}
             </SSVStack>
           )}
 
-          {incomingFundingSats > 0 && (
+          {funding.incomingSats > 0 && (
             <SSVStack gap="xxs" style={styles.panel}>
               <SSText uppercase>{t('ark.exit.funding.confirmingTitle')}</SSText>
               <SSText color="muted" size="sm">
                 {t('ark.exit.funding.confirmingDescription', {
-                  amount: satsLabel(incomingFundingSats)
+                  amount: satsLabel(funding.incomingSats)
                 })}
               </SSText>
             </SSVStack>
@@ -380,7 +295,7 @@ export default function ArkExitsPage() {
                   availableSats={getAccountTotalBalance(candidate.summary)}
                   privacyMode={privacyMode}
                   selected={candidate.id === destination?.id}
-                  onSelect={setPickedDestinationId}
+                  onSelect={selectDestination}
                 />
               ))}
 
@@ -405,7 +320,7 @@ export default function ArkExitsPage() {
                       rate: feeRatesQuery.data.fastSatPerVb
                     })
                   }}
-                  onChange={setFeeSpeed}
+                  onChange={selectFeeSpeed}
                 />
               )}
               {feeRatesQuery.error && (
@@ -471,7 +386,7 @@ export default function ArkExitsPage() {
                 }
                 onPress={handleClaim}
                 loading={claimMutation.isPending}
-                disabled={!canClaim}
+                disabled={!submission}
                 variant="secondary"
               />
             </SSVStack>

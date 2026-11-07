@@ -1,4 +1,5 @@
 import {
+  findByIdOrFirst,
   groupBy,
   indexFirstBy,
   isNumberArray,
@@ -98,5 +99,22 @@ describe('indexFirstBy', () => {
     expect(indexed.get('a')).toBe(rows.find((row) => row.id === 'a'))
     expect(indexed.get('b')).toStrictEqual({ id: 'b', v: 2 })
     expect(indexed.get('c')).toBeUndefined()
+  })
+})
+
+describe('findByIdOrFirst', () => {
+  const items = [{ id: 'a' }, { id: 'b' }]
+
+  it('returns the picked item', () => {
+    expect(findByIdOrFirst(items, 'b')).toBe(items[1])
+  })
+
+  it('falls back to the first item when nothing valid was picked', () => {
+    expect(findByIdOrFirst(items, undefined)).toBe(items[0])
+    expect(findByIdOrFirst(items, 'gone')).toBe(items[0])
+  })
+
+  it('is undefined for an empty list', () => {
+    expect(findByIdOrFirst([], 'a')).toBeUndefined()
   })
 })
