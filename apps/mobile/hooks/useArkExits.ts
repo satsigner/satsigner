@@ -41,7 +41,7 @@ import { invalidateArkBoardQueries } from './useArkBoard'
 import { arkExitFeeEstimateQueryKey } from './useArkExitFeeEstimate'
 import { useArkWallet } from './useArkWallet'
 
-function arkExitsQueryKey(accountId: string | null | undefined) {
+export function arkExitsQueryKey(accountId: string | null | undefined) {
   return ['ark', 'exits', accountId]
 }
 
