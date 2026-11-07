@@ -100,12 +100,13 @@ export function useArkOnchainFeeRates(accountId: string | null | undefined) {
 }
 
 export function useArkExitClaimPreview(
-  request: ArkExitClaimRequest | undefined
+  request: ArkExitClaimRequest | undefined,
+  claimableIds: string[]
 ) {
   return useQuery({
     placeholderData: keepPreviousData,
     queryFn: request ? () => previewArkExitClaim(request) : skipToken,
-    queryKey: ['ark', 'exit-claim-preview', request],
+    queryKey: ['ark', 'exit-claim-preview', request, claimableIds.toSorted()],
     retry: false,
     staleTime: ARK_QUERY_STALE_TIME_MS
   })

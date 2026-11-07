@@ -65,7 +65,8 @@ export function useArkExitClaimFlow(
           destinationAccountId: destination.id,
           feeRateSatPerVb: feeRate
         }
-      : undefined
+      : undefined,
+    claimable.map((exit) => exit.vtxoId)
   )
   const preview = previewQuery.isPlaceholderData ? undefined : previewQuery.data
   const submission =
@@ -73,6 +74,7 @@ export function useArkExitClaimFlow(
     destination &&
     preview &&
     feeRate !== undefined &&
+    !previewQuery.isFetching &&
     !claimMutation.isPending
       ? {
           approved: preview,
