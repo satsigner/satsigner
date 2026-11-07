@@ -36,10 +36,7 @@ export function getArkNextExpiryHeight(vtxos: ArkVtxo[]): number | null {
   return Math.min(...spendableHeights)
 }
 
-export function sumArkVtxoSats(
-  vtxos: ArkVtxo[],
-  ids: ReadonlySet<string>
-): number {
+export function sumArkVtxoSats(vtxos: ArkVtxo[], ids: Set<string>): number {
   return vtxos.reduce(
     (total, vtxo) => (ids.has(vtxo.id) ? total + vtxo.amountSats : total),
     0
@@ -55,34 +52,101 @@ export function isArkVtxoBusy(vtxoId: string, busy: ArkBusyVtxoIds): boolean {
   return busy.exiting.has(vtxoId) || busy.inRound.has(vtxoId)
 }
 
-type ArkAvailableSats = Pick<ArkBalance, 'needsRefreshSats' | 'spendableSats'>
+export type ArkRefreshThresholds = {
+  maxExitDepth?: number
+  tipHeight?: number
+}
 
-function takeAvailableSats(balance: ArkAvailableSats, sats: number) {
-  const needsRefreshSats = balance.needsRefreshSats ?? 0
-  const fromSpendable = Math.min(balance.spendableSats, sats)
-  const fromNeedsRefresh = Math.min(needsRefreshSats, sats - fromSpendable)
+export function isArkVtxoNeedingRefresh(
+  vtxo: ArkVtxo,
+  { maxExitDepth, tipHeight }: ArkRefreshThresholds
+): boolean {
+  const expired = tipHeight !== undefined && vtxo.expiryHeight <= tipHeight
+  const tooDeep = maxExitDepth !== undefined && vtxo.exitDepth >= maxExitDepth
+  return expired || tooDeep
+}
+
+type ArkAvailableSats = {
+  needsRefreshSats: number
+  spendableSats: number
+}
+
+function totalArkVtxoSats(vtxos: ArkVtxo[]): number {
+  return vtxos.reduce((total, vtxo) => total + vtxo.amountSats, 0)
+}
+
+function splitArkAvailableSats(
+  vtxos: ArkVtxo[],
+  thresholds: ArkRefreshThresholds
+): ArkAvailableSats {
+  const needsRefreshSats = totalArkVtxoSats(
+    vtxos.filter((vtxo) => isArkVtxoNeedingRefresh(vtxo, thresholds))
+  )
   return {
-    needsRefreshSats: needsRefreshSats - fromNeedsRefresh,
-    spendableSats: balance.spendableSats - fromSpendable,
-    takenSats: fromSpendable + fromNeedsRefresh
+    needsRefreshSats,
+    spendableSats: totalArkVtxoSats(vtxos) - needsRefreshSats
+  }
+}
+
+function takeSats(available: number, wanted: number) {
+  const taken = Math.min(available, wanted)
+  return { left: available - taken, taken }
+}
+
+// bark sorts VTXOs into buckets against its own chain tip, which can be a
+// block apart from ours, so a shortfall in one bucket comes out of the other
+// and the total stays put.
+function takeAvailableSats(
+  available: ArkAvailableSats,
+  wanted: ArkAvailableSats
+) {
+  const spendable = takeSats(available.spendableSats, wanted.spendableSats)
+  const needsRefresh = takeSats(
+    available.needsRefreshSats,
+    wanted.needsRefreshSats
+  )
+  const shortSats =
+    wanted.spendableSats +
+    wanted.needsRefreshSats -
+    spendable.taken -
+    needsRefresh.taken
+  const spendableOverflow = takeSats(spendable.left, shortSats)
+  const needsRefreshOverflow = takeSats(
+    needsRefresh.left,
+    shortSats - spendableOverflow.taken
+  )
+  return {
+    needsRefreshSats: needsRefreshOverflow.left,
+    spendableSats: spendableOverflow.left,
+    takenSats:
+      spendable.taken +
+      needsRefresh.taken +
+      spendableOverflow.taken +
+      needsRefreshOverflow.taken
   }
 }
 
 export function moveBusyArkVtxosOutOfSpendable(
   balance: ArkBalance,
   spendableVtxos: ArkVtxo[],
-  busy: ArkBusyVtxoIds
+  busy: ArkBusyVtxoIds,
+  thresholds: ArkRefreshThresholds
 ): ArkBalance {
-  const inRoundOnly = new Set(
-    [...busy.inRound].filter((id) => !busy.exiting.has(id))
+  const exiting = spendableVtxos.filter((vtxo) => busy.exiting.has(vtxo.id))
+  const inRound = spendableVtxos.filter(
+    (vtxo) => busy.inRound.has(vtxo.id) && !busy.exiting.has(vtxo.id)
   )
+  const available = {
+    needsRefreshSats: balance.needsRefreshSats ?? 0,
+    spendableSats: balance.spendableSats
+  }
   const afterExits = takeAvailableSats(
-    balance,
-    sumArkVtxoSats(spendableVtxos, busy.exiting)
+    available,
+    splitArkAvailableSats(exiting, thresholds)
   )
   const afterRounds = takeAvailableSats(
     afterExits,
-    sumArkVtxoSats(spendableVtxos, inRoundOnly)
+    splitArkAvailableSats(inRound, thresholds)
   )
   return {
     ...balance,

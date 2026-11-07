@@ -61,6 +61,7 @@ type FakeWallet = Record<string, jest.Mock>
 function buildFakeWallet(overrides: Partial<FakeWallet> = {}): FakeWallet {
   return {
     allVtxos: jest.fn().mockResolvedValue([]),
+    arkInfo: jest.fn().mockResolvedValue(undefined),
     balance: jest.fn(),
     bolt11Invoice: jest.fn(),
     estimateArkoorPaymentFee: jest.fn(),
@@ -412,6 +413,65 @@ describe('bark provider', () => {
       pendingExitSats: 2000,
       spendableSats: 25_000
     })
+  })
+
+  it('fetchBalance takes a queued refresh of a too-deep vtxo from needs-refresh', async () => {
+    const wallet = buildFakeWallet({
+      arkInfo: jest.fn().mockResolvedValue({ maxVtxoExitDepth: 10 }),
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 5000n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 10_000n
+      }),
+      history: jest.fn().mockResolvedValue([
+        {
+          inputVtxoIds: ['deep'],
+          status: 'pending',
+          subsystemKind: 'round',
+          subsystemName: 'bark.refresh'
+        }
+      ]),
+      spendableVtxos: jest.fn().mockResolvedValue([
+        { ...buildFakeVtxo('free', 10_000n, 500), exitDepth: 1 },
+        { ...buildFakeVtxo('deep', 5000n, 500), exitDepth: 10 }
+      ])
+    })
+    await openWallet('busy3', wallet)
+    await expect(provider.fetchBalance('busy3')).resolves.toMatchObject({
+      needsRefreshSats: 0,
+      pendingInRoundSats: 5000,
+      spendableSats: 10_000
+    })
+  })
+
+  it('fetchBalance skips the refresh thresholds when no vtxo is busy', async () => {
+    const wallet = buildFakeWallet({
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 0n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 1000n
+      }),
+      spendableVtxos: jest
+        .fn()
+        .mockResolvedValue([buildFakeVtxo('free', 1000n, 10)])
+    })
+    await openWallet('busy4', wallet)
+    await expect(provider.fetchBalance('busy4')).resolves.toMatchObject({
+      spendableSats: 1000
+    })
+    expect(wallet.arkInfo).not.toHaveBeenCalled()
   })
 
   it('fetchVtxoState returns the state tag of the VTXO', async () => {

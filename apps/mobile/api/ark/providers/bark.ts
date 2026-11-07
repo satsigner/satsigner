@@ -72,6 +72,7 @@ import {
 } from '@/utils/arkMovement'
 import {
   type ArkBusyVtxoIds,
+  type ArkRefreshThresholds,
   filterCurrentArkVtxos,
   isArkVtxoBusy,
   moveBusyArkVtxosOutOfSpendable
@@ -1075,11 +1076,30 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
     pendingOffboardSats: Number(balance.pendingOffboardSats),
     spendableSats: Number(balance.spendableSats)
   }
+  const spendableVtxos = spendable.map((vtxo) => mapVtxo(vtxo, true))
+  if (!spendableVtxos.some((vtxo) => isArkVtxoBusy(vtxo.id, busy))) {
+    return barkBalance
+  }
+  const thresholds = await fetchRefreshThresholds(accountId, wallet)
   return moveBusyArkVtxosOutOfSpendable(
     barkBalance,
-    spendable.map((vtxo) => mapVtxo(vtxo, true)),
-    busy
+    spendableVtxos,
+    busy,
+    thresholds
   )
+}
+
+// Mirrors how bark splits needs-refresh from spendable. Like bark, judge only
+// what is known when the tip or the server info is unavailable.
+async function fetchRefreshThresholds(
+  accountId: string,
+  wallet: WalletLike
+): Promise<ArkRefreshThresholds> {
+  const [tipHeight, info] = await Promise.all([
+    fetchTipHeight(accountId).catch(() => undefined),
+    wallet.arkInfo().catch(() => undefined)
+  ])
+  return { maxExitDepth: info?.maxVtxoExitDepth, tipHeight }
 }
 
 function fetchTipHeight(accountId: string): Promise<number> {
