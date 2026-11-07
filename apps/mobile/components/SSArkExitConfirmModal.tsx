@@ -5,10 +5,11 @@ import SSButton from '@/components/SSButton'
 import SSDetailRow from '@/components/SSDetailRow'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import { type ArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { type ArkEmergencyExitFee } from '@/types/models/Ark'
+import { type ArkExitFunding } from '@/utils/arkExit'
 import { formatMaskedNumber } from '@/utils/format'
 
 const WARNING_ICON_SIZE = 20
@@ -16,7 +17,9 @@ const WARNING_ICON_SIZE = 20
 type SSArkExitConfirmModalProps = {
   visible: boolean
   title: string
-  estimate: ArkExitFeeEstimate | undefined
+  estimate: ArkEmergencyExitFee | undefined
+  // Missing until the on-chain wallet that pays the exit fees has been read.
+  funding: ArkExitFunding | undefined
   estimateLoading: boolean
   estimateFailed: boolean
   nearExpiryCount: number | undefined
@@ -33,6 +36,7 @@ function SSArkExitConfirmModal({
   visible,
   title,
   estimate,
+  funding,
   estimateLoading,
   estimateFailed,
   nearExpiryCount,
@@ -114,14 +118,16 @@ function SSArkExitConfirmModal({
                   feeRate: estimate.feeRateSatPerVb
                 })}
               />
-              <SSDetailRow
-                label={t('ark.exit.fee.onchainWallet')}
-                value={satsLabel(estimate.onchainConfirmedSats)}
-              />
-              {estimate.onchainPendingSats > 0 && (
+              {funding && (
+                <SSDetailRow
+                  label={t('ark.exit.fee.onchainWallet')}
+                  value={satsLabel(funding.onchainConfirmedSats)}
+                />
+              )}
+              {funding && funding.onchainPendingSats > 0 && (
                 <SSDetailRow
                   label={t('ark.exit.fee.onchainIncoming')}
-                  value={satsLabel(estimate.onchainPendingSats)}
+                  value={satsLabel(funding.onchainPendingSats)}
                 />
               )}
             </View>
@@ -130,11 +136,11 @@ function SSArkExitConfirmModal({
             </SSText>
           </SSVStack>
         )}
-        {estimate && estimate.shortfallSats > 0 && (
+        {funding && funding.shortfallSats > 0 && (
           <View style={styles.notice}>
             <SSText size="sm" style={styles.warningText}>
               {t('ark.exit.fundingShortfall', {
-                amount: satsLabel(estimate.shortfallSats)
+                amount: satsLabel(funding.shortfallSats)
               })}
             </SSText>
           </View>

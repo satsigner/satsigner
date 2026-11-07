@@ -11,7 +11,10 @@ import SSDetailRow from '@/components/SSDetailRow'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSText from '@/components/SSText'
 import SSWalletSourceRow from '@/components/SSWalletSourceRow'
-import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import {
+  useArkExitFeeEstimate,
+  useArkExitFeeFunding
+} from '@/hooks/useArkExitFeeEstimate'
 import {
   useArkExitClaim,
   useArkExitClaimPreview,
@@ -40,6 +43,7 @@ import {
   getArkExitClaimBlocker,
   getArkExitClaimFeeRate,
   getArkExitFundingAmount,
+  getArkExitIncomingFundingSats,
   getArkExitFundingSources,
   getClaimableArkExits,
   getUnconfirmedArkExits,
@@ -123,10 +127,14 @@ export default function ArkExitsPage() {
     poll: true,
     vtxoIds: unconfirmedIds
   })
-  const shortfallSats = feeEstimateQuery.data?.shortfallSats ?? 0
-  const incomingFundingSats = feeEstimateQuery.data?.fundingConfirming
-    ? feeEstimateQuery.data.onchainPendingSats
-    : 0
+  const { balanceQuery: fundingBalanceQuery, funding } = useArkExitFeeFunding({
+    accountId: id,
+    enabled: unconfirmedIds.length > 0,
+    exitBroadcastFeeSats: feeEstimateQuery.data?.exitBroadcastFeeSats
+  })
+  const fundingError = feeEstimateQuery.error ?? fundingBalanceQuery.error
+  const shortfallSats = funding?.shortfallSats ?? 0
+  const incomingFundingSats = getArkExitIncomingFundingSats(funding)
   const fundingAmountSats = getArkExitFundingAmount(shortfallSats)
   const fundingSources = account
     ? getArkExitFundingSources(bitcoinAccounts, account.network)
@@ -164,6 +172,7 @@ export default function ArkExitsPage() {
 
   function handleRetryFeeEstimate() {
     feeEstimateQuery.refetch()
+    fundingBalanceQuery.refetch()
   }
 
   function handleClaim() {
@@ -260,7 +269,7 @@ export default function ArkExitsPage() {
             </SSText>
           )}
 
-          {feeEstimateQuery.error && (
+          {fundingError && (
             <SSText
               size="sm"
               center
@@ -268,7 +277,7 @@ export default function ArkExitsPage() {
               onPress={handleRetryFeeEstimate}
             >
               {t('ark.exit.funding.error.estimate', {
-                reason: feeEstimateQuery.error.message
+                reason: fundingError.message
               })}
             </SSText>
           )}

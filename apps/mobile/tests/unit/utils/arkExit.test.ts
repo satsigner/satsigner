@@ -13,9 +13,11 @@ import {
   getArkExitClaimBlocker,
   getArkExitClaimFeeRate,
   getArkExitConfirmationRatio,
+  getArkExitFunding,
   getArkExitFundingAmount,
   getArkExitFundingShortfall,
   getArkExitFundingSources,
+  getArkExitIncomingFundingSats,
   getNewlyClaimableArkExitIds,
   getUnconfirmedArkExits,
   isArkExitFundingConfirming,
@@ -429,5 +431,52 @@ describe('exit funding', () => {
       'mempool',
       'small'
     ])
+  })
+})
+
+describe('getArkExitFunding', () => {
+  it('reports the shortfall left after confirmed and incoming funds', () => {
+    expect(
+      getArkExitFunding({
+        exitBroadcastFeeSats: 10_000,
+        onchainConfirmedSats: 3000,
+        onchainPendingSats: 2000
+      })
+    ).toStrictEqual({
+      confirming: false,
+      onchainConfirmedSats: 3000,
+      onchainPendingSats: 2000,
+      shortfallSats: 5000
+    })
+  })
+
+  it('marks funds as confirming once incoming sats cover the fee', () => {
+    expect(
+      getArkExitFunding({
+        exitBroadcastFeeSats: 10_000,
+        onchainConfirmedSats: 3000,
+        onchainPendingSats: 8000
+      })
+    ).toMatchObject({ confirming: true, shortfallSats: 0 })
+  })
+})
+
+describe('getArkExitIncomingFundingSats', () => {
+  const funding = {
+    confirming: true,
+    onchainConfirmedSats: 0,
+    onchainPendingSats: 4000,
+    shortfallSats: 0
+  }
+
+  it('counts incoming sats only while they cover the fee', () => {
+    expect(getArkExitIncomingFundingSats(funding)).toBe(4000)
+    expect(
+      getArkExitIncomingFundingSats({ ...funding, confirming: false })
+    ).toBe(0)
+  })
+
+  it('is zero before the on-chain wallet was read', () => {
+    expect(getArkExitIncomingFundingSats(undefined)).toBe(0)
   })
 })

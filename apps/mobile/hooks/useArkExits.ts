@@ -68,6 +68,9 @@ export function useArkExitsRefresh(accountId: string) {
       queryClient.invalidateQueries({ queryKey: arkExitsQueryKey(accountId) }),
       queryClient.invalidateQueries({
         queryKey: arkExitFeeEstimateQueryKey(accountId)
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['ark', 'onchain-balance', accountId]
       })
     ])
 }

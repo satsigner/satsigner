@@ -224,6 +224,29 @@ function isArkExitFundingConfirming(balance: ArkExitFundingBalance): boolean {
   )
 }
 
+type ArkExitFunding = {
+  confirming: boolean
+  onchainConfirmedSats: number
+  onchainPendingSats: number
+  shortfallSats: number
+}
+
+function getArkExitFunding(balance: ArkExitFundingBalance): ArkExitFunding {
+  return {
+    confirming: isArkExitFundingConfirming(balance),
+    onchainConfirmedSats: balance.onchainConfirmedSats,
+    onchainPendingSats: balance.onchainPendingSats,
+    shortfallSats: getArkExitFundingShortfall(balance)
+  }
+}
+
+/** Incoming on-chain sats that already cover the exit fees once they confirm. */
+function getArkExitIncomingFundingSats(
+  funding: ArkExitFunding | undefined
+): number {
+  return funding?.confirming ? funding.onchainPendingSats : 0
+}
+
 function getArkExitFundingAmount(shortfallSats: number): number {
   return Math.max(shortfallSats, DUST_LIMIT)
 }
@@ -262,6 +285,7 @@ function getArkExitsRoute(accountId: string): Href {
 export {
   type ArkExitClaimBlocker,
   type ArkExitClaimFeeSpeed,
+  type ArkExitFunding,
   type ArkExitSummary,
   type ArkExitTone,
   countArkVtxosNearExpiry,
@@ -269,7 +293,9 @@ export {
   getArkExitClaimBlocker,
   getArkExitClaimFeeRate,
   getArkExitConfirmationRatio,
+  getArkExitFunding,
   getArkExitFundingAmount,
+  getArkExitIncomingFundingSats,
   getArkExitFundingShortfall,
   isArkExitFundingConfirming,
   getArkExitFundingSources,

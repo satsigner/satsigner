@@ -50,7 +50,10 @@ import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
 import { useArkAutoBoard, useArkOnchainBalance } from '@/hooks/useArkBoard'
 import { useArkExit } from '@/hooks/useArkExit'
-import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import {
+  useArkExitFeeEstimate,
+  useArkExitFeeFunding
+} from '@/hooks/useArkExitFeeEstimate'
 import { useArkExits } from '@/hooks/useArkExits'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLabels } from '@/hooks/useArkLabels'
@@ -197,6 +200,11 @@ export default function ArkAccountDetailPage() {
     accountId: id,
     enabled: exitModalVisible,
     vtxoIds: selectedSpendableIds
+  })
+  const { funding: exitFunding } = useArkExitFeeFunding({
+    accountId: id,
+    enabled: exitModalVisible,
+    exitBroadcastFeeSats: exitFeeQuery.data?.exitBroadcastFeeSats
   })
   const nearExpiryCount = countArkVtxosNearExpiry(
     selectedVtxos,
@@ -960,6 +968,7 @@ export default function ArkAccountDetailPage() {
           count: selectedSpendableIds.length
         })}
         estimate={exitFeeQuery.data}
+        funding={exitFunding}
         estimateLoading={exitFeeQuery.isLoading}
         estimateFailed={Boolean(exitFeeQuery.error)}
         nearExpiryCount={nearExpiryCount}

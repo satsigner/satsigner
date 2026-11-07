@@ -19,7 +19,10 @@ import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import { useArkDeleteAccount } from '@/hooks/useArkDeleteAccount'
 import { useArkExit } from '@/hooks/useArkExit'
-import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import {
+  useArkExitFeeEstimate,
+  useArkExitFeeFunding
+} from '@/hooks/useArkExitFeeEstimate'
 import { useArkExportDatadir } from '@/hooks/useArkExportDatadir'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
@@ -71,6 +74,11 @@ export default function ArkAccountSettingsPage() {
     accountId: id,
     enabled: exitModalVisible,
     vtxoIds: allVtxos.map((vtxo) => vtxo.id)
+  })
+  const { funding: exitFunding } = useArkExitFeeFunding({
+    accountId: id,
+    enabled: exitModalVisible,
+    exitBroadcastFeeSats: exitFeeQuery.data?.exitBroadcastFeeSats
   })
   const nearExpiryCount = countArkVtxosNearExpiry(allVtxos, tipHeightQuery.data)
 
@@ -323,6 +331,7 @@ export default function ArkAccountSettingsPage() {
         visible={exitModalVisible}
         title={t('ark.exit.allConfirmTitle')}
         estimate={exitFeeQuery.data}
+        funding={exitFunding}
         estimateLoading={exitFeeQuery.isLoading}
         estimateFailed={Boolean(exitFeeQuery.error)}
         nearExpiryCount={nearExpiryCount}
