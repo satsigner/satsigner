@@ -66,8 +66,17 @@ import type {
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'
 import { ArkOperationBusyError } from '@/utils/arkError'
-import { isArkRefreshMovement } from '@/utils/arkMovement'
-import { filterCurrentArkVtxos } from '@/utils/arkVtxo'
+import {
+  getQueuedRefreshInputVtxoIds,
+  isArkRefreshMovement
+} from '@/utils/arkMovement'
+import {
+  type ArkBusyVtxoIds,
+  type ArkRefreshThresholds,
+  filterCurrentArkVtxos,
+  isArkVtxoBusy,
+  moveBusyArkVtxosOutOfSpendable
+} from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 
 const walletCache = new Map<string, WalletLike>()
@@ -530,21 +539,46 @@ function mapVtxo(vtxo: Vtxo, spendable: boolean): ArkVtxo {
   }
 }
 
+// bark keeps a VTXO spendable until its exit commits on-chain or its queued
+// refresh round starts, so it could be picked again and spent twice. Inputs
+// of a started round are already locked and outside spendableVtxos.
+async function fetchBusyVtxoIds(wallet: WalletLike): Promise<ArkBusyVtxoIds> {
+  const [exitVtxos, movements] = await Promise.all([
+    wallet.getExitVtxos(),
+    wallet.history()
+  ])
+  const liveExits = exitVtxos.filter(
+    (exit) => exit.state.tag !== ExitState_Tags.Canceled
+  )
+  return {
+    exiting: new Set(liveExits.map((exit) => exit.vtxoId)),
+    inRound: new Set(getQueuedRefreshInputVtxoIds(movements))
+  }
+}
+
 async function listSpendableVtxos(accountId: string): Promise<ArkVtxo[]> {
   const wallet = getCachedWallet(accountId)
-  const vtxos = await wallet.spendableVtxos()
-  return vtxos.map((vtxo) => mapVtxo(vtxo, true))
+  const [vtxos, busy] = await Promise.all([
+    wallet.spendableVtxos(),
+    fetchBusyVtxoIds(wallet)
+  ])
+  return vtxos
+    .filter((vtxo) => !isArkVtxoBusy(vtxo.id, busy))
+    .map((vtxo) => mapVtxo(vtxo, true))
 }
 
 async function listAllVtxos(accountId: string): Promise<ArkVtxo[]> {
   const wallet = getCachedWallet(accountId)
-  const [all, spendable] = await Promise.all([
+  const [all, spendable, busy] = await Promise.all([
     wallet.allVtxos(),
-    wallet.spendableVtxos()
+    wallet.spendableVtxos(),
+    fetchBusyVtxoIds(wallet)
   ])
   const spendableIds = new Set(spendable.map((vtxo) => vtxo.id))
   return filterCurrentArkVtxos(
-    all.map((vtxo) => mapVtxo(vtxo, spendableIds.has(vtxo.id)))
+    all.map((vtxo) =>
+      mapVtxo(vtxo, spendableIds.has(vtxo.id) && !isArkVtxoBusy(vtxo.id, busy))
+    )
   )
 }
 
@@ -1024,8 +1058,12 @@ async function fetchServerInfo(
 
 async function fetchBalance(accountId: string): Promise<ArkBalance> {
   const wallet = getCachedWallet(accountId)
-  const balance = await wallet.balance()
-  return {
+  const [balance, spendable, busy] = await Promise.all([
+    wallet.balance(),
+    wallet.spendableVtxos(),
+    fetchBusyVtxoIds(wallet)
+  ])
+  const barkBalance = {
     claimableLightningReceiveSats: Number(
       balance.claimableLightningReceiveSats
     ),
@@ -1038,6 +1076,30 @@ async function fetchBalance(accountId: string): Promise<ArkBalance> {
     pendingOffboardSats: Number(balance.pendingOffboardSats),
     spendableSats: Number(balance.spendableSats)
   }
+  const spendableVtxos = spendable.map((vtxo) => mapVtxo(vtxo, true))
+  if (!spendableVtxos.some((vtxo) => isArkVtxoBusy(vtxo.id, busy))) {
+    return barkBalance
+  }
+  const thresholds = await fetchRefreshThresholds(accountId, wallet)
+  return moveBusyArkVtxosOutOfSpendable(
+    barkBalance,
+    spendableVtxos,
+    busy,
+    thresholds
+  )
+}
+
+// Mirrors how bark splits needs-refresh from spendable. Like bark, judge only
+// what is known when the tip or the server info is unavailable.
+async function fetchRefreshThresholds(
+  accountId: string,
+  wallet: WalletLike
+): Promise<ArkRefreshThresholds> {
+  const [tipHeight, info] = await Promise.all([
+    fetchTipHeight(accountId).catch(() => undefined),
+    wallet.arkInfo().catch(() => undefined)
+  ])
+  return { maxExitDepth: info?.maxVtxoExitDepth, tipHeight }
 }
 
 function fetchTipHeight(accountId: string): Promise<number> {

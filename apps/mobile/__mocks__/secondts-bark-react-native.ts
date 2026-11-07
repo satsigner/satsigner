@@ -57,7 +57,8 @@ function buildFakeOnchainWallet() {
   return {
     balance: jest.fn(),
     newAddress: jest.fn(),
-    sync: jest.fn()
+    sync: jest.fn(),
+    tipHeight: jest.fn(() => Promise.resolve(0))
   }
 }
 
