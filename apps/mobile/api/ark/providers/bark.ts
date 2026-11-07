@@ -551,7 +551,7 @@ async function fetchBusyVtxoIds(wallet: WalletLike): Promise<ArkBusyVtxoIds> {
   )
   return {
     exiting: new Set(liveExits.map((exit) => exit.vtxoId)),
-    inRound: new Set(getQueuedRefreshInputVtxoIds(movements.map(mapMovement)))
+    inRound: new Set(getQueuedRefreshInputVtxoIds(movements))
   }
 }
 

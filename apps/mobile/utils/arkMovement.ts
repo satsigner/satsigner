@@ -108,8 +108,11 @@ export function isArkRefreshMovement(movement: ArkMovementSubsystem): boolean {
   return matchesArkSubsystem(movement, REFRESH_SUBSYSTEM_KEYWORD)
 }
 
+type ArkMovementInputs = ArkMovementSubsystem &
+  Pick<ArkMovement, 'inputVtxoIds' | 'status'>
+
 export function getQueuedRefreshInputVtxoIds(
-  movements: ArkMovement[]
+  movements: ArkMovementInputs[]
 ): string[] {
   return movements
     .filter(
