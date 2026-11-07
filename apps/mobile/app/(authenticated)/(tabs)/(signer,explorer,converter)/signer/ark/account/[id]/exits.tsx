@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
 import { RefreshControl, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -12,6 +13,7 @@ import SSWalletSourceRow from '@/components/SSWalletSourceRow'
 import { useArkExitClaimFlow } from '@/hooks/useArkExitClaimFlow'
 import { useArkExitFundingFlow } from '@/hooks/useArkExitFundingFlow'
 import { useArkExits, useArkExitsRefresh } from '@/hooks/useArkExits'
+import { useArkWallet } from '@/hooks/useArkWallet'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -57,6 +59,7 @@ export default function ArkExitsPage() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const bitcoinAccounts = useAccountsStore((state) => state.accounts)
 
+  const walletQuery = useArkWallet(id)
   const exitsQuery = useArkExits(id)
   const refreshExits = useArkExitsRefresh(id)
   const exits = exitsQuery.data
@@ -83,6 +86,8 @@ export default function ArkExitsPage() {
   } = useArkExitClaimFlow(id, exits)
   const funding = useArkExitFundingFlow(id, exits)
 
+  const [refreshing, setRefreshing] = useState(false)
+  const loading = walletQuery.isLoading || exitsQuery.isLoading
   const unit = t('bitcoin.sats')
 
   function satsLabel(amountSats: number) {
@@ -93,8 +98,10 @@ export default function ArkExitsPage() {
     return bitcoinAccounts.find((candidate) => candidate.id === accountId)?.name
   }
 
-  function handleRefresh() {
-    refreshExits()
+  async function handleRefresh() {
+    setRefreshing(true)
+    await (walletQuery.error ? walletQuery.refetch() : refreshExits())
+    setRefreshing(false)
   }
 
   function handleRetryPreview() {
@@ -158,7 +165,7 @@ export default function ArkExitsPage() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={exitsQuery.isRefetching}
+            refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={Colors.white}
           />
@@ -169,9 +176,19 @@ export default function ArkExitsPage() {
             {t('ark.exit.description')}
           </SSText>
 
-          {exitsQuery.isLoading && (
+          {loading && (
             <SSText color="muted" size="sm" center>
               {t('common.loading')}
+            </SSText>
+          )}
+          {walletQuery.error && (
+            <SSText
+              size="sm"
+              center
+              style={styles.warningText}
+              onPress={handleRefresh}
+            >
+              {t('ark.error.walletLoad')}
             </SSText>
           )}
           {exitsQuery.error && (
