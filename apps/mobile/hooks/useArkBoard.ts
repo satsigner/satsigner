@@ -73,13 +73,16 @@ export function invalidateArkBoardQueries(
   ]).then(() => undefined)
 }
 
-export function useArkOnchainBalance(accountId: string | null | undefined) {
+export function useArkOnchainBalance(
+  accountId: string | null | undefined,
+  { enabled = true }: { enabled?: boolean } = {}
+) {
   const { data: walletReady } = useArkWallet(accountId)
   const updateOnchainBalance = useArkStore(
     (state) => state.updateOnchainBalance
   )
   return useQuery<ArkOnchainBalance, Error>({
-    enabled: Boolean(walletReady && accountId),
+    enabled: Boolean(enabled && walletReady && accountId),
     queryFn: async () => {
       if (!accountId) {
         throw new Error('Ark account id is required')

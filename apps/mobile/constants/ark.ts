@@ -9,11 +9,16 @@ export const ARK_BOARD_PAYJOIN_NATIVE_MISSING =
   'Bark native module is missing boardFundingAddress. Rebuild with @secondts/bark-react-native 0.21 or newer.'
 export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
-export const ARK_EXIT_TX_VBYTES_PER_LEVEL = 200
-export const ARK_EXIT_CPFP_CHILD_VBYTES_PER_LEVEL = 175
-export const ARK_EXIT_CLAIM_BASE_VBYTES = 50
-export const ARK_EXIT_CLAIM_VBYTES_PER_VTXO = 70
-export const ARK_EXIT_FEE_RATE_SAFETY_MULTIPLIER = 1.25
+// A claim paying more than this multiple of the chosen fee rate over its
+// signed size is refused before broadcast.
+export const ARK_EXIT_CLAIM_MAX_FEE_RATE_MULTIPLIER = 1.25
+// Live exits are re-read this often while one is visible; the wallet daemon
+// does the actual work of moving them forward.
+export const ARK_EXIT_POLL_INTERVAL_MS = 30_000
+// Accounts with a live exit are checked this often for exits that became
+// claimable, so the user hears about them anywhere in the app.
+export const ARK_EXIT_WATCH_INTERVAL_MS = 120_000
+export const ARK_EXIT_WATCH_QUERY_KEY = ['ark', 'exitWatcher']
 export const ARK_KIND_LABEL_KEYS: Record<ArkSendKind, string> = {
   arkoor: 'ark.send.kind.arkoor',
   bolt11: 'ark.send.kind.bolt11',

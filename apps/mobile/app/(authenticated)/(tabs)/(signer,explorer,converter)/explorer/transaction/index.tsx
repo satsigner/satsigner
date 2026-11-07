@@ -7,9 +7,7 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import BitcoinRpc from '@/api/rpc'
+import { broadcastRawTransaction } from '@/api/broadcast'
 import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
@@ -25,7 +23,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 import { formatTxId } from '@/utils/format'
 
 const tn = _tn('explorer.transaction')
@@ -73,32 +70,6 @@ function ExampleIoCount({
   )
 }
 
-async function broadcastRawTx(
-  hex: string,
-  url: string,
-  backend: Backend,
-  rpcCredentials?: RpcCredentials
-): Promise<string> {
-  if (backend === 'electrum') {
-    const client = await ElectrumClient.initClientFromUrl(url)
-    try {
-      return await client.broadcastTransactionHex(hex)
-    } finally {
-      client.close()
-    }
-  }
-  if (backend === 'rpc') {
-    const rpc = new BitcoinRpc(
-      url,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    return rpc.sendRawTransaction(hex)
-  }
-  const esplora = new Esplora(url)
-  return esplora.broadcastTransaction(hex)
-}
-
 export default function ExplorerTransaction() {
   const router = useRouter()
   const [inputTxid, setInputTxid] = useState('')
@@ -117,8 +88,7 @@ export default function ExplorerTransaction() {
   const inputType = detectInputType(inputTxid)
 
   const { mutate: broadcast, isPending: isBroadcasting } = useMutation({
-    mutationFn: (hex: string) =>
-      broadcastRawTx(hex, server.url, server.backend, server.rpcCredentials),
+    mutationFn: (hex: string) => broadcastRawTransaction(hex, server),
     onError: () => toast.error(tn('broadcastError')),
     onSuccess: (txid) => {
       toast.success(tn('broadcastSuccess'))
