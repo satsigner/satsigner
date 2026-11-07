@@ -31,6 +31,7 @@ type SSArkExitClaimRecordCardProps = {
   privacyMode: boolean
   retrying: boolean
   discarding: boolean
+  disabled: boolean
   onRetry: (txid: string) => void
   onDiscard: (txid: string) => void
   onCopyTxid: (txid: string) => void
@@ -42,13 +43,14 @@ function SSArkExitClaimRecordCard({
   privacyMode,
   retrying,
   discarding,
+  disabled,
   onRetry,
   onDiscard,
   onCopyTxid
 }: SSArkExitClaimRecordCardProps) {
   const unit = t('bitcoin.sats')
   const failed = record.broadcastStatus === 'failed'
-  const busy = retrying || discarding
+  const busy = retrying || discarding || disabled
 
   function handleRetry() {
     onRetry(record.txid)

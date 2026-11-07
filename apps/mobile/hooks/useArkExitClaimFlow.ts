@@ -47,6 +47,12 @@ export function useArkExitClaimFlow(
   const [feeSpeed, setFeeSpeed] =
     useState<ArkExitClaimFeeSpeed>(DEFAULT_FEE_SPEED)
 
+  // The service lock refuses overlapping claim work, so the panel holds still
+  // until the running one settles.
+  const claimBusy =
+    claimMutation.isPending ||
+    retryMutation.isPending ||
+    discardMutation.isPending
   const claimable = getClaimableArkExits(exits ?? [])
   const destinations = network
     ? getArkSweepDestinations(bitcoinAccounts, network)
@@ -75,7 +81,7 @@ export function useArkExitClaimFlow(
     preview &&
     feeRate !== undefined &&
     !previewQuery.isFetching &&
-    !claimMutation.isPending
+    !claimBusy
       ? {
           approved: preview,
           arkAccountId: accountId,
@@ -84,8 +90,21 @@ export function useArkExitClaimFlow(
         }
       : undefined
 
+  function selectDestination(destinationId: string) {
+    if (!claimBusy) {
+      setPickedDestinationId(destinationId)
+    }
+  }
+
+  function selectFeeSpeed(speed: ArkExitClaimFeeSpeed) {
+    if (!claimBusy) {
+      setFeeSpeed(speed)
+    }
+  }
+
   return {
     blocker,
+    claimBusy,
     claimMutation,
     claimable,
     claimableSats: sumArkExitSats(claimable),
@@ -99,8 +118,8 @@ export function useArkExitClaimFlow(
     preview,
     previewQuery,
     retryMutation,
-    selectDestination: setPickedDestinationId,
-    selectFeeSpeed: setFeeSpeed,
+    selectDestination,
+    selectFeeSpeed,
     submission
   }
 }

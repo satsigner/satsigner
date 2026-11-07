@@ -63,6 +63,7 @@ export default function ArkExitsPage() {
   const sortedExits = sortArkExits(exits ?? [])
   const {
     blocker,
+    claimBusy,
     claimMutation,
     claimable,
     claimableSats,
@@ -266,6 +267,7 @@ export default function ArkExitsPage() {
                     discardMutation.isPending &&
                     discardMutation.variables === record.txid
                   }
+                  disabled={claimBusy}
                   onRetry={handleRetryClaim}
                   onDiscard={handleDiscardClaim}
                   onCopyTxid={handleCopyTxid}
