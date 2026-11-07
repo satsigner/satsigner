@@ -538,12 +538,12 @@ function mapVtxo(vtxo: Vtxo, spendable: boolean): ArkVtxo {
   }
 }
 
-// bark still lists a VTXO as spendable while it is exiting or queued for a
-// round, so it could be picked again and spent twice.
+// bark keeps a VTXO spendable until its exit commits on-chain or its queued
+// refresh round starts, so it could be picked again and spent twice. Inputs
+// of a started round are already locked and outside spendableVtxos.
 async function fetchBusyVtxoIds(wallet: WalletLike): Promise<ArkBusyVtxoIds> {
-  const [exitVtxos, roundInputs, movements] = await Promise.all([
+  const [exitVtxos, movements] = await Promise.all([
     wallet.getExitVtxos(),
-    wallet.pendingRoundInputVtxos(),
     wallet.history()
   ])
   const liveExits = exitVtxos.filter(
@@ -551,10 +551,7 @@ async function fetchBusyVtxoIds(wallet: WalletLike): Promise<ArkBusyVtxoIds> {
   )
   return {
     exiting: new Set(liveExits.map((exit) => exit.vtxoId)),
-    inRound: new Set([
-      ...roundInputs.map((vtxo) => vtxo.id),
-      ...getQueuedRefreshInputVtxoIds(movements.map(mapMovement))
-    ])
+    inRound: new Set(getQueuedRefreshInputVtxoIds(movements.map(mapMovement)))
   }
 }
 
