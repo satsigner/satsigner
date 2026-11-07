@@ -213,6 +213,8 @@ export default function ArkAccountDetailPage() {
   const exitSummary = summarizeArkExits(exitsQuery.data ?? [])
   const showExitsEntry =
     exitSummary.totalCount > 0 || (balance?.pendingExitSats ?? 0) > 0
+  const exitsEntryVariant =
+    exitSummary.claimableCount > 0 ? 'secondary' : 'outline'
 
   const tabConfig: {
     key: ArkTabKey
@@ -842,11 +844,12 @@ export default function ArkAccountDetailPage() {
               />
               {showExitsEntry && (
                 <SSButton
+                  // Android keeps the outline label color when the variant
+                  // changes in place, leaving it white on white.
+                  key={exitsEntryVariant}
                   label={getExitsEntryLabel()}
                   onPress={handleExits}
-                  variant={
-                    exitSummary.claimableCount > 0 ? 'secondary' : 'outline'
-                  }
+                  variant={exitsEntryVariant}
                   style={styles.secondaryAction}
                 />
               )}
