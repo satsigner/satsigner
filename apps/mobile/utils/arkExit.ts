@@ -115,6 +115,41 @@ function summarizeArkExits(exits: ArkExit[]): ArkExitSummary {
   }
 }
 
+type ArkExitStatusLine = {
+  labelKey: string
+  count?: number
+  ready: boolean
+}
+
+/**
+ * What the account page says about its exits while any is under way: ready
+ * ones first, then live ones. Pending exit sats cover the moment before the
+ * exits themselves have loaded.
+ */
+function getArkExitStatusLine(
+  summary: ArkExitSummary,
+  pendingExitSats: number
+): ArkExitStatusLine | undefined {
+  if (summary.claimableCount > 0) {
+    return {
+      count: summary.claimableCount,
+      labelKey: 'ark.exit.summary.claimable',
+      ready: true
+    }
+  }
+  if (summary.liveCount > 0) {
+    return {
+      count: summary.liveCount,
+      labelKey: 'ark.exit.summary.active',
+      ready: false
+    }
+  }
+  if (pendingExitSats > 0) {
+    return { labelKey: 'ark.exit.summary.pending', ready: false }
+  }
+  return undefined
+}
+
 function getArkExitBlocksUntilClaimable(
   exit: Pick<ArkExit, 'claimableAtHeight' | 'status' | 'tipHeight'>
 ): number | undefined {
@@ -300,6 +335,7 @@ export {
   isArkExitFundingConfirming,
   getArkExitFundingSources,
   getArkExitsRoute,
+  getArkExitStatusLine,
   getArkExitTone,
   getClaimableArkExits,
   getNewlyClaimableArkExitIds,

@@ -18,6 +18,7 @@ import {
   getArkExitFundingShortfall,
   getArkExitFundingSources,
   getArkExitIncomingFundingSats,
+  getArkExitStatusLine,
   getNewlyClaimableArkExitIds,
   getUnconfirmedArkExits,
   isArkExitFundingConfirming,
@@ -478,5 +479,41 @@ describe('getArkExitIncomingFundingSats', () => {
 
   it('is zero before the on-chain wallet was read', () => {
     expect(getArkExitIncomingFundingSats(undefined)).toBe(0)
+  })
+})
+
+describe('getArkExitStatusLine', () => {
+  const idle = { claimableCount: 0, liveCount: 0, totalCount: 2 }
+
+  it('leads with exits that are ready to claim', () => {
+    expect(
+      getArkExitStatusLine(
+        { claimableCount: 1, liveCount: 3, totalCount: 3 },
+        0
+      )
+    ).toStrictEqual({
+      count: 1,
+      labelKey: 'ark.exit.summary.claimable',
+      ready: true
+    })
+  })
+
+  it('counts live exits when none is ready', () => {
+    expect(getArkExitStatusLine({ ...idle, liveCount: 2 }, 0)).toStrictEqual({
+      count: 2,
+      labelKey: 'ark.exit.summary.active',
+      ready: false
+    })
+  })
+
+  it('falls back to pending exit sats before the exits load', () => {
+    expect(getArkExitStatusLine(idle, 5000)).toStrictEqual({
+      labelKey: 'ark.exit.summary.pending',
+      ready: false
+    })
+  })
+
+  it('says nothing once every exit is finished', () => {
+    expect(getArkExitStatusLine(idle, 0)).toBeUndefined()
   })
 })

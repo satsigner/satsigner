@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconArrowsClockwise,
   SSIconBubbles,
+  SSIconChevronRight,
   SSIconCollapse,
   SSIconExpand,
   SSIconList,
@@ -37,6 +38,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
+import SSPressable from '@/components/SSPressable'
 import SSSelectionActionBar from '@/components/SSSelectionActionBar'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
@@ -80,6 +82,7 @@ import { countUsedArkAddresses } from '@/utils/arkAddress'
 import {
   countArkVtxosNearExpiry,
   getArkExitsRoute,
+  getArkExitStatusLine,
   summarizeArkExits
 } from '@/utils/arkExit'
 import {
@@ -106,6 +109,7 @@ const VTXOS_TAB_INDEX = 2
 const SCENE_LOADER_SIZE = 32
 const REFRESH_PROGRESS_VIEW_OFFSET = 9999
 const SELECTION_ICON_SIZE = 15
+const STATUS_CHEVRON_SIZE = 8
 
 type ArkTabKey = 'transactions' | 'addresses' | 'vtxos' | 'refreshes'
 type ArkTabRoute = { key: ArkTabKey }
@@ -211,10 +215,10 @@ export default function ArkAccountDetailPage() {
     tipHeightQuery.data
   )
   const exitSummary = summarizeArkExits(exitsQuery.data ?? [])
-  const showExitsEntry =
-    exitSummary.totalCount > 0 || (balance?.pendingExitSats ?? 0) > 0
-  const exitsEntryVariant =
-    exitSummary.claimableCount > 0 ? 'secondary' : 'outline'
+  const exitStatus = getArkExitStatusLine(
+    exitSummary,
+    balance?.pendingExitSats ?? 0
+  )
 
   const tabConfig: {
     key: ArkTabKey
@@ -267,18 +271,6 @@ export default function ArkAccountDetailPage() {
 
   function handleExits() {
     router.navigate(getArkExitsRoute(id))
-  }
-
-  function getExitsEntryLabel() {
-    if (exitSummary.claimableCount > 0) {
-      return t('ark.exit.entryClaimable', {
-        count: exitSummary.claimableCount
-      })
-    }
-    if (exitSummary.liveCount > 0) {
-      return t('ark.exit.entryActive', { count: exitSummary.liveCount })
-    }
-    return t('ark.exit.entry')
   }
 
   function handleCamera() {
@@ -831,29 +823,25 @@ export default function ArkAccountDetailPage() {
               onCamera={handleCamera}
               onReceive={handleReceive}
             />
-            <SSHStack gap="sm" style={styles.secondaryActions}>
-              <SSButton
-                label={
-                  activeSwapCount > 0
-                    ? t('ark.swap.entryActive', { count: activeSwapCount })
-                    : t('ark.swap.entry')
-                }
-                onPress={handleSwap}
-                variant="outline"
-                style={styles.secondaryAction}
-              />
-              {showExitsEntry && (
-                <SSButton
-                  // Android keeps the outline label color when the variant
-                  // changes in place, leaving it white on white.
-                  key={exitsEntryVariant}
-                  label={getExitsEntryLabel()}
-                  onPress={handleExits}
-                  variant={exitsEntryVariant}
-                  style={styles.secondaryAction}
-                />
-              )}
-            </SSHStack>
+            {(activeSwapCount > 0 || exitStatus) && (
+              <SSVStack gap="none" itemsCenter style={styles.statusLinks}>
+                {activeSwapCount > 0 && (
+                  <ArkAccountStatusLink
+                    label={t('ark.swap.summary.active', {
+                      count: activeSwapCount
+                    })}
+                    onPress={handleSwap}
+                  />
+                )}
+                {exitStatus && (
+                  <ArkAccountStatusLink
+                    label={t(exitStatus.labelKey, { count: exitStatus.count })}
+                    ready={exitStatus.ready}
+                    onPress={handleExits}
+                  />
+                )}
+              </SSVStack>
+            )}
           </View>
         </SSVStack>
       )}
@@ -987,6 +975,34 @@ export default function ArkAccountDetailPage() {
   )
 }
 
+type ArkAccountStatusLinkProps = {
+  label: string
+  ready?: boolean
+  onPress: () => void
+}
+
+function ArkAccountStatusLink({
+  label,
+  ready = false,
+  onPress
+}: ArkAccountStatusLinkProps) {
+  const color = ready ? Colors.warning : Colors.gray[300]
+  return (
+    <SSPressable onPress={onPress} style={styles.statusLink}>
+      <SSHStack gap="xs">
+        <SSText size="xs" uppercase style={{ color }}>
+          {label}
+        </SSText>
+        <SSIconChevronRight
+          height={STATUS_CHEVRON_SIZE}
+          width={STATUS_CHEVRON_SIZE}
+          stroke={color}
+        />
+      </SSHStack>
+    </SSPressable>
+  )
+}
+
 function renderSeparator() {
   return <View style={styles.separator} />
 }
@@ -1039,15 +1055,15 @@ const styles = StyleSheet.create({
   sceneContainer: {
     flex: 1
   },
-  secondaryAction: {
-    flex: 1
-  },
-  secondaryActions: {
-    marginTop: 12
-  },
   separator: {
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth
+  },
+  statusLink: {
+    paddingVertical: 6
+  },
+  statusLinks: {
+    marginTop: 8
   },
   tab: {
     width: TAB_WIDTH
