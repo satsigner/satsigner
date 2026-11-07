@@ -10,7 +10,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type ArkEmergencyExitFee } from '@/types/models/Ark'
 import { type ArkExitFunding } from '@/utils/arkExit'
-import { formatMaskedNumber } from '@/utils/format'
+import { formatMaskedSats } from '@/utils/format'
 
 const WARNING_ICON_SIZE = 20
 
@@ -48,12 +48,7 @@ function SSArkExitConfirmModal({
   onRetryEstimate,
   onRetryExpiryCheck
 }: SSArkExitConfirmModalProps) {
-  const unit = t('bitcoin.sats')
   const expiryCheckFailed = nearExpiryCount === undefined && !expiryCheckLoading
-
-  function satsLabel(amountSats: number) {
-    return `${formatMaskedNumber(amountSats, privacyMode)} ${unit}`
-  }
 
   return (
     <SSModal
@@ -105,29 +100,38 @@ function SSArkExitConfirmModal({
             <View>
               <SSDetailRow
                 label={t('ark.exit.fee.exitTransactions')}
-                value={satsLabel(estimate.exitBroadcastFeeSats)}
+                value={formatMaskedSats(
+                  estimate.exitBroadcastFeeSats,
+                  privacyMode
+                )}
               />
               <SSDetailRow
                 label={t('ark.exit.fee.claim')}
-                value={satsLabel(estimate.claimFeeSats)}
+                value={formatMaskedSats(estimate.claimFeeSats, privacyMode)}
               />
               <SSDetailRow
                 label={t('ark.exit.fee.total')}
                 value={t('ark.exit.fee.totalValue', {
-                  amount: satsLabel(estimate.totalFeeSats),
+                  amount: formatMaskedSats(estimate.totalFeeSats, privacyMode),
                   feeRate: estimate.feeRateSatPerVb
                 })}
               />
               {funding && (
                 <SSDetailRow
                   label={t('ark.exit.fee.onchainWallet')}
-                  value={satsLabel(funding.onchainConfirmedSats)}
+                  value={formatMaskedSats(
+                    funding.onchainConfirmedSats,
+                    privacyMode
+                  )}
                 />
               )}
               {funding && funding.onchainPendingSats > 0 && (
                 <SSDetailRow
                   label={t('ark.exit.fee.onchainIncoming')}
-                  value={satsLabel(funding.onchainPendingSats)}
+                  value={formatMaskedSats(
+                    funding.onchainPendingSats,
+                    privacyMode
+                  )}
                 />
               )}
             </View>
@@ -140,7 +144,7 @@ function SSArkExitConfirmModal({
           <View style={styles.notice}>
             <SSText size="sm" style={styles.warningText}>
               {t('ark.exit.fundingShortfall', {
-                amount: satsLabel(funding.shortfallSats)
+                amount: formatMaskedSats(funding.shortfallSats, privacyMode)
               })}
             </SSText>
           </View>

@@ -11,7 +11,7 @@ import {
   type ArkExitClaimBroadcastStatus,
   type ArkExitClaimRecord
 } from '@/types/models/Ark'
-import { formatMaskedNumber, formatTxId } from '@/utils/format'
+import { formatMaskedSats, formatTxId } from '@/utils/format'
 
 const STATUS_LABEL_KEYS: Record<ArkExitClaimBroadcastStatus, string> = {
   broadcast: 'ark.exit.claim.record.status.broadcast',
@@ -48,7 +48,6 @@ function SSArkExitClaimRecordCard({
   onDiscard,
   onCopyTxid
 }: SSArkExitClaimRecordCardProps) {
-  const unit = t('bitcoin.sats')
   const failed = record.broadcastStatus === 'failed'
   const busy = retrying || discarding || disabled
 
@@ -83,11 +82,11 @@ function SSArkExitClaimRecordCard({
       <SSVStack gap="none">
         <SSDetailRow
           label={t('ark.exit.claim.receive')}
-          value={`${formatMaskedNumber(record.amountSats, privacyMode)} ${unit}`}
+          value={formatMaskedSats(record.amountSats, privacyMode)}
         />
         <SSDetailRow
           label={t('ark.exit.claim.fee')}
-          value={`${formatMaskedNumber(record.feeSats, privacyMode)} ${unit}`}
+          value={formatMaskedSats(record.feeSats, privacyMode)}
         />
       </SSVStack>
       <SSText size="xs" color="muted" type="mono" onPress={handleCopyTxid}>

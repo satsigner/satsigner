@@ -30,7 +30,7 @@ import {
   sortArkExits
 } from '@/utils/arkExit'
 import { setClipboard } from '@/utils/clipboard'
-import { formatMaskedNumber } from '@/utils/format'
+import { formatMaskedSats } from '@/utils/format'
 
 const BLOCKER_MESSAGE_KEYS: Record<
   Exclude<ArkExitClaimBlocker, 'loading'>,
@@ -88,11 +88,6 @@ export default function ArkExitsPage() {
 
   const [refreshing, setRefreshing] = useState(false)
   const loading = walletQuery.isLoading || exitsQuery.isLoading
-  const unit = t('bitcoin.sats')
-
-  function satsLabel(amountSats: number) {
-    return `${formatMaskedNumber(amountSats, privacyMode)} ${unit}`
-  }
 
   function destinationName(accountId: string) {
     return bitcoinAccounts.find((candidate) => candidate.id === accountId)?.name
@@ -122,7 +117,10 @@ export default function ArkExitsPage() {
       },
       onSuccess: ({ amountSats, destinationName: name }) => {
         toast.success(
-          t('ark.exit.claim.success', { amount: satsLabel(amountSats), name })
+          t('ark.exit.claim.success', {
+            amount: formatMaskedSats(amountSats, privacyMode),
+            name
+          })
         )
       }
     })
@@ -221,7 +219,7 @@ export default function ArkExitsPage() {
                 <SSText uppercase>{t('ark.exit.funding.title')}</SSText>
                 <SSText size="sm" style={styles.warningText}>
                   {t('ark.exit.funding.description', {
-                    amount: satsLabel(funding.shortfallSats)
+                    amount: formatMaskedSats(funding.shortfallSats, privacyMode)
                   })}
                 </SSText>
               </SSVStack>
@@ -245,7 +243,7 @@ export default function ArkExitsPage() {
               {funding.source && (
                 <SSButton
                   label={t('ark.exit.funding.action', {
-                    amount: satsLabel(funding.amountSats),
+                    amount: formatMaskedSats(funding.amountSats, privacyMode),
                     name: funding.source.name
                   })}
                   onPress={handleFund}
@@ -261,7 +259,7 @@ export default function ArkExitsPage() {
               <SSText uppercase>{t('ark.exit.funding.confirmingTitle')}</SSText>
               <SSText color="muted" size="sm">
                 {t('ark.exit.funding.confirmingDescription', {
-                  amount: satsLabel(funding.incomingSats)
+                  amount: formatMaskedSats(funding.incomingSats, privacyMode)
                 })}
               </SSText>
             </SSVStack>
@@ -299,7 +297,7 @@ export default function ArkExitsPage() {
                 <SSText uppercase>{t('ark.exit.claim.title')}</SSText>
                 <SSText color="muted" size="xs">
                   {t('ark.exit.claim.description', {
-                    amount: satsLabel(claimableSats),
+                    amount: formatMaskedSats(claimableSats, privacyMode),
                     count: claimable.length
                   })}
                 </SSText>
@@ -358,15 +356,18 @@ export default function ArkExitsPage() {
                 <View>
                   <SSDetailRow
                     label={t('ark.exit.claim.exited')}
-                    value={satsLabel(preview.amountSats + preview.feeSats)}
+                    value={formatMaskedSats(
+                      preview.amountSats + preview.feeSats,
+                      privacyMode
+                    )}
                   />
                   <SSDetailRow
                     label={t('ark.exit.claim.fee')}
-                    value={`${satsLabel(preview.feeSats)} · ${feeRate} ${t('bitcoin.satVb')}`}
+                    value={`${formatMaskedSats(preview.feeSats, privacyMode)} · ${feeRate} ${t('bitcoin.satVb')}`}
                   />
                   <SSDetailRow
                     label={t('ark.exit.claim.receive')}
-                    value={satsLabel(preview.amountSats)}
+                    value={formatMaskedSats(preview.amountSats, privacyMode)}
                   />
                 </View>
               )}

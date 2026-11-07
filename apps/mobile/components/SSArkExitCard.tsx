@@ -13,7 +13,7 @@ import {
   getArkExitTone
 } from '@/utils/arkExit'
 import { getArkVtxoEta } from '@/utils/arkVtxoDetail'
-import { formatMaskedNumber, formatNumber, formatTxId } from '@/utils/format'
+import { formatMaskedSats, formatNumber, formatTxId } from '@/utils/format'
 
 const STATUS_LABEL_KEYS: Record<ArkExitStatus, string> = {
   alreadySpent: 'ark.exit.status.alreadySpent',
@@ -84,7 +84,7 @@ function SSArkExitCard({ exit, privacyMode, onCopyTxid }: SSArkExitCardProps) {
   const amount =
     exit.amountSats === undefined
       ? undefined
-      : `${formatMaskedNumber(exit.amountSats, privacyMode)} ${t('bitcoin.sats')}`
+      : formatMaskedSats(exit.amountSats, privacyMode)
 
   function handleCopyTxid() {
     if (exit.claimTxid) {
