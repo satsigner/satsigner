@@ -133,6 +133,7 @@ export default function Confirm() {
   }
 
   function handleOnPressCancel() {
+    useAccountBuilderStore.getState().clearKeyState()
     if (policyType === 'multisig') {
       router.dismiss(Number(index) + 1)
     } else if (policyType === 'singlesig') {

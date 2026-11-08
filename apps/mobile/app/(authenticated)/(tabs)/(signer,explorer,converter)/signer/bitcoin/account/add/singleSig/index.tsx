@@ -71,6 +71,7 @@ export default function SingleSig() {
   const [loading, setLoading] = useState(false)
 
   function handleOnPress(type: NonNullable<Key['creationType']>) {
+    useAccountBuilderStore.getState().clearKeyState()
     setCreationType(type)
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
