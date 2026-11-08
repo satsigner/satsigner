@@ -59,7 +59,9 @@ async function checkPin(
   onSuccess: () => void | Promise<void>
 ): Promise<PinAuthResult> {
   await applyPendingPinKdfCommit()
-  await applyPendingPinRekey()
+  // A re-key that cannot finish now is retried on the next check; failing
+  // here would make every unlock an error and lock the user out for good.
+  await applyPendingPinRekey().catch(() => undefined)
 
   const hashedPin = await getPin()
   const hashedDuressPin = await getItem(DURESS_PIN_KEY)
