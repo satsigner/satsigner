@@ -5,6 +5,7 @@ import {
   type BrantaLookupNotice,
   type BrantaPayee
 } from '@/types/models/Branta'
+import { brantaLookupMayReachNetwork } from '@/utils/brantaLookupScope'
 
 import { useBrantaLookupConsent } from './useBrantaLookupConsent'
 
@@ -38,6 +39,10 @@ function useBrantaPayeeLookup() {
     request.current = id
     setNotice(null)
     setPayee(null)
+    if (!brantaLookupMayReachNetwork(input)) {
+      pending.current = Promise.resolve(null)
+      return null
+    }
     const allowed = await confirmAutomaticBrantaLookup()
     if (!allowed || request.current !== id) {
       pending.current = Promise.resolve(null)
