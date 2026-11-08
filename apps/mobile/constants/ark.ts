@@ -8,6 +8,9 @@ export const ARK_ADDRESS_MAX_SCAN = 1000
 export const ARK_BOARD_PAYJOIN_NATIVE_MISSING =
   'Bark native module is missing boardFundingAddress. Rebuild with @secondts/bark-react-native 0.21 or newer.'
 export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
+/** Thrown by an open that finished after its wallet was released. */
+export const ARK_WALLET_RELEASED_WHILE_OPENING =
+  'Ark wallet was released while it was opening'
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 // A claim paying more than this multiple of the chosen fee rate over its
 // signed size is refused before broadcast.
