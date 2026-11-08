@@ -2095,7 +2095,7 @@ export default function AccountView() {
     }
 
     if (!isImportAddress) {
-      prioritizeSync(account.id)
+      prioritizeSync()
     }
 
     try {
