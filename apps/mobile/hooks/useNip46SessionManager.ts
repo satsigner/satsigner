@@ -93,53 +93,71 @@ function getSessionById(sessionId: string): Nip46Session | undefined {
   return useNip46Store.getState().sessions.find((s) => s.id === sessionId)
 }
 
-async function respondToRequest(
-  sessionId: string,
-  request: Nip46Request
-): Promise<void> {
-  const session = getSessionById(sessionId)
-  const runtime = getNip46Runtime(sessionId)
-  if (!session || !runtime) {
-    return
-  }
-  const { secretKey, service } = runtime
-
-  const signerPubkeyHex = getPubKeyHexFromNpub(session.signerNpub)
-  if (!signerPubkeyHex) {
-    return
-  }
-
+function buildRequestResponse(
+  request: Nip46Request,
+  signerPubkeyHex: string,
+  secretKey: Uint8Array,
+  expectedSecret: string | undefined
+) {
   try {
     const result = executeHandler(
       request.method,
       request.params,
       signerPubkeyHex,
       secretKey,
-      session.secret
+      expectedSecret
     )
-    const payload = buildNip46ResponsePayload(request.id, result, null)
-    await service.sendResponse(session.clientPubkey, secretKey, payload)
+    return buildNip46ResponsePayload(request.id, result, null)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    const payload = buildNip46ResponsePayload(request.id, null, errorMsg)
-    await service.sendResponse(session.clientPubkey, secretKey, payload)
+    return buildNip46ResponsePayload(request.id, null, errorMsg)
   }
 }
 
-async function sendError(
+async function sendPayload(
+  sessionId: string,
+  buildPayload: (signerPubkeyHex: string, secretKey: Uint8Array) => string
+): Promise<boolean> {
+  const session = getSessionById(sessionId)
+  const runtime = getNip46Runtime(sessionId)
+  const signerPubkeyHex = session
+    ? getPubKeyHexFromNpub(session.signerNpub)
+    : null
+  if (!session || !runtime || !signerPubkeyHex) {
+    return false
+  }
+  const { secretKey, service } = runtime
+  try {
+    await service.sendResponse(
+      session.clientPubkey,
+      secretKey,
+      buildPayload(signerPubkeyHex, secretKey)
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Answers a request; resolves to whether the answer reached the relays. */
+function respondToRequest(
+  sessionId: string,
+  request: Nip46Request
+): Promise<boolean> {
+  const session = getSessionById(sessionId)
+  return sendPayload(sessionId, (signerPubkeyHex, secretKey) =>
+    buildRequestResponse(request, signerPubkeyHex, secretKey, session?.secret)
+  )
+}
+
+function sendError(
   sessionId: string,
   requestId: string,
   errorMessage: string
-): Promise<void> {
-  const session = getSessionById(sessionId)
-  const runtime = getNip46Runtime(sessionId)
-  if (!session || !runtime) {
-    return
-  }
-
-  const payload = buildNip46ResponsePayload(requestId, null, errorMessage)
-  const { secretKey, service } = runtime
-  await service.sendResponse(session.clientPubkey, secretKey, payload)
+): Promise<boolean> {
+  return sendPayload(sessionId, () =>
+    buildNip46ResponsePayload(requestId, null, errorMessage)
+  )
 }
 
 export function useNip46SessionManager() {
@@ -256,16 +274,16 @@ export function useNip46SessionManager() {
     }
   }
 
+  // A request leaves the queue only once its answer was sent, so a failed
+  // send can be retried instead of leaving the client waiting forever.
   async function approveRequest(
     requestId: string,
     alwaysAllow: boolean
-  ): Promise<void> {
+  ): Promise<boolean> {
     const request = getPendingRequestById(requestId)
     if (!request) {
-      return
+      return false
     }
-
-    removePendingRequest(requestId)
 
     // Never persist a blanket permission for requests that must always be
     // approved explicitly (decryption, sensitive sign_event kinds).
@@ -273,28 +291,38 @@ export function useNip46SessionManager() {
       updatePermission(request.sessionId, request.method, 'always_allow')
     }
 
-    await respondToRequest(request.sessionId, {
+    const sent = await respondToRequest(request.sessionId, {
       ...request,
       status: 'approved'
     })
+    if (sent) {
+      removePendingRequest(requestId)
+    }
+    return sent
   }
 
   async function rejectRequest(
     requestId: string,
     alwaysReject: boolean
-  ): Promise<void> {
+  ): Promise<boolean> {
     const request = getPendingRequestById(requestId)
     if (!request) {
-      return
+      return false
     }
-
-    removePendingRequest(requestId)
 
     if (alwaysReject) {
       updatePermission(request.sessionId, request.method, 'always_reject')
     }
 
-    await sendError(request.sessionId, request.id, 'Rejected by user')
+    const sent = await sendError(
+      request.sessionId,
+      request.id,
+      'Rejected by user'
+    )
+    if (sent) {
+      removePendingRequest(requestId)
+    }
+    return sent
   }
 
   return {

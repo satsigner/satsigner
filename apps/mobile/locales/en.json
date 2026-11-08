@@ -2340,6 +2340,7 @@
     "requestApproved": "Request approved",
     "requestedPermissions": "Requested permissions",
     "requestRejected": "Request rejected",
+    "responseFailed": "Could not send the answer to the app. Please try again.",
     "scanConnection": "Scan Connection",
     "sessions": "Connected Apps",
     "title": "Remote Signing",

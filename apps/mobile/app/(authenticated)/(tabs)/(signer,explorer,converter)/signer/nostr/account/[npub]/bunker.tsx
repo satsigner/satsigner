@@ -121,13 +121,21 @@ export default function NostrBunker() {
     toast.success(t('nip46.disconnected'))
   }
 
-  function handleApproveRequest(requestId: string, alwaysAllow: boolean) {
-    void approveRequest(requestId, alwaysAllow)
+  async function handleApproveRequest(requestId: string, alwaysAllow: boolean) {
+    const sent = await approveRequest(requestId, alwaysAllow)
+    if (!sent) {
+      toast.error(t('nip46.responseFailed'))
+      return
+    }
     toast.success(t('nip46.requestApproved'))
   }
 
-  function handleRejectRequest(requestId: string, alwaysReject: boolean) {
-    void rejectRequest(requestId, alwaysReject)
+  async function handleRejectRequest(requestId: string, alwaysReject: boolean) {
+    const sent = await rejectRequest(requestId, alwaysReject)
+    if (!sent) {
+      toast.error(t('nip46.responseFailed'))
+      return
+    }
     toast.success(t('nip46.requestRejected'))
   }
 
