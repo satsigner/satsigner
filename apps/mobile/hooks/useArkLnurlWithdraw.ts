@@ -40,6 +40,7 @@ type WithdrawInput = {
 type WithdrawResult = {
   invoice: string
   amountSats: number
+  paymentHash: string
 }
 
 export function useArkLnurlWithdraw(accountId: string | null | undefined) {
@@ -69,7 +70,11 @@ export function useArkLnurlWithdraw(accountId: string | null | undefined) {
         details.defaultDescription,
         invoice.invoice
       )
-      return { amountSats, invoice: invoice.invoice }
+      return {
+        amountSats,
+        invoice: invoice.invoice,
+        paymentHash: invoice.paymentHash
+      }
     }
   })
 }

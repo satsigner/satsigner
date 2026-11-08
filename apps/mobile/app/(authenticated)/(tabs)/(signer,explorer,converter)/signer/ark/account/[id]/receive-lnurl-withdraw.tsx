@@ -1,12 +1,13 @@
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
+import { fetchArkLightningReceive } from '@/api/ark'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useArkBalance } from '@/hooks/useArkBalance'
 import {
   useArkLnurlWithdraw,
   useArkLnurlWithdrawDetails
@@ -15,14 +16,22 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getArkAccountOrThrow } from '@/store/ark'
 import { Colors } from '@/styles'
+import { hasArkLightningReceiveArrived } from '@/utils/arkLightningReceive'
 import { millisatsToSats } from '@/utils/bitcoinUnits'
 import { resolveLnurlUrl } from '@/utils/lnurl'
 
 const AWAIT_TIMEOUT_MS = 120_000
 const AWAIT_POLL_INTERVAL_MS = 3000
 
-type Phase = 'ready' | 'awaiting' | 'success' | 'timeout'
+// Arrival is read from this invoice's own receive state: the balance also
+// moves for unrelated funds and is not known before the first load.
+type WithdrawPhase =
+  | { status: 'ready' }
+  | { status: 'awaiting'; deadline: number; paymentHash: string }
+  | { status: 'success' }
+  | { status: 'timeout' }
 
 function safeServiceHost(lnurl: string): string | null {
   try {
@@ -40,14 +49,38 @@ export default function ArkReceiveLnurlWithdrawPage() {
   const withdrawMutation = useArkLnurlWithdraw(id)
 
   const [userAmount, setUserAmount] = useState<string | null>(null)
-  const [phase, setPhase] = useState<Phase>('ready')
-
-  const balanceQuery = useArkBalance(id, {
-    refetchIntervalMs: phase === 'awaiting' ? AWAIT_POLL_INTERVAL_MS : undefined
+  const [withdraw, setWithdraw] = useState<WithdrawPhase>({
+    status: 'ready'
   })
-  const baselineRef = useRef<number | null>(null)
-  const expectedDeltaRef = useRef<number>(0)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const phase = withdraw.status
+
+  async function checkWithdrawArrival(paymentHash: string, deadline: number) {
+    const receive = await fetchArkLightningReceive(
+      getArkAccountOrThrow(id).serverId,
+      id,
+      paymentHash
+    )
+    if (hasArkLightningReceiveArrived(receive)) {
+      setWithdraw({ status: 'success' })
+      toast.success(t('ark.receive.lnurlWithdraw.success'))
+      return receive.state
+    }
+    if (Date.now() >= deadline) {
+      setWithdraw({ status: 'timeout' })
+    }
+    return receive.state
+  }
+
+  const awaiting = withdraw.status === 'awaiting' ? withdraw : null
+  useQuery({
+    enabled: awaiting !== null,
+    queryFn: () =>
+      awaiting
+        ? checkWithdrawArrival(awaiting.paymentHash, awaiting.deadline)
+        : null,
+    queryKey: ['ark', 'lnurl-withdraw-receive', id, awaiting?.paymentHash],
+    refetchInterval: AWAIT_POLL_INTERVAL_MS
+  })
 
   const details = detailsQuery.data
   const minSats = details ? millisatsToSats(details.minWithdrawable, 'ceil') : 0
@@ -64,34 +97,6 @@ export default function ArkReceiveLnurlWithdrawPage() {
     amountSats <= maxSats &&
     amountSats > 0
 
-  useEffect(() => {
-    if (phase !== 'awaiting') {
-      return
-    }
-    if (baselineRef.current === null) {
-      return
-    }
-    const balance = balanceQuery.data
-    if (!balance) {
-      return
-    }
-    const total = balance.spendableSats + balance.claimableLightningReceiveSats
-    const delta = total - baselineRef.current
-    if (delta >= expectedDeltaRef.current) {
-      setPhase('success')
-      toast.success(t('ark.receive.lnurlWithdraw.success'))
-    }
-  }, [phase, balanceQuery.data])
-
-  useEffect(
-    () => () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    },
-    []
-  )
-
   function handleConfirm() {
     if (!details) {
       return
@@ -105,26 +110,21 @@ export default function ArkReceiveLnurlWithdrawPage() {
       )
       return
     }
-    const balance = balanceQuery.data
-    baselineRef.current = balance
-      ? balance.spendableSats + balance.claimableLightningReceiveSats
-      : 0
-    expectedDeltaRef.current = amountSats
     withdrawMutation.mutate(
       { amountSats, details },
       {
         onError: (error) => {
-          baselineRef.current = null
           const reason = error instanceof Error ? error.message : 'unknown'
           toast.error(
             `${t('ark.receive.lnurlWithdraw.error.request')}: ${reason}`
           )
         },
-        onSuccess: () => {
-          setPhase('awaiting')
-          timeoutRef.current = setTimeout(() => {
-            setPhase((prev) => (prev === 'awaiting' ? 'timeout' : prev))
-          }, AWAIT_TIMEOUT_MS)
+        onSuccess: (result) => {
+          setWithdraw({
+            deadline: Date.now() + AWAIT_TIMEOUT_MS,
+            paymentHash: result.paymentHash,
+            status: 'awaiting'
+          })
         }
       }
     )
