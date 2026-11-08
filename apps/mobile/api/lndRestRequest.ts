@@ -73,7 +73,7 @@ export async function requestLndRestJson<T>(
   config: LNDConfig,
   endpoint: string,
   { body, headers, method }: LndRestJsonRequest,
-  onErrorStatus: () => void
+  onErrorStatus?: () => void
 ): Promise<T> {
   const response = await lndRestFetch(config, endpoint, {
     body: body ? JSON.stringify(body) : undefined,
@@ -82,7 +82,7 @@ export async function requestLndRestJson<T>(
   })
 
   if (!response.ok) {
-    onErrorStatus()
+    onErrorStatus?.()
     const errorText = await response.text()
     throw new HttpStatusError(
       response.status,
