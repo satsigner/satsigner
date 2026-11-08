@@ -6,6 +6,7 @@ type BrantaLogoConsentState = {
 }
 
 const listeners = new Set<() => void>()
+const waitingOwnerIds = new Set<string>()
 
 let state: BrantaLogoConsentState = {
   ownerId: null,
@@ -16,6 +17,23 @@ function emit() {
   for (const listener of listeners) {
     listener()
   }
+}
+
+function ownerIdFor(session: BrantaLogoSession) {
+  if (session !== 'unset') {
+    return null
+  }
+  const [firstWaiting = null] = waitingOwnerIds
+  return firstWaiting
+}
+
+function syncOwner() {
+  const ownerId = ownerIdFor(state.session)
+  if (ownerId === state.ownerId) {
+    return
+  }
+  state = { ...state, ownerId }
+  emit()
 }
 
 function getBrantaLogoConsent(): BrantaLogoConsentState {
@@ -29,20 +47,15 @@ function subscribeBrantaLogoConsent(listener: () => void) {
   }
 }
 
-function claimBrantaLogoPrompt(ownerId: string) {
-  if (state.session !== 'unset' || state.ownerId) {
-    return
+function brantaLogoPromptRef(ownerId: string) {
+  return function waitWhileMounted() {
+    waitingOwnerIds.add(ownerId)
+    syncOwner()
+    return () => {
+      waitingOwnerIds.delete(ownerId)
+      syncOwner()
+    }
   }
-  state = { ...state, ownerId }
-  emit()
-}
-
-function releaseBrantaLogoPrompt(ownerId: string) {
-  if (state.ownerId !== ownerId) {
-    return
-  }
-  state = { ...state, ownerId: null }
-  emit()
 }
 
 function setBrantaLogoSession(session: Exclude<BrantaLogoSession, 'unset'>) {
@@ -51,14 +64,13 @@ function setBrantaLogoSession(session: Exclude<BrantaLogoSession, 'unset'>) {
 }
 
 function resetBrantaLogoConsent() {
-  state = { ownerId: null, session: 'unset' }
+  state = { ownerId: ownerIdFor('unset'), session: 'unset' }
   emit()
 }
 
 export {
-  claimBrantaLogoPrompt,
+  brantaLogoPromptRef,
   getBrantaLogoConsent,
-  releaseBrantaLogoPrompt,
   resetBrantaLogoConsent,
   setBrantaLogoSession,
   subscribeBrantaLogoConsent

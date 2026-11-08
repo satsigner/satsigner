@@ -1,36 +1,69 @@
 import {
-  claimBrantaLogoPrompt,
+  brantaLogoPromptRef,
   getBrantaLogoConsent,
-  releaseBrantaLogoPrompt,
   resetBrantaLogoConsent,
   setBrantaLogoSession
 } from '@/utils/brantaLogoConsent'
 
+const mountedLogos: (() => void)[] = []
+
+function mountWaitingLogo(ownerId: string) {
+  const unmount = brantaLogoPromptRef(ownerId)()
+  mountedLogos.push(unmount)
+  return unmount
+}
+
 describe('branta logo consent', () => {
   afterEach(() => {
+    for (const unmount of mountedLogos.splice(0)) {
+      unmount()
+    }
     resetBrantaLogoConsent()
   })
 
-  it('lets the first caller own the prompt', () => {
-    claimBrantaLogoPrompt('a')
-    claimBrantaLogoPrompt('b')
+  it('lets the first waiting logo own the prompt', () => {
+    mountWaitingLogo('a')
+    mountWaitingLogo('b')
     expect(getBrantaLogoConsent().ownerId).toBe('a')
   })
 
   it('keeps a cancel from asking again this session', () => {
-    claimBrantaLogoPrompt('a')
+    mountWaitingLogo('a')
     setBrantaLogoSession('deny')
-    claimBrantaLogoPrompt('b')
+    mountWaitingLogo('b')
     expect(getBrantaLogoConsent()).toStrictEqual({
       ownerId: null,
       session: 'deny'
     })
   })
 
-  it('releases the prompt when the owner goes away', () => {
-    claimBrantaLogoPrompt('a')
-    releaseBrantaLogoPrompt('a')
-    claimBrantaLogoPrompt('b')
+  it('hands the prompt to the next waiting logo when the owner unmounts', () => {
+    const unmountA = mountWaitingLogo('a')
+    mountWaitingLogo('b')
+    unmountA()
     expect(getBrantaLogoConsent().ownerId).toBe('b')
+  })
+
+  it('keeps the owner when another logo unmounts', () => {
+    mountWaitingLogo('a')
+    const unmountB = mountWaitingLogo('b')
+    unmountB()
+    expect(getBrantaLogoConsent().ownerId).toBe('a')
+  })
+
+  it('clears the owner when the last waiting logo unmounts', () => {
+    const unmountA = mountWaitingLogo('a')
+    unmountA()
+    expect(getBrantaLogoConsent().ownerId).toBeNull()
+  })
+
+  it('asks a still-waiting logo again after a reset', () => {
+    mountWaitingLogo('a')
+    setBrantaLogoSession('deny')
+    resetBrantaLogoConsent()
+    expect(getBrantaLogoConsent()).toStrictEqual({
+      ownerId: 'a',
+      session: 'unset'
+    })
   })
 })

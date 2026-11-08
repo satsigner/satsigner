@@ -1,14 +1,13 @@
 import { Image, type ImageStyle } from 'expo-image'
-import { useEffect, useId, useSyncExternalStore } from 'react'
-import { type StyleProp } from 'react-native'
+import { useId, useSyncExternalStore } from 'react'
+import { type StyleProp, StyleSheet, View } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import {
-  claimBrantaLogoPrompt,
+  brantaLogoPromptRef,
   getBrantaLogoConsent,
-  releaseBrantaLogoPrompt,
   setBrantaLogoSession,
   subscribeBrantaLogoConsent
 } from '@/utils/brantaLogoConsent'
@@ -48,57 +47,58 @@ function SSBrantaLogo({ style, uri }: SSBrantaLogoProps) {
     getBrantaLogoConsent
   )
   const logoUrl = brantaLogoUrl(uri, requestsBlocked)
-  const waiting =
-    Boolean(logoUrl) && !allowedAlways && consent.session === 'unset'
-  const showModal = waiting && consent.ownerId === ownerId
-
-  useEffect(() => {
-    if (!waiting) {
-      return
-    }
-    claimBrantaLogoPrompt(ownerId)
-    return () => {
-      releaseBrantaLogoPrompt(ownerId)
-    }
-  }, [ownerId, waiting])
 
   if (!logoUrl) {
     return null
   }
 
-  const allowed = allowedAlways || consent.session === 'allow'
-  if (!allowed) {
-    if (!showModal) {
-      return null
-    }
+  if (allowedAlways || consent.session === 'allow') {
     return (
-      <SSModal visible={showModal} showLabel={false} onClose={denyLogos}>
-        <SSVStack gap="md">
-          <SSText uppercase weight="medium">
-            {t('settings.branta.logoTitle')}
-          </SSText>
-          <SSText color="muted">{t('settings.branta.logoWarning')}</SSText>
-          <SSButton
-            label={t('settings.branta.logoCancel')}
-            variant="ghost"
-            onPress={denyLogos}
-          />
-          <SSButton
-            label={t('settings.branta.logoFetch')}
-            variant="outline"
-            onPress={allowLogosOnce}
-          />
-          <SSButton
-            label={t('settings.branta.logoFetchAlways')}
-            variant="outline"
-            onPress={allowLogosAlways}
-          />
-        </SSVStack>
-      </SSModal>
+      <Image contentFit="contain" source={{ uri: logoUrl }} style={style} />
     )
   }
 
-  return <Image contentFit="contain" source={{ uri: logoUrl }} style={style} />
+  if (consent.session === 'deny') {
+    return null
+  }
+
+  const waitForConsent = brantaLogoPromptRef(ownerId)
+
+  return (
+    <View ref={waitForConsent} style={styles.promptAnchor}>
+      {consent.ownerId === ownerId ? (
+        <SSModal visible showLabel={false} onClose={denyLogos}>
+          <SSVStack gap="md">
+            <SSText uppercase weight="medium">
+              {t('settings.branta.logoTitle')}
+            </SSText>
+            <SSText color="muted">{t('settings.branta.logoWarning')}</SSText>
+            <SSButton
+              label={t('settings.branta.logoCancel')}
+              variant="ghost"
+              onPress={denyLogos}
+            />
+            <SSButton
+              label={t('settings.branta.logoFetch')}
+              variant="outline"
+              onPress={allowLogosOnce}
+            />
+            <SSButton
+              label={t('settings.branta.logoFetchAlways')}
+              variant="outline"
+              onPress={allowLogosAlways}
+            />
+          </SSVStack>
+        </SSModal>
+      ) : null}
+    </View>
+  )
 }
+
+const styles = StyleSheet.create({
+  promptAnchor: {
+    position: 'absolute'
+  }
+})
 
 export default SSBrantaLogo
