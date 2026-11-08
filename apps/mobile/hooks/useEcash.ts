@@ -62,6 +62,11 @@ async function getSeedForAccount(accountId: string) {
   return mnemonicToSeed(mnemonic, '')
 }
 
+const TOKEN_NOT_CHECKED: EcashTokenValidation = {
+  details: 'Token could not be checked',
+  isValid: false
+}
+
 export function useEcash() {
   const {
     activeAccount,
@@ -657,21 +662,15 @@ export function useEcash() {
   async function validateToken(
     token: string,
     mintUrl: string
-  ): Promise<boolean> {
+  ): Promise<EcashTokenValidation> {
     if (!activeAccountId) {
-      return false
+      return TOKEN_NOT_CHECKED
     }
     try {
       const options = await getWalletOptions()
-      const result = await validateEcashToken(
-        token,
-        activeAccountId,
-        mintUrl,
-        options
-      )
-      return result.isValid
+      return await validateEcashToken(token, activeAccountId, mintUrl, options)
     } catch {
-      return false
+      return TOKEN_NOT_CHECKED
     }
   }
 

@@ -32,13 +32,8 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
 import { type EcashSearchParams } from '@/types/navigation/searchParams'
+import { toCheckedTokenStatus } from '@/utils/ecashToken'
 import { formatFiatPrice } from '@/utils/format'
-
-function getCheckedTokenStatus(
-  isValid: boolean
-): EcashTransaction['tokenStatus'] {
-  return isValid ? 'unspent' : 'invalid'
-}
 
 export default function EcashTransactionDetailPage() {
   const router = useRouter()
@@ -133,13 +128,13 @@ export default function EcashTransactionDetailPage() {
     setIsCheckingStatus(true)
 
     try {
-      const isValid = await validateToken(
+      const validation = await validateToken(
         transaction.token,
         transaction.mintUrl
       )
-      const tokenStatus = getCheckedTokenStatus(isValid)
-
-      updateTransaction(transaction.id, { tokenStatus })
+      updateTransaction(transaction.id, {
+        tokenStatus: toCheckedTokenStatus(validation)
+      })
     } catch {
       updateTransaction(transaction.id, { tokenStatus: 'invalid' })
       toast.error(t('ecash.error.failedToCheckStatus'))
