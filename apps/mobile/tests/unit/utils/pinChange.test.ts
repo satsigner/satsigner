@@ -11,7 +11,7 @@ import {
   PIN_LENGTH_KEY
 } from '@/config/auth'
 import { useAuthStore } from '@/store/auth'
-import { changePin } from '@/utils/pinChange'
+import { changePin, changePinOrFail } from '@/utils/pinChange'
 import { setSessionPinDigest } from '@/utils/pinSession'
 
 const sk = (key: string) => `1_${key}`
@@ -142,5 +142,17 @@ describe('changePin', () => {
     await expect(useAuthStore.getState().validatePin('2468')).resolves.toBe(
       true
     )
+  })
+
+  it('reports a failed change when the change throws', async () => {
+    const pinDigest = secureStore[sk(PIN_KEY)]
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(changePinOrFail('1357', jest.fn())).resolves.toBe(
+      'reEncryptFailed'
+    )
+    expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
   })
 })

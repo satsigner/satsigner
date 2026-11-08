@@ -74,4 +74,20 @@ async function changePin(
   return 'duressCleared'
 }
 
-export { changePin }
+/**
+ * changePin for a screen: a throw anywhere in the change leaves the stored
+ * PIN as it was (the re-key journal undoes any secret that already moved), so
+ * it reports a failed change instead of leaving the caller waiting.
+ */
+async function changePinOrFail(
+  newPin: string,
+  reEncryptSecrets: (oldDigest: string, newDigest: string) => Promise<void>
+): Promise<PinChangeResult> {
+  try {
+    return await changePin(newPin, reEncryptSecrets)
+  } catch {
+    return 'reEncryptFailed'
+  }
+}
+
+export { changePin, changePinOrFail }
