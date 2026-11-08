@@ -171,7 +171,7 @@ function AuthenticatedSession() {
     setJustUnlocked(false)
   }
 
-  async function syncLoadedWallets() {
+  async function syncLoadedWallets(isSessionActive: () => boolean) {
     if (connectionMode !== 'auto') {
       return
     }
@@ -179,6 +179,9 @@ function AuthenticatedSession() {
       useWalletsStore.getState()
     const failures = createSyncFailureBatch()
     for (const account of useAccountsStore.getState().accounts) {
+      if (!isSessionActive()) {
+        break
+      }
       await devStep('session', `sync account ${account.name}`)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
@@ -221,10 +224,16 @@ function AuthenticatedSession() {
   }
 
   useEffect(() => {
+    // Locking unmounts the session, and nothing may keep decrypting, loading
+    // or syncing behind the PIN screen: every step checks it still runs.
     const session = { active: true }
+    const isSessionActive = () => session.active
 
     async function run() {
       await yieldToUi()
+      if (!session.active) {
+        return
+      }
 
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
@@ -235,6 +244,9 @@ function AuthenticatedSession() {
         await migrateAndHydrateServiceSecrets()
       } catch {
         // non-critical for boot; secrets may remain unavailable until next unlock
+      }
+      if (!session.active) {
+        return
       }
 
       if (ju && pending) {
@@ -251,7 +263,10 @@ function AuthenticatedSession() {
       await devStep('session', 'load wallets')
       await loadWallets()
       devLog('session', 'wallets loaded')
-      void syncLoadedWallets()
+      if (!session.active) {
+        return
+      }
+      void syncLoadedWallets(isSessionActive)
 
       try {
         pruneCache()
