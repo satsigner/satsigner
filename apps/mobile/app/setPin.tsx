@@ -21,6 +21,7 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor, warning } from '@/styles/colors'
 import { emptyPin } from '@/utils/pin'
+import { toPinAttempts } from '@/utils/pinAttempts'
 import { changePinOrFail } from '@/utils/pinChange'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
@@ -128,7 +129,23 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     }
   }
 
+  async function wipeAfterMaxTries() {
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
+  }
+
+  // Once the tries are used up no PIN may be checked here either; only the
+  // wipe is retried.
   async function verifyCurrentPin() {
+    const { pinTries, pinMaxTries } = useAuthStore.getState()
+    if (toPinAttempts(pinTries, pinMaxTries).status === 'exhausted') {
+      await wipeAfterMaxTries()
+      return
+    }
     const isValid = await validatePin(currentPinArray.join(''))
     if (isValid) {
       resetPinTries()
@@ -143,12 +160,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     if (remainingTries > 0) {
       return
     }
-    const wiped = await secureWipeAfterMaxPinTries()
-    if (!wiped) {
-      toast.error(t('auth.wipeFailed'))
-      return
-    }
-    router.replace('/')
+    await wipeAfterMaxTries()
   }
 
   function finishPinVerification() {
