@@ -74,6 +74,23 @@ export default function EcashBackupPage() {
     setBackupData('')
   }
 
+  // A preview is built from the options ticked when it was generated, so a
+  // changed option drops it: sharing must never export what was unticked.
+  function handleToggleTokenProofs() {
+    setIncludeTokenProofs((current) => !current)
+    handleClose()
+  }
+
+  function handleToggleMintInformation() {
+    setIncludeMintInformation((current) => !current)
+    handleClose()
+  }
+
+  function handleToggleTransactionHistory() {
+    setIncludeTransactionHistory((current) => !current)
+    handleClose()
+  }
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -134,21 +151,17 @@ export default function EcashBackupPage() {
               <SSCheckbox
                 label={t('ecash.backup.includeTokenProofs')}
                 selected={includeTokenProofs}
-                onPress={() => setIncludeTokenProofs(!includeTokenProofs)}
+                onPress={handleToggleTokenProofs}
               />
               <SSCheckbox
                 label={t('ecash.backup.includeMintInformation')}
                 selected={includeMintInformation}
-                onPress={() =>
-                  setIncludeMintInformation(!includeMintInformation)
-                }
+                onPress={handleToggleMintInformation}
               />
               <SSCheckbox
                 label={t('ecash.backup.includeTransactionHistory')}
                 selected={includeTransactionHistory}
-                onPress={() =>
-                  setIncludeTransactionHistory(!includeTransactionHistory)
-                }
+                onPress={handleToggleTransactionHistory}
               />
             </SSVStack>
           </SSVStack>
