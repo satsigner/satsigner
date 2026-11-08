@@ -23,13 +23,14 @@
     "start": "expo start",
     "variant": "node --experimental-strip-types scripts/variant.ts",
     "storybook-generate": "sb-rn-get-stories",
-    "test": "pnpm test:unit && pnpm test:int && pnpm test:relay",
+    "test": "pnpm test:unit && pnpm test:int && pnpm test:relay && pnpm test:scripts",
     "test:int": "jest ./tests/int",
     "test:int:nostr": "node scripts/nostr-roundtrip.mjs",
     "diagnose:nostr": "node scripts/nostr-diagnose.mjs",
     "test:int:payjoin": "jest ./tests/int/api/payjoin-signet.test.ts",
     "test:unit": "jest ./tests/unit",
     "test:relay": "jest -c jest.relay.config.js",
+    "test:scripts": "node --test scripts/zapstore-verify.test.mjs scripts/zapstore-identity.test.mjs scripts/zapstore-publish-args.test.mjs scripts/zapstore-listing.test.mjs scripts/zapstore-channel.test.mjs scripts/zapstore-build-env.test.mjs",
     "test:relay:live": "cross-env NOSTR_RELAY_LIVE=1 jest -c jest.relay.config.js --passWithNoTests tests/relay/live",
     "maestro:prep": "bash .maestro/scripts/prep-android.sh",
     "maestro:link-studio": "bash .maestro/scripts/link-studio-workspace.sh",
@@ -124,7 +125,6 @@
     "react-native": "0.88.0",
     "react-native-bdk-sdk": "0.8.0",
     "react-native-bouncy-checkbox": "^4.1.4",
-    "react-native-device-info": "^15.0.2",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-get-random-values": "~1.11.0",
@@ -190,6 +190,11 @@
   },
   "expo": {
     "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-camera"
+        ]
+      },
       "nativeModulesDir": "./modules"
     },
     "doctor": {

@@ -7,6 +7,7 @@ import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 
 import SSButton, { type SSButtonProps } from './SSButton'
+import SSText from './SSText'
 
 const TOAST_LAYER_Z_INDEX = 999_999
 
@@ -16,6 +17,9 @@ type SSModalProps = {
   closeButtonVariant?: SSButtonProps['variant']
   label?: string
   showLabel?: boolean
+  title?: string
+  confirmLabel?: string
+  onConfirm?: () => void
   onClose(): void
   children: React.ReactNode
 }
@@ -26,10 +30,15 @@ function SSModal({
   closeButtonVariant = 'ghost',
   label = t('common.cancel'),
   showLabel = true,
+  title,
+  confirmLabel = t('common.confirm'),
+  onConfirm,
   onClose,
   children
 }: SSModalProps) {
   const insets = useSafeAreaInsets()
+  const showCancel = showLabel && Boolean(label)
+  const showFooter = showCancel || Boolean(onConfirm)
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -42,14 +51,34 @@ function SSModal({
       >
         <View style={styles.container}>
           <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
-            {children}
-            {showLabel && label && (
-              <SSButton
-                label={label}
-                variant={closeButtonVariant}
-                onPress={onClose}
-              />
+            {title ? (
+              <SSVStack gap="lg" itemsCenter widthFull>
+                <SSText center uppercase style={styles.title}>
+                  {title}
+                </SSText>
+                {children}
+              </SSVStack>
+            ) : (
+              children
             )}
+            {showFooter ? (
+              <SSVStack gap="sm" widthFull>
+                {onConfirm ? (
+                  <SSButton
+                    label={confirmLabel}
+                    variant="gradient"
+                    onPress={onConfirm}
+                  />
+                ) : null}
+                {showCancel ? (
+                  <SSButton
+                    label={label}
+                    variant={closeButtonVariant}
+                    onPress={onClose}
+                  />
+                ) : null}
+              </SSVStack>
+            ) : null}
           </SSVStack>
         </View>
         <View pointerEvents="box-none" style={styles.toastLayer}>
@@ -79,6 +108,10 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1
+  },
+  title: {
+    color: Colors.gray[100],
+    letterSpacing: 1
   },
   toastLayer: {
     elevation: TOAST_LAYER_Z_INDEX,

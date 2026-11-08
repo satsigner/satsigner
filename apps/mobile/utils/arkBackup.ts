@@ -2,11 +2,7 @@ import { releaseArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
 import { queryClient } from '@/lib/queryClient'
-import {
-  deleteArkDatadir,
-  writeArkDatadirFiles,
-  type ArkDatadirFile
-} from '@/storage/arkDatadir'
+import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
@@ -20,16 +16,11 @@ import type {
 } from '@/types/models/Ark'
 import { clearArkDerivedAddresses } from '@/utils/arkAddress'
 
-export type ArkDatadirBackup = {
-  files: ArkDatadirFile[]
-}
-
 export type ArkBackupSection = {
   accounts: ArkAccount[]
   autoBoardDisabledIds?: string[]
   balances?: Record<string, ArkBalance | undefined>
   boardFundingTxids?: string[]
-  datadirs?: Record<string, ArkDatadirBackup>
   labels?: Record<string, Record<string, Label>>
   mnemonics?: Record<string, string | null>
   stats?: Record<string, ArkAccountStats | undefined>
@@ -142,21 +133,17 @@ export function releaseArkWalletsForRestore(
   }
 }
 
-export async function restoreArkDatadirsFromBackup(
-  datadirs: Record<string, ArkDatadirBackup> | undefined,
-  leftoverAccountIds: string[],
-  restoredAccountIds: string[]
+/**
+ * Restored Ark wallets rebuild from their mnemonic. Legacy backups may still
+ * carry sqlite datadirs; those are stale (spent or refreshed VTXOs) and are
+ * never written back.
+ */
+export async function deleteLeftoverArkDatadirs(
+  leftoverAccountIds: string[]
 ): Promise<void> {
   await Promise.all(
     leftoverAccountIds.map((accountId) =>
       deleteArkDatadir(accountId).catch(() => undefined)
     )
   )
-  for (const accountId of restoredAccountIds) {
-    const files = datadirs?.[accountId]?.files
-    if (!files || files.length === 0) {
-      continue
-    }
-    await writeArkDatadirFiles(accountId, files)
-  }
 }

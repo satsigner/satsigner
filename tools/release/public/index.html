@@ -97,10 +97,54 @@
       button:disabled {
         opacity: 0.35;
       }
+      button {
+        transition:
+          filter 120ms ease,
+          transform 120ms ease,
+          box-shadow 120ms ease,
+          border-color 120ms ease;
+      }
+      button:not(:disabled) {
+        cursor: pointer;
+      }
+      button:not(:disabled):hover {
+        filter: brightness(1.2);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+      }
+      button.primary:not(:disabled):hover {
+        filter: brightness(0.88);
+      }
+      button.ghost:not(:disabled):hover {
+        border-color: #6a6a6a;
+      }
+      button:not(:disabled):active {
+        transform: translateY(0);
+        filter: brightness(0.95);
+        box-shadow: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        button {
+          transition: none;
+        }
+        button:not(:disabled):hover {
+          transform: none;
+        }
+      }
       .login {
         display: flex;
         align-items: center;
         gap: 12px;
+      }
+      .job {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #d4d4d4;
+        font-size: 14px;
+      }
+      .job[hidden] {
+        display: none;
       }
       .identity {
         display: flex;
@@ -136,14 +180,21 @@
       }
       .tabs {
         display: flex;
-        gap: 8px;
+        border-bottom: 1px solid #2a2a2a;
       }
       .tabs button {
         flex: 1;
+        height: 40px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+        color: #a3a3a3;
       }
       .tabs button[aria-selected='true'] {
-        background: #ffffff;
-        color: #000000;
+        background: transparent;
+        color: #ffffff;
+        border-bottom-color: #ffffff;
       }
       .panels {
         margin-top: 8px;
@@ -250,8 +301,13 @@
         width: 100%;
         margin-top: 0;
       }
-      .actions .primary {
+      .actions .primary,
+      .actions .span {
         grid-column: 1 / -1;
+      }
+      .actions .hint {
+        margin: -2px 0 4px;
+        font-size: 13px;
       }
       .channel {
         display: flex;
@@ -261,11 +317,27 @@
       .channel button {
         flex: 1;
         width: auto;
+        height: 40px;
         margin-top: 0;
+        border: 1px solid #434343;
+        border-radius: 3px;
+        background: transparent;
+        color: #d4d4d4;
       }
       .channel button[aria-pressed='true'] {
         background: #ffffff;
         color: #000000;
+        border-color: #ffffff;
+      }
+      .channel button.danger {
+        background: transparent;
+        color: #e8b4b4;
+        border-color: #5a3030;
+      }
+      .channel button.danger[aria-pressed='true'] {
+        background: #3a1515;
+        color: #ffd0d0;
+        border-color: #5a3030;
       }
       .app-card {
         margin-top: 12px;
@@ -291,6 +363,66 @@
       }
       .app-card textarea {
         min-height: 4.5rem;
+      }
+      .key-warning {
+        margin-top: 20px;
+        padding: 12px 14px;
+        border: 1px solid #5a3030;
+        border-radius: 4px;
+        background: #1f0f0f;
+        color: #f0c8c8;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .key-warning strong {
+        color: #ffd0d0;
+      }
+      .key-warning ul {
+        margin: 8px 0 0;
+        padding-left: 1.25rem;
+        list-style: disc;
+      }
+      .key-warning li {
+        display: list-item;
+        padding: 0;
+        border-top: 0;
+        font-size: inherit;
+      }
+      .key-warning li + li {
+        margin-top: 6px;
+      }
+      .guide {
+        margin-top: 14px;
+      }
+      .guide summary {
+        cursor: pointer;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .guide-steps {
+        margin: 10px 0 0;
+        padding-left: 1.25rem;
+        color: #d4d4d4;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .guide-steps li + li {
+        margin-top: 6px;
+      }
+      .guide code {
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: #1c1c1c;
+        font-family: 'SF Mono', ui-monospace, monospace;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .field-label {
+        display: block;
+        margin-top: 12px;
+        color: #a3a3a3;
+        font-size: 12px;
       }
       .app-actions {
         display: flex;
@@ -368,6 +500,24 @@
         white-space: pre;
         tab-size: 4;
       }
+      .log-detail {
+        color: #8a8a8a;
+      }
+      .log-signer {
+        color: #5f6b7a;
+      }
+      .log-milestone {
+        color: #ffffff;
+        font-weight: 600;
+      }
+      .log-success {
+        color: #6fcf7f;
+        font-weight: 600;
+      }
+      .log-error {
+        color: #ff7b72;
+        font-weight: 600;
+      }
       pre:empty::before {
         color: #777777;
         content: 'Build and publish output appears here.';
@@ -407,6 +557,10 @@
         </p>
       </div>
       <div class="login">
+        <div id="job" class="job" hidden>
+          <span id="job-label"></span>
+          <button id="cancel" class="danger" type="button">Cancel</button>
+        </div>
         <div id="identity" class="identity" hidden>
           <img id="avatar" alt="" width="32" height="32" hidden />
           <span id="display-name"></span>
@@ -507,6 +661,10 @@
                   id="notes"
                   placeholder="Optional note for the Zapstore announcement"
                 ></textarea>
+                <p class="hint">
+                  The listing summary, description and screenshots come from
+                  <code>apps/mobile/zapstore/</code>.
+                </p>
                 <div class="actions">
                   <button id="zapstore" class="primary" type="button" disabled>
                     Build, publish, and announce
@@ -522,18 +680,33 @@
                   <button id="announce" class="ghost" type="button" disabled>
                     Send announcement
                   </button>
+                  <button
+                    id="uninstall"
+                    class="danger span"
+                    type="button"
+                    hidden
+                  >
+                    Uninstall from device
+                  </button>
+                  <p id="uninstall-hint" class="hint span" hidden>
+                    Removes this app and all its data, including any wallets,
+                    from every device adb lists as ready, including emulators
+                    and wireless connections. Use it before installing a build
+                    signed with a different key, which Android refuses to
+                    install over the old one.
+                  </p>
+                  <button
+                    id="manage-listings"
+                    class="ghost span"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="listings"
+                  >
+                    Manage listings and posts
+                  </button>
                 </div>
               </li>
             </ol>
-            <button
-              id="manage-listings"
-              class="ghost"
-              type="button"
-              aria-expanded="false"
-              aria-controls="listings"
-            >
-              Manage listings and posts
-            </button>
             <div id="listings" hidden>
               <ul id="releases"></ul>
               <h2 class="manager">Published apps</h2>
@@ -543,6 +716,67 @@
               </p>
               <div id="apps"></div>
             </div>
+            <div class="key-warning" role="note">
+              <strong>Keep the 12 words safe.</strong> They are the only backup
+              of the Android release key.
+              <ul>
+                <li>
+                  <strong>If they are lost</strong> along with this computer's
+                  keystore, no one can sign updates for apps signed with this
+                  key again. Android refuses an update signed with another key,
+                  so every user must uninstall and reinstall, which deletes the
+                  app's data, including wallets that are not backed up. On
+                  Zapstore the app starts over under a new certificate.
+                </li>
+                <li>
+                  <strong>If they leak,</strong> anyone holding them can sign
+                  updates that phones install as genuine Satsigner releases.
+                  Treat them like a wallet seed.
+                </li>
+              </ul>
+            </div>
+            <details class="guide">
+              <summary>Sign releases on another computer</summary>
+              <p class="hint">
+                The 12 words rebuild the same Android key and certificate, so
+                releases from the new computer update the installed app.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Install the tools this page needs, plus OpenSSL 3 (<code
+                    >brew install openssl</code
+                  >
+                  on macOS).
+                </li>
+                <li>
+                  Clone the repository and run <code>pnpm install</code> at its
+                  root.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:restore</code> and
+                  type the 12 words. Add <code>--force</code> if a keystore is
+                  already in <code>~/.satsigner</code>.
+                </li>
+                <li>
+                  Check that the printed certificate SHA-256 is
+                  <code
+                    >E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7</code
+                  >. Any other value means a word is wrong.
+                </li>
+                <li>
+                  Start this page with <code>pnpm --dir tools/release dev</code>
+                  and sign in with the same npub.
+                </li>
+                <li>
+                  Publish. The existing link between the key and your npub is
+                  found and renewed only when it nears expiry.
+                </li>
+              </ol>
+              <p class="hint">
+                Type the words only into the restore prompt. Never save them in
+                a file, a chat or the repository.
+              </p>
+            </details>
           </section>
           <section id="apk-panel" hidden>
             <p class="hint">
@@ -612,6 +846,9 @@
       const displayNameEl = document.querySelector('#display-name')
       const logEl = document.querySelector('#log')
       const connectButton = document.querySelector('#connect')
+      const jobEl = document.querySelector('#job')
+      const jobLabelEl = document.querySelector('#job-label')
+      const cancelButton = document.querySelector('#cancel')
       const publishStep = document.querySelector('#publish-step')
       const ngitTitle = document.querySelector('#ngit-title')
       const tabs = [...document.querySelectorAll('[role="tab"]')]
@@ -666,6 +903,12 @@
       function rememberDeleted(id, key = DELETED_RELEASES_KEY) {
         const ids = readDeletedIds(key)
         ids.add(id)
+        localStorage.setItem(key, JSON.stringify([...ids]))
+      }
+
+      function forgetDeleted(id, key = DELETED_RELEASES_KEY) {
+        const ids = readDeletedIds(key)
+        if (!ids.delete(id)) return
         localStorage.setItem(key, JSON.stringify([...ids]))
       }
 
@@ -828,6 +1071,14 @@
         })
       }
 
+      function fieldLabel(text, inputId) {
+        const label = document.createElement('label')
+        label.className = 'field-label'
+        label.htmlFor = inputId
+        label.textContent = text
+        return label
+      }
+
       function renderApps(events) {
         publishedApps.clear()
         appsEl.replaceChildren()
@@ -853,12 +1104,15 @@
           title.textContent = packageId
           const name = document.createElement('input')
           name.dataset.field = 'name'
+          name.id = `app-name-${event.id}`
           name.value = tagValue(event, 'name')
-          name.setAttribute('aria-label', 'App name')
+          const nameLabel = fieldLabel('App name', name.id)
           const content = document.createElement('textarea')
           content.dataset.field = 'content'
+          content.id = `app-description-${event.id}`
           content.value = event.content ?? ''
-          content.setAttribute('aria-label', 'App description')
+          content.placeholder = 'Shown on the Zapstore app page'
+          const contentLabel = fieldLabel('Description', content.id)
           const actions = document.createElement('div')
           actions.className = 'app-actions'
           const button = document.createElement('button')
@@ -869,12 +1123,13 @@
             !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           const remove = document.createElement('button')
           remove.type = 'button'
+          remove.className = 'danger'
           remove.dataset.removeApp = event.id
           remove.textContent = 'Delete listing'
           remove.disabled =
             !signerPubkey || readDeletedIds(DELETED_APPS_KEY).has(packageId)
           actions.append(button, remove)
-          card.append(title, name, content, actions)
+          card.append(title, nameLabel, name, contentLabel, content, actions)
           if (readDeletedIds(DELETED_APPS_KEY).has(packageId)) {
             const tag = document.createElement('p')
             tag.className = 'hint'
@@ -891,7 +1146,87 @@
           return
         }
         const events = await fetchPublishedApps(signerPubkey)
+        await clearUnconfirmedAppDeletions(events)
         renderApps(events)
+      }
+
+      async function clearUnconfirmedAppDeletions(listings) {
+        const deleted = readDeletedIds(DELETED_APPS_KEY)
+        const marked = listings.filter((event) =>
+          deleted.has(tagValue(event, 'd'))
+        )
+        if (marked.length === 0) return
+        const { complete, events } = await queryEvents(ZAPSTORE_RELAY, {
+          kinds: [5],
+          authors: [signerPubkey],
+          '#e': marked.map((event) => event.id)
+        })
+        if (!complete) return
+        const requested = new Set(
+          events.flatMap((event) =>
+            event.tags.filter((tag) => tag[0] === 'e').map((tag) => tag[1])
+          )
+        )
+        for (const listing of marked) {
+          if (!requested.has(listing.id)) {
+            forgetDeleted(tagValue(listing, 'd'), DELETED_APPS_KEY)
+          }
+        }
+      }
+
+      function nextCreatedAt(event) {
+        return Math.max(
+          Math.floor(Date.now() / 1000),
+          (event.created_at ?? 0) + 1
+        )
+      }
+
+      function signListing(original, name, content) {
+        const tags = original.tags.map((tag) =>
+          tag[0] === 'name' ? ['name', name] : tag
+        )
+        if (!tags.some((tag) => tag[0] === 'name')) tags.push(['name', name])
+        return window.nostr.signEvent({
+          kind: 32267,
+          created_at: nextCreatedAt(original),
+          tags,
+          content
+        })
+      }
+
+      // relay.zapstore.dev saves a lone listing edit only when no release or
+      // asset of that app is pending for the key. Assets left by failed
+      // publishes stay pending, so the edit travels with a re-signed copy of
+      // the stored release, which the relay checks against the stored asset.
+      function resignRelease(release) {
+        return window.nostr.signEvent({
+          kind: release.kind,
+          created_at: nextCreatedAt(release),
+          tags: release.tags,
+          content: release.content
+        })
+      }
+
+      async function latestRelease(pubkey, packageId) {
+        const releases = await fetchEvents(ZAPSTORE_RELAY, {
+          kinds: [30063],
+          authors: [pubkey],
+          '#i': [packageId]
+        })
+        return releases.toSorted((a, b) => b.created_at - a.created_at)[0]
+      }
+
+      async function sendToZapstore(event, label) {
+        writeLog(`  sending ${label} ${event.id}\n`)
+        const [reply] = await publishEventTo([ZAPSTORE_RELAY], event)
+        logRelayReply(reply)
+        return reply
+      }
+
+      function failReplace(button, packageId, status, reason) {
+        button.disabled = false
+        statusEl.textContent = status
+        writeLog(`Replace ${packageId} failed: ${reason}\n`, 'error')
       }
 
       async function replaceApp(id, button) {
@@ -907,37 +1242,57 @@
           statusEl.textContent = 'A listing needs a name.'
           return
         }
+        const packageId = tagValue(original, 'd')
         button.disabled = true
-        statusEl.textContent = 'Approve the replacement in the extension.'
-        const tags = original.tags.map((tag) =>
-          tag[0] === 'name' ? ['name', name] : tag
-        )
-        if (!tags.some((tag) => tag[0] === 'name')) tags.push(['name', name])
-        const createdAt = Math.max(
-          Math.floor(Date.now() / 1000),
-          (original.created_at ?? 0) + 1
-        )
+        statusEl.textContent = 'Approve the signatures in the extension.'
+        writeLog(`Replace listing ${packageId}\n`, 'milestone')
+        writeLog(`  name "${name}", description ${content.length} characters\n`)
         try {
-          const signed = await window.nostr.signEvent({
-            kind: 32267,
-            created_at: createdAt,
-            tags,
-            content
-          })
-          const [accepted] = await publishEventTo([ZAPSTORE_RELAY], signed)
-          if (!accepted) {
-            button.disabled = false
-            statusEl.textContent = 'Zapstore rejected the replacement.'
-            writeLog(`replace ${tagValue(original, 'd')} was rejected\n`)
+          const release = await latestRelease(original.pubkey, packageId)
+          writeLog(
+            release
+              ? `  re-signing release ${tagValue(release, 'version')} (${release.id}) so Zapstore saves the listing with it\n`
+              : '  no stored release, sending the listing alone\n'
+          )
+          writeLog('  waiting for the extension to sign\n')
+          const listing = await signListing(original, name, content)
+          const resigned = release ? await resignRelease(release) : null
+          const listingReply = await sendToZapstore(listing, 'listing')
+          if (!listingReply.accepted) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore rejected the replacement.',
+              listingReply.message || 'rejected'
+            )
+            return
+          }
+          const releaseReply = resigned
+            ? await sendToZapstore(resigned, 'release')
+            : null
+          if (releaseReply && !releaseReply.accepted) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore rejected the re-signed release.',
+              releaseReply.message || 'release rejected'
+            )
+            return
+          }
+          if (!(await confirmSaved(listing, 'the new listing'))) {
+            failReplace(
+              button,
+              packageId,
+              'Zapstore holds the replacement as pending and has not saved it. Your edits are still in the form.',
+              `Zapstore did not save it (${listingReply.message || 'no reason given'})`
+            )
             return
           }
           statusEl.textContent = 'Listing replaced.'
-          writeLog(`replaced ${tagValue(original, 'd')}\n`)
+          writeLog(`Replaced ${packageId}\n`, 'success')
           await loadApps()
         } catch (error) {
-          button.disabled = false
-          statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          failReplace(button, packageId, error.message, error.message)
         }
       }
 
@@ -950,6 +1305,9 @@
         const packageId = tagValue(original, 'd')
         button.disabled = true
         statusEl.textContent = 'Approve the deletion in the extension.'
+        writeLog(`Delete listing ${packageId}\n`, 'milestone')
+        writeLog(`  deletes listing event ${original.id}\n`)
+        writeLog('  waiting for the extension to sign\n')
         try {
           const signed = await window.nostr.signEvent({
             kind: 5,
@@ -961,27 +1319,121 @@
             ],
             content: ''
           })
-          const [accepted] = await publishEventTo([ZAPSTORE_RELAY], signed)
-          if (!accepted) {
+          writeLog(`  signed deletion request ${signed.id}\n`)
+          const [reply] = await publishEventTo([ZAPSTORE_RELAY], signed)
+          logRelayReply(reply)
+          if (!reply.accepted) {
             button.disabled = false
             statusEl.textContent = 'Zapstore rejected the deletion request.'
-            writeLog(`delete ${packageId} was rejected\n`)
+            writeLog(`Delete ${packageId} failed\n`, 'error')
+            return
+          }
+          const saved = await confirmSaved(signed, 'the deletion request')
+          const listing = await readEventById(ZAPSTORE_RELAY, original.id)
+          const [listingLog, listingKind] = LISTING_READ_LOGS[listing.status]
+          writeLog(listingLog, listingKind)
+          if (!saved && listing.status !== 'missing') {
+            button.disabled = false
+            statusEl.textContent =
+              listing.status === 'unknown'
+                ? 'Could not confirm the deletion. Try again later.'
+                : 'Zapstore did not save the deletion request.'
+            writeLog(`Delete ${packageId} failed\n`, 'error')
             return
           }
           rememberDeleted(packageId, DELETED_APPS_KEY)
           statusEl.textContent =
             'Deletion requested. Zapstore may still show the page.'
-          writeLog(`delete request ${packageId}\n`)
+          writeLog(`Delete requested for ${packageId}\n`, 'success')
           await loadApps()
         } catch (error) {
           button.disabled = false
           statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          writeLog(`${error.message}\n`, 'error')
         }
       }
 
       function publishEvent(event) {
         return publishEventTo(RELEASE_RELAYS, event)
+      }
+
+      function logRelayReply({ accepted, message, relay }) {
+        const reply = message ? `: ${message}` : ''
+        writeLog(
+          `  ${relay} ${accepted ? 'OK' : 'rejected'}${reply}\n`,
+          accepted ? 'detail' : 'error'
+        )
+      }
+
+      function queryEvents(url, filter) {
+        return new Promise((resolve) => {
+          const found = []
+          const socket = new WebSocket(url)
+          const finish = (complete) => {
+            clearTimeout(timer)
+            socket.close()
+            resolve({ complete, events: found })
+          }
+          const timer = setTimeout(() => finish(false), RELEASE_QUERY_MS)
+          socket.addEventListener('open', () => {
+            socket.send(JSON.stringify(['REQ', 'query', filter]))
+          })
+          socket.addEventListener('message', (message) => {
+            try {
+              const frame = JSON.parse(message.data)
+              if (frame[0] === 'EVENT' && typeof frame[2]?.id === 'string') {
+                found.push(frame[2])
+              }
+              if (frame[0] === 'EOSE') finish(true)
+              if (frame[0] === 'CLOSED') finish(false)
+            } catch {
+              finish(false)
+            }
+          })
+          socket.addEventListener('error', () => finish(false))
+        })
+      }
+
+      async function fetchEvents(url, filter) {
+        const { events } = await queryEvents(url, filter)
+        return events
+      }
+
+      async function readEventById(url, id) {
+        const { complete, events } = await queryEvents(url, { ids: [id] })
+        const event = events.find((item) => item.id === id) ?? null
+        if (event) return { event, status: 'found' }
+        return { event: null, status: complete ? 'missing' : 'unknown' }
+      }
+
+      async function fetchEventById(url, id) {
+        const { event } = await readEventById(url, id)
+        return event
+      }
+
+      async function waitForSavedEvent(url, id, attemptsLeft) {
+        const saved = await fetchEventById(url, id)
+        if (saved || attemptsLeft <= 1) return saved
+        await new Promise((resolve) => setTimeout(resolve, SAVE_CHECK_DELAY_MS))
+        return waitForSavedEvent(url, id, attemptsLeft - 1)
+      }
+
+      async function confirmSaved(signed, label) {
+        writeLog(
+          `  checking that ${ZAPSTORE_RELAY} saved ${label}, this can take a minute\n`
+        )
+        const saved = await waitForSavedEvent(
+          ZAPSTORE_RELAY,
+          signed.id,
+          SAVE_CHECK_ATTEMPTS
+        )
+        writeLog(
+          saved
+            ? `  ok      ${label} is saved (${signed.id})\n`
+            : `  missing ${label} is not saved (${signed.id})\n`,
+          saved ? 'success' : 'error'
+        )
+        return Boolean(saved)
       }
 
       function publishEventTo(relays, event) {
@@ -992,7 +1444,7 @@
                 const socket = new WebSocket(url)
                 const timer = setTimeout(() => {
                   socket.close()
-                  resolve(false)
+                  resolve({ accepted: false, message: 'no reply', relay: url })
                 }, RELEASE_QUERY_MS)
                 socket.addEventListener('open', () => {
                   socket.send(JSON.stringify(['EVENT', event]))
@@ -1007,11 +1459,19 @@
                   if (frame[0] !== 'OK' || frame[1] !== event.id) return
                   clearTimeout(timer)
                   socket.close()
-                  resolve(frame[2] === true)
+                  resolve({
+                    accepted: frame[2] === true,
+                    message: typeof frame[3] === 'string' ? frame[3] : '',
+                    relay: url
+                  })
                 })
                 socket.addEventListener('error', () => {
                   clearTimeout(timer)
-                  resolve(false)
+                  resolve({
+                    accepted: false,
+                    message: 'connection failed',
+                    relay: url
+                  })
                 })
               })
           )
@@ -1033,10 +1493,11 @@
             content: ''
           })
           const results = await publishEvent(signed)
-          if (!results.some(Boolean)) {
+          for (const result of results) logRelayReply(result)
+          if (!results.some((result) => result.accepted)) {
             button.disabled = false
             statusEl.textContent = 'Relays rejected the deletion request.'
-            writeLog(`delete ${id} was rejected\n`)
+            writeLog(`delete ${id} was rejected\n`, 'error')
             return
           }
           rememberDeleted(id)
@@ -1047,7 +1508,7 @@
         } catch (error) {
           button.disabled = false
           statusEl.textContent = error.message
-          writeLog(`${error.message}\n`)
+          writeLog(`${error.message}\n`, 'error')
         }
       }
 
@@ -1058,6 +1519,8 @@
       const zapstoreButton = document.querySelector('#zapstore')
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
+      const uninstallButton = document.querySelector('#uninstall')
+      const uninstallHint = document.querySelector('#uninstall-hint')
       const identityButtons = [...document.querySelectorAll('[data-identity]')]
       const kindButtons = [...document.querySelectorAll('[data-kind]')]
       const buildApkButton = document.querySelector('#build-apk')
@@ -1098,6 +1561,15 @@
 
       let signerPubkey = ''
       let busy = false
+      const JOB_LABELS = {
+        announce: 'Sending the announcement',
+        apk: 'Building the APK',
+        publish: 'Publishing the repository',
+        push: 'Pushing the branch',
+        uninstall: 'Uninstalling',
+        zapstore: 'Building, publishing, and announcing',
+        zapstoreOnly: 'Publishing to Zapstore'
+      }
       let profileFor = ''
 
       const PROFILE_RELAYS = [
@@ -1116,17 +1588,31 @@
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
+      const STATUS_REFRESH_MS = 15000
+      const LISTING_READ_LOGS = {
+        found: ['  the relay still serves the listing\n', 'detail'],
+        missing: [
+          '  ok      the relay no longer serves the listing\n',
+          'success'
+        ],
+        unknown: ['  could not read the listing back from the relay\n', 'error']
+      }
+      // Zapstore saves a developer listing after reading its APK, off the
+      // request path, which takes up to about a minute.
+      const SAVE_CHECK_ATTEMPTS = 18
+      const SAVE_CHECK_DELAY_MS = 5000
 
-      function writeLog(text) {
+      function logLine(text, kind) {
+        const line = document.createElement('span')
+        line.className = `log-${kind}`
         const time = new Date().toLocaleTimeString('en-GB', { hour12: false })
-        const stamped = text
-          .split('\n')
-          .map((line) => {
-            if (line.length === 0) return ''
-            return `${time}\t${line}`
-          })
-          .join('\n')
-        logEl.textContent += stamped
+        line.textContent = text.length === 0 ? '\n' : `${time}\t${text}\n`
+        return line
+      }
+
+      function writeLog(text, kind = 'detail') {
+        const lines = text.endsWith('\n') ? text.slice(0, -1) : text
+        logEl.append(...lines.split('\n').map((line) => logLine(line, kind)))
         requestAnimationFrame(() => {
           logEl.scrollTop = logEl.scrollHeight
         })
@@ -1219,7 +1705,10 @@
       function setBusy(next) {
         busy = next
         const connected = signerPubkey.length > 0
-        connectButton.disabled = busy || connected
+        // A running job may be waiting for a signature, so signing in stays
+        // possible while busy.
+        connectButton.disabled = connected
+        jobEl.hidden = !busy
         connectButton.textContent = connected ? 'Signed in' : 'Sign in'
         identityEl.hidden = !connected
         if (!connected) {
@@ -1234,6 +1723,7 @@
         zapstoreButton.disabled = busy || !connected
         zapstoreOnlyButton.disabled = busy || !connected
         announceButton.disabled = busy || !connected
+        uninstallButton.disabled = busy
         for (const button of [...identityButtons, ...kindButtons]) {
           button.disabled = busy
         }
@@ -1368,6 +1858,15 @@
         zapstoreButton.classList.toggle('danger', releaseChannel === 'primary')
         zapstoreButton.classList.toggle('primary', releaseChannel !== 'primary')
         renderZapstorePreview(listing)
+        const installed = releaseStatus?.installedPackages ?? []
+        const onDevice = Boolean(
+          listing.packageId && installed.includes(listing.packageId)
+        )
+        uninstallButton.hidden = !onDevice
+        uninstallHint.hidden = !onDevice
+        uninstallButton.textContent = onDevice
+          ? `Uninstall ${listing.packageId}`
+          : 'Uninstall from device'
       }
 
       function renderZapstorePreview(listing) {
@@ -1388,6 +1887,20 @@
         )
       }
 
+      const loggedStatus = { origin: '' }
+      const statusRefresh = { pending: null }
+
+      function refreshStatusInBackground() {
+        if (statusRefresh.pending || document.visibilityState !== 'visible') {
+          return
+        }
+        statusRefresh.pending = refreshStatus()
+          .catch(() => {})
+          .finally(() => {
+            statusRefresh.pending = null
+          })
+      }
+
       async function refreshStatus() {
         const response = await fetch('/api/status')
         const status = await response.json()
@@ -1404,9 +1917,10 @@
         pushButton.textContent = status.published
           ? `Sync ${branch}`
           : `Push ${branch}`
-        if (status.origin) {
+        if (status.origin && status.origin !== loggedStatus.origin) {
           writeLog(`origin ${status.origin}\n`)
         }
+        loggedStatus.origin = status.origin
         releaseStatus = status
         showChannel()
         showApkSelection()
@@ -1415,7 +1929,36 @@
           ? `Release APK from the Android project on disk, all CPU architectures. Current app-release.apk: ${formatBytes(release.bytes)} · ${release.modifiedAt.slice(0, 16).replace('T', ' ')}.`
           : "Release APK from the Android project on disk, all CPU architectures. It keeps that project's package id. No release APK is on disk yet."
         setBusy(status.busy)
+        showJob(status.job)
         await refreshApks()
+      }
+
+      function showJob(job) {
+        if (!job) {
+          jobLabelEl.textContent = 'Running…'
+          jobLabelEl.title = ''
+          cancelButton.disabled = false
+          return
+        }
+        const label = JOB_LABELS[job.action] ?? job.action
+        jobLabelEl.textContent = job.cancelling ? 'Cancelling…' : `${label}…`
+        jobLabelEl.title = job.command
+        cancelButton.disabled = job.cancelling
+      }
+
+      async function cancelJob() {
+        const confirmed = window.confirm(
+          'Stop the running command? A build in progress is thrown away.'
+        )
+        if (!confirmed) return
+        cancelButton.disabled = true
+        jobLabelEl.textContent = 'Cancelling…'
+        const response = await fetch('/api/cancel', { method: 'POST' })
+        if (!response.ok) {
+          const body = await response.json()
+          writeLog(`${body.error}\n`, 'error')
+        }
+        await refreshStatus()
       }
 
       function connectSigner() {
@@ -1453,7 +1996,7 @@
                 error: error.message
               })
             )
-            writeLog(`${error.message}\n`)
+            writeLog(`${error.message}\n`, 'error')
           }
         })
         return new Promise((resolve, reject) => {
@@ -1465,7 +2008,7 @@
             setBusy(busy)
             void showProfile(signerPubkey)
             refreshListings()
-            writeLog('extension connected\n')
+            writeLog('extension connected\n', 'success')
             resolve()
           })
           socket.addEventListener('error', () => {
@@ -1474,18 +2017,21 @@
         })
       }
 
-      async function runAction(action) {
+      async function runAction(action, confirmedVersion = '') {
         setBusy(true)
         statusEl.textContent =
           action === 'apk'
             ? 'Building the APK.'
-            : 'Running. Approve prompts in the extension.'
+            : action === 'uninstall'
+              ? 'Uninstalling from the connected device.'
+              : 'Running. Approve prompts in the extension.'
         const response = await fetch('/api/run', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             action,
             channel: releaseChannel,
+            confirmedVersion,
             identity: apkIdentity,
             kind: apkKind,
             notes: notesEl.value
@@ -1493,7 +2039,7 @@
         })
         if (!response.ok) {
           const body = await response.json()
-          writeLog(`${body.error}\n`)
+          writeLog(`${body.error}\n`, 'error')
           setBusy(false)
         }
       }
@@ -1517,11 +2063,53 @@
           showChannel()
         })
       }
-      zapstoreButton.addEventListener('click', () => runAction('zapstore'))
-      zapstoreOnlyButton.addEventListener('click', () =>
-        runAction('zapstoreOnly')
+      // Production updates every user who installed Satsigner from Zapstore,
+      // so it asks before doing anything. The publish script refuses
+      // Production unless it receives the version confirmed here.
+      function confirmProductionPublish(listing) {
+        return window.confirm(
+          `Publish ${listing.packageId} ${listing.versionName} to Production?\n\n` +
+            'This is the real Satsigner app. Everyone who installed it from Zapstore ' +
+            'will be offered this update.'
+        )
+      }
+      function runPublishAction(action) {
+        const listing = releaseStatus?.channels?.[releaseChannel]
+        if (!listing?.packageId || !listing.versionName) {
+          writeLog(
+            'Release status has not loaded yet. Try again in a moment.\n',
+            'error'
+          )
+          return
+        }
+        if (releaseChannel !== 'primary') {
+          runAction(action)
+          return
+        }
+        if (confirmProductionPublish(listing)) {
+          runAction(action, listing.versionName)
+        }
+      }
+      zapstoreButton.addEventListener('click', () =>
+        runPublishAction('zapstore')
       )
-      announceButton.addEventListener('click', () => runAction('announce'))
+      zapstoreOnlyButton.addEventListener('click', () =>
+        runPublishAction('zapstoreOnly')
+      )
+      announceButton.addEventListener('click', () =>
+        runPublishAction('announce')
+      )
+      uninstallButton.addEventListener('click', () => {
+        const listing = releaseStatus?.channels?.[releaseChannel] ?? {}
+        const confirmed = window.confirm(
+          `Uninstall ${listing.packageId} from every connected Android device?\n\n` +
+            'This deletes the app and all its data, including any wallets in it. ' +
+            'Make sure their seeds are backed up.'
+        )
+        if (confirmed) {
+          runAction('uninstall')
+        }
+      })
       for (const button of identityButtons) {
         button.addEventListener('click', () => {
           apkIdentity = button.dataset.identity
@@ -1535,17 +2123,28 @@
         })
       }
       buildApkButton.addEventListener('click', () => runAction('apk'))
+      cancelButton.addEventListener('click', () => {
+        cancelJob().catch((error) => writeLog(`${error.message}\n`, 'error'))
+      })
 
       const logs = new EventSource('/api/logs')
       logs.onmessage = (event) => {
-        writeLog(JSON.parse(event.data))
-        if (event.data.includes('done') || event.data.includes('error:')) {
+        const { kind, text } = JSON.parse(event.data)
+        writeLog(text, kind)
+        if (
+          text === 'done' ||
+          text === 'cancelled' ||
+          text.startsWith('error:')
+        ) {
           refreshStatus()
           refreshListings()
         }
       }
       refreshStatus()
       refreshListings()
+      setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
+      window.addEventListener('focus', refreshStatusInBackground)
+      document.addEventListener('visibilitychange', refreshStatusInBackground)
     </script>
   </body>
 </html>

@@ -1,0 +1,32 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.ssqrscanner'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.ssqrscanner"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+// Guava from the Gradle plugin forces listenablefuture to an empty jar;
+// CameraX needs the real ListenableFuture class (same fix as expo-camera).
+configurations.configureEach {
+  resolutionStrategy.force "com.google.guava:listenablefuture:1.0"
+}
+
+dependencies {
+  // Same CameraX version as expo-camera, so only one copy ends up in the APK.
+  def camerax_version = "1.6.0"
+  implementation "androidx.camera:camera-core:${camerax_version}"
+  implementation "androidx.camera:camera-camera2:${camerax_version}"
+  implementation "androidx.camera:camera-lifecycle:${camerax_version}"
+  implementation "androidx.camera:camera-view:${camerax_version}"
+  // zxing-cpp: Apache-2.0 QR decoder with no Google Play services dependency.
+  implementation "io.github.zxing-cpp:android:2.3.0"
+}

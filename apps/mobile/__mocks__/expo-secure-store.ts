@@ -13,3 +13,7 @@ export const deleteItemAsync = jest.fn((key: string) => {
   delete store[key]
   return Promise.resolve()
 })
+export const getItem = jest.fn((key: string) => store[key] ?? null)
+export const setItem = jest.fn((key: string, value: string) => {
+  store[key] = value
+})

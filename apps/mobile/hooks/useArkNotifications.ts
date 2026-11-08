@@ -22,6 +22,7 @@ import { getArkServer } from '@/utils/ark'
 import { shouldAnnounceArkReceive } from '@/utils/arkMovement'
 import { isArkSwapForwardedPayment } from '@/utils/arkSwap'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
+import { devLog, devStep } from '@/utils/devConsole'
 
 const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
@@ -42,6 +43,7 @@ function scheduleAccountInvalidation(
   }
   const timer = setTimeout(() => {
     pendingInvalidations.delete(accountId)
+    devLog('ark', `refetch ${accountId}`)
     void invalidateArkAccountQueries(queryClient, accountId)
   }, INVALIDATE_DEBOUNCE_MS)
   pendingInvalidations.set(accountId, timer)
@@ -70,6 +72,7 @@ function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
   if (shouldSkipDuplicateReceiveEvent(key)) {
     return
   }
+  devLog('ark', `receive overlay ${event.effectiveBalanceSats} sats`)
   useArkReceiveOverlayStore.getState().enqueueReceive({
     accountId: account.id,
     accountName: account.name,
@@ -116,12 +119,14 @@ async function subscribeAccount(
       return
     }
     const datadir = await ensureArkDatadir(account.id)
+    await devStep('ark', `open wallet ${account.name}`)
     await openArkWallet({
       accountId: account.id,
       datadir,
       mnemonic,
       server
     })
+    devLog('ark', `wallet open ${account.name}`)
 
     const accountStillExists = useArkStore
       .getState()
@@ -134,6 +139,7 @@ async function subscribeAccount(
       account.serverId,
       account.id,
       (event) => {
+        devLog('ark', `event ${event.type} ${account.name}`)
         scheduleAccountInvalidation(queryClient, account.id)
         handleMovementEvent(account, event, queryClient)
       }
@@ -150,7 +156,9 @@ async function subscribeAccountSafe(
 ): Promise<void> {
   try {
     await subscribeAccount(account, queryClient)
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    devLog('ark', `open ${account.name} failed: ${reason}`, 'error')
     inflightSubscriptions.delete(account.id)
   }
 }
@@ -189,6 +197,7 @@ async function resyncAccount(
 
 function handleAppForeground(queryClient: QueryClient) {
   const { accounts } = useArkStore.getState()
+  devLog('ark', 'app foreground: resubscribe and resync')
   tearDownAllSubscriptions()
   syncSubscriptions(accounts, queryClient)
   for (const account of accounts) {

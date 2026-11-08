@@ -1,8 +1,15 @@
 import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 
+import { getIconStrokeProps, type IconStrokeProps } from './iconStroke'
+
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconAbout({ width, height }: IconProps) {
+export default function SSIconAbout({
+  width,
+  height,
+  screenStrokeWidth
+}: IconProps & IconStrokeProps) {
+  const strokeProps = getIconStrokeProps(screenStrokeWidth)
   return (
     <Svg width={width} height={height} viewBox="0 0 19 19">
       <G>
@@ -13,7 +20,7 @@ export default function SSIconAbout({ width, height }: IconProps) {
           transform="translate(0.5 0.5)"
           fill="none"
           stroke="#828282"
-          strokeWidth="1"
+          {...strokeProps}
         />
       </G>
       <Path

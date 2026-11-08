@@ -20,7 +20,6 @@ import { useArkSwapRunner } from '@/hooks/useArkSwaps'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -30,11 +29,14 @@ import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { devLog, devStep } from '@/utils/devConsole'
 import { startNostrLifecycle, stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
+import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
+import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 
 function yieldToUi() {
   return new Promise<void>((resolve) => {
@@ -150,7 +152,7 @@ function AuthenticatedSession() {
   useFetchBitcoinPrice()
 
   useEffect(() => {
-    void initRpcUrlAdjustments()
+    initRpcUrlAdjustments()
   }, [])
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
@@ -175,14 +177,19 @@ function AuthenticatedSession() {
     }
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
+    const failures = createSyncFailureBatch()
     for (const account of useAccountsStore.getState().accounts) {
+      await devStep('session', `sync account ${account.name}`)
       try {
         const isImportAddress = account.keys[0].creationType === 'importAddress'
         if (isImportAddress) {
           if (!currentAddresses[account.id]) {
             continue
           }
-          const updatedAccount = await syncAccountWithAddress(account)
+          const updatedAccount = await syncAccountWithAddress(
+            account,
+            failures.report
+          )
           if (updatedAccount) {
             updateAccount(updatedAccount)
           }
@@ -192,17 +199,25 @@ function AuthenticatedSession() {
         if (!wallet) {
           continue
         }
-        const updatedAccount = await syncAccountWithWallet(account, wallet)
+        const updatedAccount = await syncAccountWithWallet(
+          account,
+          wallet,
+          false,
+          false,
+          failures.report
+        )
         if (updatedAccount) {
           updateAccount(updatedAccount)
         }
       } catch (error) {
         const label = account.name ?? account.id
         const reason = error instanceof Error ? error.message : String(error)
-        toast.error(`${label}: ${reason}`)
+        devLog('session', `sync ${label} failed: ${reason}`, 'error')
+        failures.report(label, error)
       }
       await yieldToUi()
     }
+    failures.flush()
   }
 
   useEffect(() => {
@@ -214,6 +229,7 @@ function AuthenticatedSession() {
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
 
+      await devStep('session', 'migrate nostr and service secrets')
       try {
         await migrateAndHydrateNostrSecrets()
         await migrateAndHydrateServiceSecrets()
@@ -222,16 +238,19 @@ function AuthenticatedSession() {
       }
 
       if (ju && pending) {
-        const { success } = await performRecoverOverwrite(pending)
+        await devStep('session', 'restore backup')
+        const result = await performRecoverOverwrite(pending)
+        devLog(
+          'session',
+          `restore backup ${result.success ? 'done' : 'failed'}`
+        )
         setPendingRecoverData(null)
-        if (success) {
-          toast.success(t('settings.developer.recoverSuccess'))
-        } else {
-          toast.error(t('settings.developer.recoverOverwriteError'))
-        }
+        showRecoverResultToast(result)
       }
       setJustUnlocked(false)
+      await devStep('session', 'load wallets')
       await loadWallets()
+      devLog('session', 'wallets loaded')
       void syncLoadedWallets()
 
       try {
@@ -240,6 +259,7 @@ function AuthenticatedSession() {
         // non-critical — cache prune failure should not block startup
       }
       if (session.active) {
+        await devStep('session', 'start nostr sync')
         startNostrLifecycle()
       }
 

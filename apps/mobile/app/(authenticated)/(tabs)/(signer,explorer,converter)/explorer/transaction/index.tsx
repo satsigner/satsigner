@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { CameraView, useCameraPermissions } from 'expo-camera'
+import { useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
@@ -13,6 +13,7 @@ import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPressable from '@/components/SSPressable'
+import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { EXPLORER_EXAMPLE_TRANSACTIONS } from '@/constants/explorerExamples'
@@ -142,7 +143,7 @@ export default function ExplorerTransaction() {
     scannedRef.current = false
   }
 
-  function handleBarcodeScanned({ data }: { data: string }) {
+  function handleBarcodeScanned(data: string) {
     if (scannedRef.current) {
       return
     }
@@ -242,11 +243,7 @@ export default function ExplorerTransaction() {
       </ScrollView>
 
       <SSModal visible={scanOpen} onClose={handleScanClose}>
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={handleBarcodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        />
+        <SSQrScanner style={styles.camera} onScan={handleBarcodeScanned} />
       </SSModal>
 
       <SSNFCModal

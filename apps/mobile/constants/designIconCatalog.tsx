@@ -1,0 +1,288 @@
+import {
+  SSIconAbout,
+  SSIconAdd,
+  SSIconArrowsClockwise,
+  SSIconBitcoin,
+  SSIconBlackIndicator,
+  SSIconBlock,
+  SSIconBoardCircle,
+  SSIconBubbles,
+  SSIconCalendar,
+  SSIconCamera,
+  SSIconChain,
+  SSIconChainTip,
+  SSIconChartSettings,
+  SSIconChatBubble,
+  SSIconCheckCircle,
+  SSIconCheckCircleThin,
+  SSIconChevronDown,
+  SSIconChevronLeft,
+  SSIconChevronRight,
+  SSIconChevronUp,
+  SSIconCircle,
+  SSIconCircleX,
+  SSIconCircleXThin,
+  SSIconClose,
+  SSIconCloseThin,
+  SSIconCollapse,
+  SSIconContacts,
+  SSIconConverter,
+  SSIconConverterActive,
+  SSIconCurrency,
+  SSIconDelete,
+  SSIconDev,
+  SSIconDiceFive,
+  SSIconDiceFour,
+  SSIconDiceOne,
+  SSIconDiceSix,
+  SSIconDiceThree,
+  SSIconDiceTwo,
+  SSIconDifficult,
+  SSIconECash,
+  SSIconEdit,
+  SSIconEditPencil,
+  SSIconEllipsis,
+  SSIconExclude,
+  SSIconExpand,
+  SSIconExplorer,
+  SSIconExplorerActive,
+  SSIconEyeOff,
+  SSIconEyeOn,
+  SSIconFeature,
+  SSIconFiat,
+  SSIconFiles,
+  SSIconFilter,
+  SSIconGreen,
+  SSIconGreenIndicator,
+  SSIconGreenNoSecret,
+  SSIconGreyIndicator,
+  SSIconHalving,
+  SSIconHamburger,
+  SSIconHeart,
+  SSIconHideWarning,
+  SSIconHistoryChart,
+  SSIconIncoming,
+  SSIconIncomingLightning,
+  SSIconInfo,
+  SSIconInformation,
+  SSIconKeys,
+  SSIconLightning,
+  SSIconLiquid,
+  SSIconList,
+  SSIconLNSettings,
+  SSIconLock,
+  SSIconMempool,
+  SSIconMenu,
+  SSIconMultiSignature,
+  SSIconMutedRedIndicator,
+  SSIconNetwork,
+  SSIconNostr,
+  SSIconOffboardCircle,
+  SSIconOutgoing,
+  SSIconOutgoingLightning,
+  SSIconPasteClipboard,
+  SSIconPencil,
+  SSIconPlus,
+  SSIconQR,
+  SSIconRefresh,
+  SSIconRemove,
+  SSIconRepost,
+  SSIconScan,
+  SSIconScanNFC,
+  SSIconScriptsP2pkh,
+  SSIconSearch,
+  SSIconSeed,
+  SSIconServer,
+  SSIconServerOptions,
+  SSIconSettings,
+  SSIconShare,
+  SSIconSigner,
+  SSIconSignerActive,
+  SSIconSignOut,
+  SSIconSingleSignature,
+  SSIconSuccess,
+  SSIconTable,
+  SSIconTime,
+  SSIconTransaction,
+  SSIconTrash,
+  SSIconTriangle,
+  SSIconWalletEye,
+  SSIconWarning,
+  SSIconX,
+  SSIconYellowIndicator,
+  SSIconZero
+} from '@/components/icons'
+
+export type DesignIconEntry = {
+  name: string
+  Component: React.ComponentType<{ width: number; height: number }>
+}
+
+function CircleIcon({ width }: { width: number; height: number }) {
+  return <SSIconCircle size={width} />
+}
+
+export const DESIGN_ICON_GROUPS: { key: string; icons: DesignIconEntry[] }[] = [
+  {
+    icons: [
+      { Component: SSIconAbout, name: 'About' },
+      { Component: SSIconChevronDown, name: 'ChevronDown' },
+      { Component: SSIconChevronLeft, name: 'ChevronLeft' },
+      { Component: SSIconChevronRight, name: 'ChevronRight' },
+      { Component: SSIconChevronUp, name: 'ChevronUp' },
+      { Component: SSIconCollapse, name: 'Collapse' },
+      { Component: SSIconConverter, name: 'Converter' },
+      { Component: SSIconConverterActive, name: 'ConverterActive' },
+      { Component: SSIconDev, name: 'Dev' },
+      { Component: SSIconExpand, name: 'Expand' },
+      { Component: SSIconExplorer, name: 'Explorer' },
+      { Component: SSIconExplorerActive, name: 'ExplorerActive' },
+      { Component: SSIconFeature, name: 'Feature' },
+      { Component: SSIconHamburger, name: 'Hamburger' },
+      { Component: SSIconMenu, name: 'Menu' },
+      { Component: SSIconSettings, name: 'Settings' },
+      { Component: SSIconSigner, name: 'Signer' },
+      { Component: SSIconSignerActive, name: 'SignerActive' },
+      { Component: SSIconSignOut, name: 'SignOut' }
+    ],
+    key: 'navigation'
+  },
+  {
+    icons: [
+      { Component: SSIconAdd, name: 'Add' },
+      { Component: SSIconArrowsClockwise, name: 'ArrowsClockwise' },
+      { Component: SSIconCamera, name: 'Camera' },
+      { Component: SSIconClose, name: 'Close' },
+      { Component: SSIconCloseThin, name: 'CloseThin' },
+      { Component: SSIconDelete, name: 'Delete' },
+      { Component: SSIconEdit, name: 'Edit' },
+      { Component: SSIconEditPencil, name: 'EditPencil' },
+      { Component: SSIconEllipsis, name: 'Ellipsis' },
+      { Component: SSIconExclude, name: 'Exclude' },
+      { Component: SSIconEyeOff, name: 'EyeOff' },
+      { Component: SSIconEyeOn, name: 'EyeOn' },
+      { Component: SSIconFilter, name: 'Filter' },
+      { Component: SSIconPasteClipboard, name: 'PasteClipboard' },
+      { Component: SSIconPencil, name: 'Pencil' },
+      { Component: SSIconPlus, name: 'Plus' },
+      { Component: SSIconQR, name: 'QR' },
+      { Component: SSIconRefresh, name: 'Refresh' },
+      { Component: SSIconRemove, name: 'Remove' },
+      { Component: SSIconScan, name: 'Scan' },
+      { Component: SSIconScanNFC, name: 'ScanNFC' },
+      { Component: SSIconSearch, name: 'Search' },
+      { Component: SSIconShare, name: 'Share' },
+      { Component: SSIconTrash, name: 'Trash' },
+      { Component: SSIconX, name: 'X' }
+    ],
+    key: 'actions'
+  },
+  {
+    icons: [
+      { Component: SSIconBitcoin, name: 'Bitcoin' },
+      { Component: SSIconCurrency, name: 'Currency' },
+      { Component: SSIconFiat, name: 'Fiat' },
+      { Component: SSIconIncoming, name: 'Incoming' },
+      { Component: SSIconKeys, name: 'Keys' },
+      { Component: SSIconMultiSignature, name: 'MultiSignature' },
+      { Component: SSIconOutgoing, name: 'Outgoing' },
+      { Component: SSIconScriptsP2pkh, name: 'ScriptsP2pkh' },
+      { Component: SSIconSeed, name: 'Seed' },
+      { Component: SSIconSingleSignature, name: 'SingleSignature' },
+      { Component: SSIconTransaction, name: 'Transaction' },
+      { Component: SSIconWalletEye, name: 'WalletEye' },
+      { Component: SSIconZero, name: 'Zero' }
+    ],
+    key: 'bitcoin'
+  },
+  {
+    icons: [
+      { Component: SSIconBlock, name: 'Block' },
+      { Component: SSIconCalendar, name: 'Calendar' },
+      { Component: SSIconChain, name: 'Chain' },
+      { Component: SSIconChainTip, name: 'ChainTip' },
+      { Component: SSIconDifficult, name: 'Difficult' },
+      { Component: SSIconHalving, name: 'Halving' },
+      { Component: SSIconMempool, name: 'Mempool' },
+      { Component: SSIconNetwork, name: 'Network' },
+      { Component: SSIconServer, name: 'Server' },
+      { Component: SSIconServerOptions, name: 'ServerOptions' },
+      { Component: SSIconTime, name: 'Time' }
+    ],
+    key: 'chain'
+  },
+  {
+    icons: [
+      { Component: SSIconBoardCircle, name: 'BoardCircle' },
+      { Component: SSIconECash, name: 'ECash' },
+      { Component: SSIconGreen, name: 'Green' },
+      { Component: SSIconGreenNoSecret, name: 'GreenNoSecret' },
+      { Component: SSIconIncomingLightning, name: 'IncomingLightning' },
+      { Component: SSIconLightning, name: 'Lightning' },
+      { Component: SSIconLiquid, name: 'Liquid' },
+      { Component: SSIconLNSettings, name: 'LNSettings' },
+      { Component: SSIconOffboardCircle, name: 'OffboardCircle' },
+      { Component: SSIconOutgoingLightning, name: 'OutgoingLightning' }
+    ],
+    key: 'layers'
+  },
+  {
+    icons: [
+      { Component: SSIconChatBubble, name: 'ChatBubble' },
+      { Component: SSIconContacts, name: 'Contacts' },
+      { Component: SSIconFiles, name: 'Files' },
+      { Component: SSIconHeart, name: 'Heart' },
+      { Component: SSIconNostr, name: 'Nostr' },
+      { Component: SSIconRepost, name: 'Repost' }
+    ],
+    key: 'social'
+  },
+  {
+    icons: [
+      { Component: SSIconBubbles, name: 'Bubbles' },
+      { Component: SSIconChartSettings, name: 'ChartSettings' },
+      { Component: SSIconHistoryChart, name: 'HistoryChart' },
+      { Component: SSIconList, name: 'List' },
+      { Component: SSIconTable, name: 'Table' }
+    ],
+    key: 'views'
+  },
+  {
+    icons: [
+      { Component: SSIconBlackIndicator, name: 'BlackIndicator' },
+      { Component: SSIconCheckCircle, name: 'CheckCircle' },
+      { Component: SSIconCheckCircleThin, name: 'CheckCircleThin' },
+      { Component: CircleIcon, name: 'Circle' },
+      { Component: SSIconCircleX, name: 'CircleX' },
+      { Component: SSIconCircleXThin, name: 'CircleXThin' },
+      { Component: SSIconGreenIndicator, name: 'GreenIndicator' },
+      { Component: SSIconGreyIndicator, name: 'GreyIndicator' },
+      { Component: SSIconHideWarning, name: 'HideWarning' },
+      { Component: SSIconInfo, name: 'Info' },
+      { Component: SSIconInformation, name: 'Information' },
+      { Component: SSIconLock, name: 'Lock' },
+      { Component: SSIconMutedRedIndicator, name: 'MutedRedIndicator' },
+      { Component: SSIconSuccess, name: 'Success' },
+      { Component: SSIconTriangle, name: 'Triangle' },
+      { Component: SSIconWarning, name: 'Warning' },
+      { Component: SSIconYellowIndicator, name: 'YellowIndicator' }
+    ],
+    key: 'status'
+  },
+  {
+    icons: [
+      { Component: SSIconDiceOne, name: 'Dice1' },
+      { Component: SSIconDiceTwo, name: 'Dice2' },
+      { Component: SSIconDiceThree, name: 'Dice3' },
+      { Component: SSIconDiceFour, name: 'Dice4' },
+      { Component: SSIconDiceFive, name: 'Dice5' },
+      { Component: SSIconDiceSix, name: 'Dice6' }
+    ],
+    key: 'entropy'
+  }
+]
+
+export const DESIGN_ICON_COUNT = DESIGN_ICON_GROUPS.reduce(
+  (total, group) => total + group.icons.length,
+  0
+)

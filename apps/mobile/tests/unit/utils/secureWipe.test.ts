@@ -13,8 +13,15 @@ import {
 } from '@/config/auth'
 import * as nostrCache from '@/db/nostrCache'
 import * as nostrProcessedEvents from '@/db/nostrProcessedEvents'
+import {
+  persistDevConsoleEntry,
+  rotateDevConsoleSession
+} from '@/storage/devConsoleLog'
 import { useAuthStore } from '@/store/auth'
+import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
+import type { DevConsoleEntry } from '@/types/models/DevConsole'
+import * as devConsole from '@/utils/devConsole'
 import { getPin } from '@/utils/pin'
 import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
@@ -84,6 +91,35 @@ describe('secureWipeAfterMaxPinTries', () => {
 
     expect(clearCache).toHaveBeenCalledWith()
     expect(clearProcessed).toHaveBeenCalledWith()
+  })
+
+  it('drops the dev console log', async () => {
+    const line: DevConsoleEntry = {
+      id: 0,
+      level: 'info',
+      message: 'account Savings failed to sync',
+      scope: 'sync',
+      time: 0
+    }
+    persistDevConsoleEntry(line)
+    useDevConsoleStore.getState().addEntry(line)
+
+    await secureWipeAfterMaxPinTries()
+
+    expect(useDevConsoleStore.getState().entries).toStrictEqual([])
+    expect(rotateDevConsoleSession()).toStrictEqual([])
+  })
+
+  it('finishes the wipe when the dev console log cannot be cleared', async () => {
+    jest.spyOn(devConsole, 'wipeDevConsoleLog').mockImplementation(() => {
+      throw new Error('keystore unavailable')
+    })
+
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(true)
+
+    for (const key of PIN_BOUND_KEYS) {
+      expect(secureStore[sk(key)]).toBeUndefined()
+    }
   })
 
   it('stays locked when the PIN material cannot be deleted', async () => {
