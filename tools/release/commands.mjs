@@ -233,6 +233,17 @@ function createLineSplitter(maxPending) {
   }
 }
 
+function parseRequestBody(raw) {
+  if (!raw) {
+    return {}
+  }
+  const body = JSON.parse(raw)
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('request body is not a JSON object')
+  }
+  return body
+}
+
 function hasInstalledPackage(text, packageId) {
   return parsePackageList(text).includes(packageId)
 }
@@ -254,6 +265,7 @@ export {
   parseAdbDevices,
   parsePackageList,
   parseReleaseChannel,
+  parseRequestBody,
   redactSecrets,
   splitCompleteLines
 }

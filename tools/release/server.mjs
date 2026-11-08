@@ -24,6 +24,7 @@ import {
   parseAdbDevices,
   parsePackageList,
   parseReleaseChannel,
+  parseRequestBody,
   redactSecrets
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
@@ -121,13 +122,8 @@ function readBody(req) {
       chunks.push(chunk)
     })
     req.on('end', () => {
-      const raw = Buffer.concat(chunks).toString('utf8')
-      if (!raw) {
-        resolve({})
-        return
-      }
       try {
-        resolve(JSON.parse(raw))
+        resolve(parseRequestBody(Buffer.concat(chunks).toString('utf8')))
       } catch {
         reject(new Error('invalid json'))
       }
@@ -627,7 +623,9 @@ const server = createServer(async (req, res) => {
     return
   }
 
-  const action = actions[body.action]
+  const action = Object.hasOwn(actions, body.action)
+    ? actions[body.action]
+    : undefined
   if (!action) {
     send(res, 400, { error: 'unknown action' })
     return

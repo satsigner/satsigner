@@ -16,6 +16,7 @@ import {
   parseAdbDevices,
   parsePackageList,
   parseReleaseChannel,
+  parseRequestBody,
   redactSecrets,
   splitCompleteLines
 } from './commands.mjs'
@@ -176,6 +177,14 @@ test('emits nothing for a truncated line when the output ends', () => {
     `abcdefghijklmnop${TRUNCATED_LINE_MARKER}`
   ])
   assert.deepEqual(splitter.end(), [])
+})
+
+test('accepts only a JSON object as a request body', () => {
+  assert.deepEqual(parseRequestBody(''), {})
+  assert.deepEqual(parseRequestBody('{"action":"apk"}'), { action: 'apk' })
+  for (const raw of ['null', '[]', '"apk"', '1', '{']) {
+    assert.throws(() => parseRequestBody(raw), Error, raw)
+  }
 })
 
 test('finds an exact package in pm list output', () => {
