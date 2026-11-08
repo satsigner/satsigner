@@ -913,12 +913,7 @@ export default function IOPreview() {
     const existing = outputIndex === -1 ? undefined : outputs[outputIndex]
 
     if (isStonewallManagedOutput(existing) && existing) {
-      updateOutput(existing.localId, {
-        amount: existing.amount,
-        kind: existing.kind,
-        label: outputLabel,
-        to: existing.to
-      })
+      updateOutput(existing.localId, { ...existing, label: outputLabel })
       setOutputsCount((prev: number) => prev + 1)
       setAddOutputModalVisible(false)
       resetLocalOutput()
@@ -1216,9 +1211,8 @@ export default function IOPreview() {
     for (let i = 0; i < outputs.length; i += 1) {
       const extra = perOutput + (i === 0 ? remainder : 0)
       updateOutput(outputs[i].localId, {
-        amount: outputs[i].amount + extra,
-        label: outputs[i].label,
-        to: outputs[i].to
+        ...outputs[i],
+        amount: outputs[i].amount + extra
       })
     }
   }
