@@ -4,6 +4,7 @@ import {
   countLeadingZeroBits,
   expectedPowHashes,
   mineNostrPow,
+  NostrPowAbortedError,
   POW_LEVELS
 } from '@/utils/nostrPow'
 
@@ -57,5 +58,24 @@ describe('mineNostrPow', () => {
       tags: mined.tags
     })
     expect(countLeadingZeroBits(id)).toBeGreaterThanOrEqual(8)
+  })
+})
+
+describe('mineNostrPow cancellation', () => {
+  it('stops mining once its signal is aborted', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(
+      mineNostrPow({
+        content: 'abandoned note',
+        createdAt: 0,
+        difficulty: 64,
+        kind: 1,
+        pubkey: 'a'.repeat(64),
+        signal: controller.signal,
+        tags: []
+      })
+    ).rejects.toBeInstanceOf(NostrPowAbortedError)
   })
 })
