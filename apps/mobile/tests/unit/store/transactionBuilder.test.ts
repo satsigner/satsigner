@@ -97,6 +97,20 @@ describe('transactionBuilder signed draft persistence', () => {
     expect(state.signedTx).toBe('deadbeef')
   })
 
+  it('does not save a broadcast transaction again on an account switch', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, to: 'tb1qtest' })
+    store.setSignedTx('deadbeef', 'cHNidP8=')
+    store.setBroadcasted(true)
+
+    store.setAccountId('other-account')
+
+    expect(
+      useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]
+    ).toBeUndefined()
+  })
+
   it('does not carry a payjoin URI into another account', () => {
     const store = useTransactionBuilderStore.getState()
     store.setAccountId(ACCOUNT_ID)

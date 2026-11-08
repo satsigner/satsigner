@@ -139,8 +139,10 @@ function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
   state.signedTx = undefined
 }
 
+// A broadcast transaction is finished: saving it again would bring back a
+// "ready to broadcast" draft for something already on the network.
 function syncDraft(state: Draft<TransactionBuilderState>) {
-  if (!state.accountId) {
+  if (!state.accountId || state.broadcasted) {
     return
   }
   // Avoid current(stonewallPreview): after replace it may be a plain object.
@@ -365,7 +367,10 @@ const useTransactionBuilderStore = create<
 
         const updatedDrafts = { ...drafts }
 
-        if (currentId && (inputs.size > 0 || outputs.length > 0 || signedTx)) {
+        const isUnfinished =
+          !get().broadcasted &&
+          (inputs.size > 0 || outputs.length > 0 || Boolean(signedTx))
+        if (currentId && isUnfinished) {
           updatedDrafts[currentId] = {
             cpfp,
             fee,
