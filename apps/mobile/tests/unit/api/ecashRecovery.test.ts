@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store'
 
-import { restoreProofsFromSeed } from '@/api/ecash'
+import { checkMintQuote, restoreProofsFromSeed } from '@/api/ecash'
 import { getEcashMnemonic, storeEcashMnemonic } from '@/storage/encrypted'
 import { mnemonicToSeed } from '@/utils/bip39'
 
@@ -20,6 +20,7 @@ const mockRestore = jest.fn()
 const mockLoadMint = jest.fn().mockResolvedValue(undefined)
 const mockCheckProofsStates = jest.fn()
 const mockGetKeySets = jest.fn().mockResolvedValue({ keysets: MOCK_KEYSETS })
+const mockCheckMintQuote = jest.fn().mockResolvedValue({ state: 'UNPAID' })
 
 jest.mock<typeof import('@cashu/cashu-ts')>('@cashu/cashu-ts', () => {
   const CheckStateEnum = {
@@ -41,6 +42,7 @@ jest.mock<typeof import('@cashu/cashu-ts')>('@cashu/cashu-ts', () => {
     loadMint = mockLoadMint
     restore = mockRestore
     checkProofsStates = mockCheckProofsStates
+    checkMintQuote = mockCheckMintQuote
     getMintInfo = jest.fn(() => ({ name: 'Test Mint' }))
 
     constructor(mint: MockMint) {
@@ -133,6 +135,27 @@ describe('ecash seed recovery', () => {
 
       expect(result.proofs).toStrictEqual([])
       expect(result.lastCounter).toBeUndefined()
+    })
+
+    it('keeps a restore wallet out of the cache used for minting', async () => {
+      const { promise: restoreStarted, resolve: markRestoreStarted } =
+        Promise.withResolvers<undefined>()
+      const { promise: restoreReleased, resolve: releaseRestore } =
+        Promise.withResolvers<undefined>()
+      mockRestore.mockImplementation(async () => {
+        markRestoreStarted(undefined)
+        await restoreReleased
+        return { lastCounterWithSignature: undefined, proofs: [] }
+      })
+
+      const restoring = restoreProofsFromSeed('acc-1', mintUrl, seed)
+      await restoreStarted
+      await checkMintQuote('acc-1', mintUrl, 'quote-1')
+      releaseRestore(undefined)
+      await restoring
+
+      const [quoteWallet] = mockCheckMintQuote.mock.contexts
+      expect(mockRestore.mock.contexts).not.toContain(quoteWallet)
     })
 
     it('filters out non-sat keysets', async () => {

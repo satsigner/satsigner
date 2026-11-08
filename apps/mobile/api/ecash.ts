@@ -121,6 +121,27 @@ async function getKeysetsFromWallet(
   return []
 }
 
+function createWallet(mintUrl: string, options?: WalletOptions): Wallet {
+  const mint = new Mint(mintUrl)
+  const walletOpts: Record<string, unknown> = { unit: 'sat' }
+
+  if (options?.bip39seed) {
+    walletOpts.bip39seed = options.bip39seed
+    walletOpts.secretsPolicy = 'deterministic'
+  }
+
+  if (options?.counterInit) {
+    walletOpts.counterInit = options.counterInit
+  }
+
+  const wallet = new Wallet(mint, walletOpts)
+
+  if (options?.bip39seed && options.onCounterReserved) {
+    wallet.on.countersReserved(options.onCounterReserved)
+  }
+  return wallet
+}
+
 function getWallet(
   accountId: string,
   mintUrl: string,
@@ -129,25 +150,7 @@ function getWallet(
   const cacheKey = walletCacheKey(accountId, mintUrl)
 
   if (!walletCache.has(cacheKey)) {
-    const mint = new Mint(mintUrl)
-    const walletOpts: Record<string, unknown> = { unit: 'sat' }
-
-    if (options?.bip39seed) {
-      walletOpts.bip39seed = options.bip39seed
-      walletOpts.secretsPolicy = 'deterministic'
-    }
-
-    if (options?.counterInit) {
-      walletOpts.counterInit = options.counterInit
-    }
-
-    const wallet = new Wallet(mint, walletOpts)
-
-    if (options?.bip39seed && options.onCounterReserved) {
-      wallet.on.countersReserved(options.onCounterReserved)
-    }
-
-    walletCache.set(cacheKey, wallet)
+    walletCache.set(cacheKey, createWallet(mintUrl, options))
   }
   return walletCache.get(cacheKey)!
 }
@@ -584,24 +587,22 @@ export async function restoreProofsFromSeed(
   seed: Uint8Array,
   counterInit?: Record<string, number>
 ): Promise<SeedRestoreResult> {
-  clearWalletCache(accountId, mintUrl)
   try {
-    return await scanProofsFromSeed(accountId, mintUrl, seed, counterInit)
+    return await scanProofsFromSeed(mintUrl, seed, counterInit)
   } finally {
+    // The restore advances the stored counters; the next wallet starts there.
     clearWalletCache(accountId, mintUrl)
   }
 }
 
 async function scanProofsFromSeed(
-  accountId: string,
   mintUrl: string,
   seed: Uint8Array,
   counterInit?: Record<string, number>
 ): Promise<SeedRestoreResult> {
-  const wallet = getWallet(accountId, mintUrl, {
-    bip39seed: seed,
-    counterInit
-  })
+  // A wallet of its own: the cached one may be minting meanwhile, and its
+  // counters must keep reaching the store.
+  const wallet = createWallet(mintUrl, { bip39seed: seed, counterInit })
 
   await wallet.loadMint()
 
