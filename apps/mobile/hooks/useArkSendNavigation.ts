@@ -21,10 +21,7 @@ export function useArkSendNavigation(accountId: string | undefined) {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  function goToConfirm(
-    cleanedDestination: string,
-    draft: ArkDestinationDraft
-  ) {
+  function goToConfirm(cleanedDestination: string, draft: ArkDestinationDraft) {
     if (!accountId) {
       return
     }
@@ -33,10 +30,7 @@ export function useArkSendNavigation(accountId: string | undefined) {
       draft
     )
     router.navigate({
-      params: {
-        destination: cleanedDestination,
-        id: accountId
-      },
+      params: { destination: cleanedDestination, id: accountId },
       pathname: '/signer/ark/account/[id]/send/confirm'
     })
   }
