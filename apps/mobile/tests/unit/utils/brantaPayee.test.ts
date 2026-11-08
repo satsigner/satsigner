@@ -1,3 +1,4 @@
+import { BRANTA_PAYEE_NAME_MAX_LENGTH } from '@/constants/branta'
 import { type BrantaPayee } from '@/types/models/Branta'
 import { type Transaction } from '@/types/models/Transaction'
 import {
@@ -79,6 +80,39 @@ describe('toBrantaPayee', () => {
       toBrantaPayee({
         payments: [{ platform: 'Acme' }],
         verifyUrl: 'https://example.com/verify'
+      })
+    ).toBeNull()
+  })
+
+  it('keeps label syntax and hidden characters out of the payee name', () => {
+    const result = toBrantaPayee({
+      payments: [
+        {
+          description: 'March‮ecivni\n\tdue',
+          platform: 'Acme,Corp #trusted​\u0000'
+        }
+      ],
+      verifyUrl: 'https://guardrail.branta.pro/v2/verify/abc'
+    })
+
+    expect(result?.name).toBe('Acme Corp trusted')
+    expect(result?.description).toBe('Marchecivni due')
+  })
+
+  it('caps the payee name length', () => {
+    const result = toBrantaPayee({
+      payments: [{ platform: 'A'.repeat(200) }],
+      verifyUrl: 'https://guardrail.branta.pro/v2/verify/abc'
+    })
+
+    expect(result?.name).toHaveLength(BRANTA_PAYEE_NAME_MAX_LENGTH)
+  })
+
+  it('returns null when the name is only label syntax', () => {
+    expect(
+      toBrantaPayee({
+        payments: [{ platform: ' #,​ ' }],
+        verifyUrl: 'https://guardrail.branta.pro/v2/verify/abc'
       })
     ).toBeNull()
   })

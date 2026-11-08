@@ -1,3 +1,7 @@
+import {
+  BRANTA_PAYEE_DESCRIPTION_MAX_LENGTH,
+  BRANTA_PAYEE_NAME_MAX_LENGTH
+} from '@/constants/branta'
 import { type BrantaPayee } from '@/types/models/Branta'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
@@ -23,8 +27,33 @@ type LabeledOutput = {
   label: string
 }
 
-function trimmed(value: string | undefined): string {
-  return value?.trim() ?? ''
+const WHITESPACE_RUN = /\s+/g
+const INVISIBLE_CHARACTERS =
+  // oxlint-disable-next-line no-control-regex
+  /[\u0000-\u0008\u000E-\u001F\u007F-\u009F\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g
+const LABEL_SYNTAX_CHARACTERS = /[#,]/g
+
+function truncated(value: string, maxLength: number): string {
+  return [...value].slice(0, maxLength).join('').trim()
+}
+
+/** Branta text is third-party; drop characters that can spoof the display. */
+function displayText(value: string | undefined, maxLength: number): string {
+  const text = (value ?? '')
+    .normalize('NFC')
+    .replaceAll(INVISIBLE_CHARACTERS, '')
+    .replaceAll(WHITESPACE_RUN, ' ')
+    .trim()
+  return truncated(text, maxLength)
+}
+
+/**
+ * The name is written into labels, where `,` splits a label and `#` starts
+ * a tag, so it can't carry either.
+ */
+function payeeName(value: string | undefined): string {
+  const name = value?.replaceAll(LABEL_SYNTAX_CHARACTERS, ' ')
+  return displayText(name, BRANTA_PAYEE_NAME_MAX_LENGTH)
 }
 
 /**
@@ -38,7 +67,7 @@ function toBrantaPayee(result: BrantaPaymentsLike): BrantaPayee | null {
     return null
   }
 
-  const name = trimmed(payment.platform)
+  const name = payeeName(payment.platform)
   const verifyUrl = brantaHttpsUrl(result.verifyUrl)
   if (!name || !verifyUrl) {
     return null
@@ -48,7 +77,10 @@ function toBrantaPayee(result: BrantaPaymentsLike): BrantaPayee | null {
   const logoUrl = brantaHttpsUrl(payment.platformLogoUrl) ?? ''
 
   return {
-    description: trimmed(payment.description),
+    description: displayText(
+      payment.description,
+      BRANTA_PAYEE_DESCRIPTION_MAX_LENGTH
+    ),
     logoUrl,
     name,
     ...(parentLogoUrl ? { parentLogoUrl } : {}),
