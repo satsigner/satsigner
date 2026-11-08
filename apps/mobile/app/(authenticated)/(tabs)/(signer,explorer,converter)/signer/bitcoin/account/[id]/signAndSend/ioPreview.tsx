@@ -925,29 +925,27 @@ export default function IOPreview() {
     }
     addingOutputRef.current = true
     setSavingOutput(true)
-    try {
-      const resolvedPayee = await settledBrantaPayee()
-      const output = {
-        amount: outputAmount,
-        branta: resolvedPayee ?? undefined,
-        kind: existing?.kind,
-        label: outputLabel,
-        to: stripBitcoinPrefix(outputTo)
-      }
+    const resolvedPayee = await settledBrantaPayee()
+    addingOutputRef.current = false
+    setSavingOutput(false)
 
-      if (outputIndex === -1) {
-        addOutput(output)
-      } else {
-        updateOutput(outputs[outputIndex].localId, output)
-      }
-
-      setOutputsCount((prev: number) => prev + 1)
-      setAddOutputModalVisible(false)
-      resetLocalOutput()
-    } finally {
-      addingOutputRef.current = false
-      setSavingOutput(false)
+    const output = {
+      amount: outputAmount,
+      branta: resolvedPayee ?? undefined,
+      kind: existing?.kind,
+      label: outputLabel,
+      to: stripBitcoinPrefix(outputTo)
     }
+
+    if (outputIndex === -1) {
+      addOutput(output)
+    } else {
+      updateOutput(outputs[outputIndex].localId, output)
+    }
+
+    setOutputsCount((prev: number) => prev + 1)
+    setAddOutputModalVisible(false)
+    resetLocalOutput()
   }
 
   function handleRemoveOutput() {
