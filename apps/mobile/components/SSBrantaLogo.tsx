@@ -12,7 +12,7 @@ import {
   setBrantaLogoSession,
   subscribeBrantaLogoConsent
 } from '@/utils/brantaLogoConsent'
-import { brantaLogoUrl } from '@/utils/brantaUrl'
+import { brantaClearnetBlocked, brantaLogoUrl } from '@/utils/brantaUrl'
 
 import SSButton from './SSButton'
 import SSModal from './SSModal'
@@ -38,7 +38,7 @@ function allowLogosAlways() {
 
 function SSBrantaLogo({ style, uri }: SSBrantaLogoProps) {
   const ownerId = useId()
-  const torEnabled = useSettingsStore((state) => state.brantaTorEnabled)
+  const clearnetBlocked = useSettingsStore(brantaClearnetBlocked)
   const allowedAlways = useSettingsStore(
     (state) => state.brantaClearnetLogoAllowed
   )
@@ -47,7 +47,7 @@ function SSBrantaLogo({ style, uri }: SSBrantaLogoProps) {
     getBrantaLogoConsent,
     getBrantaLogoConsent
   )
-  const logoUrl = brantaLogoUrl(uri, torEnabled)
+  const logoUrl = brantaLogoUrl(uri, clearnetBlocked)
   const waiting =
     Boolean(logoUrl) && !allowedAlways && consent.session === 'unset'
   const showModal = waiting && consent.ownerId === ownerId

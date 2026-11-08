@@ -6,7 +6,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type BrantaPayee } from '@/types/models/Branta'
-import { brantaHttpsUrl } from '@/utils/brantaUrl'
+import { brantaClearnetBlocked, brantaHttpsUrl } from '@/utils/brantaUrl'
 
 import SSBrantaLogo from './SSBrantaLogo'
 import SSPressable from './SSPressable'
@@ -25,8 +25,10 @@ function openBrantaVerify(url: string) {
 }
 
 function SSBrantaPayee({ payee, interactive = true }: SSBrantaPayeeProps) {
-  const torEnabled = useSettingsStore((state) => state.brantaTorEnabled)
-  const verifyUrl = torEnabled ? undefined : brantaHttpsUrl(payee.verifyUrl)
+  const clearnetBlocked = useSettingsStore(brantaClearnetBlocked)
+  const verifyUrl = clearnetBlocked
+    ? undefined
+    : brantaHttpsUrl(payee.verifyUrl)
 
   function handlePress() {
     if (!verifyUrl) {
