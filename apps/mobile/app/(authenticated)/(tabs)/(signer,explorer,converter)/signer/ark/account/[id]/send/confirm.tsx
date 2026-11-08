@@ -73,8 +73,11 @@ export default function ArkSendConfirmPage() {
     staleTime: Infinity
   })
 
+  // The payee lives in the lookup hook, so a cached result would leave a
+  // revisited screen without one. Drop the query once the screen unmounts.
   const payeeQuery = useQuery({
     enabled: Boolean(destination) && automaticLookup,
+    gcTime: 0,
     queryFn: () => lookupBrantaDestination(destination ?? ''),
     queryKey: ['branta', 'payee', destination],
     staleTime: Infinity
