@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -74,6 +74,9 @@ export default function Confirm() {
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
   const [loadingAccount, setLoadingAccount] = useState(false)
+  // Set synchronously, so Skip and the last word tapped in one frame cannot
+  // both start a finish.
+  const finishing = useRef(false)
   const [createdAccountId, setCreatedAccountId] = useState<string>()
 
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
@@ -118,7 +121,7 @@ export default function Confirm() {
   // Runs once: Skip and the last word both lead here, and a second run would
   // create the account twice.
   async function handleFinishWordsConfirmation() {
-    if (loadingAccount) {
+    if (finishing.current) {
       return
     }
     if (policyType === 'multisig') {
@@ -133,9 +136,11 @@ export default function Confirm() {
       return
     }
 
+    finishing.current = true
     setLoadingAccount(true)
     const data = await settleOrUndefined(accountBuilderFinish(getAccountData()))
     setLoadingAccount(false)
+    finishing.current = false
     const accountId = data?.accountWithEncryptedSecret.id
     if (!accountId) {
       toast.error(t('account.import.error.generic'))

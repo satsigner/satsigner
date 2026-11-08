@@ -54,9 +54,14 @@ function useAccountBuilderFinish() {
       const pin = await getPin()
 
       for (const key of account.keys) {
-        const stringifiedSecret = JSON.stringify(key.secret)
         const { iv } = account.keys[key.index]
-        const encryptedSecret = await aesEncrypt(stringifiedSecret, pin, iv)
+        // A retry after a failed finish finds the secret already encrypted
+        // by the first attempt; encrypting it again would store ciphertext of
+        // ciphertext that can never be read back as a key.
+        const encryptedSecret =
+          typeof key.secret === 'string'
+            ? key.secret
+            : await aesEncrypt(JSON.stringify(key.secret), pin, iv)
         await storeKeySecret(account.id, key.index, encryptedSecret, iv)
 
         if (walletData) {
@@ -97,7 +102,12 @@ function useAccountBuilderFinish() {
         policyType
       }
 
-      addAccount(accountWithEncryptedSecret)
+      const isAlreadyAdded = useAccountsStore
+        .getState()
+        .accounts.some((stored) => stored.id === account.id)
+      if (!isAlreadyAdded) {
+        addAccount(accountWithEncryptedSecret)
+      }
       if (walletData) {
         addAccountWallet(
           accountWithEncryptedSecret.id,
