@@ -217,7 +217,9 @@ async function buildSignAndBroadcastClaim({
   const exits = await refreshArkExits(arkAccount.id)
   assertCanClaim(arkAccount.id, exits)
 
-  const address = await reserveFreshReceiveAddress(destination)
+  // Reserved only once the claim is signed and verified, so a rejected
+  // attempt does not use up an address.
+  const address = await peekFreshReceiveAddress(destination)
   const claim = await draftVerifiedClaim(
     arkAccount,
     exits,
@@ -239,6 +241,11 @@ async function buildSignAndBroadcastClaim({
   })
   if (!signed.ok) {
     throw new Error(t(`ark.exit.claim.rejection.${signed.reason}`))
+  }
+  // Another send may have taken the drafted address in the meantime.
+  const reservedAddress = await reserveFreshReceiveAddress(destination)
+  if (reservedAddress !== address) {
+    throw new Error(t('ark.exit.claim.error.changed'))
   }
 
   // Kept before broadcasting, so after a crash the app can only ever resend

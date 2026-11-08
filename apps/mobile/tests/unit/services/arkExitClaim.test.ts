@@ -9,7 +9,10 @@ import {
 import { broadcastRawTransaction } from '@/api/broadcast'
 import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
-import { reserveFreshReceiveAddress } from '@/services/accountReceiveAddress'
+import {
+  peekFreshReceiveAddress,
+  reserveFreshReceiveAddress
+} from '@/services/accountReceiveAddress'
 import {
   claimArkExits,
   discardArkExitClaim,
@@ -183,6 +186,7 @@ describe('claimArkExits', () => {
     useArkExitClaimsStore.getState().clearAllData()
     jest.mocked(syncArkExits).mockResolvedValue()
     jest.mocked(listArkExits).mockResolvedValue([claimableExit()])
+    jest.mocked(peekFreshReceiveAddress).mockResolvedValue(DESTINATION)
     jest.mocked(reserveFreshReceiveAddress).mockResolvedValue(DESTINATION)
     jest.mocked(buildArkExitClaim).mockResolvedValue({
       feeSats: FEE_SATS,
@@ -246,7 +250,7 @@ describe('claimArkExits', () => {
 
   it('never signs a claim that pays somewhere else', async () => {
     jest
-      .mocked(reserveFreshReceiveAddress)
+      .mocked(peekFreshReceiveAddress)
       .mockResolvedValue(
         bitcoinjs.address.fromOutputScript(
           Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),
@@ -258,6 +262,24 @@ describe('claimArkExits', () => {
       t('ark.exit.claim.rejection.unexpectedOutputs')
     )
     expect(signArkExitClaim).not.toHaveBeenCalled()
+    expect(reserveFreshReceiveAddress).not.toHaveBeenCalled()
+    expect(broadcastRawTransaction).not.toHaveBeenCalled()
+    expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('refuses the claim when its address was taken before reserving it', async () => {
+    jest
+      .mocked(reserveFreshReceiveAddress)
+      .mockResolvedValue(
+        bitcoinjs.address.fromOutputScript(
+          Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),
+          NETWORK
+        )
+      )
+
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
+      t('ark.exit.claim.error.changed')
+    )
     expect(broadcastRawTransaction).not.toHaveBeenCalled()
     expect(savedClaims()).toStrictEqual([])
   })
