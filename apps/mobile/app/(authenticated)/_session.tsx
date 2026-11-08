@@ -27,6 +27,7 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
+import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { devLog, devStep } from '@/utils/devConsole'
@@ -283,6 +284,8 @@ function AuthenticatedSession() {
     run()
     return () => {
       session.active = false
+      // A sync still running behind the PIN screen drops its result.
+      cancelAllAccountSyncs()
       stopNostrLifecycle()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
