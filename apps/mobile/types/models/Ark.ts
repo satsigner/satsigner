@@ -33,6 +33,9 @@ export type ArkBalance = {
   pendingLightningSendSats: number
   claimableLightningReceiveSats: number
   pendingBoardSats: number
+  needsRefreshSats?: number
+  pendingArkoorSendSats?: number
+  pendingOffboardSats?: number
 }
 
 export type ArkMovementStatus = 'pending' | 'successful' | 'failed' | 'canceled'
@@ -50,6 +53,14 @@ export type ArkLightningSendResult = {
   htlcVtxoCount: number
   preimage?: string
 }
+
+// Outcome of a lightning send started without waiting. `unknown` means the
+// wallet holds no record of it: it never started, or it failed and its HTLCs
+// were revoked, so the funds are back in the Ark balance.
+export type ArkLightningSendState =
+  | { status: 'unknown' }
+  | { status: 'inProgress' }
+  | { status: 'paid'; preimage: string }
 
 export type ArkFeeEstimate = {
   grossAmountSats: number
@@ -82,6 +93,40 @@ export type ArkBoardFundingInfo = {
 export type ArkServerInfo = {
   minBoardAmountSats: number
   requiredBoardConfirmations: number
+  vtxoLifetime: number
+  vtxoExitDelta: number
+  maxVtxoExitDepth: number
+}
+
+// A board funded by a Satsigner on-chain account in a single transaction. The
+// funding output only becomes a unilaterally exitable VTXO once the server
+// cosigns the exact funding txid, so the intent travels with the draft until
+// broadcast.
+export type ArkBoardIntent = ArkBoardFundingInfo & {
+  arkAccountId: string
+  serverId: ArkServerId
+  cosigned?: ArkPendingBoard
+}
+
+export type ArkLightningReceiveState =
+  | 'awaiting-payment'
+  | 'htlcs-ready'
+  | 'preimage-revealed'
+  | 'delivering'
+  | 'settled'
+
+export type ArkLightningReceive = {
+  paymentHash: string
+  invoice: string
+  amountSats?: number
+  state: ArkLightningReceiveState | string
+  settled: boolean
+}
+
+export type ArkOnchainUtxo = {
+  outpoint: string
+  amountSats: number
+  confirmed: boolean
 }
 
 export type ArkVtxo = {
@@ -92,6 +137,75 @@ export type ArkVtxo = {
   state: string
   spendable: boolean
   exitDepth: number
+}
+
+export type ArkExitStatus =
+  | 'starting'
+  | 'processing'
+  | 'awaitingDelta'
+  | 'claimable'
+  | 'claimInProgress'
+  | 'claimed'
+  | 'alreadySpent'
+  | 'swept'
+  | 'canceled'
+
+export type ArkExit = {
+  vtxoId: string
+  // Unknown for finished exits whose VTXO the wallet no longer stores.
+  amountSats?: number
+  status: ArkExitStatus
+  tipHeight: number
+  confirmedTxCount?: number
+  totalTxCount?: number
+  // An exit transaction is ready for its fee-paying child, which the wallet
+  // can only broadcast once its on-chain wallet holds enough to pay for it.
+  awaitingCpfpBroadcast?: boolean
+  claimableAtHeight?: number
+  claimTxid?: string
+}
+
+export type ArkExitClaimDraft = {
+  psbtBase64: string
+  feeSats: number
+  vtxoIds: string[]
+  skippedVtxoIds: string[]
+}
+
+export type ArkExitClaimBroadcastStatus =
+  | 'broadcasting'
+  | 'broadcast'
+  | 'failed'
+
+// A signed claim kept until the wallet sees it spend the exits. Only this exact
+// transaction may be (re)broadcast meanwhile, so a crash can never lead to a
+// second, different claim of the same exits.
+export type ArkExitClaimRecord = {
+  txid: string
+  txHex: string
+  arkAccountId: string
+  vtxoIds: string[]
+  // Address of the exit output each VTXO id spends, to ask the user's own
+  // server whether the claim reached the network.
+  inputAddresses: Record<string, string>
+  amountSats: number
+  feeSats: number
+  destinationAccountId: string
+  broadcastStatus: ArkExitClaimBroadcastStatus
+  createdAt: string
+}
+
+export type ArkEmergencyExitFee = {
+  exitBroadcastFeeSats: number
+  claimFeeSats: number
+  totalFeeSats: number
+  feeRateSatPerVb: number
+}
+
+export type ArkOnchainFeeRates = {
+  slowSatPerVb: number
+  regularSatPerVb: number
+  fastSatPerVb: number
 }
 
 export type ArkDerivedAddress = {
@@ -162,6 +276,7 @@ export type ArkWalletArgs = {
 export type ArkBolt11Invoice = {
   invoice: string
   amountSats: number
+  paymentHash: string
 }
 
 type ArkMovementEventType = 'created' | 'updated'
@@ -171,7 +286,10 @@ export type ArkMovementEvent = {
   accountId: string
   movementId: number
   status: string
+  subsystemKind: string
+  subsystemName: string
   effectiveBalanceSats: number
+  paymentHash?: string
 }
 
 export type ArkReceiveOverlayEvent = {
@@ -227,10 +345,27 @@ export interface ArkWalletProvider {
     accountId: string,
     amountSats: number
   ) => Promise<ArkFeeEstimate>
+  estimateLightningReceiveFee: (
+    accountId: string,
+    amountSats: number
+  ) => Promise<ArkFeeEstimate>
   listSpendableVtxos: (accountId: string) => Promise<ArkVtxo[]>
   listAllVtxos: (accountId: string) => Promise<ArkVtxo[]>
   refreshVtxos: (accountId: string, vtxoIds: string[]) => Promise<string>
   startExit: (accountId: string, vtxoIds?: string[]) => Promise<void>
+  listExits: (accountId: string) => Promise<ArkExit[]>
+  syncExits: (accountId: string) => Promise<void>
+  estimateEmergencyExitFee: (
+    accountId: string,
+    vtxoIds: string[]
+  ) => Promise<ArkEmergencyExitFee>
+  buildExitClaim: (
+    accountId: string,
+    vtxoIds: string[],
+    bitcoinAddress: string,
+    feeRateSatPerVb: number
+  ) => Promise<ArkExitClaimDraft>
+  signExitClaim: (accountId: string, psbtBase64: string) => Promise<string>
   estimateRefreshFee: (
     accountId: string,
     vtxoIds: string[]
@@ -261,6 +396,8 @@ export interface ArkWalletProvider {
     amountSats: number
   ) => Promise<ArkFeeEstimate>
   fetchOnchainBalance: (accountId: string) => Promise<ArkOnchainBalance>
+  fetchOnchainFeeRate: (accountId: string) => Promise<number>
+  fetchOnchainFeeRates: (accountId: string) => Promise<ArkOnchainFeeRates>
   newOnchainAddress: (accountId: string) => Promise<string>
   board: (accountId: string, amountSats?: number) => Promise<ArkPendingBoard>
   boardFundingAddress: (accountId: string) => Promise<ArkBoardFundingInfo>
@@ -276,6 +413,28 @@ export interface ArkWalletProvider {
   ) => Promise<ArkFeeEstimate>
   listPendingBoards: (accountId: string) => Promise<ArkPendingBoard[]>
   fetchServerInfo: (accountId: string) => Promise<ArkServerInfo | null>
+  fetchTipHeight: (accountId: string) => Promise<number>
+  fetchVtxoEncoded: (accountId: string, vtxoId: string) => Promise<string>
+  fetchVtxoState: (accountId: string, vtxoId: string) => Promise<string>
+  checkLightningSend: (
+    accountId: string,
+    paymentHash: string
+  ) => Promise<ArkLightningSendState>
+  fetchLightningReceive: (
+    accountId: string,
+    paymentHash: string
+  ) => Promise<ArkLightningReceive>
+  claimLightningReceive: (
+    accountId: string,
+    paymentHash: string
+  ) => Promise<ArkLightningReceive>
+  listOnchainUtxos: (accountId: string) => Promise<ArkOnchainUtxo[]>
+  sendFromOnchain: (
+    accountId: string,
+    bitcoinAddress: string,
+    amountSats: number,
+    feeRateSatPerVb: number
+  ) => Promise<string>
 }
 
 export type ArkFeeRequest =

@@ -11,6 +11,7 @@ import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
 import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -126,10 +127,23 @@ export default function TransactionConfirmation() {
     setExternalWarningModalVisible(false)
   }
 
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
+  const isArkBoardFunding = arkBoardIntent !== undefined
+
   function handleBackToHome() {
     clearTransaction()
     router.dismissAll()
     router.navigate(`/signer/bitcoin/account/${id}`)
+  }
+
+  function handleOpenArkAccount() {
+    if (!arkBoardIntent) {
+      return
+    }
+    const { arkAccountId } = arkBoardIntent
+    clearTransaction()
+    router.dismissAll()
+    router.navigate(`/signer/ark/account/${arkAccountId}`)
   }
 
   const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
@@ -371,6 +385,15 @@ export default function TransactionConfirmation() {
                 <SSText>{formatAddress(psbt.txid())}</SSText>
               </SSVStack>
             </Animated.View>
+            {isArkBoardFunding && (
+              <Animated.View
+                entering={FadeIn.delay(DETAILS_DELAY_MS).duration(400)}
+              >
+                <SSText color="muted" center>
+                  {t('ark.board.fundingBroadcastedHint')}
+                </SSText>
+              </Animated.View>
+            )}
           </SSVStack>
           <Animated.View entering={FadeIn.delay(BUTTON_DELAY_MS).duration(300)}>
             <SSVStack>
@@ -385,8 +408,15 @@ export default function TransactionConfirmation() {
                 label={t('sent.viewOnMempool')}
                 onPress={handleViewOnMempool}
               />
+              {isArkBoardFunding && (
+                <SSButton
+                  variant="secondary"
+                  label={t('ark.board.openArkAccount')}
+                  onPress={handleOpenArkAccount}
+                />
+              )}
               <SSButton
-                variant="secondary"
+                variant={isArkBoardFunding ? 'outline' : 'secondary'}
                 label={t('common.backToAccountHome')}
                 onPress={handleBackToHome}
               />

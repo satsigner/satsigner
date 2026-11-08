@@ -4,17 +4,25 @@ import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
 import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
+import { ArkOperationBusyError } from '@/utils/arkError'
 
 // jest.config.js maps @secondts/bark-react-native to the manual mock in
 // __mocks__; these test-only helpers exist there, not in the real package.
 type BarkTestHelpers = {
   __countWalletNotificationListeners: () => number
   __emitWalletNotification: (event: unknown) => void
+  extractTxFromPsbt: jest.Mock
+  OnchainWallet: { default_: jest.Mock }
   Wallet: { open: jest.Mock }
 }
 
-const { __countWalletNotificationListeners, __emitWalletNotification, Wallet } =
-  barkModule as unknown as BarkTestHelpers
+const {
+  __countWalletNotificationListeners,
+  __emitWalletNotification,
+  extractTxFromPsbt,
+  OnchainWallet,
+  Wallet
+} = barkModule as unknown as BarkTestHelpers
 
 type Deferred<T> = {
   promise: Promise<T>
@@ -52,18 +60,20 @@ type FakeWallet = Record<string, jest.Mock>
 
 function buildFakeWallet(overrides: Partial<FakeWallet> = {}): FakeWallet {
   return {
-    allVtxos: jest.fn(),
+    allVtxos: jest.fn().mockResolvedValue([]),
+    arkInfo: jest.fn().mockResolvedValue(undefined),
     balance: jest.fn(),
     bolt11Invoice: jest.fn(),
     estimateArkoorPaymentFee: jest.fn(),
-    history: jest.fn(),
+    getExitVtxos: jest.fn().mockResolvedValue([]),
+    history: jest.fn().mockResolvedValue([]),
     newAddress: jest.fn(),
     offboardVtxos: jest.fn(),
     payLightningInvoice: jest.fn(),
     peekAddress: jest.fn(),
     sendArkoorPayment: jest.fn(),
     sendOnchain: jest.fn(),
-    spendableVtxos: jest.fn(),
+    spendableVtxos: jest.fn().mockResolvedValue([]),
     sync: jest.fn().mockResolvedValue(undefined),
     ...overrides
   }
@@ -94,12 +104,17 @@ async function openWallet(
   })
 }
 
-function movementCreatedEvent(subsystemKind: string, subsystemName = '') {
+function movementCreatedEvent(
+  subsystemKind: string,
+  subsystemName = '',
+  paymentHash?: string
+) {
   return {
     inner: {
       movement: {
         effectiveBalanceSats: 0n,
         id: 1,
+        paymentHash,
         status: 'pending',
         subsystemKind,
         subsystemName
@@ -134,22 +149,55 @@ describe('bark provider', () => {
     const wallet = buildFakeWallet({
       balance: jest.fn().mockResolvedValue({
         claimableLightningReceiveSats: 1n,
+        needsRefreshSats: 6n,
+        pendingArkoorSendSats: 7n,
         pendingBoardSats: 2n,
         pendingExitSats: 3n,
         pendingInRoundSats: 4n,
         pendingLightningSendSats: 5n,
+        pendingOffboardSats: 8n,
         spendableSats: 21_000_000n
       })
     })
     await openWallet('bal1', wallet)
     await expect(provider.fetchBalance('bal1')).resolves.toStrictEqual({
       claimableLightningReceiveSats: 1,
+      needsRefreshSats: 6,
+      pendingArkoorSendSats: 7,
       pendingBoardSats: 2,
       pendingExitSats: 3,
       pendingInRoundSats: 4,
       pendingLightningSendSats: 5,
+      pendingOffboardSats: 8,
       spendableSats: 21_000_000
     })
+  })
+
+  async function openWalletWithOnchainFeeRate(
+    accountId: string,
+    regularSatPerKwu: bigint
+  ): Promise<void> {
+    OnchainWallet.default_.mockResolvedValueOnce({
+      balance: jest.fn(),
+      feeRates: jest.fn().mockResolvedValue({
+        fastSatPerKwu: regularSatPerKwu * 2n,
+        regularSatPerKwu,
+        slowSatPerKwu: regularSatPerKwu / 2n
+      }),
+      newAddress: jest.fn(),
+      sync: jest.fn()
+    })
+    await openWallet(accountId, buildFakeWallet())
+  }
+
+  it('fetchOnchainFeeRate converts sat/kwu to sat/vB rounding up', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee1', 1001n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee1')).resolves.toBe(5)
+  })
+
+  it('fetchOnchainFeeRate never goes below 1 sat/vB', async () => {
+    await openWalletWithOnchainFeeRate('onchainFee2', 100n)
+    await expect(provider.fetchOnchainFeeRate('onchainFee2')).resolves.toBe(1)
   })
 
   it('startExit exits the entire wallet only when ids are omitted', async () => {
@@ -290,6 +338,156 @@ describe('bark provider', () => {
     ])
   })
 
+  it('listAllVtxos keeps exiting and round-queued vtxos out of selection', async () => {
+    const free = buildFakeVtxo('free', 100n, 10)
+    const exiting = buildFakeVtxo('exiting', 200n, 20)
+    const locked = buildFakeVtxo('locked', 300n, 30)
+    const queued = buildFakeVtxo('queued', 350n, 35)
+    const canceled = buildFakeVtxo('canceled', 400n, 40)
+    const wallet = buildFakeWallet({
+      allVtxos: jest
+        .fn()
+        .mockResolvedValue([free, exiting, locked, queued, canceled]),
+      getExitVtxos: jest.fn().mockResolvedValue([
+        { state: { tag: 'Processing' }, vtxoId: 'exiting' },
+        { state: { tag: 'Canceled' }, vtxoId: 'canceled' }
+      ]),
+      history: jest.fn().mockResolvedValue([
+        {
+          effectiveBalanceSats: 0n,
+          exitedVtxoIds: [],
+          id: 7,
+          inputVtxoIds: ['queued'],
+          intendedBalanceSats: 0n,
+          offchainFeeSats: 0n,
+          outputVtxoIds: [],
+          receivedOnAddresses: [],
+          sentToAddresses: [],
+          status: 'pending',
+          subsystemKind: 'round',
+          subsystemName: 'bark.refresh'
+        }
+      ]),
+      spendableVtxos: jest
+        .fn()
+        .mockResolvedValue([free, exiting, queued, canceled])
+    })
+    await openWallet('busy1', wallet)
+    const vtxos = await provider.listAllVtxos('busy1')
+    expect(vtxos.map((v) => [v.id, v.spendable])).toStrictEqual([
+      ['free', true],
+      ['exiting', false],
+      ['locked', false],
+      ['queued', false],
+      ['canceled', true]
+    ])
+  })
+
+  it('fetchBalance moves exiting vtxo sats from spendable to pending exit', async () => {
+    const wallet = buildFakeWallet({
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 0n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 27_000n
+      }),
+      getExitVtxos: jest
+        .fn()
+        .mockResolvedValue([
+          { state: { tag: 'Processing' }, vtxoId: 'exiting' }
+        ]),
+      spendableVtxos: jest
+        .fn()
+        .mockResolvedValue([
+          buildFakeVtxo('free', 25_000n, 10),
+          buildFakeVtxo('exiting', 2000n, 20)
+        ])
+    })
+    await openWallet('busy2', wallet)
+    await expect(provider.fetchBalance('busy2')).resolves.toMatchObject({
+      pendingExitSats: 2000,
+      spendableSats: 25_000
+    })
+  })
+
+  it('fetchBalance takes a queued refresh of a too-deep vtxo from needs-refresh', async () => {
+    const wallet = buildFakeWallet({
+      arkInfo: jest.fn().mockResolvedValue({ maxVtxoExitDepth: 10 }),
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 5000n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 10_000n
+      }),
+      history: jest.fn().mockResolvedValue([
+        {
+          inputVtxoIds: ['deep'],
+          status: 'pending',
+          subsystemKind: 'round',
+          subsystemName: 'bark.refresh'
+        }
+      ]),
+      spendableVtxos: jest.fn().mockResolvedValue([
+        { ...buildFakeVtxo('free', 10_000n, 500), exitDepth: 1 },
+        { ...buildFakeVtxo('deep', 5000n, 500), exitDepth: 10 }
+      ])
+    })
+    await openWallet('busy3', wallet)
+    await expect(provider.fetchBalance('busy3')).resolves.toMatchObject({
+      needsRefreshSats: 0,
+      pendingInRoundSats: 5000,
+      spendableSats: 10_000
+    })
+  })
+
+  it('fetchBalance skips the refresh thresholds when no vtxo is busy', async () => {
+    const wallet = buildFakeWallet({
+      balance: jest.fn().mockResolvedValue({
+        claimableLightningReceiveSats: 0n,
+        needsRefreshSats: 0n,
+        pendingArkoorSendSats: 0n,
+        pendingBoardSats: 0n,
+        pendingExitSats: 0n,
+        pendingInRoundSats: 0n,
+        pendingLightningSendSats: 0n,
+        pendingOffboardSats: 0n,
+        spendableSats: 1000n
+      }),
+      spendableVtxos: jest
+        .fn()
+        .mockResolvedValue([buildFakeVtxo('free', 1000n, 10)])
+    })
+    await openWallet('busy4', wallet)
+    await expect(provider.fetchBalance('busy4')).resolves.toMatchObject({
+      spendableSats: 1000
+    })
+    expect(wallet.arkInfo).not.toHaveBeenCalled()
+  })
+
+  it('fetchVtxoState returns the state tag of the VTXO', async () => {
+    const wallet = buildFakeWallet({
+      getVtxoById: jest.fn().mockResolvedValue({
+        ...buildFakeVtxo('board', 100n, 10),
+        state: { tag: 'Locked' }
+      })
+    })
+    await openWallet('vtxostate1', wallet)
+    await expect(provider.fetchVtxoState('vtxostate1', 'board')).resolves.toBe(
+      'Locked'
+    )
+    expect(wallet.getVtxoById).toHaveBeenCalledWith('board')
+  })
+
   it('payBolt11 returns the preimage and given amount for a Paid status', async () => {
     const wallet = buildFakeWallet({
       payLightningInvoice: jest.fn().mockResolvedValue({
@@ -401,6 +599,26 @@ describe('bark provider', () => {
       provider.offboardVtxos('off1', ['vtxo1'], 'tb1qdest')
     ).resolves.toBe('txid-offboard')
     expect(__countWalletNotificationListeners()).toBe(0)
+  })
+
+  it('subscribeNotifications forwards the movement payment hash', async () => {
+    await openWallet('notify1', buildFakeWallet())
+    const listener = jest.fn()
+    const unsubscribe = provider.subscribeNotifications('notify1', listener)
+    __emitWalletNotification(
+      movementCreatedEvent('lightning_receive', '', 'ab')
+    )
+    unsubscribe()
+    expect(listener).toHaveBeenCalledWith({
+      accountId: 'notify1',
+      effectiveBalanceSats: 0,
+      movementId: 1,
+      paymentHash: 'ab',
+      status: 'pending',
+      subsystemKind: 'lightning_receive',
+      subsystemName: '',
+      type: 'created'
+    })
   })
 
   it('offboardVtxos resolves pending when the movement notification wins', async () => {
@@ -537,5 +755,250 @@ describe('bark provider', () => {
     ])
     expect(__countWalletNotificationListeners()).toBe(0)
     jest.useRealTimers()
+  })
+
+  it('sendOnchain refuses a second send while the first is still running', async () => {
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendBusy1', wallet)
+    const first = provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await expect(first).resolves.toBe('first-txid')
+    await expect(
+      provider.sendOnchain('sendBusy1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
+  })
+
+  it('a finishing refresh keeps the guard of another one that timed out', async () => {
+    jest.useFakeTimers()
+    const firstRefresh = createDeferred<string>()
+    const secondRefresh = createDeferred<string>()
+    const wallet = buildFakeWallet({
+      refreshVtxos: jest
+        .fn()
+        .mockReturnValueOnce(firstRefresh.promise)
+        .mockReturnValueOnce(secondRefresh.promise)
+    })
+    await openWallet('refGuard1', wallet)
+    const timedOut = provider.refreshVtxos('refGuard1', ['vtxo1'])
+    await jest.advanceTimersByTimeAsync(10_000)
+    const finishing = provider.refreshVtxos('refGuard1', ['vtxo2'])
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(20_001)
+    ])
+    secondRefresh.resolve('second-txid')
+    await expect(finishing).resolves.toBe('second-txid')
+    jest.useRealTimers()
+
+    await expect(
+      provider.refreshVtxos('refGuard1', ['vtxo3'])
+    ).rejects.toBeInstanceOf(ArkOperationBusyError)
+
+    firstRefresh.resolve('first-txid')
+    await firstRefresh.promise
+  })
+
+  it('sendOnchain refuses a retry while a timed-out send still runs', async () => {
+    jest.useFakeTimers()
+    const firstSend = createDeferred<{ movementId: number; txid: string }>()
+    const wallet = buildFakeWallet({
+      sendOnchain: jest
+        .fn()
+        .mockReturnValueOnce(firstSend.promise)
+        .mockResolvedValue({ movementId: 8, txid: 'second-txid' })
+    })
+    await openWallet('sendRetry1', wallet)
+    const timedOut = provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    await Promise.all([
+      expect(timedOut).rejects.toThrow('no movement created within timeout'),
+      jest.advanceTimersByTimeAsync(30_001)
+    ])
+    jest.useRealTimers()
+
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).rejects.toThrow('still running')
+    expect(wallet.sendOnchain).toHaveBeenCalledTimes(1)
+
+    firstSend.resolve({ movementId: 7, txid: 'first-txid' })
+    await firstSend.promise
+    await Promise.resolve()
+    await expect(
+      provider.sendOnchain('sendRetry1', 'tb1qdest', 1000)
+    ).resolves.toBe('second-txid')
+  })
+
+  describe('exits', () => {
+    const TIP = 300
+
+    function exitStatus(vtxoId: string, tag: string, inner = {}) {
+      return { state: { inner: { tipHeight: TIP, ...inner }, tag }, vtxoId }
+    }
+
+    function exitTx(tag: string) {
+      return { status: { tag } }
+    }
+
+    it('listExits maps every exit state and its progress', async () => {
+      const wallet = buildFakeWallet({
+        getVtxoById: jest.fn((id: string) =>
+          id === 'gone'
+            ? Promise.reject(new Error('not found'))
+            : Promise.resolve({ amountSats: 5000n })
+        ),
+        listAllExits: jest.fn().mockResolvedValue([
+          exitStatus('start', 'Start'),
+          exitStatus('proc', 'Processing', {
+            transactions: [
+              exitTx('Confirmed'),
+              exitTx('AwaitingCpfpBroadcast'),
+              exitTx('AwaitingConfirmation')
+            ]
+          }),
+          exitStatus('delta', 'AwaitingDelta', { claimableHeight: 320 }),
+          exitStatus('ready', 'Claimable', {
+            claimableSince: { height: 310 }
+          }),
+          exitStatus('claiming', 'ClaimInProgress', { claimTxid: 'c1' }),
+          exitStatus('gone', 'Claimed', { txid: 'c2' }),
+          exitStatus('spent', 'VtxoAlreadySpent'),
+          exitStatus('swept', 'VtxoSwept'),
+          exitStatus('cancel', 'Canceled')
+        ])
+      })
+      await openWallet('exits1', wallet)
+
+      const exits = await provider.listExits('exits1')
+
+      expect(wallet.listAllExits).toHaveBeenCalledWith(false, false)
+      expect(exits.map((exit) => exit.status)).toStrictEqual([
+        'starting',
+        'processing',
+        'awaitingDelta',
+        'claimable',
+        'claimInProgress',
+        'claimed',
+        'alreadySpent',
+        'swept',
+        'canceled'
+      ])
+      expect(exits[1]).toMatchObject({
+        amountSats: 5000,
+        awaitingCpfpBroadcast: true,
+        confirmedTxCount: 1,
+        tipHeight: TIP,
+        totalTxCount: 3
+      })
+      expect(exits[2].claimableAtHeight).toBe(320)
+      expect(exits[3].claimableAtHeight).toBe(310)
+      expect(exits[4].claimTxid).toBe('c1')
+      expect(exits[5]).toMatchObject({
+        amountSats: undefined,
+        claimTxid: 'c2',
+        vtxoId: 'gone'
+      })
+    })
+
+    it('estimateEmergencyExitFee converts bigint fees', async () => {
+      const wallet = buildFakeWallet({
+        estimateEmergencyExitFee: jest.fn().mockResolvedValue({
+          claimFeeSats: 200n,
+          exitBroadcastFeeSats: 1000n,
+          feeRateSatPerVb: 3n,
+          totalFeeSats: 1200n
+        })
+      })
+      await openWallet('exitFee1', wallet)
+
+      await expect(
+        provider.estimateEmergencyExitFee('exitFee1', ['v1'])
+      ).resolves.toStrictEqual({
+        claimFeeSats: 200,
+        exitBroadcastFeeSats: 1000,
+        feeRateSatPerVb: 3,
+        totalFeeSats: 1200
+      })
+      expect(wallet.estimateEmergencyExitFee).toHaveBeenCalledWith(
+        ['v1'],
+        undefined,
+        undefined,
+        undefined
+      )
+    })
+
+    it('buildExitClaim drains only the given exits to the address', async () => {
+      const wallet = buildFakeWallet({
+        drainExits: jest.fn().mockResolvedValue({
+          feeSats: 150n,
+          psbtBase64: 'cHNidP8=',
+          skippedVtxoIds: ['v2'],
+          vtxoIds: ['v1']
+        })
+      })
+      await openWallet('exitClaim1', wallet)
+
+      await expect(
+        provider.buildExitClaim('exitClaim1', ['v1', 'v2'], 'tb1qdest', 2)
+      ).resolves.toStrictEqual({
+        feeSats: 150,
+        psbtBase64: 'cHNidP8=',
+        skippedVtxoIds: ['v2'],
+        vtxoIds: ['v1']
+      })
+      expect(wallet.drainExits).toHaveBeenCalledWith(
+        ['v1', 'v2'],
+        false,
+        'tb1qdest',
+        2n
+      )
+    })
+
+    it('buildExitClaim refuses an empty selection', async () => {
+      const wallet = buildFakeWallet({ drainExits: jest.fn() })
+      await openWallet('exitClaim2', wallet)
+
+      await expect(
+        provider.buildExitClaim('exitClaim2', [], 'tb1qdest', 2)
+      ).rejects.toThrow('No exits selected for claim')
+      expect(wallet.drainExits).not.toHaveBeenCalled()
+    })
+
+    it('signExitClaim extracts the signed transaction', async () => {
+      const wallet = buildFakeWallet({
+        signExitClaimInputs: jest.fn().mockResolvedValue('signed-psbt')
+      })
+      extractTxFromPsbt.mockReturnValue('signed-hex')
+      await openWallet('exitSign1', wallet)
+
+      await expect(
+        provider.signExitClaim('exitSign1', 'unsigned-psbt')
+      ).resolves.toBe('signed-hex')
+      expect(wallet.signExitClaimInputs).toHaveBeenCalledWith('unsigned-psbt')
+      expect(extractTxFromPsbt).toHaveBeenCalledWith('signed-psbt')
+    })
+
+    it('fetchOnchainFeeRates converts every speed to sat/vB', async () => {
+      await openWalletWithOnchainFeeRate('exitRates1', 2000n)
+
+      await expect(
+        provider.fetchOnchainFeeRates('exitRates1')
+      ).resolves.toStrictEqual({
+        fastSatPerVb: 16,
+        regularSatPerVb: 8,
+        slowSatPerVb: 4
+      })
+    })
   })
 })

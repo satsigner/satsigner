@@ -20,10 +20,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { useArkAccountBuilderStore } from '@/store/arkAccountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import type { ArkAccount, ArkAccountStats } from '@/types/models/Ark'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import { arkNetworkLabel } from '@/utils/ark'
+import { arkNetworkLabel, getArkNetworkTabIndex } from '@/utils/ark'
 
 function buildArkAccountCardStats(
   stats: ArkAccountStats | undefined
@@ -58,13 +59,13 @@ function ArkAccountListItem({
   onPress,
   ...display
 }: ArkAccountListItemProps) {
-  const { balance, stats } = useArkAccountSummary(account.id)
+  const { stats, totalSats } = useArkAccountSummary(account.id)
 
   return (
     <SSAccountCard
       {...display}
       name={account.name}
-      balance={balance?.spendableSats ?? 0}
+      balance={totalSats}
       stats={buildArkAccountCardStats(stats)}
       onPress={() => onPress(account)}
     />
@@ -77,7 +78,10 @@ export default function ArkAccountListPage() {
   useFetchBitcoinPrice()
   const display = useDisplayPreferences()
 
-  const [tabIndex, setTabIndex] = useState(0)
+  const selectedNetwork = useBlockchainStore((state) => state.selectedNetwork)
+  const [tabIndex, setTabIndex] = useState(() =>
+    getArkNetworkTabIndex(selectedNetwork)
+  )
   const currentNetwork = ARK_SUPPORTED_NETWORKS[tabIndex]
   const filteredAccounts = accounts.filter((a) => a.network === currentNetwork)
 

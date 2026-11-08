@@ -122,6 +122,7 @@ function getReplacementActions(
     backend: Backend
     feeRateKnown: boolean
     hasBumpRecipients: boolean
+    isArkBoardFunding: boolean
     policyType: Account['policyType']
     vsizeKnown: boolean
   }
@@ -133,7 +134,10 @@ function getReplacementActions(
   // the Bitcoin Core wallet backend does not populate. Multisig is left out:
   // without spending assets BDK plans a single key set and writes only those
   // derivations, so the other cosigners could not sign.
+  // An Ark board VTXO is cosigned for one exact funding txid; replacing the
+  // funding tx would leave the board output without a unilateral exit.
   const canReplace =
+    !context.isArkBoardFunding &&
     assessment.canBumpOrCancel &&
     context.feeRateKnown &&
     context.backend !== 'rpc' &&
@@ -155,6 +159,7 @@ function getFeeReplacementOptions(input: {
     | 'utxos'
   >
   backend: Backend
+  isArkBoardFunding: boolean
   ownedOutpoints: Set<string>
   tx: ReplaceableTransaction
 }): { actions: FeeReplacementActions; assessment: FeeReplacementAssessment } {
@@ -174,6 +179,7 @@ function getFeeReplacementOptions(input: {
     backend: input.backend,
     feeRateKnown: getTransactionFeeRate(input.tx) !== undefined,
     hasBumpRecipients: (bumpRecipients?.length ?? 0) > 0,
+    isArkBoardFunding: input.isArkBoardFunding,
     policyType: input.account.policyType,
     vsizeKnown: (input.tx.vsize ?? 0) > 0
   })

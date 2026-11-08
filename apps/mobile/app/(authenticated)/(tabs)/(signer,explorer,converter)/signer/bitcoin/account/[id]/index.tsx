@@ -2469,7 +2469,7 @@ export default function AccountView() {
                   </SSHStack>
                 ) : null}
               </SSVStack>
-              <SSVStack gap="none">
+              <SSVStack gap="none" widthFull>
                 {account.keys[0].creationType !== 'importAddress' && (
                   <SSButtonActionsGroup
                     context="bitcoin"

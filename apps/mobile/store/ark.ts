@@ -5,10 +5,15 @@ import mmkvStorage from '@/storage/mmkv'
 import type {
   ArkAccount,
   ArkAccountStats,
-  ArkBalance
+  ArkBalance,
+  ArkBoardIntent,
+  ArkOnchainBalance,
+  ArkPendingBoard
 } from '@/types/models/Ark'
 
 type BalanceMap = Record<string, ArkBalance | undefined>
+
+type OnchainBalanceMap = Record<string, ArkOnchainBalance | undefined>
 
 type StatsMap = Record<string, ArkAccountStats | undefined>
 
@@ -22,13 +27,29 @@ const DEFAULT_ACCOUNT_STATS: ArkAccountStats = {
 type ArkState = {
   accounts: ArkAccount[]
   balances: BalanceMap
+  // Last known on-chain wallet balances, shown while a fresh sync is missing
+  // or failing instead of counting the wallet as empty.
+  onchainBalances: OnchainBalanceMap
   stats: StatsMap
+  // Funding txs cosigned by the Ark server. Replacing one (RBF) would orphan
+  // the board, so fee-bump and cancel stay disabled for these txids.
+  boardFundingTxids: string[]
+  // Board funding addresses handed to the transaction builder, keyed by
+  // address. Any transaction paying one must be cosigned before broadcast,
+  // whatever happened to the draft in between.
+  boardIntents: Record<string, ArkBoardIntent>
+  autoBoardDisabledIds: string[]
 }
 
 type ArkAction = {
   addAccount: (account: ArkAccount) => void
+  addBoardFundingTxid: (txid: string) => void
+  addBoardIntent: (intent: ArkBoardIntent) => void
+  markBoardIntentCosigned: (address: string, board: ArkPendingBoard) => void
   removeAccount: (accountId: string) => void
+  setAutoBoardEnabled: (accountId: string, enabled: boolean) => void
   updateBalance: (accountId: string, balance: ArkBalance) => void
+  updateOnchainBalance: (accountId: string, balance: ArkOnchainBalance) => void
   updateStats: (accountId: string, stats: Partial<ArkAccountStats>) => void
   clearAllData: () => void
 }
@@ -42,27 +63,84 @@ export const useArkStore = create<ArkState & ArkAction>()(
           accounts: [...state.accounts, account],
           balances: { ...state.balances, [account.id]: undefined }
         })),
+      addBoardFundingTxid: (txid) =>
+        set((state) =>
+          state.boardFundingTxids.includes(txid)
+            ? state
+            : { boardFundingTxids: [...state.boardFundingTxids, txid] }
+        ),
+      addBoardIntent: (intent) =>
+        set((state) => ({
+          boardIntents: { ...state.boardIntents, [intent.address]: intent }
+        })),
+      autoBoardDisabledIds: [],
       balances: {},
+      boardFundingTxids: [],
+      boardIntents: {},
       clearAllData: () =>
         set({
           accounts: [],
+          autoBoardDisabledIds: [],
           balances: {},
+          boardFundingTxids: [],
+          boardIntents: {},
+          onchainBalances: {},
           stats: {}
         }),
+      markBoardIntentCosigned: (address, board) =>
+        set((state) => {
+          const intent = state.boardIntents[address]
+          if (!intent) {
+            return state
+          }
+          return {
+            boardIntents: {
+              ...state.boardIntents,
+              [address]: { ...intent, cosigned: board }
+            }
+          }
+        }),
+      onchainBalances: {},
       removeAccount: (accountId) =>
         set((state) => {
           const { [accountId]: _b, ...remainingBalances } = state.balances
           const { [accountId]: _s, ...remainingStats } = state.stats
+          const { [accountId]: _o, ...remainingOnchainBalances } =
+            state.onchainBalances
+          // boardFundingTxids stay: replacing a funding tx would still orphan
+          // the board, and its funds outlive the account.
           return {
             accounts: state.accounts.filter((a) => a.id !== accountId),
+            autoBoardDisabledIds: state.autoBoardDisabledIds.filter(
+              (id) => id !== accountId
+            ),
             balances: remainingBalances,
+            boardIntents: Object.fromEntries(
+              Object.entries(state.boardIntents).filter(
+                ([, intent]) => intent.arkAccountId !== accountId
+              )
+            ),
+            onchainBalances: remainingOnchainBalances,
             stats: remainingStats
+          }
+        }),
+      setAutoBoardEnabled: (accountId, enabled) =>
+        set((state) => {
+          const others = state.autoBoardDisabledIds.filter(
+            (id) => id !== accountId
+          )
+          return {
+            autoBoardDisabledIds: enabled ? others : [...others, accountId]
           }
         }),
       stats: {},
       updateBalance: (accountId, balance) =>
         set((state) => ({
           balances: { ...state.balances, [accountId]: balance }
+        })),
+      updateOnchainBalance: (accountId, balance) =>
+        set((state) => ({
+          onchainBalances: { ...state.onchainBalances, [accountId]: balance }
         })),
       updateStats: (accountId, stats) =>
         set((state) => ({
@@ -80,7 +158,11 @@ export const useArkStore = create<ArkState & ArkAction>()(
       name: 'satsigner-ark',
       partialize: (state) => ({
         accounts: state.accounts,
+        autoBoardDisabledIds: state.autoBoardDisabledIds,
         balances: state.balances,
+        boardFundingTxids: state.boardFundingTxids,
+        boardIntents: state.boardIntents,
+        onchainBalances: state.onchainBalances,
         stats: state.stats
       }),
       storage: createJSONStorage(() => mmkvStorage),

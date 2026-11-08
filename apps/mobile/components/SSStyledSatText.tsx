@@ -1,5 +1,9 @@
 import { Colors } from '@/styles'
-import { text, type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import {
+  getDigitLineHeight,
+  type TextFontSize,
+  type TextFontWeight
+} from '@/styles/sizes'
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
@@ -41,7 +45,7 @@ function SSStyledSatText({
   const leading = spacedFormatted.slice(0, firstNonZeroIndex)
   const rest = spacedFormatted.slice(firstNonZeroIndex)
   const hasLeading = leading.length > 0
-  const baseStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
+  const baseStyle = { letterSpacing, lineHeight: getDigitLineHeight(textSize) }
 
   const leadingColor = noColor
     ? Colors.softWhite

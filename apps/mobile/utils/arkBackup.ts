@@ -9,6 +9,9 @@ import {
 } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
+import { useArkSwapsStore } from '@/store/arkSwaps'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Label } from '@/types/bips/329'
 import type {
   ArkAccount,
@@ -23,7 +26,9 @@ export type ArkDatadirBackup = {
 
 export type ArkBackupSection = {
   accounts: ArkAccount[]
+  autoBoardDisabledIds?: string[]
   balances?: Record<string, ArkBalance | undefined>
+  boardFundingTxids?: string[]
   datadirs?: Record<string, ArkDatadirBackup>
   labels?: Record<string, Record<string, Label>>
   mnemonics?: Record<string, string | null>
@@ -31,7 +36,8 @@ export type ArkBackupSection = {
 }
 
 export async function collectArkBackup(): Promise<ArkBackupSection> {
-  const { accounts, balances, stats } = useArkStore.getState()
+  const { accounts, autoBoardDisabledIds, balances, boardFundingTxids, stats } =
+    useArkStore.getState()
   const mnemonics = Object.fromEntries(
     await Promise.all(
       accounts.map(async (account) => [
@@ -45,7 +51,9 @@ export async function collectArkBackup(): Promise<ArkBackupSection> {
   )
   return {
     accounts,
+    autoBoardDisabledIds,
     balances,
+    boardFundingTxids,
     labels,
     mnemonics,
     stats
@@ -57,6 +65,11 @@ export function restoreArkStoreFromBackup(
 ): void {
   const store = useArkStore.getState()
   store.clearAllData()
+  useArkSwapsStore.getState().clearAllData()
+  useArkExitClaimsStore.getState().clearAllData()
+  // Clearing the board intents would let a saved draft paying a board address
+  // broadcast without the Ark server cosigning it, so the drafts go too.
+  useTransactionBuilderStore.getState().clearAllData()
   if (!data) {
     return
   }
@@ -76,6 +89,12 @@ export function restoreArkStoreFromBackup(
         store.updateStats(accountId, stats)
       }
     }
+  }
+  for (const txid of data.boardFundingTxids ?? []) {
+    store.addBoardFundingTxid(txid)
+  }
+  for (const accountId of data.autoBoardDisabledIds ?? []) {
+    store.setAutoBoardEnabled(accountId, false)
   }
 }
 
