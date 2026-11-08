@@ -2,6 +2,7 @@ import { releaseArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
 import { queryClient } from '@/lib/queryClient'
+import { forgetArkNotificationSubscription } from '@/services/arkNotificationSubscriptions'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
@@ -124,6 +125,7 @@ export function releaseArkWalletsForRestore(
   accounts: Pick<ArkAccount, 'id' | 'serverId'>[]
 ): void {
   for (const account of accounts) {
+    forgetArkNotificationSubscription(account.id)
     releaseArkWallet(account.serverId, account.id)
     clearArkDerivedAddresses(account.id)
     queryClient.removeQueries({
