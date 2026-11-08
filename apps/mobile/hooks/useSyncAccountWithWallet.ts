@@ -276,8 +276,9 @@ function failAccountSync(
   reportError: SyncErrorReporter
 ): Account | null {
   const msg = error instanceof Error ? error.message : String(error)
-  // Cancellation is not an error, so the UI must not turn red.
-  if (msg === SYNC_CANCELLED_ERROR) {
+  // Cancellation is not an error, so the UI must not turn red; neither is a
+  // failure of a run a newer one already replaced.
+  if (msg === SYNC_CANCELLED_ERROR || !params.isCurrent()) {
     settleCancelledSync(params.latest, params.setSyncStatus)
     return null
   }
