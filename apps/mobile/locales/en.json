@@ -2238,6 +2238,7 @@
     "pay.onchainSend": "Send on-chain",
     "pay.onchainSuccess": "On-chain transaction sent",
     "pay.onchainTab": "On-chain",
+    "pay.outcomeUnknown": "The node did not answer in time, so the payment may still complete. Check the node before sending again.",
     "pay.paymentExpired": "Payment request expired or already paid. Please try again.",
     "pay.paymentFailed": "Failed to send payment",
     "pay.paymentSent": "Payment sent successfully",

@@ -4,6 +4,7 @@ import TcpSocket from 'react-native-tcp-socket'
 
 import { LND_REST_TIMEOUT_MS } from '@/constants/lightning'
 import type { LNDConfig } from '@/types/models/Lightning'
+import { RequestTimeoutError } from '@/utils/errors'
 import { isSuccessfulHttpStatus } from '@/utils/http'
 import {
   buildHttp2HeadersEndStream,
@@ -193,7 +194,7 @@ function readHttpResponse(
     }
 
     const timeoutId = setTimeout(() => {
-      finish(new Error('LND REST request timed out'), null)
+      finish(new RequestTimeoutError('LND REST request timed out'), null)
     }, LND_REST_TIMEOUT_MS)
 
     socket.on('data', (data: unknown) => {

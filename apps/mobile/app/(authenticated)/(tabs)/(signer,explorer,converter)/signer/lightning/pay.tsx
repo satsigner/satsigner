@@ -22,13 +22,11 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, MILLISATS_PER_SAT } from '@/constants/btc'
-import {
-  LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE,
-  LND_SUCCESS_NAVIGATE_DELAY_MS
-} from '@/constants/lightning'
+import { LND_OPEN_CHANNEL_MAX_SAT_PER_VBYTE } from '@/constants/lightning'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useLND } from '@/hooks/useLND'
+import { useStateMachine } from '@/hooks/useStateMachine'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -53,6 +51,11 @@ import {
   validateLndOnchainSend
 } from '@/utils/lndOnchainWallet'
 import { parsePositiveSats } from '@/utils/lndPayInvoice'
+import {
+  isLndPayOutcomeUnknown,
+  LND_PAY_SEND_IDLE,
+  transitionLndPaySend
+} from '@/utils/lndPayMachine'
 import {
   decodeLNURL,
   fetchLNURLPayDetails,
@@ -83,6 +86,10 @@ function isLightningPaymentInput(text: string) {
 
 function resolveLnurlPayUrl(lnurl: string) {
   return isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
+}
+
+function showOnchainSendError(error: unknown) {
+  toast.error(`${t('lightning.pay.sendFailed')}: ${getLndErrorMessage(error)}`)
 }
 
 function showLightningPaymentError(error: unknown) {
@@ -117,7 +124,12 @@ export default function PayPage() {
   const [paymentRequest, setPaymentRequest] = useState('')
   const [amount, setAmount] = useState('')
   const [comment, setComment] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { state: sendState, send: sendPayEvent } = useStateMachine(
+    transitionLndPaySend,
+    LND_PAY_SEND_IDLE
+  )
+  const isSending = sendState.status === 'sending'
+  const isSendLocked = sendState.status !== 'idle'
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const detailsRequestId = useRef(0)
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
@@ -233,6 +245,36 @@ export default function PayPage() {
     setAmount(text)
   }
 
+  function failSend(error: unknown, showError: (error: unknown) => void) {
+    const outcomeUnknown = isLndPayOutcomeUnknown(error)
+    sendPayEvent({ outcomeUnknown, type: 'failed' })
+    if (outcomeUnknown) {
+      toast.error(t('lightning.pay.outcomeUnknown'))
+      return
+    }
+    showError(error)
+  }
+
+  function finishLightningSend(paid: boolean) {
+    if (!paid) {
+      sendPayEvent({ outcomeUnknown: false, type: 'failed' })
+      return
+    }
+    sendPayEvent({ type: 'succeeded' })
+    toast.success(t('lightning.pay.paymentSent'))
+    const { pendingZap, setZapResult } = useZapFlowStore.getState()
+    if (pendingZap) {
+      setZapResult('success')
+    }
+    router.back()
+  }
+
+  function finishOnchainSend() {
+    sendPayEvent({ type: 'succeeded' })
+    toast.success(t('lightning.pay.onchainSuccess'))
+    router.back()
+  }
+
   const handleSendPayment = async () => {
     if (!paymentRequest) {
       toast.error(t('lightning.pay.enterPaymentRequestError'))
@@ -256,13 +298,15 @@ export default function PayPage() {
       return
     }
 
-    setIsProcessing(true)
-    try {
-      await sendLightningPayment()
-    } catch (error) {
-      showLightningPaymentError(error)
+    if (!sendPayEvent({ rail: 'lightning', type: 'send' })) {
+      return
     }
-    setIsProcessing(false)
+    try {
+      const paid = await sendLightningPayment()
+      finishLightningSend(paid)
+    } catch (error) {
+      failSend(error, showLightningPaymentError)
+    }
   }
 
   const sendLightningPayment = async () => {
@@ -270,8 +314,7 @@ export default function PayPage() {
       const amountSats = parsePositiveSats(amount)
       if (amountSats === null) {
         toast.error(t('lightning.pay.validAmount'))
-        setIsProcessing(false)
-        return
+        return false
       }
       const invoice = await handleLNURLPay(
         paymentRequest,
@@ -283,19 +326,13 @@ export default function PayPage() {
       const amountSats = parsePositiveSats(amount)
       if (amountSats === null) {
         toast.error(t('lightning.pay.validAmount'))
-        setIsProcessing(false)
-        return
+        return false
       }
       await payInvoice(paymentRequest, amountSats)
     } else {
       await payInvoice(paymentRequest)
     }
-    toast.success(t('lightning.pay.paymentSent'))
-    const { pendingZap, setZapResult } = useZapFlowStore.getState()
-    if (pendingZap) {
-      setZapResult('success')
-    }
-    setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
+    return true
   }
 
   const handleContentScanned = (content: DetectedContent) => {
@@ -388,7 +425,9 @@ export default function PayPage() {
       toast.error(t('lightning.pay.invalidAddress'))
       return
     }
-    setIsProcessing(true)
+    if (!sendPayEvent({ rail: 'onchain', type: 'send' })) {
+      return
+    }
     try {
       await sendCoins(
         buildSendCoinsBody({
@@ -397,14 +436,10 @@ export default function PayPage() {
           satPerVbyte: validation.satPerVbyte
         })
       )
-      toast.success(t('lightning.pay.onchainSuccess'))
-      setTimeout(router.back, LND_SUCCESS_NAVIGATE_DELAY_MS)
+      finishOnchainSend()
     } catch (error) {
-      toast.error(
-        `${t('lightning.pay.sendFailed')}: ${getLndErrorMessage(error)}`
-      )
+      failSend(error, showOnchainSendError)
     }
-    setIsProcessing(false)
   }
 
   const isAmountlessInvoice =
@@ -444,6 +479,11 @@ export default function PayPage() {
       <SSMainLayout>
         <ScrollView>
           <SSVStack gap="md">
+            {sendState.status === 'unknown' ? (
+              <SSText color="muted" size="sm">
+                {t('lightning.pay.outcomeUnknown')}
+              </SSText>
+            ) : null}
             <SSPairedTabs<PayTab>
               activeTab={activeTab}
               onChange={setActiveTab}
@@ -570,8 +610,9 @@ export default function PayPage() {
                     label={t('lightning.pay.sendPayment')}
                     onPress={handleSendPayment}
                     variant="secondary"
-                    loading={isProcessing || isFetchingDetails}
+                    loading={isSending || isFetchingDetails}
                     disabled={
+                      isSendLocked ||
                       !paymentRequest.trim() ||
                       ((isLNURLMode || isAmountlessInvoice) &&
                         parsePositiveSats(amount) === null) ||
@@ -664,7 +705,8 @@ export default function PayPage() {
                 <SSVStack style={styles.actions}>
                   <SSButton
                     label={t('lightning.pay.onchainSend')}
-                    loading={isProcessing}
+                    disabled={isSendLocked}
+                    loading={isSending}
                     onPress={handleSendOnchain}
                     variant="secondary"
                     style={styles.button}
