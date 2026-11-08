@@ -25,6 +25,22 @@ type SSNumberInputProps = {
   ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
+function isNumberTextOutOfRange(
+  text: string,
+  pattern: RegExp,
+  min: number,
+  max: number
+): boolean {
+  if (text === '') {
+    return false
+  }
+  if (!pattern.test(text)) {
+    return true
+  }
+  const numericVal = Number(text)
+  return numericVal < min || numericVal > max
+}
+
 function SSNumberInput({
   variant = 'default',
   size = 'default',
@@ -66,10 +82,13 @@ function SSNumberInput({
   const [localValue, setLocalValue] = useState(value || '')
   const [syncedFrom, setSyncedFrom] = useState({ focused, value })
 
+  // Showing the parent's value again (on blur, or when it changes from
+  // outside) also re-judges it: the error belonged to the text it replaced.
   if (syncedFrom.focused !== focused || syncedFrom.value !== value) {
     setSyncedFrom({ focused, value })
     if (!focused && value !== localValue) {
       setLocalValue(value || '')
+      setInvalid(isNumberTextOutOfRange(value || '', NUMBER_REGEX, min, max))
     }
   }
 
