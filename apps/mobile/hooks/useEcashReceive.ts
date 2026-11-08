@@ -4,11 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
-import {
-  ECASH_MINT_QUOTE_FAILED_STATES,
-  ECASH_MINT_QUOTE_PAID_STATES
-} from '@/constants/ecash'
-import { useEcash, useQuotePolling } from '@/hooks/useEcash'
+import { useEcash } from '@/hooks/useEcash'
+import { useEcashMintQuotePolling } from '@/hooks/useEcashMintQuotePolling'
 import { t } from '@/locales'
 import type { EcashMint, EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
@@ -20,8 +17,6 @@ import {
   getLNURLType,
   requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
-
-const POLL_START_DELAY_MS = 2000
 
 function normalizeMintUrl(url: string): string {
   return url.trim().replace(/\/+$/, '').toLowerCase()
@@ -36,9 +31,11 @@ export function useEcashReceive() {
   const [amount, setAmount] = useState('')
   const [memo, setMemo] = useState('')
   const [mintQuote, setMintQuote] = useState<{
-    request: string
-    quote: string
+    amountSats: number
     expiry: number
+    mintUrl: string
+    quote: string
+    request: string
   } | null>(null)
   const [quoteStatus, setQuoteStatus] = useState<string>('')
   const [isRedeeming, setIsRedeeming] = useState(false)
@@ -76,7 +73,48 @@ export function useEcashReceive() {
   function setSelectedMintForLightning(mint: EcashMint | null) {
     setSelectedMintUrlForLightning(mint?.url ?? null)
   }
-  const { isPolling, startPolling, stopPolling } = useQuotePolling()
+
+  function resetLightningForm() {
+    setMintQuote(null)
+    setAmount('')
+    setMemo('')
+    setLnurlWithdrawCode(null)
+    setLnurlWithdrawDetails(null)
+    setIsLNURLWithdrawMode(false)
+  }
+
+  // The query stops when the screen unmounts, and the transaction screen
+  // shares its claim lock, so a quote is never minted twice.
+  const { isPolling } = useEcashMintQuotePolling({
+    checkMintQuote: async (mintUrl, quoteId) => {
+      const status = await checkMintQuote(mintUrl, quoteId)
+      setQuoteStatus(status)
+      return status
+    },
+    enabled: mintQuote !== null,
+    mintUrl: mintQuote?.mintUrl,
+    onQuoteExpiredOrCancelled: () => {
+      setMintQuote(null)
+      toast.error(t('ecash.error.paymentFailed'))
+    },
+    onQuoteIssued: () => {
+      setMintQuote(null)
+    },
+    onQuotePaid: async () => {
+      if (!mintQuote) {
+        return
+      }
+      await mintProofs(mintQuote.mintUrl, mintQuote.amountSats, mintQuote.quote)
+      resetLightningForm()
+      toast.success(t('ecash.success.paymentReceived'))
+      router.navigate(
+        activeAccountId
+          ? `/signer/ecash/account/${activeAccountId}`
+          : '/signer/ecash'
+      )
+    },
+    quoteId: mintQuote?.quote
+  })
 
   // checkTokenStatus is recreated on every useEcash render, so mirror it into
   // a ref to avoid re-running the spent-state effect on identity changes.
@@ -267,7 +305,7 @@ export function useEcashReceive() {
     }
 
     const quote = await createMintQuote(mintUrl, amountSats, memo)
-    setMintQuote(quote)
+    setMintQuote({ ...quote, amountSats, mintUrl })
     setQuoteStatus('PENDING')
     toast.success(t('ecash.success.invoiceCreated'))
 
@@ -290,49 +328,6 @@ export function useEcashReceive() {
         )
       }
     }
-
-    setTimeout(() => {
-      startPolling(async () => {
-        if (!mintUrl || !quote) {
-          return false
-        }
-
-        try {
-          const status = await checkMintQuote(mintUrl, quote.quote)
-          setQuoteStatus(status)
-
-          if (ECASH_MINT_QUOTE_PAID_STATES.has(status)) {
-            await mintProofs(mintUrl, amountSats, quote.quote)
-            setMintQuote(null)
-            setAmount('')
-            setMemo('')
-            setLnurlWithdrawCode(null)
-            setLnurlWithdrawDetails(null)
-            setIsLNURLWithdrawMode(false)
-            stopPolling()
-            toast.success(t('ecash.success.paymentReceived'))
-            if (activeAccountId) {
-              router.navigate(`/signer/ecash/account/${activeAccountId}`)
-            } else {
-              router.navigate('/signer/ecash')
-            }
-            return true
-          } else if (ECASH_MINT_QUOTE_FAILED_STATES.has(status)) {
-            stopPolling()
-            toast.error(t('ecash.error.paymentFailed'))
-            return true
-          }
-          return false
-        } catch (error) {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : t('ecash.error.networkError')
-          )
-          return false
-        }
-      })
-    }, POLL_START_DELAY_MS)
   }
 
   async function createInvoice() {
@@ -407,7 +402,6 @@ export function useEcashReceive() {
     setAmount,
     setMemo,
     setSelectedMintForLightning,
-    stopPolling,
     token,
     tokenMintUrl,
     tokenSpentStatus

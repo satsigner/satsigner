@@ -7,12 +7,11 @@ import {
 } from '@tanstack/react-query'
 
 import {
-  ECASH_MINT_QUOTE_FAILED_STATES,
-  ECASH_MINT_QUOTE_PAID_STATES,
   ECASH_QUOTE_POLL_INTERVAL_MS,
   ECASH_QUOTE_MAX_POLL_ATTEMPTS
 } from '@/constants/ecash'
 import type { MintQuoteState } from '@/types/models/Ecash'
+import { isMintQuoteSettled, toMintQuotePollStep } from '@/utils/ecashMintQuote'
 
 type MintQuoteCheckParams = {
   mintUrl: string
@@ -20,6 +19,7 @@ type MintQuoteCheckParams = {
   checkMintQuote: (mintUrl: string, quoteId: string) => Promise<MintQuoteState>
   onQuotePaid: () => Promise<void>
   onQuoteExpiredOrCancelled: () => void
+  onQuoteIssued?: () => void
 }
 
 type MintQuotePollingParams = Omit<
@@ -37,13 +37,11 @@ const RERENDER_ON_EVERY_POLL_ATTEMPT: NotifyOnChangeProps = [
   'errorUpdatedAt'
 ]
 
+// Every poller of a quote shares this set, so only one of them mints it.
 const quoteIdsBeingClaimed = new Set<string>()
 
 export function shouldKeepPolling(state: QueryState<MintQuoteState>) {
-  const settled =
-    state.data !== undefined &&
-    (ECASH_MINT_QUOTE_PAID_STATES.has(state.data) ||
-      ECASH_MINT_QUOTE_FAILED_STATES.has(state.data))
+  const settled = state.data !== undefined && isMintQuoteSettled(state.data)
   const attempts = state.dataUpdateCount + state.errorUpdateCount
   return !settled && attempts < ECASH_QUOTE_MAX_POLL_ATTEMPTS
 }
@@ -58,14 +56,20 @@ export async function checkMintQuoteOnce({
   quoteId,
   checkMintQuote,
   onQuotePaid,
-  onQuoteExpiredOrCancelled
+  onQuoteExpiredOrCancelled,
+  onQuoteIssued
 }: MintQuoteCheckParams) {
   const state = await checkMintQuote(mintUrl, quoteId)
-  if (ECASH_MINT_QUOTE_FAILED_STATES.has(state)) {
+  const step = toMintQuotePollStep(state)
+  if (step === 'failed') {
     onQuoteExpiredOrCancelled()
     return state
   }
-  if (!ECASH_MINT_QUOTE_PAID_STATES.has(state)) {
+  if (step === 'issued') {
+    onQuoteIssued?.()
+    return state
+  }
+  if (step === 'wait') {
     return state
   }
   const isClaimedByConcurrentCheck = quoteIdsBeingClaimed.has(quoteId)
@@ -93,7 +97,8 @@ export function useEcashMintQuotePolling({
   quoteId,
   checkMintQuote,
   onQuotePaid,
-  onQuoteExpiredOrCancelled
+  onQuoteExpiredOrCancelled,
+  onQuoteIssued
 }: MintQuotePollingParams) {
   const isEnabled = enabled && !!mintUrl && !!quoteId
   const queryClient = useQueryClient()
@@ -106,6 +111,7 @@ export function useEcashMintQuotePolling({
             checkMintQuote,
             mintUrl,
             onQuoteExpiredOrCancelled,
+            onQuoteIssued,
             onQuotePaid,
             quoteId
           })

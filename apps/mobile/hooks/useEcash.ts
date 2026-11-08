@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -17,10 +16,6 @@ import {
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
-import {
-  ECASH_QUOTE_MAX_POLL_ATTEMPTS,
-  ECASH_QUOTE_POLL_INTERVAL_MS
-} from '@/constants/ecash'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { t } from '@/locales'
 import {
@@ -757,100 +752,5 @@ export function useEcash() {
       updateTransactionAction(activeAccountId, transactionId, updates)
     },
     validateToken
-  }
-}
-
-export function useQuotePolling() {
-  // Compiling would turn the plain `{ current }` objects into stable refs, so
-  // stopPolling would start ending the poll loop when the receive screen
-  // unmounts. That changes when ecash invoices get auto-minted, so it stays
-  // uncompiled until that behaviour change is decided on its own.
-  'use no memo'
-  const [isPolling, setIsPolling] = useState(false)
-  const [pollCount, setPollCount] = useState(0)
-  const [, setLastPollTime] = useState(0)
-  const isPollingRef = { current: false }
-  const timeoutRef: { current: NodeJS.Timeout | null } = { current: null }
-
-  function startPolling(pollFunction: () => Promise<boolean>) {
-    setIsPolling(true)
-    isPollingRef.current = true
-    setPollCount(0)
-    setLastPollTime(Date.now())
-
-    let currentPollCount = 0
-    let currentLastPollTime = Date.now()
-
-    const poll = async () => {
-      if (currentPollCount >= ECASH_QUOTE_MAX_POLL_ATTEMPTS) {
-        setIsPolling(false)
-        isPollingRef.current = false
-        return
-      }
-
-      if (!isPollingRef.current) {
-        return
-      }
-
-      const now = Date.now()
-      if (now - currentLastPollTime < ECASH_QUOTE_POLL_INTERVAL_MS) {
-        const delay = ECASH_QUOTE_POLL_INTERVAL_MS - (now - currentLastPollTime)
-        timeoutRef.current = setTimeout(poll, delay)
-        return
-      }
-
-      try {
-        const shouldStop = await pollFunction()
-        currentPollCount += 1
-        currentLastPollTime = now
-        setPollCount(currentPollCount)
-        setLastPollTime(currentLastPollTime)
-
-        if (shouldStop || !isPollingRef.current) {
-          setIsPolling(false)
-          isPollingRef.current = false
-          return
-        }
-
-        if (isPollingRef.current) {
-          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
-        }
-      } catch {
-        currentPollCount += 1
-        currentLastPollTime = now
-        setPollCount(currentPollCount)
-        setLastPollTime(currentLastPollTime)
-
-        if (
-          isPollingRef.current &&
-          currentPollCount < ECASH_QUOTE_MAX_POLL_ATTEMPTS
-        ) {
-          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
-        } else {
-          setIsPolling(false)
-          isPollingRef.current = false
-        }
-      }
-    }
-
-    poll()
-  }
-
-  function stopPolling() {
-    setIsPolling(false)
-    isPollingRef.current = false
-    setPollCount(0)
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  return {
-    isPolling,
-    pollCount,
-    startPolling,
-    stopPolling
   }
 }

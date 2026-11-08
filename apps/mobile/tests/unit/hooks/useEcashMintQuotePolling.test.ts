@@ -86,7 +86,7 @@ describe('checkMintQuoteOnce', () => {
   })
 
   it('does not claim the same quote twice at the same time', async () => {
-    const p = params('ISSUED')
+    const p = params('PAID')
 
     const results = await Promise.all([
       checkMintQuoteOnce(p),
@@ -94,6 +94,15 @@ describe('checkMintQuoteOnce', () => {
     ])
 
     expect(p.onQuotePaid).toHaveBeenCalledTimes(1)
-    expect(results).toStrictEqual(['ISSUED', 'PENDING'])
+    expect(results).toStrictEqual(['PAID', 'PENDING'])
+  })
+
+  it('never mints a quote the mint already issued', async () => {
+    const p = { ...params('ISSUED'), onQuoteIssued: jest.fn() }
+
+    await expect(checkMintQuoteOnce(p)).resolves.toBe('ISSUED')
+
+    expect(p.onQuotePaid).not.toHaveBeenCalled()
+    expect(p.onQuoteIssued).toHaveBeenCalledTimes(1)
   })
 })

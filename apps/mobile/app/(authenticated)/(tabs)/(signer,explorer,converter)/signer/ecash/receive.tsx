@@ -109,7 +109,6 @@ export default function EcashReceivePage() {
     setAmount,
     setMemo,
     setSelectedMintForLightning,
-    stopPolling,
     token,
     tokenMintUrl,
     tokenSpentStatus
@@ -123,19 +122,6 @@ export default function EcashReceivePage() {
 
   const { btcPrice, fiatCurrency, fiatEnabled, privacyMode } =
     useDisplayPreferences()
-
-  useEffect(
-    () => () => {
-      stopPolling()
-    },
-    [stopPolling]
-  )
-
-  useEffect(() => {
-    if (activeTab !== 'lightning') {
-      stopPolling()
-    }
-  }, [activeTab, stopPolling])
 
   const applyTokenParam = useEffectEvent((tokenValue: string) => {
     handleTokenChange(tokenValue)
