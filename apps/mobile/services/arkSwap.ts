@@ -89,8 +89,14 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function saveJob(job: ArkSwapJob) {
+// A job removed while it was being advanced (dismissed, account deleted,
+// backup restored) stays removed. Returns whether the job is still kept.
+function updateJob(job: ArkSwapJob): boolean {
+  if (!getArkSwapJob(job.id)) {
+    return false
+  }
   useArkSwapsStore.getState().saveJob({ ...job, updatedAt: Date.now() })
+  return true
 }
 
 function findAccount(accountId: string): Account | undefined {
@@ -579,7 +585,7 @@ export async function quoteArkSwap(
 async function payJobInvoice(job: ArkOnchainToLightningJob) {
   const { invoice, paymentHash } = job
   if (!invoice || !paymentHash) {
-    saveJob({ ...job, status: 'awaitingInvoice' })
+    updateJob({ ...job, status: 'awaitingInvoice' })
     return
   }
   const paying: ArkOnchainToLightningJob = {
@@ -587,7 +593,9 @@ async function payJobInvoice(job: ArkOnchainToLightningJob) {
     error: undefined,
     status: 'paying'
   }
-  saveJob(paying)
+  if (!updateJob(paying)) {
+    return
+  }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
   try {
     const result = await payArkBolt11(
@@ -596,10 +604,10 @@ async function payJobInvoice(job: ArkOnchainToLightningJob) {
       invoice
     )
     if (result.preimage) {
-      saveJob({ ...paying, status: 'completed' })
+      updateJob({ ...paying, status: 'completed' })
     }
   } catch (error) {
-    saveJob({ ...paying, error: errorMessage(error) })
+    updateJob({ ...paying, error: errorMessage(error) })
   }
 }
 
@@ -623,7 +631,7 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
     return
   }
   if (progress === 'exited') {
-    saveJob({
+    updateJob({
       ...job,
       error: t('ark.swap.error.boardExited'),
       status: 'failed'
@@ -635,7 +643,7 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
     await payJobInvoice(job)
     return
   }
-  saveJob({
+  updateJob({
     ...job,
     error: job.invoice ? t('ark.swap.error.invoice.expired') : undefined,
     invoice: undefined,
@@ -647,7 +655,7 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
 
 async function advancePayingJob(job: ArkOnchainToLightningJob) {
   if (!job.paymentHash) {
-    saveJob({ ...job, status: 'awaitingInvoice' })
+    updateJob({ ...job, status: 'awaitingInvoice' })
     return
   }
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
@@ -661,10 +669,10 @@ async function advancePayingJob(job: ArkOnchainToLightningJob) {
     return
   }
   if (outcome === 'completed') {
-    saveJob({ ...job, error: undefined, status: 'completed' })
+    updateJob({ ...job, error: undefined, status: 'completed' })
     return
   }
-  saveJob({
+  updateJob({
     ...job,
     error: job.error ?? t('ark.swap.error.paymentFailed'),
     status: 'failed'
@@ -676,7 +684,7 @@ function advanceOnchainToLightning(job: ArkOnchainToLightningJob) {
     case 'awaitingFunding': {
       const intent = useArkStore.getState().boardIntents[job.boardAddress]
       if (intent?.cosigned) {
-        saveJob({ ...job, status: 'boarding' })
+        updateJob({ ...job, status: 'boarding' })
       }
       return Promise.resolve()
     }
@@ -699,7 +707,7 @@ async function sendLightningPayout(
   const arkAccount = getArkAccountOrThrow(job.arkAccountId)
   const destination = findAccount(job.destinationAccountId)
   if (!destination) {
-    saveJob({
+    updateJob({
       ...job,
       error: t('ark.swap.error.destinationIneligible'),
       receivedSats,
@@ -731,7 +739,7 @@ async function sendLightningPayout(
     receivedSats: inArkSats
   })
   if (!payout.ok) {
-    saveJob({
+    updateJob({
       ...job,
       error: t('ark.swap.error.payoutBelowDust'),
       receivedSats,
@@ -749,7 +757,9 @@ async function sendLightningPayout(
     sendAttemptedAt: Date.now(),
     status: 'sending'
   }
-  saveJob(sending)
+  if (!updateJob(sending)) {
+    return
+  }
   try {
     const txid = await sendArkOnchain(
       arkAccount.serverId,
@@ -760,15 +770,15 @@ async function sendLightningPayout(
     if (txid === ARK_PENDING_TXID) {
       return
     }
-    saveJob({ ...sending, status: 'completed', txid })
+    updateJob({ ...sending, status: 'completed', txid })
   } catch (error) {
     if (error instanceof ArkOperationBusyError) {
       // Refused before anything was sent: back to awaiting the settled
       // receive, so a later tick tries the payout again.
-      saveJob({ ...job, error: errorMessage(error), receivedSats })
+      updateJob({ ...job, error: errorMessage(error), receivedSats })
       return
     }
-    saveJob({
+    updateJob({
       ...sending,
       error: errorMessage(error),
       sendAttemptedAt: Date.now()
@@ -785,7 +795,7 @@ async function advanceAwaitingPayment(job: ArkLightningToOnchainJob) {
   )
   if (receive.state === ARK_LIGHTNING_RECEIVE_AWAITING_STATE) {
     if (isArkSwapInvoiceAbandoned(job.invoiceExpiresAt, nowSeconds())) {
-      saveJob({
+      updateJob({
         ...job,
         error: t('ark.swap.error.invoiceUnpaid'),
         status: 'failed'
@@ -826,14 +836,18 @@ async function reconcileSendingJob(job: ArkLightningToOnchainJob) {
     return
   }
   if (outcome === 'completed') {
-    saveJob({ ...job, error: undefined, status: 'completed' })
+    updateJob({ ...job, error: undefined, status: 'completed' })
     return
   }
   if (outcome === 'failed') {
-    saveJob({ ...job, error: t('ark.swap.error.sendFailed'), status: 'failed' })
+    updateJob({
+      ...job,
+      error: t('ark.swap.error.sendFailed'),
+      status: 'failed'
+    })
     return
   }
-  saveJob({
+  updateJob({
     ...job,
     error: job.error ?? t('ark.swap.error.sendInterrupted'),
     status: 'failed'
@@ -887,7 +901,7 @@ async function advanceJob(jobId: string) {
     })
     const latest = getArkSwapJob(jobId)
     if (latest) {
-      saveJob({ ...latest, error: errorMessage(error) })
+      updateJob({ ...latest, error: errorMessage(error) })
     }
   }
 }
