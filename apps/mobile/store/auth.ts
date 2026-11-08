@@ -10,6 +10,7 @@ import {
   PIN_KDF_KEY,
   PIN_KEY,
   PIN_LENGTH_KEY,
+  PIN_REKEY_JOURNAL_KEY,
   RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
@@ -110,6 +111,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       clearPin: async () => {
         const results = await Promise.allSettled([
           deleteItem(PIN_KDF_COMMIT_KEY),
+          deleteItem(PIN_REKEY_JOURNAL_KEY),
           deleteItem(PIN_KEY),
           deleteItem(PIN_KDF_KEY),
           deleteItem(PIN_LENGTH_KEY),

@@ -7,6 +7,7 @@ import {
   pinMatchesDuressDigest,
   preparePinMaterial
 } from '@/utils/pinKdf'
+import { clearPinRekeyJournal } from '@/utils/pinRekey'
 
 type PinChangeResult =
   | 'changed'
@@ -54,6 +55,7 @@ async function changePin(
     }
   }
   await commitPinMaterial(material)
+  await clearPinRekeyJournal()
 
   // A missing length belongs to an older install. Clearing duress here would
   // drop it on an equal-length change, because the stored length is unknown.

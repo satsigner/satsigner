@@ -10,7 +10,7 @@ import {
 } from '@/storage/encrypted'
 import { type Account } from '@/types/models/Account'
 import { type NostrAccount, type NostrIdentity } from '@/types/models/Nostr'
-import { aesDecrypt, aesEncrypt, aesReEncrypt, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 
 const NostrIdentitySecretsSchema = z.object({
@@ -345,47 +345,6 @@ async function migrateAndHydrateNostrSecrets(): Promise<void> {
   }
 }
 
-/**
- * PIN change step: moves every stored nostr secret to the new PIN digest.
- * Records are re-encrypted as stored, so their content can never make a PIN
- * change stop halfway.
- */
-async function reEncryptNostrSecrets(
-  oldPinEncrypted: string,
-  newPinEncrypted: string
-): Promise<void> {
-  const { useNostrIdentityStore } = await import('@/store/nostrIdentity')
-  const { useAccountsStore } = await import('@/store/accounts')
-
-  const { identities } = useNostrIdentityStore.getState()
-  for (const identity of identities) {
-    const stored = await getNostrIdentitySecret(identity.npub)
-    if (!stored) {
-      continue
-    }
-    const { iv, secret } = await aesReEncrypt(
-      stored,
-      oldPinEncrypted,
-      newPinEncrypted
-    )
-    await storeNostrIdentitySecret(identity.npub, secret, iv)
-  }
-
-  const { accounts } = useAccountsStore.getState()
-  for (const account of accounts) {
-    const stored = await getNostrAccountSecret(account.id)
-    if (!stored) {
-      continue
-    }
-    const { iv, secret } = await aesReEncrypt(
-      stored,
-      oldPinEncrypted,
-      newPinEncrypted
-    )
-    await storeNostrAccountSecret(account.id, secret, iv)
-  }
-}
-
 async function deleteAllNostrSecretsForWipe(
   identityNpubs: string[],
   accountIds: string[]
@@ -414,7 +373,6 @@ export {
   migrateAndHydrateNostrSecrets,
   persistAccountSecretsSafe,
   persistIdentitySecretsSafe,
-  reEncryptNostrSecrets,
   setCachedAccountSecrets,
   stripAccountSecretsForDb
 }

@@ -13,6 +13,7 @@ import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { type EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
+import { clearPinRekeyJournal } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 
 /* oxlint-disable promise/prefer-await-to-callbacks -- QuickCrypto KDF APIs are callback-only */
@@ -325,6 +326,7 @@ export async function storeKdfConfig(
 type PinKdfCommit = {
   digest: string
   kdf: string
+  length?: number
 }
 
 function parsePinKdfCommit(raw: string): PinKdfCommit | null {
@@ -340,6 +342,10 @@ function parsePinKdfCommit(raw: string): PinKdfCommit | null {
     }
     if (!parseKdf(kdf) || digest.length === 0) {
       return null
+    }
+    const length = 'length' in parsed ? parsed.length : undefined
+    if (typeof length === 'number' && Number.isInteger(length) && length > 0) {
+      return { digest, kdf, length }
     }
     return { digest, kdf }
   } catch {
@@ -360,20 +366,32 @@ export async function applyPendingPinKdfCommit(): Promise<void> {
   }
   await setItem(PIN_KEY, commit.digest)
   await setItem(PIN_KDF_KEY, commit.kdf)
+  if (commit.length !== undefined) {
+    await setItem(PIN_LENGTH_KEY, String(commit.length))
+  }
   await deleteItem(PIN_KDF_COMMIT_KEY)
 }
 
+/**
+ * Journals the digest, KDF and (on a PIN change) length together, so a crash
+ * cannot leave the pad asking for a length the stored digest does not match.
+ */
 async function persistPinDigestAndKdf(
   digest: string,
-  config: PinKdfConfig
+  config: PinKdfConfig,
+  length?: number
 ): Promise<void> {
   const payload = JSON.stringify({
     digest,
-    kdf: serializeKdf(config)
+    kdf: serializeKdf(config),
+    length
   })
   await setItem(PIN_KDF_COMMIT_KEY, payload)
   await setItem(PIN_KEY, digest)
   await storeKdfConfig(config)
+  if (length !== undefined) {
+    await setItem(PIN_LENGTH_KEY, String(length))
+  }
   await deleteItem(PIN_KDF_COMMIT_KEY)
 }
 
@@ -406,9 +424,8 @@ export async function preparePinMaterial(pin: string): Promise<PinMaterial> {
  */
 export async function commitPinMaterial(material: PinMaterial): Promise<void> {
   await setItem(SALT_KEY, material.salt)
-  await persistPinDigestAndKdf(material.digest, material.kdf)
+  await persistPinDigestAndKdf(material.digest, material.kdf, material.length)
   setSessionPinDigest(material.digest)
-  await setItem(PIN_LENGTH_KEY, String(material.length))
 }
 
 /** Timing-safe equality for hex digests of arbitrary length. */
@@ -486,6 +503,7 @@ export async function migratePinKdfIfNeeded(
 
   await reEncryptSecrets(oldDigest, newDigest)
   await persistPinDigestAndKdf(newDigest, currentConfig)
+  await clearPinRekeyJournal()
   return newDigest
 }
 

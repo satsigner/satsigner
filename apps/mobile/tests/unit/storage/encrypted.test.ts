@@ -19,17 +19,13 @@ describe('encrypted storage', () => {
   })
 
   describe('storeKeySecret', () => {
-    it('stores secret and iv under versioned keys', async () => {
+    it('stores secret and iv together in one versioned item', async () => {
       await storeKeySecret('acc-1', 0, 'encrypted-secret', 'iv-value')
 
-      expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(2)
+      expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1)
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-        '1_key_secret.acc-1.0',
-        'encrypted-secret'
-      )
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-        '1_key_iv.acc-1.0',
-        'iv-value'
+        '1_key_secret.acc-1.0.pair',
+        JSON.stringify({ iv: 'iv-value', secret: 'encrypted-secret' })
       )
     })
 
@@ -37,13 +33,23 @@ describe('encrypted storage', () => {
       await storeKeySecret('acc-1', 2, 'secret-2', 'iv-2')
 
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-        '1_key_secret.acc-1.2',
-        'secret-2'
+        '1_key_secret.acc-1.2.pair',
+        JSON.stringify({ iv: 'iv-2', secret: 'secret-2' })
       )
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-        '1_key_iv.acc-1.2',
-        'iv-2'
-      )
+    })
+
+    it('removes the older split items once the pair is stored', async () => {
+      await SecureStore.setItemAsync('1_key_secret.acc-1.0', 'old-secret')
+      await SecureStore.setItemAsync('1_key_iv.acc-1.0', 'old-iv')
+
+      await storeKeySecret('acc-1', 0, 'new-secret', 'new-iv')
+
+      expect(mockStore['1_key_secret.acc-1.0']).toBeUndefined()
+      expect(mockStore['1_key_iv.acc-1.0']).toBeUndefined()
+      await expect(getKeySecret('acc-1', 0)).resolves.toStrictEqual({
+        iv: 'new-iv',
+        secret: 'new-secret'
+      })
     })
   })
 
@@ -65,13 +71,40 @@ describe('encrypted storage', () => {
       const result = await getKeySecret('acc-1', 0)
       expect(result).toBeNull()
     })
+
+    it('reads a secret stored by an older version as split items', async () => {
+      await SecureStore.setItemAsync('1_key_secret.acc-1.0', 'legacy-secret')
+      await SecureStore.setItemAsync('1_key_iv.acc-1.0', 'legacy-iv')
+
+      await expect(getKeySecret('acc-1', 0)).resolves.toStrictEqual({
+        iv: 'legacy-iv',
+        secret: 'legacy-secret'
+      })
+    })
+
+    it('prefers the pair over split items left by an interrupted write', async () => {
+      await SecureStore.setItemAsync('1_key_secret.acc-1.0', 'old-secret')
+      await SecureStore.setItemAsync('1_key_iv.acc-1.0', 'old-iv')
+      await SecureStore.setItemAsync(
+        '1_key_secret.acc-1.0.pair',
+        JSON.stringify({ iv: 'new-iv', secret: 'new-secret' })
+      )
+
+      await expect(getKeySecret('acc-1', 0)).resolves.toStrictEqual({
+        iv: 'new-iv',
+        secret: 'new-secret'
+      })
+    })
   })
 
   describe('deleteKeySecret', () => {
-    it('deletes both secret and iv entries', async () => {
+    it('deletes the pair and any split secret and iv entries', async () => {
       await storeKeySecret('acc-1', 0, 'secret', 'iv')
       await deleteKeySecret('acc-1', 0)
 
+      expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
+        '1_key_secret.acc-1.0.pair'
+      )
       expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
         '1_key_secret.acc-1.0'
       )

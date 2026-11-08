@@ -17,6 +17,7 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
+import { applyPendingPinRekey } from '@/utils/pinRekey'
 import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
 import {
   isDuressPinRemoved,
@@ -58,6 +59,7 @@ async function checkPin(
   onSuccess: () => void | Promise<void>
 ): Promise<PinAuthResult> {
   await applyPendingPinKdfCommit()
+  await applyPendingPinRekey()
 
   const hashedPin = await getPin()
   const hashedDuressPin = await getItem(DURESS_PIN_KEY)
