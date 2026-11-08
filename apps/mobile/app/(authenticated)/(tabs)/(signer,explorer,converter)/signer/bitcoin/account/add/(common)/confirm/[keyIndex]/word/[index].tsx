@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,6 +26,15 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
+
+// A failed account creation must leave the screen usable, not spinning.
+async function settleOrUndefined<T>(work: Promise<T>): Promise<T | undefined> {
+  try {
+    return await work
+  } catch {
+    return undefined
+  }
+}
 
 export default function Confirm() {
   const router = useRouter()
@@ -82,6 +92,11 @@ export default function Confirm() {
     await handleFinishWordsConfirmation()
   }
 
+  function finishKeyDraft() {
+    setLocalMnemonicWordCount(mnemonicWordCount)
+    clearKeyState()
+  }
+
   function handleNavigateNextWord() {
     if (!selectedCheckbox) {
       return
@@ -100,27 +115,35 @@ export default function Confirm() {
     }
   }
 
+  // Runs once: Skip and the last word both lead here, and a second run would
+  // create the account twice.
   async function handleFinishWordsConfirmation() {
-    setLoadingAccount(true)
-
-    if (policyType === 'singlesig') {
-      const account = getAccountData()
-
-      const data = await accountBuilderFinish(account)
-      setCreatedAccountId(data?.accountWithEncryptedSecret.id)
-
-      setLoadingAccount(false)
-      setWarningModalVisible(true)
-    } else if (policyType === 'multisig') {
+    if (loadingAccount) {
+      return
+    }
+    if (policyType === 'multisig') {
       // Extended public key is already generated in the mnemonic step
       // Just set the key and continue
       setKey(Number(keyIndex))
-
-      setLoadingAccount(false)
       router.dismissTo('/signer/bitcoin/account/add/multiSig/manager')
+      finishKeyDraft()
+      return
     }
-    setLocalMnemonicWordCount(mnemonicWordCount)
-    clearKeyState()
+    if (policyType !== 'singlesig') {
+      return
+    }
+
+    setLoadingAccount(true)
+    const data = await settleOrUndefined(accountBuilderFinish(getAccountData()))
+    setLoadingAccount(false)
+    const accountId = data?.accountWithEncryptedSecret.id
+    if (!accountId) {
+      toast.error(t('account.import.error.generic'))
+      return
+    }
+    setCreatedAccountId(accountId)
+    setWarningModalVisible(true)
+    finishKeyDraft()
   }
 
   function handleCloseWordsWarning() {
