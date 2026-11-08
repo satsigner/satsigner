@@ -63,9 +63,9 @@ describe('lookupBrantaPayee', () => {
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
-      missed
-    )
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual(missed)
     expect(client.verify).not.toHaveBeenCalled()
   })
 
@@ -77,9 +77,9 @@ describe('lookupBrantaPayee', () => {
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
-      missed
-    )
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual(missed)
 
     expect(client.verify).not.toHaveBeenCalled()
   })
@@ -104,7 +104,9 @@ describe('lookupBrantaPayee', () => {
   it('does not call Branta for an empty destination', async () => {
     const client = clientWith({ status: 'unknown', verifyUrl: '' })
 
-    await expect(lookupBrantaPayee('   ', client)).resolves.toStrictEqual(missed)
+    await expect(lookupBrantaPayee('   ', client)).resolves.toStrictEqual(
+      missed
+    )
 
     expect(client.verify).not.toHaveBeenCalled()
   })
@@ -172,9 +174,9 @@ describe('lookupBrantaPayee', () => {
   it('returns no payee when the destination is unknown', async () => {
     const client = clientWith({ status: 'unknown', verifyUrl: '' })
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual(
-      missed
-    )
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual(missed)
   })
 
   it('warns when the destination was altered', async () => {
@@ -183,7 +185,9 @@ describe('lookupBrantaPayee', () => {
       verifyUrl: payee.verifyUrl
     })
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual({
       notice: 'tampered',
       payee: null
     })
@@ -195,7 +199,9 @@ describe('lookupBrantaPayee', () => {
       verifyUrl: ''
     })
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual({
       notice: 'incomplete',
       payee: null
     })
@@ -208,7 +214,9 @@ describe('lookupBrantaPayee', () => {
       })
     }
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual({
       notice: 'incomplete',
       payee: null
     })
@@ -224,7 +232,9 @@ describe('lookupBrantaPayee', () => {
       })
     }
 
-    await expect(lookupBrantaPayee('bc1qexample', client)).resolves.toStrictEqual({
+    await expect(
+      lookupBrantaPayee('bc1qexample', client)
+    ).resolves.toStrictEqual({
       notice: 'unavailable',
       payee: null
     })

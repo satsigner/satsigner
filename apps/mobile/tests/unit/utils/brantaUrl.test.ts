@@ -44,7 +44,10 @@ describe('brantaClearnetBlocked', () => {
       })
     ).toBe(true)
     expect(
-      brantaClearnetBlocked({ brantaLookupMode: 'off', brantaTorEnabled: false })
+      brantaClearnetBlocked({
+        brantaLookupMode: 'off',
+        brantaTorEnabled: false
+      })
     ).toBe(true)
     expect(
       brantaClearnetBlocked({
