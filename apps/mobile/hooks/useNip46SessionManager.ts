@@ -160,6 +160,25 @@ function sendError(
   )
 }
 
+// A request being answered is not answered again: a double tap, or Approve
+// then Reject, would otherwise sign twice or send two answers.
+const requestsBeingAnswered = new Set<string>()
+
+async function answerOnce(
+  requestId: string,
+  answer: () => Promise<boolean>
+): Promise<boolean> {
+  if (requestsBeingAnswered.has(requestId)) {
+    return false
+  }
+  requestsBeingAnswered.add(requestId)
+  try {
+    return await answer()
+  } finally {
+    requestsBeingAnswered.delete(requestId)
+  }
+}
+
 export function useNip46SessionManager() {
   const addPendingRequest = useNip46Store((s) => s.addPendingRequest)
   const removePendingRequest = useNip46Store((s) => s.removePendingRequest)
@@ -291,10 +310,9 @@ export function useNip46SessionManager() {
       updatePermission(request.sessionId, request.method, 'always_allow')
     }
 
-    const sent = await respondToRequest(request.sessionId, {
-      ...request,
-      status: 'approved'
-    })
+    const sent = await answerOnce(requestId, () =>
+      respondToRequest(request.sessionId, { ...request, status: 'approved' })
+    )
     if (sent) {
       removePendingRequest(requestId)
     }
@@ -314,10 +332,8 @@ export function useNip46SessionManager() {
       updatePermission(request.sessionId, request.method, 'always_reject')
     }
 
-    const sent = await sendError(
-      request.sessionId,
-      request.id,
-      'Rejected by user'
+    const sent = await answerOnce(requestId, () =>
+      sendError(request.sessionId, request.id, 'Rejected by user')
     )
     if (sent) {
       removePendingRequest(requestId)
