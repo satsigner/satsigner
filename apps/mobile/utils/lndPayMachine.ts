@@ -1,5 +1,6 @@
 import { assertNever } from '@/utils/assertNever'
-import { RequestTimeoutError } from '@/utils/errors'
+import { HttpStatusError } from '@/utils/errors'
+import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
 
 type LndPayRail = 'lightning' | 'onchain'
 
@@ -49,13 +50,39 @@ function transitionLndPaySend(
   }
 }
 
-/** A timed-out request leaves the node free to finish the payment. */
+/** The payment request left, but no answer says whether it paid. */
+class LndPayOutcomeUnknownError extends Error {
+  override name = 'LndPayOutcomeUnknownError'
+}
+
+/**
+ * Sends a payment request. LND keeps paying after a dropped connection or a
+ * timeout, so any failure other than an HTTP error or a reported payment
+ * failure leaves the outcome unknown and must not invite a second send.
+ */
+async function sendLndPayment<T>(send: () => Promise<T>): Promise<T> {
+  try {
+    return await send()
+  } catch (error) {
+    if (
+      error instanceof HttpStatusError ||
+      error instanceof LndPaymentFailedError
+    ) {
+      throw error
+    }
+    throw new LndPayOutcomeUnknownError('LND payment outcome unknown', {
+      cause: error
+    })
+  }
+}
+
 function isLndPayOutcomeUnknown(error: unknown): boolean {
-  return error instanceof RequestTimeoutError
+  return error instanceof LndPayOutcomeUnknownError
 }
 
 export {
   isLndPayOutcomeUnknown,
+  sendLndPayment,
   LND_PAY_SEND_IDLE,
   type LndPayRail,
   type LndPaySendState,

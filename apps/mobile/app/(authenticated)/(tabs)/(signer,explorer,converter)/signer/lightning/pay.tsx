@@ -54,6 +54,7 @@ import { parsePositiveSats } from '@/utils/lndPayInvoice'
 import {
   isLndPayOutcomeUnknown,
   LND_PAY_SEND_IDLE,
+  sendLndPayment,
   transitionLndPaySend
 } from '@/utils/lndPayMachine'
 import {
@@ -319,7 +320,7 @@ export default function PayPage() {
         amountSats,
         comment || undefined
       )
-      await payInvoice(invoice)
+      await sendLndPayment(() => payInvoice(invoice))
       return invoice
     }
     if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
@@ -328,10 +329,10 @@ export default function PayPage() {
         toast.error(t('lightning.pay.validAmount'))
         return null
       }
-      await payInvoice(paymentRequest, amountSats)
+      await sendLndPayment(() => payInvoice(paymentRequest, amountSats))
       return paymentRequest
     }
-    await payInvoice(paymentRequest)
+    await sendLndPayment(() => payInvoice(paymentRequest))
     return paymentRequest
   }
 
@@ -429,12 +430,14 @@ export default function PayPage() {
       return
     }
     try {
-      await sendCoins(
-        buildSendCoinsBody({
-          addr,
-          amountSat: validation.amountSat,
-          satPerVbyte: validation.satPerVbyte
-        })
+      await sendLndPayment(() =>
+        sendCoins(
+          buildSendCoinsBody({
+            addr,
+            amountSat: validation.amountSat,
+            satPerVbyte: validation.satPerVbyte
+          })
+        )
       )
       finishOnchainSend()
     } catch (error) {

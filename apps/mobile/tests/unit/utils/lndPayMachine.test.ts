@@ -1,8 +1,10 @@
-import { RequestTimeoutError } from '@/utils/errors'
+import { HttpStatusError, RequestTimeoutError } from '@/utils/errors'
+import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
 import {
   isLndPayOutcomeUnknown,
   LND_PAY_SEND_IDLE,
   type LndPaySendState,
+  sendLndPayment,
   transitionLndPaySend
 } from '@/utils/lndPayMachine'
 
@@ -55,11 +57,31 @@ describe('transitionLndPaySend', () => {
   })
 })
 
-describe('isLndPayOutcomeUnknown', () => {
-  it('treats only a request timeout as an unknown outcome', () => {
-    expect(isLndPayOutcomeUnknown(new RequestTimeoutError('timed out'))).toBe(
+describe('sendLndPayment', () => {
+  async function outcomeOf(failure: Error) {
+    try {
+      await sendLndPayment(() => {
+        throw failure
+      })
+      return false
+    } catch (error) {
+      return isLndPayOutcomeUnknown(error)
+    }
+  }
+
+  it('treats a timeout or a dropped connection as an unknown outcome', async () => {
+    await expect(outcomeOf(new RequestTimeoutError('timed out'))).resolves.toBe(
       true
     )
-    expect(isLndPayOutcomeUnknown(new Error('no route'))).toBe(false)
+    await expect(outcomeOf(new Error('socket closed'))).resolves.toBe(true)
+  })
+
+  it('treats an answer from LND as a known failure', async () => {
+    await expect(
+      outcomeOf(new HttpStatusError(500, 'LND API error: 500'))
+    ).resolves.toBe(false)
+    await expect(
+      outcomeOf(new LndPaymentFailedError('no route'))
+    ).resolves.toBe(false)
   })
 })
