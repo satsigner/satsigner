@@ -161,3 +161,22 @@ describe('auth store PIN tries', () => {
     expect(useAuthStore.getState().pinTries).toBe(3)
   })
 })
+
+describe('auth store - setPinMaxTries', () => {
+  it('leaves one try when the limit drops to the failures already counted', () => {
+    useAuthStore.setState({ pinMaxTries: 5, pinTries: 3 })
+
+    useAuthStore.getState().setPinMaxTries(3)
+
+    expect(useAuthStore.getState().pinMaxTries).toBe(3)
+    expect(useAuthStore.getState().pinTries).toBe(2)
+  })
+
+  it('keeps the failures when the limit stays above them', () => {
+    useAuthStore.setState({ pinMaxTries: 5, pinTries: 1 })
+
+    useAuthStore.getState().setPinMaxTries(4)
+
+    expect(useAuthStore.getState().pinTries).toBe(1)
+  })
+})

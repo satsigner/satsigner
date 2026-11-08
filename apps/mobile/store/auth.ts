@@ -215,8 +215,13 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const material = await preparePinMaterial(pin)
         await commitPinMaterial(material)
       },
+      // Lowering the limit must leave at least one try: reaching it wipes the
+      // wallet before any PIN is checked, so the correct PIN would wipe too.
       setPinMaxTries: (maxTries) => {
-        set({ pinMaxTries: maxTries })
+        set((state) => ({
+          pinMaxTries: maxTries,
+          pinTries: Math.min(state.pinTries, Math.max(0, maxTries - 1))
+        }))
       },
       setRequirePinMigration: (requirePinMigration) => {
         set({ requirePinMigration })
