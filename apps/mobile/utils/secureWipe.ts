@@ -2,6 +2,7 @@ import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearAllCache } from '@/db/nostrCache'
 import { clearNostrProcessedEvents } from '@/db/nostrProcessedEvents'
+import { teardownAllNip46Sessions } from '@/services/nip46Sessions'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -54,6 +55,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   const { identities } = useNostrIdentityStore.getState()
 
   stopNostrLifecycle()
+  teardownAllNip46Sessions()
   closeActiveChatPipeline()
   useNostrVideoStore.getState().releaseAllVideos()
   await nostrSyncService.stopAll().catch(() => undefined)

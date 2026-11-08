@@ -3,6 +3,13 @@ import {
   NIP46_ACTIVITY_WRITE_INTERVAL_MS,
   NOSTR_NIP46_SUPPORTED_METHODS
 } from '@/constants/nostr'
+import {
+  getNip46Runtime,
+  isNip46SessionActive,
+  registerNip46Session,
+  stopAllNip46Sessions,
+  stopNip46Session
+} from '@/services/nip46Sessions'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
@@ -21,14 +28,6 @@ import {
   handleSignEvent
 } from '@/utils/nip46Handlers'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
-
-// Module-level maps shared across all hook instances
-const servicesMap = new Map<string, Nip46BunkerService>()
-const secretKeysMap = new Map<string, Uint8Array>()
-
-function isNip46SessionActive(sessionId: string): boolean {
-  return servicesMap.get(sessionId)?.isConnected() ?? false
-}
 
 function shouldRecordNip46Activity(lastActiveAt: number, now: number) {
   return now - lastActiveAt >= NIP46_ACTIVITY_WRITE_INTERVAL_MS
@@ -99,12 +98,11 @@ async function respondToRequest(
   request: Nip46Request
 ): Promise<void> {
   const session = getSessionById(sessionId)
-  const service = servicesMap.get(sessionId)
-  const secretKey = secretKeysMap.get(sessionId)
-
-  if (!session || !service || !secretKey) {
+  const runtime = getNip46Runtime(sessionId)
+  if (!session || !runtime) {
     return
   }
+  const { secretKey, service } = runtime
 
   const signerPubkeyHex = getPubKeyHexFromNpub(session.signerNpub)
   if (!signerPubkeyHex) {
@@ -134,14 +132,13 @@ async function sendError(
   errorMessage: string
 ): Promise<void> {
   const session = getSessionById(sessionId)
-  const service = servicesMap.get(sessionId)
-  const secretKey = secretKeysMap.get(sessionId)
-
-  if (!session || !service || !secretKey) {
+  const runtime = getNip46Runtime(sessionId)
+  if (!session || !runtime) {
     return
   }
 
   const payload = buildNip46ResponsePayload(requestId, null, errorMessage)
+  const { secretKey, service } = runtime
   await service.sendResponse(session.clientPubkey, secretKey, payload)
 }
 
@@ -172,8 +169,7 @@ export function useNip46SessionManager() {
       const service = new Nip46BunkerService()
       await service.connect(session.relays)
 
-      servicesMap.set(session.id, service)
-      secretKeysMap.set(session.id, secretKey)
+      registerNip46Session(session.id, service, secretKey)
 
       service.subscribe(
         signerPubkeyHex,
@@ -254,12 +250,7 @@ export function useNip46SessionManager() {
         connectionStatus: isRelayError ? 'relays_unreachable' : 'error'
       })
 
-      const service = servicesMap.get(session.id)
-      if (service) {
-        service.disconnect()
-        servicesMap.delete(session.id)
-      }
-      secretKeysMap.delete(session.id)
+      stopNip46Session(session.id)
 
       throw error
     }
@@ -306,30 +297,13 @@ export function useNip46SessionManager() {
     await sendError(request.sessionId, request.id, 'Rejected by user')
   }
 
-  function stopSession(sessionId: string): void {
-    const service = servicesMap.get(sessionId)
-    if (service) {
-      service.disconnect()
-      servicesMap.delete(sessionId)
-    }
-    secretKeysMap.delete(sessionId)
-  }
-
-  function stopAllSessions(): void {
-    for (const [sessionId, service] of servicesMap) {
-      service.disconnect()
-      secretKeysMap.delete(sessionId)
-    }
-    servicesMap.clear()
-  }
-
   return {
     approveRequest,
     isSessionActive: isNip46SessionActive,
     rejectRequest,
     startSession,
-    stopAllSessions,
-    stopSession
+    stopAllSessions: stopAllNip46Sessions,
+    stopSession: stopNip46Session
   }
 }
 
