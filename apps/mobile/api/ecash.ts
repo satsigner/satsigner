@@ -32,6 +32,7 @@ import type {
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
+import { toEcashMeltStatus } from '@/utils/ecashMelt'
 import { toError } from '@/utils/error'
 import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
@@ -344,21 +345,22 @@ export async function meltProofs(
     includeFees: true
   })
   const keepProofs = keep.map((p) => ({ ...p, mintUrl }))
+  const sendProofs = send.map((p) => ({ ...p, mintUrl }))
   const result = await wallet
     .meltProofs(cashuQuote, send)
     .catch((error: unknown) => {
-      throw new EcashMeltFailedError(
-        keepProofs,
-        send.map((p) => ({ ...p, mintUrl })),
-        error
-      )
+      throw new EcashMeltFailedError(keepProofs, sendProofs, error)
     })
 
+  const status = toEcashMeltStatus(result.quote.state)
+  if (status !== 'paid') {
+    return { keep: keepProofs, send: sendProofs, status }
+  }
   return {
-    change: result.change?.map((p) => ({ ...p, mintUrl })),
+    change: result.change.map((p) => ({ ...p, mintUrl })),
     keep: keepProofs,
-    paid: true,
-    preimage: result.quote.payment_preimage ?? undefined
+    preimage: result.quote.payment_preimage ?? undefined,
+    status
   }
 }
 

@@ -54,12 +54,9 @@ import {
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
 import { buildCounterInit } from '@/utils/ecashKeysetCounters'
+import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
-import {
-  proofsAfterMelt,
-  proofsAfterSend,
-  removeSpentSecrets
-} from '@/utils/ecashProofs'
+import { proofsAfterSend, removeSpentSecrets } from '@/utils/ecashProofs'
 
 /** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
 async function getSeedForAccount(accountId: string) {
@@ -355,18 +352,19 @@ export function useEcash() {
       options
     )
     const currentProofs = useEcashStore.getState().proofs[accountId] ?? []
-    const remaining = proofsAfterMelt(
-      currentProofs,
-      proofsToMelt,
-      result.keep ?? [],
-      result.change ?? []
-    )
+    const remaining = proofsAfterMeltResult(currentProofs, proofsToMelt, result)
     setProofsAction(accountId, remaining)
     removeMeltQuoteAction(accountId, quote.quote)
 
     updateMintBalance(accountId, mintUrl, getMintBalance(mintUrl, remaining))
 
-    markReceivedTokensAsSpent()
+    if (result.status === 'unpaid') {
+      throw new EcashPaymentError({ reason: 'meltUnpaid' })
+    }
+
+    if (result.status === 'paid') {
+      markReceivedTokensAsSpent()
+    }
 
     addTransactionAction(accountId, {
       amount: quote.amount,
@@ -375,10 +373,14 @@ export function useEcash() {
       invoice: quote.quote,
       mintUrl,
       quoteId: quote.quote,
-      status: 'settled',
+      status: result.status === 'paid' ? 'settled' : 'pending',
       timestamp: new Date().toISOString(),
       type: 'melt'
     })
+
+    if (result.status === 'pending') {
+      throw new EcashPaymentError({ reason: 'meltPending' })
+    }
 
     if (!meltOptions?.silent) {
       toast.success(t('ecash.success.tokensMelted'))

@@ -1390,6 +1390,8 @@
     "error.lnurlPaymentFailed": "Failed to process LNURL payment",
     "error.lnurlWithdrawInSendTab": "LNURL withdraw codes should be used in the Receive tab",
     "error.meltFailed": "Melt failed",
+    "error.meltPending": "The mint reports this Lightning payment as pending. Its ecash stays reserved and is released if the payment fails.",
+    "error.meltUnpaid": "The Lightning payment failed. Your ecash was returned to the wallet.",
     "error.mintsLackMpp": "This invoice needs more than one mint, but none of your mints support multi-path Lightning payments",
     "error.mppPartialPayment": "Part of this Lightning payment already settled (%{settled} of %{total} paths). Do not retry the full amount; check the invoice and remaining proofs.",
     "error.networkError": "Network error occurred",

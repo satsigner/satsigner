@@ -24,5 +24,7 @@ export const ECASH_MINT_QUOTE_FAILED_STATES = new Set<MintQuoteState>([
 export const ECASH_PAYMENT_ERROR_I18N_KEYS = {
   insufficientForFees: 'ecash.error.insufficientForFees',
   insufficientProofs: 'ecash.error.insufficientProofs',
+  meltPending: 'ecash.error.meltPending',
+  meltUnpaid: 'ecash.error.meltUnpaid',
   mintsLackMpp: 'ecash.error.mintsLackMpp'
 } as const
