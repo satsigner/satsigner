@@ -1,4 +1,9 @@
-import { requireNativeModule } from 'expo-modules-core'
+import {
+  requireNativeModule,
+  requireOptionalNativeModule
+} from 'expo-modules-core'
+
+const BRANTA_SOCKS_MODULE_NAME = 'BrantaSocks'
 
 type BrantaSocksRequest = {
   body: string
@@ -19,7 +24,11 @@ type BrantaSocksNative = {
 }
 
 function nativeModule(): BrantaSocksNative {
-  return requireNativeModule<BrantaSocksNative>('BrantaSocks')
+  return requireNativeModule<BrantaSocksNative>(BRANTA_SOCKS_MODULE_NAME)
+}
+
+function isBrantaSocksAvailable(): boolean {
+  return requireOptionalNativeModule(BRANTA_SOCKS_MODULE_NAME) !== null
 }
 
 function requestBrantaSocks(
@@ -46,5 +55,5 @@ function cancelBrantaSocks(requestId: string) {
   nativeModule().cancel(requestId)
 }
 
-export { cancelBrantaSocks, requestBrantaSocks }
+export { cancelBrantaSocks, isBrantaSocksAvailable, requestBrantaSocks }
 export type { BrantaSocksRequest }

@@ -9,6 +9,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { type BrantaLookupMode } from '@/types/models/Branta'
+import { brantaTorOptionVisible } from '@/utils/brantaTorFetch'
 
 const LOOKUP_MODES: BrantaLookupMode[] = ['off', 'manual', 'always']
 
@@ -80,12 +81,14 @@ export default function BrantaSettings() {
               selected={brantaLabelSyncEnabled}
               onPress={handleToggleLabels}
             />
-            <SSCheckbox
-              description={t('settings.branta.torDescription')}
-              label={t('settings.branta.tor')}
-              selected={brantaTorEnabled}
-              onPress={handleToggleTor}
-            />
+            {brantaTorOptionVisible(brantaTorEnabled) ? (
+              <SSCheckbox
+                description={t('settings.branta.torDescription')}
+                label={t('settings.branta.tor')}
+                selected={brantaTorEnabled}
+                onPress={handleToggleTor}
+              />
+            ) : null}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

@@ -4,6 +4,7 @@ import {
 } from '@/constants/branta'
 import {
   cancelBrantaSocks,
+  isBrantaSocksAvailable,
   requestBrantaSocks,
   type BrantaSocksRequest
 } from '@/modules/branta-socks'
@@ -96,9 +97,18 @@ function abortSignal(signal: AbortSignal, requestId: string): Promise<never> {
 }
 
 /**
+ * Builds without the native proxy module cannot route through Tor, so the
+ * option stays hidden there. A setting that is already on stays visible so
+ * it can be turned off; lookups fail closed until then.
+ */
+function brantaTorOptionVisible(brantaTorEnabled: boolean): boolean {
+  return brantaTorEnabled || isBrantaSocksAvailable()
+}
+
+/**
  * BrantaService accepts fetchImpl and has no agent option. This fetch dials
- * the SDK's https host through Orbot. A .onion host is reachable only this
- * way, and a proxy failure does not fall back to the clearnet.
+ * the SDK's https host through Orbot, and a proxy failure does not fall back
+ * to the clearnet.
  */
 function createBrantaTorFetch(): typeof fetch {
   return (input, init) => torFetch(input, init)
@@ -139,4 +149,4 @@ async function torFetch(
   )
 }
 
-export { createBrantaTorFetch }
+export { brantaTorOptionVisible, createBrantaTorFetch }
