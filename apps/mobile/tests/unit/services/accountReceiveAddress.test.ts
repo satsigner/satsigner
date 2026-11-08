@@ -2,7 +2,8 @@ import { BdkWallet, Network } from 'react-native-bdk-sdk'
 
 import {
   peekFreshReceiveAddress,
-  reserveFreshReceiveAddress
+  reserveFreshReceiveAddress,
+  reserveReceiveAddressIfFresh
 } from '@/services/accountReceiveAddress'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
@@ -86,6 +87,27 @@ describe('fresh receive addresses', () => {
     ])
     expect(addresses).toStrictEqual(['addr-0', 'addr-1'])
     await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-2')
+  })
+
+  it('reserves a peeked address that is still fresh', async () => {
+    loadRangedWallet('acc-if-fresh')
+    const account = makeAccount('acc-if-fresh')
+    const drafted = await peekFreshReceiveAddress(account)
+    await expect(reserveReceiveAddressIfFresh(account, drafted)).resolves.toBe(
+      true
+    )
+    await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-1')
+  })
+
+  it('leaves the next address free when the peeked one was taken', async () => {
+    loadRangedWallet('acc-taken')
+    const account = makeAccount('acc-taken')
+    const drafted = await peekFreshReceiveAddress(account)
+    await reserveFreshReceiveAddress(account)
+    await expect(reserveReceiveAddressIfFresh(account, drafted)).resolves.toBe(
+      false
+    )
+    await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-1')
   })
 
   it('skips addresses reserved before this session', async () => {

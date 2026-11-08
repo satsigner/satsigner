@@ -9,7 +9,7 @@ import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
 import {
   peekFreshReceiveAddress,
-  reserveFreshReceiveAddress
+  reserveReceiveAddressIfFresh
 } from '@/services/accountReceiveAddress'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useAccountsStore } from '@/store/accounts'
@@ -243,8 +243,8 @@ async function buildSignAndBroadcastClaim({
     throw new Error(t(`ark.exit.claim.rejection.${signed.reason}`))
   }
   // Another send may have taken the drafted address in the meantime.
-  const reservedAddress = await reserveFreshReceiveAddress(destination)
-  if (reservedAddress !== address) {
+  const reserved = await reserveReceiveAddressIfFresh(destination, address)
+  if (!reserved) {
     throw new Error(t('ark.exit.claim.error.changed'))
   }
 

@@ -57,6 +57,12 @@ function pickFreshAddress(
   return addressInfo.address
 }
 
+function issueAddress(accountId: string, address: string) {
+  const issued = issuedAddresses.get(accountId) ?? new Set<string>()
+  issued.add(address)
+  issuedAddresses.set(accountId, issued)
+}
+
 /**
  * First external address of the account that no known transaction pays and
  * no earlier send took, derived from the account's own descriptor. Only for
@@ -81,8 +87,23 @@ export async function reserveFreshReceiveAddress(
   // Picking and reserving must not straddle an await, or two concurrent
   // sends could pick the same address.
   const address = pickFreshAddress(wallet, account, reservedAddresses)
-  const issued = issuedAddresses.get(account.id) ?? new Set<string>()
-  issued.add(address)
-  issuedAddresses.set(account.id, issued)
+  issueAddress(account.id, address)
   return address
+}
+
+/**
+ * Reserves `address` only while it is still the account's fresh address, for
+ * a draft built on a peeked one. When another send took it first, nothing is
+ * reserved, so the next address is not skipped for the rest of the session.
+ */
+export async function reserveReceiveAddressIfFresh(
+  account: Account,
+  address: string
+): Promise<boolean> {
+  const wallet = await loadAccountWallet(account)
+  if (pickFreshAddress(wallet, account, []) !== address) {
+    return false
+  }
+  issueAddress(account.id, address)
+  return true
 }

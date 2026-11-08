@@ -11,7 +11,7 @@ import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
 import {
   peekFreshReceiveAddress,
-  reserveFreshReceiveAddress
+  reserveReceiveAddressIfFresh
 } from '@/services/accountReceiveAddress'
 import {
   claimArkExits,
@@ -44,7 +44,8 @@ jest.mock<typeof import('@/services/accountReceiveAddress')>(
   '@/services/accountReceiveAddress',
   () => ({
     peekFreshReceiveAddress: jest.fn(),
-    reserveFreshReceiveAddress: jest.fn()
+    reserveFreshReceiveAddress: jest.fn(),
+    reserveReceiveAddressIfFresh: jest.fn()
   })
 )
 jest.mock<typeof import('@/services/arkWallet')>(
@@ -187,7 +188,7 @@ describe('claimArkExits', () => {
     jest.mocked(syncArkExits).mockResolvedValue()
     jest.mocked(listArkExits).mockResolvedValue([claimableExit()])
     jest.mocked(peekFreshReceiveAddress).mockResolvedValue(DESTINATION)
-    jest.mocked(reserveFreshReceiveAddress).mockResolvedValue(DESTINATION)
+    jest.mocked(reserveReceiveAddressIfFresh).mockResolvedValue(true)
     jest.mocked(buildArkExitClaim).mockResolvedValue({
       feeSats: FEE_SATS,
       psbtBase64: claimPsbt.toBase64(),
@@ -262,23 +263,20 @@ describe('claimArkExits', () => {
       t('ark.exit.claim.rejection.unexpectedOutputs')
     )
     expect(signArkExitClaim).not.toHaveBeenCalled()
-    expect(reserveFreshReceiveAddress).not.toHaveBeenCalled()
+    expect(reserveReceiveAddressIfFresh).not.toHaveBeenCalled()
     expect(broadcastRawTransaction).not.toHaveBeenCalled()
     expect(savedClaims()).toStrictEqual([])
   })
 
   it('refuses the claim when its address was taken before reserving it', async () => {
-    jest
-      .mocked(reserveFreshReceiveAddress)
-      .mockResolvedValue(
-        bitcoinjs.address.fromOutputScript(
-          Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),
-          NETWORK
-        )
-      )
+    jest.mocked(reserveReceiveAddressIfFresh).mockResolvedValue(false)
 
     await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
       t('ark.exit.claim.error.changed')
+    )
+    expect(reserveReceiveAddressIfFresh).toHaveBeenCalledWith(
+      expect.objectContaining({ id: DESTINATION_ID }),
+      DESTINATION
     )
     expect(broadcastRawTransaction).not.toHaveBeenCalled()
     expect(savedClaims()).toStrictEqual([])
