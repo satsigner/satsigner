@@ -8,6 +8,7 @@ import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
+import { isPendingMeltError } from '@/services/ecash/lightningPayment'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { type EcashMint } from '@/types/models/Ecash'
 import type {
@@ -233,7 +234,21 @@ export function useEcashSend() {
     return invoice
   }
 
+  // A pending melt may still pay: the form is cleared and left, so a second
+  // tap cannot pay the same invoice (or a fresh LNURL one) again.
+  function finishPendingMelt(message: string) {
+    setInvoice('')
+    setAmount('')
+    setStatusMessage(message)
+    toast.info(message)
+    router.navigate('/signer/ecash')
+  }
+
   function handleMeltError(error: unknown) {
+    if (isPendingMeltError(error)) {
+      finishPendingMelt(error instanceof Error ? error.message : '')
+      return
+    }
     if (!(error instanceof Error)) {
       setStatusMessage(`Error: ${t('ecash.error.unknownError')}`)
       toast.error(t('ecash.error.lnurlPaymentFailed'))

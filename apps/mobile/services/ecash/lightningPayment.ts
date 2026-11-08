@@ -290,4 +290,19 @@ async function payLightningInvoiceFromMints(params: PayInvoiceParams) {
   await meltPlannedQuotes(route, plannedQuotes)
 }
 
-export { EcashPaymentError, payLightningInvoiceFromMints }
+/**
+ * The mint reports the payment as still in flight, so it may yet be paid.
+ * The hook rethrows payment errors with the original one as their cause.
+ */
+function isPendingMeltError(error: unknown): boolean {
+  const paymentError =
+    error instanceof Error && error.cause instanceof EcashPaymentError
+      ? error.cause
+      : error
+  return (
+    paymentError instanceof EcashPaymentError &&
+    paymentError.failure.reason === 'meltPending'
+  )
+}
+
+export { EcashPaymentError, isPendingMeltError, payLightningInvoiceFromMints }
