@@ -14,7 +14,7 @@ import {
   isDevConsoleAvailable,
   registerDevConsoleSecretTap
 } from '@/utils/devConsole'
-import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
+import { toPinAttempts } from '@/utils/pinAttempts'
 
 void loadAuthenticatedSession()
 
@@ -33,25 +33,18 @@ const titlePressHandler = isDevConsoleAvailable() ? handleTitlePress : undefined
 
 export default function Unlock() {
   const router = useRouter()
-  const [
-    setLockTriggered,
-    resetPinTries,
-    incrementPinTries,
-    setJustUnlocked,
-    pinTries,
-    pinMaxTries
-  ] = useAuthStore(
-    useShallow((state) => [
-      state.setLockTriggered,
-      state.resetPinTries,
-      state.incrementPinTries,
-      state.setJustUnlocked,
-      state.pinTries,
-      state.pinMaxTries
-    ])
-  )
+  const [setLockTriggered, setJustUnlocked, pinTries, pinMaxTries] =
+    useAuthStore(
+      useShallow((state) => [
+        state.setLockTriggered,
+        state.setJustUnlocked,
+        state.pinTries,
+        state.pinMaxTries
+      ])
+    )
   const showWarning = useSettingsStore((state) => state.showWarning)
-  const triesLeft = pinMaxTries - pinTries
+  const attempts = toPinAttempts(pinTries, pinMaxTries)
+  const triesLeft = attempts.status === 'counting' ? attempts.left : 0
 
   function getWarningColor() {
     if (triesLeft > 2) {
@@ -81,22 +74,7 @@ export default function Unlock() {
     await loadAuthenticatedSession()
     setLockTriggered(false)
     setJustUnlocked(true)
-    resetPinTries()
     router.replace(showWarning ? './warning' : '/')
-  }
-
-  // Counts against the persisted tries so restarting the app cannot reset them.
-  async function handleFailure() {
-    const remainingTries = incrementPinTries()
-    if (remainingTries > 0) {
-      return
-    }
-    const wiped = await secureWipeAfterMaxPinTries()
-    if (!wiped) {
-      toast.error(t('auth.wipeFailed'))
-      return
-    }
-    router.replace('/')
   }
 
   return (
@@ -109,7 +87,6 @@ export default function Unlock() {
     >
       <SSPinAuth
         onSuccess={handleSuccess}
-        onFail={handleFailure}
         onTitlePress={titlePressHandler}
         title={t('auth.enterPinTitle')}
         feedbackText={getWarningText()}

@@ -17,7 +17,6 @@ type SSPinAuthProps = UsePinAuthProps & {
 function SSPinAuth({
   onTitlePress,
   title,
-  onFail,
   onSuccess,
   onTriesOver,
   maxTries,
@@ -25,7 +24,6 @@ function SSPinAuth({
 }: SSPinAuthProps) {
   const { pin, verifying, handleFillEnded, setPin } = usePinAuth({
     maxTries,
-    onFail,
     onSuccess,
     onTriesOver
   })

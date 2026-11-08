@@ -63,7 +63,6 @@ import { saveFile } from '@/utils/filesystem'
 import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
-import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
 
@@ -75,19 +74,11 @@ export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [
-    skipPin,
-    setSkipPin,
-    enableDevSkipPin,
-    incrementPinTries,
-    resetPinTries
-  ] = useAuthStore(
+  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
     useShallow((state) => [
       state.skipPin,
       state.setSkipPin,
-      state.enableDevSkipPin,
-      state.incrementPinTries,
-      state.resetPinTries
+      state.enableDevSkipPin
     ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
@@ -232,25 +223,8 @@ export default function Developer() {
   }
 
   async function handleBackupPinSuccess() {
-    resetPinTries()
     setBackupPinVisible(false)
     await openBackupPreview()
-  }
-
-  // Shares the persisted unlock tries, so reopening the modal cannot be used
-  // to guess the PIN without limit.
-  async function handleBackupPinFail() {
-    const remainingTries = incrementPinTries()
-    if (remainingTries > 0) {
-      return
-    }
-    setBackupPinVisible(false)
-    const wiped = await secureWipeAfterMaxPinTries()
-    if (!wiped) {
-      toast.error(t('auth.wipeFailed'))
-      return
-    }
-    router.replace('/')
   }
 
   function showBackupPassphraseError() {
@@ -546,7 +520,6 @@ export default function Developer() {
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleBackupPinSuccess}
-          onFail={handleBackupPinFail}
           onTriesOver={() => setBackupPinVisible(false)}
           maxTries={BACKUP_PIN_MAX_TRIES}
         />
