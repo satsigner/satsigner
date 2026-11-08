@@ -3551,6 +3551,8 @@
     "developer.diagnosis.checks.nostrChatPipeline.title": "Nostr chat connection"
   },
   "sign": {
+    "broadcast.alreadyBroadcast": "This transaction has already been broadcast to the network",
+    "broadcast.inProgress": "Please wait while the transaction is being broadcast.",
     "changeAddressLabelDefault": "Change",
     "changeAddressLabelFinal": "[change] %{txlabel}",
     "transaction": "Sign transaction"
