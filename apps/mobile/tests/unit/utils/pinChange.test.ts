@@ -155,4 +155,29 @@ describe('changePin', () => {
     )
     expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
   })
+
+  it('keeps the old PIN when the commit fails before it is journaled', async () => {
+    const oldDigest = secureStore[sk(PIN_KEY)]
+    jest
+      .mocked(SecureStore.setItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('reEncryptFailed')
+    expect(secureStore[sk(PIN_KEY)]).toBe(oldDigest)
+  })
+
+  it('reports the change once the commit is journaled even if cleanup fails', async () => {
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('changed')
+    await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
+      true
+    )
+  })
 })

@@ -1,13 +1,16 @@
-import { DURESS_PIN_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { getPin, getStoredPinLength } from '@/utils/pin'
 import {
+  applyPendingPinKdfCommit,
   commitPinMaterial,
+  type PinMaterial,
   pinMatchesDuressDigest,
   preparePinMaterial
 } from '@/utils/pinKdf'
-import { clearPinRekeyJournal } from '@/utils/pinRekey'
+import { applyPendingPinRekey, clearPinRekeyJournal } from '@/utils/pinRekey'
+import { setSessionPinDigest } from '@/utils/pinSession'
 
 type PinChangeResult =
   | 'changed'
@@ -15,6 +18,28 @@ type PinChangeResult =
   | 'duressClearFailed'
   | 'matchesDuress'
   | 'reEncryptFailed'
+
+/**
+ * Commits the new PIN, and decides by what actually landed when that throws:
+ * once the commit journal holds the new digest the change is done (the next
+ * PIN check finishes it), so only an earlier failure rolls the moved
+ * secrets back to the old PIN.
+ */
+async function commitOrRollBack(material: PinMaterial): Promise<boolean> {
+  try {
+    await commitPinMaterial(material)
+  } catch {
+    await applyPendingPinKdfCommit().catch(() => undefined)
+    const storedDigest = await getItem(PIN_KEY).catch(() => null)
+    if (storedDigest !== material.digest) {
+      await applyPendingPinRekey().catch(() => undefined)
+      return false
+    }
+    setSessionPinDigest(material.digest)
+  }
+  await clearPinRekeyJournal().catch(() => undefined)
+  return true
+}
 
 /** Returns null on first-time setup, where no PIN exists yet. */
 async function getCurrentPinDigest(): Promise<string | null> {
@@ -54,8 +79,10 @@ async function changePin(
       return 'reEncryptFailed'
     }
   }
-  await commitPinMaterial(material)
-  await clearPinRekeyJournal()
+  const committed = await commitOrRollBack(material)
+  if (!committed) {
+    return 'reEncryptFailed'
+  }
 
   // A missing length belongs to an older install. Clearing duress here would
   // drop it on an equal-length change, because the stored length is unknown.
