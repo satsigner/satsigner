@@ -17,6 +17,7 @@ import { pruneCache } from '@/db/nostrCache'
 import { useArkExitWatcher } from '@/hooks/useArkExits'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
 import { useArkSwapRunner } from '@/hooks/useArkSwaps'
+import { useEcashPendingMintRunner } from '@/hooks/useEcashPendingMintRunner'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -150,6 +151,7 @@ function AuthenticatedSession() {
   useArkNotifications()
   useArkExitWatcher()
   useArkSwapRunner()
+  useEcashPendingMintRunner()
   useFetchBitcoinPrice()
 
   useEffect(() => {

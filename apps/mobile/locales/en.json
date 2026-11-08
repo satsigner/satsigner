@@ -1536,7 +1536,6 @@
     "success.tokenRedeemed": "Ecash token redeemed successfully",
     "success.tokenScanned": "Token scanned successfully",
     "success.tokensMelted": "Tokens melted successfully",
-    "success.tokensMinted": "Tokens minted successfully",
     "tokenDetails.amount": "Amount",
     "tokenDetails.andMore": "and %{count} more",
     "tokenDetails.memo": "Memo",

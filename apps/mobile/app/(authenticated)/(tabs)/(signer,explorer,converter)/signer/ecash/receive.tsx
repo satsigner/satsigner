@@ -21,50 +21,48 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { error, success, warning, white } from '@/styles/colors'
+import { error, success, warning } from '@/styles/colors'
+import { assertNever } from '@/utils/assertNever'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { type MintInvoiceStatus } from '@/utils/ecashMintQuote'
 import { fiatToSats, satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLNURLType } from '@/utils/lnurl'
 
-function getStatusColor(status: string) {
+function getStatusColor(status: MintInvoiceStatus) {
   switch (status) {
-    case 'PAID':
-    case 'ISSUED': {
-      return success
-    }
-    case 'PENDING':
-    case 'UNPAID': {
+    case 'waiting': {
       return warning
     }
-    case 'EXPIRED':
-    case 'CANCELLED': {
+    case 'received': {
+      return success
+    }
+    case 'expired':
+    case 'failed': {
       return error
     }
     default: {
-      return white
+      return assertNever(status)
     }
   }
 }
 
-function getStatusText(status: string) {
+function getStatusText(status: MintInvoiceStatus) {
   switch (status) {
-    case 'PENDING':
-    case 'UNPAID': {
+    case 'waiting': {
       return t('ecash.quote.pending')
     }
-    case 'PAID':
-    case 'ISSUED': {
+    case 'received': {
       return t('ecash.quote.paid')
     }
-    case 'EXPIRED': {
+    case 'expired': {
       return t('ecash.quote.expired')
     }
-    case 'CANCELLED': {
-      return t('ecash.quote.cancelled')
+    case 'failed': {
+      return t('ecash.quote.failed')
     }
     default: {
-      return status || ''
+      return assertNever(status)
     }
   }
 }
@@ -89,13 +87,14 @@ export default function EcashReceivePage() {
     amount,
     createInvoice,
     decodedToken,
+    finishInvoice,
     handleLNURLWithdrawInput,
     handleTokenChange,
     isAddingMint,
     isCreatingQuote,
+    invoiceStatus,
     isFetchingLNURL,
     isLNURLWithdrawMode,
-    isPolling,
     isRedeeming,
     isTokenMintConnected,
     lnurlWithdrawDetails,
@@ -103,7 +102,6 @@ export default function EcashReceivePage() {
     mintQuote,
     mints,
     proofs,
-    quoteStatus,
     redeemToken,
     selectedMintForLightning,
     setAmount,
@@ -483,7 +481,7 @@ export default function EcashReceivePage() {
                 </SSVStack>
               ) : (
                 <SSVStack gap="md">
-                  {!isLNURLWithdrawMode && (
+                  {!isLNURLWithdrawMode && invoiceStatus === 'waiting' && (
                     <SSShareableQR
                       value={mintQuote.request}
                       size={300}
@@ -504,20 +502,36 @@ export default function EcashReceivePage() {
                     </SSShareableQR>
                   )}
                   <SSVStack gap="none">
-                    <SSText style={{ color: getStatusColor(quoteStatus) }}>
-                      {getStatusText(quoteStatus)}
+                    <SSText style={{ color: getStatusColor(invoiceStatus) }}>
+                      {getStatusText(invoiceStatus)}
                     </SSText>
-                    {isPolling && (
+                    {invoiceStatus === 'waiting' && (
                       <SSText color="muted" size="xs">
                         {t('ecash.receive.polling')}
                       </SSText>
                     )}
-                    {isLNURLWithdrawMode && (
+                    {isLNURLWithdrawMode && invoiceStatus === 'waiting' && (
                       <SSText color="muted" size="sm">
                         {t('ecash.receive.withdrawPending')}
                       </SSText>
                     )}
                   </SSVStack>
+                  {invoiceStatus === 'received' && (
+                    <SSButton
+                      label={t('common.backToAccountHome')}
+                      onPress={finishInvoice}
+                      variant="secondary"
+                    />
+                  )}
+                  {(invoiceStatus === 'expired' ||
+                    invoiceStatus === 'failed') && (
+                    <SSButton
+                      label={t('common.retry')}
+                      onPress={createInvoice}
+                      loading={isCreatingQuote}
+                      variant="secondary"
+                    />
+                  )}
                 </SSVStack>
               )}
             </SSVStack>

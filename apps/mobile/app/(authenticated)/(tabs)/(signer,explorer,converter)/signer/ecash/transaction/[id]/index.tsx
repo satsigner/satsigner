@@ -20,7 +20,6 @@ import SSTextInput from '@/components/SSTextInput'
 import SSTimeAgoText from '@/components/SSTimeAgoText'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useEcash } from '@/hooks/useEcash'
-import { useEcashMintQuotePolling } from '@/hooks/useEcashMintQuotePolling'
 import { useFiatData } from '@/hooks/useFiatData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -44,8 +43,6 @@ export default function EcashTransactionDetailPage() {
     updateTransaction,
     receiveEcash,
     mintQuotes,
-    checkMintQuote,
-    mintProofs,
     validateToken
   } = useEcash()
   const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
@@ -158,26 +155,6 @@ export default function EcashTransactionDetailPage() {
     }
     setIsRedeeming(false)
   }
-
-  const { isPolling } = useEcashMintQuotePolling({
-    checkMintQuote,
-    enabled: transaction?.status === 'pending',
-    mintUrl: mint?.url,
-    onQuoteExpiredOrCancelled: () => {
-      if (transaction) {
-        updateTransaction(transaction.id, { status: 'failed' })
-      }
-    },
-    onQuotePaid: async () => {
-      if (!transaction?.quoteId || !mint) {
-        return
-      }
-      await mintProofs(mint.url, transaction.amount, transaction.quoteId)
-      updateTransaction(transaction.id, { status: 'completed' })
-      setQrModalVisible(false)
-    },
-    quoteId: transaction?.quoteId
-  })
 
   if (!transaction) {
     return (
@@ -420,11 +397,9 @@ export default function EcashTransactionDetailPage() {
           {/* Lightning Invoice Buttons for Pending Transactions */}
           {transaction.status === 'pending' && lightningInvoice && (
             <SSVStack gap="sm">
-              {isPolling && (
-                <SSText color="muted" size="sm" style={{ textAlign: 'center' }}>
-                  {t('ecash.receive.polling')}
-                </SSText>
-              )}
+              <SSText color="muted" size="sm" style={{ textAlign: 'center' }}>
+                {t('ecash.receive.polling')}
+              </SSText>
               <SSHStack gap="sm">
                 <SSButton
                   label={t('ecash.transactionDetail.showQR')}
@@ -540,7 +515,7 @@ export default function EcashTransactionDetailPage() {
         </SSVStack>
       </SSScrollView>
       <SSModal
-        visible={qrModalVisible}
+        visible={qrModalVisible && transaction.status === 'pending'}
         onClose={() => setQrModalVisible(false)}
         label={t('common.close')}
       >

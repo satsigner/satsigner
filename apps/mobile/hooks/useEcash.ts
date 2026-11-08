@@ -2,7 +2,6 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  checkMintQuote,
   clearWalletCache,
   connectToMint,
   createMeltQuote,
@@ -10,7 +9,6 @@ import {
   EcashSpentProofsError,
   getMintBalance,
   meltProofs,
-  mintProofs,
   receiveEcash,
   restoreProofsFromSeed,
   sendEcash,
@@ -24,13 +22,15 @@ import {
 } from '@/services/ecash/lightningPayment'
 import { proofsAfterFailedMelt } from '@/services/ecash/meltFailure'
 import { restoreProofsFromMints } from '@/services/ecash/restore'
-import { getEcashMnemonic } from '@/storage/encrypted'
+import {
+  getEcashCounters,
+  getEcashSeed,
+  getEcashWalletOptions
+} from '@/services/ecash/walletOptions'
 import { useEcashStore } from '@/store/ecash'
 import type {
-  CounterReservedEvent,
   EcashMeltResult,
   EcashMint,
-  EcashMintResult,
   EcashProof,
   EcashReceiveResult,
   EcashSendResult,
@@ -38,10 +38,8 @@ import type {
   EcashTransaction,
   MeltQuote,
   MintQuote,
-  MintQuoteState,
   WalletOptions
 } from '@/types/models/Ecash'
-import { mnemonicToSeed } from '@/utils/bip39'
 import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
@@ -52,15 +50,6 @@ import { buildCounterInit } from '@/utils/ecashKeysetCounters'
 import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
 import { proofsAfterSend, removeSpentSecrets } from '@/utils/ecashProofs'
-
-/** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
-async function getSeedForAccount(accountId: string) {
-  const mnemonic = await getEcashMnemonic(accountId)
-  if (!mnemonic) {
-    return undefined
-  }
-  return mnemonicToSeed(mnemonic, '')
-}
 
 const TOKEN_NOT_CHECKED: EcashTokenValidation = {
   details: 'Token could not be checked',
@@ -85,7 +74,6 @@ export function useEcash() {
     setProofsAction,
     updateMintBalance,
     addMintQuoteAction,
-    removeMintQuoteAction,
     addMeltQuoteAction,
     removeMeltQuoteAction,
     addTransactionAction,
@@ -103,7 +91,6 @@ export function useEcash() {
       state.setProofs,
       state.updateMintBalance,
       state.addMintQuote,
-      state.removeMintQuote,
       state.addMeltQuote,
       state.removeMeltQuote,
       state.addTransaction,
@@ -114,34 +101,11 @@ export function useEcash() {
     ])
   )
 
-  function getLatestCounters(accountId: string) {
-    return useEcashStore.getState().counters[accountId] ?? []
-  }
-
-  function handleCounterReserved(event: CounterReservedEvent) {
+  function getWalletOptions(): Promise<WalletOptions> {
     if (!activeAccountId) {
-      return
+      return Promise.resolve({})
     }
-    advanceKeysetCounter(
-      activeAccountId,
-      event.keysetId,
-      event.start + event.count
-    )
-  }
-
-  async function getWalletOptions(): Promise<WalletOptions> {
-    if (!activeAccountId || !activeAccount?.hasSeed) {
-      return {}
-    }
-    const seed = await getSeedForAccount(activeAccountId)
-    if (!seed) {
-      return {}
-    }
-    return {
-      bip39seed: seed,
-      counterInit: buildCounterInit(getLatestCounters(activeAccountId)),
-      onCounterReserved: handleCounterReserved
-    }
+    return getEcashWalletOptions(activeAccountId)
   }
 
   async function restoreConnectedMintProofs(
@@ -149,14 +113,14 @@ export function useEcash() {
     mintUrl: string,
     mint: EcashMint
   ) {
-    const seed = await getSeedForAccount(accountId)
+    const seed = await getEcashSeed(accountId)
     if (seed) {
       toast.info(t('ecash.recovery.restoring'))
       const result = await restoreProofsFromSeed(
         accountId,
         mintUrl,
         seed,
-        buildCounterInit(getLatestCounters(accountId))
+        buildCounterInit(getEcashCounters(accountId))
       )
 
       if (result.proofs.length > 0) {
@@ -257,49 +221,6 @@ export function useEcash() {
     addTransactionAction(activeAccountId, transaction)
 
     return quote
-  }
-
-  async function checkMintQuoteHandler(
-    mintUrl: string,
-    quoteId: string
-  ): Promise<MintQuoteState> {
-    if (!activeAccountId) {
-      throw new Error('No active account')
-    }
-    const options = await getWalletOptions()
-    return checkMintQuote(activeAccountId, mintUrl, quoteId, options)
-  }
-
-  async function mintProofsHandler(
-    mintUrl: string,
-    amount: number,
-    quoteId: string
-  ): Promise<EcashMintResult> {
-    if (!activeAccountId) {
-      throw new Error('No active account')
-    }
-    const options = await getWalletOptions()
-    const result = await mintProofs(
-      activeAccountId,
-      mintUrl,
-      amount,
-      quoteId,
-      options
-    )
-    addProofsAction(activeAccountId, result.proofs)
-    removeMintQuoteAction(activeAccountId, quoteId)
-    updateMintBalance(
-      activeAccountId,
-      mintUrl,
-      getMintBalance(mintUrl, [...proofs, ...result.proofs])
-    )
-
-    updateTransactionAction(activeAccountId, quoteId, {
-      status: 'completed'
-    })
-
-    toast.success(t('ecash.success.tokensMinted'))
-    return result
   }
 
   async function createMeltQuoteHandler(
@@ -619,7 +540,7 @@ export function useEcash() {
       throw new Error('Account has no seed for recovery')
     }
 
-    const seed = await getSeedForAccount(activeAccountId)
+    const seed = await getEcashSeed(activeAccountId)
     if (!seed) {
       throw new Error('Could not retrieve seed')
     }
@@ -630,7 +551,7 @@ export function useEcash() {
       addProofs: (restored) => addProofsAction(accountId, restored),
       advanceKeysetCounter: (keysetId, nextCounter) =>
         advanceKeysetCounter(accountId, keysetId, nextCounter),
-      getCounters: () => getLatestCounters(accountId),
+      getCounters: () => getEcashCounters(accountId),
       getMints: () => useEcashStore.getState().mints[accountId] ?? [],
       getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
       updateMintBalance: (mintUrl, balance) =>
@@ -722,13 +643,11 @@ export function useEcash() {
   return {
     activeAccount,
     activeAccountId,
-    checkMintQuote: checkMintQuoteHandler,
     checkTokenStatus,
     clearAccountData: clearAccountDataHandler,
     connectToMint: connectToMintHandler,
     createMintQuote: createMintQuoteHandler,
     disconnectMint,
-    mintProofs: mintProofsHandler,
     mintQuotes,
     mints,
     payLightningInvoice,
