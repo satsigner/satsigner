@@ -121,10 +121,8 @@ async function lookupBrantaPayee(
   input: string,
   client?: BrantaLookupClient
 ): Promise<BrantaLookupResult> {
-  if (useSettingsStore.getState().brantaLookupMode === 'off') {
-    return skippedLookup()
-  }
-  if (!takeBrantaLookupPermit()) {
+  const permitted = takeBrantaLookupPermit()
+  if (!permitted || useSettingsStore.getState().brantaLookupMode === 'off') {
     return skippedLookup()
   }
 
@@ -154,9 +152,4 @@ async function lookupBrantaPayee(
   }
 }
 
-export {
-  allowBrantaLookup,
-  getBrantaService,
-  lookupBrantaPayee,
-  resetBrantaLookupPermits
-}
+export { allowBrantaLookup, lookupBrantaPayee, resetBrantaLookupPermits }

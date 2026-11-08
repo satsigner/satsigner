@@ -4,6 +4,7 @@ import { Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { resetBrantaLookupPermits } from '@/api/branta'
 import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
@@ -47,6 +48,7 @@ import {
   MIN_BACKUP_PASSPHRASE_LENGTH
 } from '@/utils/backupPassphrase'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
+import { resetBrantaLogoConsent } from '@/utils/brantaLogoConsent'
 import {
   aesEncrypt,
   generateSalt,
@@ -386,6 +388,8 @@ export default function Developer() {
         skipSeedConfirmation: true,
         useZeroPadding: false
       })
+      resetBrantaLookupPermits()
+      resetBrantaLogoConsent()
       setClearStorageModalVisible(false)
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {

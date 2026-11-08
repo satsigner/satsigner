@@ -84,6 +84,23 @@ describe('lookupBrantaPayee', () => {
     expect(client.verify).not.toHaveBeenCalled()
   })
 
+  it('spends the confirmed lookup even while lookup is off', async () => {
+    useSettingsStore.setState({ brantaLookupMode: 'off' })
+    const client = clientWith({
+      payments: [payment],
+      status: 'match',
+      verifyUrl: payee.verifyUrl
+    })
+
+    await lookupBrantaPayee('lnbc1example', client)
+    useSettingsStore.setState({ brantaLookupMode: 'always' })
+
+    await expect(
+      lookupBrantaPayee('lnbc1example', client)
+    ).resolves.toStrictEqual(missed)
+    expect(client.verify).not.toHaveBeenCalled()
+  })
+
   it('does not call Branta for an empty destination', async () => {
     const client = clientWith({ status: 'unknown', verifyUrl: '' })
 
