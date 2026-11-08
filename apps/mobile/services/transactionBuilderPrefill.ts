@@ -1,3 +1,4 @@
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { autoSelectUtxos } from '@/utils/contentProcessor'
@@ -22,6 +23,9 @@ export function prefillSendFromAccount({
   label,
   feeRateSatPerVb
 }: PrefillSendFromAccountParams): void {
+  // Send screens broadcast through the selected network's server, and an Ark
+  // account, unlike the account list, does not switch the selected network.
+  useBlockchainStore.getState().setSelectedNetwork(account.network)
   const store = useTransactionBuilderStore.getState()
   store.setAccountId(account.id)
   store.clearTransaction()
