@@ -9,7 +9,7 @@
  * - Add server import/export functionality to share configurations via QR codes
  */
 
-import { CameraView, useCameraPermissions } from 'expo-camera'
+import { useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -22,6 +22,7 @@ import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicato
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
+import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useConnectionTest } from '@/hooks/useConnectionTest'
@@ -437,6 +438,9 @@ export default function CustomNetwork() {
                 <SSTextInput
                   value={formData.host}
                   onChangeText={(value) => updateField('host', value)}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
                   multiline
                   style={{ height: 'auto', minHeight: 70 }}
                   placeholder={t(
@@ -660,13 +664,8 @@ export default function CustomNetwork() {
           <SSText color="muted" uppercase>
             {t('common.scanQR')}
           </SSText>
-          <CameraView
-            onBarcodeScanned={({ data }) => {
-              if (data) {
-                handleScanResult(data)
-              }
-            }}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          <SSQrScanner
+            onScan={handleScanResult}
             style={{ height: 340, width: 340 }}
           />
         </SSVStack>

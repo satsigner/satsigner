@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -190,13 +190,6 @@ export default function ArkSendConfirmPage() {
 
   return (
     <SSMainLayout>
-      <Stack.Screen
-        options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('ark.send.confirmTitle')}</SSText>
-          )
-        }}
-      />
       <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           {parsedQuery.isLoading && (

@@ -1,5 +1,8 @@
 import { PACKAGE_ID_DEV, PACKAGE_ID_PROD } from '@/constants/variant'
-import { getBackupVariantLabels } from '@/utils/backupFilename'
+import {
+  getBackupFilename,
+  getBackupVariantLabels
+} from '@/utils/backupFilename'
 
 describe('getBackupVariantLabels', () => {
   it('labels plain and suffixed dev packages', () => {
@@ -35,5 +38,13 @@ describe('getBackupVariantLabels', () => {
       suffixLabel: 'branch',
       variantLabel: 'dev'
     })
+  })
+})
+
+describe('getBackupFilename', () => {
+  it('includes the app version and timestamp', () => {
+    expect(getBackupFilename('0.3.7', 1_700_000_000_000)).toMatch(
+      /^satsigner-backup-(dev|prod)-[a-z0-9_]+-v0\.3\.7-1700000000000\.json$/
+    )
   })
 })

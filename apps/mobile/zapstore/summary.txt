@@ -1,0 +1,1 @@
+Self-custody bitcoin signer. Full UTXO control, multisig, and privacy.

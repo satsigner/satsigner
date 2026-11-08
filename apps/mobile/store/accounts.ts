@@ -109,7 +109,7 @@ type AccountsAction = {
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
   deleteAccount: (id: Account['id']) => void
-  deleteAccounts: () => void
+  deleteAccounts: () => Promise<void>
   loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -209,12 +209,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
       })
     },
-    deleteAccounts: () => {
+    // Waits for the encrypted key secrets to be gone before it returns, so a
+    // wipe is complete when it resolves and a restore can write new secrets
+    // under the same account ids without a late delete removing them.
+    deleteAccounts: async () => {
       const { accounts } = get()
-      for (const account of accounts) {
-        deleteAllKeySecrets(account.id, account.keys.length)
-        void deleteNostrAccountSecretSafe(account.id)
-      }
+      await Promise.all(
+        accounts.map(async (account) => {
+          await deleteAllKeySecrets(account.id, account.keys.length)
+          await deleteNostrAccountSecretSafe(account.id)
+        })
+      )
       deleteAllAccountsDb()
       set((state) => {
         state.accounts = []

@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 
@@ -55,7 +55,24 @@ function txKeyExtractor(txid: string) {
   return txid
 }
 
-export default function BlockTransactions() {
+function BlockTransactionsHeaderTitle() {
+  return (
+    <SSText uppercase>{t('explorer.block.transactions.headerTitle')}</SSText>
+  )
+}
+
+const SCREEN_OPTIONS = { headerTitle: BlockTransactionsHeaderTitle }
+
+export default function BlockTransactionsScreen() {
+  return (
+    <>
+      <Stack.Screen options={SCREEN_OPTIONS} />
+      <BlockTransactions />
+    </>
+  )
+}
+
+function BlockTransactions() {
   const { block: blockHash } = useLocalSearchParams<ExplorerBlockSearchParams>()
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE)
 

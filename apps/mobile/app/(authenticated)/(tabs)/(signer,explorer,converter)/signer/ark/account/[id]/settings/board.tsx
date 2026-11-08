@@ -11,15 +11,18 @@ import SSPairedTabs from '@/components/SSPairedTabs'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
 import SSText from '@/components/SSText'
+import SSWalletSourceRow from '@/components/SSWalletSourceRow'
 import { DUST_LIMIT } from '@/constants/btc'
 import {
   useArkBoardMutation,
   useArkOnchainAddress,
   useArkOnchainBalance,
+  useArkOnchainSpendInFlight,
   useArkPendingBoards,
   useArkServerInfo
 } from '@/hooks/useArkBoard'
 import { useArkBoardDeposit } from '@/hooks/useArkBoardDeposit'
+import { useArkBoardFromAccount } from '@/hooks/useArkBoardFromAccount'
 import { useArkBoardPayjoin } from '@/hooks/useArkBoardPayjoin'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -28,10 +31,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
-import { getAccountTotalBalance } from '@/utils/account'
+import { getAccountKindLabel } from '@/utils/accountKindLabel'
 import {
   type ArkBoardValidationReason,
   validateBoardAmount
@@ -40,18 +44,36 @@ import {
   matchingUnbroadcastBoardTxid,
   txidFromSignedDraft
 } from '@/utils/arkBoardDeposit'
+import {
+  type ArkBoardSource,
+  getArkBoardSources,
+  resolveArkBoardSource
+} from '@/utils/arkBoardSource'
 import { setClipboard } from '@/utils/clipboard'
 import { formatNumber, formatTxId } from '@/utils/format'
 
 const DEPOSIT_QR_SIZE = 200
 const PAYJOIN_LOADER_SIZE = 18
 
-type FundTab = 'address' | 'payjoin'
+type BoardTab = 'wallet' | 'address' | 'payjoin'
 
 const VALIDATION_ERROR_KEYS: Record<ArkBoardValidationReason, string> = {
   belowMinimum: 'ark.board.error.belowMinimum',
   insufficientFunds: 'ark.board.error.insufficientFunds',
   invalidAmount: 'ark.board.error.invalidAmount'
+}
+
+function sourceTitle(source: ArkBoardSource): string {
+  return source.kind === 'boardingWallet'
+    ? t('ark.board.fromWallet.boardingWallet')
+    : source.name
+}
+
+function sourceSubtitle(source: ArkBoardSource): string {
+  if (source.kind === 'boardingWallet') {
+    return t('ark.board.fromWallet.boardingWalletHint')
+  }
+  return getAccountKindLabel(source)
 }
 
 export default function ArkBoardPage() {
@@ -62,14 +84,16 @@ export default function ArkBoardPage() {
   const account = useArkStore(
     useShallow((state) => state.accounts.find((a) => a.id === id))
   )
+  const bitcoinAccounts = useAccountsStore((state) => state.accounts)
 
   const balanceQuery = useArkOnchainBalance(id)
   const addressQuery = useArkOnchainAddress(id)
   const pendingBoardsQuery = useArkPendingBoards(id)
   const serverInfoQuery = useArkServerInfo(id)
   const boardMutation = useArkBoardMutation(id)
-  const { fundFromLinkedAccount, linkedAccount, resumeLinkedBroadcast } =
-    useArkBoardDeposit(account)
+  const onchainSpendInFlight = useArkOnchainSpendInFlight(id)
+  const boardFromAccount = useArkBoardFromAccount(id)
+  const { linkedAccount, resumeLinkedBroadcast } = useArkBoardDeposit(account)
   const boardPayjoin = useArkBoardPayjoin(account)
   const [
     builderAccountId,
@@ -88,7 +112,8 @@ export default function ArkBoardPage() {
   )
 
   const [amountSats, setAmountSats] = useState(0)
-  const [fundTab, setFundTab] = useState<FundTab>('address')
+  const [tab, setTab] = useState<BoardTab>('wallet')
+  const [pickedSourceId, setPickedSourceId] = useState<string>()
   const qrRef = useRef<ViewInstance>(null)
 
   const confirmedSats = balanceQuery.data?.confirmedSats ?? 0
@@ -97,7 +122,8 @@ export default function ArkBoardPage() {
   const requiredConfirmations = serverInfoQuery.data?.requiredBoardConfirmations
   const pendingBoards = pendingBoardsQuery.data ?? []
   const depositAddress = addressQuery.data
-  const showPayjoin = boardPayjoin.available && fundTab === 'payjoin'
+  const activeTab =
+    tab === 'payjoin' && !boardPayjoin.available ? 'address' : tab
   const savedLinkedDraft = linkedAccount
     ? builderDrafts[linkedAccount.id]
     : undefined
@@ -113,31 +139,50 @@ export default function ArkBoardPage() {
     )
   })
   const showResumeBroadcast = !!resumeTxid && !!linkedAccount
-  const fundDestination = showPayjoin ? boardPayjoin.payjoinUri : depositAddress
-  const showFundFromLinked =
-    !!linkedAccount &&
-    !!fundDestination &&
-    !showResumeBroadcast &&
-    (!showPayjoin ||
-      (!boardPayjoin.completed && !boardPayjoin.error && !boardPayjoin.expired))
 
   const minAmountSats = Math.max(DUST_LIMIT, minBoardAmountSats ?? 0)
-  const canEnterAmount = confirmedSats >= minAmountSats
+  const sources = account
+    ? getArkBoardSources({
+        accounts: bitcoinAccounts,
+        boardingWalletSats: confirmedSats,
+        network: account.network
+      })
+    : []
+  const selectedSource = resolveArkBoardSource(
+    sources,
+    pickedSourceId,
+    minAmountSats
+  )
+  const availableSats = selectedSource?.availableSats ?? 0
+  const canEnterAmount = availableSats >= minAmountSats
   const validation = validateBoardAmount({
     amountSats,
-    availableSats: confirmedSats,
+    availableSats,
     minBoardAmountSats
   })
-  const boardAll = validation.valid && amountSats >= confirmedSats
+  const fromBoardingWallet = selectedSource?.kind === 'boardingWallet'
+  const fromAccount = selectedSource?.kind === 'account'
+  const boardAll =
+    fromBoardingWallet && validation.valid ? amountSats >= availableSats : false
+  const showMainnetWarning = fromAccount && account?.network === 'bitcoin'
+  const showExternalSignerWarning =
+    selectedSource?.kind === 'account' &&
+    selectedSource.policyType !== 'singlesig'
 
   const feeQuery = useArkFeeEstimate({
     accountId: id,
-    enabled: validation.valid && !showPayjoin,
+    enabled: validation.valid && activeTab === 'wallet',
     request: { amountSats, kind: 'board' }
   })
   const feeSats = feeQuery.data?.feeSats
-  const canBoard =
-    validation.valid && !boardMutation.isPending && feeSats !== undefined
+  const busy = boardMutation.isPending || boardFromAccount.isPending
+  const boardingWalletBusy = fromBoardingWallet && onchainSpendInFlight
+  const canSubmit =
+    !!selectedSource &&
+    validation.valid &&
+    !busy &&
+    !boardingWalletBusy &&
+    feeSats !== undefined
 
   async function handleCopyAddress() {
     if (!depositAddress) {
@@ -167,28 +212,28 @@ export default function ArkBoardPage() {
     boardPayjoin.restart()
   }
 
-  function handleFundFromLinkedAccount() {
-    if (!fundDestination) {
-      return
-    }
-    fundFromLinkedAccount(fundDestination, minAmountSats)
-  }
-
   function handleCancel() {
     router.back()
   }
 
-  function handleBoard() {
-    if (!validation.valid) {
-      toast.error(t(VALIDATION_ERROR_KEYS[validation.reason]))
-      return
-    }
+  function handleRetryBalance() {
+    balanceQuery.refetch()
+  }
+
+  function handleRetryAddress() {
+    addressQuery.refetch()
+  }
+
+  function handleRetryFee() {
+    feeQuery.refetch()
+  }
+
+  function boardFromBoardingWallet() {
     boardMutation.mutate(
       { amountSats: boardAll ? undefined : amountSats },
       {
         onError: (error) => {
-          const reason = error instanceof Error ? error.message : 'unknown'
-          toast.error(`${t('ark.board.error.generic')}: ${reason}`)
+          toast.error(`${t('ark.board.error.generic')}: ${error.message}`)
         },
         onSuccess: () => {
           toast.success(t('ark.board.success'))
@@ -196,6 +241,30 @@ export default function ArkBoardPage() {
             params: { id },
             pathname: '/signer/ark/account/[id]'
           })
+        }
+      }
+    )
+  }
+
+  function handleSubmit() {
+    if (!selectedSource) {
+      return
+    }
+    if (!validation.valid) {
+      toast.error(t(VALIDATION_ERROR_KEYS[validation.reason]))
+      return
+    }
+    if (selectedSource.kind === 'boardingWallet') {
+      boardFromBoardingWallet()
+      return
+    }
+    boardFromAccount.mutate(
+      { amountSats, fundingAccountId: selectedSource.id },
+      {
+        onError: (error) => {
+          toast.error(
+            `${t('ark.board.fromWallet.error.prepare')}: ${error.message}`
+          )
         }
       }
     )
@@ -210,342 +279,280 @@ export default function ArkBoardPage() {
       />
       <SSScrollView showsVerticalScrollIndicator={false}>
         <SSVStack gap="lg" style={styles.container}>
-          <SSText color="muted" size="xs">
-            {showPayjoin
-              ? t('ark.board.payjoinDescription')
-              : t('ark.board.description')}
-          </SSText>
+          <SSPairedTabs<BoardTab>
+            activeTab={activeTab}
+            primary={{ key: 'wallet', label: t('ark.board.walletTab') }}
+            secondary={{ key: 'address', label: t('ark.board.addressTab') }}
+            tertiary={
+              boardPayjoin.available
+                ? { key: 'payjoin', label: t('ark.board.payjoinTab') }
+                : undefined
+            }
+            onChange={setTab}
+          />
 
-          {showPayjoin ? (
-            linkedAccount ? (
-              <SSVStack gap="xxs">
+          {activeTab === 'wallet' ? (
+            <SSVStack gap="lg">
+              <SSText color="muted" size="xs">
+                {t('ark.board.fromWallet.description')}
+              </SSText>
+
+              <SSVStack gap="xs">
                 <SSText color="muted" size="xs" uppercase>
-                  {t('ark.board.linkedWallet', { name: linkedAccount.name })}
+                  {t('ark.board.fromWallet.source')}
                 </SSText>
-                <SSHStack gap="xs" style={styles.balanceRow}>
-                  <SSText size="2xl">
-                    {formatNumber(
-                      getAccountTotalBalance(linkedAccount.summary)
-                    )}
+                {balanceQuery.error && !balanceQuery.isLoading && (
+                  <SSText
+                    size="xs"
+                    style={{ color: Colors.warning }}
+                    onPress={handleRetryBalance}
+                  >
+                    {t('ark.board.error.loadBalance')}
                   </SSText>
-                  <SSText color="muted" size="sm">
-                    {t('bitcoin.sats')}
+                )}
+                {sources.length === 0 ? (
+                  <SSText color="muted" size="xs">
+                    {t('ark.board.fromWallet.empty')}
                   </SSText>
-                </SSHStack>
+                ) : (
+                  sources.map((source) => (
+                    <SSWalletSourceRow
+                      key={source.id}
+                      id={source.id}
+                      title={sourceTitle(source)}
+                      subtitle={sourceSubtitle(source)}
+                      availableSats={source.availableSats}
+                      privacyMode={privacyMode}
+                      selected={source.id === selectedSource?.id}
+                      onSelect={setPickedSourceId}
+                    />
+                  ))
+                )}
               </SSVStack>
-            ) : null
-          ) : (
-            <SSVStack gap="xs">
-              <SSHStack gap="md" style={styles.walletRow}>
-                <SSVStack gap="xxs" style={styles.walletColumn}>
+
+              {selectedSource ? (
+                <SSVStack gap="xs">
                   <SSText color="muted" size="xs" uppercase>
-                    {t('ark.board.onchainBalance')}
+                    {t('ark.board.amount')}
                   </SSText>
-                  {balanceQuery.isLoading && (
-                    <SSText color="muted" size="sm">
-                      {t('common.loading')}
-                    </SSText>
-                  )}
-                  {balanceQuery.error && !balanceQuery.isLoading && (
-                    <SSText
-                      size="sm"
-                      style={{ color: Colors.warning }}
-                      onPress={() => balanceQuery.refetch()}
-                    >
-                      {t('ark.board.error.loadBalance')}
-                    </SSText>
-                  )}
-                  {balanceQuery.data ? (
-                    <SSVStack gap="none">
-                      <SSHStack gap="xs" style={styles.balanceRow}>
-                        <SSText size="2xl">
-                          {formatNumber(confirmedSats)}
-                        </SSText>
-                        <SSText color="muted" size="sm">
-                          {t('bitcoin.sats')}
-                        </SSText>
-                      </SSHStack>
-                      {pendingSats > 0 && (
-                        <SSText color="muted" size="xs">
-                          {t('ark.board.balancePendingHint', {
-                            amount: formatNumber(pendingSats),
-                            unit: t('bitcoin.sats')
-                          })}
-                        </SSText>
-                      )}
-                    </SSVStack>
-                  ) : null}
-                </SSVStack>
-                {linkedAccount ? (
-                  <SSVStack gap="xxs" style={styles.walletColumn}>
-                    <SSText color="muted" size="xs" uppercase>
-                      {t('ark.board.linkedWallet', {
-                        name: linkedAccount.name
+                  {minBoardAmountSats !== undefined && (
+                    <SSText color="muted" size="xs">
+                      {t('ark.board.minAmount', {
+                        amount: formatNumber(minAmountSats),
+                        unit: t('bitcoin.sats')
                       })}
                     </SSText>
-                    <SSHStack gap="xs" style={styles.balanceRow}>
-                      <SSText size="2xl">
-                        {formatNumber(
-                          getAccountTotalBalance(linkedAccount.summary)
-                        )}
-                      </SSText>
-                      <SSText color="muted" size="sm">
-                        {t('bitcoin.sats')}
-                      </SSText>
-                    </SSHStack>
-                  </SSVStack>
-                ) : null}
-              </SSHStack>
-              <SSText color="muted" size="xs">
-                {t('ark.board.onchainBalanceHint')}
-              </SSText>
-            </SSVStack>
-          )}
+                  )}
+                  {canEnterAmount ? (
+                    <SSVStack gap="sm">
+                      <SSAmountInput
+                        btcPrice={btcPrice}
+                        fiatCurrency={fiatCurrency}
+                        fiatEnabled={fiatEnabled}
+                        privacyMode={privacyMode}
+                        min={minAmountSats}
+                        max={availableSats}
+                        value={amountSats}
+                        onValueChange={setAmountSats}
+                      />
+                      {amountSats > 0 && !validation.valid && (
+                        <SSText size="xs" style={{ color: Colors.warning }}>
+                          {t(VALIDATION_ERROR_KEYS[validation.reason])}
+                        </SSText>
+                      )}
+                      {validation.valid && (
+                        <SSVStack gap="xxs">
+                          <SSHStack justifyBetween>
+                            <SSText color="muted" size="xs" uppercase>
+                              {t('ark.board.fee')}
+                            </SSText>
+                            {feeSats !== undefined ? (
+                              <SSText size="xs">
+                                {formatNumber(feeSats)} {t('bitcoin.sats')}
+                              </SSText>
+                            ) : feeQuery.isPending ? (
+                              <SSText color="muted" size="xs">
+                                {t('ark.board.feeEstimating')}
+                              </SSText>
+                            ) : feeQuery.error ? (
+                              <SSText
+                                size="xs"
+                                style={{ color: Colors.warning }}
+                                onPress={handleRetryFee}
+                              >
+                                {t('ark.board.feeUnavailable')}
+                              </SSText>
+                            ) : null}
+                          </SSHStack>
+                          {fromAccount && (
+                            <SSText color="muted" size="xs">
+                              {t('ark.board.fromWallet.feeHint')}
+                            </SSText>
+                          )}
+                        </SSVStack>
+                      )}
+                    </SSVStack>
+                  ) : (
+                    <SSText color="muted" size="xs">
+                      {t('ark.board.error.insufficientFunds')}
+                    </SSText>
+                  )}
+                </SSVStack>
+              ) : null}
 
-          <SSVStack gap="xs">
-            {boardPayjoin.available ? (
-              <SSPairedTabs<FundTab>
-                activeTab={fundTab}
-                primary={{ key: 'address', label: t('ark.board.addressTab') }}
-                secondary={{
-                  key: 'payjoin',
-                  label: t('ark.board.payjoinTab')
-                }}
-                onChange={setFundTab}
-              />
-            ) : (
-              <SSText color="muted" size="xs" uppercase>
-                {t('ark.board.depositTitle')}
+              {showMainnetWarning && (
+                <SSText size="xs" style={{ color: Colors.warning }}>
+                  {t('ark.board.fromWallet.mainnetWarning')}
+                </SSText>
+              )}
+              {showExternalSignerWarning && (
+                <SSText size="xs" style={{ color: Colors.warning }}>
+                  {t('ark.board.fromWallet.externalSignerWarning')}
+                </SSText>
+              )}
+            </SSVStack>
+          ) : null}
+
+          {activeTab === 'address' ? (
+            <SSVStack gap="xs">
+              <SSText color="muted" size="xs">
+                {t('ark.board.depositDescription')}
               </SSText>
-            )}
-            {showPayjoin ? (
-              <SSVStack gap="sm">
-                {boardPayjoin.expired ? (
-                  <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
-                    <SSText size="sm" center>
-                      {t('ark.board.payjoinExpired')}
+              {pendingSats > 0 && (
+                <SSText color="muted" size="xs">
+                  {t('ark.board.balancePendingHint', {
+                    amount: formatNumber(pendingSats),
+                    unit: t('bitcoin.sats')
+                  })}
+                </SSText>
+              )}
+              {addressQuery.isLoading && (
+                <SSText color="muted" size="sm">
+                  {t('common.loading')}
+                </SSText>
+              )}
+              {addressQuery.error && !addressQuery.isLoading && (
+                <SSText
+                  size="sm"
+                  style={{ color: Colors.warning }}
+                  onPress={handleRetryAddress}
+                >
+                  {t('ark.board.error.loadAddress')}
+                </SSText>
+              )}
+              {depositAddress && (
+                <SSShareableQR
+                  qrRef={qrRef}
+                  value={depositAddress}
+                  size={DEPOSIT_QR_SIZE}
+                  containerStyle={styles.qrContainer}
+                  hideShareButton
+                >
+                  <View style={styles.addressBox}>
+                    <SSText size="sm" style={styles.monospace}>
+                      {depositAddress}
                     </SSText>
-                    {pendingBoards.length > 0 ? (
-                      <SSText color="muted" size="xs" center>
-                        {t('ark.board.payjoinExpiredPendingHint')}
-                      </SSText>
-                    ) : null}
-                    {showResumeBroadcast && linkedAccount ? (
-                      <SSButton
-                        label={t('ark.board.broadcastFromLinked', {
-                          name: linkedAccount.name
-                        })}
-                        onPress={resumeLinkedBroadcast}
-                        variant="secondary"
-                      />
-                    ) : (
-                      <SSButton
-                        label={t('ark.board.payjoinNewQr')}
-                        onPress={handleRestartPayjoin}
-                        variant="outline"
-                      />
-                    )}
-                  </SSVStack>
-                ) : boardPayjoin.error ? (
-                  <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
-                    <SSText size="sm" center style={{ color: Colors.warning }}>
-                      {t('ark.board.payjoinError')}
-                    </SSText>
+                  </View>
+                  <SSHStack gap="sm" style={styles.copyShareRow}>
+                    <SSButton
+                      label={t('common.copy')}
+                      onPress={handleCopyAddress}
+                      style={styles.copyShareButton}
+                      variant="outline"
+                    />
+                    <SSShareButton
+                      qrRef={qrRef}
+                      style={styles.copyShareButton}
+                    />
+                  </SSHStack>
+                </SSShareableQR>
+              )}
+            </SSVStack>
+          ) : null}
+
+          {activeTab === 'payjoin' ? (
+            <SSVStack gap="sm">
+              <SSText color="muted" size="xs">
+                {t('ark.board.payjoinDescription')}
+              </SSText>
+              {boardPayjoin.expired ? (
+                <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
+                  <SSText size="sm" center>
+                    {t('ark.board.payjoinExpired')}
+                  </SSText>
+                  {pendingBoards.length > 0 ? (
                     <SSText color="muted" size="xs" center>
-                      {boardPayjoin.error}
+                      {t('ark.board.payjoinExpiredPendingHint')}
                     </SSText>
+                  ) : null}
+                  {showResumeBroadcast ? null : (
                     <SSButton
                       label={t('ark.board.payjoinNewQr')}
                       onPress={handleRestartPayjoin}
                       variant="outline"
                     />
-                  </SSVStack>
-                ) : boardPayjoin.completed ? (
-                  <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
-                    <SSText size="sm" center>
-                      {t('ark.board.payjoinWaitingBroadcast')}
+                  )}
+                </SSVStack>
+              ) : boardPayjoin.error ? (
+                <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
+                  <SSText size="sm" center style={{ color: Colors.warning }}>
+                    {t('ark.board.payjoinError')}
+                  </SSText>
+                  <SSText color="muted" size="xs" center>
+                    {boardPayjoin.error}
+                  </SSText>
+                  <SSButton
+                    label={t('ark.board.payjoinNewQr')}
+                    onPress={handleRestartPayjoin}
+                    variant="outline"
+                  />
+                </SSVStack>
+              ) : boardPayjoin.completed ? (
+                <SSVStack gap="sm" itemsCenter style={styles.qrContainer}>
+                  <SSText size="sm" center>
+                    {t('ark.board.payjoinWaitingBroadcast')}
+                  </SSText>
+                  {boardPayjoin.txid ? (
+                    <SSText color="muted" size="xs" style={styles.monospace}>
+                      {formatTxId(boardPayjoin.txid, 'wide')}
                     </SSText>
-                    {boardPayjoin.txid ? (
-                      <SSText color="muted" size="xs" style={styles.monospace}>
-                        {formatTxId(boardPayjoin.txid, 'wide')}
-                      </SSText>
-                    ) : null}
-                    {showResumeBroadcast && linkedAccount ? (
-                      <SSButton
-                        label={t('ark.board.broadcastFromLinked', {
-                          name: linkedAccount.name
-                        })}
-                        onPress={resumeLinkedBroadcast}
-                        variant="secondary"
-                      />
-                    ) : null}
-                  </SSVStack>
-                ) : (
-                  <SSVStack gap="sm">
-                    {boardPayjoin.payjoinUri && (
-                      <SSShareableQR
-                        containerStyle={styles.qrContainer}
-                        ecl="L"
-                        hideShareButton
-                        size={DEPOSIT_QR_SIZE}
-                        value={boardPayjoin.payjoinUri}
-                      >
-                        <SSHStack gap="sm" style={styles.copyShareRow}>
-                          <SSButton
-                            label={t('common.copy')}
-                            onPress={handleCopyPayjoinUri}
-                            style={styles.copyShareButton}
-                            variant="outline"
-                          />
-                          <SSShareButton
-                            content={boardPayjoin.payjoinUri}
-                            style={styles.copyShareButton}
-                          />
-                        </SSHStack>
-                      </SSShareableQR>
-                    )}
-                    {showFundFromLinked && linkedAccount ? (
-                      <SSButton
-                        label={t('ark.board.fundFromLinked', {
-                          name: linkedAccount.name
-                        })}
-                        onPress={handleFundFromLinkedAccount}
-                        variant="subtle"
-                      />
-                    ) : null}
-                    {boardPayjoin.statusLabelKey && (
-                      <SSHStack gap="sm" style={styles.statusRow}>
-                        {boardPayjoin.busy && (
-                          <SSLoader size={PAYJOIN_LOADER_SIZE} />
-                        )}
-                        <SSText color="muted" size="sm" center>
-                          {t(boardPayjoin.statusLabelKey)}
-                        </SSText>
-                      </SSHStack>
-                    )}
-                  </SSVStack>
-                )}
-              </SSVStack>
-            ) : (
-              <SSVStack gap="xs">
-                <SSText color="muted" size="xs">
-                  {t('ark.board.depositDescription')}
-                </SSText>
-                {addressQuery.isLoading && (
-                  <SSText color="muted" size="sm">
-                    {t('common.loading')}
-                  </SSText>
-                )}
-                {addressQuery.error && !addressQuery.isLoading && (
-                  <SSText
-                    size="sm"
-                    style={{ color: Colors.warning }}
-                    onPress={() => addressQuery.refetch()}
-                  >
-                    {t('ark.board.error.loadAddress')}
-                  </SSText>
-                )}
-                {depositAddress && (
-                  <SSVStack gap="sm">
+                  ) : null}
+                </SSVStack>
+              ) : (
+                <SSVStack gap="sm">
+                  {boardPayjoin.payjoinUri && (
                     <SSShareableQR
-                      qrRef={qrRef}
-                      value={depositAddress}
-                      size={DEPOSIT_QR_SIZE}
                       containerStyle={styles.qrContainer}
+                      ecl="L"
                       hideShareButton
+                      size={DEPOSIT_QR_SIZE}
+                      value={boardPayjoin.payjoinUri}
                     >
-                      <View style={styles.addressBox}>
-                        <SSText size="sm" style={styles.monospace}>
-                          {depositAddress}
-                        </SSText>
-                      </View>
                       <SSHStack gap="sm" style={styles.copyShareRow}>
                         <SSButton
                           label={t('common.copy')}
-                          onPress={handleCopyAddress}
+                          onPress={handleCopyPayjoinUri}
                           style={styles.copyShareButton}
                           variant="outline"
                         />
                         <SSShareButton
-                          qrRef={qrRef}
+                          content={boardPayjoin.payjoinUri}
                           style={styles.copyShareButton}
                         />
                       </SSHStack>
                     </SSShareableQR>
-                    {showFundFromLinked && linkedAccount ? (
-                      <SSButton
-                        label={t('ark.board.fundFromLinked', {
-                          name: linkedAccount.name
-                        })}
-                        onPress={handleFundFromLinkedAccount}
-                        variant="subtle"
-                      />
-                    ) : null}
-                  </SSVStack>
-                )}
-              </SSVStack>
-            )}
-          </SSVStack>
-
-          {!showPayjoin ? (
-            <SSVStack gap="xs">
-              <SSText color="muted" size="xs" uppercase>
-                {t('ark.board.amount')}
-              </SSText>
-              {minBoardAmountSats !== undefined && (
-                <SSText color="muted" size="xs">
-                  {t('ark.board.minAmount', {
-                    amount: formatNumber(minAmountSats),
-                    unit: t('bitcoin.sats')
-                  })}
-                </SSText>
-              )}
-              {canEnterAmount ? (
-                <SSVStack gap="sm">
-                  <SSAmountInput
-                    btcPrice={btcPrice}
-                    fiatCurrency={fiatCurrency}
-                    fiatEnabled={fiatEnabled}
-                    privacyMode={privacyMode}
-                    min={minAmountSats}
-                    max={confirmedSats}
-                    value={amountSats}
-                    onValueChange={setAmountSats}
-                  />
-                  {amountSats > 0 && !validation.valid && (
-                    <SSText size="xs" style={{ color: Colors.warning }}>
-                      {t(VALIDATION_ERROR_KEYS[validation.reason])}
-                    </SSText>
                   )}
-                  {validation.valid && (
-                    <SSHStack justifyBetween>
-                      <SSText color="muted" size="xs" uppercase>
-                        {t('ark.board.fee')}
+                  {boardPayjoin.statusLabelKey && (
+                    <SSHStack gap="sm" style={styles.statusRow}>
+                      {boardPayjoin.busy && (
+                        <SSLoader size={PAYJOIN_LOADER_SIZE} />
+                      )}
+                      <SSText color="muted" size="sm" center>
+                        {t(boardPayjoin.statusLabelKey)}
                       </SSText>
-                      {feeSats !== undefined ? (
-                        <SSText size="xs">
-                          {formatNumber(feeSats)} {t('bitcoin.sats')}
-                        </SSText>
-                      ) : feeQuery.isPending ? (
-                        <SSText color="muted" size="xs">
-                          {t('ark.board.feeEstimating')}
-                        </SSText>
-                      ) : feeQuery.error ? (
-                        <SSText
-                          size="xs"
-                          style={{ color: Colors.warning }}
-                          onPress={() => feeQuery.refetch()}
-                        >
-                          {t('ark.board.feeUnavailable')}
-                        </SSText>
-                      ) : null}
                     </SSHStack>
                   )}
                 </SSVStack>
-              ) : (
-                <SSText color="muted" size="xs">
-                  {t('ark.board.amountEmpty')}
-                </SSText>
               )}
             </SSVStack>
           ) : null}
@@ -600,18 +607,22 @@ export default function ArkBoardPage() {
               onPress={handleCancel}
               variant="ghost"
               style={styles.actionButton}
-              disabled={boardMutation.isPending}
+              disabled={busy}
             />
-            {showPayjoin ? null : (
+            {activeTab === 'wallet' && selectedSource ? (
               <SSButton
-                label={t('ark.board.action')}
-                onPress={handleBoard}
-                loading={boardMutation.isPending}
-                disabled={!canBoard}
+                label={
+                  fromAccount
+                    ? t('ark.board.fromWallet.action')
+                    : t('ark.board.action')
+                }
+                onPress={handleSubmit}
+                loading={busy}
+                disabled={!canSubmit}
                 variant="secondary"
                 style={styles.actionButton}
               />
-            )}
+            ) : null}
           </SSHStack>
         </SSVStack>
       </SSScrollView>
@@ -629,9 +640,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     padding: 12
-  },
-  balanceRow: {
-    alignItems: 'baseline'
   },
   confirmRow: {
     marginTop: 8
@@ -661,11 +669,5 @@ const styles = StyleSheet.create({
   statusRow: {
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  walletColumn: {
-    flex: 1
-  },
-  walletRow: {
-    alignItems: 'flex-start'
   }
 })

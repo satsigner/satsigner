@@ -20,6 +20,7 @@ import {
   PIN_KEY,
   SALT_KEY
 } from '@/config/auth'
+import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,6 +30,7 @@ import { clearAllStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
@@ -52,15 +54,23 @@ import {
   randomIv
 } from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
+import {
+  isDevConsoleAvailable,
+  toggleDevConsoleEnabled,
+  wipeDevConsoleLog
+} from '@/utils/devConsole'
 import { saveFile } from '@/utils/filesystem'
 import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
+const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
+
 const BACKUP_PIN_MAX_TRIES = 3
 
 export default function Developer() {
+  const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
   const router = useRouter()
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
@@ -163,7 +173,9 @@ export default function Developer() {
 
     const backupData = {
       accounts: accountsWithSeeds,
+      appVersion: APP_VERSION,
       ark: arkState,
+      buildNumber: BUILD_NUMBER,
       ecash: {
         accounts: ecashState.accounts,
         activeAccountId: ecashState.activeAccountId,
@@ -198,7 +210,7 @@ export default function Developer() {
       version: 1
     }
 
-    return JSON.stringify(backupData, null, 2)
+    return JSON.stringify(backupData)
   }
 
   async function openBackupPreview() {
@@ -272,7 +284,7 @@ export default function Developer() {
       })
       const result = await Share.share({
         message: encryptedPayload,
-        title: getBackupFilename()
+        title: getBackupFilename(APP_VERSION)
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
@@ -293,7 +305,7 @@ export default function Developer() {
       showBackupPassphraseError()
       return
     }
-    const filename = getBackupFilename()
+    const filename = getBackupFilename(APP_VERSION)
     try {
       const salt = await generateSalt()
       const key = await pbkdf2Encrypt(backupPassphrase, salt)
@@ -331,7 +343,7 @@ export default function Developer() {
   async function handleDeleteAccounts() {
     await resetNostrSync()
     useNostrStore.getState().clearAllNostrState()
-    deleteAccounts()
+    await deleteAccounts()
     deleteWallets()
     setDeleteAccountsModalVisible(false)
     toast.error(t('settings.developer.accountsDeleted'))
@@ -340,6 +352,7 @@ export default function Developer() {
   async function handleClearStorage() {
     try {
       clearAllStorage()
+      wipeDevConsoleLog()
       await Promise.all([
         deleteItem(PIN_KEY),
         deleteItem(PIN_KDF_COMMIT_KEY),
@@ -347,7 +360,7 @@ export default function Developer() {
         deleteItem(DURESS_PIN_KEY)
       ])
       await resetNostrSync()
-      deleteAccounts()
+      await deleteAccounts()
       deleteWallets()
       useAuthStore.setState({
         duressPinEnabled: false,
@@ -416,6 +429,21 @@ export default function Developer() {
               onPress={() => setClearStorageModalVisible(true)}
             />
           </SSVStack>
+          {DEV_CONSOLE_AVAILABLE ? (
+            <>
+              <SSSeparator color="gradient" />
+              <SSVStack gap="xs">
+                <SSCheckbox
+                  label={t('settings.developer.devConsole')}
+                  selected={devConsoleEnabled}
+                  onPress={toggleDevConsoleEnabled}
+                />
+                <SSText color="muted" size="sm">
+                  {t('settings.developer.devConsoleDescription')}
+                </SSText>
+              </SSVStack>
+            </>
+          ) : null}
           {__DEV__ ? (
             <>
               <SSSeparator color="gradient" />
@@ -441,11 +469,13 @@ export default function Developer() {
               onPress={() => router.navigate('/settings/developerDiagnosis')}
               variant="outline"
             />
-            <SSButton
-              label={t('settings.developer.design')}
-              onPress={() => router.navigate('/settings/design')}
-              variant="outline"
-            />
+            {DEV_CONSOLE_AVAILABLE ? (
+              <SSButton
+                label={t('settings.developer.design')}
+                onPress={() => router.navigate('/settings/design')}
+                variant="outline"
+              />
+            ) : null}
           </SSVStack>
         </SSVStack>
       </SSMainLayout>

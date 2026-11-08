@@ -32,6 +32,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSTransactionIdFormatted from '@/components/SSTransactionIdFormatted'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { useNow } from '@/hooks/useNow'
@@ -39,6 +40,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
+import { cosignArkBoardFunding } from '@/services/arkBoardFunding'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -296,14 +298,22 @@ export default function SignTransaction() {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
-  const currentConfig = configs[selectedNetwork]
+  // The selected network can differ from the account's (Ark account tabs do
+  // not switch it), and a transaction must reach its own network's server.
+  const accountNetwork = account?.network ?? selectedNetwork
+  const currentConfig = configs[accountNetwork]
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
   const [rawTx, setRawTx] = useState('')
 
   const trimmedRawTx = rawTx.trim()
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
+  const isArkBoardFunding = arkBoardIntent !== undefined
+  // A board funding tx must reach the network only after the Ark server
+  // cosigned it, so it is never handed out for external broadcast.
   const canCopySignedTx =
+    !isArkBoardFunding &&
     signed &&
     !!rawTx &&
     trimmedRawTx.length >= 20 &&
@@ -338,7 +348,7 @@ export default function SignTransaction() {
         inputs,
         outputs,
         rawTx,
-        selectedNetwork
+        accountNetwork
       )
 
   // The store's psbt may be a mock without txid() — derive from the PSBT
@@ -387,7 +397,7 @@ export default function SignTransaction() {
     if (currentConfig.server.backend === 'electrum') {
       const electrumClient = await ElectrumClient.initClientFromUrl(
         currentConfig.server.url,
-        selectedNetwork
+        accountNetwork
       )
       await electrumClient.broadcastTransactionHex(signedTx)
       electrumClient.close()
@@ -413,7 +423,25 @@ export default function SignTransaction() {
     throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
   }
 
+  async function cosignArkBoardBeforeBroadcast() {
+    if (!arkBoardIntent || !account) {
+      return
+    }
+    const psbtBase64 = psbt?.toBase64()
+    if (!psbtBase64 || !signedTx) {
+      throw new Error(t('ark.board.cosign.error.invalidPsbt'))
+    }
+    await cosignArkBoardFunding({
+      intent: arkBoardIntent,
+      network: account.network,
+      psbtBase64,
+      signedTxHex: signedTx
+    })
+  }
+
   async function broadcastAndNavigate() {
+    await cosignArkBoardBeforeBroadcast()
+
     if (signedTx) {
       await handleBroadcastMultiSig()
     } else if (psbt) {
@@ -445,6 +473,9 @@ export default function SignTransaction() {
         router.replace(`/signer/ark/account/${arkAccountId}`)
         return
       }
+    }
+    if (isArkBoardFunding) {
+      toast.success(t('ark.board.fundingBroadcasted'))
     }
     router.navigate(
       `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
@@ -1113,6 +1144,7 @@ export default function SignTransaction() {
             />
           )}
           {signed &&
+            !isArkBoardFunding &&
             account?.nostr?.autoSync &&
             (psbt?.toBase64() ?? signedTx) && (
               <SSButton

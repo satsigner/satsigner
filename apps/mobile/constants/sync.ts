@@ -10,9 +10,14 @@ const MIN_USABLE_CHECKPOINT_HEIGHT = 10_000
 const SYNC_IDLE_POLL_ATTEMPTS = 60
 const SYNC_IDLE_POLL_INTERVAL_MS = 100
 
+// Batch syncs show one toast per failing account up to this many accounts
+// with the same cause; beyond it they share one toast.
+const SYNC_FAILURE_TOAST_LIMIT = 2
+
 export {
   MIN_USABLE_CHECKPOINT_HEIGHT,
   SYNC_CANCELLED_ERROR,
+  SYNC_FAILURE_TOAST_LIMIT,
   SYNC_IDLE_POLL_ATTEMPTS,
   SYNC_IDLE_POLL_INTERVAL_MS
 }

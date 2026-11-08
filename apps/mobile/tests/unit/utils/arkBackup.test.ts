@@ -1,9 +1,10 @@
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { ArkAccount } from '@/types/models/Ark'
 import {
   collectArkBackup,
+  deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
-  restoreArkDatadirsFromBackup,
   restoreArkLabelsFromBackup,
   restoreArkStoreFromBackup
 } from '@/utils/arkBackup'
@@ -38,8 +39,7 @@ jest.mock<typeof import('@/db/queries/arkLabels')>(
 jest.mock<typeof import('@/storage/arkDatadir')>(
   '@/storage/arkDatadir',
   () => ({
-    deleteArkDatadir: jest.fn(),
-    writeArkDatadirFiles: jest.fn()
+    deleteArkDatadir: jest.fn()
   })
 )
 
@@ -96,6 +96,7 @@ describe('collectArkBackup', () => {
     useArkStore.getState.mockReturnValue({
       accounts: [ACCOUNT],
       addAccount,
+      autoBoardDisabledIds: ['ark-1'],
       balances: {
         'ark-1': {
           claimableLightningReceiveSats: 0,
@@ -106,6 +107,7 @@ describe('collectArkBackup', () => {
           spendableSats: 100
         }
       },
+      boardFundingTxids: ['txid-board'],
       clearAllData,
       stats: {
         'ark-1': {
@@ -139,6 +141,8 @@ describe('collectArkBackup', () => {
     })
     expect(backup.balances?.['ark-1']?.spendableSats).toBe(100)
     expect(backup.stats?.['ark-1']?.numberOfVtxos).toBe(3)
+    expect(backup.boardFundingTxids).toStrictEqual(['txid-board'])
+    expect(backup.autoBoardDisabledIds).toStrictEqual(['ark-1'])
     expect(backup.datadirs).toBeUndefined()
   })
 
@@ -157,7 +161,9 @@ describe('collectArkBackup', () => {
 
 describe('restoreArkStoreFromBackup', () => {
   const addAccount = jest.fn()
+  const addBoardFundingTxid = jest.fn()
   const clearAllData = jest.fn()
+  const setAutoBoardEnabled = jest.fn()
   const updateBalance = jest.fn()
   const updateStats = jest.fn()
 
@@ -168,7 +174,9 @@ describe('restoreArkStoreFromBackup', () => {
     }
     useArkStore.getState.mockReturnValue({
       addAccount,
+      addBoardFundingTxid,
       clearAllData,
+      setAutoBoardEnabled,
       updateBalance,
       updateStats
     })
@@ -198,6 +206,26 @@ describe('restoreArkStoreFromBackup', () => {
     expect(addAccount).toHaveBeenCalledWith(ACCOUNT)
     expect(updateBalance).toHaveBeenCalledWith('ark-1', balance)
     expect(updateStats).toHaveBeenCalledWith('ark-1', stats)
+  })
+
+  it('restores the board funding guards and auto-board preferences', () => {
+    restoreArkStoreFromBackup({
+      accounts: [ACCOUNT],
+      autoBoardDisabledIds: ['ark-1'],
+      boardFundingTxids: ['txid-board']
+    })
+    expect(addBoardFundingTxid).toHaveBeenCalledWith('txid-board')
+    expect(setAutoBoardEnabled).toHaveBeenCalledWith('ark-1', false)
+  })
+
+  it('drops transaction drafts that could pay a board address', () => {
+    const builder = useTransactionBuilderStore.getState()
+    builder.setAccountId('btc-1')
+    builder.addOutput({ amount: 10_000, label: '', to: 'tb1qboard' })
+    expect(useTransactionBuilderStore.getState().drafts).toHaveProperty('btc-1')
+    restoreArkStoreFromBackup({ accounts: [ACCOUNT] })
+    expect(useTransactionBuilderStore.getState().drafts).toStrictEqual({})
+    expect(useTransactionBuilderStore.getState().outputs).toStrictEqual([])
   })
 
   it('clears the store when ark data is missing (old backup without ark)', () => {
@@ -245,50 +273,34 @@ describe('restoreArkLabelsFromBackup', () => {
   })
 })
 
-describe('restoreArkDatadirsFromBackup', () => {
+describe('deleteLeftoverArkDatadirs', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
+  })
+
+  it('deletes datadirs of accounts that are not in the backup', async () => {
+    const { deleteArkDatadir } = jest.requireMock('@/storage/arkDatadir') as {
       deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
     }
     deleteArkDatadir.mockResolvedValue(undefined)
-    writeArkDatadirFiles.mockResolvedValue(undefined)
-  })
 
-  it('deletes leftover datadirs and writes restored files', async () => {
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
-      deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
-    }
-    const files = [{ base64: 'ZGI=', filename: 'bark.db' }]
+    await deleteLeftoverArkDatadirs(['old-ark', 'older-ark'])
 
-    await restoreArkDatadirsFromBackup(
-      { 'ark-1': { files } },
+    expect(deleteArkDatadir.mock.calls).toStrictEqual([
       ['old-ark'],
-      ['ark-1']
-    )
-
-    expect(deleteArkDatadir).toHaveBeenCalledWith('old-ark')
-    expect(writeArkDatadirFiles).toHaveBeenCalledWith('ark-1', files)
+      ['older-ark']
+    ])
   })
 
-  it('leaves local sqlite files in place when a restored account has no datadir blob', async () => {
-    const { deleteArkDatadir, writeArkDatadirFiles } = jest.requireMock(
-      '@/storage/arkDatadir'
-    ) as {
+  it('keeps going when a datadir cannot be deleted', async () => {
+    const { deleteArkDatadir } = jest.requireMock('@/storage/arkDatadir') as {
       deleteArkDatadir: jest.Mock
-      writeArkDatadirFiles: jest.Mock
     }
+    deleteArkDatadir.mockRejectedValueOnce(new Error('busy'))
 
-    await restoreArkDatadirsFromBackup(undefined, [], ['ark-1'])
-
-    expect(deleteArkDatadir).not.toHaveBeenCalled()
-    expect(writeArkDatadirFiles).not.toHaveBeenCalled()
+    await expect(
+      deleteLeftoverArkDatadirs(['old-ark'])
+    ).resolves.toBeUndefined()
   })
 })
 

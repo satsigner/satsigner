@@ -2,13 +2,12 @@ import { releaseArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount, setArkLabel } from '@/db/mutations/arkLabels'
 import { getArkLabelsByAccount } from '@/db/queries/arkLabels'
 import { queryClient } from '@/lib/queryClient'
-import {
-  deleteArkDatadir,
-  writeArkDatadirFiles,
-  type ArkDatadirFile
-} from '@/storage/arkDatadir'
+import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
+import { useArkSwapsStore } from '@/store/arkSwaps'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Label } from '@/types/bips/329'
 import type {
   ArkAccount,
@@ -17,21 +16,19 @@ import type {
 } from '@/types/models/Ark'
 import { clearArkDerivedAddresses } from '@/utils/arkAddress'
 
-export type ArkDatadirBackup = {
-  files: ArkDatadirFile[]
-}
-
 export type ArkBackupSection = {
   accounts: ArkAccount[]
+  autoBoardDisabledIds?: string[]
   balances?: Record<string, ArkBalance | undefined>
-  datadirs?: Record<string, ArkDatadirBackup>
+  boardFundingTxids?: string[]
   labels?: Record<string, Record<string, Label>>
   mnemonics?: Record<string, string | null>
   stats?: Record<string, ArkAccountStats | undefined>
 }
 
 export async function collectArkBackup(): Promise<ArkBackupSection> {
-  const { accounts, balances, stats } = useArkStore.getState()
+  const { accounts, autoBoardDisabledIds, balances, boardFundingTxids, stats } =
+    useArkStore.getState()
   const mnemonics = Object.fromEntries(
     await Promise.all(
       accounts.map(async (account) => [
@@ -45,7 +42,9 @@ export async function collectArkBackup(): Promise<ArkBackupSection> {
   )
   return {
     accounts,
+    autoBoardDisabledIds,
     balances,
+    boardFundingTxids,
     labels,
     mnemonics,
     stats
@@ -57,6 +56,11 @@ export function restoreArkStoreFromBackup(
 ): void {
   const store = useArkStore.getState()
   store.clearAllData()
+  useArkSwapsStore.getState().clearAllData()
+  useArkExitClaimsStore.getState().clearAllData()
+  // Clearing the board intents would let a saved draft paying a board address
+  // broadcast without the Ark server cosigning it, so the drafts go too.
+  useTransactionBuilderStore.getState().clearAllData()
   if (!data) {
     return
   }
@@ -76,6 +80,12 @@ export function restoreArkStoreFromBackup(
         store.updateStats(accountId, stats)
       }
     }
+  }
+  for (const txid of data.boardFundingTxids ?? []) {
+    store.addBoardFundingTxid(txid)
+  }
+  for (const accountId of data.autoBoardDisabledIds ?? []) {
+    store.setAutoBoardEnabled(accountId, false)
   }
 }
 
@@ -123,21 +133,17 @@ export function releaseArkWalletsForRestore(
   }
 }
 
-export async function restoreArkDatadirsFromBackup(
-  datadirs: Record<string, ArkDatadirBackup> | undefined,
-  leftoverAccountIds: string[],
-  restoredAccountIds: string[]
+/**
+ * Restored Ark wallets rebuild from their mnemonic. Legacy backups may still
+ * carry sqlite datadirs; those are stale (spent or refreshed VTXOs) and are
+ * never written back.
+ */
+export async function deleteLeftoverArkDatadirs(
+  leftoverAccountIds: string[]
 ): Promise<void> {
   await Promise.all(
     leftoverAccountIds.map((accountId) =>
       deleteArkDatadir(accountId).catch(() => undefined)
     )
   )
-  for (const accountId of restoredAccountIds) {
-    const files = datadirs?.[accountId]?.files
-    if (!files || files.length === 0) {
-      continue
-    }
-    await writeArkDatadirFiles(accountId, files)
-  }
 }

@@ -14,10 +14,10 @@ import {
   SSIconCloseThin,
   SSIconEyeOff,
   SSIconEyeOn,
-  SSIconHamburger,
-  SSIconSettings
+  SSIconHamburger
 } from '@/components/icons'
 import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
+import SSHeaderSettingsButton from '@/components/SSHeaderSettingsButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import {
@@ -25,7 +25,7 @@ import {
   HEADER_CHROME_EYE_TUCK,
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_ICON_SIZE,
-  HEADER_CHROME_SETTINGS_ICON_SIZE,
+  HEADER_ICON_STROKE,
   HEADER_HEIGHT_TRIM_PX
 } from '@/constants/headerChrome'
 import { TabSegmentContext } from '@/hooks/useTabSegment'
@@ -36,7 +36,6 @@ import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
 import { getTabSegmentLabel, toTabSegment } from '@/utils/tabSegment'
 
-const HEADER_ICON_STROKE = '#828282'
 const HEADER_CLOSE_COLOR = 'rgba(255,255,255,0.6)'
 
 function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
@@ -106,28 +105,6 @@ function HeaderLeft({ isShowNav }: { isShowNav: boolean }) {
   )
 }
 
-function HeaderRight() {
-  const router = useRouter()
-  const settingsIconSize = HEADER_CHROME_SETTINGS_ICON_SIZE
-  return (
-    <SSIconButton
-      style={
-        Platform.OS === 'android' && [
-          HEADER_CHROME_HIT_BOX,
-          { marginRight: -HEADER_CHROME_EDGE_NUDGE }
-        ]
-      }
-      onPress={() => router.navigate('/settings')}
-    >
-      <SSIconSettings
-        height={settingsIconSize}
-        stroke={HEADER_ICON_STROKE}
-        width={settingsIconSize}
-      />
-    </SSIconButton>
-  )
-}
-
 export default function StackLayout(params: { segment?: string }) {
   const currentPath = usePathname()
   const segments = useSegments()
@@ -161,7 +138,7 @@ export default function StackLayout(params: { segment?: string }) {
             />
           ),
           headerLeft: () => <HeaderLeft isShowNav={isShowNav} />,
-          headerRight: () => <HeaderRight />,
+          headerRight: () => <SSHeaderSettingsButton />,
           // Native stack also applies the height; Expo's Stack typings only list backgroundColor.
           headerStyle: stackHeaderStyle,
           headerTintColor: Colors.gray[200],

@@ -2,7 +2,11 @@ import { HASH_HEX_LENGTH, TXID_HEX_PATTERN } from '@/constants/btc'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
-import type { ArkMovement, ArkMovementKind } from '@/types/models/Ark'
+import type {
+  ArkMovement,
+  ArkMovementEvent,
+  ArkMovementKind
+} from '@/types/models/Ark'
 
 const BOARD_SUBSYSTEM_KEYWORD = 'board'
 const OFFBOARD_SUBSYSTEM_KEYWORD = 'offboard'
@@ -104,11 +108,56 @@ export function isArkRefreshMovement(movement: ArkMovementSubsystem): boolean {
   return matchesArkSubsystem(movement, REFRESH_SUBSYSTEM_KEYWORD)
 }
 
+type ArkMovementInputs = ArkMovementSubsystem &
+  Pick<ArkMovement, 'inputVtxoIds' | 'status'>
+
+export function getQueuedRefreshInputVtxoIds(
+  movements: ArkMovementInputs[]
+): string[] {
+  return movements
+    .filter(
+      (movement) =>
+        movement.status === 'pending' && isArkRefreshMovement(movement)
+    )
+    .flatMap((movement) => movement.inputVtxoIds)
+}
+
+function isArkBoardMovement(movement: ArkMovementSubsystem): boolean {
+  return (
+    !matchesArkSubsystem(movement, OFFBOARD_SUBSYSTEM_KEYWORD) &&
+    matchesArkSubsystem(movement, BOARD_SUBSYSTEM_KEYWORD)
+  )
+}
+
+/**
+ * Whether a movement event brings sats the user should hear about. A board
+ * is announced once the Ark server registered it, not when its funding
+ * transaction is broadcast.
+ */
+export function shouldAnnounceArkReceive(
+  event: Pick<
+    ArkMovementEvent,
+    | 'effectiveBalanceSats'
+    | 'status'
+    | 'subsystemKind'
+    | 'subsystemName'
+    | 'type'
+  >
+): boolean {
+  if (event.effectiveBalanceSats <= 0) {
+    return false
+  }
+  if (isArkBoardMovement(event)) {
+    return event.status === 'successful'
+  }
+  return event.type === 'created'
+}
+
 export function getArkMovementKind(movement: ArkMovement): ArkMovementKind {
   if (matchesArkSubsystem(movement, OFFBOARD_SUBSYSTEM_KEYWORD)) {
     return 'offboard'
   }
-  if (matchesArkSubsystem(movement, BOARD_SUBSYSTEM_KEYWORD)) {
+  if (isArkBoardMovement(movement)) {
     return 'board'
   }
   if (isArkRefreshMovement(movement)) {

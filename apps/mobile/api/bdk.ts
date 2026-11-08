@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
   type AddressInfo,
+  BdkElectrumClient,
   BdkPsbtParams,
   BdkRpcClient,
   BdkTxBuilder,
@@ -15,6 +16,7 @@ import {
   walletNameFromDescriptor
 } from 'react-native-bdk-sdk'
 
+import { assertElectrumReachable } from '@/api/electrumReachability'
 import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
 import {
   BTC_DECIMALS,
@@ -55,6 +57,7 @@ import {
   getFingerprint,
   PrivateKeyDescriptorError
 } from '@/utils/descriptor'
+import { devLog } from '@/utils/devConsole'
 import { estimateBirthHeight } from '@/utils/rpcScanStartHeight'
 import { isCombinedDescriptor } from '@/utils/validation'
 import {
@@ -727,6 +730,30 @@ function createThrottledRpcProgress(
   }
 }
 
+function electrumHost(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return 'invalid url'
+  }
+}
+
+/**
+ * The BDK Electrum client connects inside its constructor, which is a
+ * synchronous native call: until the TCP connect returns, the JS thread is
+ * blocked. The async reachability check runs first so a dead server fails
+ * fast; the connect is still logged with its duration.
+ */
+async function connectElectrum(url: string): Promise<BdkElectrumClient> {
+  await assertElectrumReachable(url)
+  const host = electrumHost(url)
+  const startedAt = Date.now()
+  devLog('bdk', `electrum connect ${host}`)
+  const client = new BdkElectrumClient(url)
+  devLog('bdk', `electrum connected ${host} in ${Date.now() - startedAt} ms`)
+  return client
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
@@ -786,12 +813,13 @@ async function syncWallet(
         }
       }
     })
-  } else if (isFullScan) {
-    await (backend === 'electrum'
-      ? wallet.fullScanWithElectrum(url, stopGap)
-      : wallet.fullScanWithEsplora(url, stopGap))
   } else if (backend === 'electrum') {
-    await wallet.syncWithElectrum(url, stopGap)
+    const client = await connectElectrum(url)
+    await (isFullScan
+      ? wallet.fullScanWithElectrum(client, stopGap)
+      : wallet.syncWithElectrum(client, stopGap))
+  } else if (isFullScan) {
+    await wallet.fullScanWithEsplora(url, stopGap)
   } else {
     await wallet.syncWithEsplora(url, stopGap)
   }
@@ -1060,7 +1088,9 @@ function broadcastTransaction(
   rpcCredentials?: RpcCredentials
 ): Promise<string> {
   if (backend === 'electrum') {
-    return wallet.broadcastWithElectrum(url, psbt)
+    return assertElectrumReachable(url).then(() =>
+      wallet.broadcastWithElectrum(url, psbt)
+    )
   }
   if (backend === 'rpc') {
     const rpcClient = new BdkRpcClient({

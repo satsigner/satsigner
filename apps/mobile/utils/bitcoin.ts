@@ -40,6 +40,49 @@ initEccLib(ecc)
 
 export type AddressScriptType = 'p2pkh' | 'p2sh' | 'p2tr' | 'p2wpkh' | 'p2wsh'
 
+export function getScriptTypeFromOutputScript(
+  script: Uint8Array
+): AddressScriptType | null {
+  if (
+    script.length === P2PKH_SCRIPT_BYTES &&
+    script[0] === opcodes.OP_DUP &&
+    script[1] === opcodes.OP_HASH160 &&
+    script.at(-2) === opcodes.OP_EQUALVERIFY &&
+    script.at(-1) === opcodes.OP_CHECKSIG
+  ) {
+    return 'p2pkh'
+  }
+  if (
+    script.length === P2SH_SCRIPT_BYTES &&
+    script[0] === opcodes.OP_HASH160 &&
+    script.at(-1) === opcodes.OP_EQUAL
+  ) {
+    return 'p2sh'
+  }
+  if (
+    script.length === P2WPKH_SCRIPT_BYTES &&
+    script[0] === opcodes.OP_0 &&
+    script[1] === P2WPKH_PROGRAM_BYTES
+  ) {
+    return 'p2wpkh'
+  }
+  if (
+    script.length === P2WSH_SCRIPT_BYTES &&
+    script[0] === opcodes.OP_0 &&
+    script[1] === P2WSH_PROGRAM_BYTES
+  ) {
+    return 'p2wsh'
+  }
+  if (
+    script.length === P2TR_SCRIPT_BYTES &&
+    script[0] === opcodes.OP_1 &&
+    script[1] === P2TR_PROGRAM_BYTES
+  ) {
+    return 'p2tr'
+  }
+  return null
+}
+
 /**
  * Classify an address by decoding its output script, rather than trusting
  * caller-supplied metadata (e.g. an arbitrary address pasted into the
@@ -50,45 +93,9 @@ export function getScriptTypeFromAddress(
   network: AppNetwork
 ): AddressScriptType | null {
   try {
-    const script = bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
-    if (
-      script.length === P2PKH_SCRIPT_BYTES &&
-      script[0] === opcodes.OP_DUP &&
-      script[1] === opcodes.OP_HASH160 &&
-      script.at(-2) === opcodes.OP_EQUALVERIFY &&
-      script.at(-1) === opcodes.OP_CHECKSIG
-    ) {
-      return 'p2pkh'
-    }
-    if (
-      script.length === P2SH_SCRIPT_BYTES &&
-      script[0] === opcodes.OP_HASH160 &&
-      script.at(-1) === opcodes.OP_EQUAL
-    ) {
-      return 'p2sh'
-    }
-    if (
-      script.length === P2WPKH_SCRIPT_BYTES &&
-      script[0] === opcodes.OP_0 &&
-      script[1] === P2WPKH_PROGRAM_BYTES
-    ) {
-      return 'p2wpkh'
-    }
-    if (
-      script.length === P2WSH_SCRIPT_BYTES &&
-      script[0] === opcodes.OP_0 &&
-      script[1] === P2WSH_PROGRAM_BYTES
-    ) {
-      return 'p2wsh'
-    }
-    if (
-      script.length === P2TR_SCRIPT_BYTES &&
-      script[0] === opcodes.OP_1 &&
-      script[1] === P2TR_PROGRAM_BYTES
-    ) {
-      return 'p2tr'
-    }
-    return null
+    return getScriptTypeFromOutputScript(
+      bjsAddress.toOutputScript(address, bitcoinjsNetwork(network))
+    )
   } catch {
     return null
   }

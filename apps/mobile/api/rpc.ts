@@ -7,29 +7,25 @@ import {
   RPC_LIST_TRANSACTIONS_COUNT,
   RPC_RESCAN_TIMEOUT_MS
 } from '@/constants/rpc'
+import { isAndroidEmulatorBuild } from '@/utils/androidEmulator'
 import { HttpStatusError, RpcError, RequestTimeoutError } from '@/utils/errors'
 
 let androidIsEmulator: boolean | null = null
 
-async function initRpcUrlAdjustments() {
+function initRpcUrlAdjustments() {
   if (Platform.OS !== 'android') {
     return
   }
 
-  try {
-    const DeviceInfo = await import('react-native-device-info')
-    androidIsEmulator = await DeviceInfo.default.isEmulator()
-  } catch {
-    androidIsEmulator = null
-  }
+  androidIsEmulator = isAndroidEmulatorBuild(Platform.constants)
 }
 
 /**
  * On Android emulators, localhost/127.0.0.1 refers to the device itself, not
  * the host machine. Remap to 10.0.2.2 (the standard Android emulator alias
  * for the host) so users can enter familiar addresses and have them just work.
- * When device-info is unavailable (androidIsEmulator === null), remapping still
- * applies so emulator setups keep working.
+ * Before initRpcUrlAdjustments runs (androidIsEmulator === null), remapping
+ * still applies so emulator setups keep working.
  */
 function adjustRpcUrl(url: string): string {
   if (Platform.OS !== 'android') {

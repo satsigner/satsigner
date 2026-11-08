@@ -52,6 +52,7 @@ import {
   IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS,
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
+import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -83,6 +84,7 @@ import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
   bitcoinAmountBtcToSats,
+  resolveUriAutoSelectAlgorithm,
   shouldAutoSelectUtxosFromBitcoinUri,
   shouldAutoSelectUtxosFromParsedAmount
 } from '@/utils/autoSelectUtxos'
@@ -452,12 +454,12 @@ export default function IOPreview() {
     return selectionSucceeded
   }
 
-  // Payjoin invoices always use efficient coin selection — privacy/STONEWALL
-  // would rewrite outputs and break the pj= mailbox payment.
-  const uriAutoSelectAlgorithm =
-    payjoinUri && hasPayjoinParam(payjoinUri)
-      ? 'efficiency'
-      : defaultAutoSelectUtxos
+  const arkBoardIntent = useArkBoardFundingIntent(outputs)
+  const uriAutoSelectAlgorithm = resolveUriAutoSelectAlgorithm({
+    defaultAlgorithm: defaultAutoSelectUtxos,
+    isArkBoardFunding: arkBoardIntent !== undefined,
+    isPayjoin: Boolean(payjoinUri && hasPayjoinParam(payjoinUri))
+  })
 
   const { markUriAutoSelectPending, uriAutoSelectPending } =
     useUriAutoSelectUtxos({

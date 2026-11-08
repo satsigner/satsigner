@@ -4,13 +4,20 @@ import type {
   ArkBoardFundingInfo,
   ArkBolt11Invoice,
   ArkDerivedAddress,
+  ArkEmergencyExitFee,
+  ArkExit,
+  ArkExitClaimDraft,
   ArkFeeEstimate,
   ArkFeeRequest,
+  ArkLightningReceive,
   ArkLightningSendResult,
+  ArkLightningSendState,
   ArkMovement,
   ArkNotificationListener,
   ArkNotificationUnsubscribe,
   ArkOnchainBalance,
+  ArkOnchainFeeRates,
+  ArkOnchainUtxo,
   ArkPendingBoard,
   ArkServerId,
   ArkServerInfo,
@@ -135,6 +142,17 @@ export function estimateArkLightningSendFee(
   )
 }
 
+export function estimateArkLightningReceiveFee(
+  serverId: ArkServerId,
+  accountId: string,
+  amountSats: number
+): Promise<ArkFeeEstimate> {
+  return getArkProvider(serverId).estimateLightningReceiveFee(
+    accountId,
+    amountSats
+  )
+}
+
 export function listArkVtxos(
   serverId: ArkServerId,
   accountId: string
@@ -174,6 +192,51 @@ export function startArkExit(
   vtxoIds?: string[]
 ): Promise<void> {
   return getArkProvider(serverId).startExit(accountId, vtxoIds)
+}
+
+export function listArkExits(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkExit[]> {
+  return getArkProvider(serverId).listExits(accountId)
+}
+
+export function syncArkExits(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<void> {
+  return getArkProvider(serverId).syncExits(accountId)
+}
+
+export function estimateArkEmergencyExitFee(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[]
+): Promise<ArkEmergencyExitFee> {
+  return getArkProvider(serverId).estimateEmergencyExitFee(accountId, vtxoIds)
+}
+
+export function buildArkExitClaim(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoIds: string[],
+  bitcoinAddress: string,
+  feeRateSatPerVb: number
+): Promise<ArkExitClaimDraft> {
+  return getArkProvider(serverId).buildExitClaim(
+    accountId,
+    vtxoIds,
+    bitcoinAddress,
+    feeRateSatPerVb
+  )
+}
+
+export function signArkExitClaim(
+  serverId: ArkServerId,
+  accountId: string,
+  psbtBase64: string
+): Promise<string> {
+  return getArkProvider(serverId).signExitClaim(accountId, psbtBase64)
 }
 
 export function refreshArkVtxos(
@@ -234,6 +297,20 @@ export function fetchArkOnchainBalance(
   return getArkProvider(serverId).fetchOnchainBalance(accountId)
 }
 
+export function fetchArkOnchainFeeRate(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<number> {
+  return getArkProvider(serverId).fetchOnchainFeeRate(accountId)
+}
+
+export function fetchArkOnchainFeeRates(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkOnchainFeeRates> {
+  return getArkProvider(serverId).fetchOnchainFeeRates(accountId)
+}
+
 export function newArkOnchainAddress(
   serverId: ArkServerId,
   accountId: string
@@ -291,6 +368,75 @@ export function fetchArkServerInfo(
   accountId: string
 ): Promise<ArkServerInfo | null> {
   return getArkProvider(serverId).fetchServerInfo(accountId)
+}
+
+export function fetchArkTipHeight(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<number> {
+  return getArkProvider(serverId).fetchTipHeight(accountId)
+}
+
+export function fetchArkVtxoEncoded(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoId: string
+): Promise<string> {
+  return getArkProvider(serverId).fetchVtxoEncoded(accountId, vtxoId)
+}
+
+export function fetchArkVtxoState(
+  serverId: ArkServerId,
+  accountId: string,
+  vtxoId: string
+): Promise<string> {
+  return getArkProvider(serverId).fetchVtxoState(accountId, vtxoId)
+}
+
+export function fetchArkLightningReceive(
+  serverId: ArkServerId,
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningReceive> {
+  return getArkProvider(serverId).fetchLightningReceive(accountId, paymentHash)
+}
+
+export function checkArkLightningSend(
+  serverId: ArkServerId,
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningSendState> {
+  return getArkProvider(serverId).checkLightningSend(accountId, paymentHash)
+}
+
+export function claimArkLightningReceive(
+  serverId: ArkServerId,
+  accountId: string,
+  paymentHash: string
+): Promise<ArkLightningReceive> {
+  return getArkProvider(serverId).claimLightningReceive(accountId, paymentHash)
+}
+
+export function listArkOnchainUtxos(
+  serverId: ArkServerId,
+  accountId: string
+): Promise<ArkOnchainUtxo[]> {
+  return getArkProvider(serverId).listOnchainUtxos(accountId)
+}
+
+export function sendArkOnchainWalletFunds(
+  serverId: ArkServerId,
+  accountId: string,
+  bitcoinAddress: string,
+  amountSats: number,
+  feeRateSatPerVb: number
+): Promise<string> {
+  return getArkProvider(serverId).sendFromOnchain(
+    accountId,
+    bitcoinAddress,
+    amountSats,
+    feeRateSatPerVb
+  )
 }
 
 export function estimateArkFee(

@@ -24,6 +24,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
@@ -127,12 +128,16 @@ export default function TxDetails() {
   )
 
   const currentServer = configs[selectedNetwork].server
+  const isArkBoardFunding = useArkStore((state) =>
+    state.boardFundingTxids.includes(txid)
+  )
 
   const feeReplacement =
     account && displayTx
       ? getFeeReplacementOptions({
           account,
           backend: currentServer.backend,
+          isArkBoardFunding,
           ownedOutpoints,
           tx: displayTx
         })

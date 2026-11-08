@@ -4,7 +4,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { summarizeBackupPayload } from '@/utils/backupSummary'
-import { formatBytes } from '@/utils/format'
+import { formatBytes, formatDate } from '@/utils/format'
 
 const DETAIL_SEPARATOR = ' · '
 
@@ -71,9 +71,23 @@ export default function SSBackupPayloadSummary({
     )
   }
 
+  const unknownLabel = t('settings.developer.backupSummaryUnknown')
+
   return (
     <SSVStack gap="xs" widthFull>
       <SummaryRow label={sizeLabel} showSeparator value={sizeValue} />
+      <SummaryRow
+        label={t('settings.developer.backupSummaryAppVersion')}
+        showSeparator
+        value={summary.appVersion ?? unknownLabel}
+      />
+      <SummaryRow
+        label={t('settings.developer.backupSummaryExportedAt')}
+        showSeparator
+        value={
+          summary.exportedAt ? formatDate(summary.exportedAt) : unknownLabel
+        }
+      />
       <SummaryRow
         label={t('settings.developer.backupSummaryBitcoin')}
         showSeparator

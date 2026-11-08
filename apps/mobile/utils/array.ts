@@ -74,6 +74,14 @@ export function indexFirstBy<T, K>(
   return index
 }
 
+/** The picked item, or the first one when nothing valid was picked. */
+export function findByIdOrFirst<T extends { id: string }>(
+  items: T[],
+  pickedId: string | undefined
+): T | undefined {
+  return items.find((item) => item.id === pickedId) ?? items[0]
+}
+
 /**
  * Narrows untyped input (parsed JSON, native payloads) to an array of numbers,
  * such as serialized script or transaction bytes.

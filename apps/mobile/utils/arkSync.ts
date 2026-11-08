@@ -12,7 +12,8 @@ export function invalidateArkAccountQueries(
     queryClient.invalidateQueries({
       queryKey: ['ark', 'movements', accountId]
     }),
-    queryClient.invalidateQueries({ queryKey: ['ark', 'vtxos', accountId] })
+    queryClient.invalidateQueries({ queryKey: ['ark', 'vtxos', accountId] }),
+    queryClient.invalidateQueries({ queryKey: ['ark', 'exits', accountId] })
   ]).then(() => undefined)
 }
 

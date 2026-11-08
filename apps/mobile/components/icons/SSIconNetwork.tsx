@@ -2,13 +2,17 @@ import Svg, { Circle, G, Line, type SvgProps } from 'react-native-svg'
 
 import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
+import { getIconStrokeProps, type IconStrokeProps } from './iconStroke'
+
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 export default function SSIconNetwork({
   width = 19,
   height = 19,
-  color = '#909090'
-}: IconProps & NavMenuItemIconProps) {
+  color = '#909090',
+  screenStrokeWidth
+}: IconProps & NavMenuItemIconProps & IconStrokeProps) {
+  const strokeProps = getIconStrokeProps(screenStrokeWidth)
   return (
     <Svg id="network" width={width} height={height} viewBox="0 0 19 19">
       <G id="Group_7" data-name="Group 7">
@@ -21,7 +25,7 @@ export default function SSIconNetwork({
           transform="translate(0.5 0.5)"
           fill="none"
           stroke={color}
-          strokeWidth="1"
+          {...strokeProps}
         />
       </G>
       <Line
@@ -32,7 +36,7 @@ export default function SSIconNetwork({
         transform="translate(1.27 3.421)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_10"
@@ -42,7 +46,7 @@ export default function SSIconNetwork({
         transform="translate(0.911 12.492)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_11"
@@ -52,7 +56,7 @@ export default function SSIconNetwork({
         transform="translate(11.526 2.842)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_12"
@@ -62,7 +66,7 @@ export default function SSIconNetwork({
         transform="translate(15.502 3.05)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_13"
@@ -72,7 +76,7 @@ export default function SSIconNetwork({
         transform="translate(7.224 13.447)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_14"
@@ -82,7 +86,7 @@ export default function SSIconNetwork({
         transform="translate(3.483 2.871)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_15"
@@ -92,7 +96,7 @@ export default function SSIconNetwork({
         transform="translate(3.323 2.618)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_16"
@@ -102,7 +106,7 @@ export default function SSIconNetwork({
         transform="translate(3.416 2.723)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_17"
@@ -112,7 +116,7 @@ export default function SSIconNetwork({
         transform="translate(4 3)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_18"
@@ -122,7 +126,7 @@ export default function SSIconNetwork({
         transform="translate(11.576 6.735)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_19"
@@ -132,7 +136,7 @@ export default function SSIconNetwork({
         transform="translate(1.474 3.158)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
       <Line
         id="Line_20"
@@ -142,7 +146,7 @@ export default function SSIconNetwork({
         transform="translate(4 2.5)"
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        {...strokeProps}
       />
     </Svg>
   )

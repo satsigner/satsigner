@@ -68,6 +68,26 @@ export function shouldApplyDefaultAutoSelectFromUri({
   return true
 }
 
+/**
+ * Coin selection a URI send starts with. STONEWALL rewrites outputs, which
+ * breaks a pj= mailbox payment, and a board deposits into the user's own Ark
+ * wallet, where its decoy output only adds fees.
+ */
+export function resolveUriAutoSelectAlgorithm({
+  defaultAlgorithm,
+  isArkBoardFunding,
+  isPayjoin
+}: {
+  defaultAlgorithm: AutoSelectUtxosAlgorithm
+  isArkBoardFunding: boolean
+  isPayjoin: boolean
+}): AutoSelectUtxosAlgorithm {
+  if (isPayjoin || isArkBoardFunding) {
+    return 'efficiency'
+  }
+  return defaultAlgorithm
+}
+
 const AUTO_SELECT_UTXO_TITLE_KEYS = {
   efficiency: 'transaction.build.options.autoSelect.utxos.efficiency.title',
   privacy: 'transaction.build.options.autoSelect.utxos.privacy.title',

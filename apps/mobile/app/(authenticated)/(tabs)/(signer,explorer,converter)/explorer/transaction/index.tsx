@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { CameraView, useCameraPermissions } from 'expo-camera'
+import { useCameraPermissions } from 'expo-camera'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
@@ -7,14 +7,13 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
-import BitcoinRpc from '@/api/rpc'
+import { broadcastRawTransaction } from '@/api/broadcast'
 import { SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSPressable from '@/components/SSPressable'
+import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { EXPLORER_EXAMPLE_TRANSACTIONS } from '@/constants/explorerExamples'
@@ -25,7 +24,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
 import { formatTxId } from '@/utils/format'
 
 const tn = _tn('explorer.transaction')
@@ -73,32 +71,6 @@ function ExampleIoCount({
   )
 }
 
-async function broadcastRawTx(
-  hex: string,
-  url: string,
-  backend: Backend,
-  rpcCredentials?: RpcCredentials
-): Promise<string> {
-  if (backend === 'electrum') {
-    const client = await ElectrumClient.initClientFromUrl(url)
-    try {
-      return await client.broadcastTransactionHex(hex)
-    } finally {
-      client.close()
-    }
-  }
-  if (backend === 'rpc') {
-    const rpc = new BitcoinRpc(
-      url,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    return rpc.sendRawTransaction(hex)
-  }
-  const esplora = new Esplora(url)
-  return esplora.broadcastTransaction(hex)
-}
-
 export default function ExplorerTransaction() {
   const router = useRouter()
   const [inputTxid, setInputTxid] = useState('')
@@ -117,8 +89,7 @@ export default function ExplorerTransaction() {
   const inputType = detectInputType(inputTxid)
 
   const { mutate: broadcast, isPending: isBroadcasting } = useMutation({
-    mutationFn: (hex: string) =>
-      broadcastRawTx(hex, server.url, server.backend, server.rpcCredentials),
+    mutationFn: (hex: string) => broadcastRawTransaction(hex, server),
     onError: () => toast.error(tn('broadcastError')),
     onSuccess: (txid) => {
       toast.success(tn('broadcastSuccess'))
@@ -172,7 +143,7 @@ export default function ExplorerTransaction() {
     scannedRef.current = false
   }
 
-  function handleBarcodeScanned({ data }: { data: string }) {
+  function handleBarcodeScanned(data: string) {
     if (scannedRef.current) {
       return
     }
@@ -272,11 +243,7 @@ export default function ExplorerTransaction() {
       </ScrollView>
 
       <SSModal visible={scanOpen} onClose={handleScanClose}>
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={handleBarcodeScanned}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        />
+        <SSQrScanner style={styles.camera} onScan={handleBarcodeScanned} />
       </SSModal>
 
       <SSNFCModal

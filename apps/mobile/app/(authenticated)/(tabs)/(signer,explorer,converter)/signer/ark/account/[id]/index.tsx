@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconArrowsClockwise,
   SSIconBubbles,
+  SSIconChevronRight,
   SSIconCollapse,
   SSIconExpand,
   SSIconList,
@@ -22,10 +23,11 @@ import {
   SSIconSignOut,
   SSIconTriangle
 } from '@/components/icons'
-import SSIconTime from '@/components/icons/SSIconTime'
 import SSActionButton from '@/components/SSActionButton'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSArkAddressesView from '@/components/SSArkAddressesView'
+import SSArkBalanceBreakdown from '@/components/SSArkBalanceBreakdown'
+import SSArkExitConfirmModal from '@/components/SSArkExitConfirmModal'
 import SSArkMovementCard from '@/components/SSArkMovementCard'
 import SSArkRefreshCard from '@/components/SSArkRefreshCard'
 import SSArkVtxoCard from '@/components/SSArkVtxoCard'
@@ -36,6 +38,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSPackedBubbleChart from '@/components/SSPackedBubbleChart'
+import SSPressable from '@/components/SSPressable'
 import SSSelectionActionBar from '@/components/SSSelectionActionBar'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
@@ -47,14 +50,21 @@ import {
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { useArkAddresses } from '@/hooks/useArkAddresses'
 import { useArkBalance } from '@/hooks/useArkBalance'
+import { useArkAutoBoard, useArkOnchainBalance } from '@/hooks/useArkBoard'
 import { useArkExit } from '@/hooks/useArkExit'
-import { useArkExitFeeEstimate } from '@/hooks/useArkExitFeeEstimate'
+import {
+  useArkExitFeeEstimate,
+  useArkExitFeeFunding
+} from '@/hooks/useArkExitFeeEstimate'
+import { useArkExits } from '@/hooks/useArkExits'
 import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkLabels } from '@/hooks/useArkLabels'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkSendNavigation } from '@/hooks/useArkSendNavigation'
+import { useArkSwapActiveCount } from '@/hooks/useArkSwaps'
 import { useArkSync } from '@/hooks/useArkSync'
+import { useArkTipHeight } from '@/hooks/useArkTipHeight'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import { useArkWallet } from '@/hooks/useArkWallet'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -67,8 +77,14 @@ import { useArkStore } from '@/store/ark'
 import { Colors, Layout } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
-import { getArkPendingSats, getArkTotalSats } from '@/utils/ark'
+import { getArkBalanceBreakdown } from '@/utils/ark'
 import { countUsedArkAddresses } from '@/utils/arkAddress'
+import {
+  countArkVtxosNearExpiry,
+  getArkExitsRoute,
+  getArkExitStatusLine,
+  summarizeArkExits
+} from '@/utils/arkExit'
 import {
   getArkMovementLabelRef,
   selectArkRefreshes,
@@ -82,6 +98,7 @@ import {
   filterSelectableVtxoIds,
   getArkNextExpiryHeight
 } from '@/utils/arkVtxo'
+import { getArkVtxoRoute } from '@/utils/arkVtxoDetail'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 
@@ -92,6 +109,7 @@ const VTXOS_TAB_INDEX = 2
 const SCENE_LOADER_SIZE = 32
 const REFRESH_PROGRESS_VIEW_OFFSET = 9999
 const SELECTION_ICON_SIZE = 15
+const STATUS_CHEVRON_SIZE = 8
 
 type ArkTabKey = 'transactions' | 'addresses' | 'vtxos' | 'refreshes'
 type ArkTabRoute = { key: ArkTabKey }
@@ -103,9 +121,15 @@ export default function ArkAccountDetailPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width } = useWindowDimensions()
-  const [accounts, cachedBalance] = useArkStore(
-    useShallow((state) => [state.accounts, state.balances[id]])
-  )
+  const [accounts, cachedBalance, cachedOnchainBalance, autoBoardDisabled] =
+    useArkStore(
+      useShallow((state) => [
+        state.accounts,
+        state.balances[id],
+        state.onchainBalances[id],
+        state.autoBoardDisabledIds.includes(id)
+      ])
+    )
   const account = accounts.find((a) => a.id === id)
 
   const walletQuery = useArkWallet(id)
@@ -132,10 +156,21 @@ export default function ArkAccountDetailPage() {
   const refreshMutation = useArkRefresh(id)
   const exitMutation = useArkExit(id)
   const syncMutation = useArkSync(id)
+  const activeSwapCount = useArkSwapActiveCount(id)
+  const exitsQuery = useArkExits(id)
+  const tipHeightQuery = useArkTipHeight(id)
 
   const balance = balanceQuery.data ?? cachedBalance
-  const total = balance ? getArkTotalSats(balance) : 0
-  const pending = balance ? getArkPendingSats(balance) : 0
+  const onchainBalanceQuery = useArkOnchainBalance(id)
+  const breakdown = getArkBalanceBreakdown(
+    balance,
+    onchainBalanceQuery.data ?? cachedOnchainBalance
+  )
+  const total = breakdown.totalSats
+  const autoBoard = useArkAutoBoard({
+    accountId: id,
+    enabled: !autoBoardDisabled
+  })
   const totalSize = total > 1_000_000_000 ? '4xl' : '6xl'
   const isLoading =
     (walletQuery.isLoading || balanceQuery.isLoading) && !balance
@@ -168,8 +203,22 @@ export default function ArkAccountDetailPage() {
   const exitFeeQuery = useArkExitFeeEstimate({
     accountId: id,
     enabled: exitModalVisible,
-    vtxos: selectedVtxos
+    vtxoIds: selectedSpendableIds
   })
+  const { funding: exitFunding } = useArkExitFeeFunding({
+    accountId: id,
+    enabled: exitModalVisible,
+    exitBroadcastFeeSats: exitFeeQuery.data?.exitBroadcastFeeSats
+  })
+  const nearExpiryCount = countArkVtxosNearExpiry(
+    selectedVtxos,
+    tipHeightQuery.data
+  )
+  const exitSummary = summarizeArkExits(exitsQuery.data ?? [])
+  const exitStatus = getArkExitStatusLine(
+    exitSummary,
+    balance?.pendingExitSats ?? 0
+  )
 
   const tabConfig: {
     key: ArkTabKey
@@ -213,6 +262,17 @@ export default function ArkAccountDetailPage() {
     })
   }
 
+  function handleSwap() {
+    router.navigate({
+      params: { id },
+      pathname: '/signer/ark/account/[id]/swap'
+    })
+  }
+
+  function handleExits() {
+    router.navigate(getArkExitsRoute(id))
+  }
+
   function handleCamera() {
     setCameraVisible(true)
   }
@@ -240,6 +300,10 @@ export default function ArkAccountDetailPage() {
         ? prev.filter((selectedId) => selectedId !== vtxoId)
         : [...prev, vtxoId]
     )
+  }
+
+  function handleOpenVtxo(vtxoId: string) {
+    router.navigate(getArkVtxoRoute(id, vtxoId))
   }
 
   function handleToggleVtxosView() {
@@ -317,8 +381,21 @@ export default function ArkAccountDetailPage() {
         toast.success(t('ark.exit.success'))
         setSelectedIds([])
         setExitModalVisible(false)
+        router.navigate(getArkExitsRoute(id))
       }
     })
+  }
+
+  function handleCloseExitModal() {
+    setExitModalVisible(false)
+  }
+
+  function handleRetryExitFee() {
+    exitFeeQuery.refetch()
+  }
+
+  function handleRetryExpiryCheck() {
+    tipHeightQuery.refetch()
   }
 
   function renderHeaderRight() {
@@ -420,6 +497,7 @@ export default function ArkAccountDetailPage() {
         vtxo={item.vtxo}
         selected={selectedSpendableIds.includes(item.vtxo.id)}
         onToggle={item.vtxo.spendable ? handleToggleVtxo : undefined}
+        onPress={handleOpenVtxo}
       />
     )
   }
@@ -710,13 +788,21 @@ export default function ArkAccountDetailPage() {
                 </SSText>
               </SSHStack>
             )}
-            {pending > 0 && !privacyMode && (
-              <SSHStack gap="xs" style={{ alignItems: 'center' }}>
-                <SSIconTime width={13} height={13} />
-                <SSText color="muted" size="xs">
-                  {t('ark.balance.pending', { amount: formatNumber(pending) })}
-                </SSText>
-              </SSHStack>
+            {breakdown.showBreakdown && (
+              <SSArkBalanceBreakdown
+                rows={breakdown.rows}
+                privacyMode={privacyMode}
+              />
+            )}
+            {autoBoard.status === 'failed' && (
+              <SSText
+                size="xs"
+                center
+                style={{ color: Colors.warning }}
+                onPress={autoBoard.retry}
+              >
+                {t('ark.autoBoard.failed')}
+              </SSText>
             )}
             {isLoading && (
               <SSText color="muted" size="xs">
@@ -737,6 +823,25 @@ export default function ArkAccountDetailPage() {
               onCamera={handleCamera}
               onReceive={handleReceive}
             />
+            {(activeSwapCount > 0 || exitStatus) && (
+              <SSVStack gap="none" itemsCenter style={styles.statusLinks}>
+                {activeSwapCount > 0 && (
+                  <ArkAccountStatusLink
+                    label={t('ark.swap.summary.active', {
+                      count: activeSwapCount
+                    })}
+                    onPress={handleSwap}
+                  />
+                )}
+                {exitStatus && (
+                  <ArkAccountStatusLink
+                    label={t(exitStatus.labelKey, { count: exitStatus.count })}
+                    ready={exitStatus.ready}
+                    onPress={handleExits}
+                  />
+                )}
+              </SSVStack>
+            )}
           </View>
         </SSVStack>
       )}
@@ -848,62 +953,53 @@ export default function ArkAccountDetailPage() {
           />
         </SSVStack>
       </SSModal>
-      <SSModal
+      <SSArkExitConfirmModal
         visible={exitModalVisible}
-        onClose={() => setExitModalVisible(false)}
-        label={t('common.cancel')}
-        closeButtonVariant="ghost"
-        fullOpacity
-      >
-        <SSVStack gap="lg" style={styles.modalContent}>
-          <SSVStack gap="sm" itemsCenter>
-            <SSText center uppercase size="md" weight="medium">
-              {t('ark.exit.confirmTitle', {
-                count: selectedSpendableIds.length
-              })}
-            </SSText>
-            <SSText center color="muted">
-              {t('ark.exit.confirmDescription')}
-            </SSText>
-            {exitFeeQuery.isLoading && (
-              <SSText color="muted" size="sm">
-                {t('common.loading')}
-              </SSText>
-            )}
-            {exitFeeQuery.data ? (
-              <SSVStack gap="xxs" itemsCenter>
-                <SSText color="muted" size="sm">
-                  {t('ark.exit.feeLabel', {
-                    amount: formatNumber(exitFeeQuery.data.feeSats),
-                    feeRate: exitFeeQuery.data.feeRateSatPerVb,
-                    unit: t('bitcoin.sats')
-                  })}
-                </SSText>
-                <SSText color="muted" size="xs" center>
-                  {t('ark.exit.feeHint')}
-                </SSText>
-              </SSVStack>
-            ) : null}
-            {exitFeeQuery.error ? (
-              <SSText
-                size="sm"
-                style={{ color: Colors.warning }}
-                onPress={() => exitFeeQuery.refetch()}
-              >
-                {t('ark.exit.feeUnavailable')}
-              </SSText>
-            ) : null}
-          </SSVStack>
-          <SSButton
-            label={t('ark.exit.confirm')}
-            variant="danger"
-            loading={exitMutation.isPending}
-            disabled={exitMutation.isPending || exitFeeQuery.isLoading}
-            onPress={handleConfirmEmergencyExit}
-          />
-        </SSVStack>
-      </SSModal>
+        title={t('ark.exit.confirmTitle', {
+          count: selectedSpendableIds.length
+        })}
+        estimate={exitFeeQuery.data}
+        funding={exitFunding}
+        estimateLoading={exitFeeQuery.isLoading}
+        estimateFailed={Boolean(exitFeeQuery.error)}
+        nearExpiryCount={nearExpiryCount}
+        expiryCheckLoading={tipHeightQuery.isLoading}
+        privacyMode={privacyMode}
+        confirming={exitMutation.isPending}
+        onConfirm={handleConfirmEmergencyExit}
+        onClose={handleCloseExitModal}
+        onRetryEstimate={handleRetryExitFee}
+        onRetryExpiryCheck={handleRetryExpiryCheck}
+      />
     </SSMainLayout>
+  )
+}
+
+type ArkAccountStatusLinkProps = {
+  label: string
+  ready?: boolean
+  onPress: () => void
+}
+
+function ArkAccountStatusLink({
+  label,
+  ready = false,
+  onPress
+}: ArkAccountStatusLinkProps) {
+  const color = ready ? Colors.warning : Colors.gray[300]
+  return (
+    <SSPressable onPress={onPress} style={styles.statusLink}>
+      <SSHStack gap="xs">
+        <SSText size="xs" uppercase style={{ color }}>
+          {label}
+        </SSText>
+        <SSIconChevronRight
+          height={STATUS_CHEVRON_SIZE}
+          width={STATUS_CHEVRON_SIZE}
+          stroke={color}
+        />
+      </SSHStack>
+    </SSPressable>
   )
 }
 
@@ -919,6 +1015,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     paddingBottom: 12,
     paddingTop: 24
   },
@@ -961,6 +1058,12 @@ const styles = StyleSheet.create({
   separator: {
     backgroundColor: Colors.gray[800],
     height: StyleSheet.hairlineWidth
+  },
+  statusLink: {
+    paddingVertical: 6
+  },
+  statusLinks: {
+    marginTop: 8
   },
   tab: {
     width: TAB_WIDTH
