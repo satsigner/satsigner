@@ -1,3 +1,5 @@
+import { StringDecoder } from 'node:string_decoder'
+
 const REPO_NAME = 'Satsigner'
 const REPO_IDENTIFIER = 'satsigner'
 const REPO_DESCRIPTION =
@@ -206,6 +208,31 @@ function splitCompleteLines(state, chunk, maxPending) {
   }
 }
 
+// Decodes each chunk with a StringDecoder, so a multibyte character split
+// across two chunks is not turned into replacement characters.
+function createLineSplitter(maxPending) {
+  const decoder = new StringDecoder('utf8')
+  const state = { pending: '', skipping: false }
+  function take(text) {
+    const next = splitCompleteLines(state, text, maxPending)
+    state.pending = next.pending
+    state.skipping = next.skipping
+    return next.lines
+  }
+  return {
+    end() {
+      const lines = take(decoder.end())
+      const rest = state.pending ? [state.pending] : []
+      state.pending = ''
+      state.skipping = false
+      return [...lines, ...rest]
+    },
+    write(chunk) {
+      return take(decoder.write(chunk))
+    }
+  }
+}
+
 function hasInstalledPackage(text, packageId) {
   return parsePackageList(text).includes(packageId)
 }
@@ -220,6 +247,7 @@ export {
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  createLineSplitter,
   hasInstalledPackage,
   isApkName,
   isNostrRemote,

@@ -17,14 +17,14 @@ import {
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  createLineSplitter,
   hasInstalledPackage,
   isApkName,
   isNostrRemote,
   parseAdbDevices,
   parsePackageList,
   parseReleaseChannel,
-  redactSecrets,
-  splitCompleteLines
+  redactSecrets
 } from './commands.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
@@ -92,24 +92,15 @@ function log(line) {
 }
 
 function lineLogger() {
-  const state = { pending: '', skipping: false }
+  const splitter = createLineSplitter(MAX_PENDING_LOG_LINE)
   return {
     flush() {
-      if (state.pending) {
-        log(state.pending)
+      for (const line of splitter.end()) {
+        log(line)
       }
-      state.pending = ''
-      state.skipping = false
     },
     write(chunk) {
-      const { lines, pending, skipping } = splitCompleteLines(
-        state,
-        chunk.toString(),
-        MAX_PENDING_LOG_LINE
-      )
-      state.pending = pending
-      state.skipping = skipping
-      for (const line of lines) {
+      for (const line of splitter.write(chunk)) {
         log(line)
       }
     }

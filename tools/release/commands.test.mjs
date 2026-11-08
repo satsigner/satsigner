@@ -9,6 +9,7 @@ import {
   buildPushArgs,
   buildZapstoreArgs,
   classifyLogLine,
+  createLineSplitter,
   hasInstalledPackage,
   isApkName,
   isNostrRemote,
@@ -160,6 +161,21 @@ test('truncates an unterminated line that outgrows the pending cap', () => {
     pending: 'part',
     skipping: false
   })
+})
+
+test('keeps a multibyte character split across output chunks intact', () => {
+  const splitter = createLineSplitter(64)
+  assert.deepEqual(splitter.write(Buffer.from([0x63, 0x61, 0x66, 0xc3])), [])
+  assert.deepEqual(splitter.write(Buffer.from([0xa9, 0x0a, 0x6f])), ['café'])
+  assert.deepEqual(splitter.end(), ['o'])
+})
+
+test('emits nothing for a truncated line when the output ends', () => {
+  const splitter = createLineSplitter(MAX_PENDING)
+  assert.deepEqual(splitter.write(Buffer.from('abcdefghijklmnopqrstuvwxyz')), [
+    `abcdefghijklmnop${TRUNCATED_LINE_MARKER}`
+  ])
+  assert.deepEqual(splitter.end(), [])
 })
 
 test('finds an exact package in pm list output', () => {
