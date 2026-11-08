@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
@@ -39,6 +39,7 @@ export function useEcashSend() {
   const [memo, setMemo] = useState('')
   const [comment, setComment] = useState('')
   const [invoice, setInvoice] = useState('')
+  const resolveRequestId = useRef(0)
   const [generatedTokenV4, setGeneratedTokenV4] = useState('')
   const [generatedTokenV3, setGeneratedTokenV3] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -268,7 +269,12 @@ export function useEcashSend() {
     }
   }
 
+  // Each edit starts a new resolution; a slower answer for older text must
+  // not set the amount or details the payment and its MPP split then use.
   async function handleInvoiceChange(text: string) {
+    resolveRequestId.current += 1
+    const requestId = resolveRequestId.current
+    const isCurrentRequest = () => requestId === resolveRequestId.current
     setInvoice(text)
     setDecodedInvoice(null)
     setLNURLDetails(null)
@@ -285,16 +291,10 @@ export function useEcashSend() {
       try {
         const url = decodeLNURL(cleanText)
         const details = await fetchLNURLPayDetails(url)
-        setLNURLDetails(details)
-        if (details.minSendable) {
-          setAmount(
-            Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString()
-          )
-        }
+        applyLnurlDetails(details, isCurrentRequest)
       } catch {
-        setLNURLDetails(null)
+        applyLnurlDetails(null, isCurrentRequest)
       }
-      setIsFetchingLNURL(false)
       return
     }
 
@@ -326,14 +326,41 @@ export function useEcashSend() {
         const lndDecoded = await makeRequest<LNDDecodedInvoice>(
           `/v1/payreq/${cleanText}`
         )
-        setDecodedInvoice(lndDecoded)
-        if (lndDecoded.num_satoshis) {
-          setAmount(lndDecoded.num_satoshis)
-        }
+        applyDecodedInvoice(lndDecoded, isCurrentRequest)
       } catch {
-        setDecodedInvoice(null)
-        toast.warning(t('ecash.error.invoiceDecodeFailed'))
+        applyDecodedInvoice(null, isCurrentRequest)
       }
+    }
+  }
+
+  function applyLnurlDetails(
+    details: LNURLPayResponse | null,
+    isCurrentRequest: () => boolean
+  ) {
+    if (!isCurrentRequest()) {
+      return
+    }
+    setLNURLDetails(details)
+    setIsFetchingLNURL(false)
+    if (details?.minSendable) {
+      setAmount(Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString())
+    }
+  }
+
+  function applyDecodedInvoice(
+    decoded: LNDDecodedInvoice | null,
+    isCurrentRequest: () => boolean
+  ) {
+    if (!isCurrentRequest()) {
+      return
+    }
+    setDecodedInvoice(decoded)
+    if (!decoded) {
+      toast.warning(t('ecash.error.invoiceDecodeFailed'))
+      return
+    }
+    if (decoded.num_satoshis) {
+      setAmount(decoded.num_satoshis)
     }
   }
 
