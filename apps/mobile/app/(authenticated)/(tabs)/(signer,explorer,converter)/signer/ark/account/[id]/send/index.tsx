@@ -29,6 +29,10 @@ export default function ArkSendEntryPage() {
 
   async function handleScanned(content: DetectedContent) {
     setCameraVisible(false)
+    await handleContentReady(content)
+  }
+
+  async function handlePasted(content: DetectedContent) {
     setPasteVisible(false)
     await handleContentReady(content)
   }
@@ -96,7 +100,7 @@ export default function ArkSendEntryPage() {
       <SSPaste
         visible={pasteVisible}
         onClose={() => setPasteVisible(false)}
-        onContentPasted={handleScanned}
+        onContentPasted={handlePasted}
         context={ARK_SEND_CONTEXT}
       />
     </SSMainLayout>

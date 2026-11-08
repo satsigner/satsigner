@@ -4,6 +4,7 @@ import { Share, StyleSheet, TextInput } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { resetBrantaLookupPermits } from '@/api/branta'
 import SSIconWarning from '@/components/icons/SSIconWarning'
 import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
@@ -47,6 +48,8 @@ import {
   MIN_BACKUP_PASSPHRASE_LENGTH
 } from '@/utils/backupPassphrase'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
+import { resetBrantaLogoConsent } from '@/utils/brantaLogoConsent'
+import { DEFAULT_BRANTA_LOOKUP_MODE } from '@/utils/brantaLookupMode'
 import {
   aesEncrypt,
   generateSalt,
@@ -144,6 +147,8 @@ export default function Developer() {
         excludedUtxoOutpoints: account.excludedUtxoOutpoints ?? [],
         id: account.id,
         keys: await keysWithSeeds(account.id, account.keys),
+        // branta_payees stay on the device. The payee name is already in
+        // labels when that setting is on.
         labels: account.labels,
         name: account.name,
         network: account.network,
@@ -373,12 +378,18 @@ export default function Developer() {
         skipPin: false
       })
       useSettingsStore.setState({
+        brantaClearnetLogoAllowed: false,
+        brantaLabelSyncEnabled: false,
+        brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
+        brantaLookupWarningDismissed: false,
         currencyUnit: 'sats',
         mnemonicWordList: DEFAULT_WORD_LIST,
         showWarning: true,
         skipSeedConfirmation: true,
         useZeroPadding: false
       })
+      resetBrantaLookupPermits()
+      resetBrantaLogoConsent()
       setClearStorageModalVisible(false)
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {

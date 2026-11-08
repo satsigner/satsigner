@@ -26,6 +26,9 @@ import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSAmountInput from '@/components/SSAmountInput'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSBottomSheet from '@/components/SSBottomSheet'
+import SSBrantaLookupModal from '@/components/SSBrantaLookupModal'
+import SSBrantaLookupNotice from '@/components/SSBrantaLookupNotice'
+import SSBrantaPayee from '@/components/SSBrantaPayee'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -50,6 +53,7 @@ import {
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
 import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
+import { useBrantaPayeeLookup } from '@/hooks/useBrantaPayeeLookup'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -528,6 +532,17 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
+  const {
+    adopt: adoptBrantaPayee,
+    lookup: lookupBrantaPayeeForOutput,
+    mode: brantaLookupMode,
+    notice: brantaNotice,
+    payee: brantaPayee,
+    settled: settledBrantaPayee,
+    verifyLatest: verifyBrantaDestination
+  } = useBrantaPayeeLookup()
+  const addingOutputRef = useRef(false)
+  const [savingOutput, setSavingOutput] = useState(false)
   const [dustErrorOverride, setDustErrorOverride] = useState(
     dustWarning ? t('transaction.error.dustOutputBelowLimit') : ''
   )
@@ -594,7 +609,11 @@ export default function IOPreview() {
   }
 
   function handlePasteFromClipboard(content: string) {
+    if (addingOutputRef.current) {
+      return
+    }
     const trimmedContent = content.trim()
+    void lookupBrantaPayeeForOutput(trimmedContent)
 
     const bip21Result = parseBitcoinPaymentUri(trimmedContent)
     if (bip21Result) {
@@ -640,6 +659,9 @@ export default function IOPreview() {
 
   const { pasteFromClipboard } = useClipboardPaste({
     onPaste: (content) => {
+      if (addingOutputRef.current) {
+        return
+      }
       try {
         handlePasteFromClipboard(content)
       } catch {
@@ -834,13 +856,17 @@ export default function IOPreview() {
   }, [localFeeRate, transactionSize, selectedAutoSelectUtxos, setFee])
 
   function handleContentScanned(content: DetectedContent) {
+    if (addingOutputRef.current) {
+      return
+    }
     if (!content.isValid) {
       toast.error(t('camera.error.invalidContent'))
       return
     }
 
     // Same Payjoin-aware path as paste (raw keeps bitcoin: + pj=).
-    handlePasteFromClipboard(content.raw?.trim() || content.cleaned.trim())
+    const raw = content.raw.trim() || content.cleaned.trim()
+    handlePasteFromClipboard(raw)
     setCameraModalVisible(false)
   }
 
@@ -851,6 +877,7 @@ export default function IOPreview() {
     setOutputAmount(DUST_LIMIT)
     setOriginalOutputAmount(0)
     setOutputLabel('')
+    adoptBrantaPayee(null)
   }
 
   function handleOnPressAddOutput() {
@@ -859,7 +886,7 @@ export default function IOPreview() {
     setAddOutputModalVisible(true)
   }
 
-  function handleAddOutput() {
+  async function handleAddOutput() {
     if (outputAmount > 0 && outputAmount < DUST_LIMIT) {
       toast.error(t('transaction.error.dustOutputBelowLimit'))
       return
@@ -886,20 +913,25 @@ export default function IOPreview() {
     const existing = outputIndex === -1 ? undefined : outputs[outputIndex]
 
     if (isStonewallManagedOutput(existing) && existing) {
-      updateOutput(existing.localId, {
-        amount: existing.amount,
-        kind: existing.kind,
-        label: outputLabel,
-        to: existing.to
-      })
+      updateOutput(existing.localId, { ...existing, label: outputLabel })
       setOutputsCount((prev: number) => prev + 1)
       setAddOutputModalVisible(false)
       resetLocalOutput()
       return
     }
 
+    if (addingOutputRef.current) {
+      return
+    }
+    addingOutputRef.current = true
+    setSavingOutput(true)
+    const resolvedPayee = await settledBrantaPayee()
+    addingOutputRef.current = false
+    setSavingOutput(false)
+
     const output = {
       amount: outputAmount,
+      branta: resolvedPayee ?? undefined,
       kind: existing?.kind,
       label: outputLabel,
       to: stripBitcoinPrefix(outputTo)
@@ -917,6 +949,9 @@ export default function IOPreview() {
   }
 
   function handleRemoveOutput() {
+    if (addingOutputRef.current) {
+      return
+    }
     if (!currentOutputLocalId) {
       return
     }
@@ -1034,6 +1069,7 @@ export default function IOPreview() {
       setOutputAmount(outputs[outputIndex].amount)
       setOriginalOutputAmount(outputs[outputIndex].amount)
       setOutputLabel(outputs[outputIndex].label)
+      adoptBrantaPayee(outputs[outputIndex].branta ?? null)
       setCurrentOutputNumber(outputIndex + 1)
       setAddOutputModalVisible(true)
       return
@@ -1173,9 +1209,8 @@ export default function IOPreview() {
     for (let i = 0; i < outputs.length; i += 1) {
       const extra = perOutput + (i === 0 ? remainder : 0)
       updateOutput(outputs[i].localId, {
-        amount: outputs[i].amount + extra,
-        label: outputs[i].label,
-        to: outputs[i].to
+        ...outputs[i],
+        amount: outputs[i].amount + extra
       })
     }
   }
@@ -1577,7 +1612,12 @@ export default function IOPreview() {
       </LinearGradient>
       <SSModal
         visible={addOutputModalVisible}
-        onClose={() => setAddOutputModalVisible(false)}
+        onClose={() => {
+          if (addingOutputRef.current) {
+            return
+          }
+          setAddOutputModalVisible(false)
+        }}
         fullOpacity
       >
         <View style={{ alignSelf: 'center', maxWidth: 1000, width: '100%' }}>
@@ -1594,7 +1634,9 @@ export default function IOPreview() {
                 <SSVStack gap="none">
                   <View
                     pointerEvents={
-                      isEditingStonewallManagedOutput ? 'none' : 'auto'
+                      isEditingStonewallManagedOutput || savingOutput
+                        ? 'none'
+                        : 'auto'
                     }
                   >
                     <SSAmountInput
@@ -1618,7 +1660,12 @@ export default function IOPreview() {
                           ? remainingSats + originalOutputAmount - minerFee
                           : remainingSats - minerFee
                       }
-                      onValueChange={(value) => setOutputAmount(value)}
+                      onValueChange={(value) => {
+                        if (addingOutputRef.current) {
+                          return
+                        }
+                        setOutputAmount(value)
+                      }}
                     />
                   </View>
                 </SSVStack>
@@ -1630,7 +1677,7 @@ export default function IOPreview() {
                     align="left"
                     multiline
                     numberOfLines={4}
-                    editable={!isEditingStonewallManagedOutput}
+                    editable={!isEditingStonewallManagedOutput && !savingOutput}
                     style={{
                       fontFamily: Typography.geistMonoRegular,
                       fontSize: 22,
@@ -1640,6 +1687,9 @@ export default function IOPreview() {
                       textAlignVertical: 'top'
                     }}
                     onChangeText={(text) => {
+                      if (addingOutputRef.current) {
+                        return
+                      }
                       // Long-press paste / Maestro inputText hit onChangeText,
                       // not the Paste button — still detect Payjoin URIs.
                       if (hasPayjoinParam(text)) {
@@ -1648,6 +1698,7 @@ export default function IOPreview() {
                       }
                       setOutputTo(text)
                       setPayjoinUri(undefined)
+                      adoptBrantaPayee(null)
                     }}
                   />
                   {!isEditingStonewallManagedOutput ? (
@@ -1657,25 +1708,51 @@ export default function IOPreview() {
                         variant="outline"
                         label={t('common.paste')}
                         style={{ flex: 1 }}
+                        disabled={savingOutput}
                         onPress={pasteFromClipboard}
                       />
                       <SSButton
                         variant="outline"
                         label={t('camera.scanQRCode')}
                         style={{ flex: 1 }}
-                        onPress={() => setCameraModalVisible(true)}
+                        disabled={savingOutput}
+                        onPress={() => {
+                          if (addingOutputRef.current) {
+                            return
+                          }
+                          setCameraModalVisible(true)
+                        }}
                       />
                     </SSHStack>
                   ) : null}
                 </SSVStack>
+                <SSBrantaLookupModal />
+                {brantaPayee ? <SSBrantaPayee payee={brantaPayee} /> : null}
+                <SSBrantaLookupNotice notice={brantaNotice} />
+                {brantaLookupMode === 'manual' ? (
+                  <SSButton
+                    label={t('settings.branta.verify')}
+                    variant="outline"
+                    disabled={savingOutput || !outputTo}
+                    onPress={() => {
+                      void verifyBrantaDestination(outputTo)
+                    }}
+                  />
+                ) : null}
                 <SSTextInput
                   testID="send-output-label"
                   multiline
                   numberOfLines={4}
                   placeholder={t('transaction.build.add.label.title')}
                   align="left"
+                  editable={!savingOutput}
                   value={outputLabel}
-                  onChangeText={(text) => setOutputLabel(text)}
+                  onChangeText={(text) => {
+                    if (addingOutputRef.current) {
+                      return
+                    }
+                    setOutputLabel(text)
+                  }}
                   blurOnSubmit
                   returnKeyType="done"
                   style={{
@@ -1691,7 +1768,9 @@ export default function IOPreview() {
                     variant="danger"
                     style={{ flex: 1 }}
                     disabled={
-                      !currentOutputLocalId || isEditingStonewallManagedOutput
+                      !currentOutputLocalId ||
+                      isEditingStonewallManagedOutput ||
+                      savingOutput
                     }
                     onPress={handleRemoveOutput}
                   />
@@ -1699,7 +1778,9 @@ export default function IOPreview() {
                     label={t('transaction.build.save.output.title')}
                     variant="secondary"
                     style={{ flex: 1 }}
-                    disabled={!outputTo || !outputAmount || !outputLabel}
+                    disabled={
+                      !outputTo || !outputAmount || !outputLabel || savingOutput
+                    }
                     onPress={handleAddOutput}
                   />
                 </SSHStack>

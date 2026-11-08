@@ -9,11 +9,16 @@ import {
 import mmkvStorage from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import { type BrantaLookupMode } from '@/types/models/Branta'
 import {
   type PayjoinCoordinationMode,
   type PayjoinSettings
 } from '@/types/payjoin'
 import { type CurrencyUnit } from '@/types/ui/displayPreferences'
+import {
+  DEFAULT_BRANTA_LOOKUP_MODE,
+  normalizeBrantaLookupMode
+} from '@/utils/brantaLookupMode'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {
@@ -26,6 +31,14 @@ import { normalizePayjoinSessionTtlMs } from '@/utils/payjoinTtl'
 type FiatPriceProvider = 'custom' | 'mempool'
 
 type SettingsState = {
+  /** When true, clearnet payee logos load without asking again. Off by default. */
+  brantaClearnetLogoAllowed: boolean
+  /** When true, payee names are written into transaction, output, and change labels. */
+  brantaLabelSyncEnabled: boolean
+  /** Off until the user picks a lookup mode. */
+  brantaLookupMode: BrantaLookupMode
+  /** When true, the third-party lookup warning is skipped. Off by default. */
+  brantaLookupWarningDismissed: boolean
   mnemonicWordList: WordListName
   useZeroPadding: boolean
   currencyUnit: CurrencyUnit
@@ -49,6 +62,18 @@ type SettingsState = {
 }
 
 type SettingsAction = {
+  setBrantaClearnetLogoAllowed: (
+    brantaClearnetLogoAllowed: SettingsState['brantaClearnetLogoAllowed']
+  ) => void
+  setBrantaLabelSyncEnabled: (
+    brantaLabelSyncEnabled: SettingsState['brantaLabelSyncEnabled']
+  ) => void
+  setBrantaLookupMode: (
+    brantaLookupMode: SettingsState['brantaLookupMode']
+  ) => void
+  setBrantaLookupWarningDismissed: (
+    brantaLookupWarningDismissed: SettingsState['brantaLookupWarningDismissed']
+  ) => void
   setCurrencyUnit: (currencyUnit: SettingsState['currencyUnit']) => void
   setUseZeroPadding: (useZeroPadding: SettingsState['useZeroPadding']) => void
   setShowWarning: (showWarning: SettingsState['showWarning']) => void
@@ -113,6 +138,10 @@ function migrateFiatPriceSettings(
 const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
+      brantaClearnetLogoAllowed: false,
+      brantaLabelSyncEnabled: false,
+      brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
+      brantaLookupWarningDismissed: false,
       currencyUnit: 'sats',
       defaultAutoSelectUtxos: 'privacy',
       fetchCurrentPrices: true,
@@ -126,6 +155,18 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       payjoinEnabled: true,
       payjoinSessionTtlMs: PAYJOIN_SESSION_TTL_MS,
       privacyMode: false,
+      setBrantaClearnetLogoAllowed: (brantaClearnetLogoAllowed) => {
+        set({ brantaClearnetLogoAllowed })
+      },
+      setBrantaLabelSyncEnabled: (brantaLabelSyncEnabled) => {
+        set({ brantaLabelSyncEnabled })
+      },
+      setBrantaLookupMode: (brantaLookupMode) => {
+        set({ brantaLookupMode })
+      },
+      setBrantaLookupWarningDismissed: (brantaLookupWarningDismissed) => {
+        set({ brantaLookupWarningDismissed })
+      },
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
       },
@@ -204,6 +245,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         )
         merged.payjoinCoordinationMode = normalizePayjoinCoordinationMode(
           merged.payjoinCoordinationMode
+        )
+        merged.brantaLookupMode = normalizeBrantaLookupMode(
+          merged.brantaLookupMode
         )
         return merged
       },
