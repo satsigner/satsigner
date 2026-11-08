@@ -16,6 +16,7 @@ import {
 } from '@/api/ecash'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { t } from '@/locales'
+import { getEcashAccountStore } from '@/services/ecash/accountStore'
 import {
   EcashPaymentError,
   payLightningInvoiceFromMints
@@ -546,17 +547,12 @@ export function useEcash() {
     }
 
     const accountId = activeAccountId
-    const summary = await restoreProofsFromMints(accountId, mintUrls, seed, {
-      addMint: (mint) => addMintAction(accountId, mint),
-      addProofs: (restored) => addProofsAction(accountId, restored),
-      advanceKeysetCounter: (keysetId, nextCounter) =>
-        advanceKeysetCounter(accountId, keysetId, nextCounter),
-      getCounters: () => getEcashCounters(accountId),
-      getMints: () => useEcashStore.getState().mints[accountId] ?? [],
-      getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
-      updateMintBalance: (mintUrl, balance) =>
-        updateMintBalance(accountId, mintUrl, balance)
-    })
+    const summary = await restoreProofsFromMints(
+      accountId,
+      mintUrls,
+      seed,
+      getEcashAccountStore(accountId)
+    )
     const { mintsFailed, mintsScanned, proofsFound } = summary
 
     if (proofsFound > 0) {

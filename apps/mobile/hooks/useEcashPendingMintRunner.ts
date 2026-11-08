@@ -2,7 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
-import { settlePendingMints } from '@/services/ecash/pendingMints'
+import {
+  type PendingMintResult,
+  settlePendingMints
+} from '@/services/ecash/pendingMints'
 import { useEcashStore } from '@/store/ecash'
 import {
   hasPendingMints,
@@ -12,12 +15,19 @@ import {
 
 const ECASH_PENDING_MINT_RUNNER_QUERY_KEY = ['ecash', 'pendingMintRunner']
 
+function announcePendingMintResult(result: PendingMintResult) {
+  if (result === 'minted') {
+    toast.success(t('ecash.success.paymentReceived'))
+  }
+  if (result === 'mintFailed') {
+    toast.error(t('ecash.error.paidInvoiceNotMinted'))
+  }
+}
+
 async function settleAndAnnouncePendingMints() {
   const settlements = await settlePendingMints()
   for (const { result } of settlements) {
-    if (result === 'minted') {
-      toast.success(t('ecash.success.paymentReceived'))
-    }
+    announcePendingMintResult(result)
   }
   return settlements
 }

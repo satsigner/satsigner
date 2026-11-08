@@ -20,6 +20,10 @@ export const ECASH_PENDING_MINT_MAX_AGE_MS = 86_400_000
 // Each mint attempt reserves deterministic counters; repeated failures would
 // open a gap wider than the seed restore scans.
 export const ECASH_MAX_FAILED_MINT_ATTEMPTS = 3
+// Budget for one quote in a runner pass; a slower mint is left to finish alone.
+export const ECASH_PENDING_MINT_TIMEOUT_MS = 30_000
+// How long a quote rests when its mint stopped answering after the invoice expired.
+export const ECASH_UNREACHABLE_MINT_RETRY_MS = 600_000
 export const ECASH_PAYMENT_ERROR_I18N_KEYS = {
   insufficientForFees: 'ecash.error.insufficientForFees',
   insufficientProofs: 'ecash.error.insufficientProofs',

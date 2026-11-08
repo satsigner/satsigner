@@ -24,9 +24,10 @@ type PendingMint = {
 /**
  * What to do with a pending mint after asking its mint. A quote stays
  * `PENDING` while a payment is in flight, so only `UNPAID` can run out.
- * `ISSUED` on a pending transaction means the proofs went to another wallet.
+ * `ISSUED` on a pending transaction means the mint signed the proofs but they
+ * never reached this wallet, so they can only be recovered.
  */
-type PendingMintStep = 'wait' | 'mint' | 'expire' | 'fail'
+type PendingMintStep = 'wait' | 'mint' | 'recover' | 'expire' | 'fail'
 
 /** How a mint invoice looks to the person who created it. */
 type MintInvoiceStatus = 'waiting' | 'received' | 'expired' | 'failed'
@@ -51,10 +52,12 @@ function toPendingMintStep(
     case 'PAID': {
       return 'mint'
     }
+    case 'ISSUED': {
+      return 'recover'
+    }
     case 'EXPIRED': {
       return 'expire'
     }
-    case 'ISSUED':
     case 'CANCELLED': {
       return 'fail'
     }

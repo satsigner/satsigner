@@ -1,12 +1,20 @@
 import { checkMintQuote, mintProofs } from '@/api/ecash'
 import {
   ECASH_MAX_FAILED_MINT_ATTEMPTS,
-  ECASH_MINT_QUOTE_EXPIRY_GRACE_MS
+  ECASH_MINT_QUOTE_EXPIRY_GRACE_MS,
+  ECASH_PENDING_MINT_MAX_AGE_MS,
+  ECASH_PENDING_MINT_TIMEOUT_MS
 } from '@/constants/ecash'
 import { MS_PER_SECOND } from '@/constants/time'
 import { settlePendingMints } from '@/services/ecash/pendingMints'
+import { restoreProofsFromMints } from '@/services/ecash/restore'
+import { getEcashSeed } from '@/services/ecash/walletOptions'
 import { useEcashStore } from '@/store/ecash'
-import type { EcashProof, EcashTransaction } from '@/types/models/Ecash'
+import type {
+  EcashProof,
+  EcashTransaction,
+  MintQuoteState
+} from '@/types/models/Ecash'
 
 jest.mock<Partial<typeof import('@/api/ecash')>>('@/api/ecash', () => ({
   __esModule: true,
@@ -28,10 +36,19 @@ jest.mock<typeof import('@/services/ecash/walletOptions')>(
   })
 )
 
+jest.mock<typeof import('@/services/ecash/restore')>(
+  '@/services/ecash/restore',
+  () => ({
+    __esModule: true,
+    restoreProofsFromMints: jest.fn()
+  })
+)
+
 const MINT_URL = 'https://mint.example'
 const ACTIVE_ACCOUNT = 'active'
 const OTHER_ACCOUNT = 'other'
 const INVOICE_LIFETIME_SECONDS = 600
+const SEED = new Uint8Array(64)
 
 function proof(amount: number): EcashProof {
   return { C: 'c', amount, id: 'ks1', mintUrl: MINT_URL, secret: `s${amount}` }
@@ -81,10 +98,23 @@ function addPendingMint(
   })
 }
 
+function expirySecondsAgo(ms: number) {
+  return Math.floor((Date.now() - ms) / MS_PER_SECOND)
+}
+
 function transactionOf(accountId: string, quoteId: string) {
   return useEcashStore
     .getState()
     .transactions[accountId]?.find(({ id }) => id === quoteId)
+}
+
+function mintQuoteIdsOf(accountId: string) {
+  return useEcashStore.getState().quotes[accountId].mint.map((q) => q.quote)
+}
+
+async function results() {
+  const settlements = await settlePendingMints()
+  return settlements.map(({ result }) => result)
 }
 
 describe('settlePendingMints', () => {
@@ -98,6 +128,8 @@ describe('settlePendingMints', () => {
   afterEach(() => {
     jest.mocked(checkMintQuote).mockReset()
     jest.mocked(mintProofs).mockReset()
+    jest.mocked(getEcashSeed).mockReset()
+    jest.mocked(restoreProofsFromMints).mockReset()
   })
 
   it('mints a paid invoice into the account that created it', async () => {
@@ -107,13 +139,12 @@ describe('settlePendingMints', () => {
       .mocked(mintProofs)
       .mockResolvedValue({ proofs: [proof(21)], totalAmount: 21 })
 
-    const settlements = await settlePendingMints()
+    await expect(results()).resolves.toStrictEqual(['minted'])
 
-    expect(settlements.map(({ result }) => result)).toStrictEqual(['minted'])
     const state = useEcashStore.getState()
     expect(state.proofs[OTHER_ACCOUNT]).toStrictEqual([proof(21)])
     expect(state.proofs[ACTIVE_ACCOUNT]).toStrictEqual([])
-    expect(state.quotes[OTHER_ACCOUNT].mint).toStrictEqual([])
+    expect(mintQuoteIdsOf(OTHER_ACCOUNT)).toStrictEqual([])
     expect(state.mints[OTHER_ACCOUNT][0].balance).toBe(21)
     expect(transactionOf(OTHER_ACCOUNT, 'paid')?.status).toBe('completed')
   })
@@ -122,44 +153,126 @@ describe('settlePendingMints', () => {
     addPendingMint(ACTIVE_ACCOUNT, 'unpaid')
     jest.mocked(checkMintQuote).mockResolvedValue('UNPAID')
 
-    const settlements = await settlePendingMints()
+    await expect(results()).resolves.toStrictEqual(['waiting'])
 
-    expect(settlements.map(({ result }) => result)).toStrictEqual(['waiting'])
     expect(transactionOf(ACTIVE_ACCOUNT, 'unpaid')?.status).toBe('pending')
     expect(mintProofs).not.toHaveBeenCalled()
   })
 
-  it('expires an unpaid invoice past its deadline', async () => {
-    const pastGrace =
-      Date.now() - ECASH_MINT_QUOTE_EXPIRY_GRACE_MS - MS_PER_SECOND
+  it('expires an unpaid invoice past its deadline and drops its quote', async () => {
     addPendingMint(ACTIVE_ACCOUNT, 'stale', {
-      expiry: Math.floor(pastGrace / MS_PER_SECOND)
+      expiry: expirySecondsAgo(ECASH_MINT_QUOTE_EXPIRY_GRACE_MS + MS_PER_SECOND)
     })
     jest.mocked(checkMintQuote).mockResolvedValue('UNPAID')
 
-    await settlePendingMints()
+    await expect(results()).resolves.toStrictEqual(['expired'])
 
     expect(transactionOf(ACTIVE_ACCOUNT, 'stale')?.status).toBe('expired')
+    expect(mintQuoteIdsOf(ACTIVE_ACCOUNT)).toStrictEqual([])
   })
 
-  it('fails an invoice whose proofs the mint issued elsewhere', async () => {
+  it('fails an issued invoice on an account without a seed', async () => {
     addPendingMint(ACTIVE_ACCOUNT, 'issued')
     jest.mocked(checkMintQuote).mockResolvedValue('ISSUED')
 
-    await settlePendingMints()
+    await expect(results()).resolves.toStrictEqual(['failed'])
 
     expect(transactionOf(ACTIVE_ACCOUNT, 'issued')?.status).toBe('failed')
     expect(mintProofs).not.toHaveBeenCalled()
+    expect(restoreProofsFromMints).not.toHaveBeenCalled()
+  })
+
+  it('recovers an issued invoice from the seed', async () => {
+    addPendingMint(ACTIVE_ACCOUNT, 'lost')
+    jest.mocked(checkMintQuote).mockResolvedValue('ISSUED')
+    jest.mocked(getEcashSeed).mockResolvedValue(SEED)
+    jest.mocked(restoreProofsFromMints).mockResolvedValue({
+      mintsFailed: 0,
+      mintsScanned: 1,
+      proofsFound: 1,
+      totalAmount: 21
+    })
+
+    await expect(results()).resolves.toStrictEqual(['minted'])
+
+    expect(restoreProofsFromMints).toHaveBeenCalledWith(
+      ACTIVE_ACCOUNT,
+      [MINT_URL],
+      SEED,
+      expect.any(Object)
+    )
+    expect(transactionOf(ACTIVE_ACCOUNT, 'lost')?.status).toBe('completed')
+    expect(mintProofs).not.toHaveBeenCalled()
+  })
+
+  it('tries the recovery again when the mint could not be restored', async () => {
+    addPendingMint(ACTIVE_ACCOUNT, 'lostOffline')
+    jest.mocked(checkMintQuote).mockResolvedValue('ISSUED')
+    jest.mocked(getEcashSeed).mockResolvedValue(SEED)
+    jest.mocked(restoreProofsFromMints).mockResolvedValue({
+      mintsFailed: 1,
+      mintsScanned: 1,
+      proofsFound: 0,
+      totalAmount: 0
+    })
+
+    await expect(results()).resolves.toStrictEqual(['waiting'])
+
+    expect(transactionOf(ACTIVE_ACCOUNT, 'lostOffline')?.status).toBe('pending')
   })
 
   it('asks an unreachable mint again on the next run', async () => {
     addPendingMint(ACTIVE_ACCOUNT, 'offline')
     jest.mocked(checkMintQuote).mockRejectedValue(new Error('offline'))
 
-    const settlements = await settlePendingMints()
+    await expect(results()).resolves.toStrictEqual(['waiting'])
+    await expect(results()).resolves.toStrictEqual(['waiting'])
 
-    expect(settlements.map(({ result }) => result)).toStrictEqual(['waiting'])
+    expect(checkMintQuote).toHaveBeenCalledTimes(2)
     expect(transactionOf(ACTIVE_ACCOUNT, 'offline')?.status).toBe('pending')
+  })
+
+  it('rests an unreachable mint once the invoice is past its deadline', async () => {
+    addPendingMint(ACTIVE_ACCOUNT, 'offlineStale', {
+      expiry: expirySecondsAgo(ECASH_MINT_QUOTE_EXPIRY_GRACE_MS + MS_PER_SECOND)
+    })
+    jest.mocked(checkMintQuote).mockRejectedValue(new Error('offline'))
+
+    await expect(results()).resolves.toStrictEqual(['waiting'])
+    await expect(results()).resolves.toStrictEqual([])
+
+    expect(checkMintQuote).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up on an unreachable mint a day past the deadline', async () => {
+    addPendingMint(ACTIVE_ACCOUNT, 'abandoned', {
+      expiry: expirySecondsAgo(
+        ECASH_MINT_QUOTE_EXPIRY_GRACE_MS +
+          ECASH_PENDING_MINT_MAX_AGE_MS +
+          MS_PER_SECOND
+      )
+    })
+    jest.mocked(checkMintQuote).mockRejectedValue(new Error('gone'))
+
+    await expect(results()).resolves.toStrictEqual(['expired'])
+
+    expect(transactionOf(ACTIVE_ACCOUNT, 'abandoned')?.status).toBe('expired')
+  })
+
+  it('never expires a paid invoice whose minting fails', async () => {
+    addPendingMint(ACTIVE_ACCOUNT, 'paidStale', {
+      expiry: expirySecondsAgo(
+        ECASH_MINT_QUOTE_EXPIRY_GRACE_MS +
+          ECASH_PENDING_MINT_MAX_AGE_MS +
+          MS_PER_SECOND
+      )
+    })
+    jest.mocked(checkMintQuote).mockResolvedValue('PAID')
+    jest.mocked(mintProofs).mockRejectedValue(new Error('mint error'))
+
+    await expect(results()).resolves.toStrictEqual(['waiting'])
+
+    expect(transactionOf(ACTIVE_ACCOUNT, 'paidStale')?.status).toBe('pending')
   })
 
   it('mints a quote once when runs overlap', async () => {
@@ -174,17 +287,51 @@ describe('settlePendingMints', () => {
     expect(mintProofs).toHaveBeenCalledTimes(1)
   })
 
-  it('stops minting a quote after repeated failures', async () => {
+  it('reports and rests a quote after repeated mint failures', async () => {
     addPendingMint(ACTIVE_ACCOUNT, 'broken')
     jest.mocked(checkMintQuote).mockResolvedValue('PAID')
     jest.mocked(mintProofs).mockRejectedValue(new Error('mint error'))
 
     const runs = Array.from({ length: ECASH_MAX_FAILED_MINT_ATTEMPTS + 1 })
+    const outcomes: string[][] = []
     for (const _run of runs) {
-      await settlePendingMints()
+      outcomes.push(await results())
     }
 
+    expect(outcomes.at(-2)).toStrictEqual(['mintFailed'])
+    expect(outcomes.at(-1)).toStrictEqual([])
     expect(mintProofs).toHaveBeenCalledTimes(ECASH_MAX_FAILED_MINT_ATTEMPTS)
     expect(transactionOf(ACTIVE_ACCOUNT, 'broken')?.status).toBe('pending')
+  })
+
+  it('does not let a hung mint hold up the other invoices', async () => {
+    jest.useFakeTimers()
+    addPendingMint(ACTIVE_ACCOUNT, 'hung')
+    addPendingMint(ACTIVE_ACCOUNT, 'quick')
+    jest
+      .mocked(checkMintQuote)
+      .mockImplementation((_account, _mintUrl, quoteId) =>
+        quoteId === 'hung'
+          ? Promise.withResolvers<MintQuoteState>().promise
+          : Promise.resolve('PAID')
+      )
+    jest
+      .mocked(mintProofs)
+      .mockResolvedValue({ proofs: [proof(21)], totalAmount: 21 })
+
+    const running = settlePendingMints()
+    await jest.advanceTimersByTimeAsync(ECASH_PENDING_MINT_TIMEOUT_MS)
+    const settlements = await running
+    jest.useRealTimers()
+
+    expect(
+      settlements.map(({ pendingMint, result }) => [
+        pendingMint.quoteId,
+        result
+      ])
+    ).toStrictEqual([
+      ['quick', 'minted'],
+      ['hung', 'waiting']
+    ])
   })
 })

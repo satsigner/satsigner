@@ -35,7 +35,7 @@ function transaction(overrides: Partial<EcashTransaction>): EcashTransaction {
 describe('toPendingMintStep', () => {
   it.each([
     ['PAID', 'mint'],
-    ['ISSUED', 'fail'],
+    ['ISSUED', 'recover'],
     ['EXPIRED', 'expire'],
     ['CANCELLED', 'fail']
   ] as const)('maps %s to %s', (state, step) => {
