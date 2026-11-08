@@ -568,17 +568,36 @@ export async function validateEcashToken(
   }
 }
 
+type SeedRestoreResult = {
+  proofs: EcashProof[]
+  lastCounter?: number
+}
+
+/**
+ * The restore scan uses a wallet without the counter listener, so it must
+ * never stay cached: the next send or mint would advance counters without
+ * saving them and reuse deterministic outputs after a restart.
+ */
 export async function restoreProofsFromSeed(
   accountId: string,
   mintUrl: string,
   seed: Uint8Array,
   counterInit?: Record<string, number>
-): Promise<{
-  proofs: EcashProof[]
-  lastCounter?: number
-}> {
+): Promise<SeedRestoreResult> {
   clearWalletCache(accountId, mintUrl)
+  try {
+    return await scanProofsFromSeed(accountId, mintUrl, seed, counterInit)
+  } finally {
+    clearWalletCache(accountId, mintUrl)
+  }
+}
 
+async function scanProofsFromSeed(
+  accountId: string,
+  mintUrl: string,
+  seed: Uint8Array,
+  counterInit?: Record<string, number>
+): Promise<SeedRestoreResult> {
   const wallet = getWallet(accountId, mintUrl, {
     bip39seed: seed,
     counterInit
