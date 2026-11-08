@@ -12,15 +12,13 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { broadcastTransaction, signTransaction } from '@/api/bdk'
-import ElectrumClient from '@/api/electrum'
-import Esplora from '@/api/esplora'
+import { broadcastRawTransaction } from '@/api/broadcast'
 import {
   applyManualSenderProposal,
   pollBip77Send,
   sendPayjoin,
   startBip77Send
 } from '@/api/payjoin'
-import BitcoinRpc from '@/api/rpc'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSLoader from '@/components/SSLoader'
@@ -392,33 +390,12 @@ export default function SignTransaction() {
       throw new Error('Invalid signedTx: too short to be a valid transaction')
     }
 
-    if (currentConfig.server.backend === 'electrum') {
-      const electrumClient = await ElectrumClient.initClientFromUrl(
-        currentConfig.server.url,
-        accountNetwork
-      )
-      await electrumClient.broadcastTransactionHex(signedTx)
-      electrumClient.close()
-      return true
-    }
-
-    if (currentConfig.server.backend === 'esplora') {
-      const esploraClient = new Esplora(currentConfig.server.url)
-      await esploraClient.broadcastTransaction(signedTx)
-      return true
-    }
-
-    if (currentConfig.server.backend === 'rpc') {
-      const rpc = new BitcoinRpc(
-        currentConfig.server.url,
-        currentConfig.server.rpcCredentials?.username ?? '',
-        currentConfig.server.rpcCredentials?.password ?? ''
-      )
-      await rpc.sendRawTransaction(signedTx)
-      return true
-    }
-
-    throw new Error(`Unsupported backend: ${currentConfig.server.backend}`)
+    await broadcastRawTransaction(
+      signedTx,
+      currentConfig.server,
+      accountNetwork
+    )
+    return true
   }
 
   async function cosignArkBoardBeforeBroadcast() {
