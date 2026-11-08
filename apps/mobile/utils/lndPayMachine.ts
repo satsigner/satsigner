@@ -1,3 +1,4 @@
+import { HTTP_STATUS } from '@/constants/http'
 import { assertNever } from '@/utils/assertNever'
 import { HttpStatusError } from '@/utils/errors'
 import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
@@ -50,24 +51,35 @@ function transitionLndPaySend(
   }
 }
 
+// A proxy in front of LND answers these while LND itself may still pay.
+const GATEWAY_STATUSES = new Set<number>([
+  HTTP_STATUS.BAD_GATEWAY,
+  HTTP_STATUS.SERVICE_UNAVAILABLE,
+  HTTP_STATUS.GATEWAY_TIMEOUT
+])
+
+function isAnswerFromLnd(error: unknown): boolean {
+  if (error instanceof LndPaymentFailedError) {
+    return true
+  }
+  return error instanceof HttpStatusError && !GATEWAY_STATUSES.has(error.status)
+}
+
 /** The payment request left, but no answer says whether it paid. */
 class LndPayOutcomeUnknownError extends Error {
   override name = 'LndPayOutcomeUnknownError'
 }
 
 /**
- * Sends a payment request. LND keeps paying after a dropped connection or a
- * timeout, so any failure other than an HTTP error or a reported payment
- * failure leaves the outcome unknown and must not invite a second send.
+ * Sends a payment request. LND keeps paying after a dropped connection, a
+ * timeout or a gateway error, so any failure LND did not answer itself leaves
+ * the outcome unknown and must not invite a second send.
  */
 async function sendLndPayment<T>(send: () => Promise<T>): Promise<T> {
   try {
     return await send()
   } catch (error) {
-    if (
-      error instanceof HttpStatusError ||
-      error instanceof LndPaymentFailedError
-    ) {
+    if (isAnswerFromLnd(error)) {
       throw error
     }
     throw new LndPayOutcomeUnknownError('LND payment outcome unknown', {

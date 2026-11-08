@@ -76,6 +76,15 @@ describe('sendLndPayment', () => {
     await expect(outcomeOf(new Error('socket closed'))).resolves.toBe(true)
   })
 
+  it.each([502, 503, 504])(
+    'treats a %d from a gateway as an unknown outcome',
+    async (status) => {
+      await expect(
+        outcomeOf(new HttpStatusError(status, `LND API error: ${status}`))
+      ).resolves.toBe(true)
+    }
+  )
+
   it('treats an answer from LND as a known failure', async () => {
     await expect(
       outcomeOf(new HttpStatusError(500, 'LND API error: 500'))
