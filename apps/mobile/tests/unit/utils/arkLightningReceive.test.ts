@@ -6,13 +6,14 @@ function receive(state: ArkLightningReceive['state']): ArkLightningReceive {
 }
 
 describe('hasArkLightningReceiveArrived', () => {
-  it('waits while the invoice is unpaid', () => {
-    expect(hasArkLightningReceiveArrived(receive('awaiting-payment'))).toBe(
-      false
-    )
-  })
+  it.each(['awaiting-payment', 'htlcs-ready'])(
+    'waits while the payment can still be refunded (%s)',
+    (state) => {
+      expect(hasArkLightningReceiveArrived(receive(state))).toBe(false)
+    }
+  )
 
-  it.each(['htlcs-ready', 'preimage-revealed', 'delivering', 'settled'])(
+  it.each(['preimage-revealed', 'delivering', 'settled'])(
     'counts %s as arrived',
     (state) => {
       expect(hasArkLightningReceiveArrived(receive(state))).toBe(true)
