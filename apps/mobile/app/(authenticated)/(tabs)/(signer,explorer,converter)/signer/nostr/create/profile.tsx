@@ -177,6 +177,8 @@ export default function ProfileSetup() {
           <SSButton
             label={t('nostrIdentity.profile.save')}
             variant="secondary"
+            // Saving mid-upload would publish without the new image.
+            disabled={isPictureUploading}
             onPress={handleSave}
           />
         </SSVStack>
