@@ -18,6 +18,7 @@ import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
+import { useEcashAccountBuilderStore } from '@/store/ecashAccountBuilder'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
@@ -105,6 +106,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   deleteTags()
   useWalletsStore.getState().deleteWallets()
   useEcashStore.getState().clearAllData()
+  useEcashAccountBuilderStore.getState().clearAccount()
   useArkStore.getState().clearAllData()
   useArkSwapsStore.getState().clearAllData()
   useArkExitClaimsStore.getState().clearAllData()

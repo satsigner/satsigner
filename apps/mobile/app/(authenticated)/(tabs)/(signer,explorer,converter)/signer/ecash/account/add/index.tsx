@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -37,6 +37,10 @@ export default function EcashAccountAddPage() {
     createAccount,
     clearAccount
   } = useEcashAccountBuilder()
+
+  // The seed lives in a shared store; leaving the screen any way (hardware
+  // back, swipe) must not keep it in memory or pre-fill the next visit.
+  useEffect(() => clearAccount, [clearAccount])
 
   const { pasteFromClipboard } = useClipboardPaste({
     onPaste: (content: string) => {
