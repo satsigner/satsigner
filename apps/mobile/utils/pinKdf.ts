@@ -372,6 +372,21 @@ export async function applyPendingPinKdfCommit(): Promise<void> {
   await deleteItem(PIN_KDF_COMMIT_KEY)
 }
 
+/** The digest an interrupted commit will apply on the next PIN check. */
+export async function getPendingPinKdfCommitDigest(): Promise<
+  string | undefined
+> {
+  const raw = await getItem(PIN_KDF_COMMIT_KEY)
+  if (!raw) {
+    return undefined
+  }
+  return parsePinKdfCommit(raw)?.digest
+}
+
+export function discardPendingPinKdfCommit(): Promise<void> {
+  return deleteItem(PIN_KDF_COMMIT_KEY)
+}
+
 /**
  * Journals the digest, KDF and (on a PIN change) length together, so a crash
  * cannot leave the pad asking for a length the stored digest does not match.

@@ -168,6 +168,34 @@ describe('changePin', () => {
     expect(secureStore[sk(PIN_KEY)]).toBe(oldDigest)
   })
 
+  it('keeps the new PIN when only the commit journal landed', async () => {
+    function writeThrough(key: string, value: string) {
+      secureStore[key] = value
+      return Promise.resolve()
+    }
+    function keychainBusy() {
+      return Promise.reject(new Error('keychain busy'))
+    }
+    jest
+      .mocked(SecureStore.setItemAsync)
+      .mockImplementationOnce(writeThrough)
+      .mockImplementationOnce(writeThrough)
+      .mockImplementationOnce(keychainBusy)
+      .mockImplementationOnce(keychainBusy)
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('changed')
+
+    setSessionPinDigest(null)
+    await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
+      true
+    )
+    await expect(useAuthStore.getState().validatePin('2468')).resolves.toBe(
+      false
+    )
+  })
+
   it('reports the change once the commit is journaled even if cleanup fails', async () => {
     jest
       .mocked(SecureStore.deleteItemAsync)

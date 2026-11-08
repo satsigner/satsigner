@@ -5,6 +5,8 @@ import { getPin, getStoredPinLength } from '@/utils/pin'
 import {
   applyPendingPinKdfCommit,
   commitPinMaterial,
+  discardPendingPinKdfCommit,
+  getPendingPinKdfCommitDigest,
   type PinMaterial,
   pinMatchesDuressDigest,
   preparePinMaterial
@@ -20,22 +22,35 @@ type PinChangeResult =
   | 'reEncryptFailed'
 
 /**
- * Commits the new PIN, and decides by what actually landed when that throws:
- * once the commit journal holds the new digest the change is done (the next
- * PIN check finishes it), so only an earlier failure rolls the moved
- * secrets back to the old PIN.
+ * Decides a commit that threw by what actually landed. Once the stored PIN or
+ * the commit journal holds the new digest the change is done: the next PIN
+ * check applies the journal before it settles the re-key journal. Otherwise
+ * the commit journal is dropped first, so it can never apply after the moved
+ * secrets go back to the old PIN.
  */
+async function settleFailedCommit(material: PinMaterial): Promise<boolean> {
+  await applyPendingPinKdfCommit().catch(() => undefined)
+  const storedDigest = await getItem(PIN_KEY).catch(() => null)
+  if (storedDigest === material.digest) {
+    setSessionPinDigest(material.digest)
+    await clearPinRekeyJournal().catch(() => undefined)
+    return true
+  }
+  const journaledDigest = await getPendingPinKdfCommitDigest().catch(() => null)
+  if (journaledDigest === material.digest) {
+    setSessionPinDigest(material.digest)
+    return true
+  }
+  await discardPendingPinKdfCommit()
+  await applyPendingPinRekey().catch(() => undefined)
+  return false
+}
+
 async function commitOrRollBack(material: PinMaterial): Promise<boolean> {
   try {
     await commitPinMaterial(material)
   } catch {
-    await applyPendingPinKdfCommit().catch(() => undefined)
-    const storedDigest = await getItem(PIN_KEY).catch(() => null)
-    if (storedDigest !== material.digest) {
-      await applyPendingPinRekey().catch(() => undefined)
-      return false
-    }
-    setSessionPinDigest(material.digest)
+    return settleFailedCommit(material)
   }
   await clearPinRekeyJournal().catch(() => undefined)
   return true
