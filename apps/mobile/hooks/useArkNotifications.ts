@@ -7,16 +7,20 @@ import {
   subscribeArkNotifications,
   syncArkWallet
 } from '@/api/ark'
+import { ARK_SWAP_RUNNER_QUERY_KEY } from '@/constants/ark'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
 import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
+import { useArkSwapsStore } from '@/store/arkSwaps'
 import type {
   ArkAccount,
   ArkMovementEvent,
   ArkNotificationUnsubscribe
 } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
+import { shouldAnnounceArkReceive } from '@/utils/arkMovement'
+import { isArkSwapForwardedPayment } from '@/utils/arkSwap'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
 import { devLog, devStep } from '@/utils/devConsole'
 
@@ -61,7 +65,7 @@ function shouldSkipDuplicateReceiveEvent(key: string): boolean {
 }
 
 function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
-  if (event.type !== 'created' || event.effectiveBalanceSats <= 0) {
+  if (!shouldAnnounceArkReceive(event)) {
     return
   }
   const key = `${account.id}:${event.movementId}`
@@ -75,6 +79,23 @@ function notifyReceive(account: ArkAccount, event: ArkMovementEvent) {
     amountSats: event.effectiveBalanceSats,
     movementId: event.movementId
   })
+}
+
+// A swap's lightning payment is forwarded on-chain, so it advances the swap
+// instead of announcing a receive the user does not keep in Ark.
+function handleMovementEvent(
+  account: ArkAccount,
+  event: ArkMovementEvent,
+  queryClient: QueryClient
+) {
+  if (isArkSwapForwardedPayment(useArkSwapsStore.getState().jobs, event)) {
+    void queryClient.invalidateQueries(
+      { queryKey: ARK_SWAP_RUNNER_QUERY_KEY },
+      { cancelRefetch: false }
+    )
+    return
+  }
+  notifyReceive(account, event)
 }
 
 async function subscribeAccount(
@@ -120,7 +141,7 @@ async function subscribeAccount(
       (event) => {
         devLog('ark', `event ${event.type} ${account.name}`)
         scheduleAccountInvalidation(queryClient, account.id)
-        notifyReceive(account, event)
+        handleMovementEvent(account, event, queryClient)
       }
     )
     activeSubscriptions.set(account.id, unsubscribe)

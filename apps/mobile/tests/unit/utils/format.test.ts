@@ -1,9 +1,12 @@
+import { PRIVACY_MASK } from '@/constants/privacy'
+import { t } from '@/locales'
 import {
   formatAddress,
   formatBtc,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
+  formatMaskedSats,
   formatNostrCardDate,
   formatNpub,
   formatNumber,
@@ -228,5 +231,19 @@ describe('formatBtc', () => {
 
   it('rounds to eight decimals', () => {
     expect(formatBtc(0.123_456_789)).toBe('0.12345679')
+  })
+})
+
+describe('formatMaskedSats', () => {
+  it('labels the rounded amount in sats', () => {
+    expect(formatMaskedSats(1234.4, false)).toBe(
+      `${formatNumber(1234)} ${t('bitcoin.sats')}`
+    )
+  })
+
+  it('hides the amount in privacy mode', () => {
+    expect(formatMaskedSats(1234, true)).toBe(
+      `${PRIVACY_MASK} ${t('bitcoin.sats')}`
+    )
   })
 })

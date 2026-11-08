@@ -29,7 +29,10 @@ export function buildPaymentMethods(
       type: 'ecash'
     })
   }
-  for (const account of arkAccounts) {
+  const mainnetArkAccounts = arkAccounts.filter(
+    (account) => account.network === 'bitcoin'
+  )
+  for (const account of mainnetArkAccounts) {
     methods.push({
       accountId: account.id,
       detail: account.name,

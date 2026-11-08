@@ -12,6 +12,8 @@ import {
 import { clearNostrFollowCaches } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
+import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
@@ -101,6 +103,8 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useWalletsStore.getState().deleteWallets()
   useEcashStore.getState().clearAllData()
   useArkStore.getState().clearAllData()
+  useArkSwapsStore.getState().clearAllData()
+  useArkExitClaimsStore.getState().clearAllData()
   useTransactionBuilderStore.getState().clearAllData()
   await useNostrIdentityStore.getState().clearAll()
   useNostrStore.getState().clearAllNostrState()

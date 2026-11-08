@@ -107,6 +107,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions, assessment } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction()
     })
@@ -123,6 +124,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions, assessment } = getFeeReplacementOptions({
       account: account(),
       backend: 'esplora',
+      isArkBoardFunding: false,
       ownedOutpoints: new Set(),
       tx: transaction()
     })
@@ -134,6 +136,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions, assessment } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction({ blockHeight: 100 })
     })
@@ -145,6 +148,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions, assessment } = getFeeReplacementOptions({
       account: account({ policyType: 'watchonly' }),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction()
     })
@@ -152,10 +156,22 @@ describe('getFeeReplacementOptions', () => {
     expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: false })
   })
 
+  it('hides the replacement for an Ark board funding transaction', () => {
+    const { actions } = getFeeReplacementOptions({
+      account: account(),
+      backend: 'electrum',
+      isArkBoardFunding: true,
+      ownedOutpoints: OWNED_PREVIOUS,
+      tx: transaction()
+    })
+    expect(actions).toStrictEqual({ bump: false, cancel: false, cpfp: true })
+  })
+
   it('hides the replacement for a multisig account', () => {
     const { actions } = getFeeReplacementOptions({
       account: account({ policyType: 'multisig' }),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction()
     })
@@ -179,6 +195,7 @@ describe('getFeeReplacementOptions', () => {
         utxos: []
       }),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction()
     })
@@ -190,6 +207,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction({
         vout: [{ address: CHANGE, script: [], value: 90_000 }]
@@ -202,6 +220,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction({
         vout: [
@@ -217,6 +236,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions } = getFeeReplacementOptions({
       account: account(),
       backend: 'rpc',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction()
     })
@@ -227,6 +247,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction({ fee: undefined })
     })
@@ -237,6 +258,7 @@ describe('getFeeReplacementOptions', () => {
     const { actions } = getFeeReplacementOptions({
       account: account(),
       backend: 'electrum',
+      isArkBoardFunding: false,
       ownedOutpoints: OWNED_PREVIOUS,
       tx: transaction({ vsize: undefined })
     })
@@ -248,6 +270,7 @@ describe('getFeeReplacementOptions', () => {
       getFeeReplacementOptions({
         account: account({ excludedUtxoOutpoints: [`${TXID}:0`] }),
         backend: 'electrum',
+        isArkBoardFunding: false,
         ownedOutpoints: OWNED_PREVIOUS,
         tx: transaction()
       }).actions.cpfp
@@ -256,6 +279,7 @@ describe('getFeeReplacementOptions', () => {
       getFeeReplacementOptions({
         account: account({ utxos: [] }),
         backend: 'electrum',
+        isArkBoardFunding: false,
         ownedOutpoints: OWNED_PREVIOUS,
         tx: transaction()
       }).actions.cpfp

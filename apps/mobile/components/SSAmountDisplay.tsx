@@ -3,7 +3,7 @@ import { type StyleProp, type TextStyle } from 'react-native'
 
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
-import { text, type TextFontSize } from '@/styles/sizes'
+import { getDigitLineHeight, type TextFontSize } from '@/styles/sizes'
 
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
@@ -28,7 +28,7 @@ function SSAmountDisplay({
 }: SSAmountDisplayProps) {
   const { currency, letterSpacing, weight } = satTextProps
 
-  const maskStyle = { letterSpacing, lineHeight: text.fontSize[textSize] }
+  const maskStyle = { letterSpacing, lineHeight: getDigitLineHeight(textSize) }
 
   return (
     <>

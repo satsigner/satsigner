@@ -1,3 +1,4 @@
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { ArkAccount } from '@/types/models/Ark'
 import {
   collectArkBackup,
@@ -95,6 +96,7 @@ describe('collectArkBackup', () => {
     useArkStore.getState.mockReturnValue({
       accounts: [ACCOUNT],
       addAccount,
+      autoBoardDisabledIds: ['ark-1'],
       balances: {
         'ark-1': {
           claimableLightningReceiveSats: 0,
@@ -105,6 +107,7 @@ describe('collectArkBackup', () => {
           spendableSats: 100
         }
       },
+      boardFundingTxids: ['txid-board'],
       clearAllData,
       stats: {
         'ark-1': {
@@ -138,6 +141,8 @@ describe('collectArkBackup', () => {
     })
     expect(backup.balances?.['ark-1']?.spendableSats).toBe(100)
     expect(backup.stats?.['ark-1']?.numberOfVtxos).toBe(3)
+    expect(backup.boardFundingTxids).toStrictEqual(['txid-board'])
+    expect(backup.autoBoardDisabledIds).toStrictEqual(['ark-1'])
     expect(backup.datadirs).toBeUndefined()
   })
 
@@ -156,7 +161,9 @@ describe('collectArkBackup', () => {
 
 describe('restoreArkStoreFromBackup', () => {
   const addAccount = jest.fn()
+  const addBoardFundingTxid = jest.fn()
   const clearAllData = jest.fn()
+  const setAutoBoardEnabled = jest.fn()
   const updateBalance = jest.fn()
   const updateStats = jest.fn()
 
@@ -167,7 +174,9 @@ describe('restoreArkStoreFromBackup', () => {
     }
     useArkStore.getState.mockReturnValue({
       addAccount,
+      addBoardFundingTxid,
       clearAllData,
+      setAutoBoardEnabled,
       updateBalance,
       updateStats
     })
@@ -197,6 +206,26 @@ describe('restoreArkStoreFromBackup', () => {
     expect(addAccount).toHaveBeenCalledWith(ACCOUNT)
     expect(updateBalance).toHaveBeenCalledWith('ark-1', balance)
     expect(updateStats).toHaveBeenCalledWith('ark-1', stats)
+  })
+
+  it('restores the board funding guards and auto-board preferences', () => {
+    restoreArkStoreFromBackup({
+      accounts: [ACCOUNT],
+      autoBoardDisabledIds: ['ark-1'],
+      boardFundingTxids: ['txid-board']
+    })
+    expect(addBoardFundingTxid).toHaveBeenCalledWith('txid-board')
+    expect(setAutoBoardEnabled).toHaveBeenCalledWith('ark-1', false)
+  })
+
+  it('drops transaction drafts that could pay a board address', () => {
+    const builder = useTransactionBuilderStore.getState()
+    builder.setAccountId('btc-1')
+    builder.addOutput({ amount: 10_000, label: '', to: 'tb1qboard' })
+    expect(useTransactionBuilderStore.getState().drafts).toHaveProperty('btc-1')
+    restoreArkStoreFromBackup({ accounts: [ACCOUNT] })
+    expect(useTransactionBuilderStore.getState().drafts).toStrictEqual({})
+    expect(useTransactionBuilderStore.getState().outputs).toStrictEqual([])
   })
 
   it('clears the store when ark data is missing (old backup without ark)', () => {

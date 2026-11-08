@@ -1,65 +1,9 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { type Href } from 'expo-router'
 
-import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { t } from '@/locales'
-import { ensureBitcoinPrefix, stripBitcoinPrefix } from '@/utils/parse'
-import { hasPayjoinParam, parsePayjoinUri } from '@/utils/payjoinUri'
 import { extractTransactionIdFromPSBT } from '@/utils/psbt'
-
-function addressFromBitcoinUri(value: string): string {
-  const [address] = stripBitcoinPrefix(value.trim()).split('?')
-  return address.trim()
-}
-
-function fallbackBoardAmountSats(preferredAmountSats?: number): number {
-  if (
-    typeof preferredAmountSats === 'number' &&
-    preferredAmountSats >= DUST_LIMIT
-  ) {
-    return preferredAmountSats
-  }
-  return DUST_LIMIT
-}
-
-/**
- * Turns a board deposit address or a live Payjoin URI into the transaction
- * builder fields used by "Send from {linked wallet}".
- * Prefers an invoice amount, then a caller amount (e.g. min board), then dust
- * — never 1 sat, which skips fee-aware coin selection and lands underfunded.
- */
-function resolveArkBoardFundDestination(
-  destination: string,
-  preferredAmountSats?: number
-): {
-  address: string
-  amountSats: number
-  payjoinUri?: string
-} {
-  const fallbackAmountSats = fallbackBoardAmountSats(preferredAmountSats)
-  const uri = ensureBitcoinPrefix(destination)
-  const parsed = parsePayjoinUri(uri)
-  if (parsed.isValid && parsed.params?.address) {
-    const { amountBtc } = parsed.params
-    const invoiceAmountSats =
-      amountBtc && amountBtc > 0
-        ? Math.round(amountBtc * SATS_PER_BITCOIN)
-        : undefined
-    return {
-      address: parsed.params.address,
-      amountSats:
-        invoiceAmountSats && invoiceAmountSats >= DUST_LIMIT
-          ? invoiceAmountSats
-          : fallbackAmountSats,
-      payjoinUri: hasPayjoinParam(uri) ? uri : undefined
-    }
-  }
-
-  const address = addressFromBitcoinUri(destination)
-  return {
-    address: address || destination,
-    amountSats: fallbackAmountSats
-  }
-}
 
 function txidFromSignedDraft(
   signedPsbtBase64: string | undefined,
@@ -123,9 +67,13 @@ function isArkBoardPayjoinSend(
   return outputs.some((output) => output.label === payjoinLabel)
 }
 
+function arkBoardIoPreviewHref(accountId: string): Href {
+  return `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview?autoSelectFromUri=${AUTO_SELECT_FROM_URI_SEARCH_PARAM}`
+}
+
 export {
+  arkBoardIoPreviewHref,
   isArkBoardPayjoinSend,
   matchingUnbroadcastBoardTxid,
-  resolveArkBoardFundDestination,
   txidFromSignedDraft
 }

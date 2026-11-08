@@ -1,36 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { openArkWallet } from '@/api/ark'
-import { ensureArkDatadir } from '@/storage/arkDatadir'
-import { getArkMnemonic } from '@/storage/encrypted'
-import { getArkAccountOrThrow } from '@/store/ark'
-import { getArkServer } from '@/utils/ark'
-import { devLog, devStep } from '@/utils/devConsole'
-
-async function ensureWalletOpen(accountId: string): Promise<true> {
-  const account = getArkAccountOrThrow(accountId)
-
-  const server = getArkServer(account.network, account.serverId)
-  if (!server) {
-    throw new Error('Ark server configuration missing')
-  }
-
-  const mnemonic = await getArkMnemonic(accountId)
-  if (!mnemonic) {
-    throw new Error('Ark mnemonic not found in secure storage')
-  }
-
-  const datadir = await ensureArkDatadir(accountId)
-  await devStep('ark', `open wallet for screen ${account.name}`)
-  await openArkWallet({
-    accountId,
-    datadir,
-    mnemonic,
-    server
-  })
-  devLog('ark', `wallet open for screen ${account.name}`)
-  return true
-}
+import { ensureArkWalletOpen } from '@/services/arkWallet'
 
 export function useArkWallet(accountId: string | null | undefined) {
   return useQuery({
@@ -40,7 +10,7 @@ export function useArkWallet(accountId: string | null | undefined) {
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
-      return ensureWalletOpen(accountId)
+      return ensureArkWalletOpen(accountId)
     },
     queryKey: ['ark', 'wallet', accountId],
     staleTime: Infinity

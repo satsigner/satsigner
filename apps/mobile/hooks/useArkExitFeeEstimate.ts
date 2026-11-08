@@ -1,51 +1,82 @@
-import { useQuery } from '@tanstack/react-query'
-import { useShallow } from 'zustand/react/shallow'
+import { skipToken, useQuery } from '@tanstack/react-query'
 
-import useMempoolOracle from '@/hooks/useMempoolOracle'
-import { useArkStore } from '@/store/ark'
-import type { ArkVtxo } from '@/types/models/Ark'
-import { estimateArkExitFeeSats } from '@/utils/ark'
+import { estimateArkEmergencyExitFee } from '@/api/ark'
+import {
+  ARK_EXIT_POLL_INTERVAL_MS,
+  ARK_QUERY_STALE_TIME_MS
+} from '@/constants/ark'
+import { getArkAccountOrThrow } from '@/store/ark'
+import { getArkExitFunding } from '@/utils/arkExit'
 
-const EXIT_FEE_ESTIMATE_STALE_MS = 60_000
-const EXIT_FEE_RATE_PRIORITY = 'medium' as const
-
-export type ArkExitFeeEstimate = {
-  feeSats: number
-  feeRateSatPerVb: number
-  vtxoCount: number
-}
+import { useArkOnchainBalance } from './useArkBoard'
+import { useArkWallet } from './useArkWallet'
 
 type UseArkExitFeeEstimateArgs = {
   accountId: string | null | undefined
-  vtxos: ArkVtxo[]
+  vtxoIds: string[]
+  enabled: boolean
+  // Keeps the estimate fresh while the exits it covers are under way, since
+  // fee rates move on their own.
+  poll?: boolean
+}
+
+export function arkExitFeeEstimateQueryKey(
+  accountId: string | null | undefined
+) {
+  return ['ark', 'exit-fee-estimate', accountId]
+}
+
+/** What exiting the given VTXOs would cost. */
+export function useArkExitFeeEstimate({
+  accountId,
+  vtxoIds,
+  enabled,
+  poll = false
+}: UseArkExitFeeEstimateArgs) {
+  const { data: walletReady } = useArkWallet(accountId)
+  const sortedIds = vtxoIds.toSorted()
+  const ready = enabled && walletReady && accountId && sortedIds.length > 0
+  return useQuery({
+    queryFn: ready
+      ? () =>
+          estimateArkEmergencyExitFee(
+            getArkAccountOrThrow(accountId).serverId,
+            accountId,
+            sortedIds
+          )
+      : skipToken,
+    queryKey: [...arkExitFeeEstimateQueryKey(accountId), sortedIds],
+    refetchInterval: poll ? ARK_EXIT_POLL_INTERVAL_MS : false,
+    retry: false,
+    staleTime: ARK_QUERY_STALE_TIME_MS
+  })
+}
+
+type UseArkExitFeeFundingArgs = {
+  accountId: string | null | undefined
+  exitBroadcastFeeSats: number | undefined
   enabled: boolean
 }
 
-export function useArkExitFeeEstimate({
+/**
+ * How much the on-chain wallet that pays the exit transactions' fees is short
+ * of them. Read apart from the fee, so a slow or failed wallet sync never
+ * holds the fee back.
+ */
+export function useArkExitFeeFunding({
   accountId,
-  vtxos,
+  exitBroadcastFeeSats,
   enabled
-}: UseArkExitFeeEstimateArgs) {
-  const account = useArkStore(
-    useShallow((state) => state.accounts.find((a) => a.id === accountId))
-  )
-  const oracle = useMempoolOracle(account?.network)
-  const sortedIds = vtxos.map((vtxo) => vtxo.id).toSorted()
-
-  return useQuery<ArkExitFeeEstimate, Error>({
-    enabled: enabled && Boolean(account) && vtxos.length > 0,
-    queryFn: async () => {
-      const feeRateSatPerVb = await oracle.getCurrentFeeRate(
-        EXIT_FEE_RATE_PRIORITY
-      )
-      return {
-        feeRateSatPerVb,
-        feeSats: estimateArkExitFeeSats(vtxos, feeRateSatPerVb),
-        vtxoCount: vtxos.length
-      }
-    },
-    queryKey: ['ark', 'exit-fee-estimate', accountId, sortedIds],
-    retry: false,
-    staleTime: EXIT_FEE_ESTIMATE_STALE_MS
-  })
+}: UseArkExitFeeFundingArgs) {
+  const balanceQuery = useArkOnchainBalance(accountId, { enabled })
+  const balance = balanceQuery.data
+  const funding =
+    exitBroadcastFeeSats === undefined || !balance
+      ? undefined
+      : getArkExitFunding({
+          exitBroadcastFeeSats,
+          onchainConfirmedSats: balance.confirmedSats,
+          onchainPendingSats: balance.pendingSats
+        })
+  return { balanceQuery, funding }
 }

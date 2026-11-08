@@ -134,6 +134,10 @@ function formatMaskedNumber(n: number, privacyMode: boolean) {
   return privacyMode ? PRIVACY_MASK : formatNumber(Math.round(n))
 }
 
+function formatMaskedSats(sats: number, privacyMode: boolean) {
+  return `${formatMaskedNumber(sats, privacyMode)} ${t('bitcoin.sats')}`
+}
+
 /**
  * Chart / UI fee-rate label. Sub-1 sat/vB must not round to "0".
  * Below 1 → two decimals (e.g. 0.39); below 10 with a fraction → one decimal;
@@ -494,6 +498,7 @@ export {
   formatLargeNumber,
   formatLnKey,
   formatMaskedNumber,
+  formatMaskedSats,
   formatNostrCardDate,
   formatNpub,
   formatNumber,

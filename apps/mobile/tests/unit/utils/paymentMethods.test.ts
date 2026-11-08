@@ -45,15 +45,23 @@ describe('buildPaymentMethods', () => {
   })
 
   it('includes ark accounts with structured accountId', () => {
-    const account = arkAccount({ id: 'abc-123', name: 'Signet Ark' })
+    const account = arkAccount({ id: 'abc-123', name: 'Main Ark' })
     const methods = buildPaymentMethods(null, [], {}, [account])
     expect(methods).toHaveLength(1)
     expect(methods[0]).toMatchObject({
       accountId: 'abc-123',
-      detail: 'Signet Ark',
+      detail: 'Main Ark',
       id: 'ark-abc-123',
       type: 'ark'
     })
+  })
+
+  it('leaves out ark accounts that are not on mainnet', () => {
+    const methods = buildPaymentMethods(null, [], {}, [
+      arkAccount({ id: 'main' }),
+      arkAccount({ id: 'test', network: 'signet' })
+    ])
+    expect(methods.map((m) => m.accountId)).toStrictEqual(['main'])
   })
 
   it('combines all sources in lightning, ecash, ark order', () => {

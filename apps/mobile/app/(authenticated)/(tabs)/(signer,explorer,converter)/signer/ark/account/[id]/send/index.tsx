@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -40,11 +40,6 @@ export default function ArkSendEntryPage() {
 
   return (
     <SSMainLayout>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{t('ark.send.title')}</SSText>
-        }}
-      />
       <SSScrollView>
         <SSVStack gap="lg" style={styles.container}>
           <SSVStack gap="xs">
