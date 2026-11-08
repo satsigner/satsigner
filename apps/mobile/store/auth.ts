@@ -182,8 +182,11 @@ const useAuthStore = create<AuthState & AuthAction>()(
         }
         const kdf = getBestAvailableKdf()
         const encryptedPin = await derivePinDigest(pin, salt, kdf)
-        await setItem(DURESS_PIN_KEY, encryptedPin)
+        // A stored digest must never sit next to another PIN's KDF config:
+        // drop the old digest, write the config, then the new digest.
+        await deleteItem(DURESS_PIN_KEY)
         await storeKdfConfig(kdf, DURESS_KDF_KEY)
+        await setItem(DURESS_PIN_KEY, encryptedPin)
         await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
         set({ duressPinEnabled: true })
       },
