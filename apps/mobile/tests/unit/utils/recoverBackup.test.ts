@@ -72,6 +72,15 @@ jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
 jest.mock<typeof import('@/store/ark')>('@/store/ark', () => ({
   useArkStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<typeof import('@/store/arkExitClaims')>(
+  '@/store/arkExitClaims',
+  () => ({
+    useArkExitClaimsStore: { getState: jest.fn(), setState: jest.fn() }
+  })
+)
+jest.mock<typeof import('@/store/arkSwaps')>('@/store/arkSwaps', () => ({
+  useArkSwapsStore: { getState: jest.fn(), setState: jest.fn() }
+}))
 jest.mock<typeof import('@/store/blockchain')>('@/store/blockchain', () => ({
   useBlockchainStore: { getState: jest.fn(), setState: jest.fn() }
 }))
@@ -93,6 +102,12 @@ jest.mock<typeof import('@/store/nostrIdentity')>(
 jest.mock<typeof import('@/store/settings')>('@/store/settings', () => ({
   useSettingsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<typeof import('@/store/transactionBuilder')>(
+  '@/store/transactionBuilder',
+  () => ({
+    useTransactionBuilderStore: { getState: jest.fn(), setState: jest.fn() }
+  })
+)
 jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
   useWalletsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
@@ -988,6 +1003,45 @@ describe('performRecoverOverwrite restore', () => {
     )
     expect(encrypted.deleteNostrIdentitySecret).toHaveBeenCalledWith(
       'npub1backup'
+    )
+  })
+
+  it('puts ark swap jobs, exit claims and drafts back when the restore fails', async () => {
+    const { storeKeySecret } = jest.requireMock('@/storage/encrypted') as {
+      storeKeySecret: jest.Mock
+    }
+    const { useArkSwapsStore } = jest.requireMock('@/store/arkSwaps') as {
+      useArkSwapsStore: { getState: jest.Mock; setState: jest.Mock }
+    }
+    const { useArkExitClaimsStore } = jest.requireMock(
+      '@/store/arkExitClaims'
+    ) as {
+      useArkExitClaimsStore: { getState: jest.Mock; setState: jest.Mock }
+    }
+    const { useTransactionBuilderStore } = jest.requireMock(
+      '@/store/transactionBuilder'
+    ) as {
+      useTransactionBuilderStore: { getState: jest.Mock; setState: jest.Mock }
+    }
+    const swaps = { jobs: [{ id: 'swap-1' }] }
+    const exitClaims = { claims: [{ id: 'claim-1' }] }
+    const draft = { inputs: [{ txid: 'draft-input' }] }
+    useArkSwapsStore.getState.mockReturnValue(swaps)
+    useArkExitClaimsStore.getState.mockReturnValue(exitClaims)
+    useTransactionBuilderStore.getState.mockReturnValue(draft)
+    storeKeySecret.mockRejectedValueOnce(new Error('keychain full'))
+
+    const result = await performRecoverOverwrite(minimalBackup())
+
+    expect(result).toStrictEqual({ error: 'keychain full', success: false })
+    expect(useArkSwapsStore.setState).toHaveBeenCalledWith(swaps, true)
+    expect(useArkExitClaimsStore.setState).toHaveBeenCalledWith(
+      exitClaims,
+      true
+    )
+    expect(useTransactionBuilderStore.setState).toHaveBeenCalledWith(
+      draft,
+      true
     )
   })
 

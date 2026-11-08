@@ -8,12 +8,15 @@ import {
 } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
+import { useArkExitClaimsStore } from '@/store/arkExitClaims'
+import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { WordListNameSchema } from '@/types/bips/39'
 import type { Label } from '@/types/bips/329'
@@ -145,12 +148,15 @@ type PreparedRestore = {
 type StoreSnapshot = {
   accounts: ReturnType<typeof useAccountsStore.getState>
   ark: ReturnType<typeof useArkStore.getState>
+  arkExitClaims: ReturnType<typeof useArkExitClaimsStore.getState>
+  arkSwaps: ReturnType<typeof useArkSwapsStore.getState>
   blockchain: ReturnType<typeof useBlockchainStore.getState>
   ecash: ReturnType<typeof useEcashStore.getState>
   lightning: ReturnType<typeof useLightningStore.getState>
   nostr: ReturnType<typeof useNostrStore.getState>
   nostrIdentity: ReturnType<typeof useNostrIdentityStore.getState>
   settings: ReturnType<typeof useSettingsStore.getState>
+  transactionBuilder: ReturnType<typeof useTransactionBuilderStore.getState>
   wallets: ReturnType<typeof useWalletsStore.getState>
 }
 
@@ -395,12 +401,15 @@ function snapshotStores(): StoreSnapshot {
   return {
     accounts: useAccountsStore.getState(),
     ark: useArkStore.getState(),
+    arkExitClaims: useArkExitClaimsStore.getState(),
+    arkSwaps: useArkSwapsStore.getState(),
     blockchain: useBlockchainStore.getState(),
     ecash: useEcashStore.getState(),
     lightning: useLightningStore.getState(),
     nostr: useNostrStore.getState(),
     nostrIdentity: useNostrIdentityStore.getState(),
     settings: useSettingsStore.getState(),
+    transactionBuilder: useTransactionBuilderStore.getState(),
     wallets: useWalletsStore.getState()
   }
 }
@@ -408,12 +417,15 @@ function snapshotStores(): StoreSnapshot {
 function rollbackStores(snap: StoreSnapshot): void {
   useAccountsStore.setState(snap.accounts, true)
   useArkStore.setState(snap.ark, true)
+  useArkExitClaimsStore.setState(snap.arkExitClaims, true)
+  useArkSwapsStore.setState(snap.arkSwaps, true)
   useBlockchainStore.setState(snap.blockchain, true)
   useEcashStore.setState(snap.ecash, true)
   useLightningStore.setState(snap.lightning, true)
   useNostrStore.setState(snap.nostr, true)
   useNostrIdentityStore.setState(snap.nostrIdentity, true)
   useSettingsStore.setState(snap.settings, true)
+  useTransactionBuilderStore.setState(snap.transactionBuilder, true)
   useWalletsStore.setState(snap.wallets, true)
 }
 
