@@ -6,6 +6,7 @@ import {
   ARK_SWAP_RETRY_BASE_DELAY_MS,
   ARK_SWAP_RETRY_MAX_DELAY_MS,
   ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_STALE_BOARDING_MS,
   ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -15,7 +16,8 @@ import {
 } from '@/constants/lightning'
 import {
   type ArkLightningToOnchainJob,
-  type ArkOnchainToLightningJob
+  type ArkOnchainToLightningJob,
+  type ArkSwapJob
 } from '@/types/models/ArkSwap'
 import {
   type ArkSwapForm,
@@ -328,13 +330,28 @@ describe('job predicates', () => {
   })
 
   it('lets only jobs with nothing in flight be dismissed', () => {
-    expect(canDismissArkSwapJob({ status: 'awaitingFunding' })).toBe(true)
-    expect(canDismissArkSwapJob({ status: 'awaitingInvoice' })).toBe(true)
-    expect(canDismissArkSwapJob({ status: 'failed' })).toBe(true)
-    expect(canDismissArkSwapJob({ status: 'boarding' })).toBe(false)
-    expect(canDismissArkSwapJob({ status: 'paying' })).toBe(false)
-    expect(canDismissArkSwapJob({ status: 'sending' })).toBe(false)
-    expect(canDismissArkSwapJob({ status: 'awaitingPayment' })).toBe(false)
+    const now = 1000
+    const dismissible = (status: ArkSwapJob['status']) =>
+      canDismissArkSwapJob({ status, updatedAt: now }, now)
+    expect(dismissible('awaitingFunding')).toBe(true)
+    expect(dismissible('awaitingInvoice')).toBe(true)
+    expect(dismissible('failed')).toBe(true)
+    expect(dismissible('boarding')).toBe(false)
+    expect(dismissible('paying')).toBe(false)
+    expect(dismissible('sending')).toBe(false)
+    expect(dismissible('awaitingPayment')).toBe(false)
+  })
+
+  it('lets a board that never confirmed be dismissed once it is stale', () => {
+    const job: Pick<ArkSwapJob, 'status' | 'updatedAt'> = {
+      status: 'boarding',
+      updatedAt: 0
+    }
+
+    expect(canDismissArkSwapJob(job, ARK_SWAP_STALE_BOARDING_MS - 1)).toBe(
+      false
+    )
+    expect(canDismissArkSwapJob(job, ARK_SWAP_STALE_BOARDING_MS)).toBe(true)
   })
 
   it('takes a late invoice only for boards waiting for one or after a failed payment', () => {
@@ -355,6 +372,16 @@ describe('job predicates', () => {
     ).toBe(false)
     expect(
       canSubmitArkSwapInvoice({ ...LIGHTNING_TO_ONCHAIN_JOB, status: 'failed' })
+    ).toBe(false)
+  })
+
+  it('takes no invoice for a swap whose board exited', () => {
+    expect(
+      canSubmitArkSwapInvoice({
+        ...ONCHAIN_TO_LIGHTNING_JOB,
+        boardExited: true,
+        status: 'failed'
+      })
     ).toBe(false)
   })
 
