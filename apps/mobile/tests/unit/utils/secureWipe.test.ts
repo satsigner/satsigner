@@ -20,6 +20,7 @@ import {
 import { useAuthStore } from '@/store/auth'
 import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import * as devConsole from '@/utils/devConsole'
 import { getPin } from '@/utils/pin'
@@ -93,6 +94,14 @@ describe('secureWipeAfterMaxPinTries', () => {
 
     expect(useAuthStore.getState().pendingRecoverData).toBeNull()
     expect(useAuthStore.getState().pageHistory).toStrictEqual([])
+  })
+
+  it('drops the seed of a nostr identity that was being created', async () => {
+    useNostrIdentityDraftStore.getState().setDraftMnemonic('abandon about')
+
+    await secureWipeAllWalletData()
+
+    expect(useNostrIdentityDraftStore.getState().mnemonic).toBeNull()
   })
 
   it('clears the nostr event cache and dedupe tables', async () => {

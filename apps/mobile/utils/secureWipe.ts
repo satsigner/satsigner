@@ -21,6 +21,7 @@ import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import { useNostrVideoStore } from '@/store/nostrVideo'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
@@ -109,6 +110,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useArkExitClaimsStore.getState().clearAllData()
   useTransactionBuilderStore.getState().clearAllData()
   await useNostrIdentityStore.getState().clearAll()
+  useNostrIdentityDraftStore.getState().clearDraft()
   useNostrStore.getState().clearAllNostrState()
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
