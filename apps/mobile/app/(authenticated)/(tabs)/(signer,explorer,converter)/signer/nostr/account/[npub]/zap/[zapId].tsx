@@ -44,7 +44,19 @@ type ZapParams = {
   zapId: string
 }
 
-type LoadState = 'idle' | 'loading' | 'error' | 'ready'
+type LoadState = 'loading' | 'error' | 'ready'
+
+// A receipt query that cannot run (no identity, key or relays) never leaves
+// pending in TanStack v5, so it must read as an error rather than loading.
+function getZapLoadState(
+  canLoad: boolean,
+  query: { isPending: boolean; isError: boolean }
+): LoadState {
+  if (!canLoad || query.isError) {
+    return 'error'
+  }
+  return query.isPending ? 'loading' : 'ready'
+}
 
 type ReferencedNotePreview = {
   content: string
@@ -64,13 +76,14 @@ export default function NostrZapDetail() {
   const relaysKey = getNostrContactsRelaysKey(effectiveRelays)
   const profileHex = npub ? getPubKeyHexFromNpub(npub) : null
 
+  const canLoadReceipt =
+    !!npub &&
+    !!zapId &&
+    !!identity &&
+    !!profileHex &&
+    effectiveRelays.length > 0
   const receiptQuery = useQuery({
-    enabled:
-      !!npub &&
-      !!zapId &&
-      !!identity &&
-      !!profileHex &&
-      effectiveRelays.length > 0,
+    enabled: canLoadReceipt,
     queryFn: async () => {
       const r = await fetchZapReceiptById(zapId, profileHex, effectiveRelays)
       if (!r) {
@@ -114,13 +127,7 @@ export default function NostrZapDetail() {
 
   const referencedNote = referencedNoteQuery.data ?? null
 
-  const loadState: LoadState = receiptQuery.isPending
-    ? 'loading'
-    : receiptQuery.isError
-      ? 'error'
-      : receiptQuery.isSuccess
-        ? 'ready'
-        : 'idle'
+  const loadState = getZapLoadState(canLoadReceipt, receiptQuery)
 
   async function handleOpenReferencedNote() {
     if (!receipt?.zappedEventId || !npub || !identity) {
