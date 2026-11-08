@@ -296,7 +296,10 @@ export default function SignTransaction() {
     useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
-  const currentConfig = configs[selectedNetwork]
+  // The selected network can differ from the account's (Ark account tabs do
+  // not switch it), and a transaction must reach its own network's server.
+  const accountNetwork = account?.network ?? selectedNetwork
+  const currentConfig = configs[accountNetwork]
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
@@ -343,7 +346,7 @@ export default function SignTransaction() {
         inputs,
         outputs,
         rawTx,
-        selectedNetwork
+        accountNetwork
       )
 
   // The store's psbt may be a mock without txid() — derive from the PSBT
@@ -392,7 +395,7 @@ export default function SignTransaction() {
     if (currentConfig.server.backend === 'electrum') {
       const electrumClient = await ElectrumClient.initClientFromUrl(
         currentConfig.server.url,
-        selectedNetwork
+        accountNetwork
       )
       await electrumClient.broadcastTransactionHex(signedTx)
       electrumClient.close()
