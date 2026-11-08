@@ -255,17 +255,14 @@ export default function PayPage() {
     showError(error)
   }
 
-  function finishLightningSend(paid: boolean) {
-    if (!paid) {
+  function finishLightningSend(paidInvoice: string | null) {
+    if (!paidInvoice) {
       sendPayEvent({ outcomeUnknown: false, type: 'failed' })
       return
     }
     sendPayEvent({ type: 'succeeded' })
     toast.success(t('lightning.pay.paymentSent'))
-    const { pendingZap, setZapResult } = useZapFlowStore.getState()
-    if (pendingZap) {
-      setZapResult('success')
-    }
+    useZapFlowStore.getState().reportZapOutcome(paidInvoice, 'success')
     router.back()
   }
 
@@ -302,19 +299,20 @@ export default function PayPage() {
       return
     }
     try {
-      const paid = await sendLightningPayment()
-      finishLightningSend(paid)
+      const paidInvoice = await sendLightningPayment()
+      finishLightningSend(paidInvoice)
     } catch (error) {
       failSend(error, showLightningPaymentError)
     }
   }
 
-  const sendLightningPayment = async () => {
+  // Resolves to the invoice that was paid, or null when nothing was sent.
+  const sendLightningPayment = async (): Promise<string | null> => {
     if (isLNURLMode) {
       const amountSats = parsePositiveSats(amount)
       if (amountSats === null) {
         toast.error(t('lightning.pay.validAmount'))
-        return false
+        return null
       }
       const invoice = await handleLNURLPay(
         paymentRequest,
@@ -322,17 +320,19 @@ export default function PayPage() {
         comment || undefined
       )
       await payInvoice(invoice)
-    } else if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
+      return invoice
+    }
+    if (decodedInvoice && isAmountlessBolt11Invoice(decodedInvoice)) {
       const amountSats = parsePositiveSats(amount)
       if (amountSats === null) {
         toast.error(t('lightning.pay.validAmount'))
-        return false
+        return null
       }
       await payInvoice(paymentRequest, amountSats)
-    } else {
-      await payInvoice(paymentRequest)
+      return paymentRequest
     }
-    return true
+    await payInvoice(paymentRequest)
+    return paymentRequest
   }
 
   const handleContentScanned = (content: DetectedContent) => {

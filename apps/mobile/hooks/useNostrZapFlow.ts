@@ -103,8 +103,8 @@ function useNostrZapFlow({
     if (!zapResult || !ownsPendingZap) {
       return
     }
-    const { clearPendingZap, setZapResult } = useZapFlowStore.getState()
-    if (zapResult === 'success') {
+    const { clearPendingZap, clearZapResult } = useZapFlowStore.getState()
+    if (zapResult.outcome === 'success') {
       toast.success(
         `${t('nostrIdentity.note.zapSuccess')} (${
           privacyMode ? NOSTR_PRIVACY_MASK : pendingZap.amountSats
@@ -114,7 +114,7 @@ function useNostrZapFlow({
     }
     startedInvoiceRef.current = null
     clearPendingZap()
-    setZapResult(null)
+    clearZapResult()
   }, [zapResult]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function navigateToPayment(method: PaymentMethod) {

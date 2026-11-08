@@ -191,9 +191,10 @@ export function useEcashSend() {
     setInvoice('')
     setAmount('')
     toast.success(t('ecash.success.tokensMelted'))
-    const { pendingZap, setZapResult } = useZapFlowStore.getState()
-    if (pendingZap) {
-      setZapResult('success')
+    const isZap = useZapFlowStore
+      .getState()
+      .reportZapOutcome(bolt11Invoice, 'success')
+    if (isZap) {
       router.back()
     } else {
       router.navigate('/signer/ecash')
