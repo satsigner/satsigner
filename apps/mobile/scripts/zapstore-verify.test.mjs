@@ -39,6 +39,13 @@ test('a release is live only when every event is saved and the apk downloads', (
     isLive(EVENTS, { apkStatus: 200, savedIds: new Set(['app-id']) }),
     false
   )
+  assert.equal(
+    isLive(EVENTS, {
+      apkStatus: 200,
+      savedIds: new Set(['app-id', 'asset-id'])
+    }),
+    false
+  )
 })
 
 test('the status names each missing piece and the store page', () => {
