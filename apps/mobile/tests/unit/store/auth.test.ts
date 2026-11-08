@@ -10,7 +10,11 @@ import {
   PIN_LENGTH_KEY,
   SALT_KEY
 } from '@/config/auth'
-import { applyColdStartLock, useAuthStore } from '@/store/auth'
+import {
+  applyColdStartLock,
+  migrateAuthPersistedState,
+  useAuthStore
+} from '@/store/auth'
 import { getPin } from '@/utils/pin'
 import { commitPinMaterial, parseKdf, preparePinMaterial } from '@/utils/pinKdf'
 import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
@@ -178,5 +182,25 @@ describe('auth store - setPinMaxTries', () => {
     useAuthStore.getState().setPinMaxTries(4)
 
     expect(useAuthStore.getState().pinTries).toBe(1)
+  })
+})
+
+describe('auth store - persisted state migration', () => {
+  it('brings failures persisted at the limit back below it once', () => {
+    expect(
+      migrateAuthPersistedState({ pinMaxTries: 3, pinTries: 3 }, 0)
+    ).toStrictEqual({ pinMaxTries: 3, pinTries: 2 })
+  })
+
+  it('keeps failures already below the limit', () => {
+    expect(
+      migrateAuthPersistedState({ pinMaxTries: 5, pinTries: 2 }, 0)
+    ).toStrictEqual({ pinMaxTries: 5, pinTries: 2 })
+  })
+
+  it('leaves state from the current version untouched', () => {
+    expect(
+      migrateAuthPersistedState({ pinMaxTries: 3, pinTries: 3 }, 1)
+    ).toStrictEqual({ pinMaxTries: 3, pinTries: 3 })
   })
 })

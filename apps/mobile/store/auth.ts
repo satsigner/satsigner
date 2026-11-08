@@ -20,7 +20,9 @@ import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
 import { randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
+import { clampPinTries } from '@/utils/pinAttempts'
 import {
   commitPinMaterial,
   derivePinDigest,
@@ -89,6 +91,24 @@ type AuthAction = {
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
   setPendingRecoverData: (data: string | null) => void
   setRequirePinMigration: (requirePinMigration: boolean) => void
+}
+
+const AUTH_PERSIST_VERSION = 1
+
+/**
+ * Version 1 brings failed tries persisted at the limit back below it once:
+ * lowering the limit used to keep the count, so the next correct PIN would
+ * have wiped the wallet.
+ */
+function migrateAuthPersistedState(persisted: unknown, version: number) {
+  if (version >= AUTH_PERSIST_VERSION || !isRecord(persisted)) {
+    return persisted
+  }
+  const { pinMaxTries, pinTries } = persisted
+  if (typeof pinTries !== 'number' || typeof pinMaxTries !== 'number') {
+    return persisted
+  }
+  return { ...persisted, pinTries: clampPinTries(pinTries, pinMaxTries) }
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -215,12 +235,10 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const material = await preparePinMaterial(pin)
         await commitPinMaterial(material)
       },
-      // Lowering the limit must leave at least one try: reaching it wipes the
-      // wallet before any PIN is checked, so the correct PIN would wipe too.
       setPinMaxTries: (maxTries) => {
         set((state) => ({
           pinMaxTries: maxTries,
-          pinTries: Math.min(state.pinTries, Math.max(0, maxTries - 1))
+          pinTries: clampPinTries(state.pinTries, maxTries)
         }))
       },
       setRequirePinMigration: (requirePinMigration) => {
@@ -250,6 +268,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       }
     }),
     {
+      migrate: migrateAuthPersistedState,
       name: 'satsigner-auth',
       onRehydrateStorage: () => (state) => {
         if (!state) {
@@ -270,9 +289,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
         return rest
       },
       storage: createJSONStorage(() => mmkvStorage),
-      version: 0
+      version: AUTH_PERSIST_VERSION
     }
   )
 )
 
-export { applyColdStartLock, useAuthStore }
+export { applyColdStartLock, migrateAuthPersistedState, useAuthStore }

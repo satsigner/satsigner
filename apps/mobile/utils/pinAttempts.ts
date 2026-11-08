@@ -11,4 +11,12 @@ function toPinAttempts(failed: number, maxTries: number): PinAttempts {
   return left > 0 ? { left, status: 'counting' } : { status: 'exhausted' }
 }
 
-export { type PinAttempts, toPinAttempts }
+/**
+ * Failures counted against a limit, kept below it: reaching the limit wipes
+ * the wallet before any PIN is checked, so the correct PIN would wipe too.
+ */
+function clampPinTries(failed: number, maxTries: number): number {
+  return Math.min(failed, Math.max(0, maxTries - 1))
+}
+
+export { clampPinTries, type PinAttempts, toPinAttempts }
