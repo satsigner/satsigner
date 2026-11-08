@@ -395,6 +395,7 @@ const useTransactionBuilderStore = create<
             : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
           isPsbtPrebuilt: false,
           outputs: newDraft?.outputs ?? [],
+          payjoinUri: undefined,
           psbt: undefined,
           rbf: newDraft?.rbf ?? true,
           replacesTxid: newDraft?.replacesTxid,
@@ -408,8 +409,15 @@ const useTransactionBuilderStore = create<
           timeLock: newDraft?.timeLock ?? 0
         })
       },
+      // A broadcast transaction is done: its draft must not come back as
+      // "ready to broadcast" after a restart or an account switch.
       setBroadcasted: (broadcasted) => {
-        set({ broadcasted })
+        set((state) => {
+          state.broadcasted = broadcasted
+          if (broadcasted && state.accountId) {
+            delete state.drafts[state.accountId]
+          }
+        })
       },
       setFee: (fee) => {
         set((state) => {
@@ -437,6 +445,9 @@ const useTransactionBuilderStore = create<
       },
       setRbf: (rbf) => {
         set((state) => {
+          if (state.rbf !== rbf) {
+            clearSignedDraftFields(state)
+          }
           state.rbf = rbf
           syncDraft(state)
         })
