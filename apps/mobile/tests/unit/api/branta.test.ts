@@ -50,8 +50,7 @@ describe('lookupBrantaPayee', () => {
     useSettingsStore.setState({
       brantaLabelSyncEnabled: false,
       brantaLookupMode: 'off',
-      brantaLookupWarningDismissed: false,
-      brantaTorEnabled: false
+      brantaLookupWarningDismissed: false
     })
   })
 

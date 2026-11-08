@@ -19,7 +19,6 @@ import {
   type BrantaPayee
 } from '@/types/models/Branta'
 import { toBrantaPayee } from '@/utils/brantaPayee'
-import { createBrantaTorFetch } from '@/utils/brantaTorFetch'
 
 type BrantaLookupClient = Pick<BrantaService, 'verify'>
 
@@ -29,7 +28,6 @@ type BrantaLookupResult = {
 }
 
 let service: BrantaService | undefined
-let serviceKey = ''
 let lookupPermits = 0
 
 function allowBrantaLookup() {
@@ -75,16 +73,11 @@ function brantaEnvironment() {
  * every other build uses staging.
  */
 function getBrantaService(): BrantaService {
-  const torEnabled = useSettingsStore.getState().brantaTorEnabled
-  const environment = brantaEnvironment()
-  const key = `${environment}:${torEnabled}`
-  if (!service || serviceKey !== key) {
+  if (!service) {
     service = new BrantaService({
       crypto: createNobleCryptoProvider({ gcm, hmac, randomBytes, sha256 }),
-      environment,
-      ...(torEnabled ? { fetchImpl: createBrantaTorFetch() } : {})
+      environment: brantaEnvironment()
     })
-    serviceKey = key
   }
   return service
 }

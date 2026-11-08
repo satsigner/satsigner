@@ -32,7 +32,6 @@ function SSBrantaLookupModal() {
     brantaLookupGateOpen,
     brantaLookupGateOpen
   )
-  const torEnabled = useSettingsStore((state) => state.brantaTorEnabled)
 
   return (
     <SSModal visible={open} showLabel={false} onClose={cancelLookup}>
@@ -40,11 +39,7 @@ function SSBrantaLookupModal() {
         <SSText uppercase weight="medium">
           {t('settings.branta.lookupTitle')}
         </SSText>
-        <SSText color="muted">
-          {torEnabled
-            ? t('settings.branta.lookupWarningTor')
-            : t('settings.branta.lookupWarningClearnet')}
-        </SSText>
+        <SSText color="muted">{t('settings.branta.lookupWarning')}</SSText>
         <SSButton
           label={t('settings.branta.lookupCancel')}
           variant="ghost"

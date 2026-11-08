@@ -9,7 +9,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { type BrantaLookupMode } from '@/types/models/Branta'
-import { brantaTorOptionVisible } from '@/utils/brantaTorFetch'
 
 const LOOKUP_MODES: BrantaLookupMode[] = ['off', 'manual', 'always']
 
@@ -30,26 +29,18 @@ export default function BrantaSettings() {
     brantaLookupMode,
     setBrantaLookupMode,
     brantaLabelSyncEnabled,
-    setBrantaLabelSyncEnabled,
-    brantaTorEnabled,
-    setBrantaTorEnabled
+    setBrantaLabelSyncEnabled
   ] = useSettingsStore(
     useShallow((state) => [
       state.brantaLookupMode,
       state.setBrantaLookupMode,
       state.brantaLabelSyncEnabled,
-      state.setBrantaLabelSyncEnabled,
-      state.brantaTorEnabled,
-      state.setBrantaTorEnabled
+      state.setBrantaLabelSyncEnabled
     ])
   )
 
   function handleToggleLabels() {
     setBrantaLabelSyncEnabled(!brantaLabelSyncEnabled)
-  }
-
-  function handleToggleTor() {
-    setBrantaTorEnabled(!brantaTorEnabled)
   }
 
   return (
@@ -81,14 +72,6 @@ export default function BrantaSettings() {
               selected={brantaLabelSyncEnabled}
               onPress={handleToggleLabels}
             />
-            {brantaTorOptionVisible(brantaTorEnabled) ? (
-              <SSCheckbox
-                description={t('settings.branta.torDescription')}
-                label={t('settings.branta.tor')}
-                selected={brantaTorEnabled}
-                onPress={handleToggleTor}
-              />
-            ) : null}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

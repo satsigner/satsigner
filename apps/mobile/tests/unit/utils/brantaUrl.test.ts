@@ -1,7 +1,7 @@
 import {
-  brantaClearnetBlocked,
   brantaHttpsUrl,
-  brantaLogoUrl
+  brantaLogoUrl,
+  brantaRequestsBlocked
 } from '@/utils/brantaUrl'
 
 describe('brantaHttpsUrl', () => {
@@ -35,31 +35,16 @@ describe('brantaHttpsUrl', () => {
   })
 })
 
-describe('brantaClearnetBlocked', () => {
-  it('blocks clearnet requests while Tor is on or lookups are off', () => {
-    expect(
-      brantaClearnetBlocked({
-        brantaLookupMode: 'always',
-        brantaTorEnabled: true
-      })
-    ).toBe(true)
-    expect(
-      brantaClearnetBlocked({
-        brantaLookupMode: 'off',
-        brantaTorEnabled: false
-      })
-    ).toBe(true)
-    expect(
-      brantaClearnetBlocked({
-        brantaLookupMode: 'manual',
-        brantaTorEnabled: false
-      })
-    ).toBe(false)
+describe('brantaRequestsBlocked', () => {
+  it('blocks Branta requests only while lookups are off', () => {
+    expect(brantaRequestsBlocked({ brantaLookupMode: 'off' })).toBe(true)
+    expect(brantaRequestsBlocked({ brantaLookupMode: 'manual' })).toBe(false)
+    expect(brantaRequestsBlocked({ brantaLookupMode: 'always' })).toBe(false)
   })
 })
 
 describe('brantaLogoUrl', () => {
-  it('does not load a logo while clearnet requests are blocked', () => {
+  it('does not load a logo while Branta requests are blocked', () => {
     expect(
       brantaLogoUrl('https://guardrail.branta.pro/logo.png', true)
     ).toBeUndefined()

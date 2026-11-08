@@ -3,9 +3,8 @@ import { type BrantaLookupMode } from '@/types/models/Branta'
 
 const BRANTA_HOSTS = new Set<string>(BRANTA_HTTPS_HOSTS)
 
-type BrantaNetworkSettings = {
+type BrantaLookupSettings = {
   brantaLookupMode: BrantaLookupMode
-  brantaTorEnabled: boolean
 }
 
 function parseUrl(value: string): URL | undefined {
@@ -36,21 +35,20 @@ function brantaHttpsUrl(value: string | undefined): string | undefined {
 }
 
 /** Off means never contact Branta, so stored payees stop loading logos too. */
-function brantaClearnetBlocked({
-  brantaLookupMode,
-  brantaTorEnabled
-}: BrantaNetworkSettings): boolean {
-  return brantaTorEnabled || brantaLookupMode === 'off'
+function brantaRequestsBlocked({
+  brantaLookupMode
+}: BrantaLookupSettings): boolean {
+  return brantaLookupMode === 'off'
 }
 
 function brantaLogoUrl(
   value: string | undefined,
-  clearnetBlocked: boolean
+  requestsBlocked: boolean
 ): string | undefined {
-  if (clearnetBlocked) {
+  if (requestsBlocked) {
     return undefined
   }
   return brantaHttpsUrl(value)
 }
 
-export { brantaClearnetBlocked, brantaHttpsUrl, brantaLogoUrl }
+export { brantaHttpsUrl, brantaLogoUrl, brantaRequestsBlocked }

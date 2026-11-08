@@ -39,8 +39,6 @@ type SettingsState = {
   brantaLookupMode: BrantaLookupMode
   /** When true, the third-party lookup warning is skipped. Off by default. */
   brantaLookupWarningDismissed: boolean
-  /** When true, Branta lookups use Orbot and do not use the clearnet. */
-  brantaTorEnabled: boolean
   mnemonicWordList: WordListName
   useZeroPadding: boolean
   currencyUnit: CurrencyUnit
@@ -75,9 +73,6 @@ type SettingsAction = {
   ) => void
   setBrantaLookupWarningDismissed: (
     brantaLookupWarningDismissed: SettingsState['brantaLookupWarningDismissed']
-  ) => void
-  setBrantaTorEnabled: (
-    brantaTorEnabled: SettingsState['brantaTorEnabled']
   ) => void
   setCurrencyUnit: (currencyUnit: SettingsState['currencyUnit']) => void
   setUseZeroPadding: (useZeroPadding: SettingsState['useZeroPadding']) => void
@@ -147,7 +142,6 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       brantaLabelSyncEnabled: false,
       brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
       brantaLookupWarningDismissed: false,
-      brantaTorEnabled: false,
       currencyUnit: 'sats',
       defaultAutoSelectUtxos: 'privacy',
       fetchCurrentPrices: true,
@@ -172,9 +166,6 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       },
       setBrantaLookupWarningDismissed: (brantaLookupWarningDismissed) => {
         set({ brantaLookupWarningDismissed })
-      },
-      setBrantaTorEnabled: (brantaTorEnabled) => {
-        set({ brantaTorEnabled })
       },
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })

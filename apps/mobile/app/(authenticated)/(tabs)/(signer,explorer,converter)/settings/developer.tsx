@@ -382,7 +382,6 @@ export default function Developer() {
         brantaLabelSyncEnabled: false,
         brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
         brantaLookupWarningDismissed: false,
-        brantaTorEnabled: false,
         currencyUnit: 'sats',
         mnemonicWordList: DEFAULT_WORD_LIST,
         showWarning: true,
