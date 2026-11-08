@@ -1,6 +1,8 @@
 import z from 'zod'
 
-export type BrantaLookupMode = 'always' | 'manual' | 'off'
+export const BrantaLookupModeSchema = z.enum(['always', 'manual', 'off'])
+
+export type BrantaLookupMode = z.infer<typeof BrantaLookupModeSchema>
 
 export type BrantaLookupNotice = 'incomplete' | 'tampered' | 'unavailable'
 

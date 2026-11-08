@@ -49,6 +49,7 @@ import {
 } from '@/utils/backupPassphrase'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
 import { resetBrantaLogoConsent } from '@/utils/brantaLogoConsent'
+import { DEFAULT_BRANTA_LOOKUP_MODE } from '@/utils/brantaLookupMode'
 import {
   aesEncrypt,
   generateSalt,
@@ -379,7 +380,7 @@ export default function Developer() {
       useSettingsStore.setState({
         brantaClearnetLogoAllowed: false,
         brantaLabelSyncEnabled: false,
-        brantaLookupMode: 'off',
+        brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
         brantaLookupWarningDismissed: false,
         brantaTorEnabled: false,
         currencyUnit: 'sats',

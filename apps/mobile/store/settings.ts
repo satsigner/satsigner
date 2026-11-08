@@ -15,6 +15,10 @@ import {
   type PayjoinSettings
 } from '@/types/payjoin'
 import { type CurrencyUnit } from '@/types/ui/displayPreferences'
+import {
+  DEFAULT_BRANTA_LOOKUP_MODE,
+  normalizeBrantaLookupMode
+} from '@/utils/brantaLookupMode'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {
@@ -141,7 +145,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
     (set) => ({
       brantaClearnetLogoAllowed: false,
       brantaLabelSyncEnabled: false,
-      brantaLookupMode: 'off',
+      brantaLookupMode: DEFAULT_BRANTA_LOOKUP_MODE,
       brantaLookupWarningDismissed: false,
       brantaTorEnabled: false,
       currencyUnit: 'sats',
@@ -251,12 +255,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         merged.payjoinCoordinationMode = normalizePayjoinCoordinationMode(
           merged.payjoinCoordinationMode
         )
-        if (
-          persisted?.brantaLookupEnabled === true ||
-          persisted?.brantaLookupMode === 'ask'
-        ) {
-          merged.brantaLookupMode = 'always'
-        }
+        merged.brantaLookupMode = normalizeBrantaLookupMode(
+          merged.brantaLookupMode
+        )
         return merged
       },
       name: 'settings-store',
