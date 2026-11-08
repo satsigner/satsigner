@@ -111,7 +111,11 @@ export async function secureWipeAllWalletData(): Promise<void> {
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
   clearNostrFollowCaches()
-  wipeDevConsoleLog()
+  try {
+    wipeDevConsoleLog()
+  } catch {
+    /* best-effort: continue wiping remaining data */
+  }
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 

@@ -21,6 +21,7 @@ import { useAuthStore } from '@/store/auth'
 import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
+import * as devConsole from '@/utils/devConsole'
 import { getPin } from '@/utils/pin'
 import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
@@ -107,6 +108,18 @@ describe('secureWipeAfterMaxPinTries', () => {
 
     expect(useDevConsoleStore.getState().entries).toStrictEqual([])
     expect(rotateDevConsoleSession()).toStrictEqual([])
+  })
+
+  it('finishes the wipe when the dev console log cannot be cleared', async () => {
+    jest.spyOn(devConsole, 'wipeDevConsoleLog').mockImplementation(() => {
+      throw new Error('keystore unavailable')
+    })
+
+    await expect(secureWipeAfterMaxPinTries()).resolves.toBe(true)
+
+    for (const key of PIN_BOUND_KEYS) {
+      expect(secureStore[sk(key)]).toBeUndefined()
+    }
   })
 
   it('stays locked when the PIN material cannot be deleted', async () => {
