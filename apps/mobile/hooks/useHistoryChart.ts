@@ -259,13 +259,13 @@ export function useHistoryChartGestures({
         const x = locationX - margin.left
         if (x >= 0 && x <= chartWidth) {
           const selectedDate = xScale.invert(x)
-          setCursorX(selectedDate)
           const index = validChartData.findLastIndex(
             (d) => d.date <= selectedDate
           )
-          if (index !== -1) {
-            setCursorY(validChartData[index].balance)
-          }
+          // The cursor date and balance move together; before the first
+          // point the balance was zero, not the previous press's value.
+          setCursorX(selectedDate)
+          setCursorY(index === -1 ? 0 : validChartData[index].balance)
         }
       }
     })
