@@ -3,6 +3,13 @@ import {
   NIP46_ACTIVITY_WRITE_INTERVAL_MS,
   NOSTR_NIP46_SUPPORTED_METHODS
 } from '@/constants/nostr'
+import {
+  getNip46Runtime,
+  isNip46SessionActive,
+  registerNip46Session,
+  stopAllNip46Sessions,
+  stopNip46Session
+} from '@/services/nip46Sessions'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
@@ -21,14 +28,6 @@ import {
   handleSignEvent
 } from '@/utils/nip46Handlers'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
-
-// Module-level maps shared across all hook instances
-const servicesMap = new Map<string, Nip46BunkerService>()
-const secretKeysMap = new Map<string, Uint8Array>()
-
-function isNip46SessionActive(sessionId: string): boolean {
-  return servicesMap.get(sessionId)?.isConnected() ?? false
-}
 
 function shouldRecordNip46Activity(lastActiveAt: number, now: number) {
   return now - lastActiveAt >= NIP46_ACTIVITY_WRITE_INTERVAL_MS
@@ -94,62 +93,152 @@ function getSessionById(sessionId: string): Nip46Session | undefined {
   return useNip46Store.getState().sessions.find((s) => s.id === sessionId)
 }
 
-async function respondToRequest(
-  sessionId: string,
-  request: Nip46Request
-): Promise<void> {
-  const session = getSessionById(sessionId)
-  const service = servicesMap.get(sessionId)
-  const secretKey = secretKeysMap.get(sessionId)
-
-  if (!session || !service || !secretKey) {
-    return
-  }
-
-  const signerPubkeyHex = getPubKeyHexFromNpub(session.signerNpub)
-  if (!signerPubkeyHex) {
-    return
-  }
-
+function buildRequestResponse(
+  request: Nip46Request,
+  signerPubkeyHex: string,
+  secretKey: Uint8Array,
+  expectedSecret: string | undefined
+) {
   try {
     const result = executeHandler(
       request.method,
       request.params,
       signerPubkeyHex,
       secretKey,
-      session.secret
+      expectedSecret
     )
-    const payload = buildNip46ResponsePayload(request.id, result, null)
-    await service.sendResponse(session.clientPubkey, secretKey, payload)
+    return buildNip46ResponsePayload(request.id, result, null)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-    const payload = buildNip46ResponsePayload(request.id, null, errorMsg)
-    await service.sendResponse(session.clientPubkey, secretKey, payload)
+    return buildNip46ResponsePayload(request.id, null, errorMsg)
   }
 }
 
-async function sendError(
+async function sendPayload(
+  sessionId: string,
+  buildPayload: (signerPubkeyHex: string, secretKey: Uint8Array) => string
+): Promise<boolean> {
+  const session = getSessionById(sessionId)
+  const runtime = getNip46Runtime(sessionId)
+  const signerPubkeyHex = session
+    ? getPubKeyHexFromNpub(session.signerNpub)
+    : null
+  if (!session || !runtime || !signerPubkeyHex) {
+    return false
+  }
+  const { secretKey, service } = runtime
+  try {
+    await service.sendResponse(
+      session.clientPubkey,
+      secretKey,
+      buildPayload(signerPubkeyHex, secretKey)
+    )
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Answers a request; resolves to whether the answer reached the relays. */
+function respondToRequest(
+  sessionId: string,
+  request: Nip46Request
+): Promise<boolean> {
+  const session = getSessionById(sessionId)
+  return sendPayload(sessionId, (signerPubkeyHex, secretKey) =>
+    buildRequestResponse(request, signerPubkeyHex, secretKey, session?.secret)
+  )
+}
+
+function sendError(
   sessionId: string,
   requestId: string,
   errorMessage: string
-): Promise<void> {
-  const session = getSessionById(sessionId)
-  const service = servicesMap.get(sessionId)
-  const secretKey = secretKeysMap.get(sessionId)
+): Promise<boolean> {
+  return sendPayload(sessionId, () =>
+    buildNip46ResponsePayload(requestId, null, errorMessage)
+  )
+}
 
-  if (!session || !service || !secretKey) {
-    return
+/** `skipped`: the request is gone or already being answered. */
+export type Nip46AnswerResult = 'sent' | 'failed' | 'skipped'
+
+// A request being answered is not answered again: a double tap, or Approve
+// then Reject, would otherwise sign twice, send two answers or store the
+// permission of the answer that was not sent.
+const requestsBeingAnswered = new Set<string>()
+
+async function answerOnce(
+  requestId: string,
+  answer: () => Promise<boolean>
+): Promise<Nip46AnswerResult> {
+  if (requestsBeingAnswered.has(requestId)) {
+    return 'skipped'
   }
+  requestsBeingAnswered.add(requestId)
+  try {
+    return (await answer()) ? 'sent' : 'failed'
+  } finally {
+    requestsBeingAnswered.delete(requestId)
+  }
+}
 
-  const payload = buildNip46ResponsePayload(requestId, null, errorMessage)
-  await service.sendResponse(session.clientPubkey, secretKey, payload)
+// An approved request leaves the queue only once its answer was sent, so a
+// failed send can be retried instead of leaving the client waiting forever.
+export function approveNip46Request(
+  requestId: string,
+  alwaysAllow: boolean
+): Promise<Nip46AnswerResult> {
+  const request = getPendingRequestById(requestId)
+  if (!request) {
+    return Promise.resolve('skipped')
+  }
+  return answerOnce(requestId, async () => {
+    const sent = await respondToRequest(request.sessionId, {
+      ...request,
+      status: 'approved'
+    })
+    if (!sent) {
+      return false
+    }
+    // Persisted only once sent: a failed send leaves the request queued, and
+    // the user may still reject it. Never persist a blanket permission for
+    // requests that must always be approved explicitly (decryption,
+    // sensitive sign_event kinds).
+    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
+      useNip46Store
+        .getState()
+        .updatePermission(request.sessionId, request.method, 'always_allow')
+    }
+    useNip46Store.getState().removePendingRequest(requestId)
+    return true
+  })
+}
+
+// A rejection leaves the queue even when its answer cannot be sent: the
+// client times out on its own, and the prompt must never trap the user.
+export function rejectNip46Request(
+  requestId: string,
+  alwaysReject: boolean
+): Promise<Nip46AnswerResult> {
+  const request = getPendingRequestById(requestId)
+  if (!request) {
+    return Promise.resolve('skipped')
+  }
+  return answerOnce(requestId, () => {
+    if (alwaysReject) {
+      useNip46Store
+        .getState()
+        .updatePermission(request.sessionId, request.method, 'always_reject')
+    }
+    useNip46Store.getState().removePendingRequest(requestId)
+    return sendError(request.sessionId, request.id, 'Rejected by user')
+  })
 }
 
 export function useNip46SessionManager() {
   const addPendingRequest = useNip46Store((s) => s.addPendingRequest)
-  const removePendingRequest = useNip46Store((s) => s.removePendingRequest)
   const updateSession = useNip46Store((s) => s.updateSession)
-  const updatePermission = useNip46Store((s) => s.updatePermission)
 
   async function startSession(
     session: Nip46Session,
@@ -172,8 +261,7 @@ export function useNip46SessionManager() {
       const service = new Nip46BunkerService()
       await service.connect(session.relays)
 
-      servicesMap.set(session.id, service)
-      secretKeysMap.set(session.id, secretKey)
+      registerNip46Session(session.id, service, secretKey)
 
       service.subscribe(
         signerPubkeyHex,
@@ -254,82 +342,19 @@ export function useNip46SessionManager() {
         connectionStatus: isRelayError ? 'relays_unreachable' : 'error'
       })
 
-      const service = servicesMap.get(session.id)
-      if (service) {
-        service.disconnect()
-        servicesMap.delete(session.id)
-      }
-      secretKeysMap.delete(session.id)
+      stopNip46Session(session.id)
 
       throw error
     }
   }
 
-  async function approveRequest(
-    requestId: string,
-    alwaysAllow: boolean
-  ): Promise<void> {
-    const request = getPendingRequestById(requestId)
-    if (!request) {
-      return
-    }
-
-    removePendingRequest(requestId)
-
-    // Never persist a blanket permission for requests that must always be
-    // approved explicitly (decryption, sensitive sign_event kinds).
-    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
-      updatePermission(request.sessionId, request.method, 'always_allow')
-    }
-
-    await respondToRequest(request.sessionId, {
-      ...request,
-      status: 'approved'
-    })
-  }
-
-  async function rejectRequest(
-    requestId: string,
-    alwaysReject: boolean
-  ): Promise<void> {
-    const request = getPendingRequestById(requestId)
-    if (!request) {
-      return
-    }
-
-    removePendingRequest(requestId)
-
-    if (alwaysReject) {
-      updatePermission(request.sessionId, request.method, 'always_reject')
-    }
-
-    await sendError(request.sessionId, request.id, 'Rejected by user')
-  }
-
-  function stopSession(sessionId: string): void {
-    const service = servicesMap.get(sessionId)
-    if (service) {
-      service.disconnect()
-      servicesMap.delete(sessionId)
-    }
-    secretKeysMap.delete(sessionId)
-  }
-
-  function stopAllSessions(): void {
-    for (const [sessionId, service] of servicesMap) {
-      service.disconnect()
-      secretKeysMap.delete(sessionId)
-    }
-    servicesMap.clear()
-  }
-
   return {
-    approveRequest,
+    approveRequest: approveNip46Request,
     isSessionActive: isNip46SessionActive,
-    rejectRequest,
+    rejectRequest: rejectNip46Request,
     startSession,
-    stopAllSessions,
-    stopSession
+    stopAllSessions: stopAllNip46Sessions,
+    stopSession: stopNip46Session
   }
 }
 

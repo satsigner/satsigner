@@ -39,10 +39,10 @@ export function useNip46Connect(signerNpub: string, nsec: string) {
     }
 
     try {
-      addSession(session)
-      await startSession(session, nsec)
+      const storedSession = addSession(session)
+      await startSession(storedSession, nsec)
       setIsConnecting(false)
-      return session
+      return storedSession
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : 'Connection failed'

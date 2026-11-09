@@ -8,23 +8,24 @@ import {
   syncArkWallet
 } from '@/api/ark'
 import { ARK_SWAP_RUNNER_QUERY_KEY } from '@/constants/ark'
+import {
+  forgetArkNotificationSubscription,
+  hasArkNotificationSubscription,
+  listArkNotificationSubscriptionIds,
+  setArkNotificationSubscription
+} from '@/services/arkNotificationSubscriptions'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
 import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import type {
-  ArkAccount,
-  ArkMovementEvent,
-  ArkNotificationUnsubscribe
-} from '@/types/models/Ark'
+import type { ArkAccount, ArkMovementEvent } from '@/types/models/Ark'
 import { getArkServer } from '@/utils/ark'
 import { shouldAnnounceArkReceive } from '@/utils/arkMovement'
 import { isArkSwapForwardedPayment } from '@/utils/arkSwap'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
 import { devLog, devStep } from '@/utils/devConsole'
 
-const activeSubscriptions = new Map<string, ArkNotificationUnsubscribe>()
 const inflightSubscriptions = new Set<string>()
 const RECEIVE_EVENT_DEDUP_TTL_MS = 60_000
 const recentReceiveEvents = new Map<string, number>()
@@ -103,7 +104,7 @@ async function subscribeAccount(
   queryClient: QueryClient
 ): Promise<void> {
   if (
-    activeSubscriptions.has(account.id) ||
+    hasArkNotificationSubscription(account.id) ||
     inflightSubscriptions.has(account.id)
   ) {
     return
@@ -131,7 +132,7 @@ async function subscribeAccount(
     const accountStillExists = useArkStore
       .getState()
       .accounts.some((a) => a.id === account.id)
-    if (!accountStillExists || activeSubscriptions.has(account.id)) {
+    if (!accountStillExists || hasArkNotificationSubscription(account.id)) {
       return
     }
 
@@ -144,7 +145,7 @@ async function subscribeAccount(
         handleMovementEvent(account, event, queryClient)
       }
     )
-    activeSubscriptions.set(account.id, unsubscribe)
+    setArkNotificationSubscription(account.id, unsubscribe)
   } finally {
     inflightSubscriptions.delete(account.id)
   }
@@ -165,10 +166,9 @@ async function subscribeAccountSafe(
 
 function syncSubscriptions(accounts: ArkAccount[], queryClient: QueryClient) {
   const desiredIds = new Set(accounts.map((a) => a.id))
-  for (const [id, unsubscribe] of activeSubscriptions) {
+  for (const id of listArkNotificationSubscriptionIds()) {
     if (!desiredIds.has(id)) {
-      unsubscribe()
-      activeSubscriptions.delete(id)
+      forgetArkNotificationSubscription(id)
     }
   }
   for (const account of accounts) {
@@ -177,9 +177,8 @@ function syncSubscriptions(accounts: ArkAccount[], queryClient: QueryClient) {
 }
 
 function tearDownAllSubscriptions() {
-  for (const [id, unsubscribe] of activeSubscriptions) {
-    unsubscribe()
-    activeSubscriptions.delete(id)
+  for (const id of listArkNotificationSubscriptionIds()) {
+    forgetArkNotificationSubscription(id)
   }
 }
 

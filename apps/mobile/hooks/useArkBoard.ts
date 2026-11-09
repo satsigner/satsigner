@@ -15,6 +15,7 @@ import {
   listArkPendingBoards,
   newArkOnchainAddress
 } from '@/api/ark'
+import { withArkOnchainSpendLock } from '@/services/arkOnchainSpendLock'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import type {
   ArkBoardFundingInfo,
@@ -27,6 +28,7 @@ import {
   getArkMinBoardAmount,
   type ArkAutoBoardStatus
 } from '@/utils/arkBoard'
+import { ArkOperationBusyError } from '@/utils/arkError'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 
 import { useArkBalance } from './useArkBalance'
@@ -181,7 +183,9 @@ export function useArkBoardMutation(accountId: string | null | undefined) {
         throw new Error('Ark account is required')
       }
       const account = getArkAccountOrThrow(accountId)
-      return boardArk(account.serverId, accountId, amountSats)
+      return withArkOnchainSpendLock(accountId, () =>
+        boardArk(account.serverId, accountId, amountSats)
+      )
     },
     mutationKey: [...arkOnchainSpendMutationKey(accountId), 'board'],
     onSuccess: () => {
@@ -235,7 +239,11 @@ export function useArkAutoBoard({
   const minAmountSats = getArkMinBoardAmount(minBoardAmountSats)
 
   const status = getArkAutoBoardStatus({
-    boardFailed: boardMutation.isError,
+    // A board refused because another screen is already boarding is not a
+    // failure: that other board is the one that counts.
+    boardFailed:
+      boardMutation.isError &&
+      !(boardMutation.error instanceof ArkOperationBusyError),
     confirmedSats,
     isBoarding: boardMutation.isPending,
     minBoardAmountSats,

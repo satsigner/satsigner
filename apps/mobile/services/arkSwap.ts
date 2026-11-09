@@ -633,6 +633,7 @@ async function advanceBoardingJob(job: ArkOnchainToLightningJob) {
   if (progress === 'exited') {
     updateJob({
       ...job,
+      boardExited: true,
       error: t('ark.swap.error.boardExited'),
       status: 'failed'
     })

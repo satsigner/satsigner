@@ -21,6 +21,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSDevConsole from '@/components/SSDevConsole'
 import SSImageActionsSheet from '@/components/SSImageActionsSheet'
 import SSIntroAnimation from '@/components/SSIntroAnimation'
+import { PRIVACY_OVERLAY_HIDE_DELAY_MS } from '@/constants/privacy'
 import { MS_PER_SECOND } from '@/constants/time'
 import { queryClient } from '@/lib/queryClient'
 import {
@@ -32,6 +33,10 @@ import { useDevConsoleStore } from '@/store/devConsole'
 import { useIntroStore } from '@/store/intro'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
+import {
+  type AppLifecycleStep,
+  nextAppLifecycleStep
+} from '@/utils/appLifecycle'
 import { installDevConsole, isDevConsoleAvailable } from '@/utils/devConsole'
 import { installDevErrorReporting } from '@/utils/devErrorReporting'
 
@@ -78,6 +83,7 @@ export default function RootLayout() {
   const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
 
   const appState = useRef(AppState.currentState)
+  const overlayHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
   const [authHydrated, setAuthHydrated] = useState(() =>
     useAuthStore.persist.hasHydrated()
@@ -94,34 +100,47 @@ export default function RootLayout() {
     })
   }, [authHydrated])
 
+  function applyPrivacyOverlay(overlay: AppLifecycleStep['overlay']) {
+    if (overlay === 'show' || overlay === 'hide') {
+      setPrivacyScreenVisible(overlay === 'show')
+      return
+    }
+    if (overlay === 'hideSoon') {
+      overlayHideTimer.current = setTimeout(() => {
+        overlayHideTimer.current = null
+        setPrivacyScreenVisible(false)
+      }, PRIVACY_OVERLAY_HIDE_DELAY_MS)
+    }
+  }
+
   // Registered once on mount, so auth settings are read from the store at
   // event time; render-time values would stay frozen at the first render.
+  // A hide still pending from an earlier return must not fire after the app
+  // went back to the background, or the screen shows in the app switcher.
   function handleAppStateChanged(nextAppState: AppStateStatus) {
+    if (overlayHideTimer.current) {
+      clearTimeout(overlayHideTimer.current)
+      overlayHideTimer.current = null
+    }
     const { requiresAuth, lockDeltaTime } = useAuthStore.getState()
-    if (nextAppState === 'background' && requiresAuth) {
-      setPrivacyScreenVisible(true)
+    const step = nextAppLifecycleStep({
+      lockDeltaTime,
+      next: nextAppState,
+      previous: appState.current,
+      requiresAuth,
+      secondsAway:
+        (Date.now() - (getLastBackgroundTimestamp() || 0)) / MS_PER_SECOND
+    })
+    if (step.recordBackground) {
       setLastBackgroundTimestamp(Date.now())
-    } else if (
-      nextAppState === 'active' &&
-      appState.current?.match(/background/) &&
-      requiresAuth
-    ) {
-      const inactivityStartTime = getLastBackgroundTimestamp()
-      const elapsed = (Date.now() - (inactivityStartTime || 0)) / MS_PER_SECOND
-
-      if (elapsed >= lockDeltaTime) {
-        setLockTriggered(true)
-      }
-
-      // Keep the overlay visible briefly so the /unlock redirect renders
-      // before the previous screen becomes visible
-      setTimeout(() => setPrivacyScreenVisible(false), 300)
-      usePayjoinSessionsStore.getState().clearExpiredSessions()
-    } else if (nextAppState === 'active') {
-      setPrivacyScreenVisible(false)
+    }
+    if (step.lock) {
+      setLockTriggered(true)
+    }
+    applyPrivacyOverlay(step.overlay)
+    if (step.clearExpiredPayjoin) {
       usePayjoinSessionsStore.getState().clearExpiredSessions()
     }
-
     appState.current = nextAppState
   }
 

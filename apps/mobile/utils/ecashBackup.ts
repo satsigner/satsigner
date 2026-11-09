@@ -106,14 +106,22 @@ export function buildEcashBackupPayload({
   )
 
   if (includeTokenProofs) {
-    data.proofs = proofs.map((proof) => ({
+    // A pending payment may still fail and free its reserved proofs.
+    const reservedProofs = transactions.flatMap(
+      ({ reservedProofs: reserved }) => reserved ?? []
+    )
+    const backedUpProofs = [...proofs, ...reservedProofs]
+    data.proofs = backedUpProofs.map((proof) => ({
       C: proof.C,
       amount: proof.amount,
       id: proof.id,
       mintUrl: proof.mintUrl,
       secret: proof.secret
     }))
-    data.totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
+    data.totalBalance = backedUpProofs.reduce(
+      (sum, proof) => sum + proof.amount,
+      0
+    )
   }
 
   if (includeTransactionHistory) {

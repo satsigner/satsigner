@@ -21,10 +21,12 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Layout, Sizes } from '@/styles'
 import { error as errorColor, warning } from '@/styles/colors'
 import { emptyPin } from '@/utils/pin'
-import { changePin } from '@/utils/pinChange'
+import { toPinAttempts } from '@/utils/pinAttempts'
+import { changePinOrFail } from '@/utils/pinChange'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
-type Stage = 'verify' | 'set' | 're-enter'
+// 'done' is terminal: the new PIN is committed, so no keypad may be offered.
+type Stage = 'verify' | 'set' | 're-enter' | 'done'
 
 type PinChangeNotice = 'duressCleared' | 'duressClearFailed'
 
@@ -127,7 +129,23 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     }
   }
 
+  async function wipeAfterMaxTries() {
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      return
+    }
+    router.replace('/')
+  }
+
+  // Once the tries are used up no PIN may be checked here either; only the
+  // wipe is retried.
   async function verifyCurrentPin() {
+    const { pinTries, pinMaxTries } = useAuthStore.getState()
+    if (toPinAttempts(pinTries, pinMaxTries).status === 'exhausted') {
+      await wipeAfterMaxTries()
+      return
+    }
     const isValid = await validatePin(currentPinArray.join(''))
     if (isValid) {
       resetPinTries()
@@ -142,12 +160,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     if (remainingTries > 0) {
       return
     }
-    const wiped = await secureWipeAfterMaxPinTries()
-    if (!wiped) {
-      toast.error(t('auth.wipeFailed'))
-      return
-    }
-    router.replace('/')
+    await wipeAfterMaxTries()
   }
 
   function finishPinVerification() {
@@ -224,7 +237,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
       return
     }
     setLoading(true)
-    const result = await changePin(pinArray.join(''), reEncryptAccounts)
+    const result = await changePinOrFail(pinArray.join(''), reEncryptAccounts)
     setLoading(false)
 
     if (result === 'matchesDuress') {
@@ -246,6 +259,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
 
     if (result === 'duressCleared' || result === 'duressClearFailed') {
       setPinChangeNotice(result)
+      setStage('done')
       return
     }
 
@@ -376,6 +390,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
               feedback={getFeedback()}
             />
           )}
+          {stage === 'done' && getFeedback()}
         </SSVStack>
         <SSVStack
           widthFull
@@ -399,20 +414,14 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
               onPress={() => handleConfirmPin()}
             />
           )}
-          {stage === 're-enter' &&
-          confirmationPinFilled &&
-          pinsMatch &&
-          pinChangeNotice ? (
+          {stage === 'done' ? (
             <SSButton
               label={t('common.continue')}
               variant="secondary"
               onPress={() => leaveAfterPinChange()}
             />
           ) : null}
-          {stage === 're-enter' &&
-          confirmationPinFilled &&
-          pinsMatch &&
-          !pinChangeNotice ? (
+          {stage === 're-enter' && confirmationPinFilled && pinsMatch ? (
             <SSButton
               label={t('auth.setPin')}
               variant="secondary"
@@ -462,7 +471,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
               onPress={() => handleGoBack()}
             />
           )}
-          {stage === 're-enter' && confirmationPinFilled && !pinChangeNotice ? (
+          {stage === 're-enter' && confirmationPinFilled ? (
             <SSButton
               label={t('common.clear')}
               variant="ghost"

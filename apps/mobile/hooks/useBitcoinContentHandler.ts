@@ -35,6 +35,22 @@ type UseBitcoinContentHandlerProps = {
   onSuccess: (message: string) => void
 }
 
+// Content that builds a transaction replaces the account's current draft,
+// but only once the user goes ahead with it.
+const DRAFT_REPLACING_TYPES = new Set<DetectedContent['type']>([
+  'bitcoin_address',
+  'bitcoin_transaction',
+  'psbt'
+])
+
+function startNewDraft(
+  actions: BitcoinContentActions,
+  target: BitcoinContentTarget
+) {
+  actions.clearTransaction?.()
+  actions.setAccountId?.(target.accountId)
+}
+
 async function commitScannedBitcoinUri(
   content: DetectedContent,
   actions: BitcoinContentActions,
@@ -47,12 +63,14 @@ async function commitScannedBitcoinUri(
   }
 
   if (isDustPaymentAmount(request.amountSats)) {
+    startNewDraft(actions, target)
     commitDustBitcoinUri(actions, target, request, payjoinUri)
     return
   }
 
   const balance = target.account?.summary?.balance
   if (balance === undefined || request.amountSats <= balance) {
+    startNewDraft(actions, target)
     commitBitcoinUriToIoPreview(actions, target, request, payjoinUri)
     return
   }
@@ -69,6 +87,7 @@ async function commitScannedBitcoinUri(
   if (choice === 'cancel') {
     return
   }
+  startNewDraft(actions, target)
   commitBitcoinUriToIoPreview(
     actions,
     target,
@@ -83,8 +102,20 @@ async function processBitcoinContent(
   target: BitcoinContentTarget,
   ensureKeyFingerprints: () => Promise<KeyFingerprintsByAccount>
 ) {
-  actions.clearTransaction?.()
-  actions.setAccountId?.(target.accountId)
+  if (content.type === 'bitcoin_uri') {
+    // Malformed percent-encoding in a URI label makes decoding throw.
+    try {
+      await commitScannedBitcoinUri(content, actions, target)
+    } catch {
+      startNewDraft(actions, target)
+      commitAddressOnly(actions, target, content.cleaned)
+    }
+    return
+  }
+
+  if (DRAFT_REPLACING_TYPES.has(content.type)) {
+    startNewDraft(actions, target)
+  }
 
   const href = getBitcoinContentHref(content, target.accountId)
   if (href) {
@@ -105,18 +136,6 @@ async function processBitcoinContent(
   }
 
   if (content.type === 'bitcoin_address') {
-    commitAddressOnly(actions, target, content.cleaned)
-    return
-  }
-
-  if (content.type !== 'bitcoin_uri') {
-    return
-  }
-
-  // Malformed percent-encoding in a URI label makes decoding throw.
-  try {
-    await commitScannedBitcoinUri(content, actions, target)
-  } catch {
     commitAddressOnly(actions, target, content.cleaned)
   }
 }

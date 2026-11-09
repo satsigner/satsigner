@@ -17,6 +17,25 @@ class HttpStatusError extends AppError {
   }
 }
 
+/**
+ * An LND REST call returned an error status. `fromLnd` is true when the body
+ * is LND's own error, so LND itself handled the request, not a proxy.
+ */
+class LndApiError extends HttpStatusError {
+  override name = 'LndApiError'
+  readonly fromLnd: boolean
+
+  constructor(
+    status: number,
+    message: string,
+    fromLnd: boolean,
+    options?: ErrorOptions
+  ) {
+    super(status, message, options)
+    this.fromLnd = fromLnd
+  }
+}
+
 /** A request did not complete within its time budget. */
 class RequestTimeoutError extends AppError {
   override name = 'RequestTimeoutError'
@@ -80,6 +99,7 @@ class NostrPartialSendError extends AppError {
 export {
   AppError,
   HttpStatusError,
+  LndApiError,
   NostrNoRelaysError,
   NostrPartialSendError,
   NostrPublishError,

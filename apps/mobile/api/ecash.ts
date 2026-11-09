@@ -32,6 +32,7 @@ import type {
   MintQuote,
   WalletOptions
 } from '@/types/models/Ecash'
+import { toEcashMeltStatus } from '@/utils/ecashMelt'
 import { toError } from '@/utils/error'
 import { AppError } from '@/utils/errors'
 import { isRecord } from '@/utils/object'
@@ -120,6 +121,27 @@ async function getKeysetsFromWallet(
   return []
 }
 
+function createWallet(mintUrl: string, options?: WalletOptions): Wallet {
+  const mint = new Mint(mintUrl)
+  const walletOpts: Record<string, unknown> = { unit: 'sat' }
+
+  if (options?.bip39seed) {
+    walletOpts.bip39seed = options.bip39seed
+    walletOpts.secretsPolicy = 'deterministic'
+  }
+
+  if (options?.counterInit) {
+    walletOpts.counterInit = options.counterInit
+  }
+
+  const wallet = new Wallet(mint, walletOpts)
+
+  if (options?.bip39seed && options.onCounterReserved) {
+    wallet.on.countersReserved(options.onCounterReserved)
+  }
+  return wallet
+}
+
 function getWallet(
   accountId: string,
   mintUrl: string,
@@ -128,25 +150,7 @@ function getWallet(
   const cacheKey = walletCacheKey(accountId, mintUrl)
 
   if (!walletCache.has(cacheKey)) {
-    const mint = new Mint(mintUrl)
-    const walletOpts: Record<string, unknown> = { unit: 'sat' }
-
-    if (options?.bip39seed) {
-      walletOpts.bip39seed = options.bip39seed
-      walletOpts.secretsPolicy = 'deterministic'
-    }
-
-    if (options?.counterInit) {
-      walletOpts.counterInit = options.counterInit
-    }
-
-    const wallet = new Wallet(mint, walletOpts)
-
-    if (options?.bip39seed && options.onCounterReserved) {
-      wallet.on.countersReserved(options.onCounterReserved)
-    }
-
-    walletCache.set(cacheKey, wallet)
+    walletCache.set(cacheKey, createWallet(mintUrl, options))
   }
   return walletCache.get(cacheKey)!
 }
@@ -201,6 +205,18 @@ export async function checkMintQuote(
   await wallet.loadMint()
   const quoteStatus = await wallet.checkMintQuote(quoteId)
   return quoteStatus.state
+}
+
+export async function checkMeltQuoteState(
+  accountId: string,
+  mintUrl: string,
+  quoteId: string,
+  options?: WalletOptions
+): Promise<EcashMeltResult['status']> {
+  const wallet = getWallet(accountId, mintUrl, options)
+  await wallet.loadMint()
+  const quoteStatus = await wallet.checkMeltQuoteBolt11(quoteId)
+  return toEcashMeltStatus(quoteStatus.state)
 }
 
 export async function mintProofs(
@@ -344,21 +360,22 @@ export async function meltProofs(
     includeFees: true
   })
   const keepProofs = keep.map((p) => ({ ...p, mintUrl }))
+  const sendProofs = send.map((p) => ({ ...p, mintUrl }))
   const result = await wallet
     .meltProofs(cashuQuote, send)
     .catch((error: unknown) => {
-      throw new EcashMeltFailedError(
-        keepProofs,
-        send.map((p) => ({ ...p, mintUrl })),
-        error
-      )
+      throw new EcashMeltFailedError(keepProofs, sendProofs, error)
     })
 
+  const status = toEcashMeltStatus(result.quote.state)
+  if (status !== 'paid') {
+    return { keep: keepProofs, send: sendProofs, status }
+  }
   return {
-    change: result.change?.map((p) => ({ ...p, mintUrl })),
+    change: result.change.map((p) => ({ ...p, mintUrl })),
     keep: keepProofs,
-    paid: true,
-    preimage: result.quote.payment_preimage ?? undefined
+    preimage: result.quote.payment_preimage ?? undefined,
+    status
   }
 }
 
@@ -487,6 +504,21 @@ export async function receiveEcash(
   }
 }
 
+/**
+ * Secrets of the proofs inside `token`, or none when it does not decode.
+ * Short keyset ids in a v4 token only decode against the mint's full ids.
+ */
+export function getTokenProofSecrets(
+  token: string,
+  keysetIds: string[]
+): string[] {
+  try {
+    return getDecodedToken(token, keysetIds).proofs.map((proof) => proof.secret)
+  } catch {
+    return []
+  }
+}
+
 export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
   return proofs
     .filter((p) => p.mintUrl === mintUrl)
@@ -566,21 +598,40 @@ export async function validateEcashToken(
   }
 }
 
+type SeedRestoreResult = {
+  proofs: EcashProof[]
+  lastCounter?: number
+  /** False when a keyset could not be scanned, so proofs may be missing. */
+  complete: boolean
+}
+
+/**
+ * The restore scan uses a wallet without the counter listener, so it must
+ * never stay cached: the next send or mint would advance counters without
+ * saving them and reuse deterministic outputs after a restart.
+ */
 export async function restoreProofsFromSeed(
   accountId: string,
   mintUrl: string,
   seed: Uint8Array,
   counterInit?: Record<string, number>
-): Promise<{
-  proofs: EcashProof[]
-  lastCounter?: number
-}> {
-  clearWalletCache(accountId, mintUrl)
+): Promise<SeedRestoreResult> {
+  try {
+    return await scanProofsFromSeed(mintUrl, seed, counterInit)
+  } finally {
+    // The restore advances the stored counters; the next wallet starts there.
+    clearWalletCache(accountId, mintUrl)
+  }
+}
 
-  const wallet = getWallet(accountId, mintUrl, {
-    bip39seed: seed,
-    counterInit
-  })
+async function scanProofsFromSeed(
+  mintUrl: string,
+  seed: Uint8Array,
+  counterInit?: Record<string, number>
+): Promise<SeedRestoreResult> {
+  // A wallet of its own: the cached one may be minting meanwhile, and its
+  // counters must keep reaching the store.
+  const wallet = createWallet(mintUrl, { bip39seed: seed, counterInit })
 
   await wallet.loadMint()
 
@@ -593,6 +644,7 @@ export async function restoreProofsFromSeed(
   ]
 
   const allProofs: Proof[] = []
+  const unscannedKeysetIds: string[] = []
   let lastCounter: number | undefined
 
   for (const keyset of sortedKeysets) {
@@ -640,12 +692,13 @@ export async function restoreProofsFromSeed(
         nextCounter += ECASH_RESTORE_BATCH_SIZE
       }
     } catch {
-      // Continue to next keyset on failure
+      unscannedKeysetIds.push(keyset.id)
     }
   }
 
+  const complete = unscannedKeysetIds.length === 0
   if (allProofs.length === 0) {
-    return { proofs: [] }
+    return { complete, proofs: [] }
   }
 
   const proofStates = await wallet.checkProofsStates(allProofs)
@@ -655,6 +708,7 @@ export async function restoreProofsFromSeed(
     .map((p) => ({ ...p, mintUrl }))
 
   return {
+    complete,
     lastCounter,
     proofs: unspentProofs
   }

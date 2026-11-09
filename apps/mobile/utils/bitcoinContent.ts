@@ -17,3 +17,17 @@ export function isPSBT(text: string) {
 
   return isBase64PSBT || isHexPSBT
 }
+
+/**
+ * A finalized transaction ready to broadcast: plain hex that is not a PSBT.
+ * A partly signed PSBT must never be treated as one.
+ */
+export function isFinalTransactionHex(text: string) {
+  const trimmed = text.trim()
+  return (
+    trimmed.length > 0 &&
+    trimmed.length % 2 === 0 &&
+    /^[0-9a-fA-F]+$/.test(trimmed) &&
+    !trimmed.toLowerCase().startsWith(PSBT_MAGIC_HEX)
+  )
+}

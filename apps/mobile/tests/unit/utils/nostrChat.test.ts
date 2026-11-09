@@ -13,6 +13,7 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
     return {
       __store: store,
       deleteChatMessagesForIdentity: jest.fn(),
+      failInterruptedChatSends: jest.fn(),
       insertChatMessage: jest.fn((message: { id: string }) => {
         if (store.has(message.id)) {
           return false

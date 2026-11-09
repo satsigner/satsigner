@@ -3,6 +3,7 @@ const DURESS_PIN_KEY = 'satsigner_duress_pin'
 const SALT_KEY = 'satsigner_salt'
 const PIN_KDF_KEY = 'satsigner_pin_kdf'
 const PIN_KDF_COMMIT_KEY = 'satsigner_pin_kdf_commit'
+const PIN_REKEY_JOURNAL_KEY = 'satsigner_pin_rekey_journal'
 const DURESS_KDF_KEY = 'satsigner_duress_kdf'
 const PIN_LENGTH_KEY = 'satsigner_pin_length'
 const SALT_KEY_DURESS = 'satsigner_salt_duress'
@@ -26,6 +27,7 @@ export {
   PIN_KEY,
   PIN_LENGTH_KEY,
   PIN_MAX_LENGTH,
+  PIN_REKEY_JOURNAL_KEY,
   PIN_MIN_LENGTH,
   PIN_SIZE,
   RANDOM_PIN_BYTE_LENGTH,

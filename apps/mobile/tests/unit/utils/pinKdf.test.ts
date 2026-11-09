@@ -8,6 +8,7 @@ import {
   PIN_KDF_COMMIT_KEY,
   PIN_KDF_KEY,
   PIN_KEY,
+  PIN_LENGTH_KEY,
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
@@ -382,6 +383,21 @@ describe('pinKdf', () => {
       expect(secureStore[sk(PIN_KDF_KEY)]).toBe(newKdf)
       expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeUndefined()
       expect(oldDigest).not.toBe(newDigest)
+    })
+
+    it('writes the PIN length journaled with a PIN change', async () => {
+      const newDigest = realPbkdf2(PIN, SALT, 600_000)
+      secureStore[sk(PIN_LENGTH_KEY)] = '4'
+      secureStore[sk(PIN_KDF_COMMIT_KEY)] = JSON.stringify({
+        digest: newDigest,
+        kdf: serializeKdf(PBKDF2_600K),
+        length: 6
+      })
+
+      await applyPendingPinKdfCommit()
+
+      expect(secureStore[sk(PIN_LENGTH_KEY)]).toBe('6')
+      expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeUndefined()
     })
   })
 })

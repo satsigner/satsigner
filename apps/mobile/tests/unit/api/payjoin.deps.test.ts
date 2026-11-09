@@ -238,6 +238,52 @@ describe('payjoin injected dependencies', () => {
     expect(usePayjoinSessionsStore.getState().sessions).toHaveLength(0)
   })
 
+  it('ends a negotiation whose proposal cannot be used', async () => {
+    const deps = createDeps()
+    const handle = await createReceiverSession({
+      address: RECEIVE_ADDRESS,
+      directoryUrl: PAYJOIN_DIRECTORY_URL,
+      expireSeconds: 600,
+      ohttpRelayUrl: 'https://pj.bobspacebkk.com',
+      receiveScriptHex: '0014751e76e8199196d454941c45d1b3a323f1433bd6'
+    })
+    const sendParams = {
+      callbacks,
+      disableOutputSubstitution: false,
+      fetchImpl: noopFetch,
+      outputScriptsHex: [PAYMENT_SCRIPT.toString('hex')],
+      paymentAmountSats: 50_000
+    }
+    const started = await startBip77Send({
+      ...sendParams,
+      accountId: 'acct-send',
+      deps,
+      originalPsbtBase64: ORIGINAL_PSBT,
+      payjoinUri: handle.pjUri,
+      quickPollMs: 0
+    })
+    if (started.kind !== 'waiting') {
+      throw new Error(`expected waiting, got ${started.kind}`)
+    }
+    const mailboxId = parsePayjoinUri(handle.pjUri)
+      .params?.pj.split('/')
+      .pop()
+      ?.split('#')[0]
+    __setMailboxProposal(mailboxId ?? '', ORIGINAL_PSBT)
+
+    const polled = await pollBip77Send({
+      ...sendParams,
+      deps,
+      session: started.session,
+      timeoutMs: 2000
+    })
+
+    expect(polled.kind).toBe('fallback')
+    expect(deps.sessions.getSession(started.session.id)?.status).toBe(
+      'fallback'
+    )
+  })
+
   it('contributes an input the injected store has not seen', async () => {
     const deps = createDeps()
     deps.sessions.markInputSeen(`${CANDIDATE_TXID}:1`)

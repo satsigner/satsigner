@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { clearNdkRegistry } from '@/api/nostr'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearIdentityCache } from '@/db/nostrCache'
+import { teardownNip46Identity } from '@/services/nip46Sessions'
 import mmkvStorage, { clearNostrFollowCache } from '@/storage/mmkv'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
@@ -114,6 +115,7 @@ const useNostrIdentityStore = create<
       relays: DEFAULT_RELAYS,
 
       removeIdentity: (npub) => {
+        teardownNip46Identity(npub)
         void deleteNostrIdentitySecretSafe(npub)
         closeActiveChatPipeline()
         deleteChatMessagesForIdentity(npub)

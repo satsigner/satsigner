@@ -18,6 +18,7 @@ import { type ScriptVersionType } from '@/types/models/Script'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
+import { toRestoredSyncStatus } from '@/utils/accountSync'
 import { isNumberArray } from '@/utils/array'
 
 type AccountRow = {
@@ -252,6 +253,10 @@ function rowToAccount(
         }
       : undefined
 
+  const lastSyncedAt = row.last_synced_at
+    ? new Date(row.last_synced_at)
+    : undefined
+
   const nostr: NostrAccount = {
     autoSync: row.nostr_auto_sync === 1,
     commonNpub: row.nostr_common_npub,
@@ -288,7 +293,7 @@ function rowToAccount(
     ),
     keysRequired: row.keys_required,
     labels,
-    lastSyncedAt: row.last_synced_at ? new Date(row.last_synced_at) : undefined,
+    lastSyncedAt,
     name: row.name,
     network: row.network,
     nostr,
@@ -302,7 +307,7 @@ function rowToAccount(
       satsInMempool: row.sats_in_mempool
     },
     syncProgress,
-    syncStatus: row.sync_status,
+    syncStatus: toRestoredSyncStatus(row.sync_status, lastSyncedAt),
     transactions,
     utxos
   }

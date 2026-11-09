@@ -59,8 +59,6 @@ export function useNostrSignFlow() {
       return false
     }
 
-    clearTransaction()
-
     let extractedData = null
     if (originalPsbt && accountMatch.account) {
       try {
@@ -79,28 +77,6 @@ export function useNostrSignFlow() {
 
     const _sent = outputs.reduce((acc, output) => acc + output.value, 0)
     const _received = inputs.reduce((acc, input) => acc + (input.value || 0), 0)
-
-    for (const input of inputs) {
-      addInput({
-        ...input,
-        keychain: input.keychain || 'external',
-        script: [...hex.decode(input.script)]
-      })
-    }
-
-    for (const output of outputs) {
-      addOutput({
-        amount: output.value,
-        label: output.label || '',
-        to: output.address
-      })
-    }
-
-    if (fee) {
-      setFee(fee)
-    }
-
-    setRbf(true)
 
     const extractedTxid = extractTransactionIdFromPSBT(originalPsbt)
     if (!extractedTxid) {
@@ -152,6 +128,31 @@ export function useNostrSignFlow() {
       }
       finalSignedPsbts = remappedPsbts
     }
+
+    // The draft is replaced only once the shared PSBT checked out: a bad one
+    // must leave the user's current draft as it was.
+    clearTransaction()
+    for (const input of inputs) {
+      addInput({
+        ...input,
+        keychain: input.keychain || 'external',
+        script: [...hex.decode(input.script)]
+      })
+    }
+
+    for (const output of outputs) {
+      addOutput({
+        amount: output.value,
+        label: output.label || '',
+        to: output.address
+      })
+    }
+
+    if (fee) {
+      setFee(fee)
+    }
+
+    setRbf(true)
 
     const signedPsbtsMap = new Map<number, string>()
     for (const [key, value] of Object.entries(finalSignedPsbts)) {

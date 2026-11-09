@@ -18,6 +18,7 @@ import { pruneCache } from '@/db/nostrCache'
 import { useArkExitWatcher } from '@/hooks/useArkExits'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
 import { useArkSwapRunner } from '@/hooks/useArkSwaps'
+import { useEcashPendingMintRunner } from '@/hooks/useEcashPendingMintRunner'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
@@ -29,6 +30,7 @@ import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
 import { type Server } from '@/types/settings/blockchain'
+import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { devLog, devStep } from '@/utils/devConsole'
@@ -154,6 +156,7 @@ function AuthenticatedSession() {
   useArkNotifications()
   useArkExitWatcher()
   useArkSwapRunner()
+  useEcashPendingMintRunner()
   useFetchBitcoinPrice()
 
   useEffect(() => {
@@ -215,12 +218,16 @@ function AuthenticatedSession() {
     }
   }
 
-  async function syncLoadedWallets() {
+  async function syncLoadedWallets(isSessionActive: () => boolean) {
     const { configs, selectedNetwork } = useBlockchainStore.getState()
     if (configs[selectedNetwork].config.connectionMode !== 'auto') {
       return
     }
     await devStep('session', 'sync accounts')
+    // Locking cancels queued wallet syncs; this stops new ones being added.
+    if (!isSessionActive()) {
+      return
+    }
     const failures = createSyncFailureBatch()
     // Only accounts on the selected network: the server belongs to it, and
     // other networks' descriptors must not be sent there.
@@ -246,7 +253,9 @@ function AuthenticatedSession() {
 
   function handleAcceptRestoredServer() {
     setRestoredPublicServer(null)
-    void syncLoadedWallets()
+    // The modal only shows while the session is mounted; locking unmounts it
+    // and cancels every queued sync.
+    void syncLoadedWallets(() => true)
   }
 
   function handleChangeRestoredServer() {
@@ -255,10 +264,16 @@ function AuthenticatedSession() {
   }
 
   useEffect(() => {
+    // Locking unmounts the session, and nothing may keep decrypting, loading
+    // or syncing behind the PIN screen: every step checks it still runs.
     const session = { active: true }
+    const isSessionActive = () => session.active
 
     async function run() {
       await yieldToUi()
+      if (!session.active) {
+        return
+      }
 
       const { justUnlocked: ju, pendingRecoverData: pending } =
         useAuthStore.getState()
@@ -270,6 +285,9 @@ function AuthenticatedSession() {
       } catch {
         // non-critical for boot; secrets may remain unavailable until next unlock
       }
+      if (!session.active) {
+        return
+      }
 
       const restored =
         ju && pending ? await restorePendingBackup(pending) : undefined
@@ -277,12 +295,15 @@ function AuthenticatedSession() {
       await devStep('session', 'load wallets')
       await loadWallets()
       devLog('session', 'wallets loaded')
+      if (!session.active) {
+        return
+      }
       // Hold the first sync until the user accepts the public server the
       // backup switched to, so nothing is sent to it without their consent.
       if (restored?.publicServer) {
         setRestoredPublicServer(restored.publicServer)
       } else {
-        void syncLoadedWallets()
+        void syncLoadedWallets(isSessionActive)
       }
 
       try {
@@ -300,6 +321,8 @@ function AuthenticatedSession() {
     run()
     return () => {
       session.active = false
+      // A sync still running behind the PIN screen drops its result.
+      cancelAllAccountSyncs()
       stopNostrLifecycle()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

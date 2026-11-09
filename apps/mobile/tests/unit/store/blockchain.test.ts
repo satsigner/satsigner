@@ -37,3 +37,25 @@ describe('blockchain store - stripAllRpcCredentials', () => {
     expect(state.customServers.length).toBeGreaterThan(0)
   })
 })
+
+describe('blockchain store - setSelectedNetwork', () => {
+  it('forgets the next-block fee of the network it leaves', () => {
+    const store = useBlockchainStore.getState()
+    store.setSelectedNetwork('testnet')
+    store.setNextBlockFee(80)
+
+    store.setSelectedNetwork('bitcoin')
+
+    expect(useBlockchainStore.getState().nextBlockFee).toBeNull()
+  })
+
+  it('keeps the fee when the same network is selected again', () => {
+    const store = useBlockchainStore.getState()
+    store.setSelectedNetwork('signet')
+    store.setNextBlockFee(3)
+
+    store.setSelectedNetwork('signet')
+
+    expect(useBlockchainStore.getState().nextBlockFee).toBe(3)
+  })
+})

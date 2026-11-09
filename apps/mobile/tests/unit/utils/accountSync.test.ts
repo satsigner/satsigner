@@ -8,8 +8,8 @@ import {
   type AccountSyncHistory,
   getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
-  recoverInterruptedSyncStatus,
-  shouldFullScan
+  shouldFullScan,
+  toRestoredSyncStatus
 } from '@/utils/accountSync'
 
 function makeAccount(
@@ -179,14 +179,16 @@ describe('getSyncStallTimeoutMs', () => {
   })
 })
 
-describe('recoverInterruptedSyncStatus', () => {
-  it('turns a sync cut off by an app restart into unsynced', () => {
-    expect(recoverInterruptedSyncStatus('syncing')).toBe('unsynced')
-    expect(recoverInterruptedSyncStatus('queued')).toBe('unsynced')
+describe('toRestoredSyncStatus', () => {
+  it('turns a sync cut short by a restart into the last finished outcome', () => {
+    expect(toRestoredSyncStatus('syncing', new Date(0))).toBe('synced')
+    expect(toRestoredSyncStatus('syncing', undefined)).toBe('unsynced')
+    expect(toRestoredSyncStatus('timeout', undefined)).toBe('unsynced')
+    expect(toRestoredSyncStatus('queued', new Date(0))).toBe('synced')
   })
 
-  it('keeps finished states', () => {
-    expect(recoverInterruptedSyncStatus('synced')).toBe('synced')
-    expect(recoverInterruptedSyncStatus('error')).toBe('error')
+  it('keeps a finished status as stored', () => {
+    expect(toRestoredSyncStatus('error', new Date(0))).toBe('error')
+    expect(toRestoredSyncStatus('synced', new Date(0))).toBe('synced')
   })
 })

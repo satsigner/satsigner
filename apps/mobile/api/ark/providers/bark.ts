@@ -36,7 +36,8 @@ import {
   ARK_PENDING_RACE_TIMEOUT_MS,
   ARK_PENDING_TXID,
   ARK_ROUND_TX_REQUIRED_CONFIRMATIONS,
-  ARK_SAT_PER_KWU_PER_SAT_PER_VB
+  ARK_SAT_PER_KWU_PER_SAT_PER_VB,
+  ARK_WALLET_RELEASED_WHILE_OPENING
 } from '@/constants/ark'
 import type {
   ArkBalance,
@@ -90,6 +91,13 @@ const activeUnsubscribes = new Map<string, Set<ArkNotificationUnsubscribe>>()
 // key, counted so each one releases only its own hold. Starting the same one
 // again before it settles could spend the same funds twice.
 const heldOperations = new Map<string, number>()
+// Bumped by every release, so an open that was still running when its wallet
+// was released destroys what it opened instead of caching it again.
+const walletGenerations = new Map<string, number>()
+
+function getWalletGeneration(accountId: string): number {
+  return walletGenerations.get(accountId) ?? 0
+}
 
 function appNetworkToBarkNetwork(network: Network): BarkNetwork {
   switch (network) {
@@ -144,6 +152,7 @@ function getCachedWallet(accountId: string): WalletLike {
 // supplied at open time (`WalletOpenArgs.onchain`), so it must be created
 // upfront instead of lazily.
 async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
+  const generation = getWalletGeneration(args.accountId)
   const onchainWallet = await OnchainWallet.default_(
     appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
@@ -164,6 +173,12 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
         skipRecovery: false
       }
     )
+    if (getWalletGeneration(args.accountId) !== generation) {
+      if (Wallet.instanceOf(wallet)) {
+        wallet.uniffiDestroy()
+      }
+      throw new Error(ARK_WALLET_RELEASED_WHILE_OPENING)
+    }
     walletCache.set(args.accountId, wallet)
   } catch (error) {
     if (OnchainWallet.instanceOf(onchainWallet)) {
@@ -209,13 +224,16 @@ async function syncWallet(accountId: string): Promise<void> {
   }
 }
 
+// The wallet is cached before its first sync finishes, so a caller arriving
+// in between waits for that open instead of using a wallet that may still be
+// evicted when the sync fails.
 async function openWallet(args: ArkWalletArgs): Promise<void> {
-  if (walletCache.has(args.accountId)) {
-    return
-  }
   const inflight = inflightOpens.get(args.accountId)
   if (inflight) {
     return inflight
+  }
+  if (walletCache.has(args.accountId)) {
+    return
   }
   const promise = openAndCacheWallet(args)
   inflightOpens.set(args.accountId, promise)
@@ -301,6 +319,7 @@ function subscribeNotifications(
 }
 
 function releaseWallet(accountId: string): void {
+  walletGenerations.set(accountId, getWalletGeneration(accountId) + 1)
   const unsubscribes = activeUnsubscribes.get(accountId)
   if (unsubscribes) {
     for (const unsubscribe of unsubscribes) {

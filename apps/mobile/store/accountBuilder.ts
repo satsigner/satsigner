@@ -6,6 +6,7 @@ import { UNKNOWN_MASTER_FINGERPRINT } from '@/constants/btc'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { createResetKey, dropSeedFromKeyInMemory } from '@/utils/account'
+import { pickKeyDraftSecret } from '@/utils/accountBuilderKey'
 import { randomIv, randomUuid } from '@/utils/crypto'
 
 const DEFAULT_MNEMONIC_WORD_COUNT = 24
@@ -307,22 +308,23 @@ const useAccountBuilderStore = create<
         creationType,
         mnemonicWordCount,
         mnemonicWordList,
-        mnemonic,
-        passphrase,
         fingerprint,
         scriptVersion,
+        ...draft
+      } = get()
+      const {
         externalDescriptor,
         internalDescriptor,
         extendedPublicKey,
-        privateKey,
+        mnemonic,
+        passphrase,
+        privateKey: wifPrivateKey,
         privateKeyCompressed
-      } = get()
+      } = pickKeyDraftSecret(creationType, draft)
 
       const isWatchOnlyAddress =
         creationType === 'importAddress' && externalDescriptor
 
-      const wifPrivateKey =
-        creationType === 'importWif' ? privateKey : undefined
       const isWif = Boolean(wifPrivateKey)
 
       const isImportedPublicKey =

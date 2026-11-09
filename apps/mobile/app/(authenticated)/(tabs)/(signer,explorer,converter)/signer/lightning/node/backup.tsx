@@ -88,16 +88,21 @@ export default function LightningBackupPage() {
     setBackupData('')
   }
 
+  // A preview is built from the options ticked when it was generated, so a
+  // changed option drops it: sharing must never export what was unticked.
   function handleToggleConnection() {
     setIncludeConnection((current) => !current)
+    handleClose()
   }
 
   function handleToggleNodeInformation() {
     setIncludeNodeInformation((current) => !current)
+    handleClose()
   }
 
   function handleToggleChannels() {
     setIncludeChannels((current) => !current)
+    handleClose()
   }
 
   return (

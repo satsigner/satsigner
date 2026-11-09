@@ -1,4 +1,4 @@
-import { toEcashToken } from '@/utils/ecashToken'
+import { toCheckedTokenStatus, toEcashToken } from '@/utils/ecashToken'
 
 const MINT_URL = 'https://mint.example'
 
@@ -26,5 +26,21 @@ describe('toEcashToken', () => {
       toEcashToken({ mint: MINT_URL, proofs: [], unit: 'usd' }).unit
     ).toBeUndefined()
     expect(toEcashToken({ mint: MINT_URL, proofs: [] }).unit).toBeUndefined()
+  })
+})
+
+describe('toCheckedTokenStatus', () => {
+  it('marks a fully spent token as spent, not unspent', () => {
+    expect(toCheckedTokenStatus({ isSpent: true, isValid: true })).toBe('spent')
+  })
+
+  it('marks an unspent token as unspent', () => {
+    expect(toCheckedTokenStatus({ isSpent: false, isValid: true })).toBe(
+      'unspent'
+    )
+  })
+
+  it('marks a token it could not read as invalid', () => {
+    expect(toCheckedTokenStatus({ isValid: false })).toBe('invalid')
   })
 })

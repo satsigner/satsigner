@@ -35,6 +35,8 @@ export type ArkOnchainToLightningJob = ArkSwapJobBase & {
   invoice?: string
   invoiceExpiresAt?: number
   paymentHash?: string
+  // The board left Ark, so nothing is there for this swap to pay from.
+  boardExited?: boolean
 }
 
 // Receives a lightning payment into Ark, then sends it on-chain to a fresh

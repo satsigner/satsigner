@@ -60,11 +60,6 @@ import { getServerPrivacy } from '@/utils/serverPrivacy'
 
 const tnServer = _tn('settings.network.server')
 
-type PendingPublicServer = {
-  action: 'activate' | 'save'
-  server: Server
-}
-
 type EditServerSource = {
   customServerCount: number
   editUrl: string | undefined
@@ -102,8 +97,6 @@ export default function CustomNetwork() {
   const [, requestCameraPermission] = useCameraPermissions()
 
   const [
-    selectedNetwork,
-    configs,
     customServers,
     setSelectedNetwork,
     updateServer,
@@ -111,8 +104,6 @@ export default function CustomNetwork() {
     updateCustomServer
   ] = useBlockchainStore(
     useShallow((state) => [
-      state.selectedNetwork,
-      state.configs,
       state.customServers,
       state.setSelectedNetwork,
       state.updateServer,
@@ -127,16 +118,15 @@ export default function CustomNetwork() {
   const { testing: connectionTesting, testConnection } = useConnectionTest()
 
   const [editingServer, setEditingServer] = useState<Server | null>(null)
-  const [oldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer] = useState<Server>(configs[networkType].server)
   /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
   /** Electrum server.banner text from the last successful probe. */
   const [lastBanner, setLastBanner] = useState<string | null>(null)
   const [loadedEditServerSource, setLoadedEditServerSource] =
     useState<EditServerSource | null>(null)
-  const [pendingPublicServer, setPendingPublicServer] =
-    useState<PendingPublicServer | null>(null)
+  const [pendingPublicServer, setPendingPublicServer] = useState<Server | null>(
+    null
+  )
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
@@ -284,34 +274,15 @@ export default function CustomNetwork() {
     }
   }
 
-  function activateServer(server: Server) {
-    setSelectedNetwork(networkType)
-    updateServer(networkType, server)
-  }
-
   function saveServer(server: Server) {
     if (editingServer) {
       updateCustomServer(editingServer, server)
     } else {
       addCustomServer(server)
     }
-    activateServer(server)
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
     router.back()
-  }
-
-  function activateOrConfirm(
-    server: Server,
-    action: PendingPublicServer['action']
-  ) {
-    if (getServerPrivacy(server) === 'public') {
-      setPendingPublicServer({ action, server })
-      return
-    }
-    if (action === 'save') {
-      saveServer(server)
-      return
-    }
-    activateServer(server)
   }
 
   function applyTestResult(server: Server, result: ConnectionTestResult) {
@@ -322,8 +293,8 @@ export default function CustomNetwork() {
       return
     }
 
-    activateOrConfirm(server, 'activate')
-
+    // A test only probes the server; it becomes active on Save, so leaving
+    // without saving keeps the server that was active before.
     setLastProbeLine(successProbeDescription(result))
     setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
 
@@ -371,26 +342,23 @@ export default function CustomNetwork() {
     if (!pendingPublicServer) {
       return
     }
-    const { action, server } = pendingPublicServer
     setPendingPublicServer(null)
-    if (action === 'save') {
-      saveServer(server)
-      return
-    }
-    activateServer(server)
+    saveServer(pendingPublicServer)
   }
 
   function handleSave() {
-    if (isValid()) {
-      activateOrConfirm(buildServer(), 'save')
+    if (!isValid()) {
+      return
     }
+    const server = buildServer()
+    if (getServerPrivacy(server) === 'public') {
+      setPendingPublicServer(server)
+      return
+    }
+    saveServer(server)
   }
 
   function handleCancel() {
-    if (connectionStatus !== 'connected') {
-      setSelectedNetwork(oldNetwork)
-      updateServer(oldNetwork, oldServer)
-    }
     router.back()
   }
 
@@ -720,7 +688,7 @@ export default function CustomNetwork() {
 
       <SSPublicServerWarningModal
         visible={pendingPublicServer !== null}
-        serverName={pendingPublicServer?.server.name ?? ''}
+        serverName={pendingPublicServer?.name ?? ''}
         onConfirm={handleConfirmPublicServer}
         onCancel={() => setPendingPublicServer(null)}
       />

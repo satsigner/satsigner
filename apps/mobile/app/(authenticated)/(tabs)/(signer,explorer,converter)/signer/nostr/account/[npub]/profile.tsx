@@ -246,6 +246,8 @@ export default function NostrIdentityProfile() {
             }
             variant="secondary"
             loading={isSaving}
+            // Saving mid-upload would publish without the new image.
+            disabled={isPictureUploading || isBannerUploading}
             onPress={handleSave}
           />
         </SSVStack>
