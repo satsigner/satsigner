@@ -156,6 +156,16 @@ function SSNumberInput({
     emitChange(text, numericVal)
   }
 
+  // Blurring shows the parent's value again (see above), so the parent must
+  // hear the verdict on that value, not on the text it replaces.
+  function revalidateParentValue() {
+    const parentText = value || ''
+    if (!onValidate || parentText === localValue) {
+      return
+    }
+    onValidate(!isNumberTextOutOfRange(parentText, NUMBER_REGEX, min, max))
+  }
+
   function handleSubmitText() {
     if (/^[0-9]+$/.test(localValue)) {
       let numericVal = Number(localValue)
@@ -193,6 +203,7 @@ function SSNumberInput({
         }}
         onBlur={(event) => {
           setFocused(false)
+          revalidateParentValue()
           onBlur?.(event)
         }}
         onEndEditing={onEndEditing}
