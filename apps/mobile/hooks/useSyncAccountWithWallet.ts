@@ -20,18 +20,16 @@ import { type Account, type SyncProgress } from '@/types/models/Account'
 import { type Prices } from '@/types/models/Blockchain'
 import { type Config, type Server } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
-import {
-  getSyncStallTimeoutMs,
-  shouldFullScan,
-  toRestoredSyncStatus
-} from '@/utils/accountSync'
+import { getSyncStallTimeoutMs, shouldFullScan } from '@/utils/accountSync'
 import {
   cancelAccountSync,
   hasCurrentSyncRun,
   runExclusiveOnCoreNode,
+  settleCancelledSyncStatus,
   trackAccountSyncWork,
   waitForAccountSyncWork,
-  walletSyncQueue
+  walletSyncQueue,
+  writeSyncStatus
 } from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
@@ -289,33 +287,6 @@ async function syncWalletAccount({
   return updatedAccount
 }
 
-/**
- * The status shown on the account card. A failed write (SQLite) must not turn
- * a finished sync into a rejected one that callers don't expect.
- */
-function writeSyncStatus(accountId: string, syncStatus: Account['syncStatus']) {
-  try {
-    useAccountsStore.getState().setSyncStatus(accountId, syncStatus)
-  } catch {
-    // the status stays stale until the next sync writes it
-  }
-}
-
-function settleStatusAfterCancel(accountId: string) {
-  if (hasCurrentSyncRun(accountId)) {
-    return
-  }
-  const current = useAccountsStore
-    .getState()
-    .accounts.find((a) => a.id === accountId)
-  if (current?.syncStatus === 'syncing' || current?.syncStatus === 'queued') {
-    writeSyncStatus(
-      accountId,
-      toRestoredSyncStatus(current.syncStatus, current.lastSyncedAt)
-    )
-  }
-}
-
 function handleSyncError(
   account: Account,
   error: unknown,
@@ -323,7 +294,7 @@ function handleSyncError(
 ): Account | null {
   const msg = error instanceof Error ? error.message : String(error)
   if (msg === SYNC_CANCELLED_ERROR) {
-    settleStatusAfterCancel(account.id)
+    settleCancelledSyncStatus(account.id)
     return null
   }
 
@@ -502,7 +473,7 @@ async function queueWalletSync({
       : handleSyncError(account, outcome.error, reportError)
   }
   if (outcome.value === null) {
-    settleStatusAfterCancel(account.id)
+    settleCancelledSyncStatus(account.id)
   }
   return isDuplicate ? null : outcome.value
 }

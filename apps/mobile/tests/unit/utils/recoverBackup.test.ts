@@ -1,5 +1,9 @@
 import { RESTORE_ROLLBACK_ATTEMPTS } from '@/constants/backup'
 import { useSettingsStore } from '@/store/settings'
+import {
+  cancelAllAccountSyncs,
+  settleCancelledSyncStatuses
+} from '@/utils/accountSyncRuns'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
@@ -111,6 +115,13 @@ jest.mock<typeof import('@/store/transactionBuilder')>(
 jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
   useWalletsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<Partial<typeof import('@/utils/accountSyncRuns')>>(
+  '@/utils/accountSyncRuns',
+  () => ({
+    cancelAllAccountSyncs: jest.fn(),
+    settleCancelledSyncStatuses: jest.fn()
+  })
+)
 
 const { getPin } = jest.requireMock('@/utils/pin') as {
   getPin: jest.Mock
@@ -934,6 +945,8 @@ describe('performRecoverOverwrite restore', () => {
     })
     expect(deleteEcashMnemonic).not.toHaveBeenCalled()
     expect(deleteLeftoverArkDatadirs).not.toHaveBeenCalled()
+    expect(cancelAllAccountSyncs).toHaveBeenCalledTimes(1)
+    expect(settleCancelledSyncStatuses).toHaveBeenCalledTimes(1)
   })
 
   it('puts nostr identity secrets back on disk when the restore fails after clearing them', async () => {
@@ -1121,6 +1134,8 @@ describe('performRecoverOverwrite restore', () => {
 
     expect(result).toStrictEqual({ success: true })
     expect(deleteEcashMnemonic).toHaveBeenCalledWith('old-ecash')
+    expect(cancelAllAccountSyncs).toHaveBeenCalledTimes(1)
+    expect(settleCancelledSyncStatuses).not.toHaveBeenCalled()
   })
 
   it('restores ark mnemonics, labels, and store, ignoring legacy datadirs', async () => {
