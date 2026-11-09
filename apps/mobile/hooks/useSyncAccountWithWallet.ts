@@ -128,7 +128,7 @@ async function syncWalletAccount({
   // RPC backend always uses the Bitcoin Core wallet path (importdescriptors +
   // rescanblockchain + listtransactions) — the same approach as Sparrow Wallet.
   // Compact block filters are not used for RPC.
-  const useCoreWallet = server.backend === 'rpc' && !!server.rpcCredentials
+  const useCoreWallet = usesCoreWallet(server)
 
   let walletSummary: ReturnType<typeof getWalletOverview>
   let newRpcLastBlockHash: string | undefined
@@ -356,8 +356,38 @@ async function runQueuedWalletSync(
     return null
   }
 
-  // Read when the job starts, not when it was queued: the server or stop gap
-  // may have changed while it waited (or a backup restore just replaced them).
+  const target = resolveSyncTarget(account.id, controls.isPriority)
+  if (!target) {
+    return null
+  }
+  return runOnCoreNodeExclusively(target.server, controls, () => {
+    // Waiting behind another account's Core sync can take hours: the server
+    // or the connection mode may have changed since.
+    const current = resolveSyncTarget(account.id, controls.isPriority)
+    if (!current || !isSameServer(current.server, target.server)) {
+      return Promise.resolve(null)
+    }
+    return trackAccountSyncWork(
+      account.id,
+      syncWalletAccount({ ...current, controls, forceFullScan, wallet })
+    )
+  })
+}
+
+type SyncTarget = Omit<
+  WalletSyncParams,
+  'controls' | 'forceFullScan' | 'wallet'
+>
+
+/**
+ * What a job syncs with, read when it is about to run rather than when it was
+ * queued: the server or stop gap may have changed while it waited (or a
+ * backup restore just replaced them). Null when the job must not run.
+ */
+function resolveSyncTarget(
+  accountId: string,
+  isPriority: boolean
+): SyncTarget | null {
   const {
     configs,
     lastKnownBlockHeight,
@@ -367,46 +397,47 @@ async function runQueuedWalletSync(
   const { server, config } = configs[selectedNetwork]
   const { accounts, setSyncProgress, setSyncStatus } =
     useAccountsStore.getState()
-  const latest = accounts.find((a) => a.id === account.id)
+  const latest = accounts.find((a) => a.id === accountId)
   // Deleted while it waited, or the user switched networks: this server must
   // not receive the account's descriptors.
   if (!latest || latest.network !== selectedNetwork) {
     return null
   }
   // The user turned automatic syncing off while this background job waited.
-  if (!controls.isPriority && config.connectionMode === 'manual') {
+  if (!isPriority && config.connectionMode === 'manual') {
     return null
   }
-  return runOnCoreNodeExclusively(server, controls, () =>
-    trackAccountSyncWork(
-      account.id,
-      syncWalletAccount({
-        config,
-        controls,
-        forceFullScan,
-        lastKnownBlockHeight,
-        latest,
-        server,
-        setLastKnownBlockHeight,
-        setSyncProgress,
-        setSyncStatus,
-        wallet
-      })
-    )
-  )
+  return {
+    config,
+    lastKnownBlockHeight,
+    latest,
+    server,
+    setLastKnownBlockHeight,
+    setSyncProgress,
+    setSyncStatus
+  }
+}
+
+function isSameServer(a: Server, b: Server) {
+  return a.backend === b.backend && a.url === b.url
+}
+
+function usesCoreWallet(server: Server) {
+  return server.backend === 'rpc' && !!server.rpcCredentials
 }
 
 /**
- * Bitcoin Core syncs to the same node run one at a time: accounts can share a
- * Core wallet, and the rescan one starts would abort another's. Waiting
- * behind another account's rescan is not a stall, so it keeps the job alive.
+ * Bitcoin Core wallet syncs to the same node run one at a time: accounts can
+ * share a Core wallet, and the rescan one starts would abort another's.
+ * Waiting behind another account's rescan is not a stall, so it keeps the job
+ * alive.
  */
 function runOnCoreNodeExclusively(
   server: Server,
   controls: SyncTaskControls,
   work: () => Promise<Account | null>
 ): Promise<Account | null> {
-  if (server.backend !== 'rpc') {
+  if (!usesCoreWallet(server)) {
     return work()
   }
   const heartbeat = setInterval(
