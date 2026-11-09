@@ -13,13 +13,19 @@ type EnqueueOptions = {
   onQueued?: () => void
   /** Starts right away, even when every background slot is busy. */
   priority?: boolean
-  /** Aborts the sync after this long without a call to `reportProgress`. */
-  timeoutMs: number
+  /**
+   * Aborts the sync after this long without a call to `reportProgress`. A
+   * function is read when the job starts, so it can follow settings that
+   * changed while the job waited.
+   */
+  timeoutMs: number | (() => number)
 }
 
 export type SyncTaskControls = {
   /** Network work is done; later steps (fiat prices) can't stall the sync. */
   finishScan: () => void
+  /** Requested by the user rather than run in the background. */
+  isPriority: boolean
   reportProgress: () => void
   signal: AbortSignal
 }
@@ -37,7 +43,7 @@ type Job<T> = {
   settle: (outcome: Outcome<T>) => void
   state: 'waiting' | 'running'
   task: SyncTask<T>
-  timeoutMs: number
+  timeoutMs: EnqueueOptions['timeoutMs']
 }
 
 /**
@@ -70,10 +76,12 @@ export function createSyncQueue<T>(concurrency: number) {
   function start(job: Job<T>) {
     job.state = 'running'
     const { signal } = job.controller
-    const timer = { id: setTimeout(onStalled, job.timeoutMs) }
+    const timeoutMs =
+      typeof job.timeoutMs === 'function' ? job.timeoutMs() : job.timeoutMs
+    const timer = { id: setTimeout(onStalled, timeoutMs) }
 
     function onStalled() {
-      const error = new SyncTimeoutError(job.timeoutMs)
+      const error = new SyncTimeoutError(timeoutMs)
       job.controller.abort(error)
       job.settle({ error })
     }
@@ -85,7 +93,7 @@ export function createSyncQueue<T>(concurrency: number) {
         return
       }
       clearTimeout(timer.id)
-      timer.id = setTimeout(onStalled, job.timeoutMs)
+      timer.id = setTimeout(onStalled, timeoutMs)
     }
 
     function finishScan() {
@@ -95,7 +103,12 @@ export function createSyncQueue<T>(concurrency: number) {
 
     signal.addEventListener('abort', () => clearTimeout(timer.id))
 
-    void runTask(job, { finishScan, reportProgress, signal })
+    void runTask(job, {
+      finishScan,
+      isPriority: job.isPriority,
+      reportProgress,
+      signal
+    })
   }
 
   async function runTask(job: Job<T>, controls: SyncTaskControls) {

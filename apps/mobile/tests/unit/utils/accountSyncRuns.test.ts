@@ -3,6 +3,7 @@ import {
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
+  runExclusiveOnCoreNode,
   trackAccountSyncWork,
   waitForAccountSyncWork,
   walletSyncQueue
@@ -92,5 +93,47 @@ describe('account sync runs', () => {
 
     await expect(waited).resolves.toBe(false)
     jest.useRealTimers()
+  })
+
+  it('keeps a cancelled running job syncing until its tracked native work settles', async () => {
+    const { gate, work } = pendingSync()
+    const result = walletSyncQueue.enqueue(
+      'acc',
+      () => trackAccountSyncWork('acc', work),
+      { timeoutMs: SYNC_TIMEOUT_MS }
+    )
+
+    cancelAccountSync('acc')
+
+    await expect(result).resolves.toBeNull()
+    expect(hasCurrentSyncRun('acc')).toBe(false)
+    expect(isAccountSyncing('acc')).toBe(true)
+
+    gate.open?.()
+    await expect(waitForAccountSyncWork('acc', WAIT_TIMEOUT_MS)).resolves.toBe(
+      true
+    )
+    expect(isAccountSyncing('acc')).toBe(false)
+  })
+
+  it('runs Core syncs to the same node one at a time', async () => {
+    const first = pendingSync()
+    const secondWork = jest.fn(() => Promise.resolve('second'))
+
+    const firstRun = runExclusiveOnCoreNode(
+      'http://node:8332',
+      () => first.work
+    )
+    const secondRun = runExclusiveOnCoreNode('http://node:8332', secondWork)
+    const otherNode = runExclusiveOnCoreNode('http://other:8332', () =>
+      Promise.resolve('other')
+    )
+
+    await expect(otherNode).resolves.toBe('other')
+    expect(secondWork).not.toHaveBeenCalled()
+
+    first.gate.open?.()
+    await firstRun
+    await expect(secondRun).resolves.toBe('second')
   })
 })

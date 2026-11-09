@@ -33,6 +33,7 @@ function deferredTask() {
 function expectStarted(task: jest.Mock) {
   expect(task).toHaveBeenCalledWith({
     finishScan: expect.any(Function),
+    isPriority: expect.any(Boolean),
     reportProgress: expect.any(Function),
     signal: expect.any(AbortSignal)
   })
@@ -323,5 +324,50 @@ describe('createSyncQueue cancelAll', () => {
     expect(queued.task).not.toHaveBeenCalled()
     expect(queue.isActive('a')).toBe(false)
     expect(queue.isActive('b')).toBe(false)
+  })
+})
+
+describe('createSyncQueue options read at start', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('reads the stall timeout when a queued job starts', async () => {
+    const queue = createSyncQueue<string>(1)
+    const running = deferredTask()
+    const queued = deferredTask()
+    const settings = { timeoutMs: TIMEOUT_MS }
+
+    queue.enqueue('a', running.task, { timeoutMs: TIMEOUT_MS })
+    const result = queue.enqueue('b', queued.task, {
+      timeoutMs: () => settings.timeoutMs
+    })
+    settings.timeoutMs = TIMEOUT_MS * 5
+
+    running.deferred.resolve('done')
+    await flushPromises()
+    jest.advanceTimersByTime(TIMEOUT_MS * 2)
+    expect(queue.isActive('b')).toBe(true)
+
+    jest.advanceTimersByTime(TIMEOUT_MS * 3)
+    await expect(result).rejects.toBeInstanceOf(SyncTimeoutError)
+  })
+
+  it('tells a promoted job that it now runs at priority', () => {
+    const queue = createSyncQueue<string>(1)
+    const running = deferredTask()
+    const queued = deferredTask()
+
+    queue.enqueue('a', running.task, { timeoutMs: TIMEOUT_MS })
+    queue.enqueue('b', queued.task, { timeoutMs: TIMEOUT_MS })
+    queue.enqueue('b', jest.fn(), { priority: true, timeoutMs: TIMEOUT_MS })
+
+    expect(queued.task).toHaveBeenCalledWith(
+      expect.objectContaining({ isPriority: true })
+    )
   })
 })

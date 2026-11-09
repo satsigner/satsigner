@@ -185,6 +185,7 @@ describe('toRestoredSyncStatus', () => {
     expect(toRestoredSyncStatus('syncing', undefined)).toBe('unsynced')
     expect(toRestoredSyncStatus('timeout', undefined)).toBe('unsynced')
     expect(toRestoredSyncStatus('queued', new Date(0))).toBe('synced')
+    expect(toRestoredSyncStatus('queued', undefined)).toBe('unsynced')
   })
 
   it('keeps a finished status as stored', () => {
