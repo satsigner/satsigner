@@ -167,9 +167,10 @@ function toSinglePathDescriptors(
  */
 async function importDescriptorsIfNeeded(
   coreWallet: BitcoinCoreWallet,
-  account: Account,
+  account: Pick<Account, 'rpcLastBlockHash'>,
   [external, internal]: [string, string],
-  stopGap: number
+  stopGap: number,
+  isCancelled?: () => boolean
 ): Promise<boolean> {
   const existing = await coreWallet
     .listDescriptors()
@@ -213,6 +214,7 @@ async function importDescriptorsIfNeeded(
           timestamp: 'now'
         }
       ]
+  throwIfCancelled(isCancelled)
   const results = await coreWallet.importDescriptors(requests)
   const failed = results.find((result) => !result.success && result.error)
   if (failed?.error) {
@@ -313,6 +315,7 @@ async function startRescanFrom(
   startHeight: number,
   isCancelled?: () => boolean
 ) {
+  throwIfCancelled(isCancelled)
   try {
     await startRescan(coreWallet, startHeight)
   } catch (error) {
@@ -320,6 +323,7 @@ async function startRescanFrom(
       throw error
     }
     await waitForRescanStopped(coreWallet, isCancelled)
+    throwIfCancelled(isCancelled)
     await startRescan(coreWallet, startHeight).catch((retryError: unknown) => {
       if (!isRescanInProgress(retryError)) {
         throw retryError
@@ -649,7 +653,8 @@ async function syncWithCoreWallet(
     coreWallet,
     account,
     normalized,
-    stopGap
+    stopGap,
+    isCancelled
   )
   if (needsRescan) {
     throwIfCancelled(isCancelled)
@@ -811,6 +816,7 @@ async function syncWithCoreWallet(
 }
 
 export {
+  importDescriptorsIfNeeded,
   isListDescriptorsError,
   isRescanInProgress,
   mergeWalletTxEntries,

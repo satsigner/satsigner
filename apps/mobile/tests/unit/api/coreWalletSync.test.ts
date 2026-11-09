@@ -1,4 +1,5 @@
 import {
+  importDescriptorsIfNeeded,
   isListDescriptorsError,
   isRescanInProgress,
   mergeWalletTxEntries,
@@ -15,6 +16,7 @@ import {
   type CoreWalletListTx
 } from '@/api/rpc'
 import { BDK_RESCAN_START_RACE_TIMEOUT_MS } from '@/constants/bdk'
+import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { RpcError } from '@/utils/errors'
 
 const RESCAN_IN_PROGRESS_MESSAGE =
@@ -199,6 +201,60 @@ describe('startRescanFrom', () => {
       'Invalid start_height'
     )
     expect(rescan).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts no rescan for a cancelled sync', async () => {
+    const coreWallet = makeCoreWallet()
+    const rescan = jest.spyOn(coreWallet, 'rescanBlockchain')
+
+    await expect(startRescanFrom(coreWallet, 0, () => true)).rejects.toThrow(
+      SYNC_CANCELLED_ERROR
+    )
+    expect(rescan).not.toHaveBeenCalled()
+  })
+
+  it('skips the retry when the sync is cancelled while the old scan stops', async () => {
+    const coreWallet = makeCoreWallet()
+    const cancelled = { value: false }
+    jest.spyOn(coreWallet, 'getWalletInfo').mockImplementation(() => {
+      cancelled.value = true
+      return Promise.resolve(IDLE_WALLET_INFO)
+    })
+    const rescan = jest
+      .spyOn(coreWallet, 'rescanBlockchain')
+      .mockRejectedValue(new RpcError(-4, RESCAN_IN_PROGRESS_MESSAGE))
+
+    await expect(
+      startRescanFrom(coreWallet, 0, () => cancelled.value)
+    ).rejects.toThrow(SYNC_CANCELLED_ERROR)
+    expect(rescan).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('importDescriptorsIfNeeded', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it('imports no descriptors for a sync cancelled while it listed them', async () => {
+    const coreWallet = makeCoreWallet()
+    const cancelled = { value: false }
+    jest.spyOn(coreWallet, 'listDescriptors').mockImplementation(() => {
+      cancelled.value = true
+      return Promise.resolve({ descriptors: [], wallet_name: 'w' })
+    })
+    const importDescriptors = jest.spyOn(coreWallet, 'importDescriptors')
+
+    await expect(
+      importDescriptorsIfNeeded(
+        coreWallet,
+        {},
+        ['wpkh(xpub/0/*)', 'wpkh(xpub/1/*)'],
+        20,
+        () => cancelled.value
+      )
+    ).rejects.toThrow(SYNC_CANCELLED_ERROR)
+    expect(importDescriptors).not.toHaveBeenCalled()
   })
 })
 

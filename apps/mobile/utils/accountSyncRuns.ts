@@ -1,6 +1,8 @@
 import { SYNC_CONCURRENCY } from '@/constants/sync'
 import { createSyncQueue } from '@/services/syncQueue'
+import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
+import { toRestoredSyncStatus } from '@/utils/accountSync'
 import { withTimeout } from '@/utils/time'
 
 // Every wallet sync in the app goes through this queue, which runs a few at a
@@ -32,6 +34,44 @@ function isAccountSyncing(accountId: string): boolean {
 /** True while the account is queued or syncing, ignoring cancelled work. */
 function hasCurrentSyncRun(accountId: string): boolean {
   return walletSyncQueue.isActive(accountId)
+}
+
+/**
+ * The status shown on the account card. A failed write (SQLite) must not turn
+ * a finished sync into a rejected one that callers don't expect.
+ */
+function writeSyncStatus(accountId: string, syncStatus: Account['syncStatus']) {
+  try {
+    useAccountsStore.getState().setSyncStatus(accountId, syncStatus)
+  } catch {
+    // the status stays stale until the next sync writes it
+  }
+}
+
+/**
+ * A cancelled sync leaves the status the last finished sync left, unless a
+ * newer job of the account owns the status now.
+ */
+function settleCancelledSyncStatus(accountId: string) {
+  if (hasCurrentSyncRun(accountId)) {
+    return
+  }
+  const current = useAccountsStore
+    .getState()
+    .accounts.find((a) => a.id === accountId)
+  if (current?.syncStatus === 'syncing' || current?.syncStatus === 'queued') {
+    writeSyncStatus(
+      accountId,
+      toRestoredSyncStatus(current.syncStatus, current.lastSyncedAt)
+    )
+  }
+}
+
+/** E.g. after a restore rollback brought back statuses of cancelled syncs. */
+function settleCancelledSyncStatuses() {
+  for (const { id } of useAccountsStore.getState().accounts) {
+    settleCancelledSyncStatus(id)
+  }
 }
 
 /**
@@ -84,6 +124,11 @@ async function afterSettled<T>(
   return work()
 }
 
+/** True while a Core sync to this node is queued or running. */
+function isCoreNodeBusy(nodeUrl: string): boolean {
+  return coreNodeWork.has(nodeUrl)
+}
+
 /** Runs `work` once every earlier Core sync to the same node has settled. */
 async function runExclusiveOnCoreNode<T>(
   nodeUrl: string,
@@ -105,8 +150,12 @@ export {
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
+  isCoreNodeBusy,
   runExclusiveOnCoreNode,
+  settleCancelledSyncStatus,
+  settleCancelledSyncStatuses,
   trackAccountSyncWork,
   waitForAccountSyncWork,
-  walletSyncQueue
+  walletSyncQueue,
+  writeSyncStatus
 }

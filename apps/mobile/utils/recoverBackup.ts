@@ -37,7 +37,10 @@ import type {
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
-import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
+import {
+  cancelAllAccountSyncs,
+  settleCancelledSyncStatuses
+} from '@/utils/accountSyncRuns'
 import {
   deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
@@ -659,6 +662,9 @@ export async function performRecoverOverwrite(
       RESTORE_ROLLBACK_ATTEMPTS
     )
     rollbackStores(snapshot)
+    // The snapshot predates the cancel above, so it can hold the 'syncing' or
+    // 'queued' status of a sync that no longer runs.
+    settleCancelledSyncStatuses()
     if (!rolledBack) {
       return {
         error: errorMessage(error),

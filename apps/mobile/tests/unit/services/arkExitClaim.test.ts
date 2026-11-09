@@ -9,7 +9,10 @@ import {
 import { broadcastRawTransaction } from '@/api/broadcast'
 import { fetchTransactionOutspends } from '@/api/transactionOutspends'
 import { t } from '@/locales'
-import { reserveFreshReceiveAddress } from '@/services/accountReceiveAddress'
+import {
+  peekFreshReceiveAddress,
+  reserveReceiveAddressIfFresh
+} from '@/services/accountReceiveAddress'
 import {
   claimArkExits,
   discardArkExitClaim,
@@ -41,7 +44,8 @@ jest.mock<typeof import('@/services/accountReceiveAddress')>(
   '@/services/accountReceiveAddress',
   () => ({
     peekFreshReceiveAddress: jest.fn(),
-    reserveFreshReceiveAddress: jest.fn()
+    reserveFreshReceiveAddress: jest.fn(),
+    reserveReceiveAddressIfFresh: jest.fn()
   })
 )
 jest.mock<typeof import('@/services/arkWallet')>(
@@ -85,9 +89,11 @@ claimPsbt.addOutput({
   script: DESTINATION_SCRIPT,
   value: EXIT_VALUE - BigInt(FEE_SATS)
 })
-const signedClaimTx = bitcoinjs.Transaction.fromBuffer(
+const unsignedClaimTx = bitcoinjs.Transaction.fromBuffer(
   claimPsbt.data.globalMap.unsignedTx.toBuffer()
 )
+const UNSIGNED_HEX = unsignedClaimTx.toHex()
+const signedClaimTx = unsignedClaimTx.clone()
 signedClaimTx.setWitness(0, [Buffer.alloc(64, 1)])
 const SIGNED_HEX = signedClaimTx.toHex()
 const CLAIM_TXID = signedClaimTx.getId()
@@ -183,7 +189,8 @@ describe('claimArkExits', () => {
     useArkExitClaimsStore.getState().clearAllData()
     jest.mocked(syncArkExits).mockResolvedValue()
     jest.mocked(listArkExits).mockResolvedValue([claimableExit()])
-    jest.mocked(reserveFreshReceiveAddress).mockResolvedValue(DESTINATION)
+    jest.mocked(peekFreshReceiveAddress).mockResolvedValue(DESTINATION)
+    jest.mocked(reserveReceiveAddressIfFresh).mockResolvedValue(true)
     jest.mocked(buildArkExitClaim).mockResolvedValue({
       feeSats: FEE_SATS,
       psbtBase64: claimPsbt.toBase64(),
@@ -246,7 +253,7 @@ describe('claimArkExits', () => {
 
   it('never signs a claim that pays somewhere else', async () => {
     jest
-      .mocked(reserveFreshReceiveAddress)
+      .mocked(peekFreshReceiveAddress)
       .mockResolvedValue(
         bitcoinjs.address.fromOutputScript(
           Buffer.from(`0014${'22'.repeat(20)}`, 'hex'),
@@ -258,6 +265,32 @@ describe('claimArkExits', () => {
       t('ark.exit.claim.rejection.unexpectedOutputs')
     )
     expect(signArkExitClaim).not.toHaveBeenCalled()
+    expect(reserveReceiveAddressIfFresh).not.toHaveBeenCalled()
+    expect(broadcastRawTransaction).not.toHaveBeenCalled()
+    expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('never reserves the address of a claim the wallet left unsigned', async () => {
+    jest.mocked(signArkExitClaim).mockResolvedValue(UNSIGNED_HEX)
+
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
+      t('ark.exit.claim.rejection.unsigned')
+    )
+    expect(reserveReceiveAddressIfFresh).not.toHaveBeenCalled()
+    expect(broadcastRawTransaction).not.toHaveBeenCalled()
+    expect(savedClaims()).toStrictEqual([])
+  })
+
+  it('refuses the claim when its address was taken before reserving it', async () => {
+    jest.mocked(reserveReceiveAddressIfFresh).mockResolvedValue(false)
+
+    await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
+      t('ark.exit.claim.error.addressTaken')
+    )
+    expect(reserveReceiveAddressIfFresh).toHaveBeenCalledWith(
+      expect.objectContaining({ id: DESTINATION_ID }),
+      DESTINATION
+    )
     expect(broadcastRawTransaction).not.toHaveBeenCalled()
     expect(savedClaims()).toStrictEqual([])
   })
@@ -375,6 +408,7 @@ describe('claimArkExits', () => {
       })
     ).rejects.toThrow(t('ark.exit.claim.error.changed'))
     expect(signArkExitClaim).not.toHaveBeenCalled()
+    expect(reserveReceiveAddressIfFresh).not.toHaveBeenCalled()
     expect(savedClaims()).toStrictEqual([])
   })
 
