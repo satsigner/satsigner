@@ -510,7 +510,7 @@ function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
 type ActivityToolbarTitleParams = {
   lastSyncedAt: Account['lastSyncedAt']
   nowMs: number
-  syncStatus: Account['syncStatus']
+  syncStatus?: Account['syncStatus']
   tasksDone?: number
   totalTasks?: number
 }
