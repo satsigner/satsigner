@@ -25,6 +25,23 @@ type SSNumberInputProps = {
   ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
+function isNumberTextInvalid(
+  text: string,
+  pattern: RegExp,
+  min: number,
+  max: number,
+  allowEmpty: boolean
+): boolean {
+  if (text === '') {
+    return !allowEmpty
+  }
+  if (!pattern.test(text)) {
+    return true
+  }
+  const numericVal = Number(text)
+  return numericVal < min || numericVal > max
+}
+
 function SSNumberInput({
   variant = 'default',
   size = 'default',
@@ -66,10 +83,21 @@ function SSNumberInput({
   const [localValue, setLocalValue] = useState(value || '')
   const [syncedFrom, setSyncedFrom] = useState({ focused, value })
 
+  // Showing the parent's value again (on blur, or when it changes from
+  // outside) also re-judges it: the error belonged to the text it replaced.
   if (syncedFrom.focused !== focused || syncedFrom.value !== value) {
     setSyncedFrom({ focused, value })
     if (!focused && value !== localValue) {
       setLocalValue(value || '')
+      setInvalid(
+        isNumberTextInvalid(
+          value || '',
+          NUMBER_REGEX,
+          min,
+          max,
+          allowValidEmpty
+        )
+      )
     }
   }
 
@@ -137,6 +165,18 @@ function SSNumberInput({
     emitChange(text, numericVal)
   }
 
+  // Blurring shows the parent's value again (see above), so the parent must
+  // hear the verdict on that value, not on the text it replaces.
+  function revalidateParentValue() {
+    const parentText = value || ''
+    if (!onValidate || parentText === localValue) {
+      return
+    }
+    onValidate(
+      !isNumberTextInvalid(parentText, NUMBER_REGEX, min, max, allowValidEmpty)
+    )
+  }
+
   function handleSubmitText() {
     if (/^[0-9]+$/.test(localValue)) {
       let numericVal = Number(localValue)
@@ -174,6 +214,7 @@ function SSNumberInput({
         }}
         onBlur={(event) => {
           setFocused(false)
+          revalidateParentValue()
           onBlur?.(event)
         }}
         onEndEditing={onEndEditing}

@@ -7,6 +7,7 @@ import { findSignedPsbtsPerCosignerInPsbt } from '@/services/cosignerSignatures'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account, type Key } from '@/types/models/Account'
 import { type Notice } from '@/types/ui/notice'
+import { isFinalTransactionHex } from '@/utils/bitcoinContent'
 import {
   bindImportedSignature,
   combineAndFinalizePsbts,
@@ -97,8 +98,10 @@ export function useCosignerSignatures({
     }
   }, [signedPsbtsFromStore, setSignedPsbts])
 
+  // Only a finalized transaction may become the broadcastable signedTx; a
+  // partial import stays a PSBT until the remaining signatures arrive.
   useEffect(() => {
-    if (signedPsbt) {
+    if (isFinalTransactionHex(signedPsbt)) {
       setSignedTx(signedPsbt)
     }
   }, [signedPsbt, setSignedTx])

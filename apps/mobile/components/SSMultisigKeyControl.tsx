@@ -198,6 +198,7 @@ function SSMultisigKeyControl({
       return
     }
 
+    useAccountBuilderStore.getState().clearKeyState()
     setCreationType(type)
     setKeyName(localKeyName)
     setNetwork(network)

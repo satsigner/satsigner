@@ -396,17 +396,19 @@ export default function WatchOnly() {
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || isValidDescriptor)
       setLocalExternalDescriptor(descriptor)
+      // The account is built from the store, so it must only ever hold the
+      // text shown now, never an earlier valid one the user since changed.
+      setExternalDescriptor(isValidDescriptor ? descriptor : '')
 
       if (isValidDescriptor) {
-        setExternalDescriptor(descriptor)
         await extractAndSetFingerprint(descriptor)
       }
     } else {
       setIsValidInternalDescriptor(!descriptor || isValidDescriptor)
       setLocalInternalDescriptor(descriptor)
+      setInternalDescriptor(isValidDescriptor ? descriptor : '')
 
       if (isValidDescriptor) {
-        setInternalDescriptor(descriptor)
         await extractAndSetFingerprint(descriptor)
       }
     }

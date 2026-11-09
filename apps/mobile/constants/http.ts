@@ -1,9 +1,16 @@
 export const HTTP_STATUS = {
+  BAD_GATEWAY: 502,
   FORBIDDEN: 403,
+  GATEWAY_TIMEOUT: 504,
   NOT_FOUND: 404,
   OK: 200,
+  REQUEST_TIMEOUT: 408,
+  SERVICE_UNAVAILABLE: 503,
   UNAUTHORIZED: 401
 } as const
 
 // First status code past the 2xx success range.
 export const HTTP_SUCCESS_RANGE_END = 300
+
+export const HTTP_CLIENT_ERROR_RANGE_START = 400
+export const HTTP_SERVER_ERROR_RANGE_START = 500

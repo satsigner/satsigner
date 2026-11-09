@@ -32,6 +32,10 @@ const initialStatus: LNDConnectionStatus = {
   isConnecting: false
 }
 
+// Requests overlap (the dashboard fires several at once), so "connecting"
+// lasts until the last one settles, not until the first one does.
+const lndRequests = { inFlight: 0 }
+
 export const useLightningStore = create<LightningState>()(
   persist(
     (set) => ({
@@ -48,18 +52,31 @@ export const useLightningStore = create<LightningState>()(
         set((state) => ({
           status: { ...state.status, channels }
         })),
+      // A different node starts from nothing: the previous node's channels,
+      // info and cached queries must not show under the new one.
       setConfig: (config) => {
         void persistLndSecretsSafe(config)
-        set({ config })
+        set((state) => {
+          if (state.config?.url === config.url) {
+            return { config }
+          }
+          queryClient.removeQueries({ queryKey: ['lnd'] })
+          return { config, status: initialStatus }
+        })
       },
       setConnected: (isConnected) =>
         set((state) => ({
           status: { ...state.status, isConnected, isConnecting: false }
         })),
-      setConnecting: (isConnecting) =>
+      setConnecting: (isConnecting) => {
+        lndRequests.inFlight = Math.max(
+          0,
+          lndRequests.inFlight + (isConnecting ? 1 : -1)
+        )
         set((state) => ({
-          status: { ...state.status, isConnecting }
-        })),
+          status: { ...state.status, isConnecting: lndRequests.inFlight > 0 }
+        }))
+      },
       setLastSync: function setLastSync(lastSync) {
         set((state) => ({
           status: { ...state.status, lastSync }

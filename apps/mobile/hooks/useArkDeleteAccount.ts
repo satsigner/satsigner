@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { releaseArkWallet } from '@/api/ark'
 import { deleteArkLabelsByAccount } from '@/db/mutations/arkLabels'
+import { forgetArkNotificationSubscription } from '@/services/arkNotificationSubscriptions'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic } from '@/storage/encrypted'
 import { useArkStore } from '@/store/ark'
@@ -23,22 +24,31 @@ export function useArkDeleteAccount() {
     const { accounts } = useArkStore.getState()
     const account = accounts.find((a) => a.id === accountId)
 
-    if (account) {
-      releaseArkWallet(account.serverId, accountId)
+    const releaseWallet = () => {
+      if (account) {
+        releaseArkWallet(account.serverId, accountId)
+      }
     }
 
+    // The seed goes first: if that fails the account stays whole and the user
+    // can retry, instead of a seed left behind that no account (and no wipe)
+    // knows about. Right after, the account leaves every store so pollers stop
+    // reopening it, and a wallet one of them reopened meanwhile is released.
+    releaseWallet()
     await deleteArkMnemonic(accountId)
-    await deleteArkDatadir(accountId)
-    deleteArkLabelsByAccount(accountId)
     removeAccount(accountId)
     removeAccountSwapJobs(accountId)
     removeAccountExitClaims(accountId)
     clearArkDerivedAddresses(accountId)
-
+    forgetArkNotificationSubscription(accountId)
     queryClient.removeQueries({
       predicate: (query) =>
         query.queryKey[0] === 'ark' && query.queryKey.includes(accountId)
     })
+    releaseWallet()
+
+    deleteArkLabelsByAccount(accountId)
+    await deleteArkDatadir(accountId)
   }
 
   return { deleteAccount }

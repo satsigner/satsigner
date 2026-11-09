@@ -39,10 +39,16 @@ function SSNostrZapSheets({
   const [comment, setComment] = useState('')
   const customSats = parseSats(customAmount)
 
-  function submit(sats: number) {
-    const message = comment.trim()
+  // The amount and the public comment belong to one zap: closing the sheet
+  // any way drops them, so the next note never starts pre-filled.
+  function clearDraft() {
     setCustomAmount('')
     setComment('')
+  }
+
+  function submit(sats: number) {
+    const message = comment.trim()
+    clearDraft()
     onZapOptionsSubmit(sats, message || undefined)
   }
 
@@ -53,6 +59,7 @@ function SSNostrZapSheets({
   }
 
   function handleCancel() {
+    clearDraft()
     zapSheetRef.current?.close()
   }
 
@@ -61,6 +68,7 @@ function SSNostrZapSheets({
       <SSBottomSheet
         ref={zapSheetRef}
         title={t('nostrIdentity.note.zapChooseAmount')}
+        onClose={clearDraft}
       >
         <SSVStack gap="sm" style={styles.content}>
           <SSHStack gap="sm">

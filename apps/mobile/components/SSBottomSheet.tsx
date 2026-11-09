@@ -13,6 +13,7 @@ type SSBottomSheetProps = {
   paddingX?: boolean
   children: React.ReactNode
   ref?: React.Ref<BottomSheetMethods>
+  onClose?: () => void
 }
 
 function SSBottomSheet({
@@ -20,7 +21,8 @@ function SSBottomSheet({
   snapPoints = ['50%'],
   paddingX = true,
   children,
-  ref
+  ref,
+  onClose
 }: SSBottomSheetProps) {
   return (
     <BottomSheet
@@ -28,6 +30,7 @@ function SSBottomSheet({
       index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
+      onClose={onClose}
       backgroundStyle={styles.background}
       handleStyle={styles.handle}
       style={styles.bottomSheet}

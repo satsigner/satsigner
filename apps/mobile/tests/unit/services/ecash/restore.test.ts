@@ -1,4 +1,8 @@
-import { connectToMint, restoreProofsFromSeed } from '@/api/ecash'
+import {
+  connectToMint,
+  getTokenProofSecrets,
+  restoreProofsFromSeed
+} from '@/api/ecash'
 import { restoreProofsFromMints } from '@/services/ecash/restore'
 import type {
   EcashAccountStore,
@@ -15,6 +19,7 @@ jest.mock<typeof import('@/api/ecash')>('@/api/ecash', () => ({
     proofs
       .filter((p) => p.mintUrl === mintUrl)
       .reduce((sum, p) => sum + p.amount, 0),
+  getTokenProofSecrets: jest.fn(() => []),
   restoreProofsFromSeed: jest.fn()
 }))
 
@@ -38,10 +43,16 @@ type AccountState = {
   counters: EcashKeysetCounter[]
   mints: EcashMint[]
   proofs: EcashProof[]
+  sentTokens: string[]
 }
 
 function createStore() {
-  const state: AccountState = { counters: [], mints: [], proofs: [] }
+  const state: AccountState = {
+    counters: [],
+    mints: [],
+    proofs: [],
+    sentTokens: []
+  }
   const store: EcashAccountStore = {
     addMint: (added) => {
       state.mints = [...state.mints, added]
@@ -59,6 +70,7 @@ function createStore() {
     getCounters: () => state.counters,
     getMints: () => state.mints,
     getProofs: () => state.proofs,
+    getSentTokens: () => state.sentTokens,
     updateMintBalance: jest.fn()
   }
   return { state, store }
@@ -71,9 +83,11 @@ describe('restoreProofsFromMints', () => {
 
   it('connects new mints, adds proofs and advances the keyset counter', async () => {
     jest.mocked(connectToMint).mockResolvedValue(mint(MINT_URL))
-    jest
-      .mocked(restoreProofsFromSeed)
-      .mockResolvedValue({ lastCounter: 4, proofs: [proof(2), proof(8)] })
+    jest.mocked(restoreProofsFromSeed).mockResolvedValue({
+      complete: true,
+      lastCounter: 4,
+      proofs: [proof(2), proof(8)]
+    })
     const { state, store } = createStore()
 
     const summary = await restoreProofsFromMints(
@@ -85,6 +99,7 @@ describe('restoreProofsFromMints', () => {
 
     expect(summary).toStrictEqual({
       mintsFailed: 0,
+      mintsIncomplete: 0,
       mintsScanned: 1,
       proofsFound: 2,
       totalAmount: 10
@@ -104,9 +119,11 @@ describe('restoreProofsFromMints', () => {
   })
 
   it('reuses a listed mint and leaves counters alone without a last counter', async () => {
-    jest
-      .mocked(restoreProofsFromSeed)
-      .mockResolvedValue({ lastCounter: undefined, proofs: [proof(4)] })
+    jest.mocked(restoreProofsFromSeed).mockResolvedValue({
+      complete: true,
+      lastCounter: undefined,
+      proofs: [proof(4)]
+    })
     const { state, store } = createStore()
     store.addMint(mint(MINT_URL))
     state.counters = [{ counter: 9, keysetId: 'other' }]
@@ -121,7 +138,7 @@ describe('restoreProofsFromMints', () => {
   it('keeps other keyset counters when advancing the active one', async () => {
     jest
       .mocked(restoreProofsFromSeed)
-      .mockResolvedValue({ lastCounter: 1, proofs: [proof(4)] })
+      .mockResolvedValue({ complete: true, lastCounter: 1, proofs: [proof(4)] })
     const { state, store } = createStore()
     store.addMint(mint(MINT_URL))
     state.counters = [{ counter: 9, keysetId: 'other' }]
@@ -132,5 +149,38 @@ describe('restoreProofsFromMints', () => {
       { counter: 9, keysetId: 'other' },
       { counter: 2, keysetId: 'ks1' }
     ])
+  })
+
+  it('leaves out proofs of sent tokens, which belong to the recipient', async () => {
+    jest.mocked(restoreProofsFromSeed).mockResolvedValue({
+      complete: true,
+      lastCounter: 3,
+      proofs: [proof(2), proof(8)]
+    })
+    jest.mocked(getTokenProofSecrets).mockReturnValueOnce(['s8'])
+    const { state, store } = createStore()
+    store.addMint(mint(MINT_URL))
+    state.sentTokens = ['cashuBsent']
+
+    const summary = await restoreProofsFromMints('acc', [MINT_URL], SEED, store)
+
+    expect(getTokenProofSecrets).toHaveBeenCalledWith('cashuBsent', ['ks1'])
+    expect(state.proofs).toStrictEqual([proof(2)])
+    expect(summary.proofsFound).toBe(1)
+    expect(state.counters).toStrictEqual([{ counter: 4, keysetId: 'ks1' }])
+  })
+
+  it('counts a mint whose scan skipped a keyset as incomplete', async () => {
+    jest.mocked(restoreProofsFromSeed).mockResolvedValue({
+      complete: false,
+      proofs: []
+    })
+    const { store } = createStore()
+    store.addMint(mint(MINT_URL))
+
+    const summary = await restoreProofsFromMints('acc', [MINT_URL], SEED, store)
+
+    expect(summary.mintsIncomplete).toBe(1)
+    expect(summary.mintsFailed).toBe(0)
   })
 })

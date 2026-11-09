@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -14,18 +14,15 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import { Colors } from '@/styles'
+import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
 import { nostrIndexHref } from '@/utils/nostrNavigation'
-
-type ProfileParams = {
-  mnemonic: string
-  nsec: string
-  npub: string
-}
 
 export default function ProfileSetup() {
   const router = useRouter()
-  const params = useLocalSearchParams<ProfileParams>()
+  const mnemonic = useNostrIdentityDraftStore((state) => state.mnemonic)
+  const keys = mnemonic ? deriveNostrKeysFromMnemonic(mnemonic) : null
   const {
     fetchProfile,
     fetchProfileAlways,
@@ -34,12 +31,13 @@ export default function ProfileSetup() {
     warningVisible
   } = useNostrIdentityAdd(handleIdentityAdded)
 
+  const [isAdded, setIsAdded] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [pictureUrl, setPictureUrl] = useState('')
   const [nip05, setNip05] = useState('')
   const [lud16, setLud16] = useState('')
   const { isUploading: isPictureUploading, upload: uploadPicture } =
-    useBlossomImageUpload(params.nsec ?? '')
+    useBlossomImageUpload(keys?.nsec ?? '')
 
   async function handleUploadPicture() {
     const url = await uploadPicture(NOSTR_BLOSSOM_DEFAULT_SERVER)
@@ -48,13 +46,17 @@ export default function ProfileSetup() {
     }
   }
 
+  // Clearing the draft re-renders this screen before it leaves; the saved
+  // flag keeps that render from redirecting back to a fresh create screen.
   function handleIdentityAdded() {
-    toast.success(t('nostrIdentity.create.success'))
+    setIsAdded(true)
     router.dismissTo(nostrIndexHref())
+    useNostrIdentityDraftStore.getState().clearDraft()
+    toast.success(t('nostrIdentity.create.success'))
   }
 
   function handleSave() {
-    if (!params.npub || !params.nsec) {
+    if (!mnemonic || !keys) {
       toast.error(t('nostrIdentity.error.missingKeys'))
       return
     }
@@ -64,12 +66,20 @@ export default function ProfileSetup() {
       displayName: displayName || undefined,
       isWatchOnly: false,
       lud16: lud16 || undefined,
-      mnemonic: params.mnemonic,
+      mnemonic,
       nip05: nip05 || undefined,
-      npub: params.npub,
-      nsec: params.nsec,
+      npub: keys.npub,
+      nsec: keys.nsec,
       picture: pictureUrl || undefined
     })
+  }
+
+  if (!keys && isAdded) {
+    return null
+  }
+
+  if (!keys) {
+    return <Redirect href="/signer/nostr/create" />
   }
 
   return (
@@ -175,6 +185,8 @@ export default function ProfileSetup() {
           <SSButton
             label={t('nostrIdentity.profile.save')}
             variant="secondary"
+            // Saving mid-upload would publish without the new image.
+            disabled={isPictureUploading}
             onPress={handleSave}
           />
         </SSVStack>

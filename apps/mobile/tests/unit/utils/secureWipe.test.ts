@@ -20,11 +20,15 @@ import {
 import { useAuthStore } from '@/store/auth'
 import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import * as devConsole from '@/utils/devConsole'
 import { getPin } from '@/utils/pin'
 import { getSessionPinDigest, setSessionPinDigest } from '@/utils/pinSession'
-import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
+import {
+  secureWipeAfterMaxPinTries,
+  secureWipeAllWalletData
+} from '@/utils/secureWipe'
 
 const sk = (key: string) => `1_${key}`
 
@@ -78,6 +82,26 @@ describe('secureWipeAfterMaxPinTries', () => {
     }
     expect(getSessionPinDigest()).toBeNull()
     await expect(getPin()).rejects.toThrow('PIN unavailable')
+  })
+
+  it('drops a backup restore waiting for the next unlock and the page history', async () => {
+    useAuthStore.setState({
+      pageHistory: ['/signer/bitcoin/account/acc'],
+      pendingRecoverData: 'decrypted-backup'
+    })
+
+    await secureWipeAllWalletData()
+
+    expect(useAuthStore.getState().pendingRecoverData).toBeNull()
+    expect(useAuthStore.getState().pageHistory).toStrictEqual([])
+  })
+
+  it('drops the seed of a nostr identity that was being created', async () => {
+    useNostrIdentityDraftStore.getState().setDraftMnemonic('abandon about')
+
+    await secureWipeAllWalletData()
+
+    expect(useNostrIdentityDraftStore.getState().mnemonic).toBeNull()
   })
 
   it('clears the nostr event cache and dedupe tables', async () => {

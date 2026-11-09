@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -25,6 +26,15 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
+
+// A failed account creation must leave the screen usable, not spinning.
+async function settleOrUndefined<T>(work: Promise<T>): Promise<T | undefined> {
+  try {
+    return await work
+  } catch {
+    return undefined
+  }
+}
 
 export default function Confirm() {
   const router = useRouter()
@@ -64,6 +74,9 @@ export default function Confirm() {
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
   const [loadingAccount, setLoadingAccount] = useState(false)
+  // Set synchronously, so Skip and the last word tapped in one frame cannot
+  // both start a finish.
+  const finishing = useRef(false)
   const [createdAccountId, setCreatedAccountId] = useState<string>()
 
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
@@ -80,6 +93,11 @@ export default function Confirm() {
   async function handleConfirmSkip() {
     setSkipModalVisible(false)
     await handleFinishWordsConfirmation()
+  }
+
+  function finishKeyDraft() {
+    setLocalMnemonicWordCount(mnemonicWordCount)
+    clearKeyState()
   }
 
   function handleNavigateNextWord() {
@@ -100,27 +118,37 @@ export default function Confirm() {
     }
   }
 
+  // Runs once: Skip and the last word both lead here, and a second run would
+  // create the account twice.
   async function handleFinishWordsConfirmation() {
-    setLoadingAccount(true)
-
-    if (policyType === 'singlesig') {
-      const account = getAccountData()
-
-      const data = await accountBuilderFinish(account)
-      setCreatedAccountId(data?.accountWithEncryptedSecret.id)
-
-      setLoadingAccount(false)
-      setWarningModalVisible(true)
-    } else if (policyType === 'multisig') {
+    if (finishing.current) {
+      return
+    }
+    if (policyType === 'multisig') {
       // Extended public key is already generated in the mnemonic step
       // Just set the key and continue
       setKey(Number(keyIndex))
-
-      setLoadingAccount(false)
       router.dismissTo('/signer/bitcoin/account/add/multiSig/manager')
+      finishKeyDraft()
+      return
     }
-    setLocalMnemonicWordCount(mnemonicWordCount)
-    clearKeyState()
+    if (policyType !== 'singlesig') {
+      return
+    }
+
+    finishing.current = true
+    setLoadingAccount(true)
+    const data = await settleOrUndefined(accountBuilderFinish(getAccountData()))
+    setLoadingAccount(false)
+    finishing.current = false
+    const accountId = data?.accountWithEncryptedSecret.id
+    if (!accountId) {
+      toast.error(t('account.import.error.generic'))
+      return
+    }
+    setCreatedAccountId(accountId)
+    setWarningModalVisible(true)
+    finishKeyDraft()
   }
 
   function handleCloseWordsWarning() {
@@ -132,10 +160,13 @@ export default function Confirm() {
     }
   }
 
+  // Multisig goes back to the key's word grid, which still needs the
+  // mnemonic; only leaving the flow clears it.
   function handleOnPressCancel() {
     if (policyType === 'multisig') {
       router.dismiss(Number(index) + 1)
     } else if (policyType === 'singlesig') {
+      useAccountBuilderStore.getState().clearKeyState()
       router.replace('/')
     }
   }

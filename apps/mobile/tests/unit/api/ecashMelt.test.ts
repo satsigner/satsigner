@@ -34,6 +34,7 @@ jest.mock<typeof import('@cashu/cashu-ts')>('@cashu/cashu-ts', () => {
 
   return {
     CheckStateEnum,
+    MeltQuoteState: { PAID: 'PAID', PENDING: 'PENDING', UNPAID: 'UNPAID' },
     Mint: MockMint,
     Wallet: MockWallet,
     getDecodedToken: jest.fn(),
@@ -77,7 +78,7 @@ describe('meltProofs', () => {
     const change = [{ C: 'ch', amount: 1, id: 'ks', secret: 'change1' }]
     mockMeltProofs.mockResolvedValue({
       change,
-      quote: { payment_preimage: 'preimage' }
+      quote: { payment_preimage: 'preimage', state: 'PAID' }
     })
 
     const result = await meltProofs('acc', MINT_URL, QUOTE, INPUTS)
@@ -85,10 +86,28 @@ describe('meltProofs', () => {
     expect(result).toStrictEqual({
       change: [{ ...change[0], mintUrl: MINT_URL }],
       keep: [{ ...SWAPPED_KEEP[0], mintUrl: MINT_URL }],
-      paid: true,
-      preimage: 'preimage'
+      preimage: 'preimage',
+      status: 'paid'
     })
   })
+
+  it.each(['PENDING', 'UNPAID'])(
+    'hands back the send proofs when the mint reports the melt %s',
+    async (state) => {
+      mockMeltProofs.mockResolvedValue({
+        change: [],
+        quote: { payment_preimage: null, state }
+      })
+
+      const result = await meltProofs('acc', MINT_URL, QUOTE, INPUTS)
+
+      expect(result).toStrictEqual({
+        keep: [{ ...SWAPPED_KEEP[0], mintUrl: MINT_URL }],
+        send: SWAPPED_SEND.map((proof) => ({ ...proof, mintUrl: MINT_URL })),
+        status: state.toLowerCase()
+      })
+    }
+  )
 
   it('hands back the swapped proofs when the melt fails after the swap', async () => {
     const meltError = new Error('Lightning payment failed')
