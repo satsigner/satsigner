@@ -24,6 +24,7 @@ import { getSyncStallTimeoutMs, shouldFullScan } from '@/utils/accountSync'
 import {
   cancelAccountSync,
   hasCurrentSyncRun,
+  isCoreNodeBusy,
   runExclusiveOnCoreNode,
   settleCancelledSyncStatus,
   trackAccountSyncWork,
@@ -331,7 +332,7 @@ async function runQueuedWalletSync(
   if (!target) {
     return null
   }
-  return runOnCoreNodeExclusively(target.server, controls, () => {
+  return runOnCoreNodeExclusively(account.id, target.server, controls, () => {
     // Waiting behind another account's Core sync can take hours: the server
     // or the connection mode may have changed since.
     const current = resolveSyncTarget(account.id, controls.isPriority)
@@ -401,15 +402,19 @@ function usesCoreWallet(server: Server) {
  * Bitcoin Core wallet syncs to the same node run one at a time: accounts can
  * share a Core wallet, and the rescan one starts would abort another's.
  * Waiting behind another account's rescan is not a stall, so it keeps the job
- * alive.
+ * alive, and the account shows as queued meanwhile.
  */
 function runOnCoreNodeExclusively(
+  accountId: string,
   server: Server,
   controls: SyncTaskControls,
   work: () => Promise<Account | null>
 ): Promise<Account | null> {
   if (!usesCoreWallet(server)) {
     return work()
+  }
+  if (isCoreNodeBusy(server.url)) {
+    writeSyncStatus(accountId, 'queued')
   }
   const heartbeat = setInterval(
     controls.reportProgress,

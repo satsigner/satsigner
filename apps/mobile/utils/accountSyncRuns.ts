@@ -124,6 +124,11 @@ async function afterSettled<T>(
   return work()
 }
 
+/** True while a Core sync to this node is queued or running. */
+function isCoreNodeBusy(nodeUrl: string): boolean {
+  return coreNodeWork.has(nodeUrl)
+}
+
 /** Runs `work` once every earlier Core sync to the same node has settled. */
 async function runExclusiveOnCoreNode<T>(
   nodeUrl: string,
@@ -145,6 +150,7 @@ export {
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
+  isCoreNodeBusy,
   runExclusiveOnCoreNode,
   settleCancelledSyncStatus,
   settleCancelledSyncStatuses,

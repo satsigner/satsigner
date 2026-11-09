@@ -189,6 +189,11 @@ async function flushPromises() {
   }
 }
 
+function syncStatusOf(accountId: string) {
+  return useAccountsStore.getState().accounts.find(({ id }) => id === accountId)
+    ?.syncStatus
+}
+
 describe('useSyncAccountWithWallet on a Bitcoin Core node', () => {
   beforeEach(() => {
     cancelAllAccountSyncs()
@@ -198,6 +203,22 @@ describe('useSyncAccountWithWallet on a Bitcoin Core node', () => {
       accounts: [makeAccount('a'), makeAccount('b')]
     })
     setServer(NODE_URL, 'auto')
+  })
+
+  it('shows a sync waiting for the node as queued', async () => {
+    const gate = holdFirstCoreSync()
+    const hook = renderWalletSync()
+
+    const first = syncAccount(hook, 'a')
+    const second = syncAccount(hook, 'b')
+    await flushPromises()
+
+    expect(syncStatusOf('a')).toBe('syncing')
+    expect(syncStatusOf('b')).toBe('queued')
+
+    gate.release?.()
+    await Promise.all([first, second])
+    expect(syncStatusOf('b')).toBe('syncing')
   })
 
   it('skips a sync whose server changed while it waited for the node', async () => {
@@ -212,6 +233,7 @@ describe('useSyncAccountWithWallet on a Bitcoin Core node', () => {
 
     await expect(first).resolves.toMatchObject({ syncStatus: 'synced' })
     await expect(second).resolves.toBeNull()
+    expect(syncStatusOf('b')).toBe('unsynced')
     expect(coreSyncedAccountIds()).toStrictEqual(['a'])
     expect(reportError).not.toHaveBeenCalled()
   })
@@ -228,6 +250,7 @@ describe('useSyncAccountWithWallet on a Bitcoin Core node', () => {
 
     await first
     await expect(second).resolves.toBeNull()
+    expect(syncStatusOf('b')).toBe('unsynced')
     expect(coreSyncedAccountIds()).toStrictEqual(['a'])
     expect(reportError).not.toHaveBeenCalled()
   })
