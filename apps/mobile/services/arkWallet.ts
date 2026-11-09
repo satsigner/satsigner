@@ -1,4 +1,14 @@
-import { fetchArkOnchainFeeRates, openArkWallet } from '@/api/ark'
+import {
+  fetchArkOnchainFeeRates,
+  openArkWallet,
+  releaseAllArkWallets
+} from '@/api/ark'
+import { ARK_WALLET_QUERY_KEY } from '@/constants/ark'
+import { queryClient } from '@/lib/queryClient'
+import {
+  forgetArkNotificationSubscription,
+  listArkNotificationSubscriptionIds
+} from '@/services/arkNotificationSubscriptions'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { getArkAccountOrThrow } from '@/store/ark'
@@ -43,4 +53,16 @@ export function fetchArkNextBlockFeeRate(
     (rates) => rates.fastSatPerVb,
     () => null
   )
+}
+
+/**
+ * Releases every open Ark wallet. The subscriptions and the cached "wallet is
+ * open" answers go too, so the next session opens each wallet again.
+ */
+export async function releaseAllArkWalletsAndSubscriptions(): Promise<void> {
+  for (const accountId of listArkNotificationSubscriptionIds()) {
+    forgetArkNotificationSubscription(accountId)
+  }
+  queryClient.removeQueries({ queryKey: ARK_WALLET_QUERY_KEY })
+  await releaseAllArkWallets()
 }

@@ -19,6 +19,7 @@ type Nip46Actions = {
   addPendingRequest: (request: Nip46Request) => void
   addSession: (session: Nip46Session) => Nip46Session
   clearAll: () => void
+  clearPendingRequests: () => void
   clearSessionsForIdentity: (npub: string) => void
   disconnectRestoredSessions: () => void
   getSessionsForIdentity: (npub: string) => Nip46Session[]
@@ -69,6 +70,10 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
 
       clearAll: () => {
         set({ pendingRequests: [], sessions: [] })
+      },
+
+      clearPendingRequests: () => {
+        set({ pendingRequests: [] })
       },
 
       clearSessionsForIdentity: (npub) => {

@@ -308,6 +308,7 @@ export interface ArkWalletProvider {
   createWallet: (args: ArkWalletArgs) => Promise<void>
   openWallet: (args: ArkWalletArgs) => Promise<void>
   syncWallet: (accountId: string) => Promise<void>
+  releaseAllWallets: () => Promise<void>
   releaseWallet: (accountId: string) => void
   fetchBalance: (accountId: string) => Promise<ArkBalance>
   newAddress: (accountId: string) => Promise<string>

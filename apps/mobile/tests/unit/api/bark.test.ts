@@ -2,7 +2,10 @@ import * as barkModule from '@secondts/bark-react-native'
 
 import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
-import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
+import {
+  ARK_BOARD_PAYJOIN_NATIVE_MISSING,
+  ARK_DAEMON_STOP_TIMEOUT_MS
+} from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
 import { ArkOperationBusyError } from '@/utils/arkError'
 
@@ -608,6 +611,98 @@ describe('bark provider', () => {
     await expect(provider.fetchBalance('released1')).rejects.toThrow(
       'not opened'
     )
+  })
+
+  it('releaseAllWallets stops every daemon before releasing the wallets', async () => {
+    const calls: string[] = []
+    const first = buildFakeWallet({
+      stopDaemonWait: jest.fn(() => {
+        calls.push('stop first')
+        return Promise.resolve()
+      })
+    })
+    const second = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockRejectedValue(new Error('not running'))
+    })
+    await openWallet('releaseAll1', first)
+    await openWallet('releaseAll2', second)
+
+    await provider.releaseAllWallets()
+
+    expect(calls).toStrictEqual(['stop first'])
+    expect(second.stopDaemonWait).toHaveBeenCalledTimes(1)
+    await expect(provider.fetchBalance('releaseAll1')).rejects.toThrow(
+      'not opened'
+    )
+    await expect(provider.fetchBalance('releaseAll2')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
+  it('releaseAllWallets gives up on a daemon that never stops', async () => {
+    jest.useFakeTimers()
+    try {
+      const stuck = buildFakeWallet({
+        stopDaemonWait: jest.fn(() => new Promise<void>(() => {}))
+      })
+      await openWallet('releaseStuck1', stuck)
+
+      const releasing = provider.releaseAllWallets()
+      await jest.advanceTimersByTimeAsync(ARK_DAEMON_STOP_TIMEOUT_MS)
+
+      await expect(releasing).resolves.toBeUndefined()
+      await expect(provider.fetchBalance('releaseStuck1')).rejects.toThrow(
+        'not opened'
+      )
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('releaseAllWallets makes a reopen wait for the daemon and open anew', async () => {
+    const stopGate = createDeferred<undefined>()
+    const stopping = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockReturnValue(stopGate.promise)
+    })
+    await openWallet('releaseSlow1', stopping)
+
+    const releasing = provider.releaseAllWallets()
+    const reopened = buildFakeWallet()
+    Wallet.open.mockResolvedValue(reopened)
+    const reopening = provider.openWallet({
+      accountId: 'releaseSlow1',
+      datadir: '/tmp/releaseSlow1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await Promise.resolve()
+    expect(Wallet.open).toHaveBeenCalledTimes(1)
+
+    stopGate.resolve(undefined)
+    await releasing
+    await reopening
+
+    expect(Wallet.open).toHaveBeenCalledTimes(2)
+    expect(reopened.sync).toHaveBeenCalledTimes(1)
+    await expect(provider.syncWallet('releaseSlow1')).resolves.toBeUndefined()
+    expect(stopping.sync).toHaveBeenCalledTimes(1)
+  })
+
+  it('releaseAllWallets drops an open that finishes afterwards', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const opening = provider.openWallet({
+      accountId: 'releaseOpening1',
+      datadir: '/tmp/releaseOpening1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await Promise.resolve()
+
+    await provider.releaseAllWallets()
+    openGate.resolve(buildFakeWallet())
+
+    await expect(opening).rejects.toThrow('released while it was opening')
   })
 
   it('concurrent syncWallet calls are coalesced into one native sync', async () => {

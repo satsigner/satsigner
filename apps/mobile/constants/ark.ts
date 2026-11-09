@@ -12,6 +12,8 @@ export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_WALLET_RELEASED_WHILE_OPENING =
   'Ark wallet was released while it was opening'
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
+// Bounds a lock or wipe waiting on a daemon busy in a round.
+export const ARK_DAEMON_STOP_TIMEOUT_MS = 5000
 // A claim paying more than this multiple of the chosen fee rate over its
 // signed size is refused before broadcast.
 export const ARK_EXIT_CLAIM_MAX_FEE_RATE_MULTIPLIER = 1.25
@@ -100,6 +102,7 @@ export const ARK_SWAP_POLL_INTERVAL_MS = 15_000
 export const ARK_SWAP_RETRY_BASE_DELAY_MS = ARK_SWAP_POLL_INTERVAL_MS
 export const ARK_SWAP_RETRY_MAX_DELAY_MS = 600_000
 export const ARK_SWAP_RUNNER_QUERY_KEY = ['ark', 'swapRunner']
+export const ARK_WALLET_QUERY_KEY = ['ark', 'wallet']
 export const ARK_SWAP_BLOCK_INTERVAL_SECONDS = 600
 // Rounds to settle a board amount that also covers its own amount-based fee.
 export const ARK_SWAP_BOARD_FEE_MAX_ROUNDS = 4

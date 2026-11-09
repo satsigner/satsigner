@@ -1,0 +1,16 @@
+import { releaseAllArkWalletsAndSubscriptions } from '@/services/arkWallet'
+import { stopAllNip46Sessions } from '@/services/nip46Sessions'
+import { useNip46Store } from '@/store/nip46'
+import { clearNostrSecretsCaches } from '@/utils/nostrSecrets'
+
+/**
+ * Drops what an unlocked session keeps live in memory: bunker sessions signing
+ * for nostr identities, their unanswered requests, decrypted nostr secrets and
+ * open Ark wallets with their daemons. The next unlock loads them again.
+ */
+export async function teardownUnlockedSession(): Promise<void> {
+  stopAllNip46Sessions()
+  useNip46Store.getState().clearPendingRequests()
+  clearNostrSecretsCaches()
+  await releaseAllArkWalletsAndSubscriptions()
+}

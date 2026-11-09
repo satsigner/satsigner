@@ -38,6 +38,7 @@ import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
+import { teardownUnlockedSession } from '@/utils/sessionTeardown'
 import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 
 function yieldToUi() {
@@ -102,6 +103,15 @@ async function loadAccountWallets({
       toast.error(`${label}: ${reason}`)
     }
     await yieldToUi()
+  }
+}
+
+async function teardownSessionSafe() {
+  try {
+    await teardownUnlockedSession()
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    devLog('session', `teardown failed: ${reason}`, 'error')
   }
 }
 
@@ -289,6 +299,7 @@ function AuthenticatedSession() {
       // A sync still running behind the PIN screen drops its result.
       cancelAllAccountSyncs()
       stopNostrLifecycle()
+      void teardownSessionSafe()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
