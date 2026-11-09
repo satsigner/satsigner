@@ -37,6 +37,7 @@ import type {
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
+import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import {
   deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
@@ -633,6 +634,9 @@ export async function performRecoverOverwrite(
   }
   // Running subscriptions must be closed before their accounts are replaced.
   await resetNostrSync()
+  // So must queued and running wallet syncs: one would write the old
+  // wallet's history over a restored account with the same id.
+  cancelAllAccountSyncs()
 
   try {
     await replaceAccounts(prepared.accounts)

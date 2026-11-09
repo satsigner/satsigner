@@ -11,6 +11,8 @@ const walletSyncQueue = createSyncQueue<Account | null>(SYNC_CONCURRENCY)
 // stalled job's native call can keep running after its slot is freed, so that
 // work is tracked until it settles and the next sync of the account waits.
 const inFlightWork = new Map<string, Promise<unknown>>()
+// The latest queued or running Bitcoin Core sync per node URL.
+const coreNodeWork = new Map<string, Promise<unknown>>()
 
 /** Drops a queued sync of the account or makes a running one drop its result. */
 function cancelAccountSync(accountId: string) {
@@ -74,11 +76,36 @@ async function trackAccountSyncWork<T>(
   }
 }
 
+async function afterSettled<T>(
+  previous: Promise<unknown>,
+  work: () => Promise<T>
+): Promise<T> {
+  await settles(previous)
+  return work()
+}
+
+/** Runs `work` once every earlier Core sync to the same node has settled. */
+async function runExclusiveOnCoreNode<T>(
+  nodeUrl: string,
+  work: () => Promise<T>
+): Promise<T> {
+  const run = afterSettled(coreNodeWork.get(nodeUrl) ?? Promise.resolve(), work)
+  coreNodeWork.set(nodeUrl, run)
+  try {
+    return await run
+  } finally {
+    if (coreNodeWork.get(nodeUrl) === run) {
+      coreNodeWork.delete(nodeUrl)
+    }
+  }
+}
+
 export {
   cancelAccountSync,
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
+  runExclusiveOnCoreNode,
   trackAccountSyncWork,
   waitForAccountSyncWork,
   walletSyncQueue

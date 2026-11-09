@@ -41,6 +41,7 @@ describe('isOnionUrl', () => {
     `https://${ONION_HOST}?x=1`,
     `https://${ONION_HOST}#top`,
     `https://${ONION_HOST}./api`,
+    `http://user:p@ss@${ONION_HOST}/api`,
     ONION_HOST
   ])('detects %s', (url) => {
     expect(isOnionUrl(url)).toBe(true)

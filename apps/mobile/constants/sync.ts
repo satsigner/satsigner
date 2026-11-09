@@ -18,6 +18,10 @@ const SYNC_STALL_TIMEOUT_MS = 2 * 60_000
 const SYNC_STALL_TIMEOUT_TOR_MS = 5 * 60_000
 const SYNC_STALL_TIMEOUT_RPC_MS = 15 * 60_000
 
+// While a Core sync waits for another one on the same node, it reports
+// progress this often so the wait doesn't count as a stall.
+const CORE_NODE_WAIT_HEARTBEAT_MS = 30_000
+
 // Fiat prices for new transactions are looked up after the scan; past this
 // the sync is saved without the missing prices.
 const SYNC_PRICE_LOOKUP_TIMEOUT_MS = 30_000
@@ -31,6 +35,7 @@ const SYNC_FAILURE_TOAST_LIMIT = 2
 const SUPERSEDED_SYNC_WAIT_TIMEOUT_MS = 15_000
 
 export {
+  CORE_NODE_WAIT_HEARTBEAT_MS,
   MIN_USABLE_CHECKPOINT_HEIGHT,
   SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,
