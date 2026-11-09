@@ -293,6 +293,7 @@ export function useEcashSend() {
     setInvoice(text)
     setDecodedInvoice(null)
     setLNURLDetails(null)
+    setIsFetchingLNURL(false)
 
     const cleanText = text.trim()
     if (!cleanText) {
