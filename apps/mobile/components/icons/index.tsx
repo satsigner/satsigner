@@ -99,9 +99,11 @@ import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
 import SSIconSignOut from './SSIconSignOut'
 import SSIconSingleSignature from './SSIconSingleSignature'
+import SSIconStatusDot from './SSIconStatusDot'
 import SSIconSuccess from './SSIconSuccess'
 import SSIconTable from './SSIconTable'
 import SSIconTime from './SSIconTime'
+import SSIconTor from './SSIconTor'
 import SSIconTransaction from './SSIconTransaction'
 import SSIconTrash from './SSIconTrash'
 import SSIconTriangle from './SSIconTriangle'
@@ -214,8 +216,10 @@ export {
   SSIconSignOut,
   SSIconSingleSignature,
   SSIconSuccess,
+  SSIconStatusDot,
   SSIconTable,
   SSIconTime,
+  SSIconTor,
   SSIconTransaction,
   SSIconTriangle,
   SSIconTrash,

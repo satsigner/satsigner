@@ -6,9 +6,9 @@ import { useShallow } from 'zustand/react/shallow'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { servers } from '@/constants/servers'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
+import { queryClient } from '@/lib/queryClient'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Config, type Server } from '@/types/settings/blockchain'
 import {
@@ -16,8 +16,16 @@ import {
   subscribeToConnectionPollSuppression
 } from '@/utils/connectionPollSuppression'
 import { trimOnionAddress } from '@/utils/format'
+import { getServerPrivacy, isOnionUrl } from '@/utils/serverPrivacy'
 
-export type ConnectionVerifyStatus = 'checking' | 'connected' | 'failed'
+/** `idle`: manual connection mode, so the server is not being checked. */
+export type ConnectionVerifyStatus =
+  | 'checking'
+  | 'connected'
+  | 'failed'
+  | 'idle'
+
+const VERIFY_CONNECTION_QUERY_KEY = 'verifyConnection'
 
 const NETINFO_RECONNECT_DELAY_MS = 5000
 
@@ -78,7 +86,7 @@ function useVerifyConnection() {
         return await testServerConnection(server, config)
       },
       queryKey: [
-        'verifyConnection',
+        VERIFY_CONNECTION_QUERY_KEY,
         selectedNetwork,
         server.url,
         server.backend,
@@ -140,14 +148,26 @@ function useVerifyConnection() {
     url: trimmedUrl
   }
 
-  const isPrivateConnection = servers.some((val) => val.url === server.url)
+  const status: ConnectionVerifyStatus =
+    config.connectionMode === 'manual' ? 'idle' : connectionStatus
 
   return [
-    connectionStatus,
+    status,
     connectionString,
-    isPrivateConnection,
-    connectionParts
+    getServerPrivacy(server),
+    { ...connectionParts, isOnion: isOnionUrl(server.url) }
   ] as const
+}
+
+/**
+ * A sync just failed to reach the server: show it right away instead of
+ * waiting for the next periodic check.
+ */
+export function markServerConnectionFailed() {
+  queryClient.setQueriesData<ConnectionVerifyStatus>(
+    { queryKey: [VERIFY_CONNECTION_QUERY_KEY] },
+    'failed'
+  )
 }
 
 export default useVerifyConnection

@@ -5,8 +5,10 @@ import { toast } from 'sonner-native'
 import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
+import { ElectrumUnreachableError } from '@/api/electrumReachability'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR, SYNC_CONCURRENCY } from '@/constants/sync'
+import { markServerConnectionFailed } from '@/hooks/useVerifyConnection'
 import { t } from '@/locales'
 import { SyncTimeoutError, createSyncQueue } from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
@@ -374,6 +376,9 @@ function useSyncAccountWithWallet() {
       return null
     }
 
+    if (error instanceof ElectrumUnreachableError) {
+      markServerConnectionFailed()
+    }
     const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
     setSyncStatus(account.id, syncStatus)
     const latest =

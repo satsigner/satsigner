@@ -27,6 +27,8 @@ export const RpcCredentialsSchema = z.object({
 
 export const ServerSchema = z.object({
   backend: BackendSchema,
+  /** The user confirmed they run or fully trust this server. */
+  isPrivate: z.boolean().optional(),
   name: z.string(),
   network: NetworkSchema,
   proxy: ProxyConfigSchema.optional(),

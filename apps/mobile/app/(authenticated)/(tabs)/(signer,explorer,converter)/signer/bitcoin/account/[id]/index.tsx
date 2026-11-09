@@ -1953,7 +1953,7 @@ export default function AccountView() {
   }, [])
   const animationValue = useSharedValue(0)
 
-  const [connectionStatus, , isPrivateConnection, connectionParts] =
+  const [connectionStatus, , serverPrivacy, connectionParts] =
     useVerifyConnection()
   const {
     blockHeight: networkBlockHeight,
@@ -2390,7 +2390,8 @@ export default function AccountView() {
           >
             <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
               <SSConnectionStatusIndicator
-                isPrivateConnection={isPrivateConnection}
+                isOnion={connectionParts.isOnion}
+                privacy={serverPrivacy}
                 status={connectionStatus}
               />
               <SSHStack gap="xs" style={{ alignItems: 'center' }}>

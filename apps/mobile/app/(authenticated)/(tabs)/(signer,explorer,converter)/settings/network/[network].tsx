@@ -85,6 +85,7 @@ export default function CustomNetwork() {
     formData,
     loadServer,
     updateField,
+    updatePrivateField,
     updateProxyField,
     constructUrl,
     constructTrimmedUrl
@@ -113,7 +114,7 @@ export default function CustomNetwork() {
     ])
   )
 
-  const [connectionStatus, connectionString, isPrivateConnection] =
+  const [connectionStatus, connectionString, serverPrivacy, connectionParts] =
     useVerifyConnection()
 
   const { testing: connectionTesting, testConnection } = useConnectionTest()
@@ -240,6 +241,9 @@ export default function CustomNetwork() {
       network: networkType,
       proxy: formData.proxy.enabled ? formData.proxy : undefined,
       url
+    }
+    if (formData.backend !== 'rpc' && formData.isPrivate) {
+      base.isPrivate = true
     }
     if (formData.backend === 'rpc') {
       const scanHeight = formData.rpcScanFromHeight.trim()
@@ -587,12 +591,33 @@ export default function CustomNetwork() {
                 proxy={formData.proxy}
                 onProxyChange={updateProxyField}
               />
+              {formData.backend !== 'rpc' && (
+                <SSVStack gap="xs">
+                  <SSText uppercase>{tnServer('privacy.label')}</SSText>
+                  <SSHStack>
+                    <SSCheckbox
+                      selected={formData.isPrivate}
+                      onPress={() => updatePrivateField(!formData.isPrivate)}
+                    />
+                    <SSPressable
+                      onPress={() => updatePrivateField(!formData.isPrivate)}
+                      style={{ flex: 1 }}
+                    >
+                      <SSText>{tnServer('privacy.checkbox')}</SSText>
+                    </SSPressable>
+                  </SSHStack>
+                  <SSText color="muted" size="xs">
+                    {tnServer('privacy.description')}
+                  </SSText>
+                </SSVStack>
+              )}
               <SSVStack gap="none" style={{ marginBottom: 16 }}>
                 <SSHStack
                   style={{ gap: 0, justifyContent: 'center', marginBottom: 8 }}
                 >
                   <SSConnectionStatusIndicator
-                    isPrivateConnection={isPrivateConnection}
+                    isOnion={connectionParts.isOnion}
+                    privacy={serverPrivacy}
                     status={connectionStatus}
                   />
                   <SSText

@@ -52,3 +52,13 @@ export const barGray = '#2C2C2C'
 export const mutedGreen = '#6F9A74'
 export const mutedCyan = '#6A9AAA'
 export const mutedRed = '#A56B6B'
+
+// Backend connection, following Sparrow: green is the user's own Bitcoin Core,
+// blue a server they confirmed is private, yellow a public server. The muted
+// shade means the server is set but not currently connected.
+export const serverNode = '#3EE65A'
+export const serverNodeMuted = '#2E5A35'
+export const serverPrivate = '#4AA3FF'
+export const serverPrivateMuted = '#2D4866'
+export const serverPublic = '#DCBB13'
+export const serverPublicMuted = '#6B5D1C'

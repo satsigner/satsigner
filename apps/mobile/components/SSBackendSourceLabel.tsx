@@ -1,0 +1,67 @@
+import { StyleSheet } from 'react-native'
+
+import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
+import SSText from '@/components/SSText'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
+import { Colors } from '@/styles'
+
+type SSBackendSourceLabelProps = {
+  label: string
+  /** Data came from mempool.space instead of the configured backend. */
+  isExternal?: boolean
+  mono?: boolean
+}
+
+const DOT_SIZE = 14
+
+/**
+ * Names where explorer data came from. For the configured backend it shows
+ * the live connection dot (privacy color, dimmed when not connected) instead
+ * of always-green text, which read as "connected" even when it wasn't.
+ */
+function SSBackendSourceLabel({
+  label,
+  isExternal = false,
+  mono = false
+}: SSBackendSourceLabelProps) {
+  const [status, , privacy, { isOnion }] = useVerifyConnection()
+  const type = mono ? 'mono' : undefined
+
+  if (isExternal) {
+    return (
+      <SSText size="xxs" type={type} style={styles.external}>
+        {label}
+      </SSText>
+    )
+  }
+
+  return (
+    <SSHStack gap="none" style={styles.row}>
+      <SSConnectionStatusIndicator
+        isOnion={isOnion}
+        privacy={privacy}
+        size={DOT_SIZE}
+        status={status}
+      />
+      <SSText size="xxs" type={type} style={styles.backend}>
+        {label}
+      </SSText>
+    </SSHStack>
+  )
+}
+
+const styles = StyleSheet.create({
+  backend: {
+    color: Colors.gray[200]
+  },
+  external: {
+    color: Colors.gray[500]
+  },
+  row: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+})
+
+export default SSBackendSourceLabel
