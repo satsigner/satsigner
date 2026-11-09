@@ -164,6 +164,11 @@ function SSAccountCard({
         }
         break
       }
+      case 'queued': {
+        color = Colors.gray[200] // eslint-disable-line prefer-destructuring
+        text = t('account.sync.status.queued')
+        break
+      }
       case 'syncing': {
         color = Colors.white
         text = t('account.sync.status.syncing')

@@ -5,6 +5,7 @@ import {
 } from '@/api/electrumReachability'
 import {
   CONNECTION_TEST_TIMEOUT_MS,
+  CONNECTION_TEST_TOR_TIMEOUT_MS,
   ELECTRUM_REACHABILITY_TTL_MS
 } from '@/constants/connectionTest'
 
@@ -64,5 +65,26 @@ describe('assertElectrumReachable', () => {
       assertElectrumReachable(HOME_NODE, ELECTRUM_REACHABILITY_TTL_MS)
     ).resolves.toBeUndefined()
     expect(mockTest).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('assertElectrumReachable over Tor', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    clearElectrumReachabilityChecks()
+  })
+
+  it('gives an onion server longer to answer', async () => {
+    const onion =
+      'tcp://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion:50001'
+    mockTest.mockResolvedValueOnce(true)
+
+    await assertElectrumReachable(onion, 0)
+
+    expect(mockTest).toHaveBeenCalledWith(
+      onion,
+      'bitcoin',
+      CONNECTION_TEST_TOR_TIMEOUT_MS
+    )
   })
 })

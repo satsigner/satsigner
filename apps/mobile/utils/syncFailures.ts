@@ -1,5 +1,9 @@
 import { ElectrumUnreachableError } from '@/api/electrumReachability'
 import { SYNC_FAILURE_TOAST_LIMIT } from '@/constants/sync'
+import { t } from '@/locales'
+import { SyncTimeoutError } from '@/services/syncQueue'
+
+const MS_PER_MINUTE = 60_000
 
 export type SyncFailure = {
   accountName: string
@@ -22,6 +26,14 @@ function failureCause(error: unknown): FailureCause {
       key: `unreachable:${error.server}`,
       reason: error.message,
       server: error.server
+    }
+  }
+  if (error instanceof SyncTimeoutError) {
+    return {
+      key: 'stalled',
+      reason: t('account.sync.stalled', {
+        minutes: Math.round(error.timeoutMs / MS_PER_MINUTE)
+      })
     }
   }
   const reason = error instanceof Error ? error.message : String(error)

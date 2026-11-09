@@ -36,7 +36,10 @@ import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
-import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
+import {
+  type SyncErrorReporter,
+  createSyncFailureBatch
+} from '@/utils/syncFailureToasts'
 
 function yieldToUi() {
   return new Promise<void>((resolve) => {
@@ -140,9 +143,6 @@ function AuthenticatedSession() {
         state.addAccountAddress
       ])
     )
-  const connectionMode = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork].config.connectionMode
-  )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
@@ -171,52 +171,52 @@ function AuthenticatedSession() {
     setJustUnlocked(false)
   }
 
-  async function syncLoadedWallets() {
-    if (connectionMode !== 'auto') {
-      return
-    }
+  async function syncLoadedAccount(
+    account: Account,
+    reportFailure: SyncErrorReporter
+  ) {
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
-    const failures = createSyncFailureBatch()
-    for (const account of useAccountsStore.getState().accounts) {
-      await devStep('session', `sync account ${account.name}`)
-      try {
-        const isImportAddress = account.keys[0].creationType === 'importAddress'
-        if (isImportAddress) {
-          if (!currentAddresses[account.id]) {
-            continue
-          }
-          const updatedAccount = await syncAccountWithAddress(
-            account,
-            failures.report
-          )
-          if (updatedAccount) {
-            updateAccount(updatedAccount)
-          }
-          continue
-        }
-        const wallet = currentWallets[account.id]
-        if (!wallet) {
-          continue
-        }
-        const updatedAccount = await syncAccountWithWallet(
-          account,
-          wallet,
-          false,
-          false,
-          failures.report
-        )
-        if (updatedAccount) {
-          updateAccount(updatedAccount)
-        }
-      } catch (error) {
-        const label = account.name ?? account.id
-        const reason = error instanceof Error ? error.message : String(error)
-        devLog('session', `sync ${label} failed: ${reason}`, 'error')
-        failures.report(label, error)
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    try {
+      if (isImportAddress && currentAddresses[account.id]) {
+        updateAccount(await syncAccountWithAddress(account, reportFailure))
+        return
       }
-      await yieldToUi()
+      const wallet = currentWallets[account.id]
+      if (isImportAddress || !wallet) {
+        return
+      }
+      const updatedAccount = await syncAccountWithWallet(
+        account,
+        wallet,
+        false,
+        false,
+        reportFailure
+      )
+      if (updatedAccount) {
+        updateAccount(updatedAccount)
+      }
+    } catch (error) {
+      const label = account.name ?? account.id
+      const reason = error instanceof Error ? error.message : String(error)
+      devLog('session', `sync ${label} failed: ${reason}`, 'error')
+      reportFailure(label, error)
     }
+  }
+
+  async function syncLoadedWallets() {
+    const { configs, selectedNetwork } = useBlockchainStore.getState()
+    if (configs[selectedNetwork].config.connectionMode !== 'auto') {
+      return
+    }
+    await devStep('session', 'sync accounts')
+    const failures = createSyncFailureBatch()
+    await Promise.allSettled(
+      useAccountsStore
+        .getState()
+        .accounts.map((account) => syncLoadedAccount(account, failures.report))
+    )
     failures.flush()
   }
 

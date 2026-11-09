@@ -1,8 +1,10 @@
 import ElectrumClient from '@/api/electrum'
 import {
   CONNECTION_TEST_TIMEOUT_MS,
+  CONNECTION_TEST_TOR_TIMEOUT_MS,
   ELECTRUM_REACHABILITY_TTL_MS
 } from '@/constants/connectionTest'
+import { isOnionUrl } from '@/utils/serverPrivacy'
 
 type ReachabilityCheck = {
   checkedAt: number
@@ -38,7 +40,13 @@ function currentCheck(url: string, now: number): ReachabilityCheck {
   // The ping is a server.version call, which does not depend on the network.
   const check = {
     checkedAt: now,
-    reachable: ElectrumClient.test(url, 'bitcoin', CONNECTION_TEST_TIMEOUT_MS)
+    reachable: ElectrumClient.test(
+      url,
+      'bitcoin',
+      isOnionUrl(url)
+        ? CONNECTION_TEST_TOR_TIMEOUT_MS
+        : CONNECTION_TEST_TIMEOUT_MS
+    )
   }
   checks.set(url, check)
   return check

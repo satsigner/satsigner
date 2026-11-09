@@ -1,7 +1,14 @@
-import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
+import {
+  MIN_USABLE_CHECKPOINT_HEIGHT,
+  SYNC_STALL_TIMEOUT_MS,
+  SYNC_STALL_TIMEOUT_RPC_MS,
+  SYNC_STALL_TIMEOUT_TOR_MS
+} from '@/constants/sync'
 import {
   type AccountSyncHistory,
+  getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
+  recoverInterruptedSyncStatus,
   shouldFullScan
 } from '@/utils/accountSync'
 
@@ -143,5 +150,37 @@ describe('isTransactionHistoryLoading', () => {
 
   it('is not loading when sync status is unknown', () => {
     expect(isTransactionHistoryLoading({ refreshing: false })).toBe(false)
+  })
+})
+
+describe('getSyncStallTimeoutMs', () => {
+  it('waits longest for Bitcoin Core, then onion servers', () => {
+    expect(
+      getSyncStallTimeoutMs({ backend: 'rpc', url: 'http://10.0.0.2:8332' })
+    ).toBe(SYNC_STALL_TIMEOUT_RPC_MS)
+    expect(
+      getSyncStallTimeoutMs({
+        backend: 'electrum',
+        url: 'tcp://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion:50001'
+      })
+    ).toBe(SYNC_STALL_TIMEOUT_TOR_MS)
+    expect(
+      getSyncStallTimeoutMs({
+        backend: 'esplora',
+        url: 'https://mempool.space/api'
+      })
+    ).toBe(SYNC_STALL_TIMEOUT_MS)
+  })
+})
+
+describe('recoverInterruptedSyncStatus', () => {
+  it('turns a sync cut off by an app restart into unsynced', () => {
+    expect(recoverInterruptedSyncStatus('syncing')).toBe('unsynced')
+    expect(recoverInterruptedSyncStatus('queued')).toBe('unsynced')
+  })
+
+  it('keeps finished states', () => {
+    expect(recoverInterruptedSyncStatus('synced')).toBe('synced')
+    expect(recoverInterruptedSyncStatus('error')).toBe('error')
   })
 })

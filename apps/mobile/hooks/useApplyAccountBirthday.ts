@@ -1,12 +1,7 @@
 import { toast } from 'sonner-native'
 
-import {
-  SYNC_IDLE_POLL_ATTEMPTS,
-  SYNC_IDLE_POLL_INTERVAL_MS
-} from '@/constants/sync'
 import useSyncAccountWithWallet, {
-  cancelAccountSync,
-  isAccountSyncing
+  cancelAccountSync
 } from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -20,7 +15,7 @@ function useApplyAccountBirthday() {
     (state) => state.updateAccountBirthday
   )
   const wallets = useWalletsStore((state) => state.wallets)
-  const { prioritizeSync, syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   async function applyBirthday(accountId: string, date: Date | undefined) {
     const account = useAccountsStore
@@ -50,17 +45,6 @@ function useApplyAccountBirthday() {
     }
 
     toast.success(t('account.birthdayDate.rescanQueued'))
-
-    for (let i = 0; i < SYNC_IDLE_POLL_ATTEMPTS; i += 1) {
-      if (!isAccountSyncing(accountId)) {
-        break
-      }
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, SYNC_IDLE_POLL_INTERVAL_MS)
-      })
-    }
-
-    prioritizeSync(accountId)
     await syncAccountWithWallet(latestAccount, wallet, true, true)
     return true
   }

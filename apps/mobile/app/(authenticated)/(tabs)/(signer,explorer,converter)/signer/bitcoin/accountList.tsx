@@ -40,7 +40,9 @@ import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithWallet, {
+  isAccountSyncing
+} from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -226,7 +228,7 @@ export default function AccountList() {
       if (account.network !== tabs[tabIndex].key) {
         return false
       }
-      if (account.syncStatus === 'syncing') {
+      if (account.syncStatus === 'syncing' || isAccountSyncing(account.id)) {
         return false
       }
       if (!isAutoSyncDue(account, autoConnectDelay, now)) {
@@ -242,43 +244,26 @@ export default function AccountList() {
       return true
     })
 
-    // Address-based syncs are pure HTTP and safe to run in parallel.
-    // BDK wallet syncs use a native Rust module that is not thread-safe for
-    // concurrent calls, so those must remain sequential.
-    const addressAccounts = eligibleAccounts.filter(
-      (a) =>
-        a.policyType === 'watchonly' &&
-        a.keys[0].creationType === 'importAddress'
-    )
-    const walletAccounts = eligibleAccounts.filter(
-      (a) =>
-        !(
-          a.policyType === 'watchonly' &&
-          a.keys[0].creationType === 'importAddress'
-        )
-    )
-
+    // Wallet syncs go through the app-wide sync queue, which limits how many
+    // run at once; address syncs are light and run together.
     const failures = createSyncFailureBatch()
     await Promise.allSettled(
-      addressAccounts.map((account) =>
-        syncAccountWithAddress(account, failures.report).then((u) =>
-          updateAccount(u)
-        )
-      )
+      eligibleAccounts.map(async (account) => {
+        const isImportAddress = account.keys[0].creationType === 'importAddress'
+        const updated = isImportAddress
+          ? await syncAccountWithAddress(account, failures.report)
+          : await syncAccountWithWallet(
+              account,
+              wallets[account.id]!,
+              false,
+              false,
+              failures.report
+            )
+        if (updated) {
+          updateAccount(updated)
+        }
+      })
     )
-
-    for (const account of walletAccounts) {
-      const u = await syncAccountWithWallet(
-        account,
-        wallets[account.id]!,
-        false,
-        false,
-        failures.report
-      )
-      if (u) {
-        updateAccount(u)
-      }
-    }
     failures.flush()
   }
 

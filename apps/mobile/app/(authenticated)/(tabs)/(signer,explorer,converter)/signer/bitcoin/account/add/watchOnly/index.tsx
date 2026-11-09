@@ -697,7 +697,7 @@ export default function WatchOnly() {
   ) {
     const updatedAccount =
       selectedOption !== 'importAddress'
-        ? await syncAccountWithWallet(createdAccount, wallet!)
+        ? await syncAccountWithWallet(createdAccount, wallet!, false, true)
         : await syncAccountWithAddress(createdAccount)
     if (updatedAccount) {
       updateAccount(updatedAccount)

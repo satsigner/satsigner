@@ -1931,7 +1931,7 @@ export default function AccountView() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   const [refreshing, setRefreshing] = useState(false)
@@ -2092,10 +2092,6 @@ export default function AccountView() {
     }
     if (!isImportAddress && !wallet) {
       return
-    }
-
-    if (!isImportAddress) {
-      prioritizeSync(account.id)
     }
 
     try {

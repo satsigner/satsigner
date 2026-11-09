@@ -1,5 +1,12 @@
-import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
+import {
+  MIN_USABLE_CHECKPOINT_HEIGHT,
+  SYNC_STALL_TIMEOUT_MS,
+  SYNC_STALL_TIMEOUT_RPC_MS,
+  SYNC_STALL_TIMEOUT_TOR_MS
+} from '@/constants/sync'
 import { type Account } from '@/types/models/Account'
+import { type Server } from '@/types/settings/blockchain'
+import { isOnionUrl } from '@/utils/serverPrivacy'
 
 type SyncCheckpoint =
   | {
@@ -60,8 +67,35 @@ function isTransactionHistoryLoading({
   refreshing,
   syncStatus
 }: TransactionHistoryLoadingParams): boolean {
-  return refreshing || syncStatus === 'syncing'
+  return refreshing || syncStatus === 'syncing' || syncStatus === 'queued'
 }
 
-export { isTransactionHistoryLoading, shouldFullScan }
+/** How long a sync against this server may go without progress. */
+function getSyncStallTimeoutMs(server: Pick<Server, 'backend' | 'url'>) {
+  if (server.backend === 'rpc') {
+    return SYNC_STALL_TIMEOUT_RPC_MS
+  }
+  return isOnionUrl(server.url)
+    ? SYNC_STALL_TIMEOUT_TOR_MS
+    : SYNC_STALL_TIMEOUT_MS
+}
+
+/**
+ * A sync that was running or queued when the app was killed never finished.
+ * Shown as unsynced so the account is picked up again instead of skipped.
+ */
+function recoverInterruptedSyncStatus(
+  syncStatus: Account['syncStatus']
+): Account['syncStatus'] {
+  return syncStatus === 'syncing' || syncStatus === 'queued'
+    ? 'unsynced'
+    : syncStatus
+}
+
+export {
+  getSyncStallTimeoutMs,
+  isTransactionHistoryLoading,
+  recoverInterruptedSyncStatus,
+  shouldFullScan
+}
 export type { AccountSyncHistory }

@@ -46,6 +46,7 @@ import {
 import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
 import { type Transaction } from '@/types/models/Transaction'
 import { createResetKey, dropSeedFromKey } from '@/utils/account'
+import { recoverInterruptedSyncStatus } from '@/utils/accountSync'
 import { sortDmsByCreatedAt } from '@/utils/nostrDms'
 import {
   deleteNostrAccountSecretSafe,
@@ -163,9 +164,19 @@ function reloadAccount(set: ImmerSet, accountId: string): Account | undefined {
   return withSecrets
 }
 
+function loadAccountsOnLaunch(): Account[] {
+  return getAccounts().map((account) => {
+    const syncStatus = recoverInterruptedSyncStatus(account.syncStatus)
+    if (syncStatus !== account.syncStatus) {
+      updateSyncStatusDb(account.id, syncStatus)
+    }
+    return mergeAccountWithCachedNostrSecrets({ ...account, syncStatus })
+  })
+}
+
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   immer((set, get) => ({
-    accounts: getAccounts().map(mergeAccountWithCachedNostrSecrets),
+    accounts: loadAccountsOnLaunch(),
     addAccount: (account) => {
       void persistAccountSecretsSafe(account.id, account.nostr)
       insertAccountDb(account)
