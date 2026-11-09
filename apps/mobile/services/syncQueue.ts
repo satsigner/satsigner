@@ -1,9 +1,11 @@
+import { MS_PER_SECOND } from '@/constants/time'
+
 /** Rejection reason when a sync makes no progress for too long. */
 export class SyncTimeoutError extends Error {
   readonly timeoutMs: number
 
   constructor(timeoutMs: number) {
-    super(`Sync stalled for ${Math.round(timeoutMs / 1000)} s`)
+    super(`Sync stalled for ${Math.round(timeoutMs / MS_PER_SECOND)} s`)
     this.name = 'SyncTimeoutError'
     this.timeoutMs = timeoutMs
   }
