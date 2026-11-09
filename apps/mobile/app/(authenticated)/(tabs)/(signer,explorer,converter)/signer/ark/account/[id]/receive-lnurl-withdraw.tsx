@@ -54,13 +54,23 @@ export default function ArkReceiveLnurlWithdrawPage() {
   })
   const phase = withdraw.status
 
+  // A failed check still counts toward the deadline, so a server that stops
+  // answering ends in the timeout state instead of waiting forever.
+  async function fetchWithdrawReceive(paymentHash: string) {
+    try {
+      return await fetchArkLightningReceive(
+        getArkAccountOrThrow(id).serverId,
+        id,
+        paymentHash
+      )
+    } catch {
+      return null
+    }
+  }
+
   async function checkWithdrawArrival(paymentHash: string, deadline: number) {
-    const receive = await fetchArkLightningReceive(
-      getArkAccountOrThrow(id).serverId,
-      id,
-      paymentHash
-    )
-    if (hasArkLightningReceiveArrived(receive)) {
+    const receive = await fetchWithdrawReceive(paymentHash)
+    if (receive && hasArkLightningReceiveArrived(receive)) {
       setWithdraw({ status: 'success' })
       toast.success(t('ark.receive.lnurlWithdraw.success'))
       return receive.state
@@ -68,7 +78,7 @@ export default function ArkReceiveLnurlWithdrawPage() {
     if (Date.now() >= deadline) {
       setWithdraw({ status: 'timeout' })
     }
-    return receive.state
+    return receive?.state ?? null
   }
 
   const awaiting = withdraw.status === 'awaiting' ? withdraw : null
