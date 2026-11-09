@@ -5,6 +5,7 @@ import SSPinInput, { type SSPinInputProps } from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import { type UsePinAuthProps, usePinAuth } from '@/hooks/usePinAuth'
+import { usePinTriesFeedback } from '@/hooks/usePinTriesFeedback'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { gray } from '@/styles/colors'
@@ -28,6 +29,7 @@ function SSPinAuth({
     onTriesOver
   })
   const { shakeStyle } = useAnimatedShake()
+  const triesFeedback = usePinTriesFeedback()
 
   const titleText = (
     <SSText
@@ -57,6 +59,7 @@ function SSPinAuth({
             pin={pin}
             setPin={setPin}
             onFillEnded={handleFillEnded}
+            {...triesFeedback}
             {...props}
           />
         )}
