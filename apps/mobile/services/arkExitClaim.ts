@@ -245,7 +245,7 @@ async function buildSignAndBroadcastClaim({
   // Another send may have taken the drafted address in the meantime.
   const reserved = await reserveReceiveAddressIfFresh(destination, address)
   if (!reserved) {
-    throw new Error(t('ark.exit.claim.error.changed'))
+    throw new Error(t('ark.exit.claim.error.addressTaken'))
   }
 
   // Kept before broadcasting, so after a crash the app can only ever resend

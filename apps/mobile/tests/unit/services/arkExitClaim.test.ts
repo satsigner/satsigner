@@ -285,7 +285,7 @@ describe('claimArkExits', () => {
     jest.mocked(reserveReceiveAddressIfFresh).mockResolvedValue(false)
 
     await expect(claimArkExits(SUBMISSION)).rejects.toThrow(
-      t('ark.exit.claim.error.changed')
+      t('ark.exit.claim.error.addressTaken')
     )
     expect(reserveReceiveAddressIfFresh).toHaveBeenCalledWith(
       expect.objectContaining({ id: DESTINATION_ID }),

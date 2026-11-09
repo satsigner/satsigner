@@ -602,6 +602,7 @@
     "exit.claim.blocker.nothingClaimable": "No exit is ready to claim yet.",
     "exit.claim.description.one": "1 exit holds %{amount}. Claim it to a fresh address of one of your wallets.",
     "exit.claim.description.other": "%{count} exits hold %{amount}. Claim them to a fresh address of one of your wallets.",
+    "exit.claim.error.addressTaken": "Another send just used that wallet's next address. Try again",
     "exit.claim.error.broadcast": "Could not broadcast the claim",
     "exit.claim.error.changed": "The claim changed since you reviewed it. Check the new amount and try again",
     "exit.claim.error.discard": "Could not discard the claim",
