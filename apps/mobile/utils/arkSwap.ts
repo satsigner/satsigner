@@ -6,6 +6,7 @@ import {
   ARK_SWAP_RETRY_BASE_DELAY_MS,
   ARK_SWAP_RETRY_MAX_DELAY_MS,
   ARK_SWAP_SEND_RECONCILE_GRACE_MS,
+  ARK_SWAP_STALE_BOARDING_MS,
   ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS,
   ARK_VTXO_STATE
 } from '@/constants/ark'
@@ -303,15 +304,26 @@ function isArkSwapInvoiceAbandoned(
   return nowSeconds >= invoiceExpiresAt + ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS
 }
 
-function canDismissArkSwapJob(job: Pick<ArkSwapJob, 'status'>): boolean {
+function canDismissArkSwapJob(
+  job: Pick<ArkSwapJob, 'status' | 'updatedAt'>,
+  nowMs: number
+): boolean {
+  if (job.status === 'boarding') {
+    return nowMs - job.updatedAt >= ARK_SWAP_STALE_BOARDING_MS
+  }
   return DISMISSIBLE_STATUSES.has(job.status)
 }
 
+// A failed swap can retry with a new invoice, unless its board exited: the
+// payment would then come out of the rest of the Ark balance.
 function canSubmitArkSwapInvoice(job: ArkSwapJob): boolean {
-  return (
-    job.kind === 'onchainToLightning' &&
-    (job.status === 'awaitingInvoice' || job.status === 'failed')
-  )
+  if (job.kind !== 'onchainToLightning') {
+    return false
+  }
+  if (job.status === 'failed') {
+    return !job.boardExited
+  }
+  return job.status === 'awaitingInvoice'
 }
 
 function getArkSwapJobAccountId(job: ArkSwapJob): string {

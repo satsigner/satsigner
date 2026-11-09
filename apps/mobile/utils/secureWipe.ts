@@ -2,6 +2,7 @@ import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearAllCache } from '@/db/nostrCache'
 import { clearNostrProcessedEvents } from '@/db/nostrProcessedEvents'
+import { teardownAllNip46Sessions } from '@/services/nip46Sessions'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
 import {
   deleteAllKeySecrets,
@@ -17,9 +18,11 @@ import { useArkSwapsStore } from '@/store/arkSwaps'
 import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
+import { useEcashAccountBuilderStore } from '@/store/ecashAccountBuilder'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import { useNostrVideoStore } from '@/store/nostrVideo'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
@@ -54,6 +57,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   const { identities } = useNostrIdentityStore.getState()
 
   stopNostrLifecycle()
+  teardownAllNip46Sessions()
   closeActiveChatPipeline()
   useNostrVideoStore.getState().releaseAllVideos()
   await nostrSyncService.stopAll().catch(() => undefined)
@@ -102,11 +106,13 @@ export async function secureWipeAllWalletData(): Promise<void> {
   deleteTags()
   useWalletsStore.getState().deleteWallets()
   useEcashStore.getState().clearAllData()
+  useEcashAccountBuilderStore.getState().clearAccount()
   useArkStore.getState().clearAllData()
   useArkSwapsStore.getState().clearAllData()
   useArkExitClaimsStore.getState().clearAllData()
   useTransactionBuilderStore.getState().clearAllData()
   await useNostrIdentityStore.getState().clearAll()
+  useNostrIdentityDraftStore.getState().clearDraft()
   useNostrStore.getState().clearAllNostrState()
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
@@ -119,7 +125,16 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   useBlockchainStore.getState().stripAllRpcCredentials()
 
-  const { clearDuressPin, setSkipPin } = useAuthStore.getState()
+  // A backup restore waiting for the next unlock would put the wiped wallets
+  // back, and the page history is a trail of what was opened.
+  const {
+    clearDuressPin,
+    clearPageHistory,
+    setPendingRecoverData,
+    setSkipPin
+  } = useAuthStore.getState()
+  setPendingRecoverData(null)
+  clearPageHistory()
   setSkipPin(false)
   await clearDuressPin().catch(() => undefined)
 }

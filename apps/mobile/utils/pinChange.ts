@@ -1,12 +1,18 @@
-import { DURESS_PIN_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { getPin, getStoredPinLength } from '@/utils/pin'
 import {
+  applyPendingPinKdfCommit,
   commitPinMaterial,
+  discardPendingPinKdfCommit,
+  getPendingPinKdfCommitDigest,
+  type PinMaterial,
   pinMatchesDuressDigest,
   preparePinMaterial
 } from '@/utils/pinKdf'
+import { applyPendingPinRekey, clearPinRekeyJournalFor } from '@/utils/pinRekey'
+import { setSessionPinDigest } from '@/utils/pinSession'
 
 type PinChangeResult =
   | 'changed'
@@ -14,6 +20,45 @@ type PinChangeResult =
   | 'duressClearFailed'
   | 'matchesDuress'
   | 'reEncryptFailed'
+
+/**
+ * Decides a commit that threw by what actually landed. Once the stored PIN or
+ * the commit journal holds the new digest the change is done: the next PIN
+ * check applies the journal before it settles the re-key journal. Otherwise
+ * the commit journal is dropped first, so it can never apply after the moved
+ * secrets go back to the old PIN.
+ *
+ * A failed read throws instead: rolling back while the new digest may already
+ * be stored would lock the user out. Both journals stay for the next PIN
+ * check to settle.
+ */
+async function settleFailedCommit(material: PinMaterial): Promise<boolean> {
+  await applyPendingPinKdfCommit().catch(() => undefined)
+  const storedDigest = await getItem(PIN_KEY)
+  if (storedDigest === material.digest) {
+    setSessionPinDigest(material.digest)
+    await clearPinRekeyJournalFor(material.digest).catch(() => undefined)
+    return true
+  }
+  const journaledDigest = await getPendingPinKdfCommitDigest()
+  if (journaledDigest === material.digest) {
+    setSessionPinDigest(material.digest)
+    return true
+  }
+  await discardPendingPinKdfCommit()
+  await applyPendingPinRekey().catch(() => undefined)
+  return false
+}
+
+async function commitOrRollBack(material: PinMaterial): Promise<boolean> {
+  try {
+    await commitPinMaterial(material)
+  } catch {
+    return settleFailedCommit(material)
+  }
+  await clearPinRekeyJournalFor(material.digest).catch(() => undefined)
+  return true
+}
 
 /** Returns null on first-time setup, where no PIN exists yet. */
 async function getCurrentPinDigest(): Promise<string | null> {
@@ -53,7 +98,10 @@ async function changePin(
       return 'reEncryptFailed'
     }
   }
-  await commitPinMaterial(material)
+  const committed = await commitOrRollBack(material)
+  if (!committed) {
+    return 'reEncryptFailed'
+  }
 
   // A missing length belongs to an older install. Clearing duress here would
   // drop it on an equal-length change, because the stored length is unknown.
@@ -72,4 +120,20 @@ async function changePin(
   return 'duressCleared'
 }
 
-export { changePin }
+/**
+ * changePin for a screen: a throw anywhere in the change leaves the stored
+ * PIN as it was (the re-key journal undoes any secret that already moved), so
+ * it reports a failed change instead of leaving the caller waiting.
+ */
+async function changePinOrFail(
+  newPin: string,
+  reEncryptSecrets: (oldDigest: string, newDigest: string) => Promise<void>
+): Promise<PinChangeResult> {
+  try {
+    return await changePin(newPin, reEncryptSecrets)
+  } catch {
+    return 'reEncryptFailed'
+  }
+}
+
+export { changePin, changePinOrFail }

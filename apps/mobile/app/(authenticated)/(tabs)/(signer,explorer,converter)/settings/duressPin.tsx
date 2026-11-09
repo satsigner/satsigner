@@ -8,20 +8,14 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { SALT_KEY } from '@/config/auth'
 import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { Layout, Sizes } from '@/styles'
-import { emptyPin, getPin } from '@/utils/pin'
-import {
-  derivePinDigest,
-  getStoredKdfConfig,
-  safeEqualHex
-} from '@/utils/pinKdf'
+import { setDuressPinSafely } from '@/utils/duressPin'
+import { emptyPin } from '@/utils/pin'
 
 type Stage = 'set' | 're-enter'
 
@@ -39,12 +33,8 @@ export default function SetDuressPin() {
 function SetDuressPinForm({ pinLength }: { pinLength: number }) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const [setFirstTime, setRequiresAuth, setDuressPin] = useAuthStore(
-    useShallow((state) => [
-      state.setFirstTime,
-      state.setRequiresAuth,
-      state.setDuressPin
-    ])
+  const [setFirstTime, setRequiresAuth] = useAuthStore(
+    useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
 
   const [loading, setLoading] = useState(false)
@@ -74,23 +64,18 @@ function SetDuressPinForm({ pinLength }: { pinLength: number }) {
   }
 
   async function persistDuressPin(pin: string) {
-    const salt = await getItem(SALT_KEY)
-    const encryptedPin = await getPin()
-    if (!salt || !encryptedPin) {
+    const result = await setDuressPinSafely(pin)
+    if (result === 'mainPinMissing') {
       toast.error(t('auth.pinMustBeSetBeforeDuress'))
-      return false
     }
-    // Equality is checked under the main PIN's own KDF config, which may
-    // differ from the config a fresh duress PIN will be stored with.
-    const mainKdf = await getStoredKdfConfig()
-    const duressCandidate = await derivePinDigest(pin, salt, mainKdf)
-    if (safeEqualHex(encryptedPin, duressCandidate)) {
+    if (result === 'matchesMainPin') {
       toast.error(t('auth.pinMatchDuressPin'))
       handleGoBack()
-      return false
     }
-    await setDuressPin(pin)
-    return true
+    if (result === 'failed') {
+      toast.error(t('auth.duressPinSetFailed'))
+    }
+    return result === 'set'
   }
 
   function handleSetPinLater() {

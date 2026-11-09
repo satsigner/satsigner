@@ -35,6 +35,7 @@ import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNostrShareTransaction } from '@/hooks/useNostrShareTransaction'
 import { useNow } from '@/hooks/useNow'
+import { useStateMachine } from '@/hooks/useStateMachine'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -57,6 +58,7 @@ import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { BROADCAST_IDLE, transitionBroadcast } from '@/utils/broadcastMachine'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import {
   compactError,
@@ -64,6 +66,7 @@ import {
   payjoinLog,
   payjoinWarn
 } from '@/utils/payjoinLog'
+import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { shouldSuppressPayjoinTransactionChart } from '@/utils/payjoinSignPreview'
 import {
@@ -302,7 +305,11 @@ export default function SignTransaction() {
   const currentConfig = configs[accountNetwork]
 
   const [signed, setSigned] = useState(false)
-  const [broadcasting, setBroadcasting] = useState(false)
+  const { state: broadcastState, send: sendBroadcastEvent } = useStateMachine(
+    transitionBroadcast,
+    BROADCAST_IDLE
+  )
+  const broadcasting = broadcastState.status === 'broadcasting'
   const [rawTx, setRawTx] = useState('')
 
   const trimmedRawTx = rawTx.trim()
@@ -453,9 +460,15 @@ export default function SignTransaction() {
 
     setBroadcasted(true)
     if (id) {
+      // Only a negotiation still running for this send ends with it; sessions
+      // that already fell back, expired or failed keep their own outcome.
       const store = usePayjoinSessionsStore.getState()
       for (const session of store.sessions) {
-        if (session.accountId !== id || session.role !== 'sender') {
+        if (
+          session.accountId !== id ||
+          session.role !== 'sender' ||
+          isPayjoinTerminal(session.status)
+        ) {
           continue
         }
         store.updateSessionStatus(session.id, 'completed')
@@ -480,27 +493,29 @@ export default function SignTransaction() {
     )
   }
 
+  function failBroadcast(error: unknown) {
+    sendBroadcastEvent({ type: 'failed' })
+    toast.error(broadcastFailureUserMessage(error))
+  }
+
+  // The machine takes the start synchronously, so a second tap in the same
+  // frame is refused before it can send the transaction again.
   async function handleBroadcastTransaction() {
-    if (broadcasting) {
-      toast.info('Please wait while the transaction is being broadcast.')
-      return
-    }
-
     if (broadcasted) {
-      toast.error(
-        'This transaction has already been broadcasted to the network'
-      )
+      toast.error(t('sign.broadcast.alreadyBroadcast'))
       return
     }
-
-    setBroadcasting(true)
+    if (!sendBroadcastEvent({ type: 'start' })) {
+      toast.info(t('sign.broadcast.inProgress'))
+      return
+    }
 
     try {
       await broadcastAndNavigate()
+      sendBroadcastEvent({ type: 'succeeded' })
     } catch (error) {
-      toast.error(broadcastFailureUserMessage(error))
+      failBroadcast(error)
     }
-    setBroadcasting(false)
   }
 
   function handleShareWithNostrGroup() {

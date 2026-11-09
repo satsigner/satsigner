@@ -63,11 +63,28 @@ import { saveFile } from '@/utils/filesystem'
 import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
-import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 const DEV_CONSOLE_AVAILABLE = isDevConsoleAvailable()
 
 const BACKUP_PIN_MAX_TRIES = 3
+
+type DeveloperConfirmSheet =
+  | { kind: 'confirmDelete' }
+  | { kind: 'confirmClear' }
+
+type DeveloperSheet =
+  | { kind: 'none' }
+  | DeveloperConfirmSheet
+  | { kind: 'backupPin'; returnTo: DeveloperSheet }
+  | { kind: 'backupPreview'; payload: string; returnTo: DeveloperSheet }
+
+/** The sheet to show once the backup flow started from `sheet` is done. */
+function getBackupReturnSheet(sheet: DeveloperSheet): DeveloperSheet {
+  if (sheet.kind === 'backupPin' || sheet.kind === 'backupPreview') {
+    return sheet.returnTo
+  }
+  return sheet
+}
 
 export default function Developer() {
   const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
@@ -75,35 +92,29 @@ export default function Developer() {
   const accounts = useAccountsStore((state) => state.accounts)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const [
-    skipPin,
-    setSkipPin,
-    enableDevSkipPin,
-    incrementPinTries,
-    resetPinTries
-  ] = useAuthStore(
+  const [skipPin, setSkipPin, enableDevSkipPin] = useAuthStore(
     useShallow((state) => [
       state.skipPin,
       state.setSkipPin,
-      state.enableDevSkipPin,
-      state.incrementPinTries,
-      state.resetPinTries
+      state.enableDevSkipPin
     ])
   )
   const [currencyUnit, useZeroPadding, mnemonicWordList] = useSettingsStore(
     useShallow((s) => [s.currencyUnit, s.useZeroPadding, s.mnemonicWordList])
   )
 
-  const [deleteAccountsModalVisible, setDeleteAccountsModalVisible] =
-    useState(false)
-  const [clearStorageModalVisible, setClearStorageModalVisible] =
-    useState(false)
-  const [backupPinVisible, setBackupPinVisible] = useState(false)
-  const [backupPreviewVisible, setBackupPreviewVisible] = useState(false)
-  const [backupPreviewPayload, setBackupPreviewPayload] = useState<
-    string | null
-  >(null)
+  // One sheet at a time: the backup flow replaces a confirm sheet and hands
+  // back to it when done, instead of stacking a second native modal on top.
+  const [sheet, setSheet] = useState<DeveloperSheet>({ kind: 'none' })
   const [backupPassphrase, setBackupPassphrase] = useState('')
+  const backupPreviewPayload =
+    sheet.kind === 'backupPreview' ? sheet.payload : null
+  const backupReturnTo = getBackupReturnSheet(sheet)
+
+  function closeBackupPreview() {
+    setSheet(backupReturnTo)
+    setBackupPassphrase('')
+  }
 
   async function buildBackupWithSeeds(): Promise<string> {
     const pin = await getPin()
@@ -211,12 +222,12 @@ export default function Developer() {
     return JSON.stringify(backupData)
   }
 
-  async function openBackupPreview() {
+  async function openBackupPreview(returnTo: DeveloperSheet) {
     try {
       const payload = await buildBackupWithSeeds()
-      setBackupPreviewPayload(payload)
-      setBackupPreviewVisible(true)
+      setSheet({ kind: 'backupPreview', payload, returnTo })
     } catch {
+      setSheet(returnTo)
       toast.error(t('settings.developer.backupError'))
     }
   }
@@ -225,32 +236,14 @@ export default function Developer() {
   // The dev-only skip-PIN mode has no PIN the user knows.
   async function handleBackupData() {
     if (skipPin) {
-      await openBackupPreview()
+      await openBackupPreview(backupReturnTo)
       return
     }
-    setBackupPinVisible(true)
+    setSheet({ kind: 'backupPin', returnTo: backupReturnTo })
   }
 
   async function handleBackupPinSuccess() {
-    resetPinTries()
-    setBackupPinVisible(false)
-    await openBackupPreview()
-  }
-
-  // Shares the persisted unlock tries, so reopening the modal cannot be used
-  // to guess the PIN without limit.
-  async function handleBackupPinFail() {
-    const remainingTries = incrementPinTries()
-    if (remainingTries > 0) {
-      return
-    }
-    setBackupPinVisible(false)
-    const wiped = await secureWipeAfterMaxPinTries()
-    if (!wiped) {
-      toast.error(t('auth.wipeFailed'))
-      return
-    }
-    router.replace('/')
+    await openBackupPreview(backupReturnTo)
   }
 
   function showBackupPassphraseError() {
@@ -286,9 +279,7 @@ export default function Developer() {
       })
       if (result.action === Share.sharedAction) {
         toast.success(t('settings.developer.backupSuccess'))
-        setBackupPreviewVisible(false)
-        setBackupPreviewPayload(null)
-        setBackupPassphrase('')
+        closeBackupPreview()
       }
     } catch {
       toast.error(t('settings.developer.backupError'))
@@ -325,9 +316,7 @@ export default function Developer() {
         return
       }
       toast.success(t('settings.developer.backupSuccess'))
-      setBackupPreviewVisible(false)
-      setBackupPreviewPayload(null)
-      setBackupPassphrase('')
+      closeBackupPreview()
     } catch (error) {
       const message = error instanceof Error ? error.message : undefined
       toast.error(
@@ -343,7 +332,7 @@ export default function Developer() {
     useNostrStore.getState().clearAllNostrState()
     await deleteAccounts()
     deleteWallets()
-    setDeleteAccountsModalVisible(false)
+    setSheet({ kind: 'none' })
     toast.error(t('settings.developer.accountsDeleted'))
   }
 
@@ -379,7 +368,7 @@ export default function Developer() {
         skipSeedConfirmation: true,
         useZeroPadding: false
       })
-      setClearStorageModalVisible(false)
+      setSheet({ kind: 'none' })
       toast.success(t('settings.developer.storageCleared'))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -415,11 +404,11 @@ export default function Developer() {
           <SSVStack>
             <SSButton
               label={t('settings.developer.deleteAccounts')}
-              onPress={() => setDeleteAccountsModalVisible(true)}
+              onPress={() => setSheet({ kind: 'confirmDelete' })}
             />
             <SSButton
               label={t('settings.developer.clearStorage')}
-              onPress={() => setClearStorageModalVisible(true)}
+              onPress={() => setSheet({ kind: 'confirmClear' })}
             />
           </SSVStack>
           {DEV_CONSOLE_AVAILABLE ? (
@@ -473,8 +462,8 @@ export default function Developer() {
         </SSVStack>
       </SSMainLayout>
       <SSModal
-        visible={deleteAccountsModalVisible}
-        onClose={() => setDeleteAccountsModalVisible(false)}
+        visible={sheet.kind === 'confirmDelete'}
+        onClose={() => setSheet({ kind: 'none' })}
         label={t('common.cancel')}
         closeButtonVariant="ghost"
         fullOpacity
@@ -506,8 +495,8 @@ export default function Developer() {
         </SSVStack>
       </SSModal>
       <SSModal
-        visible={clearStorageModalVisible}
-        onClose={() => setClearStorageModalVisible(false)}
+        visible={sheet.kind === 'confirmClear'}
+        onClose={() => setSheet({ kind: 'none' })}
         label={t('common.cancel')}
         closeButtonVariant="ghost"
         fullOpacity
@@ -539,25 +528,20 @@ export default function Developer() {
         </SSVStack>
       </SSModal>
       <SSModal
-        visible={backupPinVisible}
+        visible={sheet.kind === 'backupPin'}
         fullOpacity
-        onClose={() => setBackupPinVisible(false)}
+        onClose={() => setSheet(backupReturnTo)}
       >
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleBackupPinSuccess}
-          onFail={handleBackupPinFail}
-          onTriesOver={() => setBackupPinVisible(false)}
+          onTriesOver={() => setSheet(backupReturnTo)}
           maxTries={BACKUP_PIN_MAX_TRIES}
         />
       </SSModal>
       <SSModal
-        visible={backupPreviewVisible}
-        onClose={() => {
-          setBackupPreviewVisible(false)
-          setBackupPreviewPayload(null)
-          setBackupPassphrase('')
-        }}
+        visible={sheet.kind === 'backupPreview'}
+        onClose={closeBackupPreview}
         label={t('common.cancel')}
         closeButtonVariant="ghost"
         fullOpacity

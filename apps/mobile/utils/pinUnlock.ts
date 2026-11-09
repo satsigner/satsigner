@@ -7,6 +7,7 @@ import {
   preparePinMaterial,
   recoverWorkingPinDigest
 } from '@/utils/pinKdf'
+import { clearPinRekeyJournalFor } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import { reEncryptPinBoundSecrets } from '@/utils/reEncryptPinSecrets'
 
@@ -48,13 +49,19 @@ async function migrateStoredPinKdf(
 ): Promise<string | null> {
   const { accounts } = useAccountsStore.getState()
   try {
-    return await migratePinKdfIfNeeded(
+    const upgradedDigest = await migratePinKdfIfNeeded(
       pin,
       salt,
       storedDigest,
       (oldDigest, newDigest) =>
         reEncryptPinBoundSecrets(oldDigest, newDigest, accounts)
     )
+    if (upgradedDigest) {
+      // A journal left behind matches the committed digest, so the next PIN
+      // check clears it.
+      await clearPinRekeyJournalFor(upgradedDigest).catch(() => undefined)
+    }
+    return upgradedDigest
   } catch {
     return null
   }

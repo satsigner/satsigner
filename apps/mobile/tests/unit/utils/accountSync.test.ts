@@ -2,7 +2,8 @@ import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
 import {
   type AccountSyncHistory,
   isTransactionHistoryLoading,
-  shouldFullScan
+  shouldFullScan,
+  toRestoredSyncStatus
 } from '@/utils/accountSync'
 
 function makeAccount(
@@ -143,5 +144,18 @@ describe('isTransactionHistoryLoading', () => {
 
   it('is not loading when sync status is unknown', () => {
     expect(isTransactionHistoryLoading({ refreshing: false })).toBe(false)
+  })
+})
+
+describe('toRestoredSyncStatus', () => {
+  it('turns a sync cut short by a restart into the last finished outcome', () => {
+    expect(toRestoredSyncStatus('syncing', new Date(0))).toBe('synced')
+    expect(toRestoredSyncStatus('syncing', undefined)).toBe('unsynced')
+    expect(toRestoredSyncStatus('timeout', undefined)).toBe('unsynced')
+  })
+
+  it('keeps a finished status as stored', () => {
+    expect(toRestoredSyncStatus('error', new Date(0))).toBe('error')
+    expect(toRestoredSyncStatus('synced', new Date(0))).toBe('synced')
   })
 })

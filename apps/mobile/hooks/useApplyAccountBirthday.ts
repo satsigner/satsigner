@@ -4,13 +4,11 @@ import {
   SYNC_IDLE_POLL_ATTEMPTS,
   SYNC_IDLE_POLL_INTERVAL_MS
 } from '@/constants/sync'
-import useSyncAccountWithWallet, {
-  cancelAccountSync,
-  isAccountSyncing
-} from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
+import { cancelAccountSync, isAccountSyncing } from '@/utils/accountSyncRuns'
 
 /**
  * Persist a wallet birthday and restart an RPC rescan when a wallet is loaded.
@@ -60,7 +58,7 @@ function useApplyAccountBirthday() {
       })
     }
 
-    prioritizeSync(accountId)
+    prioritizeSync()
     await syncAccountWithWallet(latestAccount, wallet, true, true)
     return true
   }

@@ -90,6 +90,7 @@ export default function GenerateMnemonic() {
   }
 
   function handleOnPressCancel() {
+    useAccountBuilderStore.getState().clearKeyState()
     if (policyType === 'multisig') {
       router.back()
     } else if (policyType === 'singlesig') {

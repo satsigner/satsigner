@@ -63,5 +63,19 @@ function isTransactionHistoryLoading({
   return refreshing || syncStatus === 'syncing'
 }
 
-export { isTransactionHistoryLoading, shouldFullScan }
+/**
+ * A sync cannot still be running when the account is loaded from disk, so a
+ * stored in-flight status falls back to what the last finished sync left.
+ */
+function toRestoredSyncStatus(
+  syncStatus: Account['syncStatus'],
+  lastSyncedAt: Account['lastSyncedAt']
+): Account['syncStatus'] {
+  if (syncStatus !== 'syncing' && syncStatus !== 'timeout') {
+    return syncStatus
+  }
+  return lastSyncedAt ? 'synced' : 'unsynced'
+}
+
+export { isTransactionHistoryLoading, shouldFullScan, toRestoredSyncStatus }
 export type { AccountSyncHistory }

@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -18,7 +18,35 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
+import { type Key } from '@/types/models/Account'
 import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
+
+// The PIN is asked once per visit; a key still holding its plaintext seed
+// (before the account is created) needs no PIN at all.
+type SecretReveal =
+  | { status: 'locked' }
+  | { status: 'dismissed' }
+  | { status: 'revealed'; mnemonic: string }
+  | { status: 'empty' }
+
+function getInitialReveal(key: Key | undefined): SecretReveal {
+  if (typeof key?.secret === 'object' && key.secret.mnemonic) {
+    return { mnemonic: key.secret.mnemonic, status: 'revealed' }
+  }
+  return { status: 'locked' }
+}
+
+async function revealMnemonic(
+  accountId: string,
+  key: Key
+): Promise<SecretReveal> {
+  const decryptedSecret = key.secret
+    ? await decryptKeySecret(key)
+    : await decryptAccountKeySecret(accountId, key.index)
+  return decryptedSecret.mnemonic
+    ? { mnemonic: decryptedSecret.mnemonic, status: 'revealed' }
+    : { status: 'empty' }
+}
 
 export default function SeedWordsPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -27,67 +55,29 @@ export default function SeedWordsPage() {
     useShallow((state) => [state.getAccountData])
   )
 
-  const [mnemonic, setMnemonic] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [showPinEntry, setShowPinEntry] = useState(false)
-  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
-
   const keyIndexNum = Number.parseInt(keyIndex || '0', 10)
   const accountData = getAccountData()
   const key = accountData?.keys[keyIndexNum]
 
-  async function decryptMnemonic() {
+  const [reveal, setReveal] = useState(() => getInitialReveal(key))
+  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
+  const mnemonic = reveal.status === 'revealed' ? reveal.mnemonic : ''
+  const noMnemonicAvailable = reveal.status === 'empty'
+
+  async function handleSuccessPin() {
     if (!accountData || !key) {
       return
     }
-    const decryptedSecret = key.secret
-      ? await decryptKeySecret(key)
-      : await decryptAccountKeySecret(accountData.id, key.index)
-    if (decryptedSecret.mnemonic) {
-      setMnemonic(decryptedSecret.mnemonic)
-      setNoMnemonicAvailable(false)
-      decryptedSecret.mnemonic = ''
-    } else {
-      setNoMnemonicAvailable(true)
+    try {
+      setReveal(await revealMnemonic(accountData.id, key))
+    } catch {
+      toast.error(t('account.seed.unableToDecrypt'))
+      setReveal({ status: 'dismissed' })
     }
-  }
-
-  async function handleSuccessPin() {
-    await decryptMnemonic()
-      .catch(() => {
-        toast.error(t('account.seed.unableToDecrypt'))
-      })
-      .finally(() => setShowPinEntry(false))
   }
 
   function handlePinTriesOver() {
     router.back()
-  }
-
-  useEffect(() => {
-    if (accountData && key) {
-      setIsLoading(false)
-
-      if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        setMnemonic(key.secret.mnemonic)
-        setShowPinEntry(false)
-      } else {
-        setShowPinEntry(true)
-      }
-    } else {
-      setIsLoading(false)
-    }
-  }, [accountData, key])
-
-  if (isLoading) {
-    return (
-      <SSMainLayout>
-        <SSVStack itemsCenter style={{ flex: 1, justifyContent: 'center' }}>
-          <SSText>{t('common.loading')}</SSText>
-        </SSVStack>
-      </SSMainLayout>
-    )
   }
 
   if (!accountData || !key) {
@@ -229,9 +219,9 @@ export default function SeedWordsPage() {
         </SSVStack>
       </ScrollView>
       <SSModal
-        visible={showPinEntry}
+        visible={reveal.status === 'locked'}
         fullOpacity
-        onClose={() => setShowPinEntry(false)}
+        onClose={() => setReveal({ status: 'dismissed' })}
       >
         <SSPinAuth
           title={t('account.enter.pin')}

@@ -7,14 +7,29 @@ import QuickCrypto from 'react-native-quick-crypto'
 import {
   DURESS_KDF_KEY,
   DURESS_PIN_KEY,
+  PIN_KDF_COMMIT_KEY,
   PIN_KEY,
-  PIN_LENGTH_KEY
+  PIN_LENGTH_KEY,
+  PIN_REKEY_JOURNAL_KEY
 } from '@/config/auth'
 import { useAuthStore } from '@/store/auth'
-import { changePin } from '@/utils/pinChange'
+import { changePin, changePinOrFail } from '@/utils/pinChange'
 import { setSessionPinDigest } from '@/utils/pinSession'
 
 const sk = (key: string) => `1_${key}`
+
+const defaultGetItem = jest
+  .mocked(SecureStore.getItemAsync)
+  .getMockImplementation()
+
+function journalReEncrypt(oldDigest: string, newDigest: string) {
+  secureStore[sk(PIN_REKEY_JOURNAL_KEY)] = JSON.stringify({
+    fromDigest: oldDigest,
+    slots: [],
+    toDigest: newDigest
+  })
+  return Promise.resolve()
+}
 
 describe('changePin', () => {
   beforeEach(async () => {
@@ -142,5 +157,116 @@ describe('changePin', () => {
     await expect(useAuthStore.getState().validatePin('2468')).resolves.toBe(
       true
     )
+  })
+
+  it('reports a failed change when the change throws', async () => {
+    const pinDigest = secureStore[sk(PIN_KEY)]
+    jest
+      .mocked(SecureStore.getItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(changePinOrFail('1357', jest.fn())).resolves.toBe(
+      'reEncryptFailed'
+    )
+    expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
+  })
+
+  it('keeps the old PIN when the commit fails before it is journaled', async () => {
+    const oldDigest = secureStore[sk(PIN_KEY)]
+    jest
+      .mocked(SecureStore.setItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('reEncryptFailed')
+    expect(secureStore[sk(PIN_KEY)]).toBe(oldDigest)
+  })
+
+  it('keeps the new PIN when only the commit journal landed', async () => {
+    function writeThrough(key: string, value: string) {
+      secureStore[key] = value
+      return Promise.resolve()
+    }
+    function keychainBusy() {
+      return Promise.reject(new Error('keychain busy'))
+    }
+    jest
+      .mocked(SecureStore.setItemAsync)
+      .mockImplementationOnce(writeThrough)
+      .mockImplementationOnce(writeThrough)
+      .mockImplementationOnce(keychainBusy)
+      .mockImplementationOnce(keychainBusy)
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('changed')
+
+    setSessionPinDigest(null)
+    await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
+      true
+    )
+    await expect(useAuthStore.getState().validatePin('2468')).resolves.toBe(
+      false
+    )
+  })
+
+  it('reports the change once the commit is journaled even if cleanup fails', async () => {
+    jest
+      .mocked(SecureStore.deleteItemAsync)
+      .mockRejectedValueOnce(new Error('keychain locked'))
+
+    await expect(
+      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+    ).resolves.toBe('changed')
+    await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
+      true
+    )
+  })
+
+  it('clears the re-key journal of the change it committed', async () => {
+    await expect(changePin('1357', journalReEncrypt)).resolves.toBe('changed')
+
+    expect(secureStore[sk(PIN_REKEY_JOURNAL_KEY)]).toBeUndefined()
+  })
+
+  it('keeps an earlier re-key journal when the same PIN is set again', async () => {
+    const stuckJournal = JSON.stringify({
+      fromDigest: 'earlier-digest',
+      slots: [],
+      toDigest: 'stuck-digest'
+    })
+    secureStore[sk(PIN_REKEY_JOURNAL_KEY)] = stuckJournal
+    const reEncrypt = jest.fn()
+
+    await expect(changePin('2468', reEncrypt)).resolves.toBe('changed')
+
+    expect(reEncrypt).not.toHaveBeenCalled()
+    expect(secureStore[sk(PIN_REKEY_JOURNAL_KEY)]).toBe(stuckJournal)
+  })
+
+  it('keeps both journals when it cannot read what a failed commit stored', async () => {
+    const writes = { count: 0 }
+    jest
+      .mocked(SecureStore.setItemAsync)
+      .mockImplementation((key: string, value: string) => {
+        writes.count += 1
+        if (writes.count < 4) {
+          secureStore[key] = value
+          return Promise.resolve()
+        }
+        jest
+          .mocked(SecureStore.getItemAsync)
+          .mockRejectedValue(new Error('keychain locked'))
+        return Promise.reject(new Error('keychain busy'))
+      })
+
+    await expect(changePinOrFail('1357', journalReEncrypt)).resolves.toBe(
+      'reEncryptFailed'
+    )
+
+    jest.mocked(SecureStore.getItemAsync).mockImplementation(defaultGetItem)
+    expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeDefined()
+    expect(secureStore[sk(PIN_REKEY_JOURNAL_KEY)]).toBeDefined()
   })
 })

@@ -14,8 +14,13 @@ const SYNC_IDLE_POLL_INTERVAL_MS = 100
 // with the same cause; beyond it they share one toast.
 const SYNC_FAILURE_TOAST_LIMIT = 2
 
+// The native sync has no cancel or timeout, so a run waits this long at most
+// for a superseded run of the same account before giving up.
+const SUPERSEDED_SYNC_WAIT_TIMEOUT_MS = 15_000
+
 export {
   MIN_USABLE_CHECKPOINT_HEIGHT,
+  SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,
   SYNC_FAILURE_TOAST_LIMIT,
   SYNC_IDLE_POLL_ATTEMPTS,

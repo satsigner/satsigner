@@ -7,7 +7,10 @@ import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import BitcoinRpc from '@/api/rpc'
-import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
+import {
+  SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
+  SYNC_CANCELLED_ERROR
+} from '@/constants/sync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -16,7 +19,18 @@ import { type Account } from '@/types/models/Account'
 import { type Prices } from '@/types/models/Blockchain'
 import { type Config, type Server } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
-import { shouldFullScan } from '@/utils/accountSync'
+import { shouldFullScan, toRestoredSyncStatus } from '@/utils/accountSync'
+import {
+  cancelAllAccountSyncs,
+  hasCurrentSyncRun,
+  isAccountSyncing,
+  isPrioritySyncActiveFor,
+  isSyncRunCurrent,
+  releaseSyncRun,
+  startSyncRun,
+  trackAccountSyncWork,
+  waitForAccountSyncWork
+} from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
@@ -26,47 +40,6 @@ import {
   reportSyncFailure
 } from '@/utils/syncFailureToasts'
 import { reconcileTransactions } from '@/utils/transaction'
-
-// Module-level sync state shared across all hook instances.
-//
-// syncingAccounts       – Set of account IDs currently being synced. Acts as a
-//                         mutex so the same account is never synced twice at once.
-// cancelledSyncs        – Syncs added here should abort at the next checkpoint.
-//                         Used by prioritizeSync() to stop background syncs.
-// prioritySyncAccountId – While set, new non-priority syncs yield immediately
-//                         so the priority sync can use the full connection.
-//                         Tracked by account id (not a bare boolean) so a
-//                         second priority sync's cleanup can't clear a still-
-//                         running first priority sync's hold.
-const syncingAccounts = new Set<string>()
-const cancelledSyncs = new Set<string>()
-let prioritySyncAccountId: string | undefined
-
-/** Mark an in-flight sync to abort at the next poll checkpoint. */
-function cancelAccountSync(accountId: string) {
-  cancelledSyncs.add(accountId)
-}
-
-function isAccountSyncing(accountId: string): boolean {
-  return syncingAccounts.has(accountId)
-}
-
-function isPrioritySyncActiveFor(accountId: string): boolean {
-  return (
-    prioritySyncAccountId !== undefined && prioritySyncAccountId !== accountId
-  )
-}
-
-function releaseAccountSync(accountId: string, isPriority: boolean) {
-  syncingAccounts.delete(accountId)
-  cancelledSyncs.delete(accountId)
-  // If this was the priority sync, lift the hold so background syncs can
-  // resume — but only if we still own the hold (a newer priority sync for
-  // a different account may have taken over since we started).
-  if (isPriority && prioritySyncAccountId === accountId) {
-    prioritySyncAccountId = undefined
-  }
-}
 
 type WalletSyncParams = Pick<
   ReturnType<typeof useAccountsStore.getState>,
@@ -78,6 +51,7 @@ type WalletSyncParams = Pick<
   > & {
     config: Config
     forceFullScan: boolean
+    isCurrent: () => boolean
     latest: Account
     server: Server
     wallet: BdkWallet
@@ -86,6 +60,7 @@ type WalletSyncParams = Pick<
 async function syncWalletAccount({
   config,
   forceFullScan,
+  isCurrent,
   lastKnownBlockHeight,
   latest,
   server,
@@ -160,7 +135,7 @@ async function syncWalletAccount({
           transactionsFound: meta?.transactionsFound
         })
       },
-      () => cancelledSyncs.has(latest.id),
+      () => !isCurrent(),
       server.rpcWalletName,
       server.rpcScanFromHeight
     )
@@ -203,12 +178,9 @@ async function syncWalletAccount({
     )
   }
 
-  // Post-sync checkpoint: if we were cancelled during the (potentially long)
-  // sync call, discard the result so we don't overwrite what a priority sync
-  // may have already written.
-  if (cancelledSyncs.has(latest.id)) {
-    cancelledSyncs.delete(latest.id)
-    setSyncStatus(latest.id, 'synced')
+  // Post-sync checkpoint: a run superseded or cancelled during the (possibly
+  // long) sync call must not overwrite what a newer run may have written.
+  if (!isCurrent()) {
     return null
   }
 
@@ -290,6 +262,59 @@ async function syncWalletAccount({
   return updatedAccount
 }
 
+// A cancelled run settles the status from what was last synced, unless a
+// newer run of the same account has taken over and owns the status now. The
+// status it found may be another run's 'syncing', which nothing would clear.
+function settleCancelledSync(
+  latest: Account,
+  setSyncStatus: WalletSyncParams['setSyncStatus']
+) {
+  if (hasCurrentSyncRun(latest.id)) {
+    return
+  }
+  setSyncStatus(
+    latest.id,
+    toRestoredSyncStatus(latest.syncStatus, latest.lastSyncedAt) ?? 'unsynced'
+  )
+}
+
+function failAccountSync(
+  error: unknown,
+  params: WalletSyncParams,
+  reportError: SyncErrorReporter
+): Account | null {
+  const msg = error instanceof Error ? error.message : String(error)
+  // Cancellation is not an error, so the UI must not turn red; neither is a
+  // failure of a run a newer one already replaced.
+  if (msg === SYNC_CANCELLED_ERROR || !params.isCurrent()) {
+    settleCancelledSync(params.latest, params.setSyncStatus)
+    return null
+  }
+  params.setSyncStatus(params.latest.id, 'error')
+  reportError(params.latest.name ?? params.latest.id, error)
+  // Callers write this back, so it must carry the error status.
+  return { ...params.latest, syncStatus: 'error' }
+}
+
+/** Runs one sync to completion; never throws. */
+async function runAccountSync(
+  params: WalletSyncParams,
+  runId: number,
+  reportError: SyncErrorReporter
+): Promise<Account | null> {
+  try {
+    const synced = await syncWalletAccount(params)
+    if (!synced) {
+      settleCancelledSync(params.latest, params.setSyncStatus)
+    }
+    return synced
+  } catch (error) {
+    return failAccountSync(error, params, reportError)
+  } finally {
+    releaseSyncRun(params.latest.id, runId)
+  }
+}
+
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
   const setSyncProgress = useAccountsStore((state) => state.setSyncProgress)
@@ -311,17 +336,10 @@ function useSyncAccountWithWallet() {
 
   const [loading, setLoading] = useState(false)
 
-  // Cancel all currently running syncs except the given account, then evict
-  // that account from the guard so it can be immediately re-synced at priority.
-  function prioritizeSync(accountId: string) {
-    prioritySyncAccountId = accountId
-    for (const id of syncingAccounts) {
-      if (id !== accountId) {
-        cancelledSyncs.add(id)
-      }
-    }
-    // Force-evict so the priority sync can enter even if it was already running
-    syncingAccounts.delete(accountId)
+  // Cancels every running sync, including the account's own, so the priority
+  // run that follows starts at once and is the only one allowed to write.
+  function prioritizeSync() {
+    cancelAllAccountSyncs()
   }
 
   async function syncAccountWithWallet(
@@ -335,62 +353,66 @@ function useSyncAccountWithWallet() {
       useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
       account
 
-    // If this sync was cancelled by a priority request, silently abort.
-    if (cancelledSyncs.has(latest.id)) {
-      cancelledSyncs.delete(latest.id)
-      setSyncStatus(latest.id, 'synced')
+    // A background run yields to a priority run and to a run already going for
+    // this account; returning null keeps callers from writing stale data.
+    if (
+      !isPriority &&
+      (isPrioritySyncActiveFor(latest.id) || isAccountSyncing(latest.id))
+    ) {
       return null
     }
 
-    // While a priority sync is running, hold off on non-priority background syncs
-    // to avoid congesting the connection (especially important for RPC backends).
-    if (!isPriority && isPrioritySyncActiveFor(latest.id)) {
-      return null
-    }
-
-    if (syncingAccounts.has(latest.id)) {
-      // Return null so callers don't overwrite the store with stale account data
-      // while the live sync is still updating syncStatus / syncProgress.
-      return null
-    }
-
-    syncingAccounts.add(latest.id)
+    const runId = startSyncRun(latest.id, isPriority)
 
     setLoading(true)
 
-    return await syncWalletAccount({
-      config,
-      forceFullScan,
-      lastKnownBlockHeight,
-      latest,
-      server,
-      setLastKnownBlockHeight,
-      setSyncProgress,
-      setSyncStatus,
-      wallet
-    })
-      .catch((error: unknown) => {
-        const msg = error instanceof Error ? error.message : String(error)
+    // A superseded run may still be inside the native sync; never run two.
+    // The wait is bounded so a sync stuck on a dead server cannot hold the
+    // priority slot, and with it every other account, forever.
+    const earlierSyncSettled = await waitForAccountSyncWork(
+      latest.id,
+      SUPERSEDED_SYNC_WAIT_TIMEOUT_MS
+    )
+    if (!isSyncRunCurrent(latest.id, runId)) {
+      releaseSyncRun(latest.id, runId)
+      setLoading(false)
+      return null
+    }
+    if (!earlierSyncSettled) {
+      releaseSyncRun(latest.id, runId)
+      settleCancelledSync(latest, setSyncStatus)
+      reportError(
+        latest.name ?? latest.id,
+        new Error(t('account.sync.earlierSyncStuck'))
+      )
+      setLoading(false)
+      return null
+    }
 
-        // Cancellation is not an error — leave status as 'synced' (or wherever
-        // it was) so the UI doesn't show a red error state.
-        if (msg === SYNC_CANCELLED_ERROR) {
-          setSyncStatus(latest.id, 'synced')
-          return null
-        }
-
-        setSyncStatus(latest.id, 'error')
-        reportError(latest.name ?? latest.id, error)
-        return latest
-      })
-      .finally(() => {
-        releaseAccountSync(latest.id, isPriority)
-        setLoading(false)
-      })
+    const synced = await trackAccountSyncWork(
+      latest.id,
+      runAccountSync(
+        {
+          config,
+          forceFullScan,
+          isCurrent: () => isSyncRunCurrent(latest.id, runId),
+          lastKnownBlockHeight,
+          latest,
+          server,
+          setLastKnownBlockHeight,
+          setSyncProgress,
+          setSyncStatus,
+          wallet
+        },
+        runId,
+        reportError
+      )
+    )
+    setLoading(false)
+    return synced
   }
 
   return { loading, prioritizeSync, syncAccountWithWallet }
 }
 
-export { cancelAccountSync, isAccountSyncing }
 export default useSyncAccountWithWallet

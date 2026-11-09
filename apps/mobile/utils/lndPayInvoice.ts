@@ -23,15 +23,20 @@ export function buildLndPayInvoiceBody(
   }
 }
 
+/** LND answered and the payment did not go through: safe to try again. */
+export class LndPaymentFailedError extends Error {
+  override name = 'LndPaymentFailedError'
+}
+
 export function assertLndPaymentSucceeded(response: {
   payment_error?: string
   status?: string
 }) {
   const paymentError = response.payment_error?.trim()
   if (paymentError) {
-    throw new Error(paymentError)
+    throw new LndPaymentFailedError(paymentError)
   }
   if (response.status?.toUpperCase() === 'FAILED') {
-    throw new Error('Payment failed')
+    throw new LndPaymentFailedError('Payment failed')
   }
 }

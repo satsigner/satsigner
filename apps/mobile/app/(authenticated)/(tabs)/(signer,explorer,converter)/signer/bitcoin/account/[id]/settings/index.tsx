@@ -29,6 +29,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_SETTINGS_ICON_SIZE
 } from '@/constants/headerChrome'
+import { SUPERSEDED_SYNC_WAIT_TIMEOUT_MS } from '@/constants/sync'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -42,6 +43,10 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint, getAccountLabelCounts } from '@/utils/account'
+import {
+  cancelAccountSync,
+  waitForAccountSyncWork
+} from '@/utils/accountSyncRuns'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import { formatAccountCreationDate } from '@/utils/date'
 import { decryptAccountKeySecret } from '@/utils/decryption'
@@ -53,6 +58,19 @@ async function decryptFirstKeyMnemonic(accountId: string) {
   const accountSecret = await decryptAccountKeySecret(accountId, 0)
   return accountSecret.mnemonic || ''
 }
+
+// Long enough for the PIN sheet to close before the screen goes away.
+const ACCOUNT_DELETE_DELAY_MS = 500
+
+type AccountSettingsSheet =
+  | { kind: 'none' }
+  | { kind: 'confirmDelete' }
+  | { kind: 'confirmRescan' }
+  | { kind: 'pin'; reason: 'mnemonic' | 'deletion' }
+  | { kind: 'mnemonic'; mnemonic: string }
+  | { kind: 'seedQR'; mnemonic: string }
+  | { kind: 'deleting' }
+  | { kind: 'rescanning' }
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -73,17 +91,16 @@ export default function AccountSettings() {
   )
 
   const scriptVersion = account?.keys[0]?.scriptVersion || 'P2WPKH'
-  const [localMnemonic, setLocalMnemonic] = useState('')
   const decryptedKeys = useDecryptedKeys(account)
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
-  const [rescanModalVisible, setRescanModalVisible] = useState(false)
-  const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
-  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [pinEntryModalVisible, setPinEntryModalVisible] = useState(false)
-  const [pinEntryReason, setPinEntryReason] = useState<
-    'mnemonic' | 'deletion' | null
-  >()
+  // One sheet at a time. The seed only lives inside the sheets that show it,
+  // so closing them drops it from memory.
+  const [sheet, setSheet] = useState<AccountSettingsSheet>({ kind: 'none' })
+  const shownMnemonic =
+    sheet.kind === 'mnemonic' || sheet.kind === 'seedQR' ? sheet.mnemonic : ''
+  const showsSeed =
+    sheet.kind === 'mnemonic' ||
+    sheet.kind === 'seedQR' ||
+    (sheet.kind === 'pin' && sheet.reason === 'mnemonic')
 
   const {
     accountName,
@@ -114,41 +131,31 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    setPinEntryReason('mnemonic')
-    setPinEntryModalVisible(true)
+    setSheet({ kind: 'pin', reason: 'mnemonic' })
   }
 
   function handleConfirmWalletDeletionWithPin() {
-    setPinEntryReason('deletion')
-    setDeleteModalVisible(false)
-    setPinEntryModalVisible(true)
+    setSheet({ kind: 'pin', reason: 'deletion' })
   }
 
-  function handleClosePinEntry() {
-    setPinEntryModalVisible(false)
-    setPinEntryReason(null)
+  function closeSheet() {
+    setSheet({ kind: 'none' })
   }
 
   async function handleSuccessPin() {
-    setPinEntryModalVisible(false)
-    if (pinEntryReason === 'mnemonic') {
-      await decryptMnemonic()
-      setMnemonicModalVisible(true)
+    if (sheet.kind !== 'pin') {
+      return
     }
-    if (pinEntryReason === 'deletion') {
-      setIsDeletingAccount(true)
-      setTimeout(deleteThisAccount, 500)
+    if (sheet.reason === 'deletion') {
+      setSheet({ kind: 'deleting' })
+      setTimeout(deleteThisAccount, ACCOUNT_DELETE_DELAY_MS)
+      return
     }
-  }
-
-  function handlePinTriesOver() {
-    setPinEntryModalVisible(false)
-    setPinEntryReason(null)
-  }
-
-  function handleCloseMnemonicModal() {
-    setMnemonicModalVisible(false)
-    setPinEntryReason(null)
+    closeSheet()
+    const mnemonic = await decryptMnemonic()
+    if (mnemonic) {
+      setSheet({ kind: 'mnemonic', mnemonic })
+    }
   }
 
   function saveChanges() {
@@ -163,8 +170,23 @@ export default function AccountSettings() {
   }
 
   async function handleRescan() {
-    setRescanModalVisible(false)
+    if (sheet.kind !== 'confirmRescan') {
+      return
+    }
+    setSheet({ kind: 'rescanning' })
     if (!account || !currentAccountId) {
+      return
+    }
+    // A sync still writing to the wallet database would put the old history
+    // back over the reset, so stop it and wait for it to let go first.
+    cancelAccountSync(currentAccountId)
+    const earlierSyncSettled = await waitForAccountSyncWork(
+      currentAccountId,
+      SUPERSEDED_SYNC_WAIT_TIMEOUT_MS
+    )
+    if (!earlierSyncSettled) {
+      toast.error(t('account.sync.earlierSyncStuck'))
+      closeSheet()
       return
     }
     const dbPath = dbPaths[currentAccountId]
@@ -174,6 +196,7 @@ export default function AccountSettings() {
       // because the SQLite file still carries the old checkpoint.
       // Ask the user to lock/unlock the app first so dbPath is available.
       toast.error(t('account.rescan.requiresReopen'))
+      closeSheet()
       return
     }
     await deleteWalletDb(dbPath)
@@ -208,10 +231,10 @@ export default function AccountSettings() {
     }
 
     try {
-      const mnemonic = await decryptFirstKeyMnemonic(account.id)
-      setLocalMnemonic(mnemonic)
+      return await decryptFirstKeyMnemonic(account.id)
     } catch {
       toast.error(t('account.seed.unableToDecrypt'))
+      return null
     }
   }
 
@@ -223,7 +246,7 @@ export default function AccountSettings() {
 
   return (
     <SSScrollView contentContainerStyle={{ paddingBottom: insets.bottom }}>
-      {pinEntryReason === 'mnemonic' && <SSScreenCaptureGuard />}
+      {showsSeed && <SSScreenCaptureGuard />}
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -528,14 +551,15 @@ export default function AccountSettings() {
             <SSButton
               label={t('account.rescan.title')}
               variant="subtle"
-              onPress={() => setRescanModalVisible(true)}
+              onPress={() => setSheet({ kind: 'confirmRescan' })}
             />
           )}
           <SSButton
             label={t('account.delete.title')}
             style={styles.deleteButton}
-            loading={isDeletingAccount}
-            onPress={() => setDeleteModalVisible(true)}
+            loading={sheet.kind === 'deleting'}
+            disabled={sheet.kind === 'deleting'}
+            onPress={() => setSheet({ kind: 'confirmDelete' })}
           />
           <SSButton
             label={t('common.save')}
@@ -545,10 +569,7 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSModal
-        visible={rescanModalVisible}
-        onClose={() => setRescanModalVisible(false)}
-      >
+      <SSModal visible={sheet.kind === 'confirmRescan'} onClose={closeSheet}>
         <SSVStack style={styles.deleteModalOuterContainer}>
           <SSText center uppercase>
             {t('account.rescan.confirm')}
@@ -562,17 +583,11 @@ export default function AccountSettings() {
               variant="secondary"
               onPress={handleRescan}
             />
-            <SSButton
-              label={t('common.no')}
-              onPress={() => setRescanModalVisible(false)}
-            />
+            <SSButton label={t('common.no')} onPress={closeSheet} />
           </SSHStack>
         </SSVStack>
       </SSModal>
-      <SSModal
-        visible={deleteModalVisible}
-        onClose={() => setDeleteModalVisible(false)}
-      >
+      <SSModal visible={sheet.kind === 'confirmDelete'} onClose={closeSheet}>
         <SSVStack style={styles.deleteModalOuterContainer}>
           <SSText uppercase>{t('common.areYouSure')}</SSText>
           <SSHStack style={styles.deleteModalInnerContainer}>
@@ -581,21 +596,18 @@ export default function AccountSettings() {
               style={styles.deleteButton}
               onPress={handleConfirmWalletDeletionWithPin}
             />
-            <SSButton
-              label={t('common.no')}
-              onPress={() => setDeleteModalVisible(false)}
-            />
+            <SSButton label={t('common.no')} onPress={closeSheet} />
           </SSHStack>
         </SSVStack>
       </SSModal>
       <SSModal
         fullOpacity
-        visible={mnemonicModalVisible}
-        onClose={handleCloseMnemonicModal}
+        visible={sheet.kind === 'mnemonic'}
+        onClose={closeSheet}
         closeButtonVariant="ghost"
         label={t('common.close')}
       >
-        {localMnemonic && (
+        {shownMnemonic && (
           <View style={styles.mnemonicModalOuterContainer}>
             <SSVStack gap="lg" style={styles.mnemonicModalContainer}>
               <SSText center uppercase>
@@ -643,7 +655,7 @@ export default function AccountSettings() {
                               (_, rowIndex) => {
                                 const wordIndex =
                                   colIndex * wordsPerColumn + rowIndex
-                                const words = localMnemonic.split(' ')
+                                const words = shownMnemonic.split(' ')
                                 const word =
                                   wordIndex < words.length &&
                                   rowIndex < wordsInThisColumn
@@ -686,7 +698,7 @@ export default function AccountSettings() {
             </SSVStack>
             <View style={styles.copyButtonContainer}>
               <SSVStack gap="sm">
-                <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+                <SSClipboardCopy text={shownMnemonic.replaceAll(',', ' ')}>
                   <SSButton
                     label={t('common.copy')}
                     style={styles.copyButton}
@@ -697,36 +709,28 @@ export default function AccountSettings() {
                   label={t('account.seed.showQR')}
                   style={styles.copyButton}
                   variant="outline"
-                  onPress={() => {
-                    setMnemonicModalVisible(false)
-                    setSeedQRModalVisible(true)
-                  }}
+                  onPress={() =>
+                    setSheet({ kind: 'seedQR', mnemonic: shownMnemonic })
+                  }
                 />
               </SSVStack>
             </View>
           </View>
         )}
-        {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
+        {!shownMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
       <SSSeedQR
-        mnemonic={localMnemonic}
+        mnemonic={shownMnemonic}
         mnemonicWordList={account.keys[0]?.mnemonicWordList}
-        visible={seedQRModalVisible}
+        visible={sheet.kind === 'seedQR'}
         title={account.name}
-        onClose={() => {
-          setSeedQRModalVisible(false)
-          setMnemonicModalVisible(true)
-        }}
+        onClose={() => setSheet({ kind: 'mnemonic', mnemonic: shownMnemonic })}
       />
-      <SSModal
-        visible={pinEntryModalVisible}
-        fullOpacity
-        onClose={handleClosePinEntry}
-      >
+      <SSModal visible={sheet.kind === 'pin'} fullOpacity onClose={closeSheet}>
         <SSPinAuth
           title={t('account.enter.pin')}
           onSuccess={handleSuccessPin}
-          onTriesOver={handlePinTriesOver}
+          onTriesOver={closeSheet}
           maxTries={3}
         />
       </SSModal>

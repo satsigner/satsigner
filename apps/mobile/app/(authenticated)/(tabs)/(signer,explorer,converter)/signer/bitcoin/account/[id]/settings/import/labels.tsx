@@ -54,7 +54,12 @@ export default function ImportLabels() {
     setImportCount(importCount)
     setImportCountTotal(labels.length)
     setSuccessMsgVisible(true)
-    sendLabelsToNostr(account)
+    // Publish the account as it is after the import: the render-time copy
+    // still has the old labels, so its backup fingerprint would be unchanged.
+    const importedAccount = useAccountsStore
+      .getState()
+      .accounts.find((stored) => stored.id === accountId)
+    void sendLabelsToNostr(importedAccount)
   }
 
   function tryImportLabels(content: string) {

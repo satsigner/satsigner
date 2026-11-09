@@ -1,4 +1,5 @@
 import { hex } from '@scure/base'
+import { useQuery } from '@tanstack/react-query'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
@@ -177,30 +178,32 @@ export default function TxDetails() {
     return () => cancelIdleCallback(idleHandle)
   }, [])
 
+  // Fetched once per transaction and server: an input the server cannot
+  // value stays missing instead of being refetched and written forever.
   async function loadMissingInputValues() {
     if (!tx) {
-      return
+      return false
     }
-
-    if (tx.vin.some((input) => input.value === undefined)) {
-      const vin = await getTransactionInputValues(
-        tx,
-        currentServer.backend,
-        currentServer.network,
-        currentServer.url,
-        currentServer.rpcCredentials
-      )
+    const vin = await getTransactionInputValues(
+      tx,
+      currentServer.backend,
+      currentServer.network,
+      currentServer.url,
+      currentServer.rpcCredentials
+    )
+    if (vin.some((input, index) => input.value !== tx.vin[index]?.value)) {
       loadTx(accountId, { ...tx, vin })
     }
+    return true
   }
 
-  useEffect(() => {
-    try {
-      loadMissingInputValues()
-    } catch {
-      router.back()
-    }
-  }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
+  useQuery({
+    enabled: tx?.vin.some((input) => input.value === undefined) ?? false,
+    queryFn: loadMissingInputValues,
+    queryKey: ['tx-input-values', accountId, tx?.id, currentServer.url],
+    retry: false,
+    staleTime: Infinity
+  })
 
   function openFeeReplacement(kind: FeeReplacementKind) {
     router.navigate(
