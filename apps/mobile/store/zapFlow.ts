@@ -11,7 +11,8 @@ type PendingZap = {
   paymentMethod: PaymentMethod
 }
 
-type ZapOutcome = 'success' | 'cancelled'
+/** `pending`: the payment may still settle, so no success is claimed yet. */
+type ZapOutcome = 'success' | 'pending' | 'cancelled'
 
 type ZapFlowState = {
   pendingZap: PendingZap | null
@@ -52,3 +53,5 @@ export const useZapFlowStore = create<ZapFlowState>()((set, get) => ({
   setPendingZap: (zap) => set({ pendingZap: zap, zapResult: null }),
   zapResult: null
 }))
+
+export type { ZapOutcome }

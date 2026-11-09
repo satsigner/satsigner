@@ -9,7 +9,7 @@ import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { isPendingMeltError } from '@/services/ecash/lightningPayment'
-import { useZapFlowStore } from '@/store/zapFlow'
+import { useZapFlowStore, type ZapOutcome } from '@/store/zapFlow'
 import { type EcashMint } from '@/types/models/Ecash'
 import type {
   LNDDecodedInvoice,
@@ -193,14 +193,19 @@ export function useEcashSend() {
     setInvoice('')
     setAmount('')
     toast.success(t('ecash.success.tokensMelted'))
+    leaveSendScreen(bolt11Invoice, 'success')
+  }
+
+  // A zap returns to the note it came from; any other payment to the wallet.
+  function leaveSendScreen(paidInvoice: string, outcome: ZapOutcome) {
     const isZap = useZapFlowStore
       .getState()
-      .reportZapOutcome(bolt11Invoice, 'success')
+      .reportZapOutcome(paidInvoice, outcome)
     if (isZap) {
       router.back()
-    } else {
-      router.navigate('/signer/ecash')
+      return
     }
+    router.navigate('/signer/ecash')
   }
 
   async function resolveBolt11Invoice(): Promise<string | null> {
@@ -237,11 +242,12 @@ export function useEcashSend() {
   // A pending melt may still pay: the form is cleared and left, so a second
   // tap cannot pay the same invoice (or a fresh LNURL one) again.
   function finishPendingMelt(message: string) {
+    const pendingInvoice = invoice
     setInvoice('')
     setAmount('')
     setStatusMessage(message)
     toast.info(message)
-    router.navigate('/signer/ecash')
+    leaveSendScreen(pendingInvoice, 'pending')
   }
 
   function handleMeltError(error: unknown) {
