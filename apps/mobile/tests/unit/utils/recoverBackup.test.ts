@@ -85,6 +85,9 @@ jest.mock<typeof import('@/store/arkExitClaims')>(
 jest.mock<typeof import('@/store/arkSwaps')>('@/store/arkSwaps', () => ({
   useArkSwapsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<typeof import('@/store/auth')>('@/store/auth', () => ({
+  useAuthStore: { getState: jest.fn() }
+}))
 jest.mock<typeof import('@/store/blockchain')>('@/store/blockchain', () => ({
   useBlockchainStore: { getState: jest.fn(), setState: jest.fn() }
 }))
@@ -318,10 +321,16 @@ describe('performRecoverOverwrite restore', () => {
   const addIdentity = jest.fn()
   const setActiveIdentity = jest.fn()
   const setRelays = jest.fn()
+  const setRestoredPublicServerName = jest.fn()
 
   beforeEach(() => {
     jest.clearAllMocks()
     setPin('1234')
+
+    const { useAuthStore } = jest.requireMock('@/store/auth') as {
+      useAuthStore: { getState: jest.Mock }
+    }
+    useAuthStore.getState.mockReturnValue({ setRestoredPublicServerName })
 
     const { aesEncrypt, randomIv } = jest.requireMock('@/utils/crypto') as {
       aesEncrypt: jest.Mock
@@ -521,10 +530,8 @@ describe('performRecoverOverwrite restore', () => {
       })
     )
 
-    expect(result).toStrictEqual({
-      restoredPublicServer: bitcoinServer,
-      success: true
-    })
+    expect(result).toStrictEqual({ success: true })
+    expect(setRestoredPublicServerName).toHaveBeenCalledWith('Default')
     expect(addAccount).toHaveBeenCalledTimes(1)
     const restored = addAccount.mock.calls[0][0] as {
       labels: typeof labels
@@ -836,9 +843,10 @@ describe('performRecoverOverwrite restore', () => {
       'bitcoin',
       'https://mempool.example'
     )
+    expect(setRestoredPublicServerName).not.toHaveBeenCalled()
   })
 
-  it('does not flag the public server when the backup keeps the one in use', async () => {
+  it('does not hold syncs when the backup keeps the public server in use', async () => {
     const { useBlockchainStore } = jest.requireMock('@/store/blockchain') as {
       useBlockchainStore: { getState: jest.Mock }
     }
@@ -888,6 +896,7 @@ describe('performRecoverOverwrite restore', () => {
     )
 
     expect(result).toStrictEqual({ success: true })
+    expect(setRestoredPublicServerName).not.toHaveBeenCalled()
   })
 
   it('restores lightning node data from the lightning section', async () => {

@@ -8,7 +8,6 @@ import { useShallow } from 'zustand/react/shallow'
 import SSBackupPayloadSummary from '@/components/SSBackupPayloadSummary'
 import SSButton from '@/components/SSButton'
 import SSCameraModal from '@/components/SSCameraModal'
-import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,7 +16,6 @@ import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Colors, Typography } from '@/styles'
 import { BackupJsonSchema } from '@/types/models/Backup'
-import { type Server } from '@/types/settings/blockchain'
 import {
   type LoadBackupResult,
   type LoadedBackup,
@@ -52,8 +50,6 @@ export default function DeveloperRecover() {
   const [recoverDecrypted, setRecoverDecrypted] = useState<string | null>(null)
   const [recoverConfirmOverwrite, setRecoverConfirmOverwrite] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [restoredPublicServer, setRestoredPublicServer] =
-    useState<Server | null>(null)
 
   function holdBackupOffscreen(result: LoadBackupResult) {
     if (result.status === 'cancelled') {
@@ -137,10 +133,6 @@ export default function DeveloperRecover() {
     if (skipPin) {
       const result = await performRecoverOverwrite(recoverDecrypted)
       showRecoverResultToast(result)
-      if (result.success && result.restoredPublicServer) {
-        setRestoredPublicServer(result.restoredPublicServer)
-        return
-      }
       router.back()
       return
     }
@@ -272,19 +264,6 @@ export default function DeveloperRecover() {
         onContentScanned={handleRecoverQrScanned}
         context="developer_recover"
         title={t('settings.developer.recoverScanModalTitle')}
-      />
-      <SSPublicServerWarningModal
-        visible={restoredPublicServer !== null}
-        serverName={restoredPublicServer?.name ?? ''}
-        reason="restore"
-        onConfirm={() => {
-          setRestoredPublicServer(null)
-          router.back()
-        }}
-        onCancel={() => {
-          setRestoredPublicServer(null)
-          router.replace('/settings/network/server')
-        }}
       />
     </SSMainLayout>
   )

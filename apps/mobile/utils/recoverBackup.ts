@@ -10,6 +10,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
 import { useArkSwapsStore } from '@/store/arkSwaps'
+import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
@@ -36,11 +37,7 @@ import type {
   LNDNodeInfo
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
-import {
-  ConfigSchema,
-  type Server,
-  ServerSchema
-} from '@/types/settings/blockchain'
+import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
   cancelAllAccountSyncs,
   settleCancelledSyncStatuses
@@ -171,11 +168,7 @@ type StoreSnapshot = {
 
 export type RecoverResult =
   | { success: false; error: string; rollbackIncomplete?: true }
-  | {
-      success: true
-      /** The backup switched the app to this public server. */
-      restoredPublicServer?: Server
-    }
+  | { success: true }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
   if (v === null || v === undefined) {
@@ -595,6 +588,22 @@ function getActiveServer({
 }
 
 /**
+ * Wallets must not sync with a public server the backup switched to before
+ * the user has seen what it can learn about them.
+ */
+function holdSyncOnRestoredPublicServer(before: StoreSnapshot['blockchain']) {
+  const restoredPublicServer = getRestoredPublicServer(
+    getActiveServer(before),
+    getActiveServer(useBlockchainStore.getState())
+  )
+  if (restoredPublicServer) {
+    useAuthStore
+      .getState()
+      .setRestoredPublicServerName(restoredPublicServer.name)
+  }
+}
+
+/**
  * Overwrites app data with the decrypted backup. Call after PIN unlock when
  * pendingRecoverData is set. Uses stored PIN from secure storage.
  *
@@ -696,11 +705,6 @@ export async function performRecoverOverwrite(
     existingEcashAccountIds,
     leftoverArkAccountIds
   )
-  const restoredPublicServer = getRestoredPublicServer(
-    getActiveServer(snapshot.blockchain),
-    getActiveServer(useBlockchainStore.getState())
-  )
-  return restoredPublicServer
-    ? { restoredPublicServer, success: true }
-    : { success: true }
+  holdSyncOnRestoredPublicServer(snapshot.blockchain)
+  return { success: true }
 }

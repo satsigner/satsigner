@@ -4,7 +4,7 @@ import {
   getFocusedRouteNameFromRoute,
   useRoute
 } from 'expo-router/react-navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -29,7 +29,6 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
-import { type Server } from '@/types/settings/blockchain'
 import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
@@ -125,16 +124,20 @@ function AuthenticatedSession() {
   const [
     justUnlocked,
     skipPin,
+    restoredPublicServerName,
     markPageVisited,
     setJustUnlocked,
-    setPendingRecoverData
+    setPendingRecoverData,
+    setRestoredPublicServerName
   ] = useAuthStore(
     useShallow((state) => [
       state.justUnlocked,
       state.skipPin,
+      state.restoredPublicServerName,
       state.markPageVisited,
       state.setJustUnlocked,
-      state.setPendingRecoverData
+      state.setPendingRecoverData,
+      state.setRestoredPublicServerName
     ])
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
@@ -149,8 +152,6 @@ function AuthenticatedSession() {
     )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const router = useRouter()
-  const [restoredPublicServer, setRestoredPublicServer] =
-    useState<Server | null>(null)
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
@@ -240,26 +241,15 @@ function AuthenticatedSession() {
     failures.flush()
   }
 
-  async function restorePendingBackup(pending: string) {
-    await devStep('session', 'restore backup')
-    const result = await performRecoverOverwrite(pending)
-    devLog('session', `restore backup ${result.success ? 'done' : 'failed'}`)
-    setPendingRecoverData(null)
-    showRecoverResultToast(result)
-    return result.success
-      ? { publicServer: result.restoredPublicServer }
-      : undefined
-  }
-
   function handleAcceptRestoredServer() {
-    setRestoredPublicServer(null)
+    setRestoredPublicServerName(null)
     // The modal only shows while the session is mounted; locking unmounts it
     // and cancels every queued sync.
     void syncLoadedWallets(() => true)
   }
 
   function handleChangeRestoredServer() {
-    setRestoredPublicServer(null)
+    setRestoredPublicServerName(null)
     router.navigate('/settings/network/server')
   }
 
@@ -289,8 +279,16 @@ function AuthenticatedSession() {
         return
       }
 
-      const restored =
-        ju && pending ? await restorePendingBackup(pending) : undefined
+      if (ju && pending) {
+        await devStep('session', 'restore backup')
+        const result = await performRecoverOverwrite(pending)
+        devLog(
+          'session',
+          `restore backup ${result.success ? 'done' : 'failed'}`
+        )
+        setPendingRecoverData(null)
+        showRecoverResultToast(result)
+      }
       setJustUnlocked(false)
       await devStep('session', 'load wallets')
       await loadWallets()
@@ -298,11 +296,10 @@ function AuthenticatedSession() {
       if (!session.active) {
         return
       }
-      // Hold the first sync until the user accepts the public server the
-      // backup switched to, so nothing is sent to it without their consent.
-      if (restored?.publicServer) {
-        setRestoredPublicServer(restored.publicServer)
-      } else {
+      // Hold the first sync until the user accepts the public server a
+      // restored backup switched to, so nothing is sent to it without their
+      // consent. The modal below asks.
+      if (useAuthStore.getState().restoredPublicServerName === null) {
         void syncLoadedWallets(isSessionActive)
       }
 
@@ -348,8 +345,8 @@ function AuthenticatedSession() {
       </Drawer>
       <SSArkReceiveOverlay />
       <SSPublicServerWarningModal
-        visible={restoredPublicServer !== null}
-        serverName={restoredPublicServer?.name ?? ''}
+        visible={restoredPublicServerName !== null}
+        serverName={restoredPublicServerName ?? ''}
         reason="restore"
         onConfirm={handleAcceptRestoredServer}
         onCancel={handleChangeRestoredServer}
