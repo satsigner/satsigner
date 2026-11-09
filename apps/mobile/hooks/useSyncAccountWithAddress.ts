@@ -195,7 +195,7 @@ function useSyncAccountWithAddress() {
       return updatedAccount
     } catch (error) {
       if (error instanceof ElectrumUnreachableError) {
-        markServerConnectionFailed(error.url)
+        void markServerConnectionFailed(error.url)
       }
       setSyncStatus(account.id, 'error')
       setLoading(false)

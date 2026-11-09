@@ -168,11 +168,12 @@ function useVerifyConnection() {
  * A sync just failed to reach the server: show it right away instead of
  * waiting for the next periodic check.
  */
-export function markServerConnectionFailed(url: string) {
-  queryClient.setQueriesData<ConnectionVerifyStatus>(
-    { queryKey: [VERIFY_CONNECTION_QUERY_KEY, url] },
-    'failed'
-  )
+export async function markServerConnectionFailed(url: string) {
+  const filters = { queryKey: [VERIFY_CONNECTION_QUERY_KEY, url] }
+  // A check still running would overwrite the failure when it lands, and a
+  // cancel restores the previous data asynchronously, so wait for it.
+  await queryClient.cancelQueries(filters)
+  queryClient.setQueriesData<ConnectionVerifyStatus>(filters, 'failed')
 }
 
 export default useVerifyConnection
