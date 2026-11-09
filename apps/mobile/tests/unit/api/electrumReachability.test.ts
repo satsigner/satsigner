@@ -1,5 +1,6 @@
 import ElectrumClient from '@/api/electrum'
 import {
+  ElectrumUnreachableError,
   assertElectrumReachable,
   clearElectrumReachabilityChecks
 } from '@/api/electrumReachability'
@@ -40,6 +41,20 @@ describe('assertElectrumReachable', () => {
     await expect(assertElectrumReachable(HOME_NODE, 0)).rejects.toThrow(
       'Electrum server 192.168.0.13:50001 is unreachable'
     )
+  })
+
+  it('names the exact server url that failed', async () => {
+    mockTest.mockResolvedValueOnce(false)
+
+    const failure = await assertElectrumReachable(HOME_NODE, 0).catch(
+      (error: unknown) => error
+    )
+
+    expect(failure).toBeInstanceOf(ElectrumUnreachableError)
+    expect(failure).toMatchObject({
+      server: '192.168.0.13:50001',
+      url: HOME_NODE
+    })
   })
 
   it('shares one check between accounts syncing at the same time', async () => {

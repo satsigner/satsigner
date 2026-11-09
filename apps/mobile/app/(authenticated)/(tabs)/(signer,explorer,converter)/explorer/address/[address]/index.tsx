@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles, SSIconList } from '@/components/icons'
+import SSBackendSourceLabel from '@/components/SSBackendSourceLabel'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -192,14 +193,7 @@ export default function ExplorerAddressDetail() {
             </SSText>
             {!useMempool ? (
               <>
-                <SSText
-                  size="xxs"
-                  type="mono"
-                  center
-                  style={styles.sourceLabel}
-                >
-                  {sourceLabel}
-                </SSText>
+                <SSBackendSourceLabel label={sourceLabel} mono />
                 <SSText size="xxs" type="mono" center style={styles.serverUrl}>
                   {server.url}
                 </SSText>
@@ -276,14 +270,10 @@ export default function ExplorerAddressDetail() {
                     {data.address}
                   </SSText>
                 </SSClipboardCopy>
-                <SSText
-                  size="xxs"
-                  style={
-                    useMempool ? styles.externalSource : styles.sourceLabel
-                  }
-                >
-                  {displaySourceLabel}
-                </SSText>
+                <SSBackendSourceLabel
+                  label={displaySourceLabel}
+                  isExternal={useMempool}
+                />
                 <SSButton
                   label={t('address.details.verifyMessage')}
                   variant="subtle"
@@ -395,6 +385,5 @@ const styles = StyleSheet.create({
     paddingVertical: 60
   },
   sectionWithTopPadding: { paddingTop: 24 },
-  serverUrl: { color: Colors.gray[500], opacity: 0.9 },
-  sourceLabel: { color: Colors.mainGreen, opacity: 0.8 }
+  serverUrl: { color: Colors.gray[500], opacity: 0.9 }
 })

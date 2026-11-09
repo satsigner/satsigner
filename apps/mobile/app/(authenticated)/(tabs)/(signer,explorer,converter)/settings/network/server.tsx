@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSPressable from '@/components/SSPressable'
+import SSServerStatusLabel from '@/components/SSServerStatusLabel'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
 import { useConnectionTest } from '@/hooks/useConnectionTest'
@@ -31,6 +32,8 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
+import { isSameServer } from '@/utils/server'
+import { getServerPrivacy, isOnionUrl } from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.network.server')
 
@@ -53,6 +56,8 @@ export default function NetworkSettings() {
   )
 
   const [connectionStatus] = useVerifyConnection()
+  const { connectionMode, connectionTestInterval } =
+    configs[selectedNetwork].config
   const { testing, testConnection } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
@@ -149,6 +154,14 @@ export default function NetworkSettings() {
     }
   }
 
+  function isActiveServer(network: Network, server: Server) {
+    return (
+      network === selectedNetwork &&
+      isSameServer(server, selectedServers[network]) &&
+      isSameServer(server, configs[selectedNetwork].server)
+    )
+  }
+
   function handleOnSave() {
     updateServer('bitcoin', selectedServers['bitcoin'])
     updateServer('testnet', selectedServers['testnet'])
@@ -177,6 +190,16 @@ export default function NetworkSettings() {
           <SSBitcoinNetworkExplanationLink
             onPress={() => router.navigate('/settings/network/comparison')}
           />
+          <SSVStack gap="xs" style={{ marginTop: 12 }}>
+            <SSText color="muted" size="xs">
+              {tn('privacy.legend')}
+            </SSText>
+            {connectionMode !== 'manual' && (
+              <SSText color="muted" size="xs">
+                {tn('status.help', { seconds: connectionTestInterval })}
+              </SSText>
+            )}
+          </SSVStack>
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
@@ -262,47 +285,16 @@ export default function NetworkSettings() {
                                       : server.backend}
                                   </SSText>
                                 </SSHStack>
+                                <SSServerStatusLabel
+                                  isOnion={isOnionUrl(server.url)}
+                                  privacy={getServerPrivacy(server)}
+                                  status={
+                                    isActiveServer(network, server)
+                                      ? connectionStatus
+                                      : undefined
+                                  }
+                                />
                                 <SSHStack gap="xs">
-                                  {(() => {
-                                    const isSelected =
-                                      selectedServers[network].url ===
-                                        server.url &&
-                                      selectedServers[network].name ===
-                                        server.name &&
-                                      selectedServers[network].backend ===
-                                        server.backend
-                                    const isCurrentNetwork =
-                                      network === selectedNetwork
-                                    // Only show "Connected" if this is the currently selected server
-                                    // in the currently active network AND the connection is successful
-                                    const isCurrentlyActiveServer =
-                                      isSelected &&
-                                      isCurrentNetwork &&
-                                      selectedServers[network].url ===
-                                        configs[selectedNetwork].server.url &&
-                                      selectedServers[network].name ===
-                                        configs[selectedNetwork].server.name &&
-                                      selectedServers[network].backend ===
-                                        configs[selectedNetwork].server.backend
-
-                                    const shouldShowConnected =
-                                      isCurrentlyActiveServer &&
-                                      connectionStatus === 'connected'
-
-                                    return (
-                                      shouldShowConnected && (
-                                        <SSText
-                                          style={{
-                                            color: Colors.mainGreen,
-                                            lineHeight: 14,
-                                            opacity: 0.6
-                                          }}
-                                        >
-                                          {t('common.connected')}
-                                        </SSText>
-                                      )
-                                    )
-                                  })()}
                                   <SSText
                                     style={{ lineHeight: 14 }}
                                     color="muted"
