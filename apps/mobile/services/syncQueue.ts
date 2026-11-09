@@ -17,10 +17,14 @@ type EnqueueOptions = {
   timeoutMs: number
 }
 
-type SyncTask<T> = (
-  signal: AbortSignal,
+export type SyncTaskControls = {
+  /** Network work is done; later steps (fiat prices) can't stall the sync. */
+  finishScan: () => void
   reportProgress: () => void
-) => Promise<T>
+  signal: AbortSignal
+}
+
+type SyncTask<T> = (controls: SyncTaskControls) => Promise<T>
 
 type Outcome<T> = { value: T | null } | { error: unknown }
 
@@ -74,26 +78,29 @@ export function createSyncQueue<T>(concurrency: number) {
       job.settle({ error })
     }
 
+    const scan = { finished: false }
+
     function reportProgress() {
-      if (signal.aborted) {
+      if (signal.aborted || scan.finished) {
         return
       }
       clearTimeout(timer.id)
       timer.id = setTimeout(onStalled, job.timeoutMs)
     }
 
+    function finishScan() {
+      scan.finished = true
+      clearTimeout(timer.id)
+    }
+
     signal.addEventListener('abort', () => clearTimeout(timer.id))
 
-    void runTask(job, signal, reportProgress)
+    void runTask(job, { finishScan, reportProgress, signal })
   }
 
-  async function runTask(
-    job: Job<T>,
-    signal: AbortSignal,
-    reportProgress: () => void
-  ) {
+  async function runTask(job: Job<T>, controls: SyncTaskControls) {
     try {
-      job.settle({ value: await job.task(signal, reportProgress) })
+      job.settle({ value: await job.task(controls) })
     } catch (error) {
       job.settle({ error })
     }
@@ -174,8 +181,13 @@ export function createSyncQueue<T>(concurrency: number) {
       return job.promise
     }
 
-    job.onQueued?.()
     waiting.push(job)
+    // A failing status write must not strand the job outside the queue.
+    try {
+      job.onQueued?.()
+    } catch {
+      // status is cosmetic; the job is already waiting for a slot
+    }
     return job.promise
   }
 

@@ -36,6 +36,7 @@ describe('isOnionUrl', () => {
     `tcp://${ONION_HOST}:50001`,
     `ssl://${ONION_HOST}:50002`,
     `http://${ONION_HOST}/api`,
+    `ssl://electrum.${ONION_HOST}:50002`,
     ONION_HOST
   ])('detects %s', (url) => {
     expect(isOnionUrl(url)).toBe(true)
@@ -44,7 +45,8 @@ describe('isOnionUrl', () => {
   it.each([
     'ssl://electrum.blockstream.info:50002',
     'https://mempool.space/api',
-    'https://example.com/a.onion'
+    'https://example.com/a.onion',
+    `https://user:${ONION_HOST}@example.com/api`
   ])('rejects %s', (url) => {
     expect(isOnionUrl(url)).toBe(false)
   })
