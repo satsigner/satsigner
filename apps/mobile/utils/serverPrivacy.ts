@@ -1,6 +1,6 @@
 import { servers } from '@/constants/servers'
 import { type Server } from '@/types/settings/blockchain'
-import { isSameServer } from '@/utils/server'
+import { isSameServerEndpoint } from '@/utils/server'
 
 /**
  * Who can see the wallet's addresses through this server, following Sparrow:
@@ -33,6 +33,17 @@ export function getServerPrivacy(
 }
 
 /**
+ * True when switching from `before` to `after` starts sending the wallet's
+ * addresses to a public server the app was not already using. A rename of
+ * the same endpoint exposes nothing new.
+ */
+function isNewlyPublic(before: Server, after: Server): boolean {
+  return (
+    !isSameServerEndpoint(before, after) && getServerPrivacy(after) === 'public'
+  )
+}
+
+/**
  * Servers that would become active on save and are public, so the user can
  * be warned before the app connects to them. Unchanged selections are not
  * returned: the user already accepted them.
@@ -43,25 +54,17 @@ export function getNewlySelectedPublicServers<K extends string>(
 ): Server[] {
   return Object.keys(next)
     .filter((key): key is K => key in current)
-    .map((key) => ({ after: next[key], before: current[key] }))
-    .filter(
-      ({ before, after }) =>
-        !isSameServer(before, after) && getServerPrivacy(after) === 'public'
-    )
-    .map(({ after }) => after)
+    .filter((key) => isNewlyPublic(current[key], next[key]))
+    .map((key) => next[key])
 }
 
 /**
- * After a backup restore, the server the app is about to sync with, when the
- * backup chose it and it is public. A backup without server settings leaves
- * the user's own choice in place, so there is nothing new to warn about.
+ * The public server a backup restore switched the app to, if any. A backup
+ * that keeps the server the app already used has nothing new to warn about.
  */
 export function getRestoredPublicServer(
-  backupHadServerSettings: boolean,
-  activeServer: Server
+  activeBefore: Server,
+  activeAfter: Server
 ): Server | undefined {
-  if (!backupHadServerSettings) {
-    return undefined
-  }
-  return getServerPrivacy(activeServer) === 'public' ? activeServer : undefined
+  return isNewlyPublic(activeBefore, activeAfter) ? activeAfter : undefined
 }

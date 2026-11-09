@@ -587,6 +587,13 @@ async function snapshotBeforeRestore(
   }
 }
 
+function getActiveServer({
+  configs,
+  selectedNetwork
+}: StoreSnapshot['blockchain']) {
+  return configs[selectedNetwork].server
+}
+
 /**
  * Overwrites app data with the decrypted backup. Call after PIN unlock when
  * pendingRecoverData is set. Uses stored PIN from secure storage.
@@ -689,10 +696,9 @@ export async function performRecoverOverwrite(
     existingEcashAccountIds,
     leftoverArkAccountIds
   )
-  const { configs, selectedNetwork } = useBlockchainStore.getState()
   const restoredPublicServer = getRestoredPublicServer(
-    data.serverSettings !== undefined,
-    configs[selectedNetwork].server
+    getActiveServer(snapshot.blockchain),
+    getActiveServer(useBlockchainStore.getState())
   )
   return restoredPublicServer
     ? { restoredPublicServer, success: true }

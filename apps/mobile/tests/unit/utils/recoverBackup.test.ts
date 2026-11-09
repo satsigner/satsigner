@@ -395,9 +395,17 @@ describe('performRecoverOverwrite restore', () => {
       updateServer
     }
     useBlockchainStore.getState.mockReturnValue(blockchainState)
+    // Like the real store, an update leaves earlier snapshots untouched.
     updateServer.mockImplementation(
-      (network: 'bitcoin' | 'signet' | 'testnet', server: unknown) => {
-        Object.assign(blockchainState.configs[network], { server })
+      (network: keyof typeof blockchainState.configs, server: unknown) => {
+        const state: typeof blockchainState = useBlockchainStore.getState()
+        useBlockchainStore.getState.mockReturnValue({
+          ...state,
+          configs: {
+            ...state.configs,
+            [network]: { ...state.configs[network], server }
+          }
+        })
       }
     )
     useEcashStore.getState.mockReturnValue({
@@ -828,6 +836,58 @@ describe('performRecoverOverwrite restore', () => {
       'bitcoin',
       'https://mempool.example'
     )
+  })
+
+  it('does not flag the public server when the backup keeps the one in use', async () => {
+    const { useBlockchainStore } = jest.requireMock('@/store/blockchain') as {
+      useBlockchainStore: { getState: jest.Mock }
+    }
+    const mempool = {
+      backend: 'esplora' as const,
+      name: 'Mempool',
+      network: 'bitcoin' as const,
+      url: 'https://mempool.space/api'
+    }
+    const state = useBlockchainStore.getState()
+    useBlockchainStore.getState.mockReturnValue({
+      ...state,
+      configs: {
+        ...state.configs,
+        bitcoin: { ...state.configs.bitcoin, server: mempool }
+      }
+    })
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {
+            bitcoin: {
+              config: {
+                connectionMode: 'auto',
+                connectionTestInterval: 60,
+                retries: 1,
+                stopGap: 20,
+                timeDiffBeforeAutoSync: 5,
+                timeout: 8
+              },
+              server: { ...mempool, name: 'Default bitcoin' }
+            }
+          },
+          configsMempool: { bitcoin: '', signet: '', testnet: '' },
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
   })
 
   it('restores lightning node data from the lightning section', async () => {

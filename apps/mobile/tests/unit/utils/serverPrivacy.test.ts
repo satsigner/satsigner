@@ -103,6 +103,15 @@ describe('getNewlySelectedPublicServers', () => {
     ).toStrictEqual([])
   })
 
+  it('ignores a renamed copy of the server already selected', () => {
+    expect(
+      getNewlySelectedPublicServers(
+        { bitcoin: mempool },
+        { bitcoin: { ...mempool, name: 'My mempool' } }
+      )
+    ).toStrictEqual([])
+  })
+
   it('ignores a switch to a private server', () => {
     expect(
       getNewlySelectedPublicServers({ bitcoin: mempool }, { bitcoin: myNode })
@@ -111,6 +120,13 @@ describe('getNewlySelectedPublicServers', () => {
 })
 
 describe('getRestoredPublicServer', () => {
+  const myNode = {
+    backend: 'electrum' as const,
+    isPrivate: true,
+    name: 'Umbrel',
+    network: 'bitcoin' as const,
+    url: 'tcp://umbrel.local:50001'
+  }
   const mempool = {
     backend: 'esplora' as const,
     name: 'Mempool',
@@ -118,21 +134,17 @@ describe('getRestoredPublicServer', () => {
     url: 'https://mempool.space/api'
   }
 
-  it('flags a public server chosen by the backup', () => {
-    expect(getRestoredPublicServer(true, mempool)).toBe(mempool)
+  it('flags a public server the backup switched to', () => {
+    expect(getRestoredPublicServer(myNode, mempool)).toBe(mempool)
   })
 
-  it('stays quiet when the backup did not change the server', () => {
-    expect(getRestoredPublicServer(false, mempool)).toBeUndefined()
+  it('stays quiet when the backup keeps the server already in use', () => {
+    expect(
+      getRestoredPublicServer(mempool, { ...mempool, name: 'Default bitcoin' })
+    ).toBeUndefined()
   })
 
   it('stays quiet for a private server', () => {
-    expect(
-      getRestoredPublicServer(true, {
-        ...mempool,
-        isPrivate: true,
-        url: 'tcp://umbrel.local:50001'
-      })
-    ).toBeUndefined()
+    expect(getRestoredPublicServer(mempool, myNode)).toBeUndefined()
   })
 })
