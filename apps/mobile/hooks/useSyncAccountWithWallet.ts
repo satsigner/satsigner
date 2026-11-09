@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { type BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
@@ -27,6 +26,8 @@ import {
   toRestoredSyncStatus
 } from '@/utils/accountSync'
 import {
+  cancelAccountSync,
+  hasCurrentSyncRun,
   runExclusiveOnCoreNode,
   trackAccountSyncWork,
   waitForAccountSyncWork,
@@ -301,7 +302,7 @@ function writeSyncStatus(accountId: string, syncStatus: Account['syncStatus']) {
 }
 
 function settleStatusAfterCancel(accountId: string) {
-  if (walletSyncQueue.isActive(accountId)) {
+  if (hasCurrentSyncRun(accountId)) {
     return
   }
   const current = useAccountsStore
@@ -441,9 +442,9 @@ async function queueWalletSync({
   wallet
 }: QueueWalletSyncParams): Promise<Account | null> {
   if (forceFullScan) {
-    walletSyncQueue.cancel(account.id)
+    cancelAccountSync(account.id)
   }
-  const isDuplicate = walletSyncQueue.isActive(account.id)
+  const isDuplicate = hasCurrentSyncRun(account.id)
 
   const outcome = await walletSyncQueue
     .enqueue(
@@ -476,28 +477,23 @@ async function queueWalletSync({
 }
 
 function useSyncAccountWithWallet() {
-  const [loading, setLoading] = useState(false)
-
-  async function syncAccountWithWallet(
+  function syncAccountWithWallet(
     account: Account,
     wallet: BdkWallet,
     forceFullScan = false,
     isPriority = false,
     reportError: SyncErrorReporter = reportSyncFailure
   ): Promise<Account | null> {
-    setLoading(true)
-    const result = await queueWalletSync({
+    return queueWalletSync({
       account,
       forceFullScan,
       isPriority,
       reportError,
       wallet
     })
-    setLoading(false)
-    return result
   }
 
-  return { loading, syncAccountWithWallet }
+  return { syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet
