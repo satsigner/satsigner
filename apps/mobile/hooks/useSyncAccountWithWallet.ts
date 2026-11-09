@@ -16,7 +16,7 @@ import { type Account } from '@/types/models/Account'
 import { type Prices } from '@/types/models/Blockchain'
 import { type Config, type Server } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
-import { shouldFullScan } from '@/utils/accountSync'
+import { shouldFullScan, toRestoredSyncStatus } from '@/utils/accountSync'
 import {
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
@@ -259,15 +259,20 @@ async function syncWalletAccount({
   return updatedAccount
 }
 
-// A cancelled run puts back the status it found, unless a newer run of the
-// same account has taken over and owns the status now.
+// A cancelled run settles the status from what was last synced, unless a
+// newer run of the same account has taken over and owns the status now. The
+// status it found may be another run's 'syncing', which nothing would clear.
 function settleCancelledSync(
   latest: Account,
   setSyncStatus: WalletSyncParams['setSyncStatus']
 ) {
-  if (!hasCurrentSyncRun(latest.id)) {
-    setSyncStatus(latest.id, latest.syncStatus ?? 'unsynced')
+  if (hasCurrentSyncRun(latest.id)) {
+    return
   }
+  setSyncStatus(
+    latest.id,
+    toRestoredSyncStatus(latest.syncStatus, latest.lastSyncedAt) ?? 'unsynced'
+  )
 }
 
 function failAccountSync(
