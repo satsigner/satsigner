@@ -302,7 +302,7 @@ function handleSyncError(
   }
 
   if (error instanceof ElectrumUnreachableError) {
-    markServerConnectionFailed()
+    markServerConnectionFailed(error.url)
   }
   const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
   writeSyncStatus(account.id, syncStatus)

@@ -3,7 +3,11 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { fetchAddressSnapshot } from '@/api/addressSync'
-import { assertElectrumReachable } from '@/api/electrumReachability'
+import {
+  ElectrumUnreachableError,
+  assertElectrumReachable
+} from '@/api/electrumReachability'
+import { markServerConnectionFailed } from '@/hooks/useVerifyConnection'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -190,6 +194,9 @@ function useSyncAccountWithAddress() {
 
       return updatedAccount
     } catch (error) {
+      if (error instanceof ElectrumUnreachableError) {
+        markServerConnectionFailed(error.url)
+      }
       setSyncStatus(account.id, 'error')
       setLoading(false)
       reportError(account.name ?? account.id, error)

@@ -97,8 +97,8 @@ function useVerifyConnection() {
       },
       queryKey: [
         VERIFY_CONNECTION_QUERY_KEY,
-        selectedNetwork,
         server.url,
+        selectedNetwork,
         server.backend,
         server.network,
         config.timeout,
@@ -170,9 +170,9 @@ function useVerifyConnection() {
  * A sync just failed to reach the server: show it right away instead of
  * waiting for the next periodic check.
  */
-export function markServerConnectionFailed() {
+export function markServerConnectionFailed(url: string) {
   queryClient.setQueriesData<ConnectionVerifyStatus>(
-    { queryKey: [VERIFY_CONNECTION_QUERY_KEY] },
+    { queryKey: [VERIFY_CONNECTION_QUERY_KEY, url] },
     'failed'
   )
 }
