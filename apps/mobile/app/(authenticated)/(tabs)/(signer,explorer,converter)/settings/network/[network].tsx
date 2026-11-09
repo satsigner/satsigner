@@ -284,6 +284,36 @@ export default function CustomNetwork() {
     }
   }
 
+  function activateServer(server: Server) {
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
+  }
+
+  function saveServer(server: Server) {
+    if (editingServer) {
+      updateCustomServer(editingServer, server)
+    } else {
+      addCustomServer(server)
+    }
+    activateServer(server)
+    router.back()
+  }
+
+  function activateOrConfirm(
+    server: Server,
+    action: PendingPublicServer['action']
+  ) {
+    if (getServerPrivacy(server) === 'public') {
+      setPendingPublicServer({ action, server })
+      return
+    }
+    if (action === 'save') {
+      saveServer(server)
+      return
+    }
+    activateServer(server)
+  }
+
   function applyTestResult(server: Server, result: ConnectionTestResult) {
     if (!result.success) {
       toast.error(`${server.name} (${trimOnionAddress(server.url)})`, {
@@ -335,36 +365,6 @@ export default function CustomNetwork() {
         description: message
       })
     }
-  }
-
-  function activateServer(server: Server) {
-    setSelectedNetwork(networkType)
-    updateServer(networkType, server)
-  }
-
-  function saveServer(server: Server) {
-    if (editingServer) {
-      updateCustomServer(editingServer, server)
-    } else {
-      addCustomServer(server)
-    }
-    activateServer(server)
-    router.back()
-  }
-
-  function activateOrConfirm(
-    server: Server,
-    action: PendingPublicServer['action']
-  ) {
-    if (getServerPrivacy(server) === 'public') {
-      setPendingPublicServer({ action, server })
-      return
-    }
-    if (action === 'save') {
-      saveServer(server)
-      return
-    }
-    activateServer(server)
   }
 
   function handleConfirmPublicServer() {
