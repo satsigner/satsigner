@@ -132,6 +132,7 @@ describe('fresh receive addresses', () => {
         reserveReceiveAddressIfFresh(account, drafted)
       ])
     ).resolves.toStrictEqual([true, false])
+    await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-1')
   })
 
   it('throws when another send took the only address of a single-address wallet', async () => {
