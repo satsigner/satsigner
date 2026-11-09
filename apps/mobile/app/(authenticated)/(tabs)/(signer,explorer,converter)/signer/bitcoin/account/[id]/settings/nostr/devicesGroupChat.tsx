@@ -1,8 +1,4 @@
-import {
-  FlashList,
-  type FlashListRef,
-  type ListRenderItemInfo
-} from '@shopify/flash-list'
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
 import {
   Redirect,
   router,
@@ -19,17 +15,14 @@ import {
   useRef,
   useState
 } from 'react'
-import {
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { toast } from 'sonner-native'
 
+import SSChatComposer from '@/components/chat/SSChatComposer'
+import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
+import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
+import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -38,12 +31,14 @@ import SSTransactionDetails from '@/components/SSTransactionDetails'
 import {
   NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
   NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
-  NOSTR_GROUP_CHAT_PAGE_SIZE,
-  NOSTR_GROUP_CHAT_SCROLL_THRESHOLD
+  NOSTR_GROUP_CHAT_PAGE_SIZE
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
+import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
+import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { useNostrDeviceChatProfilesFetch } from '@/hooks/useNostrDeviceChatProfilesFetch'
-import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import { type AuthorDisplayInfo, getAuthorLabel } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
@@ -53,6 +48,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
+import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
@@ -63,11 +59,19 @@ import {
   getAuthorsMissingProfiles
 } from '@/utils/nostrAuthorDisplay'
 import {
+  buildChatRows,
+  buildReplyPreview,
+  type ChatRow,
+  findRowIndex,
+  formatChatDayLabel
+} from '@/utils/nostrChatRows'
+import {
   type DeviceChatSendOutcome,
   retryDeviceChatMessage,
   sendDeviceChatMessage
 } from '@/utils/nostrDeviceChat'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
+import { deviceChatMessageHref } from '@/utils/nostrNavigation'
 import {
   type KeyFingerprintsByAccount,
   type TransactionData
@@ -81,9 +85,13 @@ type GroupChatRowContextValue = {
   failedSends: Record<string, string[]>
   formattedNpubs: Map<string, AuthorDisplayInfo>
   keyFingerprintsByAccount: KeyFingerprintsByAccount
+  messagesById: ReadonlyMap<string, NostrDM>
+  nowSec: number
   onAuthorPress: (npub: string) => void
   onGoToSignFlow: (messageContent: string) => void
+  onLongPress: (msgId: string) => void
   onOpenLinkedTx: (accountId: string, txId: string) => void
+  onReplyPreviewPress: (parentId: string) => void
   onRetry: (messageId: string) => void
   onToggleVisibility: (msgId: string, component: 'sankey' | 'status') => void
   visibleComponents: VisibleComponents
@@ -94,14 +102,42 @@ const GroupChatRowContext = createContext<GroupChatRowContextValue | null>(null)
 const EMPTY_MEMBERS: { npub: string; color: string }[] = []
 const EMPTY_DMS: NostrDM[] = []
 
-function GroupChatRow({ item }: { item: NostrDM }) {
+function identityDm(item: NostrDM): NostrDM {
+  return item
+}
+
+function GroupChatRow({ row }: { row: ChatRow<NostrDM> }) {
   const context = use(GroupChatRowContext)
   if (!context) {
     return null
   }
+  if (row.kind === 'day') {
+    return (
+      <SSChatDaySeparator
+        label={formatChatDayLabel(row.dayStart, context.nowSec)}
+      />
+    )
+  }
+  const { item } = row
+  const preview = item.replyToId
+    ? buildReplyPreview(item.replyToId, context.messagesById)
+    : undefined
   return (
     <SSNostrMessage
       item={item}
+      isContinuation={row.isContinuation}
+      replyPreview={
+        preview
+          ? {
+              ...preview,
+              authorName: preview.authorKey
+                ? getAuthorLabel(context.formattedNpubs, preview.authorKey)
+                : ''
+            }
+          : undefined
+      }
+      onReplyPreviewPress={context.onReplyPreviewPress}
+      onLongPress={context.onLongPress}
       account={context.account}
       accounts={context.accounts}
       keyFingerprintsByAccount={context.keyFingerprintsByAccount}
@@ -117,23 +153,16 @@ function GroupChatRow({ item }: { item: NostrDM }) {
   )
 }
 
-function renderGroupChatRow({ item }: ListRenderItemInfo<NostrDM>) {
-  return <GroupChatRow item={item} />
+function renderGroupChatRow({ item }: ListRenderItemInfo<ChatRow<NostrDM>>) {
+  return <GroupChatRow row={item} />
 }
 
-function getMessageKey(item: NostrDM) {
-  return item.id
+function getRowKey(row: ChatRow<NostrDM>) {
+  return row.key
 }
 
-function isScrolledToBottom({
-  contentOffset,
-  contentSize,
-  layoutMeasurement
-}: NativeScrollEvent): boolean {
-  return (
-    contentOffset.y + layoutMeasurement.height >=
-    contentSize.height - NOSTR_GROUP_CHAT_SCROLL_THRESHOLD
-  )
+function getRowType(row: ChatRow<NostrDM>) {
+  return row.kind
 }
 
 function withoutKey(record: Record<string, string[]>, key: string) {
@@ -143,7 +172,6 @@ function withoutKey(record: Record<string, string[]>, key: string) {
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const headerHeight = useHeaderHeight()
-  const listRef = useRef<FlashListRef<NostrDM>>(null)
   const { sendPSBT } = useNostrPublish()
   const { handleGoToSignFlow } = useNostrSignFlow()
 
@@ -195,15 +223,48 @@ export default function DevicesGroupChat() {
   const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
   const [transactionDataForModal, setTransactionDataForModal] =
     useState<TransactionData | null>(null)
-  const [isAtBottom, setIsAtBottom] = useState(true)
-  const [seenNewestId, setSeenNewestId] = useState<string>()
   const [displayCount, setDisplayCount] = useState(NOSTR_GROUP_CHAT_PAGE_SIZE)
 
   const messages = account?.nostr?.dms ?? EMPTY_DMS
   const displayedMessages = messages.slice(-displayCount)
-  const newestId = messages.at(-1)?.id
-  const showNewMessageButton =
-    !isAtBottom && seenNewestId !== undefined && newestId !== seenNewestId
+  const rows = buildChatRows(displayedMessages, identityDm)
+  const {
+    handleListScroll,
+    listRef,
+    scrollToBottom,
+    scrollToIndex,
+    showNewMessages
+  } = useNostrChatScroll<ChatRow<NostrDM>>(messages.at(-1)?.id)
+
+  const chatKey = deviceChatKey(accountId ?? '')
+  const replyToId = useNostrChatReplyStore(
+    (state) => state.replyToByChat[chatKey]
+  )
+  const setReplyTo = useNostrChatReplyStore((state) => state.setReplyTo)
+  const clearReplyTo = useNostrChatReplyStore((state) => state.clearReplyTo)
+  const replyParent = replyToId
+    ? messages.find((dm) => dm.id === replyToId)
+    : undefined
+
+  function handleOpenMessage(messageId: string) {
+    if (accountId) {
+      router.push(deviceChatMessageHref(accountId, messageId))
+    }
+  }
+
+  function handleReplyTo(messageId: string) {
+    setReplyTo(chatKey, messageId)
+  }
+
+  function handleCancelReply() {
+    clearReplyTo(chatKey)
+  }
+
+  const messageActions = useNostrChatMessageActions({
+    messages,
+    onDetails: handleOpenMessage,
+    onReply: handleReplyTo
+  })
   const isSyncInProgress = syncStatus === 'connecting' || isAccountSyncing
 
   const authorInput = account?.nostr
@@ -267,17 +328,24 @@ export default function DevicesGroupChat() {
 
     setMessageInput('')
     setIsLoading(true)
+    const replyTo = replyParent?.id
+    clearReplyTo(chatKey)
     try {
-      recordSendOutcome(await sendDeviceChatMessage(accountId, trimmed))
+      recordSendOutcome(
+        await sendDeviceChatMessage(accountId, trimmed, replyTo)
+      )
     } catch (error) {
       toast.error(t('common.error.failedToSendMessage'), {
         description: getNostrErrorMessage(error)
       })
       setMessageInput(trimmed)
+      if (replyTo) {
+        setReplyTo(chatKey, replyTo)
+      }
       setIsLoading(false)
       return
     }
-    listRef.current?.scrollToEnd({ animated: true })
+    scrollToBottom()
     setIsLoading(false)
   }
 
@@ -366,20 +434,13 @@ export default function DevicesGroupChat() {
     setTransactionDataForModal(null)
   }
 
-  function handleScrollToBottom() {
-    listRef.current?.scrollToEnd({ animated: true })
-    setIsAtBottom(true)
-  }
-
-  function handleListScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const atBottom = isScrolledToBottom(event.nativeEvent)
-    if (atBottom === isAtBottom) {
+  function handleReplyPreviewPress(parentId: string) {
+    const index = findRowIndex(rows, parentId)
+    if (index === -1) {
+      handleOpenMessage(parentId)
       return
     }
-    setIsAtBottom(atBottom)
-    if (!atBottom) {
-      setSeenNewestId(newestId)
-    }
+    scrollToIndex(index)
   }
 
   function handleLoadOlder() {
@@ -410,9 +471,13 @@ export default function DevicesGroupChat() {
     failedSends,
     formattedNpubs,
     keyFingerprintsByAccount,
+    messagesById: new Map(messages.map((dm) => [dm.id, dm])),
+    nowSec: Math.floor(Date.now() / MS_PER_SECOND),
     onAuthorPress: handleAuthorPress,
     onGoToSignFlow: handleGoToSignFlowClick,
+    onLongPress: messageActions.openActions,
     onOpenLinkedTx: handleOpenLinkedTx,
+    onReplyPreviewPress: handleReplyPreviewPress,
     onRetry: handleRetry,
     onToggleVisibility: handleToggleVisibility,
     visibleComponents
@@ -441,10 +506,9 @@ export default function DevicesGroupChat() {
       >
         <SSVStack gap="sm" style={styles.chatContent}>
           <SSText center uppercase color="muted">
-            {t('account.nostrSync.devicesGroupChat.title')}
             {account.nostr.autoSync
-              ? t('account.nostrSync.devicesGroupChat.syncOn')
-              : t('account.nostrSync.devicesGroupChat.syncOff')}
+              ? t('account.nostrSync.devicesGroupChat.titleSyncOn')
+              : t('account.nostrSync.devicesGroupChat.titleSyncOff')}
           </SSText>
 
           <View style={styles.messagesContainer}>
@@ -461,9 +525,10 @@ export default function DevicesGroupChat() {
               >
                 <FlashList
                   ref={listRef}
-                  data={displayedMessages}
+                  data={rows}
                   renderItem={renderGroupChatRow}
-                  keyExtractor={getMessageKey}
+                  keyExtractor={getRowKey}
+                  getItemType={getRowType}
                   extraData={rowContext}
                   maintainVisibleContentPosition={{
                     autoscrollToBottomThreshold:
@@ -476,37 +541,47 @@ export default function DevicesGroupChat() {
                 />
               </GroupChatRowContext>
             )}
-            {showNewMessageButton && (
-              <View style={styles.newMessageButtonContainer}>
-                <SSButton
-                  label={t('account.nostrSync.devicesGroupChat.newMessages')}
-                  onPress={handleScrollToBottom}
-                  variant="secondary"
-                />
-              </View>
-            )}
+            {showNewMessages ? (
+              <SSNewMessagesPill
+                label={t('account.nostrSync.devicesGroupChat.newMessages')}
+                onPress={scrollToBottom}
+              />
+            ) : null}
           </View>
-          <SSHStack gap="sm" style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={messageInput}
-              onChangeText={setMessageInput}
-              placeholder={t(
-                'account.nostrSync.devicesGroupChat.messagePlaceholder'
-              )}
-              placeholderTextColor={Colors.gray[500]}
-              multiline
-              maxLength={NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH}
-            />
-            <SSButton
-              style={styles.sendButton}
-              label={t('account.nostrSync.devicesGroupChat.sendButton')}
-              onPress={handleSendMessage}
-              disabled={isLoading || !messageInput.trim()}
-            />
-          </SSHStack>
+          <SSChatComposer
+            value={messageInput}
+            onChangeText={setMessageInput}
+            onSend={handleSendMessage}
+            placeholder={t(
+              'account.nostrSync.devicesGroupChat.messagePlaceholder'
+            )}
+            sendLabel={t('account.nostrSync.devicesGroupChat.sendButton')}
+            maxLength={NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH}
+            disabled={isLoading}
+            replyTo={
+              replyParent
+                ? {
+                    authorName: getAuthorLabel(
+                      formattedNpubs,
+                      replyParent.author
+                    ),
+                    text: replyParent.description
+                  }
+                : undefined
+            }
+            onCancelReply={handleCancelReply}
+          />
         </SSVStack>
       </KeyboardAvoidingView>
+      <SSMessageActionsModal
+        visible={messageActions.selectedMessage !== undefined}
+        preview={messageActions.selectedMessage?.description ?? ''}
+        canReply
+        onReply={messageActions.handleReply}
+        onCopy={messageActions.handleCopy}
+        onDetails={messageActions.handleDetails}
+        onClose={messageActions.closeActions}
+      />
       <SSModal
         visible={isShareModalVisible}
         onClose={handleCancelShare}
@@ -561,19 +636,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center'
   },
-  input: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    color: Colors.white,
-    flex: 0.8,
-    minHeight: 60,
-    padding: 10,
-    textAlignVertical: 'top'
-  },
-  inputContainer: {
-    paddingBottom: 16,
-    paddingHorizontal: 0
-  },
   keyboardAvoiding: {
     flex: 1
   },
@@ -608,14 +670,5 @@ const styles = StyleSheet.create({
   },
   modalScrollContent: {
     paddingBottom: 4
-  },
-  newMessageButtonContainer: {
-    alignSelf: 'center',
-    bottom: 70,
-    position: 'absolute',
-    zIndex: 2
-  },
-  sendButton: {
-    flex: 0.2
   }
 })

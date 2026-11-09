@@ -10,6 +10,7 @@ import {
   NOSTR_PROFILE_CACHE_TTL_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { identityChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import {
   type NostrChatConversationItem,
   type NostrChatProtocol,
@@ -124,10 +125,14 @@ async function sendChatMessage(
   identity: { npub: string; nsec: string },
   protocol: NostrChatProtocol,
   peerNpub: string,
-  text: string
+  text: string,
+  replyToId?: string
 ): Promise<void> {
-  const sendForProtocol = protocol === 'nip17' ? sendNip17Chat : sendNip04Chat
-  await sendForProtocol(api, identity, peerNpub, text)
+  if (protocol === 'nip17') {
+    await sendNip17Chat(api, identity, peerNpub, text, replyToId)
+    return
+  }
+  await sendNip04Chat(api, identity, peerNpub, text)
 }
 
 export function useNostrChatThread(
@@ -143,6 +148,20 @@ export function useNostrChatThread(
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
   const focused = useIsFocused()
+  const chatKey = identityChatKey(identityNpub, peerPubkey ?? '')
+  const replyToId = useNostrChatReplyStore(
+    (state) => state.replyToByChat[chatKey]
+  )
+  const setReplyStore = useNostrChatReplyStore((state) => state.setReplyTo)
+  const clearReplyStore = useNostrChatReplyStore((state) => state.clearReplyTo)
+
+  function setReplyTo(messageId: string) {
+    setReplyStore(chatKey, messageId)
+  }
+
+  function clearReplyTo() {
+    clearReplyStore(chatKey)
+  }
 
   const { data } = useQuery({
     enabled: focused && Boolean(identity && peerPubkey),
@@ -186,6 +205,7 @@ export function useNostrChatThread(
     // the draft is restored if the send fails.
     setInput('')
     setSending(true)
+    clearReplyTo()
     // Prefer the warm pipeline (live relay connections) over a fresh API.
     const pipelineApi = getChatPipelineApi(identity.npub)
     const api =
@@ -196,10 +216,14 @@ export function useNostrChatThread(
         { npub: identity.npub, nsec: identity.nsec },
         protocol,
         peerNpub,
-        text
+        text,
+        replyToId
       )
     } catch (error) {
       setInput(text)
+      if (replyToId) {
+        setReplyTo(replyToId)
+      }
       invalidateChatQueries(identity.npub)
       setSending(false)
       if (!pipelineApi) {
@@ -214,5 +238,16 @@ export function useNostrChatThread(
     }
   }
 
-  return { input, items, loadOlder, loadingOlder, send, sending, setInput }
+  return {
+    clearReplyTo,
+    input,
+    items,
+    loadOlder,
+    loadingOlder,
+    replyToId,
+    send,
+    sending,
+    setInput,
+    setReplyTo
+  }
 }
