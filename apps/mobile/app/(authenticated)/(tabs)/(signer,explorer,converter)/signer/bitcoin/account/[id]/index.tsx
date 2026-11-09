@@ -530,6 +530,9 @@ function activityToolbarTitle({
   if (syncStatus === 'queued') {
     return t('account.sync.status.queued')
   }
+  if (syncStatus === 'timeout') {
+    return t('account.sync.status.timeout')
+  }
   return lastSyncedLabel(lastSyncedAt, nowMs)
 }
 

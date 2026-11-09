@@ -636,11 +636,15 @@ async function syncWithCoreWallet(
   )
   await coreWallet.ensureWallet()
 
+  // A job cancelled during the round trips above must not send descriptors
+  // or start a rescan on the node.
+  throwIfCancelled(isCancelled)
   const normalized = await coreWallet.normalizeDescriptors(
     ...toSinglePathDescriptors(
       ...getWalletPublicDescriptors(account, wallet, bdkNetwork)
     )
   )
+  throwIfCancelled(isCancelled)
   const needsRescan = await importDescriptorsIfNeeded(
     coreWallet,
     account,
@@ -648,6 +652,7 @@ async function syncWithCoreWallet(
     stopGap
   )
   if (needsRescan) {
+    throwIfCancelled(isCancelled)
     await rescanWallet(
       coreWallet,
       account,

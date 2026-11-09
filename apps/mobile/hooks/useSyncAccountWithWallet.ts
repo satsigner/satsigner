@@ -7,6 +7,7 @@ import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import BitcoinRpc from '@/api/rpc'
 import {
+  CORE_NODE_WAIT_HEARTBEAT_MS,
   SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,
   SYNC_PRICE_LOOKUP_TIMEOUT_MS
@@ -26,6 +27,7 @@ import {
   toRestoredSyncStatus
 } from '@/utils/accountSync'
 import {
+  runExclusiveOnCoreNode,
   trackAccountSyncWork,
   waitForAccountSyncWork,
   walletSyncQueue
@@ -370,21 +372,51 @@ async function runQueuedWalletSync(
   if (!latest || latest.network !== selectedNetwork) {
     return null
   }
-  return trackAccountSyncWork(
-    account.id,
-    syncWalletAccount({
-      config,
-      controls,
-      forceFullScan,
-      lastKnownBlockHeight,
-      latest,
-      server,
-      setLastKnownBlockHeight,
-      setSyncProgress,
-      setSyncStatus,
-      wallet
-    })
+  // The user turned automatic syncing off while this background job waited.
+  if (!controls.isPriority && config.connectionMode === 'manual') {
+    return null
+  }
+  return runOnCoreNodeExclusively(server, controls, () =>
+    trackAccountSyncWork(
+      account.id,
+      syncWalletAccount({
+        config,
+        controls,
+        forceFullScan,
+        lastKnownBlockHeight,
+        latest,
+        server,
+        setLastKnownBlockHeight,
+        setSyncProgress,
+        setSyncStatus,
+        wallet
+      })
+    )
   )
+}
+
+/**
+ * Bitcoin Core syncs to the same node run one at a time: accounts can share a
+ * Core wallet, and the rescan one starts would abort another's. Waiting
+ * behind another account's rescan is not a stall, so it keeps the job alive.
+ */
+function runOnCoreNodeExclusively(
+  server: Server,
+  controls: SyncTaskControls,
+  work: () => Promise<Account | null>
+): Promise<Account | null> {
+  if (server.backend !== 'rpc') {
+    return work()
+  }
+  const heartbeat = setInterval(
+    controls.reportProgress,
+    CORE_NODE_WAIT_HEARTBEAT_MS
+  )
+  controls.signal.addEventListener('abort', () => clearInterval(heartbeat))
+  return runExclusiveOnCoreNode(server.url, () => {
+    clearInterval(heartbeat)
+    return controls.signal.aborted ? Promise.resolve(null) : work()
+  })
 }
 
 type QueueWalletSyncParams = {
@@ -412,7 +444,6 @@ async function queueWalletSync({
     walletSyncQueue.cancel(account.id)
   }
   const isDuplicate = walletSyncQueue.isActive(account.id)
-  const { configs, selectedNetwork } = useBlockchainStore.getState()
 
   const outcome = await walletSyncQueue
     .enqueue(
@@ -422,7 +453,10 @@ async function queueWalletSync({
       {
         onQueued: () => writeSyncStatus(account.id, 'queued'),
         priority: isPriority,
-        timeoutMs: getSyncStallTimeoutMs(configs[selectedNetwork].server)
+        timeoutMs: () => {
+          const { configs, selectedNetwork } = useBlockchainStore.getState()
+          return getSyncStallTimeoutMs(configs[selectedNetwork].server)
+        }
       }
     )
     .then(
