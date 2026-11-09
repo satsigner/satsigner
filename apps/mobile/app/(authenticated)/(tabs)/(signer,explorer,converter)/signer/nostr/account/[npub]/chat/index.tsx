@@ -7,6 +7,7 @@ import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
@@ -14,6 +15,7 @@ import {
   useNostrChatProfiles,
   useNostrChatSubscription
 } from '@/hooks/useNostrChat'
+import { useNostrChatInboxFilter } from '@/hooks/useNostrChatInboxFilter'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -40,11 +42,17 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
     state.identities.find((i) => i.npub === npub)
   )
   const conversations = useNostrChatConversations(npub, protocol)
-  // Fetch kind 0 (name/picture) for every DM peer so conversations render
-  // with profiles instead of raw npubs.
+  const inbox = useNostrChatInboxFilter({
+    conversations,
+    identityNpub: npub,
+    identityRelays: identity?.relays,
+    protocol
+  })
+  // Fetch kind 0 (name/picture) for the listed DM peers so conversations
+  // render with profiles instead of raw npubs.
   useNostrChatProfiles(
     identity?.relays,
-    conversations.map((conversation) => conversation.peerNpub)
+    inbox.visibleConversations.map((conversation) => conversation.peerNpub)
   )
 
   function handleOpenPeer(peerNpub: string) {
@@ -69,8 +77,29 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
 
   return (
     <SSVStack gap="sm" style={styles.chatScene}>
+      {inbox.followsLoaded ? (
+        <SSPairedTabs
+          activeTab={inbox.filter}
+          primary={{
+            key: 'following',
+            label: t('nostrIdentity.chat.filter.following')
+          }}
+          secondary={{
+            key: 'others',
+            label: t('nostrIdentity.chat.filter.others', {
+              count: inbox.othersCount
+            })
+          }}
+          onChange={inbox.setFilter}
+        />
+      ) : null}
+      {inbox.followsUnavailable ? (
+        <SSText size="xs" color="muted" center>
+          {t('nostrIdentity.chat.filter.followsUnavailable')}
+        </SSText>
+      ) : null}
       <SSNostrConversationList
-        conversations={conversations}
+        conversations={inbox.visibleConversations}
         onOpenPeer={handleOpenPeer}
       />
       <SSButton

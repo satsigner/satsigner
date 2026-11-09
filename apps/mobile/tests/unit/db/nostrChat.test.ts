@@ -2,7 +2,8 @@ import { getDb } from '@/db/connection'
 import {
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
-  listChatThread
+  listChatThread,
+  listPeersWrittenTo
 } from '@/db/queries/nostrChat'
 
 import { mockQueryResult } from './queryResult'
@@ -131,6 +132,23 @@ describe('nostr chat queries', () => {
           status: 'pending'
         }
       ])
+    })
+  })
+
+  describe('listPeersWrittenTo', () => {
+    it('lists each peer with an outgoing message once', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([{ peer_pubkey: 'peer-1' }, { peer_pubkey: 'peer-2' }])
+      )
+
+      expect(listPeersWrittenTo('npub1me', 'nip17')).toStrictEqual([
+        'peer-1',
+        'peer-2'
+      ])
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining("direction = 'out'"),
+        ['npub1me', 'nip17']
+      )
     })
   })
 })

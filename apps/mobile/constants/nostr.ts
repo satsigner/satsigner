@@ -464,3 +464,5 @@ export const NOSTR_REPLY_MARKER = 'reply'
 export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
 export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
 export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND
+export const NOSTR_CHAT_POW_OFF = 0
+export const NOSTR_CHAT_POW_OPTIONS = [NOSTR_CHAT_POW_OFF, 8, 12, 16, 20, 24]

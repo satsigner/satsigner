@@ -1,4 +1,9 @@
-import { type NostrChatConversationItem } from '@/types/models/Nostr'
+import { type NostrChatFilter } from '@/store/nostrChatSettings'
+import {
+  type NostrChatConversationItem,
+  type NostrFetchResult,
+  type NostrFollowList
+} from '@/types/models/Nostr'
 
 type InboundMessageCheck = {
   /** Peer we already wrote to, so the thread is a conversation, not spam. */
@@ -58,5 +63,59 @@ function splitConversationsByFollows(
   }
 }
 
-export { isInboundMessageAllowed, splitConversationsByFollows }
+/**
+ * A failed fetch with nothing cached yields an empty list that would push
+ * every conversation into "others", so it counts as unknown instead.
+ */
+function getFollowedPubkeySet(
+  result: NostrFetchResult<NostrFollowList> | undefined
+): ReadonlySet<string> | null {
+  if (!result) {
+    return null
+  }
+  if (result.error && result.data.pubkeys.length === 0) {
+    return null
+  }
+  return new Set(result.data.pubkeys)
+}
+
+type InboxSelectionInput = {
+  conversations: NostrChatConversationItem[]
+  filter: NostrChatFilter
+  followedPubkeys: ReadonlySet<string> | null
+  ownPubkey: string | null
+  peersWrittenTo: ReadonlySet<string>
+}
+
+type InboxSelection = {
+  othersCount: number
+  visibleConversations: NostrChatConversationItem[]
+}
+
+function selectInboxConversations({
+  conversations,
+  filter,
+  followedPubkeys,
+  ownPubkey,
+  peersWrittenTo
+}: InboxSelectionInput): InboxSelection {
+  const { following, others } = splitConversationsByFollows(
+    conversations,
+    followedPubkeys,
+    ownPubkey,
+    peersWrittenTo
+  )
+  return {
+    othersCount: others.length,
+    visibleConversations:
+      followedPubkeys !== null && filter === 'others' ? others : following
+  }
+}
+
+export {
+  getFollowedPubkeySet,
+  isInboundMessageAllowed,
+  selectInboxConversations,
+  splitConversationsByFollows
+}
 export type { ConversationBuckets }

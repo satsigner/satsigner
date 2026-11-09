@@ -1,6 +1,8 @@
 import { type NostrChatConversationItem } from '@/types/models/Nostr'
 import {
+  getFollowedPubkeySet,
   isInboundMessageAllowed,
+  selectInboxConversations,
   splitConversationsByFollows
 } from '@/utils/nostrChatFilter'
 
@@ -82,5 +84,93 @@ describe('splitConversationsByFollows', () => {
     )
 
     expect(others).toHaveLength(4)
+  })
+})
+
+function followList(pubkeys: string[]) {
+  return {
+    connectedRelayCount: 1,
+    kind3Found: pubkeys.length > 0,
+    pubkeys,
+    relaysQueried: []
+  }
+}
+
+describe('getFollowedPubkeySet', () => {
+  it('is unknown before the follow list loads', () => {
+    expect(getFollowedPubkeySet(undefined)).toBeNull()
+  })
+
+  it('is unknown when the fetch failed with nothing cached', () => {
+    expect(
+      getFollowedPubkeySet({
+        data: followList([]),
+        error: 'timeout',
+        source: 'cache'
+      })
+    ).toBeNull()
+  })
+
+  it('uses the cached list when the fetch failed', () => {
+    expect(
+      getFollowedPubkeySet({
+        data: followList(['a']),
+        error: 'timeout',
+        source: 'cache'
+      })
+    ).toStrictEqual(new Set(['a']))
+  })
+
+  it('trusts an empty list the relays answered with', () => {
+    expect(
+      getFollowedPubkeySet({ data: followList([]), source: 'relay' })
+    ).toStrictEqual(new Set())
+  })
+})
+
+describe('selectInboxConversations', () => {
+  const conversations = ['followed', 'stranger-1', 'stranger-2'].map(
+    conversation
+  )
+  const base = {
+    conversations,
+    followedPubkeys: new Set(['followed']),
+    ownPubkey: null,
+    peersWrittenTo: new Set<string>()
+  }
+
+  it('shows people you follow on the following tab', () => {
+    const { othersCount, visibleConversations } = selectInboxConversations({
+      ...base,
+      filter: 'following'
+    })
+
+    expect(visibleConversations.map((item) => item.peerPubkey)).toStrictEqual([
+      'followed'
+    ])
+    expect(othersCount).toBe(2)
+  })
+
+  it('shows strangers on the others tab', () => {
+    const { visibleConversations } = selectInboxConversations({
+      ...base,
+      filter: 'others'
+    })
+
+    expect(visibleConversations.map((item) => item.peerPubkey)).toStrictEqual([
+      'stranger-1',
+      'stranger-2'
+    ])
+  })
+
+  it('shows everything on either tab when follows are unknown', () => {
+    const { othersCount, visibleConversations } = selectInboxConversations({
+      ...base,
+      filter: 'others',
+      followedPubkeys: null
+    })
+
+    expect(visibleConversations).toStrictEqual(conversations)
+    expect(othersCount).toBe(0)
   })
 })

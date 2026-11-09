@@ -159,6 +159,19 @@ function listChatReplies(
     .rows._array.map(rowToChatMessage)
 }
 
+function listPeersWrittenTo(
+  identityNpub: string,
+  protocol: NostrChatProtocol
+): string[] {
+  return getDb()
+    .execute<{ peer_pubkey: string }>(
+      `SELECT DISTINCT peer_pubkey FROM nostr_chat_messages
+        WHERE identity_npub = ? AND protocol = ? AND direction = 'out'`,
+      [identityNpub, protocol]
+    )
+    .rows._array.map((row) => row.peer_pubkey)
+}
+
 export {
   getChatMessage,
   getNewestSentChatMessageCreatedAt,
@@ -167,5 +180,6 @@ export {
   hasOutgoingChatMessage,
   listChatConversations,
   listChatReplies,
-  listChatThread
+  listChatThread,
+  listPeersWrittenTo
 }
