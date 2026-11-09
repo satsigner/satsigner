@@ -11,7 +11,7 @@ import {
   pinMatchesDuressDigest,
   preparePinMaterial
 } from '@/utils/pinKdf'
-import { applyPendingPinRekey, clearPinRekeyJournal } from '@/utils/pinRekey'
+import { applyPendingPinRekey, clearPinRekeyJournalFor } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 
 type PinChangeResult =
@@ -27,16 +27,20 @@ type PinChangeResult =
  * check applies the journal before it settles the re-key journal. Otherwise
  * the commit journal is dropped first, so it can never apply after the moved
  * secrets go back to the old PIN.
+ *
+ * A failed read throws instead: rolling back while the new digest may already
+ * be stored would lock the user out. Both journals stay for the next PIN
+ * check to settle.
  */
 async function settleFailedCommit(material: PinMaterial): Promise<boolean> {
   await applyPendingPinKdfCommit().catch(() => undefined)
-  const storedDigest = await getItem(PIN_KEY).catch(() => null)
+  const storedDigest = await getItem(PIN_KEY)
   if (storedDigest === material.digest) {
     setSessionPinDigest(material.digest)
-    await clearPinRekeyJournal().catch(() => undefined)
+    await clearPinRekeyJournalFor(material.digest).catch(() => undefined)
     return true
   }
-  const journaledDigest = await getPendingPinKdfCommitDigest().catch(() => null)
+  const journaledDigest = await getPendingPinKdfCommitDigest()
   if (journaledDigest === material.digest) {
     setSessionPinDigest(material.digest)
     return true
@@ -52,7 +56,7 @@ async function commitOrRollBack(material: PinMaterial): Promise<boolean> {
   } catch {
     return settleFailedCommit(material)
   }
-  await clearPinRekeyJournal().catch(() => undefined)
+  await clearPinRekeyJournalFor(material.digest).catch(() => undefined)
   return true
 }
 

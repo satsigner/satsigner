@@ -20,6 +20,7 @@ import type { Account, EncryptedKeySecret } from '@/types/models/Account'
 import { NetworkSchema } from '@/types/settings/blockchain'
 import { assertNever } from '@/utils/assertNever'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
+import { applyPendingPinKdfCommit } from '@/utils/pinKdf'
 
 const PinSecretSlotSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -205,6 +206,18 @@ function clearPinRekeyJournal(): Promise<void> {
   return deleteItem(PIN_REKEY_JOURNAL_KEY)
 }
 
+/**
+ * Clears the journal only when it records a move to `toDigest`. A journal
+ * left by an earlier change is the only way back for its secrets.
+ */
+async function clearPinRekeyJournalFor(toDigest: string): Promise<void> {
+  const journal = await readPinRekeyJournal()
+  if (journal?.toDigest !== toDigest) {
+    return
+  }
+  await clearPinRekeyJournal()
+}
+
 async function rollBackPinRekey(journal: PinRekeyJournal): Promise<void> {
   await moveSecrets(journal.slots, journal.toDigest, journal.fromDigest, 'skip')
   await clearPinRekeyJournal()
@@ -214,6 +227,7 @@ async function rollBackPinRekey(journal: PinRekeyJournal): Promise<void> {
  * Finishes a PIN change cut short by a crash. Once the new digest is
  * committed every secret already moved, so only the journal is left;
  * otherwise the moved secrets go back to the digest the stored PIN opens.
+ * A journaled digest commit counts as committed, so it is applied first.
  * Run before checking a PIN.
  */
 async function applyPendingPinRekey(): Promise<void> {
@@ -221,6 +235,7 @@ async function applyPendingPinRekey(): Promise<void> {
   if (!journal) {
     return
   }
+  await applyPendingPinKdfCommit()
   const committedDigest = await getItem(PIN_KEY)
   if (committedDigest === journal.toDigest) {
     await clearPinRekeyJournal()
@@ -253,6 +268,7 @@ async function rekeyPinSecrets(
 export {
   applyPendingPinRekey,
   clearPinRekeyJournal,
+  clearPinRekeyJournalFor,
   listPinSecretSlots,
   type PinSecretSlot,
   rekeyPinSecrets

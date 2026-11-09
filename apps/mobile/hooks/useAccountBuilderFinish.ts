@@ -7,26 +7,32 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { getPin } from '@/utils/pin'
 
+function getEncryptedSecret(
+  encryptedSecrets: Map<Key['index'], string>,
+  index: Key['index']
+) {
+  const secret = encryptedSecrets.get(index)
+  if (secret === undefined) {
+    throw new Error(`Key ${index} has no encrypted secret`)
+  }
+  return secret
+}
+
 function useAccountBuilderFinish() {
-  const [
-    getAccountData,
-    updateKeyFingerprint,
-    setKeyDerivationPath,
-    updateKeySecret
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.getAccountData,
-      state.updateKeyFingerprint,
-      state.setKeyDerivationPath,
-      state.updateKeySecret
-    ])
-  )
+  const [getAccountData, updateKeyFingerprint, setKeyDerivationPath] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.getAccountData,
+        state.updateKeyFingerprint,
+        state.setKeyDerivationPath
+      ])
+    )
   const addAccount = useAccountsStore((state) => state.addAccount)
   const [addAccountWallet, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
@@ -52,12 +58,10 @@ function useAccountBuilderFinish() {
       }
 
       const pin = await getPin()
+      const encryptedSecrets = new Map<Key['index'], string>()
 
       for (const key of account.keys) {
         const { iv } = account.keys[key.index]
-        // A retry after a failed finish finds the secret already encrypted
-        // by the first attempt; encrypting it again would store ciphertext of
-        // ciphertext that can never be read back as a key.
         const encryptedSecret =
           typeof key.secret === 'string'
             ? key.secret
@@ -89,16 +93,20 @@ function useAccountBuilderFinish() {
           setKeyDerivationPath(key.index, walletData.derivationPath)
         }
 
-        updateKeySecret(key.index, encryptedSecret)
+        encryptedSecrets.set(key.index, encryptedSecret)
       }
 
+      // The builder keeps the plaintext secrets, so a retry after a failed
+      // finish can still derive the wallet from them.
       const data = getAccountData()
       const accountWithEncryptedSecret = {
         ...data,
         id: account.id,
-        keys: data.keys.map((key, i) =>
-          i === 0 ? { ...key, creationType } : key
-        ),
+        keys: data.keys.map((key, i) => ({
+          ...key,
+          ...(i === 0 && { creationType }),
+          secret: getEncryptedSecret(encryptedSecrets, key.index)
+        })),
         policyType
       }
 

@@ -1,7 +1,11 @@
 import * as SecureStore from 'expo-secure-store'
 import { __store as secureStore } from 'expo-secure-store'
 
-import { PIN_KEY, PIN_REKEY_JOURNAL_KEY } from '@/config/auth'
+import {
+  PIN_KDF_COMMIT_KEY,
+  PIN_KEY,
+  PIN_REKEY_JOURNAL_KEY
+} from '@/config/auth'
 import {
   getKeySecret,
   getLndConfigSecret,
@@ -15,6 +19,7 @@ import type { Key } from '@/types/models/Account'
 import {
   applyPendingPinRekey,
   clearPinRekeyJournal,
+  clearPinRekeyJournalFor,
   listPinSecretSlots,
   type PinSecretSlot,
   rekeyPinSecrets
@@ -154,6 +159,38 @@ describe('pinRekey', () => {
     await applyPendingPinRekey()
 
     await expect(owners()).resolves.toStrictEqual([NEW, NEW, NEW])
+    expect(journalIsStored()).toBe(false)
+  })
+
+  it('applies a journaled digest commit before deciding to roll back', async () => {
+    await storeAllUnder(NEW)
+    await setItem(PIN_KEY, OLD)
+    await setItem(
+      PIN_KDF_COMMIT_KEY,
+      JSON.stringify({ digest: NEW, kdf: 'pbkdf2:i=600000' })
+    )
+    await setItem(
+      PIN_REKEY_JOURNAL_KEY,
+      JSON.stringify({ fromDigest: OLD, slots: SLOTS, toDigest: NEW })
+    )
+
+    await applyPendingPinRekey()
+
+    await expect(owners()).resolves.toStrictEqual([NEW, NEW, NEW])
+    expect(secureStore[`1_${PIN_KEY}`]).toBe(NEW)
+    expect(journalIsStored()).toBe(false)
+  })
+
+  it('only clears a journal that moved secrets to the given digest', async () => {
+    await setItem(
+      PIN_REKEY_JOURNAL_KEY,
+      JSON.stringify({ fromDigest: OLD, slots: SLOTS, toDigest: NEW })
+    )
+
+    await clearPinRekeyJournalFor(OLD)
+    expect(journalIsStored()).toBe(true)
+
+    await clearPinRekeyJournalFor(NEW)
     expect(journalIsStored()).toBe(false)
   })
 

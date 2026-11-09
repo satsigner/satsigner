@@ -13,7 +13,6 @@ import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { type EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
-import { clearPinRekeyJournal } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 
 /* oxlint-disable promise/prefer-await-to-callbacks -- QuickCrypto KDF APIs are callback-only */
@@ -518,7 +517,6 @@ export async function migratePinKdfIfNeeded(
 
   await reEncryptSecrets(oldDigest, newDigest)
   await persistPinDigestAndKdf(newDigest, currentConfig)
-  await clearPinRekeyJournal()
   return newDigest
 }
 
