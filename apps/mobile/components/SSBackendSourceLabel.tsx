@@ -13,7 +13,34 @@ type SSBackendSourceLabelProps = {
   mono?: boolean
 }
 
+type LiveBackendLabelProps = {
+  label: string
+  mono: boolean
+}
+
 const DOT_SIZE = 14
+
+function LiveBackendLabel({ label, mono }: LiveBackendLabelProps) {
+  const [status, , privacy, { isOnion }] = useVerifyConnection()
+
+  return (
+    <SSHStack gap="none" style={styles.row}>
+      <SSConnectionStatusIndicator
+        isOnion={isOnion}
+        privacy={privacy}
+        size={DOT_SIZE}
+        status={status}
+      />
+      <SSText
+        size="xxs"
+        type={mono ? 'mono' : undefined}
+        style={styles.backend}
+      >
+        {label}
+      </SSText>
+    </SSHStack>
+  )
+}
 
 /**
  * Names where explorer data came from. For the configured backend it shows
@@ -25,30 +52,19 @@ function SSBackendSourceLabel({
   isExternal = false,
   mono = false
 }: SSBackendSourceLabelProps) {
-  const [status, , privacy, { isOnion }] = useVerifyConnection()
-  const type = mono ? 'mono' : undefined
-
   if (isExternal) {
     return (
-      <SSText size="xxs" type={type} style={styles.external}>
+      <SSText
+        size="xxs"
+        type={mono ? 'mono' : undefined}
+        style={styles.external}
+      >
         {label}
       </SSText>
     )
   }
 
-  return (
-    <SSHStack gap="none" style={styles.row}>
-      <SSConnectionStatusIndicator
-        isOnion={isOnion}
-        privacy={privacy}
-        size={DOT_SIZE}
-        status={status}
-      />
-      <SSText size="xxs" type={type} style={styles.backend}>
-        {label}
-      </SSText>
-    </SSHStack>
-  )
+  return <LiveBackendLabel label={label} mono={mono} />
 }
 
 const styles = StyleSheet.create({

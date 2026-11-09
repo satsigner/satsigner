@@ -1,6 +1,6 @@
 import NetInfo from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
@@ -28,6 +28,19 @@ export type ConnectionVerifyStatus =
 const VERIFY_CONNECTION_QUERY_KEY = 'verifyConnection'
 
 const NETINFO_RECONNECT_DELAY_MS = 5000
+
+/**
+ * Last NetInfo reading, shared by every mounted indicator so a newly mounted
+ * one does not reset the shared status to checking. `null` until first read.
+ */
+const deviceConnectivity: { isConnected: boolean | null } = {
+  isConnected: null
+}
+
+async function readDeviceConnectivity() {
+  const state = await NetInfo.fetch()
+  deviceConnectivity.isConnected = state.isConnected
+}
 
 async function testServerConnection(
   server: Server,
@@ -64,9 +77,6 @@ function useVerifyConnection() {
 
   const { server, config } = configs[selectedNetwork]
 
-  /** `null` until first NetInfo read — avoids showing failed before we know online state */
-  const isConnectionAvailable = useRef<boolean | null>(null)
-
   const pollSuppressed = useSyncExternalStore(
     subscribeToConnectionPollSuppression,
     () => isConnectionPollSuppressed(selectedNetwork)
@@ -77,10 +87,10 @@ function useVerifyConnection() {
       enabled: config.connectionMode !== 'manual' && !pollSuppressed,
       gcTime: 0,
       queryFn: async () => {
-        if (isConnectionAvailable.current === null) {
+        if (deviceConnectivity.isConnected === null) {
           return 'checking'
         }
-        if (isConnectionAvailable.current === false) {
+        if (deviceConnectivity.isConnected === false) {
           return 'failed'
         }
         return await testServerConnection(server, config)
@@ -101,23 +111,22 @@ function useVerifyConnection() {
       refetchOnMount: 'always'
     })
 
+  // Every indicator runs these on mount; a refetch that cancels the one in
+  // flight would start one server test per indicator.
   useAsyncEffect(async () => {
     if (config.connectionMode === 'manual') {
       return
     }
 
-    const state = await NetInfo.fetch()
-    isConnectionAvailable.current =
-      state.isConnected === null ? null : state.isConnected
-    refetch()
+    await readDeviceConnectivity()
+    refetch({ cancelRefetch: false })
 
     return NetInfo.addEventListener((netInfoState) => {
-      const next =
-        netInfoState.isConnected === null ? null : netInfoState.isConnected
-      if (isConnectionAvailable.current === next) {
+      const next = netInfoState.isConnected
+      if (deviceConnectivity.isConnected === next) {
         return
       }
-      isConnectionAvailable.current = next
+      deviceConnectivity.isConnected = next
       if (next === true) {
         setTimeout(() => {
           refetch()
@@ -129,10 +138,8 @@ function useVerifyConnection() {
   }, [config.connectionMode, refetch])
 
   useAsyncEffect(async () => {
-    const state = await NetInfo.fetch()
-    isConnectionAvailable.current =
-      state.isConnected === null ? null : state.isConnected
-    refetch()
+    await readDeviceConnectivity()
+    refetch({ cancelRefetch: false })
   }, [server.url, refetch])
 
   const trimmedUrl = trimOnionAddress(server.url)
