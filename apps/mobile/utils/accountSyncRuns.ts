@@ -1,3 +1,5 @@
+import { withTimeout } from '@/utils/time'
+
 // One current run per account, shared across all sync hook instances. A newer
 // run of the same account, or a cancel, replaces or removes the entry; the
 // superseded run then drops its result at the next checkpoint instead of
@@ -61,17 +63,32 @@ function releaseSyncRun(accountId: string, runId: number) {
   }
 }
 
-/** Resolves once the work of an earlier run of the account has settled. */
-async function waitForAccountSyncWork(accountId: string): Promise<void> {
+/**
+ * Resolves true once the work of an earlier run of the account has settled,
+ * or false if it is still going after `timeoutMs`.
+ */
+async function waitForAccountSyncWork(
+  accountId: string,
+  timeoutMs: number
+): Promise<boolean> {
   const previous = inFlightWork.get(accountId)
   if (!previous) {
-    return
+    return true
   }
   try {
-    await previous
+    return await withTimeout(settles(previous), timeoutMs)
+  } catch {
+    return false
+  }
+}
+
+async function settles(work: Promise<unknown>): Promise<true> {
+  try {
+    await work
   } catch {
     // The earlier run reports its own failure.
   }
+  return true
 }
 
 async function trackAccountSyncWork<T>(

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -42,9 +42,14 @@ async function loadAccountWallet(account: Account): Promise<boolean> {
   }
 }
 
+function accountWalletQueryKey(id: Account['id'], loaded: boolean) {
+  return ['account-wallet', id, loaded ? 'loaded' : 'missing']
+}
+
 // Every screen of an account shares one load: several wallets opened on the
 // same database would race each other. The key follows whether the wallet is
-// loaded, so a wallet removed later (rescan) is loaded again.
+// loaded, so a wallet removed later (rescan) is loaded again. A failed load
+// stays stale, so the next screen to open or the app coming back retries it.
 const useGetAccountWallet = (id: Account['id']) => {
   const [wallet] = useWalletsStore(useShallow((state) => [state.wallets[id]]))
 
@@ -56,12 +61,20 @@ const useGetAccountWallet = (id: Account['id']) => {
     enabled: !wallet && canLoadAccountWallet(account),
     gcTime: 0,
     queryFn: () => (account ? loadAccountWallet(account) : false),
-    queryKey: ['account-wallet', id, wallet ? 'loaded' : 'missing'],
-    retry: false,
-    staleTime: Infinity
+    queryKey: accountWalletQueryKey(id, Boolean(wallet)),
+    retry: false
   })
 
   return wallet
 }
+
+/** Retries a failed wallet load, e.g. on pull-to-refresh. */
+function useAccountWalletReload(id: Account['id']) {
+  const queryClient = useQueryClient()
+  return () =>
+    queryClient.refetchQueries({ queryKey: accountWalletQueryKey(id, false) })
+}
+
+export { useAccountWalletReload }
 
 export default useGetAccountWallet

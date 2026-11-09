@@ -133,7 +133,9 @@ export default function InvoicePage() {
   // A settled or canceled invoice cannot change again, so polling stops.
   const shownAmount = shownInvoice?.amount ?? ''
   const shownStatus = shownInvoice?.status ?? 'open'
-  const pollingInvoice = shownInvoice?.status === 'open' ? shownInvoice : null
+  // An invoice without an r_hash cannot be looked up.
+  const pollingInvoice =
+    shownInvoice?.status === 'open' && shownInvoice.rHash ? shownInvoice : null
   useQuery({
     enabled: pollingInvoice !== null,
     queryFn: () =>

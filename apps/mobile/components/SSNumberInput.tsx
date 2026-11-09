@@ -25,14 +25,15 @@ type SSNumberInputProps = {
   ref?: React.Ref<TextInputInstance>
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function isNumberTextOutOfRange(
+function isNumberTextInvalid(
   text: string,
   pattern: RegExp,
   min: number,
-  max: number
+  max: number,
+  allowEmpty: boolean
 ): boolean {
   if (text === '') {
-    return false
+    return !allowEmpty
   }
   if (!pattern.test(text)) {
     return true
@@ -88,7 +89,15 @@ function SSNumberInput({
     setSyncedFrom({ focused, value })
     if (!focused && value !== localValue) {
       setLocalValue(value || '')
-      setInvalid(isNumberTextOutOfRange(value || '', NUMBER_REGEX, min, max))
+      setInvalid(
+        isNumberTextInvalid(
+          value || '',
+          NUMBER_REGEX,
+          min,
+          max,
+          allowValidEmpty
+        )
+      )
     }
   }
 
@@ -163,7 +172,9 @@ function SSNumberInput({
     if (!onValidate || parentText === localValue) {
       return
     }
-    onValidate(!isNumberTextOutOfRange(parentText, NUMBER_REGEX, min, max))
+    onValidate(
+      !isNumberTextInvalid(parentText, NUMBER_REGEX, min, max, allowValidEmpty)
+    )
   }
 
   function handleSubmitText() {

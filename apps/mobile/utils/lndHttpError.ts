@@ -1,4 +1,5 @@
 import { HttpStatusError } from '@/utils/errors'
+import { isRecord } from '@/utils/object'
 
 const LND_PERMISSION_STATUSES = new Set([401, 403])
 /** LND `makeRequest` messages start with `LND API error: <status>`. */
@@ -23,4 +24,18 @@ export function getLndErrorMessage(error: unknown): string {
     return error.message
   }
   return String(error)
+}
+
+/** True when an error body has the shape of LND's gRPC gateway errors. */
+export function isLndErrorBody(body: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(body)
+    return (
+      isRecord(parsed) &&
+      typeof parsed.code === 'number' &&
+      typeof parsed.message === 'string'
+    )
+  } catch {
+    return false
+  }
 }

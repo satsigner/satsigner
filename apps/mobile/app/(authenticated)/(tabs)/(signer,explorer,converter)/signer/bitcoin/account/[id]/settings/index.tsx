@@ -29,6 +29,7 @@ import {
   HEADER_CHROME_HIT_BOX,
   HEADER_CHROME_SETTINGS_ICON_SIZE
 } from '@/constants/headerChrome'
+import { SUPERSEDED_SYNC_WAIT_TIMEOUT_MS } from '@/constants/sync'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -179,7 +180,15 @@ export default function AccountSettings() {
     // A sync still writing to the wallet database would put the old history
     // back over the reset, so stop it and wait for it to let go first.
     cancelAccountSync(currentAccountId)
-    await waitForAccountSyncWork(currentAccountId)
+    const earlierSyncSettled = await waitForAccountSyncWork(
+      currentAccountId,
+      SUPERSEDED_SYNC_WAIT_TIMEOUT_MS
+    )
+    if (!earlierSyncSettled) {
+      toast.error(t('account.sync.earlierSyncStuck'))
+      closeSheet()
+      return
+    }
     const dbPath = dbPaths[currentAccountId]
     if (!dbPath) {
       // dbPath is only stored after the wallet was loaded with the new code.

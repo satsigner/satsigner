@@ -194,21 +194,24 @@ export function approveNip46Request(
     return Promise.resolve('skipped')
   }
   return answerOnce(requestId, async () => {
-    // Never persist a blanket permission for requests that must always be
-    // approved explicitly (decryption, sensitive sign_event kinds).
+    const sent = await respondToRequest(request.sessionId, {
+      ...request,
+      status: 'approved'
+    })
+    if (!sent) {
+      return false
+    }
+    // Persisted only once sent: a failed send leaves the request queued, and
+    // the user may still reject it. Never persist a blanket permission for
+    // requests that must always be approved explicitly (decryption,
+    // sensitive sign_event kinds).
     if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
       useNip46Store
         .getState()
         .updatePermission(request.sessionId, request.method, 'always_allow')
     }
-    const sent = await respondToRequest(request.sessionId, {
-      ...request,
-      status: 'approved'
-    })
-    if (sent) {
-      useNip46Store.getState().removePendingRequest(requestId)
-    }
-    return sent
+    useNip46Store.getState().removePendingRequest(requestId)
+    return true
   })
 }
 

@@ -79,6 +79,26 @@ describe('answering NIP-46 requests', () => {
     expect(pendingRequestIds()).toStrictEqual(['a'])
   })
 
+  it('does not always-allow a method whose approval was never sent', async () => {
+    useNip46Store.getState().addPendingRequest(pendingRequest('d'))
+    sendResponse.mockRejectedValueOnce(new Error('relay down'))
+
+    await expect(approveNip46Request('d', true)).resolves.toBe('failed')
+    expect(permissionFor('ping')).toBeUndefined()
+
+    await expect(rejectNip46Request('d', false)).resolves.toBe('sent')
+    expect(permissionFor('ping')).toBeUndefined()
+  })
+
+  it('always-allows a method once its approval was sent', async () => {
+    useNip46Store.getState().addPendingRequest(pendingRequest('e'))
+    sendResponse.mockResolvedValue(undefined)
+
+    await expect(approveNip46Request('e', true)).resolves.toBe('sent')
+
+    expect(permissionFor('ping')).toBe('always_allow')
+  })
+
   it('drops a rejected request even when its answer cannot be sent', async () => {
     useNip46Store.getState().addPendingRequest(pendingRequest('b'))
     sendResponse.mockRejectedValue(new Error('relay down'))

@@ -1,4 +1,4 @@
-import { HttpStatusError, RequestTimeoutError } from '@/utils/errors'
+import { LndApiError, RequestTimeoutError } from '@/utils/errors'
 import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
 import {
   isLndPayOutcomeUnknown,
@@ -76,18 +76,24 @@ describe('sendLndPayment', () => {
     await expect(outcomeOf(new Error('socket closed'))).resolves.toBe(true)
   })
 
-  it.each([502, 503, 504])(
-    'treats a %d from a gateway as an unknown outcome',
+  it.each([408, 500, 502, 503, 504, 520, 524])(
+    'treats a %d without an LND error body as an unknown outcome',
     async (status) => {
       await expect(
-        outcomeOf(new HttpStatusError(status, `LND API error: ${status}`))
+        outcomeOf(new LndApiError(status, `LND API error: ${status}`, false))
       ).resolves.toBe(true)
     }
   )
 
+  it('treats a refused request as a known failure', async () => {
+    await expect(
+      outcomeOf(new LndApiError(401, 'LND API error: 401', false))
+    ).resolves.toBe(false)
+  })
+
   it('treats an answer from LND as a known failure', async () => {
     await expect(
-      outcomeOf(new HttpStatusError(500, 'LND API error: 500'))
+      outcomeOf(new LndApiError(500, 'LND API error: 500', true))
     ).resolves.toBe(false)
     await expect(
       outcomeOf(new LndPaymentFailedError('no route'))

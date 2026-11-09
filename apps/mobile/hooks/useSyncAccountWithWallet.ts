@@ -7,7 +7,10 @@ import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import BitcoinRpc from '@/api/rpc'
-import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
+import {
+  SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
+  SYNC_CANCELLED_ERROR
+} from '@/constants/sync'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -364,9 +367,24 @@ function useSyncAccountWithWallet() {
     setLoading(true)
 
     // A superseded run may still be inside the native sync; never run two.
-    await waitForAccountSyncWork(latest.id)
+    // The wait is bounded so a sync stuck on a dead server cannot hold the
+    // priority slot, and with it every other account, forever.
+    const earlierSyncSettled = await waitForAccountSyncWork(
+      latest.id,
+      SUPERSEDED_SYNC_WAIT_TIMEOUT_MS
+    )
     if (!isSyncRunCurrent(latest.id, runId)) {
       releaseSyncRun(latest.id, runId)
+      setLoading(false)
+      return null
+    }
+    if (!earlierSyncSettled) {
+      releaseSyncRun(latest.id, runId)
+      settleCancelledSync(latest, setSyncStatus)
+      reportError(
+        latest.name ?? latest.id,
+        new Error(t('account.sync.earlierSyncStuck'))
+      )
       setLoading(false)
       return null
     }

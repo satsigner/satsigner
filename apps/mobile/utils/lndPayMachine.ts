@@ -1,6 +1,10 @@
-import { HTTP_STATUS } from '@/constants/http'
+import {
+  HTTP_CLIENT_ERROR_RANGE_START,
+  HTTP_SERVER_ERROR_RANGE_START,
+  HTTP_STATUS
+} from '@/constants/http'
 import { assertNever } from '@/utils/assertNever'
-import { HttpStatusError } from '@/utils/errors'
+import { HttpStatusError, LndApiError } from '@/utils/errors'
 import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
 
 type LndPayRail = 'lightning' | 'onchain'
@@ -51,18 +55,26 @@ function transitionLndPaySend(
   }
 }
 
-// A proxy in front of LND answers these while LND itself may still pay.
-const GATEWAY_STATUSES = new Set<number>([
-  HTTP_STATUS.BAD_GATEWAY,
-  HTTP_STATUS.SERVICE_UNAVAILABLE,
-  HTTP_STATUS.GATEWAY_TIMEOUT
-])
+// A request refused with a client error never reached the payment, except a
+// timeout, which a proxy can send while LND keeps going.
+function isRefusedRequest(status: number): boolean {
+  return (
+    status >= HTTP_CLIENT_ERROR_RANGE_START &&
+    status < HTTP_SERVER_ERROR_RANGE_START &&
+    status !== HTTP_STATUS.REQUEST_TIMEOUT
+  )
+}
 
+// Any other status may come from a proxy (500, 502-504, Cloudflare's 52x)
+// after LND already paid or broadcast, so only LND's own error body is final.
 function isAnswerFromLnd(error: unknown): boolean {
   if (error instanceof LndPaymentFailedError) {
     return true
   }
-  return error instanceof HttpStatusError && !GATEWAY_STATUSES.has(error.status)
+  if (error instanceof LndApiError && error.fromLnd) {
+    return true
+  }
+  return error instanceof HttpStatusError && isRefusedRequest(error.status)
 }
 
 /** The payment request left, but no answer says whether it paid. */

@@ -1,5 +1,9 @@
 import { HttpStatusError } from '@/utils/errors'
-import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
+import {
+  getLndErrorMessage,
+  isLndErrorBody,
+  isLndPermissionError
+} from '@/utils/lndHttpError'
 
 describe('lndHttpError', () => {
   describe('isLndPermissionError', () => {
@@ -55,4 +59,19 @@ describe('lndHttpError', () => {
       expect(getLndErrorMessage('plain')).toBe('plain')
     })
   })
+})
+
+describe('isLndErrorBody', () => {
+  it('recognises the gRPC gateway error LND sends', () => {
+    expect(
+      isLndErrorBody('{"code":2,"message":"insufficient funds","details":[]}')
+    ).toBe(true)
+  })
+
+  it.each(['<html>502 Bad Gateway</html>', '', '{"error":"upstream"}'])(
+    'rejects a body a proxy could send: %s',
+    (body) => {
+      expect(isLndErrorBody(body)).toBe(false)
+    }
+  )
 })

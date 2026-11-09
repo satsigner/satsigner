@@ -160,11 +160,13 @@ export default function Confirm() {
     }
   }
 
+  // Multisig goes back to the key's word grid, which still needs the
+  // mnemonic; only leaving the flow clears it.
   function handleOnPressCancel() {
-    useAccountBuilderStore.getState().clearKeyState()
     if (policyType === 'multisig') {
       router.dismiss(Number(index) + 1)
     } else if (policyType === 'singlesig') {
+      useAccountBuilderStore.getState().clearKeyState()
       router.replace('/')
     }
   }
