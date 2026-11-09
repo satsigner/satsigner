@@ -5,6 +5,7 @@ import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 import { type ServerPrivacy } from '@/utils/serverPrivacy'
+import { serverStatusDotColor } from '@/utils/serverStatusDisplay'
 
 type Props = {
   isOnion?: boolean
@@ -17,20 +18,6 @@ const DOT_NUDGE_UP = 1
 const TOR_ICON_RATIO = 0.5
 const TOR_ICON_OVERLAP_RATIO = 0.2
 
-const PRIVACY_COLORS: Record<ServerPrivacy, { live: string; muted: string }> = {
-  node: { live: Colors.serverNode, muted: Colors.serverNodeMuted },
-  private: { live: Colors.serverPrivate, muted: Colors.serverPrivateMuted },
-  public: { live: Colors.serverPublic, muted: Colors.serverPublicMuted }
-}
-
-function statusColor(status: ConnectionVerifyStatus, privacy: ServerPrivacy) {
-  if (status === 'failed') {
-    return Colors.softBarRed
-  }
-  const colors = PRIVACY_COLORS[privacy]
-  return status === 'connected' ? colors.live : colors.muted
-}
-
 export default function SSConnectionStatusIndicator({
   isOnion = false,
   privacy,
@@ -41,7 +28,7 @@ export default function SSConnectionStatusIndicator({
   return (
     <SSHStack gap="none" style={{ marginTop: -DOT_NUDGE_UP }}>
       <SSIconStatusDot
-        color={statusColor(status, privacy)}
+        color={serverStatusDotColor(status, privacy)}
         height={size}
         width={size}
       />
@@ -57,5 +44,3 @@ export default function SSConnectionStatusIndicator({
     </SSHStack>
   )
 }
-
-export { statusColor }
