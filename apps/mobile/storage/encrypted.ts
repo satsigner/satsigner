@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 
 import type { EncryptedKeySecret } from '@/types/models/Account'
+import { isRecord } from '@/utils/object'
 
 const VERSION = '1'
 const KEY_SECRET_PREFIX = 'key_secret'
@@ -15,6 +16,7 @@ const LND_CONFIG_SECRET_PREFIX = 'lnd_config_secret'
 const LND_CONFIG_IV_PREFIX = 'lnd_config_iv'
 const RPC_CREDENTIALS_SECRET_PREFIX = 'rpc_credentials_secret'
 const RPC_CREDENTIALS_IV_PREFIX = 'rpc_credentials_iv'
+const PAIR_SUFFIX = 'pair'
 
 /**
  * Store an item in the SharedPreferences (android) or Keychain (iOS)
@@ -40,6 +42,66 @@ function deleteItem(key: string): Promise<void> {
   return SecureStore.deleteItemAsync(vKey)
 }
 
+function parseEncryptedPair(raw: string): EncryptedKeySecret | null {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!isRecord(parsed)) {
+      return null
+    }
+    const { iv, secret } = parsed
+    if (typeof iv !== 'string' || typeof secret !== 'string') {
+      return null
+    }
+    return iv && secret ? { iv, secret } : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Writes a ciphertext and its IV as one item, so an interrupted write cannot
+ * leave a ciphertext next to the IV of an older one. Items written before
+ * this kept them apart; those are removed once the pair has landed.
+ */
+async function storeEncryptedPair(
+  secretKey: string,
+  ivKey: string,
+  value: EncryptedKeySecret
+): Promise<void> {
+  await setItem(
+    `${secretKey}.${PAIR_SUFFIX}`,
+    JSON.stringify({ iv: value.iv, secret: value.secret })
+  )
+  await deleteItem(secretKey)
+  await deleteItem(ivKey)
+}
+
+async function getEncryptedPair(
+  secretKey: string,
+  ivKey: string
+): Promise<EncryptedKeySecret | null> {
+  const raw = await getItem(`${secretKey}.${PAIR_SUFFIX}`)
+  const pair = raw ? parseEncryptedPair(raw) : null
+  if (pair) {
+    return pair
+  }
+  const secret = await getItem(secretKey)
+  const iv = await getItem(ivKey)
+  if (!secret || !iv) {
+    return null
+  }
+  return { iv, secret }
+}
+
+async function deleteEncryptedPair(
+  secretKey: string,
+  ivKey: string
+): Promise<void> {
+  await deleteItem(`${secretKey}.${PAIR_SUFFIX}`)
+  await deleteItem(secretKey)
+  await deleteItem(ivKey)
+}
+
 function getStoreKeyForKeySecret(accountId: string, keyIndex: number) {
   return `${KEY_SECRET_PREFIX}.${accountId}.${keyIndex}`
 }
@@ -54,25 +116,28 @@ async function storeKeySecret(
   secret: string,
   iv: string
 ) {
-  await setItem(getStoreKeyForKeySecret(accountId, keyIndex), secret)
-  await setItem(getStoreKeyForKeyIv(accountId, keyIndex), iv)
+  await storeEncryptedPair(
+    getStoreKeyForKeySecret(accountId, keyIndex),
+    getStoreKeyForKeyIv(accountId, keyIndex),
+    { iv, secret }
+  )
 }
 
-async function getKeySecret(
+function getKeySecret(
   accountId: string,
   keyIndex: number
 ): Promise<EncryptedKeySecret | null> {
-  const secret = await getItem(getStoreKeyForKeySecret(accountId, keyIndex))
-  const iv = await getItem(getStoreKeyForKeyIv(accountId, keyIndex))
-  if (!secret || !iv) {
-    return null
-  }
-  return { iv, secret }
+  return getEncryptedPair(
+    getStoreKeyForKeySecret(accountId, keyIndex),
+    getStoreKeyForKeyIv(accountId, keyIndex)
+  )
 }
 
 async function deleteKeySecret(accountId: string, keyIndex: number) {
-  await deleteItem(getStoreKeyForKeySecret(accountId, keyIndex))
-  await deleteItem(getStoreKeyForKeyIv(accountId, keyIndex))
+  await deleteEncryptedPair(
+    getStoreKeyForKeySecret(accountId, keyIndex),
+    getStoreKeyForKeyIv(accountId, keyIndex)
+  )
 }
 
 async function deleteAllKeySecrets(accountId: string, keyCount: number) {
@@ -116,24 +181,27 @@ async function storeNostrIdentitySecret(
   secret: string,
   iv: string
 ): Promise<void> {
-  await setItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`, secret)
-  await setItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`, iv)
+  await storeEncryptedPair(
+    `${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`,
+    `${NOSTR_IDENTITY_IV_PREFIX}.${npub}`,
+    { iv, secret }
+  )
 }
 
-async function getNostrIdentitySecret(
+function getNostrIdentitySecret(
   npub: string
 ): Promise<EncryptedKeySecret | null> {
-  const secret = await getItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`)
-  const iv = await getItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`)
-  if (!secret || !iv) {
-    return null
-  }
-  return { iv, secret }
+  return getEncryptedPair(
+    `${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`,
+    `${NOSTR_IDENTITY_IV_PREFIX}.${npub}`
+  )
 }
 
-async function deleteNostrIdentitySecret(npub: string): Promise<void> {
-  await deleteItem(`${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`)
-  await deleteItem(`${NOSTR_IDENTITY_IV_PREFIX}.${npub}`)
+function deleteNostrIdentitySecret(npub: string): Promise<void> {
+  return deleteEncryptedPair(
+    `${NOSTR_IDENTITY_SECRET_PREFIX}.${npub}`,
+    `${NOSTR_IDENTITY_IV_PREFIX}.${npub}`
+  )
 }
 
 async function storeNostrAccountSecret(
@@ -141,43 +209,42 @@ async function storeNostrAccountSecret(
   secret: string,
   iv: string
 ): Promise<void> {
-  await setItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`, secret)
-  await setItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`, iv)
+  await storeEncryptedPair(
+    `${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`,
+    `${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`,
+    { iv, secret }
+  )
 }
 
-async function getNostrAccountSecret(
+function getNostrAccountSecret(
   accountId: string
 ): Promise<EncryptedKeySecret | null> {
-  const secret = await getItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`)
-  const iv = await getItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`)
-  if (!secret || !iv) {
-    return null
-  }
-  return { iv, secret }
+  return getEncryptedPair(
+    `${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`,
+    `${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`
+  )
 }
 
-async function deleteNostrAccountSecret(accountId: string): Promise<void> {
-  await deleteItem(`${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`)
-  await deleteItem(`${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`)
+function deleteNostrAccountSecret(accountId: string): Promise<void> {
+  return deleteEncryptedPair(
+    `${NOSTR_ACCOUNT_SECRET_PREFIX}.${accountId}`,
+    `${NOSTR_ACCOUNT_IV_PREFIX}.${accountId}`
+  )
 }
 
 async function storeLndConfigSecret(secret: string, iv: string): Promise<void> {
-  await setItem(LND_CONFIG_SECRET_PREFIX, secret)
-  await setItem(LND_CONFIG_IV_PREFIX, iv)
+  await storeEncryptedPair(LND_CONFIG_SECRET_PREFIX, LND_CONFIG_IV_PREFIX, {
+    iv,
+    secret
+  })
 }
 
-async function getLndConfigSecret(): Promise<EncryptedKeySecret | null> {
-  const secret = await getItem(LND_CONFIG_SECRET_PREFIX)
-  const iv = await getItem(LND_CONFIG_IV_PREFIX)
-  if (!secret || !iv) {
-    return null
-  }
-  return { iv, secret }
+function getLndConfigSecret(): Promise<EncryptedKeySecret | null> {
+  return getEncryptedPair(LND_CONFIG_SECRET_PREFIX, LND_CONFIG_IV_PREFIX)
 }
 
-async function deleteLndConfigSecret(): Promise<void> {
-  await deleteItem(LND_CONFIG_SECRET_PREFIX)
-  await deleteItem(LND_CONFIG_IV_PREFIX)
+function deleteLndConfigSecret(): Promise<void> {
+  return deleteEncryptedPair(LND_CONFIG_SECRET_PREFIX, LND_CONFIG_IV_PREFIX)
 }
 
 async function storeRpcCredentialsSecret(
@@ -185,24 +252,27 @@ async function storeRpcCredentialsSecret(
   secret: string,
   iv: string
 ): Promise<void> {
-  await setItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`, secret)
-  await setItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`, iv)
+  await storeEncryptedPair(
+    `${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`,
+    `${RPC_CREDENTIALS_IV_PREFIX}.${network}`,
+    { iv, secret }
+  )
 }
 
-async function getRpcCredentialsSecret(
+function getRpcCredentialsSecret(
   network: string
 ): Promise<EncryptedKeySecret | null> {
-  const secret = await getItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`)
-  const iv = await getItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`)
-  if (!secret || !iv) {
-    return null
-  }
-  return { iv, secret }
+  return getEncryptedPair(
+    `${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`,
+    `${RPC_CREDENTIALS_IV_PREFIX}.${network}`
+  )
 }
 
-async function deleteRpcCredentialsSecret(network: string): Promise<void> {
-  await deleteItem(`${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`)
-  await deleteItem(`${RPC_CREDENTIALS_IV_PREFIX}.${network}`)
+function deleteRpcCredentialsSecret(network: string): Promise<void> {
+  return deleteEncryptedPair(
+    `${RPC_CREDENTIALS_SECRET_PREFIX}.${network}`,
+    `${RPC_CREDENTIALS_IV_PREFIX}.${network}`
+  )
 }
 
 export {

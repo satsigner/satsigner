@@ -94,13 +94,14 @@ export type EcashReceiveResult = {
   memo?: string
 }
 
-export type EcashMeltResult = {
-  paid: boolean
-  preimage?: string
-  change?: EcashProof[]
-  keep?: EcashProof[]
-  spentProofs?: EcashProof[]
-}
+export type EcashMeltResult =
+  | {
+      status: 'paid'
+      keep: EcashProof[]
+      change: EcashProof[]
+      preimage?: string
+    }
+  | { status: 'pending' | 'unpaid'; keep: EcashProof[]; send: EcashProof[] }
 
 export type EcashTokenValidation = {
   isValid: boolean
@@ -127,12 +128,14 @@ export type EcashTransaction = {
   invoice?: string // For melt transactions
   quoteId?: string // For mint/melt transactions
   expiry?: number // Expiration timestamp for mint/melt transactions
+  reservedProofs?: EcashProof[] // In flight while a melt is pending
 }
 
 export type EcashAccountStore = {
   getMints: () => EcashMint[]
   getProofs: () => EcashProof[]
   getCounters: () => EcashKeysetCounter[]
+  getSentTokens: () => string[]
   addMint: (mint: EcashMint) => void
   addProofs: (proofs: EcashProof[]) => void
   updateMintBalance: (mintUrl: string, balance: number) => void
@@ -140,5 +143,12 @@ export type EcashAccountStore = {
 }
 
 export type EcashPaymentFailure =
-  | { reason: 'insufficientProofs' | 'insufficientForFees' | 'mintsLackMpp' }
+  | {
+      reason:
+        | 'insufficientProofs'
+        | 'insufficientForFees'
+        | 'meltPending'
+        | 'meltUnpaid'
+        | 'mintsLackMpp'
+    }
   | { reason: 'mppPartialPayment'; settled: number; total: number }

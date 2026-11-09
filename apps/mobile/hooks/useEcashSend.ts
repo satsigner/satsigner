@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getLargestMintBalance, getMintBalance } from '@/api/ecash'
@@ -8,7 +8,8 @@ import { useEcash } from '@/hooks/useEcash'
 import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
-import { useZapFlowStore } from '@/store/zapFlow'
+import { isPendingMeltError } from '@/services/ecash/lightningPayment'
+import { useZapFlowStore, type ZapOutcome } from '@/store/zapFlow'
 import { type EcashMint } from '@/types/models/Ecash'
 import type {
   LNDDecodedInvoice,
@@ -39,6 +40,7 @@ export function useEcashSend() {
   const [memo, setMemo] = useState('')
   const [comment, setComment] = useState('')
   const [invoice, setInvoice] = useState('')
+  const resolveRequestId = useRef(0)
   const [generatedTokenV4, setGeneratedTokenV4] = useState('')
   const [generatedTokenV3, setGeneratedTokenV3] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -191,13 +193,19 @@ export function useEcashSend() {
     setInvoice('')
     setAmount('')
     toast.success(t('ecash.success.tokensMelted'))
-    const { pendingZap, setZapResult } = useZapFlowStore.getState()
-    if (pendingZap) {
-      setZapResult('success')
+    leaveSendScreen(bolt11Invoice, 'success')
+  }
+
+  // A zap returns to the note it came from; any other payment to the wallet.
+  function leaveSendScreen(paidInvoice: string, outcome: ZapOutcome) {
+    const isZap = useZapFlowStore
+      .getState()
+      .reportZapOutcome(paidInvoice, outcome)
+    if (isZap) {
       router.back()
-    } else {
-      router.navigate('/signer/ecash')
+      return
     }
+    router.navigate('/signer/ecash')
   }
 
   async function resolveBolt11Invoice(): Promise<string | null> {
@@ -231,7 +239,22 @@ export function useEcashSend() {
     return invoice
   }
 
+  // A pending melt may still pay: the form is cleared and left, so a second
+  // tap cannot pay the same invoice (or a fresh LNURL one) again.
+  function finishPendingMelt(message: string) {
+    const pendingInvoice = invoice
+    setInvoice('')
+    setAmount('')
+    setStatusMessage(message)
+    toast.info(message)
+    leaveSendScreen(pendingInvoice, 'pending')
+  }
+
   function handleMeltError(error: unknown) {
+    if (isPendingMeltError(error)) {
+      finishPendingMelt(error instanceof Error ? error.message : '')
+      return
+    }
     if (!(error instanceof Error)) {
       setStatusMessage(`Error: ${t('ecash.error.unknownError')}`)
       toast.error(t('ecash.error.lnurlPaymentFailed'))
@@ -267,10 +290,16 @@ export function useEcashSend() {
     }
   }
 
+  // Each edit starts a new resolution; a slower answer for older text must
+  // not set the amount or details the payment and its MPP split then use.
   async function handleInvoiceChange(text: string) {
+    resolveRequestId.current += 1
+    const requestId = resolveRequestId.current
+    const isCurrentRequest = () => requestId === resolveRequestId.current
     setInvoice(text)
     setDecodedInvoice(null)
     setLNURLDetails(null)
+    setIsFetchingLNURL(false)
 
     const cleanText = text.trim()
     if (!cleanText) {
@@ -284,16 +313,10 @@ export function useEcashSend() {
       try {
         const url = decodeLNURL(cleanText)
         const details = await fetchLNURLPayDetails(url)
-        setLNURLDetails(details)
-        if (details.minSendable) {
-          setAmount(
-            Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString()
-          )
-        }
+        applyLnurlDetails(details, isCurrentRequest)
       } catch {
-        setLNURLDetails(null)
+        applyLnurlDetails(null, isCurrentRequest)
       }
-      setIsFetchingLNURL(false)
       return
     }
 
@@ -325,14 +348,41 @@ export function useEcashSend() {
         const lndDecoded = await makeRequest<LNDDecodedInvoice>(
           `/v1/payreq/${cleanText}`
         )
-        setDecodedInvoice(lndDecoded)
-        if (lndDecoded.num_satoshis) {
-          setAmount(lndDecoded.num_satoshis)
-        }
+        applyDecodedInvoice(lndDecoded, isCurrentRequest)
       } catch {
-        setDecodedInvoice(null)
-        toast.warning(t('ecash.error.invoiceDecodeFailed'))
+        applyDecodedInvoice(null, isCurrentRequest)
       }
+    }
+  }
+
+  function applyLnurlDetails(
+    details: LNURLPayResponse | null,
+    isCurrentRequest: () => boolean
+  ) {
+    if (!isCurrentRequest()) {
+      return
+    }
+    setLNURLDetails(details)
+    setIsFetchingLNURL(false)
+    if (details?.minSendable) {
+      setAmount(Math.ceil(details.minSendable / MILLISATS_PER_SAT).toString())
+    }
+  }
+
+  function applyDecodedInvoice(
+    decoded: LNDDecodedInvoice | null,
+    isCurrentRequest: () => boolean
+  ) {
+    if (!isCurrentRequest()) {
+      return
+    }
+    setDecodedInvoice(decoded)
+    if (!decoded) {
+      toast.warning(t('ecash.error.invoiceDecodeFailed'))
+      return
+    }
+    if (decoded.num_satoshis) {
+      setAmount(decoded.num_satoshis)
     }
   }
 

@@ -26,6 +26,7 @@ import type {
   LNDRequest,
   LNDRequestOptions
 } from '@/types/models/Lightning'
+import { HttpStatusError } from '@/utils/errors'
 import { parseLndChannelPoint } from '@/utils/lndChannelDetail'
 import { buildNewAddressPath } from '@/utils/lndOnchainWallet'
 import {
@@ -87,16 +88,21 @@ export const useLND = () => {
     } = options
     setConnecting(true)
 
-    return await requestLndRestJson<T>(
-      config,
-      endpoint,
-      { body, headers, method },
-      () => {
-        if (disconnectOnError) {
+    // A node that answers with an HTTP error (a business error, or a 403 from
+    // a restricted macaroon) is still connected; only a request that never
+    // reached it says the node is unreachable.
+    return await requestLndRestJson<T>(config, endpoint, {
+      body,
+      headers,
+      method
+    })
+      .catch((error: unknown) => {
+        if (disconnectOnError && !(error instanceof HttpStatusError)) {
           setConnected(false)
         }
-      }
-    ).finally(() => setConnecting(false))
+        throw error
+      })
+      .finally(() => setConnecting(false))
   }
 
   const getBalance = (): Promise<LNDBlockchainBalanceResponse> =>
@@ -225,10 +231,10 @@ export const useLND = () => {
     }
   }
 
+  // Checked at once on launch: the stored connected flag is from the last
+  // session and says nothing about whether the node is reachable now.
   useQuery({
     enabled: Boolean(config),
-    initialData: false,
-    initialDataUpdatedAt: () => Date.now(),
     queryFn: verifyConnection,
     queryKey: ['lnd', 'health', config?.url],
     refetchInterval: HEALTH_CHECK_INTERVAL_MS,

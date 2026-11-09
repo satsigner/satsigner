@@ -14,7 +14,7 @@ import {
   type RpcCredentials,
   RpcCredentialsSchema
 } from '@/types/settings/blockchain'
-import { aesDecrypt, aesEncrypt, aesReEncrypt, randomIv } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 import { withFallback } from '@/utils/schema'
 
@@ -195,39 +195,6 @@ async function migrateAndHydrateServiceSecrets(): Promise<void> {
   }
 }
 
-/**
- * PIN change step: moves the stored LND and RPC secrets to the new PIN digest.
- * Records are re-encrypted as stored, so their content can never make a PIN
- * change stop halfway.
- */
-async function reEncryptServiceSecrets(
-  oldPinEncrypted: string,
-  newPinEncrypted: string
-): Promise<void> {
-  const lndStored = await getLndConfigSecret()
-  if (lndStored) {
-    const { iv, secret } = await aesReEncrypt(
-      lndStored,
-      oldPinEncrypted,
-      newPinEncrypted
-    )
-    await storeLndConfigSecret(secret, iv)
-  }
-
-  for (const network of BLOCKCHAIN_NETWORKS) {
-    const stored = await getRpcCredentialsSecret(network)
-    if (!stored) {
-      continue
-    }
-    const { iv, secret } = await aesReEncrypt(
-      stored,
-      oldPinEncrypted,
-      newPinEncrypted
-    )
-    await storeRpcCredentialsSecret(network, secret, iv)
-  }
-}
-
 export {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe,
@@ -236,6 +203,5 @@ export {
   migrateAndHydrateServiceSecrets,
   persistLndSecretsSafe,
   persistRpcCredentialsSafe,
-  reEncryptServiceSecrets,
   stripLndSecrets
 }

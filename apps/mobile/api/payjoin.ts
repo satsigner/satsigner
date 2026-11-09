@@ -877,6 +877,16 @@ async function pollBip77Send(params: {
     return { kind: 'fallback', originalPsbtBase64, reason }
   }
 
+  // A proposal that cannot be used ends the negotiation: the session must
+  // not stay 'negotiating' and be polled again on the next visit.
+  function fallbackRejectedProposal(reason: string): Bip77AsyncSendResult {
+    params.deps.sessions.updateSessionStatus(params.session.id, 'fallback', {
+      error: reason,
+      nativeState: undefined
+    })
+    return { kind: 'fallback', originalPsbtBase64, reason }
+  }
+
   payjoinLog('sender resume poll', {
     mailbox,
     sessionId: params.session.id,
@@ -938,11 +948,9 @@ async function pollBip77Send(params: {
             })
             return { kind: 'proposal', result }
           }
-          return {
-            kind: 'fallback',
-            originalPsbtBase64,
-            reason: result.ok ? result.reason : result.error
-          }
+          return fallbackRejectedProposal(
+            result.ok ? result.reason : result.error
+          )
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'finalize proposal failed'
@@ -951,11 +959,7 @@ async function pollBip77Send(params: {
             mailbox,
             polls
           })
-          return {
-            kind: 'fallback',
-            originalPsbtBase64,
-            reason: message
-          }
+          return fallbackRejectedProposal(message)
         }
       }
       if (processed.kind === 'error') {

@@ -19,6 +19,7 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
+  failInterruptedChatSends,
   insertChatMessage,
   markChatThreadRead,
   updateChatMessageStatus
@@ -685,7 +686,20 @@ async function announceDmInboxRelays(pipeline: ChatPipeline): Promise<void> {
  * a pause or a close bumps the generation, so a slow superseded start closes
  * only its own subscriptions.
  */
+// Identities whose interrupted sends were already settled in this process;
+// later pipeline restarts must not fail a send that is running right now.
+const identitiesWithSettledSends = new Set<string>()
+
+function settleInterruptedSendsOnce(identityNpub: string) {
+  if (identitiesWithSettledSends.has(identityNpub)) {
+    return
+  }
+  identitiesWithSettledSends.add(identityNpub)
+  failInterruptedChatSends(identityNpub)
+}
+
 async function startChatPipeline(pipeline: ChatPipeline): Promise<void> {
+  settleInterruptedSendsOnce(pipeline.identity.npub)
   pipeline.generation += 1
   const { generation } = pipeline
   pipeline.api.closeAllSubscriptions()

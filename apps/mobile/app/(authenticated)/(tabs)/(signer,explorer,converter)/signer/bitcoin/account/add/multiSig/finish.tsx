@@ -65,8 +65,9 @@ export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const { accountBuilderFinish } = useAccountBuilderFinish()
-  // Creation writes encrypted secrets back into the builder, so Retry must
-  // start again from the keys as they were when this screen opened.
+  // Creation writes fingerprints and derivation paths back into the builder,
+  // so Retry must start again from the keys as they were when this screen
+  // opened.
   const [account] = useState(getAccountData)
 
   const [status, setStatus] = useState<CreationStatus>('creating')

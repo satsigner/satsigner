@@ -9,6 +9,7 @@ import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 import { emptyPin, getPin } from '@/utils/pin'
+import { toPinAttempts } from '@/utils/pinAttempts'
 import {
   applyPendingPinKdfCommit,
   derivePinDigest,
@@ -16,13 +17,17 @@ import {
   pinMatchesDuressDigest,
   safeEqualHex
 } from '@/utils/pinKdf'
+import { applyPendingPinRekey } from '@/utils/pinRekey'
 import { finalizePinAuthSuccess, promoteDuressPin } from '@/utils/pinUnlock'
-import { isDuressPinRemoved, secureWipeAllWalletData } from '@/utils/secureWipe'
+import {
+  isDuressPinRemoved,
+  secureWipeAfterMaxPinTries,
+  secureWipeAllWalletData
+} from '@/utils/secureWipe'
 
 type PinAuthResult = 'error' | 'duress' | 'fail' | 'success'
 
 type UsePinAuthProps = {
-  onFail?: () => void | Promise<void>
   onSuccess: () => void | Promise<void>
   onTriesOver?: () => void
   maxTries?: number
@@ -54,6 +59,9 @@ async function checkPin(
   onSuccess: () => void | Promise<void>
 ): Promise<PinAuthResult> {
   await applyPendingPinKdfCommit()
+  // A re-key that cannot finish now is retried on the next check; failing
+  // here would make every unlock an error and lock the user out for good.
+  await applyPendingPinRekey().catch(() => undefined)
 
   const hashedPin = await getPin()
   const hashedDuressPin = await getItem(DURESS_PIN_KEY)
@@ -93,17 +101,9 @@ async function checkPin(
   return 'success'
 }
 
-// The pad stays disabled until onFail settles: after the last try it wipes the
-// app, and no PIN may be checked while that runs.
-async function settleFailedAttempt(
-  onFail: UsePinAuthProps['onFail'],
-  stopVerifying: () => void
-) {
-  try {
-    await onFail?.()
-  } finally {
-    stopVerifying()
-  }
+function isPinAttemptsExhausted() {
+  const { pinTries, pinMaxTries } = useAuthStore.getState()
+  return toPinAttempts(pinTries, pinMaxTries).status === 'exhausted'
 }
 
 // Core PIN verification orchestration. Kept free of component state so it can
@@ -123,12 +123,7 @@ async function verifyPin(
   }
 }
 
-function usePinAuth({
-  onFail,
-  onSuccess,
-  onTriesOver,
-  maxTries
-}: UsePinAuthProps) {
+function usePinAuth({ onSuccess, onTriesOver, maxTries }: UsePinAuthProps) {
   const duressPinEnabled = useAuthStore((state) => state.duressPinEnabled)
   const pinLength = useStoredPinLength()
   const [enteredPin, setEnteredPin] = useState<string[] | null>(null)
@@ -147,11 +142,50 @@ function usePinAuth({
     )
   }
 
+  // Every prompt counts against the persisted tries, so closing a prompt or
+  // restarting the app cannot reset them. The pad stays disabled while the
+  // wipe after the last try runs.
+  async function wipeAfterMaxTries() {
+    const wiped = await secureWipeAfterMaxPinTries()
+    if (!wiped) {
+      toast.error(t('auth.wipeFailed'))
+      setEnteredPin(null)
+      setVerifying(false)
+      return
+    }
+    if (router.canDismiss()) {
+      router.dismissAll()
+    }
+    router.replace('/')
+  }
+
+  async function handleFailedAttempt() {
+    setEnteredPin(null)
+
+    const newTries = tries + 1
+    setTries(newTries)
+    if (maxTries && newTries >= maxTries && onTriesOver) {
+      onTriesOver()
+    }
+
+    const remainingTries = useAuthStore.getState().incrementPinTries()
+    if (remainingTries > 0) {
+      setVerifying(false)
+      return
+    }
+    await wipeAfterMaxTries()
+  }
+
   async function handleFillEnded(inputPin: string) {
     setVerifying(true)
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 0)
     })
+
+    if (isPinAttemptsExhausted()) {
+      await wipeAfterMaxTries()
+      return
+    }
 
     const result = await verifyPin(inputPin, duressPinEnabled, onSuccess)
 
@@ -168,17 +202,11 @@ function usePinAuth({
     }
 
     if (result === 'fail') {
-      setEnteredPin(null)
-
-      const newTries = tries + 1
-      setTries(newTries)
-      if (maxTries && newTries >= maxTries && onTriesOver) {
-        onTriesOver()
-      }
-
-      await settleFailedAttempt(onFail, () => setVerifying(false))
+      await handleFailedAttempt()
+      return
     }
-    // 'success' finalized the unlock; nothing to do.
+
+    useAuthStore.getState().resetPinTries()
   }
 
   return {

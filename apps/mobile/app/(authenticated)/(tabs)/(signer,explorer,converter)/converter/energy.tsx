@@ -589,11 +589,18 @@ export default function Energy() {
     }
   }, [isConnected, fetchBlockTemplate])
 
+  // Mining runs on intervals that outlive the screen unless stopped here:
+  // left running it keeps hashing and submitting blocks with no one watching.
   useEffect(
     () => () => {
       if (templateUpdateIntervalRef.current) {
         clearInterval(templateUpdateIntervalRef.current)
         templateUpdateIntervalRef.current = null
+      }
+      isMiningRef.current = false
+      if (miningIntervalRef.current) {
+        clearInterval(miningIntervalRef.current)
+        miningIntervalRef.current = null
       }
     },
     []
@@ -944,6 +951,13 @@ export default function Energy() {
       return
     }
 
+    // Claimed before the first await, so a second tap cannot start a second
+    // mining interval while the first is still checking the node.
+    if (isMiningRef.current) {
+      return
+    }
+    isMiningRef.current = true
+
     const startMiningOrThrow = async () => {
       const networkResponse = await fetchRpc({
         id: '1',
@@ -1196,6 +1210,9 @@ export default function Energy() {
 
     try {
       await startMiningOrThrow()
+      if (!miningIntervalRef.current) {
+        isMiningRef.current = false
+      }
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)

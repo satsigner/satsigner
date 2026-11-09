@@ -40,9 +40,7 @@ import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
-import useSyncAccountWithWallet, {
-  isAccountSyncing
-} from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -57,6 +55,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
 import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
+import { isAccountSyncing } from '@/utils/accountSyncRuns'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom,

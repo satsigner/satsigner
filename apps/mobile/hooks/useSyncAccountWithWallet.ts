@@ -8,17 +8,13 @@ import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import { ElectrumUnreachableError } from '@/api/electrumReachability'
 import BitcoinRpc from '@/api/rpc'
 import {
+  SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,
-  SYNC_CONCURRENCY,
   SYNC_PRICE_LOOKUP_TIMEOUT_MS
 } from '@/constants/sync'
 import { markServerConnectionFailed } from '@/hooks/useVerifyConnection'
 import { t } from '@/locales'
-import {
-  type SyncTaskControls,
-  SyncTimeoutError,
-  createSyncQueue
-} from '@/services/syncQueue'
+import { type SyncTaskControls, SyncTimeoutError } from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -26,7 +22,16 @@ import { type Account, type SyncProgress } from '@/types/models/Account'
 import { type Prices } from '@/types/models/Blockchain'
 import { type Config, type Server } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
-import { getSyncStallTimeoutMs, shouldFullScan } from '@/utils/accountSync'
+import {
+  getSyncStallTimeoutMs,
+  shouldFullScan,
+  toRestoredSyncStatus
+} from '@/utils/accountSync'
+import {
+  trackAccountSyncWork,
+  waitForAccountSyncWork,
+  walletSyncQueue
+} from '@/utils/accountSyncRuns'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
@@ -37,17 +42,6 @@ import {
 } from '@/utils/syncFailureToasts'
 import { withTimeout } from '@/utils/time'
 import { reconcileTransactions } from '@/utils/transaction'
-
-const walletSyncQueue = createSyncQueue<Account | null>(SYNC_CONCURRENCY)
-
-/** Drop a queued sync or abort a running one for this account. */
-function cancelAccountSync(accountId: string) {
-  walletSyncQueue.cancel(accountId)
-}
-
-function isAccountSyncing(accountId: string): boolean {
-  return walletSyncQueue.isActive(accountId)
-}
 
 type WalletSyncParams = Pick<
   ReturnType<typeof useAccountsStore.getState>,
@@ -312,9 +306,12 @@ function settleStatusAfterCancel(accountId: string) {
   }
   const current = useAccountsStore
     .getState()
-    .accounts.find((a) => a.id === accountId)?.syncStatus
-  if (current === 'syncing' || current === 'queued') {
-    writeSyncStatus(accountId, 'unsynced')
+    .accounts.find((a) => a.id === accountId)
+  if (current?.syncStatus === 'syncing' || current?.syncStatus === 'queued') {
+    writeSyncStatus(
+      accountId,
+      toRestoredSyncStatus(current.syncStatus, current.lastSyncedAt)
+    )
   }
 }
 
@@ -341,12 +338,26 @@ function handleSyncError(
   return { ...latest, syncStatus }
 }
 
-function runQueuedWalletSync(
+async function runQueuedWalletSync(
   account: Account,
   wallet: BdkWallet,
   forceFullScan: boolean,
   controls: SyncTaskControls
-) {
+): Promise<Account | null> {
+  // A cancelled or stalled sync of this account may still be inside the
+  // native call; never run two. Bounded, so one stuck on a dead server can't
+  // hold this account forever.
+  const earlierSyncSettled = await waitForAccountSyncWork(
+    account.id,
+    SUPERSEDED_SYNC_WAIT_TIMEOUT_MS
+  )
+  if (!earlierSyncSettled) {
+    throw new Error(t('account.sync.earlierSyncStuck'))
+  }
+  if (controls.signal.aborted) {
+    return null
+  }
+
   // Read when the job starts, not when it was queued: the server or stop gap
   // may have changed while it waited (or a backup restore just replaced them).
   const {
@@ -362,20 +373,23 @@ function runQueuedWalletSync(
   // Deleted while it waited, or the user switched networks: this server must
   // not receive the account's descriptors.
   if (!latest || latest.network !== selectedNetwork) {
-    return Promise.resolve(null)
+    return null
   }
-  return syncWalletAccount({
-    config,
-    controls,
-    forceFullScan,
-    lastKnownBlockHeight,
-    latest,
-    server,
-    setLastKnownBlockHeight,
-    setSyncProgress,
-    setSyncStatus,
-    wallet
-  })
+  return trackAccountSyncWork(
+    account.id,
+    syncWalletAccount({
+      config,
+      controls,
+      forceFullScan,
+      lastKnownBlockHeight,
+      latest,
+      server,
+      setLastKnownBlockHeight,
+      setSyncProgress,
+      setSyncStatus,
+      wallet
+    })
+  )
 }
 
 type QueueWalletSyncParams = {
@@ -457,5 +471,4 @@ function useSyncAccountWithWallet() {
   return { loading, syncAccountWithWallet }
 }
 
-export { cancelAccountSync, isAccountSyncing }
 export default useSyncAccountWithWallet

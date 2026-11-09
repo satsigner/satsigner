@@ -80,6 +80,42 @@ describe('account builder keys', () => {
     })
   })
 
+  it('keeps a mnemonic left from an earlier seed out of a WIF key', () => {
+    const store = useAccountBuilderStore.getState()
+    store.setCreationType('generateMnemonic')
+    store.setMnemonic(MNEMONIC)
+    store.setPassphrase('qa')
+    store.setFingerprint('f280ded8')
+
+    store.setCreationType('importWif')
+    store.setPrivateKey('ab'.repeat(32), true)
+    store.setExternalDescriptor('wpkh(02aa)')
+    const key = useAccountBuilderStore.getState().setKey(0)
+
+    expect(key.secret).toStrictEqual({
+      externalDescriptor: 'wpkh(02aa)',
+      fingerprint: 'f280ded8',
+      privateKey: 'ab'.repeat(32),
+      privateKeyCompressed: true
+    })
+  })
+
+  it('keeps seed data left in the draft out of a watch-only address key', () => {
+    const store = useAccountBuilderStore.getState()
+    store.setCreationType('importMnemonic')
+    store.setMnemonic(MNEMONIC)
+    store.setExtendedPublicKey('tpubKey1')
+
+    store.setCreationType('importAddress')
+    store.setFingerprint('')
+    store.setExternalDescriptor('addr(bc1qexample)')
+    const key = useAccountBuilderStore.getState().setKey(0)
+
+    expect(key.secret).toStrictEqual({
+      externalDescriptor: 'addr(bc1qexample)'
+    })
+  })
+
   it('resets only the chosen key slot', () => {
     addMnemonicKey(0)
     addMnemonicKey(1)

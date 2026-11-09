@@ -9,7 +9,8 @@ import { t } from '@/locales'
 import type {
   Nip46IncomingRequest,
   Nip46Method,
-  Nip46ParsedUri
+  Nip46ParsedUri,
+  Nip46Session
 } from '@/types/models/Nostr'
 import { isNostrTags } from '@/utils/nostrEvent'
 import { isRecord } from '@/utils/object'
@@ -26,6 +27,14 @@ const Nip46ParamsSchema = z.array(z.unknown())
 
 function isNostrConnectUri(data: string): boolean {
   return data.trim().toLowerCase().startsWith(NOSTR_NIP46_CONNECT_PREFIX)
+}
+
+/** A stored session can only be live while its bunker runs in this process. */
+export function toRestoredNip46Session(session: Nip46Session): Nip46Session {
+  const isLive =
+    session.connectionStatus === 'connected' ||
+    session.connectionStatus === 'connecting'
+  return isLive ? { ...session, connectionStatus: 'disconnected' } : session
 }
 
 export function parseNostrConnectUri(uri: string): Nip46ParsedUri | null {

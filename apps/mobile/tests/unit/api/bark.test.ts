@@ -566,6 +566,50 @@ describe('bark provider', () => {
     expect(healthy.sync).toHaveBeenCalledTimes(1)
   })
 
+  it('makes a second caller wait while the first open still syncs', async () => {
+    const syncGate = createDeferred<undefined>()
+    const failing = buildFakeWallet({
+      sync: jest.fn().mockReturnValueOnce(syncGate.promise)
+    })
+    Wallet.open.mockResolvedValueOnce(failing)
+    const args = {
+      accountId: 'concurrent1',
+      datadir: '/tmp/concurrent1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    }
+    const first = provider.openWallet(args)
+    await Promise.resolve()
+    await Promise.resolve()
+    const second = provider.openWallet(args)
+
+    syncGate.reject(new Error('network down'))
+
+    await expect(first).rejects.toThrow('network down')
+    await expect(second).rejects.toThrow('network down')
+  })
+
+  it('destroys a wallet whose open finished after it was released', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    const wallet = buildFakeWallet()
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const opening = provider.openWallet({
+      accountId: 'released1',
+      datadir: '/tmp/released1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await Promise.resolve()
+
+    provider.releaseWallet('released1')
+    openGate.resolve(wallet)
+
+    await expect(opening).rejects.toThrow('released while it was opening')
+    await expect(provider.fetchBalance('released1')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
   it('concurrent syncWallet calls are coalesced into one native sync', async () => {
     const firstGate = createDeferred<undefined>()
     const secondGate = createDeferred<undefined>()

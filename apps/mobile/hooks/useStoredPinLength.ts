@@ -2,8 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 
 import { PIN_SIZE } from '@/config/auth'
 import { getStoredPinLength } from '@/utils/pin'
+import { applyPendingPinKdfCommit } from '@/utils/pinKdf'
 
+// A PIN change cut short keeps its new length in the commit journal; the
+// pad must use it, or the new PIN could not be typed.
 async function fetchStoredPinLength() {
+  await applyPendingPinKdfCommit().catch(() => undefined)
   return (await getStoredPinLength()) ?? PIN_SIZE
 }
 

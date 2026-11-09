@@ -10,6 +10,7 @@ import {
   PIN_KDF_KEY,
   PIN_KEY,
   PIN_LENGTH_KEY,
+  PIN_REKEY_JOURNAL_KEY,
   RANDOM_PIN_BYTE_LENGTH,
   SALT_KEY,
   SALT_KEY_DURESS
@@ -19,7 +20,9 @@ import mmkvStorage from '@/storage/mmkv'
 import { type PageRoute } from '@/types/navigation/page'
 import { randomKey } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
+import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
+import { clampPinTries } from '@/utils/pinAttempts'
 import {
   commitPinMaterial,
   derivePinDigest,
@@ -90,6 +93,24 @@ type AuthAction = {
   setRequirePinMigration: (requirePinMigration: boolean) => void
 }
 
+const AUTH_PERSIST_VERSION = 1
+
+/**
+ * Version 1 brings failed tries persisted at the limit back below it once:
+ * lowering the limit used to keep the count, so the next correct PIN would
+ * have wiped the wallet.
+ */
+function migrateAuthPersistedState(persisted: unknown, version: number) {
+  if (version >= AUTH_PERSIST_VERSION || !isRecord(persisted)) {
+    return persisted
+  }
+  const { pinMaxTries, pinTries } = persisted
+  if (typeof pinTries !== 'number' || typeof pinMaxTries !== 'number') {
+    return persisted
+  }
+  return { ...persisted, pinTries: clampPinTries(pinTries, pinMaxTries) }
+}
+
 const useAuthStore = create<AuthState & AuthAction>()(
   persist(
     (set, get) => ({
@@ -110,6 +131,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       clearPin: async () => {
         const results = await Promise.allSettled([
           deleteItem(PIN_KDF_COMMIT_KEY),
+          deleteItem(PIN_REKEY_JOURNAL_KEY),
           deleteItem(PIN_KEY),
           deleteItem(PIN_KDF_KEY),
           deleteItem(PIN_LENGTH_KEY),
@@ -180,8 +202,11 @@ const useAuthStore = create<AuthState & AuthAction>()(
         }
         const kdf = getBestAvailableKdf()
         const encryptedPin = await derivePinDigest(pin, salt, kdf)
-        await setItem(DURESS_PIN_KEY, encryptedPin)
+        // A stored digest must never sit next to another PIN's KDF config:
+        // drop the old digest, write the config, then the new digest.
+        await deleteItem(DURESS_PIN_KEY)
         await storeKdfConfig(kdf, DURESS_KDF_KEY)
+        await setItem(DURESS_PIN_KEY, encryptedPin)
         await deleteItem(SALT_KEY_DURESS).catch(() => undefined)
         set({ duressPinEnabled: true })
       },
@@ -211,7 +236,10 @@ const useAuthStore = create<AuthState & AuthAction>()(
         await commitPinMaterial(material)
       },
       setPinMaxTries: (maxTries) => {
-        set({ pinMaxTries: maxTries })
+        set((state) => ({
+          pinMaxTries: maxTries,
+          pinTries: clampPinTries(state.pinTries, maxTries)
+        }))
       },
       setRequirePinMigration: (requirePinMigration) => {
         set({ requirePinMigration })
@@ -240,6 +268,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       }
     }),
     {
+      migrate: migrateAuthPersistedState,
       name: 'satsigner-auth',
       onRehydrateStorage: () => (state) => {
         if (!state) {
@@ -260,9 +289,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
         return rest
       },
       storage: createJSONStorage(() => mmkvStorage),
-      version: 0
+      version: AUTH_PERSIST_VERSION
     }
   )
 )
 
-export { applyColdStartLock, useAuthStore }
+export { applyColdStartLock, migrateAuthPersistedState, useAuthStore }

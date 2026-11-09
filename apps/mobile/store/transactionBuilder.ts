@@ -139,8 +139,10 @@ function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
   state.signedTx = undefined
 }
 
+// A broadcast transaction is finished: saving it again would bring back a
+// "ready to broadcast" draft for something already on the network.
 function syncDraft(state: Draft<TransactionBuilderState>) {
-  if (!state.accountId) {
+  if (!state.accountId || state.broadcasted) {
     return
   }
   // Avoid current(stonewallPreview): after replace it may be a plain object.
@@ -365,7 +367,10 @@ const useTransactionBuilderStore = create<
 
         const updatedDrafts = { ...drafts }
 
-        if (currentId && (inputs.size > 0 || outputs.length > 0 || signedTx)) {
+        const isUnfinished =
+          !get().broadcasted &&
+          (inputs.size > 0 || outputs.length > 0 || Boolean(signedTx))
+        if (currentId && isUnfinished) {
           updatedDrafts[currentId] = {
             cpfp,
             fee,
@@ -395,6 +400,7 @@ const useTransactionBuilderStore = create<
             : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
           isPsbtPrebuilt: false,
           outputs: newDraft?.outputs ?? [],
+          payjoinUri: undefined,
           psbt: undefined,
           rbf: newDraft?.rbf ?? true,
           replacesTxid: newDraft?.replacesTxid,
@@ -408,8 +414,15 @@ const useTransactionBuilderStore = create<
           timeLock: newDraft?.timeLock ?? 0
         })
       },
+      // A broadcast transaction is done: its draft must not come back as
+      // "ready to broadcast" after a restart or an account switch.
       setBroadcasted: (broadcasted) => {
-        set({ broadcasted })
+        set((state) => {
+          state.broadcasted = broadcasted
+          if (broadcasted && state.accountId) {
+            delete state.drafts[state.accountId]
+          }
+        })
       },
       setFee: (fee) => {
         set((state) => {
@@ -437,6 +450,9 @@ const useTransactionBuilderStore = create<
       },
       setRbf: (rbf) => {
         set((state) => {
+          if (state.rbf !== rbf) {
+            clearSignedDraftFields(state)
+          }
           state.rbf = rbf
           syncDraft(state)
         })

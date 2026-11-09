@@ -42,6 +42,19 @@ function updateChatMessageStatus(
   )
 }
 
+/**
+ * A message is stored as pending before it is published, so one still pending
+ * when this process starts was cut short by an app kill: it failed, and its
+ * retry must be offered instead of a spinner that never ends.
+ */
+function failInterruptedChatSends(identityNpub: string) {
+  getDb().execute(
+    `UPDATE nostr_chat_messages SET status = 'failed'
+      WHERE identity_npub = ? AND status = 'pending'`,
+    [identityNpub]
+  )
+}
+
 /** Returns how many messages flipped to read. */
 function markChatThreadRead(
   identityNpub: string,
@@ -69,6 +82,7 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
 
 export {
   deleteChatMessagesForIdentity,
+  failInterruptedChatSends,
   insertChatMessage,
   markChatThreadRead,
   updateChatMessageStatus

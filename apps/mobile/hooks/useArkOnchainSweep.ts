@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { fetchArkOnchainFeeRate, listArkOnchainUtxos } from '@/api/ark'
 import { ARK_QUERY_STALE_TIME_MS } from '@/constants/ark'
+import { withArkOnchainSpendLock } from '@/services/arkOnchainSpendLock'
 import { sweepArkOnchainWallet } from '@/services/arkOnchainSweep'
 import { getArkAccountOrThrow } from '@/store/ark'
 import { computeArkOnchainSweep } from '@/utils/arkOnchainSweep'
@@ -57,11 +58,13 @@ export function useArkOnchainSweep(accountId: string | undefined) {
       if (!accountId) {
         throw new Error('Ark account id is required')
       }
-      return sweepArkOnchainWallet({
-        arkAccountId: accountId,
-        destinationAccountId,
-        feeRateSatPerVb
-      })
+      return withArkOnchainSpendLock(accountId, () =>
+        sweepArkOnchainWallet({
+          arkAccountId: accountId,
+          destinationAccountId,
+          feeRateSatPerVb
+        })
+      )
     },
     mutationKey: [...arkOnchainSpendMutationKey(accountId), 'sweep'],
     onSuccess: () => {

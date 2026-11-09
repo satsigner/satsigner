@@ -370,7 +370,7 @@ export default function NostrSync() {
     }
   }
 
-  function handleRequestDeletion() {
+  async function handleRequestDeletion() {
     if (
       !accountId ||
       !account?.nostr?.deviceNsec ||
@@ -402,7 +402,9 @@ export default function NostrSync() {
     try {
       setIsLoading(true)
       const api = new NostrAPI(account.nostr.relays)
-      api.requestDeletion(ourEventIds, account.nostr.deviceNsec)
+      // Local messages go only once the relays took the deletion; otherwise
+      // the next sync would fetch the "deleted" messages straight back.
+      await api.requestDeletion(ourEventIds, account.nostr.deviceNsec)
       clearStoredDMs(account)
       updateAccountNostr(accountId, { dms: [] })
       clearNostrState(accountId)
@@ -484,6 +486,18 @@ export default function NostrSync() {
     if (!accountId) {
       return
     }
+    // Sync is only switched on once it can run: saving it on first would show
+    // "on" while every send silently goes nowhere.
+    const currentNostr = useAccountsStore
+      .getState()
+      .accounts.find((a) => a.id === accountId)?.nostr
+    if (!currentNostr?.relays?.length) {
+      return
+    }
+    if (!currentNostr.deviceNsec || !currentNostr.deviceNpub) {
+      toast.error(t('common.error.missingRequiredNostrConfig'))
+      return
+    }
     // syncStart marks which DMs belong to this session (notifications).
     updateAccountNostr(accountId, {
       autoSync: true,
@@ -493,11 +507,7 @@ export default function NostrSync() {
     const updatedAccount = useAccountsStore
       .getState()
       .accounts.find((a) => a.id === accountId)
-    if (!updatedAccount?.nostr?.relays?.length) {
-      return
-    }
-    if (!updatedAccount.nostr.deviceNsec || !updatedAccount.nostr.deviceNpub) {
-      toast.error(t('common.error.missingRequiredNostrConfig'))
+    if (!updatedAccount?.nostr) {
       return
     }
 

@@ -95,8 +95,6 @@ export default function CustomNetwork() {
   const [, requestCameraPermission] = useCameraPermissions()
 
   const [
-    selectedNetwork,
-    configs,
     customServers,
     setSelectedNetwork,
     updateServer,
@@ -104,8 +102,6 @@ export default function CustomNetwork() {
     updateCustomServer
   ] = useBlockchainStore(
     useShallow((state) => [
-      state.selectedNetwork,
-      state.configs,
       state.customServers,
       state.setSelectedNetwork,
       state.updateServer,
@@ -120,8 +116,6 @@ export default function CustomNetwork() {
   const { testing: connectionTesting, testConnection } = useConnectionTest()
 
   const [editingServer, setEditingServer] = useState<Server | null>(null)
-  const [oldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer] = useState<Server>(configs[networkType].server)
   /** Shown under connection status so tip height/time stay visible without relying on toast alone. */
   const [lastProbeLine, setLastProbeLine] = useState<string | null>(null)
   /** Electrum server.banner text from the last successful probe. */
@@ -283,9 +277,8 @@ export default function CustomNetwork() {
       return
     }
 
-    setSelectedNetwork(networkType)
-    updateServer(networkType, server)
-
+    // A test only probes the server; it becomes active on Save, so leaving
+    // without saving keeps the server that was active before.
     setLastProbeLine(successProbeDescription(result))
     setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
 
@@ -346,10 +339,6 @@ export default function CustomNetwork() {
   }
 
   function handleCancel() {
-    if (connectionStatus !== 'connected') {
-      setSelectedNetwork(oldNetwork)
-      updateServer(oldNetwork, oldServer)
-    }
     router.back()
   }
 

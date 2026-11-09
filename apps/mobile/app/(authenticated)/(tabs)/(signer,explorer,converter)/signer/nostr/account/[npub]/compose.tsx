@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -46,6 +46,7 @@ import {
 } from '@/utils/nostrIdentity'
 import {
   applyNostrProofOfWork,
+  NostrPowAbortedError,
   expectedPowHashes,
   stripNonceTags
 } from '@/utils/nostrPow'
@@ -85,6 +86,10 @@ export default function NostrComposePage() {
     NOSTR_POW_DEFAULT_DIFFICULTY
   )
   const [mining, setMining] = useState(false)
+  // Leaving the screen stops a running mine, so a note the user abandoned is
+  // never published once the hash is found.
+  const [powAbort] = useState(() => new AbortController())
+  useEffect(() => () => powAbort.abort(), [powAbort])
   const [signingExport, setSigningExport] = useState(false)
   const [signedQrPayload, setSignedQrPayload] = useState<string | null>(null)
   const [baseTags, setBaseTags] = useState<string[][]>([])
@@ -272,6 +277,7 @@ export default function NostrComposePage() {
       content: noteContent,
       difficulty: powDifficulty,
       nsec,
+      signal: powAbort.signal,
       tags: buildTags()
     }).finally(() => setMining(false))
   }
@@ -282,6 +288,16 @@ export default function NostrComposePage() {
 
   function togglePowHelp() {
     setPowHelpOpen((open) => !open)
+  }
+
+  // A cancelled mine means the note was abandoned: nothing to report.
+  function reportPublishError(error: unknown) {
+    if (error instanceof NostrPowAbortedError) {
+      return
+    }
+    toast.error(
+      `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
+    )
   }
 
   async function handleCopySigned() {
@@ -307,9 +323,7 @@ export default function NostrComposePage() {
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
     } catch (error) {
-      toast.error(
-        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-      )
+      reportPublishError(error)
     }
     setSigningExport(false)
   }
@@ -341,9 +355,7 @@ export default function NostrComposePage() {
         setSignedQrPayload(compact)
       }
     } catch (error) {
-      toast.error(
-        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-      )
+      reportPublishError(error)
     }
     setSigningExport(false)
   }
@@ -374,9 +386,7 @@ export default function NostrComposePage() {
       toast.success(t('nostrIdentity.compose.published'))
       router.back()
     } catch (error) {
-      toast.error(
-        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-      )
+      reportPublishError(error)
     }
     setPublishing(false)
   }

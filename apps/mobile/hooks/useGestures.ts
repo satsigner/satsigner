@@ -66,7 +66,9 @@ export const useGestures = ({
     x: useSharedValue(initialTranslation.x),
     y: useSharedValue(initialTranslation.y)
   }
-  const isZoomedIn = useSharedValue(false)
+  // Read from the scale itself, so a pinch back out, a reset or a spring back
+  // to 1 can never leave it saying zoomed in.
+  const isZoomedIn = useDerivedValue(() => scale.get() > 1)
 
   useAnimatedReaction(
     () => ({ x: initialTranslation.x, y: initialTranslation.y }),
@@ -315,7 +317,6 @@ export const useGestures = ({
       focal.y.set(centerOffsetY * scaleChangeScale + savedFocal.y.get())
     })
     .onEnd((...args) => {
-      isZoomedIn.set(args[0].scale > 1)
       scheduleOnRN(onPinchEnded, ...args)
     })
 
@@ -324,8 +325,7 @@ export const useGestures = ({
     .numberOfTaps(2)
     .maxDuration(250)
     .onStart((event) => {
-      if (scale.get() === 1) {
-        isZoomedIn.set(true)
+      if (scale.get() <= 1) {
         scheduleOnRN(onDoubleTap, ZOOM_TYPE.ZOOM_IN)
         scale.set(withTiming(doubleTapScale))
         const focalX = (center.x - event.x) * (doubleTapScale - 1)
@@ -343,7 +343,6 @@ export const useGestures = ({
           )
         }
       } else {
-        isZoomedIn.set(false)
         scheduleOnRN(onDoubleTap, ZOOM_TYPE.ZOOM_OUT)
         reset()
       }

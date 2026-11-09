@@ -1,6 +1,7 @@
 import { lndRestFetch } from '@/api/lndRest'
 import type { LNDConfig, LNDNodeInfo } from '@/types/models/Lightning'
-import { HttpStatusError } from '@/utils/errors'
+import { HttpStatusError, LndApiError } from '@/utils/errors'
+import { isLndErrorBody } from '@/utils/lndHttpError'
 import { parseLndNodeInfo } from '@/utils/lndNodeInfo'
 import { resolveLndConfigFromConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isRecord } from '@/utils/object'
@@ -73,7 +74,7 @@ export async function requestLndRestJson<T>(
   config: LNDConfig,
   endpoint: string,
   { body, headers, method }: LndRestJsonRequest,
-  onErrorStatus: () => void
+  onErrorStatus?: () => void
 ): Promise<T> {
   const response = await lndRestFetch(config, endpoint, {
     body: body ? JSON.stringify(body) : undefined,
@@ -82,11 +83,12 @@ export async function requestLndRestJson<T>(
   })
 
   if (!response.ok) {
-    onErrorStatus()
+    onErrorStatus?.()
     const errorText = await response.text()
-    throw new HttpStatusError(
+    throw new LndApiError(
       response.status,
-      `LND API error: ${response.status} ${errorText}`
+      `LND API error: ${response.status} ${errorText}`,
+      isLndErrorBody(errorText)
     )
   }
 

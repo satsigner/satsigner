@@ -6,6 +6,7 @@ import {
   preparePinMaterial,
   recoverWorkingPinDigest
 } from '@/utils/pinKdf'
+import { clearPinRekeyJournalFor } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import {
   finalizePinAuthSuccess,
@@ -28,6 +29,10 @@ jest.mock<typeof import('@/utils/pinKdf')>('@/utils/pinKdf', () => ({
   migratePinKdfIfNeeded: jest.fn(),
   preparePinMaterial: jest.fn(),
   recoverWorkingPinDigest: jest.fn()
+}))
+
+jest.mock<typeof import('@/utils/pinRekey')>('@/utils/pinRekey', () => ({
+  clearPinRekeyJournalFor: jest.fn()
 }))
 
 jest.mock<typeof import('@/utils/reEncryptPinSecrets')>(
@@ -73,6 +78,7 @@ describe('finalizePinAuthSuccess', () => {
     jest.mocked(useAccountsStore.getState).mockReturnValue({ accounts: [] })
     jest.mocked(migratePinKdfIfNeeded).mockResolvedValue(null)
     jest.mocked(recoverWorkingPinDigest).mockResolvedValue('digest')
+    jest.mocked(clearPinRekeyJournalFor).mockResolvedValue(undefined)
   })
 
   it('rejects when onSuccess rejects', async () => {
@@ -110,6 +116,30 @@ describe('finalizePinAuthSuccess', () => {
       null
     )
     expect(setSessionPinDigest).toHaveBeenCalledWith('upgraded')
+    expect(clearPinRekeyJournalFor).toHaveBeenCalledWith('upgraded')
+  })
+
+  it('binds the upgraded digest even when clearing its re-key journal fails', async () => {
+    jest.mocked(migratePinKdfIfNeeded).mockResolvedValue('upgraded')
+    jest.mocked(recoverWorkingPinDigest).mockResolvedValue('upgraded')
+    jest
+      .mocked(clearPinRekeyJournalFor)
+      .mockRejectedValue(new Error('keychain locked'))
+
+    await finalizePinAuthSuccess('1234', 'salt', 'stored', jest.fn())
+
+    expect(recoverWorkingPinDigest).toHaveBeenCalledWith(
+      '1234',
+      'salt',
+      'upgraded',
+      null
+    )
+  })
+
+  it('leaves the re-key journal alone when no upgrade ran', async () => {
+    await finalizePinAuthSuccess('1234', 'salt', 'stored', jest.fn())
+
+    expect(clearPinRekeyJournalFor).not.toHaveBeenCalled()
   })
 
   it('stays unlocked when the KDF upgrade throws', async () => {
