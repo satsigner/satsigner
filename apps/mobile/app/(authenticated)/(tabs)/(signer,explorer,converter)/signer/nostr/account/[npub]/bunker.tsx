@@ -11,7 +11,10 @@ import SSNip46ConnectionModal from '@/components/SSNip46ConnectionModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNip46Connect } from '@/hooks/useNip46Connect'
-import { useNip46SessionManager } from '@/hooks/useNip46SessionManager'
+import {
+  type Nip46AnswerResult,
+  useNip46SessionManager
+} from '@/hooks/useNip46SessionManager'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -27,6 +30,15 @@ import { parseNostrConnectUri } from '@/utils/nip46'
 type BunkerParams = {
   connectUri?: string
   npub: string
+}
+
+function announceNip46Answer(result: Nip46AnswerResult, sentMessage: string) {
+  if (result === 'sent') {
+    toast.success(sentMessage)
+  }
+  if (result === 'failed') {
+    toast.error(t('nip46.responseFailed'))
+  }
 }
 
 export default function NostrBunker() {
@@ -122,21 +134,13 @@ export default function NostrBunker() {
   }
 
   async function handleApproveRequest(requestId: string, alwaysAllow: boolean) {
-    const sent = await approveRequest(requestId, alwaysAllow)
-    if (!sent) {
-      toast.error(t('nip46.responseFailed'))
-      return
-    }
-    toast.success(t('nip46.requestApproved'))
+    const result = await approveRequest(requestId, alwaysAllow)
+    announceNip46Answer(result, t('nip46.requestApproved'))
   }
 
   async function handleRejectRequest(requestId: string, alwaysReject: boolean) {
-    const sent = await rejectRequest(requestId, alwaysReject)
-    if (!sent) {
-      toast.error(t('nip46.responseFailed'))
-      return
-    }
-    toast.success(t('nip46.requestRejected'))
+    const result = await rejectRequest(requestId, alwaysReject)
+    announceNip46Answer(result, t('nip46.requestRejected'))
   }
 
   if (!identity) {

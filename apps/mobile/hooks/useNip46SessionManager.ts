@@ -160,30 +160,82 @@ function sendError(
   )
 }
 
+/** `skipped`: the request is gone or already being answered. */
+export type Nip46AnswerResult = 'sent' | 'failed' | 'skipped'
+
 // A request being answered is not answered again: a double tap, or Approve
-// then Reject, would otherwise sign twice or send two answers.
+// then Reject, would otherwise sign twice, send two answers or store the
+// permission of the answer that was not sent.
 const requestsBeingAnswered = new Set<string>()
 
 async function answerOnce(
   requestId: string,
   answer: () => Promise<boolean>
-): Promise<boolean> {
+): Promise<Nip46AnswerResult> {
   if (requestsBeingAnswered.has(requestId)) {
-    return false
+    return 'skipped'
   }
   requestsBeingAnswered.add(requestId)
   try {
-    return await answer()
+    return (await answer()) ? 'sent' : 'failed'
   } finally {
     requestsBeingAnswered.delete(requestId)
   }
 }
 
+// An approved request leaves the queue only once its answer was sent, so a
+// failed send can be retried instead of leaving the client waiting forever.
+export function approveNip46Request(
+  requestId: string,
+  alwaysAllow: boolean
+): Promise<Nip46AnswerResult> {
+  const request = getPendingRequestById(requestId)
+  if (!request) {
+    return Promise.resolve('skipped')
+  }
+  return answerOnce(requestId, async () => {
+    // Never persist a blanket permission for requests that must always be
+    // approved explicitly (decryption, sensitive sign_event kinds).
+    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
+      useNip46Store
+        .getState()
+        .updatePermission(request.sessionId, request.method, 'always_allow')
+    }
+    const sent = await respondToRequest(request.sessionId, {
+      ...request,
+      status: 'approved'
+    })
+    if (sent) {
+      useNip46Store.getState().removePendingRequest(requestId)
+    }
+    return sent
+  })
+}
+
+// A rejection leaves the queue even when its answer cannot be sent: the
+// client times out on its own, and the prompt must never trap the user.
+export function rejectNip46Request(
+  requestId: string,
+  alwaysReject: boolean
+): Promise<Nip46AnswerResult> {
+  const request = getPendingRequestById(requestId)
+  if (!request) {
+    return Promise.resolve('skipped')
+  }
+  return answerOnce(requestId, () => {
+    if (alwaysReject) {
+      useNip46Store
+        .getState()
+        .updatePermission(request.sessionId, request.method, 'always_reject')
+    }
+    useNip46Store.getState().removePendingRequest(requestId)
+    return sendError(request.sessionId, request.id, 'Rejected by user')
+  })
+}
+
 export function useNip46SessionManager() {
   const addPendingRequest = useNip46Store((s) => s.addPendingRequest)
-  const removePendingRequest = useNip46Store((s) => s.removePendingRequest)
   const updateSession = useNip46Store((s) => s.updateSession)
-  const updatePermission = useNip46Store((s) => s.updatePermission)
 
   async function startSession(
     session: Nip46Session,
@@ -293,58 +345,10 @@ export function useNip46SessionManager() {
     }
   }
 
-  // A request leaves the queue only once its answer was sent, so a failed
-  // send can be retried instead of leaving the client waiting forever.
-  async function approveRequest(
-    requestId: string,
-    alwaysAllow: boolean
-  ): Promise<boolean> {
-    const request = getPendingRequestById(requestId)
-    if (!request) {
-      return false
-    }
-
-    // Never persist a blanket permission for requests that must always be
-    // approved explicitly (decryption, sensitive sign_event kinds).
-    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
-      updatePermission(request.sessionId, request.method, 'always_allow')
-    }
-
-    const sent = await answerOnce(requestId, () =>
-      respondToRequest(request.sessionId, { ...request, status: 'approved' })
-    )
-    if (sent) {
-      removePendingRequest(requestId)
-    }
-    return sent
-  }
-
-  async function rejectRequest(
-    requestId: string,
-    alwaysReject: boolean
-  ): Promise<boolean> {
-    const request = getPendingRequestById(requestId)
-    if (!request) {
-      return false
-    }
-
-    if (alwaysReject) {
-      updatePermission(request.sessionId, request.method, 'always_reject')
-    }
-
-    const sent = await answerOnce(requestId, () =>
-      sendError(request.sessionId, request.id, 'Rejected by user')
-    )
-    if (sent) {
-      removePendingRequest(requestId)
-    }
-    return sent
-  }
-
   return {
-    approveRequest,
+    approveRequest: approveNip46Request,
     isSessionActive: isNip46SessionActive,
-    rejectRequest,
+    rejectRequest: rejectNip46Request,
     startSession,
     stopAllSessions: stopAllNip46Sessions,
     stopSession: stopNip46Session
