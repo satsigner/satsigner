@@ -134,6 +134,8 @@ export const NOSTR_BLOSSOM_SERVERS_STALE_TIME_MS = 10 * 60_000
 export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
+export const NOSTR_KEY_LINE_BREAK_EVERY = 28
+export const NOSTR_KEY_QR_SIZE = 220
 
 export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
