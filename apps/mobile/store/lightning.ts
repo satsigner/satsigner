@@ -34,7 +34,7 @@ const initialStatus: LNDConnectionStatus = {
 
 // Requests overlap (the dashboard fires several at once), so "connecting"
 // lasts until the last one settles, not until the first one does.
-let requestsInFlight = 0
+const lndRequests = { inFlight: 0 }
 
 export const useLightningStore = create<LightningState>()(
   persist(
@@ -69,12 +69,12 @@ export const useLightningStore = create<LightningState>()(
           status: { ...state.status, isConnected, isConnecting: false }
         })),
       setConnecting: (isConnecting) => {
-        requestsInFlight = Math.max(
+        lndRequests.inFlight = Math.max(
           0,
-          requestsInFlight + (isConnecting ? 1 : -1)
+          lndRequests.inFlight + (isConnecting ? 1 : -1)
         )
         set((state) => ({
-          status: { ...state.status, isConnecting: requestsInFlight > 0 }
+          status: { ...state.status, isConnecting: lndRequests.inFlight > 0 }
         }))
       },
       setLastSync: function setLastSync(lastSync) {
