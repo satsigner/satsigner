@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -32,6 +32,28 @@ async function decryptKeyWif(key: Key, network: Account['network']) {
   return wifFromStoredSecret(secret, network) || ''
 }
 
+// The PIN is asked once per visit: account updates (sync progress, labels)
+// must not lock the secret again while it is shown.
+type SecretReveal =
+  | { status: 'locked' }
+  | { status: 'dismissed' }
+  | { status: 'revealed'; mnemonic: string; wif: string }
+  | { status: 'empty' }
+
+async function revealSecret(
+  key: Key,
+  network: Account['network']
+): Promise<SecretReveal> {
+  if (key.creationType === 'importWif') {
+    const wif = await decryptKeyWif(key, network)
+    return wif ? { mnemonic: '', status: 'revealed', wif } : { status: 'empty' }
+  }
+  const mnemonic = await decryptKeyMnemonic(key)
+  return mnemonic
+    ? { mnemonic, status: 'revealed', wif: '' }
+    : { status: 'empty' }
+}
+
 export default function SeedWordsPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
     AccountSearchParams & { keyIndex: string }
@@ -41,64 +63,30 @@ export default function SeedWordsPage() {
     state.accounts.find((_account) => _account.id === accountId)
   )
 
-  const [mnemonic, setMnemonic] = useState('')
-  const [wif, setWif] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
-  const [showPinEntry, setShowPinEntry] = useState(false)
+  const [reveal, setReveal] = useState<SecretReveal>({ status: 'locked' })
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
+  const mnemonic = reveal.status === 'revealed' ? reveal.mnemonic : ''
+  const wif = reveal.status === 'revealed' ? reveal.wif : ''
+  const noMnemonicAvailable = reveal.status === 'empty'
 
   const keyIndexNum = Number.parseInt(keyIndex || '0', 10)
   const key = account?.keys[keyIndexNum]
 
-  const decryptMnemonic = useCallback(async () => {
+  async function handleSuccessPin() {
     if (!account || !key) {
       return
     }
-
     try {
-      if (key.creationType === 'importWif') {
-        const revealed = await decryptKeyWif(key, account.network)
-        setWif(revealed)
-        setNoMnemonicAvailable(!revealed)
-        return
-      }
-      const decryptedMnemonic = await decryptKeyMnemonic(key)
-      setMnemonic(decryptedMnemonic)
-      setNoMnemonicAvailable(!decryptedMnemonic)
+      setReveal(await revealSecret(key, account.network))
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown reason'
       toast.error(`${t('account.seed.unableToDecrypt')}: ${reason}`)
+      setReveal({ status: 'dismissed' })
     }
-    setShowPinEntry(false)
-  }, [account, key])
-
-  async function handleSuccessPin() {
-    await decryptMnemonic()
-    setShowPinEntry(false)
   }
 
   function handlePinTriesOver() {
     router.back()
-  }
-
-  useEffect(() => {
-    if (account && key) {
-      setIsLoading(false)
-      setShowPinEntry(true)
-    } else {
-      setIsLoading(false)
-    }
-  }, [account, key])
-
-  if (isLoading) {
-    return (
-      <SSMainLayout>
-        <SSVStack itemsCenter style={{ flex: 1, justifyContent: 'center' }}>
-          <SSText>{t('common.loading')}</SSText>
-        </SSVStack>
-      </SSMainLayout>
-    )
   }
 
   if (!account || !key) {
@@ -261,9 +249,9 @@ export default function SeedWordsPage() {
         </SSVStack>
       </ScrollView>
       <SSModal
-        visible={showPinEntry}
+        visible={reveal.status === 'locked'}
         fullOpacity
-        onClose={() => setShowPinEntry(false)}
+        onClose={() => setReveal({ status: 'dismissed' })}
       >
         <SSPinAuth
           title={t('account.enter.pin')}

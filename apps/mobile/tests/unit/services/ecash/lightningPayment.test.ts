@@ -1,6 +1,7 @@
 import { createMppMeltQuote, mintSupportsBolt11Mpp } from '@/api/ecash'
 import {
   EcashPaymentError,
+  isPendingMeltError,
   payLightningInvoiceFromMints
 } from '@/services/ecash/lightningPayment'
 import type { EcashMint, EcashProof, MeltQuote } from '@/types/models/Ecash'
@@ -291,5 +292,23 @@ describe('payLightningInvoiceFromMints', () => {
     await expect(payLightningInvoiceFromMints(p)).rejects.toBe(meltError)
     expect(p.addMeltQuote).toHaveBeenCalledTimes(2)
     expect(p.removeMeltQuote).not.toHaveBeenCalled()
+  })
+})
+
+describe('isPendingMeltError', () => {
+  it('recognises a pending melt, also when rethrown with it as the cause', () => {
+    const pending = new EcashPaymentError({ reason: 'meltPending' })
+
+    expect(isPendingMeltError(pending)).toBe(true)
+    expect(isPendingMeltError(new Error('pending', { cause: pending }))).toBe(
+      true
+    )
+  })
+
+  it('does not treat other payment failures as pending', () => {
+    expect(
+      isPendingMeltError(new EcashPaymentError({ reason: 'meltUnpaid' }))
+    ).toBe(false)
+    expect(isPendingMeltError(new Error('no route'))).toBe(false)
   })
 })

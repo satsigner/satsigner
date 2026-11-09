@@ -83,7 +83,9 @@ export default function ArkPayInvoicePage() {
     !walletQuery.isPending
 
   function handleCancel() {
-    useZapFlowStore.getState().setZapResult('cancelled')
+    if (invoice) {
+      useZapFlowStore.getState().reportZapOutcome(invoice, 'cancelled')
+    }
     router.back()
   }
 

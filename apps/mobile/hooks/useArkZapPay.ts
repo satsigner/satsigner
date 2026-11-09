@@ -21,8 +21,8 @@ export function useArkZapPay(accountId: string | null | undefined) {
       const { serverId } = getArkAccountOrThrow(accountId)
       return payArkBolt11(serverId, accountId, invoice, amountSats)
     },
-    onSuccess: () => {
-      useZapFlowStore.getState().setZapResult('success')
+    onSuccess: (_result, { invoice }) => {
+      useZapFlowStore.getState().reportZapOutcome(invoice, 'success')
       if (!accountId) {
         return
       }

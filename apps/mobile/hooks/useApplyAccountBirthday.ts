@@ -1,11 +1,10 @@
 import { toast } from 'sonner-native'
 
-import useSyncAccountWithWallet, {
-  cancelAccountSync
-} from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
+import { cancelAccountSync } from '@/utils/accountSyncRuns'
 
 /**
  * Persist a wallet birthday and restart an RPC rescan when a wallet is loaded.

@@ -8,6 +8,9 @@ export const ARK_ADDRESS_MAX_SCAN = 1000
 export const ARK_BOARD_PAYJOIN_NATIVE_MISSING =
   'Bark native module is missing boardFundingAddress. Rebuild with @secondts/bark-react-native 0.21 or newer.'
 export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
+/** Thrown by an open that finished after its wallet was released. */
+export const ARK_WALLET_RELEASED_WHILE_OPENING =
+  'Ark wallet was released while it was opening'
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 // A claim paying more than this multiple of the chosen fee rate over its
 // signed size is refused before broadcast.
@@ -112,6 +115,10 @@ export const ARK_SWAP_SEND_RECONCILE_GRACE_MS = 120_000
 // An HTLC accepted just before the invoice expired can still settle after
 // it, so an unpaid receive is only given up this long past expiry.
 export const ARK_SWAP_UNPAID_INVOICE_GRACE_SECONDS = 600
+// A board whose funding transaction never confirms leaves its swap in
+// `boarding`; after this long the user may dismiss it.
+export const ARK_SWAP_STALE_BOARDING_MS = 24 * 60 * 60 * 1000
+export const ARK_SWAP_DISMISS_CHECK_INTERVAL_MS = 60_000
 // With about a day of blocks left a VTXO should be refreshed, or the Ark
 // server may sweep it once it expires.
 export const ARK_VTXO_EXPIRY_WARNING_BLOCKS = 144

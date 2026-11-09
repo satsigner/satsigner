@@ -90,7 +90,9 @@ import { useContentHandler } from '@/hooks/useContentHandler'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useFiatData } from '@/hooks/useFiatData'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
-import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useGetAccountWallet, {
+  useAccountWalletReload
+} from '@/hooks/useGetAccountWallet'
 import { useNetworkInfo } from '@/hooks/useNetworkInfo'
 import { useNow } from '@/hooks/useNow'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
@@ -1935,6 +1937,7 @@ export default function AccountView() {
   )
 
   const wallet = useGetAccountWallet(id)
+  const reloadWallet = useAccountWalletReload(id)
   const watchOnlyWalletAddress = useGetAccountAddress(id)
 
   const isMultiAddressWatchOnly = useMemo(
@@ -2123,6 +2126,7 @@ export default function AccountView() {
       return
     }
     if (!isImportAddress && !wallet) {
+      await reloadWallet()
       return
     }
 

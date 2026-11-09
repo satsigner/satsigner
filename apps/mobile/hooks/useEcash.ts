@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  checkMintQuote,
   clearWalletCache,
   connectToMint,
   createMeltQuote,
@@ -11,31 +9,27 @@ import {
   EcashSpentProofsError,
   getMintBalance,
   meltProofs,
-  mintProofs,
   receiveEcash,
-  restoreProofsFromSeed,
   sendEcash,
   validateEcashToken
 } from '@/api/ecash'
-import {
-  ECASH_QUOTE_MAX_POLL_ATTEMPTS,
-  ECASH_QUOTE_POLL_INTERVAL_MS
-} from '@/constants/ecash'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { t } from '@/locales'
+import { getEcashAccountStore } from '@/services/ecash/accountStore'
 import {
   EcashPaymentError,
   payLightningInvoiceFromMints
 } from '@/services/ecash/lightningPayment'
 import { proofsAfterFailedMelt } from '@/services/ecash/meltFailure'
 import { restoreProofsFromMints } from '@/services/ecash/restore'
-import { getEcashMnemonic } from '@/storage/encrypted'
+import {
+  getEcashSeed,
+  getEcashWalletOptions
+} from '@/services/ecash/walletOptions'
 import { useEcashStore } from '@/store/ecash'
 import type {
-  CounterReservedEvent,
   EcashMeltResult,
   EcashMint,
-  EcashMintResult,
   EcashProof,
   EcashReceiveResult,
   EcashSendResult,
@@ -43,31 +37,21 @@ import type {
   EcashTransaction,
   MeltQuote,
   MintQuote,
-  MintQuoteState,
   WalletOptions
 } from '@/types/models/Ecash'
-import { mnemonicToSeed } from '@/utils/bip39'
 import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
   EcashBackupValidationError,
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
-import { buildCounterInit } from '@/utils/ecashKeysetCounters'
+import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
-import {
-  proofsAfterMelt,
-  proofsAfterSend,
-  removeSpentSecrets
-} from '@/utils/ecashProofs'
+import { proofsAfterSend, removeSpentSecrets } from '@/utils/ecashProofs'
 
-/** BIP39 seed for a seeded ecash account, or undefined when none is stored. */
-async function getSeedForAccount(accountId: string) {
-  const mnemonic = await getEcashMnemonic(accountId)
-  if (!mnemonic) {
-    return undefined
-  }
-  return mnemonicToSeed(mnemonic, '')
+const TOKEN_NOT_CHECKED: EcashTokenValidation = {
+  details: 'Token could not be checked',
+  isValid: false
 }
 
 export function useEcash() {
@@ -88,12 +72,10 @@ export function useEcash() {
     setProofsAction,
     updateMintBalance,
     addMintQuoteAction,
-    removeMintQuoteAction,
     addMeltQuoteAction,
     removeMeltQuoteAction,
     addTransactionAction,
     updateTransactionAction,
-    advanceKeysetCounter,
     restoreFromBackup,
     clearAccountData
   ] = useEcashStore(
@@ -106,90 +88,51 @@ export function useEcash() {
       state.setProofs,
       state.updateMintBalance,
       state.addMintQuote,
-      state.removeMintQuote,
       state.addMeltQuote,
       state.removeMeltQuote,
       state.addTransaction,
       state.updateTransaction,
-      state.advanceKeysetCounter,
       state.restoreFromBackup,
       state.clearAccountData
     ])
   )
 
-  function getLatestCounters(accountId: string) {
-    return useEcashStore.getState().counters[accountId] ?? []
-  }
-
-  function handleCounterReserved(event: CounterReservedEvent) {
+  function getWalletOptions(): Promise<WalletOptions> {
     if (!activeAccountId) {
-      return
+      return Promise.resolve({})
     }
-    advanceKeysetCounter(
-      activeAccountId,
-      event.keysetId,
-      event.start + event.count
-    )
-  }
-
-  async function getWalletOptions(): Promise<WalletOptions> {
-    if (!activeAccountId || !activeAccount?.hasSeed) {
-      return {}
-    }
-    const seed = await getSeedForAccount(activeAccountId)
-    if (!seed) {
-      return {}
-    }
-    return {
-      bip39seed: seed,
-      counterInit: buildCounterInit(getLatestCounters(activeAccountId)),
-      onCounterReserved: handleCounterReserved
-    }
+    return getEcashWalletOptions(activeAccountId)
   }
 
   async function restoreConnectedMintProofs(
     accountId: string,
-    mintUrl: string,
-    mint: EcashMint
+    mintUrl: string
   ) {
-    const seed = await getSeedForAccount(accountId)
-    if (seed) {
-      toast.info(t('ecash.recovery.restoring'))
-      const result = await restoreProofsFromSeed(
-        accountId,
-        mintUrl,
-        seed,
-        buildCounterInit(getLatestCounters(accountId))
-      )
-
-      if (result.proofs.length > 0) {
-        addProofsAction(accountId, result.proofs)
-        updateMintBalance(
-          accountId,
-          mintUrl,
-          result.proofs.reduce((s, p) => s + p.amount, 0)
-        )
-
-        const activeKeyset = mint.keysets.find((ks) => ks.active)
-        if (result.lastCounter !== undefined && activeKeyset) {
-          advanceKeysetCounter(
-            accountId,
-            activeKeyset.id,
-            result.lastCounter + 1
-          )
-        }
-
-        toast.success(
-          t('ecash.success.proofsRestored', {
-            count: result.proofs.length
-          })
-        )
-      } else {
-        toast.info(t('ecash.info.noProofsFound'))
-      }
-    } else {
+    const seed = await getEcashSeed(accountId)
+    if (!seed) {
       toast.warning(t('ecash.recovery.seedNotFound'))
+      return
     }
+    toast.info(t('ecash.recovery.restoring'))
+    const { mintsFailed, proofsFound } = await restoreProofsFromMints(
+      accountId,
+      [mintUrl],
+      seed,
+      getEcashAccountStore(accountId)
+    )
+    if (proofsFound > 0) {
+      toast.success(t('ecash.success.proofsRestored', { count: proofsFound }))
+      return
+    }
+    if (mintsFailed > 0) {
+      toast.error(
+        t('ecash.recovery.restoreFailed', {
+          error: t('ecash.error.networkError')
+        })
+      )
+      return
+    }
+    toast.info(t('ecash.info.noProofsFound'))
   }
 
   async function connectToMintHandler(mintUrl: string): Promise<EcashMint> {
@@ -209,7 +152,7 @@ export function useEcash() {
 
     if (activeAccount?.hasSeed) {
       try {
-        await restoreConnectedMintProofs(activeAccountId, mintUrl, mint)
+        await restoreConnectedMintProofs(activeAccountId, mintUrl)
       } catch (error) {
         const message =
           error instanceof Error ? error.message : t('ecash.error.networkError')
@@ -262,49 +205,6 @@ export function useEcash() {
     return quote
   }
 
-  async function checkMintQuoteHandler(
-    mintUrl: string,
-    quoteId: string
-  ): Promise<MintQuoteState> {
-    if (!activeAccountId) {
-      throw new Error('No active account')
-    }
-    const options = await getWalletOptions()
-    return checkMintQuote(activeAccountId, mintUrl, quoteId, options)
-  }
-
-  async function mintProofsHandler(
-    mintUrl: string,
-    amount: number,
-    quoteId: string
-  ): Promise<EcashMintResult> {
-    if (!activeAccountId) {
-      throw new Error('No active account')
-    }
-    const options = await getWalletOptions()
-    const result = await mintProofs(
-      activeAccountId,
-      mintUrl,
-      amount,
-      quoteId,
-      options
-    )
-    addProofsAction(activeAccountId, result.proofs)
-    removeMintQuoteAction(activeAccountId, quoteId)
-    updateMintBalance(
-      activeAccountId,
-      mintUrl,
-      getMintBalance(mintUrl, [...proofs, ...result.proofs])
-    )
-
-    updateTransactionAction(activeAccountId, quoteId, {
-      status: 'completed'
-    })
-
-    toast.success(t('ecash.success.tokensMinted'))
-    return result
-  }
-
   async function createMeltQuoteHandler(
     mintUrl: string,
     invoice: string
@@ -354,31 +254,38 @@ export function useEcash() {
       proofsToMelt,
       options
     )
+    const transactionId = `melt_${Date.now()}_${await randomKey(9)}`
     const currentProofs = useEcashStore.getState().proofs[accountId] ?? []
-    const remaining = proofsAfterMelt(
-      currentProofs,
-      proofsToMelt,
-      result.keep ?? [],
-      result.change ?? []
-    )
+    const remaining = proofsAfterMeltResult(currentProofs, proofsToMelt, result)
     setProofsAction(accountId, remaining)
     removeMeltQuoteAction(accountId, quote.quote)
 
     updateMintBalance(accountId, mintUrl, getMintBalance(mintUrl, remaining))
 
-    markReceivedTokensAsSpent()
+    if (result.status === 'unpaid') {
+      throw new EcashPaymentError({ reason: 'meltUnpaid' })
+    }
+
+    if (result.status === 'paid') {
+      markReceivedTokensAsSpent()
+    }
 
     addTransactionAction(accountId, {
       amount: quote.amount,
       expiry: quote.expiry,
-      id: `melt_${Date.now()}_${await randomKey(9)}`,
+      id: transactionId,
       invoice: quote.quote,
       mintUrl,
       quoteId: quote.quote,
-      status: 'settled',
+      reservedProofs: result.status === 'pending' ? result.send : undefined,
+      status: result.status === 'paid' ? 'settled' : 'pending',
       timestamp: new Date().toISOString(),
       type: 'melt'
     })
+
+    if (result.status === 'pending') {
+      throw new EcashPaymentError({ reason: 'meltPending' })
+    }
 
     if (!meltOptions?.silent) {
       toast.success(t('ecash.success.tokensMelted'))
@@ -617,23 +524,18 @@ export function useEcash() {
       throw new Error('Account has no seed for recovery')
     }
 
-    const seed = await getSeedForAccount(activeAccountId)
+    const seed = await getEcashSeed(activeAccountId)
     if (!seed) {
       throw new Error('Could not retrieve seed')
     }
 
     const accountId = activeAccountId
-    const summary = await restoreProofsFromMints(accountId, mintUrls, seed, {
-      addMint: (mint) => addMintAction(accountId, mint),
-      addProofs: (restored) => addProofsAction(accountId, restored),
-      advanceKeysetCounter: (keysetId, nextCounter) =>
-        advanceKeysetCounter(accountId, keysetId, nextCounter),
-      getCounters: () => getLatestCounters(accountId),
-      getMints: () => useEcashStore.getState().mints[accountId] ?? [],
-      getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
-      updateMintBalance: (mintUrl, balance) =>
-        updateMintBalance(accountId, mintUrl, balance)
-    })
+    const summary = await restoreProofsFromMints(
+      accountId,
+      mintUrls,
+      seed,
+      getEcashAccountStore(accountId)
+    )
     const { mintsFailed, mintsScanned, proofsFound } = summary
 
     if (proofsFound > 0) {
@@ -660,21 +562,15 @@ export function useEcash() {
   async function validateToken(
     token: string,
     mintUrl: string
-  ): Promise<boolean> {
+  ): Promise<EcashTokenValidation> {
     if (!activeAccountId) {
-      return false
+      return TOKEN_NOT_CHECKED
     }
     try {
       const options = await getWalletOptions()
-      const result = await validateEcashToken(
-        token,
-        activeAccountId,
-        mintUrl,
-        options
-      )
-      return result.isValid
+      return await validateEcashToken(token, activeAccountId, mintUrl, options)
     } catch {
-      return false
+      return TOKEN_NOT_CHECKED
     }
   }
 
@@ -726,13 +622,11 @@ export function useEcash() {
   return {
     activeAccount,
     activeAccountId,
-    checkMintQuote: checkMintQuoteHandler,
     checkTokenStatus,
     clearAccountData: clearAccountDataHandler,
     connectToMint: connectToMintHandler,
     createMintQuote: createMintQuoteHandler,
     disconnectMint,
-    mintProofs: mintProofsHandler,
     mintQuotes,
     mints,
     payLightningInvoice,
@@ -755,100 +649,5 @@ export function useEcash() {
       updateTransactionAction(activeAccountId, transactionId, updates)
     },
     validateToken
-  }
-}
-
-export function useQuotePolling() {
-  // Compiling would turn the plain `{ current }` objects into stable refs, so
-  // stopPolling would start ending the poll loop when the receive screen
-  // unmounts. That changes when ecash invoices get auto-minted, so it stays
-  // uncompiled until that behaviour change is decided on its own.
-  'use no memo'
-  const [isPolling, setIsPolling] = useState(false)
-  const [pollCount, setPollCount] = useState(0)
-  const [, setLastPollTime] = useState(0)
-  const isPollingRef = { current: false }
-  const timeoutRef: { current: NodeJS.Timeout | null } = { current: null }
-
-  function startPolling(pollFunction: () => Promise<boolean>) {
-    setIsPolling(true)
-    isPollingRef.current = true
-    setPollCount(0)
-    setLastPollTime(Date.now())
-
-    let currentPollCount = 0
-    let currentLastPollTime = Date.now()
-
-    const poll = async () => {
-      if (currentPollCount >= ECASH_QUOTE_MAX_POLL_ATTEMPTS) {
-        setIsPolling(false)
-        isPollingRef.current = false
-        return
-      }
-
-      if (!isPollingRef.current) {
-        return
-      }
-
-      const now = Date.now()
-      if (now - currentLastPollTime < ECASH_QUOTE_POLL_INTERVAL_MS) {
-        const delay = ECASH_QUOTE_POLL_INTERVAL_MS - (now - currentLastPollTime)
-        timeoutRef.current = setTimeout(poll, delay)
-        return
-      }
-
-      try {
-        const shouldStop = await pollFunction()
-        currentPollCount += 1
-        currentLastPollTime = now
-        setPollCount(currentPollCount)
-        setLastPollTime(currentLastPollTime)
-
-        if (shouldStop || !isPollingRef.current) {
-          setIsPolling(false)
-          isPollingRef.current = false
-          return
-        }
-
-        if (isPollingRef.current) {
-          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
-        }
-      } catch {
-        currentPollCount += 1
-        currentLastPollTime = now
-        setPollCount(currentPollCount)
-        setLastPollTime(currentLastPollTime)
-
-        if (
-          isPollingRef.current &&
-          currentPollCount < ECASH_QUOTE_MAX_POLL_ATTEMPTS
-        ) {
-          timeoutRef.current = setTimeout(poll, ECASH_QUOTE_POLL_INTERVAL_MS)
-        } else {
-          setIsPolling(false)
-          isPollingRef.current = false
-        }
-      }
-    }
-
-    poll()
-  }
-
-  function stopPolling() {
-    setIsPolling(false)
-    isPollingRef.current = false
-    setPollCount(0)
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
-  return {
-    isPolling,
-    pollCount,
-    startPolling,
-    stopPolling
   }
 }

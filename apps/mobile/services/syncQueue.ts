@@ -201,11 +201,22 @@ export function createSyncQueue<T>(concurrency: number) {
     job.settle({ value: null })
   }
 
+  function cancelAll() {
+    // Empty the line first so freeing a slot doesn't start a queued job.
+    for (const job of waiting.splice(0)) {
+      job.settle({ value: null })
+    }
+    // Deleting the visited entry while iterating a Map is safe.
+    for (const accountId of jobs.keys()) {
+      cancel(accountId)
+    }
+  }
+
   function isActive(accountId: string): boolean {
     return jobs.has(accountId)
   }
 
-  return { cancel, enqueue, isActive }
+  return { cancel, cancelAll, enqueue, isActive }
 }
 
 export type SyncQueue<T> = ReturnType<typeof createSyncQueue<T>>

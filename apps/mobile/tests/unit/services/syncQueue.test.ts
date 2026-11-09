@@ -301,3 +301,27 @@ describe('createSyncQueue finishScan', () => {
     expectStarted(queued.task)
   })
 })
+
+describe('createSyncQueue cancelAll', () => {
+  it('drops queued syncs and aborts running ones', async () => {
+    const queue = createSyncQueue<string>(1)
+    const running = deferredTask()
+    const queued = deferredTask()
+
+    const runningResult = queue.enqueue('a', running.task, {
+      timeoutMs: TIMEOUT_MS
+    })
+    const queuedResult = queue.enqueue('b', queued.task, {
+      timeoutMs: TIMEOUT_MS
+    })
+
+    queue.cancelAll()
+
+    await expect(runningResult).resolves.toBeNull()
+    await expect(queuedResult).resolves.toBeNull()
+    expect(running.deferred.signal?.aborted).toBe(true)
+    expect(queued.task).not.toHaveBeenCalled()
+    expect(queue.isActive('a')).toBe(false)
+    expect(queue.isActive('b')).toBe(false)
+  })
+})

@@ -15,6 +15,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import { Colors, Sizes } from '@/styles'
 import { generateMnemonic } from '@/utils/bip39'
 import { chunkArray } from '@/utils/chunkArray'
@@ -46,14 +47,8 @@ export default function CreateNostrIdentity() {
   }
 
   function handleNext() {
-    router.navigate({
-      params: {
-        mnemonic,
-        npub: keys.npub,
-        nsec: keys.nsec
-      },
-      pathname: '/signer/nostr/create/profile'
-    })
+    useNostrIdentityDraftStore.getState().setDraftMnemonic(mnemonic)
+    router.navigate('/signer/nostr/create/profile')
   }
 
   return (

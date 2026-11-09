@@ -1,5 +1,3 @@
-import type { MintQuoteState } from '@/types/models/Ecash'
-
 // Number of proofs restored per counter-batch during a mint restore scan.
 export const ECASH_RESTORE_BATCH_SIZE = 25
 // Per-batch mint request timeout during a restore scan.
@@ -11,18 +9,30 @@ export const NUT15_MPP = 15 as const
 export const BOLT11_METHOD = 'bolt11'
 export const SAT_UNIT = 'sat'
 export const MAX_MPP_FEE_SLICE_ATTEMPTS = 3
+// A fresh invoice is checked often, since its payer is likely paying right now.
 export const ECASH_QUOTE_POLL_INTERVAL_MS = 1500
-export const ECASH_QUOTE_MAX_POLL_ATTEMPTS = 120
-export const ECASH_MINT_QUOTE_PAID_STATES = new Set<MintQuoteState>([
-  'PAID',
-  'ISSUED'
-])
-export const ECASH_MINT_QUOTE_FAILED_STATES = new Set<MintQuoteState>([
-  'EXPIRED',
-  'CANCELLED'
-])
+export const ECASH_PENDING_MINT_FAST_POLL_WINDOW_MS = 180_000
+export const ECASH_PENDING_MINT_SLOW_POLL_INTERVAL_MS = 15_000
+// An unpaid quote past its invoice expiry plus this grace never gets paid.
+export const ECASH_MINT_QUOTE_EXPIRY_GRACE_MS = 600_000
+// Deadline for an unpaid quote whose mint gave no expiry.
+export const ECASH_PENDING_MINT_MAX_AGE_MS = 86_400_000
+// Each mint attempt reserves deterministic counters; repeated failures would
+// open a gap wider than the seed restore scans.
+export const ECASH_MAX_FAILED_MINT_ATTEMPTS = 3
+// Budget for one quote in a runner pass; a slower mint is left to finish alone.
+export const ECASH_PENDING_MINT_TIMEOUT_MS = 30_000
+// How long a quote rests when its mint stopped answering after the invoice expired.
+export const ECASH_UNREACHABLE_MINT_RETRY_MS = 600_000
+// How long a lost quote rests after a seed scan that could not cover every keyset.
+export const ECASH_INCOMPLETE_RESTORE_RETRY_MS = 600_000
+export const ECASH_PENDING_MELT_POLL_INTERVAL_MS = 15_000
+// Budget for one pending Lightning payment check in a runner pass.
+export const ECASH_PENDING_MELT_TIMEOUT_MS = 30_000
 export const ECASH_PAYMENT_ERROR_I18N_KEYS = {
   insufficientForFees: 'ecash.error.insufficientForFees',
   insufficientProofs: 'ecash.error.insufficientProofs',
+  meltPending: 'ecash.error.meltPending',
+  meltUnpaid: 'ecash.error.meltUnpaid',
   mintsLackMpp: 'ecash.error.mintsLackMpp'
 } as const

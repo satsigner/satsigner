@@ -81,12 +81,14 @@ export default function InvoicePage() {
   const [localFiatAmount, setLocalFiatAmount] = useState('')
   const [invoiceDescription, setInvoiceDescription] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [qrModalVisible, setQrModalVisible] = useState(false)
-  const [paymentRequest, setPaymentRequest] = useState('')
-  const [currentAmount, setCurrentAmount] = useState('')
-  const [currentDescription, setCurrentDescription] = useState('')
-  const [invoiceStatus, setInvoiceStatus] = useState<LndInvoiceUiStatus>('open')
-  const [rHash, setRHash] = useState<string>('')
+  // Only an invoice this node just created may be shown as the user's own.
+  const [shownInvoice, setShownInvoice] = useState<{
+    amount: string
+    description: string
+    request: string
+    rHash: string
+    status: LndInvoiceUiStatus
+  } | null>(null)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [isLNURLMode, setIsLNURLMode] = useState(false)
   const [lnurlDetails, setLnurlDetails] = useState<LNURLWithdrawDetails | null>(
@@ -103,18 +105,23 @@ export default function InvoicePage() {
   })
   const onchainAddress = addressQuery.data?.address
 
-  async function checkInvoiceStatus() {
-    if (!rHash || !qrModalVisible) {
-      return null
-    }
+  function applyInvoiceStatus(rHash: string, status: LndInvoiceUiStatus) {
+    setShownInvoice((current) =>
+      current && current.rHash === rHash ? { ...current, status } : current
+    )
+  }
 
+  async function checkInvoiceStatus(
+    rHash: string,
+    previous: LndInvoiceUiStatus
+  ) {
     try {
       const response = await makeRequest<{ settled: boolean; state: string }>(
         lndInvoiceLookupPath(rHash)
       )
       const newStatus = parseLndInvoiceUiStatus(response.state)
-      setInvoiceStatus(newStatus)
-      if (isNewlySettled(newStatus, invoiceStatus)) {
+      applyInvoiceStatus(rHash, newStatus)
+      if (isNewlySettled(newStatus, previous)) {
         toast.success(t('lightning.invoice.paymentReceived'))
       }
       return newStatus
@@ -123,10 +130,19 @@ export default function InvoicePage() {
     }
   }
 
+  // A settled or canceled invoice cannot change again, so polling stops.
+  const shownAmount = shownInvoice?.amount ?? ''
+  const shownStatus = shownInvoice?.status ?? 'open'
+  // An invoice without an r_hash cannot be looked up.
+  const pollingInvoice =
+    shownInvoice?.status === 'open' && shownInvoice.rHash ? shownInvoice : null
   useQuery({
-    enabled: qrModalVisible && Boolean(rHash),
-    queryFn: checkInvoiceStatus,
-    queryKey: ['lnd', 'invoice-status', rHash],
+    enabled: pollingInvoice !== null,
+    queryFn: () =>
+      pollingInvoice
+        ? checkInvoiceStatus(pollingInvoice.rHash, pollingInvoice.status)
+        : null,
+    queryKey: ['lnd', 'invoice-status', pollingInvoice?.rHash],
     refetchInterval: LND_INVOICE_POLL_MS
   })
 
@@ -242,6 +258,14 @@ export default function InvoicePage() {
     return false
   }
 
+  // A pasted or scanned invoice is someone else's request to be paid.
+  function openPayScreen(invoice: string) {
+    router.navigate({
+      params: { invoice },
+      pathname: '/signer/lightning/pay'
+    })
+  }
+
   const handlePasteFromClipboard = async () => {
     try {
       const text = await Clipboard.getStringAsync()
@@ -253,8 +277,7 @@ export default function InvoicePage() {
       const cleanText = text.trim()
 
       if (cleanText.toLowerCase().startsWith('lnbc')) {
-        setPaymentRequest(cleanText)
-        setQrModalVisible(true)
+        openPayScreen(cleanText)
       } else if (isLNURL(cleanText)) {
         await handleLNURLInput(cleanText)
       } else {
@@ -270,8 +293,7 @@ export default function InvoicePage() {
     const data = content.cleaned
 
     if (data.toLowerCase().startsWith('lnbc')) {
-      setPaymentRequest(data)
-      setQrModalVisible(true)
+      openPayScreen(data)
     } else if (isLNURL(data)) {
       await handleLNURLInput(data)
     } else {
@@ -300,12 +322,16 @@ export default function InvoicePage() {
       }
     }
 
-    setPaymentRequest(bolt11Invoice.payment_request)
-    setCurrentAmount(invoiceAmount)
-    setCurrentDescription(invoiceDescription)
-    setRHash(bolt11Invoice.r_hash || '')
-    setInvoiceStatus('open')
-    setQrModalVisible(true)
+    // An LNURL-withdraw code is spent once its invoice was requested.
+    setIsLNURLMode(false)
+    setLnurlDetails(null)
+    setShownInvoice({
+      amount: invoiceAmount,
+      description: invoiceDescription,
+      rHash: bolt11Invoice.r_hash || '',
+      request: bolt11Invoice.payment_request,
+      status: 'open'
+    })
   }
 
   const handleCreateInvoice = async () => {
@@ -348,7 +374,7 @@ export default function InvoicePage() {
   }
 
   const handleCopyToClipboard = async () => {
-    await Clipboard.setStringAsync(paymentRequest)
+    await Clipboard.setStringAsync(shownInvoice?.request ?? '')
     toast.success(t('common.copiedToClipboard'))
   }
 
@@ -365,7 +391,7 @@ export default function InvoicePage() {
   }
 
   function handleCloseQrModal() {
-    setQrModalVisible(false)
+    setShownInvoice(null)
   }
 
   async function handleCopyOnchainAddress() {
@@ -612,7 +638,7 @@ export default function InvoicePage() {
         </SSVStack>
       </SSMainLayout>
       <SSModal
-        visible={qrModalVisible}
+        visible={shownInvoice !== null}
         fullOpacity
         onClose={handleCloseQrModal}
       >
@@ -629,13 +655,13 @@ export default function InvoicePage() {
                     </SSText>
                     <SSHStack gap="xs" style={styles.amountContainer}>
                       <SSText weight="medium">
-                        {formatNumber(Number.parseInt(currentAmount, 10))} sats
+                        {formatNumber(Number.parseInt(shownAmount, 10))} sats
                       </SSText>
                       <SSText color="muted" size="sm">
                         ≈{' '}
                         {formatNumber(
                           satsToFiat(
-                            Number.parseInt(currentAmount, 10),
+                            Number.parseInt(shownAmount, 10),
                             btcPrice,
                             fiatEnabled
                           ),
@@ -650,7 +676,7 @@ export default function InvoicePage() {
                       {t('lightning.invoice.description')}
                     </SSText>
                     <SSText style={styles.detailValue}>
-                      {currentDescription}
+                      {shownInvoice?.description}
                     </SSText>
                   </SSHStack>
                   <SSHStack gap="xs" style={styles.detailRow}>
@@ -659,11 +685,11 @@ export default function InvoicePage() {
                     </SSText>
                     <SSText
                       style={styles.detailValue}
-                      color={invoiceStatus === 'settled' ? 'white' : 'muted'}
+                      color={shownStatus === 'settled' ? 'white' : 'muted'}
                     >
-                      {invoiceStatus === 'settled'
+                      {shownStatus === 'settled'
                         ? t('lightning.invoice.paid')
-                        : invoiceStatus === 'canceled'
+                        : shownStatus === 'canceled'
                           ? t('lightning.invoice.canceled')
                           : t('lightning.invoice.waiting')}
                     </SSText>
@@ -671,9 +697,9 @@ export default function InvoicePage() {
                 </View>
               </View>
             </SSVStack>
-            {paymentRequest ? (
+            {shownInvoice ? (
               <SSShareableQR
-                value={paymentRequest}
+                value={shownInvoice.request}
                 size={qrCodeSize}
                 containerStyle={styles.qrContainer}
               >
@@ -683,7 +709,7 @@ export default function InvoicePage() {
                   </SSText>
                   <View style={styles.paymentRequestText}>
                     <SSText type="mono" size="sm">
-                      {paymentRequest}
+                      {shownInvoice.request}
                     </SSText>
                   </View>
                 </SSVStack>

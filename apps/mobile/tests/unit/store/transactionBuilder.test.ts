@@ -68,6 +68,58 @@ describe('transactionBuilder signed draft persistence', () => {
       useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]?.signedTx
     ).toBeUndefined()
   })
+
+  it('clears signed draft fields when the RBF flag changes', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, to: 'tb1qtest' })
+    store.setSignedTx('deadbeef', 'cHNidP8=')
+
+    store.setRbf(false)
+
+    expect(useTransactionBuilderStore.getState().signedTx).toBeUndefined()
+    expect(
+      useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]?.signedTx
+    ).toBeUndefined()
+  })
+
+  it('forgets the account draft once the transaction is broadcast', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, to: 'tb1qtest' })
+    store.setSignedTx('deadbeef', 'cHNidP8=')
+
+    store.setBroadcasted(true)
+
+    const state = useTransactionBuilderStore.getState()
+    expect(state.broadcasted).toBe(true)
+    expect(state.drafts[ACCOUNT_ID]).toBeUndefined()
+    expect(state.signedTx).toBe('deadbeef')
+  })
+
+  it('does not save a broadcast transaction again on an account switch', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, to: 'tb1qtest' })
+    store.setSignedTx('deadbeef', 'cHNidP8=')
+    store.setBroadcasted(true)
+
+    store.setAccountId('other-account')
+
+    expect(
+      useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]
+    ).toBeUndefined()
+  })
+
+  it('does not carry a payjoin URI into another account', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.setPayjoinUri('bitcoin:tb1qtest?pj=https://pj.example')
+
+    store.setAccountId('other-account')
+
+    expect(useTransactionBuilderStore.getState().payjoinUri).toBeUndefined()
+  })
 })
 
 describe('transactionBuilder fee replacement drafts', () => {

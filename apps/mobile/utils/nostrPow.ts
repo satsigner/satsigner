@@ -18,6 +18,7 @@ type MineNostrPowInput = {
   kind: number
   onProgress?: (nonce: number) => void
   pubkey: string
+  signal?: AbortSignal
   tags: string[][]
 }
 
@@ -27,7 +28,13 @@ type ApplyNostrProofOfWorkInput = {
   kind?: number
   nsec: string
   onProgress?: (nonce: number) => void
+  signal?: AbortSignal
   tags: string[][]
+}
+
+/** Mining stopped because the note it was for was abandoned. */
+export class NostrPowAbortedError extends Error {
+  override name = 'NostrPowAbortedError'
 }
 
 export const POW_LEVELS = Array.from(
@@ -102,6 +109,9 @@ export async function mineNostrPow(
     createdAt = Math.floor(Date.now() / 1000)
     input.onProgress?.(nonce)
     await yieldToUi()
+    if (input.signal?.aborted) {
+      throw new NostrPowAbortedError('Proof of work was cancelled')
+    }
   }
 }
 
@@ -127,6 +137,7 @@ export async function applyNostrProofOfWork(
     kind: input.kind ?? nostrKinds.ShortTextNote,
     onProgress: input.onProgress,
     pubkey: getPublicKey(secretKey),
+    signal: input.signal,
     tags: tagged.tags
   })
 

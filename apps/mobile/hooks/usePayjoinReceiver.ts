@@ -94,6 +94,20 @@ function isTerminalFinalizeError(message: string): boolean {
   )
 }
 
+/**
+ * A failure that can never succeed on retry. The native handle goes with it,
+ * so a restart mints a fresh mailbox instead of replaying the same proposal
+ * into the same error.
+ */
+function toTerminalReceiverError(session: PayjoinSession): PayjoinSession {
+  return {
+    ...session,
+    nativeState: undefined,
+    status: 'error',
+    updatedAt: Date.now()
+  }
+}
+
 function sessionNeedsFinalize(session: PayjoinSession): boolean {
   if (
     !!session.originalPsbtBase64 &&
@@ -371,7 +385,7 @@ function usePayjoinReceiver({
           mailbox: mailboxFromEndpoint(target.pjEndpoint),
           sessionId: target.id
         })
-        setReceiverSession(persistSession(finalized))
+        setReceiverSession(persistSession(toTerminalReceiverError(finalized)))
         setNegotiating(false)
         return
       }
@@ -408,13 +422,9 @@ function usePayjoinReceiver({
         sessionId: target.id
       })
       setReceiverSession(
-        persistSession({
-          ...target,
-          error: message,
-          status: 'error',
-          updatedAt: Date.now()
-        })
+        persistSession(toTerminalReceiverError({ ...target, error: message }))
       )
+      setNegotiating(false)
       return
     }
     payjoinWarn('receiver finalize failed, will retry', {

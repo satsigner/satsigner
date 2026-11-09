@@ -5,7 +5,9 @@ import SSButton from '@/components/SSButton'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { ARK_SWAP_DISMISS_CHECK_INTERVAL_MS } from '@/constants/ark'
 import { PRIVACY_MASK } from '@/constants/privacy'
+import { useNow } from '@/hooks/useNow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -66,6 +68,7 @@ function SSArkSwapJobCard({
   onPaste
 }: SSArkSwapJobCardProps) {
   const [invoice, setInvoice] = useState('')
+  const nowMs = useNow(ARK_SWAP_DISMISS_CHECK_INTERVAL_MS)
   const amount = privacyMode ? PRIVACY_MASK : formatNumber(job.amountSats)
   const showInvoiceQr =
     job.kind === 'lightningToOnchain' && job.status === 'awaitingPayment'
@@ -192,7 +195,7 @@ function SSArkSwapJobCard({
           </SSHStack>
         </SSVStack>
       )}
-      {canDismissArkSwapJob(job) && (
+      {canDismissArkSwapJob(job, nowMs) && (
         <SSButton
           label={t('common.dismiss')}
           onPress={handleDismiss}

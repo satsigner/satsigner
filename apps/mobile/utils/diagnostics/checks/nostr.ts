@@ -34,7 +34,7 @@ import {
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
 import { countNostrProcessedEvents } from '@/db/nostrProcessedEvents'
-import { isNip46SessionActive } from '@/hooks/useNip46SessionManager'
+import { isNip46SessionActive } from '@/services/nip46Sessions'
 import {
   getNostrFollowCache,
   listMmkvKeys,
