@@ -28,11 +28,10 @@ function failureCause(error: unknown): FailureCause {
     }
   }
   if (error instanceof SyncTimeoutError) {
+    const minutes = Math.round(error.timeoutMs / MS_PER_MINUTE)
     return {
-      key: 'stalled',
-      reason: t('account.sync.stalled', {
-        minutes: Math.round(error.timeoutMs / MS_PER_MINUTE)
-      })
+      key: `stalled:${minutes}`,
+      reason: t('account.sync.stalled', { minutes })
     }
   }
   const reason = error instanceof Error ? error.message : String(error)
