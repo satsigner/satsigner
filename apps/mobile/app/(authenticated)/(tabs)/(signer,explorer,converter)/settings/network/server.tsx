@@ -56,7 +56,8 @@ export default function NetworkSettings() {
   )
 
   const [connectionStatus] = useVerifyConnection()
-  const { connectionTestInterval } = configs[selectedNetwork].config
+  const { connectionMode, connectionTestInterval } =
+    configs[selectedNetwork].config
   const { testing, testConnection } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
@@ -193,9 +194,11 @@ export default function NetworkSettings() {
             <SSText color="muted" size="xs">
               {tn('privacy.legend')}
             </SSText>
-            <SSText color="muted" size="xs">
-              {tn('status.help', { seconds: connectionTestInterval })}
-            </SSText>
+            {connectionMode !== 'manual' && (
+              <SSText color="muted" size="xs">
+                {tn('status.help', { seconds: connectionTestInterval })}
+              </SSText>
+            )}
           </SSVStack>
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
