@@ -88,7 +88,8 @@ const accountSyncCheck: DiagnosticCheck = {
         : null
       const ageMs = syncedAt === null ? null : now - syncedAt
       const stale = ageMs === null || ageMs > DIAGNOSTIC_STALE_SYNC_MS
-      const failed = account.syncStatus === 'error'
+      const failed =
+        account.syncStatus === 'error' || account.syncStatus === 'timeout'
       const stuck = account.isSyncing === true && stale
       return {
         failed,
