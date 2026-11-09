@@ -8,7 +8,11 @@ import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import BitcoinRpc from '@/api/rpc'
 import { SYNC_CANCELLED_ERROR, SYNC_CONCURRENCY } from '@/constants/sync'
 import { t } from '@/locales'
-import { SyncTimeoutError, createSyncQueue } from '@/services/syncQueue'
+import {
+  type SyncTaskControls,
+  SyncTimeoutError,
+  createSyncQueue
+} from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -47,31 +51,40 @@ type WalletSyncParams = Pick<
     'lastKnownBlockHeight' | 'setLastKnownBlockHeight'
   > & {
     config: Config
+    controls: SyncTaskControls
     forceFullScan: boolean
     latest: Account
-    reportProgress: () => void
     server: Server
-    signal: AbortSignal
     wallet: BdkWallet
   }
 
 async function syncWalletAccount({
   config,
+  controls,
   forceFullScan,
   lastKnownBlockHeight,
   latest,
-  reportProgress,
   server,
   setLastKnownBlockHeight,
   setSyncProgress: storeSyncProgress,
   setSyncStatus,
-  signal,
   wallet
 }: WalletSyncParams): Promise<Account | null> {
+  const { finishScan, reportProgress, signal } = controls
   setSyncStatus(latest.id, 'syncing')
 
+  const lastProgress = { tasksDone: -1 }
   function setSyncProgress(id: string, progress: SyncProgress) {
-    reportProgress()
+    // A replaced sync must not overwrite the new one's progress.
+    if (signal.aborted) {
+      return
+    }
+    // Only real advancement keeps a sync alive: Core can report the same
+    // rescan height for as long as it is stuck.
+    if (progress.tasksDone !== lastProgress.tasksDone) {
+      lastProgress.tasksDone = progress.tasksDone
+      reportProgress()
+    }
     storeSyncProgress(id, progress)
   }
 
@@ -193,6 +206,7 @@ async function syncWalletAccount({
   if (signal.aborted) {
     return null
   }
+  finishScan()
 
   // Capture cached prices before overwriting transactions with fresh BDK data
   const cachedPrices: Record<string, Prices> = {}
@@ -272,30 +286,126 @@ async function syncWalletAccount({
   return updatedAccount
 }
 
-function useSyncAccountWithWallet() {
-  const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
-  const setSyncProgress = useAccountsStore((state) => state.setSyncProgress)
+function settleStatusAfterCancel(accountId: string) {
+  if (walletSyncQueue.isActive(accountId)) {
+    return
+  }
+  const { accounts, setSyncStatus } = useAccountsStore.getState()
+  const current = accounts.find((a) => a.id === accountId)?.syncStatus
+  if (current === 'syncing' || current === 'queued') {
+    setSyncStatus(accountId, 'unsynced')
+  }
+}
 
-  const [loading, setLoading] = useState(false)
-
-  function settleStatusAfterCancel(accountId: string) {
-    if (walletSyncQueue.isActive(accountId)) {
-      return
-    }
-    const current = useAccountsStore
-      .getState()
-      .accounts.find((a) => a.id === accountId)?.syncStatus
-    if (current === 'syncing' || current === 'queued') {
-      setSyncStatus(accountId, 'unsynced')
-    }
+function handleSyncError(
+  account: Account,
+  error: unknown,
+  reportError: SyncErrorReporter
+): Account | null {
+  const msg = error instanceof Error ? error.message : String(error)
+  if (msg === SYNC_CANCELLED_ERROR) {
+    settleStatusAfterCancel(account.id)
+    return null
   }
 
-  /**
-   * Queue a sync for this account. A second request for an account that is
-   * already queued or syncing shares that job instead of starting another,
-   * and resolves to null so callers don't write the same result twice.
-   * `forceFullScan` replaces a running incremental sync.
-   */
+  const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
+  useAccountsStore.getState().setSyncStatus(account.id, syncStatus)
+  const latest =
+    useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
+    account
+  reportError(latest.name ?? latest.id, error)
+  return { ...latest, syncStatus }
+}
+
+function runQueuedWalletSync(
+  account: Account,
+  wallet: BdkWallet,
+  forceFullScan: boolean,
+  controls: SyncTaskControls
+) {
+  // Read when the job starts, not when it was queued: the server or stop gap
+  // may have changed while it waited (or a backup restore just replaced them).
+  const {
+    configs,
+    lastKnownBlockHeight,
+    selectedNetwork,
+    setLastKnownBlockHeight
+  } = useBlockchainStore.getState()
+  const { server, config } = configs[selectedNetwork]
+  const { accounts, setSyncProgress, setSyncStatus } =
+    useAccountsStore.getState()
+  return syncWalletAccount({
+    config,
+    controls,
+    forceFullScan,
+    lastKnownBlockHeight,
+    latest: accounts.find((a) => a.id === account.id) ?? account,
+    server,
+    setLastKnownBlockHeight,
+    setSyncProgress,
+    setSyncStatus,
+    wallet
+  })
+}
+
+type QueueWalletSyncParams = {
+  account: Account
+  forceFullScan: boolean
+  isPriority: boolean
+  reportError: SyncErrorReporter
+  wallet: BdkWallet
+}
+
+/**
+ * Queue a sync for this account. A second request for an account that is
+ * already queued or syncing shares that job instead of starting another,
+ * and resolves to null so callers don't write the same result twice.
+ * `forceFullScan` replaces a running incremental sync. Never rejects.
+ */
+async function queueWalletSync({
+  account,
+  forceFullScan,
+  isPriority,
+  reportError,
+  wallet
+}: QueueWalletSyncParams): Promise<Account | null> {
+  if (forceFullScan) {
+    walletSyncQueue.cancel(account.id)
+  }
+  const isDuplicate = walletSyncQueue.isActive(account.id)
+  const { configs, selectedNetwork } = useBlockchainStore.getState()
+
+  const outcome = await walletSyncQueue
+    .enqueue(
+      account.id,
+      (controls) =>
+        runQueuedWalletSync(account, wallet, forceFullScan, controls),
+      {
+        onQueued: () =>
+          useAccountsStore.getState().setSyncStatus(account.id, 'queued'),
+        priority: isPriority,
+        timeoutMs: getSyncStallTimeoutMs(configs[selectedNetwork].server)
+      }
+    )
+    .then(
+      (value) => ({ value }),
+      (error: unknown) => ({ error })
+    )
+
+  if ('error' in outcome) {
+    return isDuplicate
+      ? null
+      : handleSyncError(account, outcome.error, reportError)
+  }
+  if (outcome.value === null) {
+    settleStatusAfterCancel(account.id)
+  }
+  return isDuplicate ? null : outcome.value
+}
+
+function useSyncAccountWithWallet() {
+  const [loading, setLoading] = useState(false)
+
   async function syncAccountWithWallet(
     account: Account,
     wallet: BdkWallet,
@@ -303,84 +413,16 @@ function useSyncAccountWithWallet() {
     isPriority = false,
     reportError: SyncErrorReporter = reportSyncFailure
   ): Promise<Account | null> {
-    // Read at call time: a sync started right after a backup restore must
-    // use the restored server, not the one from this hook's last render.
-    const {
-      configs,
-      lastKnownBlockHeight,
-      selectedNetwork,
-      setLastKnownBlockHeight
-    } = useBlockchainStore.getState()
-    const { server, config } = configs[selectedNetwork]
-
-    if (forceFullScan) {
-      walletSyncQueue.cancel(account.id)
-    }
-    const isDuplicate = walletSyncQueue.isActive(account.id)
-
     setLoading(true)
-    const job = walletSyncQueue.enqueue(
-      account.id,
-      (signal, reportProgress) => {
-        const latest =
-          useAccountsStore
-            .getState()
-            .accounts.find((a) => a.id === account.id) ?? account
-        return syncWalletAccount({
-          config,
-          forceFullScan,
-          lastKnownBlockHeight,
-          latest,
-          reportProgress,
-          server,
-          setLastKnownBlockHeight,
-          setSyncProgress,
-          setSyncStatus,
-          signal,
-          wallet
-        })
-      },
-      {
-        onQueued: () => setSyncStatus(account.id, 'queued'),
-        priority: isPriority,
-        timeoutMs: getSyncStallTimeoutMs(server)
-      }
-    )
-
-    try {
-      const result = await job
-      if (result === null) {
-        settleStatusAfterCancel(account.id)
-      }
-      return isDuplicate ? null : result
-    } catch (error) {
-      if (isDuplicate) {
-        return null
-      }
-      return handleSyncError(account, error, reportError)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function handleSyncError(
-    account: Account,
-    error: unknown,
-    reportError: SyncErrorReporter
-  ): Account | null {
-    const msg = error instanceof Error ? error.message : String(error)
-    if (msg === SYNC_CANCELLED_ERROR) {
-      settleStatusAfterCancel(account.id)
-      return null
-    }
-
-    const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
-    setSyncStatus(account.id, syncStatus)
-    const latest =
-      useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
-      account
-    reportError(latest.name ?? latest.id, error)
-    return { ...latest, syncStatus }
+    const result = await queueWalletSync({
+      account,
+      forceFullScan,
+      isPriority,
+      reportError,
+      wallet
+    })
+    setLoading(false)
+    return result
   }
 
   return { loading, syncAccountWithWallet }

@@ -171,27 +171,32 @@ function AuthenticatedSession() {
     setJustUnlocked(false)
   }
 
-  async function syncLoadedAccount(
+  function syncAccountWithLoadedData(
     account: Account,
     reportFailure: SyncErrorReporter
   ) {
     const { wallets: currentWallets, addresses: currentAddresses } =
       useWalletsStore.getState()
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    if (account.keys[0].creationType === 'importAddress') {
+      if (!currentAddresses[account.id]) {
+        return null
+      }
+      return syncAccountWithAddress(account, reportFailure)
+    }
+    const wallet = currentWallets[account.id]
+    if (!wallet) {
+      return null
+    }
+    return syncAccountWithWallet(account, wallet, false, false, reportFailure)
+  }
+
+  async function syncLoadedAccount(
+    account: Account,
+    reportFailure: SyncErrorReporter
+  ) {
     try {
-      if (isImportAddress && currentAddresses[account.id]) {
-        updateAccount(await syncAccountWithAddress(account, reportFailure))
-        return
-      }
-      const wallet = currentWallets[account.id]
-      if (isImportAddress || !wallet) {
-        return
-      }
-      const updatedAccount = await syncAccountWithWallet(
+      const updatedAccount = await syncAccountWithLoadedData(
         account,
-        wallet,
-        false,
-        false,
         reportFailure
       )
       if (updatedAccount) {
@@ -212,10 +217,13 @@ function AuthenticatedSession() {
     }
     await devStep('session', 'sync accounts')
     const failures = createSyncFailureBatch()
+    // Only accounts on the selected network: the server belongs to it, and
+    // other networks' descriptors must not be sent there.
+    const accounts = useAccountsStore
+      .getState()
+      .accounts.filter((account) => account.network === selectedNetwork)
     await Promise.allSettled(
-      useAccountsStore
-        .getState()
-        .accounts.map((account) => syncLoadedAccount(account, failures.report))
+      accounts.map((account) => syncLoadedAccount(account, failures.report))
     )
     failures.flush()
   }

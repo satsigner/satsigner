@@ -507,6 +507,30 @@ function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
   })
 }
 
+type ActivityToolbarTitleParams = {
+  lastSyncedAt: Account['lastSyncedAt']
+  nowMs: number
+  syncStatus: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+}
+
+function activityToolbarTitle({
+  lastSyncedAt,
+  nowMs,
+  syncStatus,
+  tasksDone,
+  totalTasks
+}: ActivityToolbarTitleParams): string {
+  if (syncStatus === 'syncing') {
+    return syncProgressLabel(tasksDone, totalTasks)
+  }
+  if (syncStatus === 'queued') {
+    return t('account.sync.status.queued')
+  }
+  return lastSyncedLabel(lastSyncedAt, nowMs)
+}
+
 /** Toolbar title when idle — replaces static "Account activity". */
 function lastSyncedLabel(
   lastSyncedAt: Account['lastSyncedAt'],
@@ -782,9 +806,13 @@ function TotalTransactions({
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = isSyncing
-    ? syncProgressLabel(tasksDone, totalTasks)
-    : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const activityTitle = activityToolbarTitle({
+    lastSyncedAt: account.lastSyncedAt,
+    nowMs,
+    syncStatus,
+    tasksDone,
+    totalTasks
+  })
   const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
     ? t('account.transactions.loading')
     : t('account.transactions.empty')
@@ -1550,9 +1578,13 @@ function SpendableOutputs({
   const excludedOutpoints = account.excludedUtxoOutpoints ?? []
   const excludedCount = excludedOutpoints.length
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = isSyncing
-    ? syncProgressLabel(tasksDone, totalTasks)
-    : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const activityTitle = activityToolbarTitle({
+    lastSyncedAt: account.lastSyncedAt,
+    nowMs,
+    syncStatus,
+    tasksDone,
+    totalTasks
+  })
 
   const groups = prepareUtxoList({
     excludedOutpoints,
