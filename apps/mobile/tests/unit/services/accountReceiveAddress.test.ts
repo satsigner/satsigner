@@ -111,6 +111,18 @@ describe('fresh receive addresses', () => {
     await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-1')
   })
 
+  it('reserves a drafted address for only one of two concurrent drafts', async () => {
+    loadRangedWallet('acc-race')
+    const account = makeAccount('acc-race')
+    const drafted = await peekFreshReceiveAddress(account)
+    await expect(
+      Promise.all([
+        reserveReceiveAddressIfFresh(account, drafted),
+        reserveReceiveAddressIfFresh(account, drafted)
+      ])
+    ).resolves.toStrictEqual([true, false])
+  })
+
   it('refuses a peeked address that a sync has since seen paid', async () => {
     loadRangedWallet('acc-synced')
     const staleAccount = makeAccount('acc-synced')
