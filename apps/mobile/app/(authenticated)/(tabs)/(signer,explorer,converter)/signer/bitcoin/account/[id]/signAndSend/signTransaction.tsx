@@ -402,7 +402,6 @@ export default function SignTransaction() {
       currentConfig.server,
       accountNetwork
     )
-    return true
   }
 
   async function cosignArkBoardBeforeBroadcast() {
