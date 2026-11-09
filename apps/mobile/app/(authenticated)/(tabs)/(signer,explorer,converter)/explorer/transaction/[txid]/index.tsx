@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBackendSourceLabel from '@/components/SSBackendSourceLabel'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSDetailsList from '@/components/SSDetailsList'
@@ -305,14 +306,7 @@ export default function ExplorerTransactionDetail() {
             </SSText>
             {!mempoolError ? (
               <>
-                <SSText
-                  size="xxs"
-                  type="mono"
-                  center
-                  style={styles.sourceLabel}
-                >
-                  {sourceLabel}
-                </SSText>
+                <SSBackendSourceLabel label={sourceLabel} mono />
                 <SSText size="xxs" type="mono" center style={styles.serverUrl}>
                   {server.url}
                 </SSText>
@@ -455,14 +449,10 @@ export default function ExplorerTransactionDetail() {
                     {tx.txid}
                   </SSText>
                 </SSClipboardCopy>
-                <SSText
-                  size="xxs"
-                  style={
-                    useMempool ? styles.externalSource : styles.sourceLabel
-                  }
-                >
-                  {displaySourceLabel}
-                </SSText>
+                <SSBackendSourceLabel
+                  label={displaySourceLabel}
+                  isExternal={useMempool}
+                />
               </SSVStack>
             </SSHStack>
 
@@ -664,7 +654,6 @@ const styles = StyleSheet.create({
   loadingPhase: { opacity: 0.6 },
   sectionWithTopPadding: { paddingTop: 50 },
   serverUrl: { color: Colors.gray[500], opacity: 0.9 },
-  sourceLabel: { color: Colors.mainGreen, opacity: 0.8 },
   txidContent: { flex: 1 },
   txidSection: { alignItems: 'flex-start' }
 })

@@ -205,7 +205,7 @@ export default function AccountList() {
     listItemCount * ACCOUNT_CARD_HEIGHT +
     (listItemCount - 1) * SEPARATOR_VERTICAL
 
-  const [connectionStatus, , isPrivateConnection, connectionParts] =
+  const [connectionStatus, , serverPrivacy, connectionParts] =
     useVerifyConnection()
   const { blockHeight, nextBlockFee, blockHeightSource } = useNetworkInfo()
 
@@ -732,7 +732,8 @@ export default function AccountList() {
             >
               <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
                 <SSConnectionStatusIndicator
-                  isPrivateConnection={isPrivateConnection}
+                  isOnion={connectionParts.isOnion}
+                  privacy={serverPrivacy}
                   status={connectionStatus}
                 />
                 <SSText

@@ -4,6 +4,7 @@ import { toast } from 'sonner-native'
 import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
+import { ElectrumUnreachableError } from '@/api/electrumReachability'
 import BitcoinRpc from '@/api/rpc'
 import {
   CORE_NODE_WAIT_HEARTBEAT_MS,
@@ -11,6 +12,7 @@ import {
   SYNC_CANCELLED_ERROR,
   SYNC_PRICE_LOOKUP_TIMEOUT_MS
 } from '@/constants/sync'
+import { markServerConnectionFailed } from '@/hooks/useVerifyConnection'
 import { t } from '@/locales'
 import { type SyncTaskControls, SyncTimeoutError } from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
@@ -36,6 +38,7 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
+import { isSameServerEndpoint } from '@/utils/server'
 import {
   type SyncErrorReporter,
   reportSyncFailure
@@ -299,6 +302,9 @@ function handleSyncError(
     return null
   }
 
+  if (error instanceof ElectrumUnreachableError) {
+    void markServerConnectionFailed(error.url)
+  }
   const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
   writeSyncStatus(account.id, syncStatus)
   const latest =
@@ -336,7 +342,7 @@ async function runQueuedWalletSync(
     // Waiting behind another account's Core sync can take hours: the server
     // or the connection mode may have changed since.
     const current = resolveSyncTarget(account.id, controls.isPriority)
-    if (!current || !isSameServer(current.server, target.server)) {
+    if (!current || !isSameServerEndpoint(current.server, target.server)) {
       return Promise.resolve(null)
     }
     return trackAccountSyncWork(
@@ -388,10 +394,6 @@ function resolveSyncTarget(
     setSyncProgress,
     setSyncStatus
   }
-}
-
-function isSameServer(a: Server, b: Server) {
-  return a.backend === b.backend && a.url === b.url
 }
 
 function usesCoreWallet(server: Server) {

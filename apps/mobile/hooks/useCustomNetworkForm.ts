@@ -45,6 +45,7 @@ const TRIM_SURROUNDING_QUOTES_REGEX = /^['"]+|['"]+$/g
 type CustomNetworkFormData = {
   backend: Backend
   host: string
+  isPrivate: boolean
   name: string
   port: string
   protocol: 'tcp' | 'ssl'
@@ -214,6 +215,7 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
   const [formData, setFormData] = useState<CustomNetworkFormData>({
     backend: 'electrum',
     host: '',
+    isPrivate: false,
     name: '',
     port: '',
     protocol: 'ssl',
@@ -236,6 +238,10 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
 
   function updateProxyField(proxy: ProxyConfig) {
     setFormData((prev) => ({ ...prev, proxy }))
+  }
+
+  function updatePrivateField(isPrivate: boolean) {
+    setFormData((prev) => ({ ...prev, isPrivate }))
   }
 
   function constructUrl() {
@@ -267,6 +273,7 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
     setFormData({
       backend: 'electrum',
       host: '',
+      isPrivate: false,
       name: '',
       port: '',
       protocol: 'ssl',
@@ -292,6 +299,7 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
       setFormData({
         backend: 'electrum',
         host,
+        isPrivate: false,
         name: server.name,
         port,
         protocol,
@@ -364,6 +372,7 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
         }))
       }
     }
+    setFormData((prev) => ({ ...prev, isPrivate: server.isPrivate === true }))
   }, [])
 
   function applyPastedUrl(urlString: string): boolean {
@@ -420,6 +429,7 @@ export function useCustomNetworkForm(network: Network = 'bitcoin') {
     loadServer,
     resetForm,
     updateField,
+    updatePrivateField,
     updateProxyField
   }
 }
