@@ -5,6 +5,7 @@ import {
   reserveFreshReceiveAddress,
   reserveReceiveAddressIfFresh
 } from '@/services/accountReceiveAddress'
+import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
@@ -108,6 +109,18 @@ describe('fresh receive addresses', () => {
       false
     )
     await expect(peekFreshReceiveAddress(account)).resolves.toBe('addr-1')
+  })
+
+  it('refuses a peeked address that a sync has since seen paid', async () => {
+    loadRangedWallet('acc-synced')
+    const staleAccount = makeAccount('acc-synced')
+    const drafted = await peekFreshReceiveAddress(staleAccount)
+    useAccountsStore.setState({
+      accounts: [makeAccount('acc-synced', [drafted])]
+    })
+    await expect(
+      reserveReceiveAddressIfFresh(staleAccount, drafted)
+    ).resolves.toBe(false)
   })
 
   it('skips addresses reserved before this session', async () => {
