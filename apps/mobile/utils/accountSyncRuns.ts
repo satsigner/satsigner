@@ -1,65 +1,76 @@
+import { SYNC_CONCURRENCY } from '@/constants/sync'
+import { createSyncQueue } from '@/services/syncQueue'
+import { useAccountsStore } from '@/store/accounts'
+import { type Account } from '@/types/models/Account'
+import { toRestoredSyncStatus } from '@/utils/accountSync'
 import { withTimeout } from '@/utils/time'
 
-// One current run per account, shared across all sync hook instances. A newer
-// run of the same account, or a cancel, replaces or removes the entry; the
-// superseded run then drops its result at the next checkpoint instead of
-// writing it over newer data.
-const currentRuns = new Map<string, number>()
-// The native wallet is not safe for two syncs at once, so the work of a
-// superseded run is tracked until it settles and the next run waits for it.
+// Every wallet sync in the app goes through this queue, which runs a few at a
+// time, lets priority syncs skip the line and aborts syncs that stall. It
+// also owns cancellation: a cancelled job frees its slot and drops its result.
+const walletSyncQueue = createSyncQueue<Account | null>(SYNC_CONCURRENCY)
+// The native wallet is not safe for two syncs at once, and a cancelled or
+// stalled job's native call can keep running after its slot is freed, so that
+// work is tracked until it settles and the next sync of the account waits.
 const inFlightWork = new Map<string, Promise<unknown>>()
-// While a priority run is active, background runs of other accounts yield so
-// it gets the whole connection (RPC backends especially).
-const syncRunState: {
-  lastRunId: number
-  prioritySync: { accountId: string; runId: number } | undefined
-} = { lastRunId: 0, prioritySync: undefined }
+// The latest queued or running Bitcoin Core sync per node URL.
+const coreNodeWork = new Map<string, Promise<unknown>>()
 
-/** Makes the account's running sync drop its result at the next checkpoint. */
+/** Drops a queued sync of the account or makes a running one drop its result. */
 function cancelAccountSync(accountId: string) {
-  currentRuns.delete(accountId)
+  walletSyncQueue.cancel(accountId)
 }
 
-/** Cancels every running sync so a priority run can take over. */
+/** Cancels every queued and running sync, e.g. when the app locks. */
 function cancelAllAccountSyncs() {
-  currentRuns.clear()
+  walletSyncQueue.cancelAll()
 }
 
-/** True while a run owns the account or a superseded run is still working. */
+/** True while the account is queued or syncing, or cancelled work still runs. */
 function isAccountSyncing(accountId: string): boolean {
-  return currentRuns.has(accountId) || inFlightWork.has(accountId)
+  return walletSyncQueue.isActive(accountId) || inFlightWork.has(accountId)
 }
 
-/** True while a run owns the account, ignoring superseded work. */
+/** True while the account is queued or syncing, ignoring cancelled work. */
 function hasCurrentSyncRun(accountId: string): boolean {
-  return currentRuns.has(accountId)
+  return walletSyncQueue.isActive(accountId)
 }
 
-function isPrioritySyncActiveFor(accountId: string): boolean {
-  const { prioritySync } = syncRunState
-  return prioritySync !== undefined && prioritySync.accountId !== accountId
-}
-
-function startSyncRun(accountId: string, isPriority: boolean): number {
-  syncRunState.lastRunId += 1
-  const runId = syncRunState.lastRunId
-  currentRuns.set(accountId, runId)
-  if (isPriority) {
-    syncRunState.prioritySync = { accountId, runId }
+/**
+ * The status shown on the account card. A failed write (SQLite) must not turn
+ * a finished sync into a rejected one that callers don't expect.
+ */
+function writeSyncStatus(accountId: string, syncStatus: Account['syncStatus']) {
+  try {
+    useAccountsStore.getState().setSyncStatus(accountId, syncStatus)
+  } catch {
+    // the status stays stale until the next sync writes it
   }
-  return runId
 }
 
-function isSyncRunCurrent(accountId: string, runId: number): boolean {
-  return currentRuns.get(accountId) === runId
-}
-
-function releaseSyncRun(accountId: string, runId: number) {
-  if (isSyncRunCurrent(accountId, runId)) {
-    currentRuns.delete(accountId)
+/**
+ * A cancelled sync leaves the status the last finished sync left, unless a
+ * newer job of the account owns the status now.
+ */
+function settleCancelledSyncStatus(accountId: string) {
+  if (hasCurrentSyncRun(accountId)) {
+    return
   }
-  if (syncRunState.prioritySync?.runId === runId) {
-    syncRunState.prioritySync = undefined
+  const current = useAccountsStore
+    .getState()
+    .accounts.find((a) => a.id === accountId)
+  if (current?.syncStatus === 'syncing' || current?.syncStatus === 'queued') {
+    writeSyncStatus(
+      accountId,
+      toRestoredSyncStatus(current.syncStatus, current.lastSyncedAt)
+    )
+  }
+}
+
+/** E.g. after a restore rollback brought back statuses of cancelled syncs. */
+function settleCancelledSyncStatuses() {
+  for (const { id } of useAccountsStore.getState().accounts) {
+    settleCancelledSyncStatus(id)
   }
 }
 
@@ -105,15 +116,46 @@ async function trackAccountSyncWork<T>(
   }
 }
 
+async function afterSettled<T>(
+  previous: Promise<unknown>,
+  work: () => Promise<T>
+): Promise<T> {
+  await settles(previous)
+  return work()
+}
+
+/** True while a Core sync to this node is queued or running. */
+function isCoreNodeBusy(nodeUrl: string): boolean {
+  return coreNodeWork.has(nodeUrl)
+}
+
+/** Runs `work` once every earlier Core sync to the same node has settled. */
+async function runExclusiveOnCoreNode<T>(
+  nodeUrl: string,
+  work: () => Promise<T>
+): Promise<T> {
+  const run = afterSettled(coreNodeWork.get(nodeUrl) ?? Promise.resolve(), work)
+  coreNodeWork.set(nodeUrl, run)
+  try {
+    return await run
+  } finally {
+    if (coreNodeWork.get(nodeUrl) === run) {
+      coreNodeWork.delete(nodeUrl)
+    }
+  }
+}
+
 export {
   cancelAccountSync,
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
-  isPrioritySyncActiveFor,
-  isSyncRunCurrent,
-  releaseSyncRun,
-  startSyncRun,
+  isCoreNodeBusy,
+  runExclusiveOnCoreNode,
+  settleCancelledSyncStatus,
+  settleCancelledSyncStatuses,
   trackAccountSyncWork,
-  waitForAccountSyncWork
+  waitForAccountSyncWork,
+  walletSyncQueue,
+  writeSyncStatus
 }

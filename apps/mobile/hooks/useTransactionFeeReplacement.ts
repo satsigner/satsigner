@@ -298,7 +298,12 @@ export function useTransactionFeeReplacement({
             : minFeeRate,
           kind,
           syncWallet: async () => {
-            const synced = await syncAccountWithWallet(account, wallet)
+            const synced = await syncAccountWithWallet(
+              account,
+              wallet,
+              false,
+              true
+            )
             if (synced) {
               updateAccount(synced)
             }

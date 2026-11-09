@@ -164,6 +164,8 @@ export default function AccountSettings() {
   }
 
   function deleteThisAccount() {
+    // A queued sync would otherwise still scan this account's history.
+    cancelAccountSync(currentAccountId)
     deleteAccount(currentAccountId)
     removeAccountWallet(currentAccountId)
     router.replace('/signer/bitcoin/accountList')

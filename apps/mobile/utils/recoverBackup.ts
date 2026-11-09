@@ -38,6 +38,10 @@ import type {
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
 import {
+  cancelAllAccountSyncs,
+  settleCancelledSyncStatuses
+} from '@/utils/accountSyncRuns'
+import {
   deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
@@ -633,6 +637,9 @@ export async function performRecoverOverwrite(
   }
   // Running subscriptions must be closed before their accounts are replaced.
   await resetNostrSync()
+  // So must queued and running wallet syncs: one would write the old
+  // wallet's history over a restored account with the same id.
+  cancelAllAccountSyncs()
 
   try {
     await replaceAccounts(prepared.accounts)
@@ -655,6 +662,9 @@ export async function performRecoverOverwrite(
       RESTORE_ROLLBACK_ATTEMPTS
     )
     rollbackStores(snapshot)
+    // The snapshot predates the cancel above, so it can hold the 'syncing' or
+    // 'queued' status of a sync that no longer runs.
+    settleCancelledSyncStatuses()
     if (!rolledBack) {
       return {
         error: errorMessage(error),

@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import {
   type AddressInfo,
   BdkElectrumClient,
+  BdkEsploraClient,
   BdkPsbtParams,
   BdkRpcClient,
   BdkTxBuilder,
@@ -24,6 +25,7 @@ import {
   SEQUENCE_FINAL,
   SEQUENCE_RBF
 } from '@/constants/btc'
+import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type FeeReplacementRecipient } from '@/types/models/FeeReplacement'
 import { type Output } from '@/types/models/Output'
@@ -765,7 +767,8 @@ async function syncWallet(
   currentTip?: number,
   rpcScanFromHeight?: number,
   isGeneratedWallet?: boolean,
-  onRpcProgress?: (current: number, tip: number, pct: number) => void
+  onRpcProgress?: (current: number, tip: number, pct: number) => void,
+  { onScanProgress, signal }: ScanOptions = {}
 ) {
   if (backend === 'rpc') {
     const rpcClient = new BdkRpcClient({
@@ -813,18 +816,74 @@ async function syncWallet(
         }
       }
     })
-  } else if (backend === 'electrum') {
-    const client = await connectElectrum(url)
-    await (isFullScan
-      ? wallet.fullScanWithElectrum(client, stopGap)
-      : wallet.syncWithElectrum(client, stopGap))
-  } else if (isFullScan) {
-    await wallet.fullScanWithEsplora(url, stopGap)
   } else {
-    await wallet.syncWithEsplora(url, stopGap)
+    await scanWithServer(wallet, backend, url, stopGap, isFullScan, {
+      onScanProgress,
+      signal
+    })
   }
 
+  // A sync that was given up on must not persist a late, partial update.
+  if (signal?.aborted) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
   wallet.persist()
+}
+
+type ScanOptions = {
+  /** `total` is 0 during a full scan, which has no fixed end. */
+  onScanProgress?: (done: number, total: number) => void
+  signal?: AbortSignal
+}
+
+/**
+ * Electrum and Esplora scans go through the raw FFI wallet: the SDK wrapper
+ * drops the abort signal, which is what lets a stalled sync be cancelled.
+ */
+async function scanWithServer(
+  wallet: BdkWallet,
+  backend: Exclude<Backend, 'rpc'>,
+  url: string,
+  stopGap: number,
+  isFullScan: boolean,
+  { onScanProgress, signal }: ScanOptions
+) {
+  const emitProgress = onScanProgress
+    ? createThrottledRpcProgress((done, total) => onScanProgress(done, total))
+    : undefined
+  const asyncOpts = signal ? { signal } : undefined
+  const gap = BigInt(stopGap)
+  const fullScanInspector = {
+    inspect: (_keychain: KeychainKind, _index: number, visited: bigint) =>
+      emitProgress?.(Number(visited), 0, 0)
+  }
+  const syncInspector = {
+    inspect: (consumed: bigint, total: bigint) =>
+      emitProgress?.(
+        Number(consumed),
+        Number(total),
+        total > 0n ? Number(consumed) / Number(total) : 0
+      )
+  }
+
+  if (backend === 'electrum') {
+    const electrum = await connectElectrum(url)
+    const client = electrum.raw
+    await (isFullScan
+      ? wallet.raw.fullScanWithElectrum(
+          client,
+          gap,
+          fullScanInspector,
+          asyncOpts
+        )
+      : wallet.raw.syncWithElectrum(client, gap, syncInspector, asyncOpts))
+    return
+  }
+
+  const client = new BdkEsploraClient(url).raw
+  await (isFullScan
+    ? wallet.raw.fullScanWithEsplora(client, gap, fullScanInspector, asyncOpts)
+    : wallet.raw.syncWithEsplora(client, gap, syncInspector, asyncOpts))
 }
 
 async function getTransactionInputValues(
