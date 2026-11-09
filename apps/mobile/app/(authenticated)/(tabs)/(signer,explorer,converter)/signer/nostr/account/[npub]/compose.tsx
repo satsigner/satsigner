@@ -290,6 +290,16 @@ export default function NostrComposePage() {
     setPowHelpOpen((open) => !open)
   }
 
+  // A cancelled mine means the note was abandoned: nothing to report.
+  function reportPublishError(error: unknown) {
+    if (error instanceof NostrPowAbortedError) {
+      return
+    }
+    toast.error(
+      `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
+    )
+  }
+
   async function handleCopySigned() {
     if (!canExportSigned || !identity?.nsec) {
       return
@@ -313,9 +323,7 @@ export default function NostrComposePage() {
       await Clipboard.setStringAsync(JSON.stringify(signed, null, 2))
       toast.success(t('common.copiedToClipboard'))
     } catch (error) {
-      toast.error(
-        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-      )
+      reportPublishError(error)
     }
     setSigningExport(false)
   }
@@ -347,21 +355,9 @@ export default function NostrComposePage() {
         setSignedQrPayload(compact)
       }
     } catch (error) {
-      toast.error(
-        `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-      )
+      reportPublishError(error)
     }
     setSigningExport(false)
-  }
-
-  // A cancelled mine means the note was abandoned: nothing to report.
-  function reportPublishError(error: unknown) {
-    if (error instanceof NostrPowAbortedError) {
-      return
-    }
-    toast.error(
-      `${t('nostrIdentity.compose.publishFailed')}: ${getNostrErrorMessage(error)}`
-    )
   }
 
   async function handlePublish() {
