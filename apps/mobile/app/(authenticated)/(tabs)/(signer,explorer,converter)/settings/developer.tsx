@@ -250,13 +250,11 @@ export default function Developer() {
     )
   }
 
-  async function encryptBackupPreview(payload: string) {
+  function encryptBackupPreview(payload: string) {
     setIsEncryptingBackup(true)
-    try {
-      return await encryptBackup(payload, backupPassphrase)
-    } finally {
+    return encryptBackup(payload, backupPassphrase).finally(() =>
       setIsEncryptingBackup(false)
-    }
+    )
   }
 
   async function handleEncryptAndShare() {
