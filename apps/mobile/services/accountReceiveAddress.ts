@@ -74,8 +74,9 @@ function issueAddress(accountId: string, address: string) {
 
 /**
  * First external address of the account that no known transaction pays and
- * no earlier send took, derived from the account's own descriptor. Only for
- * estimates: the address is not reserved.
+ * no earlier send took, derived from the account's own descriptor. The
+ * address is not reserved: use it for estimates, or for a draft that
+ * `reserveReceiveAddressIfFresh` confirms before anything pays it.
  */
 export async function peekFreshReceiveAddress(
   account: Account
