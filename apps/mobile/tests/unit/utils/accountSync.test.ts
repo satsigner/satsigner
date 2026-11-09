@@ -130,6 +130,12 @@ describe('isTransactionHistoryLoading', () => {
     ).toBe(true)
   })
 
+  it('is loading while the account waits in the sync queue', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: false, syncStatus: 'queued' })
+    ).toBe(true)
+  })
+
   it('is loading while a refresh is in flight before sync status flips', () => {
     expect(
       isTransactionHistoryLoading({ refreshing: true, syncStatus: 'unsynced' })

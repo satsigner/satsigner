@@ -18,6 +18,10 @@ const SYNC_STALL_TIMEOUT_MS = 2 * 60_000
 const SYNC_STALL_TIMEOUT_TOR_MS = 5 * 60_000
 const SYNC_STALL_TIMEOUT_RPC_MS = 15 * 60_000
 
+// Fiat prices for new transactions are looked up after the scan; past this
+// the sync is saved without the missing prices.
+const SYNC_PRICE_LOOKUP_TIMEOUT_MS = 30_000
+
 // Batch syncs show one toast per failing account up to this many accounts
 // with the same cause; beyond it they share one toast.
 const SYNC_FAILURE_TOAST_LIMIT = 2
@@ -27,6 +31,7 @@ export {
   SYNC_CANCELLED_ERROR,
   SYNC_CONCURRENCY,
   SYNC_FAILURE_TOAST_LIMIT,
+  SYNC_PRICE_LOOKUP_TIMEOUT_MS,
   SYNC_STALL_TIMEOUT_MS,
   SYNC_STALL_TIMEOUT_RPC_MS,
   SYNC_STALL_TIMEOUT_TOR_MS

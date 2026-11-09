@@ -349,6 +349,12 @@ function scanProgressHeight(
   return Math.round(startHeight + scanning.progress * (tipHeight - startHeight))
 }
 
+function throwIfCancelled(isCancelled?: () => boolean) {
+  if (isCancelled?.()) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
+}
+
 /**
  * Poll getwalletinfo until Core finishes scanning (max ~6 hours). Aborts the
  * Core rescan on cancel so a restarted sync can begin at a new height.
@@ -361,10 +367,10 @@ async function pollRescan(
   let consecutiveErrors = 0
 
   for (let i = 0; i < BDK_RESCAN_MAX_POLLS; i += 1) {
-    if (isCancelled?.()) {
-      await coreWallet.abortRescan().catch(() => undefined)
-      throw new Error(SYNC_CANCELLED_ERROR)
-    }
+    // Leave the node's rescan alone: a replacement sync may already have
+    // started its own rescan on this Core wallet, and it stops the old one
+    // itself before starting (waitForRescanStopped).
+    throwIfCancelled(isCancelled)
     try {
       const info = await coreWallet.getWalletInfo()
       consecutiveErrors = 0
@@ -598,12 +604,6 @@ function peekKeychainAddresses(
   return addresses
 }
 
-function throwIfCancelled(isCancelled?: () => boolean) {
-  if (isCancelled?.()) {
-    throw new Error(SYNC_CANCELLED_ERROR)
-  }
-}
-
 /**
  * Sync a wallet via Bitcoin Core's descriptor wallet (importdescriptors path).
  * Does NOT require blockfilterindex=1 and is faster than compact filters for
@@ -674,6 +674,24 @@ async function syncWithCoreWallet(
     true
   )
 
+  const txSummaries = summarizeWalletTxs(
+    isIncremental
+      ? mergeWalletTxEntries(
+          sinceResult.transactions,
+          accountTxsAsEntries(account)
+        )
+      : sinceResult.transactions,
+    reorgedOutTxids(sinceResult.transactions, sinceResult.removed)
+  )
+  const transactions = await Promise.all(
+    [...txSummaries].map(async ([txid, summary]) =>
+      toAppTransaction(
+        txid,
+        summary,
+        await coreWallet.getTransaction(txid).catch(() => undefined)
+      )
+    )
+  )
   // A sync cancelled while the RPC calls were in flight has been replaced, so
   // it must not write to the shared wallet.
   throwIfCancelled(isCancelled)
@@ -693,24 +711,6 @@ async function syncWithCoreWallet(
     }
   }
 
-  const txSummaries = summarizeWalletTxs(
-    isIncremental
-      ? mergeWalletTxEntries(
-          sinceResult.transactions,
-          accountTxsAsEntries(account)
-        )
-      : sinceResult.transactions,
-    reorgedOutTxids(sinceResult.transactions, sinceResult.removed)
-  )
-  const transactions = await Promise.all(
-    [...txSummaries].map(async ([txid, summary]) =>
-      toAppTransaction(
-        txid,
-        summary,
-        await coreWallet.getTransaction(txid).catch(() => undefined)
-      )
-    )
-  )
   // Newest first, unconfirmed on top
   transactions.sort(
     (a, b) => (b.blockHeight ?? Infinity) - (a.blockHeight ?? Infinity)

@@ -6,7 +6,11 @@ import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import BitcoinRpc from '@/api/rpc'
-import { SYNC_CANCELLED_ERROR, SYNC_CONCURRENCY } from '@/constants/sync'
+import {
+  SYNC_CANCELLED_ERROR,
+  SYNC_CONCURRENCY,
+  SYNC_PRICE_LOOKUP_TIMEOUT_MS
+} from '@/constants/sync'
 import { t } from '@/locales'
 import {
   type SyncTaskControls,
@@ -29,6 +33,7 @@ import {
   type SyncErrorReporter,
   reportSyncFailure
 } from '@/utils/syncFailureToasts'
+import { withTimeout } from '@/utils/time'
 import { reconcileTransactions } from '@/utils/transaction'
 
 const walletSyncQueue = createSyncQueue<Account | null>(SYNC_CONCURRENCY)
@@ -249,9 +254,10 @@ async function syncWalletAccount({
   if (unpricedTimestamps.length > 0) {
     const uniqueTimestamps = [...new Set(unpricedTimestamps)]
     try {
-      const priceMap = await resolveHistoricalPrices(
-        fiatCurrency,
-        uniqueTimestamps
+      // Bounded so a slow price API can't hold the sync slot or the result.
+      const priceMap = await withTimeout(
+        resolveHistoricalPrices(fiatCurrency, uniqueTimestamps),
+        SYNC_PRICE_LOOKUP_TIMEOUT_MS
       )
       for (const tx of updatedAccount.transactions) {
         if (tx.prices?.[fiatCurrency] !== undefined || !tx.timestamp) {
@@ -286,14 +292,27 @@ async function syncWalletAccount({
   return updatedAccount
 }
 
+/**
+ * The status shown on the account card. A failed write (SQLite) must not turn
+ * a finished sync into a rejected one that callers don't expect.
+ */
+function writeSyncStatus(accountId: string, syncStatus: Account['syncStatus']) {
+  try {
+    useAccountsStore.getState().setSyncStatus(accountId, syncStatus)
+  } catch {
+    // the status stays stale until the next sync writes it
+  }
+}
+
 function settleStatusAfterCancel(accountId: string) {
   if (walletSyncQueue.isActive(accountId)) {
     return
   }
-  const { accounts, setSyncStatus } = useAccountsStore.getState()
-  const current = accounts.find((a) => a.id === accountId)?.syncStatus
+  const current = useAccountsStore
+    .getState()
+    .accounts.find((a) => a.id === accountId)?.syncStatus
   if (current === 'syncing' || current === 'queued') {
-    setSyncStatus(accountId, 'unsynced')
+    writeSyncStatus(accountId, 'unsynced')
   }
 }
 
@@ -309,7 +328,7 @@ function handleSyncError(
   }
 
   const syncStatus = error instanceof SyncTimeoutError ? 'timeout' : 'error'
-  useAccountsStore.getState().setSyncStatus(account.id, syncStatus)
+  writeSyncStatus(account.id, syncStatus)
   const latest =
     useAccountsStore.getState().accounts.find((a) => a.id === account.id) ??
     account
@@ -334,12 +353,18 @@ function runQueuedWalletSync(
   const { server, config } = configs[selectedNetwork]
   const { accounts, setSyncProgress, setSyncStatus } =
     useAccountsStore.getState()
+  const latest = accounts.find((a) => a.id === account.id)
+  // Deleted while it waited, or the user switched networks: this server must
+  // not receive the account's descriptors.
+  if (!latest || latest.network !== selectedNetwork) {
+    return Promise.resolve(null)
+  }
   return syncWalletAccount({
     config,
     controls,
     forceFullScan,
     lastKnownBlockHeight,
-    latest: accounts.find((a) => a.id === account.id) ?? account,
+    latest,
     server,
     setLastKnownBlockHeight,
     setSyncProgress,
@@ -381,8 +406,7 @@ async function queueWalletSync({
       (controls) =>
         runQueuedWalletSync(account, wallet, forceFullScan, controls),
       {
-        onQueued: () =>
-          useAccountsStore.getState().setSyncStatus(account.id, 'queued'),
+        onQueued: () => writeSyncStatus(account.id, 'queued'),
         priority: isPriority,
         timeoutMs: getSyncStallTimeoutMs(configs[selectedNetwork].server)
       }
