@@ -14,6 +14,7 @@ function useApplyAccountBirthday() {
   const updateAccountBirthday = useAccountsStore(
     (state) => state.updateAccountBirthday
   )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const wallets = useWalletsStore((state) => state.wallets)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
@@ -45,7 +46,15 @@ function useApplyAccountBirthday() {
     }
 
     toast.success(t('account.birthdayDate.rescanQueued'))
-    await syncAccountWithWallet(latestAccount, wallet, true, true)
+    const rescanned = await syncAccountWithWallet(
+      latestAccount,
+      wallet,
+      true,
+      true
+    )
+    if (rescanned) {
+      updateAccount(rescanned)
+    }
     return true
   }
 

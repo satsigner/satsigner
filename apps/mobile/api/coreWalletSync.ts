@@ -598,6 +598,12 @@ function peekKeychainAddresses(
   return addresses
 }
 
+function throwIfCancelled(isCancelled?: () => boolean) {
+  if (isCancelled?.()) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
+}
+
 /**
  * Sync a wallet via Bitcoin Core's descriptor wallet (importdescriptors path).
  * Does NOT require blockfilterindex=1 and is faster than compact filters for
@@ -668,6 +674,9 @@ async function syncWithCoreWallet(
     true
   )
 
+  // A sync cancelled while the RPC calls were in flight has been replaced, so
+  // it must not write to the shared wallet.
+  throwIfCancelled(isCancelled)
   // Populate BDK's wallet DB with current UTXOs so buildTransaction / sign
   // can locate outpoints without a BDK (compact filter) sync.
   for (const u of unspent) {
@@ -761,6 +770,7 @@ async function syncWithCoreWallet(
     ownershipScanLimit(Math.max(coreMaxExternal, coreMaxInternal))
   )
 
+  throwIfCancelled(isCancelled)
   revealKnownAddresses(wallet, { addresses }, stopGap, {
     external: coreMaxExternal,
     internal: coreMaxInternal

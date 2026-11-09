@@ -1,4 +1,8 @@
-import { SyncTimeoutError, createSyncQueue } from '@/services/syncQueue'
+import {
+  type SyncTaskControls,
+  SyncTimeoutError,
+  createSyncQueue
+} from '@/services/syncQueue'
 
 const TIMEOUT_MS = 1000
 
@@ -19,7 +23,7 @@ function deferredTask() {
     deferred.resolve = resolve
     deferred.reject = reject
   })
-  const task = jest.fn((signal: AbortSignal) => {
+  const task = jest.fn(({ signal }: SyncTaskControls) => {
     deferred.signal = signal
     return deferred.promise
   })
@@ -27,10 +31,11 @@ function deferredTask() {
 }
 
 function expectStarted(task: jest.Mock) {
-  expect(task).toHaveBeenCalledWith(
-    expect.any(AbortSignal),
-    expect.any(Function)
-  )
+  expect(task).toHaveBeenCalledWith({
+    finishScan: expect.any(Function),
+    reportProgress: expect.any(Function),
+    signal: expect.any(AbortSignal)
+  })
 }
 
 async function flushPromises() {
@@ -205,7 +210,7 @@ describe('createSyncQueue progress', () => {
 
     const result = queue.enqueue(
       'a',
-      (_signal, reportProgress) => {
+      ({ reportProgress }) => {
         progress.report = reportProgress
         return slow
       },
@@ -218,5 +223,53 @@ describe('createSyncQueue progress', () => {
     }
 
     await expect(result).resolves.toBe('done')
+  })
+})
+
+describe('createSyncQueue finishScan', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('does not time out work that runs after the scan finished', async () => {
+    const queue = createSyncQueue<string>(1)
+    const slowPrices = new Promise<string>((resolve) => {
+      setTimeout(() => resolve('priced'), TIMEOUT_MS * 3)
+    })
+
+    const result = queue.enqueue(
+      'a',
+      ({ finishScan }) => {
+        finishScan()
+        return slowPrices
+      },
+      { timeoutMs: TIMEOUT_MS }
+    )
+
+    jest.advanceTimersByTime(TIMEOUT_MS * 3)
+    await expect(result).resolves.toBe('priced')
+  })
+
+  it('keeps a job queued when the queued-status write throws', async () => {
+    const queue = createSyncQueue<string>(1)
+    const running = deferredTask()
+    const queued = deferredTask()
+
+    queue.enqueue('a', running.task, { timeoutMs: TIMEOUT_MS })
+    queue.enqueue('b', queued.task, {
+      onQueued: () => {
+        throw new Error('db write failed')
+      },
+      timeoutMs: TIMEOUT_MS
+    })
+
+    expect(queue.isActive('b')).toBe(true)
+    running.deferred.resolve('done')
+    await flushPromises()
+    expectStarted(queued.task)
   })
 })

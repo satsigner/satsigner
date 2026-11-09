@@ -31,6 +31,7 @@ import {
 } from '@/constants/headerChrome'
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
+import { cancelAccountSync } from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSScrollView from '@/layouts/SSScrollView'
@@ -157,6 +158,8 @@ export default function AccountSettings() {
   }
 
   function deleteThisAccount() {
+    // A queued sync would otherwise still scan this account's history.
+    cancelAccountSync(currentAccountId)
     deleteAccount(currentAccountId)
     removeAccountWallet(currentAccountId)
     router.replace('/signer/bitcoin/accountList')
