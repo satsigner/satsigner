@@ -36,7 +36,11 @@ import type {
   LNDNodeInfo
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
-import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
+import {
+  ConfigSchema,
+  type Server,
+  ServerSchema
+} from '@/types/settings/blockchain'
 import {
   deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
@@ -67,6 +71,7 @@ import {
   rollbackPersistedState,
   snapshotPersistedState
 } from '@/utils/restoreRollback'
+import { getRestoredPublicServer } from '@/utils/serverPrivacy'
 
 type BackupKey = Key & BackupKeySecret
 type BackupAccount = {
@@ -162,7 +167,11 @@ type StoreSnapshot = {
 
 export type RecoverResult =
   | { success: false; error: string; rollbackIncomplete?: true }
-  | { success: true }
+  | {
+      success: true
+      /** The backup switched the app to this public server. */
+      restoredPublicServer?: Server
+    }
 
 function parseBackupDate(v: string | number | Date | null | undefined): Date {
   if (v === null || v === undefined) {
@@ -670,5 +679,12 @@ export async function performRecoverOverwrite(
     existingEcashAccountIds,
     leftoverArkAccountIds
   )
-  return { success: true }
+  const { configs, selectedNetwork } = useBlockchainStore.getState()
+  const restoredPublicServer = getRestoredPublicServer(
+    data.serverSettings !== undefined,
+    configs[selectedNetwork].server
+  )
+  return restoredPublicServer
+    ? { restoredPublicServer, success: true }
+    : { success: true }
 }

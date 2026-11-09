@@ -358,7 +358,7 @@ describe('performRecoverOverwrite restore', () => {
       addAccount: jest.fn(),
       clearAllData: clearAllDataArk
     })
-    useBlockchainStore.getState.mockReturnValue({
+    const blockchainState = {
       addCustomServer,
       configs: {
         bitcoin: {
@@ -377,11 +377,18 @@ describe('performRecoverOverwrite restore', () => {
       configsMempool: { bitcoin: '', signet: '', testnet: '' },
       customServers: [],
       removeCustomServer,
+      selectedNetwork: 'bitcoin',
       setSelectedNetwork,
       updateConfig,
       updateConfigMempool,
       updateServer
-    })
+    }
+    useBlockchainStore.getState.mockReturnValue(blockchainState)
+    updateServer.mockImplementation(
+      (network: 'bitcoin' | 'signet' | 'testnet', server: unknown) => {
+        Object.assign(blockchainState.configs[network], { server })
+      }
+    )
     useEcashStore.getState.mockReturnValue({
       accounts: [],
       clearAllData: clearAllDataEcash
@@ -495,7 +502,10 @@ describe('performRecoverOverwrite restore', () => {
       })
     )
 
-    expect(result).toStrictEqual({ success: true })
+    expect(result).toStrictEqual({
+      restoredPublicServer: bitcoinServer,
+      success: true
+    })
     expect(addAccount).toHaveBeenCalledTimes(1)
     const restored = addAccount.mock.calls[0][0] as {
       labels: typeof labels

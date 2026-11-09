@@ -1,10 +1,10 @@
-import { useGlobalSearchParams } from 'expo-router'
+import { useGlobalSearchParams, useRouter } from 'expo-router'
 import Drawer from 'expo-router/drawer'
 import {
   getFocusedRouteNameFromRoute,
   useRoute
 } from 'expo-router/react-navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -13,6 +13,7 @@ import { getWalletData } from '@/api/bdk'
 import { initRpcUrlAdjustments } from '@/api/rpc'
 import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkExitWatcher } from '@/hooks/useArkExits'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
@@ -27,6 +28,7 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
+import { type Server } from '@/types/settings/blockchain'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { devLog, devStep } from '@/utils/devConsole'
@@ -144,6 +146,9 @@ function AuthenticatedSession() {
       ])
     )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const router = useRouter()
+  const [restoredPublicServer, setRestoredPublicServer] =
+    useState<Server | null>(null)
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
@@ -220,6 +225,27 @@ function AuthenticatedSession() {
     failures.flush()
   }
 
+  async function restorePendingBackup(pending: string) {
+    await devStep('session', 'restore backup')
+    const result = await performRecoverOverwrite(pending)
+    devLog('session', `restore backup ${result.success ? 'done' : 'failed'}`)
+    setPendingRecoverData(null)
+    showRecoverResultToast(result)
+    return result.success
+      ? { publicServer: result.restoredPublicServer }
+      : undefined
+  }
+
+  function handleAcceptRestoredServer() {
+    setRestoredPublicServer(null)
+    void syncLoadedWallets()
+  }
+
+  function handleChangeRestoredServer() {
+    setRestoredPublicServer(null)
+    router.navigate('/settings/network/server')
+  }
+
   useEffect(() => {
     const session = { active: true }
 
@@ -237,21 +263,19 @@ function AuthenticatedSession() {
         // non-critical for boot; secrets may remain unavailable until next unlock
       }
 
-      if (ju && pending) {
-        await devStep('session', 'restore backup')
-        const result = await performRecoverOverwrite(pending)
-        devLog(
-          'session',
-          `restore backup ${result.success ? 'done' : 'failed'}`
-        )
-        setPendingRecoverData(null)
-        showRecoverResultToast(result)
-      }
+      const restored =
+        ju && pending ? await restorePendingBackup(pending) : undefined
       setJustUnlocked(false)
       await devStep('session', 'load wallets')
       await loadWallets()
       devLog('session', 'wallets loaded')
-      void syncLoadedWallets()
+      // Hold the first sync until the user accepts the public server the
+      // backup switched to, so nothing is sent to it without their consent.
+      if (restored?.publicServer) {
+        setRestoredPublicServer(restored.publicServer)
+      } else {
+        void syncLoadedWallets()
+      }
 
       try {
         pruneCache()
@@ -292,6 +316,13 @@ function AuthenticatedSession() {
         <Drawer.Screen name="(tabs)" />
       </Drawer>
       <SSArkReceiveOverlay />
+      <SSPublicServerWarningModal
+        visible={restoredPublicServer !== null}
+        serverName={restoredPublicServer?.name ?? ''}
+        reason="restore"
+        onConfirm={handleAcceptRestoredServer}
+        onCancel={handleChangeRestoredServer}
+      />
     </GestureHandlerRootView>
   )
 }

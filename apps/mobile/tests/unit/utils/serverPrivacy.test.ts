@@ -1,4 +1,9 @@
-import { getServerPrivacy, isOnionUrl } from '@/utils/serverPrivacy'
+import {
+  getNewlySelectedPublicServers,
+  getRestoredPublicServer,
+  getServerPrivacy,
+  isOnionUrl
+} from '@/utils/serverPrivacy'
 
 const ONION_HOST =
   'explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion'
@@ -47,5 +52,78 @@ describe('isOnionUrl', () => {
     'https://example.com/a.onion'
   ])('rejects %s', (url) => {
     expect(isOnionUrl(url)).toBe(false)
+  })
+})
+
+describe('getNewlySelectedPublicServers', () => {
+  const myNode = {
+    backend: 'electrum' as const,
+    isPrivate: true,
+    name: 'Umbrel',
+    network: 'bitcoin' as const,
+    url: 'tcp://umbrel.local:50001'
+  }
+  const mempool = {
+    backend: 'esplora' as const,
+    name: 'Mempool',
+    network: 'bitcoin' as const,
+    url: 'https://mempool.space/api'
+  }
+  const signetMempool = {
+    backend: 'electrum' as const,
+    name: 'Mempool',
+    network: 'signet' as const,
+    url: 'ssl://mempool.space:60602'
+  }
+
+  it('returns a public server the user just switched to', () => {
+    expect(
+      getNewlySelectedPublicServers(
+        { bitcoin: myNode, signet: signetMempool },
+        { bitcoin: mempool, signet: signetMempool }
+      )
+    ).toStrictEqual([mempool])
+  })
+
+  it('ignores public servers that were already selected', () => {
+    expect(
+      getNewlySelectedPublicServers(
+        { bitcoin: mempool, signet: signetMempool },
+        { bitcoin: mempool, signet: signetMempool }
+      )
+    ).toStrictEqual([])
+  })
+
+  it('ignores a switch to a private server', () => {
+    expect(
+      getNewlySelectedPublicServers({ bitcoin: mempool }, { bitcoin: myNode })
+    ).toStrictEqual([])
+  })
+})
+
+describe('getRestoredPublicServer', () => {
+  const mempool = {
+    backend: 'esplora' as const,
+    name: 'Mempool',
+    network: 'bitcoin' as const,
+    url: 'https://mempool.space/api'
+  }
+
+  it('flags a public server chosen by the backup', () => {
+    expect(getRestoredPublicServer(true, mempool)).toBe(mempool)
+  })
+
+  it('stays quiet when the backup did not change the server', () => {
+    expect(getRestoredPublicServer(false, mempool)).toBeUndefined()
+  })
+
+  it('stays quiet for a private server', () => {
+    expect(
+      getRestoredPublicServer(true, {
+        ...mempool,
+        isPrivate: true,
+        url: 'tcp://umbrel.local:50001'
+      })
+    ).toBeUndefined()
   })
 })

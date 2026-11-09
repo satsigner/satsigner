@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSPressable from '@/components/SSPressable'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import SSServerStatusLabel from '@/components/SSServerStatusLabel'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
@@ -33,6 +34,7 @@ import {
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
 import {
+  getNewlySelectedPublicServers,
   getServerPrivacy,
   isOnionUrl,
   isSameServer
@@ -60,6 +62,7 @@ export default function NetworkSettings() {
 
   const [connectionStatus] = useVerifyConnection()
   const { connectionTestInterval } = configs[selectedNetwork].config
+  const [pendingPublicServers, setPendingPublicServers] = useState<Server[]>([])
   const { testing, testConnection } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
@@ -164,11 +167,33 @@ export default function NetworkSettings() {
     )
   }
 
-  function handleOnSave() {
+  function commitSelectedServers() {
     updateServer('bitcoin', selectedServers['bitcoin'])
     updateServer('testnet', selectedServers['testnet'])
     updateServer('signet', selectedServers['signet'])
     router.back()
+  }
+
+  function handleOnSave() {
+    const currentServers = {
+      bitcoin: configs.bitcoin.server,
+      signet: configs.signet.server,
+      testnet: configs.testnet.server
+    }
+    const publicServers = getNewlySelectedPublicServers(
+      currentServers,
+      selectedServers
+    )
+    if (publicServers.length > 0) {
+      setPendingPublicServers(publicServers)
+      return
+    }
+    commitSelectedServers()
+  }
+
+  function handleConfirmPublicServers() {
+    setPendingPublicServers([])
+    commitSelectedServers()
   }
 
   function handleEditCustomServer(network: Network, server: Server) {
@@ -392,6 +417,14 @@ export default function NetworkSettings() {
           />
         </SSVStack>
       </SSVStack>
+      <SSPublicServerWarningModal
+        visible={pendingPublicServers.length > 0}
+        serverName={pendingPublicServers
+          .map((server) => server.name)
+          .join(', ')}
+        onConfirm={handleConfirmPublicServers}
+        onCancel={() => setPendingPublicServers([])}
+      />
     </SSMainLayout>
   )
 }

@@ -34,3 +34,37 @@ export function getServerPrivacy(
 export function isSameServer(a: Server, b: Server): boolean {
   return a.url === b.url && a.name === b.name && a.backend === b.backend
 }
+
+/**
+ * Servers that would become active on save and are public, so the user can
+ * be warned before the app connects to them. Unchanged selections are not
+ * returned: the user already accepted them.
+ */
+export function getNewlySelectedPublicServers<K extends string>(
+  current: Record<K, Server>,
+  next: Record<K, Server>
+): Server[] {
+  return Object.keys(next)
+    .filter((key): key is K => key in current)
+    .map((key) => ({ after: next[key], before: current[key] }))
+    .filter(
+      ({ before, after }) =>
+        !isSameServer(before, after) && getServerPrivacy(after) === 'public'
+    )
+    .map(({ after }) => after)
+}
+
+/**
+ * After a backup restore, the server the app is about to sync with, when the
+ * backup chose it and it is public. A backup without server settings leaves
+ * the user's own choice in place, so there is nothing new to warn about.
+ */
+export function getRestoredPublicServer(
+  backupHadServerSettings: boolean,
+  activeServer: Server
+): Server | undefined {
+  if (!backupHadServerSettings) {
+    return undefined
+  }
+  return getServerPrivacy(activeServer) === 'public' ? activeServer : undefined
+}

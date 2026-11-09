@@ -22,6 +22,7 @@ import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicato
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -55,8 +56,14 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
+import { getServerPrivacy } from '@/utils/serverPrivacy'
 
 const tnServer = _tn('settings.network.server')
+
+type PendingPublicServer = {
+  action: 'activate' | 'save'
+  server: Server
+}
 
 type EditServerSource = {
   customServerCount: number
@@ -128,6 +135,8 @@ export default function CustomNetwork() {
   const [lastBanner, setLastBanner] = useState<string | null>(null)
   const [loadedEditServerSource, setLoadedEditServerSource] =
     useState<EditServerSource | null>(null)
+  const [pendingPublicServer, setPendingPublicServer] =
+    useState<PendingPublicServer | null>(null)
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
@@ -283,8 +292,7 @@ export default function CustomNetwork() {
       return
     }
 
-    setSelectedNetwork(networkType)
-    updateServer(networkType, server)
+    activateOrConfirm(server, 'activate')
 
     setLastProbeLine(successProbeDescription(result))
     setLastBanner(result.banner?.trim() ? result.banner.trim() : null)
@@ -329,19 +337,52 @@ export default function CustomNetwork() {
     }
   }
 
+  function activateServer(server: Server) {
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
+  }
+
+  function saveServer(server: Server) {
+    if (editingServer) {
+      updateCustomServer(editingServer, server)
+    } else {
+      addCustomServer(server)
+    }
+    activateServer(server)
+    router.back()
+  }
+
+  function activateOrConfirm(
+    server: Server,
+    action: PendingPublicServer['action']
+  ) {
+    if (getServerPrivacy(server) === 'public') {
+      setPendingPublicServer({ action, server })
+      return
+    }
+    if (action === 'save') {
+      saveServer(server)
+      return
+    }
+    activateServer(server)
+  }
+
+  function handleConfirmPublicServer() {
+    if (!pendingPublicServer) {
+      return
+    }
+    const { action, server } = pendingPublicServer
+    setPendingPublicServer(null)
+    if (action === 'save') {
+      saveServer(server)
+      return
+    }
+    activateServer(server)
+  }
+
   function handleSave() {
     if (isValid()) {
-      const server = buildServer()
-
-      if (editingServer) {
-        updateCustomServer(editingServer, server)
-      } else {
-        addCustomServer(server)
-      }
-
-      setSelectedNetwork(networkType)
-      updateServer(networkType, server)
-      router.back()
+      activateOrConfirm(buildServer(), 'save')
     }
   }
 
@@ -676,6 +717,13 @@ export default function CustomNetwork() {
           </SSVStack>
         </SSScrollView>
       </SSVStack>
+
+      <SSPublicServerWarningModal
+        visible={pendingPublicServer !== null}
+        serverName={pendingPublicServer?.server.name ?? ''}
+        onConfirm={handleConfirmPublicServer}
+        onCancel={() => setPendingPublicServer(null)}
+      />
 
       <SSModal
         visible={scanModalVisible}
