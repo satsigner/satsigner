@@ -2,12 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
+  type LayoutChangeEvent,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   TextInput,
   View
@@ -31,6 +33,7 @@ import {
   SSNostrFeedNoteRow
 } from '@/components/SSNostrFeedNoteRow'
 import SSNostrNoteActions from '@/components/SSNostrNoteActions'
+import SSNostrNoteReactions from '@/components/SSNostrNoteReactions'
 import SSNostrPollOptions from '@/components/SSNostrPollOptions'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNostrZapSheets from '@/components/SSNostrZapSheets'
@@ -51,6 +54,7 @@ import {
   useNostrNoteFetch,
   useNostrNoteLookupFetch
 } from '@/hooks/useNostrNoteFetch'
+import { useNostrNoteReactionsFetch } from '@/hooks/useNostrNoteReactionsFetch'
 import { useNostrNoteZapsFetch } from '@/hooks/useNostrNoteZapsFetch'
 import { useNostrPollVote } from '@/hooks/useNostrPollVote'
 import { useNostrProfilesFetch } from '@/hooks/useNostrProfilesFetch'
@@ -210,6 +214,28 @@ export default function NostrNotePage() {
     applyZapProfiles(receipt, (pk) => storeProfiles[pk.toLowerCase()])
   )
   const zapReceiptsLoading = zapsQuery.isLoading
+  const reactions = useNostrNoteReactionsFetch({
+    enabled: Boolean(noteEvent) && !privacyMode,
+    eventId: noteEventId,
+    relays: effectiveRelays
+  })
+  const scrollViewRef = useRef<ScrollViewInstance>(null)
+  const reactionsSectionY = useRef(0)
+
+  function handleReactionsLayout(event: LayoutChangeEvent) {
+    reactionsSectionY.current = event.nativeEvent.layout.y
+  }
+
+  function handleLikeCountPress() {
+    scrollViewRef.current?.scrollTo({
+      animated: true,
+      y: reactionsSectionY.current
+    })
+  }
+
+  function handleLoadMoreReactions() {
+    void reactions.fetchNextPage()
+  }
   const zapFlow = useNostrZapFlow({
     identity,
     npub: npub ?? '',
@@ -644,7 +670,7 @@ export default function NostrNotePage() {
           </SSText>
         </SSVStack>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
           <SSVStack gap="md" style={styles.content}>
             {!noteItemForFeed && fetched?.pubkey ? (
               <SSPressable
@@ -892,6 +918,7 @@ export default function NostrNotePage() {
                 canEngage={engagement.canEngage}
                 likeCount={engagement.likeCount}
                 likedByMe={engagement.likedByMe}
+                onLikeCountPress={handleLikeCountPress}
                 onLikePress={engagement.handleLikePress}
                 onRepostPress={engagement.handleRepostPress}
                 repostCount={engagement.repostCount}
@@ -1473,6 +1500,20 @@ export default function NostrNotePage() {
                 {t('nostrIdentity.note.noZapsYet')}
               </SSText>
             )}
+
+            {fetched && !privacyMode ? (
+              <SSNostrNoteReactions
+                authorPressDisabled={!npub}
+                hasNextPage={reactions.hasNextPage}
+                isFetchingNextPage={reactions.isFetchingNextPage}
+                isLoading={reactions.isLoading}
+                onAuthorPress={navigateToNostrProfile}
+                onLayout={handleReactionsLayout}
+                onLoadMore={handleLoadMoreReactions}
+                rows={reactions.rows}
+                summary={reactions.summary}
+              />
+            ) : null}
 
             {notFound && !fetched && (
               <SSVStack itemsCenter gap="md" style={styles.notFoundCard}>

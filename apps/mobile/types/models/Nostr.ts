@@ -412,6 +412,41 @@ export type NostrEngagementEvent = {
   targetId: string
 }
 
+export type NostrReactionEvent = NostrEngagementEvent & {
+  tags: string[][]
+}
+
+export type NostrReactionsPage = {
+  /** Events the relays returned before filtering; drives pagination. */
+  fetchedCount: number
+  oldestCreatedAt: number | null
+  reactions: NostrReactionEvent[]
+}
+
+export type NostrReaction =
+  | { key: string; type: 'like' }
+  | { key: string; type: 'dislike' }
+  | { content: string; key: string; type: 'emoji' }
+  | { key: string; shortcode: string; type: 'customEmoji'; url: string }
+
+export type NostrReactionItem = {
+  authorPubkey: string
+  createdAt: number
+  id: string
+  reaction: NostrReaction
+}
+
+export type NostrReactionRow = NostrReactionItem & {
+  authorLabel: string
+  authorNpub: string
+  authorPicture?: string
+}
+
+export type NostrReactionSummaryEntry = {
+  count: number
+  reaction: NostrReaction
+}
+
 export type NostrEngagementDeletion = {
   pubkey: string
   tags: string[][]

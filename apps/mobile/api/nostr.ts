@@ -70,6 +70,7 @@ import type {
   NostrNotesQuery,
   NostrPollResponse,
   NostrEngagementEvent,
+  NostrReactionsPage,
   NostrRelayConnectionInfo,
   NostrSignedKind1Event,
   NostrSubscriptionWindow,
@@ -115,6 +116,7 @@ import {
   mergeNotesNewestFirst
 } from '@/utils/nostrFeed'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
+import { buildReactionsPage } from '@/utils/nostrReactions'
 import { isRecord } from '@/utils/object'
 
 import {
@@ -2005,6 +2007,59 @@ export class NostrAPI {
     )
     return dropDeletedEngagement(
       events,
+      [...deletionEvents].map((event) => ({
+        pubkey: event.pubkey,
+        tags: NostrAPI.stringTags(event.tags)
+      }))
+    )
+  }
+
+  /**
+   * One page of NIP-25 reactions to a note, newest first; pass the previous
+   * page's `oldestCreatedAt - 1` as `until` for the next. Deletions are
+   * fetched only from the reactions' own authors since NIP-09 ignores others.
+   */
+  async fetchNoteReactions(
+    noteId: string,
+    { limit, until }: { limit: number; until?: number }
+  ): Promise<NostrReactionsPage> {
+    await this.connectForPublish()
+    const ndk = this.requireNdk()
+
+    const reactionEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      {
+        '#e': [noteId],
+        kinds: [nostrKinds.Reaction],
+        limit,
+        ...(until === undefined ? {} : { until })
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    const rawEvents = [...reactionEvents].map((event) => ({
+      content: event.content,
+      created_at: event.created_at ?? 0,
+      id: event.id,
+      kind: event.kind ?? nostrKinds.Reaction,
+      pubkey: event.pubkey,
+      tags: NostrAPI.stringTags(event.tags)
+    }))
+    if (rawEvents.length === 0) {
+      return buildReactionsPage(noteId, [], [])
+    }
+
+    const deletionEvents = await NostrAPI.fetchManyWithTimeout(
+      ndk,
+      {
+        '#e': rawEvents.map((event) => event.id),
+        authors: [...new Set(rawEvents.map((event) => event.pubkey))],
+        kinds: [nostrKinds.EventDeletion]
+      },
+      NOSTR_DEFAULT_FETCH_TIMEOUT_MS
+    )
+    return buildReactionsPage(
+      noteId,
+      rawEvents,
       [...deletionEvents].map((event) => ({
         pubkey: event.pubkey,
         tags: NostrAPI.stringTags(event.tags)

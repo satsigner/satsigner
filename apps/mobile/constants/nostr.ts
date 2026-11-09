@@ -31,6 +31,8 @@ export const NOSTR_ENGAGEMENT_FETCH_LIMIT = 2000
 export const NOSTR_ENGAGEMENT_BATCH_SIZE = 50
 /** How long note rows can ask for engagement before one batched REQ goes out. */
 export const NOSTR_ENGAGEMENT_BATCH_DELAY_MS = 50
+/** Reactions per page on the note detail screen. */
+export const NOSTR_REACTIONS_PAGE_SIZE = 50
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
