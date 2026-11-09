@@ -30,8 +30,9 @@ const VERIFY_CONNECTION_QUERY_KEY = 'verifyConnection'
 const NETINFO_RECONNECT_DELAY_MS = 5000
 
 /**
- * Last NetInfo reading, shared by every mounted indicator so a newly mounted
- * one does not reset the shared status to checking. `null` until first read.
+ * Last NetInfo reading, shared by every mounted indicator. Only a definite
+ * offline skips the server test: NetInfo reports `null` while it doesn't know,
+ * sometimes for a long time.
  */
 const deviceConnectivity: { isConnected: boolean | null } = {
   isConnected: null
@@ -87,9 +88,6 @@ function useVerifyConnection() {
       enabled: config.connectionMode !== 'manual' && !pollSuppressed,
       gcTime: 0,
       queryFn: async () => {
-        if (deviceConnectivity.isConnected === null) {
-          return 'checking'
-        }
         if (deviceConnectivity.isConnected === false) {
           return 'failed'
         }
@@ -127,13 +125,13 @@ function useVerifyConnection() {
         return
       }
       deviceConnectivity.isConnected = next
-      if (next === true) {
-        setTimeout(() => {
-          refetch()
-        }, NETINFO_RECONNECT_DELAY_MS)
-      } else if (next === false) {
+      if (next === false) {
         refetch()
+        return
       }
+      setTimeout(() => {
+        refetch()
+      }, NETINFO_RECONNECT_DELAY_MS)
     })
   }, [config.connectionMode, refetch])
 
