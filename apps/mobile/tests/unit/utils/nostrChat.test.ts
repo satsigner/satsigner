@@ -12,6 +12,11 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
     const store = new Map<string, unknown>()
     return {
       __store: store,
+      deleteChatMessages: jest.fn((_npub: string, ids: string[]) => {
+        for (const id of ids) {
+          store.delete(id)
+        }
+      }),
       deleteChatMessagesForIdentity: jest.fn(),
       failInterruptedChatSends: jest.fn(),
       insertChatMessage: jest.fn((message: { id: string }) => {
@@ -43,6 +48,10 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
       return [...__store.values()]
     }
     return {
+      getChatMessage: jest.fn(
+        (_npub: string, id: string) =>
+          storedMessages().find((m) => m.id === id) ?? null
+      ),
       getNewestSentChatMessageCreatedAt: jest.fn(
         (_npub: string, protocol: string) => {
           const times = storedMessages()
@@ -55,7 +64,9 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
       hasChatMessage: jest.fn((_npub: string, id: string) =>
         storedMessages().some((m) => m.id === id)
       ),
+      hasOutgoingChatMessage: jest.fn(() => false),
       listChatConversations: jest.fn(() => []),
+      listChatReplies: jest.fn(() => []),
       listChatThread: jest.fn(() => [])
     }
   }
@@ -114,6 +125,7 @@ import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { type NostrChatGiftWrap } from '@/types/models/Nostr'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
@@ -132,6 +144,7 @@ import {
   subscribeToIdentityChat
 } from '@/utils/nostrChat'
 import { isSignedNdkEvent } from '@/utils/nostrEvent'
+import { getCommittedPow } from '@/utils/nostrPow'
 
 const senderSecretKey = new Uint8Array(32).fill(1)
 const senderPubkey = getPublicKey(senderSecretKey)
@@ -207,6 +220,7 @@ function deliverRumor(
   }
   handlers.onWrap({
     ...wrap,
+    pow: 0,
     rumor: {
       content: '',
       created_at: 0,
@@ -255,6 +269,8 @@ describe('nostrChat', () => {
     chatStore.clear()
     processedWraps.clear()
     clearRecipientRelaysCache()
+    // Real mining would make every send slow; one test opts in below.
+    useNostrChatSettingsStore.setState({ minInboundPowBits: 0, sendPowBits: 0 })
     jest.restoreAllMocks()
     jest.clearAllMocks()
     // No recipient inbox relays in tests — skip the indexing-relay lookup.
@@ -290,6 +306,66 @@ describe('nostrChat', () => {
       stored[0]?.id,
       'sent'
     )
+  })
+
+  it('mines the configured proof of work into the peer wrap', async () => {
+    useNostrChatSettingsStore.setState({ sendPowBits: 4 })
+    const api = new NostrAPI([])
+    const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+    jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+      published.push(await event.toNostrEvent())
+    })
+
+    await sendNip17Chat(api, sender, peerNpub, 'mined')
+
+    const [peerWrap] = published
+    expect(
+      getCommittedPow({ id: peerWrap?.id ?? '', tags: peerWrap?.tags })
+    ).toBeGreaterThanOrEqual(4)
+  })
+
+  it('tags a reply with its parent and stores the parent id', async () => {
+    const api = new NostrAPI([])
+    const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+    jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+      published.push(await event.toNostrEvent())
+    })
+    const parentId = 'a'.repeat(64)
+
+    await sendNip17Chat(api, sender, peerNpub, 'a reply', parentId)
+
+    const rumor = unwrapPublished(published[0], peerSecretKey)
+    expect(rumor.tags).toContainEqual(['e', parentId, '', 'reply'])
+    expect(storedMessages()[0]).toMatchObject({ replyToId: parentId })
+  })
+
+  it('deletes a message only when its author asks', async () => {
+    const { api, captured } = createFakeChatApi()
+    await subscribeToIdentityChat(api, sender)
+    const messageId = 'b'.repeat(64)
+    deliverRumor(captured.handlers, 'w1', {
+      content: 'from peer',
+      created_at: 1,
+      id: messageId,
+      pubkey: peerPubkey,
+      tags: [['p', senderPubkey]]
+    })
+    const deletionFrom = (pubkey: string, wrapId: string) =>
+      deliverRumor(captured.handlers, wrapId, {
+        id: wrapId.padStart(64, 'd'),
+        kind: 5,
+        pubkey,
+        tags: [
+          ['e', messageId],
+          ['k', '14']
+        ]
+      })
+
+    deletionFrom('c'.repeat(64), 'w2')
+    expect(storedMessages()).toHaveLength(1)
+
+    deletionFrom(peerPubkey, 'w3')
+    expect(storedMessages()).toHaveLength(0)
   })
 
   it('sendNip17Chat seals one rumor tagged with the peer for both recipients', async () => {
