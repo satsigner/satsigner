@@ -37,7 +37,7 @@ export function getServerPrivacy(
  * addresses to a public server the app was not already using. A rename of
  * the same endpoint exposes nothing new.
  */
-function isNewlyPublic(before: Server, after: Server): boolean {
+export function isNewlyPublic(before: Server, after: Server): boolean {
   return (
     !isSameServerEndpoint(before, after) && getServerPrivacy(after) === 'public'
   )

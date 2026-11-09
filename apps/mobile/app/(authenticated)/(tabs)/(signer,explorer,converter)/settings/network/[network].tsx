@@ -56,7 +56,7 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
-import { getServerPrivacy } from '@/utils/serverPrivacy'
+import { isNewlyPublic } from '@/utils/serverPrivacy'
 
 const tnServer = _tn('settings.network.server')
 
@@ -352,7 +352,9 @@ export default function CustomNetwork() {
       return
     }
     const server = buildServer()
-    if (getServerPrivacy(server) === 'public') {
+    const activeServer =
+      useBlockchainStore.getState().configs[networkType].server
+    if (isNewlyPublic(activeServer, server)) {
       setPendingPublicServer(server)
       return
     }

@@ -2,6 +2,7 @@ import {
   getNewlySelectedPublicServers,
   getRestoredPublicServer,
   getServerPrivacy,
+  isNewlyPublic,
   isOnionUrl
 } from '@/utils/serverPrivacy'
 
@@ -146,5 +147,36 @@ describe('getRestoredPublicServer', () => {
 
   it('stays quiet for a private server', () => {
     expect(getRestoredPublicServer(mempool, myNode)).toBeUndefined()
+  })
+})
+
+describe('isNewlyPublic', () => {
+  const mempool = {
+    backend: 'esplora' as const,
+    name: 'Mempool',
+    network: 'bitcoin' as const,
+    url: 'https://mempool.space/api'
+  }
+  const myElectrum = {
+    backend: 'electrum' as const,
+    name: 'My Electrum',
+    network: 'bitcoin' as const,
+    url: 'ssl://electrum.example:50002'
+  }
+
+  it('flags a public endpoint the app was not using', () => {
+    expect(isNewlyPublic(mempool, myElectrum)).toBe(true)
+  })
+
+  it('ignores a rename of the active public endpoint', () => {
+    expect(isNewlyPublic(myElectrum, { ...myElectrum, name: 'Renamed' })).toBe(
+      false
+    )
+  })
+
+  it('ignores a switch to a server marked private', () => {
+    expect(isNewlyPublic(mempool, { ...myElectrum, isPrivate: true })).toBe(
+      false
+    )
   })
 })
