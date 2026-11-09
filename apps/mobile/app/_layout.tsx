@@ -1,9 +1,9 @@
 import '@/utils/polyfills'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { Slot } from 'expo-router'
+import { Slot, useGlobalSearchParams, useSegments } from 'expo-router'
 import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation'
 import * as SystemUI from 'expo-system-ui'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   AppState,
   type AppStateStatus,
@@ -39,6 +39,7 @@ import {
 } from '@/utils/appLifecycle'
 import { installDevConsole, isDevConsoleAvailable } from '@/utils/devConsole'
 import { installDevErrorReporting } from '@/utils/devErrorReporting'
+import { saveLastRoute } from '@/utils/lastRouteSession'
 
 // Dev-only: crashes/rejections log symbolicated source file:line to the
 // Metro console. Installed before any component code runs.
@@ -83,6 +84,11 @@ export default function RootLayout() {
   const devConsoleEnabled = useDevConsoleStore((state) => state.enabled)
 
   const appState = useRef(AppState.currentState)
+  const segments = useSegments()
+  const searchParams = useGlobalSearchParams()
+  const saveCurrentRoute = useEffectEvent(() => {
+    void saveLastRoute({ searchParams, segments })
+  })
   const overlayHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [privacyScreenVisible, setPrivacyScreenVisible] = useState(false)
   const [authHydrated, setAuthHydrated] = useState(() =>
@@ -133,6 +139,7 @@ export default function RootLayout() {
     })
     if (step.recordBackground) {
       setLastBackgroundTimestamp(Date.now())
+      saveCurrentRoute()
     }
     if (step.lock) {
       setLockTriggered(true)

@@ -11,6 +11,7 @@ import {
   SALT_KEY,
   SALT_KEY_DURESS
 } from '@/config/auth'
+import { LAST_ROUTE_STORAGE_KEY } from '@/constants/navigation'
 import * as nostrCache from '@/db/nostrCache'
 import * as nostrProcessedEvents from '@/db/nostrProcessedEvents'
 import {
@@ -94,6 +95,14 @@ describe('secureWipeAfterMaxPinTries', () => {
 
     expect(useAuthStore.getState().pendingRecoverData).toBeNull()
     expect(useAuthStore.getState().pageHistory).toStrictEqual([])
+  })
+
+  it('drops the screen to reopen after unlock', async () => {
+    secureStore[sk(LAST_ROUTE_STORAGE_KEY)] = '{"pathname":"/settings"}'
+
+    await secureWipeAllWalletData()
+
+    expect(secureStore[sk(LAST_ROUTE_STORAGE_KEY)]).toBeUndefined()
   })
 
   it('drops the seed of a nostr identity that was being created', async () => {

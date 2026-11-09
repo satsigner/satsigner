@@ -1,4 +1,5 @@
 import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
+import { LAST_ROUTE_STORAGE_KEY } from '@/constants/navigation'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearAllCache } from '@/db/nostrCache'
 import { clearNostrProcessedEvents } from '@/db/nostrProcessedEvents'
@@ -8,6 +9,7 @@ import {
   deleteAllKeySecrets,
   deleteArkMnemonic,
   deleteEcashMnemonic,
+  deleteItem,
   getItem
 } from '@/storage/encrypted'
 import { clearNostrFollowCaches } from '@/storage/mmkv'
@@ -126,7 +128,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useBlockchainStore.getState().stripAllRpcCredentials()
 
   // A backup restore waiting for the next unlock would put the wiped wallets
-  // back, and the page history is a trail of what was opened.
+  // back, and the page history and last route are a trail of what was opened.
   const {
     clearDuressPin,
     clearPageHistory,
@@ -135,6 +137,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   } = useAuthStore.getState()
   setPendingRecoverData(null)
   clearPageHistory()
+  await deleteItem(LAST_ROUTE_STORAGE_KEY).catch(() => undefined)
   setSkipPin(false)
   await clearDuressPin().catch(() => undefined)
 }

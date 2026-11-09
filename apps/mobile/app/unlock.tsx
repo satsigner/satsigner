@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -13,6 +12,7 @@ import {
   isDevConsoleAvailable,
   registerDevConsoleSecretTap
 } from '@/utils/devConsole'
+import { navigateAfterUnlock } from '@/utils/lastRouteSession'
 
 void loadAuthenticatedSession()
 
@@ -28,7 +28,6 @@ function handleTitlePress() {
 const titlePressHandler = isDevConsoleAvailable() ? handleTitlePress : undefined
 
 export default function Unlock() {
-  const router = useRouter()
   const [setLockTriggered, setJustUnlocked] = useAuthStore(
     useShallow((state) => [state.setLockTriggered, state.setJustUnlocked])
   )
@@ -38,7 +37,7 @@ export default function Unlock() {
     await loadAuthenticatedSession()
     setLockTriggered(false)
     setJustUnlocked(true)
-    router.replace(showWarning ? './warning' : '/')
+    await navigateAfterUnlock(showWarning)
   }
 
   return (

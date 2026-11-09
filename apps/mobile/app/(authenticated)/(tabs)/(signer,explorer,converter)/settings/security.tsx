@@ -21,6 +21,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
+import { clearLastRoute } from '@/utils/lastRouteSession'
 
 const tn = _tn('settings.security')
 
@@ -35,10 +36,17 @@ export default function Security() {
         state.setDuressPinEnabled
       ])
     )
-  const [skipSeedConfirmation, setSkipSeedConfirmation] = useSettingsStore(
+  const [
+    skipSeedConfirmation,
+    setSkipSeedConfirmation,
+    reopenLastScreen,
+    setReopenLastScreen
+  ] = useSettingsStore(
     useShallow((state) => [
       state.skipSeedConfirmation,
-      state.setSkipSeedConfirmation
+      state.setSkipSeedConfirmation,
+      state.reopenLastScreen,
+      state.setReopenLastScreen
     ])
   )
 
@@ -50,6 +58,8 @@ export default function Security() {
   >(null)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
     useState(skipSeedConfirmation)
+  const [localReopenLastScreen, setLocalReopenLastScreen] =
+    useState(reopenLastScreen)
   const [duressPinModalVisible, setDuressPinModalVisible] = useState(false)
   const duressPinChecked =
     (localDuressPinEnabled ?? duressPinEnabled) && isDuressPinSet
@@ -60,6 +70,10 @@ export default function Security() {
       setDuressPinEnabled(duressPinChecked)
     }
     setSkipSeedConfirmation(localSkipSeedWordConfirmation)
+    setReopenLastScreen(localReopenLastScreen)
+    if (!localReopenLastScreen) {
+      void clearLastRoute()
+    }
     router.back()
   }
 
@@ -101,6 +115,18 @@ export default function Security() {
                     pathname: '/settings/changePin'
                   })
                 }
+              />
+            </SSVStack>
+
+            <SSSeparator />
+
+            <SSVStack gap="md">
+              <SSText uppercase>{tn('lock')}</SSText>
+              <SSCheckbox
+                label={tn('reopenLastScreen')}
+                description={tn('reopenLastScreenDescription')}
+                selected={localReopenLastScreen}
+                onPress={() => setLocalReopenLastScreen(!localReopenLastScreen)}
               />
             </SSVStack>
 

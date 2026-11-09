@@ -32,6 +32,7 @@ type SettingsState = {
   showWarning: boolean
   skipSeedConfirmation: boolean
   privacyMode: boolean
+  reopenLastScreen: boolean
   /** When true, Payjoin coordination is available at all (master kill switch). */
   payjoinEnabled: boolean
   /** Directory (network) vs Manual (offline out-of-band) coordination. */
@@ -82,6 +83,9 @@ type SettingsAction = {
   setPayjoinSessionTtlMs: (
     payjoinSessionTtlMs: SettingsState['payjoinSessionTtlMs']
   ) => void
+  setReopenLastScreen: (
+    reopenLastScreen: SettingsState['reopenLastScreen']
+  ) => void
   togglePrivacyMode: () => void
 }
 
@@ -126,6 +130,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
       payjoinEnabled: true,
       payjoinSessionTtlMs: PAYJOIN_SESSION_TTL_MS,
       privacyMode: false,
+      reopenLastScreen: true,
       setCurrencyUnit: (currencyUnit) => {
         set({ currencyUnit })
       },
@@ -176,6 +181,9 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         set({
           payjoinSessionTtlMs: normalizePayjoinSessionTtlMs(payjoinSessionTtlMs)
         })
+      },
+      setReopenLastScreen: (reopenLastScreen) => {
+        set({ reopenLastScreen })
       },
       setShowWarning: (showWarning) => {
         set({ showWarning })
