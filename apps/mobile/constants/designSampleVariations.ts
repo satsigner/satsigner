@@ -282,6 +282,9 @@ export const DESIGN_FEATURE_SET_NAMES: Partial<
   devConsole: DESIGN_LOG_SETS.map((set) => set.name),
   historyChart: DESIGN_HISTORY_SETS.map((set) => set.name),
   lightningNode: DESIGN_CHANNEL_SETS.map((set) => set.name),
+  nostrChat: ['standard', 'minimal', 'heavy'],
+  nostrMessageDetail: ['standard', 'minimal', 'heavy'],
+  nostrReactions: ['standard', 'minimal', 'heavy'],
   sankey: DESIGN_SANKEY_SETS.map((set) => set.name),
   transactionChart: DESIGN_TRANSACTION_CHART_SETS.map((set) => set.name),
   utxoChart: DESIGN_UTXO_SETS.map((set) => set.name)
