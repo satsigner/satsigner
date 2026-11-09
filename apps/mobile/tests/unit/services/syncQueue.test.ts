@@ -378,7 +378,7 @@ describe('createSyncQueue options read at start', () => {
 
     queue.enqueue('a', running.task, { timeoutMs: TIMEOUT_MS })
     queue.enqueue('b', queued.task, { timeoutMs: TIMEOUT_MS })
-    const [controls] = running.task.mock.calls[0]
+    const [[controls]] = running.task.mock.calls
     expect(controls.isPriority).toBe(false)
 
     queue.enqueue('a', jest.fn(), { priority: true, timeoutMs: TIMEOUT_MS })
