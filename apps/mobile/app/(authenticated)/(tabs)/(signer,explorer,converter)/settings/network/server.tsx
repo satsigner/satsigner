@@ -197,6 +197,10 @@ export default function NetworkSettings() {
     commitSelectedServers()
   }
 
+  function handleCancelPublicServers() {
+    setPendingPublicServers([])
+  }
+
   function handleEditCustomServer(network: Network, server: Server) {
     router.push(`./${network}?editUrl=${encodeURIComponent(server.url)}`)
   }
@@ -426,7 +430,7 @@ export default function NetworkSettings() {
           .map((server) => server.name)
           .join(', ')}
         onConfirm={handleConfirmPublicServers}
-        onCancel={() => setPendingPublicServers([])}
+        onCancel={handleCancelPublicServers}
       />
     </SSMainLayout>
   )

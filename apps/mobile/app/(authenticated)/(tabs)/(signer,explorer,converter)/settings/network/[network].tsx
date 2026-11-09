@@ -343,6 +343,10 @@ export default function CustomNetwork() {
     saveServer(pendingPublicServer)
   }
 
+  function handleCancelPublicServer() {
+    setPendingPublicServer(null)
+  }
+
   function handleSave() {
     if (!isValid()) {
       return
@@ -687,7 +691,7 @@ export default function CustomNetwork() {
         visible={pendingPublicServer !== null}
         serverName={pendingPublicServer?.name ?? ''}
         onConfirm={handleConfirmPublicServer}
-        onCancel={() => setPendingPublicServer(null)}
+        onCancel={handleCancelPublicServer}
       />
 
       <SSModal
