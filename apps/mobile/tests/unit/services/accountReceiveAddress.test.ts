@@ -1,5 +1,6 @@
 import { BdkWallet, Network } from 'react-native-bdk-sdk'
 
+import { t } from '@/locales'
 import {
   peekFreshReceiveAddress,
   reserveFreshReceiveAddress,
@@ -15,6 +16,16 @@ function loadRangedWallet(accountId: string) {
   wallet.peekAddress.mockImplementation((keychain: unknown, index: number) => ({
     address: `addr-${index}`,
     index,
+    keychain
+  }))
+  useWalletsStore.getState().addAccountWallet(accountId, wallet)
+}
+
+function loadSingleAddressWallet(accountId: string) {
+  const wallet = new BdkWallet('', undefined, Network.Signet, '')
+  wallet.peekAddress.mockImplementation((keychain: unknown) => ({
+    address: 'single-addr',
+    index: 0,
     keychain
   }))
   useWalletsStore.getState().addAccountWallet(accountId, wallet)
@@ -121,6 +132,16 @@ describe('fresh receive addresses', () => {
         reserveReceiveAddressIfFresh(account, drafted)
       ])
     ).resolves.toStrictEqual([true, false])
+  })
+
+  it('throws when another send took the only address of a single-address wallet', async () => {
+    loadSingleAddressWallet('acc-single')
+    const account = makeAccount('acc-single')
+    const drafted = await peekFreshReceiveAddress(account)
+    await reserveFreshReceiveAddress(account)
+    await expect(
+      reserveReceiveAddressIfFresh(account, drafted)
+    ).rejects.toThrow(t('account.error.noFreshAddress'))
   })
 
   it('refuses a peeked address that a sync has since seen paid', async () => {

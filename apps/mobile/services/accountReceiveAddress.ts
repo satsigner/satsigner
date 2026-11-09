@@ -105,7 +105,9 @@ export async function reserveFreshReceiveAddress(
  * a draft built on a peeked one. When another send took it first, nothing is
  * reserved, so the next address is not skipped for the rest of the session.
  * Freshness is checked against the account as stored now, as the caller's
- * copy can predate a sync that saw the address paid.
+ * copy can predate a sync that saw the address paid. Throws, like
+ * `peekFreshReceiveAddress`, once the wallet has no fresh address left, as a
+ * single-address wallet does after another send took its address.
  */
 export async function reserveReceiveAddressIfFresh(
   account: Account,
