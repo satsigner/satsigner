@@ -1,5 +1,6 @@
 import { servers } from '@/constants/servers'
 import { type Server } from '@/types/settings/blockchain'
+import { isSameServer } from '@/utils/server'
 
 /**
  * Who can see the wallet's addresses through this server, following Sparrow:
@@ -29,10 +30,6 @@ export function getServerPrivacy(
     return 'public'
   }
   return server.isPrivate ? 'private' : 'public'
-}
-
-export function isSameServer(a: Server, b: Server): boolean {
-  return a.url === b.url && a.name === b.name && a.backend === b.backend
 }
 
 /**

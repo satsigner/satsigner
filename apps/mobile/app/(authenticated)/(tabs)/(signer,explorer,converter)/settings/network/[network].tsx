@@ -241,9 +241,6 @@ export default function CustomNetwork() {
       proxy: formData.proxy.enabled ? formData.proxy : undefined,
       url
     }
-    if (formData.backend !== 'rpc' && formData.isPrivate) {
-      base.isPrivate = true
-    }
     if (formData.backend === 'rpc') {
       const scanHeight = formData.rpcScanFromHeight.trim()
         ? Number.parseInt(formData.rpcScanFromHeight.trim(), 10)
@@ -261,7 +258,7 @@ export default function CustomNetwork() {
         rpcWalletName: formData.rpcWalletName.trim() || undefined
       }
     }
-    return base
+    return formData.isPrivate ? { ...base, isPrivate: true } : base
   }
 
   function showSuccessToast(server: Server, result: ConnectionTestSuccess) {

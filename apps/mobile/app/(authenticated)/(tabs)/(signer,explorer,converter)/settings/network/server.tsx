@@ -33,11 +33,11 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
+import { isSameServer } from '@/utils/server'
 import {
   getNewlySelectedPublicServers,
   getServerPrivacy,
-  isOnionUrl,
-  isSameServer
+  isOnionUrl
 } from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.network.server')
@@ -61,7 +61,8 @@ export default function NetworkSettings() {
   )
 
   const [connectionStatus] = useVerifyConnection()
-  const { connectionTestInterval } = configs[selectedNetwork].config
+  const { connectionMode, connectionTestInterval } =
+    configs[selectedNetwork].config
   const [pendingPublicServers, setPendingPublicServers] = useState<Server[]>([])
   const { testing, testConnection } = useConnectionTest()
 
@@ -221,9 +222,11 @@ export default function NetworkSettings() {
             <SSText color="muted" size="xs">
               {tn('privacy.legend')}
             </SSText>
-            <SSText color="muted" size="xs">
-              {tn('status.help', { seconds: connectionTestInterval })}
-            </SSText>
+            {connectionMode !== 'manual' && (
+              <SSText color="muted" size="xs">
+                {tn('status.help', { seconds: connectionTestInterval })}
+              </SSText>
+            )}
           </SSVStack>
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (

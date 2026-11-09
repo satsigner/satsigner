@@ -1,13 +1,37 @@
+import { useAccountsStore } from '@/store/accounts'
+import { type Account } from '@/types/models/Account'
 import {
   cancelAccountSync,
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
   runExclusiveOnCoreNode,
+  settleCancelledSyncStatuses,
   trackAccountSyncWork,
   waitForAccountSyncWork,
   walletSyncQueue
 } from '@/utils/accountSyncRuns'
+
+type StoredAccount = Pick<Account, 'id' | 'lastSyncedAt' | 'syncStatus'>
+
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => {
+  const { create: createStore } =
+    jest.requireActual<typeof import('zustand')>('zustand')
+  return {
+    useAccountsStore: createStore<{
+      accounts: StoredAccount[]
+      setSyncStatus: (id: string, syncStatus: Account['syncStatus']) => void
+    }>((set) => ({
+      accounts: [],
+      setSyncStatus: (id, syncStatus) =>
+        set((state) => ({
+          accounts: state.accounts.map((account) =>
+            account.id === id ? { ...account, syncStatus } : account
+          )
+        }))
+    }))
+  }
+})
 
 const WAIT_TIMEOUT_MS = 1000
 const SYNC_TIMEOUT_MS = 60_000
@@ -135,5 +159,37 @@ describe('account sync runs', () => {
     first.gate.open?.()
     await firstRun
     await expect(secondRun).resolves.toBe('second')
+  })
+
+  it('settles statuses left by cancelled syncs but not by running ones', () => {
+    const { work } = pendingSync()
+    void walletSyncQueue.enqueue('running', () => work, {
+      timeoutMs: SYNC_TIMEOUT_MS
+    })
+    useAccountsStore.setState({
+      accounts: [
+        {
+          id: 'synced-before',
+          lastSyncedAt: new Date(0),
+          syncStatus: 'syncing'
+        },
+        { id: 'never-synced', syncStatus: 'queued' },
+        { id: 'stalled', syncStatus: 'timeout' },
+        { id: 'running', syncStatus: 'syncing' }
+      ]
+    })
+
+    settleCancelledSyncStatuses()
+
+    expect(
+      useAccountsStore
+        .getState()
+        .accounts.map(({ id, syncStatus }) => [id, syncStatus])
+    ).toStrictEqual([
+      ['synced-before', 'synced'],
+      ['never-synced', 'unsynced'],
+      ['stalled', 'timeout'],
+      ['running', 'syncing']
+    ])
   })
 })

@@ -1,5 +1,6 @@
 import { getWalletData } from '@/api/bdk'
 import { t } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
@@ -57,10 +58,25 @@ function pickFreshAddress(
   return addressInfo.address
 }
 
+function getStoredAccount(account: Account): Account {
+  return (
+    useAccountsStore
+      .getState()
+      .accounts.find((stored) => stored.id === account.id) ?? account
+  )
+}
+
+function issueAddress(accountId: string, address: string) {
+  const issued = issuedAddresses.get(accountId) ?? new Set<string>()
+  issued.add(address)
+  issuedAddresses.set(accountId, issued)
+}
+
 /**
  * First external address of the account that no known transaction pays and
- * no earlier send took, derived from the account's own descriptor. Only for
- * estimates: the address is not reserved.
+ * no earlier send took, derived from the account's own descriptor. The
+ * address is not reserved: use it for estimates, or for a draft that
+ * `reserveReceiveAddressIfFresh` confirms before anything pays it.
  */
 export async function peekFreshReceiveAddress(
   account: Account
@@ -81,8 +97,27 @@ export async function reserveFreshReceiveAddress(
   // Picking and reserving must not straddle an await, or two concurrent
   // sends could pick the same address.
   const address = pickFreshAddress(wallet, account, reservedAddresses)
-  const issued = issuedAddresses.get(account.id) ?? new Set<string>()
-  issued.add(address)
-  issuedAddresses.set(account.id, issued)
+  issueAddress(account.id, address)
   return address
+}
+
+/**
+ * Reserves `address` only while it is still the account's fresh address, for
+ * a draft built on a peeked one. When another send took it first, nothing is
+ * reserved, so the next address is not skipped for the rest of the session.
+ * Freshness is checked against the account as stored now, as the caller's
+ * copy can predate a sync that saw the address paid. Throws, like
+ * `peekFreshReceiveAddress`, once the wallet has no fresh address left, as a
+ * single-address wallet does after another send took its address.
+ */
+export async function reserveReceiveAddressIfFresh(
+  account: Account,
+  address: string
+): Promise<boolean> {
+  const wallet = await loadAccountWallet(account)
+  if (pickFreshAddress(wallet, getStoredAccount(account), []) !== address) {
+    return false
+  }
+  issueAddress(account.id, address)
+  return true
 }

@@ -1,9 +1,11 @@
+import { MS_PER_SECOND } from '@/constants/time'
+
 /** Rejection reason when a sync makes no progress for too long. */
 export class SyncTimeoutError extends Error {
   readonly timeoutMs: number
 
   constructor(timeoutMs: number) {
-    super(`Sync stalled for ${Math.round(timeoutMs / 1000)} s`)
+    super(`Sync stalled for ${Math.round(timeoutMs / MS_PER_SECOND)} s`)
     this.name = 'SyncTimeoutError'
     this.timeoutMs = timeoutMs
   }
@@ -24,8 +26,11 @@ type EnqueueOptions = {
 export type SyncTaskControls = {
   /** Network work is done; later steps (fiat prices) can't stall the sync. */
   finishScan: () => void
-  /** Requested by the user rather than run in the background. */
-  isPriority: boolean
+  /**
+   * Requested by the user rather than run in the background. Turns true while
+   * the job runs if a user request joins it.
+   */
+  readonly isPriority: boolean
   reportProgress: () => void
   signal: AbortSignal
 }
@@ -105,7 +110,9 @@ export function createSyncQueue<T>(concurrency: number) {
 
     void runTask(job, {
       finishScan,
-      isPriority: job.isPriority,
+      get isPriority() {
+        return job.isPriority
+      },
       reportProgress,
       signal
     })
@@ -166,6 +173,17 @@ export function createSyncQueue<T>(concurrency: number) {
     }
   }
 
+  /** A user request joined the job: it skips the line and frees its slot. */
+  function promote(job: Job<T>) {
+    job.isPriority = true
+    if (job.state === 'waiting') {
+      removeWaiting(job)
+      start(job)
+      return
+    }
+    pump()
+  }
+
   /**
    * Adds a sync for an account. An account that is already queued or syncing
    * is not synced twice; the caller shares the existing job's result.
@@ -178,10 +196,8 @@ export function createSyncQueue<T>(concurrency: number) {
   ): Promise<T | null> {
     const existing = jobs.get(accountId)
     if (existing) {
-      if (options.priority && existing.state === 'waiting') {
-        existing.isPriority = true
-        removeWaiting(existing)
-        start(existing)
+      if (options.priority) {
+        promote(existing)
       }
       return existing.promise
     }
