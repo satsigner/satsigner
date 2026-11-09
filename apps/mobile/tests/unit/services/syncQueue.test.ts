@@ -224,6 +224,33 @@ describe('createSyncQueue progress', () => {
 
     await expect(result).resolves.toBe('done')
   })
+
+  it('times out once progress stops', async () => {
+    const queue = createSyncQueue<string>(1)
+    const stalled = deferredTask()
+    const next = deferredTask()
+    const progress: { report?: () => void } = {}
+
+    const result = queue.enqueue(
+      'a',
+      (controls) => {
+        progress.report = controls.reportProgress
+        return stalled.task(controls)
+      },
+      { timeoutMs: TIMEOUT_MS }
+    )
+    queue.enqueue('b', next.task, { timeoutMs: TIMEOUT_MS })
+
+    jest.advanceTimersByTime(TIMEOUT_MS * 0.6)
+    progress.report?.()
+    jest.advanceTimersByTime(TIMEOUT_MS * 0.6)
+    expect(next.task).not.toHaveBeenCalled()
+
+    jest.advanceTimersByTime(TIMEOUT_MS * 0.4)
+
+    await expect(result).rejects.toBeInstanceOf(SyncTimeoutError)
+    expectStarted(next.task)
+  })
 })
 
 describe('createSyncQueue finishScan', () => {
@@ -243,8 +270,9 @@ describe('createSyncQueue finishScan', () => {
 
     const result = queue.enqueue(
       'a',
-      ({ finishScan }) => {
+      ({ finishScan, reportProgress }) => {
         finishScan()
+        reportProgress()
         return slowPrices
       },
       { timeoutMs: TIMEOUT_MS }
