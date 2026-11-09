@@ -26,5 +26,11 @@ export async function broadcastRawTransaction(
     )
     return rpc.sendRawTransaction(txHex)
   }
-  return new Esplora(server.url).broadcastTransaction(txHex)
+  if (server.backend === 'esplora') {
+    return new Esplora(server.url).broadcastTransaction(txHex)
+  }
+  // Persisted settings are not validated on load, so an unknown backend can
+  // reach here at runtime. It must not be sent to the URL as Esplora.
+  const unsupportedBackend: never = server.backend
+  throw new Error(`Unsupported backend: ${String(unsupportedBackend)}`)
 }
