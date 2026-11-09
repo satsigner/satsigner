@@ -370,4 +370,20 @@ describe('createSyncQueue options read at start', () => {
       expect.objectContaining({ isPriority: true })
     )
   })
+
+  it('promotes a running job when a priority request joins it', () => {
+    const queue = createSyncQueue<string>(1)
+    const running = deferredTask()
+    const queued = deferredTask()
+
+    queue.enqueue('a', running.task, { timeoutMs: TIMEOUT_MS })
+    queue.enqueue('b', queued.task, { timeoutMs: TIMEOUT_MS })
+    const [controls] = running.task.mock.calls[0]
+    expect(controls.isPriority).toBe(false)
+
+    queue.enqueue('a', jest.fn(), { priority: true, timeoutMs: TIMEOUT_MS })
+
+    expect(controls.isPriority).toBe(true)
+    expectStarted(queued.task)
+  })
 })
