@@ -4,6 +4,9 @@ import uuid from 'react-native-uuid'
 const UINT32_RANGE = 0x1_00_00_00_00 // 2^32
 const IV_BYTES = 16
 const AES_ALGORITHM = 'aes-256-cbc'
+const AES_GCM_ALGORITHM = 'aes-256-gcm'
+// 96-bit nonce: the GCM size that needs no extra hashing (NIST SP 800-38D).
+const AES_GCM_IV_BYTES = 12
 const PBKDF2_ITERATIONS = 10_000
 const PBKDF2_KEY_LENGTH_BYTES = 32
 // Random ID length (bytes) for draft accounts, shared by the Ark/Ecash builders.
@@ -166,6 +169,51 @@ async function aesReEncrypt(
   return { iv, secret }
 }
 
+type AesGcmCiphertext = {
+  cipher: string
+  iv: string
+  tag: string
+}
+
+function aesGcmEncrypt(text: string, key: string): AesGcmCiphertext {
+  const iv = QuickCrypto.randomBytes(AES_GCM_IV_BYTES)
+  const cipher = QuickCrypto.createCipheriv(
+    AES_GCM_ALGORITHM,
+    new Uint8Array(Buffer.from(key, 'hex')),
+    new Uint8Array(iv)
+  )
+  const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
+  const finalized = cipher.final()
+  const result = Buffer.concat([
+    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
+    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
+  ])
+  return {
+    cipher: result.toString('base64'),
+    iv: Buffer.from(iv).toString('hex'),
+    tag: Buffer.from(cipher.getAuthTag()).toString('hex')
+  }
+}
+
+/** Throws when the key is wrong or any byte of cipher, iv or tag was altered. */
+function aesGcmDecrypt(ciphertext: AesGcmCiphertext, key: string): string {
+  const decipher = QuickCrypto.createDecipheriv(
+    AES_GCM_ALGORITHM,
+    new Uint8Array(Buffer.from(key, 'hex')),
+    new Uint8Array(Buffer.from(ciphertext.iv, 'hex'))
+  )
+  decipher.setAuthTag(QuickCrypto.Buffer.from(ciphertext.tag, 'hex'))
+  const updated = decipher.update(
+    new Uint8Array(Buffer.from(ciphertext.cipher, 'base64'))
+  )
+  const finalized = decipher.final()
+  const result = Buffer.concat([
+    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
+    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
+  ])
+  return result.toString('utf8')
+}
+
 /** Password-based key derivation */
 function pbkdf2Encrypt(pin: string, salt: string): Promise<string> {
   const derived = QuickCrypto.pbkdf2Sync(
@@ -189,8 +237,11 @@ async function doubleShaEncrypt(text: string): Promise<string> {
 
 export {
   ACCOUNT_ID_KEY_LENGTH,
+  type AesGcmCiphertext,
   aesDecrypt,
   aesEncrypt,
+  aesGcmDecrypt,
+  aesGcmEncrypt,
   aesReEncrypt,
   doubleShaEncrypt,
   generateSalt,
