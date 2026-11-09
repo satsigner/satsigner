@@ -30,7 +30,3 @@ export function getServerPrivacy(
   }
   return server.isPrivate ? 'private' : 'public'
 }
-
-export function isSameServer(a: Server, b: Server): boolean {
-  return a.url === b.url && a.name === b.name && a.backend === b.backend
-}

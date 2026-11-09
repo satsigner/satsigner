@@ -32,11 +32,8 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
-import {
-  getServerPrivacy,
-  isOnionUrl,
-  isSameServer
-} from '@/utils/serverPrivacy'
+import { isSameServer } from '@/utils/server'
+import { getServerPrivacy, isOnionUrl } from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.network.server')
 

@@ -38,6 +38,7 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
+import { isSameServerEndpoint } from '@/utils/server'
 import {
   type SyncErrorReporter,
   reportSyncFailure
@@ -341,7 +342,7 @@ async function runQueuedWalletSync(
     // Waiting behind another account's Core sync can take hours: the server
     // or the connection mode may have changed since.
     const current = resolveSyncTarget(account.id, controls.isPriority)
-    if (!current || !isSameServer(current.server, target.server)) {
+    if (!current || !isSameServerEndpoint(current.server, target.server)) {
       return Promise.resolve(null)
     }
     return trackAccountSyncWork(
@@ -393,10 +394,6 @@ function resolveSyncTarget(
     setSyncProgress,
     setSyncStatus
   }
-}
-
-function isSameServer(a: Server, b: Server) {
-  return a.backend === b.backend && a.url === b.url
 }
 
 function usesCoreWallet(server: Server) {
