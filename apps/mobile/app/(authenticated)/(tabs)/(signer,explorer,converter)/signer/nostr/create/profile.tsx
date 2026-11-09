@@ -31,6 +31,7 @@ export default function ProfileSetup() {
     warningVisible
   } = useNostrIdentityAdd(handleIdentityAdded)
 
+  const [isAdded, setIsAdded] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [pictureUrl, setPictureUrl] = useState('')
   const [nip05, setNip05] = useState('')
@@ -45,10 +46,13 @@ export default function ProfileSetup() {
     }
   }
 
+  // Clearing the draft re-renders this screen before it leaves; the saved
+  // flag keeps that render from redirecting back to a fresh create screen.
   function handleIdentityAdded() {
+    setIsAdded(true)
+    router.dismissTo(nostrIndexHref())
     useNostrIdentityDraftStore.getState().clearDraft()
     toast.success(t('nostrIdentity.create.success'))
-    router.dismissTo(nostrIndexHref())
   }
 
   function handleSave() {
@@ -68,6 +72,10 @@ export default function ProfileSetup() {
       nsec: keys.nsec,
       picture: pictureUrl || undefined
     })
+  }
+
+  if (!keys && isAdded) {
+    return null
   }
 
   if (!keys) {
