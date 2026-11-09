@@ -128,12 +128,14 @@ export type EcashTransaction = {
   invoice?: string // For melt transactions
   quoteId?: string // For mint/melt transactions
   expiry?: number // Expiration timestamp for mint/melt transactions
+  reservedProofs?: EcashProof[] // In flight while a melt is pending
 }
 
 export type EcashAccountStore = {
   getMints: () => EcashMint[]
   getProofs: () => EcashProof[]
   getCounters: () => EcashKeysetCounter[]
+  getSentTokens: () => string[]
   addMint: (mint: EcashMint) => void
   addProofs: (proofs: EcashProof[]) => void
   updateMintBalance: (mintUrl: string, balance: number) => void

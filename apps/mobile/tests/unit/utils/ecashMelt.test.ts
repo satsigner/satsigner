@@ -1,5 +1,13 @@
-import type { EcashMeltResult, EcashProof } from '@/types/models/Ecash'
-import { proofsAfterMeltResult, toEcashMeltStatus } from '@/utils/ecashMelt'
+import type {
+  EcashMeltResult,
+  EcashProof,
+  EcashTransaction
+} from '@/types/models/Ecash'
+import {
+  listPendingMelts,
+  proofsAfterMeltResult,
+  toEcashMeltStatus
+} from '@/utils/ecashMelt'
 
 const MINT_URL = 'https://mint.example'
 
@@ -36,14 +44,75 @@ describe('proofsAfterMeltResult', () => {
     ).toStrictEqual([OTHER, KEEP, CHANGE])
   })
 
-  it.each(['pending', 'unpaid'] as const)(
-    'keeps the send proofs after a %s melt',
-    (status) => {
-      const result: EcashMeltResult = { keep: [KEEP], send: [SEND], status }
-
-      expect(
-        proofsAfterMeltResult([OTHER, INPUT], [INPUT], result)
-      ).toStrictEqual([OTHER, KEEP, SEND])
+  it('returns the send proofs after an unpaid melt', () => {
+    const result: EcashMeltResult = {
+      keep: [KEEP],
+      send: [SEND],
+      status: 'unpaid'
     }
-  )
+
+    expect(
+      proofsAfterMeltResult([OTHER, INPUT], [INPUT], result)
+    ).toStrictEqual([OTHER, KEEP, SEND])
+  })
+
+  it('leaves the reserved send proofs out after a pending melt', () => {
+    const result: EcashMeltResult = {
+      keep: [KEEP],
+      send: [SEND],
+      status: 'pending'
+    }
+
+    expect(
+      proofsAfterMeltResult([OTHER, INPUT], [INPUT], result)
+    ).toStrictEqual([OTHER, KEEP])
+  })
+})
+
+describe('listPendingMelts', () => {
+  function melt(overrides: Partial<EcashTransaction>): EcashTransaction {
+    return {
+      amount: 60,
+      id: 'melt-1',
+      mintUrl: MINT_URL,
+      quoteId: 'quote-1',
+      reservedProofs: [SEND],
+      status: 'pending',
+      timestamp: '2026-01-01T00:00:00.000Z',
+      type: 'melt',
+      ...overrides
+    }
+  }
+
+  it('lists pending melts with their reserved proofs', () => {
+    const pending = listPendingMelts({
+      accounts: [{ id: 'acc' }],
+      transactions: {
+        acc: [
+          melt({}),
+          melt({ id: 'settled', status: 'settled' }),
+          melt({ id: 'mint', type: 'mint' })
+        ]
+      }
+    })
+
+    expect(pending).toStrictEqual([
+      {
+        accountId: 'acc',
+        mintUrl: MINT_URL,
+        quoteId: 'quote-1',
+        reservedProofs: [SEND],
+        transactionId: 'melt-1'
+      }
+    ])
+  })
+
+  it('lists a melt without reserved proofs with none', () => {
+    const [pending] = listPendingMelts({
+      accounts: [{ id: 'acc' }],
+      transactions: { acc: [melt({ reservedProofs: undefined })] }
+    })
+
+    expect(pending.reservedProofs).toStrictEqual([])
+  })
 })

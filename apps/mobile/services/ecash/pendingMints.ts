@@ -1,12 +1,15 @@
 import { checkMintQuote, getMintBalance, mintProofs } from '@/api/ecash'
 import {
+  ECASH_INCOMPLETE_RESTORE_RETRY_MS,
   ECASH_MAX_FAILED_MINT_ATTEMPTS,
-  ECASH_PENDING_MINT_MAX_AGE_MS,
   ECASH_PENDING_MINT_TIMEOUT_MS,
   ECASH_UNREACHABLE_MINT_RETRY_MS
 } from '@/constants/ecash'
 import { getEcashAccountStore } from '@/services/ecash/accountStore'
-import { restoreProofsFromMints } from '@/services/ecash/restore'
+import {
+  type RestoreSummary,
+  restoreProofsFromMints
+} from '@/services/ecash/restore'
 import {
   getEcashSeed,
   getEcashWalletOptions
@@ -47,8 +50,11 @@ type ClosedMintStatus = 'completed' | 'expired' | 'failed'
 const quoteIdsInProgress = new Set<string>()
 const failedMintAttempts = new Map<string, number>()
 // Quotes left alone until then: one whose minting kept failing this session,
-// or one whose mint stopped answering after its invoice expired.
+// one whose mint stopped answering after its invoice expired, or one whose
+// recovery could not scan the whole mint.
 const quotesRestingUntil = new Map<string, number>()
+// Several lost quotes on one mint share a single seed scan of it.
+const mintRestoresInProgress = new Map<string, Promise<RestoreSummary>>()
 
 function isAccountKnown(accountId: string) {
   return useEcashStore.getState().accounts.some(({ id }) => id === accountId)
@@ -89,19 +95,14 @@ async function askMint(
 }
 
 /**
- * A mint that does not answer is asked again on the next run. Past the
- * invoice deadline it is asked rarely, and once a whole extra day has passed
- * the invoice is given up as expired.
+ * A mint that does not answer is asked again on the next run, and past the
+ * invoice deadline only rarely. Silence never expires a quote: the invoice
+ * may have been paid while this phone was offline.
  */
 function settleUnreachableMint(
-  pendingMint: PendingMint,
+  { deadline, quoteId }: PendingMint,
   now: number
 ): PendingMintResult {
-  const { deadline, quoteId } = pendingMint
-  if (now > deadline + ECASH_PENDING_MINT_MAX_AGE_MS) {
-    closeQuote(pendingMint, 'expired')
-    return 'expired'
-  }
   if (now > deadline) {
     restQuote(quoteId, now + ECASH_UNREACHABLE_MINT_RETRY_MS)
   }
@@ -159,27 +160,62 @@ async function mintPaidQuote(
   }
 }
 
+async function restoreAndRelease(
+  key: string,
+  accountId: string,
+  mintUrl: string,
+  seed: Uint8Array
+): Promise<RestoreSummary> {
+  try {
+    return await restoreProofsFromMints(
+      accountId,
+      [mintUrl],
+      seed,
+      getEcashAccountStore(accountId)
+    )
+  } finally {
+    mintRestoresInProgress.delete(key)
+  }
+}
+
+function restoreMintOnce(
+  accountId: string,
+  mintUrl: string,
+  seed: Uint8Array
+): Promise<RestoreSummary> {
+  const key = `${accountId}:${mintUrl}`
+  const running = mintRestoresInProgress.get(key)
+  if (running) {
+    return running
+  }
+  const restore = restoreAndRelease(key, accountId, mintUrl, seed)
+  mintRestoresInProgress.set(key, restore)
+  return restore
+}
+
 /**
  * The mint signed this quote's proofs but they never reached the wallet, as
  * when the response to a mint request is lost. A seeded account derives
- * them from its seed, so restoring that mint brings them in.
+ * them from its seed, so restoring that mint brings them in. A scan that
+ * could not reach every keyset may have missed them, so it is tried again.
  */
 async function recoverIssuedQuote(
-  pendingMint: PendingMint
+  pendingMint: PendingMint,
+  now: number
 ): Promise<PendingMintResult> {
-  const { accountId, mintUrl } = pendingMint
+  const { accountId, mintUrl, quoteId } = pendingMint
   const seed = await getEcashSeed(accountId)
   if (!seed) {
     closeQuote(pendingMint, 'failed')
     return 'failed'
   }
-  const { mintsFailed } = await restoreProofsFromMints(
+  const { mintsFailed, mintsIncomplete } = await restoreMintOnce(
     accountId,
-    [mintUrl],
-    seed,
-    getEcashAccountStore(accountId)
+    mintUrl,
+    seed
   )
-  if (mintsFailed > 0) {
+  if (mintsFailed > 0 || mintsIncomplete > 0) {
+    restQuote(quoteId, now + ECASH_INCOMPLETE_RESTORE_RETRY_MS)
     return 'waiting'
   }
   closeQuote(pendingMint, 'completed')
@@ -204,7 +240,7 @@ async function advancePendingMint(
       return mintPaidQuote(pendingMint, options)
     }
     case 'recover': {
-      return recoverIssuedQuote(pendingMint)
+      return recoverIssuedQuote(pendingMint, now)
     }
     case 'expire': {
       closeQuote(pendingMint, 'expired')

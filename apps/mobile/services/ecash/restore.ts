@@ -1,9 +1,10 @@
 import {
   connectToMint,
   getMintBalance,
+  getTokenProofSecrets,
   restoreProofsFromSeed
 } from '@/api/ecash'
-import type { EcashAccountStore } from '@/types/models/Ecash'
+import type { EcashAccountStore, EcashProof } from '@/types/models/Ecash'
 import { buildCounterInit } from '@/utils/ecashKeysetCounters'
 
 type RestoreSummary = {
@@ -11,9 +12,30 @@ type RestoreSummary = {
   totalAmount: number
   mintsScanned: number
   mintsFailed: number
+  mintsIncomplete: number
 }
 
-type MintRestoreResult = { proofsFound: number; totalAmount: number }
+type MintRestoreResult = {
+  complete: boolean
+  proofsFound: number
+  totalAmount: number
+}
+
+/**
+ * Proofs in a sent token stay unspent until the recipient claims them, so a
+ * seed scan finds them again. They belong to the recipient now.
+ */
+function withoutSentProofs(proofs: EcashProof[], store: EcashAccountStore) {
+  const keysetIds = store
+    .getMints()
+    .flatMap(({ keysets }) => keysets.map(({ id }) => id))
+  const sentSecrets = new Set(
+    store
+      .getSentTokens()
+      .flatMap((token) => getTokenProofSecrets(token, keysetIds))
+  )
+  return proofs.filter(({ secret }) => !sentSecrets.has(secret))
+}
 
 async function restoreMint(
   accountId: string,
@@ -31,15 +53,15 @@ async function restoreMint(
     seed,
     buildCounterInit(store.getCounters())
   )
-  if (result.proofs.length === 0) {
-    return { proofsFound: 0, totalAmount: 0 }
+  const proofs = withoutSentProofs(result.proofs, store)
+  if (proofs.length > 0) {
+    store.addProofs(proofs)
+    store.updateMintBalance(mintUrl, getMintBalance(mintUrl, store.getProofs()))
   }
-
-  store.addProofs(result.proofs)
-  store.updateMintBalance(mintUrl, getMintBalance(mintUrl, store.getProofs()))
   const restored = {
-    proofsFound: result.proofs.length,
-    totalAmount: result.proofs.reduce((sum, proof) => sum + proof.amount, 0)
+    complete: result.complete,
+    proofsFound: proofs.length,
+    totalAmount: proofs.reduce((sum, proof) => sum + proof.amount, 0)
   }
 
   const activeKeyset = store
@@ -55,7 +77,8 @@ async function restoreMint(
 
 /**
  * Restores seed-derived proofs from each mint, connecting to mints the
- * account does not list yet. A mint that fails is counted and skipped.
+ * account does not list yet. A mint that fails is counted and skipped, and
+ * one whose scan skipped a keyset is counted as incomplete.
  */
 async function restoreProofsFromMints(
   accountId: string,
@@ -68,6 +91,7 @@ async function restoreProofsFromMints(
   ]
   const summary: RestoreSummary = {
     mintsFailed: 0,
+    mintsIncomplete: 0,
     mintsScanned: uniqueUrls.length,
     proofsFound: 0,
     totalAmount: 0
@@ -78,6 +102,7 @@ async function restoreProofsFromMints(
       const restored = await restoreMint(accountId, mintUrl, seed, store)
       summary.proofsFound += restored.proofsFound
       summary.totalAmount += restored.totalAmount
+      summary.mintsIncomplete += restored.complete ? 0 : 1
     } catch {
       summary.mintsFailed += 1
     }
@@ -86,4 +111,4 @@ async function restoreProofsFromMints(
   return summary
 }
 
-export { restoreProofsFromMints }
+export { type RestoreSummary, restoreProofsFromMints }

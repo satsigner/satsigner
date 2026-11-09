@@ -14,6 +14,10 @@ function getEcashAccountStore(accountId: string): EcashAccountStore {
     getCounters: () => useEcashStore.getState().counters[accountId] ?? [],
     getMints: () => useEcashStore.getState().mints[accountId] ?? [],
     getProofs: () => useEcashStore.getState().proofs[accountId] ?? [],
+    getSentTokens: () =>
+      (useEcashStore.getState().transactions[accountId] ?? []).flatMap(
+        ({ token, type }) => (type === 'send' && token ? [token] : [])
+      ),
     updateMintBalance: (mintUrl, balance) =>
       useEcashStore.getState().updateMintBalance(accountId, mintUrl, balance)
   }

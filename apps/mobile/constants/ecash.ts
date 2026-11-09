@@ -24,6 +24,11 @@ export const ECASH_MAX_FAILED_MINT_ATTEMPTS = 3
 export const ECASH_PENDING_MINT_TIMEOUT_MS = 30_000
 // How long a quote rests when its mint stopped answering after the invoice expired.
 export const ECASH_UNREACHABLE_MINT_RETRY_MS = 600_000
+// How long a lost quote rests after a seed scan that could not cover every keyset.
+export const ECASH_INCOMPLETE_RESTORE_RETRY_MS = 600_000
+export const ECASH_PENDING_MELT_POLL_INTERVAL_MS = 15_000
+// Budget for one pending Lightning payment check in a runner pass.
+export const ECASH_PENDING_MELT_TIMEOUT_MS = 30_000
 export const ECASH_PAYMENT_ERROR_I18N_KEYS = {
   insufficientForFees: 'ecash.error.insufficientForFees',
   insufficientProofs: 'ecash.error.insufficientProofs',

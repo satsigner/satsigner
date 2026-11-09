@@ -135,6 +135,18 @@ describe('ecash seed recovery', () => {
 
       expect(result.proofs).toStrictEqual([])
       expect(result.lastCounter).toBeUndefined()
+      expect(result.complete).toBe(true)
+    })
+
+    it('reports an incomplete scan when a keyset times out with nothing found', async () => {
+      mockRestore
+        .mockRejectedValueOnce(new Error('timeout'))
+        .mockResolvedValueOnce({ proofs: [] })
+
+      const result = await restoreProofsFromSeed('acc-1', mintUrl, seed)
+
+      expect(result.proofs).toStrictEqual([])
+      expect(result.complete).toBe(false)
     })
 
     it('keeps a restore wallet out of the cache used for minting', async () => {
@@ -324,6 +336,7 @@ describe('ecash seed recovery', () => {
 
       expect(result.proofs).toHaveLength(1)
       expect(result.proofs[0].amount).toBe(256)
+      expect(result.complete).toBe(false)
     })
 
     it('filters spent proofs from restore results', async () => {

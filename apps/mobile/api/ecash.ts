@@ -207,6 +207,18 @@ export async function checkMintQuote(
   return quoteStatus.state
 }
 
+export async function checkMeltQuoteState(
+  accountId: string,
+  mintUrl: string,
+  quoteId: string,
+  options?: WalletOptions
+): Promise<EcashMeltResult['status']> {
+  const wallet = getWallet(accountId, mintUrl, options)
+  await wallet.loadMint()
+  const quoteStatus = await wallet.checkMeltQuoteBolt11(quoteId)
+  return toEcashMeltStatus(quoteStatus.state)
+}
+
 export async function mintProofs(
   accountId: string,
   mintUrl: string,
@@ -492,6 +504,21 @@ export async function receiveEcash(
   }
 }
 
+/**
+ * Secrets of the proofs inside `token`, or none when it does not decode.
+ * Short keyset ids in a v4 token only decode against the mint's full ids.
+ */
+export function getTokenProofSecrets(
+  token: string,
+  keysetIds: string[]
+): string[] {
+  try {
+    return getDecodedToken(token, keysetIds).proofs.map((proof) => proof.secret)
+  } catch {
+    return []
+  }
+}
+
 export function getMintBalance(mintUrl: string, proofs: EcashProof[]): number {
   return proofs
     .filter((p) => p.mintUrl === mintUrl)
@@ -574,6 +601,8 @@ export async function validateEcashToken(
 type SeedRestoreResult = {
   proofs: EcashProof[]
   lastCounter?: number
+  /** False when a keyset could not be scanned, so proofs may be missing. */
+  complete: boolean
 }
 
 /**
@@ -615,6 +644,7 @@ async function scanProofsFromSeed(
   ]
 
   const allProofs: Proof[] = []
+  const unscannedKeysetIds: string[] = []
   let lastCounter: number | undefined
 
   for (const keyset of sortedKeysets) {
@@ -662,12 +692,13 @@ async function scanProofsFromSeed(
         nextCounter += ECASH_RESTORE_BATCH_SIZE
       }
     } catch {
-      // Continue to next keyset on failure
+      unscannedKeysetIds.push(keyset.id)
     }
   }
 
+  const complete = unscannedKeysetIds.length === 0
   if (allProofs.length === 0) {
-    return { proofs: [] }
+    return { complete, proofs: [] }
   }
 
   const proofStates = await wallet.checkProofsStates(allProofs)
@@ -677,6 +708,7 @@ async function scanProofsFromSeed(
     .map((p) => ({ ...p, mintUrl }))
 
   return {
+    complete,
     lastCounter,
     proofs: unspentProofs
   }

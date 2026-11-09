@@ -45,6 +45,35 @@ describe('ecash backup', () => {
     expect(payload.proofs?.[1].mintUrl).toBe('https://b.example')
   })
 
+  it('exports proofs reserved by a pending payment', () => {
+    const reserved = proof('reserved', 'https://a.example')
+    const payload = buildEcashBackupPayload({
+      includeMintInformation: false,
+      includeTokenProofs: true,
+      includeTransactionHistory: false,
+      mints: [mint('https://a.example')],
+      proofs: [proof('s1', 'https://a.example')],
+      transactions: [
+        {
+          amount: 1,
+          id: 'melt-1',
+          mintUrl: 'https://a.example',
+          quoteId: 'quote-1',
+          reservedProofs: [reserved],
+          status: 'pending',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          type: 'melt'
+        }
+      ]
+    })
+
+    expect(payload.proofs?.map(({ secret }) => secret)).toStrictEqual([
+      's1',
+      'reserved'
+    ])
+    expect(payload.totalBalance).toBe(2)
+  })
+
   it('collects mint urls from mints, proofs, and an extra url', () => {
     const urls = collectMintUrlsForRestore(
       [mint('https://a.example')],
