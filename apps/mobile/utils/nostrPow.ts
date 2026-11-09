@@ -4,8 +4,10 @@ import * as nostrKinds from 'nostr-tools/kinds'
 import { getEventHash } from 'nostr-tools/pure'
 
 import {
+  NOSTR_CHAT_POW_MAX_MS,
   NOSTR_POW_HASHES_PER_YIELD,
   NOSTR_POW_MAX_DIFFICULTY,
+  NOSTR_HEX_PUBKEY_RE,
   NOSTR_POW_MIN_DIFFICULTY,
   NOSTR_POW_NONCE_TAG
 } from '@/constants/nostr'
@@ -15,6 +17,8 @@ type MineNostrPowInput = {
   content: string
   createdAt: number
   difficulty: number
+  /** Keep createdAt while mining (gift wraps are deliberately backdated). */
+  fixedCreatedAt?: boolean
   kind: number
   onProgress?: (nonce: number) => void
   pubkey: string
@@ -106,7 +110,9 @@ export async function mineNostrPow(
       continue
     }
 
-    createdAt = Math.floor(Date.now() / 1000)
+    if (!input.fixedCreatedAt) {
+      createdAt = Math.floor(Date.now() / 1000)
+    }
     input.onProgress?.(nonce)
     await yieldToUi()
     if (input.signal?.aborted) {
@@ -145,5 +151,77 @@ export async function applyNostrProofOfWork(
     content: tagged.content,
     createdAt: mined.createdAt,
     tags: mined.tags
+  }
+}
+
+function getCommittedTarget(tags: unknown): number {
+  if (!Array.isArray(tags)) {
+    return 0
+  }
+  const nonceTag = tags.find(
+    (tag) => Array.isArray(tag) && tag[0] === NOSTR_POW_NONCE_TAG
+  )
+  const target = Array.isArray(nonceTag) ? Number(nonceTag[2]) : 0
+  return Number.isInteger(target) && target > 0 ? target : 0
+}
+
+/**
+ * NIP-13 difficulty an event can be credited with: its leading zero bits,
+ * capped by the target committed in its nonce tag, so an id that is lucky
+ * without a commitment counts as no work.
+ */
+export function getCommittedPow(event: { id: string; tags: unknown }): number {
+  if (!NOSTR_HEX_PUBKEY_RE.test(event.id)) {
+    return 0
+  }
+  return Math.min(
+    countLeadingZeroBits(event.id),
+    getCommittedTarget(event.tags)
+  )
+}
+
+type PowEventTemplate = {
+  content: string
+  created_at: number
+  kind: number
+  pubkey: string
+  tags: string[][]
+}
+
+/**
+ * Mines within NOSTR_CHAT_POW_MAX_MS. On timeout the event goes out without
+ * proof of work rather than leaving the message stuck.
+ */
+export async function mineEventWithinDeadline<T extends PowEventTemplate>(
+  event: T,
+  difficulty: number,
+  { fixedCreatedAt = false }: { fixedCreatedAt?: boolean } = {}
+): Promise<T> {
+  if (difficulty <= 0) {
+    return event
+  }
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort()
+  }, NOSTR_CHAT_POW_MAX_MS)
+  try {
+    const mined = await mineNostrPow({
+      content: event.content,
+      createdAt: event.created_at,
+      difficulty: Math.min(difficulty, NOSTR_POW_MAX_DIFFICULTY),
+      fixedCreatedAt,
+      kind: event.kind,
+      pubkey: event.pubkey,
+      signal: controller.signal,
+      tags: event.tags
+    })
+    return { ...event, created_at: mined.createdAt, tags: mined.tags }
+  } catch (error) {
+    if (error instanceof NostrPowAbortedError) {
+      return event
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
   }
 }

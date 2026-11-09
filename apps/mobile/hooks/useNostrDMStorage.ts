@@ -6,6 +6,7 @@ import {
   NOSTR_DM_NOTIFY_MAX_AGE_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { getTombstoneAuthors } from '@/db/nostrMessageState'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
@@ -15,6 +16,7 @@ import {
   type NostrUnwrappedEvent
 } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { getReplyToId } from '@/utils/nostrChatTags'
 import { findOptimisticEcho, samePubkey } from '@/utils/nostrDms'
 
 import {
@@ -84,6 +86,7 @@ function buildNewMessage(
   }
   const description =
     typeof eventContent.description === 'string' ? eventContent.description : ''
+  const replyToId = getReplyToId(unwrappedEvent.tags)
   return {
     author: unwrappedEvent.pubkey,
     content: {
@@ -95,7 +98,8 @@ function buildNewMessage(
     description,
     event: JSON.stringify(unwrappedEvent),
     id: unwrappedEvent.id,
-    label: 1
+    label: 1,
+    ...(replyToId ? { replyToId } : {})
   }
 }
 
@@ -156,12 +160,16 @@ function storeNostrDmBatch(
   const nowSec = Date.now() / MS_PER_SECOND
   const deviceHex = getDevicePubkeyHex(account)
   const storedIds = new Set(account.nostr.dms.map((dm) => dm.id))
+  const tombstones = getTombstoneAuthors(
+    accountId,
+    pendingDms.map(({ unwrappedEvent }) => unwrappedEvent.id)
+  )
   const fresh: NostrDM[] = []
   const deferredIds: string[] = []
 
   for (const { unwrappedEvent, eventContent, skipToast } of pendingDms) {
     const dm = buildNewMessage(unwrappedEvent, eventContent)
-    if (!dm || storedIds.has(dm.id)) {
+    if (!dm || storedIds.has(dm.id) || tombstones.get(dm.id) === dm.author) {
       continue
     }
     if (

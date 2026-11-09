@@ -334,6 +334,34 @@ CREATE INDEX IF NOT EXISTS idx_nec_kind_pubkey_created
   ON nostr_event_cache(kind, pubkey, created_at)
 `
 
+// Chat replies (NIP-17 `e` tag), ids of the gift wraps we published (to ask
+// relays to drop them later; wrap ids are public), and tombstones so a relay
+// replaying a deleted message cannot bring it back. `scope` follows
+// nostr_processed_events: an account id, or `chat:<npub>`.
+const SCHEMA_V12 = `
+ALTER TABLE nostr_dms ADD COLUMN reply_to_id TEXT;
+ALTER TABLE nostr_chat_messages ADD COLUMN reply_to_id TEXT;
+
+CREATE TABLE IF NOT EXISTS nostr_message_wraps (
+  scope TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  wrap_id TEXT NOT NULL,
+  recipient_pubkey TEXT NOT NULL,
+  PRIMARY KEY (scope, wrap_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_nmw_message
+  ON nostr_message_wraps(scope, message_id);
+
+CREATE TABLE IF NOT EXISTS nostr_deleted_messages (
+  scope TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  author TEXT NOT NULL,
+  deleted_at INTEGER NOT NULL,
+  PRIMARY KEY (scope, message_id)
+)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -345,7 +373,8 @@ const SCHEMAS = [
   SCHEMA_V8,
   SCHEMA_V9,
   SCHEMA_V10,
-  SCHEMA_V11
+  SCHEMA_V11,
+  SCHEMA_V12
 ]
 const CURRENT_VERSION = SCHEMAS.length
 

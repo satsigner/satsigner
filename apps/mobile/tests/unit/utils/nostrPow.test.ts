@@ -3,6 +3,8 @@ import { getEventHash } from 'nostr-tools/pure'
 import {
   countLeadingZeroBits,
   expectedPowHashes,
+  getCommittedPow,
+  mineEventWithinDeadline,
   mineNostrPow,
   NostrPowAbortedError,
   POW_LEVELS
@@ -77,5 +79,53 @@ describe('mineNostrPow cancellation', () => {
         tags: []
       })
     ).rejects.toBeInstanceOf(NostrPowAbortedError)
+  })
+})
+
+describe('getCommittedPow', () => {
+  const ZERO_20 = `00000${'f'.repeat(59)}`
+
+  it('credits the leading zero bits up to the committed target', () => {
+    expect(getCommittedPow({ id: ZERO_20, tags: [['nonce', '1', '16']] })).toBe(
+      16
+    )
+    expect(getCommittedPow({ id: ZERO_20, tags: [['nonce', '1', '24']] })).toBe(
+      20
+    )
+  })
+
+  it('credits nothing to a lucky id without a commitment', () => {
+    expect(getCommittedPow({ id: ZERO_20, tags: [] })).toBe(0)
+    expect(getCommittedPow({ id: ZERO_20, tags: [['nonce', '1']] })).toBe(0)
+  })
+
+  it('credits nothing to a malformed id', () => {
+    expect(getCommittedPow({ id: 'zz', tags: [['nonce', '1', '8']] })).toBe(0)
+  })
+})
+
+describe('mineEventWithinDeadline', () => {
+  const template = {
+    content: 'hi',
+    created_at: 1_600_000_000,
+    kind: 1059,
+    pubkey: PUBKEY,
+    tags: [['p', PUBKEY]]
+  }
+
+  it('mines without touching a fixed created_at', async () => {
+    const mined = await mineEventWithinDeadline(template, 6, {
+      fixedCreatedAt: true
+    })
+
+    expect(mined.created_at).toBe(template.created_at)
+    expect(mined.tags[0]).toStrictEqual(['p', PUBKEY])
+    expect(
+      getCommittedPow({ id: getEventHash(mined), tags: mined.tags })
+    ).toBeGreaterThanOrEqual(6)
+  })
+
+  it('returns the event untouched when no work is asked', async () => {
+    await expect(mineEventWithinDeadline(template, 0)).resolves.toBe(template)
   })
 })

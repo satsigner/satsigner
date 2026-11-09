@@ -1,6 +1,6 @@
 import { type NostrChatMessage } from '@/types/models/Nostr'
 
-import { getDb } from '../connection'
+import { getDb, runTransaction } from '../connection'
 import { boolToInt } from '../mappers'
 import {
   chatProcessedScope,
@@ -13,8 +13,8 @@ function insertChatMessage(message: NostrChatMessage): boolean {
   const { rowsAffected } = db.execute(
     `INSERT OR IGNORE INTO nostr_chat_messages (
       id, identity_npub, peer_pubkey, protocol, direction,
-      content, status, read, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      content, status, read, created_at, reply_to_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.identityNpub,
@@ -24,7 +24,8 @@ function insertChatMessage(message: NostrChatMessage): boolean {
       message.content,
       message.status,
       boolToInt(message.read),
-      message.created_at
+      message.created_at,
+      message.replyToId ?? null
     ]
   )
   return (rowsAffected ?? 0) > 0
@@ -69,6 +70,17 @@ function markChatThreadRead(
   return rowsAffected ?? 0
 }
 
+function deleteChatMessages(identityNpub: string, ids: string[]) {
+  runTransaction((tx) => {
+    for (const id of ids) {
+      tx.execute(
+        'DELETE FROM nostr_chat_messages WHERE identity_npub = ? AND id = ?',
+        [identityNpub, id]
+      )
+    }
+  })
+}
+
 /**
  * Also forgets which gift wraps were decrypted, otherwise re-adding the
  * identity would skip every wrap and never restore its history.
@@ -81,6 +93,7 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
 }
 
 export {
+  deleteChatMessages,
   deleteChatMessagesForIdentity,
   failInterruptedChatSends,
   insertChatMessage,

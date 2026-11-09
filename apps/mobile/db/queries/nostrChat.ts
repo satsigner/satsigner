@@ -16,6 +16,7 @@ type ChatMessageRow = {
   status: string
   read: number
   created_at: number
+  reply_to_id?: string | null
 }
 
 type ChatConversationRow = {
@@ -35,6 +36,7 @@ function rowToChatMessage(row: ChatMessageRow): NostrChatMessage {
     peerPubkey: row.peer_pubkey,
     protocol: row.protocol === 'nip04' ? 'nip04' : 'nip17',
     read: row.read === 1,
+    ...(row.reply_to_id ? { replyToId: row.reply_to_id } : {}),
     status:
       row.status === 'pending' || row.status === 'failed' ? row.status : 'sent'
   }
@@ -119,10 +121,51 @@ function hasChatMessage(identityNpub: string, id: string): boolean {
   return rows.length > 0
 }
 
+function getChatMessage(
+  identityNpub: string,
+  id: string
+): NostrChatMessage | null {
+  const row = getDb()
+    .execute<ChatMessageRow>(
+      'SELECT * FROM nostr_chat_messages WHERE identity_npub = ? AND id = ? LIMIT 1',
+      [identityNpub, id]
+    )
+    .rows.item(0)
+  return row ? rowToChatMessage(row) : null
+}
+
+function hasOutgoingChatMessage(
+  identityNpub: string,
+  peerPubkey: string
+): boolean {
+  const { rows } = getDb().execute<{ id: string }>(
+    `SELECT id FROM nostr_chat_messages
+      WHERE identity_npub = ? AND peer_pubkey = ? AND direction = 'out' LIMIT 1`,
+    [identityNpub, peerPubkey]
+  )
+  return rows.length > 0
+}
+
+function listChatReplies(
+  identityNpub: string,
+  parentId: string
+): NostrChatMessage[] {
+  return getDb()
+    .execute<ChatMessageRow>(
+      `SELECT * FROM nostr_chat_messages
+        WHERE identity_npub = ? AND reply_to_id = ? ORDER BY created_at ASC`,
+      [identityNpub, parentId]
+    )
+    .rows._array.map(rowToChatMessage)
+}
+
 export {
+  getChatMessage,
   getNewestSentChatMessageCreatedAt,
   getOldestChatMessageCreatedAt,
   hasChatMessage,
+  hasOutgoingChatMessage,
   listChatConversations,
+  listChatReplies,
   listChatThread
 }

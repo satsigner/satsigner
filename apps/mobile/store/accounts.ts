@@ -21,6 +21,7 @@ import {
   importLabels as importLabelsDb
 } from '@/db/mutations/labels'
 import {
+  deleteDms as deleteDmsDb,
   insertDms as insertDmsDb,
   markDmsAsRead as markDmsAsReadDb,
   type NostrDmStatusPatch,
@@ -104,6 +105,7 @@ type AccountsAction = {
     previousId: NostrDM['id'],
     dm: NostrDM
   ) => void
+  removeAccountDms: (id: Account['id'], dmIds: NostrDM['id'][]) => void
   updateAccountBirthday: (id: Account['id'], date: Date | undefined) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
@@ -362,6 +364,22 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
         state.accounts[index].nostr.dms = state.accounts[index].nostr.dms.map(
           (dm) => (dm.read === false ? { ...dm, read: true } : dm)
+        )
+      })
+    },
+    removeAccountDms: (id, dmIds) => {
+      if (dmIds.length === 0) {
+        return
+      }
+      deleteDmsDb(id, dmIds)
+      const removed = new Set(dmIds)
+      set((state) => {
+        const account = state.accounts.find((a) => a.id === id)
+        if (!account?.nostr) {
+          return
+        }
+        account.nostr.dms = account.nostr.dms.filter(
+          (dm) => !removed.has(dm.id)
         )
       })
     },

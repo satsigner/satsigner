@@ -150,7 +150,8 @@ export const NostrDMSchema = z.object({
   id: z.string(),
   label: z.number(),
   pending: z.boolean().optional(),
-  read: z.boolean().optional()
+  read: z.boolean().optional(),
+  replyToId: z.string().optional()
 })
 
 export const NostrAccountSchema = z.object({
@@ -300,6 +301,7 @@ export const NostrUnwrappedEventSchema = z.object({
   content: z.string(),
   created_at: z.number().optional(),
   id: z.string(),
+  kind: z.number().optional(),
   pubkey: z.string(),
   tags: z.array(z.array(z.unknown())).optional()
 })
@@ -562,6 +564,7 @@ export const NostrChatMessageSchema = z.object({
   peerPubkey: z.string(),
   protocol: NostrChatProtocolSchema,
   read: z.boolean(),
+  replyToId: z.string().optional(),
   status: z.enum(['pending', 'sent', 'failed'])
 })
 
@@ -598,6 +601,8 @@ export type NostrKind4ChatEvent = {
   direction: 'in' | 'out'
   id: string
   peerPubkey: string
+  /** NIP-13 difficulty the event committed to and met. */
+  pow: number
 }
 
 export type NostrChatEventRef = {
@@ -606,6 +611,8 @@ export type NostrChatEventRef = {
 }
 
 export type NostrChatGiftWrap = NostrChatEventRef & {
+  /** NIP-13 difficulty the wrap committed to and met. */
+  pow: number
   rumor: NostrUnwrappedKind1059Event | null
 }
 

@@ -9,7 +9,7 @@ import {
   decrypt as nip04Decrypt,
   encrypt as nip04Encrypt
 } from 'nostr-tools/nip04'
-import { finalizeEvent, getEventHash } from 'nostr-tools/pure'
+import { finalizeEvent, getEventHash, getPublicKey } from 'nostr-tools/pure'
 
 import {
   fetchProfileResult,
@@ -116,6 +116,7 @@ import {
   mergeNotesNewestFirst
 } from '@/utils/nostrFeed'
 import { extractResponseOptionIds } from '@/utils/nostrPoll'
+import { getCommittedPow, mineEventWithinDeadline } from '@/utils/nostrPow'
 import { buildReactionsPage } from '@/utils/nostrReactions'
 import { isRecord } from '@/utils/object'
 
@@ -1580,7 +1581,8 @@ export class NostrAPI {
   async createKind4(
     nsec: string,
     recipientNpub: string,
-    content: string
+    content: string,
+    powBits = 0
   ): Promise<NDKEvent> {
     const secretNostrKey = getSecretFromNsec(nsec)
     const recipientPubKeyHex = getPubKeyHexFromNpub(recipientNpub)
@@ -1593,15 +1595,17 @@ export class NostrAPI {
       recipientPubKeyHex,
       content
     )
-    const signed = finalizeEvent(
+    const mined = await mineEventWithinDeadline(
       {
         content: encrypted,
         created_at: Math.floor(Date.now() / MS_PER_SECOND),
         kind: nostrKinds.EncryptedDirectMessage,
+        pubkey: getPublicKey(secretNostrKey),
         tags: [['p', recipientPubKeyHex]]
       },
-      secretNostrKey
+      powBits
     )
+    const signed = finalizeEvent(mined, secretNostrKey)
     const tempNdk = new NDK({
       autoConnectUserRelays: false,
       enableOutboxModel: false
@@ -1666,7 +1670,8 @@ export class NostrAPI {
           createdAt: ref.createdAt,
           direction: isOwn ? 'out' : 'in',
           id: ref.id,
-          peerPubkey
+          peerPubkey,
+          pow: getCommittedPow(event)
         })
       } catch {
         // Undecryptable or malformed kind-4 events are ignored by design.
@@ -1714,7 +1719,11 @@ export class NostrAPI {
         if (wrap.id === '' || !shouldUnwrap(wrap)) {
           return
         }
-        onWrap({ ...wrap, rumor: unwrapNip59EventOrNull(event, secretKey) })
+        onWrap({
+          ...wrap,
+          pow: getCommittedPow(event),
+          rumor: unwrapNip59EventOrNull(event, secretKey)
+        })
       } catch {
         // A failing consumer must not tear down the relay subscription.
       }
