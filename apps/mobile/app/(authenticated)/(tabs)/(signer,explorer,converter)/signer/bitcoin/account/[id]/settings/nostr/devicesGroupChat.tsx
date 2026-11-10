@@ -49,6 +49,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
+import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
@@ -101,6 +102,7 @@ const GroupChatRowContext = createContext<GroupChatRowContextValue | null>(null)
 
 const EMPTY_MEMBERS: { npub: string; color: string }[] = []
 const EMPTY_DMS: NostrDM[] = []
+const NO_FAILED_SENDS: Record<string, string[]> = {}
 
 function identityDm(item: NostrDM): NostrDM {
   return item
@@ -165,10 +167,6 @@ function getRowType(row: ChatRow<NostrDM>) {
   return row.kind
 }
 
-function withoutKey(record: Record<string, string[]>, key: string) {
-  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key))
-}
-
 export default function DevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const headerHeight = useHeaderHeight()
@@ -217,7 +215,12 @@ export default function DevicesGroupChat() {
   const [visibleComponents, setVisibleComponents] = useState<VisibleComponents>(
     new Map()
   )
-  const [failedSends, setFailedSends] = useState<Record<string, string[]>>({})
+  const failedSends = useNostrDeviceChatSendsStore(
+    (state) => state.failedDevicesByAccount[accountId ?? ''] ?? NO_FAILED_SENDS
+  )
+  const setFailedDevices = useNostrDeviceChatSendsStore(
+    (state) => state.setFailedDevices
+  )
   const retryingIds = useRef(new Set<string>())
   const [isShareModalVisible, setIsShareModalVisible] = useState(false)
   const [transactionToShareLocal, setTransactionToShareLocal] = useState('')
@@ -290,15 +293,11 @@ export default function DevicesGroupChat() {
     : new Map<string, AuthorDisplayInfo>()
 
   function recordSendOutcome(outcome: DeviceChatSendOutcome | null) {
-    if (!outcome) {
+    if (!outcome || !accountId) {
       return
     }
     const { error, failedDevices, messageId } = outcome
-    setFailedSends((prev) =>
-      failedDevices.length > 0
-        ? { ...prev, [messageId]: failedDevices }
-        : withoutKey(prev, messageId)
-    )
+    setFailedDevices(accountId, messageId, failedDevices)
     if (failedDevices.length > 0) {
       toast.error(t('common.error.failedToSendMessage'), {
         description: getNostrErrorMessage(error)

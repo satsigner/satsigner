@@ -7,6 +7,7 @@ import { getMessageWraps } from '@/db/nostrMessageState'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
+import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
 import { setClipboard } from '@/utils/clipboard'
@@ -53,7 +54,8 @@ function buildDevicePreview(account: Account, message: NostrDM) {
 function loadDeviceMessageDetail(
   account: Account,
   messageId: string,
-  wrapCount: number
+  wrapCount: number,
+  failed: boolean
 ) {
   const dms = account.nostr?.dms ?? []
   const message = dms.find((dm) => dm.id === messageId)
@@ -80,7 +82,7 @@ function loadDeviceMessageDetail(
       createdAt: message.created_at,
       id: message.id,
       kind: rumor?.kind,
-      status: getMessageStatus(message, false),
+      status: getMessageStatus(message, failed),
       wrapCount
     }),
     tags: rumor && rumor.tags.length > 0 ? formatMessageTags(rumor.tags) : null
@@ -127,9 +129,15 @@ export function useNostrDeviceMessageDetail(
     queryKey: [DEVICE_MESSAGE_WRAPS_QUERY_KEY, accountId, messageId]
   })
 
+  const failed = useNostrDeviceChatSendsStore(
+    (state) =>
+      (state.failedDevicesByAccount[accountId ?? '']?.[messageId ?? '']
+        ?.length ?? 0) > 0
+  )
+
   const detail =
     account && messageId
-      ? loadDeviceMessageDetail(account, messageId, wrapCount)
+      ? loadDeviceMessageDetail(account, messageId, wrapCount, failed)
       : null
 
   function reply() {
@@ -175,7 +183,7 @@ export function useNostrDeviceMessageDetail(
   }
 
   async function deleteForEveryone() {
-    if (!accountId || !detail || deleting) {
+    if (!accountId || !detail?.canDeleteForEveryone || deleting) {
       return
     }
     setDeleting(true)
