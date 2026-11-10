@@ -1,6 +1,7 @@
 import { releaseAllArkWalletsAndSubscriptions } from '@/services/arkWallet'
 import { stopAllNip46Sessions } from '@/services/nip46Sessions'
 import { useNip46Store } from '@/store/nip46'
+import { devLog } from '@/utils/devConsole'
 import { clearNostrSecretsCaches } from '@/utils/nostrSecrets'
 
 /**
@@ -13,4 +14,13 @@ export async function teardownUnlockedSession(): Promise<void> {
   useNip46Store.getState().markSessionsDisconnected()
   clearNostrSecretsCaches()
   await releaseAllArkWalletsAndSubscriptions()
+}
+
+export async function teardownUnlockedSessionSafe(): Promise<void> {
+  try {
+    await teardownUnlockedSession()
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    devLog('session', `teardown failed: ${reason}`, 'error')
+  }
 }

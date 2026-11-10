@@ -35,7 +35,7 @@ import {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe
 } from '@/utils/serviceSecrets'
-import { teardownUnlockedSession } from '@/utils/sessionTeardown'
+import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
 
 /** Nostr data kept in SQLite outside the account rows: event cache, dedupe. */
 function wipeNostrSqliteData(): void {
@@ -59,7 +59,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
 
   stopNostrLifecycle()
   // Ark daemons must stop before their datadirs are deleted below.
-  await teardownUnlockedSession().catch(() => undefined)
+  await teardownUnlockedSessionSafe()
   teardownAllNip46Sessions()
   closeActiveChatPipeline()
   useNostrVideoStore.getState().releaseAllVideos()
