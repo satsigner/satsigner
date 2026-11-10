@@ -63,7 +63,7 @@ export default function NostrChatThread() {
     items,
     loadOlder,
     loadingOlder,
-    replyToId,
+    replyParent,
     send,
     sending,
     setInput,
@@ -135,9 +135,6 @@ export default function NostrChatThread() {
     peerNpub,
     peerProfile
   })
-  const replyParent = replyToId
-    ? items.find((item) => item.dm.id === replyToId)?.dm
-    : undefined
   const peerTitle =
     peerProfile?.displayName ?? `${peerNpub.slice(0, 12)}…${peerNpub.slice(-4)}`
 

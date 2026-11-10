@@ -132,6 +132,12 @@ const nostrChatQueryKeys = {
     protocol
   ],
   identity: (identityNpub: string) => ['nostrChat', identityNpub],
+  message: (identityNpub: string, messageId: string) => [
+    'nostrChat',
+    identityNpub,
+    'message',
+    messageId
+  ],
   profiles: (peersKey: string, relaysKey: string) => [
     'nostrChatProfiles',
     peersKey,

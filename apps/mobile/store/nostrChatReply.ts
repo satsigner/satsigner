@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { type NostrChatProtocol } from '@/types/models/Nostr'
+
 type NostrChatReplyState = {
   /** Message being replied to, per chat (see deviceChatKey / identityChatKey). */
   replyToByChat: Record<string, string>
@@ -14,8 +16,12 @@ function deviceChatKey(accountId: string): string {
   return `device:${accountId}`
 }
 
-function identityChatKey(identityNpub: string, peerPubkey: string): string {
-  return `identity:${identityNpub}:${peerPubkey}`
+function identityChatKey(
+  identityNpub: string,
+  protocol: NostrChatProtocol,
+  peerPubkey: string
+): string {
+  return `identity:${identityNpub}:${protocol}:${peerPubkey}`
 }
 
 const useNostrChatReplyStore = create<

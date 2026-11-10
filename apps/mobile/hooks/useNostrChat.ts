@@ -22,6 +22,7 @@ import {
   getChatPipelineStatus,
   invalidateChatQueries,
   listChatConversationItems,
+  loadChatMessageDetail,
   loadChatPeerProfiles,
   loadChatThreadItems,
   loadOlderChatHistory,
@@ -148,7 +149,7 @@ export function useNostrChatThread(
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
   const focused = useIsFocused()
-  const chatKey = identityChatKey(identityNpub, peerPubkey ?? '')
+  const chatKey = identityChatKey(identityNpub, protocol, peerPubkey ?? '')
   const replyToId = useNostrChatReplyStore(
     (state) => state.replyToByChat[chatKey]
   )
@@ -176,6 +177,18 @@ export function useNostrChatThread(
     )
   })
   const items = data ?? NO_THREAD_ITEMS
+
+  // The parent can sit past the loaded page (a reply started from the
+  // message details), so it falls back to the stored message.
+  const loadedReplyParent = replyToId
+    ? items.find((item) => item.dm.id === replyToId)
+    : undefined
+  const { data: storedReplyParent } = useQuery({
+    enabled: Boolean(replyToId) && !loadedReplyParent,
+    queryFn: () => loadChatMessageDetail(identityNpub, replyToId ?? ''),
+    queryKey: nostrChatQueryKeys.message(identityNpub, replyToId ?? '')
+  })
+  const replyParent = loadedReplyParent?.dm ?? storedReplyParent?.item.dm
 
   /** Older stored messages first; relays are paged only past local history. */
   async function loadOlder() {
@@ -217,12 +230,12 @@ export function useNostrChatThread(
         protocol,
         peerNpub,
         text,
-        replyToId
+        replyParent?.id
       )
     } catch (error) {
       setInput(text)
-      if (replyToId) {
-        setReplyTo(replyToId)
+      if (replyParent) {
+        setReplyTo(replyParent.id)
       }
       invalidateChatQueries(identity.npub)
       setSending(false)
@@ -244,7 +257,7 @@ export function useNostrChatThread(
     items,
     loadOlder,
     loadingOlder,
-    replyToId,
+    replyParent,
     send,
     sending,
     setInput,

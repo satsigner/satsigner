@@ -36,8 +36,6 @@ import {
 } from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
 
-const MESSAGE_QUERY_SEGMENT = 'message'
-
 type AuthorLabelResolver = (authorNpub: string) => string
 
 function buildChatMessageView(
@@ -110,11 +108,7 @@ export function useNostrChatMessageDetail(
   const { data } = useQuery({
     enabled: isNonEmptyString(npub) && isNonEmptyString(messageId),
     queryFn: () => loadChatMessageDetail(identityNpub, messageId ?? ''),
-    queryKey: [
-      ...nostrChatQueryKeys.identity(identityNpub),
-      MESSAGE_QUERY_SEGMENT,
-      messageId
-    ]
+    queryKey: nostrChatQueryKeys.message(identityNpub, messageId ?? '')
   })
 
   function labelFor(authorNpub: string): string {
@@ -136,7 +130,11 @@ export function useNostrChatMessageDetail(
       return
     }
     setReplyTo(
-      identityChatKey(identityNpub, detail.message.peerPubkey),
+      identityChatKey(
+        identityNpub,
+        detail.message.protocol,
+        detail.message.peerPubkey
+      ),
       detail.message.id
     )
     router.dismissTo(
