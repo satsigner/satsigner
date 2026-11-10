@@ -124,15 +124,23 @@ function buildReactionsPage(
   }
 }
 
-/** The `until` for the next older page, or undefined when relays ran dry. */
+/**
+ * The `until` for the next older page, or undefined when relays ran dry.
+ * Inclusive, so reactions sharing the oldest second are not skipped; a page
+ * stuck on one second steps past it.
+ */
 function getNextReactionsUntil(
   page: NostrReactionsPage,
-  limit: number
+  limit: number,
+  previousUntil?: number
 ): number | undefined {
   if (page.fetchedCount < limit || page.oldestCreatedAt === null) {
     return undefined
   }
-  return page.oldestCreatedAt - 1
+  if (previousUntil !== undefined && page.oldestCreatedAt >= previousUntil) {
+    return previousUntil - 1
+  }
+  return page.oldestCreatedAt
 }
 
 function toReactionRow(

@@ -58,8 +58,16 @@ function useNostrNoteReactionsFetch({
 }: UseNostrNoteReactionsFetchOptions) {
   const query = useInfiniteQuery({
     enabled: enabled && eventId.length > 0 && relays.length > 0,
-    getNextPageParam: (lastPage: NostrReactionsPage) =>
-      getNextReactionsUntil(lastPage, NOSTR_REACTIONS_PAGE_SIZE),
+    getNextPageParam: (
+      lastPage: NostrReactionsPage,
+      _pages: NostrReactionsPage[],
+      lastPageParam: number
+    ) =>
+      getNextReactionsUntil(
+        lastPage,
+        NOSTR_REACTIONS_PAGE_SIZE,
+        lastPageParam || undefined
+      ),
     initialPageParam: REACTIONS_HEAD_PAGE_PARAM,
     queryFn: ({ pageParam }) =>
       fetchReactionsPage(eventId, relays, pageParam || undefined),

@@ -184,11 +184,22 @@ describe('buildReactionsPage', () => {
 describe('getNextReactionsUntil', () => {
   const LIMIT = 2
 
-  it('pages to one second before the oldest event on a full page', () => {
+  it('pages from the oldest second so reactions sharing it are not skipped', () => {
     expect(
       getNextReactionsUntil(
         { fetchedCount: 2, oldestCreatedAt: 100, reactions: [] },
-        LIMIT
+        LIMIT,
+        120
+      )
+    ).toBe(100)
+  })
+
+  it('steps past a second that fills a whole page', () => {
+    expect(
+      getNextReactionsUntil(
+        { fetchedCount: 2, oldestCreatedAt: 100, reactions: [] },
+        LIMIT,
+        100
       )
     ).toBe(99)
   })
