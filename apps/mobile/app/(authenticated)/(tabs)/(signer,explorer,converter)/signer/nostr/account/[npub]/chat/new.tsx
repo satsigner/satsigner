@@ -19,6 +19,7 @@ import {
 } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
+import { nostrChatThreadHref } from '@/utils/nostrNavigation'
 
 type NewChatParams = {
   npub: string
@@ -72,10 +73,7 @@ export default function NostrNewChat() {
     if (!npub) {
       return
     }
-    router.replace({
-      params: { npub, peer: peerNpub, protocol },
-      pathname: '/signer/nostr/account/[npub]/chat/[peer]'
-    })
+    router.replace(nostrChatThreadHref(npub, peerNpub, protocol))
   }
 
   function handleOpenInput() {

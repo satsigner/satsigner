@@ -24,6 +24,7 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
+import { nostrChatThreadHref } from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
 
 type ChatParams = {
@@ -59,10 +60,7 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
     if (!isNonEmptyString(npub)) {
       return
     }
-    router.push({
-      params: { npub, peer: peerNpub, protocol },
-      pathname: '/signer/nostr/account/[npub]/chat/[peer]'
-    })
+    router.push(nostrChatThreadHref(npub, peerNpub, protocol))
   }
 
   function handleNewChat() {
