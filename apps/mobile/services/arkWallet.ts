@@ -78,7 +78,11 @@ export function fetchArkNextBlockFeeRate(
  * open" answers go too, so the next session opens each wallet again.
  */
 export async function releaseAllArkWalletsAndSubscriptions(): Promise<void> {
-  forgetAllArkNotificationSubscriptions()
-  queryClient.removeQueries({ queryKey: ARK_WALLET_QUERY_KEY })
-  await releaseAllArkWallets()
+  try {
+    forgetAllArkNotificationSubscriptions()
+    queryClient.removeQueries({ queryKey: ARK_WALLET_QUERY_KEY })
+  } finally {
+    // Even when a native unsubscribe throws, every daemon must still stop.
+    await releaseAllArkWallets()
+  }
 }

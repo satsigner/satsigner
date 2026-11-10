@@ -10,10 +10,14 @@ import { clearNostrSecretsCaches } from '@/utils/nostrSecrets'
  * open Ark wallets with their daemons. The next unlock loads them again.
  */
 export async function teardownUnlockedSession(): Promise<void> {
-  stopAllNip46Sessions()
-  useNip46Store.getState().markSessionsDisconnected()
-  clearNostrSecretsCaches()
-  await releaseAllArkWalletsAndSubscriptions()
+  try {
+    stopAllNip46Sessions()
+    clearNostrSecretsCaches()
+    useNip46Store.getState().markSessionsDisconnected()
+  } finally {
+    // The wipe deletes the Ark datadirs next, so the daemons stop regardless.
+    await releaseAllArkWalletsAndSubscriptions()
+  }
 }
 
 export async function teardownUnlockedSessionSafe(): Promise<void> {

@@ -100,4 +100,18 @@ describe('teardownUnlockedSession', () => {
 
     expect(releaseAllArkWalletsAndSubscriptions).toHaveBeenCalledTimes(1)
   })
+
+  it('still releases the Ark wallets when stopping a bunker throws', async () => {
+    const service = new Nip46BunkerService()
+    jest.spyOn(service, 'disconnect').mockImplementationOnce(() => {
+      throw new Error('socket close failed')
+    })
+    registerNip46Session(SESSION_ID, service, new Uint8Array(32))
+
+    await expect(teardownUnlockedSession()).rejects.toThrow(
+      'socket close failed'
+    )
+
+    expect(releaseAllArkWalletsAndSubscriptions).toHaveBeenCalledTimes(1)
+  })
 })
