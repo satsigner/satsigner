@@ -272,6 +272,11 @@ function SSNostrMessage({
                 </SSText>
               </Pressable>
             ) : null}
+            {failed && !onRetry ? (
+              <SSText size="xs" style={styles.failedText}>
+                {t('nostrIdentity.chat.status.failed')}
+              </SSText>
+            ) : null}
           </SSHStack>
         ) : null}
       </SSVStack>
