@@ -51,10 +51,11 @@ describe('teardownUnlockedSession', () => {
     expect(secretKey.every((byte) => byte === 0)).toBe(true)
   })
 
-  it('keeps the paired sessions but drops their unanswered requests', async () => {
+  it('keeps the paired sessions, disconnected, and drops their unanswered requests', async () => {
     const store = useNip46Store.getState()
     store.addSession({
       clientPubkey: 'client',
+      connectionStatus: 'connected',
       createdAt: 0,
       id: SESSION_ID,
       lastActiveAt: 0,
@@ -74,7 +75,12 @@ describe('teardownUnlockedSession', () => {
     await teardownUnlockedSession()
 
     const state = useNip46Store.getState()
-    expect(state.sessions.map(({ id }) => id)).toStrictEqual([SESSION_ID])
+    expect(
+      state.sessions.map(({ connectionStatus, id }) => ({
+        connectionStatus,
+        id
+      }))
+    ).toStrictEqual([{ connectionStatus: 'disconnected', id: SESSION_ID }])
     expect(state.pendingRequests).toStrictEqual([])
   })
 

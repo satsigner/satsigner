@@ -10,7 +10,7 @@ import { clearNostrSecretsCaches } from '@/utils/nostrSecrets'
  */
 export async function teardownUnlockedSession(): Promise<void> {
   stopAllNip46Sessions()
-  useNip46Store.getState().clearPendingRequests()
+  useNip46Store.getState().markSessionsDisconnected()
   clearNostrSecretsCaches()
   await releaseAllArkWalletsAndSubscriptions()
 }

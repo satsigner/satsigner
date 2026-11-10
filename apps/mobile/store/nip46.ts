@@ -19,10 +19,9 @@ type Nip46Actions = {
   addPendingRequest: (request: Nip46Request) => void
   addSession: (session: Nip46Session) => Nip46Session
   clearAll: () => void
-  clearPendingRequests: () => void
   clearSessionsForIdentity: (npub: string) => void
-  disconnectRestoredSessions: () => void
   getSessionsForIdentity: (npub: string) => Nip46Session[]
+  markSessionsDisconnected: () => void
   removePendingRequest: (requestId: string) => void
   removeSession: (sessionId: string) => void
   updatePermission: (
@@ -72,10 +71,6 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
         set({ pendingRequests: [], sessions: [] })
       },
 
-      clearPendingRequests: () => {
-        set({ pendingRequests: [] })
-      },
-
       clearSessionsForIdentity: (npub) => {
         set((state) => ({
           pendingRequests: state.pendingRequests.filter((r) => {
@@ -86,15 +81,17 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
         }))
       },
 
-      // No bunker survives a restart, so no stored session is still live.
-      disconnectRestoredSessions: () => {
+      getSessionsForIdentity: (npub) =>
+        get().sessions.filter((s) => s.signerNpub === npub),
+
+      // No bunker survives a restart or a lock, so no stored session is still
+      // live and no request is left to answer.
+      markSessionsDisconnected: () => {
         set((state) => ({
+          pendingRequests: [],
           sessions: state.sessions.map(toRestoredNip46Session)
         }))
       },
-
-      getSessionsForIdentity: (npub) =>
-        get().sessions.filter((s) => s.signerNpub === npub),
 
       pendingRequests: [],
 
@@ -141,7 +138,7 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
     {
       name: 'nip46-storage',
       onRehydrateStorage: () => (state) => {
-        state?.disconnectRestoredSessions()
+        state?.markSessionsDisconnected()
       },
       partialize: (state) => ({
         sessions: state.sessions
