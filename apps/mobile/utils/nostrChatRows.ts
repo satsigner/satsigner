@@ -5,6 +5,7 @@ import {
 import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'
 import { t } from '@/locales'
 import { type NostrDM } from '@/types/models/Nostr'
+import { toSingleLinePreview } from '@/utils/string'
 
 type ChatDayRow = { dayStart: number; key: string; kind: 'day' }
 
@@ -61,17 +62,12 @@ function buildChatRows<T>(
       key: dm.id,
       kind: 'message'
     }
-    return startsDay
-      ? [{ dayStart, key: `day-${dayStart}`, kind: 'day' as const }, messageRow]
-      : [messageRow]
+    if (!startsDay) {
+      return [messageRow]
+    }
+    const dayRow: ChatDayRow = { dayStart, key: `day-${dayStart}`, kind: 'day' }
+    return [dayRow, messageRow]
   })
-}
-
-function truncatePreview(text: string): string {
-  const singleLine = text.replaceAll(/\s+/g, ' ').trim()
-  return singleLine.length > NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH
-    ? `${singleLine.slice(0, NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH)}…`
-    : singleLine
 }
 
 /** Quote shown above a reply; text is null when the parent isn't loaded. */
@@ -83,7 +79,12 @@ function buildReplyPreview(
   return {
     authorKey: parent?.author ?? '',
     parentId,
-    text: parent ? truncatePreview(parent.description) : null
+    text: parent
+      ? toSingleLinePreview(
+          parent.description,
+          NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH
+        )
+      : null
   }
 }
 

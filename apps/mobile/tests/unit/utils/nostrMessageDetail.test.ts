@@ -12,8 +12,7 @@ import {
   getChatProtocolKind,
   getMessageStatus,
   parseMessageRumorInfo,
-  toAuthorNpub,
-  truncatePreviewText
+  toAuthorNpub
 } from '@/utils/nostrMessageDetail'
 import {
   deviceChatMessageHref,
@@ -151,18 +150,6 @@ describe('buildMessageDetailRows', () => {
   })
 })
 
-describe('truncatePreviewText', () => {
-  it('collapses whitespace', () => {
-    expect(truncatePreviewText('  a\n\n b  ')).toBe('a b')
-  })
-
-  it('truncates long text with an ellipsis', () => {
-    const preview = truncatePreviewText('x'.repeat(500))
-    expect(preview.length).toBeLessThan(500)
-    expect(preview.endsWith('…')).toBe(true)
-  })
-})
-
 describe('buildMessagePreview', () => {
   it('carries id, author label and text', () => {
     const preview = buildMessagePreview(makeDm(), 'Alice')
@@ -198,10 +185,8 @@ describe('findMessageReplies', () => {
 
 describe('message detail hrefs', () => {
   it('builds the identity chat message href', () => {
-    expect(
-      nostrChatMessageHref('npub1me', 'npub1peer', MESSAGE_ID)
-    ).toStrictEqual({
-      params: { messageId: MESSAGE_ID, npub: 'npub1me', peer: 'npub1peer' },
+    expect(nostrChatMessageHref('npub1me', MESSAGE_ID)).toStrictEqual({
+      params: { messageId: MESSAGE_ID, npub: 'npub1me' },
       pathname: '/signer/nostr/account/[npub]/chat/message/[messageId]'
     })
   })

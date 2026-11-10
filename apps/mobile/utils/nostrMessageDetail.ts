@@ -7,10 +7,10 @@ import { formatDateShort } from '@/utils/date'
 import { formatNpub, truncate } from '@/utils/format'
 import { safeNpubEncode } from '@/utils/nostr'
 import { isOptimisticDmId } from '@/utils/nostrDms'
+import { toSingleLinePreview } from '@/utils/string'
 
 const MESSAGE_ID_TRUNCATE_CHARS = 10
 const MESSAGE_PREVIEW_MAX_CHARS = 140
-const ELLIPSIS = '…'
 const NPUB_PREFIX = 'npub'
 
 const MessageRumorSchema = z.object({
@@ -178,14 +178,6 @@ function buildMessageDetailRows({
   return rows
 }
 
-function truncatePreviewText(text: string): string {
-  const singleLine = text.replaceAll(/\s+/g, ' ').trim()
-  if (singleLine.length <= MESSAGE_PREVIEW_MAX_CHARS) {
-    return singleLine
-  }
-  return `${singleLine.slice(0, MESSAGE_PREVIEW_MAX_CHARS)}${ELLIPSIS}`
-}
-
 function buildMessagePreview(
   message: NostrDM,
   authorLabel: string
@@ -194,7 +186,7 @@ function buildMessagePreview(
     authorLabel,
     date: formatDateShort(message.created_at),
     id: message.id,
-    text: truncatePreviewText(message.description)
+    text: toSingleLinePreview(message.description, MESSAGE_PREVIEW_MAX_CHARS)
   }
 }
 
@@ -219,7 +211,6 @@ export {
   getChatProtocolKind,
   getMessageStatus,
   parseMessageRumorInfo,
-  toAuthorNpub,
-  truncatePreviewText
+  toAuthorNpub
 }
 export type { NostrMessageDetailRow, NostrMessagePreview }
