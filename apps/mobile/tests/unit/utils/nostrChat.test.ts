@@ -125,6 +125,7 @@ import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
+import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { type NostrChatGiftWrap } from '@/types/models/Nostr'
 import { NostrNoRelaysError } from '@/utils/errors'
@@ -560,6 +561,51 @@ describe('nostrChat', () => {
     expect(processedWraps).toStrictEqual(
       new Set([`chat:${senderNpub}|wrap-1`, `chat:${senderNpub}|wrap-2`])
     )
+  })
+
+  describe('proof of work required from strangers', () => {
+    async function receiveFromPeer() {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(captured.handlers, 'wrap-stranger', {
+        content: 'buy my coin',
+        created_at: 2000,
+        id: 'rumor-stranger',
+        pubkey: peerPubkey
+      })
+    }
+
+    beforeEach(() => {
+      useNostrChatSettingsStore.setState({ minInboundPowBits: 16 })
+    })
+
+    afterEach(() => {
+      clearNostrFollowCache(senderNpub)
+    })
+
+    it('drops a message without it from someone we do not follow', async () => {
+      setNostrFollowCache(senderNpub, [])
+
+      await receiveFromPeer()
+
+      expect(storedMessages()).toHaveLength(0)
+    })
+
+    it('keeps the message of someone we follow', async () => {
+      setNostrFollowCache(senderNpub, [peerPubkey])
+
+      await receiveFromPeer()
+
+      expect(storedMessages()).toHaveLength(1)
+    })
+
+    it('keeps every message while the follow list is unknown', async () => {
+      clearNostrFollowCache(senderNpub)
+
+      await receiveFromPeer()
+
+      expect(storedMessages()).toHaveLength(1)
+    })
   })
 
   it('ingests NIP-17 self copies as outgoing messages for the tagged peer', async () => {

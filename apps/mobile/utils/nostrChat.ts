@@ -673,9 +673,12 @@ function isInboundAllowed(
   if (isOwn || minInboundPowBits <= 0) {
     return true
   }
+  // A dropped message is never decrypted again, so a follow list that has
+  // not loaded yet must not drop the messages of people we follow.
+  const followed = getNostrFollowCache(identityNpub)
   return isInboundMessageAllowed({
     hasConversation: hasOutgoingChatMessage(identityNpub, senderHex),
-    isFollowed: (getNostrFollowCache(identityNpub) ?? []).includes(senderHex),
+    isFollowed: followed === null || followed.includes(senderHex),
     isOwn,
     minPowBits: minInboundPowBits,
     pow
