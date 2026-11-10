@@ -150,12 +150,21 @@ function getCachedWallet(accountId: string): WalletLike {
   return wallet
 }
 
+function throwIfReleasedSince(accountId: string, generation: number): void {
+  if (getWalletGeneration(accountId) !== generation) {
+    throw new Error(ARK_WALLET_RELEASED_WHILE_OPENING)
+  }
+}
+
 // Since bark 0.12, boarding, exits and the daemon use the onchain wallet
 // supplied at open time (`WalletOpenArgs.onchain`), so it must be created
-// upfront instead of lazily.
+// upfront instead of lazily. The generation is read before waiting on a
+// running release, so a release that starts during that wait still cancels
+// this open.
 async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
-  await Promise.all(releasesInProgress)
   const generation = getWalletGeneration(args.accountId)
+  await Promise.allSettled(releasesInProgress)
+  throwIfReleasedSince(args.accountId, generation)
   const onchainWallet = await OnchainWallet.default_(
     appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
@@ -163,6 +172,7 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
     args.datadir
   )
   try {
+    throwIfReleasedSince(args.accountId, generation)
     const wallet = await Wallet.open(
       appNetworkToBarkNetwork(args.server.network),
       args.mnemonic,
@@ -177,9 +187,7 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
       }
     )
     if (getWalletGeneration(args.accountId) !== generation) {
-      if (Wallet.instanceOf(wallet)) {
-        wallet.uniffiDestroy()
-      }
+      await stopAndDestroyWallet({ onchainWallet: undefined, wallet })
       throw new Error(ARK_WALLET_RELEASED_WHILE_OPENING)
     }
     walletCache.set(args.accountId, wallet)
@@ -199,16 +207,21 @@ async function createWallet(args: ArkWalletArgs): Promise<void> {
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
+  const generation = getWalletGeneration(args.accountId)
   await openWalletWithOnchain(args)
   const wallet = getCachedWallet(args.accountId)
   try {
     await wallet.sync()
   } catch (error) {
     // Evict so the next open retries the initial sync instead of serving
-    // a cached wallet that never completed it.
-    releaseWallet(args.accountId)
+    // a cached wallet that never completed it. After a release the cache
+    // may already hold the wallet a later open made.
+    if (getWalletGeneration(args.accountId) === generation) {
+      releaseWallet(args.accountId)
+    }
     throw error
   }
+  throwIfReleasedSince(args.accountId, generation)
 }
 
 async function syncWallet(accountId: string): Promise<void> {
@@ -242,7 +255,9 @@ async function openWallet(args: ArkWalletArgs): Promise<void> {
   try {
     await promise
   } finally {
-    inflightOpens.delete(args.accountId)
+    if (inflightOpens.get(args.accountId) === promise) {
+      inflightOpens.delete(args.accountId)
+    }
   }
 }
 
@@ -373,17 +388,26 @@ async function stopAndDestroyWallet(detached: DetachedWallet): Promise<void> {
   destroyWallet(detached)
 }
 
-// Every wallet leaves the caches at once, so the next session opens a new one
-// instead of getting a wallet about to be destroyed; that open waits for the
-// daemons here to stop first.
+// Every wallet and running open leaves the caches at once, so the next session
+// opens a new wallet instead of getting one about to be destroyed or an open
+// about to fail. That open waits, up to the stop timeout, for the daemons here
+// to stop and for the cancelled opens to give up, so it does not start beside
+// a wallet still closing on the same datadir.
 async function releaseAllWallets(): Promise<void> {
+  const cancelledOpens = [...inflightOpens.values()]
   const accountIds = new Set([
     ...walletCache.keys(),
     ...onchainWalletCache.keys(),
     ...inflightOpens.keys()
   ])
+  inflightOpens.clear()
   const detached = [...accountIds].map(detachWallet)
-  const release = Promise.all(detached.map(stopAndDestroyWallet))
+  const release = Promise.allSettled([
+    ...detached.map(stopAndDestroyWallet),
+    ...cancelledOpens.map((open) =>
+      withTimeout(open, ARK_DAEMON_STOP_TIMEOUT_MS)
+    )
+  ])
   releasesInProgress.add(release)
   try {
     await release

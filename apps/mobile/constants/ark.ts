@@ -12,7 +12,8 @@ export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 export const ARK_WALLET_RELEASED_WHILE_OPENING =
   'Ark wallet was released while it was opening'
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
-// Bounds a lock or wipe waiting on a daemon busy in a round.
+// Bounds a lock or wipe waiting on a daemon busy in a round, or on an open it
+// cancelled.
 export const ARK_DAEMON_STOP_TIMEOUT_MS = 5000
 // A claim paying more than this multiple of the chosen fee rate over its
 // signed size is refused before broadcast.
