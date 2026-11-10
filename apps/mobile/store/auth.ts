@@ -53,6 +53,11 @@ type AuthState = {
   requirePinMigration: boolean
   /** Decrypted backup JSON; when set, recovery runs after next unlock. Not persisted. */
   pendingRecoverData: string | null
+  /**
+   * Public server a restored backup switched to. Persisted so wallets stay
+   * unsynced across a lock or relaunch until the user accepts it.
+   */
+  restoredPublicServerName: string | null
 }
 
 function applyColdStartLock(state: {
@@ -90,6 +95,7 @@ type AuthAction = {
   clearPageHistory: () => void
   setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
   setPendingRecoverData: (data: string | null) => void
+  setRestoredPublicServerName: (name: string | null) => void
   setRequirePinMigration: (requirePinMigration: boolean) => void
 }
 
@@ -193,6 +199,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       resetPinTries: () => {
         set({ pinTries: 0 })
       },
+      restoredPublicServerName: null,
       setDuressPin: async (pin) => {
         // Reuse the main PIN salt. setPin also reuses that salt so a later
         // PIN change does not invalidate this digest.
@@ -246,6 +253,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setRequiresAuth: (requiresAuth) => {
         set({ requiresAuth })
+      },
+      setRestoredPublicServerName(restoredPublicServerName) {
+        set({ restoredPublicServerName })
       },
       setSkipPin(skipPin) {
         // Lock-screen bypass is development-only. Production builds ignore it.

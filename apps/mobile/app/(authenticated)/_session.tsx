@@ -1,4 +1,4 @@
-import { useGlobalSearchParams } from 'expo-router'
+import { useGlobalSearchParams, useRouter } from 'expo-router'
 import Drawer from 'expo-router/drawer'
 import {
   getFocusedRouteNameFromRoute,
@@ -13,6 +13,7 @@ import { getWalletData } from '@/api/bdk'
 import { initRpcUrlAdjustments } from '@/api/rpc'
 import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import { pruneCache } from '@/db/nostrCache'
 import { useArkExitWatcher } from '@/hooks/useArkExits'
 import { useArkNotifications } from '@/hooks/useArkNotifications'
@@ -123,16 +124,20 @@ function AuthenticatedSession() {
   const [
     justUnlocked,
     skipPin,
+    restoredPublicServerName,
     markPageVisited,
     setJustUnlocked,
-    setPendingRecoverData
+    setPendingRecoverData,
+    setRestoredPublicServerName
   ] = useAuthStore(
     useShallow((state) => [
       state.justUnlocked,
       state.skipPin,
+      state.restoredPublicServerName,
       state.markPageVisited,
       state.setJustUnlocked,
-      state.setPendingRecoverData
+      state.setPendingRecoverData,
+      state.setRestoredPublicServerName
     ])
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
@@ -146,6 +151,7 @@ function AuthenticatedSession() {
       ])
     )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const router = useRouter()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   useArkNotifications()
@@ -235,6 +241,18 @@ function AuthenticatedSession() {
     failures.flush()
   }
 
+  function handleAcceptRestoredServer() {
+    setRestoredPublicServerName(null)
+    // The modal only shows while the session is mounted; locking unmounts it
+    // and cancels every queued sync.
+    void syncLoadedWallets(() => true)
+  }
+
+  function handleChangeRestoredServer() {
+    setRestoredPublicServerName(null)
+    router.navigate('/settings/network/server')
+  }
+
   useEffect(() => {
     // Locking unmounts the session, and nothing may keep decrypting, loading
     // or syncing behind the PIN screen: every step checks it still runs.
@@ -278,7 +296,12 @@ function AuthenticatedSession() {
       if (!session.active) {
         return
       }
-      void syncLoadedWallets(isSessionActive)
+      // Hold the first sync until the user accepts the public server a
+      // restored backup switched to, so nothing is sent to it without their
+      // consent. The modal below asks.
+      if (useAuthStore.getState().restoredPublicServerName === null) {
+        void syncLoadedWallets(isSessionActive)
+      }
 
       try {
         pruneCache()
@@ -321,6 +344,13 @@ function AuthenticatedSession() {
         <Drawer.Screen name="(tabs)" />
       </Drawer>
       <SSArkReceiveOverlay />
+      <SSPublicServerWarningModal
+        visible={restoredPublicServerName !== null}
+        serverName={restoredPublicServerName ?? ''}
+        reason="restore"
+        onConfirm={handleAcceptRestoredServer}
+        onCancel={handleChangeRestoredServer}
+      />
     </GestureHandlerRootView>
   )
 }

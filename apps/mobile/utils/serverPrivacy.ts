@@ -1,5 +1,6 @@
 import { servers } from '@/constants/servers'
 import { type Server } from '@/types/settings/blockchain'
+import { isSameServerEndpoint } from '@/utils/server'
 
 /**
  * Who can see the wallet's addresses through this server, following Sparrow:
@@ -29,4 +30,41 @@ export function getServerPrivacy(
     return 'public'
   }
   return server.isPrivate ? 'private' : 'public'
+}
+
+/**
+ * True when switching from `before` to `after` starts sending the wallet's
+ * addresses to a public server the app was not already using. A rename of
+ * the same endpoint exposes nothing new.
+ */
+export function isNewlyPublic(before: Server, after: Server): boolean {
+  return (
+    !isSameServerEndpoint(before, after) && getServerPrivacy(after) === 'public'
+  )
+}
+
+/**
+ * Servers that would become active on save and are public, so the user can
+ * be warned before the app connects to them. Unchanged selections are not
+ * returned: the user already accepted them.
+ */
+export function getNewlySelectedPublicServers<K extends string>(
+  current: Record<K, Server>,
+  next: Record<K, Server>
+): Server[] {
+  return Object.keys(next)
+    .filter((key): key is K => key in current)
+    .filter((key) => isNewlyPublic(current[key], next[key]))
+    .map((key) => next[key])
+}
+
+/**
+ * The public server a backup restore switched the app to, if any. A backup
+ * that keeps the server the app already used has nothing new to warn about.
+ */
+export function getRestoredPublicServer(
+  activeBefore: Server,
+  activeAfter: Server
+): Server | undefined {
+  return isNewlyPublic(activeBefore, activeAfter) ? activeAfter : undefined
 }
