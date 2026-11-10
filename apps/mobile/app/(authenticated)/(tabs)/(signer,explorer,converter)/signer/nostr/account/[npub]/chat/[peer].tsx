@@ -75,7 +75,7 @@ export default function NostrChatThread() {
     if (!identity) {
       return
     }
-    router.push(nostrChatMessageHref(identity.npub, peerNpub, messageId))
+    router.push(nostrChatMessageHref(identity.npub, messageId))
   }
 
   const messageActions = useNostrChatMessageActions({

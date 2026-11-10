@@ -149,7 +149,7 @@ export function useNostrChatMessageDetail(
   }
 
   function openMessage(targetId: string) {
-    router.push(nostrChatMessageHref(identityNpub, peerNpub, targetId))
+    router.push(nostrChatMessageHref(identityNpub, targetId))
   }
 
   function deleteForMe() {

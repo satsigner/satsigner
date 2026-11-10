@@ -108,14 +108,10 @@ export function nostrChatThreadHref(
   }
 }
 
-/** Detail page of one message in identity `npub`'s chat with `peerNpub`. */
-export function nostrChatMessageHref(
-  npub: string,
-  peerNpub: string,
-  messageId: string
-): Href {
+/** Detail page of one message in identity `npub`'s chats. */
+export function nostrChatMessageHref(npub: string, messageId: string): Href {
   return {
-    params: { messageId, npub, peer: peerNpub },
+    params: { messageId, npub },
     pathname: '/signer/nostr/account/[npub]/chat/message/[messageId]'
   }
 }

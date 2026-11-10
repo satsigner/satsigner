@@ -11,7 +11,6 @@ import { t } from '@/locales'
 type ChatMessageParams = {
   messageId: string
   npub: string
-  peer?: string
 }
 
 function renderHeaderTitle() {
