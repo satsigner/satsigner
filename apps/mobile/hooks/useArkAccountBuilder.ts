@@ -1,8 +1,8 @@
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { createArkWallet } from '@/api/ark'
 import { t } from '@/locales'
+import { createArkWalletWhileUnlocked } from '@/services/arkWallet'
 import { deleteArkDatadir, ensureArkDatadir } from '@/storage/arkDatadir'
 import { deleteArkMnemonic, storeArkMnemonic } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
@@ -102,7 +102,7 @@ export function useArkAccountBuilder() {
     const datadir = await ensureArkDatadir(persistedAccount.id)
     await storeArkMnemonic(persistedAccount.id, mnemonic)
     try {
-      await createArkWallet({
+      await createArkWalletWhileUnlocked({
         accountId: persistedAccount.id,
         datadir,
         mnemonic,

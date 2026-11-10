@@ -39,6 +39,7 @@ import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
+import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
 import {
   type SyncErrorReporter,
   createSyncFailureBatch
@@ -321,6 +322,7 @@ function AuthenticatedSession() {
       // A sync still running behind the PIN screen drops its result.
       cancelAllAccountSyncs()
       stopNostrLifecycle()
+      void teardownUnlockedSessionSafe()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

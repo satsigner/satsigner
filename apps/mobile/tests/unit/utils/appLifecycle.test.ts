@@ -1,4 +1,4 @@
-import { nextAppLifecycleStep } from '@/utils/appLifecycle'
+import { isAppLocked, nextAppLifecycleStep } from '@/utils/appLifecycle'
 
 const BASE = {
   lockDeltaTime: 30,
@@ -55,5 +55,21 @@ describe('nextAppLifecycleStep', () => {
       overlay: 'keep',
       recordBackground: false
     })
+  })
+})
+
+describe('isAppLocked', () => {
+  const LOCKED = { lockTriggered: true, requiresAuth: true, skipPin: false }
+
+  it('is locked once a PIN-protected app triggers its lock', () => {
+    expect(isAppLocked(LOCKED)).toBe(true)
+  })
+
+  it.each([
+    ['the lock was not triggered', { lockTriggered: false }],
+    ['the app has no PIN', { requiresAuth: false }],
+    ['the PIN is skipped', { skipPin: true }]
+  ])('is unlocked when %s', (_case, overrides) => {
+    expect(isAppLocked({ ...LOCKED, ...overrides })).toBe(false)
   })
 })

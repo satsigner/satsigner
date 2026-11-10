@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useAuthHydrated } from '@/hooks/useAuthHydrated'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
+import { isAppLocked } from '@/utils/appLifecycle'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
 
 const AuthenticatedSession = lazy(loadAuthenticatedSession)
@@ -43,7 +44,7 @@ export default function AuthenticatedLayout() {
     return <Redirect href="/setPin" />
   }
 
-  if (requiresAuth && lockTriggered && !skipPin) {
+  if (isAppLocked({ lockTriggered, requiresAuth, skipPin })) {
     return <Redirect href="/unlock" />
   }
 
