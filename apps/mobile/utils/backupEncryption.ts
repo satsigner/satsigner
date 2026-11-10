@@ -1,6 +1,7 @@
 import {
-  type Backup,
   BackupJsonSchema,
+  type BackupV1,
+  type BackupV2,
   BackupVersionJsonSchema
 } from '@/types/models/Backup'
 import {
@@ -50,9 +51,6 @@ const MAX_PBKDF2_ITERATIONS = 10_000_000
 // Untagged dev builds between v0.2.1 and v0.3.0 wrote v1 ciphertext as hex
 // instead of base64. Real base64 ciphertext never matches this pattern.
 const LEGACY_HEX_CIPHER_PATTERN = /^(?:[0-9a-f]{32})+$/
-
-type BackupV1 = Extract<Backup, { v: 1 }>
-type BackupV2 = Extract<Backup, { v: 2 }>
 
 type BackupDecryptResult =
   | { plaintext: string; status: 'decrypted' }

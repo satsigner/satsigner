@@ -26,7 +26,8 @@ export const BackupSchema = z.discriminatedUnion('v', [
   BackupV2Schema
 ])
 
-export type Backup = z.infer<typeof BackupSchema>
+export type BackupV1 = z.infer<typeof BackupV1Schema>
+export type BackupV2 = z.infer<typeof BackupV2Schema>
 
 function jsonCodec<T extends z.ZodType>(schema: T) {
   return z.codec(z.string(), schema, {
