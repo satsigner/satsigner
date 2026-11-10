@@ -223,6 +223,7 @@ export function useNostrChatThread(
     const pipelineApi = getChatPipelineApi(identity.npub)
     const api =
       pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
+    const replyParentId = replyParent?.id
     try {
       await sendChatMessage(
         api,
@@ -230,12 +231,12 @@ export function useNostrChatThread(
         protocol,
         peerNpub,
         text,
-        replyParent?.id
+        replyParentId
       )
     } catch (error) {
       setInput(text)
-      if (replyParent) {
-        setReplyTo(replyParent.id)
+      if (replyParentId) {
+        setReplyTo(replyParentId)
       }
       invalidateChatQueries(identity.npub)
       setSending(false)
