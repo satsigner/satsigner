@@ -118,18 +118,27 @@ function sha256(text: string): Promise<string> {
   return Promise.resolve(hash.digest().toString('hex'))
 }
 
+type CipherStream = {
+  final(): Uint8Array
+  update(data: Uint8Array): Uint8Array
+}
+
+function runCipher(cipher: CipherStream, input: Uint8Array): Buffer {
+  const updated = cipher.update(input)
+  const finalized = cipher.final()
+  return Buffer.concat([
+    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
+    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
+  ])
+}
+
 function aesEncrypt(text: string, key: string, iv: string): Promise<string> {
   const cipher = QuickCrypto.createCipheriv(
     AES_ALGORITHM,
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
-  const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
-  const finalized = cipher.final()
-  const result = Buffer.concat([
-    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
-    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
-  ])
+  const result = runCipher(cipher, new Uint8Array(Buffer.from(text, 'utf8')))
   return Promise.resolve(result.toString('base64'))
 }
 
@@ -143,14 +152,10 @@ function aesDecrypt(
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(iv, 'hex'))
   )
-  const updated = decipher.update(
+  const result = runCipher(
+    decipher,
     new Uint8Array(Buffer.from(ciphertext, 'base64'))
   )
-  const finalized = decipher.final()
-  const result = Buffer.concat([
-    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
-    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
-  ])
   return Promise.resolve(result.toString('utf8'))
 }
 
@@ -182,12 +187,7 @@ function aesGcmEncrypt(text: string, key: string): AesGcmCiphertext {
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(iv)
   )
-  const updated = cipher.update(new Uint8Array(Buffer.from(text, 'utf8')))
-  const finalized = cipher.final()
-  const result = Buffer.concat([
-    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
-    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
-  ])
+  const result = runCipher(cipher, new Uint8Array(Buffer.from(text, 'utf8')))
   return {
     cipher: result.toString('base64'),
     iv: Buffer.from(iv).toString('hex'),
@@ -203,14 +203,10 @@ function aesGcmDecrypt(ciphertext: AesGcmCiphertext, key: string): string {
     new Uint8Array(Buffer.from(ciphertext.iv, 'hex'))
   )
   decipher.setAuthTag(QuickCrypto.Buffer.from(ciphertext.tag, 'hex'))
-  const updated = decipher.update(
+  const result = runCipher(
+    decipher,
     new Uint8Array(Buffer.from(ciphertext.cipher, 'base64'))
   )
-  const finalized = decipher.final()
-  const result = Buffer.concat([
-    Buffer.from(updated.buffer, updated.byteOffset, updated.byteLength),
-    Buffer.from(finalized.buffer, finalized.byteOffset, finalized.byteLength)
-  ])
   return result.toString('utf8')
 }
 
@@ -237,7 +233,6 @@ async function doubleShaEncrypt(text: string): Promise<string> {
 
 export {
   ACCOUNT_ID_KEY_LENGTH,
-  type AesGcmCiphertext,
   aesDecrypt,
   aesEncrypt,
   aesGcmDecrypt,
