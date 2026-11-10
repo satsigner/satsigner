@@ -1,4 +1,4 @@
-import { isRecord } from '@/utils/object'
+import { isRecord, omitKey } from '@/utils/object'
 
 describe('isRecord', () => {
   it('accepts plain objects', () => {
@@ -17,5 +17,18 @@ describe('isRecord', () => {
     expect(isRecord('text')).toBe(false)
     expect(isRecord(1)).toBe(false)
     expect(isRecord(true)).toBe(false)
+  })
+})
+
+describe('omitKey', () => {
+  it('copies the record without the key and leaves the original alone', () => {
+    const record = { a: 1, b: 2 }
+
+    expect(omitKey(record, 'a')).toStrictEqual({ b: 2 })
+    expect(record).toStrictEqual({ a: 1, b: 2 })
+  })
+
+  it('returns an equal copy when the key is missing', () => {
+    expect(omitKey({ a: 1 }, 'z')).toStrictEqual({ a: 1 })
   })
 })

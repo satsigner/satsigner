@@ -9,7 +9,7 @@ import mmkvStorage from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
 import { type NostrErrorCode } from '@/types/models/Nostr'
 import { generateColorFromNpub } from '@/utils/nostr'
-import { isRecord } from '@/utils/object'
+import { isRecord, omitKey } from '@/utils/object'
 import { type TransactionData } from '@/utils/psbt'
 
 type Member = {
@@ -49,10 +49,6 @@ function clearProcessedEventsSafely(accountId?: string): void {
   } catch {
     // Leftover rows only skip already-seen events on a later sync.
   }
-}
-
-function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
-  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key))
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   NOSTR_POW_DEFAULT_DIFFICULTY
 } from '@/constants/nostr'
 import mmkvStorage from '@/storage/mmkv'
+import { omitKey } from '@/utils/object'
 
 type NostrChatFilter = 'following' | 'others'
 
@@ -43,11 +44,7 @@ const useNostrChatSettingsStore = create<
       },
       removeChatFilter: (npub) => {
         set((state) => ({
-          chatFilterByNpub: Object.fromEntries(
-            Object.entries(state.chatFilterByNpub).filter(
-              ([filterNpub]) => filterNpub !== npub
-            )
-          )
+          chatFilterByNpub: omitKey(state.chatFilterByNpub, npub)
         }))
       },
       setChatFilter: (npub, filter) => {
