@@ -37,6 +37,7 @@ import {
   deleteAllRpcCredentialsSafe,
   deleteLndSecretsSafe
 } from '@/utils/serviceSecrets'
+import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
 
 /** Nostr data kept in SQLite outside the account rows: event cache, dedupe. */
 function wipeNostrSqliteData(): void {
@@ -59,6 +60,8 @@ export async function secureWipeAllWalletData(): Promise<void> {
   const { identities } = useNostrIdentityStore.getState()
 
   stopNostrLifecycle()
+  // Ark daemons must stop before their datadirs are deleted below.
+  await teardownUnlockedSessionSafe()
   teardownAllNip46Sessions()
   closeActiveChatPipeline()
   useNostrVideoStore.getState().releaseAllVideos()
@@ -128,14 +131,17 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useBlockchainStore.getState().stripAllRpcCredentials()
 
   // A backup restore waiting for the next unlock would put the wiped wallets
-  // back, and the page history and last route are a trail of what was opened.
+  // back, and the page history, the last route and the restored server
+  // warning are a trail of what was there.
   const {
     clearDuressPin,
     clearPageHistory,
     setPendingRecoverData,
+    setRestoredPublicServerName,
     setSkipPin
   } = useAuthStore.getState()
   setPendingRecoverData(null)
+  setRestoredPublicServerName(null)
   clearPageHistory()
   await deleteItem(LAST_ROUTE_STORAGE_KEY).catch(() => undefined)
   setSkipPin(false)

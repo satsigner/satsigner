@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { ARK_WALLET_QUERY_KEY } from '@/constants/ark'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 
 export function useArkWallet(accountId: string | null | undefined) {
@@ -12,7 +13,7 @@ export function useArkWallet(accountId: string | null | undefined) {
       }
       return ensureArkWalletOpen(accountId)
     },
-    queryKey: ['ark', 'wallet', accountId],
+    queryKey: [...ARK_WALLET_QUERY_KEY, accountId],
     staleTime: Infinity
   })
 }

@@ -2,7 +2,10 @@ import * as barkModule from '@secondts/bark-react-native'
 
 import '@/api/ark/providers/bark'
 import { getArkProvider } from '@/api/ark/registry'
-import { ARK_BOARD_PAYJOIN_NATIVE_MISSING } from '@/constants/ark'
+import {
+  ARK_BOARD_PAYJOIN_NATIVE_MISSING,
+  ARK_DAEMON_STOP_TIMEOUT_MS
+} from '@/constants/ark'
 import type { ArkServer, ArkWalletProvider } from '@/types/models/Ark'
 import { ArkOperationBusyError } from '@/utils/arkError'
 
@@ -44,6 +47,14 @@ function createDeferred<T>(): Deferred<T> {
     reject: (error) => handlers.reject(error),
     resolve: (value) => handlers.resolve(value)
   }
+}
+
+// An open checks for running releases and creates the onchain wallet before
+// it reaches Wallet.open.
+function flushPromises(): Promise<void> {
+  return new Promise((resolve) => {
+    setImmediate(resolve)
+  })
 }
 
 const SERVER: ArkServer = {
@@ -127,6 +138,7 @@ function movementCreatedEvent(
 describe('bark provider', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    Wallet.open.mockReset()
   })
 
   it('createWallet starts the daemon so live notifications work', async () => {
@@ -589,9 +601,11 @@ describe('bark provider', () => {
     await expect(second).rejects.toThrow('network down')
   })
 
-  it('destroys a wallet whose open finished after it was released', async () => {
+  it('stops and destroys a wallet whose open finished after it was released', async () => {
     const openGate = createDeferred<FakeWallet>()
-    const wallet = buildFakeWallet()
+    const wallet = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockResolvedValue(undefined)
+    })
     Wallet.open.mockReturnValueOnce(openGate.promise)
     const opening = provider.openWallet({
       accountId: 'released1',
@@ -599,15 +613,319 @@ describe('bark provider', () => {
       mnemonic: MNEMONIC,
       server: SERVER
     })
-    await Promise.resolve()
+    await flushPromises()
+    expect(Wallet.open).toHaveBeenCalledTimes(1)
 
     provider.releaseWallet('released1')
     openGate.resolve(wallet)
 
     await expect(opening).rejects.toThrow('released while it was opening')
+    expect(wallet.stopDaemonWait).toHaveBeenCalledTimes(1)
     await expect(provider.fetchBalance('released1')).rejects.toThrow(
       'not opened'
     )
+  })
+
+  it('skips the native open of a wallet released before it got there', async () => {
+    const opening = provider.openWallet({
+      accountId: 'releasedEarly1',
+      datadir: '/tmp/releasedEarly1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+
+    provider.releaseWallet('releasedEarly1')
+
+    await expect(opening).rejects.toThrow('released while it was opening')
+    expect(Wallet.open).not.toHaveBeenCalled()
+  })
+
+  it('releaseAllWallets stops every daemon before releasing the wallets', async () => {
+    const calls: string[] = []
+    const first = buildFakeWallet({
+      stopDaemonWait: jest.fn(() => {
+        calls.push('stop first')
+        return Promise.resolve()
+      })
+    })
+    const second = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockRejectedValue(new Error('not running'))
+    })
+    await openWallet('releaseAll1', first)
+    await openWallet('releaseAll2', second)
+
+    await provider.releaseAllWallets()
+
+    expect(calls).toStrictEqual(['stop first'])
+    expect(second.stopDaemonWait).toHaveBeenCalledTimes(1)
+    await expect(provider.fetchBalance('releaseAll1')).rejects.toThrow(
+      'not opened'
+    )
+    await expect(provider.fetchBalance('releaseAll2')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
+  it('releaseAllWallets gives up on a daemon that never stops', async () => {
+    jest.useFakeTimers()
+    try {
+      const stuck = buildFakeWallet({
+        stopDaemonWait: jest.fn(() => new Promise<void>(() => {}))
+      })
+      await openWallet('releaseStuck1', stuck)
+
+      const releasing = provider.releaseAllWallets()
+      await jest.advanceTimersByTimeAsync(ARK_DAEMON_STOP_TIMEOUT_MS)
+
+      await expect(releasing).resolves.toBeUndefined()
+      await expect(provider.fetchBalance('releaseStuck1')).rejects.toThrow(
+        'not opened'
+      )
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('releaseAllWallets makes a reopen wait for the daemon and open anew', async () => {
+    const stopGate = createDeferred<undefined>()
+    const stopping = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockReturnValue(stopGate.promise)
+    })
+    await openWallet('releaseSlow1', stopping)
+
+    const releasing = provider.releaseAllWallets()
+    const reopened = buildFakeWallet()
+    Wallet.open.mockResolvedValue(reopened)
+    const reopening = provider.openWallet({
+      accountId: 'releaseSlow1',
+      datadir: '/tmp/releaseSlow1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await Promise.resolve()
+    expect(Wallet.open).toHaveBeenCalledTimes(1)
+
+    stopGate.resolve(undefined)
+    await releasing
+    await reopening
+
+    expect(Wallet.open).toHaveBeenCalledTimes(2)
+    expect(reopened.sync).toHaveBeenCalledTimes(1)
+    await expect(provider.syncWallet('releaseSlow1')).resolves.toBeUndefined()
+    expect(stopping.sync).toHaveBeenCalledTimes(1)
+  })
+
+  it('releaseAllWallets waits for an open it cancelled to stop its daemon', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    const late = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockResolvedValue(undefined)
+    })
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const opening = provider.openWallet({
+      accountId: 'releaseOpening1',
+      datadir: '/tmp/releaseOpening1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+
+    const released = jest.fn()
+    const releasing = provider.releaseAllWallets().then(released)
+    await flushPromises()
+    expect(released).not.toHaveBeenCalled()
+
+    openGate.resolve(late)
+    await releasing
+
+    await expect(opening).rejects.toThrow('released while it was opening')
+    expect(late.stopDaemonWait).toHaveBeenCalledTimes(1)
+    await expect(provider.fetchBalance('releaseOpening1')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
+  it('releaseAllWallets makes the next open start anew, not join a cancelled one', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const cancelled = provider.openWallet({
+      accountId: 'releaseJoin1',
+      datadir: '/tmp/releaseJoin1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+
+    const releasing = provider.releaseAllWallets()
+    const reopened = buildFakeWallet()
+    Wallet.open.mockResolvedValue(reopened)
+    const reopening = provider.openWallet({
+      accountId: 'releaseJoin1',
+      datadir: '/tmp/releaseJoin1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+    expect(Wallet.open).toHaveBeenCalledTimes(1)
+
+    openGate.resolve(buildFakeWallet())
+    await releasing
+
+    await expect(cancelled).rejects.toThrow('released while it was opening')
+    await expect(reopening).resolves.toBeUndefined()
+    expect(Wallet.open).toHaveBeenCalledTimes(2)
+    await expect(provider.syncWallet('releaseJoin1')).resolves.toBeUndefined()
+    expect(reopened.sync).toHaveBeenCalledTimes(2)
+  })
+
+  it('releaseAllWallets cancels an open still waiting on an earlier release', async () => {
+    const stopGate = createDeferred<undefined>()
+    const stopping = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockReturnValue(stopGate.promise)
+    })
+    await openWallet('releaseTwice1', stopping)
+
+    const firstRelease = provider.releaseAllWallets()
+    const waiting = provider.openWallet({
+      accountId: 'releaseTwice1',
+      datadir: '/tmp/releaseTwice1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    const secondRelease = provider.releaseAllWallets()
+    stopGate.resolve(undefined)
+    await Promise.all([firstRelease, secondRelease])
+
+    await expect(waiting).rejects.toThrow('released while it was opening')
+    expect(Wallet.open).toHaveBeenCalledTimes(1)
+  })
+
+  it('releaseAllWallets cancels a wallet still being created', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    const created = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockResolvedValue(undefined)
+    })
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const creating = provider.createWallet({
+      accountId: 'releaseCreating1',
+      datadir: '/tmp/releaseCreating1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+
+    const releasing = provider.releaseAllWallets()
+    openGate.resolve(created)
+    await releasing
+
+    await expect(creating).rejects.toThrow('released while it was opening')
+    expect(created.stopDaemonWait).toHaveBeenCalledTimes(1)
+    await expect(provider.fetchBalance('releaseCreating1')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
+  it('releaseAllWallets waits for an earlier release still stopping its daemons', async () => {
+    const stopGate = createDeferred<undefined>()
+    const stopping = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockReturnValue(stopGate.promise)
+    })
+    await openWallet('releaseEarlier1', stopping)
+
+    const firstRelease = provider.releaseAllWallets()
+    const secondReleased = jest.fn()
+    const secondRelease = provider.releaseAllWallets().then(secondReleased)
+    await flushPromises()
+    expect(secondReleased).not.toHaveBeenCalled()
+
+    stopGate.resolve(undefined)
+    await Promise.all([firstRelease, secondRelease])
+    expect(secondReleased).toHaveBeenCalledTimes(1)
+  })
+
+  it('a sync still running on a released wallet is not joined by the next wallet', async () => {
+    const syncGate = createDeferred<undefined>()
+    const released = buildFakeWallet({
+      sync: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockReturnValueOnce(syncGate.promise)
+    })
+    await openWallet('releaseSync1', released)
+    const staleSync = provider.syncWallet('releaseSync1')
+
+    await provider.releaseAllWallets()
+    const next = buildFakeWallet()
+    await openWallet('releaseSync1', next)
+    await provider.syncWallet('releaseSync1')
+
+    expect(next.sync).toHaveBeenCalledTimes(2)
+    syncGate.resolve(undefined)
+    await staleSync
+  })
+
+  it('releaseAllWallets fails an open whose first sync was still running', async () => {
+    const syncGate = createDeferred<undefined>()
+    const syncing = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockResolvedValue(undefined),
+      sync: jest.fn().mockReturnValue(syncGate.promise)
+    })
+    Wallet.open.mockResolvedValueOnce(syncing)
+    const opening = provider.openWallet({
+      accountId: 'releaseSyncing1',
+      datadir: '/tmp/releaseSyncing1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+    expect(syncing.sync).toHaveBeenCalledTimes(1)
+
+    const releasing = provider.releaseAllWallets()
+    syncGate.resolve(undefined)
+    await releasing
+
+    await expect(opening).rejects.toThrow('released while it was opening')
+    expect(syncing.stopDaemonWait).toHaveBeenCalledTimes(1)
+  })
+
+  it('a cancelled open whose first sync fails keeps the next wallet cached', async () => {
+    jest.useFakeTimers()
+    try {
+      const syncGate = createDeferred<undefined>()
+      const syncing = buildFakeWallet({
+        stopDaemonWait: jest.fn().mockResolvedValue(undefined),
+        sync: jest.fn().mockReturnValue(syncGate.promise)
+      })
+      Wallet.open.mockResolvedValueOnce(syncing)
+      const cancelled = provider.openWallet({
+        accountId: 'releaseSyncFail1',
+        datadir: '/tmp/releaseSyncFail1',
+        mnemonic: MNEMONIC,
+        server: SERVER
+      })
+      await jest.advanceTimersByTimeAsync(0)
+      expect(syncing.sync).toHaveBeenCalledTimes(1)
+
+      const releasing = provider.releaseAllWallets()
+      await jest.advanceTimersByTimeAsync(ARK_DAEMON_STOP_TIMEOUT_MS)
+      await releasing
+      const next = buildFakeWallet()
+      Wallet.open.mockResolvedValueOnce(next)
+      await provider.openWallet({
+        accountId: 'releaseSyncFail1',
+        datadir: '/tmp/releaseSyncFail1',
+        mnemonic: MNEMONIC,
+        server: SERVER
+      })
+
+      syncGate.reject(new Error('sync failed'))
+      await expect(cancelled).rejects.toThrow('sync failed')
+      await expect(
+        provider.syncWallet('releaseSyncFail1')
+      ).resolves.toBeUndefined()
+      expect(next.sync).toHaveBeenCalledTimes(2)
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('concurrent syncWallet calls are coalesced into one native sync', async () => {

@@ -10,12 +10,14 @@ import {
   stopAllNip46Sessions,
   stopNip46Session
 } from '@/services/nip46Sessions'
+import { useAuthStore } from '@/store/auth'
 import { useNip46Store } from '@/store/nip46'
 import type {
   Nip46Method,
   Nip46Request,
   Nip46Session
 } from '@/types/models/Nostr'
+import { isAppLocked } from '@/utils/appLifecycle'
 import { buildNip46ResponsePayload, canAutoApproveRequest } from '@/utils/nip46'
 import {
   handleConnect,
@@ -236,123 +238,123 @@ export function rejectNip46Request(
   })
 }
 
-export function useNip46SessionManager() {
-  const addPendingRequest = useNip46Store((s) => s.addPendingRequest)
-  const updateSession = useNip46Store((s) => s.updateSession)
-
-  async function startSession(
-    session: Nip46Session,
-    nsec: string
-  ): Promise<void> {
-    const secretKey = getSecretFromNsec(nsec)
-    if (!secretKey) {
-      throw new Error('Invalid nsec')
-    }
-
-    const signerPubkeyHex = getPubKeyHexFromNpub(session.signerNpub)
-    if (!signerPubkeyHex) {
-      throw new Error('Invalid signer npub')
-    }
-
-    updateSession(session.id, { connectionStatus: 'connecting' })
-    const connectSecret = session.secret ?? ''
-
-    try {
-      const service = new Nip46BunkerService()
-      await service.connect(session.relays)
-
-      registerNip46Session(session.id, service, secretKey)
-
-      service.subscribe(
-        signerPubkeyHex,
-        secretKey,
-        session.clientPubkey,
-        (request) => {
-          if (!isValidMethod(request.method)) {
-            return
-          }
-
-          const currentSession = getSessionById(session.id)
-          if (!currentSession) {
-            return
-          }
-
-          const permission = currentSession.permissions[request.method]
-          const now = Date.now()
-          if (
-            now < currentSession.lastActiveAt ||
-            shouldRecordNip46Activity(currentSession.lastActiveAt, now)
-          ) {
-            updateSession(session.id, { lastActiveAt: now })
-          }
-
-          // A stored "always allow" is honored only for requests that are
-          // safe to auto-approve; decryption and sensitive sign_event kinds
-          // always require explicit approval.
-          if (
-            permission === 'always_allow' &&
-            canAutoApproveRequest(request.method, request.params)
-          ) {
-            fireAndForget(
-              respondToRequest(session.id, {
-                id: request.id,
-                method: request.method,
-                params: request.params,
-                receivedAt: Date.now(),
-                sessionId: session.id,
-                status: 'approved'
-              })
-            )
-            return
-          }
-
-          if (permission === 'always_reject') {
-            fireAndForget(sendError(session.id, request.id, 'Rejected by user'))
-            return
-          }
-
-          addPendingRequest({
-            id: request.id,
-            method: request.method,
-            params: request.params,
-            receivedAt: Date.now(),
-            sessionId: session.id,
-            status: 'pending'
-          })
-        }
-      )
-
-      const connectPayload = buildNip46ResponsePayload(
-        'connect',
-        connectSecret,
-        null
-      )
-      await service.sendResponse(
-        session.clientPubkey,
-        secretKey,
-        connectPayload
-      )
-      updateSession(session.id, { connectionStatus: 'connected' })
-    } catch (error) {
-      const errMsg =
-        error instanceof Error ? error.message : 'Connection failed'
-      const isRelayError = errMsg.includes('Failed to connect to any relay')
-      updateSession(session.id, {
-        connectionError: isRelayError ? undefined : errMsg,
-        connectionStatus: isRelayError ? 'relays_unreachable' : 'error'
-      })
-
-      stopNip46Session(session.id)
-
-      throw error
-    }
+export async function startNip46Session(
+  session: Nip46Session,
+  nsec: string
+): Promise<void> {
+  const { addPendingRequest, updateSession } = useNip46Store.getState()
+  const secretKey = getSecretFromNsec(nsec)
+  if (!secretKey) {
+    throw new Error('Invalid nsec')
   }
 
+  const signerPubkeyHex = getPubKeyHexFromNpub(session.signerNpub)
+  if (!signerPubkeyHex) {
+    throw new Error('Invalid signer npub')
+  }
+
+  updateSession(session.id, { connectionStatus: 'connecting' })
+  const connectSecret = session.secret ?? ''
+
+  try {
+    const service = new Nip46BunkerService()
+    await service.connect(session.relays)
+    // Locking stopped every bunker while this one was still connecting.
+    if (isAppLocked(useAuthStore.getState())) {
+      service.disconnect()
+      secretKey.fill(0)
+      updateSession(session.id, { connectionStatus: 'disconnected' })
+      return
+    }
+
+    registerNip46Session(session.id, service, secretKey)
+
+    service.subscribe(
+      signerPubkeyHex,
+      secretKey,
+      session.clientPubkey,
+      (request) => {
+        if (!isValidMethod(request.method)) {
+          return
+        }
+
+        const currentSession = getSessionById(session.id)
+        if (!currentSession) {
+          return
+        }
+
+        const permission = currentSession.permissions[request.method]
+        const now = Date.now()
+        if (
+          now < currentSession.lastActiveAt ||
+          shouldRecordNip46Activity(currentSession.lastActiveAt, now)
+        ) {
+          updateSession(session.id, { lastActiveAt: now })
+        }
+
+        // A stored "always allow" is honored only for requests that are
+        // safe to auto-approve; decryption and sensitive sign_event kinds
+        // always require explicit approval.
+        if (
+          permission === 'always_allow' &&
+          canAutoApproveRequest(request.method, request.params)
+        ) {
+          fireAndForget(
+            respondToRequest(session.id, {
+              id: request.id,
+              method: request.method,
+              params: request.params,
+              receivedAt: Date.now(),
+              sessionId: session.id,
+              status: 'approved'
+            })
+          )
+          return
+        }
+
+        if (permission === 'always_reject') {
+          fireAndForget(sendError(session.id, request.id, 'Rejected by user'))
+          return
+        }
+
+        addPendingRequest({
+          id: request.id,
+          method: request.method,
+          params: request.params,
+          receivedAt: Date.now(),
+          sessionId: session.id,
+          status: 'pending'
+        })
+      }
+    )
+
+    const connectPayload = buildNip46ResponsePayload(
+      'connect',
+      connectSecret,
+      null
+    )
+    await service.sendResponse(session.clientPubkey, secretKey, connectPayload)
+    updateSession(session.id, { connectionStatus: 'connected' })
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : 'Connection failed'
+    const isRelayError = errMsg.includes('Failed to connect to any relay')
+    updateSession(session.id, {
+      connectionError: isRelayError ? undefined : errMsg,
+      connectionStatus: isRelayError ? 'relays_unreachable' : 'error'
+    })
+
+    stopNip46Session(session.id)
+
+    throw error
+  }
+}
+
+export function useNip46SessionManager() {
   return {
     approveRequest: approveNip46Request,
     isSessionActive: isNip46SessionActive,
     rejectRequest: rejectNip46Request,
-    startSession,
+    startSession: startNip46Session,
     stopAllSessions: stopAllNip46Sessions,
     stopSession: stopNip46Session
   }

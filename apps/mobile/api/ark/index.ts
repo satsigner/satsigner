@@ -1,4 +1,4 @@
-import { getArkProvider } from '@/api/ark/registry'
+import { getArkProvider, listArkProviders } from '@/api/ark/registry'
 import type {
   ArkBalance,
   ArkBoardFundingInfo,
@@ -46,6 +46,13 @@ export function releaseArkWallet(
   accountId: string
 ): void {
   getArkProvider(serverId).releaseWallet(accountId)
+}
+
+/** Stops every open wallet's daemon, then releases it. */
+export async function releaseAllArkWallets(): Promise<void> {
+  await Promise.all(
+    listArkProviders().map((provider) => provider.releaseAllWallets())
+  )
 }
 
 export function fetchArkBalance(

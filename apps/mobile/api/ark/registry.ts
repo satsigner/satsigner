@@ -13,3 +13,7 @@ export function getArkProvider(serverId: ArkServerId): ArkWalletProvider {
   }
   return provider
 }
+
+export function listArkProviders(): ArkWalletProvider[] {
+  return [...providers.values()]
+}

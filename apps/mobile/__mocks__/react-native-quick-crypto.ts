@@ -46,6 +46,7 @@ function pbkdf2Impl(
 }
 
 const QuickCrypto = {
+  Buffer,
   // Argon2 has no node:crypto equivalent; scrypt with the parameters folded
   // into the salt gives a deterministic, input- and config-dependent stand-in.
   argon2: jest

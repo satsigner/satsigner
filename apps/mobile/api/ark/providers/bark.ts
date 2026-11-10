@@ -28,6 +28,7 @@ import {
 import { registerArkProvider } from '@/api/ark/registry'
 import {
   ARK_BOARD_PAYJOIN_NATIVE_MISSING,
+  ARK_DAEMON_STOP_TIMEOUT_MS,
   ARK_LIGHTNING_RECEIVE_SETTLED_STATE,
   ARK_LIGHTNING_RETRY_FOR_SECS,
   ARK_LIGHTNING_SEND_WAIT,
@@ -79,9 +80,9 @@ import {
   moveBusyArkVtxosOutOfSpendable
 } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
+import { withTimeout } from '@/utils/time'
 
 const walletCache = new Map<string, WalletLike>()
-const walletArgsCache = new Map<string, ArkWalletArgs>()
 const onchainWalletCache = new Map<string, OnchainWalletLike>()
 const inflightOpens = new Map<string, Promise<void>>()
 const inflightSyncs = new Map<string, Promise<void>>()
@@ -94,6 +95,7 @@ const heldOperations = new Map<string, number>()
 // Bumped by every release, so an open that was still running when its wallet
 // was released destroys what it opened instead of caching it again.
 const walletGenerations = new Map<string, number>()
+const releasesInProgress = new Set<Promise<unknown>>()
 
 function getWalletGeneration(accountId: string): number {
   return walletGenerations.get(accountId) ?? 0
@@ -148,11 +150,21 @@ function getCachedWallet(accountId: string): WalletLike {
   return wallet
 }
 
+function throwIfReleasedSince(accountId: string, generation: number): void {
+  if (getWalletGeneration(accountId) !== generation) {
+    throw new Error(ARK_WALLET_RELEASED_WHILE_OPENING)
+  }
+}
+
 // Since bark 0.12, boarding, exits and the daemon use the onchain wallet
 // supplied at open time (`WalletOpenArgs.onchain`), so it must be created
-// upfront instead of lazily.
+// upfront instead of lazily. The generation is read before waiting on a
+// running release, so a release that starts during that wait still cancels
+// this open.
 async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
   const generation = getWalletGeneration(args.accountId)
+  await Promise.allSettled(releasesInProgress)
+  throwIfReleasedSince(args.accountId, generation)
   const onchainWallet = await OnchainWallet.default_(
     appNetworkToBarkNetwork(args.server.network),
     args.mnemonic,
@@ -160,6 +172,7 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
     args.datadir
   )
   try {
+    throwIfReleasedSince(args.accountId, generation)
     const wallet = await Wallet.open(
       appNetworkToBarkNetwork(args.server.network),
       args.mnemonic,
@@ -174,9 +187,7 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
       }
     )
     if (getWalletGeneration(args.accountId) !== generation) {
-      if (Wallet.instanceOf(wallet)) {
-        wallet.uniffiDestroy()
-      }
+      await stopAndDestroyWallet({ onchainWallet: undefined, wallet })
       throw new Error(ARK_WALLET_RELEASED_WHILE_OPENING)
     }
     walletCache.set(args.accountId, wallet)
@@ -187,26 +198,52 @@ async function openWalletWithOnchain(args: ArkWalletArgs): Promise<void> {
     throw error
   }
   onchainWalletCache.set(args.accountId, onchainWallet)
-  walletArgsCache.set(args.accountId, args)
+}
+
+// A release drops these entries while the work still runs, so the work removes
+// only its own entry, never the one a later call put in its place.
+async function trackInflight(
+  inflight: Map<string, Promise<void>>,
+  accountId: string,
+  promise: Promise<void>
+): Promise<void> {
+  inflight.set(accountId, promise)
+  try {
+    await promise
+  } finally {
+    if (inflight.get(accountId) === promise) {
+      inflight.delete(accountId)
+    }
+  }
 }
 
 // The created wallet stays cached and openWallet skips cached wallets, so the
 // daemon has to start here or it never runs for this wallet until a restart.
+// It is tracked like an open, so a release cancels it too.
 async function createWallet(args: ArkWalletArgs): Promise<void> {
-  await openWalletWithOnchain(args)
+  await trackInflight(
+    inflightOpens,
+    args.accountId,
+    openWalletWithOnchain(args)
+  )
 }
 
 async function openAndCacheWallet(args: ArkWalletArgs): Promise<void> {
+  const generation = getWalletGeneration(args.accountId)
   await openWalletWithOnchain(args)
   const wallet = getCachedWallet(args.accountId)
   try {
     await wallet.sync()
   } catch (error) {
     // Evict so the next open retries the initial sync instead of serving
-    // a cached wallet that never completed it.
-    releaseWallet(args.accountId)
+    // a cached wallet that never completed it. After a release the cache
+    // may already hold the wallet a later open made.
+    if (getWalletGeneration(args.accountId) === generation) {
+      releaseWallet(args.accountId)
+    }
     throw error
   }
+  throwIfReleasedSince(args.accountId, generation)
 }
 
 async function syncWallet(accountId: string): Promise<void> {
@@ -215,13 +252,7 @@ async function syncWallet(accountId: string): Promise<void> {
     return inflight
   }
   const wallet = getCachedWallet(accountId)
-  const promise = wallet.sync()
-  inflightSyncs.set(accountId, promise)
-  try {
-    await promise
-  } finally {
-    inflightSyncs.delete(accountId)
-  }
+  await trackInflight(inflightSyncs, accountId, wallet.sync())
 }
 
 // The wallet is cached before its first sync finishes, so a caller arriving
@@ -235,13 +266,7 @@ async function openWallet(args: ArkWalletArgs): Promise<void> {
   if (walletCache.has(args.accountId)) {
     return
   }
-  const promise = openAndCacheWallet(args)
-  inflightOpens.set(args.accountId, promise)
-  try {
-    await promise
-  } finally {
-    inflightOpens.delete(args.accountId)
-  }
+  await trackInflight(inflightOpens, args.accountId, openAndCacheWallet(args))
 }
 
 function mapWalletNotification(
@@ -318,7 +343,12 @@ function subscribeNotifications(
   return unsubscribe
 }
 
-function releaseWallet(accountId: string): void {
+type DetachedWallet = {
+  onchainWallet: OnchainWalletLike | undefined
+  wallet: WalletLike | undefined
+}
+
+function detachWallet(accountId: string): DetachedWallet {
   walletGenerations.set(accountId, getWalletGeneration(accountId) + 1)
   const unsubscribes = activeUnsubscribes.get(accountId)
   if (unsubscribes) {
@@ -328,17 +358,75 @@ function releaseWallet(accountId: string): void {
     activeUnsubscribes.delete(accountId)
   }
   notificationsCache.delete(accountId)
+  // A sync still running on this wallet must not stand in for one of the next.
+  inflightSyncs.delete(accountId)
   const onchainWallet = onchainWalletCache.get(accountId)
+  onchainWalletCache.delete(accountId)
+  const wallet = walletCache.get(accountId)
+  walletCache.delete(accountId)
+  return { onchainWallet, wallet }
+}
+
+function destroyWallet({ onchainWallet, wallet }: DetachedWallet): void {
   if (onchainWallet && OnchainWallet.instanceOf(onchainWallet)) {
     onchainWallet.uniffiDestroy()
   }
-  onchainWalletCache.delete(accountId)
-  const wallet = walletCache.get(accountId)
   if (wallet && Wallet.instanceOf(wallet)) {
     wallet.uniffiDestroy()
   }
-  walletCache.delete(accountId)
-  walletArgsCache.delete(accountId)
+}
+
+function releaseWallet(accountId: string): void {
+  destroyWallet(detachWallet(accountId))
+}
+
+// bark only guarantees nothing keeps running in the background (talking to
+// the Ark server, writing to the datadir) once stopDaemonWait settles.
+// Releasing the handle alone does not wait for the daemon.
+async function stopWalletDaemon(wallet: WalletLike): Promise<void> {
+  try {
+    await withTimeout(wallet.stopDaemonWait(), ARK_DAEMON_STOP_TIMEOUT_MS)
+  } catch {
+    // The wallet is released either way.
+  }
+}
+
+async function stopAndDestroyWallet(detached: DetachedWallet): Promise<void> {
+  if (detached.wallet) {
+    await stopWalletDaemon(detached.wallet)
+  }
+  destroyWallet(detached)
+}
+
+// Every wallet and running open leaves the caches at once, so the next session
+// opens a new wallet instead of getting one about to be destroyed or an open
+// about to fail. That open waits, up to the stop timeout, for the daemons here
+// to stop and for the cancelled opens to give up, so it does not start beside
+// a wallet still closing on the same datadir. A release also waits for the
+// ones before it, so a wipe right after a lock deletes no datadir in use.
+async function releaseAllWallets(): Promise<void> {
+  const earlierReleases = [...releasesInProgress]
+  const cancelledOpens = [...inflightOpens.values()]
+  const accountIds = new Set([
+    ...walletCache.keys(),
+    ...onchainWalletCache.keys(),
+    ...inflightOpens.keys()
+  ])
+  inflightOpens.clear()
+  const detached = [...accountIds].map(detachWallet)
+  const release = Promise.allSettled([
+    ...earlierReleases,
+    ...detached.map(stopAndDestroyWallet),
+    ...cancelledOpens.map((open) =>
+      withTimeout(open, ARK_DAEMON_STOP_TIMEOUT_MS)
+    )
+  ])
+  releasesInProgress.add(release)
+  try {
+    await release
+  } finally {
+    releasesInProgress.delete(release)
+  }
 }
 
 function newAddress(accountId: string): Promise<string> {
@@ -1270,6 +1358,7 @@ const barkProvider: ArkWalletProvider = {
   payBolt11,
   payLightningAddress,
   refreshVtxos,
+  releaseAllWallets,
   releaseWallet,
   sendArkoor,
   sendFromOnchain,

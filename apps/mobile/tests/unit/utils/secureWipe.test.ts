@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store'
 import { __store as secureStore } from 'expo-secure-store'
 
+import { Nip46BunkerService } from '@/api/nostrNip446'
 import {
   DURESS_KDF_KEY,
   DURESS_PIN_KEY,
@@ -14,14 +15,20 @@ import {
 import { LAST_ROUTE_STORAGE_KEY } from '@/constants/navigation'
 import * as nostrCache from '@/db/nostrCache'
 import * as nostrProcessedEvents from '@/db/nostrProcessedEvents'
+import * as arkWallet from '@/services/arkWallet'
+import { getNip46Runtime, registerNip46Session } from '@/services/nip46Sessions'
+import * as arkDatadir from '@/storage/arkDatadir'
 import {
   persistDevConsoleEntry,
   rotateDevConsoleSession
 } from '@/storage/devConsoleLog'
+import { useArkStore } from '@/store/ark'
 import { useAuthStore } from '@/store/auth'
 import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
+import { useNip46Store } from '@/store/nip46'
 import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
+import type { ArkAccount } from '@/types/models/Ark'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import * as devConsole from '@/utils/devConsole'
 import { getPin } from '@/utils/pin'
@@ -45,6 +52,15 @@ const PIN_BOUND_KEYS = [
 ]
 
 const PERSIST_FAILED = 'persist failed'
+
+const ARK_ACCOUNT: ArkAccount = {
+  bitcoinAccountId: null,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  id: 'ark-1',
+  name: 'Ark',
+  network: 'signet',
+  serverId: 'second'
+}
 
 describe('secureWipeAfterMaxPinTries', () => {
   beforeEach(() => {
@@ -88,13 +104,52 @@ describe('secureWipeAfterMaxPinTries', () => {
   it('drops a backup restore waiting for the next unlock and the page history', async () => {
     useAuthStore.setState({
       pageHistory: ['/signer/bitcoin/account/acc'],
-      pendingRecoverData: 'decrypted-backup'
+      pendingRecoverData: 'decrypted-backup',
+      restoredPublicServerName: 'Mempool'
     })
 
     await secureWipeAllWalletData()
 
     expect(useAuthStore.getState().pendingRecoverData).toBeNull()
     expect(useAuthStore.getState().pageHistory).toStrictEqual([])
+    expect(useAuthStore.getState().restoredPublicServerName).toBeNull()
+  })
+
+  it('waits for the Ark daemons to stop before deleting their datadirs', async () => {
+    useArkStore.setState({ accounts: [ARK_ACCOUNT] })
+    const stopped: { resolve: () => void } = { resolve: () => undefined }
+    jest
+      .spyOn(arkWallet, 'releaseAllArkWalletsAndSubscriptions')
+      .mockReturnValue(
+        new Promise<void>((resolve) => {
+          stopped.resolve = resolve
+        })
+      )
+    const deleteDatadir = jest
+      .spyOn(arkDatadir, 'deleteArkDatadir')
+      .mockResolvedValue()
+
+    const wiping = secureWipeAllWalletData()
+    await new Promise((resolve) => {
+      setImmediate(resolve)
+    })
+    expect(deleteDatadir).not.toHaveBeenCalled()
+
+    stopped.resolve()
+    await wiping
+    expect(deleteDatadir).toHaveBeenCalledWith(ARK_ACCOUNT.id)
+  })
+
+  it('stops a running bunker and forgets its sessions', async () => {
+    const service = new Nip46BunkerService()
+    const disconnect = jest.spyOn(service, 'disconnect').mockReturnValue()
+    registerNip46Session('bunker-a', service, new Uint8Array(32))
+
+    await secureWipeAllWalletData()
+
+    expect(disconnect).toHaveBeenCalledTimes(1)
+    expect(getNip46Runtime('bunker-a')).toBeNull()
+    expect(useNip46Store.getState().sessions).toStrictEqual([])
   })
 
   it('drops the screen to reopen after unlock', async () => {

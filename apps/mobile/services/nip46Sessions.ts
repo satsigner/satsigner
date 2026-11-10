@@ -19,6 +19,7 @@ function isNip46SessionActive(sessionId: string): boolean {
 function stopNip46Session(sessionId: string): void {
   services.get(sessionId)?.disconnect()
   services.delete(sessionId)
+  secretKeys.get(sessionId)?.fill(0)
   secretKeys.delete(sessionId)
 }
 
