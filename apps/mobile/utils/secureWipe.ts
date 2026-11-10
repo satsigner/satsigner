@@ -129,14 +129,17 @@ export async function secureWipeAllWalletData(): Promise<void> {
   useBlockchainStore.getState().stripAllRpcCredentials()
 
   // A backup restore waiting for the next unlock would put the wiped wallets
-  // back, and the page history is a trail of what was opened.
+  // back, and the page history and the restored server warning are a trail
+  // of what was there.
   const {
     clearDuressPin,
     clearPageHistory,
     setPendingRecoverData,
+    setRestoredPublicServerName,
     setSkipPin
   } = useAuthStore.getState()
   setPendingRecoverData(null)
+  setRestoredPublicServerName(null)
   clearPageHistory()
   setSkipPin(false)
   await clearDuressPin().catch(() => undefined)

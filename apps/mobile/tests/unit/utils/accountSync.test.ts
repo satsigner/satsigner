@@ -1,6 +1,12 @@
-import { MIN_USABLE_CHECKPOINT_HEIGHT } from '@/constants/sync'
+import {
+  MIN_USABLE_CHECKPOINT_HEIGHT,
+  SYNC_STALL_TIMEOUT_MS,
+  SYNC_STALL_TIMEOUT_RPC_MS,
+  SYNC_STALL_TIMEOUT_TOR_MS
+} from '@/constants/sync'
 import {
   type AccountSyncHistory,
+  getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
   shouldFullScan,
   toRestoredSyncStatus
@@ -124,6 +130,12 @@ describe('isTransactionHistoryLoading', () => {
     ).toBe(true)
   })
 
+  it('is loading while the account waits in the sync queue', () => {
+    expect(
+      isTransactionHistoryLoading({ refreshing: false, syncStatus: 'queued' })
+    ).toBe(true)
+  })
+
   it('is loading while a refresh is in flight before sync status flips', () => {
     expect(
       isTransactionHistoryLoading({ refreshing: true, syncStatus: 'unsynced' })
@@ -147,11 +159,33 @@ describe('isTransactionHistoryLoading', () => {
   })
 })
 
+describe('getSyncStallTimeoutMs', () => {
+  it('waits longest for Bitcoin Core, then onion servers', () => {
+    expect(
+      getSyncStallTimeoutMs({ backend: 'rpc', url: 'http://10.0.0.2:8332' })
+    ).toBe(SYNC_STALL_TIMEOUT_RPC_MS)
+    expect(
+      getSyncStallTimeoutMs({
+        backend: 'electrum',
+        url: 'tcp://explorerzydxu5ecjrkwceayqybizmpjjznk5izmitf2modhcusuqlid.onion:50001'
+      })
+    ).toBe(SYNC_STALL_TIMEOUT_TOR_MS)
+    expect(
+      getSyncStallTimeoutMs({
+        backend: 'esplora',
+        url: 'https://mempool.space/api'
+      })
+    ).toBe(SYNC_STALL_TIMEOUT_MS)
+  })
+})
+
 describe('toRestoredSyncStatus', () => {
   it('turns a sync cut short by a restart into the last finished outcome', () => {
     expect(toRestoredSyncStatus('syncing', new Date(0))).toBe('synced')
     expect(toRestoredSyncStatus('syncing', undefined)).toBe('unsynced')
     expect(toRestoredSyncStatus('timeout', undefined)).toBe('unsynced')
+    expect(toRestoredSyncStatus('queued', new Date(0))).toBe('synced')
+    expect(toRestoredSyncStatus('queued', undefined)).toBe('unsynced')
   })
 
   it('keeps a finished status as stored', () => {

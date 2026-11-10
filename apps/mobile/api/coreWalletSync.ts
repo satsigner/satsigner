@@ -167,9 +167,10 @@ function toSinglePathDescriptors(
  */
 async function importDescriptorsIfNeeded(
   coreWallet: BitcoinCoreWallet,
-  account: Account,
+  account: Pick<Account, 'rpcLastBlockHash'>,
   [external, internal]: [string, string],
-  stopGap: number
+  stopGap: number,
+  isCancelled?: () => boolean
 ): Promise<boolean> {
   const existing = await coreWallet
     .listDescriptors()
@@ -213,6 +214,7 @@ async function importDescriptorsIfNeeded(
           timestamp: 'now'
         }
       ]
+  throwIfCancelled(isCancelled)
   const results = await coreWallet.importDescriptors(requests)
   const failed = results.find((result) => !result.success && result.error)
   if (failed?.error) {
@@ -313,6 +315,7 @@ async function startRescanFrom(
   startHeight: number,
   isCancelled?: () => boolean
 ) {
+  throwIfCancelled(isCancelled)
   try {
     await startRescan(coreWallet, startHeight)
   } catch (error) {
@@ -320,6 +323,7 @@ async function startRescanFrom(
       throw error
     }
     await waitForRescanStopped(coreWallet, isCancelled)
+    throwIfCancelled(isCancelled)
     await startRescan(coreWallet, startHeight).catch((retryError: unknown) => {
       if (!isRescanInProgress(retryError)) {
         throw retryError
@@ -349,6 +353,12 @@ function scanProgressHeight(
   return Math.round(startHeight + scanning.progress * (tipHeight - startHeight))
 }
 
+function throwIfCancelled(isCancelled?: () => boolean) {
+  if (isCancelled?.()) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
+}
+
 /**
  * Poll getwalletinfo until Core finishes scanning (max ~6 hours). Aborts the
  * Core rescan on cancel so a restarted sync can begin at a new height.
@@ -361,10 +371,10 @@ async function pollRescan(
   let consecutiveErrors = 0
 
   for (let i = 0; i < BDK_RESCAN_MAX_POLLS; i += 1) {
-    if (isCancelled?.()) {
-      await coreWallet.abortRescan().catch(() => undefined)
-      throw new Error(SYNC_CANCELLED_ERROR)
-    }
+    // Leave the node's rescan alone: a replacement sync may already have
+    // started its own rescan on this Core wallet, and it stops the old one
+    // itself before starting (waitForRescanStopped).
+    throwIfCancelled(isCancelled)
     try {
       const info = await coreWallet.getWalletInfo()
       consecutiveErrors = 0
@@ -630,18 +640,24 @@ async function syncWithCoreWallet(
   )
   await coreWallet.ensureWallet()
 
+  // A job cancelled during the round trips above must not send descriptors
+  // or start a rescan on the node.
+  throwIfCancelled(isCancelled)
   const normalized = await coreWallet.normalizeDescriptors(
     ...toSinglePathDescriptors(
       ...getWalletPublicDescriptors(account, wallet, bdkNetwork)
     )
   )
+  throwIfCancelled(isCancelled)
   const needsRescan = await importDescriptorsIfNeeded(
     coreWallet,
     account,
     normalized,
-    stopGap
+    stopGap,
+    isCancelled
   )
   if (needsRescan) {
+    throwIfCancelled(isCancelled)
     await rescanWallet(
       coreWallet,
       account,
@@ -668,22 +684,6 @@ async function syncWithCoreWallet(
     true
   )
 
-  // Populate BDK's wallet DB with current UTXOs so buildTransaction / sign
-  // can locate outpoints without a BDK (compact filter) sync.
-  for (const u of unspent) {
-    if (!u.scriptPubKey) {
-      continue
-    }
-    try {
-      wallet.insertTxout(
-        { txid: u.txid, vout: u.vout },
-        { scriptPubkeyHex: u.scriptPubKey, value: btcToSats(u.amount) }
-      )
-    } catch {
-      // non-critical — BDK may already know this outpoint
-    }
-  }
-
   const txSummaries = summarizeWalletTxs(
     isIncremental
       ? mergeWalletTxEntries(
@@ -702,6 +702,25 @@ async function syncWithCoreWallet(
       )
     )
   )
+  // A sync cancelled while the RPC calls were in flight has been replaced, so
+  // it must not write to the shared wallet.
+  throwIfCancelled(isCancelled)
+  // Populate BDK's wallet DB with current UTXOs so buildTransaction / sign
+  // can locate outpoints without a BDK (compact filter) sync.
+  for (const u of unspent) {
+    if (!u.scriptPubKey) {
+      continue
+    }
+    try {
+      wallet.insertTxout(
+        { txid: u.txid, vout: u.vout },
+        { scriptPubkeyHex: u.scriptPubKey, value: btcToSats(u.amount) }
+      )
+    } catch {
+      // non-critical — BDK may already know this outpoint
+    }
+  }
+
   // Newest first, unconfirmed on top
   transactions.sort(
     (a, b) => (b.blockHeight ?? Infinity) - (a.blockHeight ?? Infinity)
@@ -761,6 +780,7 @@ async function syncWithCoreWallet(
     ownershipScanLimit(Math.max(coreMaxExternal, coreMaxInternal))
   )
 
+  throwIfCancelled(isCancelled)
   revealKnownAddresses(wallet, { addresses }, stopGap, {
     external: coreMaxExternal,
     internal: coreMaxInternal
@@ -796,6 +816,7 @@ async function syncWithCoreWallet(
 }
 
 export {
+  importDescriptorsIfNeeded,
   isListDescriptorsError,
   isRescanInProgress,
   mergeWalletTxEntries,

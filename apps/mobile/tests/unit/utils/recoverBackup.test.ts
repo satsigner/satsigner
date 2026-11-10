@@ -1,5 +1,9 @@
 import { RESTORE_ROLLBACK_ATTEMPTS } from '@/constants/backup'
 import { useSettingsStore } from '@/store/settings'
+import {
+  cancelAllAccountSyncs,
+  settleCancelledSyncStatuses
+} from '@/utils/accountSyncRuns'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({
@@ -81,6 +85,9 @@ jest.mock<typeof import('@/store/arkExitClaims')>(
 jest.mock<typeof import('@/store/arkSwaps')>('@/store/arkSwaps', () => ({
   useArkSwapsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<typeof import('@/store/auth')>('@/store/auth', () => ({
+  useAuthStore: { getState: jest.fn() }
+}))
 jest.mock<typeof import('@/store/blockchain')>('@/store/blockchain', () => ({
   useBlockchainStore: { getState: jest.fn(), setState: jest.fn() }
 }))
@@ -111,6 +118,13 @@ jest.mock<typeof import('@/store/transactionBuilder')>(
 jest.mock<typeof import('@/store/wallets')>('@/store/wallets', () => ({
   useWalletsStore: { getState: jest.fn(), setState: jest.fn() }
 }))
+jest.mock<Partial<typeof import('@/utils/accountSyncRuns')>>(
+  '@/utils/accountSyncRuns',
+  () => ({
+    cancelAllAccountSyncs: jest.fn(),
+    settleCancelledSyncStatuses: jest.fn()
+  })
+)
 
 const { getPin } = jest.requireMock('@/utils/pin') as {
   getPin: jest.Mock
@@ -307,10 +321,16 @@ describe('performRecoverOverwrite restore', () => {
   const addIdentity = jest.fn()
   const setActiveIdentity = jest.fn()
   const setRelays = jest.fn()
+  const setRestoredPublicServerName = jest.fn()
 
   beforeEach(() => {
     jest.clearAllMocks()
     setPin('1234')
+
+    const { useAuthStore } = jest.requireMock('@/store/auth') as {
+      useAuthStore: { getState: jest.Mock }
+    }
+    useAuthStore.getState.mockReturnValue({ setRestoredPublicServerName })
 
     const { aesEncrypt, randomIv } = jest.requireMock('@/utils/crypto') as {
       aesEncrypt: jest.Mock
@@ -358,7 +378,7 @@ describe('performRecoverOverwrite restore', () => {
       addAccount: jest.fn(),
       clearAllData: clearAllDataArk
     })
-    useBlockchainStore.getState.mockReturnValue({
+    const blockchainState = {
       addCustomServer,
       configs: {
         bitcoin: {
@@ -377,11 +397,26 @@ describe('performRecoverOverwrite restore', () => {
       configsMempool: { bitcoin: '', signet: '', testnet: '' },
       customServers: [],
       removeCustomServer,
+      selectedNetwork: 'bitcoin',
       setSelectedNetwork,
       updateConfig,
       updateConfigMempool,
       updateServer
-    })
+    }
+    useBlockchainStore.getState.mockReturnValue(blockchainState)
+    // Like the real store, an update leaves earlier snapshots untouched.
+    updateServer.mockImplementation(
+      (network: keyof typeof blockchainState.configs, server: unknown) => {
+        const state: typeof blockchainState = useBlockchainStore.getState()
+        useBlockchainStore.getState.mockReturnValue({
+          ...state,
+          configs: {
+            ...state.configs,
+            [network]: { ...state.configs[network], server }
+          }
+        })
+      }
+    )
     useEcashStore.getState.mockReturnValue({
       accounts: [],
       clearAllData: clearAllDataEcash
@@ -496,6 +531,7 @@ describe('performRecoverOverwrite restore', () => {
     )
 
     expect(result).toStrictEqual({ success: true })
+    expect(setRestoredPublicServerName).toHaveBeenCalledWith('Default')
     expect(addAccount).toHaveBeenCalledTimes(1)
     const restored = addAccount.mock.calls[0][0] as {
       labels: typeof labels
@@ -807,6 +843,60 @@ describe('performRecoverOverwrite restore', () => {
       'bitcoin',
       'https://mempool.example'
     )
+    expect(setRestoredPublicServerName).not.toHaveBeenCalled()
+  })
+
+  it('does not hold syncs when the backup keeps the public server in use', async () => {
+    const { useBlockchainStore } = jest.requireMock('@/store/blockchain') as {
+      useBlockchainStore: { getState: jest.Mock }
+    }
+    const mempool = {
+      backend: 'esplora' as const,
+      name: 'Mempool',
+      network: 'bitcoin' as const,
+      url: 'https://mempool.space/api'
+    }
+    const state = useBlockchainStore.getState()
+    useBlockchainStore.getState.mockReturnValue({
+      ...state,
+      configs: {
+        ...state.configs,
+        bitcoin: { ...state.configs.bitcoin, server: mempool }
+      }
+    })
+
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [],
+        serverSettings: {
+          configs: {
+            bitcoin: {
+              config: {
+                connectionMode: 'auto',
+                connectionTestInterval: 60,
+                retries: 1,
+                stopGap: 20,
+                timeDiffBeforeAutoSync: 5,
+                timeout: 8
+              },
+              server: { ...mempool, name: 'Default bitcoin' }
+            }
+          },
+          configsMempool: { bitcoin: '', signet: '', testnet: '' },
+          customServers: [],
+          selectedNetwork: 'bitcoin'
+        },
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    expect(setRestoredPublicServerName).not.toHaveBeenCalled()
   })
 
   it('restores lightning node data from the lightning section', async () => {
@@ -934,6 +1024,8 @@ describe('performRecoverOverwrite restore', () => {
     })
     expect(deleteEcashMnemonic).not.toHaveBeenCalled()
     expect(deleteLeftoverArkDatadirs).not.toHaveBeenCalled()
+    expect(cancelAllAccountSyncs).toHaveBeenCalledTimes(1)
+    expect(settleCancelledSyncStatuses).toHaveBeenCalledTimes(1)
   })
 
   it('puts nostr identity secrets back on disk when the restore fails after clearing them', async () => {
@@ -1121,6 +1213,8 @@ describe('performRecoverOverwrite restore', () => {
 
     expect(result).toStrictEqual({ success: true })
     expect(deleteEcashMnemonic).toHaveBeenCalledWith('old-ecash')
+    expect(cancelAllAccountSyncs).toHaveBeenCalledTimes(1)
+    expect(settleCancelledSyncStatuses).not.toHaveBeenCalled()
   })
 
   it('restores ark mnemonics, labels, and store, ignoring legacy datadirs', async () => {

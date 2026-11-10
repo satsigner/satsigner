@@ -22,6 +22,7 @@ import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicato
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSProxyFormFields from '@/components/SSProxyFormFields'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
 import SSQrScanner from '@/components/SSQrScanner'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -55,6 +56,7 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
+import { isNewlyPublic } from '@/utils/serverPrivacy'
 
 const tnServer = _tn('settings.network.server')
 
@@ -85,6 +87,7 @@ export default function CustomNetwork() {
     formData,
     loadServer,
     updateField,
+    updatePrivateField,
     updateProxyField,
     constructUrl,
     constructTrimmedUrl
@@ -109,7 +112,7 @@ export default function CustomNetwork() {
     ])
   )
 
-  const [connectionStatus, connectionString, isPrivateConnection] =
+  const [connectionStatus, connectionString, serverPrivacy, connectionParts] =
     useVerifyConnection()
 
   const { testing: connectionTesting, testConnection } = useConnectionTest()
@@ -121,6 +124,9 @@ export default function CustomNetwork() {
   const [lastBanner, setLastBanner] = useState<string | null>(null)
   const [loadedEditServerSource, setLoadedEditServerSource] =
     useState<EditServerSource | null>(null)
+  const [pendingPublicServer, setPendingPublicServer] = useState<Server | null>(
+    null
+  )
 
   // Pause auto-polling while this screen is open to avoid flooding the node
   // with background verify calls on top of the manual test button.
@@ -252,7 +258,7 @@ export default function CustomNetwork() {
         rpcWalletName: formData.rpcWalletName.trim() || undefined
       }
     }
-    return base
+    return formData.isPrivate ? { ...base, isPrivate: true } : base
   }
 
   function showSuccessToast(server: Server, result: ConnectionTestSuccess) {
@@ -263,6 +269,17 @@ export default function CustomNetwork() {
     } catch {
       // sonner handler can break if a nested modal mounted its own Toaster; root Toaster should recover
     }
+  }
+
+  function saveServer(server: Server) {
+    if (editingServer) {
+      updateCustomServer(editingServer, server)
+    } else {
+      addCustomServer(server)
+    }
+    setSelectedNetwork(networkType)
+    updateServer(networkType, server)
+    router.back()
   }
 
   function applyTestResult(server: Server, result: ConnectionTestResult) {
@@ -318,20 +335,30 @@ export default function CustomNetwork() {
     }
   }
 
-  function handleSave() {
-    if (isValid()) {
-      const server = buildServer()
-
-      if (editingServer) {
-        updateCustomServer(editingServer, server)
-      } else {
-        addCustomServer(server)
-      }
-
-      setSelectedNetwork(networkType)
-      updateServer(networkType, server)
-      router.back()
+  function handleConfirmPublicServer() {
+    if (!pendingPublicServer) {
+      return
     }
+    setPendingPublicServer(null)
+    saveServer(pendingPublicServer)
+  }
+
+  function handleCancelPublicServer() {
+    setPendingPublicServer(null)
+  }
+
+  function handleSave() {
+    if (!isValid()) {
+      return
+    }
+    const server = buildServer()
+    const activeServer =
+      useBlockchainStore.getState().configs[networkType].server
+    if (isNewlyPublic(activeServer, server)) {
+      setPendingPublicServer(server)
+      return
+    }
+    saveServer(server)
   }
 
   function handleCancel() {
@@ -576,12 +603,33 @@ export default function CustomNetwork() {
                 proxy={formData.proxy}
                 onProxyChange={updateProxyField}
               />
+              {formData.backend !== 'rpc' && (
+                <SSVStack gap="xs">
+                  <SSText uppercase>{tnServer('privacy.label')}</SSText>
+                  <SSHStack>
+                    <SSCheckbox
+                      selected={formData.isPrivate}
+                      onPress={() => updatePrivateField(!formData.isPrivate)}
+                    />
+                    <SSPressable
+                      onPress={() => updatePrivateField(!formData.isPrivate)}
+                      style={{ flex: 1 }}
+                    >
+                      <SSText>{tnServer('privacy.checkbox')}</SSText>
+                    </SSPressable>
+                  </SSHStack>
+                  <SSText color="muted" size="xs">
+                    {tnServer('privacy.description')}
+                  </SSText>
+                </SSVStack>
+              )}
               <SSVStack gap="none" style={{ marginBottom: 16 }}>
                 <SSHStack
                   style={{ gap: 0, justifyContent: 'center', marginBottom: 8 }}
                 >
                   <SSConnectionStatusIndicator
-                    isPrivateConnection={isPrivateConnection}
+                    isOnion={connectionParts.isOnion}
+                    privacy={serverPrivacy}
                     status={connectionStatus}
                   />
                   <SSText
@@ -640,6 +688,13 @@ export default function CustomNetwork() {
           </SSVStack>
         </SSScrollView>
       </SSVStack>
+
+      <SSPublicServerWarningModal
+        visible={pendingPublicServer !== null}
+        serverName={pendingPublicServer?.name ?? ''}
+        onConfirm={handleConfirmPublicServer}
+        onCancel={handleCancelPublicServer}
+      />
 
       <SSModal
         visible={scanModalVisible}

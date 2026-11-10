@@ -59,7 +59,7 @@ const ARGON2ID_CONFIG: PinKdfConfig = {
 }
 
 // scrypt N=2^15, r=8, p=1 (~32 MiB) — memory-hard fallback.
-const SCRYPT_CONFIG = { n: 32_768, name: 'scrypt', p: 1, r: 8 } as const
+export const SCRYPT_CONFIG = { n: 32_768, name: 'scrypt', p: 1, r: 8 } as const
 
 // Cheap availability probes — never run production cost just to see if
 // the native API exists.
@@ -70,7 +70,10 @@ const SCRYPT_PROBE_N = 16
 const SCRYPT_MAXMEM_BYTES = 64 * 1024 * 1024
 
 // OWASP minimum for PBKDF2-HMAC-SHA256.
-const PBKDF2_CONFIG: PinKdfConfig = { iterations: 600_000, name: 'pbkdf2' }
+export const PBKDF2_CONFIG: PinKdfConfig = {
+  iterations: 600_000,
+  name: 'pbkdf2'
+}
 
 // Digests written before KDF configs were tracked.
 export const LEGACY_KDF_CONFIG: PinKdfConfig = {

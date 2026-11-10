@@ -41,18 +41,13 @@ import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type Key } from '@/types/models/Account'
 import { collectArkBackup } from '@/utils/arkBackup'
+import { encryptBackup } from '@/utils/backupEncryption'
 import { getBackupFilename } from '@/utils/backupFilename'
 import {
   isValidBackupPassphrase,
   MIN_BACKUP_PASSPHRASE_LENGTH
 } from '@/utils/backupPassphrase'
 import { collectBlockchainBackup } from '@/utils/blockchainBackup'
-import {
-  aesEncrypt,
-  generateSalt,
-  pbkdf2Encrypt,
-  randomIv
-} from '@/utils/crypto'
 import { decryptAccountKeySecretUsingPin } from '@/utils/decryption'
 import {
   isDevConsoleAvailable,
@@ -77,6 +72,8 @@ type DeveloperSheet =
   | DeveloperConfirmSheet
   | { kind: 'backupPin'; returnTo: DeveloperSheet }
   | { kind: 'backupPreview'; payload: string; returnTo: DeveloperSheet }
+
+type BackupExportTarget = 'share' | 'file'
 
 /** The sheet to show once the backup flow started from `sheet` is done. */
 function getBackupReturnSheet(sheet: DeveloperSheet): DeveloperSheet {
@@ -107,6 +104,8 @@ export default function Developer() {
   // back to it when done, instead of stacking a second native modal on top.
   const [sheet, setSheet] = useState<DeveloperSheet>({ kind: 'none' })
   const [backupPassphrase, setBackupPassphrase] = useState('')
+  const [encryptingBackupFor, setEncryptingBackupFor] =
+    useState<BackupExportTarget | null>(null)
   const backupPreviewPayload =
     sheet.kind === 'backupPreview' ? sheet.payload : null
   const backupReturnTo = getBackupReturnSheet(sheet)
@@ -254,6 +253,13 @@ export default function Developer() {
     )
   }
 
+  function encryptBackupPreview(payload: string, target: BackupExportTarget) {
+    setEncryptingBackupFor(target)
+    return encryptBackup(payload, backupPassphrase).finally(() =>
+      setEncryptingBackupFor(null)
+    )
+  }
+
   async function handleEncryptAndShare() {
     if (!backupPreviewPayload) {
       return
@@ -263,16 +269,10 @@ export default function Developer() {
       return
     }
     try {
-      const salt = await generateSalt()
-      const key = await pbkdf2Encrypt(backupPassphrase, salt)
-      const iv = randomIv()
-      const cipher = await aesEncrypt(backupPreviewPayload, key, iv)
-      const encryptedPayload = JSON.stringify({
-        cipher,
-        iv,
-        salt,
-        v: 1
-      })
+      const encryptedPayload = await encryptBackupPreview(
+        backupPreviewPayload,
+        'share'
+      )
       const result = await Share.share({
         message: encryptedPayload,
         title: getBackupFilename(APP_VERSION)
@@ -296,16 +296,10 @@ export default function Developer() {
     }
     const filename = getBackupFilename(APP_VERSION)
     try {
-      const salt = await generateSalt()
-      const key = await pbkdf2Encrypt(backupPassphrase, salt)
-      const iv = randomIv()
-      const cipher = await aesEncrypt(backupPreviewPayload, key, iv)
-      const encryptedPayload = JSON.stringify({
-        cipher,
-        iv,
-        salt,
-        v: 1
-      })
+      const encryptedPayload = await encryptBackupPreview(
+        backupPreviewPayload,
+        'file'
+      )
       const didSave = await saveFile({
         dialogTitle: t('settings.developer.backupData'),
         fileContent: encryptedPayload,
@@ -585,11 +579,15 @@ export default function Developer() {
               <SSButton
                 label={t('settings.developer.backupEncryptShare')}
                 onPress={handleEncryptAndShare}
+                loading={encryptingBackupFor === 'share'}
+                disabled={encryptingBackupFor === 'file'}
                 variant="default"
               />
               <SSButton
                 label={t('settings.developer.backupEncryptSaveFile')}
                 onPress={handleEncryptAndSaveFile}
+                loading={encryptingBackupFor === 'file'}
+                disabled={encryptingBackupFor === 'share'}
                 variant="secondary"
               />
             </SSVStack>

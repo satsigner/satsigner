@@ -1,8 +1,10 @@
 import ElectrumClient from '@/api/electrum'
 import {
   CONNECTION_TEST_TIMEOUT_MS,
+  CONNECTION_TEST_TOR_TIMEOUT_MS,
   ELECTRUM_REACHABILITY_TTL_MS
 } from '@/constants/connectionTest'
+import { isOnionUrl } from '@/utils/serverPrivacy'
 
 type ReachabilityCheck = {
   checkedAt: number
@@ -14,11 +16,14 @@ const checks = new Map<string, ReachabilityCheck>()
 /** Thrown when an Electrum server does not answer the reachability ping. */
 export class ElectrumUnreachableError extends Error {
   readonly server: string
+  readonly url: string
 
-  constructor(server: string) {
+  constructor(url: string) {
+    const server = serverLabel(url)
     super(`Electrum server ${server} is unreachable`)
     this.name = 'ElectrumUnreachableError'
     this.server = server
+    this.url = url
   }
 }
 
@@ -38,7 +43,13 @@ function currentCheck(url: string, now: number): ReachabilityCheck {
   // The ping is a server.version call, which does not depend on the network.
   const check = {
     checkedAt: now,
-    reachable: ElectrumClient.test(url, 'bitcoin', CONNECTION_TEST_TIMEOUT_MS)
+    reachable: ElectrumClient.test(
+      url,
+      'bitcoin',
+      isOnionUrl(url)
+        ? CONNECTION_TEST_TOR_TIMEOUT_MS
+        : CONNECTION_TEST_TIMEOUT_MS
+    )
   }
   checks.set(url, check)
   return check
@@ -56,7 +67,7 @@ export async function assertElectrumReachable(
 ): Promise<void> {
   const reachable = await currentCheck(url, now).reachable
   if (!reachable) {
-    throw new ElectrumUnreachableError(serverLabel(url))
+    throw new ElectrumUnreachableError(url)
   }
 }
 

@@ -1,4 +1,6 @@
 export const CONNECTION_TEST_TIMEOUT_MS = 10_000
+// Building a Tor circuit to an onion service can take tens of seconds.
+export const CONNECTION_TEST_TOR_TIMEOUT_MS = 60_000
 export const CONNECTION_TEST_COOLDOWN_MS = 2000
 
 // How long a reachability check before a BDK Electrum connect is reused, so a

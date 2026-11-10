@@ -3,14 +3,12 @@ import {
   DIAGNOSTIC_SLOW_RESPONSE_MS,
   DIAGNOSTIC_STALE_SYNC_MS
 } from '@/constants/diagnostics'
-import { MS_PER_SECOND, SECONDS_PER_MINUTE } from '@/constants/time'
+import { MS_PER_MINUTE } from '@/constants/time'
 import { probeConnection } from '@/services/connectionTest'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 
 import type { DiagnosticCheck, DiagnosticOutcome } from '../types'
-
-const MS_PER_MINUTE = SECONDS_PER_MINUTE * MS_PER_SECOND
 
 function latencyStatus(latencyMs: number): DiagnosticOutcome['status'] {
   return latencyMs > DIAGNOSTIC_SLOW_RESPONSE_MS ? 'warn' : 'ok'
@@ -90,7 +88,8 @@ const accountSyncCheck: DiagnosticCheck = {
         : null
       const ageMs = syncedAt === null ? null : now - syncedAt
       const stale = ageMs === null || ageMs > DIAGNOSTIC_STALE_SYNC_MS
-      const failed = account.syncStatus === 'error'
+      const failed =
+        account.syncStatus === 'error' || account.syncStatus === 'timeout'
       const stuck = account.isSyncing === true && stale
       return {
         failed,

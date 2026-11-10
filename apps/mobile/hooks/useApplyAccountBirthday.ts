@@ -1,14 +1,10 @@
 import { toast } from 'sonner-native'
 
-import {
-  SYNC_IDLE_POLL_ATTEMPTS,
-  SYNC_IDLE_POLL_INTERVAL_MS
-} from '@/constants/sync'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { cancelAccountSync, isAccountSyncing } from '@/utils/accountSyncRuns'
+import { cancelAccountSync } from '@/utils/accountSyncRuns'
 
 /**
  * Persist a wallet birthday and restart an RPC rescan when a wallet is loaded.
@@ -17,8 +13,9 @@ function useApplyAccountBirthday() {
   const updateAccountBirthday = useAccountsStore(
     (state) => state.updateAccountBirthday
   )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const wallets = useWalletsStore((state) => state.wallets)
-  const { prioritizeSync, syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   async function applyBirthday(accountId: string, date: Date | undefined) {
     const account = useAccountsStore
@@ -48,18 +45,15 @@ function useApplyAccountBirthday() {
     }
 
     toast.success(t('account.birthdayDate.rescanQueued'))
-
-    for (let i = 0; i < SYNC_IDLE_POLL_ATTEMPTS; i += 1) {
-      if (!isAccountSyncing(accountId)) {
-        break
-      }
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, SYNC_IDLE_POLL_INTERVAL_MS)
-      })
+    const rescanned = await syncAccountWithWallet(
+      latestAccount,
+      wallet,
+      true,
+      true
+    )
+    if (rescanned) {
+      updateAccount(rescanned)
     }
-
-    prioritizeSync()
-    await syncAccountWithWallet(latestAccount, wallet, true, true)
     return true
   }
 

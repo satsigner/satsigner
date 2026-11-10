@@ -1,4 +1,7 @@
 import { ElectrumUnreachableError } from '@/api/electrumReachability'
+import { MS_PER_MINUTE } from '@/constants/time'
+import { t } from '@/locales'
+import { SyncTimeoutError } from '@/services/syncQueue'
 import { summarizeSyncFailures } from '@/utils/syncFailures'
 
 const HOME_NODE = '192.168.0.13:50001'
@@ -62,6 +65,35 @@ describe('summarizeSyncFailures', () => {
         accountName: 'D',
         kind: 'account',
         reason: 'bad descriptor',
+        server: undefined
+      }
+    ])
+  })
+
+  it('keeps stalls with different timeouts apart', () => {
+    const notices = summarizeSyncFailures(
+      [
+        { minutes: 2, names: ['A', 'B', 'C'] },
+        { minutes: 5, names: ['D', 'E', 'F'] }
+      ].flatMap(({ minutes, names }) =>
+        names.map((accountName) => ({
+          accountName,
+          error: new SyncTimeoutError(minutes * MS_PER_MINUTE)
+        }))
+      )
+    )
+
+    expect(notices).toStrictEqual([
+      {
+        count: 3,
+        kind: 'accounts',
+        reason: t('account.sync.stalled', { minutes: 2 }),
+        server: undefined
+      },
+      {
+        count: 3,
+        kind: 'accounts',
+        reason: t('account.sync.stalled', { minutes: 5 }),
         server: undefined
       }
     ])
