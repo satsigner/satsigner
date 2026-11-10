@@ -53,4 +53,19 @@ function nextAppLifecycleStep({
   return { ...NO_CHANGE, clearExpiredPayjoin: true, overlay: 'hide' }
 }
 
-export { type AppLifecycleStep, nextAppLifecycleStep }
+type AppLockInput = {
+  lockTriggered: boolean
+  requiresAuth: boolean
+  skipPin: boolean
+}
+
+/** True while the PIN screen stands in for the unmounted session. */
+function isAppLocked({
+  lockTriggered,
+  requiresAuth,
+  skipPin
+}: AppLockInput): boolean {
+  return requiresAuth && lockTriggered && !skipPin
+}
+
+export { type AppLifecycleStep, isAppLocked, nextAppLifecycleStep }

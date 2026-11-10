@@ -11,6 +11,10 @@ export const ARK_ADDRESS_SCAN_BATCH_SIZE = 20
 /** Thrown by an open that finished after its wallet was released. */
 export const ARK_WALLET_RELEASED_WHILE_OPENING =
   'Ark wallet was released while it was opening'
+/** Thrown by an open asked for while the app is locked. */
+export const ARK_WALLET_LOCKED =
+  'Ark wallets stay closed while the app is locked'
+export const ARK_WALLET_QUERY_KEY = ['ark', 'wallet']
 export const ARK_CONFIRM_COUNTERPARTY_TRUNCATE_CHARS = 14
 // Bounds a lock or wipe waiting on a daemon busy in a round, or on an open it
 // cancelled.
@@ -103,7 +107,6 @@ export const ARK_SWAP_POLL_INTERVAL_MS = 15_000
 export const ARK_SWAP_RETRY_BASE_DELAY_MS = ARK_SWAP_POLL_INTERVAL_MS
 export const ARK_SWAP_RETRY_MAX_DELAY_MS = 600_000
 export const ARK_SWAP_RUNNER_QUERY_KEY = ['ark', 'swapRunner']
-export const ARK_WALLET_QUERY_KEY = ['ark', 'wallet']
 export const ARK_SWAP_BLOCK_INTERVAL_SECONDS = 600
 // Rounds to settle a board amount that also covers its own amount-based fee.
 export const ARK_SWAP_BOARD_FEE_MAX_ROUNDS = 4

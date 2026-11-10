@@ -2,29 +2,26 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
 
-import {
-  openArkWallet,
-  subscribeArkNotifications,
-  syncArkWallet
-} from '@/api/ark'
+import { subscribeArkNotifications, syncArkWallet } from '@/api/ark'
 import { ARK_SWAP_RUNNER_QUERY_KEY } from '@/constants/ark'
 import {
+  forgetAllArkNotificationSubscriptions,
   forgetArkNotificationSubscription,
   hasArkNotificationSubscription,
   listArkNotificationSubscriptionIds,
   setArkNotificationSubscription
 } from '@/services/arkNotificationSubscriptions'
-import { ensureArkDatadir } from '@/storage/arkDatadir'
-import { getArkMnemonic } from '@/storage/encrypted'
+import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useArkStore } from '@/store/ark'
 import { useArkReceiveOverlayStore } from '@/store/arkReceiveOverlay'
 import { useArkSwapsStore } from '@/store/arkSwaps'
+import { useAuthStore } from '@/store/auth'
 import type { ArkAccount, ArkMovementEvent } from '@/types/models/Ark'
-import { getArkServer } from '@/utils/ark'
+import { isAppLocked } from '@/utils/appLifecycle'
 import { shouldAnnounceArkReceive } from '@/utils/arkMovement'
 import { isArkSwapForwardedPayment } from '@/utils/arkSwap'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
-import { devLog, devStep } from '@/utils/devConsole'
+import { devLog } from '@/utils/devConsole'
 
 const inflightSubscriptions = new Set<string>()
 const RECEIVE_EVENT_DEDUP_TTL_MS = 60_000
@@ -111,23 +108,7 @@ async function subscribeAccount(
   }
   inflightSubscriptions.add(account.id)
   try {
-    const server = getArkServer(account.network, account.serverId)
-    if (!server) {
-      return
-    }
-    const mnemonic = await getArkMnemonic(account.id)
-    if (!mnemonic) {
-      return
-    }
-    const datadir = await ensureArkDatadir(account.id)
-    await devStep('ark', `open wallet ${account.name}`)
-    await openArkWallet({
-      accountId: account.id,
-      datadir,
-      mnemonic,
-      server
-    })
-    devLog('ark', `wallet open ${account.name}`)
+    await ensureArkWalletOpen(account.id)
 
     const accountStillExists = useArkStore
       .getState()
@@ -176,12 +157,6 @@ function syncSubscriptions(accounts: ArkAccount[], queryClient: QueryClient) {
   }
 }
 
-function tearDownAllSubscriptions() {
-  for (const id of listArkNotificationSubscriptionIds()) {
-    forgetArkNotificationSubscription(id)
-  }
-}
-
 async function resyncAccount(
   account: ArkAccount,
   queryClient: QueryClient
@@ -194,10 +169,16 @@ async function resyncAccount(
   await invalidateArkAccountQueries(queryClient, account.id)
 }
 
+// On a return past the lock timeout, the root layout's listener (registered
+// before this one) has already locked the app, and the session teardown is
+// about to release every wallet.
 function handleAppForeground(queryClient: QueryClient) {
+  if (isAppLocked(useAuthStore.getState())) {
+    return
+  }
   const { accounts } = useArkStore.getState()
   devLog('ark', 'app foreground: resubscribe and resync')
-  tearDownAllSubscriptions()
+  forgetAllArkNotificationSubscriptions()
   syncSubscriptions(accounts, queryClient)
   for (const account of accounts) {
     void resyncAccount(account, queryClient)

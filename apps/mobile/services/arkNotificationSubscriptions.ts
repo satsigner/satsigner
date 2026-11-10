@@ -26,7 +26,14 @@ function listArkNotificationSubscriptionIds(): string[] {
   return [...activeSubscriptions.keys()]
 }
 
+function forgetAllArkNotificationSubscriptions(): void {
+  for (const accountId of listArkNotificationSubscriptionIds()) {
+    forgetArkNotificationSubscription(accountId)
+  }
+}
+
 export {
+  forgetAllArkNotificationSubscriptions,
   forgetArkNotificationSubscription,
   hasArkNotificationSubscription,
   listArkNotificationSubscriptionIds,

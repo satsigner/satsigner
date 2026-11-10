@@ -3,15 +3,14 @@ import {
   openArkWallet,
   releaseAllArkWallets
 } from '@/api/ark'
-import { ARK_WALLET_QUERY_KEY } from '@/constants/ark'
+import { ARK_WALLET_LOCKED, ARK_WALLET_QUERY_KEY } from '@/constants/ark'
 import { queryClient } from '@/lib/queryClient'
-import {
-  forgetArkNotificationSubscription,
-  listArkNotificationSubscriptionIds
-} from '@/services/arkNotificationSubscriptions'
+import { forgetAllArkNotificationSubscriptions } from '@/services/arkNotificationSubscriptions'
 import { ensureArkDatadir } from '@/storage/arkDatadir'
 import { getArkMnemonic } from '@/storage/encrypted'
 import { getArkAccountOrThrow } from '@/store/ark'
+import { useAuthStore } from '@/store/auth'
+import { isAppLocked } from '@/utils/appLifecycle'
 import { getArkServer } from '@/utils/ark'
 import { devLog, devStep } from '@/utils/devConsole'
 
@@ -29,14 +28,19 @@ export async function ensureArkWalletOpen(accountId: string): Promise<true> {
   }
 
   const datadir = await ensureArkDatadir(accountId)
-  await devStep('ark', `open wallet for screen ${account.name}`)
+  await devStep('ark', `open wallet ${account.name}`)
+  // Locking released every wallet. A caller still running from that session
+  // must not open one again behind the PIN screen.
+  if (isAppLocked(useAuthStore.getState())) {
+    throw new Error(ARK_WALLET_LOCKED)
+  }
   await openArkWallet({
     accountId,
     datadir,
     mnemonic,
     server
   })
-  devLog('ark', `wallet open for screen ${account.name}`)
+  devLog('ark', `wallet open ${account.name}`)
   return true
 }
 
@@ -60,9 +64,7 @@ export function fetchArkNextBlockFeeRate(
  * open" answers go too, so the next session opens each wallet again.
  */
 export async function releaseAllArkWalletsAndSubscriptions(): Promise<void> {
-  for (const accountId of listArkNotificationSubscriptionIds()) {
-    forgetArkNotificationSubscription(accountId)
-  }
+  forgetAllArkNotificationSubscriptions()
   queryClient.removeQueries({ queryKey: ARK_WALLET_QUERY_KEY })
   await releaseAllArkWallets()
 }
