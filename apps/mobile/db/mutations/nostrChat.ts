@@ -2,6 +2,7 @@ import { type NostrChatMessage } from '@/types/models/Nostr'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt } from '../mappers'
+import { clearMessageState } from '../nostrMessageState'
 import {
   chatProcessedScope,
   clearNostrProcessedEvents
@@ -83,13 +84,15 @@ function deleteChatMessages(identityNpub: string, ids: string[]) {
 
 /**
  * Also forgets which gift wraps were decrypted, otherwise re-adding the
- * identity would skip every wrap and never restore its history.
+ * identity would skip every wrap and never restore its history, and the
+ * wraps it sent and the messages it deleted.
  */
 function deleteChatMessagesForIdentity(identityNpub: string) {
   getDb().execute('DELETE FROM nostr_chat_messages WHERE identity_npub = ?', [
     identityNpub
   ])
   clearNostrProcessedEvents(chatProcessedScope(identityNpub))
+  clearMessageState(chatProcessedScope(identityNpub))
 }
 
 export {

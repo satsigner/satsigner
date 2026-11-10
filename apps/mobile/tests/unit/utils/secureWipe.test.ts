@@ -14,6 +14,7 @@ import {
 } from '@/config/auth'
 import { LAST_ROUTE_STORAGE_KEY } from '@/constants/navigation'
 import * as nostrCache from '@/db/nostrCache'
+import * as nostrMessageState from '@/db/nostrMessageState'
 import * as nostrProcessedEvents from '@/db/nostrProcessedEvents'
 import * as arkWallet from '@/services/arkWallet'
 import { getNip46Runtime, registerNip46Session } from '@/services/nip46Sessions'
@@ -27,6 +28,7 @@ import { useAuthStore } from '@/store/auth'
 import { useDevConsoleStore } from '@/store/devConsole'
 import { useEcashStore } from '@/store/ecash'
 import { useNip46Store } from '@/store/nip46'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import type { ArkAccount } from '@/types/models/Ark'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
@@ -168,17 +170,31 @@ describe('secureWipeAfterMaxPinTries', () => {
     expect(useNostrIdentityDraftStore.getState().mnemonic).toBeNull()
   })
 
-  it('clears the nostr event cache and dedupe tables', async () => {
+  it('clears the nostr event cache, dedupe and message state tables', async () => {
     const clearCache = jest.spyOn(nostrCache, 'clearAllCache')
     const clearProcessed = jest.spyOn(
       nostrProcessedEvents,
       'clearNostrProcessedEvents'
     )
+    const clearMessageState = jest.spyOn(nostrMessageState, 'clearMessageState')
 
     await secureWipeAfterMaxPinTries()
 
     expect(clearCache).toHaveBeenCalledWith()
     expect(clearProcessed).toHaveBeenCalledWith()
+    expect(clearMessageState).toHaveBeenCalledWith()
+  })
+
+  it('resets the chat settings, which keep a filter per identity npub', async () => {
+    useNostrChatSettingsStore.getState().setChatFilter('npub1me', 'others')
+    useNostrChatSettingsStore.getState().setMinInboundPowBits(20)
+
+    await secureWipeAllWalletData()
+
+    expect(useNostrChatSettingsStore.getState().chatFilterByNpub).toStrictEqual(
+      {}
+    )
+    expect(useNostrChatSettingsStore.getState().minInboundPowBits).toBe(0)
   })
 
   it('drops the dev console log', async () => {

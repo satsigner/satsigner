@@ -6,6 +6,7 @@ import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearIdentityCache } from '@/db/nostrCache'
 import { teardownNip46Identity } from '@/services/nip46Sessions'
 import mmkvStorage, { clearNostrFollowCache } from '@/storage/mmkv'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { type NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { closeActiveChatPipeline } from '@/utils/nostrChat'
@@ -119,6 +120,7 @@ const useNostrIdentityStore = create<
         void deleteNostrIdentitySecretSafe(npub)
         closeActiveChatPipeline()
         deleteChatMessagesForIdentity(npub)
+        useNostrChatSettingsStore.getState().removeChatFilter(npub)
         clearNostrFollowCache(npub)
         const hexPubkey = getPubKeyHexFromNpub(npub)
         if (hexPubkey) {

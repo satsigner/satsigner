@@ -88,11 +88,16 @@ function getTombstoneAuthors(
   return new Map(rows.map((row) => [row.message_id, row.author]))
 }
 
-function clearMessageState(scope: string): void {
-  runTransaction((db) => {
+/** Wrap ids and tombstones of one scope, or of every scope. */
+function clearMessageState(scope?: string): void {
+  const db = getDb()
+  if (scope) {
     db.execute('DELETE FROM nostr_message_wraps WHERE scope = ?', [scope])
     db.execute('DELETE FROM nostr_deleted_messages WHERE scope = ?', [scope])
-  })
+    return
+  }
+  db.execute('DELETE FROM nostr_message_wraps')
+  db.execute('DELETE FROM nostr_deleted_messages')
 }
 
 export {

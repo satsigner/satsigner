@@ -2,6 +2,7 @@ import { DURESS_KDF_KEY, DURESS_PIN_KEY, SALT_KEY_DURESS } from '@/config/auth'
 import { LAST_ROUTE_STORAGE_KEY } from '@/constants/navigation'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import { clearAllCache } from '@/db/nostrCache'
+import { clearMessageState } from '@/db/nostrMessageState'
 import { clearNostrProcessedEvents } from '@/db/nostrProcessedEvents'
 import { teardownAllNip46Sessions } from '@/services/nip46Sessions'
 import { deleteArkDatadir } from '@/storage/arkDatadir'
@@ -23,6 +24,7 @@ import { useEcashStore } from '@/store/ecash'
 import { useEcashAccountBuilderStore } from '@/store/ecashAccountBuilder'
 import { useLightningStore } from '@/store/lightning'
 import { useNostrStore } from '@/store/nostr'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
 import { useNostrVideoStore } from '@/store/nostrVideo'
@@ -39,9 +41,16 @@ import {
 } from '@/utils/serviceSecrets'
 import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
 
-/** Nostr data kept in SQLite outside the account rows: event cache, dedupe. */
+/**
+ * Nostr data kept in SQLite outside the account rows: event cache, dedupe,
+ * and the ids of the wraps sent and the messages deleted.
+ */
 function wipeNostrSqliteData(): void {
-  for (const wipe of [clearAllCache, clearNostrProcessedEvents]) {
+  for (const wipe of [
+    clearAllCache,
+    clearNostrProcessedEvents,
+    clearMessageState
+  ]) {
     try {
       wipe()
     } catch {
@@ -119,6 +128,7 @@ export async function secureWipeAllWalletData(): Promise<void> {
   await useNostrIdentityStore.getState().clearAll()
   useNostrIdentityDraftStore.getState().clearDraft()
   useNostrStore.getState().clearAllNostrState()
+  useNostrChatSettingsStore.getState().clearAll()
   wipeNostrSqliteData()
   useLightningStore.getState().clearConfig()
   clearNostrFollowCaches()

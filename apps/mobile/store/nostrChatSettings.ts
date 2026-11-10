@@ -19,9 +19,17 @@ type NostrChatSettingsState = {
 }
 
 type NostrChatSettingsAction = {
+  clearAll: () => void
+  removeChatFilter: (npub: string) => void
   setChatFilter: (npub: string, filter: NostrChatFilter) => void
   setMinInboundPowBits: (bits: number) => void
   setSendPowBits: (bits: number) => void
+}
+
+const INITIAL_STATE: NostrChatSettingsState = {
+  chatFilterByNpub: {},
+  minInboundPowBits: NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND,
+  sendPowBits: NOSTR_POW_DEFAULT_DIFFICULTY
 }
 
 const useNostrChatSettingsStore = create<
@@ -29,9 +37,19 @@ const useNostrChatSettingsStore = create<
 >()(
   persist(
     (set) => ({
-      chatFilterByNpub: {},
-      minInboundPowBits: NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND,
-      sendPowBits: NOSTR_POW_DEFAULT_DIFFICULTY,
+      ...INITIAL_STATE,
+      clearAll: () => {
+        set(INITIAL_STATE)
+      },
+      removeChatFilter: (npub) => {
+        set((state) => ({
+          chatFilterByNpub: Object.fromEntries(
+            Object.entries(state.chatFilterByNpub).filter(
+              ([filterNpub]) => filterNpub !== npub
+            )
+          )
+        }))
+      },
       setChatFilter: (npub, filter) => {
         set((state) => ({
           chatFilterByNpub: { ...state.chatFilterByNpub, [npub]: filter }

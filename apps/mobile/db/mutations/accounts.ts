@@ -4,6 +4,7 @@ import { type Account, type Key } from '@/types/models/Account'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt, dateToIso, optionalToJson } from '../mappers'
+import { clearMessageState } from '../nostrMessageState'
 import { upsertAddresses } from './addresses'
 import { upsertLabels } from './labels'
 import { clearNostrData, upsertNostrData } from './nostr'
@@ -170,6 +171,7 @@ function deleteAccount(id: string) {
     tx.execute('DELETE FROM accounts WHERE id = ?', [id])
     clearAccountChildData(tx, id)
   })
+  clearMessageState(id)
 }
 
 function deleteAllAccounts() {
