@@ -4,6 +4,12 @@ import { Network } from 'react-native-bdk-sdk'
 
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
+import {
+  NostrChatPreview,
+  NostrKeysPreview,
+  NostrMessageDetailPreview,
+  NostrReactionsPreview
+} from '@/components/SSDesignNostrPreviews'
 import SSDesignSection from '@/components/SSDesignSection'
 import SSDevConsolePanel, {
   type DevConsolePanelActions
@@ -509,6 +515,10 @@ const FEATURE_PREVIEWS: Record<
   historyChart: HistoryChartPreview,
   lightningNode: LightningNodePreview,
   multisigSelector: MultisigSelectorPreview,
+  nostrChat: NostrChatPreview,
+  nostrKeys: NostrKeysPreview,
+  nostrMessageDetail: NostrMessageDetailPreview,
+  nostrReactions: NostrReactionsPreview,
   pinInput: PinInputPreview,
   sankey: SankeyPreview,
   seedWordInput: SeedWordInputPreview,

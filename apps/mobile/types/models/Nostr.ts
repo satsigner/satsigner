@@ -150,7 +150,8 @@ export const NostrDMSchema = z.object({
   id: z.string(),
   label: z.number(),
   pending: z.boolean().optional(),
-  read: z.boolean().optional()
+  read: z.boolean().optional(),
+  replyToId: z.string().optional()
 })
 
 export const NostrAccountSchema = z.object({
@@ -300,6 +301,7 @@ export const NostrUnwrappedEventSchema = z.object({
   content: z.string(),
   created_at: z.number().optional(),
   id: z.string(),
+  kind: z.number().optional(),
   pubkey: z.string(),
   tags: z.array(z.array(z.unknown())).optional()
 })
@@ -410,6 +412,41 @@ export type NostrEngagementEvent = {
   kind: number
   pubkey: string
   targetId: string
+}
+
+export type NostrReactionEvent = NostrEngagementEvent & {
+  tags: string[][]
+}
+
+export type NostrReactionsPage = {
+  /** Events the relays returned before filtering; drives pagination. */
+  fetchedCount: number
+  oldestCreatedAt: number | null
+  reactions: NostrReactionEvent[]
+}
+
+export type NostrReaction =
+  | { key: string; type: 'like' }
+  | { key: string; type: 'dislike' }
+  | { content: string; key: string; type: 'emoji' }
+  | { key: string; shortcode: string; type: 'customEmoji'; url: string }
+
+export type NostrReactionItem = {
+  authorPubkey: string
+  createdAt: number
+  id: string
+  reaction: NostrReaction
+}
+
+export type NostrReactionRow = NostrReactionItem & {
+  authorLabel: string
+  authorNpub: string
+  authorPicture?: string
+}
+
+export type NostrReactionSummaryEntry = {
+  count: number
+  reaction: NostrReaction
 }
 
 export type NostrEngagementDeletion = {
@@ -527,6 +564,7 @@ export const NostrChatMessageSchema = z.object({
   peerPubkey: z.string(),
   protocol: NostrChatProtocolSchema,
   read: z.boolean(),
+  replyToId: z.string().optional(),
   status: z.enum(['pending', 'sent', 'failed'])
 })
 
@@ -563,6 +601,8 @@ export type NostrKind4ChatEvent = {
   direction: 'in' | 'out'
   id: string
   peerPubkey: string
+  /** NIP-13 difficulty the event committed to and met. */
+  pow: number
 }
 
 export type NostrChatEventRef = {
@@ -571,6 +611,8 @@ export type NostrChatEventRef = {
 }
 
 export type NostrChatGiftWrap = NostrChatEventRef & {
+  /** NIP-13 difficulty the wrap committed to and met. */
+  pow: number
   rumor: NostrUnwrappedKind1059Event | null
 }
 

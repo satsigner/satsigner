@@ -15,6 +15,17 @@ import { type NostrDM } from '@/types/models/Nostr'
 import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 
 const RETRY_HIT_SLOP = 8
+const AVATAR_SIZE = 24
+const AVATAR_GAP = 8
+const OWN_MESSAGE_ACCENT_WIDTH = 2
+const LONG_PRESS_DELAY_MS = 350
+
+type SSNostrMessageReplyPreview = {
+  authorName: string
+  parentId: string
+  /** Null when the parent message is not loaded. */
+  text: string | null
+}
 
 type SSNostrMessageProps = {
   item: NostrDM
@@ -35,6 +46,63 @@ type SSNostrMessageProps = {
   failed?: boolean
   /** Called with the message id to re-send a failed message. */
   onRetry?: (msgId: string) => void
+  /** Same author as the message above, within the grouping window: no header. */
+  isContinuation?: boolean
+  replyPreview?: SSNostrMessageReplyPreview
+  onReplyPreviewPress?: (parentId: string) => void
+  onLongPress?: (msgId: string) => void
+}
+
+type AuthorNameProps = {
+  author: AuthorDisplayInfo
+  isOwn: boolean
+}
+
+function AuthorName({ author, isOwn }: AuthorNameProps) {
+  const primary = author.displayName ?? author.alias
+  const secondary = author.displayName ? author.alias : undefined
+  return (
+    <SSVStack gap="none" style={styles.authorBlock}>
+      <SSHStack gap="xxs" style={styles.centered}>
+        <SSText
+          size="sm"
+          color={primary ? 'white' : 'muted'}
+          numberOfLines={1}
+          style={styles.authorName}
+        >
+          {primary ?? author.npubShort}
+        </SSText>
+        {secondary ? (
+          <SSText size="sm" color="muted" numberOfLines={1}>
+            ({secondary})
+          </SSText>
+        ) : null}
+        {isOwn ? (
+          <SSText size="sm" color="muted">
+            {t('account.nostrSync.devicesGroupChat.youSuffix')}
+          </SSText>
+        ) : null}
+      </SSHStack>
+      {primary ? (
+        <SSText size="xs" color="muted" numberOfLines={1}>
+          {author.npubShort}
+        </SSText>
+      ) : null}
+    </SSVStack>
+  )
+}
+
+function AuthorAvatar({ author }: { author: AuthorDisplayInfo }) {
+  if (author.picture) {
+    return (
+      <Image
+        source={{ uri: author.picture }}
+        style={styles.avatar}
+        resizeMode="cover"
+      />
+    )
+  }
+  return <View style={[styles.avatar, { backgroundColor: author.color }]} />
 }
 
 function SSNostrMessage({
@@ -50,7 +118,11 @@ function SSNostrMessage({
   onAuthorPress,
   onOpenLinkedTx,
   failed,
-  onRetry
+  onRetry,
+  isContinuation = false,
+  replyPreview,
+  onReplyPreviewPress,
+  onLongPress
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -74,6 +146,24 @@ function SSNostrMessage({
     onAuthorPress?.(authorNpub)
   }
 
+  function handleLongPress() {
+    onLongPress?.(msg.id)
+  }
+
+  function handleReplyPreviewPress() {
+    if (replyPreview) {
+      onReplyPreviewPress?.(replyPreview.parentId)
+    }
+  }
+
+  function handleToggleVisibility(component: 'sankey' | 'status') {
+    onToggleVisibility(msg.id, component)
+  }
+
+  function handleGoToSignFlow() {
+    onGoToSignFlow(messageContent)
+  }
+
   const visibility = visibleComponents.get(msg.id) || {
     sankey: false,
     status: false
@@ -90,113 +180,69 @@ function SSNostrMessage({
   }
 
   return (
-    <SSVStack
-      gap="xxs"
-      style={[styles.message, isDeviceMessage && styles.deviceMessage]}
+    <Pressable
+      onLongPress={onLongPress ? handleLongPress : undefined}
+      delayLongPress={LONG_PRESS_DELAY_MS}
+      style={[
+        styles.message,
+        isContinuation && styles.continuation,
+        isDeviceMessage && styles.ownMessage
+      ]}
     >
-      <SSHStack gap="xxs" justifyBetween>
-        <Pressable
-          onPress={handleAuthorPress}
-          style={({ pressed }) => [
-            styles.authorPressable,
-            pressed && styles.authorPressablePressed
-          ]}
-        >
-          <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
-            {authorDisplayName.picture ? (
-              <Image
-                source={{ uri: authorDisplayName.picture }}
-                style={styles.authorAvatar}
-                resizeMode="cover"
-              />
-            ) : (
-              <View
-                style={[
-                  styles.authorIndicatorLarge,
-                  { backgroundColor: authorDisplayName.color }
-                ]}
-              />
-            )}
-            <SSVStack gap="xxs" style={styles.authorBlock}>
-              <SSHStack gap="xxs" style={{ alignItems: 'center' }}>
-                {authorDisplayName.displayName ? (
-                  <>
-                    <SSText size="sm" style={styles.authorName}>
-                      {authorDisplayName.displayName}
-                    </SSText>
-                    {authorDisplayName.alias ? (
-                      <SSText size="sm" color="muted">
-                        ({authorDisplayName.alias})
-                      </SSText>
-                    ) : null}
-                  </>
-                ) : authorDisplayName.alias ? (
-                  <SSText size="sm" style={styles.authorName}>
-                    {authorDisplayName.alias}
-                  </SSText>
-                ) : (
-                  <SSText size="sm" color="muted">
-                    {authorDisplayName.npubShort}
-                  </SSText>
-                )}
-                {isDeviceMessage && (
-                  <SSText size="sm" color="muted">
-                    {t('account.nostrSync.devicesGroupChat.youSuffix')}
-                  </SSText>
-                )}
-              </SSHStack>
-              {(authorDisplayName.displayName || authorDisplayName.alias) && (
-                <SSHStack
-                  gap="xxs"
-                  style={[styles.npubRow, { alignItems: 'center' }]}
-                >
-                  {authorDisplayName.picture ? (
-                    <View
-                      style={[
-                        styles.authorIndicatorSmall,
-                        { backgroundColor: authorDisplayName.color }
-                      ]}
-                    />
-                  ) : null}
-                  <SSText size="xs" color="muted">
-                    {authorDisplayName.npubShort}
-                  </SSText>
-                </SSHStack>
-              )}
-            </SSVStack>
-          </SSHStack>
-        </Pressable>
-        <SSHStack
-          gap="xs"
-          style={{
-            alignItems: 'flex-start',
-            alignSelf: 'flex-start',
-            marginTop: -2
-          }}
-        >
-          <SSText size="xs" color="muted">
-            {formattedDate}
-          </SSText>
-          {msg.pending && (
+      {isContinuation ? null : (
+        <SSHStack gap="xs" style={styles.header}>
+          <Pressable
+            onPress={handleAuthorPress}
+            style={({ pressed }) => [
+              styles.authorPressable,
+              pressed && styles.pressed
+            ]}
+          >
+            <AuthorAvatar author={authorDisplayName} />
+            <AuthorName author={authorDisplayName} isOwn={isDeviceMessage} />
+          </Pressable>
+          <SSHStack gap="xxs" style={styles.status}>
             <SSText size="xs" color="muted">
-              ({t('account.nostrSync.devicesGroupChat.sending')})
+              {formattedDate}
             </SSText>
-          )}
-          {failed ? (
-            <SSText size="xs" style={{ color: Colors.error }}>
-              ({t('nostrIdentity.chat.status.failed')})
-            </SSText>
-          ) : null}
-          {failed && onRetry ? (
-            <Pressable onPress={handleRetryPress} hitSlop={RETRY_HIT_SLOP}>
-              <SSText size="xs" style={styles.retryText}>
-                {t('nostrErrors.source.retry')}
+            {msg.pending ? (
+              <SSText size="xs" color="muted">
+                ({t('account.nostrSync.devicesGroupChat.sending')})
               </SSText>
-            </Pressable>
-          ) : null}
+            ) : null}
+            {failed ? (
+              <SSText size="xs" style={styles.failedText}>
+                ({t('nostrIdentity.chat.status.failed')})
+              </SSText>
+            ) : null}
+            {failed && onRetry ? (
+              <Pressable onPress={handleRetryPress} hitSlop={RETRY_HIT_SLOP}>
+                <SSText size="xs" style={styles.retryText}>
+                  {t('nostrErrors.source.retry')}
+                </SSText>
+              </Pressable>
+            ) : null}
+          </SSHStack>
         </SSHStack>
-      </SSHStack>
-      <View style={styles.messageContentWrap}>
+      )}
+      <SSVStack gap="xxs" style={styles.body}>
+        {replyPreview ? (
+          <Pressable
+            onPress={handleReplyPreviewPress}
+            style={({ pressed }) => [
+              styles.replyQuote,
+              pressed && styles.pressed
+            ]}
+          >
+            <SSText size="xs" color="muted" numberOfLines={1}>
+              {replyPreview.authorName}
+            </SSText>
+            <SSText size="sm" numberOfLines={2} style={styles.replyText}>
+              {replyPreview.text ??
+                t('nostrIdentity.chat.reply.originalUnavailable')}
+            </SSText>
+          </Pressable>
+        ) : null}
         {hasSignFlow && transactionData && account ? (
           <SSTransactionDetails
             transactionData={transactionData}
@@ -204,72 +250,112 @@ function SSNostrMessage({
             accounts={accounts}
             keyFingerprintsByAccount={keyFingerprintsByAccount}
             visibility={visibility}
-            onToggleVisibility={(component) =>
-              onToggleVisibility(msg.id, component)
-            }
-            onGoToSignFlow={() => onGoToSignFlow(messageContent)}
+            onToggleVisibility={handleToggleVisibility}
+            onGoToSignFlow={handleGoToSignFlow}
             onOpenLinkedTx={onOpenLinkedTx}
           />
         ) : (
           <SSText size="md">{messageContent}</SSText>
         )}
-      </View>
-    </SSVStack>
+        {isContinuation && (msg.pending || failed) ? (
+          <SSHStack gap="xxs">
+            {msg.pending ? (
+              <SSText size="xs" color="muted">
+                {t('account.nostrSync.devicesGroupChat.sending')}
+              </SSText>
+            ) : null}
+            {failed && onRetry ? (
+              <Pressable onPress={handleRetryPress} hitSlop={RETRY_HIT_SLOP}>
+                <SSText size="xs" style={styles.failedText}>
+                  {t('nostrIdentity.chat.status.failed')} ·{' '}
+                  {t('nostrErrors.source.retry')}
+                </SSText>
+              </Pressable>
+            ) : null}
+            {failed && !onRetry ? (
+              <SSText size="xs" style={styles.failedText}>
+                {t('nostrIdentity.chat.status.failed')}
+              </SSText>
+            ) : null}
+          </SSHStack>
+        ) : null}
+      </SSVStack>
+    </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  authorAvatar: {
-    borderRadius: 12,
-    height: 24,
-    marginRight: 6,
-    width: 24
-  },
   authorBlock: {
-    gap: 0
-  },
-  authorIndicatorLarge: {
-    borderRadius: 12,
-    height: 24,
-    marginRight: 6,
-    width: 24
-  },
-  authorIndicatorSmall: {
-    borderRadius: 4,
-    height: 8,
-    marginRight: 3,
-    width: 8
+    flexShrink: 1
   },
   authorName: {
-    color: Colors.white
+    flexShrink: 1
   },
   authorPressable: {
-    alignSelf: 'flex-start'
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    gap: AVATAR_GAP
   },
-  authorPressablePressed: {
-    opacity: 0.7
+  avatar: {
+    borderRadius: AVATAR_SIZE / 2,
+    height: AVATAR_SIZE,
+    width: AVATAR_SIZE
   },
-  deviceMessage: {
-    backgroundColor: Colors.gray[800]
+  body: {
+    paddingLeft: AVATAR_SIZE + AVATAR_GAP
+  },
+  centered: {
+    alignItems: 'center'
+  },
+  continuation: {
+    marginTop: 2
+  },
+  failedText: {
+    color: Colors.error
+  },
+  header: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 4
   },
   message: {
     backgroundColor: Colors.gray[900],
+    borderLeftColor: 'transparent',
+    borderLeftWidth: OWN_MESSAGE_ACCENT_WIDTH,
     borderRadius: 8,
     marginTop: 8,
-    padding: 10,
-    paddingBottom: 15,
-    paddingTop: 5
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
-  messageContentWrap: {
-    paddingLeft: 30
+  ownMessage: {
+    backgroundColor: Colors.gray[800],
+    borderLeftColor: Colors.gray[400]
   },
-  npubRow: {
-    marginTop: -4
+  pressed: {
+    opacity: 0.7
+  },
+  replyQuote: {
+    backgroundColor: Colors.gray[850],
+    borderLeftColor: Colors.gray[500],
+    borderLeftWidth: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4
+  },
+  replyText: {
+    color: Colors.gray[300]
   },
   retryText: {
     color: Colors.white,
     textDecorationLine: 'underline'
+  },
+  status: {
+    alignItems: 'center',
+    flexShrink: 0
   }
 })
 
 export default SSNostrMessage
+export type { SSNostrMessageReplyPreview }

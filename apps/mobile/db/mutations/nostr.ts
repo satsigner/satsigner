@@ -69,8 +69,9 @@ function executeDmInsert(
   tx.execute(
     `${verb} INTO nostr_dms (
       id, account_id, author, created_at, description, event, label,
-      content_description, content_created_at, content_pubkey, pending, read
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      content_description, content_created_at, content_pubkey, pending, read,
+      reply_to_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       dm.id,
       accountId,
@@ -83,7 +84,8 @@ function executeDmInsert(
       dm.content?.created_at ?? null,
       dm.content?.pubkey ?? null,
       boolToInt(dm.pending),
-      dm.read === undefined ? null : boolToInt(dm.read)
+      dm.read === undefined ? null : boolToInt(dm.read),
+      dm.replyToId ?? null
     ]
   )
 }
@@ -122,6 +124,17 @@ function updateDmStatus(
     `UPDATE nostr_dms SET ${updates.join(', ')} WHERE account_id = ? AND id = ?`,
     [...params, accountId, dmId]
   )
+}
+
+function deleteDms(accountId: string, dmIds: string[]) {
+  runTransaction((tx) => {
+    for (const dmId of dmIds) {
+      tx.execute('DELETE FROM nostr_dms WHERE account_id = ? AND id = ?', [
+        accountId,
+        dmId
+      ])
+    }
+  })
 }
 
 /** Swaps an optimistic (pending) DM for the relay copy of the same message. */
@@ -237,6 +250,7 @@ function updateAccountNostr(accountId: string, nostr: Partial<NostrAccount>) {
 
 export {
   clearNostrData,
+  deleteDms,
   insertDms,
   markDmsAsRead,
   replaceDm,

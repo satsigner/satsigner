@@ -31,6 +31,8 @@ export const NOSTR_ENGAGEMENT_FETCH_LIMIT = 2000
 export const NOSTR_ENGAGEMENT_BATCH_SIZE = 50
 /** How long note rows can ask for engagement before one batched REQ goes out. */
 export const NOSTR_ENGAGEMENT_BATCH_DELAY_MS = 50
+/** Reactions per page on the note detail screen. */
+export const NOSTR_REACTIONS_PAGE_SIZE = 50
 export const NOSTR_DM_FUTURE_TOLERANCE_SEC = 2 * SECONDS_PER_DAY
 export const NOSTR_DM_NOTIFY_MAX_AGE_SECS = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_PROFILE_RETRY_DELAY_MS = 5000
@@ -134,6 +136,8 @@ export const NOSTR_BLOSSOM_SERVERS_STALE_TIME_MS = 10 * 60_000
 export const NOSTR_PROFILE_BATCH_SIZE = 40
 export const NOSTR_HIDDEN_KEY_MASK = '••••••••••••••••'
 export const NOSTR_HIDDEN_KEY_MASK_LONG = '••••••••••••••••••••••••••••••••'
+export const NOSTR_KEY_LINE_BREAK_EVERY = 28
+export const NOSTR_KEY_QR_SIZE = 220
 
 export { PRIVACY_MASK as NOSTR_PRIVACY_MASK } from '@/constants/privacy'
 
@@ -451,3 +455,14 @@ export const NOSTR_PROFILE_BACKOFF_MAX_MS =
 // EVENT CACHE
 export const NOSTR_ZAP_CACHE_LOOKUP_LIMIT = 200
 export const NOSTR_DELETION_FETCH_LIMIT = 100
+
+// CHAT MESSAGES
+export const NOSTR_CHAT_GROUP_WINDOW_SEC = 5 * SECONDS_PER_MINUTE
+export const NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH = 120
+export const NOSTR_CHAT_REPLY_SEARCH_MAX_PAGES = 10
+export const NOSTR_REPLY_MARKER = 'reply'
+export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
+export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
+export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND
+export const NOSTR_CHAT_POW_OFF = 0
+export const NOSTR_CHAT_POW_OPTIONS = [NOSTR_CHAT_POW_OFF, 8, 12, 16, 20, 24]

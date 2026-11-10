@@ -1,118 +1,58 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ReactNode, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  type StyleProp,
-  type TextStyle,
-  View
-} from 'react-native'
+import { useState } from 'react'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSButton from '@/components/SSButton'
-import SSModal from '@/components/SSModal'
+import SSNostrKeyFormatTabs from '@/components/SSNostrKeyFormatTabs'
+import SSNostrKeyQRModal from '@/components/SSNostrKeyQRModal'
 import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
-import SSShareableQR from '@/components/SSShareableQR'
+import SSShadedKeyText from '@/components/SSShadedKeyText'
 import SSText from '@/components/SSText'
-import { NOSTR_HIDDEN_KEY_MASK } from '@/constants/nostr'
+import {
+  NOSTR_HIDDEN_KEY_MASK,
+  NOSTR_KEY_LINE_BREAK_EVERY
+} from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { Colors, Sizes, Typography } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { chunkArray } from '@/utils/chunkArray'
-import { generateColorFromNpub } from '@/utils/nostr'
+import {
+  formatNostrKey,
+  generateColorFromNpub,
+  type NostrKeyFormat
+} from '@/utils/nostr'
 
 type KeysParams = {
   npub: string
 }
 
-type QrModalContent = {
-  type: 'npub' | 'nsec'
-  value: string
+type KeyType = 'npub' | 'nsec'
+
+const SEED_WORDS_PER_ROW = 3
+const EYE_ICON_SIZE = 18
+
+const KEY_LABEL_KEYS: Record<KeyType, Record<NostrKeyFormat, string>> = {
+  npub: {
+    bech32: 'nostrIdentity.keys.npub',
+    hex: 'nostrIdentity.keys.npubHex'
+  },
+  nsec: { bech32: 'nostrIdentity.keys.nsec', hex: 'nostrIdentity.keys.nsecHex' }
 }
 
-const NOSTR_KEY_SHADE_CHUNK = 4
-const NOSTR_KEY_LINE_BREAK_EVERY = 28
-
-type ShadedNostrKeyTextProps = {
-  value: string
-  size?: 'sm' | 'xl'
-  style?: StyleProp<TextStyle>
-  lineBreakEvery?: number
+function getKeyLabel(type: KeyType, format: NostrKeyFormat) {
+  return t(KEY_LABEL_KEYS[type][format])
 }
 
-function ShadedNostrKeyText({
-  value,
-  size = 'xl',
-  style,
-  lineBreakEvery
-}: ShadedNostrKeyTextProps) {
-  const trimmed = value.trim()
-  const fontSize = Sizes.text.fontSize[size]
-  const baseTextStyle: TextStyle = {
-    fontFamily: Typography.geistMonoRegular,
-    fontSize,
-    letterSpacing: 1,
-    lineHeight: Math.round(fontSize * 1.45),
-    textAlign: 'center'
-  }
-
-  function renderShadedChunks(
-    segment: string,
-    globalChunkOffset: number
-  ): ReactNode {
-    const parts: ReactNode[] = []
-    for (let j = 0; j < segment.length; j += NOSTR_KEY_SHADE_CHUNK) {
-      const chunk = segment.slice(j, j + NOSTR_KEY_SHADE_CHUNK)
-      const globalChunkIndex = globalChunkOffset + j / NOSTR_KEY_SHADE_CHUNK
-      parts.push(
-        <Text
-          key={`${globalChunkIndex}-${chunk}`}
-          style={{
-            color: globalChunkIndex % 2 === 0 ? Colors.white : Colors.gray[200]
-          }}
-        >
-          {chunk}
-        </Text>
-      )
-    }
-    return parts
-  }
-
-  if (!lineBreakEvery || lineBreakEvery <= 0) {
-    return (
-      <Text selectable style={[baseTextStyle, style]}>
-        {renderShadedChunks(trimmed, 0)}
-      </Text>
-    )
-  }
-
-  const lines: string[] = []
-  for (let i = 0; i < trimmed.length; i += lineBreakEvery) {
-    lines.push(trimmed.slice(i, i + lineBreakEvery))
-  }
-
-  return (
-    <Text selectable style={[baseTextStyle, style]}>
-      {lines.map((line, lineIdx) => {
-        const lineStartChar = lineIdx * lineBreakEvery
-        const globalChunkOffset = lineStartChar / NOSTR_KEY_SHADE_CHUNK
-        return (
-          <Text key={lineIdx}>
-            {renderShadedChunks(line, globalChunkOffset)}
-            {lineIdx < lines.length - 1 ? '\n' : ''}
-          </Text>
-        )
-      })}
-    </Text>
-  )
+function copyToClipboard(value: string) {
+  Clipboard.setStringAsync(value)
+  toast.success(t('common.copiedToClipboard'))
 }
 
 export default function NostrIdentityKeys() {
@@ -123,35 +63,11 @@ export default function NostrIdentityKeys() {
     state.identities.find((i) => i.npub === npub)
   )
 
+  const [keyFormat, setKeyFormat] = useState<NostrKeyFormat>('bech32')
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
-  const [qrModal, setQrModal] = useState<QrModalContent | null>(null)
+  const [qrKeyType, setQrKeyType] = useState<KeyType | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
-
-  function handleCopyNpub() {
-    const value = identity?.npub ?? (Array.isArray(npub) ? npub[0] : npub)
-    if (!value) {
-      return
-    }
-    Clipboard.setStringAsync(value)
-    toast.success(t('common.copiedToClipboard'))
-  }
-
-  function handleCopyNsec() {
-    if (!identity?.nsec) {
-      return
-    }
-    Clipboard.setStringAsync(identity.nsec)
-    toast.success(t('common.copiedToClipboard'))
-  }
-
-  function handleCopyMnemonic() {
-    if (!identity?.mnemonic) {
-      return
-    }
-    Clipboard.setStringAsync(identity.mnemonic)
-    toast.success(t('common.copiedToClipboard'))
-  }
 
   if (!identity) {
     return (
@@ -170,10 +86,72 @@ export default function NostrIdentityKeys() {
     )
   }
 
-  const { isWatchOnly } = identity
+  const { isWatchOnly, mnemonic } = identity
   const npubColor = generateColorFromNpub(identity.npub)
-
+  const npubDisplay = formatNostrKey(identity.npub, keyFormat) ?? identity.npub
+  const nsecDisplay = identity.nsec
+    ? formatNostrKey(identity.nsec, keyFormat)
+    : null
+  const qrValue = qrKeyType === 'nsec' ? nsecDisplay : npubDisplay
   const isSecretRevealed = nsecRevealed || seedWordsRevealed
+
+  function handleCopyNpub() {
+    copyToClipboard(npubDisplay)
+  }
+
+  function handleCopyNsec() {
+    if (!nsecDisplay) {
+      return
+    }
+    copyToClipboard(nsecDisplay)
+  }
+
+  function handleCopyMnemonic() {
+    if (!mnemonic) {
+      return
+    }
+    copyToClipboard(mnemonic)
+  }
+
+  function handleShowNpubQr() {
+    setQrKeyType('npub')
+  }
+
+  function handleShowNsecQr() {
+    setQrKeyType('nsec')
+  }
+
+  function handleCloseQr() {
+    setQrKeyType(null)
+  }
+
+  function handleRevealNsec() {
+    setNsecRevealed(true)
+  }
+
+  function handleHideNsec() {
+    setNsecRevealed(false)
+  }
+
+  function handleRevealSeedWords() {
+    setSeedWordsRevealed(true)
+  }
+
+  function handleHideSeedWords() {
+    setSeedWordsRevealed(false)
+  }
+
+  function handleShowSeedQr() {
+    setSeedQrVisible(true)
+  }
+
+  function handleCloseSeedQr() {
+    setSeedQrVisible(false)
+  }
+
+  function handleBack() {
+    router.back()
+  }
 
   return (
     <SSMainLayout style={styles.mainLayout}>
@@ -192,165 +170,166 @@ export default function NostrIdentityKeys() {
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="lg">
+            <SSNostrKeyFormatTabs format={keyFormat} onChange={setKeyFormat} />
+
             <SSVStack gap="sm">
               <SSHStack gap="xs" style={styles.npubLabelRow}>
                 <View
                   style={[styles.colorCircle, { backgroundColor: npubColor }]}
                 />
-                <SSText center>{t('nostrIdentity.keys.npub')}</SSText>
+                <SSText center>{getKeyLabel('npub', keyFormat)}</SSText>
               </SSHStack>
               <SSVStack gap="xxs" style={styles.keysContainer}>
-                <ShadedNostrKeyText
-                  value={identity.npub}
+                <SSShadedKeyText
+                  value={npubDisplay}
                   lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
-                  style={styles.keyText}
                 />
                 <SSHStack gap="sm" style={styles.keyActionsRow}>
                   <SSButton
                     label={t('common.copy')}
                     onPress={handleCopyNpub}
-                    style={styles.keyActionButtonFlex}
+                    style={styles.keyActionButton}
                     variant="outline"
                   />
                   <SSButton
                     label={t('common.showQR')}
-                    onPress={() =>
-                      setQrModal({ type: 'npub', value: identity.npub })
-                    }
-                    style={styles.keyActionButtonFlex}
+                    onPress={handleShowNpubQr}
+                    style={styles.keyActionButton}
                     variant="outline"
                   />
                 </SSHStack>
               </SSVStack>
             </SSVStack>
 
-            {identity.nsec && (
+            {nsecDisplay && (
               <SSVStack gap="sm">
-                <SSText center>{t('nostrIdentity.keys.nsec')}</SSText>
+                <SSText center>{getKeyLabel('nsec', keyFormat)}</SSText>
                 <SSVStack gap="xxs" style={styles.keysContainer}>
                   {nsecRevealed ? (
                     <>
-                      <ShadedNostrKeyText
-                        value={identity.nsec}
+                      <SSShadedKeyText
+                        value={nsecDisplay}
                         lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
-                        style={styles.keyText}
                       />
                       <SSHStack gap="sm" style={styles.keyActionsRow}>
                         <SSButton
                           label={t('common.copy')}
                           onPress={handleCopyNsec}
-                          style={styles.keyActionButtonFlex}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                         <SSButton
                           label={t('common.showQR')}
-                          onPress={() =>
-                            setQrModal({
-                              type: 'nsec',
-                              value: identity.nsec!
-                            })
-                          }
-                          style={styles.keyActionButtonFlex}
+                          onPress={handleShowNsecQr}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                         <SSButton
                           label={t('common.hide')}
-                          onPress={() => setNsecRevealed(false)}
-                          style={styles.keyActionButtonFlex}
+                          onPress={handleHideNsec}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                       </SSHStack>
                     </>
                   ) : (
                     <Pressable
-                      onPress={() => setNsecRevealed(true)}
+                      onPress={handleRevealNsec}
                       style={styles.revealRow}
                     >
                       <SSText
                         center
                         size="xl"
                         type="mono"
-                        style={styles.keyText}
+                        style={styles.maskText}
                       >
                         {NOSTR_HIDDEN_KEY_MASK}
                       </SSText>
-                      <SSIconEyeOff height={18} width={18} />
+                      <SSIconEyeOff
+                        height={EYE_ICON_SIZE}
+                        width={EYE_ICON_SIZE}
+                      />
                     </Pressable>
                   )}
                 </SSVStack>
               </SSVStack>
             )}
 
-            {identity.mnemonic && (
+            {mnemonic && (
               <SSVStack gap="sm">
                 <SSText center>{t('nostrIdentity.keys.seedWords')}</SSText>
                 <SSVStack gap="xxs" style={styles.keysContainer}>
                   {seedWordsRevealed ? (
                     <>
                       <View style={styles.wordsGrid}>
-                        {chunkArray(identity.mnemonic.split(' '), 3).map(
-                          (row, rowIndex) => (
-                            <SSHStack
-                              key={rowIndex}
-                              gap="sm"
-                              style={styles.wordRow}
-                            >
-                              {row.map((word, colIndex) => {
-                                const index = rowIndex * 3 + colIndex
-                                return (
-                                  <View key={index} style={styles.wordCell}>
-                                    <SSText
-                                      size="xs"
-                                      color="muted"
-                                      style={styles.wordIndex}
-                                    >
-                                      {index + 1}
-                                    </SSText>
-                                    <SSText size="sm" type="mono">
-                                      {word}
-                                    </SSText>
-                                  </View>
-                                )
-                              })}
-                            </SSHStack>
-                          )
-                        )}
+                        {chunkArray(
+                          mnemonic.split(' '),
+                          SEED_WORDS_PER_ROW
+                        ).map((row, rowIndex) => (
+                          <SSHStack
+                            key={rowIndex}
+                            gap="sm"
+                            style={styles.wordRow}
+                          >
+                            {row.map((word, colIndex) => {
+                              const index =
+                                rowIndex * SEED_WORDS_PER_ROW + colIndex
+                              return (
+                                <View key={index} style={styles.wordCell}>
+                                  <SSText
+                                    size="xs"
+                                    color="muted"
+                                    style={styles.wordIndex}
+                                  >
+                                    {index + 1}
+                                  </SSText>
+                                  <SSText size="sm" type="mono">
+                                    {word}
+                                  </SSText>
+                                </View>
+                              )
+                            })}
+                          </SSHStack>
+                        ))}
                       </View>
                       <SSHStack gap="sm" style={styles.keyActionsRow}>
                         <SSButton
                           label={t('common.copy')}
                           onPress={handleCopyMnemonic}
-                          style={styles.keyActionButtonFlex}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                         <SSButton
                           label={t('account.seed.seedqr.title')}
-                          onPress={() => setSeedQrVisible(true)}
-                          style={styles.keyActionButtonFlex}
+                          onPress={handleShowSeedQr}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                         <SSButton
                           label={t('common.hide')}
-                          onPress={() => setSeedWordsRevealed(false)}
-                          style={styles.keyActionButtonFlex}
+                          onPress={handleHideSeedWords}
+                          style={styles.keyActionButton}
                           variant="outline"
                         />
                       </SSHStack>
                     </>
                   ) : (
                     <Pressable
-                      onPress={() => setSeedWordsRevealed(true)}
+                      onPress={handleRevealSeedWords}
                       style={styles.revealRow}
                     >
                       <SSText
                         center
                         size="xl"
                         type="mono"
-                        style={styles.keyText}
+                        style={styles.maskText}
                       >
                         {NOSTR_HIDDEN_KEY_MASK}
                       </SSText>
-                      <SSIconEyeOff height={18} width={18} />
+                      <SSIconEyeOff
+                        height={EYE_ICON_SIZE}
+                        width={EYE_ICON_SIZE}
+                      />
                     </Pressable>
                   )}
                 </SSVStack>
@@ -366,57 +345,30 @@ export default function NostrIdentityKeys() {
             <SSButton
               variant="ghost"
               label={t('common.back')}
-              onPress={() => router.back()}
+              onPress={handleBack}
               style={styles.backButton}
             />
           </SSVStack>
         </ScrollView>
       </SSVStack>
 
-      {identity.mnemonic ? (
+      {mnemonic ? (
         <SSSeedQR
-          mnemonic={identity.mnemonic}
+          mnemonic={mnemonic}
           visible={seedQrVisible}
-          onClose={() => setSeedQrVisible(false)}
+          onClose={handleCloseSeedQr}
         />
       ) : null}
 
-      <SSModal
-        visible={qrModal !== null}
-        fullOpacity
-        onClose={() => setQrModal(null)}
-        label={t('common.cancel')}
-      >
-        <SSVStack gap="lg" style={styles.qrModalContent}>
-          {qrModal && (
-            <>
-              <SSText center uppercase>
-                {qrModal.type === 'npub'
-                  ? t('nostrIdentity.keys.npub')
-                  : t('nostrIdentity.keys.nsec')}
-              </SSText>
-              <SSShareableQR
-                value={qrModal.value}
-                size={220}
-                color={Colors.white}
-                backgroundColor={Colors.gray[950]}
-                ecl="H"
-                containerStyle={styles.qrCodeWrapper}
-                hideShareButton={qrModal.type !== 'npub'}
-              >
-                <View style={styles.qrModalDataBox}>
-                  <ShadedNostrKeyText
-                    value={qrModal.value}
-                    size="sm"
-                    lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
-                    style={styles.qrModalDataText}
-                  />
-                </View>
-              </SSShareableQR>
-            </>
-          )}
-        </SSVStack>
-      </SSModal>
+      {qrKeyType && qrValue ? (
+        <SSNostrKeyQRModal
+          value={qrValue}
+          label={getKeyLabel(qrKeyType, keyFormat)}
+          shareable={qrKeyType === 'npub'}
+          visible
+          onClose={handleCloseQr}
+        />
+      ) : null}
     </SSMainLayout>
   )
 }
@@ -433,20 +385,14 @@ const styles = StyleSheet.create({
   emptyContainer: {
     paddingVertical: 60
   },
-  keyActionButtonFlex: {
+  keyActionButton: {
     flex: 1,
-    minWidth: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 10
+    minWidth: 0
   },
   keyActionsRow: {
-    alignItems: 'stretch',
     alignSelf: 'stretch',
     marginTop: 12,
     width: '100%'
-  },
-  keyText: {
-    letterSpacing: 1
   },
   keysContainer: {
     alignSelf: 'stretch',
@@ -456,6 +402,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingTop: 10
   },
+  maskText: {
+    letterSpacing: 1
+  },
   npubLabelRow: {
     alignSelf: 'stretch',
     justifyContent: 'center',
@@ -463,24 +412,6 @@ const styles = StyleSheet.create({
   },
   pageContainer: {
     flex: 1
-  },
-  qrCodeWrapper: {
-    backgroundColor: Colors.gray[950],
-    borderRadius: 10,
-    padding: 16
-  },
-  qrModalContent: {
-    alignItems: 'center',
-    paddingHorizontal: 16
-  },
-  qrModalDataBox: {
-    backgroundColor: Colors.gray[900],
-    borderRadius: 8,
-    maxWidth: '100%',
-    padding: 12
-  },
-  qrModalDataText: {
-    textAlign: 'center'
   },
   revealRow: {
     alignItems: 'center',

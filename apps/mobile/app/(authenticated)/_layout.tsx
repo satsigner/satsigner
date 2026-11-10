@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import { isAppLocked } from '@/utils/appLifecycle'
 import { loadAuthenticatedSession } from '@/utils/authenticatedSession'
+import { restoreLastRouteAfterSkippedPin } from '@/utils/lastRouteSession'
 
 const AuthenticatedSession = lazy(loadAuthenticatedSession)
 
@@ -34,6 +35,7 @@ export default function AuthenticatedLayout() {
     }
     void loadAuthenticatedSession()
     setLockTriggered(false)
+    void restoreLastRouteAfterSkippedPin()
   }, [hydrated, lockTriggered, skipPin, setLockTriggered])
 
   if (!hydrated) {

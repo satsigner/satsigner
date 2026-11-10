@@ -1,8 +1,10 @@
 import { getDb } from '@/db/connection'
+import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import {
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
-  listChatThread
+  listChatThread,
+  listPeersWrittenTo
 } from '@/db/queries/nostrChat'
 
 import { mockQueryResult } from './queryResult'
@@ -131,6 +133,38 @@ describe('nostr chat queries', () => {
           status: 'pending'
         }
       ])
+    })
+  })
+
+  describe('listPeersWrittenTo', () => {
+    it('lists each peer with an outgoing message once', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([{ peer_pubkey: 'peer-1' }, { peer_pubkey: 'peer-2' }])
+      )
+
+      expect(listPeersWrittenTo('npub1me', 'nip17')).toStrictEqual([
+        'peer-1',
+        'peer-2'
+      ])
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining("direction = 'out'"),
+        ['npub1me', 'nip17']
+      )
+    })
+  })
+
+  describe('deleteChatMessagesForIdentity', () => {
+    it('also forgets the wraps the identity sent and the messages it deleted', () => {
+      deleteChatMessagesForIdentity('npub1me')
+
+      expect(execute).toHaveBeenCalledWith(
+        'DELETE FROM nostr_message_wraps WHERE scope = ?',
+        ['chat:npub1me']
+      )
+      expect(execute).toHaveBeenCalledWith(
+        'DELETE FROM nostr_deleted_messages WHERE scope = ?',
+        ['chat:npub1me']
+      )
     })
   })
 })

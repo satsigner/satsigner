@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
+import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { NostrAPI, probeIdentityRelays } from '@/api/nostr'
-import { SSIconChatBubble, SSIconNostr } from '@/components/icons'
+import { SSIconChatBubble, SSIconNostr, SSIconQR } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
 import SSCameraModal from '@/components/SSCameraModal'
@@ -12,11 +13,13 @@ import SSIconButton from '@/components/SSIconButton'
 import SSNFCModal from '@/components/SSNFCModal'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
+import SSNostrKeyQRModal from '@/components/SSNostrKeyQRModal'
 import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
-  HEADER_CHROME_HIT_BOX
+  HEADER_CHROME_HIT_BOX,
+  HEADER_INLINE_ICON_SIZE
 } from '@/constants/headerChrome'
 import {
   NOSTR_PROFILE_QUERY_STALE_TIME_MS,
@@ -57,6 +60,7 @@ export default function NostrAccountLanding() {
   const router = useRouter()
   const { npub } = useLocalSearchParams<AccountParams>()
   const { btcPrice, fiatCurrency, privacyMode } = useDisplayPreferences()
+  const [npubQrVisible, setNpubQrVisible] = useState(false)
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -158,6 +162,14 @@ export default function NostrAccountLanding() {
     router.navigate(nostrAuthorProfileHref(npub, authorNpub))
   }
 
+  function handleShowNpubQr() {
+    setNpubQrVisible(true)
+  }
+
+  function handleCloseNpubQr() {
+    setNpubQrVisible(false)
+  }
+
   const contentHandler = useContentHandler({
     context: 'nostr',
     onContentScanned: handleContentScanned,
@@ -185,14 +197,25 @@ export default function NostrAccountLanding() {
               style={{ marginRight: -HEADER_CHROME_EDGE_NUDGE }}
             >
               <SSIconButton
+                accessibilityLabel={t('common.showQR')}
+                style={HEADER_CHROME_HIT_BOX}
+                onPress={handleShowNpubQr}
+              >
+                <SSIconQR
+                  color={Colors.gray[200]}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
+                />
+              </SSIconButton>
+              <SSIconButton
                 accessibilityLabel={t('nostrIdentity.chat.title')}
                 style={HEADER_CHROME_HIT_BOX}
                 onPress={() => router.navigate(nostrAccountHref(npub, 'chat'))}
               >
                 <SSIconChatBubble
                   color={Colors.gray[200]}
-                  height={16}
-                  width={16}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
                 />
               </SSIconButton>
               <SSIconButton
@@ -202,7 +225,11 @@ export default function NostrAccountLanding() {
                   router.navigate(nostrAccountHref(npub, 'settings'))
                 }
               >
-                <SSIconNostr color={Colors.gray[200]} height={16} width={16} />
+                <SSIconNostr
+                  color={Colors.gray[200]}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
+                />
               </SSIconButton>
             </SSHStack>
           ),
@@ -271,6 +298,13 @@ export default function NostrAccountLanding() {
         onClose={contentHandler.closePasteModal}
         onContentPasted={contentHandler.handleContentPasted}
         context="nostr"
+      />
+      <SSNostrKeyQRModal
+        value={identity.npub}
+        label={t('nostrIdentity.keys.npub')}
+        shareable
+        visible={npubQrVisible}
+        onClose={handleCloseNpubQr}
       />
     </SSMainLayout>
   )

@@ -41,6 +41,7 @@ import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDateShort } from '@/utils/date'
 import { generateColorFromNpub, getPubKeyHexFromNpub } from '@/utils/nostr'
+import { deleteOwnDeviceMessagesFromRelays } from '@/utils/nostrDeviceChat'
 import {
   getNostrErrorMessage,
   getNostrErrorMessageForCode
@@ -384,16 +385,15 @@ export default function NostrSync() {
       toast.error(t('account.nostrSync.deletionError'))
       return
     }
-    const ourEventIds = (account.nostr.dms ?? [])
-      .filter(
-        (dm) =>
-          !dm.pending &&
-          dm.author &&
-          dm.author.toLowerCase() === deviceHex &&
-          typeof dm.id === 'string' &&
-          /^[a-f0-9]{64}$/i.test(dm.id)
-      )
-      .map((dm) => dm.id)
+    const ourMessages = (account.nostr.dms ?? []).filter(
+      (dm) =>
+        !dm.pending &&
+        dm.author &&
+        dm.author.toLowerCase() === deviceHex &&
+        typeof dm.id === 'string' &&
+        /^[a-f0-9]{64}$/i.test(dm.id)
+    )
+    const ourEventIds = ourMessages.map((dm) => dm.id)
     if (ourEventIds.length === 0) {
       toast.info(t('account.nostrSync.noEventsToDelete'))
       setDeletionModalVisible(false)
@@ -405,6 +405,9 @@ export default function NostrSync() {
       // Local messages go only once the relays took the deletion; otherwise
       // the next sync would fetch the "deleted" messages straight back.
       await api.requestDeletion(ourEventIds, account.nostr.deviceNsec)
+      // Rumors are never published, so the request above can't reach them:
+      // the wraps are what relays hold, each signed by its own derived key.
+      await deleteOwnDeviceMessagesFromRelays(account, ourMessages)
       clearStoredDMs(account)
       updateAccountNostr(accountId, { dms: [] })
       clearNostrState(accountId)

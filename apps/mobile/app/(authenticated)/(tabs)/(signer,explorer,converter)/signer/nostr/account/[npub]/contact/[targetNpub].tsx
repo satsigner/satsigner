@@ -5,12 +5,20 @@ import { nip19 } from 'nostr-tools'
 import { useRef, useState } from 'react'
 import { ActivityIndicator, StyleSheet } from 'react-native'
 
+import { SSIconQR } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSContactProfileQrOverlay from '@/components/SSContactProfileQrOverlay'
+import SSIconButton from '@/components/SSIconButton'
 import SSNostrFeedTabs from '@/components/SSNostrFeedTabs'
 import SSNostrHeroCard from '@/components/SSNostrHeroCard'
+import SSNostrKeyQRModal from '@/components/SSNostrKeyQRModal'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
+import {
+  HEADER_CHROME_EDGE_NUDGE,
+  HEADER_CHROME_HIT_BOX,
+  HEADER_INLINE_ICON_SIZE
+} from '@/constants/headerChrome'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import SSHStack from '@/layouts/SSHStack'
@@ -77,6 +85,7 @@ export default function NostrContactProfile() {
   })
   const [zapLoading, setZapLoading] = useState(false)
   const [qrOverlayVisible, setQrOverlayVisible] = useState(false)
+  const [npubQrVisible, setNpubQrVisible] = useState(false)
   const paymentSheetRef = useRef<BottomSheetMethods>(null)
   const [payAmount, setPayAmount] = useState(0)
 
@@ -127,6 +136,14 @@ export default function NostrContactProfile() {
 
   function handleCloseQrOverlay() {
     setQrOverlayVisible(false)
+  }
+
+  function handleShowNpubQr() {
+    setNpubQrVisible(true)
+  }
+
+  function handleCloseNpubQr() {
+    setNpubQrVisible(false)
   }
 
   function navigateToPayment(
@@ -290,6 +307,19 @@ export default function NostrContactProfile() {
     <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
+          headerRight: () => (
+            <SSIconButton
+              accessibilityLabel={t('common.showQR')}
+              style={styles.headerQrButton}
+              onPress={handleShowNpubQr}
+            >
+              <SSIconQR
+                color={Colors.gray[200]}
+                height={HEADER_INLINE_ICON_SIZE}
+                width={HEADER_INLINE_ICON_SIZE}
+              />
+            </SSIconButton>
+          ),
           headerTitle: () => (
             <SSText uppercase>{t('nostrIdentity.contact.title')}</SSText>
           )
@@ -380,6 +410,14 @@ export default function NostrContactProfile() {
           visible
         />
       ) : null}
+
+      <SSNostrKeyQRModal
+        value={targetNpub}
+        label={t('nostrIdentity.keys.npub')}
+        shareable
+        visible={npubQrVisible}
+        onClose={handleCloseNpubQr}
+      />
     </SSMainLayout>
   )
 }
@@ -403,5 +441,9 @@ const styles = StyleSheet.create({
   halfButton: {
     flex: 1,
     minWidth: 0
+  },
+  headerQrButton: {
+    ...HEADER_CHROME_HIT_BOX,
+    marginRight: -HEADER_CHROME_EDGE_NUDGE
   }
 })

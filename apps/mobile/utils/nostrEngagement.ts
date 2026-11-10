@@ -66,10 +66,10 @@ function toEngagementEvent(
 }
 
 // NIP-09: a deletion only counts when its author also wrote the event.
-function dropDeletedEngagement(
-  events: NostrEngagementEvent[],
+function dropDeletedEngagement<T extends NostrEngagementEvent>(
+  events: T[],
   deletions: NostrEngagementDeletion[]
-): NostrEngagementEvent[] {
+): T[] {
   const deletedKeys = new Set(
     deletions.flatMap((deletion) =>
       deletion.tags
@@ -82,10 +82,10 @@ function dropDeletedEngagement(
   )
 }
 
-function getLatestReactionByPubkey(
-  events: NostrEngagementEvent[]
-): NostrEngagementEvent[] {
-  const latest = new Map<string, NostrEngagementEvent>()
+function getLatestReactionByPubkey<
+  T extends Pick<NostrEngagementEvent, 'created_at' | 'pubkey'>
+>(events: T[]): T[] {
+  const latest = new Map<string, T>()
   for (const event of events) {
     const current = latest.get(event.pubkey)
     if (!current || event.created_at > current.created_at) {
@@ -202,6 +202,7 @@ export {
   buildRepost,
   dropDeletedEngagement,
   getEngagementTargetId,
+  getLatestReactionByPubkey,
   isLike,
   isRepostKind,
   summarizeNoteEngagement,

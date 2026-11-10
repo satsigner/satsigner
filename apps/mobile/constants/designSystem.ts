@@ -15,7 +15,11 @@ export const DESIGN_FEATURE_IDS = [
   'transactionCard',
   'historyChart',
   'pinInput',
-  'devConsole'
+  'devConsole',
+  'nostrChat',
+  'nostrMessageDetail',
+  'nostrReactions',
+  'nostrKeys'
 ] as const
 
 export type DesignFeatureId = (typeof DESIGN_FEATURE_IDS)[number]

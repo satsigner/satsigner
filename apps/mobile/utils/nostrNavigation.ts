@@ -1,5 +1,7 @@
 import { type Href } from 'expo-router'
 
+import { type NostrChatProtocol } from '@/types/models/Nostr'
+
 export function nostrAccountProfileHref(npub: string): Href {
   return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
 }
@@ -92,5 +94,42 @@ export function nostrZapDetailHref(npub: string, zapId: string): Href {
   return {
     params: { npub, zapId },
     pathname: '/signer/nostr/account/[npub]/zap/[zapId]'
+  }
+}
+
+export function nostrChatThreadHref(
+  npub: string,
+  peerNpub: string,
+  protocol: NostrChatProtocol
+): Href {
+  return {
+    params: { npub, peer: peerNpub, protocol },
+    pathname: '/signer/nostr/account/[npub]/chat/[peer]'
+  }
+}
+
+/** Detail page of one message in identity `npub`'s chats. */
+export function nostrChatMessageHref(npub: string, messageId: string): Href {
+  return {
+    params: { messageId, npub },
+    pathname: '/signer/nostr/account/[npub]/chat/message/[messageId]'
+  }
+}
+
+export function deviceGroupChatHref(accountId: string): Href {
+  return {
+    params: { id: accountId },
+    pathname: '/signer/bitcoin/account/[id]/settings/nostr/devicesGroupChat'
+  }
+}
+
+/** Detail page of one message in a bitcoin account's devices group chat. */
+export function deviceChatMessageHref(
+  accountId: string,
+  messageId: string
+): Href {
+  return {
+    params: { id: accountId, messageId },
+    pathname: '/signer/bitcoin/account/[id]/settings/nostr/message/[messageId]'
   }
 }

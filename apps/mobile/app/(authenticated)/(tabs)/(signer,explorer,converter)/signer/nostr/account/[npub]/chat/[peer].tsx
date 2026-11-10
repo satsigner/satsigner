@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSChatThread from '@/components/chat/SSChatThread'
+import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import SSText from '@/components/SSText'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import {
@@ -10,6 +11,8 @@ import {
   useNostrChatSubscription,
   useNostrChatThread
 } from '@/hooks/useNostrChat'
+import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
+import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -20,6 +23,7 @@ import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
 import { buildChatThreadAuthors } from '@/utils/nostrChat'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
+import { nostrChatMessageHref } from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
 
 type ThreadParams = {
@@ -53,8 +57,32 @@ export default function NostrChatThread() {
     identity?.relays,
     isNonEmptyString(peerNpub) ? [peerNpub] : []
   )
-  const { input, items, loadOlder, loadingOlder, send, sending, setInput } =
-    useNostrChatThread(identity, protocol, peerNpub, peerPubkey ?? undefined)
+  const {
+    clearReplyTo,
+    input,
+    items,
+    loadOlder,
+    loadingOlder,
+    replyParent,
+    send,
+    sending,
+    setInput,
+    setReplyTo
+  } = useNostrChatThread(identity, protocol, peerNpub, peerPubkey ?? undefined)
+  const canReply = protocol === 'nip17'
+
+  function handleOpenMessage(messageId: string) {
+    if (!identity) {
+      return
+    }
+    router.push(nostrChatMessageHref(identity.npub, messageId))
+  }
+
+  const messageActions = useNostrChatMessageActions({
+    messages: items.map((item) => item.dm),
+    onDetails: handleOpenMessage,
+    onReply: setReplyTo
+  })
 
   if (!identity || peerPubkey === null) {
     return (
@@ -132,6 +160,26 @@ export default function NostrChatThread() {
         onAuthorPress={handleAuthorPress}
         onLoadOlder={handleLoadOlder}
         loadingOlder={loadingOlder}
+        onMessageLongPress={messageActions.openActions}
+        onOpenMessage={handleOpenMessage}
+        replyTo={
+          replyParent
+            ? {
+                authorName: getAuthorLabel(formattedNpubs, replyParent.author),
+                text: replyParent.description
+              }
+            : undefined
+        }
+        onCancelReply={clearReplyTo}
+      />
+      <SSMessageActionsModal
+        visible={messageActions.selectedMessage !== undefined}
+        preview={messageActions.selectedMessage?.description ?? ''}
+        canReply={canReply}
+        onReply={messageActions.handleReply}
+        onCopy={messageActions.handleCopy}
+        onDetails={messageActions.handleDetails}
+        onClose={messageActions.closeActions}
       />
     </SSMainLayout>
   )

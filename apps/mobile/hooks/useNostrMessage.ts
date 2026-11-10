@@ -71,6 +71,20 @@ function getNostrMessageDisplay({
   }
 }
 
+/** Short name for an author: display name, then alias, then short npub. */
+export function getAuthorLabel(
+  formattedNpubs: Map<string, AuthorDisplayInfo>,
+  author: string
+): string {
+  const info = formattedNpubs.get(author)
+  return (
+    info?.displayName ??
+    info?.alias ??
+    info?.npubShort ??
+    formatNpub(getAuthorNpub(author))
+  )
+}
+
 export function useNostrMessage(params: UseNostrMessageParams) {
   return getNostrMessageDisplay(params)
 }

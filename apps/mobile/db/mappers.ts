@@ -162,6 +162,7 @@ type NostrDmRow = {
   content_pubkey: string | null
   pending: number
   read: number | null
+  reply_to_id?: string | null
 }
 
 /**
@@ -433,7 +434,8 @@ function rowToNostrDm(row: NostrDmRow): NostrDM {
     id: row.id,
     label: row.label,
     pending: row.pending === 1 ? true : undefined,
-    read: row.read === null ? undefined : row.read === 1
+    read: row.read === null ? undefined : row.read === 1,
+    ...(row.reply_to_id ? { replyToId: row.reply_to_id } : {})
   }
 }
 

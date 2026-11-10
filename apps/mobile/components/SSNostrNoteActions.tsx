@@ -5,6 +5,7 @@ import SSIconHeart from '@/components/icons/SSIconHeart'
 import SSIconLightning from '@/components/icons/SSIconLightning'
 import SSIconRepost from '@/components/icons/SSIconRepost'
 import SSIconButton from '@/components/SSIconButton'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -31,6 +32,7 @@ type SSNostrNoteActionsProps = {
   children?: ReactNode
   likeCount: number
   likedByMe: boolean
+  onLikeCountPress?: () => void
   onLikePress: () => void
   onRepostPress: () => void
   repostCount: number
@@ -66,6 +68,7 @@ function SSNostrNoteActions({
   children,
   likeCount,
   likedByMe,
+  onLikeCountPress,
   onLikePress,
   onRepostPress,
   repostCount,
@@ -78,6 +81,8 @@ function SSNostrNoteActions({
 }: SSNostrNoteActionsProps) {
   const iconSize = ICON_SIZE[size]
   const disabled = !canEngage || toggling
+  const likeCountPressable =
+    Boolean(onLikeCountPress) && showCounts && likeCount > 0
 
   return (
     <SSHStack gap="none" style={[styles.row, style]}>
@@ -114,7 +119,7 @@ function SSNostrNoteActions({
         disabled={disabled}
         hitSlop={ACTION_HIT_SLOP}
         onPress={onLikePress}
-        style={styles.action}
+        style={[styles.action, likeCountPressable && styles.actionBeforeCount]}
       >
         <SSIconHeart
           width={iconSize}
@@ -125,9 +130,20 @@ function SSNostrNoteActions({
         <ActionCount
           active={likedByMe}
           count={likeCount}
-          visible={showCounts}
+          visible={showCounts && !likeCountPressable}
         />
       </SSIconButton>
+      {likeCountPressable ? (
+        <SSPressable
+          accessibilityLabel={t('nostrIdentity.note.reactions.showAll')}
+          accessibilityRole="button"
+          hitSlop={ACTION_HIT_SLOP}
+          onPress={onLikeCountPress}
+          style={styles.count}
+        >
+          <ActionCount active={likedByMe} count={likeCount} visible />
+        </SSPressable>
+      ) : null}
       {zap ? (
         <SSIconButton
           accessibilityHint={t('nostrIdentity.note.zapLongPressHint')}
@@ -160,6 +176,15 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 36,
     minWidth: 52,
+    paddingRight: 12
+  },
+  actionBeforeCount: {
+    minWidth: 0,
+    paddingRight: 6
+  },
+  count: {
+    justifyContent: 'center',
+    minHeight: 36,
     paddingRight: 12
   },
   row: {

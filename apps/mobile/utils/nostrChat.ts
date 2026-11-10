@@ -2,10 +2,18 @@ import NDK, {
   NDKEvent,
   type NostrEvent as NDKNostrEvent
 } from '@nostr-dev-kit/ndk'
-import { getPublicKey, nip59 } from 'nostr-tools'
+import { getPublicKey } from 'nostr-tools'
+import * as nostrKinds from 'nostr-tools/kinds'
 import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
+import {
+  type NostrRumor,
+  createChatRumor,
+  createDerivedGiftWrap,
+  createDerivedWrapDeletion,
+  toNdkEvent
+} from '@/api/nostrGiftWrap'
 import {
   NOSTR_CHAT_CATCH_UP_LIMIT,
   NOSTR_CHAT_HISTORY_PAGE_LIMIT,
@@ -19,6 +27,7 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
+  deleteChatMessages,
   failInterruptedChatSends,
   insertChatMessage,
   markChatThreadRead,
@@ -26,20 +35,32 @@ import {
 } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
 import {
+  deleteMessageWraps,
+  getMessageWraps,
+  getTombstoneAuthors,
+  recordMessageWraps,
+  tombstoneMessages
+} from '@/db/nostrMessageState'
+import {
   chatProcessedScope,
   isNostrEventProcessed,
   markNostrEventsProcessed
 } from '@/db/nostrProcessedEvents'
 import {
+  getChatMessage,
   getNewestSentChatMessageCreatedAt,
   getOldestChatMessageCreatedAt,
   hasChatMessage,
+  hasOutgoingChatMessage,
   listChatConversations,
+  listChatReplies,
   listChatThread
 } from '@/db/queries/nostrChat'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { queryClient } from '@/lib/queryClient'
+import { getNostrFollowCache } from '@/storage/mmkv'
 import { useNostrStore } from '@/store/nostr'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { Colors } from '@/styles'
 import {
   type NostrChatConversationItem,
@@ -60,13 +81,20 @@ import {
   getSecretFromNsec,
   safeNpubEncode
 } from '@/utils/nostr'
+import { isInboundMessageAllowed } from '@/utils/nostrChatFilter'
+import {
+  buildMessageDeletionTags,
+  buildReplyTag,
+  getDeletionTargetIds,
+  getReplyToId
+} from '@/utils/nostrChatTags'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import { getNostrTagValue } from '@/utils/nostrEvent'
 import { registerNostrLifecycleHandler } from '@/utils/nostrLifecycle'
 import { isNonEmptyString } from '@/utils/string'
 
-const NOSTR_CHAT_RUMOR_KIND = 14
+const NOSTR_CHAT_RUMOR_KIND = nostrKinds.PrivateDirectMessage
 
 /** Kind 14 (NIP-17 chat message) rumor fields the chat pipeline reads. */
 const Nip17ChatRumorSchema = z.object({
@@ -79,6 +107,16 @@ const Nip17ChatRumorSchema = z.object({
 })
 
 type Nip17ChatRumor = z.infer<typeof Nip17ChatRumorSchema>
+
+/** Kind 5 rumor: a gift-wrapped request to delete chat messages. */
+const Nip17DeletionRumorSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal(nostrKinds.EventDeletion),
+  pubkey: z.string().min(1),
+  tags: z.unknown().optional()
+})
+
+type Nip17DeletionRumor = z.infer<typeof Nip17DeletionRumorSchema>
 
 type ChatIdentity = {
   npub: string
@@ -94,6 +132,12 @@ const nostrChatQueryKeys = {
     protocol
   ],
   identity: (identityNpub: string) => ['nostrChat', identityNpub],
+  message: (identityNpub: string, messageId: string) => [
+    'nostrChat',
+    identityNpub,
+    'message',
+    messageId
+  ],
   profiles: (peersKey: string, relaysKey: string) => [
     'nostrChatProfiles',
     peersKey,
@@ -304,16 +348,29 @@ async function isPublished(outcome: Promise<PublishOutcome>): Promise<boolean> {
   return ok
 }
 
-function toGiftWrapNdkEvent(
-  rumor: ReturnType<typeof nip59.createRumor>,
-  senderSecretKey: Uint8Array,
-  recipientPubkey: string
-): NDKEvent {
-  const seal = nip59.createSeal(rumor, senderSecretKey, recipientPubkey)
-  return new NDKEvent(
-    new NDK({ autoConnectUserRelays: false, enableOutboxModel: false }),
-    nip59.createWrap(seal, recipientPubkey)
-  )
+function chatScope(identityNpub: string): string {
+  return chatProcessedScope(identityNpub)
+}
+
+type Nip17Delivery = {
+  peerNpub: string
+  peerPubkey: string
+  senderSecretKey: Uint8Array
+}
+
+function resolveNip17Delivery(
+  identity: ChatIdentity,
+  peerNpub: string
+): Nip17Delivery {
+  const peerPubkey = getPubKeyHexFromNpub(peerNpub)
+  if (peerPubkey === null) {
+    throw new Error('Invalid peer npub')
+  }
+  const senderSecretKey = getSecretFromNsec(identity.nsec)
+  if (!senderSecretKey) {
+    throw new Error('Invalid identity nsec')
+  }
+  return { peerNpub, peerPubkey, senderSecretKey }
 }
 
 /**
@@ -323,45 +380,92 @@ function toGiftWrapNdkEvent(
  * the message under one id. (nostr-tools' nip17.wrapManyEvents builds a
  * separate rumor per recipient, so it is not used.)
  */
-function createNip17ChatWraps(
-  senderSecretKey: Uint8Array,
-  peerPubkey: string,
-  text: string
+function createNip17Rumor(
+  { peerPubkey, senderSecretKey }: Nip17Delivery,
+  kind: number,
+  content: string,
+  extraTags: string[][] = []
+): NostrRumor {
+  return createChatRumor({
+    content,
+    kind,
+    senderSecretKey,
+    tags: [['p', peerPubkey], ...extraTags]
+  })
+}
+
+/**
+ * Wraps the rumor for the peer (mined to the configured proof of work) and
+ * for ourselves, and records both wrap ids so they can be deleted later.
+ */
+async function wrapNip17Rumor(
+  identity: ChatIdentity,
+  delivery: Nip17Delivery,
+  rumor: NostrRumor
 ) {
-  const rumor = nip59.createRumor(
-    { content: text, kind: NOSTR_CHAT_RUMOR_KIND, tags: [['p', peerPubkey]] },
-    senderSecretKey
-  )
-  return {
+  const { peerPubkey, senderSecretKey } = delivery
+  const ownPubkey = getPublicKey(senderSecretKey)
+  const { sendPowBits } = useNostrChatSettingsStore.getState()
+  const wrap = await createDerivedGiftWrap(rumor, senderSecretKey, peerPubkey, {
+    powBits: sendPowBits
+  })
+  const selfWrap = await createDerivedGiftWrap(
     rumor,
-    selfWrap: toGiftWrapNdkEvent(
-      rumor,
-      senderSecretKey,
-      getPublicKey(senderSecretKey)
-    ),
-    wrap: toGiftWrapNdkEvent(rumor, senderSecretKey, peerPubkey)
+    senderSecretKey,
+    ownPubkey
+  )
+  recordMessageWraps(chatScope(identity.npub), rumor.id, [
+    { recipientPubkey: peerPubkey, wrapId: wrap.id },
+    { recipientPubkey: ownPubkey, wrapId: selfWrap.id }
+  ])
+  return { selfWrap: toNdkEvent(selfWrap), wrap: toNdkEvent(wrap) }
+}
+
+/**
+ * Races our own relays against the recipient's announced inbox relays: the
+ * first successful publish counts as delivered. Base sets made of read-only
+ * indexing relays reject writes, so the inbox copy must count. Losing the
+ * self copy only delays sync to our other devices.
+ */
+async function publishNip17Rumor(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  delivery: Nip17Delivery,
+  rumor: NostrRumor
+): Promise<PublishOutcome> {
+  const { selfWrap, wrap } = await wrapNip17Rumor(identity, delivery, rumor)
+  const baseRelays = api.getRelays()
+  const wrapRaw = await wrap.toNostrEvent()
+  const basePublish = publishWithOutcome(api, wrap)
+  const inboxPublish = routeWrapToRecipientInbox(
+    delivery.peerNpub,
+    baseRelays,
+    wrapRaw
+  )
+  const selfPublish = publishWithOutcome(api, selfWrap)
+
+  const delivered = await anySucceeded([isPublished(basePublish), inboxPublish])
+  await selfPublish
+  if (delivered) {
+    return { ok: true }
   }
+  const { error } = await basePublish
+  return { error, ok: false }
 }
 
 async function sendNip17Chat(
   api: NostrAPI,
   identity: ChatIdentity,
   peerNpub: string,
-  text: string
+  text: string,
+  replyToId?: string
 ): Promise<void> {
-  const peerPubkey = getPubKeyHexFromNpub(peerNpub)
-  if (peerPubkey === null) {
-    throw new Error('Invalid peer npub')
-  }
-  const senderSecretKey = getSecretFromNsec(identity.nsec)
-  if (!senderSecretKey) {
-    throw new Error('Invalid identity nsec')
-  }
-
-  const { rumor, selfWrap, wrap } = createNip17ChatWraps(
-    senderSecretKey,
-    peerPubkey,
-    text
+  const delivery = resolveNip17Delivery(identity, peerNpub)
+  const rumor = createNip17Rumor(
+    delivery,
+    NOSTR_CHAT_RUMOR_KIND,
+    text,
+    replyToId ? [buildReplyTag(replyToId)] : []
   )
 
   const message: NostrChatMessage = {
@@ -370,32 +474,23 @@ async function sendNip17Chat(
     direction: 'out',
     id: rumor.id,
     identityNpub: identity.npub,
-    peerPubkey,
+    peerPubkey: delivery.peerPubkey,
     protocol: 'nip17',
     read: true,
+    replyToId,
     status: 'pending'
   }
   ingestChatMessage(message)
   flushChatMessages()
 
-  const baseRelays = api.getRelays()
-  const wrapRaw = await wrap.toNostrEvent()
-
-  // Race our own relays against the recipient's announced inbox relays: the
-  // first successful publish marks the message sent. Base sets made of
-  // read-only indexing relays reject writes, so the inbox copy must count.
-  const basePublish = publishWithOutcome(api, wrap)
-  const inboxPublish = routeWrapToRecipientInbox(peerNpub, baseRelays, wrapRaw)
-  // Losing the self copy only delays sync to our other devices.
-  const selfPublish = publishWithOutcome(api, selfWrap)
-
-  const delivered = await anySucceeded([isPublished(basePublish), inboxPublish])
-  await selfPublish
-
-  if (!delivered) {
+  const outcome = await publishNip17Rumor(api, identity, delivery, rumor).catch(
+    (error: unknown) => ({ error, ok: false })
+  )
+  if (!outcome.ok) {
     updateChatMessageStatus(identity.npub, message.id, 'failed')
-    const { error } = await basePublish
-    throw error instanceof Error ? error : new NostrPublishError([])
+    throw outcome.error instanceof Error
+      ? outcome.error
+      : new NostrPublishError([])
   }
   updateChatMessageStatus(identity.npub, message.id, 'sent')
 }
@@ -411,10 +506,16 @@ async function sendNip04Chat(
     throw new Error('Invalid peer npub')
   }
 
-  const event = await api.createKind4(identity.nsec, peerNpub, text)
+  const { sendPowBits } = useNostrChatSettingsStore.getState()
+  const event = await api.createKind4(
+    identity.nsec,
+    peerNpub,
+    text,
+    sendPowBits
+  )
   const message: NostrChatMessage = {
     content: text,
-    created_at: nowInSeconds(),
+    created_at: event.created_at ?? nowInSeconds(),
     direction: 'out',
     id: event.id ?? `pending-${Date.now()}`,
     identityNpub: identity.npub,
@@ -433,6 +534,103 @@ async function sendNip04Chat(
     updateChatMessageStatus(identity.npub, message.id, 'failed')
     throw error
   }
+}
+
+function getChatMessageAuthor(
+  message: NostrChatMessage,
+  ownHex: string | null
+): string | null {
+  return message.direction === 'out' ? ownHex : message.peerPubkey
+}
+
+/** Removes messages locally and remembers them so a relay replay can't restore them. */
+function forgetChatMessages(
+  identityNpub: string,
+  tombstones: { author: string; messageId: string }[]
+): void {
+  if (tombstones.length === 0) {
+    return
+  }
+  const scope = chatScope(identityNpub)
+  const ids = tombstones.map((tombstone) => tombstone.messageId)
+  tombstoneMessages(scope, tombstones, nowInSeconds())
+  deleteChatMessages(identityNpub, ids)
+  deleteMessageWraps(scope, ids)
+  invalidateChatQueries(identityNpub)
+}
+
+function deleteChatMessageForMe(identityNpub: string, messageId: string): void {
+  const message = getChatMessage(identityNpub, messageId)
+  const author = message
+    ? getChatMessageAuthor(message, getPubKeyHexFromNpub(identityNpub))
+    : null
+  if (!message || author === null) {
+    return
+  }
+  forgetChatMessages(identityNpub, [{ author, messageId }])
+}
+
+/** NIP-09 for the gift wraps we published, signed by each wrap's own key. */
+async function requestChatWrapDeletion(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  delivery: Nip17Delivery,
+  messageId: string
+): Promise<void> {
+  const wraps = getMessageWraps(chatScope(identity.npub), messageId)
+  await Promise.allSettled(
+    wraps.map((wrap) =>
+      publishWithOutcome(
+        api,
+        toNdkEvent(
+          createDerivedWrapDeletion(
+            delivery.senderSecretKey,
+            messageId,
+            wrap.recipientPubkey,
+            [wrap.wrapId]
+          )
+        )
+      )
+    )
+  )
+}
+
+/**
+ * Asks the peer (and our other devices) to drop one of our messages, then
+ * asks relays to drop the wraps and deletes it here. NIP-04 events are signed
+ * by the identity, so a plain NIP-09 request covers them.
+ */
+async function deleteChatMessageForEveryone(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  peerNpub: string,
+  messageId: string
+): Promise<void> {
+  const message = getChatMessage(identity.npub, messageId)
+  const ownHex = getPubKeyHexFromNpub(identity.npub)
+  if (!message || message.direction !== 'out' || ownHex === null) {
+    return
+  }
+  if (message.protocol === 'nip04') {
+    await api.requestDeletion([messageId], identity.nsec)
+    forgetChatMessages(identity.npub, [{ author: ownHex, messageId }])
+    return
+  }
+  const delivery = resolveNip17Delivery(identity, peerNpub)
+  const rumor = createNip17Rumor(
+    delivery,
+    nostrKinds.EventDeletion,
+    '',
+    buildMessageDeletionTags([messageId])
+  )
+  const outcome = await publishNip17Rumor(api, identity, delivery, rumor)
+  if (!outcome.ok) {
+    throw outcome.error instanceof Error
+      ? outcome.error
+      : new NostrPublishError([])
+  }
+  await requestChatWrapDeletion(api, identity, delivery, messageId)
+  forgetChatMessages(identity.npub, [{ author: ownHex, messageId }])
 }
 
 /**
@@ -470,19 +668,83 @@ function getChatPeerFromRumor(
   return peer !== undefined && NOSTR_HEX_PUBKEY_RE.test(peer) ? peer : null
 }
 
+function isInboundAllowed(
+  identityNpub: string,
+  ownHex: string | null,
+  senderHex: string,
+  pow: number
+): boolean {
+  const isOwn = senderHex === ownHex
+  const { minInboundPowBits } = useNostrChatSettingsStore.getState()
+  if (isOwn || minInboundPowBits <= 0) {
+    return true
+  }
+  // A dropped message is never decrypted again, so a follow list that has
+  // not loaded yet must not drop the messages of people we follow.
+  const followed = getNostrFollowCache(identityNpub)
+  return isInboundMessageAllowed({
+    hasConversation: hasOutgoingChatMessage(identityNpub, senderHex),
+    isFollowed: followed === null || followed.includes(senderHex),
+    isOwn,
+    minPowBits: minInboundPowBits,
+    pow
+  })
+}
+
+function isTombstoned(
+  identityNpub: string,
+  messageId: string,
+  author: string
+): boolean {
+  return (
+    getTombstoneAuthors(chatScope(identityNpub), [messageId]).get(messageId) ===
+    author
+  )
+}
+
+/**
+ * Only the author of a message can delete it: each target is dropped when
+ * the requester wrote it, and remembered as deleted by the requester so a
+ * message arriving after its deletion request is dropped too.
+ */
+function applyChatDeletionRumor(
+  identityNpub: string,
+  ownHex: string | null,
+  rumor: Nip17DeletionRumor
+): void {
+  const targetIds = getDeletionTargetIds(rumor.tags)
+  const owned = targetIds.filter((messageId) => {
+    const message = getChatMessage(identityNpub, messageId)
+    return !message || getChatMessageAuthor(message, ownHex) === rumor.pubkey
+  })
+  forgetChatMessages(
+    identityNpub,
+    owned.map((messageId) => ({ author: rumor.pubkey, messageId }))
+  )
+}
+
 /** Other gift wraps (account label sync etc.) are not chat and are ignored. */
 function ingestChatRumor(
   identityNpub: string,
   ownHex: string | null,
   wrap: NostrChatGiftWrap
 ): void {
+  const deletion = Nip17DeletionRumorSchema.safeParse(wrap.rumor)
+  if (deletion.success) {
+    applyChatDeletionRumor(identityNpub, ownHex, deletion.data)
+    return
+  }
   const parsedRumor = Nip17ChatRumorSchema.safeParse(wrap.rumor)
   if (!parsedRumor.success) {
     return
   }
   const rumor = parsedRumor.data
   const peerPubkey = getChatPeerFromRumor(rumor, ownHex)
-  if (peerPubkey === null) {
+  if (
+    peerPubkey === null ||
+    isTombstoned(identityNpub, rumor.id, rumor.pubkey) ||
+    !isInboundAllowed(identityNpub, ownHex, rumor.pubkey, wrap.pow)
+  ) {
     return
   }
   const isSelfCopy = rumor.pubkey === ownHex
@@ -495,6 +757,7 @@ function ingestChatRumor(
     peerPubkey,
     protocol: 'nip17',
     read: isSelfCopy,
+    replyToId: getReplyToId(rumor.tags),
     status: 'sent'
   })
 }
@@ -503,6 +766,15 @@ function ingestKind4ChatEvent(
   identityNpub: string,
   event: NostrKind4ChatEvent
 ): void {
+  const ownHex = getPubKeyHexFromNpub(identityNpub)
+  const author = event.direction === 'out' ? ownHex : event.peerPubkey
+  if (
+    author === null ||
+    isTombstoned(identityNpub, event.id, author) ||
+    !isInboundAllowed(identityNpub, ownHex, author, event.pow)
+  ) {
+    return
+  }
   ingestChatMessage({
     content: event.content,
     created_at: event.createdAt,
@@ -948,9 +1220,53 @@ function toChatThreadItem(
     id: message.id,
     label: 0,
     pending: message.status === 'pending',
-    read: message.read
+    read: message.read,
+    replyToId: message.replyToId
   }
   return { dm, failed: message.status === 'failed' }
+}
+
+function getChatThreadAuthors(
+  identityNpub: string,
+  peerPubkey: string
+): ChatThreadAuthors {
+  return {
+    ownHex: getPubKeyHexFromNpub(identityNpub) ?? '',
+    ownNpub: identityNpub,
+    peerNpub: safeNpubEncode(peerPubkey)
+  }
+}
+
+type ChatMessageDetail = {
+  item: NostrChatThreadItem
+  message: NostrChatMessage
+  parent: NostrChatThreadItem | null
+  replies: NostrChatThreadItem[]
+  wrapCount: number
+}
+
+/** One message with its reply parent and direct replies, for the detail page. */
+function loadChatMessageDetail(
+  identityNpub: string,
+  messageId: string
+): ChatMessageDetail | null {
+  const message = getChatMessage(identityNpub, messageId)
+  if (!message) {
+    return null
+  }
+  const authors = getChatThreadAuthors(identityNpub, message.peerPubkey)
+  const parent = message.replyToId
+    ? getChatMessage(identityNpub, message.replyToId)
+    : null
+  return {
+    item: toChatThreadItem(message, authors),
+    message,
+    parent: parent ? toChatThreadItem(parent, authors) : null,
+    replies: listChatReplies(identityNpub, messageId).map((reply) =>
+      toChatThreadItem(reply, authors)
+    ),
+    wrapCount: getMessageWraps(chatScope(identityNpub), messageId).length
+  }
 }
 
 /**
@@ -968,11 +1284,7 @@ function loadChatThreadItems(
       queryKey: nostrChatQueryKeys.conversations(identityNpub, protocol)
     })
   }
-  const authors: ChatThreadAuthors = {
-    ownHex: getPubKeyHexFromNpub(identityNpub) ?? '',
-    ownNpub: identityNpub,
-    peerNpub: safeNpubEncode(peerPubkey)
-  }
+  const authors = getChatThreadAuthors(identityNpub, peerPubkey)
   return listChatThread(identityNpub, protocol, peerPubkey, limit).map(
     (message) => toChatThreadItem(message, authors)
   )
@@ -1068,6 +1380,8 @@ export {
   buildChatThreadAuthors,
   clearRecipientRelaysCache,
   closeActiveChatPipeline,
+  deleteChatMessageForEveryone,
+  deleteChatMessageForMe,
   flushChatMessages,
   getChatLiveWindow,
   getChatPipelineApi,
@@ -1075,6 +1389,7 @@ export {
   ingestChatMessage,
   invalidateChatQueries,
   listChatConversationItems,
+  loadChatMessageDetail,
   loadChatPeerProfiles,
   loadChatThreadItems,
   loadOlderChatHistory,
@@ -1085,4 +1400,4 @@ export {
   subscribeChatPipelineStatus,
   subscribeToIdentityChat
 }
-export type { ChatIdentity, ChatPipelineLease }
+export type { ChatIdentity, ChatMessageDetail, ChatPipelineLease }

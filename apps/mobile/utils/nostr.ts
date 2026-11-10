@@ -1,4 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
+import { bytesToHex } from '@noble/hashes/utils'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
 import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
@@ -121,6 +122,27 @@ export function getSecretFromNsec(nsec: string): Uint8Array | null {
   } catch {
     return null
   }
+}
+
+export type NostrKeyFormat = 'bech32' | 'hex'
+
+export function formatNostrKey(
+  key: string,
+  format: NostrKeyFormat
+): string | null {
+  const trimmed = key.trim()
+  const type = getNip19Type(trimmed)
+  if (type !== 'npub' && type !== 'nsec') {
+    return null
+  }
+  if (format === 'bech32') {
+    return trimmed
+  }
+  if (type === 'npub') {
+    return getPubKeyHexFromNpub(trimmed)
+  }
+  const secret = getSecretFromNsec(trimmed)
+  return secret ? bytesToHex(secret) : null
 }
 
 export function parseNostrTransaction(message: string): TransactionData | null {

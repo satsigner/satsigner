@@ -10,6 +10,7 @@ import {
   NOSTR_PROFILE_CACHE_TTL_SECS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { identityChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import {
   type NostrChatConversationItem,
   type NostrChatProtocol,
@@ -21,6 +22,7 @@ import {
   getChatPipelineStatus,
   invalidateChatQueries,
   listChatConversationItems,
+  loadChatMessageDetail,
   loadChatPeerProfiles,
   loadChatThreadItems,
   loadOlderChatHistory,
@@ -124,10 +126,14 @@ async function sendChatMessage(
   identity: { npub: string; nsec: string },
   protocol: NostrChatProtocol,
   peerNpub: string,
-  text: string
+  text: string,
+  replyToId?: string
 ): Promise<void> {
-  const sendForProtocol = protocol === 'nip17' ? sendNip17Chat : sendNip04Chat
-  await sendForProtocol(api, identity, peerNpub, text)
+  if (protocol === 'nip17') {
+    await sendNip17Chat(api, identity, peerNpub, text, replyToId)
+    return
+  }
+  await sendNip04Chat(api, identity, peerNpub, text)
 }
 
 export function useNostrChatThread(
@@ -143,6 +149,20 @@ export function useNostrChatThread(
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
   const focused = useIsFocused()
+  const chatKey = identityChatKey(identityNpub, protocol, peerPubkey ?? '')
+  const replyToId = useNostrChatReplyStore(
+    (state) => state.replyToByChat[chatKey]
+  )
+  const setReplyStore = useNostrChatReplyStore((state) => state.setReplyTo)
+  const clearReplyStore = useNostrChatReplyStore((state) => state.clearReplyTo)
+
+  function setReplyTo(messageId: string) {
+    setReplyStore(chatKey, messageId)
+  }
+
+  function clearReplyTo() {
+    clearReplyStore(chatKey)
+  }
 
   const { data } = useQuery({
     enabled: focused && Boolean(identity && peerPubkey),
@@ -157,6 +177,18 @@ export function useNostrChatThread(
     )
   })
   const items = data ?? NO_THREAD_ITEMS
+
+  // The parent can sit past the loaded page (a reply started from the
+  // message details), so it falls back to the stored message.
+  const loadedReplyParent = replyToId
+    ? items.find((item) => item.dm.id === replyToId)
+    : undefined
+  const { data: storedReplyParent } = useQuery({
+    enabled: Boolean(replyToId) && !loadedReplyParent,
+    queryFn: () => loadChatMessageDetail(identityNpub, replyToId ?? ''),
+    queryKey: nostrChatQueryKeys.message(identityNpub, replyToId ?? '')
+  })
+  const replyParent = loadedReplyParent?.dm ?? storedReplyParent?.item.dm
 
   /** Older stored messages first; relays are paged only past local history. */
   async function loadOlder() {
@@ -186,20 +218,26 @@ export function useNostrChatThread(
     // the draft is restored if the send fails.
     setInput('')
     setSending(true)
+    clearReplyTo()
     // Prefer the warm pipeline (live relay connections) over a fresh API.
     const pipelineApi = getChatPipelineApi(identity.npub)
     const api =
       pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
+    const replyParentId = replyParent?.id
     try {
       await sendChatMessage(
         api,
         { npub: identity.npub, nsec: identity.nsec },
         protocol,
         peerNpub,
-        text
+        text,
+        replyParentId
       )
     } catch (error) {
       setInput(text)
+      if (replyParentId) {
+        setReplyTo(replyParentId)
+      }
       invalidateChatQueries(identity.npub)
       setSending(false)
       if (!pipelineApi) {
@@ -214,5 +252,16 @@ export function useNostrChatThread(
     }
   }
 
-  return { input, items, loadOlder, loadingOlder, send, sending, setInput }
+  return {
+    clearReplyTo,
+    input,
+    items,
+    loadOlder,
+    loadingOlder,
+    replyParent,
+    send,
+    sending,
+    setInput,
+    setReplyTo
+  }
 }

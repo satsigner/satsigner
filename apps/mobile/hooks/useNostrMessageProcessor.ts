@@ -1,3 +1,5 @@
+import * as nostrKinds from 'nostr-tools/kinds'
+
 import {
   NOSTR_EVENT_FAILURE_TRACK_MAX,
   NOSTR_EVENT_FUTURE_TOLERANCE_SEC,
@@ -21,6 +23,7 @@ import {
   NostrUnwrappedEventSchema
 } from '@/types/models/Nostr'
 import { decompressMessage } from '@/utils/nostr'
+import { applyDeviceDeletionRumor } from '@/utils/nostrDeviceChat'
 import { isRecord } from '@/utils/object'
 
 import { deviceAnnouncementHandler } from './useNostrDeviceAnnouncementHandler'
@@ -209,6 +212,13 @@ async function handleBatchMessage(
   }
   if (message.created_at > nowSeconds() + NOSTR_EVENT_FUTURE_TOLERANCE_SEC) {
     return 'deferred'
+  }
+  if (content.kind === nostrKinds.EventDeletion) {
+    if (!isSenderAllowed(account, content.pubkey)) {
+      return 'deferred'
+    }
+    applyDeviceDeletionRumor(account.id, content)
+    return 'processed'
   }
   const context = buildHandlerContext(account, content, onPendingDM)
   if (!context) {
