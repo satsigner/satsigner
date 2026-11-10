@@ -5,13 +5,18 @@ import { toast } from 'sonner-native'
 
 import { getMessageWraps } from '@/db/nostrMessageState'
 import { copyChatMessageText } from '@/hooks/useNostrChatMessageActions'
+import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useNostrStore } from '@/store/nostr'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { formatNpub } from '@/utils/format'
+import {
+  type AuthorDisplayInput,
+  buildAuthorDisplayMap
+} from '@/utils/nostrAuthorDisplay'
 import {
   deleteDeviceMessageForEveryone,
   deleteDeviceMessageForMe,
@@ -35,28 +40,38 @@ import {
 
 const DEVICE_MESSAGE_WRAPS_QUERY_KEY = 'nostrDeviceMessageWraps'
 
-function getDeviceAuthorLabel(account: Account, message: NostrDM): string {
-  const authorNpub = toAuthorNpub(message.author)
-  const name =
-    account.nostr?.npubAliases?.[authorNpub] ??
-    account.nostr?.npubProfiles?.[authorNpub]?.displayName ??
-    formatNpub(authorNpub)
-  if (!isOwnDeviceMessage(account, message)) {
-    return name
-  }
-  return `${name}${t('account.nostrSync.devicesGroupChat.youSuffix')}`
-}
+type DeviceAuthorLabeler = (message: NostrDM) => string
 
-function buildDevicePreview(account: Account, message: NostrDM) {
-  return buildMessagePreview(message, getDeviceAuthorLabel(account, message))
+/** Same names as the devices chat, plus "(You)" on this device's messages. */
+function createDeviceAuthorLabeler(
+  account: Account,
+  profiles: AuthorDisplayInput['profiles']
+): DeviceAuthorLabeler {
+  const authors = buildAuthorDisplayMap({
+    dms: account.nostr.dms,
+    members: [],
+    nostr: account.nostr,
+    profiles
+  })
+  return (message) => {
+    const name = getAuthorLabel(authors, message.author)
+    if (!isOwnDeviceMessage(account, message)) {
+      return name
+    }
+    return `${name}${t('account.nostrSync.devicesGroupChat.youSuffix')}`
+  }
 }
 
 function loadDeviceMessageDetail(
   account: Account,
   messageId: string,
   wrapCount: number,
-  failed: boolean
+  failed: boolean,
+  labelFor: DeviceAuthorLabeler
 ) {
+  function buildDevicePreview(message: NostrDM) {
+    return buildMessagePreview(message, labelFor(message))
+  }
   const dms = account.nostr?.dms ?? []
   const message = dms.find((dm) => dm.id === messageId)
   if (!message) {
@@ -72,11 +87,9 @@ function loadDeviceMessageDetail(
       message.id
     ),
     message,
-    parent: parent ? buildDevicePreview(account, parent) : null,
-    preview: buildDevicePreview(account, message),
-    replies: findMessageReplies(dms, message.id).map((reply) =>
-      buildDevicePreview(account, reply)
-    ),
+    parent: parent ? buildDevicePreview(parent) : null,
+    preview: buildDevicePreview(message),
+    replies: findMessageReplies(dms, message.id).map(buildDevicePreview),
     rows: buildMessageDetailRows({
       authorNpub: toAuthorNpub(message.author),
       createdAt: message.created_at,
@@ -121,6 +134,7 @@ export function useNostrDeviceMessageDetail(
     state.accounts.find((a) => a.id === accountId)
   )
   const setReplyTo = useNostrChatReplyStore((state) => state.setReplyTo)
+  const profiles = useNostrStore((state) => state.profiles)
   const [deleting, setDeleting] = useState(false)
 
   const { data: wrapCount = 0 } = useQuery({
@@ -137,7 +151,13 @@ export function useNostrDeviceMessageDetail(
 
   const detail =
     account && messageId
-      ? loadDeviceMessageDetail(account, messageId, wrapCount, failed)
+      ? loadDeviceMessageDetail(
+          account,
+          messageId,
+          wrapCount,
+          failed,
+          createDeviceAuthorLabeler(account, profiles)
+        )
       : null
 
   function reply() {
