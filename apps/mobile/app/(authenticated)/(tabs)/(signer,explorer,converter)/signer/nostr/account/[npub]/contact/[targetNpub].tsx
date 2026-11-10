@@ -16,7 +16,8 @@ import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
-  HEADER_CHROME_HIT_BOX
+  HEADER_CHROME_HIT_BOX,
+  HEADER_INLINE_ICON_SIZE
 } from '@/constants/headerChrome'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
@@ -47,8 +48,6 @@ import {
 } from '@/utils/nostrNavigation'
 import { initiateZap } from '@/utils/nostrZap'
 import { buildPaymentMethods } from '@/utils/paymentMethods'
-
-const HEADER_ICON_SIZE = 16
 
 type ContactParams = {
   npub: string
@@ -316,8 +315,8 @@ export default function NostrContactProfile() {
             >
               <SSIconQR
                 color={Colors.gray[200]}
-                height={HEADER_ICON_SIZE}
-                width={HEADER_ICON_SIZE}
+                height={HEADER_INLINE_ICON_SIZE}
+                width={HEADER_INLINE_ICON_SIZE}
               />
             </SSIconButton>
           ),

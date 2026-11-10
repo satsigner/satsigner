@@ -18,7 +18,8 @@ import SSPaste from '@/components/SSPaste'
 import SSText from '@/components/SSText'
 import {
   HEADER_CHROME_EDGE_NUDGE,
-  HEADER_CHROME_HIT_BOX
+  HEADER_CHROME_HIT_BOX,
+  HEADER_INLINE_ICON_SIZE
 } from '@/constants/headerChrome'
 import {
   NOSTR_PROFILE_QUERY_STALE_TIME_MS,
@@ -50,8 +51,6 @@ import {
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
 import { getIdentityProfileUpdate } from '@/utils/nostrProfile'
-
-const HEADER_ICON_SIZE = 16
 
 type AccountParams = {
   npub: string
@@ -204,8 +203,8 @@ export default function NostrAccountLanding() {
               >
                 <SSIconQR
                   color={Colors.gray[200]}
-                  height={HEADER_ICON_SIZE}
-                  width={HEADER_ICON_SIZE}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
                 />
               </SSIconButton>
               <SSIconButton
@@ -215,8 +214,8 @@ export default function NostrAccountLanding() {
               >
                 <SSIconChatBubble
                   color={Colors.gray[200]}
-                  height={HEADER_ICON_SIZE}
-                  width={HEADER_ICON_SIZE}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
                 />
               </SSIconButton>
               <SSIconButton
@@ -228,8 +227,8 @@ export default function NostrAccountLanding() {
               >
                 <SSIconNostr
                   color={Colors.gray[200]}
-                  height={HEADER_ICON_SIZE}
-                  width={HEADER_ICON_SIZE}
+                  height={HEADER_INLINE_ICON_SIZE}
+                  width={HEADER_INLINE_ICON_SIZE}
                 />
               </SSIconButton>
             </SSHStack>
