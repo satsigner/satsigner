@@ -2,7 +2,9 @@ import { type NostrDM } from '@/types/models/Nostr'
 import {
   buildChatRows,
   buildReplyPreview,
-  findRowIndex
+  findRowIndex,
+  formatChatDayLabel,
+  startOfLocalDay
 } from '@/utils/nostrChatRows'
 
 const DAY = 24 * 60 * 60
@@ -116,5 +118,22 @@ describe('buildReplyPreview', () => {
 
   it('has no text when the parent is not loaded', () => {
     expect(buildReplyPreview('p', new Map()).text).toBeNull()
+  })
+})
+
+describe('formatChatDayLabel', () => {
+  const todayStart = startOfLocalDay(BASE)
+
+  it('names today and yesterday', () => {
+    expect(formatChatDayLabel(todayStart, todayStart)).toBe('Today')
+    expect(formatChatDayLabel(startOfLocalDay(BASE - DAY), todayStart)).toBe(
+      'Yesterday'
+    )
+  })
+
+  it('dates older days', () => {
+    expect(
+      formatChatDayLabel(startOfLocalDay(BASE - 3 * DAY), todayStart)
+    ).toContain('2026')
   })
 })

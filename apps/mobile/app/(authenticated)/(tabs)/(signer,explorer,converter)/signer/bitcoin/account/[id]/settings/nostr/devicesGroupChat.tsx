@@ -33,8 +33,8 @@ import {
   NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
   NOSTR_GROUP_CHAT_PAGE_SIZE
 } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
 import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
+import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { useNostrDeviceChatProfilesFetch } from '@/hooks/useNostrDeviceChatProfilesFetch'
@@ -87,7 +87,7 @@ type GroupChatRowContextValue = {
   formattedNpubs: Map<string, AuthorDisplayInfo>
   keyFingerprintsByAccount: KeyFingerprintsByAccount
   messagesById: ReadonlyMap<string, NostrDM>
-  nowSec: number
+  todayStart: number
   onAuthorPress: (npub: string) => void
   onGoToSignFlow: (messageContent: string) => void
   onLongPress: (msgId: string) => void
@@ -116,7 +116,7 @@ function GroupChatRow({ row }: { row: ChatRow<NostrDM> }) {
   if (row.kind === 'day') {
     return (
       <SSChatDaySeparator
-        label={formatChatDayLabel(row.dayStart, context.nowSec)}
+        label={formatChatDayLabel(row.dayStart, context.todayStart)}
       />
     )
   }
@@ -238,6 +238,7 @@ export default function DevicesGroupChat() {
     scrollToIndex,
     showNewMessages
   } = useNostrChatScroll<ChatRow<NostrDM>>(messages.at(-1)?.id)
+  const todayStart = useLocalDayStart()
 
   const chatKey = deviceChatKey(accountId ?? '')
   const replyToId = useNostrChatReplyStore(
@@ -471,7 +472,6 @@ export default function DevicesGroupChat() {
     formattedNpubs,
     keyFingerprintsByAccount,
     messagesById: new Map(messages.map((dm) => [dm.id, dm])),
-    nowSec: Math.floor(Date.now() / MS_PER_SECOND),
     onAuthorPress: handleAuthorPress,
     onGoToSignFlow: handleGoToSignFlowClick,
     onLongPress: messageActions.openActions,
@@ -479,6 +479,7 @@ export default function DevicesGroupChat() {
     onReplyPreviewPress: handleReplyPreviewPress,
     onRetry: handleRetry,
     onToggleVisibility: handleToggleVisibility,
+    todayStart,
     visibleComponents
   }
 

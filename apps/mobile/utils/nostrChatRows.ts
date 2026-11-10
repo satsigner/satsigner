@@ -87,12 +87,11 @@ function buildReplyPreview(
   }
 }
 
-function formatChatDayLabel(dayStart: number, nowSec: number): string {
-  const today = startOfLocalDay(nowSec)
-  if (dayStart === today) {
+function formatChatDayLabel(dayStart: number, todayStart: number): string {
+  if (dayStart === todayStart) {
     return t('time.today')
   }
-  if (dayStart === startOfLocalDay(today - SECONDS_PER_DAY / 2)) {
+  if (dayStart === startOfLocalDay(todayStart - SECONDS_PER_DAY / 2)) {
     return t('time.yesterday')
   }
   return new Date(dayStart * MS_PER_SECOND).toLocaleDateString(undefined, {

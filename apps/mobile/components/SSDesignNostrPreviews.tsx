@@ -27,6 +27,7 @@ import {
 } from '@/constants/designNostrSamples'
 import { NOSTR_KEY_LINE_BREAK_EVERY } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -77,7 +78,7 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
   const [inboxTab, setInboxTab] = useState<InboxTab>('following')
   const rows = buildChatRows(messages, identityDm)
   const messagesById = new Map(messages.map((message) => [message.id, message]))
-  const nowSec = nowSeconds()
+  const todayStart = useLocalDayStart()
 
   function handleLongPress(messageId: string) {
     setSelected(messagesById.get(messageId))
@@ -106,7 +107,7 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                 return (
                   <SSChatDaySeparator
                     key={row.key}
-                    label={formatChatDayLabel(row.dayStart, nowSec)}
+                    label={formatChatDayLabel(row.dayStart, todayStart)}
                   />
                 )
               }

@@ -12,7 +12,7 @@ import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import { NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD } from '@/constants/nostr'
-import { MS_PER_SECOND } from '@/constants/time'
+import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { type AuthorDisplayInfo, getAuthorLabel } from '@/hooks/useNostrMessage'
 import { t } from '@/locales'
@@ -34,7 +34,7 @@ type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 type ChatThreadRowContext = {
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
-  nowSec: number
+  todayStart: number
   onAuthorPress?: (authorNpub: string) => void
   onLongPress?: (msgId: string) => void
   onReplyPreviewPress: (parentId: string) => void
@@ -65,7 +65,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
   if (row.kind === 'day') {
     return (
       <SSChatDaySeparator
-        label={formatChatDayLabel(row.dayStart, context.nowSec)}
+        label={formatChatDayLabel(row.dayStart, context.todayStart)}
       />
     )
   }
@@ -174,6 +174,7 @@ export default function SSChatThread({
     scrollToIndex,
     showNewMessages
   } = useNostrChatScroll<ChatRow<NostrChatThreadItem>>(items.at(-1)?.dm.id)
+  const todayStart = useLocalDayStart()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -207,12 +208,12 @@ export default function SSChatThread({
   const rowContext: ChatThreadRowContext = {
     formattedNpubs,
     messagesById: new Map(items.map(({ dm }) => [dm.id, dm])),
-    nowSec: Math.floor(Date.now() / MS_PER_SECOND),
     onAuthorPress,
     onLongPress: onMessageLongPress,
     onReplyPreviewPress: handleReplyPreviewPress,
     onToggleVisibility: handleToggleVisibility,
     ownNpub,
+    todayStart,
     visibleComponents
   }
 
