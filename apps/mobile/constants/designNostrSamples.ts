@@ -1,3 +1,9 @@
+import {
+  MS_PER_SECOND,
+  SECONDS_PER_DAY as DAY,
+  SECONDS_PER_HOUR as HOUR,
+  SECONDS_PER_MINUTE as MINUTE
+} from '@/constants/time'
 import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import {
   type NostrChatConversationItem,
@@ -10,10 +16,7 @@ import { type NostrMessagePreview } from '@/utils/nostrMessageDetail'
 
 import { type DesignSampleSet } from './designSampleVariations'
 
-const MINUTE = 60
-const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
-const NOW = Math.floor(Date.now() / 1000)
+const NOW = Math.floor(Date.now() / MS_PER_SECOND)
 
 const ME_HEX =
   '7e7e9c42a91bfef19fa929e5fda1b72e0ebc1a4c1141673e2794234d86addf4e'
