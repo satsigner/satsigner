@@ -799,6 +799,70 @@ describe('bark provider', () => {
     expect(Wallet.open).toHaveBeenCalledTimes(1)
   })
 
+  it('releaseAllWallets cancels a wallet still being created', async () => {
+    const openGate = createDeferred<FakeWallet>()
+    const created = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockResolvedValue(undefined)
+    })
+    Wallet.open.mockReturnValueOnce(openGate.promise)
+    const creating = provider.createWallet({
+      accountId: 'releaseCreating1',
+      datadir: '/tmp/releaseCreating1',
+      mnemonic: MNEMONIC,
+      server: SERVER
+    })
+    await flushPromises()
+
+    const releasing = provider.releaseAllWallets()
+    openGate.resolve(created)
+    await releasing
+
+    await expect(creating).rejects.toThrow('released while it was opening')
+    expect(created.stopDaemonWait).toHaveBeenCalledTimes(1)
+    await expect(provider.fetchBalance('releaseCreating1')).rejects.toThrow(
+      'not opened'
+    )
+  })
+
+  it('releaseAllWallets waits for an earlier release still stopping its daemons', async () => {
+    const stopGate = createDeferred<undefined>()
+    const stopping = buildFakeWallet({
+      stopDaemonWait: jest.fn().mockReturnValue(stopGate.promise)
+    })
+    await openWallet('releaseEarlier1', stopping)
+
+    const firstRelease = provider.releaseAllWallets()
+    const secondReleased = jest.fn()
+    const secondRelease = provider.releaseAllWallets().then(secondReleased)
+    await flushPromises()
+    expect(secondReleased).not.toHaveBeenCalled()
+
+    stopGate.resolve(undefined)
+    await Promise.all([firstRelease, secondRelease])
+    expect(secondReleased).toHaveBeenCalledTimes(1)
+  })
+
+  it('a sync still running on a released wallet is not joined by the next wallet', async () => {
+    const syncGate = createDeferred<undefined>()
+    const released = buildFakeWallet({
+      sync: jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockReturnValueOnce(syncGate.promise)
+    })
+    await openWallet('releaseSync1', released)
+    const staleSync = provider.syncWallet('releaseSync1')
+
+    await provider.releaseAllWallets()
+    const next = buildFakeWallet()
+    await openWallet('releaseSync1', next)
+    await provider.syncWallet('releaseSync1')
+
+    expect(next.sync).toHaveBeenCalledTimes(2)
+    syncGate.resolve(undefined)
+    await staleSync
+  })
+
   it('releaseAllWallets fails an open whose first sync was still running', async () => {
     const syncGate = createDeferred<undefined>()
     const syncing = buildFakeWallet({
