@@ -15,7 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Colors, Typography } from '@/styles'
-import { BackupJsonSchema } from '@/types/models/Backup'
+import { decryptBackup } from '@/utils/backupEncryption'
 import {
   type LoadBackupResult,
   type LoadedBackup,
@@ -24,12 +24,17 @@ import {
   shouldHoldBackupOffscreen
 } from '@/utils/backupFile'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatBytes } from '@/utils/format'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 
 const ENCRYPTED_BACKUP_MAX_HEIGHT = 240
+
+const RECOVER_DECRYPT_ERROR_KEYS = {
+  invalid: 'settings.developer.recoverDecryptError',
+  unsupportedVersion: 'settings.developer.recoverUnsupportedVersion',
+  wrongPassphrase: 'settings.developer.recoverWrongPassphrase'
+} as const
 
 export default function DeveloperRecover() {
   const router = useRouter()
@@ -48,6 +53,7 @@ export default function DeveloperRecover() {
     useState<LoadedBackup | null>(null)
   const [recoverPassphrase, setRecoverPassphrase] = useState('')
   const [recoverDecrypted, setRecoverDecrypted] = useState<string | null>(null)
+  const [isDecryptingBackup, setIsDecryptingBackup] = useState(false)
   const [recoverConfirmOverwrite, setRecoverConfirmOverwrite] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
@@ -111,19 +117,14 @@ export default function DeveloperRecover() {
       toast.error(t('settings.developer.backupPassphraseInvalid'))
       return
     }
-    const result = BackupJsonSchema.safeParse(raw)
-    if (!result.success) {
-      toast.error(t('settings.developer.recoverDecryptError'))
+    setIsDecryptingBackup(true)
+    const result = await decryptBackup(raw, recoverPassphrase)
+    setIsDecryptingBackup(false)
+    if (result.status !== 'decrypted') {
+      toast.error(t(RECOVER_DECRYPT_ERROR_KEYS[result.status]))
       return
     }
-    try {
-      const payload = result.data
-      const key = await pbkdf2Encrypt(recoverPassphrase, payload.salt)
-      const plain = await aesDecrypt(payload.cipher, key, payload.iv)
-      setRecoverDecrypted(plain)
-    } catch {
-      toast.error(t('settings.developer.recoverDecryptError'))
-    }
+    setRecoverDecrypted(result.plaintext)
   }
 
   async function handleRecoverImSure() {
@@ -226,6 +227,7 @@ export default function DeveloperRecover() {
                 <SSButton
                   label={t('settings.developer.recoverDecrypt')}
                   onPress={handleRecoverDecrypt}
+                  loading={isDecryptingBackup}
                   variant="secondary"
                 />
               </SSVStack>
