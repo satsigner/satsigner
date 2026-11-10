@@ -7,6 +7,8 @@ import { Colors } from '@/styles'
 import { type NostrReaction } from '@/types/models/Nostr'
 
 const GLYPH_SIZE = 16
+/** Reaction content is untrusted free text; keep a long one to one short line. */
+const EMOJI_MAX_WIDTH = 96
 
 type SSNostrReactionGlyphProps = {
   reaction: NostrReaction
@@ -42,7 +44,7 @@ function SSNostrReactionGlyph({ reaction }: SSNostrReactionGlyphProps) {
     }
     default: {
       return (
-        <SSText size="sm" numberOfLines={1}>
+        <SSText size="sm" numberOfLines={1} style={styles.emoji}>
           {reaction.content}
         </SSText>
       )
@@ -54,6 +56,9 @@ const styles = StyleSheet.create({
   customEmoji: {
     height: GLYPH_SIZE,
     width: GLYPH_SIZE
+  },
+  emoji: {
+    maxWidth: EMOJI_MAX_WIDTH
   }
 })
 
