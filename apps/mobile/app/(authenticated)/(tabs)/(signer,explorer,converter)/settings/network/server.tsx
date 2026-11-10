@@ -10,6 +10,8 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSPressable from '@/components/SSPressable'
+import SSPublicServerWarningModal from '@/components/SSPublicServerWarningModal'
+import SSServerStatusLabel from '@/components/SSServerStatusLabel'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
 import { useConnectionTest } from '@/hooks/useConnectionTest'
@@ -31,6 +33,12 @@ import {
   successToastDescription
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
+import { isSameServer } from '@/utils/server'
+import {
+  getNewlySelectedPublicServers,
+  getServerPrivacy,
+  isOnionUrl
+} from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.network.server')
 
@@ -53,6 +61,9 @@ export default function NetworkSettings() {
   )
 
   const [connectionStatus] = useVerifyConnection()
+  const { connectionMode, connectionTestInterval } =
+    configs[selectedNetwork].config
+  const [pendingPublicServers, setPendingPublicServers] = useState<Server[]>([])
   const { testing, testConnection } = useConnectionTest()
 
   const [selectedServers, setSelectedServers] = useState<
@@ -149,11 +160,45 @@ export default function NetworkSettings() {
     }
   }
 
-  function handleOnSave() {
+  function isActiveServer(network: Network, server: Server) {
+    return (
+      network === selectedNetwork &&
+      isSameServer(server, selectedServers[network]) &&
+      isSameServer(server, configs[selectedNetwork].server)
+    )
+  }
+
+  function commitSelectedServers() {
     updateServer('bitcoin', selectedServers['bitcoin'])
     updateServer('testnet', selectedServers['testnet'])
     updateServer('signet', selectedServers['signet'])
     router.back()
+  }
+
+  function handleOnSave() {
+    const currentServers = {
+      bitcoin: configs.bitcoin.server,
+      signet: configs.signet.server,
+      testnet: configs.testnet.server
+    }
+    const publicServers = getNewlySelectedPublicServers(
+      currentServers,
+      selectedServers
+    )
+    if (publicServers.length > 0) {
+      setPendingPublicServers(publicServers)
+      return
+    }
+    commitSelectedServers()
+  }
+
+  function handleConfirmPublicServers() {
+    setPendingPublicServers([])
+    commitSelectedServers()
+  }
+
+  function handleCancelPublicServers() {
+    setPendingPublicServers([])
   }
 
   function handleEditCustomServer(network: Network, server: Server) {
@@ -177,6 +222,16 @@ export default function NetworkSettings() {
           <SSBitcoinNetworkExplanationLink
             onPress={() => router.navigate('/settings/network/comparison')}
           />
+          <SSVStack gap="xs" style={{ marginTop: 12 }}>
+            <SSText color="muted" size="xs">
+              {tn('privacy.legend')}
+            </SSText>
+            {connectionMode !== 'manual' && (
+              <SSText color="muted" size="xs">
+                {tn('status.help', { seconds: connectionTestInterval })}
+              </SSText>
+            )}
+          </SSVStack>
           <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
@@ -262,47 +317,16 @@ export default function NetworkSettings() {
                                       : server.backend}
                                   </SSText>
                                 </SSHStack>
+                                <SSServerStatusLabel
+                                  isOnion={isOnionUrl(server.url)}
+                                  privacy={getServerPrivacy(server)}
+                                  status={
+                                    isActiveServer(network, server)
+                                      ? connectionStatus
+                                      : undefined
+                                  }
+                                />
                                 <SSHStack gap="xs">
-                                  {(() => {
-                                    const isSelected =
-                                      selectedServers[network].url ===
-                                        server.url &&
-                                      selectedServers[network].name ===
-                                        server.name &&
-                                      selectedServers[network].backend ===
-                                        server.backend
-                                    const isCurrentNetwork =
-                                      network === selectedNetwork
-                                    // Only show "Connected" if this is the currently selected server
-                                    // in the currently active network AND the connection is successful
-                                    const isCurrentlyActiveServer =
-                                      isSelected &&
-                                      isCurrentNetwork &&
-                                      selectedServers[network].url ===
-                                        configs[selectedNetwork].server.url &&
-                                      selectedServers[network].name ===
-                                        configs[selectedNetwork].server.name &&
-                                      selectedServers[network].backend ===
-                                        configs[selectedNetwork].server.backend
-
-                                    const shouldShowConnected =
-                                      isCurrentlyActiveServer &&
-                                      connectionStatus === 'connected'
-
-                                    return (
-                                      shouldShowConnected && (
-                                        <SSText
-                                          style={{
-                                            color: Colors.mainGreen,
-                                            lineHeight: 14,
-                                            opacity: 0.6
-                                          }}
-                                        >
-                                          {t('common.connected')}
-                                        </SSText>
-                                      )
-                                    )
-                                  })()}
                                   <SSText
                                     style={{ lineHeight: 14 }}
                                     color="muted"
@@ -400,6 +424,14 @@ export default function NetworkSettings() {
           />
         </SSVStack>
       </SSVStack>
+      <SSPublicServerWarningModal
+        visible={pendingPublicServers.length > 0}
+        serverName={pendingPublicServers
+          .map((server) => server.name)
+          .join(', ')}
+        onConfirm={handleConfirmPublicServers}
+        onCancel={handleCancelPublicServers}
+      />
     </SSMainLayout>
   )
 }

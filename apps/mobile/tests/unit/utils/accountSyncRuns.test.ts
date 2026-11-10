@@ -1,68 +1,88 @@
+import { useAccountsStore } from '@/store/accounts'
+import { type Account } from '@/types/models/Account'
 import {
   cancelAccountSync,
   cancelAllAccountSyncs,
   hasCurrentSyncRun,
   isAccountSyncing,
-  isPrioritySyncActiveFor,
-  isSyncRunCurrent,
-  releaseSyncRun,
-  startSyncRun,
+  runExclusiveOnCoreNode,
+  settleCancelledSyncStatuses,
   trackAccountSyncWork,
-  waitForAccountSyncWork
+  waitForAccountSyncWork,
+  walletSyncQueue
 } from '@/utils/accountSyncRuns'
 
+type StoredAccount = Pick<Account, 'id' | 'lastSyncedAt' | 'syncStatus'>
+
+jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => {
+  const { create: createStore } =
+    jest.requireActual<typeof import('zustand')>('zustand')
+  return {
+    useAccountsStore: createStore<{
+      accounts: StoredAccount[]
+      setSyncStatus: (id: string, syncStatus: Account['syncStatus']) => void
+    }>((set) => ({
+      accounts: [],
+      setSyncStatus: (id, syncStatus) =>
+        set((state) => ({
+          accounts: state.accounts.map((account) =>
+            account.id === id ? { ...account, syncStatus } : account
+          )
+        }))
+    }))
+  }
+})
+
 const WAIT_TIMEOUT_MS = 1000
+const SYNC_TIMEOUT_MS = 60_000
+
+function pendingSync() {
+  const gate: { open?: () => void } = {}
+  const work = new Promise<null>((resolve) => {
+    gate.open = () => resolve(null)
+  })
+  return { gate, work }
+}
 
 describe('account sync runs', () => {
   beforeEach(() => {
     cancelAllAccountSyncs()
   })
 
-  it('lets a newer run of the same account supersede the older one', () => {
-    const older = startSyncRun('acc', false)
-    const newer = startSyncRun('acc', true)
+  it('reports an account as syncing while its queue job is active', () => {
+    const { work } = pendingSync()
+    void walletSyncQueue.enqueue('acc', () => work, {
+      timeoutMs: SYNC_TIMEOUT_MS
+    })
 
-    expect(isSyncRunCurrent('acc', older)).toBe(false)
-    expect(isSyncRunCurrent('acc', newer)).toBe(true)
-
-    releaseSyncRun('acc', older)
     expect(hasCurrentSyncRun('acc')).toBe(true)
-    releaseSyncRun('acc', newer)
+    expect(isAccountSyncing('acc')).toBe(true)
+
+    cancelAccountSync('acc')
     expect(hasCurrentSyncRun('acc')).toBe(false)
   })
 
-  it('does not let a cancel before a sync starts block the next sync', () => {
-    cancelAccountSync('acc')
+  it('cancels every job when the app locks', async () => {
+    const first = pendingSync()
+    const second = pendingSync()
+    const results = [
+      walletSyncQueue.enqueue('a', () => first.work, {
+        timeoutMs: SYNC_TIMEOUT_MS
+      }),
+      walletSyncQueue.enqueue('b', () => second.work, {
+        timeoutMs: SYNC_TIMEOUT_MS
+      })
+    ]
 
-    const runId = startSyncRun('acc', true)
+    cancelAllAccountSyncs()
 
-    expect(isSyncRunCurrent('acc', runId)).toBe(true)
+    await expect(Promise.all(results)).resolves.toStrictEqual([null, null])
+    expect(hasCurrentSyncRun('a')).toBe(false)
+    expect(hasCurrentSyncRun('b')).toBe(false)
   })
 
-  it('holds background syncs of other accounts only while the priority run is active', () => {
-    const runId = startSyncRun('priority', true)
-    expect(isPrioritySyncActiveFor('other')).toBe(true)
-    expect(isPrioritySyncActiveFor('priority')).toBe(false)
-
-    releaseSyncRun('priority', runId)
-    expect(isPrioritySyncActiveFor('other')).toBe(false)
-  })
-
-  it('keeps an older priority run from lifting a newer run hold', () => {
-    const older = startSyncRun('acc', true)
-    startSyncRun('acc', true)
-
-    releaseSyncRun('acc', older)
-
-    expect(isPrioritySyncActiveFor('other')).toBe(true)
-  })
-
-  it('reports a superseded run as syncing until its native work settles', async () => {
-    const runId = startSyncRun('acc', false)
-    const gate: { open?: () => void } = {}
-    const work = new Promise<void>((resolve) => {
-      gate.open = resolve
-    })
+  it('reports a cancelled sync as syncing until its native work settles', async () => {
+    const { gate, work } = pendingSync()
     const tracked = trackAccountSyncWork('acc', work)
 
     cancelAccountSync('acc')
@@ -73,7 +93,6 @@ describe('account sync runs', () => {
     gate.open?.()
     await expect(waited).resolves.toBe(true)
     await tracked
-    releaseSyncRun('acc', runId)
 
     expect(isAccountSyncing('acc')).toBe(false)
   })
@@ -98,5 +117,79 @@ describe('account sync runs', () => {
 
     await expect(waited).resolves.toBe(false)
     jest.useRealTimers()
+  })
+
+  it('keeps a cancelled running job syncing until its tracked native work settles', async () => {
+    const { gate, work } = pendingSync()
+    const result = walletSyncQueue.enqueue(
+      'acc',
+      () => trackAccountSyncWork('acc', work),
+      { timeoutMs: SYNC_TIMEOUT_MS }
+    )
+
+    cancelAccountSync('acc')
+
+    await expect(result).resolves.toBeNull()
+    expect(hasCurrentSyncRun('acc')).toBe(false)
+    expect(isAccountSyncing('acc')).toBe(true)
+
+    gate.open?.()
+    await expect(waitForAccountSyncWork('acc', WAIT_TIMEOUT_MS)).resolves.toBe(
+      true
+    )
+    expect(isAccountSyncing('acc')).toBe(false)
+  })
+
+  it('runs Core syncs to the same node one at a time', async () => {
+    const first = pendingSync()
+    const secondWork = jest.fn(() => Promise.resolve('second'))
+
+    const firstRun = runExclusiveOnCoreNode(
+      'http://node:8332',
+      () => first.work
+    )
+    const secondRun = runExclusiveOnCoreNode('http://node:8332', secondWork)
+    const otherNode = runExclusiveOnCoreNode('http://other:8332', () =>
+      Promise.resolve('other')
+    )
+
+    await expect(otherNode).resolves.toBe('other')
+    expect(secondWork).not.toHaveBeenCalled()
+
+    first.gate.open?.()
+    await firstRun
+    await expect(secondRun).resolves.toBe('second')
+  })
+
+  it('settles statuses left by cancelled syncs but not by running ones', () => {
+    const { work } = pendingSync()
+    void walletSyncQueue.enqueue('running', () => work, {
+      timeoutMs: SYNC_TIMEOUT_MS
+    })
+    useAccountsStore.setState({
+      accounts: [
+        {
+          id: 'synced-before',
+          lastSyncedAt: new Date(0),
+          syncStatus: 'syncing'
+        },
+        { id: 'never-synced', syncStatus: 'queued' },
+        { id: 'stalled', syncStatus: 'timeout' },
+        { id: 'running', syncStatus: 'syncing' }
+      ]
+    })
+
+    settleCancelledSyncStatuses()
+
+    expect(
+      useAccountsStore
+        .getState()
+        .accounts.map(({ id, syncStatus }) => [id, syncStatus])
+    ).toStrictEqual([
+      ['synced-before', 'synced'],
+      ['never-synced', 'unsynced'],
+      ['stalled', 'timeout'],
+      ['running', 'syncing']
+    ])
   })
 })

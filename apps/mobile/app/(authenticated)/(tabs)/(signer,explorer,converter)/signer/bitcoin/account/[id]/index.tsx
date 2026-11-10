@@ -509,6 +509,33 @@ function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
   })
 }
 
+type ActivityToolbarTitleParams = {
+  lastSyncedAt: Account['lastSyncedAt']
+  nowMs: number
+  syncStatus?: Account['syncStatus']
+  tasksDone?: number
+  totalTasks?: number
+}
+
+function activityToolbarTitle({
+  lastSyncedAt,
+  nowMs,
+  syncStatus,
+  tasksDone,
+  totalTasks
+}: ActivityToolbarTitleParams): string {
+  if (syncStatus === 'syncing') {
+    return syncProgressLabel(tasksDone, totalTasks)
+  }
+  if (syncStatus === 'queued') {
+    return t('account.sync.status.queued')
+  }
+  if (syncStatus === 'timeout') {
+    return t('account.sync.status.timeout')
+  }
+  return lastSyncedLabel(lastSyncedAt, nowMs)
+}
+
 /** Toolbar title when idle — replaces static "Account activity". */
 function lastSyncedLabel(
   lastSyncedAt: Account['lastSyncedAt'],
@@ -784,9 +811,13 @@ function TotalTransactions({
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = isSyncing
-    ? syncProgressLabel(tasksDone, totalTasks)
-    : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const activityTitle = activityToolbarTitle({
+    lastSyncedAt: account.lastSyncedAt,
+    nowMs,
+    syncStatus,
+    tasksDone,
+    totalTasks
+  })
   const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
     ? t('account.transactions.loading')
     : t('account.transactions.empty')
@@ -1552,9 +1583,13 @@ function SpendableOutputs({
   const excludedOutpoints = account.excludedUtxoOutpoints ?? []
   const excludedCount = excludedOutpoints.length
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = isSyncing
-    ? syncProgressLabel(tasksDone, totalTasks)
-    : lastSyncedLabel(account.lastSyncedAt, nowMs)
+  const activityTitle = activityToolbarTitle({
+    lastSyncedAt: account.lastSyncedAt,
+    nowMs,
+    syncStatus,
+    tasksDone,
+    totalTasks
+  })
 
   const groups = prepareUtxoList({
     excludedOutpoints,
@@ -1934,7 +1969,7 @@ export default function AccountView() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet, prioritizeSync } = useSyncAccountWithWallet()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   const [refreshing, setRefreshing] = useState(false)
@@ -1956,7 +1991,7 @@ export default function AccountView() {
   }, [])
   const animationValue = useSharedValue(0)
 
-  const [connectionStatus, , isPrivateConnection, connectionParts] =
+  const [connectionStatus, , serverPrivacy, connectionParts] =
     useVerifyConnection()
   const {
     blockHeight: networkBlockHeight,
@@ -2096,10 +2131,6 @@ export default function AccountView() {
     if (!isImportAddress && !wallet) {
       await reloadWallet()
       return
-    }
-
-    if (!isImportAddress) {
-      prioritizeSync()
     }
 
     try {
@@ -2398,7 +2429,8 @@ export default function AccountView() {
           >
             <SSHStack style={{ gap: 0, justifyContent: 'center' }}>
               <SSConnectionStatusIndicator
-                isPrivateConnection={isPrivateConnection}
+                isOnion={connectionParts.isOnion}
+                privacy={serverPrivacy}
                 status={connectionStatus}
               />
               <SSHStack gap="xs" style={{ alignItems: 'center' }}>

@@ -65,6 +65,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
+import { type ServerPrivacy } from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.developer.designSystem.components')
 
@@ -80,14 +81,24 @@ const TABLE_INDEX_COLUMN_WIDTH = 28
 const TABLE_AMOUNT_COLUMN_WIDTH = 110
 
 const CONNECTION_STATUS_SAMPLES: {
-  isPrivateConnection: boolean
+  isOnion?: boolean
   label: string
+  privacy: ServerPrivacy
   status: ConnectionVerifyStatus
 }[] = [
-  { isPrivateConnection: false, label: 'statusChecking', status: 'checking' },
-  { isPrivateConnection: false, label: 'statusConnected', status: 'connected' },
-  { isPrivateConnection: true, label: 'statusPrivate', status: 'connected' },
-  { isPrivateConnection: false, label: 'statusFailed', status: 'failed' }
+  { label: 'statusNode', privacy: 'node', status: 'connected' },
+  { label: 'statusPrivate', privacy: 'private', status: 'connected' },
+  { label: 'statusPublic', privacy: 'public', status: 'connected' },
+  { label: 'statusNodeOffline', privacy: 'node', status: 'checking' },
+  { label: 'statusPrivateOffline', privacy: 'private', status: 'idle' },
+  { label: 'statusPublicOffline', privacy: 'public', status: 'checking' },
+  {
+    isOnion: true,
+    label: 'statusTor',
+    privacy: 'private',
+    status: 'connected'
+  },
+  { label: 'statusFailed', privacy: 'private', status: 'failed' }
 ]
 
 const BOTTOM_NAV_ITEMS = [
@@ -627,12 +638,13 @@ function DesignComponentsScreen() {
 
             <SSDesignSection title={tn('status')}>
               <SSVStack gap="md">
-                <SSHStack gap="lg">
+                <SSHStack gap="lg" style={{ flexWrap: 'wrap' }}>
                   {CONNECTION_STATUS_SAMPLES.map((sample) => (
                     <SSVStack key={sample.label} gap="xs" itemsCenter>
                       <SSConnectionStatusIndicator
+                        isOnion={sample.isOnion}
+                        privacy={sample.privacy}
                         status={sample.status}
-                        isPrivateConnection={sample.isPrivateConnection}
                       />
                       <SSText size="xs" color="muted" uppercase>
                         {tn(sample.label)}

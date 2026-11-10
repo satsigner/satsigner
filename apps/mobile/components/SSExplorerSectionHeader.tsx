@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native'
 
+import SSBackendSourceLabel from '@/components/SSBackendSourceLabel'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
@@ -16,18 +17,16 @@ function SSExplorerSectionHeader({
   source,
   sourceLabel
 }: SSExplorerSectionHeaderProps) {
-  const sourceStyle =
-    source === 'backend' ? styles.sourceBackend : styles.sourceExternal
-
   return (
     <SSHStack justifyBetween style={styles.header}>
       <SSText uppercase size="md" style={styles.title}>
         {title}
       </SSText>
       {source && sourceLabel ? (
-        <SSText size="xxs" style={sourceStyle}>
-          {sourceLabel}
-        </SSText>
+        <SSBackendSourceLabel
+          label={sourceLabel}
+          isExternal={source !== 'backend'}
+        />
       ) : null}
     </SSHStack>
   )
@@ -36,13 +35,6 @@ function SSExplorerSectionHeader({
 const styles = StyleSheet.create({
   header: {
     alignItems: 'center'
-  },
-  sourceBackend: {
-    color: Colors.mainGreen,
-    opacity: 0.8
-  },
-  sourceExternal: {
-    color: Colors.gray['500']
   },
   title: {
     color: Colors.gray['400'],

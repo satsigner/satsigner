@@ -87,13 +87,15 @@ describe('secureWipeAfterMaxPinTries', () => {
   it('drops a backup restore waiting for the next unlock and the page history', async () => {
     useAuthStore.setState({
       pageHistory: ['/signer/bitcoin/account/acc'],
-      pendingRecoverData: 'decrypted-backup'
+      pendingRecoverData: 'decrypted-backup',
+      restoredPublicServerName: 'Mempool'
     })
 
     await secureWipeAllWalletData()
 
     expect(useAuthStore.getState().pendingRecoverData).toBeNull()
     expect(useAuthStore.getState().pageHistory).toStrictEqual([])
+    expect(useAuthStore.getState().restoredPublicServerName).toBeNull()
   })
 
   it('drops the seed of a nostr identity that was being created', async () => {

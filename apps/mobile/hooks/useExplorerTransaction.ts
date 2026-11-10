@@ -15,6 +15,7 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
+import { isOnionUrl } from '@/utils/serverPrivacy'
 import { time, withTimeout } from '@/utils/time'
 import { weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
@@ -25,7 +26,7 @@ const TXID_LENGTH = 64
 const TIMEOUT_MS = 30_000
 const TIMEOUT_TOR_MS = 90_000
 function withExplorerTimeout<T>(promise: Promise<T>, url: string) {
-  const ms = url.includes('.onion') ? TIMEOUT_TOR_MS : TIMEOUT_MS
+  const ms = isOnionUrl(url) ? TIMEOUT_TOR_MS : TIMEOUT_MS
   return withTimeout(promise, ms, 'timeout')
 }
 

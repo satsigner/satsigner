@@ -14,6 +14,7 @@ export const PolicyTypeSchema = z.enum(['singlesig', 'multisig', 'watchonly'])
 export const SyncStatusSchema = z.enum([
   'unsynced',
   'synced',
+  'queued',
   'syncing',
   'error',
   'timeout'

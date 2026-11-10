@@ -10,6 +10,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
 import { useArkSwapsStore } from '@/store/arkSwaps'
+import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
@@ -37,6 +38,10 @@ import type {
 } from '@/types/models/Lightning'
 import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { ConfigSchema, ServerSchema } from '@/types/settings/blockchain'
+import {
+  cancelAllAccountSyncs,
+  settleCancelledSyncStatuses
+} from '@/utils/accountSyncRuns'
 import {
   deleteLeftoverArkDatadirs,
   prepareArkMnemonics,
@@ -67,6 +72,7 @@ import {
   rollbackPersistedState,
   snapshotPersistedState
 } from '@/utils/restoreRollback'
+import { getRestoredPublicServer } from '@/utils/serverPrivacy'
 
 type BackupKey = Key & BackupKeySecret
 type BackupAccount = {
@@ -574,6 +580,29 @@ async function snapshotBeforeRestore(
   }
 }
 
+function getActiveServer({
+  configs,
+  selectedNetwork
+}: StoreSnapshot['blockchain']) {
+  return configs[selectedNetwork].server
+}
+
+/**
+ * Wallets must not sync with a public server the backup switched to before
+ * the user has seen what it can learn about them.
+ */
+function holdSyncOnRestoredPublicServer(before: StoreSnapshot['blockchain']) {
+  const restoredPublicServer = getRestoredPublicServer(
+    getActiveServer(before),
+    getActiveServer(useBlockchainStore.getState())
+  )
+  if (restoredPublicServer) {
+    useAuthStore
+      .getState()
+      .setRestoredPublicServerName(restoredPublicServer.name)
+  }
+}
+
 /**
  * Overwrites app data with the decrypted backup. Call after PIN unlock when
  * pendingRecoverData is set. Uses stored PIN from secure storage.
@@ -633,6 +662,9 @@ export async function performRecoverOverwrite(
   }
   // Running subscriptions must be closed before their accounts are replaced.
   await resetNostrSync()
+  // So must queued and running wallet syncs: one would write the old
+  // wallet's history over a restored account with the same id.
+  cancelAllAccountSyncs()
 
   try {
     await replaceAccounts(prepared.accounts)
@@ -655,6 +687,9 @@ export async function performRecoverOverwrite(
       RESTORE_ROLLBACK_ATTEMPTS
     )
     rollbackStores(snapshot)
+    // The snapshot predates the cancel above, so it can hold the 'syncing' or
+    // 'queued' status of a sync that no longer runs.
+    settleCancelledSyncStatuses()
     if (!rolledBack) {
       return {
         error: errorMessage(error),
@@ -670,5 +705,6 @@ export async function performRecoverOverwrite(
     existingEcashAccountIds,
     leftoverArkAccountIds
   )
+  holdSyncOnRestoredPublicServer(snapshot.blockchain)
   return { success: true }
 }
