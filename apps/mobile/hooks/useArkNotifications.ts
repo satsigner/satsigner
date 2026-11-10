@@ -8,8 +8,10 @@ import {
   forgetAllArkNotificationSubscriptions,
   forgetArkNotificationSubscription,
   hasArkNotificationSubscription,
+  isArkNotificationSubscriptionPending,
   listArkNotificationSubscriptionIds,
-  setArkNotificationSubscription
+  setArkNotificationSubscription,
+  setArkNotificationSubscriptionPending
 } from '@/services/arkNotificationSubscriptions'
 import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useArkStore } from '@/store/ark'
@@ -23,7 +25,6 @@ import { isArkSwapForwardedPayment } from '@/utils/arkSwap'
 import { invalidateArkAccountQueries } from '@/utils/arkSync'
 import { devLog } from '@/utils/devConsole'
 
-const inflightSubscriptions = new Set<string>()
 const RECEIVE_EVENT_DEDUP_TTL_MS = 60_000
 const recentReceiveEvents = new Map<string, number>()
 const INVALIDATE_DEBOUNCE_MS = 400
@@ -102,11 +103,11 @@ async function subscribeAccount(
 ): Promise<void> {
   if (
     hasArkNotificationSubscription(account.id) ||
-    inflightSubscriptions.has(account.id)
+    isArkNotificationSubscriptionPending(account.id)
   ) {
     return
   }
-  inflightSubscriptions.add(account.id)
+  setArkNotificationSubscriptionPending(account.id, true)
   try {
     await ensureArkWalletOpen(account.id)
 
@@ -128,7 +129,7 @@ async function subscribeAccount(
     )
     setArkNotificationSubscription(account.id, unsubscribe)
   } finally {
-    inflightSubscriptions.delete(account.id)
+    setArkNotificationSubscriptionPending(account.id, false)
   }
 }
 
@@ -141,7 +142,6 @@ async function subscribeAccountSafe(
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
     devLog('ark', `open ${account.name} failed: ${reason}`, 'error')
-    inflightSubscriptions.delete(account.id)
   }
 }
 
