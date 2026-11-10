@@ -214,8 +214,10 @@ export default function NostrNotePage() {
     applyZapProfiles(receipt, (pk) => storeProfiles[pk.toLowerCase()])
   )
   const zapReceiptsLoading = zapsQuery.isLoading
+  const reactionsVisible =
+    Boolean(noteEvent) && noteEventId.length > 0 && !privacyMode
   const reactions = useNostrNoteReactionsFetch({
-    enabled: Boolean(noteEvent) && !privacyMode,
+    enabled: reactionsVisible,
     eventId: noteEventId,
     relays: effectiveRelays
   })
@@ -1501,7 +1503,7 @@ export default function NostrNotePage() {
               </SSText>
             )}
 
-            {fetched && !privacyMode ? (
+            {fetched && reactionsVisible ? (
               <SSNostrNoteReactions
                 authorPressDisabled={!npub}
                 hasNextPage={reactions.hasNextPage}
