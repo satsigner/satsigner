@@ -1,3 +1,4 @@
+import * as nostrKinds from 'nostr-tools/kinds'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -9,6 +10,7 @@ import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrConversationList from '@/components/chat/SSNostrConversationList'
 import SSButton from '@/components/SSButton'
 import SSDesignSection from '@/components/SSDesignSection'
+import SSNostrKeyFormatTabs from '@/components/SSNostrKeyFormatTabs'
 import SSNostrKeyQRModal from '@/components/SSNostrKeyQRModal'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSNostrNoteReactions from '@/components/SSNostrNoteReactions'
@@ -25,7 +27,10 @@ import {
   DESIGN_NOSTR_REACTION_SETS,
   DESIGN_NOSTR_SAMPLE_NSEC
 } from '@/constants/designNostrSamples'
-import { NOSTR_KEY_LINE_BREAK_EVERY } from '@/constants/nostr'
+import {
+  NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
+  NOSTR_KEY_LINE_BREAK_EVERY
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
@@ -163,7 +168,7 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
             onSend={NOOP}
             placeholder={t('nostrIdentity.chat.messagePlaceholder')}
             sendLabel={t('nostrIdentity.chat.send')}
-            maxLength={500}
+            maxLength={NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH}
             replyTo={
               replyTo
                 ? {
@@ -223,7 +228,7 @@ function NostrMessageDetailPreview({ setIndex }: SetPreviewProps) {
     authorNpub: DESIGN_NOSTR_ME_NPUB,
     createdAt: nowSeconds(),
     id: sample.message.id,
-    kind: 14,
+    kind: nostrKinds.PrivateDirectMessage,
     protocol: 'nip17',
     status: 'sent',
     wrapCount: SAMPLE_REPLY_WRAP_COUNT
@@ -291,15 +296,7 @@ function NostrKeysPreview() {
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
       <SSVStack gap="lg" style={styles.scrollContent}>
-        <SSPairedTabs
-          activeTab={format}
-          primary={{
-            key: 'bech32',
-            label: t('nostrIdentity.keys.format.bech32')
-          }}
-          secondary={{ key: 'hex', label: t('nostrIdentity.keys.format.hex') }}
-          onChange={setFormat}
-        />
+        <SSNostrKeyFormatTabs format={format} onChange={setFormat} />
         <SSDesignSection title={tn('nostrPublicKey')}>
           <SSShadedKeyText
             value={publicKey}

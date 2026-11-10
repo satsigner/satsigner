@@ -6,8 +6,8 @@ import { toast } from 'sonner-native'
 
 import SSIconEyeOff from '@/components/icons/SSIconEyeOff'
 import SSButton from '@/components/SSButton'
+import SSNostrKeyFormatTabs from '@/components/SSNostrKeyFormatTabs'
 import SSNostrKeyQRModal from '@/components/SSNostrKeyQRModal'
-import SSPairedTabs from '@/components/SSPairedTabs'
 import SSScreenCaptureGuard from '@/components/SSScreenCaptureGuard'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSShadedKeyText from '@/components/SSShadedKeyText'
@@ -48,18 +48,6 @@ const KEY_LABEL_KEYS: Record<KeyType, Record<NostrKeyFormat, string>> = {
 
 function getKeyLabel(type: KeyType, format: NostrKeyFormat) {
   return t(KEY_LABEL_KEYS[type][format])
-}
-
-type KeyFormatTab = {
-  key: NostrKeyFormat
-  label: string
-}
-
-function getKeyFormatTabs(): Record<'primary' | 'secondary', KeyFormatTab> {
-  return {
-    primary: { key: 'bech32', label: t('nostrIdentity.keys.format.bech32') },
-    secondary: { key: 'hex', label: t('nostrIdentity.keys.format.hex') }
-  }
 }
 
 function copyToClipboard(value: string) {
@@ -182,11 +170,7 @@ export default function NostrIdentityKeys() {
           showsVerticalScrollIndicator={false}
         >
           <SSVStack gap="lg">
-            <SSPairedTabs
-              activeTab={keyFormat}
-              onChange={setKeyFormat}
-              {...getKeyFormatTabs()}
-            />
+            <SSNostrKeyFormatTabs format={keyFormat} onChange={setKeyFormat} />
 
             <SSVStack gap="sm">
               <SSHStack gap="xs" style={styles.npubLabelRow}>
