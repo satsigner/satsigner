@@ -114,21 +114,29 @@ describe('secureWipeAfterMaxPinTries', () => {
     expect(useAuthStore.getState().restoredPublicServerName).toBeNull()
   })
 
-  it('stops the Ark daemons before deleting their datadirs', async () => {
+  it('waits for the Ark daemons to stop before deleting their datadirs', async () => {
     useArkStore.setState({ accounts: [ARK_ACCOUNT] })
-    const release = jest
+    const stopped: { resolve: () => void } = { resolve: () => undefined }
+    jest
       .spyOn(arkWallet, 'releaseAllArkWalletsAndSubscriptions')
-      .mockResolvedValue()
+      .mockReturnValue(
+        new Promise<void>((resolve) => {
+          stopped.resolve = resolve
+        })
+      )
     const deleteDatadir = jest
       .spyOn(arkDatadir, 'deleteArkDatadir')
       .mockResolvedValue()
 
-    await secureWipeAllWalletData()
+    const wiping = secureWipeAllWalletData()
+    await new Promise((resolve) => {
+      setImmediate(resolve)
+    })
+    expect(deleteDatadir).not.toHaveBeenCalled()
 
+    stopped.resolve()
+    await wiping
     expect(deleteDatadir).toHaveBeenCalledWith(ARK_ACCOUNT.id)
-    expect(release.mock.invocationCallOrder[0]).toBeLessThan(
-      deleteDatadir.mock.invocationCallOrder[0]
-    )
   })
 
   it('stops a running bunker and forgets its sessions', async () => {
