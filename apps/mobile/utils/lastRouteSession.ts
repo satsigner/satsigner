@@ -11,8 +11,8 @@ import { useSettingsStore } from '@/store/settings'
 import {
   isAuthenticatedRoute,
   isRestorableRoute,
-  type LastRoute,
   parseHref,
+  type RestorableRoute,
   type RouteOwnership,
   routeFromSegments,
   serializeHref
@@ -63,7 +63,7 @@ function getRouteOwnership(): RouteOwnership {
  * Reads and clears the stored route. A pending backup restore replaces the
  * accounts after unlock, so a route into them is dropped too.
  */
-async function takeRestorableLastRoute(): Promise<LastRoute | null> {
+async function takeRestorableLastRoute(): Promise<RestorableRoute | null> {
   const raw = await getItem(LAST_ROUTE_STORAGE_KEY).catch(() => null)
   await clearLastRoute()
   if (!useSettingsStore.getState().reopenLastScreen) {

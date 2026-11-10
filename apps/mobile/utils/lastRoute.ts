@@ -1,3 +1,4 @@
+import { type Href } from 'expo-router'
 import { z } from 'zod'
 
 import {
@@ -27,6 +28,9 @@ const LastRouteSchema = z.object({
 })
 
 type LastRoute = z.infer<typeof LastRouteSchema>
+
+/** A stored route that passed every restore check, typed for the router. */
+type RestorableRoute = LastRoute & Extract<Href, object>
 
 type RouteOwnership = {
   accountIds: string[]
@@ -128,7 +132,10 @@ function isOwnedRoute(route: LastRoute, ownership: RouteOwnership) {
   )
 }
 
-function isRestorableRoute(route: LastRoute, ownership: RouteOwnership) {
+function isRestorableRoute(
+  route: LastRoute,
+  ownership: RouteOwnership
+): route is RestorableRoute {
   if (!isInternalPathname(route.pathname) || route.pathname === HOME_ROUTE) {
     return false
   }
@@ -145,6 +152,7 @@ export {
   isRestorableRoute,
   type LastRoute,
   parseHref,
+  type RestorableRoute,
   routeFromSegments,
   type RouteOwnership,
   serializeHref
