@@ -4,13 +4,13 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { getMessageWraps } from '@/db/nostrMessageState'
+import { copyChatMessageText } from '@/hooks/useNostrChatMessageActions'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import { setClipboard } from '@/utils/clipboard'
 import { formatNpub } from '@/utils/format'
 import {
   deleteDeviceMessageForEveryone,
@@ -149,14 +149,9 @@ export function useNostrDeviceMessageDetail(
   }
 
   async function copyText() {
-    if (!detail) {
-      return
+    if (detail) {
+      await copyChatMessageText(detail.message.description)
     }
-    if (!(await setClipboard(detail.message.description))) {
-      toast.error(t('nostrIdentity.chat.message.copyFailed'))
-      return
-    }
-    toast.success(t('common.copiedToClipboard'))
   }
 
   function openMessage(targetId: string) {

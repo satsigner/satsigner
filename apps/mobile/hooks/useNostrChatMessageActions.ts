@@ -11,6 +11,14 @@ type UseNostrChatMessageActionsParams = {
   onReply: (messageId: string) => void
 }
 
+async function copyChatMessageText(text: string): Promise<void> {
+  if (!(await setClipboard(text))) {
+    toast.error(t('nostrIdentity.chat.message.copyFailed'))
+    return
+  }
+  toast.success(t('common.copiedToClipboard'))
+}
+
 /** State and handlers behind the long-press menu of a chat message. */
 function useNostrChatMessageActions({
   messages,
@@ -40,8 +48,7 @@ function useNostrChatMessageActions({
 
   async function handleCopy() {
     if (selectedMessage) {
-      await setClipboard(selectedMessage.description)
-      toast.success(t('common.copiedToClipboard'))
+      await copyChatMessageText(selectedMessage.description)
     }
     closeActions()
   }
@@ -63,4 +70,4 @@ function useNostrChatMessageActions({
   }
 }
 
-export { useNostrChatMessageActions }
+export { copyChatMessageText, useNostrChatMessageActions }

@@ -26,9 +26,18 @@ export default function NostrChatMessageDetail() {
     deleteForMe,
     deleting,
     detail,
+    isLoading,
     openMessage,
     reply
   } = useNostrChatMessageDetail(npub, messageId)
+
+  if (isLoading) {
+    return (
+      <SSMainLayout>
+        <Stack.Screen options={{ headerTitle: renderHeaderTitle }} />
+      </SSMainLayout>
+    )
+  }
 
   return (
     <SSMainLayout>

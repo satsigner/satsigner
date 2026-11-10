@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { copyChatMessageText } from '@/hooks/useNostrChatMessageActions'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { identityChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { type NostrChatThreadItem } from '@/types/models/Nostr'
-import { setClipboard } from '@/utils/clipboard'
 import { formatNpub } from '@/utils/format'
 import { safeNpubEncode } from '@/utils/nostr'
 import {
@@ -49,7 +49,7 @@ function buildChatMessageView(
   }
   return {
     canDeleteForEveryone: canDeleteMessageForEveryone(
-      canSign && message.direction === 'out',
+      canSign && message.direction === 'out' && message.status === 'sent',
       message.id
     ),
     canReply: canSign && message.protocol !== 'nip04',
@@ -105,7 +105,7 @@ export function useNostrChatMessageDetail(
   const [deleting, setDeleting] = useState(false)
   const identityNpub = npub ?? ''
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     enabled: isNonEmptyString(npub) && isNonEmptyString(messageId),
     queryFn: () => loadChatMessageDetail(identityNpub, messageId ?? ''),
     queryKey: nostrChatQueryKeys.message(identityNpub, messageId ?? '')
@@ -143,14 +143,9 @@ export function useNostrChatMessageDetail(
   }
 
   async function copyText() {
-    if (!detail) {
-      return
+    if (detail) {
+      await copyChatMessageText(detail.message.content)
     }
-    if (!(await setClipboard(detail.message.content))) {
-      toast.error(t('nostrIdentity.chat.message.copyFailed'))
-      return
-    }
-    toast.success(t('common.copiedToClipboard'))
   }
 
   function openMessage(targetId: string) {
@@ -198,6 +193,7 @@ export function useNostrChatMessageDetail(
     deleting,
     detail,
     identity,
+    isLoading,
     openMessage,
     reply
   }
