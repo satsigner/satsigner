@@ -34,7 +34,12 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Typography } from '@/styles'
 import type { MemPoolFees } from '@/types/models/Blockchain'
-import { formatBytes, formatDate, formatPercentualChange } from '@/utils/format'
+import {
+  formatBlockWeight,
+  formatBytes,
+  formatDate,
+  formatPercentualChange
+} from '@/utils/format'
 import {
   MAIN_HORIZONTAL_PAD_RATIO,
   PRICE_CHART_HEIGHT,
@@ -201,7 +206,7 @@ export default function ChainTip() {
               {chainData?.block?.weight !== undefined && (
                 <SSExplorerRow
                   label={tn('weight')}
-                  value={formatBytes(chainData.block.weight)}
+                  value={formatBlockWeight(chainData.block.weight)}
                   loading={isLoading}
                 />
               )}

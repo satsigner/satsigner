@@ -1,4 +1,8 @@
-import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BTC_DECIMALS,
+  MAX_BLOCK_WEIGHT,
+  SATS_PER_BITCOIN
+} from '@/constants/btc'
 import {
   ADDRESS_TRUNCATE_CHARS,
   ADDRESS_TRUNCATE_CHARS_COMPACT,
@@ -400,6 +404,11 @@ function formatTxOutputToUtxo(
  * binary (1024) units. Bytes stay whole, larger units keep per-unit decimals
  * with trailing zeros stripped ("2 KB", "1.5 MB").
  */
+/** A block's weight against the consensus limit, e.g. "1,039,432 / 4,000,000 WU". */
+function formatBlockWeight(weight: number): string {
+  return `${formatNumber(weight)} / ${formatNumber(MAX_BLOCK_WEIGHT)} WU`
+}
+
 function formatBytes(bytes: number, base: number = BYTES_PER_KB): string {
   const maxUnitIndex = FILE_SIZE_UNITS.length - 1
   const unitIndex =
@@ -506,6 +515,7 @@ function formatSatsAsBtc(sats: number) {
 export {
   formatAddress,
   formatBtc,
+  formatBlockWeight,
   formatBytes,
   formatConfirmations,
   formatConfirmationsWithBlock,

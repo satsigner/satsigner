@@ -2,6 +2,7 @@ import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import {
   formatAddress,
+  formatBlockWeight,
   formatBtc,
   formatConfirmations,
   formatConfirmationsWithBlock,
@@ -271,5 +272,11 @@ describe('formatConfirmationsWithBlock', () => {
     expect(formatConfirmationsWithBlock(1, 330_183)).toBe(
       `${t('bitcoin.confirmations.oneConf')} • 330,183`
     )
+  })
+})
+
+describe('formatBlockWeight', () => {
+  it('shows the weight against the block limit in weight units', () => {
+    expect(formatBlockWeight(1_039_432)).toBe('1,039,432 / 4,000,000 WU')
   })
 })

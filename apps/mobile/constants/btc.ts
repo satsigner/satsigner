@@ -71,3 +71,6 @@ export const UNSET_OUTPUT_AMOUNT_SATS = 1
 export const MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE = 10
 export const BARE_BITCOIN_ADDRESS_PATTERN = /^[a-zA-Z0-9]{26,62}$/
 export const HEX_PATTERN = /^[0-9a-fA-F]+$/
+
+/** Consensus weight limit of a block (BIP141). */
+export const MAX_BLOCK_WEIGHT = 4_000_000
