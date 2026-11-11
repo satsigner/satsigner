@@ -7,6 +7,15 @@ const SYNC_CANCELLED_ERROR = 'sync-cancelled'
 // scanned (genesis-adjacent). History on the account still forces incremental.
 const MIN_USABLE_CHECKPOINT_HEIGHT = 10_000
 
+// Wallet blocks compared with the server before a sync to tell a reorg from
+// another chain. A reorg deeper than this many of them reads as another chain
+// and costs a full rescan.
+const WALLET_CHAIN_CHECK_LIMIT = 10
+
+// A chain check that takes longer is skipped and the sync goes ahead.
+const WALLET_CHAIN_CHECK_TIMEOUT_MS = 30_000
+const WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS = 90_000
+
 // Background account syncs that run at once. Each BDK wallet has its own
 // lock, so different wallets can scan in parallel; more than a few mostly
 // adds load on the server (and on a Tor circuit).
@@ -47,5 +56,8 @@ export {
   SYNC_PRICE_LOOKUP_TIMEOUT_MS,
   SYNC_STALL_TIMEOUT_MS,
   SYNC_STALL_TIMEOUT_RPC_MS,
-  SYNC_STALL_TIMEOUT_TOR_MS
+  SYNC_STALL_TIMEOUT_TOR_MS,
+  WALLET_CHAIN_CHECK_LIMIT,
+  WALLET_CHAIN_CHECK_TIMEOUT_MS,
+  WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS
 }

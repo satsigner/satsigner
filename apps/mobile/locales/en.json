@@ -349,6 +349,7 @@
     "sync.accountsNotSynced": "%{count} accounts weren't synced. Check your connection or choose another server in Settings.",
     "sync.accountsFailed": "%{count} accounts couldn't sync",
     "sync.earlierSyncStuck": "An earlier sync of this account is still waiting on the server. Try again in a moment.",
+    "sync.otherChainRescan": "This wallet holds another chain's history than the server's. Run Rescan Wallet in the account settings.",
     "sync.stalled": "No progress for %{minutes} min. The server or Tor connection may be too slow; it will retry on the next sync.",
     "sync.status.error": "Can't sync",
     "sync.status.old.day": "~%{value}d ago",

@@ -34,6 +34,7 @@ import {
   walletSyncQueue,
   writeSyncStatus
 } from '@/utils/accountSyncRuns'
+import { walletForServerChain } from '@/utils/accountWallets'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
@@ -163,15 +164,18 @@ async function syncWalletAccount({
     walletSummary = coreResult
     newRpcLastBlockHash = coreResult.rpcLastBlockHash
   } else {
-    if (!isFullScan) {
-      revealKnownAddresses(wallet, latest, config.stopGap)
+    const scanWallet = await walletForServerChain(latest, wallet, server)
+    // A wallet replaced for another chain starts empty: find all its history.
+    const isScanFull = isFullScan || scanWallet !== wallet
+    if (!isScanFull) {
+      revealKnownAddresses(scanWallet, latest, config.stopGap)
     }
     await syncWallet(
-      wallet,
+      scanWallet,
       server.backend,
       server.url,
       config.stopGap,
-      isFullScan,
+      isScanFull,
       server.rpcCredentials,
       effectiveBirthday,
       tip,
@@ -180,13 +184,13 @@ async function syncWalletAccount({
       signal
     )
 
-    const latestCheckpoint = wallet.latestCheckpoint()
+    const latestCheckpoint = scanWallet.latestCheckpoint()
     if (latestCheckpoint) {
       setLastKnownBlockHeight(latestCheckpoint.height)
     }
 
     walletSummary = getWalletOverview(
-      wallet,
+      scanWallet,
       appNetworkToBdkNetwork(server.network),
       config.stopGap
     )

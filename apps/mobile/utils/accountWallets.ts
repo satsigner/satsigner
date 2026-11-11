@@ -1,13 +1,33 @@
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
-import { getWalletData } from '@/api/bdk'
+import { deleteWalletDb, getWalletData } from '@/api/bdk'
+import { openServerChainReader } from '@/api/serverChain'
+import {
+  WALLET_CHAIN_CHECK_TIMEOUT_MS,
+  WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS
+} from '@/constants/sync'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
+import { type Server } from '@/types/settings/blockchain'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { decryptAccountKeySecrets } from '@/utils/decryption'
+import {
+  decryptAccountKeySecrets,
+  getAccountWithDecryptedKeys
+} from '@/utils/decryption'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
-import { yieldToUi } from '@/utils/time'
+import { isOnionUrl } from '@/utils/serverPrivacy'
+import { withTimeout, yieldToUi } from '@/utils/time'
+import { isWalletOnServerChain } from '@/utils/walletChain'
+
+// The wallet of each account last found on a server's chain, in this
+// session. Another server, or a wallet since replaced, is checked again.
+const walletsCheckedOnServer = new Map<
+  Account['id'],
+  { serverKey: string; wallet: BdkWallet }
+>()
 
 /**
  * Loads the wallet, or the watched address, of every account that has none
@@ -65,4 +85,69 @@ async function loadAccountWallets() {
   }
 }
 
-export { loadAccountWallets }
+function serverCheckKey(server: Server) {
+  return `${server.backend}|${server.url}`
+}
+
+async function readIsWalletOnServerChain(wallet: BdkWallet, server: Server) {
+  const reader = await openServerChainReader(server)
+  try {
+    return await isWalletOnServerChain(wallet.checkpoints(), reader)
+  } finally {
+    reader.close()
+  }
+}
+
+/** Swaps the account's wallet for an empty one on a new database. */
+async function recreateAccountWallet(account: Account): Promise<BdkWallet> {
+  const dbPath = useWalletsStore.getState().dbPaths[account.id]
+  if (!dbPath) {
+    throw new Error(t('account.sync.otherChainRescan'))
+  }
+  await deleteWalletDb(dbPath)
+  const walletData = await getWalletData(
+    await getAccountWithDecryptedKeys(account),
+    appNetworkToBdkNetwork(account.network)
+  )
+  if (!walletData) {
+    throw new Error(t('account.sync.otherChainRescan'))
+  }
+  useWalletsStore
+    .getState()
+    .addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
+  return walletData.wallet
+}
+
+/**
+ * The wallet to sync the account with on this server: a new, empty one when
+ * the account's wallet holds blocks of another chain, so the two chains'
+ * histories don't mix. A check that fails keeps the wallet: the sync itself
+ * then reports the server problem.
+ */
+async function walletForServerChain(
+  account: Account,
+  wallet: BdkWallet,
+  server: Server
+): Promise<BdkWallet> {
+  const serverKey = serverCheckKey(server)
+  const checked = walletsCheckedOnServer.get(account.id)
+  if (checked?.serverKey === serverKey && checked.wallet === wallet) {
+    return wallet
+  }
+  const isOnServerChain = await withTimeout(
+    readIsWalletOnServerChain(wallet, server),
+    isOnionUrl(server.url)
+      ? WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS
+      : WALLET_CHAIN_CHECK_TIMEOUT_MS
+  ).catch(() => undefined)
+  if (isOnServerChain === undefined) {
+    return wallet
+  }
+  const syncWallet = isOnServerChain
+    ? wallet
+    : await recreateAccountWallet(account)
+  walletsCheckedOnServer.set(account.id, { serverKey, wallet: syncWallet })
+  return syncWallet
+}
+
+export { loadAccountWallets, walletForServerChain }

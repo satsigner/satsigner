@@ -1,13 +1,23 @@
 import { BdkWallet, Network } from 'react-native-bdk-sdk'
 
-import { getWalletData } from '@/api/bdk'
+import { deleteWalletDb, getWalletData } from '@/api/bdk'
+import { openServerChainReader } from '@/api/serverChain'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account } from '@/types/models/Account'
-import { loadAccountWallets } from '@/utils/accountWallets'
+import { type Server } from '@/types/settings/blockchain'
+import {
+  loadAccountWallets,
+  walletForServerChain
+} from '@/utils/accountWallets'
 
 jest.mock<typeof import('@/api/bdk')>('@/api/bdk', () => ({
   ...jest.requireActual<typeof import('@/api/bdk')>('@/api/bdk'),
+  deleteWalletDb: jest.fn(() => Promise.resolve()),
   getWalletData: jest.fn()
+}))
+
+jest.mock<typeof import('@/api/serverChain')>('@/api/serverChain', () => ({
+  openServerChainReader: jest.fn()
 }))
 
 jest.mock<typeof import('@/utils/bip39')>('@/utils/bip39', () => ({
@@ -27,6 +37,9 @@ jest.mock<typeof import('@/utils/decryption')>('@/utils/decryption', () => ({
   ),
   decryptAccountKeySecrets: jest.fn(() =>
     Promise.resolve([{ mnemonic: 'abandon abandon about' }])
+  ),
+  getAccountWithDecryptedKeys: jest.fn((account: Account) =>
+    Promise.resolve(account)
   )
 }))
 
@@ -123,5 +136,117 @@ describe('loadAccountWallets', () => {
     const { wallets } = useWalletsStore.getState()
     expect(wallets['acc-1']).toBeDefined()
     expect(wallets['acc-2']).toBeDefined()
+  })
+})
+
+describe('walletForServerChain', () => {
+  const DB_PATH = 'acc-1-signet.sqlite'
+  const SIGNET_TIP = 280_000
+  const MUTINYNET_BLOCK = { hash: 'mutinynet', height: 3_120_000 }
+  const MEMPOOL_SERVER: Server = {
+    backend: 'electrum',
+    name: 'Mempool',
+    network: 'signet',
+    url: 'ssl://mempool.space:60602'
+  }
+  const MUTINYNET_SERVER: Server = {
+    backend: 'esplora',
+    name: 'Mutinynet',
+    network: 'signet',
+    url: 'https://mutinynet.com/api'
+  }
+
+  function readerFor(tipHeight: number, blockHash: string) {
+    return {
+      blockHash: jest.fn(() => Promise.resolve(blockHash)),
+      close: jest.fn(),
+      tipHeight: jest.fn(() => Promise.resolve(tipHeight))
+    }
+  }
+
+  function walletWithBlock(block: { hash: string; height: number }) {
+    const wallet = makeWallet()
+    jest.mocked(wallet.checkpoints).mockReturnValue([block])
+    return wallet
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    useWalletsStore.getState().deleteWallets()
+  })
+
+  it('keeps a wallet that is on the server chain', async () => {
+    const wallet = walletWithBlock({ hash: 'signet', height: SIGNET_TIP })
+    const reader = readerFor(SIGNET_TIP, 'signet')
+    jest.mocked(openServerChainReader).mockResolvedValue(reader)
+
+    await expect(
+      walletForServerChain(makeAccount('acc-1'), wallet, MEMPOOL_SERVER)
+    ).resolves.toBe(wallet)
+    expect(deleteWalletDb).not.toHaveBeenCalled()
+    expect(reader.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('replaces a wallet that holds another chain', async () => {
+    const account = makeAccount('acc-2')
+    const wallet = walletWithBlock(MUTINYNET_BLOCK)
+    const fresh = makeWallet()
+    useWalletsStore.getState().addAccountWallet(account.id, wallet, DB_PATH)
+    jest
+      .mocked(openServerChainReader)
+      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+    jest.mocked(getWalletData).mockResolvedValue({
+      dbPath: DB_PATH,
+      derivationPath: '',
+      externalDescriptor: '',
+      fingerprint: '',
+      internalDescriptor: '',
+      wallet: fresh
+    })
+
+    await expect(
+      walletForServerChain(account, wallet, MEMPOOL_SERVER)
+    ).resolves.toBe(fresh)
+    expect(deleteWalletDb).toHaveBeenCalledWith(DB_PATH)
+    expect(useWalletsStore.getState().wallets[account.id]).toBe(fresh)
+  })
+
+  it('checks a wallet once per server', async () => {
+    const account = makeAccount('acc-3')
+    const wallet = walletWithBlock({ hash: 'signet', height: SIGNET_TIP })
+    jest
+      .mocked(openServerChainReader)
+      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+
+    await walletForServerChain(account, wallet, MEMPOOL_SERVER)
+    await walletForServerChain(account, wallet, MEMPOOL_SERVER)
+    expect(openServerChainReader).toHaveBeenCalledTimes(1)
+
+    await walletForServerChain(account, wallet, MUTINYNET_SERVER)
+    expect(openServerChainReader).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the wallet when the server cannot be checked', async () => {
+    const wallet = walletWithBlock(MUTINYNET_BLOCK)
+    jest
+      .mocked(openServerChainReader)
+      .mockRejectedValue(new Error('unreachable'))
+
+    await expect(
+      walletForServerChain(makeAccount('acc-4'), wallet, MEMPOOL_SERVER)
+    ).resolves.toBe(wallet)
+    expect(deleteWalletDb).not.toHaveBeenCalled()
+  })
+
+  it('refuses to reset a wallet whose database is unknown', async () => {
+    const wallet = walletWithBlock(MUTINYNET_BLOCK)
+    jest
+      .mocked(openServerChainReader)
+      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+
+    await expect(
+      walletForServerChain(makeAccount('acc-5'), wallet, MEMPOOL_SERVER)
+    ).rejects.toThrow('Rescan Wallet')
+    expect(deleteWalletDb).not.toHaveBeenCalled()
   })
 })
