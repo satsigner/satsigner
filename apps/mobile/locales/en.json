@@ -3027,6 +3027,7 @@
     "enterIn": "Enter in",
     "error.exportNFC": "Failed to export via NFC",
     "error.generateAddress": "Failed to generate new address",
+    "error.invalidAmount": "The clipboard does not hold a whole number of sats",
     "excludeLabel": "No Label",
     "exportViaNFC": "Export via NFC",
     "findingFreshAddress": "Finding a fresh address",
