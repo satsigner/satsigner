@@ -486,6 +486,35 @@ function formatSatsAsBtc(sats: number) {
   return formatBtc(sats / SATS_PER_BITCOIN)
 }
 
+const SHORT_SATS_SUFFIX = ' sats'
+const SHORT_SATS_THOUSAND = 1000
+const SHORT_SATS_TEN_THOUSAND = 10_000
+const SHORT_SATS_MILLION = 1_000_000
+const SHORT_SATS_TEN_MILLION = 10_000_000
+
+function formatShortScaled(amount: number, divisor: number): string {
+  const scaled = Math.round(amount / (divisor / 10)) / 10
+  return Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1)
+}
+
+/** Compact sats label: "12 sats", "1.4k sats", "43k sats". */
+function formatShortSats(amount: number): string {
+  const sats = Math.max(0, Math.round(amount))
+  if (sats < SHORT_SATS_THOUSAND) {
+    return `${sats}${SHORT_SATS_SUFFIX}`
+  }
+  if (sats < SHORT_SATS_TEN_THOUSAND) {
+    return `${formatShortScaled(sats, SHORT_SATS_THOUSAND)}k${SHORT_SATS_SUFFIX}`
+  }
+  if (sats < SHORT_SATS_MILLION) {
+    return `${Math.round(sats / SHORT_SATS_THOUSAND)}k${SHORT_SATS_SUFFIX}`
+  }
+  if (sats < SHORT_SATS_TEN_MILLION) {
+    return `${formatShortScaled(sats, SHORT_SATS_MILLION)}m${SHORT_SATS_SUFFIX}`
+  }
+  return `${Math.round(sats / SHORT_SATS_MILLION)}m${SHORT_SATS_SUFFIX}`
+}
+
 export {
   formatAddress,
   formatBtc,
@@ -505,6 +534,7 @@ export {
   formatPageUrl,
   formatPercentualChange,
   formatSatsAsBtc,
+  formatShortSats,
   formatShortPubkey,
   formatTime,
   formatTimeFromNow,

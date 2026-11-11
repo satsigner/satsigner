@@ -11,6 +11,7 @@ import {
   formatNpub,
   formatNumber,
   formatSatsAsBtc,
+  formatShortSats,
   formatShortPubkey,
   formatTime,
   formatTxId,
@@ -200,6 +201,16 @@ describe('format utils', () => {
       expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
       expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
+  })
+})
+
+describe('formatShortSats', () => {
+  it('keeps small amounts exact and compacts thousands', () => {
+    expect(formatShortSats(12)).toBe('12 sats')
+    expect(formatShortSats(1400)).toBe('1.4k sats')
+    expect(formatShortSats(43_000)).toBe('43k sats')
+    expect(formatShortSats(1000)).toBe('1k sats')
+    expect(formatShortSats(2_400_000)).toBe('2.4m sats')
   })
 })
 

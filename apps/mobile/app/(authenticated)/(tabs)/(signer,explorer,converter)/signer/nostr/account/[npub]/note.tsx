@@ -932,6 +932,7 @@ export default function NostrNotePage() {
                   canZap: zapFlow.canZap && Boolean(effectiveLud16),
                   onLongPress: handleOpenZapSheet,
                   onPress: handleOneTapZap,
+                  totalSats: totalZapped,
                   zapping: zapFlow.zapping
                 }}
               >
