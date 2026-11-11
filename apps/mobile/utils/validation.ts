@@ -13,7 +13,7 @@ import { isDescriptorChecksumValid } from '@/utils/descriptorChecksum'
 bitcoinjs.initEccLib(ecc)
 
 const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
-  bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
+  bitcoin: ['xpub', 'ypub', 'zpub'],
   signet: ['tpub', 'upub', 'vpub'],
   testnet: ['tpub', 'upub', 'vpub']
 }

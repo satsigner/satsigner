@@ -167,14 +167,6 @@ export default function ImportExtendedPub() {
     )
   }
 
-  function convertVpubToTpub(vpub: string): string {
-    if (!vpub.startsWith('vpub')) {
-      return vpub
-    }
-
-    return convertKeyFormat(vpub, 'tpub', network)
-  }
-
   function handleConfirm() {
     if (!validXpub || !validMasterFingerprint) {
       toast.error(t('watchonly.error.invalidInput'))
@@ -184,7 +176,7 @@ export default function ImportExtendedPub() {
     const fingerprint = localFingerprint || UNKNOWN_MASTER_FINGERPRINT
 
     try {
-      const convertedXpub = convertVpubToTpub(xpub)
+      const convertedXpub = convertKeyFormat(xpub, 'xpub', network)
       if (xpub !== convertedXpub) {
         toast.info(
           t('watchonly.info.vpubConverted', {

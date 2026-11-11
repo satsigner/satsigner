@@ -25,6 +25,7 @@ import { type CreationType } from '@/types/models/Account'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import {
   appNetworkToBdkNetwork,
+  convertKeyFormat,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -152,7 +153,8 @@ export default function UnifiedImport() {
         scriptVersion,
         network
       )
-      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${nextXpub}/0/*`
+      const standardXpub = convertKeyFormat(nextXpub, 'xpub', network)
+      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${standardXpub}/0/*`
       setExtendedPublicKey(formattedXpub)
     }
   }

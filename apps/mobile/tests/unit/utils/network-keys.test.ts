@@ -1,3 +1,4 @@
+import { type Network } from '@/types/settings/blockchain'
 import {
   convertKeyFormat,
   detectNetworkFromKey,
@@ -7,6 +8,35 @@ import {
 } from '@/utils/bitcoin'
 import { validateExtendedKey } from '@/utils/validation'
 
+import { COSIGNERS } from './multisigDescriptorSamples'
+
+// Account keys of the BIP-39 "abandon … about" mnemonic. The ypub and zpub
+// are the published BIP-49 and BIP-84 vectors.
+const BIP84_ZPUB =
+  'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs'
+const BIP84_XPUB =
+  'xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V'
+const BIP49_YPUB =
+  'ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNB6VvmSEgytSER9azLDWCxoJwW7Ke7icmizBMXrzBx9979FfaHxHcrArf3zbeJJJUZPf663zsP'
+const BIP49_XPUB =
+  'xpub6C6nQwHaWbSrzs5tZ1q7m5R9cPK9eYpNMFesiXsYrgc1P8bvLLAet9JfHjYXKjToD8cBRswJXXbbFpXgwsswVPAZzKMa1jUp2kVkGVUaJa7'
+const [{ p2wsh: COSIGNER_TPUB }] = COSIGNERS
+const COSIGNER_VPUB =
+  'vpub5bEzW7qQeLAj252JMMM1EBEqJZzP62DuzmqnPxKVGDSQj4mZWwPct6oiyQD6rXiVrJVoVPXWceMjTdjaCE8B7HNWb2Pyrr5Wp3cLtPpRDHp'
+const COSIGNER_UPUB =
+  'upub5GQjCTAVVedFAmqBWzZP269L8bqw9QER5fKZcZRbtD4XfxxLGHE4G39axCFWrd4aSfNzjuvx9z1BaM81UXiAK3guighZGwG2YKYhVoW3VYR'
+
+type ConversionCase = [string, string, Network, string]
+
+const CONVERSION_CASES: ConversionCase[] = [
+  ['zpub (BIP-84)', BIP84_ZPUB, 'bitcoin', BIP84_XPUB],
+  ['ypub (BIP-49)', BIP49_YPUB, 'bitcoin', BIP49_XPUB],
+  ['xpub', BIP84_XPUB, 'bitcoin', BIP84_XPUB],
+  ['vpub', COSIGNER_VPUB, 'signet', COSIGNER_TPUB],
+  ['upub', COSIGNER_UPUB, 'testnet', COSIGNER_TPUB],
+  ['tpub', COSIGNER_TPUB, 'signet', COSIGNER_TPUB]
+]
+
 describe('network-aware key handling', () => {
   describe('validateExtendedKey', () => {
     it('should validate mainnet keys correctly', () => {
@@ -14,11 +44,11 @@ describe('network-aware key handling', () => {
       expect(validateExtendedKey('xpub123456789abcdef', 'bitcoin')).toBe(true)
       expect(validateExtendedKey('ypub123456789abcdef', 'bitcoin')).toBe(true)
       expect(validateExtendedKey('zpub123456789abcdef', 'bitcoin')).toBe(true)
-      expect(validateExtendedKey('vpub123456789abcdef', 'bitcoin')).toBe(true)
 
       // Invalid mainnet keys (testnet prefixes)
       expect(validateExtendedKey('tpub123456789abcdef', 'bitcoin')).toBe(false)
       expect(validateExtendedKey('upub123456789abcdef', 'bitcoin')).toBe(false)
+      expect(validateExtendedKey('vpub123456789abcdef', 'bitcoin')).toBe(false)
     })
 
     it('should validate testnet keys correctly', () => {
@@ -125,6 +155,13 @@ describe('network-aware key handling', () => {
       const invalidKey = 'xpub123456789abcdef'
       expect(convertKeyFormat(invalidKey, 'ypub', 'bitcoin')).toBe(invalidKey)
     })
+
+    it.each(CONVERSION_CASES)(
+      'turns a %s into the plain extended key BDK accepts',
+      (_format, key, network, expected) => {
+        expect(convertKeyFormat(key, 'xpub', network)).toBe(expected)
+      }
+    )
   })
 })
 
