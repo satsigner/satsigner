@@ -1,7 +1,7 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
+import { SEQUENCE_LOCKTIME_NO_RBF, SEQUENCE_RBF } from '@/constants/btc'
 import { type Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
@@ -253,7 +253,9 @@ describe('addSentTransactionToAccount', () => {
       makeSent({ rbf: false })
     )
     expect(withRbf?.transactions[0].vin?.[0].sequence).toBe(SEQUENCE_RBF)
-    expect(withoutRbf?.transactions[0].vin?.[0].sequence).toBe(SEQUENCE_FINAL)
+    expect(withoutRbf?.transactions[0].vin?.[0].sequence).toBe(
+      SEQUENCE_LOCKTIME_NO_RBF
+    )
   })
 })
 

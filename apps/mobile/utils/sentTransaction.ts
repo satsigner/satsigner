@@ -1,7 +1,7 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
+import { SEQUENCE_LOCKTIME_NO_RBF, SEQUENCE_RBF } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
@@ -270,7 +270,7 @@ function addSentTransactionToAccount(
       label: utxo.label,
       previousOutput: { txid: utxo.txid, vout: utxo.vout },
       scriptSig: [],
-      sequence: rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
+      sequence: rbf ? SEQUENCE_RBF : SEQUENCE_LOCKTIME_NO_RBF,
       value: utxo.value,
       witness: []
     })),
