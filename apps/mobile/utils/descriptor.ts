@@ -62,6 +62,27 @@ export function getOriginDerivation(text: string) {
 }
 
 /** Same as getOriginDerivation but the origin bracket need not be at the start (e.g. wpkh([fp/84h/0h/0h]xpub.../0/*)). */
+const ORIGIN_PATH_PATTERN = /^\d+['hH]?(?:\/\d+['hH]?)*$/
+
+function withoutMasterPrefix(path: string) {
+  return path.trim().replace(/^m\/?/i, '')
+}
+
+/**
+ * The origin path a key is written with inside `[fingerprint/path]`: the
+ * path the key was imported or derived at, or `fallbackPath` when the key has
+ * no valid one. Both may start with `m/`; the result does not.
+ */
+export function keyOriginPath(
+  keyDerivationPath: string | undefined,
+  fallbackPath: string
+): string {
+  const path = withoutMasterPrefix(keyDerivationPath ?? '')
+  return ORIGIN_PATH_PATTERN.test(path)
+    ? path
+    : withoutMasterPrefix(fallbackPath)
+}
+
 export function getDescriptorDerivationPath(descriptor: string): string {
   const bracketMatch = descriptor.match(
     /\[[0-9a-fA-F]{8}\/((?:[0-9]+[hH']?\/)*[0-9]+[hH']?)\]/

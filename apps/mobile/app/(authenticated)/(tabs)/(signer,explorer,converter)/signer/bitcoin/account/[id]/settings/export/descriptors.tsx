@@ -36,6 +36,7 @@ import {
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import {
   addDescriptorChecksum,
+  keyOriginPath,
   splitMultipathDescriptor
 } from '@/utils/descriptor'
 import { shareFile } from '@/utils/filesystem'
@@ -174,7 +175,12 @@ async function buildDescriptorExports(account: Account, network: Network) {
         const keyData = await Promise.all(
           temporaryAccount.keys.map(async (key, index) => {
             if (!key) {
-              return { extendedPublicKey: '', fingerprint: '', index }
+              return {
+                derivationPath: undefined,
+                extendedPublicKey: '',
+                fingerprint: '',
+                index
+              }
             }
 
             const { secret } = key
@@ -233,7 +239,12 @@ async function buildDescriptorExports(account: Account, network: Network) {
               )
             }
 
-            return { extendedPublicKey, fingerprint, index }
+            return {
+              derivationPath: key.derivationPath,
+              extendedPublicKey,
+              fingerprint,
+              index
+            }
           })
         )
 
@@ -267,8 +278,8 @@ async function buildDescriptorExports(account: Account, network: Network) {
 
           const keySection = sortedKeyData
             .map(
-              ({ fingerprint, extendedPublicKey }) =>
-                `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+              ({ derivationPath, fingerprint, extendedPublicKey }) =>
+                `[${fingerprint}/${keyOriginPath(derivationPath, cleanPolicyPath)}]${extendedPublicKey}/<0;1>/*`
             )
             .join(',')
 

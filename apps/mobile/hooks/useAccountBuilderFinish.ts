@@ -90,7 +90,11 @@ function useAccountBuilderFinish() {
               updateKeyFingerprint(key.index, finalFingerprint)
             }
           }
-          setKeyDerivationPath(key.index, walletData.derivationPath)
+          setKeyDerivationPath(
+            key.index,
+            walletData.keyDerivationPaths?.[key.index] ??
+              walletData.derivationPath
+          )
         }
 
         encryptedSecrets.set(key.index, encryptedSecret)

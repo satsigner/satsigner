@@ -9,6 +9,7 @@ import {
   getImportedKeyDescriptor,
   getScriptVersionFromDescriptor,
   getXpubFingerprint,
+  keyOriginPath,
   parseImportedDescriptorPayload,
   parseXpubInput,
   processCombinedDescriptor,
@@ -401,5 +402,21 @@ describe('getImportedKeyDescriptor', () => {
 
   it('returns nothing when both are empty', () => {
     expect(getImportedKeyDescriptor(EMPTY, EMPTY)).toBeUndefined()
+  })
+})
+
+describe('keyOriginPath', () => {
+  const POLICY_PATH = "48'/1'/0'/2'"
+
+  it('uses the path the key was imported at', () => {
+    expect(keyOriginPath("m/48'/1'/3'/2'", POLICY_PATH)).toBe("48'/1'/3'/2'")
+    expect(keyOriginPath('84h/1h/0h', POLICY_PATH)).toBe('84h/1h/0h')
+  })
+
+  it('falls back to the policy path without a valid one', () => {
+    expect(keyOriginPath(undefined, POLICY_PATH)).toBe(POLICY_PATH)
+    expect(keyOriginPath('', `m/${POLICY_PATH}`)).toBe(POLICY_PATH)
+    expect(keyOriginPath('m//0', POLICY_PATH)).toBe(POLICY_PATH)
+    expect(keyOriginPath("m/48'/x'", POLICY_PATH)).toBe(POLICY_PATH)
   })
 })

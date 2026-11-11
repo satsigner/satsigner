@@ -58,6 +58,7 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  keyOriginPath,
   PrivateKeyDescriptorError
 } from '@/utils/descriptor'
 import { devLog } from '@/utils/devConsole'
@@ -126,6 +127,8 @@ type WalletData = {
   externalDescriptor: string
   fingerprint: string
   internalDescriptor: string
+  /** Multisig only, by key index: the origin path each key is written with. */
+  keyDerivationPaths?: string[]
   keyFingerprints?: string[] // Optional for multisig accounts
   wallet: BdkWallet
 }
@@ -232,6 +235,10 @@ async function getWalletData(
       const scriptVersion = account.keys[0]?.scriptVersion || 'P2WSH'
       const multisigScriptType =
         getMultisigScriptTypeFromScriptVersion(scriptVersion)
+      const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
+        scriptVersion,
+        toAppNetwork(network)
+      )
 
       const keyData = await Promise.all(
         account.keys.map((key, keyIndex) => {
@@ -264,7 +271,19 @@ async function getWalletData(
             fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
-          return { extendedPublicKey, fingerprint, index: keyIndex }
+          // A key imported with its own origin (or taken from another
+          // account) keeps it, so signers find their key in the PSBT.
+          const originPath = keyOriginPath(
+            key.derivationPath,
+            policyDerivationPath
+          )
+
+          return {
+            extendedPublicKey,
+            fingerprint,
+            index: keyIndex,
+            originPath
+          }
         })
       )
 
@@ -275,6 +294,7 @@ async function getWalletData(
           fingerprint: string
           extendedPublicKey: string
           index: number
+          originPath: string
         } =>
           kd !== null &&
           kd.fingerprint !== undefined &&
@@ -287,21 +307,14 @@ async function getWalletData(
         )
       }
 
-      const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
-        scriptVersion,
-        toAppNetwork(network)
-      )
-
-      const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
-
       const sortedKeyData = validKeyData.toSorted((a, b) =>
         a.extendedPublicKey.localeCompare(b.extendedPublicKey)
       )
 
       const keySection = sortedKeyData
         .map(
-          ({ fingerprint, extendedPublicKey }) =>
-            `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+          ({ fingerprint, extendedPublicKey, originPath }) =>
+            `[${fingerprint}/${originPath}]${extendedPublicKey}/<0;1>/*`
         )
         .join(',')
 
@@ -340,6 +353,7 @@ async function getWalletData(
       )
 
       const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
+      const keyDerivationPaths = validKeyData.map((kd) => `m/${kd.originPath}`)
 
       return {
         dbPath,
@@ -347,6 +361,7 @@ async function getWalletData(
         externalDescriptor: finalDescriptor,
         fingerprint: parsedDescriptor.fingerprint,
         internalDescriptor: '',
+        keyDerivationPaths,
         keyFingerprints,
         wallet
       }
