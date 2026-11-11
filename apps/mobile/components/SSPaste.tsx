@@ -174,6 +174,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         'nostr_note',
         'nostr_nevent',
         'nostr_nprofile',
+        'nostr_connect',
         'nostr_json'
       ]
 
