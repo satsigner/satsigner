@@ -3,9 +3,17 @@ import {
   validateAddress,
   validateCombinedDescriptor,
   validateDerivationPath,
+  validateDescriptor,
+  validateDescriptorFormat,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+
+import {
+  P2SH_MULTISIG_DESCRIPTOR,
+  P2SH_P2WSH_MULTISIG_DESCRIPTOR,
+  P2WSH_MULTISIG_DESCRIPTOR
+} from './multisigDescriptorSamples'
 
 describe('validates addresses', () => {
   const validAddresses = [
@@ -159,5 +167,23 @@ describe('validates combined descriptors', () => {
     expect(isValid).toBe(false)
     expect(error).toBe('descriptorIncompatible')
     expect(translateError(error)).not.toMatch(/missing/i)
+  })
+})
+
+describe('validates multisig descriptors in every script wrapper', () => {
+  const descriptors = {
+    'sh(sortedmulti)': P2SH_MULTISIG_DESCRIPTOR,
+    'sh(wsh(sortedmulti))': P2SH_P2WSH_MULTISIG_DESCRIPTOR,
+    'wsh(sortedmulti)': P2WSH_MULTISIG_DESCRIPTOR
+  }
+
+  it.each(Object.entries(descriptors))('accepts %s', (_wrapper, descriptor) => {
+    expect(validateDescriptor(descriptor)).toBe(true)
+    expect(validateDescriptorFormat(descriptor)).toBe(true)
+  })
+
+  it('accepts the same nested descriptor on every call', () => {
+    expect(validateDescriptor(P2SH_P2WSH_MULTISIG_DESCRIPTOR)).toBe(true)
+    expect(validateDescriptor(P2SH_P2WSH_MULTISIG_DESCRIPTOR)).toBe(true)
   })
 })

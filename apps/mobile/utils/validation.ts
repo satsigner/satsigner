@@ -91,9 +91,9 @@ function validateDescriptorInternal(
   const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
-  const singleKeyRegex = new RegExp(singleKey, 'gm')
-  const multiKeyRegex = new RegExp(multiKey, 'gm')
-  const nestedRegex = new RegExp(nestedDescriptor, 'gm')
+  const singleKeyRegex = new RegExp(singleKey)
+  const multiKeyRegex = new RegExp(multiKey)
+  const nestedRegex = new RegExp(nestedDescriptor)
 
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
