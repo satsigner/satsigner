@@ -170,6 +170,10 @@ import {
 // Render further beyond the viewport so fast scrolls hit fewer blank cells.
 const TX_LIST_DRAW_DISTANCE = 500
 
+// FlashList 2 keeps the first visible row anchored by default, so inserting
+// group headers above the first UTXO would scroll its header out of view.
+const UTXO_LIST_VISIBLE_CONTENT_POSITION = { disabled: true }
+
 const ACTIVE_PAYJOIN_STATUSES = new Set([
   'ready',
   'waiting',
@@ -1747,6 +1751,7 @@ function SpendableOutputs({
           <FlashList
             data={listRows}
             keyExtractor={(item) => item.key}
+            maintainVisibleContentPosition={UTXO_LIST_VISIBLE_CONTENT_POSITION}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
