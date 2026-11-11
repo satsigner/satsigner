@@ -1,3 +1,5 @@
+import { StyleSheet } from 'react-native'
+
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -26,7 +28,7 @@ function SSMessageActionsModal({
 }: SSMessageActionsModalProps) {
   return (
     <SSModal visible={visible} onClose={onClose}>
-      <SSVStack gap="sm">
+      <SSVStack gap="sm" style={styles.menu}>
         <SSText color="muted" numberOfLines={3} center>
           {preview}
         </SSText>
@@ -50,5 +52,13 @@ function SSMessageActionsModal({
     </SSModal>
   )
 }
+
+const styles = StyleSheet.create({
+  menu: {
+    alignSelf: 'stretch',
+    flex: 1,
+    justifyContent: 'center'
+  }
+})
 
 export default SSMessageActionsModal

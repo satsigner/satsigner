@@ -20,9 +20,10 @@ function SSNewMessagesPill({ label, onPress }: SSNewMessagesPillProps) {
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'center',
     bottom: PILL_BOTTOM_OFFSET,
+    left: 0,
     position: 'absolute',
+    right: 0,
     zIndex: 2
   }
 })

@@ -17,7 +17,6 @@ import { type KeyFingerprintsByAccount } from '@/utils/psbt'
 const RETRY_HIT_SLOP = 8
 const AVATAR_SIZE = 24
 const AVATAR_GAP = 8
-const OWN_MESSAGE_ACCENT_WIDTH = 2
 const LONG_PRESS_DELAY_MS = 350
 
 type SSNostrMessageReplyPreview = {
@@ -321,24 +320,19 @@ const styles = StyleSheet.create({
   },
   message: {
     backgroundColor: Colors.gray[900],
-    borderLeftColor: 'transparent',
-    borderLeftWidth: OWN_MESSAGE_ACCENT_WIDTH,
     borderRadius: 8,
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 8
   },
   ownMessage: {
-    backgroundColor: Colors.gray[800],
-    borderLeftColor: Colors.gray[400]
+    backgroundColor: Colors.gray[800]
   },
   pressed: {
     opacity: 0.7
   },
   replyQuote: {
     backgroundColor: Colors.gray[850],
-    borderLeftColor: Colors.gray[500],
-    borderLeftWidth: 2,
     borderRadius: 4,
     marginBottom: 4,
     paddingHorizontal: 8,
