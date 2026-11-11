@@ -84,6 +84,7 @@ import {
   HEADER_CHROME_EDGE_NUDGE,
   HEADER_CHROME_HIT_BOX
 } from '@/constants/headerChrome'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { MS_PER_SECOND } from '@/constants/time'
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { useContentHandler } from '@/hooks/useContentHandler'
@@ -1123,13 +1124,15 @@ function SSAddressList({
   accountId,
   isMultiAddressWatchOnly,
   isLoadingAddresses,
-  onLoadMore
+  onLoadMore,
+  privacyMode
 }: {
   addresses: Address[]
   accountId: string
   isMultiAddressWatchOnly: boolean
   isLoadingAddresses: boolean
   onLoadMore: () => void
+  privacyMode: boolean
 }) {
   return (
     <ScrollView>
@@ -1145,7 +1148,10 @@ function SSAddressList({
                 })
               }
             >
-              <AddressCard address={{ index, ...address }} />
+              <AddressCard
+                address={{ index, ...address }}
+                privacyMode={privacyMode}
+              />
             </SSPressable>
           </SSVStack>
         ))}
@@ -1260,6 +1266,7 @@ function DerivedAddresses({
     useBlockchainStore((state) => state.selectedNetwork)
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   const [addressPath, setAddressPath] = useState('')
   const [addressCount, setAddressCount] = useState(
@@ -1408,7 +1415,11 @@ function DerivedAddresses({
             { color: item.summary.balance === 0 ? '#333' : '#fff' }
           ]}
         >
-          <SSStyledSatText amount={item.summary.balance} textSize="xs" />
+          {privacyMode ? (
+            PRIVACY_MASK
+          ) : (
+            <SSStyledSatText amount={item.summary.balance} textSize="xs" />
+          )}
         </SSText>
         <SSText
           style={[
@@ -1506,6 +1517,7 @@ function DerivedAddresses({
           isMultiAddressWatchOnly={isMultiAddressWatchOnly}
           isLoadingAddresses={isLoadingAddresses}
           onLoadMore={loadMoreAddresses}
+          privacyMode={privacyMode}
         />
       )}
       {isMultiAddressWatchOnly && (
@@ -1815,6 +1827,7 @@ function SpendableOutputs({
             canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
             inputs={[]}
             groupMode={groupMode}
+            privacyMode={display.privacyMode}
             onPress={({ txid, vout }: Utxo) =>
               router.navigate(
                 `/signer/bitcoin/account/${account.id}/transaction/${txid}/utxo/${vout}`
@@ -2376,7 +2389,9 @@ export default function AccountView() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {formatNumber(account.summary.satsInMempool, 0, false, ',')}
+              {privacyMode
+                ? PRIVACY_MASK
+                : formatNumber(account.summary.satsInMempool, 0, false, ',')}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.satsInMempool')}

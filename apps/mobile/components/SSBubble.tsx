@@ -17,6 +17,7 @@ import {
   withTiming
 } from 'react-native-reanimated'
 
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
@@ -34,6 +35,7 @@ type SSBubbleProps = {
   scale: Readonly<SharedValue<number>>
   animationDelay?: number
   dimmed?: boolean
+  privacyMode?: boolean
 }
 
 function SSBubble({
@@ -46,7 +48,8 @@ function SSBubble({
   customFontManager,
   scale,
   animationDelay = 0,
-  dimmed = false
+  dimmed = false,
+  privacyMode = false
 }: SSBubbleProps) {
   const opacity = useSharedValue(0)
   const dimmedOpacity = useSharedValue(dimmed ? 0.3 : 1)
@@ -119,7 +122,7 @@ function SSBubble({
       customFontManager
     )
       .pushStyle(textStyle)
-      .addText(`${utxo.value.toLocaleString()}`)
+      .addText(privacyMode ? PRIVACY_MASK : utxo.value.toLocaleString())
       .pushStyle({
         ...textStyle,
         color: Skia.Color(Colors.gray[600]),
@@ -130,7 +133,14 @@ function SSBubble({
       .build()
     para.layout(200)
     return para
-  }, [customFontManager, selected, utxo.value, fontSize, satsFontSize])
+  }, [
+    customFontManager,
+    selected,
+    utxo.value,
+    fontSize,
+    satsFontSize,
+    privacyMode
+  ])
 
   const mainX = x - 200 / 2
   const mainTextheight = mainParagraph?.getHeight() || 0
