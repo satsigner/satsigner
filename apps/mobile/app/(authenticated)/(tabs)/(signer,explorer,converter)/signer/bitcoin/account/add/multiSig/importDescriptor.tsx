@@ -15,21 +15,18 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import {
-  DEFAULT_SCRIPT_VERSION,
-  useAccountBuilderStore
-} from '@/store/accountBuilder'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import { type ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { getXpubFingerprint } from '@/utils/descriptor'
-import { sanitizeScannedText } from '@/utils/parse'
 import {
-  validateDescriptor,
-  validateDescriptorScriptVersion
-} from '@/utils/validation'
+  getScriptVersionFromDescriptor,
+  getXpubFingerprint
+} from '@/utils/descriptor'
+import { sanitizeScannedText } from '@/utils/parse'
+import { validateDescriptor } from '@/utils/validation'
 
 function parseMultisigDescriptor(descriptorText: string) {
   try {
@@ -109,7 +106,6 @@ export default function ImportDescriptor() {
   const router = useRouter()
   const [
     scriptVersion,
-    policyType,
     setScriptVersion,
     setKeyCount,
     setKeysRequired,
@@ -123,7 +119,6 @@ export default function ImportDescriptor() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.scriptVersion,
-      state.policyType,
       state.setScriptVersion,
       state.setKeyCount,
       state.setKeysRequired,
@@ -167,25 +162,9 @@ export default function ImportDescriptor() {
       return 'Invalid descriptor'
     }
 
-    if (!scriptVersion) {
-      return ''
-    }
-
-    // While the builder still holds its default script version, a multisig
-    // wsh() descriptor is checked as P2WSH. A version the user picked is kept,
-    // so sh(wsh()) still matches P2SH-P2WSH and mismatches are reported.
-    const effectiveScriptVersion =
-      policyType === 'multisig' &&
-      scriptVersion === DEFAULT_SCRIPT_VERSION &&
-      descriptorText.includes('wsh(')
-        ? 'P2WSH'
-        : scriptVersion
-
-    const scriptVersionValidation = validateDescriptorScriptVersion(
-      descriptorText,
-      effectiveScriptVersion
-    )
-    return scriptVersionValidation ? '' : 'Invalid script version'
+    return getScriptVersionFromDescriptor(descriptorText) === scriptVersion
+      ? ''
+      : t('account.import.error.descriptorIncompatible')
   }
 
   function handleDescriptorChange(text: string) {

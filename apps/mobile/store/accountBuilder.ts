@@ -442,4 +442,4 @@ const useAccountBuilderStore = create<
   }))
 )
 
-export { DEFAULT_SCRIPT_VERSION, useAccountBuilderStore }
+export { useAccountBuilderStore }
