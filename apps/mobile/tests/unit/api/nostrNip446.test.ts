@@ -174,6 +174,27 @@ describe('nip46 bunker service', () => {
     expect(onRequest).toHaveBeenCalledTimes(1)
   })
 
+  it('does not hand a request back to a session restarted within the lookback', async () => {
+    const clientSecretKey = generateSecretKey()
+    const onRequest = jest.fn()
+    const request = requestFrom(clientSecretKey, 'before-lock')
+    const [firstSocket] = await startBunker(
+      [RELAY_A],
+      clientSecretKey,
+      onRequest
+    )
+    firstSocket.deliver(request)
+
+    const [restartedSocket] = await startBunker(
+      [RELAY_A],
+      clientSecretKey,
+      onRequest
+    )
+    restartedSocket.deliver(request)
+
+    expect(onRequest).toHaveBeenCalledTimes(1)
+  })
+
   it('ignores a replayed request whose id was changed', async () => {
     const clientSecretKey = generateSecretKey()
     const onRequest = jest.fn()

@@ -249,6 +249,8 @@ export const NOSTR_POW_NONCE_TAG = 'nonce'
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+// Handled request ids remembered across sessions; the oldest go first.
+export const NOSTR_NIP46_HANDLED_EVENTS_LIMIT = 1000
 export const NIP46_ACTIVITY_WRITE_INTERVAL_MS =
   SECONDS_PER_MINUTE * MS_PER_SECOND
 export const NOSTR_NIP46_SUPPORTED_METHODS: Nip46Method[] = [

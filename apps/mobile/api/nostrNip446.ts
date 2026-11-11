@@ -12,6 +12,7 @@ import {
 } from 'nostr-tools/nip44'
 
 import {
+  NOSTR_NIP46_HANDLED_EVENTS_LIMIT,
   NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_WS_CONNECT_TIMEOUT_MS
@@ -22,6 +23,21 @@ import { parseNip46Request } from '@/utils/nip46'
 import { parseNostrEvent } from '@/utils/nostrEvent'
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
+
+// Every relay delivers the same request, and a session restarted on unlock
+// gets a new service whose lookback window delivers it again, so handled
+// requests are kept across instances. Only a request a session decrypted is
+// recorded, which keeps one session from hiding another's.
+const handledEventIds = new Set<string>()
+
+function markEventHandled(eventId: string) {
+  handledEventIds.add(eventId)
+  if (handledEventIds.size <= NOSTR_NIP46_HANDLED_EVENTS_LIMIT) {
+    return
+  }
+  const [oldest] = handledEventIds
+  handledEventIds.delete(oldest)
+}
 
 // Relays may ignore the subscription filter, so the author is checked again
 // and the signature verified before the signer acts on a request.
@@ -111,8 +127,6 @@ export class Nip46BunkerService {
   private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
-  // Every relay delivers the same request; it is handled once.
-  private handledEventIds = new Set<string>()
 
   async connect(relays: string[]): Promise<void> {
     const results = await Promise.allSettled(
@@ -191,14 +205,14 @@ export class Nip46BunkerService {
     }
     for (const ws of this.sockets) {
       subscribeOnSocket(ws, this.subId, filter, (event) => {
-        if (this.handledEventIds.has(event.id)) {
+        if (handledEventIds.has(event.id)) {
           return
         }
         const request = readClientRequest(event, clientPubkey, convKey)
         if (!request) {
           return
         }
-        this.handledEventIds.add(event.id)
+        markEventHandled(event.id)
         onRequest(request)
       })
     }
@@ -251,7 +265,6 @@ export class Nip46BunkerService {
     }
     this.sockets = []
     this.conversationKey = null
-    this.handledEventIds.clear()
     this.active = false
   }
 
