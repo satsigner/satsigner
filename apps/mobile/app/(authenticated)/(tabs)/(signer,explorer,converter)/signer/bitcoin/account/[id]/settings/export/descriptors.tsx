@@ -1,7 +1,7 @@
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
-import { useEffect, useRef, useState } from 'react'
+import { type RefObject, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
@@ -39,6 +39,7 @@ import {
   keyOriginPath,
   splitMultipathDescriptor
 } from '@/utils/descriptor'
+import { buildDescriptorsPdfHtml } from '@/utils/descriptorPdf'
 import { shareFile } from '@/utils/filesystem'
 import { singlesigDescriptorFromKeyPart } from '@/utils/getOutputDescriptorForKey'
 import { publicDescriptorFromPrivateKey } from '@/utils/wif'
@@ -46,12 +47,14 @@ import { publicDescriptorFromPrivateKey } from '@/utils/wif'
 type DescriptorQrItemProps = {
   descriptor: string
   label: string
+  qrRef?: RefObject<ViewInstance | null>
 }
 
-function DescriptorQrItem({ descriptor, label }: DescriptorQrItemProps) {
+function DescriptorQrItem({ descriptor, label, qrRef }: DescriptorQrItemProps) {
   return (
     <View style={{ alignItems: 'center' }}>
       <SSShareableQR
+        qrRef={qrRef}
         value={descriptor}
         size={150}
         color={Colors.black}
@@ -72,6 +75,20 @@ function DescriptorQrItem({ descriptor, label }: DescriptorQrItemProps) {
       </SSShareableQR>
     </View>
   )
+}
+
+// A QR that fails to render leaves the PDF with the descriptor text only.
+function captureQrDataUrl(
+  ref: RefObject<ViewInstance | null>
+): Promise<string> {
+  if (!ref.current) {
+    return Promise.resolve('')
+  }
+  return captureRef(ref.current, {
+    format: 'png',
+    quality: 0.9,
+    result: 'data-uri'
+  }).catch(() => '')
 }
 
 async function buildDescriptorExports(account: Account, network: Network) {
@@ -421,7 +438,10 @@ export default function ExportDescriptors() {
   const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<ViewInstance>(null)
+  const externalQrRef = useRef<ViewInstance>(null)
+  const internalQrRef = useRef<ViewInstance>(null)
   const shownContent = showSeparate ? separateExportContent : exportContent
+  const separateDescriptors = separateExportContent.split('\n').filter(Boolean)
 
   useEffect(() => {
     async function getDescriptors() {
@@ -468,111 +488,32 @@ export default function ExportDescriptors() {
     generatePDF()
   }
 
+  function separateQrRef(index: number) {
+    return index === 0 ? externalQrRef : internalQrRef
+  }
+
   async function generatePDF() {
     if (!account || !exportContent) {
       return
     }
-
-    try {
-      let qrDataURL = ''
-      if (qrRef.current) {
-        qrDataURL = await captureRef(qrRef.current, {
-          format: 'png',
-          quality: 0.9,
-          result: 'data-uri'
-        })
-      }
-
-      await createPDFWithQR(qrDataURL)
-    } catch {
-      await createPDFWithQR('')
-    }
-  }
-
-  async function createPDFWithQR(qrDataURL: string) {
-    if (!account) {
-      return
-    }
-    const title = account.name
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${title}</title>
-          <style>
-            @page {
-              margin: 1in;
-              size: A4;
-            }
-
-            body {
-              font-family: 'Courier New', monospace;
-              margin: 0;
-              padding: 20px;
-              background-color: white;
-              color: black;
-              line-height: 1.4;
-            }
-
-            .header {
-              text-align: center;
-              font-size: 24px;
-              font-weight: bold;
-              margin-bottom: 30px;
-            }
-
-            .qr-section {
-              text-align: center;
-              margin: 30px 0;
-              page-break-inside: avoid;
-            }
-
-            .qr-code {
-              max-width: 300px;
-              max-height: 300px;
-              border: 2px solid #000;
-              margin: 0 auto;
-              display: block;
-            }
-
-            .descriptor-text {
-              font-family: 'Courier New', monospace;
-              font-size: 11px;
-              word-break: break-all;
-              white-space: pre-wrap;
-              background-color: #f8f8f8;
-              padding: 20px;
-              border: 1px solid #ddd;
-              margin: 15px 0;
-              line-height: 1.6;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">${title}</div>
-
-          ${
-            qrDataURL
-              ? `
-          <div class="qr-section">
-            <img src="${qrDataURL}" class="qr-code" alt="QR Code for descriptor" />
-          </div>
-          `
-              : ''
+    const sections = showSeparate
+      ? await Promise.all(
+          separateDescriptors.map(async (descriptor, index) => ({
+            descriptor,
+            qrDataUrl: await captureQrDataUrl(separateQrRef(index))
+          }))
+        )
+      : [
+          {
+            descriptor: exportContent,
+            qrDataUrl: await captureQrDataUrl(qrRef)
           }
-
-          <div class="descriptor-text">${shownContent}</div>
-        </body>
-      </html>
-    `
+        ]
 
     try {
       const { uri } = await Print.printToFileAsync({
         base64: false,
-        html: htmlContent
+        html: buildDescriptorsPdfHtml(account.name, sections)
       })
 
       if (await Sharing.isAvailableAsync()) {
@@ -590,8 +531,6 @@ export default function ExportDescriptors() {
   if (!account) {
     return <Redirect href="/" />
   }
-
-  const separateDescriptors = separateExportContent.split('\n').filter(Boolean)
 
   return (
     <ScrollView style={{ width: '100%' }}>
@@ -646,6 +585,7 @@ export default function ExportDescriptors() {
                 {separateDescriptors.map((descriptor, index) => (
                   <DescriptorQrItem
                     key={descriptor}
+                    qrRef={separateQrRef(index)}
                     descriptor={descriptor}
                     label={`${index === 0 ? 'External' : 'Internal'} ${t('common.descriptor')}`}
                   />
