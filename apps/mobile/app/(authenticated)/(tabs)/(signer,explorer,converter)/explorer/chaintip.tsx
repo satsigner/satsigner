@@ -29,7 +29,7 @@ import { useMempoolExtendedData } from '@/hooks/useMempoolData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Typography } from '@/styles'
@@ -161,7 +161,7 @@ export default function ChainTip() {
             />
             {isError ? (
               <SSText size="sm" color="muted">
-                {tn('loadError')}
+                {t('explorer.tipLoadError')}
               </SSText>
             ) : null}
             <SSVStack gap="xs">

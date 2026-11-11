@@ -7,7 +7,6 @@ import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type {
@@ -16,7 +15,10 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
-import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 import { weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
@@ -237,7 +239,7 @@ export function useExplorerTransaction(txid: string | null) {
       server.rpcCredentials?.username,
       selectedNetwork
     ],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.infinity
   })
 

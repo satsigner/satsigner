@@ -72,7 +72,7 @@ function ExplorerDifficulty() {
   )
   const { server } = configs[selectedNetwork]
   const mempoolOracle = useMempoolOracle(selectedNetwork)
-  const { data: chainData } = useChainData()
+  const { data: chainData, isError: isChainError } = useChainData()
   const adjustmentCapability = getExplorerCapability(
     server.backend,
     'difficultyAdjustment'
@@ -212,6 +212,11 @@ function ExplorerDifficulty() {
             height: chainData?.height?.toLocaleString() ?? '--'
           })}
         </SSText>
+        {isChainError ? (
+          <SSText size="sm" color="muted">
+            {t('explorer.tipLoadError')}
+          </SSText>
+        ) : null}
       </SSExplorerSection>
 
       {!loadAdjustment ? (

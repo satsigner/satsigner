@@ -13,7 +13,7 @@ import { useBitnodesNetworkStats } from '@/hooks/useNodeData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 
@@ -24,7 +24,11 @@ export default function ExplorerNetwork() {
   const [showExternal, setShowExternal] = useState(false)
   const [showVisualization, setShowVisualization] = useState(false)
 
-  const { data: chainData, isLoading: isLoadingChain } = useChainData()
+  const {
+    data: chainData,
+    isError: isChainError,
+    isLoading: isLoadingChain
+  } = useChainData()
   const { data: networkStats, isLoading: isLoadingStats } =
     useBitnodesNetworkStats(showExternal)
 
@@ -47,6 +51,11 @@ export default function ExplorerNetwork() {
             <SSText uppercase size="md" style={styles.sectionTitle}>
               {tn('localView')}
             </SSText>
+            {isChainError ? (
+              <SSText size="sm" color="muted">
+                {t('explorer.tipLoadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <SSExplorerRow
                 label={tn('network')}

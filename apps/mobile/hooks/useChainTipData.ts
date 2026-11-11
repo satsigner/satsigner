@@ -9,7 +9,6 @@ import {
 } from '@/api/explorerMempool'
 import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
-import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -21,7 +20,10 @@ import type {
   RpcCredentials
 } from '@/types/settings/blockchain'
 import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
-import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { PRICE_CHART_DAYS } from '@/utils/priceChart'
 import { time } from '@/utils/time'
 
@@ -198,7 +200,7 @@ export function useChainTipData() {
       selectedNetwork,
       server.rpcCredentials?.username
     ],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 }
@@ -218,7 +220,7 @@ export function useChainTipMempoolStats(
         oracle.baseUrl
       ),
     queryKey: ['chaintip-statistics', timeRange, selectedNetwork],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.minutes(5)
   })
 }

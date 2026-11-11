@@ -7,10 +7,12 @@ import {
   fetchExplorerBlockFromMempool,
   fetchExplorerTipHeight
 } from '@/api/explorerBlock'
-import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
-import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 export function useExplorerBlock(height: number | null) {
@@ -35,7 +37,7 @@ export function useExplorerBlock(height: number | null) {
         backendUrl
       ),
     queryKey: ['explorer-tip-height', backend, backendUrl, selectedNetwork],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 
@@ -64,7 +66,7 @@ export function useExplorerBlock(height: number | null) {
       mempoolEnabled,
       selectedNetwork
     ],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.minutes(2)
   })
 

@@ -2,7 +2,10 @@ import {
   EXPLORER_REQUEST_TIMEOUT_MS,
   EXPLORER_REQUEST_TOR_TIMEOUT_MS
 } from '@/constants/explorer'
-import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 
 const ONION_URL = `ssl://${'a'.repeat(56)}.onion:50002`
 
@@ -48,5 +51,17 @@ describe('withExplorerTimeout', () => {
     await expect(
       withExplorerTimeout(Promise.resolve(42), 'https://mempool.space/api')
     ).resolves.toBe(42)
+  })
+})
+
+describe('retryExplorerQuery', () => {
+  it('retries a failed request once', () => {
+    const refused = new Error('ECONNREFUSED')
+    expect(retryExplorerQuery(0, refused)).toBe(true)
+    expect(retryExplorerQuery(1, refused)).toBe(false)
+  })
+
+  it('does not wait out the timeout a second time', () => {
+    expect(retryExplorerQuery(0, new Error('timeout'))).toBe(false)
   })
 })

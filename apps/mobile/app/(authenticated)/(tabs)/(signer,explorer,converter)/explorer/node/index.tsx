@@ -14,7 +14,7 @@ import { useBackendServerInfo, useBitnodesNodeInfo } from '@/hooks/useNodeData'
 import { useNow } from '@/hooks/useNow'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { formatDate, formatTime, formatTimeFromNow } from '@/utils/format'
@@ -29,7 +29,11 @@ export default function ExplorerNode() {
   const { server } = configs[selectedNetwork]
   const [showExternal, setShowExternal] = useState(false)
 
-  const { data: chainData, isLoading: isLoadingChain } = useChainData()
+  const {
+    data: chainData,
+    isError: isChainError,
+    isLoading: isLoadingChain
+  } = useChainData()
   const { data: serverInfo, isLoading: isLoadingInfo } = useBackendServerInfo()
   const { data: bitnodesInfo, isLoading: isLoadingBitnodes } =
     useBitnodesNodeInfo(showExternal)
@@ -108,6 +112,11 @@ export default function ExplorerNode() {
                   : 'mempool.space'
               }
             />
+            {isChainError ? (
+              <SSText size="sm" color="muted">
+                {t('explorer.tipLoadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <SSExplorerRow
                 label={tn('height')}

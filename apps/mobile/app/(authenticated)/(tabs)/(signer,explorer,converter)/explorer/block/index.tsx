@@ -17,7 +17,6 @@ import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
-import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import {
   type ExplorerExampleBlock,
   EXPLORER_EXAMPLE_BLOCKS
@@ -25,11 +24,14 @@ import {
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
 import { parseBlockHeightInput } from '@/utils/explorerBlockHeight'
-import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 const tn = _tn('explorer.block')
@@ -106,7 +108,7 @@ export default function ExplorerBlockSearch() {
       server.url,
       selectedNetwork
     ],
-    retry: EXPLORER_QUERY_RETRY,
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 
@@ -236,6 +238,11 @@ export default function ExplorerBlockSearch() {
             loading={tipQuery.isLoading || tipQuery.isFetching}
             disabled={tipQuery.data === undefined}
           />
+          {tipQuery.isError ? (
+            <SSText size="sm" color="muted" center>
+              {t('explorer.tipLoadError')}
+            </SSText>
+          ) : null}
           {showExamples ? (
             <SSVStack gap="none">
               {EXPLORER_EXAMPLE_BLOCKS.map((example) => (
