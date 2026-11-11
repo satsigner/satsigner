@@ -141,12 +141,30 @@ describe('parseScannedPaymentUri', () => {
 
     it.each([
       ['%ZZ', `${ADDRESS}?amount=0.001&label=%ZZ`],
-      ['%E0%A4%A', `${ADDRESS}?amount=0.001&label=%E0%A4%A`],
-      ['50%25%20off', `bitcoin:${ADDRESS}?amount=0.001&label=50%25%20off`]
+      ['%E0%A4%A', `bitcoin:${ADDRESS}?amount=0.001&label=%E0%A4%A`]
     ])('still reads the exact address and amount (%s)', (_label, uri) => {
       expect(parseScannedPaymentUri(content('bitcoin_uri', uri))).toMatchObject(
         { address: ADDRESS, amountSats: 100_000 }
       )
+    })
+
+    it.each([
+      ['a required parameter', `bitcoin:${ADDRESS}?label=%ZZ&req-new=1`],
+      [
+        'an encoded required parameter',
+        `bitcoin:${ADDRESS}?label=%ZZ&req%2Dx=1`
+      ],
+      ['an invalid address', 'bitcoin:notanaddress?amount=0.001&label=%ZZ'],
+      [
+        'a refusal that is not about encoding',
+        `bitcoin:${ADDRESS}?amount=0.5&req-new=1`
+      ],
+      [
+        'a well encoded uri',
+        `bitcoin:${ADDRESS}?amount=0.001&label=50%25%20off`
+      ]
+    ])('keeps the refusal for %s', (_reason, uri) => {
+      expect(parseScannedPaymentUri(content('bitcoin_uri', uri))).toBeNull()
     })
 
     it('fills the output with the address, not the whole uri', () => {
@@ -161,9 +179,17 @@ describe('parseScannedPaymentUri', () => {
 
     it('leaves the amount unset rather than reading part of a malformed one', () => {
       expect(
-        parseScannedPaymentUri(content('bitcoin_uri', `${ADDRESS}?amount=1,5`))
-      ).toStrictEqual({ address: ADDRESS, amountSats: 1, label: '' })
+        parseScannedPaymentUri(
+          content('bitcoin_uri', `${ADDRESS}?amount=1,5&label=%ZZ`)
+        )
+      ).toStrictEqual({ address: ADDRESS, amountSats: 1, label: '%ZZ' })
     })
+  })
+
+  it('leaves the amount unset when BIP-321 accepts a malformed one', () => {
+    expect(
+      parseScannedPaymentUri(content('bitcoin_uri', `${ADDRESS}?amount=1,5`))
+    ).toMatchObject({ address: ADDRESS, amountSats: 1 })
   })
 })
 

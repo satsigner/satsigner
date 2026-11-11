@@ -6,7 +6,6 @@ import { type PsbtLike } from 'react-native-bdk-sdk'
 
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import {
-  BARE_BITCOIN_ADDRESS_PATTERN,
   DUST_LIMIT,
   HEX_PATTERN,
   UNSET_OUTPUT_AMOUNT_SATS
@@ -18,7 +17,10 @@ import {
   bitcoinAmountBtcToSats,
   isUriPaymentAmount
 } from '@/utils/autoSelectUtxos'
-import { parseBitcoinPaymentUri } from '@/utils/bip321'
+import {
+  parseBitcoinPaymentUri,
+  validateBitcoinAddressWithNetwork
+} from '@/utils/bip321'
 import {
   type ContentContext,
   type DetectedContent,
@@ -27,6 +29,8 @@ import {
 import { getUsableFeeRate } from '@/utils/feeWarnings'
 import {
   ensureBitcoinPrefix,
+  hasMalformedUriEncoding,
+  hasRequiredUriParam,
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
@@ -229,9 +233,20 @@ export function commitBitcoinUriToIoPreview(
   })
 }
 
+/**
+ * BIP-321 refuses a URI with broken percent-encoding, e.g. a label holding a
+ * bare "%". Only that refusal is read past, and never for a URI with a
+ * required parameter or an address that doesn't validate.
+ */
 function parseBarePaymentUri(text: string) {
+  if (!hasMalformedUriEncoding(text) || hasRequiredUriParam(text)) {
+    return null
+  }
   const bare = parseUriParameters(stripBitcoinPrefix(text))
-  return bare && BARE_BITCOIN_ADDRESS_PATTERN.test(bare.address) ? bare : null
+  if (!bare || !validateBitcoinAddressWithNetwork(bare.address).isValid) {
+    return null
+  }
+  return bare
 }
 
 function parsePaymentUri(text: string, payjoinUri?: string) {

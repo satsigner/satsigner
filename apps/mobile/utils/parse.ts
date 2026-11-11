@@ -323,6 +323,15 @@ type ParsedUriParams = {
   pjos?: 0 | 1
 }
 
+function isMalformedUriComponent(component: string) {
+  try {
+    decodeURIComponent(component)
+    return false
+  } catch {
+    return true
+  }
+}
+
 function getUriQueryParts(uri: string) {
   const queryStart = uri.indexOf('?')
   return queryStart === -1 ? [] : uri.slice(queryStart + 1).split('&')
@@ -352,6 +361,21 @@ function parseUriAmount(uri: string) {
  */
 function readBitcoinUriAmount(uri: string) {
   return parseUriAmount(uri.trim())
+}
+
+/** BIP21: a parameter starting with "req-" must be understood to pay. */
+function hasRequiredUriParam(uri: string) {
+  return getUriQueryParts(uri).some((part) => {
+    const key = getUriQueryKey(part)
+    const decodedKey = isMalformedUriComponent(key)
+      ? key
+      : decodeURIComponent(key)
+    return decodedKey.startsWith('req-')
+  })
+}
+
+function hasMalformedUriEncoding(uri: string) {
+  return getUriQueryParts(uri).some(isMalformedUriComponent)
 }
 
 /**
@@ -412,6 +436,8 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 export {
   ensureBitcoinPrefix,
   hasBitcoinPrefix,
+  hasMalformedUriEncoding,
+  hasRequiredUriParam,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseLabel,
