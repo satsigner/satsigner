@@ -39,6 +39,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { cosignArkBoardFunding } from '@/services/arkBoardFunding'
+import { recordSentTransaction } from '@/services/sentTransaction'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -242,7 +243,8 @@ export default function SignTransaction() {
     outputs,
     broadcasted,
     setBroadcasted,
-    payjoinUri
+    payjoinUri,
+    clearTransaction
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.psbt,
@@ -254,7 +256,8 @@ export default function SignTransaction() {
       state.outputs,
       state.broadcasted,
       state.setBroadcasted,
-      state.payjoinUri
+      state.payjoinUri,
+      state.clearTransaction
     ])
   )
   const payjoinEnabled = useSettingsStore((s) => s.payjoinEnabled)
@@ -453,6 +456,17 @@ export default function SignTransaction() {
         store.updateSessionStatus(session.id, 'completed')
       }
     }
+    const sentTxid =
+      txidFromSignedDraft(signedPsbtBase64, signedTx) ?? displayTxid
+    if (id && sentTxid) {
+      recordSentTransaction(id, sentTxid)
+    }
+    navigateAfterBroadcast(sentTxid)
+    // The next send on this account must start from an empty builder.
+    clearTransaction()
+  }
+
+  function navigateAfterBroadcast(sentTxid: string) {
     const builder = useTransactionBuilderStore.getState()
     if (isArkBoardPayjoinSend(builder.outputs, builder.payjoinUri)) {
       const arkAccountId = useArkStore
@@ -467,9 +481,24 @@ export default function SignTransaction() {
     if (isArkBoardFunding) {
       toast.success(t('ark.board.fundingBroadcasted'))
     }
-    router.navigate(
-      `/signer/bitcoin/account/${id}/signAndSend/transactionConfirmation`
-    )
+    router.navigate({
+      params: {
+        arkAccountId: arkBoardIntent?.arkAccountId,
+        id,
+        txid: sentTxid
+      },
+      pathname:
+        '/signer/bitcoin/account/[id]/signAndSend/transactionConfirmation'
+    })
+  }
+
+  // Back from the confirmation, or a stale link, finds the builder empty:
+  // that send is over, so return to the account.
+  function leaveEmptySendFlow() {
+    if (!account) {
+      return
+    }
+    router.dismissTo(`/signer/bitcoin/account/${account.id}`)
   }
 
   function failBroadcast(error: unknown) {
@@ -785,9 +814,12 @@ export default function SignTransaction() {
       }
       return
     }
+    if (!psbt) {
+      leaveEmptySendFlow()
+      return
+    }
     if (
       !wallet ||
-      !psbt ||
       !account ||
       !id ||
       signed ||
@@ -874,10 +906,16 @@ export default function SignTransaction() {
     waiting: waitingForReceiver
   })
 
+  if (!account) {
+    return <Redirect href="/" />
+  }
+
   // A signed draft restored after a restart has no psbt until the focus
   // effect rebuilds it, and a finalized transaction hex may have none at all.
-  if (!account || (!psbt && !signedTx)) {
-    return <Redirect href="/" />
+  // With neither, the focus effect leaves, or the confirmation is opening
+  // after the broadcast cleared the builder.
+  if (!psbt && !signedTx) {
+    return null
   }
 
   return (

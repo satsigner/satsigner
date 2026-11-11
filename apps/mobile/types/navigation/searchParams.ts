@@ -49,6 +49,10 @@ export type TxSearchParams = {
   txid: string
 } & AccountSearchParams
 
+export type TransactionConfirmationSearchParams = {
+  arkAccountId?: string
+} & TxSearchParams
+
 export type FeeReplacementSearchParams = {
   kind?: string
 } & TxSearchParams
