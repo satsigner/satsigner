@@ -2400,6 +2400,7 @@
     "blossom.importFromNostr": "Import from Nostr",
     "blossom.importing": "Importing...",
     "blossom.inputPlaceholder": "https://blossom.example.com",
+    "blossom.invalidUrl": "Enter a valid http or https server address",
     "blossom.noServers": "No servers added. Uploads use the default server.",
     "blossom.noServersFound": "No servers found on Nostr",
     "blossom.popular": "Popular Servers",

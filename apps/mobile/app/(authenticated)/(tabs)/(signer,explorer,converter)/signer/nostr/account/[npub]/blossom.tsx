@@ -20,6 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
+import { normalizeBlossomServerUrl } from '@/utils/blossomServer'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 
@@ -80,13 +81,14 @@ export default function NostrBlossomServers() {
   }
 
   function handleAddCustom() {
-    const normalized = customInput.trim().replace(/\/$/, '')
-    if (!normalized) {
+    if (!customInput.trim()) {
       return
     }
-    const url = normalized.startsWith('http')
-      ? normalized
-      : `https://${normalized}`
+    const url = normalizeBlossomServerUrl(customInput)
+    if (!url) {
+      toast.error(t('nostrIdentity.blossom.invalidUrl'))
+      return
+    }
     if (servers.includes(url)) {
       toast.error(t('nostrIdentity.blossom.alreadyAdded'))
       return
