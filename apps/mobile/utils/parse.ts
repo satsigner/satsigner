@@ -374,6 +374,18 @@ function hasRequiredUriParam(uri: string) {
   })
 }
 
+/**
+ * A label with broken percent-encoding: decoding it leniently would show text
+ * the payee never wrote, so it is dropped instead.
+ */
+function hasMalformedUriLabel(uri: string) {
+  return getUriQueryParts(uri).some(
+    (part) =>
+      getUriQueryKey(part) === 'label' &&
+      isMalformedUriComponent(part.slice(part.indexOf('=') + 1))
+  )
+}
+
 function hasMalformedUriEncoding(uri: string) {
   return getUriQueryParts(uri).some(isMalformedUriComponent)
 }
@@ -427,7 +439,8 @@ function parseUriParameters(content: string): ParsedUriParams | null {
   return {
     address: addressPart,
     amount: parseUriAmount(content),
-    label: labelParam || undefined,
+    label:
+      labelParam && !hasMalformedUriLabel(content) ? labelParam : undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})
   }
@@ -438,6 +451,7 @@ export {
   hasBitcoinPrefix,
   hasMalformedUriEncoding,
   hasRequiredUriParam,
+  isMalformedUriComponent,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseLabel,

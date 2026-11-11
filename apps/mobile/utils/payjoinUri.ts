@@ -5,7 +5,7 @@ import {
   type PayjoinUriParams
 } from '@/types/payjoin'
 import { formatSatsAsBtc } from '@/utils/format'
-import { readBitcoinUriAmount } from '@/utils/parse'
+import { isMalformedUriComponent, readBitcoinUriAmount } from '@/utils/parse'
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -152,11 +152,10 @@ function parsePayjoinUri(uri: string): ParsePayjoinUriResult {
   for (const { key, value } of pairs) {
     const keyLower = key.toLowerCase()
     if (keyLower === 'label' && value) {
-      try {
-        label = decodeURIComponent(value).replaceAll(/(^["“]|["”]$)/g, '')
-      } catch {
-        label = value
-      }
+      // A label that does not decode is dropped, not shown half-decoded.
+      label = isMalformedUriComponent(value)
+        ? undefined
+        : decodeURIComponent(value).replaceAll(/(^["“]|["”]$)/g, '')
     } else if (keyLower === 'message' && value) {
       try {
         message = decodeURIComponent(value)

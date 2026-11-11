@@ -27,6 +27,21 @@ describe('payjoinUri', () => {
       }
     )
 
+    it.each(['%ZZ', '%E0%A4%A'])('drops the malformed label %s', (label) => {
+      const result = parsePayjoinUri(
+        BULL_STYLE_RECEIVE_URI.replace('amount=', `label=${label}&amount=`)
+      )
+      expect(result.isValid).toBe(true)
+      expect(result.params?.label).toBeUndefined()
+    })
+
+    it('decodes a well encoded label', () => {
+      const result = parsePayjoinUri(
+        BULL_STYLE_RECEIVE_URI.replace('amount=', 'label=50%25%20off&amount=')
+      )
+      expect(result.params?.label).toBe('50% off')
+    })
+
     it('reads an upper-case amount key', () => {
       const result = parsePayjoinUri(
         BULL_STYLE_RECEIVE_URI.replace('amount=', 'AMOUNT=')

@@ -182,7 +182,16 @@ describe('parseScannedPaymentUri', () => {
         parseScannedPaymentUri(
           content('bitcoin_uri', `${ADDRESS}?amount=1,5&label=%ZZ`)
         )
-      ).toStrictEqual({ address: ADDRESS, amountSats: 1, label: '%ZZ' })
+      ).toStrictEqual({ address: ADDRESS, amountSats: 1, label: '' })
+    })
+
+    it.each([
+      ['%ZZ', `${ADDRESS}?amount=0.001&label=%ZZ`],
+      ['%E0%A4%A', `bitcoin:${ADDRESS}?amount=0.001&label=%E0%A4%A`]
+    ])('drops a label it cannot decode (%s)', (_label, uri) => {
+      expect(parseScannedPaymentUri(content('bitcoin_uri', uri))).toStrictEqual(
+        { address: ADDRESS, amountSats: 100_000, label: '' }
+      )
     })
   })
 
