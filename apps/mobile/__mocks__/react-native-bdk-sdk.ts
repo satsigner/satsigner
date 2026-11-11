@@ -268,21 +268,22 @@ export class BdkWallet {
   txDetails = jest.fn(() => undefined)
 }
 
-export class BdkTxBuilder {
-  addRecipient = jest.fn()
-  setRecipients = jest.fn()
-  addData = jest.fn()
-  addUtxo = jest.fn()
-  addUtxos = jest.fn()
-  manuallySelectedOnly = jest.fn()
-  feeAbsolute = jest.fn()
-  feeRate = jest.fn()
-  enableRbf = jest.fn()
-  enableRbfWithSequence = jest.fn()
-  drainWallet = jest.fn()
-  drainTo = jest.fn()
-  finish = jest.fn(() => Promise.resolve(new Psbt('')))
-}
+export const BdkTxBuilder = jest.fn(() => ({
+  addData: jest.fn(),
+  addRecipient: jest.fn(),
+  addUtxo: jest.fn(),
+  addUtxos: jest.fn(),
+  drainTo: jest.fn(),
+  drainWallet: jest.fn(),
+  enableRbf: jest.fn(),
+  enableRbfWithSequence: jest.fn(),
+  feeAbsolute: jest.fn(),
+  feeRate: jest.fn(),
+  finish: jest.fn(() => Promise.resolve(new Psbt(''))),
+  manuallySelectedOnly: jest.fn(),
+  setExactSequence: jest.fn(),
+  setRecipients: jest.fn()
+}))
 
 export const BdkPsbtParams = jest.fn(() => ({
   addRecipients: jest.fn(),

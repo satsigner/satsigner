@@ -22,6 +22,7 @@ import {
   BTC_DECIMALS,
   SATS_PER_BITCOIN,
   SEQUENCE_FINAL,
+  SEQUENCE_LOCKTIME_NO_RBF,
   SEQUENCE_RBF
 } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
@@ -983,10 +984,11 @@ function buildTransaction(
   }
 
   txBuilder.feeAbsolute(data.fee)
-
-  if (data.options.rbf) {
-    txBuilder.enableRbf()
-  }
+  // bdk_wallet signals RBF when no sequence is set. Without RBF the sequence
+  // stays below final so its anti-fee-sniping nLockTime is still enforced.
+  txBuilder.setExactSequence(
+    data.options.rbf ? SEQUENCE_RBF : SEQUENCE_LOCKTIME_NO_RBF
+  )
 
   return txBuilder.finish(wallet)
 }

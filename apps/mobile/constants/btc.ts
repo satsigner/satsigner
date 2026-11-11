@@ -12,8 +12,10 @@ export const HASH_BYTE_LENGTH = 32
 export const HASH_HEX_LENGTH = HASH_BYTE_LENGTH * 2
 export const TXID_HEX_PATTERN = new RegExp(`^[0-9a-fA-F]{${HASH_HEX_LENGTH}}$`)
 export const COINBASE_PREV_TXID = '0'.repeat(HASH_HEX_LENGTH)
-// nSequence values: final (no RBF, no relative locktime) and BIP125 opt-in RBF.
+// nSequence values: final (no RBF, no relative locktime), no RBF with
+// nLockTime still enforced, and BIP125 opt-in RBF.
 export const SEQUENCE_FINAL = 0xff_ff_ff_ff
+export const SEQUENCE_LOCKTIME_NO_RBF = 0xff_ff_ff_fe
 export const SEQUENCE_RBF = 0xff_ff_ff_fd
 // Prevout index used by coinbase and BIP322 virtual inputs.
 export const NULL_PREVOUT_INDEX = 0xff_ff_ff_ff
