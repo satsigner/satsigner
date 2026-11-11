@@ -43,3 +43,7 @@ export const P2WSH_MULTISIG_APOSTROPHE_DESCRIPTOR =
 
 export const COSIGNER_KEY_DESCRIPTOR =
   'wsh(pk([73c5da0a/48h/1h/0h/2h]tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ/0/*))#vd4fy20j'
+
+// Mainnet key of the "abandon … about" mnemonic at m/48'/0'/0'/2'.
+export const MAINNET_COSIGNER_KEY_DESCRIPTOR =
+  'wsh(pk([73c5da0a/48h/0h/0h/2h]xpub6DkFAXWQ2dHxq2vatrt9qyA3bXYU4ToWQwCHbf5XB2mSTexcHZCeKS1VZYcPoBd5X8yVcbXFHJR9R8UCVpt82VX1VhR28mCyxUFL4r6KFrf/0/*))#z3gxszxk'

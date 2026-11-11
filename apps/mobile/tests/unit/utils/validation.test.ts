@@ -6,12 +6,15 @@ import {
   validateDerivationPath,
   validateDescriptor,
   validateDescriptorFormat,
+  validateDescriptorNetwork,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
 
 import {
   COSIGNER_KEY_DESCRIPTOR,
+  COSIGNERS,
+  MAINNET_COSIGNER_KEY_DESCRIPTOR,
   P2SH_MULTISIG_DESCRIPTOR,
   P2SH_P2WSH_MULTISIG_DESCRIPTOR,
   P2WSH_MULTISIG_APOSTROPHE_DESCRIPTOR,
@@ -145,9 +148,11 @@ describe('validates extended keys', () => {
   })
 })
 
+const TESTNET_COMBINED_DESCRIPTOR =
+  "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#3qsy06cj"
+
 describe('validates combined descriptors', () => {
-  const combinedDescriptor =
-    "wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/<0;1>/*)#3qsy06cj"
+  const combinedDescriptor = TESTNET_COMBINED_DESCRIPTOR
 
   function translateError(error: string | undefined) {
     return t(`account.import.error.${error}`)
@@ -233,5 +238,62 @@ describe('rejects descriptors whose checksum does not match', () => {
     expect(isValid).toBe(false)
     expect(error).toBe('checksumInvalid')
     expect(t(`account.import.error.${error}`)).not.toMatch(/missing/i)
+  })
+})
+
+describe('validates the network of descriptor keys', () => {
+  it('accepts testnet keys on signet and testnet only', () => {
+    expect(validateDescriptorNetwork(COSIGNER_KEY_DESCRIPTOR, 'signet')).toBe(
+      true
+    )
+    expect(validateDescriptorNetwork(COSIGNER_KEY_DESCRIPTOR, 'testnet')).toBe(
+      true
+    )
+    expect(validateDescriptorNetwork(COSIGNER_KEY_DESCRIPTOR, 'bitcoin')).toBe(
+      false
+    )
+  })
+
+  it('accepts mainnet keys on mainnet only', () => {
+    expect(
+      validateDescriptorNetwork(MAINNET_COSIGNER_KEY_DESCRIPTOR, 'bitcoin')
+    ).toBe(true)
+    expect(
+      validateDescriptorNetwork(MAINNET_COSIGNER_KEY_DESCRIPTOR, 'signet')
+    ).toBe(false)
+  })
+
+  it('checks every key of a multisig descriptor', () => {
+    const mixed = P2WSH_MULTISIG_DESCRIPTOR.replace(
+      COSIGNERS[1].p2wsh,
+      'xpub6DkFAXWQ2dHxq2vatrt9qyA3bXYU4ToWQwCHbf5XB2mSTexcHZCeKS1VZYcPoBd5X8yVcbXFHJR9R8UCVpt82VX1VhR28mCyxUFL4r6KFrf'
+    )
+
+    expect(validateDescriptorNetwork(P2WSH_MULTISIG_DESCRIPTOR, 'signet')).toBe(
+      true
+    )
+    expect(validateDescriptorNetwork(mixed, 'signet')).toBe(false)
+  })
+
+  it('reports a combined descriptor for another network', () => {
+    const { error, isValid } = validateCombinedDescriptor(
+      TESTNET_COMBINED_DESCRIPTOR,
+      'P2WPKH',
+      'bitcoin'
+    )
+
+    expect(isValid).toBe(false)
+    expect(error).toBe('networkIncompatible')
+    expect(t(`account.import.error.${error}`)).not.toMatch(/missing/i)
+  })
+
+  it('accepts a combined descriptor for the selected network', () => {
+    const { isValid } = validateCombinedDescriptor(
+      TESTNET_COMBINED_DESCRIPTOR,
+      'P2WPKH',
+      'signet'
+    )
+
+    expect(isValid).toBe(true)
   })
 })

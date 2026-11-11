@@ -50,6 +50,7 @@ import {
   validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
+  validateDescriptorNetwork,
   validateDescriptorScriptVersion
 } from '@/utils/validation'
 
@@ -157,18 +158,14 @@ export default function ImportDescriptor() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    // Network validation - check if descriptor is compatible with selected network
-    // Skip network validation during confirm stage since it was already validated during input
-    const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
 
     const scriptVersionValidation =
       basicValidation && scriptVersion
         ? validateDescriptorScriptVersion(descriptor, scriptVersion)
         : true
     const validExternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation
+      basicValidation && validNetwork && scriptVersionValidation
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
@@ -182,10 +179,8 @@ export default function ImportDescriptor() {
           skipChecksumValidation
         )
         setExternalDescriptorError(errorMessage)
-      } else if (basicValidation && !networkValidation.isValid) {
-        const errorMessage = networkValidation.error
-          ? t(`account.import.error.${networkValidation.error}`)
-          : t('account.import.error.networkIncompatible')
+      } else if (basicValidation && !validNetwork) {
+        const errorMessage = t('account.import.error.networkIncompatible')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
         const errorMessage = t('account.import.error.descriptorIncompatible')
@@ -208,11 +203,7 @@ export default function ImportDescriptor() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    // Network validation - check if descriptor is compatible with selected network
-    // Skip network validation during confirm stage since it was already validated during input
-    const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
 
     const scriptVersionValidation =
       basicValidation && scriptVersion
@@ -220,7 +211,7 @@ export default function ImportDescriptor() {
         : true
 
     const validInternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation
+      basicValidation && validNetwork && scriptVersionValidation
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
@@ -234,10 +225,8 @@ export default function ImportDescriptor() {
           skipChecksumValidation
         )
         setInternalDescriptorError(errorMessage)
-      } else if (basicValidation && !networkValidation.isValid) {
-        const errorMessage = networkValidation.error
-          ? t(`account.import.error.${networkValidation.error}`)
-          : t('account.import.error.networkIncompatible')
+      } else if (basicValidation && !validNetwork) {
+        const errorMessage = t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
         const errorMessage = t('account.import.error.descriptorIncompatible')

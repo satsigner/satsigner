@@ -33,6 +33,16 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
+/** True when every extended public key in the descriptor is for the network. */
+export function validateDescriptorNetwork(
+  descriptor: string,
+  network: AppNetwork
+) {
+  const extendedKeys =
+    descriptor.match(new RegExp(EXTENDED_PUBKEY_PATTERN, 'g')) ?? []
+  return extendedKeys.every((key) => validateExtendedKey(key, network))
+}
+
 export function validateDerivationPath(path: string) {
   // Updated regex to better handle both h and ' formats
   // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
@@ -279,7 +289,7 @@ function separateCombinedDescriptor(combinedDescriptor: string) {
 export function validateCombinedDescriptor(
   combinedDescriptor: string,
   scriptVersion?: ScriptVersionType,
-  networkType?: string
+  network?: AppNetwork
 ) {
   const combinedValidation = validateDescriptor(combinedDescriptor)
 
@@ -314,29 +324,9 @@ export function validateCombinedDescriptor(
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 
-  let networkValidation: { isValid: boolean; error?: string } = {
-    isValid: true
-  }
-
-  if (networkType && combinedDescriptor) {
-    let bdkNetwork = Network.Bitcoin
-    if (networkType === 'testnet') {
-      bdkNetwork = Network.Testnet
-    }
-    if (networkType === 'regtest') {
-      bdkNetwork = Network.Regtest
-    }
-    if (networkType === 'signet') {
-      bdkNetwork = Network.Signet
-    }
-    if (bdkValidateDescriptor(combinedDescriptor, bdkNetwork)) {
-      networkValidation = { isValid: true }
-    }
-  }
-
-  if (!networkValidation.isValid) {
+  if (network && !validateDescriptorNetwork(combinedDescriptor, network)) {
     return {
-      error: networkValidation.error,
+      error: 'networkIncompatible',
       externalDescriptor: externalDesc,
       internalDescriptor: internalDesc,
       isValid: false

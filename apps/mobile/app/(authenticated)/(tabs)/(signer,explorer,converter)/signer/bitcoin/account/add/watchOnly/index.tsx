@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { Keyboard, StyleSheet } from 'react-native'
-import { type BdkWallet, walletNameFromDescriptor } from 'react-native-bdk-sdk'
+import { type BdkWallet } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -44,11 +44,7 @@ import { Colors } from '@/styles'
 import { type Account, type CreationType } from '@/types/models/Account'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
-import {
-  appNetworkToBdkNetwork,
-  bitcoinjsNetwork,
-  convertKeyFormat
-} from '@/utils/bitcoin'
+import { bitcoinjsNetwork, convertKeyFormat } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   descriptorHasPrivateKeyMaterial,
@@ -68,6 +64,7 @@ import {
   validateAddress,
   validateDescriptor,
   validateDescriptorFormat,
+  validateDescriptorNetwork,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
@@ -334,7 +331,9 @@ export default function WatchOnly() {
     const descriptorValidation = validateDescriptorFormat(descriptor)
 
     const basicValidation =
-      descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
+      descriptorValidation &&
+      !descriptorHasPrivateKeyMaterial(descriptor) &&
+      validateDescriptorNetwork(descriptor, network)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || basicValidation)
@@ -364,34 +363,8 @@ export default function WatchOnly() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
-
-    if (basicValidation && descriptor) {
-      try {
-        walletNameFromDescriptor(
-          descriptor,
-          undefined,
-          appNetworkToBdkNetwork(network)
-        )
-        networkValidation = { isValid: true }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-
-        networkValidation =
-          errorMessage.includes('Invalid network') ||
-          errorMessage.includes('network')
-            ? {
-                error: 'networkIncompatible' as const,
-                isValid: false
-              }
-            : { isValid: true }
-      }
-    }
-
-    const isValidDescriptor = basicValidation && networkValidation.isValid
+    const isValidDescriptor =
+      basicValidation && validateDescriptorNetwork(descriptor, network)
 
     if (type === 'external') {
       setIsValidExternalDescriptor(!descriptor || isValidDescriptor)
