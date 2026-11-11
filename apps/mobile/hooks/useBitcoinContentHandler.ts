@@ -63,7 +63,7 @@ async function commitScannedBitcoinUri(
   const payjoinUri = extractPayjoinUriFromContent(content)
   const request = parseScannedPaymentUri(content, payjoinUri)
   if (!request) {
-    return 'skipped'
+    return 'unreadable'
   }
 
   if (isDustPaymentAmount(request.amountSats)) {
@@ -240,6 +240,9 @@ export function useBitcoinContentHandler({
         )
         if (outcome === 'committed_payjoin') {
           onSuccess(t('transaction.build.payjoin.uriDetected'))
+        }
+        if (outcome === 'unreadable') {
+          onError(t('transaction.error.noValidAddressFound'))
         }
       } catch {
         onError(t('camera.error.processFailed'))

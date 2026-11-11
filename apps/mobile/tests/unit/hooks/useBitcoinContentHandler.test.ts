@@ -126,6 +126,19 @@ describe('useBitcoinContentHandler', () => {
     }
   )
 
+  it('tells the user when a bitcoin uri holds no usable address', async () => {
+    const { hook, onError } = renderHandler(makeAccount(1_000_000))
+    await act(async () => {
+      await hook.current?.handleContentScanned(
+        uriContent('bitcoin:notanaddress?amount=0.001')
+      )
+    })
+    expect(onError).toHaveBeenCalledWith(
+      t('transaction.error.noValidAddressFound')
+    )
+    expect(useTransactionBuilderStore.getState().outputs).toHaveLength(0)
+  })
+
   describe('a payjoin uri asking for more than the balance', () => {
     const PAYJOIN_URI = `${ADDRESS}?amount=0.001&pj=https://payjo.in/mb`
 
