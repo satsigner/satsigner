@@ -218,13 +218,14 @@ export default function ImportDescriptor() {
                 placeholder={t('watchonly.importDescriptor.external')}
                 multiline
                 numberOfLines={3}
-                style={[
-                  { height: 'auto', padding: 5 },
-                  styles.textArea,
-                  !isValidDescriptor && descriptor.trim()
-                    ? styles.invalid
-                    : styles.valid
-                ]}
+                status={
+                  !descriptor.trim()
+                    ? undefined
+                    : isValidDescriptor
+                      ? 'valid'
+                      : 'invalid'
+                }
+                style={[{ height: 'auto', padding: 5 }, styles.textArea]}
               />
             </SSVStack>
             <SSHStack gap="sm">
@@ -302,15 +303,9 @@ export default function ImportDescriptor() {
 }
 
 const styles = StyleSheet.create({
-  invalid: {
-    borderColor: Colors.error
-  },
   textArea: {
     marginBottom: 8,
     minHeight: 120,
     textAlignVertical: 'top'
-  },
-  valid: {
-    borderColor: Colors.success
   }
 })
