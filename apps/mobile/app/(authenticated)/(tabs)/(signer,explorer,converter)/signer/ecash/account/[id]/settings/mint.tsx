@@ -8,6 +8,7 @@ import { SSIconBlackIndicator, SSIconGreenIndicator } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -16,7 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedNumber, formatNumber } from '@/utils/format'
 
 const DEFAULT_MINTS = [
   { name: 'Bitcoin Minibits mint', url: 'https://mint.minibits.cash/Bitcoin' },
@@ -41,8 +42,12 @@ export default function EcashAccountMintPage() {
     restoreFromSeed
   } = useEcash()
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
@@ -77,7 +82,7 @@ export default function EcashAccountMintPage() {
       if (result.proofsFound > 0) {
         toast.success(
           t('ecash.recovery.totalAmount', {
-            amount: result.totalAmount.toString()
+            amount: formatMaskedNumber(result.totalAmount, privacyMode)
           })
         )
       } else {
@@ -114,7 +119,9 @@ export default function EcashAccountMintPage() {
                           {t('ecash.mint.balance')}
                         </SSText>
                         <SSText weight="medium">
-                          {formatNumber(mint.balance, 0, zeroPadding)}{' '}
+                          {privacyMode
+                            ? PRIVACY_MASK
+                            : formatNumber(mint.balance, 0, zeroPadding)}{' '}
                           {currencyUnit === 'btc'
                             ? t('bitcoin.btc')
                             : t('bitcoin.sats')}
