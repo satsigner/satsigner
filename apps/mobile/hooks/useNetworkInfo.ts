@@ -111,6 +111,24 @@ async function fetchNetworkInfo(
   }
 }
 
+/** Keeps the fee and tip only while their network is still the selected one. */
+export function storeNetworkInfo(
+  network: Network,
+  { blockHeight, fee }: Pick<NetworkInfoResult, 'blockHeight' | 'fee'>
+) {
+  const { selectedNetwork, setLastKnownBlockHeight, setNextBlockFee } =
+    useBlockchainStore.getState()
+  if (selectedNetwork !== network) {
+    return
+  }
+  if (fee !== null) {
+    setNextBlockFee(Math.round(fee))
+  }
+  if (blockHeight !== null) {
+    setLastKnownBlockHeight(blockHeight)
+  }
+}
+
 export function useNetworkInfo() {
   const [selectedNetwork, configsMempool, configs] = useBlockchainStore(
     useShallow((state) => [
@@ -121,7 +139,6 @@ export function useNetworkInfo() {
   )
 
   const nextBlockFee = useBlockchainStore((state) => state.nextBlockFee)
-  const setNextBlockFee = useBlockchainStore((state) => state.setNextBlockFee)
 
   const { server } = configs[selectedNetwork]
   const mempoolUrl = configsMempool[selectedNetwork]
@@ -137,12 +154,7 @@ export function useNetworkInfo() {
         oracle,
         server.rpcCredentials
       )
-      if (
-        result.fee !== null &&
-        useBlockchainStore.getState().selectedNetwork === selectedNetwork
-      ) {
-        setNextBlockFee(Math.round(result.fee))
-      }
+      storeNetworkInfo(selectedNetwork, result)
       return result
     },
     queryKey: [

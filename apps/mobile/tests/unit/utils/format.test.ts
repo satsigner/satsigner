@@ -3,6 +3,8 @@ import { t } from '@/locales'
 import {
   formatAddress,
   formatBtc,
+  formatConfirmations,
+  formatConfirmationsWithBlock,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
@@ -244,6 +246,30 @@ describe('formatMaskedSats', () => {
   it('hides the amount in privacy mode', () => {
     expect(formatMaskedSats(1234, true)).toBe(
       `${PRIVACY_MASK} ${t('bitcoin.sats')}`
+    )
+  })
+})
+
+describe('formatConfirmations', () => {
+  it('reads as confirmed while the count is not known', () => {
+    expect(formatConfirmations(null)).toBe(t('bitcoin.confirmations.confirmed'))
+  })
+
+  it('reads as unconfirmed without a confirmation', () => {
+    expect(formatConfirmations(0)).toBe(t('bitcoin.confirmations.unconfirmed'))
+  })
+})
+
+describe('formatConfirmationsWithBlock', () => {
+  it('shows the block without a count while the count is not known', () => {
+    expect(formatConfirmationsWithBlock(null, 330_183)).toBe(
+      `${t('bitcoin.confirmations.confirmed')} • 330,183`
+    )
+  })
+
+  it('shows the count next to the block', () => {
+    expect(formatConfirmationsWithBlock(1, 330_183)).toBe(
+      `${t('bitcoin.confirmations.oneConf')} • 330,183`
     )
   })
 })

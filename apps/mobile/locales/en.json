@@ -1044,6 +1044,7 @@
     "btc": "BTC",
     "bytes": "bytes",
     "checksum": "Checksum",
+    "confirmations.confirmed": "Confirmed",
     "confirmations.manyBlocks": "%{blocks} confirmations",
     "confirmations.manyConfs": "%{blocks} confs",
     "confirmations.oneBlock": "1 confirmation",
