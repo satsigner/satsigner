@@ -373,7 +373,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
   return {
     address: addressPart,
     amount: amountParam ? Number.parseFloat(amountParam) : undefined,
-    label: labelParam ? decodeURIComponent(labelParam) : undefined,
+    label: labelParam || undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})
   }

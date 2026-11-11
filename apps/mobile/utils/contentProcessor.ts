@@ -25,7 +25,11 @@ import {
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
 import { getUsableFeeRate } from '@/utils/feeWarnings'
-import { ensureBitcoinPrefix, parseUriParameters } from '@/utils/parse'
+import {
+  ensureBitcoinPrefix,
+  parseUriParameters,
+  stripBitcoinPrefix
+} from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
   buildPubkeyToCosignerIndex,
@@ -225,14 +229,20 @@ export function commitBitcoinUriToIoPreview(
   })
 }
 
+function parseBarePaymentUri(text: string) {
+  const bare = parseUriParameters(stripBitcoinPrefix(text))
+  return bare && BARE_BITCOIN_ADDRESS_PATTERN.test(bare.address) ? bare : null
+}
+
+function parsePaymentUri(text: string, payjoinUri?: string) {
+  return parseBitcoinPaymentUri(payjoinUri ?? text) ?? parseBarePaymentUri(text)
+}
+
 export function parseScannedPaymentUri(
   content: DetectedContent,
   payjoinUri?: string
 ): PaymentRequest | null {
-  const bare = parseUriParameters(content.cleaned)
-  const parsed =
-    parseBitcoinPaymentUri(payjoinUri ?? content.cleaned) ??
-    (bare && BARE_BITCOIN_ADDRESS_PATTERN.test(bare.address) ? bare : null)
+  const parsed = parsePaymentUri(content.cleaned, payjoinUri)
   if (!parsed) {
     return null
   }
@@ -392,7 +402,7 @@ function applyPaymentUriToOutput(
   actions: OutputActions
 ): OutputResult {
   const payjoinUri = extractPayjoinUriFromContent(content)
-  const parsed = parseBitcoinPaymentUri(payjoinUri ?? content.cleaned)
+  const parsed = parsePaymentUri(content.cleaned, payjoinUri)
   if (!parsed) {
     actions.onError(t('transaction.error.noValidAddressFound'))
     return { ok: false, payjoin: false }

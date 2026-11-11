@@ -103,13 +103,7 @@ async function processBitcoinContent(
   ensureKeyFingerprints: () => Promise<KeyFingerprintsByAccount>
 ) {
   if (content.type === 'bitcoin_uri') {
-    // Malformed percent-encoding in a URI label makes decoding throw.
-    try {
-      await commitScannedBitcoinUri(content, actions, target)
-    } catch {
-      startNewDraft(actions, target)
-      commitAddressOnly(actions, target, content.cleaned)
-    }
+    await commitScannedBitcoinUri(content, actions, target)
     return
   }
 

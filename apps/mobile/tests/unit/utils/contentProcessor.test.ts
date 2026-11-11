@@ -1,5 +1,6 @@
 import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
+import * as bip321 from '@/utils/bip321'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   getBitcoinContentHref,
@@ -119,6 +120,44 @@ describe('parseScannedPaymentUri', () => {
 
   it('rejects content without an address', () => {
     expect(parseScannedPaymentUri(content('bitcoin_uri', '?x=1'))).toBeNull()
+  })
+
+  it('keeps a percent sign that was encoded in the label', () => {
+    expect(
+      parseScannedPaymentUri(
+        content('bitcoin_uri', `${ADDRESS}?amount=0.001&label=50%25%20off`)
+      )
+    ).toStrictEqual({ address: ADDRESS, amountSats: 100_000, label: '50% off' })
+  })
+
+  describe('when the BIP-321 parser rejects a malformed label', () => {
+    beforeEach(() => {
+      jest.spyOn(bip321, 'parseBitcoinPaymentUri').mockReturnValue(null)
+    })
+
+    afterEach(() => {
+      jest.restoreAllMocks()
+    })
+
+    it.each([
+      ['%ZZ', `${ADDRESS}?amount=0.001&label=%ZZ`],
+      ['%E0%A4%A', `${ADDRESS}?amount=0.001&label=%E0%A4%A`],
+      ['50%25%20off', `bitcoin:${ADDRESS}?amount=0.001&label=50%25%20off`]
+    ])('still reads the exact address and amount (%s)', (_label, uri) => {
+      expect(parseScannedPaymentUri(content('bitcoin_uri', uri))).toMatchObject(
+        { address: ADDRESS, amountSats: 100_000 }
+      )
+    })
+
+    it('fills the output with the address, not the whole uri', () => {
+      const actions = outputActions()
+      const result = processContentForOutput(
+        content('bitcoin_uri', `bitcoin:${ADDRESS}?label=%ZZ`),
+        actions
+      )
+      expect(result).toStrictEqual({ ok: true, payjoin: false })
+      expect(actions.setOutputTo).toHaveBeenCalledWith(ADDRESS)
+    })
   })
 })
 

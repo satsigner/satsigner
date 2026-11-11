@@ -5,6 +5,7 @@ import {
   parseLabel,
   parseLabelTags,
   parseUriParameters,
+  resolveExplorerAddressParam,
   sanitizeScannedText,
   stripBitcoinPrefix
 } from '@/utils/parse'
@@ -91,6 +92,40 @@ describe('parse utils', () => {
         label: undefined
       })
     })
+
+    it('decodes a percent-encoded label only once', () => {
+      expect(
+        parseUriParameters('bc1qtest123?amount=0.001&label=50%25%20off')
+      ).toStrictEqual({
+        address: 'bc1qtest123',
+        amount: 0.001,
+        label: '50% off'
+      })
+    })
+
+    it.each(['%ZZ', '%E0%A4%A'])(
+      'keeps the exact address and amount when the label is malformed (%s)',
+      (label) => {
+        const result = parseUriParameters(
+          `bc1qtest123?amount=0.001&label=${label}`
+        )
+        expect(result?.address).toBe('bc1qtest123')
+        expect(result?.amount).toBe(0.001)
+      }
+    )
+  })
+
+  describe('resolveExplorerAddressParam', () => {
+    it.each(['%ZZ', '50%25%20off', '%E0%A4%A'])(
+      'returns the address of a uri whose label is %s',
+      (label) => {
+        expect(
+          resolveExplorerAddressParam(
+            `bitcoin:bc1qtest123?amount=0.001&label=${label}`
+          )
+        ).toBe('bc1qtest123')
+      }
+    )
   })
 
   describe('parseLabel', () => {
