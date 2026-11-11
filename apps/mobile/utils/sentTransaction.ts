@@ -1,3 +1,6 @@
+import { hex } from '@scure/base'
+import * as bitcoinjs from 'bitcoinjs-lib'
+
 import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
 import { t } from '@/locales'
 import { type Label } from '@/types/bips/329'
@@ -5,6 +8,8 @@ import { type Account } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { type Network } from '@/types/settings/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { removeReplacedTransaction } from '@/utils/feeReplacement'
 import { getRawTransactionSizes } from '@/utils/transaction'
 import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
@@ -16,10 +21,105 @@ type SentTransaction = {
   txid: string
   inputs: Utxo[]
   outputs: Output[]
+  /** Position of each builder output in the broadcast transaction. */
+  vouts: (number | undefined)[]
   fee: number
   rbf: boolean
   replacesTxid?: string
   signedTx?: string
+}
+
+type ScriptAmount = {
+  script: string | undefined
+  amount: number
+}
+
+type TransactionOutput = {
+  script: string
+  value: number
+}
+
+/**
+ * The vout of each builder output in the final transaction, which BDK and
+ * Bitcoin Core shuffle. Outputs match by script and amount, then by script
+ * alone (a payjoin receiver adjusts amounts). Equal outputs take the lowest
+ * free vout in builder order. An output with no match gets undefined.
+ */
+function matchOutputVouts(
+  outputs: ScriptAmount[],
+  transactionOutputs: TransactionOutput[]
+): (number | undefined)[] {
+  const claimed = new Set<number>()
+
+  function claim(isMatch: (output: TransactionOutput) => boolean) {
+    const vout = transactionOutputs.findIndex(
+      (output, index) => !claimed.has(index) && isMatch(output)
+    )
+    if (vout === -1) {
+      return undefined
+    }
+    claimed.add(vout)
+    return vout
+  }
+
+  const exactVouts = outputs.map(({ amount, script }) =>
+    script
+      ? claim((output) => output.script === script && output.value === amount)
+      : undefined
+  )
+  return exactVouts.map((vout, index) => {
+    const { script } = outputs[index]
+    if (vout !== undefined || !script) {
+      return vout
+    }
+    return claim((output) => output.script === script)
+  })
+}
+
+function addressScriptHex(address: string, network: Network) {
+  try {
+    return hex.encode(
+      bitcoinjs.address.toOutputScript(address, bitcoinjsNetwork(network))
+    )
+  } catch {
+    return undefined
+  }
+}
+
+function toTransactionOutput(output: { script: Uint8Array; value: bigint }) {
+  return { script: hex.encode(output.script), value: Number(output.value) }
+}
+
+function readTransactionOutputs(
+  signedTxHex?: string,
+  psbtBase64?: string
+): TransactionOutput[] {
+  try {
+    if (signedTxHex) {
+      return bitcoinjs.Transaction.fromHex(signedTxHex).outs.map(
+        toTransactionOutput
+      )
+    }
+    return psbtBase64
+      ? bitcoinjs.Psbt.fromBase64(psbtBase64).txOutputs.map(toTransactionOutput)
+      : []
+  } catch {
+    return []
+  }
+}
+
+/** The vout of each builder output, read from the transaction that was sent. */
+function getSentOutputVouts(
+  outputs: Pick<Output, 'amount' | 'to'>[],
+  sent: { network: Network; psbtBase64?: string; signedTxHex?: string }
+) {
+  return matchOutputVouts(
+    outputs.map((output) => ({
+      amount: output.amount,
+      script: addressScriptHex(output.to, sent.network)
+    })),
+    readTransactionOutputs(sent.signedTxHex, sent.psbtBase64)
+  )
 }
 
 function isDefaultChangeOutput(output: Pick<Output, 'label'>) {
@@ -64,25 +164,40 @@ function getSentTransactionLabel(outputs: Pick<Output, 'label'>[]) {
     .join(',')
 }
 
+// An output whose vout is unknown gets no output label: a guess could put
+// the payment label on the change.
+function outputLabels(
+  txid: string,
+  vout: number | undefined,
+  label: string
+): Label[] {
+  if (vout === undefined) {
+    return []
+  }
+  return [{ label, ref: `${txid}:${vout}`, type: 'output' }]
+}
+
 /**
  * BIP329 labels for a sent transaction. They are kept in the account labels
  * and applied when the wallet data is fetched.
  */
 function buildSentTransactionLabels({
   outputs,
-  txid
-}: Pick<SentTransaction, 'outputs' | 'txid'>): Label[] {
+  txid,
+  vouts
+}: Pick<SentTransaction, 'outputs' | 'txid' | 'vouts'>): Label[] {
   const txLabel = getSentTransactionLabel(outputs)
   const labels: Label[] = []
 
-  for (const [vout, output] of outputs.entries()) {
+  for (const [index, output] of outputs.entries()) {
     if (isDefaultChangeOutput(output)) {
       continue
     }
-    labels.push(
-      { label: output.label, ref: `${txid}:${vout}`, type: 'output' },
-      { label: output.label, ref: output.to, type: 'addr' }
-    )
+    labels.push(...outputLabels(txid, vouts[index], output.label), {
+      label: output.label,
+      ref: output.to,
+      type: 'addr'
+    })
   }
 
   labels.push({ label: txLabel, ref: txid, type: 'tx' })
@@ -93,15 +208,23 @@ function buildSentTransactionLabels({
   }
 
   const changeLabel = t('sign.changeAddressLabelFinal', { txlabel: txLabel })
-  labels.push(
-    {
-      label: changeLabel,
-      ref: `${txid}:${changeOutputIndex}`,
-      type: 'output'
-    },
-    { label: changeLabel, ref: outputs[changeOutputIndex].to, type: 'addr' }
-  )
+  labels.push(...outputLabels(txid, vouts[changeOutputIndex], changeLabel), {
+    label: changeLabel,
+    ref: outputs[changeOutputIndex].to,
+    type: 'addr'
+  })
   return labels
+}
+
+/** Builder outputs in the order of the sent transaction, unknown ones last. */
+function orderBySentVout<T>(outputs: T[], vouts: (number | undefined)[]) {
+  return outputs
+    .map((output, index) => ({
+      output,
+      vout: vouts[index] ?? Number.POSITIVE_INFINITY
+    }))
+    .toSorted((a, b) => a.vout - b.vout)
+    .map(({ output }) => output)
 }
 
 /**
@@ -112,7 +235,8 @@ function addSentTransactionToAccount(
   account: Account,
   sent: SentTransaction
 ): Account | undefined {
-  const { fee, inputs, outputs, rbf, replacesTxid, signedTx, txid } = sent
+  const { fee, inputs, outputs, rbf, replacesTxid, signedTx, txid, vouts } =
+    sent
 
   if (account.transactions.some((tx) => tx.id === txid)) {
     return undefined
@@ -150,7 +274,7 @@ function addSentTransactionToAccount(
       value: utxo.value,
       witness: []
     })),
-    vout: outputs.map((output) => ({
+    vout: orderBySentVout(outputs, vouts).map((output) => ({
       address: output.to,
       kind: output.kind,
       label: output.label,
@@ -172,7 +296,7 @@ function addSentTransactionToAccount(
   const newAddresses: Account['addresses'] = []
   const network = account.addresses[0]?.network
 
-  for (const [vout, output] of outputs.entries()) {
+  for (const [index, output] of outputs.entries()) {
     if (!isReturnedBuilderOutput(output, ownAddresses)) {
       continue
     }
@@ -182,15 +306,19 @@ function addSentTransactionToAccount(
         ? 'internal'
         : (addressKeychain.get(output.to) ?? 'external')
 
-    returnedUtxos.push({
-      addressTo: output.to,
-      keychain,
-      label: output.label || '',
-      timestamp: new Date(),
-      txid,
-      value: output.amount,
-      vout
-    })
+    // Without its vout the coin can't be referenced: the next sync adds it.
+    const vout = vouts[index]
+    if (vout !== undefined) {
+      returnedUtxos.push({
+        addressTo: output.to,
+        keychain,
+        label: output.label || '',
+        timestamp: new Date(),
+        txid,
+        value: output.amount,
+        vout
+      })
+    }
 
     if (!knownAddresses.has(output.to)) {
       knownAddresses.add(output.to)
@@ -226,6 +354,8 @@ function addSentTransactionToAccount(
 export {
   addSentTransactionToAccount,
   buildSentTransactionLabels,
+  getSentOutputVouts,
   getSentTransactionLabel,
+  matchOutputVouts,
   type SentTransaction
 }

@@ -1,3 +1,5 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
+
 import { recordSentTransaction } from '@/services/sentTransaction'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -5,7 +7,18 @@ import { type Account } from '@/types/models/Account'
 
 const ACCOUNT_ID = 'wallet-1'
 const TXID = 'c'.repeat(64)
-const PAYEE = 'tb1qpayee'
+const PAYEE = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+const OTHER = 'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'
+
+// The sent transaction pays someone else first: the payee is vout 1.
+function sentTransactionHex() {
+  const network = bitcoinjs.networks.testnet
+  const transaction = new bitcoinjs.Transaction()
+  transaction.addInput(new Uint8Array(32), 0)
+  transaction.addOutput(bitcoinjs.address.toOutputScript(OTHER, network), 500n)
+  transaction.addOutput(bitcoinjs.address.toOutputScript(PAYEE, network), 4000n)
+  return transaction.toHex()
+}
 
 function signetAccount(): Account {
   return {
@@ -44,6 +57,7 @@ function fillBuilder() {
   })
   builder.addOutput({ amount: 4000, label: 'rent', to: PAYEE })
   builder.setFee(1000)
+  builder.setSignedTx(sentTransactionHex())
 }
 
 describe('recordSentTransaction', () => {
@@ -67,7 +81,7 @@ describe('recordSentTransaction', () => {
     expect(importLabels).toHaveBeenCalledWith(
       ACCOUNT_ID,
       expect.arrayContaining([
-        { label: 'rent', ref: `${TXID}:0`, type: 'output' },
+        { label: 'rent', ref: `${TXID}:1`, type: 'output' },
         { label: 'rent', ref: TXID, type: 'tx' }
       ])
     )
