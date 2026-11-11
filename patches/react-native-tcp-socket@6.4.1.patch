@@ -1,0 +1,205 @@
+diff --git a/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketClient.java b/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketClient.java
+index e0f719f6b808df95ab79003a08d1a88ed85d6174..9710027751d59841c4549b0c57fdca5f9f08dfb7 100644
+--- a/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketClient.java
++++ b/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketClient.java
+@@ -67,7 +67,13 @@ class TcpSocketClient extends TcpSocket {
+         socket.bind(new InetSocketAddress(localInetAddress, localPort));
+         final int connectTimeout = options.hasKey("connectTimeout") ? options.getInt("connectTimeout") : 0; 
+         socket.connect(new InetSocketAddress(remoteInetAddress, port), connectTimeout);
+-        if (socket instanceof SSLSocket) ((SSLSocket) socket).startHandshake();
++        if (socket instanceof SSLSocket) {
++            // Bound the handshake like the connect: a peer that accepts TCP but never
++            // answers TLS would otherwise block this pool thread forever.
++            socket.setSoTimeout(connectTimeout);
++            ((SSLSocket) socket).startHandshake();
++            socket.setSoTimeout(0);
++        }
+         startListening();
+     }
+ 
+diff --git a/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketModule.java b/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketModule.java
+index 121edb47dbecb4ca2a044722b2ad5a71d50c1fa7..b851020e250c11f1780af7051264c8107cef6a5f 100644
+--- a/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketModule.java
++++ b/android/src/main/java/com/asterinet/react/tcpsocket/TcpSocketModule.java
+@@ -31,9 +31,11 @@ import java.net.SocketException;
+ import java.util.ArrayList;
+ import java.util.Enumeration;
+ import java.util.HashMap;
++import java.util.HashSet;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.Set;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.CountDownLatch;
+ import java.util.concurrent.ExecutorService;
+@@ -50,6 +52,10 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+     private final ConcurrentHashMap<String, Network> mNetworkMap = new ConcurrentHashMap<>();
+     private final CurrentNetwork currentNetwork = new CurrentNetwork();
+     private final ExecutorService executorService = Executors.newFixedThreadPool(N_THREADS);
++    // connect() and end() run on the same pool, so end() can run before connect()
++    // registers its socket. Those ids are remembered (guarded by this set's lock)
++    // so connect() drops the socket instead of opening one nobody will close.
++    private final Set<Integer> endedBeforeConnect = new HashSet<>();
+     private TcpEventListener tcpEvtListener;
+ 
+     public TcpSocketModule(ReactApplicationContext reactContext) {
+@@ -95,8 +101,12 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+                     // Get ioT device host to retreive correct network in android concurrent connections
+                     final String iotDeviceHost = options.hasKey("host") ? options.getString("host") : null;
+                     selectNetwork(iface, localAddress, iotDeviceHost);
+-                    TcpSocketClient client = new TcpSocketClient(tcpEvtListener, cId, null);
+-                    socketMap.put(cId, client);
++                    TcpSocketClient client = registerClient(cId);
++                    if (client == null) {
++                        pendingTLS.remove(cId);
++                        tcpEvtListener.onClose(cId, null);
++                        return;
++                    }
+                     ReadableMap tlsOptions = pendingTLS.get(cId);
+                     client.connect(mReactContext, host, port, options, currentNetwork.getNetwork(), tlsOptions);
+                     tcpEvtListener.onConnect(cId, client);
+@@ -128,7 +138,11 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+     @SuppressWarnings("unused")
+     @ReactMethod
+     public void write(final int cId, @NonNull final String base64String, final int msgId) {
+-        TcpSocketClient socketClient = getTcpClient(cId);
++        TcpSocketClient socketClient = findTcpClient(cId);
++        if (socketClient == null) {
++            tcpEvtListener.onError(cId, new IOException("No socket with id " + cId));
++            return;
++        }
+         byte[] data = Base64.decode(base64String, Base64.NO_WRAP);
+         socketClient.write(msgId, data);
+     }
+@@ -140,8 +154,10 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+         executorService.execute(new Runnable() {
+             @Override
+             public void run() {
+-                TcpSocketClient socketClient = getTcpClient(cId);
+-                socketClient.destroy();
++                TcpSocketClient socketClient = clientToEnd(cId);
++                if (socketClient != null) {
++                    socketClient.destroy();
++                }
+             }
+         });
+     }
+@@ -158,8 +174,11 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+         executorService.execute(new Runnable() {
+             @Override
+             public void run() {
+-                TcpSocketServer socketServer = getTcpServer(cId);
+-                socketServer.close();
++                TcpSocket socket = socketMap.get(cId);
++                if (!(socket instanceof TcpSocketServer)) {
++                    return;
++                }
++                ((TcpSocketServer) socket).close();
+                 socketMap.remove(cId);
+             }
+         });
+@@ -186,7 +205,10 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+     @SuppressWarnings("unused")
+     @ReactMethod
+     public void setNoDelay(@NonNull final Integer cId, final boolean noDelay) {
+-        final TcpSocketClient client = getTcpClient(cId);
++        final TcpSocketClient client = findTcpClient(cId);
++        if (client == null) {
++            return;
++        }
+         try {
+             client.setNoDelay(noDelay);
+         } catch (IOException e) {
+@@ -197,7 +219,10 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+     @SuppressWarnings("unused")
+     @ReactMethod
+     public void setKeepAlive(@NonNull final Integer cId, final boolean enable, final int initialDelay) {
+-        final TcpSocketClient client = getTcpClient(cId);
++        final TcpSocketClient client = findTcpClient(cId);
++        if (client == null) {
++            return;
++        }
+         try {
+             client.setKeepAlive(enable, initialDelay);
+         } catch (IOException e) {
+@@ -208,15 +233,19 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+     @SuppressWarnings("unused")
+     @ReactMethod
+     public void pause(final int cId) {
+-        TcpSocketClient client = getTcpClient(cId);
+-        client.pause();
++        TcpSocketClient client = findTcpClient(cId);
++        if (client != null) {
++            client.pause();
++        }
+     }
+ 
+     @SuppressWarnings("unused")
+     @ReactMethod
+     public void resume(final int cId) {
+-        TcpSocketClient client = getTcpClient(cId);
+-        client.resume();
++        TcpSocketClient client = findTcpClient(cId);
++        if (client != null) {
++            client.resume();
++        }
+     }
+ 
+     @SuppressWarnings("unused")
+@@ -450,26 +479,44 @@ public class TcpSocketModule extends ReactContextBaseJavaModule {
+             mNetworkMap.put(iface + ipAddress, currentNetwork.getNetwork());
+     }
+ 
+-    private TcpSocketClient getTcpClient(final int id) {
++    @Nullable
++    private TcpSocketClient findTcpClient(final int id) {
+         TcpSocket socket = socketMap.get(id);
+-        if (socket == null) {
+-            throw new IllegalArgumentException("No socket with id " + id);
++        return socket instanceof TcpSocketClient ? (TcpSocketClient) socket : null;
++    }
++
++    @Nullable
++    private TcpSocketClient registerClient(final int id) {
++        synchronized (endedBeforeConnect) {
++            if (endedBeforeConnect.remove(id)) {
++                return null;
++            }
++            TcpSocketClient client = new TcpSocketClient(tcpEvtListener, id, null);
++            socketMap.put(id, client);
++            return client;
+         }
+-        if (!(socket instanceof TcpSocketClient)) {
+-            throw new IllegalArgumentException("Socket with id " + id + " is not a client");
++    }
++
++    @Nullable
++    private TcpSocketClient clientToEnd(final int id) {
++        synchronized (endedBeforeConnect) {
++            TcpSocket socket = socketMap.get(id);
++            if (socket == null) {
++                endedBeforeConnect.add(id);
++            }
++            return socket instanceof TcpSocketClient ? (TcpSocketClient) socket : null;
+         }
+-        return (TcpSocketClient) socket;
+     }
+ 
+-    private TcpSocketServer getTcpServer(final int id) {
++    private TcpSocketClient getTcpClient(final int id) {
+         TcpSocket socket = socketMap.get(id);
+         if (socket == null) {
+-            throw new IllegalArgumentException("No server socket with id " + id);
++            throw new IllegalArgumentException("No socket with id " + id);
+         }
+-        if (!(socket instanceof TcpSocketServer)) {
+-            throw new IllegalArgumentException("Server socket with id " + id + " is not a server");
++        if (!(socket instanceof TcpSocketClient)) {
++            throw new IllegalArgumentException("Socket with id " + id + " is not a client");
+         }
+-        return (TcpSocketServer) socket;
++        return (TcpSocketClient) socket;
+     }
+ 
+     @SuppressWarnings("unused")
