@@ -1,6 +1,8 @@
 import { type Href } from 'expo-router'
+import { nip19 } from 'nostr-tools'
 
 import { type NostrChatProtocol } from '@/types/models/Nostr'
+import { type DetectedContent } from '@/utils/contentDetector'
 
 export function nostrAccountProfileHref(npub: string): Href {
   return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
@@ -132,5 +134,49 @@ export function deviceChatMessageHref(
   return {
     params: { id: accountId, messageId },
     pathname: '/signer/bitcoin/account/[id]/settings/nostr/message/[messageId]'
+  }
+}
+
+function nprofileToNpub(nprofile: string): string | undefined {
+  try {
+    const decoded = nip19.decode(nprofile)
+    return decoded.type === 'nprofile'
+      ? nip19.npubEncode(decoded.data.pubkey)
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Where content scanned while viewing identity `ownerNpub` leads. Secret keys
+ * and anything else unsupported lead nowhere, so they never reach a route param.
+ */
+export function nostrScannedContentHref(
+  ownerNpub: string,
+  content: Pick<DetectedContent, 'cleaned' | 'raw' | 'type'>
+): Href | undefined {
+  const value = content.cleaned || content.raw
+  switch (content.type) {
+    case 'nostr_connect': {
+      return nostrBunkerConnectHref(ownerNpub, value)
+    }
+    case 'nostr_note':
+    case 'nostr_nevent': {
+      return nostrNoteHref(ownerNpub, value)
+    }
+    case 'nostr_npub': {
+      return nostrAuthorProfileHref(ownerNpub, value)
+    }
+    case 'nostr_nprofile': {
+      const npub = nprofileToNpub(value)
+      if (!npub) {
+        return undefined
+      }
+      return nostrAuthorProfileHref(ownerNpub, npub)
+    }
+    default: {
+      return undefined
+    }
   }
 }

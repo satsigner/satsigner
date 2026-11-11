@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import {
   NOSTR_KEY_LINE_BREAK_EVERY,
@@ -11,7 +12,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatNostrKey, getNip19Type } from '@/utils/nostr'
-import { nostrBunkerConnectHref, nostrNoteHref } from '@/utils/nostrNavigation'
+import { nostrScannedContentHref } from '@/utils/nostrNavigation'
 
 import SSCameraModal from './SSCameraModal'
 import SSModal from './SSModal'
@@ -103,15 +104,14 @@ function SSNostrKeyQRModal({
       return
     }
     setCameraVisible(false)
-    setFormat('bech32')
-    onClose()
-    if (detected.type === 'nostr_connect') {
-      router.navigate(
-        nostrBunkerConnectHref(ownerNpub, detected.cleaned || detected.raw)
-      )
+    const href = nostrScannedContentHref(ownerNpub, detected)
+    if (!href) {
+      toast.error(t('nostrIdentity.note.invalidContent'))
       return
     }
-    router.navigate(nostrNoteHref(ownerNpub, detected.cleaned || detected.raw))
+    setFormat('bech32')
+    onClose()
+    router.navigate(href)
   }
 
   return (
