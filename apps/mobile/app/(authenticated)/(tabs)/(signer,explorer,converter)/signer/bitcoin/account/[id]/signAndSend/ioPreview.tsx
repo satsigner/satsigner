@@ -2,12 +2,7 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  Stack,
-  useFocusEffect,
-  useLocalSearchParams,
-  useRouter
-} from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import {
   useCallback,
@@ -1237,11 +1232,6 @@ export default function IOPreview() {
         position: 'relative'
       }}
     >
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       {inputs.size > 0 && (
         <View
           style={{

@@ -3732,6 +3732,8 @@
     "build.options.autoSelect.utxos.privacy.title": "Privacy",
     "build.options.autoSelect.utxos.user.description": "Your user selected inputs",
     "build.options.autoSelect.utxos.user.title": "User",
+    "build.options.extraOptions": "Extra Options",
+    "build.options.extraSecurity": "Extra Security",
     "build.options.feeControl": "Fee Control",
     "build.options.feeManagement": "Fee Management",
     "build.options.importOutputs.button": "Import",
