@@ -126,6 +126,16 @@ function isDefaultChangeOutput(output: Pick<Output, 'label'>) {
   return output.label === t('sign.changeAddressLabelDefault')
 }
 
+/**
+ * The label an output keeps once sent: the default change label becomes the
+ * change label that names the transaction, as the BIP329 labels do.
+ */
+function sentOutputLabel(output: Pick<Output, 'label'>, txLabel: string) {
+  return isDefaultChangeOutput(output)
+    ? t('sign.changeAddressLabelFinal', { txlabel: txLabel })
+    : output.label
+}
+
 function isReturnedBuilderOutput(
   output: Pick<Output, 'kind' | 'to'>,
   ownAddresses: Set<string>
@@ -207,7 +217,7 @@ function buildSentTransactionLabels({
     return labels
   }
 
-  const changeLabel = t('sign.changeAddressLabelFinal', { txlabel: txLabel })
+  const changeLabel = sentOutputLabel(outputs[changeOutputIndex], txLabel)
   labels.push(...outputLabels(txid, vouts[changeOutputIndex], changeLabel), {
     label: changeLabel,
     ref: outputs[changeOutputIndex].to,
@@ -277,7 +287,7 @@ function addSentTransactionToAccount(
     vout: orderBySentVout(outputs, vouts).map((output) => ({
       address: output.to,
       kind: output.kind,
-      label: output.label,
+      label: sentOutputLabel(output, txLabel),
       script: '',
       value: output.amount
     })),
@@ -312,7 +322,7 @@ function addSentTransactionToAccount(
       returnedUtxos.push({
         addressTo: output.to,
         keychain,
-        label: output.label || '',
+        label: sentOutputLabel(output, txLabel) || '',
         timestamp: new Date(),
         txid,
         value: output.amount,

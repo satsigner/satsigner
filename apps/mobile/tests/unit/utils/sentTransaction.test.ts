@@ -207,6 +207,19 @@ describe('addSentTransactionToAccount', () => {
     expect(updated?.summary.numberOfUtxos).toBe(1)
   })
 
+  it('labels the change coin as the next sync will', () => {
+    const sent = makeSent()
+    const updated = addSentTransactionToAccount(makeAccount(), sent)
+    const changeLabel = buildSentTransactionLabels(sent).find(
+      (label) => label.ref === `${TXID}:1`
+    )?.label
+
+    expect(changeLabel).toBe('[change] rent')
+    expect(updated?.utxos[0].label).toBe(changeLabel)
+    expect(updated?.transactions[0].vout?.[1].label).toBe(changeLabel)
+    expect(updated?.transactions[0].vout?.[0].label).toBe('rent')
+  })
+
   it('keeps a self-send output as an unspent coin of the account', () => {
     const updated = addSentTransactionToAccount(
       makeAccount(),
