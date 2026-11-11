@@ -63,6 +63,7 @@ export function nostrAccountHref(
     | 'contacts'
     | 'files'
     | 'keys'
+    | 'pow'
     | 'profile'
     | 'relays'
     | 'send'
