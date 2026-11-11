@@ -88,7 +88,7 @@ export function useEcashReceive() {
   const invoiceStatus = toMintInvoiceStatus(invoiceTransaction?.status)
 
   function navigateToAccount() {
-    router.navigate(
+    router.dismissTo(
       activeAccountId
         ? `/signer/ecash/account/${activeAccountId}`
         : '/signer/ecash'

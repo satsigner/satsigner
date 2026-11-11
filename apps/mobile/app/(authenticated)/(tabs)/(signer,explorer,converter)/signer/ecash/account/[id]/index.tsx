@@ -37,12 +37,12 @@ import { PRIVACY_MASK } from '@/constants/privacy'
 import { useContentHandler } from '@/hooks/useContentHandler'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
+import { useEcashActiveAccountSync } from '@/hooks/useEcashActiveAccountSync'
 import { useFetchBitcoinPrice } from '@/hooks/useFetchBitcoinPrice'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useEcashStore } from '@/store/ecash'
 import { Colors } from '@/styles'
 import { getEcashMintLabel } from '@/utils/ecashAccount'
 import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
@@ -62,12 +62,11 @@ export default function EcashAccountDetailPage() {
   const { width } = useWindowDimensions()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { mints, proofs, transactions, activeAccount, counters } =
-    useEcashAccountState()
+    useEcashAccountState(id)
+  useEcashActiveAccountSync(id)
   useFetchBitcoinPrice()
   const [tabIndex, setTabIndex] = useState(0)
   const [proofsView, setProofsView] = useState<'list' | 'bubbles'>('list')
-
-  const setActiveAccountId = useEcashStore((state) => state.setActiveAccountId)
 
   const handleSettingsPress = () =>
     router.navigate(`/signer/ecash/account/${id}/settings`)
@@ -85,11 +84,6 @@ export default function EcashAccountDetailPage() {
     },
     sendHref: { params: { id }, pathname: '/signer/ecash/account/[id]/send' }
   })
-
-  if (id && activeAccount?.id !== id) {
-    setActiveAccountId(id)
-    return null
-  }
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 

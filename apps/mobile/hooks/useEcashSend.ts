@@ -205,7 +205,7 @@ export function useEcashSend() {
       router.back()
       return
     }
-    router.navigate('/signer/ecash')
+    router.dismissTo('/signer/ecash')
   }
 
   async function resolveBolt11Invoice(): Promise<string | null> {
