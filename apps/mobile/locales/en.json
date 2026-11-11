@@ -1427,6 +1427,7 @@
     "error.tokenAlreadyClaimed": "Token has already been claimed. You cannot redeem it again.",
     "error.unknownError": "Unknown error occurred",
     "error.unknownMeltError": "Unknown melt error",
+    "error.unsupportedInvoiceInput": "Not a Lightning invoice or LNURL-pay code",
     "info.mintAlreadyConnected": "This mint is already connected",
     "info.noProofsFound": "No proofs found for this mint",
     "info.pendingMeltReleased": "A pending Lightning payment failed. Its ecash is back in your balance.",
