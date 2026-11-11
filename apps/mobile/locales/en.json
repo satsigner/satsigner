@@ -2361,7 +2361,8 @@
     "scanConnection": "Scan Connection",
     "sessions": "Connected Apps",
     "title": "Remote Signing",
-    "unknownApp": "Unknown app"
+    "unknownApp": "Unknown app",
+    "watchOnly": "A watch-only identity cannot sign for connected apps"
   },
   "nostrIdentity": {
     "account.activeTag": "Active",

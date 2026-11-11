@@ -25,7 +25,10 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
 import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import type { DetectedContent } from '@/utils/contentDetector'
-import { parseNostrConnectUri } from '@/utils/nip46'
+import {
+  canNostrIdentitySignRemotely,
+  parseNostrConnectUri
+} from '@/utils/nip46'
 
 type BunkerParams = {
   connectUri?: string
@@ -148,6 +151,21 @@ export default function NostrBunker() {
       <SSMainLayout>
         <SSVStack itemsCenter gap="lg" style={styles.emptyContainer}>
           <SSText color="muted">{t('nostrIdentity.account.notFound')}</SSText>
+        </SSVStack>
+      </SSMainLayout>
+    )
+  }
+
+  if (!canNostrIdentitySignRemotely(identity)) {
+    return (
+      <SSMainLayout>
+        <Stack.Screen
+          options={{
+            headerTitle: () => <SSText uppercase>{t('nip46.title')}</SSText>
+          }}
+        />
+        <SSVStack itemsCenter gap="lg" style={styles.emptyContainer}>
+          <SSText color="muted">{t('nip46.watchOnly')}</SSText>
         </SSVStack>
       </SSMainLayout>
     )
