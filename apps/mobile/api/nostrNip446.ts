@@ -1,4 +1,9 @@
-import { finalizeEvent, type NostrEvent, type VerifiedEvent } from 'nostr-tools'
+import {
+  finalizeEvent,
+  type NostrEvent,
+  type VerifiedEvent,
+  verifyEvent
+} from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import {
   getConversationKey,
@@ -18,7 +23,28 @@ import { parseNostrEvent } from '@/utils/nostrEvent'
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
 
-const globalSeenEvents = new Set<string>()
+// Relays may ignore the subscription filter, so the author is checked again
+// and the signature verified before the signer acts on a request.
+function readClientRequest(
+  event: NostrEvent,
+  clientPubkey: string,
+  conversationKey: Uint8Array
+): Nip46IncomingRequest | null {
+  if (
+    event.kind !== nostrKinds.NostrConnect ||
+    event.pubkey !== clientPubkey ||
+    !verifyEvent(event)
+  ) {
+    return null
+  }
+  try {
+    return parseNip46Request(
+      JSON.parse(nip44Decrypt(event.content, conversationKey))
+    )
+  } catch {
+    return null
+  }
+}
 
 function subscribeOnSocket(
   ws: WebSocket,
@@ -85,6 +111,8 @@ export class Nip46BunkerService {
   private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
+  // Every relay delivers the same request; it is handled once.
+  private handledEventIds = new Set<string>()
 
   async connect(relays: string[]): Promise<void> {
     const results = await Promise.allSettled(
@@ -155,6 +183,7 @@ export class Nip46BunkerService {
 
     const filter = {
       '#p': [signerPubkeyHex],
+      authors: [clientPubkey],
       kinds: [nostrKinds.NostrConnect],
       since:
         Math.floor(Date.now() / MS_PER_SECOND) -
@@ -162,23 +191,15 @@ export class Nip46BunkerService {
     }
     for (const ws of this.sockets) {
       subscribeOnSocket(ws, this.subId, filter, (event) => {
-        if (globalSeenEvents.has(event.id)) {
+        if (this.handledEventIds.has(event.id)) {
           return
         }
-        globalSeenEvents.add(event.id)
-
-        try {
-          const decrypted = nip44Decrypt(event.content, convKey)
-          const request = parseNip46Request(JSON.parse(decrypted))
-
-          if (!request) {
-            return
-          }
-
-          onRequest(request)
-        } catch {
-          // decryption failed
+        const request = readClientRequest(event, clientPubkey, convKey)
+        if (!request) {
+          return
         }
+        this.handledEventIds.add(event.id)
+        onRequest(request)
       })
     }
   }
@@ -230,6 +251,7 @@ export class Nip46BunkerService {
     }
     this.sockets = []
     this.conversationKey = null
+    this.handledEventIds.clear()
     this.active = false
   }
 
