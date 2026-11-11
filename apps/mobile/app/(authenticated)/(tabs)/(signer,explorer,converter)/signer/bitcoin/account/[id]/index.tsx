@@ -121,7 +121,7 @@ import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
-import { getDraftIoCounts } from '@/utils/draftSelection'
+import { getDraftIoCounts, getDraftPaymentAmount } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -384,9 +384,8 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
   const draft = drafts[accountId]
   const readyToBroadcast = !!draft?.signedTx
   const { inputCount, outputCount } = getDraftIoCounts(draft)
-  const outputs = draft?.outputs ?? []
   const fee = draft?.fee ?? 0
-  const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
+  const totalOut = getDraftPaymentAmount(draft)
   const inputLabel =
     inputCount === 1
       ? t('transaction.input.singular')
