@@ -257,7 +257,12 @@ export async function startNip46Session(
   const connectSecret = session.secret ?? ''
 
   try {
-    const service = new Nip46BunkerService()
+    const service = new Nip46BunkerService({
+      onConnectionChange: (isConnected) =>
+        updateSession(session.id, {
+          connectionStatus: isConnected ? 'connected' : 'connecting'
+        })
+    })
     await service.connect(session.relays)
     // Locking stopped every bunker while this one was still connecting.
     if (isAppLocked(useAuthStore.getState())) {

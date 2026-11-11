@@ -3,6 +3,11 @@ import * as nostrKinds from 'nostr-tools/kinds'
 import { encrypt, getConversationKey } from 'nostr-tools/nip44'
 
 import { Nip46BunkerService } from '@/api/nostrNip446'
+import {
+  NOSTR_NIP46_RECONNECT_BASE_MS,
+  NOSTR_NIP46_RECONNECT_MAX_MS,
+  NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 
 // The shared manual mock stubs getPublicKey, which the NIP-44 keys rely on.
@@ -227,5 +232,93 @@ describe('nip46 bunker service', () => {
     socket.deliver(requestFrom(generateSecretKey(), 'stranger'))
 
     expect(onRequest).not.toHaveBeenCalled()
+  })
+})
+
+describe('nip46 bunker relay reconnect', () => {
+  const realWebSocket: unknown = Reflect.get(globalThis, 'WebSocket')
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })
+    FakeRelaySocket.created = []
+    Reflect.set(globalThis, 'WebSocket', FakeRelaySocket)
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+    Reflect.set(globalThis, 'WebSocket', realWebSocket)
+  })
+
+  async function startWatchedBunker(onConnectionChange = jest.fn()) {
+    const clientSecretKey = generateSecretKey()
+    const onRequest = jest.fn()
+    const service = new Nip46BunkerService({ onConnectionChange })
+    await service.connect([RELAY_A])
+    service.subscribe(
+      signerPubkey,
+      signerSecretKey,
+      getPublicKey(clientSecretKey),
+      onRequest
+    )
+    return { clientSecretKey, onRequest, service }
+  }
+
+  function dropRelay(socket: FakeRelaySocket) {
+    socket.readyState = CLOSED
+    socket.emit('close', '')
+  }
+
+  it('reconnects a dropped relay and takes the requests sent meanwhile', async () => {
+    const { clientSecretKey, onRequest, service } = await startWatchedBunker()
+    const [first] = FakeRelaySocket.created
+    const droppedAt = Math.floor(Date.now() / MS_PER_SECOND)
+
+    dropRelay(first)
+    expect(service.isConnected()).toBe(false)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+
+    const [, second] = FakeRelaySocket.created
+    expect(second?.url).toBe(RELAY_A)
+    expect(second.subscriptionFilter()).toMatchObject({
+      since: droppedAt - NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+    })
+    second.deliver(requestFrom(clientSecretKey, 'after-drop'))
+    expect(onRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'after-drop' })
+    )
+    expect(service.isConnected()).toBe(true)
+  })
+
+  it('reports losing the last relay and getting it back', async () => {
+    const onConnectionChange = jest.fn()
+    await startWatchedBunker(onConnectionChange)
+
+    dropRelay(FakeRelaySocket.created[0])
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+
+    expect(onConnectionChange.mock.calls).toStrictEqual([[false], [true]])
+  })
+
+  it('stops trying once the bunker is disconnected', async () => {
+    const { service } = await startWatchedBunker()
+
+    dropRelay(FakeRelaySocket.created[0])
+    service.disconnect()
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_MAX_MS)
+
+    expect(FakeRelaySocket.created).toHaveLength(1)
+  })
+
+  it('does not reconnect a relay it closed itself', async () => {
+    const onConnectionChange = jest.fn()
+    const { service } = await startWatchedBunker(onConnectionChange)
+    const [socket] = FakeRelaySocket.created
+
+    service.disconnect()
+    dropRelay(socket)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_MAX_MS)
+
+    expect(FakeRelaySocket.created).toHaveLength(1)
+    expect(onConnectionChange).not.toHaveBeenCalled()
   })
 })

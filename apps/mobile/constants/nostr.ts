@@ -249,6 +249,9 @@ export const NOSTR_POW_NONCE_TAG = 'nonce'
 export const NOSTR_NIP06_DERIVATION_PATH = "m/44'/1237'/0'/0/0"
 export const NOSTR_NIP46_CONNECT_PREFIX = 'nostrconnect://'
 export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
+// A dropped bunker relay is tried again after 2 s, doubling up to a minute.
+export const NOSTR_NIP46_RECONNECT_BASE_MS = 2000
+export const NOSTR_NIP46_RECONNECT_MAX_MS = 60_000
 // Handled request ids remembered across sessions; the oldest go first.
 export const NOSTR_NIP46_HANDLED_EVENTS_LIMIT = 1000
 export const NIP46_ACTIVITY_WRITE_INTERVAL_MS =
