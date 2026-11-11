@@ -46,7 +46,6 @@ import { type PreviewTransactionSearchParams } from '@/types/navigation/searchPa
 import { type PayjoinInvoice } from '@/types/payjoin'
 import { type Network } from '@/types/settings/blockchain'
 import { type Notice } from '@/types/ui/notice'
-import { hasStoredMnemonic } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { isPSBT } from '@/utils/bitcoinContent'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -69,6 +68,8 @@ const tn = _tn('transaction.build.preview')
 const TRANSACTION_CHART_SCALE = 0.9
 
 type CosignerSignatures = ReturnType<typeof useCosignerSignatures>
+
+type CameraScanPurpose = 'seedQr' | 'signedPsbt'
 
 type SeedWordsSigning = ReturnType<typeof useSeedWordsSigning>
 
@@ -113,6 +114,7 @@ type MultisigSignaturesSectionProps = {
   handleNFCExport: () => void
   handleCosignerPasteFromClipboard: (index: number) => void
   handleCosignerCameraScan: (index: number) => void
+  handleCosignerSeedQrScan: (index: number) => void
   handleCosignerNFCScan: (index: number) => void
   handleSignWithLocalKey: CosignerSignatures['signWithLocalKey']
   handleSeedWordsScanned: (index: number) => void
@@ -188,6 +190,8 @@ function PreviewTransaction() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [qrExportModalVisible, setQrExportModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [cameraScanPurpose, setCameraScanPurpose] =
+    useState<CameraScanPurpose>('signedPsbt')
   const [selectedCosignerIndex, setSelectedCosignerIndex] = useState<
     number | null
   >(null)
@@ -288,12 +292,22 @@ function PreviewTransaction() {
     getPsbtTxidOrFallback(txBuilderResult, transactionId)
   )
 
-  function openCameraForCosigner(index: number) {
+  function openCameraForCosigner(index: number, purpose: CameraScanPurpose) {
+    setCameraScanPurpose(purpose)
     setCameraModalVisible(true)
     setSelectedCosignerIndex(index)
   }
 
+  function openSignedPsbtCameraForCosigner(index: number) {
+    openCameraForCosigner(index, 'signedPsbt')
+  }
+
+  function openSeedQrCameraForCosigner(index: number) {
+    openCameraForCosigner(index, 'seedQr')
+  }
+
   function openCameraForWatchOnlyImport() {
+    setCameraScanPurpose('signedPsbt')
     setCameraModalVisible(true)
   }
 
@@ -353,9 +367,10 @@ function PreviewTransaction() {
   const propsMultisigSection = {
     account,
     decryptedKeys,
-    handleCosignerCameraScan: openCameraForCosigner,
+    handleCosignerCameraScan: openSignedPsbtCameraForCosigner,
     handleCosignerNFCScan: importFromNfc,
     handleCosignerPasteFromClipboard: pasteFromClipboard,
+    handleCosignerSeedQrScan: openSeedQrCameraForCosigner,
     handleNFCExport: startOrCancelNfcExport,
     handleSeedWordsScanned: startSeedWordsSigning,
     handleShareSignaturesWithNostrGroup,
@@ -432,7 +447,7 @@ function PreviewTransaction() {
   const propsCameraModal = {
     onClose: closeCameraModal,
     onContentScanned: handleContentScanned,
-    title: getCameraModalTitle(decryptedKeys, selectedCosignerIndex),
+    title: getCameraModalTitle(cameraScanPurpose),
     visible: cameraModalVisible
   }
 
@@ -518,20 +533,11 @@ function PreviewTransaction() {
   )
 }
 
-function getCameraModalTitle(
-  decryptedKeys: Key[],
-  selectedCosignerIndex: number | null
-) {
-  const selectedDecryptedKey =
-    selectedCosignerIndex === null
-      ? undefined
-      : decryptedKeys[selectedCosignerIndex]
-  if (!selectedDecryptedKey) {
-    return t('camera.scanQRCode')
+function getCameraModalTitle(purpose: CameraScanPurpose) {
+  if (purpose === 'seedQr') {
+    return t('transaction.preview.scanSeedQR')
   }
-  return hasStoredMnemonic(selectedDecryptedKey)
-    ? t('camera.scanQRCode')
-    : t('transaction.preview.scanSeedQR')
+  return t('camera.scanQRCode')
 }
 
 function PayjoinNote({ invoice, expiryLabel }: PayjoinNoteProps) {
@@ -657,6 +663,7 @@ function MultisigSignaturesSection({
   handleNFCExport,
   handleCosignerPasteFromClipboard,
   handleCosignerCameraScan,
+  handleCosignerSeedQrScan,
   handleCosignerNFCScan,
   handleSignWithLocalKey,
   handleSeedWordsScanned,
@@ -712,7 +719,7 @@ function MultisigSignaturesSection({
             onCameraScan={handleCosignerCameraScan}
             onNFCScan={handleCosignerNFCScan}
             onSignWithLocalKey={handleSignWithLocalKey}
-            onSignWithSeedQR={handleCosignerCameraScan}
+            onSignWithSeedQR={handleCosignerSeedQrScan}
             onSignWithSeedWords={handleSeedWordsScanned}
             validationResult={validationResults.get(index)}
           />
