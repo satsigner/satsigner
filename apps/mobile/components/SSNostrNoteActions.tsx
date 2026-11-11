@@ -28,6 +28,8 @@ type ZapAction = {
   onLongPress: () => void
   onPress: () => void
   totalSats?: number
+  /** The total counts a capped sample of receipts, so more may exist. */
+  totalIsLowerBound?: boolean
   zapping: boolean
 }
 
@@ -89,6 +91,12 @@ function SSNostrNoteActions({
   const disabled = !canEngage || toggling
   const likeCountPressable =
     Boolean(onLikeCountPress) && showCounts && likeCount > 0
+  const zapTotalSats = zap?.totalSats ?? 0
+  const zapTotalLabel = formatShortSats(zapTotalSats, zap?.totalIsLowerBound)
+  const zapAccessibilityLabel =
+    showCounts && zapTotalSats > 0
+      ? t('nostrIdentity.note.zapWithTotal', { total: zapTotalLabel })
+      : t('nostrIdentity.note.zap')
 
   return (
     <SSHStack gap="none" style={[styles.row, style]}>
@@ -153,7 +161,7 @@ function SSNostrNoteActions({
       {zap ? (
         <SSIconButton
           accessibilityHint={t('nostrIdentity.note.zapLongPressHint')}
-          accessibilityLabel={t('nostrIdentity.note.zap')}
+          accessibilityLabel={zapAccessibilityLabel}
           accessibilityState={{ busy: zap.zapping, disabled: !zap.canZap }}
           delayLongPress={ZAP_LONG_PRESS_DELAY_MS}
           disabled={!zap.canZap || zap.zapping}
@@ -172,9 +180,9 @@ function SSNostrNoteActions({
           </View>
           <ActionCount
             active={zap.zapping}
-            count={zap.totalSats ?? 0}
+            count={zapTotalSats}
             visible={showCounts}
-            label={formatShortSats(zap.totalSats ?? 0)}
+            label={zapTotalLabel}
           />
         </SSIconButton>
       ) : null}

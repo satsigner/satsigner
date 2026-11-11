@@ -47,7 +47,8 @@ import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
   NOSTR_PROFILE_QUERY_STALE_TIME_MS,
-  NOSTR_RELAYS
+  NOSTR_RELAYS,
+  NOSTR_ZAP_RECEIPT_FETCH_LIMIT
 } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
@@ -334,6 +335,8 @@ export default function NostrNotePage() {
   const effectiveLud16 = enhancedZap.zapLnurl || fetched?.authorLud16
 
   const totalZapped = zapReceipts.reduce((sum, r) => sum + r.amountSats, 0)
+  const zapTotalIsLowerBound =
+    zapReceipts.length >= NOSTR_ZAP_RECEIPT_FETCH_LIMIT
 
   const noteImageUrls =
     !fetched || privacyMode
@@ -946,7 +949,8 @@ export default function NostrNotePage() {
                   canZap: zapFlow.canZap && Boolean(effectiveLud16),
                   onLongPress: handleOpenZapSheet,
                   onPress: handleOneTapZap,
-                  totalSats: totalZapped,
+                  totalIsLowerBound: zapTotalIsLowerBound,
+                  totalSats: privacyMode ? undefined : totalZapped,
                   zapping: zapFlow.zapping
                 }}
               >

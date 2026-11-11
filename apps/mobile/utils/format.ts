@@ -486,7 +486,6 @@ function formatSatsAsBtc(sats: number) {
   return formatBtc(sats / SATS_PER_BITCOIN)
 }
 
-const SHORT_SATS_SUFFIX = ' sats'
 const SHORT_SATS_THOUSAND = 1000
 const SHORT_SATS_TEN_THOUSAND = 10_000
 const SHORT_SATS_MILLION = 1_000_000
@@ -497,22 +496,30 @@ function formatShortScaled(amount: number, divisor: number): string {
   return Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1)
 }
 
-/** Compact sats label: "12 sats", "1.4k sats", "43k sats". */
-function formatShortSats(amount: number): string {
-  const sats = Math.max(0, Math.round(amount))
+function formatShortSatsNumber(sats: number): string {
   if (sats < SHORT_SATS_THOUSAND) {
-    return `${sats}${SHORT_SATS_SUFFIX}`
+    return String(sats)
   }
   if (sats < SHORT_SATS_TEN_THOUSAND) {
-    return `${formatShortScaled(sats, SHORT_SATS_THOUSAND)}k${SHORT_SATS_SUFFIX}`
+    return `${formatShortScaled(sats, SHORT_SATS_THOUSAND)}k`
   }
   if (sats < SHORT_SATS_MILLION) {
-    return `${Math.round(sats / SHORT_SATS_THOUSAND)}k${SHORT_SATS_SUFFIX}`
+    return `${Math.round(sats / SHORT_SATS_THOUSAND)}k`
   }
   if (sats < SHORT_SATS_TEN_MILLION) {
-    return `${formatShortScaled(sats, SHORT_SATS_MILLION)}m${SHORT_SATS_SUFFIX}`
+    return `${formatShortScaled(sats, SHORT_SATS_MILLION)}m`
   }
-  return `${Math.round(sats / SHORT_SATS_MILLION)}m${SHORT_SATS_SUFFIX}`
+  return `${Math.round(sats / SHORT_SATS_MILLION)}m`
+}
+
+/**
+ * Compact sats label: "12 sats", "1.4k sats", "43k sats". A lower bound
+ * (more may exist than were counted) reads "1.4k+ sats".
+ */
+function formatShortSats(amount: number, isLowerBound = false): string {
+  const sats = Math.max(0, Math.round(amount))
+  const plus = isLowerBound ? '+' : ''
+  return `${formatShortSatsNumber(sats)}${plus} ${t('bitcoin.sats')}`
 }
 
 export {

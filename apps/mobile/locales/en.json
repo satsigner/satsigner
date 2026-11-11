@@ -2712,6 +2712,7 @@
     "note.uses": "Uses",
     "note.zap": "Zap",
     "note.zapAmounts": "Zap Amounts",
+    "note.zapWithTotal": "Zap, %{total} zapped",
     "note.zapChooseAmount": "Choose Amount",
     "note.zapCommentPlaceholder": "Message (optional)",
     "note.zapEndpointNotFound": "Recipient has no Lightning address",

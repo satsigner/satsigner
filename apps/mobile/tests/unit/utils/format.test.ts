@@ -22,6 +22,7 @@ jest.mock<typeof import('@/locales')>('@/locales', () => ({
   i18n: { locale: 'en' },
   t: jest.fn((key: string) => {
     const words: Record<string, string> = {
+      'bitcoin.sats': 'sats',
       'numbers.billiard': 'billiard',
       'numbers.quadrillion': 'quadrillion',
       'numbers.trilliard': 'trilliard',
@@ -211,6 +212,10 @@ describe('formatShortSats', () => {
     expect(formatShortSats(43_000)).toBe('43k sats')
     expect(formatShortSats(1000)).toBe('1k sats')
     expect(formatShortSats(2_400_000)).toBe('2.4m sats')
+  })
+
+  it('marks a lower bound with a plus', () => {
+    expect(formatShortSats(1400, true)).toBe('1.4k+ sats')
   })
 })
 
