@@ -75,6 +75,7 @@ import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
   bitcoinAmountBtcToSats,
+  rememberUserSelection,
   resolveUriAutoSelectAlgorithm,
   shouldAutoSelectUtxosFromBitcoinUri,
   shouldAutoSelectUtxosFromParsedAmount
@@ -366,6 +367,14 @@ export default function IOPreview() {
 
     let selectionSucceeded = true
 
+    setPreviousUserSelectedUtxos(
+      rememberUserSelection(
+        selectedAutoSelectUtxos,
+        getInputs(),
+        previousUserSelectedUtxos
+      )
+    )
+
     switch (type) {
       case 'user': {
         if (previousUserSelectedUtxos) {
@@ -386,15 +395,12 @@ export default function IOPreview() {
           break
         }
 
-        setPreviousUserSelectedUtxos(getInputs())
         selectionSucceeded = applyStonewallSelection(new Set())
 
         break
       }
       case 'efficiency': {
         setLoadingOptimizeAlgorithm('efficiency')
-
-        setPreviousUserSelectedUtxos(getInputs())
 
         const selectableUtxos = applyUtxoDenylist(
           account.utxos,
