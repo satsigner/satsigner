@@ -149,16 +149,22 @@ function ExplorerDifficulty() {
     server.backend
   )
 
+  // Epochs come from pvxg.net only after the user loads the spiral once.
+  const isSpiralLoaded = fetchedEpoch !== null
+
+  function showEpoch(epoch: string) {
+    setInputEpoch(epoch)
+    if (isSpiralLoaded) {
+      setFetchedEpoch(epoch)
+    }
+  }
+
   function nextEpoch() {
-    const next = Math.min(MAX_EPOCH, Number(inputEpoch) + 1).toString()
-    setInputEpoch(next)
-    setFetchedEpoch(next)
+    showEpoch(Math.min(MAX_EPOCH, Number(inputEpoch) + 1).toString())
   }
 
   function previousEpoch() {
-    const prev = Math.max(0, Number(inputEpoch) - 1).toString()
-    setInputEpoch(prev)
-    setFetchedEpoch(prev)
+    showEpoch(Math.max(0, Number(inputEpoch) - 1).toString())
   }
 
   function fetchEpoch() {
@@ -243,7 +249,7 @@ function ExplorerDifficulty() {
         </SSVStack>
       )}
 
-      {fetchedEpoch === null ? (
+      {!isSpiralLoaded ? (
         <SSVStack gap="sm" style={styles.spiralPrompt}>
           <SSText size="sm" color="muted" center>
             {tn('spiralPrompt')}
@@ -281,7 +287,7 @@ function ExplorerDifficulty() {
             <SSText color="muted">{tn('epoch')}</SSText>
             <SSText weight="bold">{fetchedEpoch ?? inputEpoch}</SSText>
           </SSHStack>
-          {fetchedEpoch !== null ? (
+          {isSpiralLoaded ? (
             <>
               <SSText center weight="bold">
                 {dateStart} - {dateEnd}
@@ -344,7 +350,7 @@ function ExplorerDifficulty() {
             variant="outline"
             onPress={fetchEpoch}
             loading={isLoading}
-            disabled={inputEpoch === fetchedEpoch}
+            disabled={!isSpiralLoaded || inputEpoch === fetchedEpoch}
           />
         </SSVStack>
       </SSVStack>
