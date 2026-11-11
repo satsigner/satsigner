@@ -2,13 +2,14 @@ import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { toast } from 'sonner-native'
 
-import { connectToMint } from '@/api/ecash'
+import { connectToMint, createMintQuote } from '@/api/ecash'
 import { useEcash } from '@/hooks/useEcash'
 import { useEcashStore } from '@/store/ecash'
 
 jest.mock<typeof import('@/api/ecash')>('@/api/ecash', () => ({
   ...jest.requireActual<typeof import('@/api/ecash')>('@/api/ecash'),
-  connectToMint: jest.fn()
+  connectToMint: jest.fn(),
+  createMintQuote: jest.fn()
 }))
 
 const ACCOUNT_ID = 'acc-1'
@@ -88,6 +89,46 @@ describe('useEcash', () => {
       expect(
         useEcashStore.getState().mints[ACCOUNT_ID]?.map(({ url }) => url)
       ).toStrictEqual([MINT_URL])
+    })
+  })
+
+  describe('createMintQuote', () => {
+    it('tells the user when the mint cannot create an invoice', async () => {
+      jest
+        .mocked(createMintQuote)
+        .mockRejectedValue(new Error('Network request failed'))
+      const result = renderUseEcash()
+
+      await expect(
+        result.current?.createMintQuote(MINT_URL, 100)
+      ).rejects.toThrow('Network request failed')
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not create the invoice: Network request failed'
+      )
+      expect(
+        useEcashStore.getState().transactions[ACCOUNT_ID] ?? []
+      ).toHaveLength(0)
+    })
+
+    it('records the pending mint of an invoice it created', async () => {
+      jest.mocked(createMintQuote).mockResolvedValue({
+        expiry: 0,
+        mintUrl: MINT_URL,
+        paid: false,
+        quote: 'quote-1',
+        request: 'lnbc1'
+      })
+      const result = renderUseEcash()
+
+      await act(async () => {
+        await result.current?.createMintQuote(MINT_URL, 100)
+      })
+
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(
+        useEcashStore.getState().transactions[ACCOUNT_ID]?.map(({ id }) => id)
+      ).toStrictEqual(['quote-1'])
     })
   })
 

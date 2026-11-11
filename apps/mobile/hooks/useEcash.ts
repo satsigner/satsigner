@@ -187,12 +187,20 @@ export function useEcash() {
       throw new Error('No active account')
     }
     const options = await getWalletOptions()
+    // The rethrow keeps the caller from showing an invoice.
     const quote = await createMintQuote(
       activeAccountId,
       mintUrl,
       amount,
       options
-    )
+    ).catch((error: unknown) => {
+      toast.error(
+        t('ecash.error.invoiceCreationFailed', {
+          error: toError(error).message
+        })
+      )
+      throw error
+    })
     addMintQuoteAction(activeAccountId, quote)
 
     const transaction: EcashTransaction = {

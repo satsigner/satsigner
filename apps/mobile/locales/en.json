@@ -1394,6 +1394,7 @@
     "error.invalidInvoice": "Invalid Lightning invoice",
     "error.invalidLnurlType": "Invalid LNURL type. Use LNURL-pay for sending or LNURL-withdraw for receiving.",
     "error.invalidToken": "Invalid ecash token",
+    "error.invoiceCreationFailed": "Could not create the invoice: %{error}",
     "error.invoiceDecodeFailed": "Failed to decode invoice details. Please verify the amount and description manually before proceeding.",
     "error.lightningPaymentFailed": "Lightning payment failed. Please try again.",
     "error.lightningPaymentFailedStatus": "Lightning payment failed",
