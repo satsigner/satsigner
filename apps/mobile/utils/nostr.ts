@@ -8,6 +8,7 @@ import pako from 'pako'
 
 import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
+import { t } from '@/locales'
 import { type NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
@@ -125,6 +126,26 @@ export function getSecretFromNsec(nsec: string): Uint8Array | null {
 }
 
 export type NostrKeyFormat = 'bech32' | 'hex'
+
+export type NostrKeyType = 'npub' | 'nsec'
+
+const NOSTR_KEY_LABEL_KEYS: Record<
+  NostrKeyType,
+  Record<NostrKeyFormat, string>
+> = {
+  npub: {
+    bech32: 'nostrIdentity.keys.npub',
+    hex: 'nostrIdentity.keys.npubHex'
+  },
+  nsec: { bech32: 'nostrIdentity.keys.nsec', hex: 'nostrIdentity.keys.nsecHex' }
+}
+
+export function getNostrKeyLabel(
+  type: NostrKeyType,
+  format: NostrKeyFormat
+): string {
+  return t(NOSTR_KEY_LABEL_KEYS[type][format])
+}
 
 export function formatNostrKey(
   key: string,
