@@ -134,6 +134,44 @@ function normalizeStonewallPreview(
   }
 }
 
+// The builder fields an account's saved draft resumes into, or a blank
+// builder when the account has no draft.
+function draftWorkingState(draft?: SavedDraft) {
+  return {
+    cpfp: draft?.cpfp ?? true,
+    fee: draft?.fee ?? 0,
+    feeRate: draft?.feeRate ?? 0,
+    inputs: draft
+      ? new Map(Object.entries(draft.inputs))
+      : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+    outputs: draft?.outputs ?? [],
+    rbf: draft?.rbf ?? true,
+    replacesTxid: draft?.replacesTxid,
+    selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
+    signedPsbtBase64: draft?.signedPsbtBase64,
+    signedTx: draft?.signedTx,
+    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview),
+    timeLock: draft?.timeLock ?? 0
+  }
+}
+
+type PersistedTransactionBuilderState = Pick<
+  TransactionBuilderState,
+  'accountId' | 'drafts'
+>
+
+function isPersistedTransactionBuilderState(
+  value: unknown
+): value is PersistedTransactionBuilderState {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'drafts' in value &&
+    typeof value.drafts === 'object' &&
+    value.drafts !== null
+  )
+}
+
 function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
   state.signedPsbtBase64 = undefined
   state.signedTx = undefined
@@ -387,31 +425,15 @@ const useTransactionBuilderStore = create<
           }
         }
 
-        const newDraft = updatedDrafts[accountId]
         set({
+          ...draftWorkingState(updatedDrafts[accountId]),
           accountId,
           broadcasted: false,
-          cpfp: newDraft?.cpfp ?? true,
           drafts: updatedDrafts,
-          fee: newDraft?.fee ?? 0,
-          feeRate: newDraft?.feeRate ?? 0,
-          inputs: newDraft
-            ? new Map(Object.entries(newDraft.inputs))
-            : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
           isPsbtPrebuilt: false,
-          outputs: newDraft?.outputs ?? [],
           payjoinUri: undefined,
           psbt: undefined,
-          rbf: newDraft?.rbf ?? true,
-          replacesTxid: newDraft?.replacesTxid,
-          selectedAutoSelectUtxos: resolveDraftAlgorithm(newDraft),
-          signedPsbtBase64: newDraft?.signedPsbtBase64,
-          signedPsbts: new Map<number, string>(),
-          signedTx: newDraft?.signedTx,
-          stonewallPreview: normalizeStonewallPreview(
-            newDraft?.stonewallPreview
-          ),
-          timeLock: newDraft?.timeLock ?? 0
+          signedPsbts: new Map<number, string>()
         })
       },
       // A broadcast transaction is done: its draft must not come back as
@@ -508,30 +530,22 @@ const useTransactionBuilderStore = create<
       }
     })),
     {
-      name: 'satsigner-transaction-builder',
-      onRehydrateStorage: () => (state) => {
-        if (!state?.accountId) {
-          return
+      // Storage is synchronous, so hydration runs inside create(): the store
+      // binding does not exist yet and the builder must be restored here.
+      merge: (persisted, current) => {
+        if (!isPersistedTransactionBuilderState(persisted)) {
+          return current
         }
-        const draft = state.drafts[state.accountId]
-        if (!draft) {
-          return
+        const { accountId, drafts } = persisted
+        const draft = accountId ? drafts[accountId] : undefined
+        return {
+          ...current,
+          ...draftWorkingState(draft),
+          accountId,
+          drafts
         }
-        useTransactionBuilderStore.setState({
-          cpfp: draft.cpfp,
-          fee: draft.fee,
-          feeRate: draft.feeRate,
-          inputs: new Map(Object.entries(draft.inputs)),
-          outputs: draft.outputs,
-          rbf: draft.rbf,
-          replacesTxid: draft.replacesTxid,
-          selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
-          signedPsbtBase64: draft.signedPsbtBase64,
-          signedTx: draft.signedTx,
-          stonewallPreview: normalizeStonewallPreview(draft.stonewallPreview),
-          timeLock: draft.timeLock
-        })
       },
+      name: 'satsigner-transaction-builder',
       partialize: (state) => ({
         accountId: state.accountId,
         drafts: state.drafts

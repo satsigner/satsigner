@@ -1,5 +1,6 @@
 import { Psbt } from 'react-native-bdk-sdk'
 
+import { mmkvStorage } from '@/storage/mmkv'
 import {
   hasUnfinishedDraft,
   useTransactionBuilderStore
@@ -119,6 +120,65 @@ describe('transactionBuilder signed draft persistence', () => {
     store.setAccountId('other-account')
 
     expect(useTransactionBuilderStore.getState().payjoinUri).toBeUndefined()
+  })
+})
+
+describe('transactionBuilder draft after an app restart', () => {
+  const STORAGE_KEY = 'satsigner-transaction-builder'
+
+  // A fresh module registry stands in for a cold start: the store is created
+  // again and hydrates from what the previous run left in storage.
+  function restartStore(): typeof useTransactionBuilderStore {
+    const persisted = mmkvStorage.getItem(STORAGE_KEY)
+    let restarted = useTransactionBuilderStore
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('@/storage/mmkv').mmkvStorage.setItem(STORAGE_KEY, persisted)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      restarted =
+        require('@/store/transactionBuilder').useTransactionBuilderStore
+    })
+    return restarted
+  }
+
+  beforeEach(() => {
+    useTransactionBuilderStore.getState().clearTransaction()
+    useTransactionBuilderStore.setState({ drafts: {} })
+  })
+
+  it('restores the unsent draft into the builder', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: 'Rent', to: 'tb1qtest' })
+
+    const state = restartStore().getState()
+
+    expect(state.accountId).toBe(ACCOUNT_ID)
+    expect(state.outputs).toHaveLength(1)
+    expect(state.outputs[0]?.label).toBe('Rent')
+  })
+
+  it('keeps the draft when the builder is edited after the restart', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: 'Rent', to: 'tb1qtest' })
+
+    const restarted = restartStore()
+    restarted.getState().setFeeRate(3)
+
+    expect(restarted.getState().drafts[ACCOUNT_ID]?.outputs).toHaveLength(1)
+  })
+
+  it('restores a signed draft so it can still be broadcast', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: '', to: 'tb1qtest' })
+    store.setSignedTx('deadbeef', 'cHNidP8=')
+
+    const state = restartStore().getState()
+
+    expect(state.signedTx).toBe('deadbeef')
+    expect(state.signedPsbtBase64).toBe('cHNidP8=')
   })
 })
 
