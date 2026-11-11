@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
+import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -124,4 +125,45 @@ describe('useBitcoinContentHandler', () => {
       expect(outputs[0]).toMatchObject({ amount: 100_000, to: ADDRESS })
     }
   )
+
+  describe('a payjoin uri asking for more than the balance', () => {
+    const PAYJOIN_URI = `${ADDRESS}?amount=0.001&pj=https://payjo.in/mb`
+
+    async function answerBalancePrompt(choice: 'cancel' | 'without_amount') {
+      const { hook, onSuccess } = renderHandler(makeAccount(1000))
+      const pendingScans: Promise<void>[] = []
+      await act(async () => {
+        const scan = hook.current?.handleContentScanned(uriContent(PAYJOIN_URI))
+        if (scan) {
+          pendingScans.push(scan)
+        }
+      })
+      expect(hook.current?.uriExceedsBalanceModal).toMatchObject({
+        requestedAmountSats: 100_000
+      })
+      await act(async () => {
+        hook.current?.resolveUriExceedsBalancePrompt(choice)
+        await Promise.all(pendingScans)
+      })
+      return { onSuccess }
+    }
+
+    it('says nothing about payjoin when the user cancels', async () => {
+      const { onSuccess } = await answerBalancePrompt('cancel')
+      const { outputs, payjoinUri } = useTransactionBuilderStore.getState()
+      expect(onSuccess).not.toHaveBeenCalled()
+      expect(outputs).toHaveLength(0)
+      expect(payjoinUri).toBeUndefined()
+    })
+
+    it('announces the payjoin when the user goes on without the amount', async () => {
+      const { onSuccess } = await answerBalancePrompt('without_amount')
+      expect(onSuccess).toHaveBeenCalledWith(
+        t('transaction.build.payjoin.uriDetected')
+      )
+      expect(useTransactionBuilderStore.getState().payjoinUri).toBe(
+        `bitcoin:${PAYJOIN_URI}`
+      )
+    })
+  })
 })

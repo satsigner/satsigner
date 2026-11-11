@@ -51,6 +51,10 @@ function startNewDraft(
   actions.setAccountId?.(target.accountId)
 }
 
+function committedOutcome(payjoinUri: string | undefined) {
+  return payjoinUri ? 'committed_payjoin' : 'committed'
+}
+
 async function commitScannedBitcoinUri(
   content: DetectedContent,
   actions: BitcoinContentActions,
@@ -59,24 +63,24 @@ async function commitScannedBitcoinUri(
   const payjoinUri = extractPayjoinUriFromContent(content)
   const request = parseScannedPaymentUri(content, payjoinUri)
   if (!request) {
-    return
+    return 'skipped'
   }
 
   if (isDustPaymentAmount(request.amountSats)) {
     startNewDraft(actions, target)
     commitDustBitcoinUri(actions, target, request, payjoinUri)
-    return
+    return committedOutcome(payjoinUri)
   }
 
   const balance = target.account?.summary?.balance
   if (balance === undefined || request.amountSats <= balance) {
     startNewDraft(actions, target)
     commitBitcoinUriToIoPreview(actions, target, request, payjoinUri)
-    return
+    return committedOutcome(payjoinUri)
   }
 
   if (!actions.promptBitcoinUriExceedsBalance) {
-    return
+    return 'skipped'
   }
   const choice = await actions.promptBitcoinUriExceedsBalance({
     address: request.address,
@@ -85,7 +89,7 @@ async function commitScannedBitcoinUri(
     requestedAmountSats: request.amountSats
   })
   if (choice === 'cancel') {
-    return
+    return 'skipped'
   }
   startNewDraft(actions, target)
   commitBitcoinUriToIoPreview(
@@ -94,6 +98,7 @@ async function commitScannedBitcoinUri(
     { ...request, amountSats: UNSET_OUTPUT_AMOUNT_SATS },
     payjoinUri
   )
+  return committedOutcome(payjoinUri)
 }
 
 async function processBitcoinContent(
@@ -103,8 +108,7 @@ async function processBitcoinContent(
   ensureKeyFingerprints: () => Promise<KeyFingerprintsByAccount>
 ) {
   if (content.type === 'bitcoin_uri') {
-    await commitScannedBitcoinUri(content, actions, target)
-    return
+    return commitScannedBitcoinUri(content, actions, target)
   }
 
   if (DRAFT_REPLACING_TYPES.has(content.type)) {
@@ -132,12 +136,6 @@ async function processBitcoinContent(
   if (content.type === 'bitcoin_address') {
     commitAddressOnly(actions, target, content.cleaned)
   }
-}
-
-function isPayjoinBitcoinUri(content: DetectedContent) {
-  return (
-    content.type === 'bitcoin_uri' && !!extractPayjoinUriFromContent(content)
-  )
 }
 
 export function useBitcoinContentHandler({
@@ -222,7 +220,7 @@ export function useBitcoinContentHandler({
       }
 
       try {
-        await processBitcoinContent(
+        const outcome = await processBitcoinContent(
           content,
           {
             addInput,
@@ -240,7 +238,7 @@ export function useBitcoinContentHandler({
           { account, accountId, nextBlockFee },
           ensureKeyFingerprints
         )
-        if (isPayjoinBitcoinUri(content)) {
+        if (outcome === 'committed_payjoin') {
           onSuccess(t('transaction.build.payjoin.uriDetected'))
         }
       } catch {
