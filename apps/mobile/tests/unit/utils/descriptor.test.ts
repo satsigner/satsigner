@@ -6,6 +6,7 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  getImportedKeyDescriptor,
   getScriptVersionFromDescriptor,
   getXpubFingerprint,
   parseImportedDescriptorPayload,
@@ -360,5 +361,45 @@ describe('splitMultipathDescriptor', () => {
     expect(
       splitMultipathDescriptor(`${SPARROW_DESCRIPTOR}#yvl3yusl`)
     ).toStrictEqual([`${SPARROW_DESCRIPTOR}#yvl3yusl`])
+  })
+})
+
+describe('getImportedKeyDescriptor', () => {
+  const EXTERNAL = 'wpkh([d34db33f/84h/0h/0h]xpubA/0/*)'
+  const INTERNAL = 'wpkh([d34db33f/84h/0h/0h]xpubA/1/*)'
+  const EMPTY = { descriptor: '', valid: true }
+
+  it('prefers the External descriptor', () => {
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: true },
+        { descriptor: INTERNAL, valid: true }
+      )
+    ).toBe(EXTERNAL)
+  })
+
+  it('uses the Internal descriptor when External is empty', () => {
+    expect(
+      getImportedKeyDescriptor(EMPTY, { descriptor: INTERNAL, valid: true })
+    ).toBe(INTERNAL)
+  })
+
+  it('returns nothing while a filled descriptor is invalid', () => {
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: false },
+        { descriptor: INTERNAL, valid: true }
+      )
+    ).toBeUndefined()
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: true },
+        { descriptor: INTERNAL, valid: false }
+      )
+    ).toBeUndefined()
+  })
+
+  it('returns nothing when both are empty', () => {
+    expect(getImportedKeyDescriptor(EMPTY, EMPTY)).toBeUndefined()
   })
 })

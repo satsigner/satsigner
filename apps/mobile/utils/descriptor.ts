@@ -179,6 +179,27 @@ export function parseXpubInput(text: string) {
   }
 }
 
+type DescriptorField = {
+  descriptor: string
+  valid: boolean
+}
+
+/**
+ * Descriptor that identifies a key imported from an External and an Internal
+ * field. Both chains carry the same key, so either one is enough, but none is
+ * returned while a filled field is invalid.
+ */
+export function getImportedKeyDescriptor(
+  external: DescriptorField,
+  internal: DescriptorField
+) {
+  const fields = [external, internal]
+  if (fields.some(({ descriptor, valid }) => descriptor && !valid)) {
+    return
+  }
+  return fields.find(({ descriptor }) => descriptor)?.descriptor
+}
+
 export function parseImportedDescriptorPayload(text: string) {
   const trimmed = text.trim()
   if (!trimmed) {

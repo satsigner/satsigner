@@ -41,6 +41,7 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  getImportedKeyDescriptor,
   parseImportedDescriptorPayload
 } from '@/utils/descriptor'
 import { sanitizeScannedText } from '@/utils/parse'
@@ -142,11 +143,10 @@ export default function ImportDescriptor() {
     ])
   )
 
-  // Allow import if either external or internal descriptor is valid
-  // At least one descriptor must be provided and valid
-  const hasValidExternal = externalDescriptor && validExternalDescriptor
-  const hasValidInternal = internalDescriptor && validInternalDescriptor
-  const disabled = !(hasValidExternal || hasValidInternal)
+  const keyDescriptor = getImportedKeyDescriptor(
+    { descriptor: externalDescriptor, valid: validExternalDescriptor },
+    { descriptor: internalDescriptor, valid: validInternalDescriptor }
+  )
 
   function updateExternalDescriptor(
     descriptor: string,
@@ -240,13 +240,16 @@ export default function ImportDescriptor() {
   }
 
   function handleConfirm() {
-    // Extract fingerprint from the descriptor if possible
+    if (!keyDescriptor) {
+      return
+    }
+
     const fingerprint =
-      getFingerprint(externalDescriptor) || UNKNOWN_MASTER_FINGERPRINT
+      getFingerprint(keyDescriptor) || UNKNOWN_MASTER_FINGERPRINT
 
     try {
       const { extendedPublicKey, derivationPath } =
-        extractDescriptorInfo(externalDescriptor)
+        extractDescriptorInfo(keyDescriptor)
 
       if (!extendedPublicKey) {
         toast.error(t('account.import.error.descriptorFormat'))
@@ -545,7 +548,7 @@ export default function ImportDescriptor() {
             <SSButton
               label={t('common.confirm')}
               variant="secondary"
-              disabled={disabled}
+              disabled={!keyDescriptor}
               onPress={handleConfirm}
             />
             <SSButton
