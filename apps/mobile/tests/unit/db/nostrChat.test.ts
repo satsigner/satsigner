@@ -142,13 +142,19 @@ describe('nostr chat queries', () => {
         mockQueryResult([{ peer_pubkey: 'peer-1' }, { peer_pubkey: 'peer-2' }])
       )
 
-      expect(listPeersWrittenTo('npub1me', 'nip17')).toStrictEqual([
-        'peer-1',
-        'peer-2'
-      ])
+      expect(listPeersWrittenTo('npub1me')).toStrictEqual(['peer-1', 'peer-2'])
       expect(execute).toHaveBeenCalledWith(
         expect.stringContaining("direction = 'out'"),
-        ['npub1me', 'nip17']
+        ['npub1me']
+      )
+    })
+
+    it('counts a peer written to over any protocol', () => {
+      listPeersWrittenTo('npub1me')
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.not.stringContaining('protocol'),
+        ['npub1me']
       )
     })
   })

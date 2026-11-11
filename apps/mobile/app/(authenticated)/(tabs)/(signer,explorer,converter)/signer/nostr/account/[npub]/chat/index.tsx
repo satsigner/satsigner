@@ -46,8 +46,7 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
   const inbox = useNostrChatInboxFilter({
     conversations,
     identityNpub: npub,
-    identityRelays: identity?.relays,
-    protocol
+    identityRelays: identity?.relays
   })
   // Fetch kind 0 (name/picture) for the listed DM peers so conversations
   // render with profiles instead of raw npubs.

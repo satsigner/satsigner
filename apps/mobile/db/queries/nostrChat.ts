@@ -159,15 +159,14 @@ function listChatReplies(
     .rows._array.map(rowToChatMessage)
 }
 
-function listPeersWrittenTo(
-  identityNpub: string,
-  protocol: NostrChatProtocol
-): string[] {
+// Over any protocol: writing to someone is about the person, not the
+// transport, as for hasOutgoingChatMessage.
+function listPeersWrittenTo(identityNpub: string): string[] {
   return getDb()
     .execute<{ peer_pubkey: string }>(
       `SELECT DISTINCT peer_pubkey FROM nostr_chat_messages
-        WHERE identity_npub = ? AND protocol = ? AND direction = 'out'`,
-      [identityNpub, protocol]
+        WHERE identity_npub = ? AND direction = 'out'`,
+      [identityNpub]
     )
     .rows._array.map((row) => row.peer_pubkey)
 }
