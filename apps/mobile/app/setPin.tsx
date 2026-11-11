@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useRouter } from 'expo-router'
 import React, { useRef, useState } from 'react'
 import { Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -10,6 +10,7 @@ import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { PIN_MAX_LENGTH, PIN_MIN_LENGTH, PIN_SIZE } from '@/config/auth'
+import { useAuthHydrated } from '@/hooks/useAuthHydrated'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import SSHStack from '@/layouts/SSHStack'
@@ -23,6 +24,11 @@ import { error as errorColor, warning } from '@/styles/colors'
 import { emptyPin } from '@/utils/pin'
 import { toPinAttempts } from '@/utils/pinAttempts'
 import { changePinOrFail } from '@/utils/pinChange'
+import {
+  getPinSetupStart,
+  isPinSetupLocked,
+  type PinSetupStart
+} from '@/utils/pinSetup'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 // 'done' is terminal: the new PIN is committed, so no keypad may be offered.
@@ -33,29 +39,39 @@ type PinChangeNotice = 'duressCleared' | 'duressClearFailed'
 const BOTTOM_ACTIONS_MIN_HEIGHT = Sizes.button.height * 2 + Layout.vStack.gap.md
 
 type SetPinFormProps = {
-  fromSettings: boolean
   initialPinLength: number
+  start: PinSetupStart
 }
 
 export default function SetPin() {
-  const { source } = useLocalSearchParams<{ source?: string }>()
-  const skipPin = useAuthStore((state) => state.skipPin)
+  const hydrated = useAuthHydrated()
+  const [firstTime, lockTriggered, requirePinMigration, requiresAuth, skipPin] =
+    useAuthStore(
+      useShallow((state) => [
+        state.firstTime,
+        state.lockTriggered,
+        state.requirePinMigration,
+        state.requiresAuth,
+        state.skipPin
+      ])
+    )
   const storedPinLength = useStoredPinLength()
-  const fromSettings = source === 'settings'
-  // Changing an existing PIN must match the stored length.
-  const initialPinLength = fromSettings && !skipPin ? storedPinLength : PIN_SIZE
+  if (!hydrated) {
+    return null
+  }
+  if (isPinSetupLocked({ firstTime, lockTriggered, requiresAuth, skipPin })) {
+    return <Redirect href="/unlock" />
+  }
+  const start = getPinSetupStart({ firstTime, requirePinMigration, skipPin })
+  // The current PIN can only be typed at its stored length.
+  const initialPinLength = start.stage === 'verify' ? storedPinLength : PIN_SIZE
   if (initialPinLength === undefined) {
     return null
   }
-  return (
-    <SetPinForm
-      fromSettings={fromSettings}
-      initialPinLength={initialPinLength}
-    />
-  )
+  return <SetPinForm initialPinLength={initialPinLength} start={start} />
 }
 
-function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
+function SetPinForm({ initialPinLength, start }: SetPinFormProps) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
 
@@ -64,9 +80,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     setRequiresAuth,
     setSkipPin,
     enableDevSkipPin,
-    skipPin,
     validatePin,
-    requirePinMigration,
     setRequirePinMigration,
     incrementPinTries,
     resetPinTries
@@ -76,9 +90,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
       state.setRequiresAuth,
       state.setSkipPin,
       state.enableDevSkipPin,
-      state.skipPin,
       state.validatePin,
-      state.requirePinMigration,
       state.setRequirePinMigration,
       state.incrementPinTries,
       state.resetPinTries
@@ -88,12 +100,13 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
 
   const reEncryptAccounts = useReEncryptAccounts()
 
+  // Kept from mount: finishing the first setup clears firstTime while this
+  // screen is still up.
+  const [{ changingPin }] = useState(start)
   const [loading, setLoading] = useState(false)
   const [pinChangeNotice, setPinChangeNotice] =
     useState<PinChangeNotice | null>(null)
-  const [stage, setStage] = useState<Stage>(
-    fromSettings && !skipPin && !requirePinMigration ? 'verify' : 'set'
-  )
+  const [stage, setStage] = useState<Stage>(start.stage)
 
   const [currentPinArray, setCurrentPinArray] = useState(() =>
     emptyPin(initialPinLength)
@@ -190,7 +203,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
       return
     }
     await enableDevSkipPin()
-    if (fromSettings) {
+    if (changingPin) {
       router.back()
       return
     }
@@ -215,7 +228,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
   }
 
   function leaveAfterPinChange() {
-    if (fromSettings) {
+    if (changingPin) {
       router.back()
       return
     }
@@ -232,14 +245,29 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
     setStage('set')
   }
 
+  function restartAtVerify() {
+    clearPin()
+    clearConfirmationPin()
+    setCurrentPinArray(emptyPin(currentPinArray.length))
+    setCurrentPinWrong(true)
+    setStage('verify')
+  }
+
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) {
       return
     }
     setLoading(true)
-    const result = await changePinOrFail(pinArray.join(''), reEncryptAccounts)
+    const result = await changePinOrFail(
+      { currentPin: currentPinArray.join(''), newPin: pinArray.join('') },
+      reEncryptAccounts
+    )
     setLoading(false)
 
+    if (result === 'currentPinRejected') {
+      restartAtVerify()
+      return
+    }
     if (result === 'matchesDuress') {
       toast.error(t('auth.pinMatchDuressPin'))
       handleGoBack()
@@ -252,7 +280,7 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
 
     setSkipPin(false)
     setRequirePinMigration(false)
-    if (!fromSettings) {
+    if (!changingPin) {
       setFirstTime(false)
       setRequiresAuth(true)
     }
@@ -443,14 +471,14 @@ function SetPinForm({ fromSettings, initialPinLength }: SetPinFormProps) {
               onPress={() => handleClearCurrentPin()}
             />
           )}
-          {__DEV__ && stage === 'set' && !pinFilled && !fromSettings ? (
+          {__DEV__ && stage === 'set' && !pinFilled && !changingPin ? (
             <SSButton
               label={t('auth.setPinLater')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />
           ) : null}
-          {__DEV__ && stage === 'set' && !pinFilled && fromSettings ? (
+          {__DEV__ && stage === 'set' && !pinFilled && changingPin ? (
             <SSButton
               label={t('auth.noPin')}
               variant="ghost"

@@ -18,6 +18,12 @@ import { setSessionPinDigest } from '@/utils/pinSession'
 
 const sk = (key: string) => `1_${key}`
 
+const CURRENT_PIN = '2468'
+
+function request(newPin: string) {
+  return { currentPin: CURRENT_PIN, newPin }
+}
+
 const defaultGetItem = jest
   .mocked(SecureStore.getItemAsync)
   .getMockImplementation()
@@ -50,15 +56,53 @@ describe('changePin', () => {
           nodeCrypto.pbkdf2Sync(pin, salt, iterations, keylen, 'sha256')
       )
     useAuthStore.setState(useAuthStore.getInitialState(), true)
-    await useAuthStore.getState().setPin('2468')
+    await useAuthStore.getState().setPin(CURRENT_PIN)
     await useAuthStore.getState().setDuressPin('9999')
+    useAuthStore.setState({ firstTime: false, requiresAuth: true })
+  })
+
+  it('rejects a wrong current PIN before anything else and writes nothing', async () => {
+    const pinDigest = secureStore[sk(PIN_KEY)]
+    const reEncrypt = jest.fn()
+
+    await expect(
+      changePin({ currentPin: '1111', newPin: '9999' }, reEncrypt)
+    ).resolves.toBe('currentPinRejected')
+
+    expect(reEncrypt).not.toHaveBeenCalled()
+    expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
+    await expect(
+      useAuthStore.getState().validatePin(CURRENT_PIN)
+    ).resolves.toBe(true)
+  })
+
+  it('rejects a missing current PIN', async () => {
+    await expect(
+      changePinOrFail({ currentPin: '', newPin: '1357' }, jest.fn())
+    ).resolves.toBe('currentPinRejected')
+  })
+
+  it('replaces a legacy default PIN without the current one', async () => {
+    useAuthStore.setState({ requirePinMigration: true })
+
+    await expect(
+      changePin(
+        { currentPin: '', newPin: '1357' },
+        jest.fn().mockResolvedValue(undefined)
+      )
+    ).resolves.toBe('changed')
+    await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
+      true
+    )
   })
 
   it('rejects a new PIN equal to the duress PIN and writes nothing', async () => {
     const pinDigest = secureStore[sk(PIN_KEY)]
     const reEncrypt = jest.fn()
 
-    await expect(changePin('9999', reEncrypt)).resolves.toBe('matchesDuress')
+    await expect(changePin(request('9999'), reEncrypt)).resolves.toBe(
+      'matchesDuress'
+    )
 
     expect(reEncrypt).not.toHaveBeenCalled()
     expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
@@ -70,7 +114,9 @@ describe('changePin', () => {
   it('rejects the duress PIN even while duress is disabled', async () => {
     useAuthStore.getState().setDuressPinEnabled(false)
 
-    await expect(changePin('9999', jest.fn())).resolves.toBe('matchesDuress')
+    await expect(changePin(request('9999'), jest.fn())).resolves.toBe(
+      'matchesDuress'
+    )
   })
 
   it('re-encrypts and keeps the duress PIN when the length is unchanged', async () => {
@@ -78,7 +124,7 @@ describe('changePin', () => {
     const duressDigest = secureStore[sk(DURESS_PIN_KEY)]
     const reEncrypt = jest.fn().mockResolvedValue(undefined)
 
-    await expect(changePin('1357', reEncrypt)).resolves.toBe('changed')
+    await expect(changePin(request('1357'), reEncrypt)).resolves.toBe('changed')
 
     expect(reEncrypt).toHaveBeenCalledWith(oldDigest, secureStore[sk(PIN_KEY)])
     expect(secureStore[sk(DURESS_PIN_KEY)]).toBe(duressDigest)
@@ -90,7 +136,7 @@ describe('changePin', () => {
 
   it('clears the duress PIN when the PIN length changes', async () => {
     await expect(
-      changePin('135791', jest.fn().mockResolvedValue(undefined))
+      changePin(request('135791'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('duressCleared')
 
     expect(secureStore[sk(PIN_LENGTH_KEY)]).toBe('6')
@@ -114,7 +160,7 @@ describe('changePin', () => {
       })
 
     await expect(
-      changePin('135791', jest.fn().mockResolvedValue(undefined))
+      changePin(request('135791'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('duressClearFailed')
 
     expect(useAuthStore.getState().duressPinEnabled).toBe(true)
@@ -127,7 +173,7 @@ describe('changePin', () => {
     delete secureStore[sk(PIN_LENGTH_KEY)]
 
     await expect(
-      changePin('135791', jest.fn().mockResolvedValue(undefined))
+      changePin(request('135791'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('changed')
 
     expect(secureStore[sk(DURESS_PIN_KEY)]).toBeDefined()
@@ -138,7 +184,9 @@ describe('changePin', () => {
     const pinDigest = secureStore[sk(PIN_KEY)]
     const reEncrypt = jest.fn().mockRejectedValue(new Error('decrypt failed'))
 
-    await expect(changePin('1357', reEncrypt)).resolves.toBe('reEncryptFailed')
+    await expect(changePin(request('1357'), reEncrypt)).resolves.toBe(
+      'reEncryptFailed'
+    )
 
     expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
     expect(useAuthStore.getState().duressPinEnabled).toBe(true)
@@ -149,9 +197,12 @@ describe('changePin', () => {
     for (const key of Object.keys(secureStore)) {
       delete secureStore[key]
     }
+    useAuthStore.setState({ firstTime: true, requiresAuth: false })
     const reEncrypt = jest.fn()
 
-    await expect(changePin('2468', reEncrypt)).resolves.toBe('changed')
+    await expect(
+      changePin({ currentPin: '', newPin: '2468' }, reEncrypt)
+    ).resolves.toBe('changed')
 
     expect(reEncrypt).not.toHaveBeenCalled()
     await expect(useAuthStore.getState().validatePin('2468')).resolves.toBe(
@@ -165,7 +216,7 @@ describe('changePin', () => {
       .mocked(SecureStore.getItemAsync)
       .mockRejectedValueOnce(new Error('keychain locked'))
 
-    await expect(changePinOrFail('1357', jest.fn())).resolves.toBe(
+    await expect(changePinOrFail(request('1357'), jest.fn())).resolves.toBe(
       'reEncryptFailed'
     )
     expect(secureStore[sk(PIN_KEY)]).toBe(pinDigest)
@@ -178,7 +229,7 @@ describe('changePin', () => {
       .mockRejectedValueOnce(new Error('keychain locked'))
 
     await expect(
-      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+      changePinOrFail(request('1357'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('reEncryptFailed')
     expect(secureStore[sk(PIN_KEY)]).toBe(oldDigest)
   })
@@ -199,7 +250,7 @@ describe('changePin', () => {
       .mockImplementationOnce(keychainBusy)
 
     await expect(
-      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+      changePinOrFail(request('1357'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('changed')
 
     setSessionPinDigest(null)
@@ -217,7 +268,7 @@ describe('changePin', () => {
       .mockRejectedValueOnce(new Error('keychain locked'))
 
     await expect(
-      changePinOrFail('1357', jest.fn().mockResolvedValue(undefined))
+      changePinOrFail(request('1357'), jest.fn().mockResolvedValue(undefined))
     ).resolves.toBe('changed')
     await expect(useAuthStore.getState().validatePin('1357')).resolves.toBe(
       true
@@ -225,7 +276,9 @@ describe('changePin', () => {
   })
 
   it('clears the re-key journal of the change it committed', async () => {
-    await expect(changePin('1357', journalReEncrypt)).resolves.toBe('changed')
+    await expect(changePin(request('1357'), journalReEncrypt)).resolves.toBe(
+      'changed'
+    )
 
     expect(secureStore[sk(PIN_REKEY_JOURNAL_KEY)]).toBeUndefined()
   })
@@ -239,7 +292,7 @@ describe('changePin', () => {
     secureStore[sk(PIN_REKEY_JOURNAL_KEY)] = stuckJournal
     const reEncrypt = jest.fn()
 
-    await expect(changePin('2468', reEncrypt)).resolves.toBe('changed')
+    await expect(changePin(request('2468'), reEncrypt)).resolves.toBe('changed')
 
     expect(reEncrypt).not.toHaveBeenCalled()
     expect(secureStore[sk(PIN_REKEY_JOURNAL_KEY)]).toBe(stuckJournal)
@@ -261,9 +314,9 @@ describe('changePin', () => {
         return Promise.reject(new Error('keychain busy'))
       })
 
-    await expect(changePinOrFail('1357', journalReEncrypt)).resolves.toBe(
-      'reEncryptFailed'
-    )
+    await expect(
+      changePinOrFail(request('1357'), journalReEncrypt)
+    ).resolves.toBe('reEncryptFailed')
 
     jest.mocked(SecureStore.getItemAsync).mockImplementation(defaultGetItem)
     expect(secureStore[sk(PIN_KDF_COMMIT_KEY)]).toBeDefined()
