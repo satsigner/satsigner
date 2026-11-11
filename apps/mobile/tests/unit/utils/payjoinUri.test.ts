@@ -16,6 +16,24 @@ const BULL_STYLE_FINAL_BIP77_URI =
 
 describe('payjoinUri', () => {
   describe('parsePayjoinUri', () => {
+    it.each(['0x1', '1e-3', '0.001xyz'])(
+      'drops the malformed amount %s',
+      (amount) => {
+        const result = parsePayjoinUri(
+          BULL_STYLE_RECEIVE_URI.replace('amount=0.0001', `amount=${amount}`)
+        )
+        expect(result.isValid).toBe(true)
+        expect(result.params?.amountBtc).toBeUndefined()
+      }
+    )
+
+    it('reads an upper-case amount key', () => {
+      const result = parsePayjoinUri(
+        BULL_STYLE_RECEIVE_URI.replace('amount=', 'AMOUNT=')
+      )
+      expect(result.params?.amountBtc).toBe(0.0001)
+    })
+
     it('parses Bull-style URI with + fragment delimiter', () => {
       const result = parsePayjoinUri(BULL_STYLE_RECEIVE_URI)
       expect(result.isValid).toBe(true)

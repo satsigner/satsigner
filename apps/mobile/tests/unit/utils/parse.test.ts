@@ -5,6 +5,7 @@ import {
   parseLabel,
   parseLabelTags,
   parseUriParameters,
+  readBitcoinUriAmount,
   resolveExplorerAddressParam,
   sanitizeScannedText,
   stripBitcoinPrefix
@@ -142,6 +143,23 @@ describe('parse utils', () => {
         address: 'bc1qtest123',
         amount: undefined
       })
+    })
+  })
+
+  describe('readBitcoinUriAmount', () => {
+    it('reads a plain decimal amount whatever the key case', () => {
+      expect(readBitcoinUriAmount('bitcoin:bc1qtest123?amount=0.5')).toBe(0.5)
+      expect(readBitcoinUriAmount('BITCOIN:BC1QTEST123?AMOUNT=0.01')).toBe(0.01)
+    })
+
+    it.each([
+      'bitcoin:bc1qtest123',
+      'bitcoin:bc1qtest123?amount=0.001xyz',
+      'bitcoin:bc1qtest123?amount=1e-3',
+      'bitcoin:bc1qtest123?amount=0x1&pj=https://payjo.in/abc',
+      'bitcoin:bc1qtest123?amount=1&AMOUNT=2'
+    ])('has no amount for %s', (uri) => {
+      expect(readBitcoinUriAmount(uri)).toBeUndefined()
     })
   })
 

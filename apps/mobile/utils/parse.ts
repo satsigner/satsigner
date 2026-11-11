@@ -323,16 +323,35 @@ type ParsedUriParams = {
   pjos?: 0 | 1
 }
 
-function parseUriAmount(params: URLSearchParams) {
-  const [amount, ...duplicates] = params.getAll('amount')
-  if (
-    amount === undefined ||
-    duplicates.length > 0 ||
-    !BITCOIN_URI_AMOUNT_PATTERN.test(amount)
-  ) {
+function getUriQueryParts(uri: string) {
+  const queryStart = uri.indexOf('?')
+  return queryStart === -1 ? [] : uri.slice(queryStart + 1).split('&')
+}
+
+function getUriQueryKey(part: string) {
+  const separator = part.indexOf('=')
+  return (separator === -1 ? part : part.slice(0, separator)).toLowerCase()
+}
+
+/** BIP21 keys are case-insensitive: a QR code may upper-case the whole URI. */
+function parseUriAmount(uri: string) {
+  const amounts = getUriQueryParts(uri).filter(
+    (part) => getUriQueryKey(part) === 'amount'
+  )
+  if (amounts.length !== 1) {
     return undefined
   }
-  return Number(amount)
+  const amount = amounts[0].slice(amounts[0].indexOf('=') + 1)
+  return BITCOIN_URI_AMOUNT_PATTERN.test(amount) ? Number(amount) : undefined
+}
+
+/**
+ * The amount in BTC of a bitcoin URI, or undefined when it is missing,
+ * repeated or not a plain decimal: a lenient read of "0.001xyz" or "1e-3"
+ * would ask for an amount the payee never wrote.
+ */
+function readBitcoinUriAmount(uri: string) {
+  return parseUriAmount(uri.trim())
 }
 
 /**
@@ -383,7 +402,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   return {
     address: addressPart,
-    amount: parseUriAmount(params),
+    amount: parseUriAmount(content),
     label: labelParam || undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})
@@ -399,6 +418,7 @@ export {
   parseLabelTags,
   parseTXOutputs,
   parseUriParameters,
+  readBitcoinUriAmount,
   resolveExplorerAddressParam,
   stripBitcoinPrefix
 }

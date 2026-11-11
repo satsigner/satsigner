@@ -5,6 +5,7 @@ import {
   type PayjoinUriParams
 } from '@/types/payjoin'
 import { formatSatsAsBtc } from '@/utils/format'
+import { readBitcoinUriAmount } from '@/utils/parse'
 
 type ParsePayjoinUriResult = {
   isValid: boolean
@@ -142,18 +143,15 @@ function parsePayjoinUri(uri: string): ParsePayjoinUriResult {
     return { error: 'pj must be http(s) URL', isValid: false }
   }
 
-  let amountBtc: number | undefined
+  const uriAmountBtc = readBitcoinUriAmount(trimmed)
+  const amountBtc =
+    uriAmountBtc !== undefined && uriAmountBtc > 0 ? uriAmountBtc : undefined
   let label: string | undefined
   let message: string | undefined
 
   for (const { key, value } of pairs) {
     const keyLower = key.toLowerCase()
-    if (keyLower === 'amount' && value) {
-      const n = Number(value)
-      if (!Number.isNaN(n) && n > 0) {
-        amountBtc = n
-      }
-    } else if (keyLower === 'label' && value) {
+    if (keyLower === 'label' && value) {
       try {
         label = decodeURIComponent(value).replaceAll(/(^["“]|["”]$)/g, '')
       } catch {
