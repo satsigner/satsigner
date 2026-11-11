@@ -2,15 +2,29 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 
-import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
+import {
+  buildPsbtWithRpcOrBdkWallet,
+  hasInputsMissingFromWallet
+} from '@/api/bdk'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
+import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
 
 jest.mock<Partial<typeof import('@/api/bdk')>>('@/api/bdk', () => ({
-  buildPsbtWithRpcOrBdkWallet: jest.fn()
+  buildPsbtWithRpcOrBdkWallet: jest.fn(),
+  hasInputsMissingFromWallet: jest.fn(() => false)
 }))
+
+const mockSyncAccountWithWallet = jest.fn()
+jest.mock<typeof import('@/hooks/useSyncAccountWithWallet')>(
+  '@/hooks/useSyncAccountWithWallet',
+  () => ({
+    __esModule: true,
+    default: () => ({ syncAccountWithWallet: mockSyncAccountWithWallet })
+  })
+)
 
 const mockUseWallet = jest.fn()
 jest.mock<typeof import('@/hooks/useGetAccountWallet')>(
@@ -157,6 +171,49 @@ describe('useTransactionPsbt', () => {
     expect(hook.current?.serializedPsbt).toBe(
       Buffer.from(routePsbtBase64(), 'base64').toString('hex')
     )
+  })
+
+  it('syncs the wallet before building with an input it does not hold yet', async () => {
+    fillBuilder()
+    const account = makeAccount()
+    const synced = makeAccount({ lastSyncedAt: new Date('2026-11-11') })
+    const { updateAccount } = useAccountsStore.getState()
+    const mockUpdateAccount = jest.fn()
+    useAccountsStore.setState({ updateAccount: mockUpdateAccount })
+    jest.mocked(hasInputsMissingFromWallet).mockReturnValueOnce(true)
+    mockSyncAccountWithWallet.mockResolvedValue(synced)
+    mockBuildPsbt.mockResolvedValue(
+      createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    )
+
+    await renderTransactionPsbt({ account, importedPsbtBase64: undefined })
+
+    expect(mockSyncAccountWithWallet).toHaveBeenCalledWith(
+      account,
+      { wallet: 'stub' },
+      false,
+      true
+    )
+    expect(mockSyncAccountWithWallet.mock.invocationCallOrder[0]).toBeLessThan(
+      mockBuildPsbt.mock.invocationCallOrder[0]
+    )
+    expect(mockUpdateAccount).toHaveBeenCalledWith(synced)
+    useAccountsStore.setState({ updateAccount })
+  })
+
+  it('builds without a sync when the wallet holds every input', async () => {
+    fillBuilder()
+    mockBuildPsbt.mockResolvedValue(
+      createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    )
+
+    await renderTransactionPsbt({
+      account: makeAccount(),
+      importedPsbtBase64: undefined
+    })
+
+    expect(mockSyncAccountWithWallet).not.toHaveBeenCalled()
+    expect(mockBuildPsbt).toHaveBeenCalledTimes(1)
   })
 
   it('reports an invalid output address once, not on every account update', async () => {

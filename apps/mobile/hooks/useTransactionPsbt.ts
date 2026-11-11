@@ -1,12 +1,18 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
+import {
+  buildPsbtWithRpcOrBdkWallet,
+  hasInputsMissingFromWallet
+} from '@/api/bdk'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { type PsbtBuildStatus } from '@/types/models/Psbt'
+import { type Utxo } from '@/types/models/Utxo'
 import { type Message, type Notice } from '@/types/ui/notice'
 import {
   createMockPsbt,
@@ -73,6 +79,8 @@ export function useTransactionPsbt({
     ])
   )
   const wallet = useGetAccountWallet(accountId)
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const { server } = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork]
@@ -206,6 +214,29 @@ export function useTransactionPsbt({
     importPsbtWithLatestAccount(importedPsbtBase64)
   }, [importedPsbtBase64, loadedAccountIdToReimportOn])
 
+  // The change of a send broadcast moments ago can be picked before the BDK
+  // wallet has synced its transaction.
+  async function syncWalletForMissingInputs(
+    loadedWallet: NonNullable<typeof wallet>,
+    inputArray: Utxo[]
+  ) {
+    if (
+      !account ||
+      !hasInputsMissingFromWallet(loadedWallet, server, account, inputArray)
+    ) {
+      return
+    }
+    const synced = await syncAccountWithWallet(
+      account,
+      loadedWallet,
+      false,
+      true
+    )
+    if (synced) {
+      updateAccount(synced)
+    }
+  }
+
   function failBuild(key: string) {
     setPsbtBuildStatus('error')
     setPsbtBuildError({ key })
@@ -255,6 +286,11 @@ export function useTransactionPsbt({
       try {
         const inputArray = [...inputs.values()]
         const outputArray = [...outputs.values()]
+
+        await syncWalletForMissingInputs(wallet, inputArray)
+        if (buildRun.isCancelled) {
+          return
+        }
 
         const transaction = await buildPsbtWithRpcOrBdkWallet(
           wallet,

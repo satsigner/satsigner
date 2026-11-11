@@ -1,7 +1,11 @@
 import { BdkTxBuilder, BdkWallet, Network } from 'react-native-bdk-sdk'
 
-import { buildPsbtWithRpcOrBdkWallet } from '@/api/bdk'
+import {
+  buildPsbtWithRpcOrBdkWallet,
+  hasInputsMissingFromWallet
+} from '@/api/bdk'
 import { SEQUENCE_LOCKTIME_NO_RBF, SEQUENCE_RBF } from '@/constants/btc'
+import type { Account } from '@/types/models/Account'
 import type { Server } from '@/types/settings/blockchain'
 
 // Same module-graph stubs as bdkRpc.test.ts: @/utils/bip39 and @/api/electrum
@@ -60,5 +64,54 @@ describe('buildPsbtWithRpcOrBdkWallet sequence', () => {
       SEQUENCE_LOCKTIME_NO_RBF
     )
     expect(txBuilder.enableRbf).not.toHaveBeenCalled()
+  })
+})
+
+describe('hasInputsMissingFromWallet', () => {
+  const INPUT = {
+    keychain: 'external' as const,
+    txid: 'bb'.repeat(32),
+    value: 20_000,
+    vout: 1
+  }
+  const CORE_SERVER: Server = {
+    backend: 'rpc',
+    name: 'Node',
+    network: 'signet',
+    rpcCredentials: { password: 'pass', username: 'user' },
+    url: 'http://127.0.0.1:38332'
+  }
+
+  function walletHolding(isHeld: boolean) {
+    const wallet = new BdkWallet('', undefined, Network.Signet, '')
+    jest
+      .mocked(wallet.getUtxo)
+      .mockReturnValue(isHeld ? { outpoint: INPUT } : undefined)
+    return wallet
+  }
+
+  it('flags an input the BDK wallet has not synced yet', () => {
+    expect(
+      hasInputsMissingFromWallet(walletHolding(false), SERVER, undefined, [
+        INPUT
+      ])
+    ).toBe(true)
+  })
+
+  it('passes inputs the BDK wallet holds', () => {
+    expect(
+      hasInputsMissingFromWallet(walletHolding(true), SERVER, undefined, [
+        INPUT
+      ])
+    ).toBe(false)
+  })
+
+  it('leaves sends built by a Bitcoin Core wallet alone', () => {
+    const account = { id: 'acc-1', keys: [] } as unknown as Account
+    expect(
+      hasInputsMissingFromWallet(walletHolding(false), CORE_SERVER, account, [
+        INPUT
+      ])
+    ).toBe(false)
   })
 })

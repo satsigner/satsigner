@@ -1176,6 +1176,36 @@ async function buildReplacementPsbt(
   return psbt
 }
 
+/** The Bitcoin Core wallet that builds the account's sends, if any. */
+function coreWalletBuilder(server: Server, account: Account | undefined) {
+  const { backend, url, rpcCredentials, rpcWalletName } = server
+  if (backend !== 'rpc' || !url || !rpcCredentials || !account) {
+    return undefined
+  }
+  return {
+    rpcCredentials,
+    url,
+    walletName: resolveRpcWalletName(account, rpcWalletName)
+  }
+}
+
+/**
+ * Whether the BDK wallet that builds this send lacks one of its inputs. The
+ * change of a send broadcast moments ago is already in the account, but the
+ * wallet only learns its transaction with the next sync.
+ */
+function hasInputsMissingFromWallet(
+  wallet: BdkWallet,
+  server: Server,
+  account: Account | undefined,
+  inputs: Utxo[]
+): boolean {
+  if (coreWalletBuilder(server, account)) {
+    return false
+  }
+  return inputs.some((utxo) => !isUtxoInWallet(wallet, utxo))
+}
+
 function buildPsbtWithRpcOrBdkWallet(
   wallet: BdkWallet,
   server: Server,
@@ -1187,15 +1217,18 @@ function buildPsbtWithRpcOrBdkWallet(
     options: { rbf: boolean }
   }
 ): Promise<PsbtLike> {
-  const { backend, url, rpcCredentials, rpcWalletName } = server
-
-  if (backend === 'rpc' && url && rpcCredentials && account) {
-    const walletName = resolveRpcWalletName(account, rpcWalletName)
-    return buildTransactionWithRpc(url, rpcCredentials, walletName, {
-      inputs: data.inputs,
-      options: data.options,
-      outputs: data.outputs
-    })
+  const core = coreWalletBuilder(server, account)
+  if (core) {
+    return buildTransactionWithRpc(
+      core.url,
+      core.rpcCredentials,
+      core.walletName,
+      {
+        inputs: data.inputs,
+        options: data.options,
+        outputs: data.outputs
+      }
+    )
   }
 
   return buildTransaction(wallet, data)
@@ -1386,6 +1419,7 @@ export {
   getTransactionInputValues,
   getWalletData,
   getWalletFromDescriptor,
+  hasInputsMissingFromWallet,
   isUtxoInWallet,
   parseDescriptor,
   resolveRpcWalletName,
