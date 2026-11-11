@@ -1,7 +1,13 @@
-import { fetchMempoolBasicData } from '@/api/explorerMempool'
+import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
+import {
+  fetchBackendNextBlockFee,
+  fetchMempoolBasicData
+} from '@/api/explorerMempool'
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   __esModule: true,
+  closeElectrumClientQuietly: jest.fn(),
   default: {
     fromUrl: jest.fn()
   }
@@ -85,5 +91,59 @@ describe('fetchMempoolBasicData', () => {
       none: 1
     })
     expect(result.projectedBlocks).toStrictEqual([])
+  })
+})
+
+describe('fetchMempoolBasicData failures', () => {
+  it('reports an unreachable electrum server instead of empty data', async () => {
+    jest.mocked(ElectrumClient.fromUrl).mockReturnValueOnce({
+      init: jest.fn().mockRejectedValue(new Error('connect timed out'))
+    } as never)
+
+    await expect(
+      fetchMempoolBasicData(
+        'ssl://electrum.example.com:50002',
+        'electrum',
+        'bitcoin'
+      )
+    ).rejects.toThrow('connect timed out')
+  })
+
+  it('treats a missing electrum fee histogram as empty data', async () => {
+    jest.mocked(ElectrumClient.fromUrl).mockReturnValueOnce({
+      getMempoolFeeHistogram: jest
+        .fn()
+        .mockRejectedValue(new Error('unknown method')),
+      init: jest.fn().mockResolvedValue(undefined)
+    } as never)
+
+    const result = await fetchMempoolBasicData(
+      'ssl://electrum.example.com:50002',
+      'electrum',
+      'bitcoin'
+    )
+    expect(result.feeHistogram).toStrictEqual([])
+  })
+
+  it('reports an unreachable esplora server instead of empty data', async () => {
+    jest.mocked(Esplora).mockReturnValueOnce({
+      getFeeEstimates: jest.fn().mockRejectedValue(new Error('offline')),
+      getMempoolInfo: jest.fn().mockRejectedValue(new Error('offline'))
+    } as never)
+
+    await expect(
+      fetchMempoolBasicData('https://example.com', 'esplora', 'bitcoin')
+    ).rejects.toThrow('offline')
+  })
+
+  it('has no backend fee when the server is unreachable', async () => {
+    jest.mocked(Esplora).mockReturnValueOnce({
+      getFeeEstimates: jest.fn().mockRejectedValue(new Error('offline')),
+      getMempoolInfo: jest.fn().mockRejectedValue(new Error('offline'))
+    } as never)
+
+    await expect(
+      fetchBackendNextBlockFee('https://example.com', 'esplora', 'bitcoin')
+    ).resolves.toBeNull()
   })
 })

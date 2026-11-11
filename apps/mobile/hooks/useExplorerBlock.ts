@@ -7,8 +7,10 @@ import {
   fetchExplorerBlockFromMempool,
   fetchExplorerTipHeight
 } from '@/api/explorerBlock'
+import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
+import { withExplorerTimeout } from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 export function useExplorerBlock(height: number | null) {
@@ -27,8 +29,13 @@ export function useExplorerBlock(height: number | null) {
 
   const tipQuery = useQuery({
     enabled: Boolean(backendUrl) && ready,
-    queryFn: () => fetchExplorerTipHeight(backendUrl, backend, rpcCredentials),
+    queryFn: () =>
+      withExplorerTimeout(
+        fetchExplorerTipHeight(backendUrl, backend, rpcCredentials),
+        backendUrl
+      ),
     queryKey: ['explorer-tip-height', backend, backendUrl, selectedNetwork],
+    retry: EXPLORER_QUERY_RETRY,
     staleTime: time.minutes(1)
   })
 
@@ -39,13 +46,14 @@ export function useExplorerBlock(height: number | null) {
         throw new Error('Block height is required')
       }
       if (mempoolEnabled) {
-        return fetchExplorerBlockFromMempool(resolvedHeight, oracle)
+        return withExplorerTimeout(
+          fetchExplorerBlockFromMempool(resolvedHeight, oracle),
+          oracle.baseUrl
+        )
       }
-      return fetchExplorerBlock(
-        backendUrl,
-        backend,
-        resolvedHeight,
-        rpcCredentials
+      return withExplorerTimeout(
+        fetchExplorerBlock(backendUrl, backend, resolvedHeight, rpcCredentials),
+        backendUrl
       )
     },
     queryKey: [
@@ -56,6 +64,7 @@ export function useExplorerBlock(height: number | null) {
       mempoolEnabled,
       selectedNetwork
     ],
+    retry: EXPLORER_QUERY_RETRY,
     staleTime: time.minutes(2)
   })
 

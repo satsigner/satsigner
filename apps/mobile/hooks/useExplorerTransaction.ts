@@ -7,6 +7,7 @@ import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
+import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
 import type {
@@ -15,20 +16,14 @@ import type {
   ExplorerTxOutput
 } from '@/types/models/ExplorerTransaction'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'
-import { isOnionUrl } from '@/utils/serverPrivacy'
-import { time, withTimeout } from '@/utils/time'
+import { withExplorerTimeout } from '@/utils/explorerTimeout'
+import { time } from '@/utils/time'
 import { weightToVsize } from '@/utils/transaction'
 import { TxDecoded } from '@/utils/txDecoded'
 
 export type ExplorerLoadingPhase = string | null
 
 const TXID_LENGTH = 64
-const TIMEOUT_MS = 30_000
-const TIMEOUT_TOR_MS = 90_000
-function withExplorerTimeout<T>(promise: Promise<T>, url: string) {
-  const ms = isOnionUrl(url) ? TIMEOUT_TOR_MS : TIMEOUT_MS
-  return withTimeout(promise, ms, 'timeout')
-}
 
 /** Wire-order outpoint hash → explorer txid (Hermes: no TypedArray#toReversed). */
 function outpointHashBytesToTxid(hash: Uint8Array): string {
@@ -242,7 +237,7 @@ export function useExplorerTransaction(txid: string | null) {
       server.rpcCredentials?.username,
       selectedNetwork
     ],
-    retry: 1,
+    retry: EXPLORER_QUERY_RETRY,
     staleTime: time.infinity
   })
 

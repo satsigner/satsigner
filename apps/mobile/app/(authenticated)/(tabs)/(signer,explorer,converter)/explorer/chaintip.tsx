@@ -86,7 +86,7 @@ export default function ChainTip() {
 
   const [showExternal, setShowExternal] = useState(false)
 
-  const { data: chainData, isLoading } = useChainTipData()
+  const { data: chainData, isError, isLoading } = useChainTipData()
   const { data: externalData, isLoading: isLoadingExternal } =
     useMempoolExtendedData(showExternal)
   const { data: mempoolStatistics } = useChainTipMempoolStats(
@@ -159,6 +159,11 @@ export default function ChainTip() {
                   : null
               }
             />
+            {isError ? (
+              <SSText size="sm" color="muted">
+                {tn('loadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <Pressable
                 onPress={openTipBlock}

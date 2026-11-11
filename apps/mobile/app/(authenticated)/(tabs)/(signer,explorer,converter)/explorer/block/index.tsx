@@ -17,6 +17,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
+import { EXPLORER_QUERY_RETRY } from '@/constants/explorer'
 import {
   type ExplorerExampleBlock,
   EXPLORER_EXAMPLE_BLOCKS
@@ -28,6 +29,7 @@ import { tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
 import { parseBlockHeightInput } from '@/utils/explorerBlockHeight'
+import { withExplorerTimeout } from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 const tn = _tn('explorer.block')
@@ -90,13 +92,21 @@ export default function ExplorerBlockSearch() {
 
   const tipQuery = useQuery({
     queryFn: () =>
-      fetchExplorerTipHeight(server.url, server.backend, server.rpcCredentials),
+      withExplorerTimeout(
+        fetchExplorerTipHeight(
+          server.url,
+          server.backend,
+          server.rpcCredentials
+        ),
+        server.url
+      ),
     queryKey: [
       'explorer-tip-height',
       server.backend,
       server.url,
       selectedNetwork
     ],
+    retry: EXPLORER_QUERY_RETRY,
     staleTime: time.minutes(1)
   })
 
