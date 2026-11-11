@@ -48,20 +48,23 @@ function mockCreateApi(relays: string[]): MockApi {
   return api
 }
 
-jest.mock<typeof import('@/api/nostr')>('@/api/nostr', () => ({
+jest.mock<Partial<typeof import('@/api/nostr')>>('@/api/nostr', () => ({
   NostrAPI: jest.fn((relays: string[]) => mockCreateApi(relays))
 }))
 
-jest.mock<typeof import('@/hooks/useNostrMessageProcessor')>(
+jest.mock<Partial<typeof import('@/hooks/useNostrMessageProcessor')>>(
   '@/hooks/useNostrMessageProcessor',
   () => ({
     processNostrEventBatch: jest.fn()
   })
 )
 
-jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
-  useAccountsStore: { getState: () => mockAccountsState }
-}))
+jest.mock<Partial<typeof import('@/store/accounts')>>(
+  '@/store/accounts',
+  () => ({
+    useAccountsStore: { getState: () => mockAccountsState }
+  })
+)
 
 jest.mock<typeof import('@/db/nostrProcessedEvents')>(
   '@/db/nostrProcessedEvents',
@@ -72,7 +75,7 @@ jest.mock<typeof import('@/db/nostrProcessedEvents')>(
   })
 )
 
-jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
+jest.mock<Partial<typeof import('@/storage/mmkv')>>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
   return {
     __esModule: true,
@@ -88,7 +91,7 @@ jest.mock<typeof import('@/storage/mmkv')>('@/storage/mmkv', () => {
   }
 })
 
-jest.mock<typeof import('@/utils/nostr')>('@/utils/nostr', () => ({
+jest.mock<Partial<typeof import('@/utils/nostr')>>('@/utils/nostr', () => ({
   generateColorFromNpub: jest.fn().mockReturnValue('#ff5500')
 }))
 
@@ -100,6 +103,7 @@ function buildAccount(overrides: Partial<Account['nostr']> = {}): Account {
   return {
     addresses: [],
     createdAt: new Date(),
+    displayIndex: 0,
     id: ACCOUNT_ID,
     keyCount: 1,
     keys: [],
@@ -171,7 +175,9 @@ describe('nostrSyncService', () => {
     mockApiSetup.configure = undefined
     setAccount(buildAccount())
     jest.mocked(processNostrEventBatch).mockResolvedValue({
+      deferred: [],
       failed: [],
+      ignored: [],
       processed: []
     })
     useNostrStore.setState({
@@ -227,6 +233,7 @@ describe('nostrSyncService', () => {
           dms: [
             {
               author: 'a',
+              content: { created_at: 1, description: 'hi' },
               created_at: 1,
               description: 'hi',
               event: '',
@@ -350,7 +357,9 @@ describe('nostrSyncService', () => {
 
     it('advances to the newest processed event, not to now', async () => {
       jest.mocked(processNostrEventBatch).mockResolvedValue({
+        deferred: [],
         failed: [],
+        ignored: [],
         processed: [
           { createdAt: 1_700_000_100, id: 'a' },
           { createdAt: 1_700_000_200, id: 'b' }
@@ -369,7 +378,9 @@ describe('nostrSyncService', () => {
 
     it('waits for queued events before committing after EOSE', async () => {
       jest.mocked(processNostrEventBatch).mockResolvedValue({
+        deferred: [],
         failed: [],
+        ignored: [],
         processed: [{ createdAt: 1_700_000_300, id: 'c' }]
       })
       await nostrSyncService.startSync(ACCOUNT_ID)
@@ -391,7 +402,9 @@ describe('nostrSyncService', () => {
 
     it('stays below an event whose handler failed', async () => {
       jest.mocked(processNostrEventBatch).mockResolvedValue({
+        deferred: [],
         failed: [{ createdAt: 1_700_000_150, id: 'bad' }],
+        ignored: [],
         processed: [{ createdAt: 1_700_000_200, id: 'good' }]
       })
       await nostrSyncService.startSync(ACCOUNT_ID)
