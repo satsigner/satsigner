@@ -1,0 +1,61 @@
+diff --git a/dist/cjs/objects.js b/dist/cjs/objects.js
+index 8e859899eebba663e027ec25bcb583918a290d34..6b03f4af81e012249d133cc4f7994709700e235d 100644
+--- a/dist/cjs/objects.js
++++ b/dist/cjs/objects.js
+@@ -79,6 +79,15 @@ class FfiConverterObjectWithCallbacks extends FfiConverterObject {
+         }
+         return this.handleMap.insert(value);
+     }
++    // Inside a buffer (e.g. an optional callback argument) the object is
++    // written as a handle, so a TS-implemented one must go into the handleMap
++    // too: the base class only knows Rust-backed objects.
++    writeIntoCursor(value, c) {
++        const handle = this.factory.isConcreteType(value)
++            ? this.lowerHandle(value)
++            : this.handleMap.insert(value);
++        pointerConverter.writeIntoCursor(handle, c);
++    }
+     lift(value) {
+         if (this.handleMap.has(value)) {
+             return this.handleMap.get(value);
+diff --git a/dist/esm/objects.js b/dist/esm/objects.js
+index c451087c9cf27b35c08de7f51656c42f4c44504f..1aa24969a433a5019b6b50fc535c0fed549b9409 100644
+--- a/dist/esm/objects.js
++++ b/dist/esm/objects.js
+@@ -74,6 +74,15 @@ export class FfiConverterObjectWithCallbacks extends FfiConverterObject {
+         }
+         return this.handleMap.insert(value);
+     }
++    // Inside a buffer (e.g. an optional callback argument) the object is
++    // written as a handle, so a TS-implemented one must go into the handleMap
++    // too: the base class only knows Rust-backed objects.
++    writeIntoCursor(value, c) {
++        const handle = this.factory.isConcreteType(value)
++            ? this.lowerHandle(value)
++            : this.handleMap.insert(value);
++        pointerConverter.writeIntoCursor(handle, c);
++    }
+     lift(value) {
+         if (this.handleMap.has(value)) {
+             return this.handleMap.get(value);
+diff --git a/src/objects.ts b/src/objects.ts
+index 0bac440158a260170d956ac341268c50cf580eb2..13ddb4ded6e187a65e15c582ff2f736c21fb7278 100644
+--- a/src/objects.ts
++++ b/src/objects.ts
+@@ -110,6 +110,16 @@ export class FfiConverterObjectWithCallbacks<T> extends FfiConverterObject<T> {
+     return this.handleMap.insert(value);
+   }
+ 
++  // Inside a buffer (e.g. an optional callback argument) the object is
++  // written as a handle, so a TS-implemented one must go into the handleMap
++  // too: the base class only knows Rust-backed objects.
++  writeIntoCursor(value: T, c: Cursor): void {
++    const handle = this.factory.isConcreteType(value)
++      ? this.lowerHandle(value)
++      : this.handleMap.insert(value);
++    pointerConverter.writeIntoCursor(handle, c);
++  }
++
+   lift(value: UniffiHandle): T {
+     if (this.handleMap.has(value)) {
+       return this.handleMap.get(value);

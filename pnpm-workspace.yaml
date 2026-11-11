@@ -28,6 +28,7 @@ overrides:
   react: 19.3.0
   react-dom: 19.3.0
 patchedDependencies:
+  '@ubjs/core@0.31.0-5': patches/@ubjs__core@0.31.0-5.patch
   react-native-bdk-sdk@0.8.0: patches/react-native-bdk-sdk@0.8.0.patch
   react-native-draggable-flatlist@4.0.3: patches/react-native-draggable-flatlist@4.0.3.patch
   react-native-tcp-socket@6.4.1: patches/react-native-tcp-socket@6.4.1.patch

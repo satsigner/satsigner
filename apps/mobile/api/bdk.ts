@@ -18,6 +18,7 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { assertElectrumReachable } from '@/api/electrumReachability'
+import { BDK_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
 import {
   BTC_DECIMALS,
   SATS_PER_BITCOIN,
@@ -713,6 +714,66 @@ async function connectElectrum(url: string): Promise<BdkElectrumClient> {
   return client
 }
 
+/** `total` is 0 during a full scan, which has no fixed end. */
+type ScanProgress = (done: number, total: number) => void
+
+type SyncWalletOptions = {
+  onProgress?: ScanProgress
+  signal?: AbortSignal
+}
+
+/**
+ * Inspectors fire once per script or block, so the UI gets at most one update
+ * per throttle window, plus the final one. `stop` drops an update still
+ * waiting once the scan is over.
+ */
+function throttleProgress(onProgress: ScanProgress) {
+  const state: {
+    lastEmitMs: number
+    pending: { done: number; total: number } | null
+    timer: ReturnType<typeof setTimeout> | null
+  } = { lastEmitMs: 0, pending: null, timer: null }
+
+  function stop() {
+    if (state.timer) {
+      clearTimeout(state.timer)
+    }
+    state.timer = null
+    state.pending = null
+  }
+
+  function emit(done: number, total: number) {
+    stop()
+    state.lastEmitMs = Date.now()
+    onProgress(done, total)
+  }
+
+  function flush() {
+    const { pending } = state
+    state.timer = null
+    state.pending = null
+    if (pending) {
+      emit(pending.done, pending.total)
+    }
+  }
+
+  function report(done: number, total: number) {
+    if (total > 0 && done >= total) {
+      emit(done, total)
+      return
+    }
+    state.pending = { done, total }
+    const elapsed = Date.now() - state.lastEmitMs
+    if (elapsed >= BDK_PROGRESS_THROTTLE_MS) {
+      flush()
+      return
+    }
+    state.timer ??= setTimeout(flush, BDK_PROGRESS_THROTTLE_MS - elapsed)
+  }
+
+  return { report, stop }
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
@@ -724,7 +785,63 @@ async function syncWallet(
   currentTip?: number,
   rpcScanFromHeight?: number,
   isGeneratedWallet?: boolean,
+  { onProgress, signal }: SyncWalletOptions = {}
+) {
+  const progress = onProgress ? throttleProgress(onProgress) : undefined
+  try {
+    await scanWallet(wallet, {
+      backend,
+      currentTip,
+      isFullScan,
+      isGeneratedWallet,
+      onProgress: progress?.report,
+      rpcCredentials,
+      rpcScanFromHeight,
+      signal,
+      stopGap,
+      url,
+      walletBirthday
+    })
+  } finally {
+    progress?.stop()
+  }
+
+  // A sync that was given up on must not persist a late, partial update.
+  if (signal?.aborted) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
+  wallet.persist()
+}
+
+type ScanWalletParams = {
+  backend: Backend
+  currentTip?: number
+  isFullScan: boolean
+  isGeneratedWallet?: boolean
+  onProgress?: ScanProgress
+  rpcCredentials?: RpcCredentials
+  rpcScanFromHeight?: number
   signal?: AbortSignal
+  stopGap: number
+  url: string
+  walletBirthday?: Date
+}
+
+async function scanWallet(
+  wallet: BdkWallet,
+  {
+    backend,
+    currentTip,
+    isFullScan,
+    isGeneratedWallet,
+    onProgress,
+    rpcCredentials,
+    rpcScanFromHeight,
+    signal,
+    stopGap,
+    url,
+    walletBirthday
+  }: ScanWalletParams
 ) {
   if (backend === 'rpc') {
     const rpcClient = new BdkRpcClient({
@@ -760,26 +877,27 @@ async function syncWallet(
       startHeight = scanFloor
     }
 
-    // No progress inspector: see scanWithServer.
-    await wallet.syncWithRpc(rpcClient, startHeight, { fetchMempool: true })
-  } else {
-    await scanWithServer(wallet, backend, url, stopGap, isFullScan, signal)
+    await wallet.syncWithRpc(rpcClient, startHeight, {
+      fetchMempool: true,
+      inspector: onProgress && {
+        inspect: ({ currentHeight, tipHeight }) =>
+          onProgress(currentHeight, tipHeight)
+      }
+    })
+    return
   }
-
-  // A sync that was given up on must not persist a late, partial update.
-  if (signal?.aborted) {
-    throw new Error(SYNC_CANCELLED_ERROR)
-  }
-  wallet.persist()
+  await scanWithServer(wallet, backend, url, stopGap, isFullScan, {
+    onProgress,
+    signal
+  })
 }
 
 /**
  * Electrum and Esplora scans go through the raw FFI wallet: the SDK wrapper
  * drops the abort signal, which is what lets a stalled sync be cancelled.
- *
- * No progress inspector is passed to any scan: the @ubjs/core runtime cannot
- * lower a JS object passed as an optional callback interface and throws
- * "Cannot lower this object to a pointer" before the scan starts.
+ * Their progress inspectors need the @ubjs/core patch: without it the runtime
+ * cannot write a JS object into an optional argument and the scan throws
+ * "Cannot lower this object to a pointer" before it starts.
  */
 async function scanWithServer(
   wallet: BdkWallet,
@@ -787,24 +905,37 @@ async function scanWithServer(
   url: string,
   stopGap: number,
   isFullScan: boolean,
-  signal?: AbortSignal
+  { onProgress, signal }: SyncWalletOptions
 ) {
   const asyncOpts = signal ? { signal } : undefined
   const gap = BigInt(stopGap)
+  const fullScanInspector = onProgress && {
+    inspect: (_keychain: KeychainKind, _index: number, visited: bigint) =>
+      onProgress(Number(visited), 0)
+  }
+  const syncInspector = onProgress && {
+    inspect: (consumed: bigint, total: bigint) =>
+      onProgress(Number(consumed), Number(total))
+  }
 
   if (backend === 'electrum') {
     const electrum = await connectElectrum(url)
     const client = electrum.raw
     await (isFullScan
-      ? wallet.raw.fullScanWithElectrum(client, gap, undefined, asyncOpts)
-      : wallet.raw.syncWithElectrum(client, gap, undefined, asyncOpts))
+      ? wallet.raw.fullScanWithElectrum(
+          client,
+          gap,
+          fullScanInspector,
+          asyncOpts
+        )
+      : wallet.raw.syncWithElectrum(client, gap, syncInspector, asyncOpts))
     return
   }
 
   const client = new BdkEsploraClient(url).raw
   await (isFullScan
-    ? wallet.raw.fullScanWithEsplora(client, gap, undefined, asyncOpts)
-    : wallet.raw.syncWithEsplora(client, gap, undefined, asyncOpts))
+    ? wallet.raw.fullScanWithEsplora(client, gap, fullScanInspector, asyncOpts)
+    : wallet.raw.syncWithEsplora(client, gap, syncInspector, asyncOpts))
 }
 
 async function getTransactionInputValues(

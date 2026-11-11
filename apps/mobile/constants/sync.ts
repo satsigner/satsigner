@@ -23,11 +23,8 @@ const SYNC_CONCURRENCY = 2
 
 // A sync is aborted after this long without progress. Tor circuits are slow
 // to build and Bitcoin Core rescans report progress only every few blocks.
-// BDK Electrum and Esplora scans report none until they finish (no progress
-// inspector, see scanWithServer in api/bdk.ts), so for them this bounds the
-// whole scan and has to leave room for a large history on a slow server.
-const SYNC_STALL_TIMEOUT_MS = 20 * 60_000
-const SYNC_STALL_TIMEOUT_TOR_MS = 40 * 60_000
+const SYNC_STALL_TIMEOUT_MS = 2 * 60_000
+const SYNC_STALL_TIMEOUT_TOR_MS = 5 * 60_000
 const SYNC_STALL_TIMEOUT_RPC_MS = 15 * 60_000
 
 // While a Core sync waits for another one on the same node, it reports
