@@ -1,5 +1,5 @@
 import { current, type Draft, enableMapSet } from 'immer'
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
@@ -54,6 +54,10 @@ type SavedDraft = {
   signedPsbtBase64?: string
   /** Txid this draft replaces (RBF bump or cancel). */
   replacesTxid?: string
+  /** Full BIP21 URI with pj= when the draft pays a Payjoin invoice. */
+  payjoinUri?: string
+  /** Unsigned PSBT a fee replacement built, kept until the builder is edited. */
+  prebuiltPsbtBase64?: string
 }
 
 type TransactionBuilderState = {
@@ -134,9 +138,21 @@ function normalizeStonewallPreview(
   }
 }
 
+function restorePrebuiltPsbt(base64?: string): PsbtLike | undefined {
+  if (!base64) {
+    return undefined
+  }
+  try {
+    return new Psbt(base64)
+  } catch {
+    return undefined
+  }
+}
+
 // The builder fields an account's saved draft resumes into, or a blank
 // builder when the account has no draft.
 function draftWorkingState(draft?: SavedDraft) {
+  const prebuiltPsbt = restorePrebuiltPsbt(draft?.prebuiltPsbtBase64)
   return {
     cpfp: draft?.cpfp ?? true,
     fee: draft?.fee ?? 0,
@@ -144,7 +160,10 @@ function draftWorkingState(draft?: SavedDraft) {
     inputs: draft
       ? new Map(Object.entries(draft.inputs))
       : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+    isPsbtPrebuilt: prebuiltPsbt !== undefined,
     outputs: draft?.outputs ?? [],
+    payjoinUri: draft?.payjoinUri,
+    psbt: prebuiltPsbt,
     rbf: draft?.rbf ?? true,
     replacesTxid: draft?.replacesTxid,
     selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
@@ -177,25 +196,42 @@ function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
   state.signedTx = undefined
 }
 
-// A broadcast transaction is finished: saving it again would bring back a
-// "ready to broadcast" draft for something already on the network.
-function syncDraft(state: Draft<TransactionBuilderState>) {
-  if (!state.accountId || state.broadcasted) {
-    return
-  }
-  // Avoid current(stonewallPreview): after replace it may be a plain object.
-  const preview = state.stonewallPreview
-  state.drafts[state.accountId] = {
-    cpfp: state.cpfp,
-    fee: state.fee,
-    feeRate: state.feeRate,
-    inputs: Object.fromEntries(current(state.inputs)),
-    outputs: current(state.outputs),
-    rbf: state.rbf,
-    replacesTxid: state.replacesTxid,
-    selectedAutoSelectUtxos: state.selectedAutoSelectUtxos,
-    signedPsbtBase64: state.signedPsbtBase64,
-    signedTx: state.signedTx,
+type DraftSource = Pick<
+  TransactionBuilderState,
+  | 'cpfp'
+  | 'fee'
+  | 'feeRate'
+  | 'inputs'
+  | 'isPsbtPrebuilt'
+  | 'outputs'
+  | 'payjoinUri'
+  | 'psbt'
+  | 'rbf'
+  | 'replacesTxid'
+  | 'selectedAutoSelectUtxos'
+  | 'signedPsbtBase64'
+  | 'signedTx'
+  | 'stonewallPreview'
+  | 'timeLock'
+>
+
+function toSavedDraft(source: DraftSource): SavedDraft {
+  const preview = source.stonewallPreview
+  return {
+    cpfp: source.cpfp,
+    fee: source.fee,
+    feeRate: source.feeRate,
+    inputs: Object.fromEntries(source.inputs),
+    outputs: [...source.outputs],
+    payjoinUri: source.payjoinUri,
+    prebuiltPsbtBase64: source.isPsbtPrebuilt
+      ? source.psbt?.toBase64()
+      : undefined,
+    rbf: source.rbf,
+    replacesTxid: source.replacesTxid,
+    selectedAutoSelectUtxos: source.selectedAutoSelectUtxos,
+    signedPsbtBase64: source.signedPsbtBase64,
+    signedTx: source.signedTx,
     stonewallPreview: {
       changeValues: [...preview.changeValues],
       excludedUtxoOutpoints: [...preview.excludedUtxoOutpoints],
@@ -203,8 +239,22 @@ function syncDraft(state: Draft<TransactionBuilderState>) {
       fee: preview.fee,
       labelOverrides: { ...preview.labelOverrides }
     },
-    timeLock: state.timeLock
+    timeLock: source.timeLock
   }
+}
+
+// A broadcast transaction is finished: saving it again would bring back a
+// "ready to broadcast" draft for something already on the network.
+function syncDraft(state: Draft<TransactionBuilderState>) {
+  if (!state.accountId || state.broadcasted) {
+    return
+  }
+  // Avoid current(stonewallPreview): after replace it may be a plain object.
+  state.drafts[state.accountId] = toSavedDraft({
+    ...state,
+    inputs: current(state.inputs),
+    outputs: current(state.outputs)
+  })
 }
 
 const useTransactionBuilderStore = create<
@@ -250,7 +300,11 @@ const useTransactionBuilderStore = create<
         })
       },
       clearPsbt: () => {
-        set({ isPsbtPrebuilt: false, psbt: undefined })
+        set((state) => {
+          state.isPsbtPrebuilt = false
+          state.psbt = undefined
+          syncDraft(state)
+        })
       },
       clearStonewallPreview: () => {
         set((state) => {
@@ -373,56 +427,26 @@ const useTransactionBuilderStore = create<
           state.signedTx = undefined
           state.stonewallPreview = normalizeStonewallPreview()
           state.timeLock = 0
+          state.isPsbtPrebuilt = replacement !== undefined
+          state.psbt = replacement?.psbt
           syncDraft(state)
-        })
-        set({
-          isPsbtPrebuilt: replacement !== undefined,
-          psbt: replacement?.psbt
         })
       },
       selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
       setAccountId: (accountId) => {
-        const {
-          accountId: currentId,
-          inputs,
-          outputs,
-          feeRate,
-          fee,
-          timeLock,
-          rbf,
-          cpfp,
-          drafts,
-          replacesTxid,
-          selectedAutoSelectUtxos,
-          signedPsbtBase64,
-          signedTx,
-          stonewallPreview
-        } = get()
-
-        if (currentId === accountId) {
+        const builder = get()
+        if (builder.accountId === accountId) {
           return
         }
 
-        const updatedDrafts = { ...drafts }
-
+        const updatedDrafts = { ...builder.drafts }
         const isUnfinished =
-          !get().broadcasted &&
-          (inputs.size > 0 || outputs.length > 0 || Boolean(signedTx))
-        if (currentId && isUnfinished) {
-          updatedDrafts[currentId] = {
-            cpfp,
-            fee,
-            feeRate,
-            inputs: Object.fromEntries(inputs),
-            outputs: [...outputs],
-            rbf,
-            replacesTxid,
-            selectedAutoSelectUtxos,
-            signedPsbtBase64,
-            signedTx,
-            stonewallPreview: normalizeStonewallPreview(stonewallPreview),
-            timeLock
-          }
+          !builder.broadcasted &&
+          (builder.inputs.size > 0 ||
+            builder.outputs.length > 0 ||
+            Boolean(builder.signedTx))
+        if (builder.accountId && isUnfinished) {
+          updatedDrafts[builder.accountId] = toSavedDraft(builder)
         }
 
         set({
@@ -430,9 +454,6 @@ const useTransactionBuilderStore = create<
           accountId,
           broadcasted: false,
           drafts: updatedDrafts,
-          isPsbtPrebuilt: false,
-          payjoinUri: undefined,
-          psbt: undefined,
           signedPsbts: new Map<number, string>()
         })
       },
@@ -465,7 +486,10 @@ const useTransactionBuilderStore = create<
         })
       },
       setPayjoinUri: (payjoinUri) => {
-        set({ payjoinUri })
+        set((state) => {
+          state.payjoinUri = payjoinUri
+          syncDraft(state)
+        })
       },
       setPsbt: (psbt) => {
         set({ psbt })

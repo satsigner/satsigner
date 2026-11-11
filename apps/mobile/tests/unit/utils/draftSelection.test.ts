@@ -1,6 +1,7 @@
 import {
   getDraftIoCounts,
   getDraftLabel,
+  getDraftResumeStep,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
 
@@ -149,5 +150,24 @@ describe('getDraftLabel', () => {
         ]
       })
     ).toBe('')
+  })
+})
+
+describe('getDraftResumeStep', () => {
+  it('resumes a signed draft at signing', () => {
+    expect(
+      getDraftResumeStep({ prebuiltPsbtBase64: 'cHNidP8=', signedTx: 'aa' })
+    ).toBe('sign')
+  })
+
+  it('resumes an unsigned fee replacement at the preview', () => {
+    expect(getDraftResumeStep({ prebuiltPsbtBase64: 'cHNidP8=' })).toBe(
+      'preview'
+    )
+  })
+
+  it('resumes any other draft at inputs and outputs', () => {
+    expect(getDraftResumeStep({})).toBe('io')
+    expect(getDraftResumeStep()).toBe('io')
   })
 })

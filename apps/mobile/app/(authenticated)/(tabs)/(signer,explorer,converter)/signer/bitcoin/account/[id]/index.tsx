@@ -120,7 +120,12 @@ import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
-import { getDraftIoCounts, getDraftLabel } from '@/utils/draftSelection'
+import {
+  type DraftResumeStep,
+  getDraftIoCounts,
+  getDraftLabel,
+  getDraftResumeStep
+} from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -365,6 +370,12 @@ function PayjoinSessionCard({
   )
 }
 
+const DRAFT_RESUME_SCREEN: Record<DraftResumeStep, string> = {
+  io: 'ioPreview',
+  preview: 'previewTransaction',
+  sign: 'signTransaction'
+}
+
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
   const [drafts, clearTransaction] = useTransactionBuilderStore(
@@ -400,9 +411,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
     <SSPressable
       onPress={() =>
         router.navigate(
-          readyToBroadcast
-            ? `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
-            : `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+          `/signer/bitcoin/account/${accountId}/signAndSend/${DRAFT_RESUME_SCREEN[getDraftResumeStep(draft)]}`
         )
       }
       activeOpacity={0.7}

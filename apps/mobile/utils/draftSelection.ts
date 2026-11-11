@@ -96,9 +96,30 @@ function getDraftLabel(draft?: {
   return labeled?.label.trim() ?? ''
 }
 
+type DraftResumeStep = 'sign' | 'preview' | 'io'
+
+/**
+ * Where an unfinished draft picks up. A fee replacement's inputs are already
+ * spent, so it can only resume from the PSBT the replacement built.
+ */
+function getDraftResumeStep(draft?: {
+  prebuiltPsbtBase64?: string
+  signedTx?: string
+}): DraftResumeStep {
+  if (draft?.signedTx) {
+    return 'sign'
+  }
+  if (draft?.prebuiltPsbtBase64) {
+    return 'preview'
+  }
+  return 'io'
+}
+
 export {
   DEFAULT_AUTO_SELECT,
   getDraftIoCounts,
   getDraftLabel,
+  getDraftResumeStep,
   resolveDraftAlgorithm
 }
+export type { DraftResumeStep }

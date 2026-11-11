@@ -7,6 +7,7 @@ import {
 } from '@/store/transactionBuilder'
 
 const ACCOUNT_ID = 'acc-draft-1'
+const PAYJOIN_URI = 'bitcoin:tb1qtest?pj=https://pj.example'
 
 describe('transactionBuilder signed draft persistence', () => {
   beforeEach(() => {
@@ -179,6 +180,71 @@ describe('transactionBuilder draft after an app restart', () => {
 
     expect(state.signedTx).toBe('deadbeef')
     expect(state.signedPsbtBase64).toBe('cHNidP8=')
+  })
+
+  it('restores the payjoin URI of an unsent payjoin draft', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: '', to: 'tb1qtest' })
+    store.setPayjoinUri(PAYJOIN_URI)
+
+    expect(restartStore().getState().payjoinUri).toBe(PAYJOIN_URI)
+  })
+
+  it('restores the prebuilt psbt of an unsigned fee replacement', () => {
+    const psbt = new Psbt('')
+    jest.mocked(psbt.toBase64).mockReturnValue('cHNidP8=')
+    useTransactionBuilderStore.getState().replaceDraft(
+      ACCOUNT_ID,
+      {
+        fee: 500,
+        feeRate: 4,
+        inputs: [
+          {
+            keychain: 'internal',
+            txid: 'aa'.repeat(32),
+            value: 90_500,
+            vout: 1
+          }
+        ],
+        outputs: [{ amount: 90_000, label: '', to: 'tb1qtest' }]
+      },
+      { psbt, replacesTxid: 'cc'.repeat(32) }
+    )
+
+    const state = restartStore().getState()
+
+    expect(state.isPsbtPrebuilt).toBe(true)
+    expect(state.psbt).toBeDefined()
+  })
+
+  it('forgets the prebuilt psbt once the builder rebuilds it', () => {
+    const psbt = new Psbt('')
+    jest.mocked(psbt.toBase64).mockReturnValue('cHNidP8=')
+    const store = useTransactionBuilderStore.getState()
+    store.replaceDraft(
+      ACCOUNT_ID,
+      {
+        fee: 500,
+        feeRate: 4,
+        inputs: [
+          {
+            keychain: 'internal',
+            txid: 'aa'.repeat(32),
+            value: 90_500,
+            vout: 1
+          }
+        ],
+        outputs: [{ amount: 90_000, label: '', to: 'tb1qtest' }]
+      },
+      { psbt, replacesTxid: 'cc'.repeat(32) }
+    )
+    store.clearPsbt()
+
+    expect(
+      useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]
+        ?.prebuiltPsbtBase64
+    ).toBeUndefined()
   })
 })
 
