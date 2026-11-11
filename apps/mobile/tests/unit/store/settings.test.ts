@@ -38,6 +38,24 @@ describe('settings store', () => {
     })
   })
 
+  describe('setFiatPriceApiUrl', () => {
+    it('keeps the text as typed so a url can be entered by hand', () => {
+      useSettingsStore.getState().setFiatPriceApiUrl('https://')
+      expect(useSettingsStore.getState().fiatPriceApiUrl).toBe('https://')
+
+      useSettingsStore.getState().setFiatPriceApiUrl('https://example.com/')
+      expect(useSettingsStore.getState().fiatPriceApiUrl).toBe(
+        'https://example.com/'
+      )
+    })
+
+    it('still requests prices from the normalized url', () => {
+      useSettingsStore.setState({ fiatPriceProvider: 'custom' })
+      useSettingsStore.getState().setFiatPriceApiUrl(' https://example.com/ ')
+      expect(getFiatPriceApiUrl()).toBe('https://example.com')
+    })
+  })
+
   describe('migrateFiatPriceSettings', () => {
     function getMerged() {
       return useSettingsStore.getState()
