@@ -1,4 +1,3 @@
-import { getDecodedToken } from '@cashu/cashu-ts'
 import { Slider } from '@miblanchard/react-native-slider'
 import { type AvailableLenses, useCameraPermissions } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -21,6 +20,7 @@ import {
   type DetectedContent,
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
+import { readEcashToken } from '@/utils/ecashToken'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   createURStreamDecoder,
@@ -165,18 +165,11 @@ function isPartialCashuChunk(data: string) {
   }
   // Length alone is ambiguous: small Cashu V4 (`cashuB...`) tokens with
   // few proofs can be under 300 chars, so a static QR of a valid token
-  // would be wrongly rejected. Instead, ask the library to decode it —
-  // if it parses into a complete token it's a real single QR; if decoding
-  // throws, it's a raw slice from the legacy animated sender.
-  try {
-    const decoded = getDecodedToken(trimmed)
-    if (decoded?.proofs && decoded.proofs.length > 0) {
-      return false
-    }
-  } catch {
-    return true
-  }
-  return true
+  // would be wrongly rejected. Instead, ask the library to read it — if it
+  // parses into a complete token it's a real single QR; otherwise it's a
+  // raw slice from the legacy animated sender.
+  const token = readEcashToken(trimmed)
+  return !token || token.proofAmounts.length === 0
 }
 
 function decodeSingleUR(content: string): string | null {

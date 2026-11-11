@@ -1,4 +1,3 @@
-import { getDecodedToken } from '@cashu/cashu-ts'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
@@ -10,7 +9,7 @@ import type { EcashMint, EcashToken } from '@/types/models/Ecash'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
 import { prepareEcashTokenInput } from '@/utils/contentDetector'
 import { toMintInvoiceStatus } from '@/utils/ecashMintQuote'
-import { toEcashToken } from '@/utils/ecashToken'
+import { readEcashToken } from '@/utils/ecashToken'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
@@ -167,11 +166,7 @@ export function useEcashReceive() {
     if (!normalized || !normalized.toLowerCase().startsWith('cashu')) {
       return
     }
-    try {
-      setDecodedToken(toEcashToken(getDecodedToken(normalized)))
-    } catch {
-      setDecodedToken(null)
-    }
+    setDecodedToken(readEcashToken(normalized))
   }
 
   async function handleLNURLWithdrawInput(input: string) {
