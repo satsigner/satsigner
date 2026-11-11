@@ -375,7 +375,6 @@ async function prepareRestore(
           ? 1
           : (acc.keysRequired ?? acc.keys.length),
       labels: restoreBackupLabels(acc.labels),
-      lastSyncedAt: new Date(),
       name: acc.name,
       network: acc.network,
       nostr,

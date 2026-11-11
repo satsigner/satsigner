@@ -542,7 +542,7 @@ function lastSyncedLabel(
   nowMs: number
 ): string {
   if (!lastSyncedAt) {
-    return t('account.sync.status.unsynced')
+    return t('account.neverSynced')
   }
   const syncedMs =
     lastSyncedAt instanceof Date

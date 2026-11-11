@@ -137,3 +137,18 @@ describe('account builder keys', () => {
     )
   })
 })
+
+describe('account builder account data', () => {
+  beforeEach(() => {
+    useAccountBuilderStore.getState().clearAccount()
+  })
+
+  it('leaves a new account never synced', () => {
+    addMnemonicKey(0)
+
+    const account = useAccountBuilderStore.getState().getAccountData()
+
+    expect(account.lastSyncedAt).toBeUndefined()
+    expect(account.syncStatus).toBe('unsynced')
+  })
+})

@@ -170,6 +170,7 @@
     "name": "Name",
     "network.description": "Network: %{network}",
     "network.title": "Network",
+    "neverSynced": "Never synced",
     "nostrSync.autoSyncMustBeEnabled": "Auto-sync must be enabled to send transaction data",
     "nostrSync.backupError": "Failed to backup events",
     "nostrSync.backupEvents": "Backup events",

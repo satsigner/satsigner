@@ -59,7 +59,6 @@ function buildSeedAccount(name: string, mnemonic: string): Account {
     keys: [key],
     keysRequired: 1,
     labels: {},
-    lastSyncedAt: new Date(),
     name,
     network: 'signet',
     nostr: {

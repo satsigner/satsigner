@@ -239,7 +239,6 @@ const useAccountBuilderStore = create<
         keys,
         keysRequired,
         labels: {},
-        lastSyncedAt: new Date(),
         name,
         network,
         nostr: {
