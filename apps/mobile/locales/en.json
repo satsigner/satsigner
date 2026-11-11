@@ -84,7 +84,7 @@
     "import.clipboard.seedPasted": "Seed words pasted from clipboard",
     "import.descriptor": "Import Descriptor",
     "import.error.checksumFormat": "Invalid checksum format",
-    "import.error.checksumInvalid": "Invalid checksum",
+    "import.error.checksumInvalid": "Checksum does not match the descriptor",
     "import.error.derivationPathBracket": "Unclosed derivation path bracket",
     "import.error.derivationPathComponent": "Invalid derivation path component",
     "import.error.descriptorFormat": "Invalid descriptor format",

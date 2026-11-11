@@ -22,7 +22,10 @@ import { type DetectedContent } from '@/utils/contentDetector'
 import { getScriptVersionFromDescriptor } from '@/utils/descriptor'
 import { parseMultisigDescriptor } from '@/utils/multisigDescriptor'
 import { sanitizeScannedText } from '@/utils/parse'
-import { validateDescriptor } from '@/utils/validation'
+import {
+  getInvalidDescriptorError,
+  validateDescriptor
+} from '@/utils/validation'
 
 export default function ImportDescriptor() {
   const router = useRouter()
@@ -81,7 +84,9 @@ export default function ImportDescriptor() {
   async function getDescriptorInputError(descriptorText: string) {
     const descriptorValidation = await validateDescriptor(descriptorText)
     if (!descriptorValidation) {
-      return 'Invalid descriptor'
+      return t(
+        `account.import.error.${getInvalidDescriptorError(descriptorText)}`
+      )
     }
 
     return getScriptVersionFromDescriptor(descriptorText) === scriptVersion

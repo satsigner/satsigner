@@ -8,6 +8,7 @@ import {
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isDescriptorChecksumValid } from '@/utils/descriptorChecksum'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -43,19 +44,20 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 function validateDescriptorChecksum(descriptor: string) {
-  // Try the descriptor as-is first (works for h-notation with valid checksum)
-  if (
+  if (!isDescriptorChecksumValid(descriptor)) {
+    return false
+  }
+  return (
     bdkValidateDescriptor(descriptor, Network.Bitcoin) ||
     bdkValidateDescriptor(descriptor, Network.Testnet)
-  ) {
-    return true
-  }
-  // Fall back: normalize ' → h and strip checksum (for '-notation descriptors)
-  const normalized = descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
-  return (
-    bdkValidateDescriptor(normalized, Network.Bitcoin) ||
-    bdkValidateDescriptor(normalized, Network.Testnet)
   )
+}
+
+/** Error key for a descriptor that failed `validateDescriptor`. */
+export function getInvalidDescriptorError(descriptor: string) {
+  return isDescriptorChecksumValid(descriptor)
+    ? 'descriptorFormat'
+    : 'checksumInvalid'
 }
 
 export function validateDescriptor(descriptor: string) {
@@ -286,7 +288,7 @@ export function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      error: 'descriptorFormat',
+      error: getInvalidDescriptorError(combinedDescriptor),
       externalDescriptor: external,
       internalDescriptor: internal,
       isValid: false

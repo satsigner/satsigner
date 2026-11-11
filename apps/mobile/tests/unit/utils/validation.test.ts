@@ -1,5 +1,6 @@
 import { t } from '@/locales'
 import {
+  getInvalidDescriptorError,
   validateAddress,
   validateCombinedDescriptor,
   validateDerivationPath,
@@ -10,8 +11,10 @@ import {
 } from '@/utils/validation'
 
 import {
+  COSIGNER_KEY_DESCRIPTOR,
   P2SH_MULTISIG_DESCRIPTOR,
   P2SH_P2WSH_MULTISIG_DESCRIPTOR,
+  P2WSH_MULTISIG_APOSTROPHE_DESCRIPTOR,
   P2WSH_MULTISIG_DESCRIPTOR
 } from './multisigDescriptorSamples'
 
@@ -185,5 +188,50 @@ describe('validates multisig descriptors in every script wrapper', () => {
   it('accepts the same nested descriptor on every call', () => {
     expect(validateDescriptor(P2SH_P2WSH_MULTISIG_DESCRIPTOR)).toBe(true)
     expect(validateDescriptor(P2SH_P2WSH_MULTISIG_DESCRIPTOR)).toBe(true)
+  })
+})
+
+describe('rejects descriptors whose checksum does not match', () => {
+  const [multisigBody] = P2WSH_MULTISIG_DESCRIPTOR.split('#')
+
+  it('accepts a descriptor with its own checksum or none', () => {
+    expect(validateDescriptor(COSIGNER_KEY_DESCRIPTOR)).toBe(true)
+    expect(validateDescriptor(P2WSH_MULTISIG_APOSTROPHE_DESCRIPTOR)).toBe(true)
+    expect(validateDescriptor(multisigBody)).toBe(true)
+  })
+
+  it('rejects a changed threshold that keeps the old checksum', () => {
+    const oneOfThree = P2WSH_MULTISIG_DESCRIPTOR.replace(
+      'sortedmulti(2,',
+      'sortedmulti(1,'
+    )
+
+    expect(validateDescriptor(oneOfThree)).toBe(false)
+    expect(getInvalidDescriptorError(oneOfThree)).toBe('checksumInvalid')
+  })
+
+  it('rejects a mistyped checksum', () => {
+    const mistyped = COSIGNER_KEY_DESCRIPTOR.replace(/#\w+$/, '#vd4fy20q')
+
+    expect(validateDescriptor(mistyped)).toBe(false)
+    expect(getInvalidDescriptorError(mistyped)).toBe('checksumInvalid')
+  })
+
+  it('reports a malformed descriptor as a format error', () => {
+    expect(getInvalidDescriptorError('not a descriptor')).toBe(
+      'descriptorFormat'
+    )
+  })
+
+  it('reports a checksum mismatch on a combined descriptor', () => {
+    const tampered = P2WSH_MULTISIG_DESCRIPTOR.replace(
+      'sortedmulti(2,',
+      'sortedmulti(1,'
+    )
+    const { error, isValid } = validateCombinedDescriptor(tampered, 'P2WSH')
+
+    expect(isValid).toBe(false)
+    expect(error).toBe('checksumInvalid')
+    expect(t(`account.import.error.${error}`)).not.toMatch(/missing/i)
   })
 })

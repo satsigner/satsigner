@@ -45,6 +45,7 @@ import {
 } from '@/utils/descriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import {
+  getInvalidDescriptorError,
   isCombinedDescriptor,
   validateCombinedDescriptor,
   validateDescriptor,
@@ -56,6 +57,16 @@ function getCombinedDescriptorErrorMessage(error: string | undefined) {
   return error
     ? t(`account.import.error.${error}`)
     : t('account.import.error.descriptorFormat')
+}
+
+function getDescriptorErrorMessage(
+  descriptor: string,
+  skipChecksumValidation: boolean
+) {
+  const error = skipChecksumValidation
+    ? 'descriptorFormat'
+    : getInvalidDescriptorError(descriptor)
+  return t(`account.import.error.${error}`)
 }
 
 export default function ImportDescriptor() {
@@ -166,7 +177,10 @@ export default function ImportDescriptor() {
 
     if (descriptor) {
       if (!basicValidation) {
-        const errorMessage = t('account.import.error.descriptorFormat')
+        const errorMessage = getDescriptorErrorMessage(
+          descriptor,
+          skipChecksumValidation
+        )
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         const errorMessage = networkValidation.error
@@ -215,7 +229,10 @@ export default function ImportDescriptor() {
 
     if (descriptor) {
       if (!basicValidation) {
-        const errorMessage = t('account.import.error.descriptorFormat')
+        const errorMessage = getDescriptorErrorMessage(
+          descriptor,
+          skipChecksumValidation
+        )
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !networkValidation.isValid) {
         const errorMessage = networkValidation.error
@@ -343,10 +360,6 @@ export default function ImportDescriptor() {
           '/0/*',
           '/1/*'
         )
-        const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
-        if (checksum) {
-          internalDescriptor += checksum[0]
-        }
       }
     } catch {
       if (text.includes('\n')) {

@@ -4,7 +4,6 @@ import {
   addDescriptorChecksum,
   deriveChangeDescriptor,
   descriptorHasPrivateKeyMaterial,
-  getDescriptorChecksum,
   getDescriptorDerivationPath,
   getFingerprint,
   getScriptVersionFromDescriptor,
@@ -15,6 +14,7 @@ import {
   splitMultipathDescriptor,
   wrapBareScriptKey
 } from '@/utils/descriptor'
+import { getDescriptorChecksum } from '@/utils/descriptorChecksum'
 
 const SPARROW_ORIGIN_XPUB =
   "[d34db33f/84'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG"
