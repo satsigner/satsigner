@@ -456,8 +456,9 @@ export default function SignTransaction() {
         store.updateSessionStatus(session.id, 'completed')
       }
     }
-    const sentTxid =
-      txidFromSignedDraft(signedPsbtBase64, signedTx) ?? displayTxid
+    // The hex is what went out: a final transaction imported over an older
+    // combined PSBT can carry another txid when an input is not segwit.
+    const sentTxid = txidFromSignedDraft(undefined, signedTx) ?? displayTxid
     if (id && sentTxid) {
       recordSentTransaction(id, sentTxid)
     }
