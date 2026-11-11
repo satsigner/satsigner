@@ -11,6 +11,7 @@ import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
 import { PIN_MAX_LENGTH, PIN_MIN_LENGTH, PIN_SIZE } from '@/config/auth'
 import { useAuthHydrated } from '@/hooks/useAuthHydrated'
+import { usePinTriesFeedback } from '@/hooks/usePinTriesFeedback'
 import useReEncryptAccounts from '@/hooks/useReEncryptAccounts'
 import { useStoredPinLength } from '@/hooks/useStoredPinLength'
 import SSHStack from '@/layouts/SSHStack'
@@ -97,6 +98,7 @@ function SetPinForm({ initialPinLength, start }: SetPinFormProps) {
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
+  const triesFeedback = usePinTriesFeedback()
 
   const reEncryptAccounts = useReEncryptAccounts()
 
@@ -365,6 +367,7 @@ function SetPinForm({ initialPinLength, start }: SetPinFormProps) {
               pin={currentPinArray}
               setPin={handleCurrentPinChange}
               feedback={getFeedback()}
+              {...triesFeedback}
             />
           )}
           {stage === 'set' && (
