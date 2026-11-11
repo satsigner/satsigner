@@ -86,6 +86,8 @@ export default function EcashAccountDetailPage() {
   })
 
   const totalBalance = proofs.reduce((sum, proof) => sum + proof.amount, 0)
+  // Proofs of a removed mint still count, so the balance stays in view.
+  const hasMintsOrProofs = mints.length > 0 || proofs.length > 0
 
   const keysetCounters = counters
     ? Object.fromEntries(counters.map((c) => [c.keysetId, c.counter]))
@@ -296,7 +298,7 @@ export default function EcashAccountDetailPage() {
         }}
       />
       <Animated.View>
-        {mints.length === 0 ? (
+        {!hasMintsOrProofs ? (
           <SSVStack itemsCenter gap="lg" style={styles.noMintContainer}>
             <SSVStack itemsCenter gap="sm">
               <SSText size="lg" weight="medium">
@@ -383,7 +385,7 @@ export default function EcashAccountDetailPage() {
           </SSVStack>
         )}
       </Animated.View>
-      {mints.length > 0 && (
+      {hasMintsOrProofs && (
         <TabView
           style={{ marginTop: -8 }}
           swipeEnabled={false}

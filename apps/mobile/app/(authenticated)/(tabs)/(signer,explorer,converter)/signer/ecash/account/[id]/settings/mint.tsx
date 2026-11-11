@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Alert, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getMintBalance } from '@/api/ecash'
 import { SSIconBlackIndicator, SSIconGreenIndicator } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -37,6 +38,7 @@ export default function EcashAccountMintPage() {
   const {
     activeAccount,
     mints,
+    proofs,
     connectToMint,
     disconnectMint,
     restoreFromSeed
@@ -71,8 +73,28 @@ export default function EcashAccountMintPage() {
     setMintUrl(url)
   }
 
+  // Removing a mint keeps its proofs, which come back when it is added again,
+  // but they can't be spent meanwhile, so the user is told how much that is.
   function handleRemoveMint(url: string) {
-    disconnectMint(url)
+    const balance = getMintBalance(url, proofs)
+    if (balance === 0) {
+      disconnectMint(url)
+      return
+    }
+    Alert.alert(
+      t('ecash.mint.removeConfirmTitle'),
+      t('ecash.mint.removeConfirmMessage', {
+        amount: formatMaskedNumber(balance, privacyMode)
+      }),
+      [
+        { style: 'cancel', text: t('common.cancel') },
+        {
+          onPress: () => disconnectMint(url),
+          style: 'destructive',
+          text: t('common.remove')
+        }
+      ]
+    )
   }
 
   async function handleRecoverFromMint(url: string) {
@@ -121,7 +143,11 @@ export default function EcashAccountMintPage() {
                         <SSText weight="medium">
                           {privacyMode
                             ? PRIVACY_MASK
-                            : formatNumber(mint.balance, 0, zeroPadding)}{' '}
+                            : formatNumber(
+                                getMintBalance(mint.url, proofs),
+                                0,
+                                zeroPadding
+                              )}{' '}
                           {currencyUnit === 'btc'
                             ? t('bitcoin.btc')
                             : t('bitcoin.sats')}

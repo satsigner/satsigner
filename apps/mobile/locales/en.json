@@ -1442,6 +1442,8 @@
     "mint.noMintSelectedDescription": "Connect to a mint to start using ecash",
     "mint.plural": "mints",
     "mint.recover": "Recover Proofs from Seed",
+    "mint.removeConfirmMessage": "This mint holds %{amount} sats. They stay in this account, but can only be spent after you add the mint again.",
+    "mint.removeConfirmTitle": "Remove Mint",
     "mint.selectMint": "Select Mint",
     "mint.singular": "mint",
     "mint.status": "Status",
