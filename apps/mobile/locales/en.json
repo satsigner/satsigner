@@ -2681,6 +2681,7 @@
     "note.pollSubmitVote": "Submit vote",
     "note.pollVoteFailed": "Vote failed",
     "note.pollVoteSuccess": "Vote submitted",
+    "note.qrId": "id",
     "note.qrTitle": "Note QR Code",
     "note.rangeHint": "Choose between %{min} and %{max} sats",
     "note.reactions.dislike": "Dislike",
