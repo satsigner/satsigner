@@ -62,6 +62,7 @@ async function paste(text: string) {
   await act(async () => {
     await result.current?.applyInvoiceInput(text, PASTED)
   })
+  return result
 }
 
 describe('useEcashSend applyInvoiceInput', () => {
@@ -106,14 +107,24 @@ describe('useEcashSend applyInvoiceInput', () => {
   })
 
   it('reports content that is not an invoice instead of confirming it', async () => {
-    await paste(cashuTokens.valid.v4)
+    const result = await paste(cashuTokens.valid.v4)
 
     expect(toast.error).toHaveBeenCalledWith(UNSUPPORTED)
     expect(toast.success).not.toHaveBeenCalled()
+    expect(result.current?.invoice).toBe('')
+  })
+
+  it('keeps a pasted invoice in the field', async () => {
+    const result = await paste(lightningInvoices.mainnet.basic)
+
+    expect(result.current?.invoice).toBe(lightningInvoices.mainnet.basic)
   })
 
   it('only explains that an LNURL-withdraw code belongs in Receive', async () => {
-    await paste(encodeLnurl('https://service.example/lnurlw/abc'))
+    const result = await paste(
+      encodeLnurl('https://service.example/lnurlw/abc')
+    )
+    expect(result.current?.invoice).toBe('')
 
     expect(toast.error).toHaveBeenCalledTimes(1)
     expect(toast.error).toHaveBeenCalledWith(

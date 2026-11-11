@@ -367,6 +367,8 @@ export function useEcashSend() {
       toast.success(successMessage)
       return
     }
+    // What this screen can't pay is not left in the field.
+    setInvoice('')
     if (inputKind === 'unsupported') {
       toast.error(t('ecash.error.unsupportedInvoiceInput'))
     }
