@@ -3725,7 +3725,7 @@
     "build.errors.noOutputSelected.autoUtxoSelection": "Please add an output first to use this auto utxo selection algorithm",
     "build.fakeMix": "Fake mix",
     "build.minerFee": "Miner fee",
-    "build.options.autoSelect.utxos.efficiency.description": "Selection of inputs that won't produce dust change and will occupy the least amount of space.",
+    "build.options.autoSelect.utxos.efficiency.description": "Selection of inputs that won't produce dust change and avoids a change output when it can.",
     "build.options.autoSelect.utxos.efficiency.title": "Efficiency",
     "build.options.autoSelect.utxos.label": "Auto select utxos for",
     "build.options.autoSelect.utxos.privacy.description": "Best possible transaction template that breaks as many heuristics as possible.",
