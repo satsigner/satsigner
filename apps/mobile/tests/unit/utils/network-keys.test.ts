@@ -4,7 +4,9 @@ import {
   detectNetworkFromKey,
   getDerivationPathFromScriptVersion,
   getKeyFormatForScriptVersion,
-  getMultisigDerivationPathFromScriptVersion
+  getMultisigDerivationPathFromScriptVersion,
+  getNetworkKeyFormatName,
+  getPubkeyExportFormats
 } from '@/utils/bitcoin'
 import { validateExtendedKey } from '@/utils/validation'
 
@@ -370,5 +372,39 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('UNKNOWN', 'signet')
     ).toBe("48'/1'/0'/2'")
+  })
+})
+
+describe('getPubkeyExportFormats', () => {
+  it('offers only xpub for a legacy account', () => {
+    expect(getPubkeyExportFormats('singlesig', 'P2PKH')).toStrictEqual(['xpub'])
+  })
+
+  it('offers the SLIP-132 format of the segwit script type', () => {
+    expect(getPubkeyExportFormats('singlesig', 'P2WPKH')).toStrictEqual([
+      'xpub',
+      'zpub'
+    ])
+    expect(getPubkeyExportFormats('watchonly', 'P2SH-P2WPKH')).toStrictEqual([
+      'xpub',
+      'ypub'
+    ])
+  })
+
+  it('offers only xpub for taproot, multisig and unknown script types', () => {
+    expect(getPubkeyExportFormats('singlesig', 'P2TR')).toStrictEqual(['xpub'])
+    expect(getPubkeyExportFormats('multisig', 'P2WPKH')).toStrictEqual(['xpub'])
+    expect(getPubkeyExportFormats('watchonly', undefined)).toStrictEqual([
+      'xpub'
+    ])
+  })
+})
+
+describe('getNetworkKeyFormatName', () => {
+  it('names formats as each network writes them', () => {
+    expect(getNetworkKeyFormatName('zpub', 'bitcoin')).toBe('zpub')
+    expect(getNetworkKeyFormatName('zpub', 'signet')).toBe('vpub')
+    expect(getNetworkKeyFormatName('ypub', 'testnet')).toBe('upub')
+    expect(getNetworkKeyFormatName('xpub', 'signet')).toBe('tpub')
   })
 })

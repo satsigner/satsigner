@@ -23,7 +23,12 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { isElectrumDerivationPath } from '@/utils/bip39'
-import { convertKeyFormat } from '@/utils/bitcoin'
+import {
+  convertKeyFormat,
+  getNetworkKeyFormatName,
+  getPubkeyExportFormats,
+  type PubkeyExportFormat
+} from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {
@@ -35,16 +40,15 @@ export default function ExportPubkeys() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const qrRef = useRef<ViewInstance>(null)
-  const [pubkeyFormat, setPubkeyFormat] = useState<'xpub' | 'zpub' | 'vpub'>(
-    'xpub'
-  )
+  const pubkeyFormats = account
+    ? getPubkeyExportFormats(account.policyType, account.keys[0]?.scriptVersion)
+    : []
+  const [pubkeyFormat, setPubkeyFormat] = useState<PubkeyExportFormat>('xpub')
   const {
     data: rawPubkeys = [],
     isError,
     isLoading
   } = useAccountPublicKeys(account, network)
-  // zpub/vpub are SLIP-132 single-sig versions, so multisig keys stay xpub.
-  const showSlip132Formats = account?.policyType !== 'multisig'
   const exportContent = (
     pubkeyFormat === 'xpub'
       ? rawPubkeys
@@ -98,28 +102,17 @@ export default function ExportPubkeys() {
         )}
         {!isLoading && rawPubkeys.length > 0 && (
           <SSHStack style={{ gap: 10, justifyContent: 'center' }}>
-            <SSButton
-              label={t('account.export.xpubFormat')}
-              variant={pubkeyFormat === 'xpub' ? 'secondary' : 'default'}
-              onPress={() => setPubkeyFormat('xpub')}
-              style={{ flex: 1 }}
-            />
-            {showSlip132Formats && (
+            {pubkeyFormats.map((format) => (
               <SSButton
-                label={t('account.export.zpubFormat')}
-                variant={pubkeyFormat === 'zpub' ? 'secondary' : 'default'}
-                onPress={() => setPubkeyFormat('zpub')}
+                key={format}
+                label={t(
+                  `account.seed.formatButtons.${getNetworkKeyFormatName(format, network)}`
+                )}
+                variant={pubkeyFormat === format ? 'secondary' : 'default'}
+                onPress={() => setPubkeyFormat(format)}
                 style={{ flex: 1 }}
               />
-            )}
-            {showSlip132Formats && (
-              <SSButton
-                label={t('account.export.vpubFormat')}
-                variant={pubkeyFormat === 'vpub' ? 'secondary' : 'default'}
-                onPress={() => setPubkeyFormat('vpub')}
-                style={{ flex: 1 }}
-              />
-            )}
+            ))}
           </SSHStack>
         )}
         {isError && (
