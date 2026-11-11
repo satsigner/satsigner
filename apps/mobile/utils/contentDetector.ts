@@ -41,34 +41,37 @@ function isBitcoinTransaction(data: string): boolean {
   }
 }
 
-export type ContentType =
-  | 'bitcoin_address'
-  | 'bitcoin_uri'
-  | 'psbt'
-  | 'bitcoin_transaction'
-  | 'lightning_invoice'
-  | 'lightning_address'
-  | 'lightning_node'
-  | 'lnurl'
-  | 'lnd_rest_config'
-  | 'ark_address'
-  | 'ecash_token'
-  | 'encrypted_backup'
-  | 'bbqr_fragment'
-  | 'seed_qr'
-  | 'ur'
-  | 'bitcoin_descriptor'
-  | 'extended_public_key'
-  | 'master_fingerprint'
-  | 'nostr_npub'
-  | 'nostr_nsec'
-  | 'nostr_note'
-  | 'nostr_nevent'
-  | 'nostr_nprofile'
-  | 'nostr_connect'
-  | 'nostr_json'
-  | 'incompatible'
-  | 'unknown'
+export const CONTENT_TYPES = [
+  'bitcoin_address',
+  'bitcoin_uri',
+  'psbt',
+  'bitcoin_transaction',
+  'lightning_invoice',
+  'lightning_address',
+  'lightning_node',
+  'lnurl',
+  'lnd_rest_config',
+  'ark_address',
+  'ecash_token',
+  'encrypted_backup',
+  'bbqr_fragment',
+  'seed_qr',
+  'ur',
+  'bitcoin_descriptor',
+  'extended_public_key',
+  'master_fingerprint',
+  'nostr_npub',
+  'nostr_nsec',
+  'nostr_note',
+  'nostr_nevent',
+  'nostr_nprofile',
+  'nostr_connect',
+  'nostr_json',
+  'incompatible',
+  'unknown'
+] as const
+
+export type ContentType = (typeof CONTENT_TYPES)[number]
 
 export type ContentContext =
   | 'bitcoin'
