@@ -21,7 +21,7 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
-import { isValidDomainName, isValidIPAddress } from '@/utils/url'
+import { isValidDomainName, isValidIPAddress, isValidPort } from '@/utils/url'
 
 // TLSSocketOptions omits rejectUnauthorized from its types, but both native
 // implementations (Android/iOS) honor it.
@@ -124,9 +124,12 @@ class BaseElectrumClient {
 
     const isValidDomain = isValidDomainName(host)
     const isValidIP = isValidIPAddress(host)
-    const isValidPort = port.match(/^[0-9]+$/) !== null
     const isValidProtocol = ['ssl', 'tls', 'tcp'].includes(protocol)
-    if (!(isValidDomain || isValidIP) || !isValidPort || !isValidProtocol) {
+    if (
+      !(isValidDomain || isValidIP) ||
+      !isValidPort(port) ||
+      !isValidProtocol
+    ) {
       throw new Error(`Backend URL ${url} seems invalid.`)
     }
 

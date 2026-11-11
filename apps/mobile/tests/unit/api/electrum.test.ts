@@ -58,6 +58,20 @@ describe('electrumClient TLS', () => {
   })
 })
 
+describe('electrumClient url validation', () => {
+  it('accepts a port within the TCP range', () => {
+    expect(() =>
+      ElectrumClient.fromUrl('ssl://electrum.example.com:65535', 'bitcoin')
+    ).not.toThrow()
+  })
+
+  it.each(['0', '65536', '99999'])('rejects port %s', (port) => {
+    expect(() =>
+      ElectrumClient.fromUrl(`ssl://electrum.example.com:${port}`, 'bitcoin')
+    ).toThrow('seems invalid')
+  })
+})
+
 describe('electrumClient response verification', () => {
   it('accepts UTXOs consistent with their creating transaction', async () => {
     const client = makeClient()
