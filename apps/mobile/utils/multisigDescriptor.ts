@@ -15,7 +15,10 @@ const MULTISIG_SCRIPT_WRAPPERS: MultisigScriptWrapper[] = [
   { prefix: 'sh(', scriptVersion: 'P2SH', suffix: ')' }
 ]
 
-const MULTI_SCRIPT_PATTERN = /^(?:multi|sortedmulti)\((\d+),(.+)\)$/
+// The account rebuilds its wallet as sortedmulti, so a multi() descriptor,
+// which keeps its key order, would get other addresses than the cosigners'.
+const MULTI_SCRIPT_PATTERN = /^sortedmulti\((\d+),(.+)\)$/
+const UNSORTED_MULTI_PATTERN = /(?:^|\()multi\(/
 const KEY_WITH_ORIGIN_PATTERN = /^\[([^\]]+)\](.+)$/
 const DEFAULT_ADDRESS_PATH = '/<0;1>/*'
 
@@ -64,8 +67,15 @@ function parseMultisigKey(key: string, index: number) {
   }
 }
 
-/** Threshold, keys and script type of a sh(), sh(wsh()) or wsh() multisig descriptor. */
+export function isUnsortedMultisigDescriptor(descriptor: string) {
+  return UNSORTED_MULTI_PATTERN.test(removeChecksum(descriptor.trim()))
+}
+
+/** Threshold, keys and script type of a sh(), sh(wsh()) or wsh() sortedmulti descriptor. */
 export function parseMultisigDescriptor(descriptor: string) {
+  if (isUnsortedMultisigDescriptor(descriptor)) {
+    throw new Error('Unsorted multisig is not supported')
+  }
   const { multiScript, scriptVersion } = unwrapMultisigScript(
     removeChecksum(descriptor.trim())
   )

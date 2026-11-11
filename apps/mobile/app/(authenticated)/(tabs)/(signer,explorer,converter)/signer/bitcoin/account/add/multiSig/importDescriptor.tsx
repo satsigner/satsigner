@@ -21,7 +21,10 @@ import { Colors } from '@/styles'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { getScriptVersionFromDescriptor } from '@/utils/descriptor'
-import { parseMultisigDescriptor } from '@/utils/multisigDescriptor'
+import {
+  isUnsortedMultisigDescriptor,
+  parseMultisigDescriptor
+} from '@/utils/multisigDescriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import {
   getInvalidDescriptorError,
@@ -93,6 +96,9 @@ export default function ImportDescriptor() {
     }
     if (!validateDescriptorNetwork(descriptorText, network)) {
       return t('account.import.error.networkIncompatible')
+    }
+    if (isUnsortedMultisigDescriptor(descriptorText)) {
+      return t('account.import.error.unsortedMultisig')
     }
 
     return getScriptVersionFromDescriptor(descriptorText) === scriptVersion

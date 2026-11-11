@@ -1,5 +1,8 @@
 import { type ScriptVersionType } from '@/types/models/Script'
-import { parseMultisigDescriptor } from '@/utils/multisigDescriptor'
+import {
+  isUnsortedMultisigDescriptor,
+  parseMultisigDescriptor
+} from '@/utils/multisigDescriptor'
 
 import {
   COSIGNERS,
@@ -85,6 +88,16 @@ describe('parseMultisigDescriptor', () => {
       )
     }
   )
+
+  it('rejects an unsorted multi() descriptor, which the account would rebuild as sortedmulti', () => {
+    const unsorted = P2WSH_MULTISIG_DESCRIPTOR.replace('sortedmulti(', 'multi(')
+
+    expect(isUnsortedMultisigDescriptor(unsorted)).toBe(true)
+    expect(isUnsortedMultisigDescriptor(P2WSH_MULTISIG_DESCRIPTOR)).toBe(false)
+    expect(() => parseMultisigDescriptor(unsorted)).toThrow(
+      'Unsorted multisig is not supported'
+    )
+  })
 
   it('rejects a key without its origin', () => {
     const descriptor = P2WSH_MULTISIG_DESCRIPTOR.replace(

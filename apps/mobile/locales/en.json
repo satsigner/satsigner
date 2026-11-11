@@ -99,6 +99,7 @@
     "import.error.scriptFunctionInvalid": "Unknown or invalid script function",
     "import.error.scriptVersionMismatch": "Script type \"%{scriptType}\" is not compatible with multisig script version \"%{scriptVersion}\". Expected: %{expectedTypes}",
     "import.error.unexpectedBracket": "Unexpected closing bracket in derivation path",
+    "import.error.unsortedMultisig": "Only sortedmulti descriptors can become a multisig account. Add a multi() descriptor as a watch-only account instead.",
     "import.error.xpubFormat": "Invalid extended public key for this network",
     "import.error.xpubIncompatible": "Extended public key is incompatible with multisig script version",
     "import.existingSingleWallet": "Existing Single Key Wallets",
