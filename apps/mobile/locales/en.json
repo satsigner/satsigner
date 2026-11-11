@@ -2608,6 +2608,7 @@
     "importExisting": "Import Identity",
     "keys.format.bech32": "bech32",
     "keys.format.hex": "hex",
+    "keys.lnaddress": "Lightning Address",
     "keys.npub": "Public Key (npub)",
     "keys.npubHex": "Public Key (hex)",
     "keys.nsec": "Secret Key (nsec)",

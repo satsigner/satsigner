@@ -17,7 +17,7 @@ import { type TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 
-function getNip19Type(value: string): string | null {
+export function getNip19Type(value: string): string | null {
   try {
     return nip19.decode(value).type
   } catch {

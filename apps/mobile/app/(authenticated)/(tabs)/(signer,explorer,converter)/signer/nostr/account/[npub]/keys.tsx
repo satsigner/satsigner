@@ -92,7 +92,7 @@ export default function NostrIdentityKeys() {
   const nsecDisplay = identity.nsec
     ? formatNostrKey(identity.nsec, keyFormat)
     : null
-  const qrValue = qrKeyType === 'nsec' ? nsecDisplay : npubDisplay
+  const qrValue = qrKeyType === 'nsec' ? identity.nsec : identity.npub
   const isSecretRevealed = nsecRevealed || seedWordsRevealed
 
   function handleCopyNpub() {
@@ -363,7 +363,9 @@ export default function NostrIdentityKeys() {
       {qrKeyType && qrValue ? (
         <SSNostrKeyQRModal
           value={qrValue}
-          label={getKeyLabel(qrKeyType, keyFormat)}
+          label={getKeyLabel(qrKeyType, 'bech32')}
+          lnAddress={qrKeyType === 'npub' ? identity.lud16 : undefined}
+          ownerNpub={identity.npub}
           shareable={qrKeyType === 'npub'}
           visible
           onClose={handleCloseQr}

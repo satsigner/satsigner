@@ -317,7 +317,7 @@ function NostrKeysPreview() {
         </SSDesignSection>
       </SSVStack>
       <SSNostrKeyQRModal
-        value={publicKey}
+        value={DESIGN_NOSTR_ME_NPUB}
         label={t('nostrIdentity.keys.npub')}
         shareable
         visible={qrVisible}
