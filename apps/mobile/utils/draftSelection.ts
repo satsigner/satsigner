@@ -86,4 +86,19 @@ function getDraftIoCounts(draft?: DraftIoSource): {
   return { inputCount, outputCount: outputs.length }
 }
 
-export { DEFAULT_AUTO_SELECT, getDraftIoCounts, resolveDraftAlgorithm }
+/** First label set on a recipient output; change and stonewall outputs are skipped. */
+function getDraftLabel(draft?: {
+  outputs?: Pick<Output, 'kind' | 'label'>[]
+}): string {
+  const labeled = draft?.outputs?.find(
+    (output) => output.kind === undefined && output.label.trim() !== ''
+  )
+  return labeled?.label.trim() ?? ''
+}
+
+export {
+  DEFAULT_AUTO_SELECT,
+  getDraftIoCounts,
+  getDraftLabel,
+  resolveDraftAlgorithm
+}

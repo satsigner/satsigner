@@ -120,7 +120,7 @@ import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
-import { getDraftIoCounts } from '@/utils/draftSelection'
+import { getDraftIoCounts, getDraftLabel } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -130,7 +130,7 @@ import {
   formatNumber
 } from '@/utils/format'
 import { nostrSyncService } from '@/utils/nostrSyncService'
-import { parseAccountAddressesDetails } from '@/utils/parse'
+import { parseAccountAddressesDetails, parseLabel } from '@/utils/parse'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
@@ -381,6 +381,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
   const { inputCount, outputCount } = getDraftIoCounts(draft)
   const outputs = draft?.outputs ?? []
   const fee = draft?.fee ?? 0
+  const { label } = parseLabel(getDraftLabel(draft))
   const totalOut = outputs.reduce((sum, o) => sum + o.amount, 0)
   const inputLabel =
     inputCount === 1
@@ -458,6 +459,13 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             </SSHStack>
           ) : null}
         </SSVStack>
+        <SSText
+          size="xs"
+          numberOfLines={1}
+          style={[{ marginTop: 4 }, !label && { color: Colors.gray[500] }]}
+        >
+          {label || t('transaction.noLabel').toUpperCase()}
+        </SSText>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}

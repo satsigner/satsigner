@@ -1,4 +1,8 @@
-import { getDraftIoCounts, resolveDraftAlgorithm } from '@/utils/draftSelection'
+import {
+  getDraftIoCounts,
+  getDraftLabel,
+  resolveDraftAlgorithm
+} from '@/utils/draftSelection'
 
 describe('resolveDraftAlgorithm', () => {
   it('returns the persisted algorithm when present', () => {
@@ -116,5 +120,34 @@ describe('getDraftIoCounts', () => {
         }
       })
     ).toStrictEqual({ inputCount: 1, outputCount: 3 })
+  })
+})
+
+describe('getDraftLabel', () => {
+  it('returns an empty label without a draft', () => {
+    expect(getDraftLabel()).toBe('')
+  })
+
+  it('returns the first non-empty recipient output label', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: undefined, label: '  ' },
+          { kind: undefined, label: ' Rent #home ' },
+          { kind: undefined, label: 'Other' }
+        ]
+      })
+    ).toBe('Rent #home')
+  })
+
+  it('skips change and stonewall output labels', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: 'change', label: 'Change for rent' },
+          { kind: 'fakeMix', label: 'Mix' }
+        ]
+      })
+    ).toBe('')
   })
 })
