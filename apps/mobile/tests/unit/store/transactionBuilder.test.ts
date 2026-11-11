@@ -259,3 +259,51 @@ describe('transactionBuilder fee replacement drafts', () => {
     ).toBe(false)
   })
 })
+
+describe('transactionBuilder cold start', () => {
+  const PERSIST_KEY = 'satsigner-transaction-builder'
+  const SIGNED_TX = 'deadbeef'
+  const INPUT = {
+    keychain: 'external',
+    script: [],
+    txid: 'a'.repeat(64),
+    value: 5000,
+    vout: 0
+  }
+
+  it('reopens the signed draft of the account the app was on', () => {
+    jest.isolateModules(() => {
+      const mmkv: typeof import('react-native-mmkv') = require('react-native-mmkv')
+      mmkv.createMMKV({ id: 'mmkv.satsigner' }).set(
+        PERSIST_KEY,
+        JSON.stringify({
+          state: {
+            accountId: ACCOUNT_ID,
+            drafts: {
+              [ACCOUNT_ID]: {
+                cpfp: true,
+                fee: 141,
+                feeRate: 1,
+                inputs: { [`${INPUT.txid}:0`]: INPUT },
+                outputs: [],
+                rbf: true,
+                signedTx: SIGNED_TX,
+                timeLock: 0
+              }
+            }
+          },
+          version: 0
+        })
+      )
+
+      // The store hydrates while its module is first evaluated, as on launch.
+      const builder: typeof import('@/store/transactionBuilder') = require('@/store/transactionBuilder')
+      const state = builder.useTransactionBuilderStore.getState()
+
+      expect(state.accountId).toBe(ACCOUNT_ID)
+      expect(state.signedTx).toBe(SIGNED_TX)
+      expect(state.fee).toBe(141)
+      expect([...state.inputs.keys()]).toStrictEqual([`${INPUT.txid}:0`])
+    })
+  })
+})

@@ -17,6 +17,7 @@ import {
   DEFAULT_AUTO_SELECT,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
+import { isRecord } from '@/utils/object'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -131,6 +132,25 @@ function normalizeStonewallPreview(
     fakeMixValues: preview.fakeMixValues ?? [],
     fee: preview.fee ?? null,
     labelOverrides: { ...preview.labelOverrides }
+  }
+}
+
+function workingStateFromDraft(draft: SavedDraft | undefined) {
+  return {
+    cpfp: draft?.cpfp ?? true,
+    fee: draft?.fee ?? 0,
+    feeRate: draft?.feeRate ?? 0,
+    inputs: draft
+      ? new Map(Object.entries(draft.inputs))
+      : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+    outputs: draft?.outputs ?? [],
+    rbf: draft?.rbf ?? true,
+    replacesTxid: draft?.replacesTxid,
+    selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
+    signedPsbtBase64: draft?.signedPsbtBase64,
+    signedTx: draft?.signedTx,
+    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview),
+    timeLock: draft?.timeLock ?? 0
   }
 }
 
@@ -387,31 +407,15 @@ const useTransactionBuilderStore = create<
           }
         }
 
-        const newDraft = updatedDrafts[accountId]
         set({
+          ...workingStateFromDraft(updatedDrafts[accountId]),
           accountId,
           broadcasted: false,
-          cpfp: newDraft?.cpfp ?? true,
           drafts: updatedDrafts,
-          fee: newDraft?.fee ?? 0,
-          feeRate: newDraft?.feeRate ?? 0,
-          inputs: newDraft
-            ? new Map(Object.entries(newDraft.inputs))
-            : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
           isPsbtPrebuilt: false,
-          outputs: newDraft?.outputs ?? [],
           payjoinUri: undefined,
           psbt: undefined,
-          rbf: newDraft?.rbf ?? true,
-          replacesTxid: newDraft?.replacesTxid,
-          selectedAutoSelectUtxos: resolveDraftAlgorithm(newDraft),
-          signedPsbtBase64: newDraft?.signedPsbtBase64,
-          signedPsbts: new Map<number, string>(),
-          signedTx: newDraft?.signedTx,
-          stonewallPreview: normalizeStonewallPreview(
-            newDraft?.stonewallPreview
-          ),
-          timeLock: newDraft?.timeLock ?? 0
+          signedPsbts: new Map<number, string>()
         })
       },
       // A broadcast transaction is done: its draft must not come back as
@@ -508,30 +512,19 @@ const useTransactionBuilderStore = create<
       }
     })),
     {
-      name: 'satsigner-transaction-builder',
-      onRehydrateStorage: () => (state) => {
-        if (!state?.accountId) {
-          return
+      // MMKV hydrates while the store is still being created, so the open
+      // draft is rebuilt here: the store itself is not reachable yet.
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(isRecord(persistedState) ? persistedState : {})
         }
-        const draft = state.drafts[state.accountId]
-        if (!draft) {
-          return
-        }
-        useTransactionBuilderStore.setState({
-          cpfp: draft.cpfp,
-          fee: draft.fee,
-          feeRate: draft.feeRate,
-          inputs: new Map(Object.entries(draft.inputs)),
-          outputs: draft.outputs,
-          rbf: draft.rbf,
-          replacesTxid: draft.replacesTxid,
-          selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
-          signedPsbtBase64: draft.signedPsbtBase64,
-          signedTx: draft.signedTx,
-          stonewallPreview: normalizeStonewallPreview(draft.stonewallPreview),
-          timeLock: draft.timeLock
-        })
+        const draft = merged.accountId
+          ? merged.drafts[merged.accountId]
+          : undefined
+        return draft ? { ...merged, ...workingStateFromDraft(draft) } : merged
       },
+      name: 'satsigner-transaction-builder',
       partialize: (state) => ({
         accountId: state.accountId,
         drafts: state.drafts
