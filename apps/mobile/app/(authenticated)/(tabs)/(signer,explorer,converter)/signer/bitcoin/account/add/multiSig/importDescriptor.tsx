@@ -16,6 +16,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -24,7 +25,8 @@ import { parseMultisigDescriptor } from '@/utils/multisigDescriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import {
   getInvalidDescriptorError,
-  validateDescriptor
+  validateDescriptor,
+  validateDescriptorNetwork
 } from '@/utils/validation'
 
 export default function ImportDescriptor() {
@@ -56,6 +58,7 @@ export default function ImportDescriptor() {
       state.setExtendedPublicKey
     ])
   )
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const { isHardwareSupported, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
@@ -87,6 +90,9 @@ export default function ImportDescriptor() {
       return t(
         `account.import.error.${getInvalidDescriptorError(descriptorText)}`
       )
+    }
+    if (!validateDescriptorNetwork(descriptorText, network)) {
+      return t('account.import.error.networkIncompatible')
     }
 
     return getScriptVersionFromDescriptor(descriptorText) === scriptVersion
