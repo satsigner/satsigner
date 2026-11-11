@@ -1304,7 +1304,9 @@ type ErrorKeyResult = {
   errorParams?: Record<string, number>
 }
 
-type CombineAndFinalizeResult = { hex: string } | ErrorKeyResult
+type CombineAndFinalizeResult =
+  | { hex: string; psbtBase64: string }
+  | ErrorKeyResult
 
 // Combines cosigner-signed PSBTs into the original (the PSBT under review),
 // finalizes it and extracts the signed transaction hex. Failures return an
@@ -1346,7 +1348,10 @@ export function combineAndFinalizePsbts(
   }
 
   try {
-    return { hex: combinedPsbt.extractTransaction().toHex() }
+    return {
+      hex: combinedPsbt.extractTransaction().toHex(),
+      psbtBase64: combinedPsbt.toBase64()
+    }
   } catch {
     return { errorKey: 'common.error.extractTransaction' }
   }

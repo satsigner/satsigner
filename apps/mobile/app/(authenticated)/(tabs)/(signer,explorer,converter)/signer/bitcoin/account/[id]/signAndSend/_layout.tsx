@@ -1,5 +1,6 @@
 import { Slot, Stack, useLocalSearchParams, useSegments } from 'expo-router'
 import { useFocusEffect } from 'expo-router/react-navigation'
+import { useState } from 'react'
 
 import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'
@@ -43,10 +44,14 @@ export default function SignAndSendLayout() {
   )
 
   const setAccountId = useTransactionBuilderStore((state) => state.setAccountId)
+  // Screens mount only once the builder holds this account's draft: their
+  // first render and focus effects would otherwise act on the previous one.
+  const [loadedAccountId, setLoadedAccountId] = useState<string>()
 
   useFocusEffect(() => {
     if (id) {
       setAccountId(id)
+      setLoadedAccountId(id)
     }
   })
 
@@ -74,7 +79,7 @@ export default function SignAndSendLayout() {
             )
         }}
       />
-      <Slot />
+      {loadedAccountId === id ? <Slot /> : null}
     </>
   )
 }

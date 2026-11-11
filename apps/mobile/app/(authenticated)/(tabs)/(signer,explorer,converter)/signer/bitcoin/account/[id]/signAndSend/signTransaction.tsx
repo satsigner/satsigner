@@ -54,7 +54,10 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type PayjoinSession } from '@/types/payjoin'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { isArkBoardPayjoinSend } from '@/utils/arkBoardDeposit'
+import {
+  isArkBoardPayjoinSend,
+  txidFromSignedDraft
+} from '@/utils/arkBoardDeposit'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { BROADCAST_IDLE, transitionBroadcast } from '@/utils/broadcastMachine'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
@@ -358,7 +361,7 @@ export default function SignTransaction() {
   // bytes first, same ground-truth rule as the chart model.
   const displayTxid = (() => {
     if (!psbt) {
-      return ''
+      return txidFromSignedDraft(signedPsbtBase64, signedTx) ?? ''
     }
     const base64 = typeof psbt.toBase64 === 'function' ? psbt.toBase64() : ''
     return (
@@ -871,7 +874,9 @@ export default function SignTransaction() {
     waiting: waitingForReceiver
   })
 
-  if (!account || !psbt) {
+  // A signed draft restored after a restart has no psbt until the focus
+  // effect rebuilds it, and a finalized transaction hex may have none at all.
+  if (!account || (!psbt && !signedTx)) {
     return <Redirect href="/" />
   }
 
