@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -14,14 +14,24 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useNostrIdentityDraftStore } from '@/store/nostrIdentityDraft'
+import {
+  selectDraftMnemonic,
+  useNostrIdentityDraftStore
+} from '@/store/nostrIdentityDraft'
 import { Colors } from '@/styles'
 import { deriveNostrKeysFromMnemonic } from '@/utils/nostrIdentity'
 import { nostrIndexHref } from '@/utils/nostrNavigation'
 
+type ProfileSetupParams = {
+  draftId?: string
+}
+
 export default function ProfileSetup() {
   const router = useRouter()
-  const mnemonic = useNostrIdentityDraftStore((state) => state.mnemonic)
+  const { draftId } = useLocalSearchParams<ProfileSetupParams>()
+  const mnemonic = useNostrIdentityDraftStore((state) =>
+    selectDraftMnemonic(state, draftId)
+  )
   const keys = mnemonic ? deriveNostrKeysFromMnemonic(mnemonic) : null
   const {
     fetchProfile,
