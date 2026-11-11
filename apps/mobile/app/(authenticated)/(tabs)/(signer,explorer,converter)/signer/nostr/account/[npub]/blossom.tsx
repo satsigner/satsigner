@@ -178,35 +178,38 @@ export default function NostrBlossomServers() {
           </SSText>
 
           {/* Configured servers */}
-          {servers.length > 0 && (
-            <SSVStack gap="xs">
-              <SSHStack style={styles.sectionHeader}>
-                <SSText size="sm" color="muted" uppercase>
-                  {t('nostrIdentity.blossom.yourServers')}
+          <SSVStack gap="xs">
+            <SSHStack style={styles.sectionHeader}>
+              <SSText size="sm" color="muted" uppercase>
+                {t('nostrIdentity.blossom.yourServers')}
+              </SSText>
+              <SSPressable
+                activeOpacity={0.6}
+                disabled={isImporting}
+                hitSlop={8}
+                onPress={handleImportFromNostr}
+              >
+                <SSText size="sm" uppercase>
+                  {isImporting
+                    ? t('nostrIdentity.blossom.importing')
+                    : t('nostrIdentity.blossom.importFromNostr')}
                 </SSText>
-                <SSPressable
-                  activeOpacity={0.6}
-                  disabled={isImporting}
-                  hitSlop={8}
-                  onPress={handleImportFromNostr}
-                >
-                  <SSText size="sm" uppercase>
-                    {isImporting
-                      ? t('nostrIdentity.blossom.importing')
-                      : t('nostrIdentity.blossom.importFromNostr')}
-                  </SSText>
-                </SSPressable>
-              </SSHStack>
-              {servers.map((url, index) => (
-                <ServerRow
-                  key={url}
-                  url={url}
-                  isPrimary={index === 0}
-                  onRemove={() => handleRemove(url)}
-                />
-              ))}
-            </SSVStack>
-          )}
+              </SSPressable>
+            </SSHStack>
+            {servers.length === 0 && (
+              <SSText size="xs" color="muted">
+                {t('nostrIdentity.blossom.noServers')}
+              </SSText>
+            )}
+            {servers.map((url, index) => (
+              <ServerRow
+                key={url}
+                url={url}
+                isPrimary={index === 0}
+                onRemove={() => handleRemove(url)}
+              />
+            ))}
+          </SSVStack>
 
           {/* Add custom server */}
           <SSVStack gap="sm">
