@@ -1,4 +1,4 @@
-import { BITCOIN_URI_SCHEME } from '@/constants/btc'
+import { BITCOIN_URI_AMOUNT_PATTERN, BITCOIN_URI_SCHEME } from '@/constants/btc'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account, Key } from '@/types/models/Account'
@@ -323,6 +323,18 @@ type ParsedUriParams = {
   pjos?: 0 | 1
 }
 
+function parseUriAmount(params: URLSearchParams) {
+  const [amount, ...duplicates] = params.getAll('amount')
+  if (
+    amount === undefined ||
+    duplicates.length > 0 ||
+    !BITCOIN_URI_AMOUNT_PATTERN.test(amount)
+  ) {
+    return undefined
+  }
+  return Number(amount)
+}
+
 /**
  * Parses URI parameters from a bitcoin address string (without the "bitcoin:" prefix)
  * Returns null if the format is invalid
@@ -341,7 +353,6 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   const rawQuery = queryString.slice(1)
   const params = new URLSearchParams(rawQuery)
-  const amountParam = params.get('amount')
   const labelParam = params.get('label')
 
   // Extract pj without URLSearchParams mutating :// encoding.
@@ -372,7 +383,7 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   return {
     address: addressPart,
-    amount: amountParam ? Number.parseFloat(amountParam) : undefined,
+    amount: parseUriAmount(params),
     label: labelParam || undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})

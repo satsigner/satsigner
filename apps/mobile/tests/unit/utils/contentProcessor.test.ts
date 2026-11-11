@@ -158,6 +158,12 @@ describe('parseScannedPaymentUri', () => {
       expect(result).toStrictEqual({ ok: true, payjoin: false })
       expect(actions.setOutputTo).toHaveBeenCalledWith(ADDRESS)
     })
+
+    it('leaves the amount unset rather than reading part of a malformed one', () => {
+      expect(
+        parseScannedPaymentUri(content('bitcoin_uri', `${ADDRESS}?amount=1,5`))
+      ).toStrictEqual({ address: ADDRESS, amountSats: 1, label: '' })
+    })
   })
 })
 

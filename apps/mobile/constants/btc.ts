@@ -64,6 +64,8 @@ export const PSBT_MAGIC_BASE64 = 'cHNidP'
 // OP_m <pubkey> OP_n OP_CHECKMULTISIG
 export const MIN_MULTISIG_SCRIPT_CHUNKS = 4
 export const BITCOIN_URI_SCHEME = 'bitcoin:'
+// BIP21 amount: decimal BTC with a "." separator, no sign or exponent.
+export const BITCOIN_URI_AMOUNT_PATTERN = /^(\d+(\.\d*)?|\.\d+)$/
 // Output amount placeholder the user fills in on ioPreview.
 export const UNSET_OUTPUT_AMOUNT_SATS = 1
 export const MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE = 10

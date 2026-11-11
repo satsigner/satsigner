@@ -115,6 +115,36 @@ describe('parse utils', () => {
     )
   })
 
+  describe('parseUriParameters amount', () => {
+    it.each([
+      ['1.5', 1.5],
+      ['0.00001', 0.000_01],
+      ['.5', 0.5],
+      ['2.', 2],
+      ['0', 0]
+    ])('reads the decimal amount %s', (amount, expected) => {
+      expect(parseUriParameters(`bc1qtest123?amount=${amount}`)?.amount).toBe(
+        expected
+      )
+    })
+
+    it.each([
+      '1,5',
+      '0.001abc',
+      '1e3',
+      '0x10',
+      '-1',
+      ' 1',
+      'Infinity',
+      '0.001&amount=5'
+    ])('drops the malformed amount %s but keeps the address', (amount) => {
+      expect(parseUriParameters(`bc1qtest123?amount=${amount}`)).toMatchObject({
+        address: 'bc1qtest123',
+        amount: undefined
+      })
+    })
+  })
+
   describe('resolveExplorerAddressParam', () => {
     it.each(['%ZZ', '50%25%20off', '%E0%A4%A'])(
       'returns the address of a uri whose label is %s',
