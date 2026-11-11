@@ -18,89 +18,11 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
 import { type NFCReadResult } from '@/types/models/Nfc'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { type DetectedContent } from '@/utils/contentDetector'
-import {
-  getScriptVersionFromDescriptor,
-  getXpubFingerprint
-} from '@/utils/descriptor'
+import { getScriptVersionFromDescriptor } from '@/utils/descriptor'
+import { parseMultisigDescriptor } from '@/utils/multisigDescriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import { validateDescriptor } from '@/utils/validation'
-
-function parseMultisigDescriptor(descriptorText: string) {
-  try {
-    const cleanDescriptor = descriptorText.replace(/#[a-z0-9]{8}$/, '')
-
-    let innerDescriptor = cleanDescriptor
-    if (cleanDescriptor.startsWith('wsh(') && cleanDescriptor.endsWith(')')) {
-      innerDescriptor = cleanDescriptor.slice(4, -1)
-    } else if (
-      cleanDescriptor.startsWith('sh(') &&
-      cleanDescriptor.endsWith(')')
-    ) {
-      innerDescriptor = cleanDescriptor.slice(3, -1)
-    }
-
-    // Parse multisig parameters: sortedmulti(2,key1,key2,key3)
-    const multiMatch = innerDescriptor.match(
-      /^(multi|sortedmulti)\((\d+),(.+)\)$/
-    )
-    if (!multiMatch) {
-      throw new Error('Invalid multisig descriptor format')
-    }
-
-    const [requiredStr, keysStr] = multiMatch.slice(2)
-    const keysRequired = Number.parseInt(requiredStr, 10)
-    const keys = keysStr.split(',').map((key) => key.trim())
-
-    const keyData = keys.map((key, index) => {
-      // Key shape: [7af70d19/48h/1h/0h/2h]tpub.../<0;1>/*
-      const bracketMatch = key.match(/^\[([^\]]+)\](.+)$/)
-      if (!bracketMatch) {
-        throw new Error(`Invalid key format at index ${index}`)
-      }
-
-      const [, bracketContent, afterBracket] = bracketMatch
-      const [, ...restParts] = bracketContent.split('/')
-      const derivationPath = restParts.join('/')
-
-      const fingerprint = getXpubFingerprint(key)
-      if (!fingerprint) {
-        throw new Error(`Invalid key format at index ${index}`)
-      }
-
-      const extendedPublicKey = getExtendedKeyFromDescriptor(afterBracket)
-      if (!extendedPublicKey) {
-        throw new Error(`Invalid extended public key format at index ${index}`)
-      }
-
-      const addressPath = afterBracket.slice(extendedPublicKey.length)
-      return {
-        addressPath: addressPath || '/<0;1>/*',
-        derivationPath,
-        extendedPublicKey,
-        fingerprint
-      }
-    })
-
-    const scriptVersion: ScriptVersionType = cleanDescriptor.startsWith('sh(')
-      ? 'P2SH'
-      : 'P2WSH'
-
-    return {
-      keyCount: keys.length,
-      keyData,
-      keysRequired,
-      scriptVersion
-    }
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to parse multisig descriptor: ${reason}`, {
-      cause: error
-    })
-  }
-}
 
 export default function ImportDescriptor() {
   const router = useRouter()
