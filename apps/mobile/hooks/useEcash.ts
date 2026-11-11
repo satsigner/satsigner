@@ -48,6 +48,7 @@ import {
 import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
 import { proofsAfterSend, removeSpentSecrets } from '@/utils/ecashProofs'
+import { toError } from '@/utils/error'
 
 const TOKEN_NOT_CHECKED: EcashTokenValidation = {
   details: 'Token could not be checked',
@@ -146,7 +147,13 @@ export function useEcash() {
       return existingMint
     }
 
-    const mint = await connectToMint(mintUrl)
+    // Callers rely on the rethrow to keep what the user typed.
+    const mint = await connectToMint(mintUrl).catch((error: unknown) => {
+      toast.error(
+        t('ecash.error.mintConnectionFailed', { error: toError(error).message })
+      )
+      throw error
+    })
     addMintAction(activeAccountId, mint)
     toast.success(t('ecash.success.mintConnected'))
 
