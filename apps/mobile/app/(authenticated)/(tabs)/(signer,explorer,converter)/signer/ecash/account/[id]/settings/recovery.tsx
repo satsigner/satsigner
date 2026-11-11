@@ -59,13 +59,7 @@ export default function EcashAccountRecoveryPage() {
 
   function handleRestoreBackup() {
     setIsRestoringBackup(true)
-    try {
-      const parsed: unknown = JSON.parse(backupJson)
-      restoreFromBackup(parsed)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    }
+    restoreFromBackup(backupJson)
     setIsRestoringBackup(false)
   }
 

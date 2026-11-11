@@ -43,7 +43,7 @@ import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
   EcashBackupValidationError,
-  parseEcashBackupPayload
+  parseEcashBackupJson
 } from '@/utils/ecashBackup'
 import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
@@ -599,12 +599,12 @@ export function useEcash() {
     }
   }
 
-  function restoreFromBackupHandler(backupData: unknown) {
+  function restoreFromBackupHandler(backupJson: string) {
     if (!activeAccountId) {
       return
     }
     try {
-      restoreFromBackup(activeAccountId, parseEcashBackupPayload(backupData))
+      restoreFromBackup(activeAccountId, parseEcashBackupJson(backupJson))
       toast.success(t('ecash.success.backupRestored'))
     } catch (error) {
       if (

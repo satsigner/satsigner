@@ -30,7 +30,7 @@ function renderUseEcash() {
   return result
 }
 
-describe('useEcash connectToMint', () => {
+describe('useEcash', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     const store = useEcashStore.getState()
@@ -52,40 +52,57 @@ describe('useEcash connectToMint', () => {
     })
   })
 
-  it('tells the user when the mint cannot be reached', async () => {
-    jest
-      .mocked(connectToMint)
-      .mockRejectedValue(new Error('Network request failed'))
-    const result = renderUseEcash()
+  describe('connectToMint', () => {
+    it('tells the user when the mint cannot be reached', async () => {
+      jest
+        .mocked(connectToMint)
+        .mockRejectedValue(new Error('Network request failed'))
+      const result = renderUseEcash()
 
-    await expect(result.current?.connectToMint(MINT_URL)).rejects.toThrow(
-      'Network request failed'
-    )
+      await expect(result.current?.connectToMint(MINT_URL)).rejects.toThrow(
+        'Network request failed'
+      )
 
-    expect(toast.error).toHaveBeenCalledWith(
-      'Could not connect to the mint: Network request failed'
-    )
-    expect(toast.success).not.toHaveBeenCalled()
-    expect(useEcashStore.getState().mints[ACCOUNT_ID] ?? []).toHaveLength(0)
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not connect to the mint: Network request failed'
+      )
+      expect(toast.success).not.toHaveBeenCalled()
+      expect(useEcashStore.getState().mints[ACCOUNT_ID] ?? []).toHaveLength(0)
+    })
+
+    it('adds a reachable mint without an error', async () => {
+      jest.mocked(connectToMint).mockResolvedValue({
+        balance: 0,
+        isConnected: true,
+        keysets: [],
+        name: 'Mint',
+        url: MINT_URL
+      })
+      const result = renderUseEcash()
+
+      await act(async () => {
+        await result.current?.connectToMint(MINT_URL)
+      })
+
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(
+        useEcashStore.getState().mints[ACCOUNT_ID]?.map(({ url }) => url)
+      ).toStrictEqual([MINT_URL])
+    })
   })
 
-  it('adds a reachable mint without an error', async () => {
-    jest.mocked(connectToMint).mockResolvedValue({
-      balance: 0,
-      isConnected: true,
-      keysets: [],
-      name: 'Mint',
-      url: MINT_URL
-    })
-    const result = renderUseEcash()
+  describe('restoreFromBackup', () => {
+    it('explains that text which is not JSON is not a backup', () => {
+      const result = renderUseEcash()
 
-    await act(async () => {
-      await result.current?.connectToMint(MINT_URL)
-    })
+      act(() => {
+        result.current?.restoreFromBackup('abc')
+      })
 
-    expect(toast.error).not.toHaveBeenCalled()
-    expect(
-      useEcashStore.getState().mints[ACCOUNT_ID]?.map(({ url }) => url)
-    ).toStrictEqual([MINT_URL])
+      expect(toast.error).toHaveBeenCalledWith(
+        'Backup data is not a valid ecash backup'
+      )
+      expect(toast.success).not.toHaveBeenCalled()
+    })
   })
 })
