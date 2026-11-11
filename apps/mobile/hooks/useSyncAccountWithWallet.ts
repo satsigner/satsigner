@@ -177,20 +177,7 @@ async function syncWalletAccount({
       tip,
       server.rpcScanFromHeight,
       isGeneratedWallet,
-      server.backend === 'rpc'
-        ? (current, tipHeight) => {
-            setSyncProgress(latest.id, {
-              tasksDone: current,
-              totalTasks: tipHeight
-            })
-          }
-        : undefined,
-      {
-        onScanProgress: (done, total) => {
-          setSyncProgress(latest.id, { tasksDone: done, totalTasks: total })
-        },
-        signal
-      }
+      signal
     )
 
     const latestCheckpoint = wallet.latestCheckpoint()

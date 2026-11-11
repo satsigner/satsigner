@@ -1,6 +1,3 @@
-// Cap Zustand/UI updates during BDK RPC scans (inspector fires per block).
-export const BDK_RPC_PROGRESS_THROTTLE_MS = 250
-
 // Extended-private-key prefixes across mainnet/testnet and SLIP132 script
 // variants (BIP44/49/84/86). Matched case-insensitively against the whole
 // descriptor string to detect private key material before it could be sent

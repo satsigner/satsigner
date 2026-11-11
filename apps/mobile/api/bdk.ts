@@ -18,7 +18,6 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { assertElectrumReachable } from '@/api/electrumReachability'
-import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
 import {
   BTC_DECIMALS,
   SATS_PER_BITCOIN,
@@ -689,49 +688,6 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
-function createThrottledRpcProgress(
-  onRpcProgress: (current: number, tip: number, pct: number) => void
-): (current: number, tip: number, pct: number) => void {
-  let lastEmitMs = 0
-  let pending: { current: number; pct: number; tip: number } | null = null
-  let timer: ReturnType<typeof setTimeout> | null = null
-
-  function flush() {
-    timer = null
-    if (!pending) {
-      return
-    }
-    const { current, tip, pct } = pending
-    pending = null
-    lastEmitMs = Date.now()
-    onRpcProgress(current, tip, pct)
-  }
-
-  return function emit(current: number, tip: number, pct: number) {
-    const isComplete = pct >= 1 || (tip > 0 && current >= tip)
-    if (isComplete) {
-      if (timer) {
-        clearTimeout(timer)
-        timer = null
-      }
-      pending = null
-      lastEmitMs = Date.now()
-      onRpcProgress(current, tip, pct)
-      return
-    }
-
-    pending = { current, pct, tip }
-    const elapsed = Date.now() - lastEmitMs
-    if (elapsed >= BDK_RPC_PROGRESS_THROTTLE_MS) {
-      flush()
-      return
-    }
-    if (!timer) {
-      timer = setTimeout(flush, BDK_RPC_PROGRESS_THROTTLE_MS - elapsed)
-    }
-  }
-}
-
 function electrumHost(url: string): string {
   try {
     return new URL(url).host
@@ -767,8 +723,7 @@ async function syncWallet(
   currentTip?: number,
   rpcScanFromHeight?: number,
   isGeneratedWallet?: boolean,
-  onRpcProgress?: (current: number, tip: number, pct: number) => void,
-  { onScanProgress, signal }: ScanOptions = {}
+  signal?: AbortSignal
 ) {
   if (backend === 'rpc') {
     const rpcClient = new BdkRpcClient({
@@ -804,23 +759,10 @@ async function syncWallet(
       startHeight = scanFloor
     }
 
-    const emitProgress = onRpcProgress
-      ? createThrottledRpcProgress(onRpcProgress)
-      : undefined
-
-    await wallet.syncWithRpc(rpcClient, startHeight, {
-      fetchMempool: true,
-      inspector: {
-        inspect({ currentHeight, tipHeight, progress }) {
-          emitProgress?.(currentHeight, tipHeight, progress)
-        }
-      }
-    })
+    // No progress inspector: see scanWithServer.
+    await wallet.syncWithRpc(rpcClient, startHeight, { fetchMempool: true })
   } else {
-    await scanWithServer(wallet, backend, url, stopGap, isFullScan, {
-      onScanProgress,
-      signal
-    })
+    await scanWithServer(wallet, backend, url, stopGap, isFullScan, signal)
   }
 
   // A sync that was given up on must not persist a late, partial update.
@@ -830,15 +772,13 @@ async function syncWallet(
   wallet.persist()
 }
 
-type ScanOptions = {
-  /** `total` is 0 during a full scan, which has no fixed end. */
-  onScanProgress?: (done: number, total: number) => void
-  signal?: AbortSignal
-}
-
 /**
  * Electrum and Esplora scans go through the raw FFI wallet: the SDK wrapper
  * drops the abort signal, which is what lets a stalled sync be cancelled.
+ *
+ * No progress inspector is passed to any scan: the @ubjs/core runtime cannot
+ * lower a JS object passed as an optional callback interface and throws
+ * "Cannot lower this object to a pointer" before the scan starts.
  */
 async function scanWithServer(
   wallet: BdkWallet,
@@ -846,44 +786,24 @@ async function scanWithServer(
   url: string,
   stopGap: number,
   isFullScan: boolean,
-  { onScanProgress, signal }: ScanOptions
+  signal?: AbortSignal
 ) {
-  const emitProgress = onScanProgress
-    ? createThrottledRpcProgress((done, total) => onScanProgress(done, total))
-    : undefined
   const asyncOpts = signal ? { signal } : undefined
   const gap = BigInt(stopGap)
-  const fullScanInspector = {
-    inspect: (_keychain: KeychainKind, _index: number, visited: bigint) =>
-      emitProgress?.(Number(visited), 0, 0)
-  }
-  const syncInspector = {
-    inspect: (consumed: bigint, total: bigint) =>
-      emitProgress?.(
-        Number(consumed),
-        Number(total),
-        total > 0n ? Number(consumed) / Number(total) : 0
-      )
-  }
 
   if (backend === 'electrum') {
     const electrum = await connectElectrum(url)
     const client = electrum.raw
     await (isFullScan
-      ? wallet.raw.fullScanWithElectrum(
-          client,
-          gap,
-          fullScanInspector,
-          asyncOpts
-        )
-      : wallet.raw.syncWithElectrum(client, gap, syncInspector, asyncOpts))
+      ? wallet.raw.fullScanWithElectrum(client, gap, undefined, asyncOpts)
+      : wallet.raw.syncWithElectrum(client, gap, undefined, asyncOpts))
     return
   }
 
   const client = new BdkEsploraClient(url).raw
   await (isFullScan
-    ? wallet.raw.fullScanWithEsplora(client, gap, fullScanInspector, asyncOpts)
-    : wallet.raw.syncWithEsplora(client, gap, syncInspector, asyncOpts))
+    ? wallet.raw.fullScanWithEsplora(client, gap, undefined, asyncOpts)
+    : wallet.raw.syncWithEsplora(client, gap, undefined, asyncOpts))
 }
 
 async function getTransactionInputValues(

@@ -306,6 +306,13 @@ export class BdkElectrumClient {
   }
 }
 
+export class BdkEsploraClient {
+  constructor(_url: string) {}
+  get raw() {
+    return {}
+  }
+}
+
 export class BdkRpcClient {
   constructor(_opts: {
     url: string
