@@ -36,7 +36,7 @@ import { Colors, Layout } from '@/styles'
 import type { ExplorerAddressUtxo } from '@/types/explorer/address'
 import type { Utxo } from '@/types/models/Utxo'
 import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedSats } from '@/utils/format'
 import { resolveExplorerAddressParam } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
@@ -72,12 +72,6 @@ function toChartUtxos(utxos: ExplorerAddressUtxo[]): Utxo[] {
   }))
 }
 
-function formatSats(amount: number, privacyMode: boolean) {
-  return privacyMode
-    ? PRIVACY_MASK
-    : `${formatNumber(amount)} ${t('bitcoin.sats')}`
-}
-
 function UtxoRow({ privacyMode, utxo }: UtxoRowProps) {
   function openTx() {
     navigateToExplorerTx(utxo.txid)
@@ -88,7 +82,7 @@ function UtxoRow({ privacyMode, utxo }: UtxoRowProps) {
       <SSText type="mono" size="xs">
         {utxo.txid.slice(0, 12)}…:{utxo.vout}
       </SSText>
-      <SSText size="sm">{formatSats(utxo.value, privacyMode)}</SSText>
+      <SSText size="sm">{formatMaskedSats(utxo.value, privacyMode)}</SSText>
     </Pressable>
   )
 }
@@ -259,11 +253,11 @@ export default function ExplorerAddressDetail() {
               items={[
                 [
                   tn('confirmed'),
-                  formatSats(data.confirmed, display.privacyMode)
+                  formatMaskedSats(data.confirmed, display.privacyMode)
                 ],
                 [
                   tn('unconfirmed'),
-                  formatSats(data.unconfirmed, display.privacyMode)
+                  formatMaskedSats(data.unconfirmed, display.privacyMode)
                 ],
                 [tn('utxoCount'), data.utxos.length.toString()],
                 [tn('txCount'), data.txids.length.toString()]
