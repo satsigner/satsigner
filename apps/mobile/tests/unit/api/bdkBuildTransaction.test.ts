@@ -107,7 +107,28 @@ describe('hasInputsMissingFromWallet', () => {
   })
 
   it('leaves sends built by a Bitcoin Core wallet alone', () => {
-    const account = { id: 'acc-1', keys: [] } as unknown as Account
+    const account: Account = {
+      addresses: [],
+      createdAt: new Date('2026-01-01'),
+      id: 'acc-1',
+      keyCount: 1,
+      keys: [],
+      keysRequired: 1,
+      labels: {},
+      name: 'Core',
+      network: 'signet',
+      policyType: 'singlesig',
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      syncStatus: 'synced',
+      transactions: [],
+      utxos: []
+    }
     expect(
       hasInputsMissingFromWallet(walletHolding(false), CORE_SERVER, account, [
         INPUT
