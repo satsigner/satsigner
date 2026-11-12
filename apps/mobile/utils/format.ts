@@ -399,16 +399,16 @@ function formatTxOutputToUtxo(
   }
 }
 
-/**
- * Human-readable byte size (B/KB/MB/GB). `base` selects SI (1000, default) or
- * binary (1024) units. Bytes stay whole, larger units keep per-unit decimals
- * with trailing zeros stripped ("2 KB", "1.5 MB").
- */
 /** A block's weight against the consensus limit, e.g. "1,039,432 / 4,000,000 WU". */
 function formatBlockWeight(weight: number): string {
   return `${formatNumber(weight)} / ${formatNumber(MAX_BLOCK_WEIGHT)} WU`
 }
 
+/**
+ * Human-readable byte size (B/KB/MB/GB). `base` selects SI (1000, default) or
+ * binary (1024) units. Bytes stay whole, larger units keep per-unit decimals
+ * with trailing zeros stripped ("2 KB", "1.5 MB").
+ */
 function formatBytes(bytes: number, base: number = BYTES_PER_KB): string {
   const maxUnitIndex = FILE_SIZE_UNITS.length - 1
   const unitIndex =
