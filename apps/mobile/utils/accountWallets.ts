@@ -23,12 +23,10 @@ import { isOnionUrl } from '@/utils/serverPrivacy'
 import { withTimeout, yieldToUi } from '@/utils/time'
 import { isWalletOnServerChain } from '@/utils/walletChain'
 
-// The wallet of each account last found on a server's chain, in this
-// session. Another server, or a wallet since replaced, is checked again.
-const walletsCheckedOnServer = new Map<
-  Account['id'],
-  { serverKey: string; wallet: BdkWallet }
->()
+// The server each wallet was last found to share a chain with, in this
+// session. Another server, or a wallet since replaced, is checked again. Weak,
+// so a wallet dropped from the store can still be freed.
+const serverCheckedForWallet = new WeakMap<BdkWallet, string>()
 
 /**
  * Loads the wallet, or the watched address, of every account that has none
@@ -141,8 +139,7 @@ async function walletForServerChain(
   signal?: AbortSignal
 ): Promise<BdkWallet> {
   const serverKey = serverCheckKey(server)
-  const checked = walletsCheckedOnServer.get(account.id)
-  if (checked?.serverKey === serverKey && checked.wallet === wallet) {
+  if (serverCheckedForWallet.get(wallet) === serverKey) {
     return wallet
   }
   const isOnServerChain = await withTimeout(
@@ -157,7 +154,7 @@ async function walletForServerChain(
   const syncWallet = isOnServerChain
     ? wallet
     : await recreateAccountWallet(account)
-  walletsCheckedOnServer.set(account.id, { serverKey, wallet: syncWallet })
+  serverCheckedForWallet.set(syncWallet, serverKey)
   return syncWallet
 }
 
