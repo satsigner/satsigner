@@ -38,6 +38,23 @@ describe('fetchChainData', () => {
     })
   })
 
+  it('keeps the tip when only its block details fail', async () => {
+    jest.mocked(Esplora).mockReturnValue({
+      getBlockInfo: jest.fn().mockRejectedValue(new Error('500')),
+      getLatestBlockHash: jest.fn().mockResolvedValue('tiphash'),
+      getLatestBlockHeight: jest.fn().mockResolvedValue(280_000)
+    } as unknown as Esplora)
+
+    await expect(
+      fetchChainData({ backend: 'esplora', url: ESPLORA_URL }, 'signet')
+    ).resolves.toMatchObject({
+      difficulty: null,
+      hash: 'tiphash',
+      height: 280_000,
+      timestamp: null
+    })
+  })
+
   it('fails when esplora is unreachable', async () => {
     jest.mocked(Esplora).mockReturnValue({
       getLatestBlockHash: jest.fn().mockRejectedValue(new Error('offline')),

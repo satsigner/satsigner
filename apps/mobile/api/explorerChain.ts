@@ -39,9 +39,10 @@ async function fromEsplora(esplora: Esplora): Promise<ChainData> {
   data.height = Number(rawHeight)
   data.hash = String(rawHash)
 
-  const block = await esplora.getBlockInfo(data.hash)
-  data.timestamp = block.timestamp
-  data.difficulty = block.difficulty
+  // The tip alone is worth showing: its details are optional.
+  const block = await esplora.getBlockInfo(data.hash).catch(() => null)
+  data.timestamp = block?.timestamp ?? null
+  data.difficulty = block?.difficulty ?? null
   return data
 }
 
@@ -57,7 +58,12 @@ async function fromElectrum(url: string, network: Network): Promise<ChainData> {
     }
     data.height = tip.height
 
-    const header: bitcoinjs.Block = await client.getBlock(tip.height)
+    const header: bitcoinjs.Block | null = await client
+      .getBlock(tip.height)
+      .catch(() => null)
+    if (!header) {
+      return data
+    }
     data.hash = header.getId()
     data.timestamp = header.timestamp
     if (header.bits) {
@@ -82,8 +88,8 @@ async function fromRpc(
   data.difficulty = info.difficulty
   data.source = 'backend'
 
-  const block = await rpc.getBlock(info.bestblockhash)
-  data.timestamp = block.time
+  const block = await rpc.getBlock(info.bestblockhash).catch(() => null)
+  data.timestamp = block?.time ?? null
   return data
 }
 
