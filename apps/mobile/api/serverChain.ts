@@ -1,4 +1,5 @@
 import ElectrumClient from '@/api/electrum'
+import { assertElectrumReachable } from '@/api/electrumReachability'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { type Server } from '@/types/settings/blockchain'
@@ -31,6 +32,9 @@ function rpcChainReader(server: Server): OpenServerChainReader {
 async function electrumChainReader(
   server: Server
 ): Promise<OpenServerChainReader> {
+  // The same cached ping the sync's own connect uses: a dead server fails
+  // once, fast, instead of waiting out the chain check's timeout first.
+  await assertElectrumReachable(server.url)
   const electrum = await ElectrumClient.initClientFromUrl(
     server.url,
     server.network
