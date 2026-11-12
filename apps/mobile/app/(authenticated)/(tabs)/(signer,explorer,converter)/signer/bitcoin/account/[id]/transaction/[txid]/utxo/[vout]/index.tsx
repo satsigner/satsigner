@@ -117,6 +117,7 @@ function UtxoDetails({
                 canvasSize={{ height: GRAPH_HEIGHT, width: GRAPH_WIDTH }}
                 inputs={currentUtxoInputs}
                 dimUnselected
+                privacyMode={privacyMode}
                 onPress={({ txid, vout }: Utxo) =>
                   router.navigate(
                     `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`

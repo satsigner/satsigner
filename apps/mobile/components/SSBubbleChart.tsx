@@ -34,7 +34,7 @@ type SSBubbleChartProps = {
   showOnlySelected?: boolean
   dimUnselected?: boolean
   groupMode?: UtxoGroupMode
-  privacyMode?: boolean
+  privacyMode: boolean
   style?: StyleProp<ViewStyle>
 }
 
@@ -46,7 +46,7 @@ function SSBubbleChart({
   showOnlySelected = false,
   dimUnselected = false,
   groupMode = 'none',
-  privacyMode = false,
+  privacyMode,
   style
 }: SSBubbleChartProps) {
   const { height, width } = canvasSize

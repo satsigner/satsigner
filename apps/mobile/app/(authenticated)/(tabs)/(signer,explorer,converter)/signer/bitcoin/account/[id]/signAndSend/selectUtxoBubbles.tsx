@@ -45,8 +45,14 @@ function SelectUtxoBubbles() {
   const account = useAccountsStore(
     (state) => state.accounts.find((entry) => entry.id === id)!
   )
-  const { btcPrice, currencyUnit, fiatCurrency, fiatEnabled, useZeroPadding } =
-    useDisplayPreferences()
+  const {
+    btcPrice,
+    currencyUnit,
+    fiatCurrency,
+    fiatEnabled,
+    privacyMode,
+    useZeroPadding
+  } = useDisplayPreferences()
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [inputs, addInput, removeInput] = useTransactionBuilderStore(
     useShallow((state) => [state.inputs, state.addInput, state.removeInput])
@@ -242,6 +248,7 @@ function SelectUtxoBubbles() {
         inputs={[...inputs.values()]}
         onPress={handleOnToggleSelected}
         groupMode={groupMode}
+        privacyMode={privacyMode}
         style={{ position: 'absolute', top: 40 }}
       />
       <LinearGradient
