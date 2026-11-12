@@ -1,4 +1,6 @@
+import ElectrumClient from '@/api/electrum'
 import {
+  fetchBackendServerInfo,
   fetchBitnodesNetworkStats,
   fetchBitnodesNodeInfo
 } from '@/api/explorerNode'
@@ -28,6 +30,22 @@ describe('explorerNode api', () => {
 
   afterAll(() => {
     jest.restoreAllMocks()
+  })
+
+  describe('fetchBackendServerInfo', () => {
+    it('fails when the electrum server cannot be reached', async () => {
+      jest.mocked(ElectrumClient.fromUrl).mockReturnValue({
+        init: jest.fn().mockRejectedValue(new Error('ECONNREFUSED'))
+      } as unknown as ElectrumClient)
+
+      await expect(
+        fetchBackendServerInfo(
+          'ssl://electrum.example.com:50002',
+          'electrum',
+          'signet'
+        )
+      ).rejects.toThrow('ECONNREFUSED')
+    })
   })
 
   describe('fetchBitnodesNodeInfo', () => {
