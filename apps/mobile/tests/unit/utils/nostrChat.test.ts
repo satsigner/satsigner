@@ -591,6 +591,14 @@ describe('nostrChat', () => {
       expect(storedMessages()).toHaveLength(0)
     })
 
+    it('leaves a dropped message to be read again', async () => {
+      setNostrFollowCache(senderNpub, [])
+
+      await receiveFromPeer()
+
+      expect(processedWraps).not.toContain(`chat:${senderNpub}|wrap-stranger`)
+    })
+
     it('keeps the message of someone we follow', async () => {
       setNostrFollowCache(senderNpub, [peerPubkey])
 

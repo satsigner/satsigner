@@ -723,29 +723,34 @@ function applyChatDeletionRumor(
   )
 }
 
-/** Other gift wraps (account label sync etc.) are not chat and are ignored. */
+/**
+ * Other gift wraps (account label sync etc.) are not chat and are ignored.
+ * Returns false for a message the inbound filter held back.
+ */
 function ingestChatRumor(
   identityNpub: string,
   ownHex: string | null,
   wrap: NostrChatGiftWrap
-): void {
+): boolean {
   const deletion = Nip17DeletionRumorSchema.safeParse(wrap.rumor)
   if (deletion.success) {
     applyChatDeletionRumor(identityNpub, ownHex, deletion.data)
-    return
+    return true
   }
   const parsedRumor = Nip17ChatRumorSchema.safeParse(wrap.rumor)
   if (!parsedRumor.success) {
-    return
+    return true
   }
   const rumor = parsedRumor.data
   const peerPubkey = getChatPeerFromRumor(rumor, ownHex)
   if (
     peerPubkey === null ||
-    isTombstoned(identityNpub, rumor.id, rumor.pubkey) ||
-    !isInboundAllowed(identityNpub, ownHex, rumor.pubkey, wrap.pow)
+    isTombstoned(identityNpub, rumor.id, rumor.pubkey)
   ) {
-    return
+    return true
+  }
+  if (!isInboundAllowed(identityNpub, ownHex, rumor.pubkey, wrap.pow)) {
+    return false
   }
   const isSelfCopy = rumor.pubkey === ownHex
   ingestChatMessage({
@@ -760,6 +765,7 @@ function ingestChatRumor(
     replyToId: getReplyToId(rumor.tags),
     status: 'sent'
   })
+  return true
 }
 
 function ingestKind4ChatEvent(
@@ -808,7 +814,12 @@ async function subscribeToChatGiftWraps(
     identity.npub,
     {
       onWrap: (wrap) => {
-        ingestChatRumor(identity.npub, ownHex, wrap)
+        // Wraps arrive in random order (NIP-17 backdates them), so a held
+        // back message may come before our own copy that opens the
+        // conversation. Left unprocessed, a later fetch reads it again.
+        if (!ingestChatRumor(identity.npub, ownHex, wrap)) {
+          return
+        }
         markNostrEventsProcessed(scope, [
           { createdAt: wrap.createdAt, id: wrap.id }
         ])
