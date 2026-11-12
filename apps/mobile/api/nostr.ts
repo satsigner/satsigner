@@ -248,13 +248,15 @@ export async function testNostrRelaysReachable(
   }
 }
 
-// Rumors are unsigned, so the id is the only integrity check on them: it must
-// be the NIP-01 hash of the content, or dedupe by id could be spoofed.
-function hasValidRumorId(rumor: unknown): boolean {
-  if (!isRecord(rumor)) {
+// The id must be the NIP-01 hash of the event, or dedupe by id could be
+// spoofed and a forged id could claim proof of work. Rumors are unsigned, so
+// it is their only integrity check, and NDK checks a relay event's signature
+// over a hash it computes itself without comparing that hash to the id.
+function hasValidEventId(event: unknown): boolean {
+  if (!isRecord(event)) {
     return false
   }
-  const { content, created_at, id, kind, pubkey, tags } = rumor
+  const { content, created_at, id, kind, pubkey, tags } = event
   if (
     typeof content !== 'string' ||
     typeof pubkey !== 'string' ||
@@ -297,7 +299,7 @@ function unwrapNip59EventOrNull(
     if (
       !rumor ||
       rumor.pubkey !== seal.pubkey ||
-      !hasValidRumorId(rumorValue)
+      !hasValidEventId(rumorValue)
     ) {
       return null
     }
@@ -309,7 +311,7 @@ function unwrapNip59EventOrNull(
 }
 
 // Exported for unit tests
-export { unwrapNip59EventOrNull }
+export { hasValidEventId, unwrapNip59EventOrNull }
 
 // Wraps that failed to decrypt or verify, shared across instances so a
 // resubscribe does not decrypt them again.
@@ -1652,6 +1654,9 @@ export class NostrAPI {
     )
 
     subscription.on('event', (event: NDKEvent) => {
+      if (!hasValidEventId(event.rawEvent())) {
+        return
+      }
       const ref = { createdAt: event.created_at ?? 0, id: event.id }
       if (shouldDecrypt !== undefined && !shouldDecrypt(ref)) {
         return
@@ -1716,7 +1721,7 @@ export class NostrAPI {
     subscription.on('event', (event: NDKEvent) => {
       const wrap = { createdAt: event.created_at ?? 0, id: event.id }
       try {
-        if (wrap.id === '' || !shouldUnwrap(wrap)) {
+        if (!hasValidEventId(event.rawEvent()) || !shouldUnwrap(wrap)) {
           return
         }
         onWrap({
