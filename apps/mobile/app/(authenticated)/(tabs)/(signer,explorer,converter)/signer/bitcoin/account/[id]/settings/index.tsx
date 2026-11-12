@@ -42,7 +42,11 @@ import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getAccountFingerprint, getAccountLabelCounts } from '@/utils/account'
+import {
+  clearAccountChainData,
+  getAccountFingerprint,
+  getAccountLabelCounts
+} from '@/utils/account'
 import {
   cancelAccountSync,
   waitForAccountSyncWork
@@ -206,21 +210,9 @@ export default function AccountSettings() {
     // sync does a full history scan instead of merging with stale state.
     // Keep keys, labels, birthday, and Nostr config.
     updateAccount({
-      ...account,
-      addresses: [],
-      lastSyncedAt: undefined,
-      rpcLastBlockHash: undefined,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
+      ...clearAccountChainData(account),
       syncProgress: undefined,
-      syncStatus: 'unsynced',
-      transactions: [],
-      utxos: []
+      syncStatus: 'unsynced'
     })
     removeAccountWallet(currentAccountId)
     toast.success(t('account.rescan.success'))

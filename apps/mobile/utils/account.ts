@@ -34,6 +34,28 @@ export function getNextDisplayIndex(accounts: Account[]): number {
   return Math.max(...accounts.map((a) => a.displayIndex)) + 1
 }
 
+/**
+ * The account without what its wallet found on chain, so the next sync scans
+ * its history from scratch. Keys, labels, birthday and settings stay.
+ */
+export function clearAccountChainData(account: Account): Account {
+  return {
+    ...account,
+    addresses: [],
+    lastSyncedAt: undefined,
+    rpcLastBlockHash: undefined,
+    summary: {
+      balance: 0,
+      numberOfAddresses: 0,
+      numberOfTransactions: 0,
+      numberOfUtxos: 0,
+      satsInMempool: 0
+    },
+    transactions: [],
+    utxos: []
+  }
+}
+
 // update labels in the field transactions, utxos, and addresses
 // using the field labels.
 export function updateAccountObjectLabels(account: Account) {

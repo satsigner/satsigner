@@ -12,6 +12,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type Server } from '@/types/settings/blockchain'
+import { clearAccountChainData } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import {
   decryptAccountKeySecrets,
@@ -115,6 +116,14 @@ async function recreateAccountWallet(account: Account): Promise<BdkWallet> {
   useWalletsStore
     .getState()
     .addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
+  // If this full scan fails, the next sync must not read the other chain's
+  // history as a reason to scan only the addresses it already knows.
+  const { accounts, updateAccount } = useAccountsStore.getState()
+  updateAccount(
+    clearAccountChainData(
+      accounts.find((entry) => entry.id === account.id) ?? account
+    )
+  )
   return walletData.wallet
 }
 

@@ -44,10 +44,14 @@ jest.mock<typeof import('@/utils/decryption')>('@/utils/decryption', () => ({
 }))
 
 const mockAccounts: { current: Account[] } = { current: [] }
+const mockUpdateAccount = jest.fn()
 
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => ({
   useAccountsStore: {
-    getState: () => ({ accounts: mockAccounts.current })
+    getState: () => ({
+      accounts: mockAccounts.current,
+      updateAccount: mockUpdateAccount
+    })
   } as unknown as typeof import('@/store/accounts').useAccountsStore
 }))
 
@@ -188,7 +192,12 @@ describe('walletForServerChain', () => {
   })
 
   it('replaces a wallet that holds another chain', async () => {
-    const account = makeAccount('acc-2')
+    const otherChainAccount = makeAccount('acc-2')
+    const account = {
+      ...otherChainAccount,
+      summary: { ...otherChainAccount.summary, balance: 2_045_040 }
+    }
+    mockAccounts.current = [account]
     const wallet = walletWithBlock(MUTINYNET_BLOCK)
     const fresh = makeWallet()
     useWalletsStore.getState().addAccountWallet(account.id, wallet, DB_PATH)
@@ -209,6 +218,16 @@ describe('walletForServerChain', () => {
     ).resolves.toBe(fresh)
     expect(deleteWalletDb).toHaveBeenCalledWith(DB_PATH)
     expect(useWalletsStore.getState().wallets[account.id]).toBe(fresh)
+    // A failed rescan must leave nothing that makes the next sync partial.
+    expect(mockUpdateAccount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        addresses: [],
+        id: account.id,
+        summary: expect.objectContaining({ balance: 0 }),
+        transactions: [],
+        utxos: []
+      })
+    )
   })
 
   it('checks a wallet once per server', async () => {
