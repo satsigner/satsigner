@@ -212,17 +212,18 @@ function buildSentTransactionLabels({
 
   labels.push({ label: txLabel, ref: txid, type: 'tx' })
 
-  const changeOutputIndex = outputs.findIndex(isDefaultChangeOutput)
-  if (changeOutputIndex === -1) {
-    return labels
+  // A Stonewall send has more than one change output: each gets the label.
+  for (const [index, output] of outputs.entries()) {
+    if (!isDefaultChangeOutput(output)) {
+      continue
+    }
+    const changeLabel = sentOutputLabel(output, txLabel)
+    labels.push(...outputLabels(txid, vouts[index], changeLabel), {
+      label: changeLabel,
+      ref: output.to,
+      type: 'addr'
+    })
   }
-
-  const changeLabel = sentOutputLabel(outputs[changeOutputIndex], txLabel)
-  labels.push(...outputLabels(txid, vouts[changeOutputIndex], changeLabel), {
-    label: changeLabel,
-    ref: outputs[changeOutputIndex].to,
-    type: 'addr'
-  })
   return labels
 }
 

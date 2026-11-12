@@ -152,6 +152,27 @@ describe('buildSentTransactionLabels', () => {
     ])
   })
 
+  it('labels every change output of a Stonewall send', () => {
+    const decoyChange = 'tb1qdecoychange'
+    const labels = buildSentTransactionLabels(
+      makeSent({
+        outputs: [
+          ...makeSent().outputs,
+          makeOutput({ label: 'Change', localId: 'decoy', to: decoyChange })
+        ],
+        vouts: [0, 1, 2]
+      })
+    )
+    expect(
+      labels.filter((label) => label.label === '[change] rent')
+    ).toStrictEqual([
+      { label: '[change] rent', ref: `${TXID}:1`, type: 'output' },
+      { label: '[change] rent', ref: CHANGE, type: 'addr' },
+      { label: '[change] rent', ref: `${TXID}:2`, type: 'output' },
+      { label: '[change] rent', ref: decoyChange, type: 'addr' }
+    ])
+  })
+
   it('adds no change labels without a change output', () => {
     const labels = buildSentTransactionLabels(
       makeSent({ outputs: [makeOutput({ label: 'rent' })], vouts: [0] })
