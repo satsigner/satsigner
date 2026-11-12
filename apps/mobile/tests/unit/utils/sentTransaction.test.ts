@@ -280,6 +280,26 @@ describe('addSentTransactionToAccount', () => {
     expect(updated?.summary.balance).toBe(8800)
   })
 
+  it('takes the amounts of the sent transaction after a payjoin', () => {
+    const transaction = new bitcoinjs.Transaction()
+    transaction.addInput(new Uint8Array(32), 0)
+    transaction.addOutput(new Uint8Array([0x6a]), 1000n)
+    // The receiver took its share of the fee from our change.
+    transaction.addOutput(new Uint8Array([0x6a]), 8600n)
+
+    const updated = addSentTransactionToAccount(
+      makeAccount(),
+      makeSent({ signedTx: transaction.toHex() })
+    )
+
+    expect(updated?.utxos).toStrictEqual([
+      expect.objectContaining({ addressTo: CHANGE, value: 8600 })
+    ])
+    expect(updated?.transactions[0].received).toBe(8600)
+    expect(updated?.transactions[0].vout?.[1].value).toBe(8600)
+    expect(updated?.summary.balance).toBe(8600)
+  })
+
   it('marks the inputs as replaceable only when RBF is on', () => {
     const withRbf = addSentTransactionToAccount(makeAccount(), makeSent())
     const withoutRbf = addSentTransactionToAccount(

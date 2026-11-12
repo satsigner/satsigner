@@ -246,12 +246,20 @@ function addSentTransactionToAccount(
   account: Account,
   sent: SentTransaction
 ): Account | undefined {
-  const { fee, inputs, outputs, rbf, replacesTxid, signedTx, txid, vouts } =
-    sent
+  const { fee, inputs, rbf, replacesTxid, signedTx, txid, vouts } = sent
 
   if (account.transactions.some((tx) => tx.id === txid)) {
     return undefined
   }
+
+  // A payjoin receiver can change output amounts, so each output takes the
+  // value it has in the transaction that was sent.
+  const sentValues = readTransactionOutputs(signedTx).map(({ value }) => value)
+  const outputs = sent.outputs.map((output, index) => {
+    const vout = vouts[index]
+    const value = vout === undefined ? undefined : sentValues[vout]
+    return value === undefined ? output : { ...output, amount: value }
+  })
 
   const totalIn = inputs.reduce((sum, utxo) => sum + utxo.value, 0)
   const ownAddresses = new Set(account.addresses.map((a) => a.address))
