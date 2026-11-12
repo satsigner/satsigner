@@ -13,8 +13,12 @@ import {
 
 import {
   NOSTR_NIP46_HANDLED_EVENTS_LIMIT,
+  NOSTR_NIP46_LIVENESS_INTERVAL_MS,
+  NOSTR_NIP46_PROBE_FILTER,
+  NOSTR_NIP46_PROBE_TIMEOUT_MS,
   NOSTR_NIP46_RECONNECT_BASE_MS,
   NOSTR_NIP46_RECONNECT_MAX_MS,
+  NOSTR_NIP46_STABLE_CONNECTION_MS,
   NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS,
   NOSTR_PUBLISH_TIMEOUT_MS,
   NOSTR_WS_CONNECT_TIMEOUT_MS
@@ -129,6 +133,13 @@ type Nip46Subscription = {
   onEvent: (event: NostrEvent) => void
 }
 
+type RelayLink = {
+  /** When the relay last sent anything; a reconnect asks again from here. */
+  lastHeardAtMs: number
+  openedAtMs: number
+  url: string
+}
+
 type Nip46BunkerServiceOptions = {
   /** Called when the bunker loses its last relay, and when it gets one back. */
   onConnectionChange?: (isConnected: boolean) => void
@@ -188,18 +199,23 @@ function nowSeconds() {
 }
 
 /**
- * Answers a paired client's requests on its relays. A relay that drops, or
- * that could not be reached at the start, is tried again with a growing delay
- * until the bunker is disconnected, and asked again for the requests sent
- * while it was away.
+ * Answers a paired client's requests on its relays. A relay that drops, that
+ * stops answering, or that could not be reached at the start is tried again
+ * with a growing delay until the bunker is disconnected, and asked again for
+ * the requests sent while it was away.
  */
 export class Nip46BunkerService {
   private sockets: WebSocket[] = []
   private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
+  private probeId = `nip46-probe-${Date.now()}`
   private subscription: Nip46Subscription | null = null
+  private links = new Map<WebSocket, RelayLink>()
+  private failedOpens = new Map<string, number>()
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private probeTimers = new Set<ReturnType<typeof setTimeout>>()
+  private livenessTimer: ReturnType<typeof setInterval> | null = null
   private readonly onConnectionChange?: (isConnected: boolean) => void
 
   constructor({ onConnectionChange }: Nip46BunkerServiceOptions = {}) {
@@ -210,9 +226,16 @@ export class Nip46BunkerService {
     const startedAt = nowSeconds()
     const results = await Promise.allSettled(relays.map(openRelaySocket))
 
-    for (const [index, result] of results.entries()) {
-      if (result.status === 'fulfilled') {
-        this.watchSocket(relays[index], result.value)
+    // A relay can open and drop again before the slowest one settles.
+    const openSockets = results.map((result) =>
+      result.status === 'fulfilled' &&
+      result.value.readyState === WebSocket.OPEN
+        ? result.value
+        : null
+    )
+    for (const [index, ws] of openSockets.entries()) {
+      if (ws) {
+        this.watchSocket(relays[index], ws)
       }
     }
 
@@ -220,16 +243,26 @@ export class Nip46BunkerService {
       throw new Error('Failed to connect to any relay')
     }
     this.active = true
-    for (const [index, result] of results.entries()) {
-      if (result.status === 'rejected') {
-        this.scheduleReconnect(relays[index], 0, startedAt)
+    this.livenessTimer = setInterval(
+      () => this.probeQuietRelays(),
+      NOSTR_NIP46_LIVENESS_INTERVAL_MS
+    )
+    for (const [index, ws] of openSockets.entries()) {
+      if (!ws) {
+        this.scheduleReconnect(relays[index], startedAt)
       }
     }
   }
 
   private watchSocket(url: string, ws: WebSocket, since?: number): void {
+    const openedAtMs = Date.now()
+    const link: RelayLink = { lastHeardAtMs: openedAtMs, openedAtMs, url }
     this.sockets.push(ws)
-    ws.addEventListener('close', () => this.handleSocketClosed(url, ws))
+    this.links.set(ws, link)
+    ws.addEventListener('message', () => {
+      link.lastHeardAtMs = Date.now()
+    })
+    ws.addEventListener('close', () => this.dropSocket(ws))
     if (!this.subscription) {
       return
     }
@@ -240,36 +273,81 @@ export class Nip46BunkerService {
     subscribeOnSocket(ws, this.subId, filter, this.subscription.onEvent)
   }
 
-  private handleSocketClosed(url: string, ws: WebSocket): void {
+  private dropSocket(ws: WebSocket): void {
+    const link = this.links.get(ws)
     // disconnect() closes the sockets itself.
-    if (!this.active || !this.sockets.includes(ws)) {
+    if (!this.active || !link) {
       return
     }
+    this.links.delete(ws)
     this.sockets = this.sockets.filter((socket) => socket !== ws)
     if (this.sockets.length === 0) {
       this.onConnectionChange?.(false)
     }
-    this.scheduleReconnect(url, 0, nowSeconds())
+    // A relay that accepts and then closes again (full, rate limited) waits
+    // longer each time; one that held for a while starts over.
+    const wasStable =
+      Date.now() - link.openedAtMs >= NOSTR_NIP46_STABLE_CONNECTION_MS
+    this.failedOpens.set(
+      link.url,
+      wasStable ? 0 : (this.failedOpens.get(link.url) ?? 0) + 1
+    )
+    this.scheduleReconnect(
+      link.url,
+      Math.floor(link.lastHeardAtMs / MS_PER_SECOND)
+    )
   }
 
-  private scheduleReconnect(
-    url: string,
-    attempt: number,
-    droppedAtSeconds: number
-  ): void {
+  // A relay that vanished without closing the socket (host down, NAT entry
+  // gone) never sends `close`: a relay quiet for a while is asked for a
+  // subscription that matches nothing, and dropped if it does not answer.
+  private probeQuietRelays(): void {
+    const now = Date.now()
+    for (const [ws, link] of this.links) {
+      if (now - link.lastHeardAtMs < NOSTR_NIP46_LIVENESS_INTERVAL_MS) {
+        continue
+      }
+      try {
+        ws.send(JSON.stringify(['REQ', this.probeId, NOSTR_NIP46_PROBE_FILTER]))
+      } catch {
+        this.closeDeadSocket(ws)
+        continue
+      }
+      const timer = setTimeout(() => {
+        this.probeTimers.delete(timer)
+        if (link.lastHeardAtMs < now) {
+          this.closeDeadSocket(ws)
+        }
+      }, NOSTR_NIP46_PROBE_TIMEOUT_MS)
+      this.probeTimers.add(timer)
+    }
+  }
+
+  private closeDeadSocket(ws: WebSocket): void {
+    this.dropSocket(ws)
+    try {
+      ws.close()
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private scheduleReconnect(url: string, droppedAtSeconds: number): void {
     if (!this.active || this.reconnectTimers.has(url)) {
       return
     }
-    const timer = setTimeout(() => {
-      this.reconnectTimers.delete(url)
-      void this.reconnect(url, attempt, droppedAtSeconds)
-    }, reconnectDelayMs(attempt))
+    const timer = setTimeout(
+      () => {
+        this.reconnectTimers.delete(url)
+        void this.reconnect(url, droppedAtSeconds)
+      },
+      reconnectDelayMs(this.failedOpens.get(url) ?? 0)
+    )
     this.reconnectTimers.set(url, timer)
   }
 
   private async reconnect(
     url: string,
-    attempt: number,
     droppedAtSeconds: number
   ): Promise<void> {
     const ws = await openRelaySocket(url).catch(() => null)
@@ -278,7 +356,8 @@ export class Nip46BunkerService {
       return
     }
     if (!ws) {
-      this.scheduleReconnect(url, attempt + 1, droppedAtSeconds)
+      this.failedOpens.set(url, (this.failedOpens.get(url) ?? 0) + 1)
+      this.scheduleReconnect(url, droppedAtSeconds)
       return
     }
     const wasDisconnected = this.sockets.length === 0
@@ -363,10 +442,20 @@ export class Nip46BunkerService {
 
   disconnect(): void {
     this.active = false
-    for (const timer of this.reconnectTimers.values()) {
+    if (this.livenessTimer) {
+      clearInterval(this.livenessTimer)
+      this.livenessTimer = null
+    }
+    for (const timer of [
+      ...this.reconnectTimers.values(),
+      ...this.probeTimers
+    ]) {
       clearTimeout(timer)
     }
     this.reconnectTimers.clear()
+    this.probeTimers.clear()
+    this.links.clear()
+    this.failedOpens.clear()
     for (const ws of this.sockets) {
       try {
         ws.send(JSON.stringify(['CLOSE', this.subId]))

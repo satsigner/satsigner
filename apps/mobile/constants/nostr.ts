@@ -252,6 +252,15 @@ export const NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS = 10
 // A dropped bunker relay is tried again after 2 s, doubling up to a minute.
 export const NOSTR_NIP46_RECONNECT_BASE_MS = 2000
 export const NOSTR_NIP46_RECONNECT_MAX_MS = 60_000
+// A relay that is reconnected again within this long counts as flapping, so
+// its retry delay keeps growing.
+export const NOSTR_NIP46_STABLE_CONNECTION_MS = 30_000
+// A bunker relay quiet this long is probed; one that doesn't answer the probe
+// within the timeout is taken as gone and reconnected.
+export const NOSTR_NIP46_LIVENESS_INTERVAL_MS = 60_000
+export const NOSTR_NIP46_PROBE_TIMEOUT_MS = 15_000
+// Matches no event, so the relay only answers with EOSE.
+export const NOSTR_NIP46_PROBE_FILTER = { ids: ['0'.repeat(64)], limit: 1 }
 // Handled request ids remembered across sessions; the oldest go first.
 export const NOSTR_NIP46_HANDLED_EVENTS_LIMIT = 1000
 export const NIP46_ACTIVITY_WRITE_INTERVAL_MS =

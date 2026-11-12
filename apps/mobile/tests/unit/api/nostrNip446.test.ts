@@ -4,8 +4,12 @@ import { encrypt, getConversationKey } from 'nostr-tools/nip44'
 
 import { Nip46BunkerService } from '@/api/nostrNip446'
 import {
+  NOSTR_NIP46_LIVENESS_INTERVAL_MS,
+  NOSTR_NIP46_PROBE_FILTER,
+  NOSTR_NIP46_PROBE_TIMEOUT_MS,
   NOSTR_NIP46_RECONNECT_BASE_MS,
   NOSTR_NIP46_RECONNECT_MAX_MS,
+  NOSTR_NIP46_STABLE_CONNECTION_MS,
   NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
@@ -25,6 +29,9 @@ const RELAY_B = 'wss://relay-b.example'
 class FakeRelaySocket {
   static readonly OPEN = OPEN
   static created: FakeRelaySocket[] = []
+  // Relays that refuse the connection, and relays that close right after.
+  static unreachable = new Set<string>()
+  static dropOnOpen = new Set<string>()
 
   readonly url: string
   readyState = OPEN
@@ -34,7 +41,20 @@ class FakeRelaySocket {
   constructor(url: string) {
     this.url = url
     FakeRelaySocket.created.push(this)
-    queueMicrotask(() => this.emit('open', ''))
+    queueMicrotask(() => this.connectFake())
+  }
+
+  private connectFake() {
+    if (FakeRelaySocket.unreachable.has(this.url)) {
+      this.readyState = CLOSED
+      this.emit('error', '')
+      return
+    }
+    this.emit('open', '')
+    if (FakeRelaySocket.dropOnOpen.has(this.url)) {
+      this.readyState = CLOSED
+      this.emit('close', '')
+    }
   }
 
   addEventListener(type: string, listener: Listener) {
@@ -103,12 +123,22 @@ function requestFrom(clientSecretKey: Uint8Array, id: string) {
   )
 }
 
+// Every service is disconnected after its test, so no relay timer outlives it.
+const startedServices: Nip46BunkerService[] = []
+
+function stopServices() {
+  for (const service of startedServices.splice(0)) {
+    service.disconnect()
+  }
+}
+
 async function startBunker(
   relays: string[],
   clientSecretKey: Uint8Array,
   onRequest: jest.Mock
 ) {
   const service = new Nip46BunkerService()
+  startedServices.push(service)
   const firstSocket = FakeRelaySocket.created.length
   await service.connect(relays)
   service.subscribe(
@@ -129,6 +159,7 @@ describe('nip46 bunker service', () => {
   })
 
   afterEach(() => {
+    stopServices()
     Reflect.set(globalThis, 'WebSocket', realWebSocket)
   })
 
@@ -241,19 +272,26 @@ describe('nip46 bunker relay reconnect', () => {
   beforeEach(() => {
     jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })
     FakeRelaySocket.created = []
+    FakeRelaySocket.unreachable.clear()
+    FakeRelaySocket.dropOnOpen.clear()
     Reflect.set(globalThis, 'WebSocket', FakeRelaySocket)
   })
 
   afterEach(() => {
+    stopServices()
     jest.useRealTimers()
     Reflect.set(globalThis, 'WebSocket', realWebSocket)
   })
 
-  async function startWatchedBunker(onConnectionChange = jest.fn()) {
+  async function startWatchedBunker(
+    relays = [RELAY_A],
+    onConnectionChange = jest.fn()
+  ) {
     const clientSecretKey = generateSecretKey()
     const onRequest = jest.fn()
     const service = new Nip46BunkerService({ onConnectionChange })
-    await service.connect([RELAY_A])
+    startedServices.push(service)
+    await service.connect(relays)
     service.subscribe(
       signerPubkey,
       signerSecretKey,
@@ -268,19 +306,24 @@ describe('nip46 bunker relay reconnect', () => {
     socket.emit('close', '')
   }
 
+  function socketsFor(url: string) {
+    return FakeRelaySocket.created.filter((socket) => socket.url === url)
+  }
+
   it('reconnects a dropped relay and takes the requests sent meanwhile', async () => {
     const { clientSecretKey, onRequest, service } = await startWatchedBunker()
     const [first] = FakeRelaySocket.created
-    const droppedAt = Math.floor(Date.now() / MS_PER_SECOND)
+    first.emit('message', '["EOSE","x"]')
+    const heardAt = Math.floor(Date.now() / MS_PER_SECOND)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_STABLE_CONNECTION_MS)
 
     dropRelay(first)
     expect(service.isConnected()).toBe(false)
     await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
 
-    const [, second] = FakeRelaySocket.created
-    expect(second?.url).toBe(RELAY_A)
+    const [, second] = socketsFor(RELAY_A)
     expect(second.subscriptionFilter()).toMatchObject({
-      since: droppedAt - NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+      since: heardAt - NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
     })
     second.deliver(requestFrom(clientSecretKey, 'after-drop'))
     expect(onRequest).toHaveBeenCalledWith(
@@ -291,12 +334,83 @@ describe('nip46 bunker relay reconnect', () => {
 
   it('reports losing the last relay and getting it back', async () => {
     const onConnectionChange = jest.fn()
-    await startWatchedBunker(onConnectionChange)
+    await startWatchedBunker([RELAY_A], onConnectionChange)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_STABLE_CONNECTION_MS)
 
     dropRelay(FakeRelaySocket.created[0])
     await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
 
     expect(onConnectionChange.mock.calls).toStrictEqual([[false], [true]])
+  })
+
+  it('waits longer each time a relay drops right after it opens', async () => {
+    await startWatchedBunker()
+
+    dropRelay(FakeRelaySocket.created[0])
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+    expect(socketsFor(RELAY_A)).toHaveLength(1)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+    expect(socketsFor(RELAY_A)).toHaveLength(2)
+
+    dropRelay(socketsFor(RELAY_A)[1])
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS * 3)
+    expect(socketsFor(RELAY_A)).toHaveLength(2)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+    expect(socketsFor(RELAY_A)).toHaveLength(3)
+  })
+
+  it('reconnects a relay that stops answering without closing', async () => {
+    const onConnectionChange = jest.fn()
+    await startWatchedBunker([RELAY_A], onConnectionChange)
+
+    await jest.advanceTimersByTimeAsync(
+      NOSTR_NIP46_LIVENESS_INTERVAL_MS + NOSTR_NIP46_PROBE_TIMEOUT_MS
+    )
+
+    const [first] = socketsFor(RELAY_A)
+    expect(first.sent).toContainEqual([
+      'REQ',
+      expect.any(String),
+      NOSTR_NIP46_PROBE_FILTER
+    ])
+    expect(onConnectionChange).toHaveBeenCalledWith(false)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_MAX_MS)
+    expect(socketsFor(RELAY_A).length).toBeGreaterThan(1)
+  })
+
+  it('keeps a quiet relay that answers the probe', async () => {
+    const onConnectionChange = jest.fn()
+    await startWatchedBunker([RELAY_A], onConnectionChange)
+    const [socket] = FakeRelaySocket.created
+
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_LIVENESS_INTERVAL_MS)
+    socket.emit('message', '["EOSE","probe"]')
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_PROBE_TIMEOUT_MS)
+
+    expect(onConnectionChange).not.toHaveBeenCalled()
+    expect(FakeRelaySocket.created).toHaveLength(1)
+  })
+
+  it('retries a relay that could not be reached at the start', async () => {
+    FakeRelaySocket.unreachable.add(RELAY_B)
+    await startWatchedBunker([RELAY_A, RELAY_B])
+    FakeRelaySocket.unreachable.clear()
+
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+
+    expect(socketsFor(RELAY_B)).toHaveLength(2)
+    expect(socketsFor(RELAY_B)[1].subscriptionFilter()).not.toBeNull()
+  })
+
+  it('retries a relay that dropped while another was still connecting', async () => {
+    FakeRelaySocket.dropOnOpen.add(RELAY_B)
+    const { service } = await startWatchedBunker([RELAY_A, RELAY_B])
+    FakeRelaySocket.dropOnOpen.clear()
+
+    expect(service.isConnected()).toBe(true)
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS)
+
+    expect(socketsFor(RELAY_B)).toHaveLength(2)
   })
 
   it('stops trying once the bunker is disconnected', async () => {
@@ -309,9 +423,23 @@ describe('nip46 bunker relay reconnect', () => {
     expect(FakeRelaySocket.created).toHaveLength(1)
   })
 
+  it('closes a relay that opens after the bunker was disconnected', async () => {
+    const { service } = await startWatchedBunker()
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_STABLE_CONNECTION_MS)
+
+    dropRelay(FakeRelaySocket.created[0])
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_RECONNECT_BASE_MS - 1)
+    const opening = jest.advanceTimersByTimeAsync(1)
+    service.disconnect()
+    await opening
+
+    expect(socketsFor(RELAY_A).at(-1)?.readyState).toBe(CLOSED)
+    expect(service.isConnected()).toBe(false)
+  })
+
   it('does not reconnect a relay it closed itself', async () => {
     const onConnectionChange = jest.fn()
-    const { service } = await startWatchedBunker(onConnectionChange)
+    const { service } = await startWatchedBunker([RELAY_A], onConnectionChange)
     const [socket] = FakeRelaySocket.created
 
     service.disconnect()
