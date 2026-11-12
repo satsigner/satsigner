@@ -77,11 +77,15 @@ function DescriptorQrItem({ descriptor, label, qrRef }: DescriptorQrItemProps) {
   )
 }
 
+function separateDescriptorLabel(index: number) {
+  return index === 0 ? t('account.seed.external') : t('account.seed.internal')
+}
+
 // A QR that fails to render leaves the PDF with the descriptor text only.
 function captureQrDataUrl(
-  ref: RefObject<ViewInstance | null>
+  ref: RefObject<ViewInstance | null> | undefined
 ): Promise<string> {
-  if (!ref.current) {
+  if (!ref?.current) {
     return Promise.resolve('')
   }
   return captureRef(ref.current, {
@@ -488,8 +492,15 @@ export default function ExportDescriptors() {
     generatePDF()
   }
 
+  // One QR per chain: a multipath descriptor splits into two.
   function separateQrRef(index: number) {
-    return index === 0 ? externalQrRef : internalQrRef
+    if (index === 0) {
+      return externalQrRef
+    }
+    if (index === 1) {
+      return internalQrRef
+    }
+    return undefined
   }
 
   async function generatePDF() {
@@ -500,6 +511,7 @@ export default function ExportDescriptors() {
       ? await Promise.all(
           separateDescriptors.map(async (descriptor, index) => ({
             descriptor,
+            label: separateDescriptorLabel(index),
             qrDataUrl: await captureQrDataUrl(separateQrRef(index))
           }))
         )
@@ -587,7 +599,7 @@ export default function ExportDescriptors() {
                     key={descriptor}
                     qrRef={separateQrRef(index)}
                     descriptor={descriptor}
-                    label={`${index === 0 ? 'External' : 'Internal'} ${t('common.descriptor')}`}
+                    label={separateDescriptorLabel(index)}
                   />
                 ))}
               </SSVStack>

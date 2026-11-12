@@ -16,6 +16,20 @@ describe('buildDescriptorsPdfHtml', () => {
     expect(html.indexOf('base64,INT')).toBeLessThan(html.indexOf(INTERNAL))
   })
 
+  it('names each section', () => {
+    const html = buildDescriptorsPdfHtml('Savings', [
+      { descriptor: EXTERNAL, label: 'External Descriptor', qrDataUrl: '' },
+      { descriptor: INTERNAL, label: 'Internal Descriptor', qrDataUrl: '' }
+    ])
+
+    expect(html.indexOf('External Descriptor')).toBeLessThan(
+      html.indexOf(EXTERNAL)
+    )
+    expect(html.indexOf('Internal Descriptor')).toBeLessThan(
+      html.indexOf(INTERNAL)
+    )
+  })
+
   it('keeps the text of a descriptor whose QR could not be captured', () => {
     const html = buildDescriptorsPdfHtml('Savings', [
       { descriptor: EXTERNAL, qrDataUrl: '' }

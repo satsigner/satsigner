@@ -1,5 +1,7 @@
 type DescriptorPdfSection = {
   descriptor: string
+  /** Shown above the section, e.g. which chain the descriptor is for. */
+  label?: string
   qrDataUrl: string
 }
 
@@ -33,6 +35,13 @@ const DESCRIPTOR_PDF_STYLE = `
     margin-bottom: 30px;
   }
 
+  .section-label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 30px;
+  }
+
   .qr-section {
     text-align: center;
     margin: 30px 0;
@@ -64,11 +73,14 @@ function escapeHtml(text: string) {
   return text.replaceAll(/["&'<>]/g, (char) => HTML_ENTITIES[char] ?? char)
 }
 
-function sectionHtml({ descriptor, qrDataUrl }: DescriptorPdfSection) {
+function sectionHtml({ descriptor, label, qrDataUrl }: DescriptorPdfSection) {
+  const heading = label
+    ? `<div class="section-label">${escapeHtml(label)}</div>`
+    : ''
   const qr = qrDataUrl
     ? `<div class="qr-section"><img src="${escapeHtml(qrDataUrl)}" class="qr-code" alt="QR Code for descriptor" /></div>`
     : ''
-  return `${qr}<div class="descriptor-text">${escapeHtml(descriptor)}</div>`
+  return `${heading}${qr}<div class="descriptor-text">${escapeHtml(descriptor)}</div>`
 }
 
 /** A printable page with each descriptor's QR code above its text. */

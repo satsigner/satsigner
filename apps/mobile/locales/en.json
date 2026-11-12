@@ -303,6 +303,7 @@
     "seed.formatButtons.ypub": "YPUB",
     "seed.formatButtons.zpub": "ZPUB",
     "seed.importedSeed": "Imported Seed (%{name})",
+    "seed.internal": "Internal Descriptor",
     "seed.keepInSecret": "Keep your mnemonic words in secret !",
     "seed.keepItSecret": "Keep it secret",
     "seed.newSeed": "New Seed (%{name})",
