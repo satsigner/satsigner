@@ -1,8 +1,10 @@
 import { getDb } from '@/db/connection'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import {
+  getChatReplyParent,
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
+  listChatReplies,
   listChatThread,
   listPeersWrittenTo
 } from '@/db/queries/nostrChat'
@@ -133,6 +135,41 @@ describe('nostr chat queries', () => {
           status: 'pending'
         }
       ])
+    })
+  })
+
+  describe('reply links', () => {
+    const message = {
+      id: 'msg-2',
+      identityNpub: 'npub1me',
+      peerPubkey: 'peer-1',
+      protocol: 'nip17' as const,
+      replyToId: 'msg-1'
+    }
+
+    it('looks for the parent only in the same chat', () => {
+      getChatReplyParent(message)
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('protocol = ? AND peer_pubkey = ? AND id = ?'),
+        ['npub1me', 'nip17', 'peer-1', 'msg-1']
+      )
+    })
+
+    it('has no parent for a message that is not a reply', () => {
+      expect(
+        getChatReplyParent({ ...message, replyToId: undefined })
+      ).toBeNull()
+      expect(execute).not.toHaveBeenCalled()
+    })
+
+    it('lists replies only from the same chat', () => {
+      listChatReplies(message)
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('protocol = ? AND peer_pubkey = ?'),
+        ['npub1me', 'nip17', 'peer-1', 'msg-2']
+      )
     })
   })
 

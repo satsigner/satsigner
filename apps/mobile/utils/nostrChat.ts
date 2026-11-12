@@ -48,6 +48,7 @@ import {
 } from '@/db/nostrProcessedEvents'
 import {
   getChatMessage,
+  getChatReplyParent,
   getNewestSentChatMessageCreatedAt,
   getOldestChatMessageCreatedAt,
   hasChatMessage,
@@ -1266,14 +1267,12 @@ function loadChatMessageDetail(
     return null
   }
   const authors = getChatThreadAuthors(identityNpub, message.peerPubkey)
-  const parent = message.replyToId
-    ? getChatMessage(identityNpub, message.replyToId)
-    : null
+  const parent = getChatReplyParent(message)
   return {
     item: toChatThreadItem(message, authors),
     message,
     parent: parent ? toChatThreadItem(parent, authors) : null,
-    replies: listChatReplies(identityNpub, messageId).map((reply) =>
+    replies: listChatReplies(message).map((reply) =>
       toChatThreadItem(reply, authors)
     ),
     wrapCount: getMessageWraps(chatScope(identityNpub), messageId).length

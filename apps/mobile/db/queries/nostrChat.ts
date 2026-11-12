@@ -146,15 +146,43 @@ function hasOutgoingChatMessage(
   return rows.length > 0
 }
 
-function listChatReplies(
-  identityNpub: string,
-  parentId: string
-): NostrChatMessage[] {
+type ChatMessageInChat = Pick<
+  NostrChatMessage,
+  'id' | 'identityNpub' | 'peerPubkey' | 'protocol' | 'replyToId'
+>
+
+// Reply links stay inside the message's own chat: anyone can reference the
+// id of a message from another conversation.
+function getChatReplyParent(
+  message: ChatMessageInChat
+): NostrChatMessage | null {
+  if (!message.replyToId) {
+    return null
+  }
+  const row = getDb()
+    .execute<ChatMessageRow>(
+      `SELECT * FROM nostr_chat_messages
+        WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ? AND id = ?
+        LIMIT 1`,
+      [
+        message.identityNpub,
+        message.protocol,
+        message.peerPubkey,
+        message.replyToId
+      ]
+    )
+    .rows.item(0)
+  return row ? rowToChatMessage(row) : null
+}
+
+function listChatReplies(parent: ChatMessageInChat): NostrChatMessage[] {
   return getDb()
     .execute<ChatMessageRow>(
       `SELECT * FROM nostr_chat_messages
-        WHERE identity_npub = ? AND reply_to_id = ? ORDER BY created_at ASC`,
-      [identityNpub, parentId]
+        WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
+          AND reply_to_id = ?
+        ORDER BY created_at ASC`,
+      [parent.identityNpub, parent.protocol, parent.peerPubkey, parent.id]
     )
     .rows._array.map(rowToChatMessage)
 }
@@ -173,6 +201,7 @@ function listPeersWrittenTo(identityNpub: string): string[] {
 
 export {
   getChatMessage,
+  getChatReplyParent,
   getNewestSentChatMessageCreatedAt,
   getOldestChatMessageCreatedAt,
   hasChatMessage,

@@ -52,6 +52,7 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
         (_npub: string, id: string) =>
           storedMessages().find((m) => m.id === id) ?? null
       ),
+      getChatReplyParent: jest.fn(() => null),
       getNewestSentChatMessageCreatedAt: jest.fn(
         (_npub: string, protocol: string) => {
           const times = storedMessages()
