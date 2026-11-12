@@ -164,7 +164,12 @@ async function syncWalletAccount({
     walletSummary = coreResult
     newRpcLastBlockHash = coreResult.rpcLastBlockHash
   } else {
-    const scanWallet = await walletForServerChain(latest, wallet, server)
+    const scanWallet = await walletForServerChain(
+      latest,
+      wallet,
+      server,
+      signal
+    )
     // A wallet replaced for another chain starts empty: find all its history.
     const isScanFull = isFullScan || scanWallet !== wallet
     if (!isScanFull) {

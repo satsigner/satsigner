@@ -258,6 +258,23 @@ describe('walletForServerChain', () => {
     expect(deleteWalletDb).not.toHaveBeenCalled()
   })
 
+  it('leaves the wallet alone when the sync was given up during the check', async () => {
+    const account = makeAccount('acc-6')
+    const wallet = walletWithBlock(MUTINYNET_BLOCK)
+    useWalletsStore.getState().addAccountWallet(account.id, wallet, DB_PATH)
+    const controller = new AbortController()
+    jest.mocked(openServerChainReader).mockImplementation(() => {
+      controller.abort()
+      return Promise.resolve(readerFor(SIGNET_TIP, SIGNET_HASH))
+    })
+
+    await expect(
+      walletForServerChain(account, wallet, MEMPOOL_SERVER, controller.signal)
+    ).resolves.toBe(wallet)
+    expect(deleteWalletDb).not.toHaveBeenCalled()
+    expect(useWalletsStore.getState().wallets[account.id]).toBe(wallet)
+  })
+
   it('refuses to reset a wallet whose database is unknown', async () => {
     const wallet = walletWithBlock(MUTINYNET_BLOCK)
     jest

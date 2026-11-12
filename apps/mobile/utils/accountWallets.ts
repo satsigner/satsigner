@@ -131,12 +131,14 @@ async function recreateAccountWallet(account: Account): Promise<BdkWallet> {
  * The wallet to sync the account with on this server: a new, empty one when
  * the account's wallet holds blocks of another chain, so the two chains'
  * histories don't mix. A check that fails keeps the wallet: the sync itself
- * then reports the server problem.
+ * then reports the server problem. A sync given up on during the check
+ * leaves the wallet alone.
  */
 async function walletForServerChain(
   account: Account,
   wallet: BdkWallet,
-  server: Server
+  server: Server,
+  signal?: AbortSignal
 ): Promise<BdkWallet> {
   const serverKey = serverCheckKey(server)
   const checked = walletsCheckedOnServer.get(account.id)
@@ -149,7 +151,7 @@ async function walletForServerChain(
       ? WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS
       : WALLET_CHAIN_CHECK_TIMEOUT_MS
   ).catch(() => undefined)
-  if (isOnServerChain === undefined) {
+  if (isOnServerChain === undefined || signal?.aborted) {
     return wallet
   }
   const syncWallet = isOnServerChain
