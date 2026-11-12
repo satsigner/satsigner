@@ -317,9 +317,19 @@ export class Nip46BunkerService {
         this.probeTimers.delete(timer)
         if (link.lastHeardAtMs < now) {
           this.closeDeadSocket(ws)
+          return
         }
+        this.closeProbe(ws)
       }, NOSTR_NIP46_PROBE_TIMEOUT_MS)
       this.probeTimers.add(timer)
+    }
+  }
+
+  private closeProbe(ws: WebSocket): void {
+    try {
+      ws.send(JSON.stringify(['CLOSE', this.probeId]))
+    } catch {
+      this.closeDeadSocket(ws)
     }
   }
 

@@ -391,6 +391,27 @@ describe('nip46 bunker relay reconnect', () => {
     expect(FakeRelaySocket.created).toHaveLength(1)
   })
 
+  it('closes the probe subscription of a relay that answered it', async () => {
+    await startWatchedBunker([RELAY_A])
+    const [socket] = FakeRelaySocket.created
+
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_LIVENESS_INTERVAL_MS)
+    socket.emit('message', '["EOSE","probe"]')
+    await jest.advanceTimersByTimeAsync(NOSTR_NIP46_PROBE_TIMEOUT_MS)
+
+    const probe = socket.sent.find(
+      (frame) =>
+        Array.isArray(frame) &&
+        frame[0] === 'REQ' &&
+        JSON.stringify(frame[2]) === JSON.stringify(NOSTR_NIP46_PROBE_FILTER)
+    )
+    expect(Array.isArray(probe)).toBe(true)
+    expect(socket.sent).toContainEqual([
+      'CLOSE',
+      Array.isArray(probe) ? probe[1] : undefined
+    ])
+  })
+
   it('retries a relay that could not be reached at the start', async () => {
     FakeRelaySocket.unreachable.add(RELAY_B)
     await startWatchedBunker([RELAY_A, RELAY_B])
