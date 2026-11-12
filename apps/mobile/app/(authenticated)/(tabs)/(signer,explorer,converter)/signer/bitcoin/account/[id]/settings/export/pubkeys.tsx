@@ -49,11 +49,10 @@ export default function ExportPubkeys() {
     isError,
     isLoading
   } = useAccountPublicKeys(account, network)
-  const exportContent = (
-    pubkeyFormat === 'xpub'
-      ? rawPubkeys
-      : rawPubkeys.map((key) => convertKeyFormat(key, pubkeyFormat, network))
-  ).join('\n')
+  // A key imported as a zpub is stored as one: it is converted for xpub too.
+  const exportContent = rawPubkeys
+    .map((key) => convertKeyFormat(key, pubkeyFormat, network))
+    .join('\n')
 
   function exportPubkeys() {
     if (!account) {
