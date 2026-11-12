@@ -8,6 +8,7 @@ import {
 } from '@/api/bdk'
 import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
@@ -199,6 +200,35 @@ describe('useTransactionPsbt', () => {
     )
     expect(mockUpdateAccount).toHaveBeenCalledWith(synced)
     useAccountsStore.setState({ updateAccount })
+  })
+
+  it('leaves the sync to the user in manual connection mode', async () => {
+    fillBuilder()
+    const { configs, selectedNetwork } = useBlockchainStore.getState()
+    const networkConfig = configs[selectedNetwork]
+    useBlockchainStore.setState({
+      configs: {
+        ...configs,
+        [selectedNetwork]: {
+          ...networkConfig,
+          config: { ...networkConfig.config, connectionMode: 'manual' }
+        }
+      }
+    })
+    jest.mocked(hasInputsMissingFromWallet).mockReturnValue(true)
+    mockBuildPsbt.mockResolvedValue(
+      createMockPsbt(routePsbtBase64(), 'built-txid', 1000)
+    )
+
+    await renderTransactionPsbt({
+      account: makeAccount(),
+      importedPsbtBase64: undefined
+    })
+
+    expect(mockSyncAccountWithWallet).not.toHaveBeenCalled()
+    expect(mockBuildPsbt).toHaveBeenCalledTimes(1)
+    jest.mocked(hasInputsMissingFromWallet).mockReturnValue(false)
+    useBlockchainStore.setState({ configs })
   })
 
   it('builds without a sync when the wallet holds every input', async () => {

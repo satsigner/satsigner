@@ -82,7 +82,7 @@ export function useTransactionPsbt({
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { server } = useBlockchainStore(
+  const { config, server } = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork]
   )
 
@@ -215,13 +215,14 @@ export function useTransactionPsbt({
   }, [importedPsbtBase64, loadedAccountIdToReimportOn])
 
   // The change of a send broadcast moments ago can be picked before the BDK
-  // wallet has synced its transaction.
+  // wallet has synced its transaction. In manual mode the user syncs.
   async function syncWalletForMissingInputs(
     loadedWallet: NonNullable<typeof wallet>,
     inputArray: Utxo[]
   ) {
     if (
       !account ||
+      config.connectionMode === 'manual' ||
       !hasInputsMissingFromWallet(loadedWallet, server, account, inputArray)
     ) {
       return
