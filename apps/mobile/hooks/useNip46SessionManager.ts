@@ -256,13 +256,13 @@ export async function startNip46Session(
   updateSession(session.id, { connectionStatus: 'connecting' })
   const connectSecret = session.secret ?? ''
 
+  const service = new Nip46BunkerService({
+    onConnectionChange: (isConnected) =>
+      updateSession(session.id, {
+        connectionStatus: isConnected ? 'connected' : 'connecting'
+      })
+  })
   try {
-    const service = new Nip46BunkerService({
-      onConnectionChange: (isConnected) =>
-        updateSession(session.id, {
-          connectionStatus: isConnected ? 'connected' : 'connecting'
-        })
-    })
     await service.connect(session.relays)
     // Locking stopped every bunker while this one was still connecting.
     if (isAppLocked(useAuthStore.getState())) {
@@ -349,6 +349,10 @@ export async function startNip46Session(
     })
 
     stopNip46Session(session.id)
+    // A connect that failed before registering left these outside the
+    // session registry, so stopping the session doesn't reach them.
+    service.disconnect()
+    secretKey.fill(0)
 
     throw error
   }
