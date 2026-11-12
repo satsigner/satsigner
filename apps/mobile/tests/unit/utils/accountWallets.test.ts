@@ -112,8 +112,53 @@ describe('loadAccountWallets', () => {
       externalDescriptor: '',
       fingerprint: '',
       internalDescriptor: '',
+      isNewDatabase: false,
       wallet: makeWallet()
     })
+  })
+
+  function makeAccountWithHistory(id: string): Account {
+    return {
+      ...makeAccount(id),
+      transactions: [
+        {
+          id: 'tx-1',
+          label: '',
+          lockTimeEnabled: false,
+          prices: {},
+          received: 0,
+          sent: 0,
+          type: 'send'
+        }
+      ]
+    }
+  }
+
+  it('drops the history a new wallet database does not hold', async () => {
+    mockAccounts.current = [makeAccountWithHistory('acc-1')]
+    jest.mocked(getWalletData).mockResolvedValueOnce({
+      dbPath: 'wallet.sqlite',
+      derivationPath: '',
+      externalDescriptor: '',
+      fingerprint: '',
+      internalDescriptor: '',
+      isNewDatabase: true,
+      wallet: makeWallet()
+    })
+
+    await loadAccountWallets()
+
+    expect(mockUpdateAccount).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'acc-1', transactions: [] })
+    )
+  })
+
+  it('keeps the history of a wallet database that already existed', async () => {
+    mockAccounts.current = [makeAccountWithHistory('acc-1')]
+
+    await loadAccountWallets()
+
+    expect(mockUpdateAccount).not.toHaveBeenCalled()
   })
 
   it('keeps a wallet that is already loaded', async () => {

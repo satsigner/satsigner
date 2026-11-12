@@ -13,6 +13,7 @@ import { useWalletsStore } from '@/store/wallets'
 import type { Account, Key } from '@/types/models/Account'
 import { type Server } from '@/types/settings/blockchain'
 import { clearAccountChainData } from '@/utils/account'
+import { hasAccountChainData } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import {
   decryptAccountKeySecrets,
@@ -63,6 +64,14 @@ async function loadAccountWallets() {
         : undefined
       if (walletData) {
         addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
+      }
+      // A new database holds none of the account's history (its descriptor
+      // changed, or the file is gone), so the next sync scans from scratch
+      // instead of catching up from what the account remembers.
+      if (walletData?.isNewDatabase && hasAccountChainData(account)) {
+        useAccountsStore
+          .getState()
+          .updateAccount(clearAccountChainData(account))
       }
 
       const importSecret = tmpAccount.keys[0].secret

@@ -130,6 +130,8 @@ type WalletData = {
   /** Multisig only, by key index: the origin path each key is written with. */
   keyDerivationPaths?: string[]
   keyFingerprints?: string[] // Optional for multisig accounts
+  /** True when no database existed for these descriptors before. */
+  isNewDatabase: boolean
   wallet: BdkWallet
 }
 
@@ -190,7 +192,7 @@ async function getWalletData(
           throw new Error('Invalid secret')
         }
 
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           signingDescriptors.receive,
           signingDescriptors.change,
           network
@@ -202,6 +204,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: '',
           internalDescriptor: externalDescriptor,
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importDescriptor') {
@@ -213,7 +216,7 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -225,6 +228,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor || '',
+          isNewDatabase,
           wallet
         }
       }
@@ -346,7 +350,7 @@ async function getWalletData(
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
-      const { wallet, dbPath } = await getWalletFromDescriptor(
+      const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
         externalDescriptor,
         internalDescriptor,
         network
@@ -361,6 +365,7 @@ async function getWalletData(
         externalDescriptor: finalDescriptor,
         fingerprint: parsedDescriptor.fingerprint,
         internalDescriptor: '',
+        isNewDatabase,
         keyDerivationPaths,
         keyFingerprints,
         wallet
@@ -382,7 +387,7 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -394,6 +399,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor || '',
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importExtendedPub') {
@@ -422,7 +428,7 @@ async function getWalletData(
         )
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -434,6 +440,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor,
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importAddress') {
@@ -532,7 +539,7 @@ async function getWalletDataFromMnemonic(
 
   const { fingerprint, derivationPath } = parseDescriptor(externalDescriptor)
 
-  const { wallet, dbPath } = await getWalletFromDescriptor(
+  const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
@@ -544,6 +551,7 @@ async function getWalletDataFromMnemonic(
     externalDescriptor,
     fingerprint,
     internalDescriptor,
+    isNewDatabase,
     wallet
   }
 }
@@ -644,7 +652,7 @@ async function getWalletFromDescriptor(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
   network: Network
-): Promise<{ wallet: BdkWallet; dbPath: string }> {
+): Promise<{ dbPath: string; isNewDatabase: boolean; wallet: BdkWallet }> {
   const { ext, int, legacyInt } = resolveWalletDescriptors(
     externalDescriptor,
     internalDescriptor
@@ -658,10 +666,15 @@ async function getWalletFromDescriptor(
     uri
   )
   if (legacyWallet) {
-    return legacyWallet
+    return { ...legacyWallet, isNewDatabase: false }
   }
   const dbPath = uriToPath(uri)
-  return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
+  const isNewDatabase = !(await fileExists(uri))
+  return {
+    dbPath,
+    isNewDatabase,
+    wallet: new BdkWallet(ext, int, network, dbPath)
+  }
 }
 
 // Databases created before the network was part of the file name.
