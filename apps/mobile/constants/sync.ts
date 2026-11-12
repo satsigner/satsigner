@@ -12,6 +12,10 @@ const MIN_USABLE_CHECKPOINT_HEIGHT = 10_000
 // and costs a full rescan.
 const WALLET_CHAIN_CHECK_LIMIT = 10
 
+// A server whose tip is this many blocks or less below every block the wallet
+// has seen is taken as catching up on the same chain, not as another chain.
+const WALLET_CHAIN_TIP_LAG_MARGIN = 1000
+
 // A chain check that takes longer is skipped and the sync goes ahead.
 const WALLET_CHAIN_CHECK_TIMEOUT_MS = 30_000
 const WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS = 90_000
@@ -56,5 +60,6 @@ export {
   SYNC_STALL_TIMEOUT_TOR_MS,
   WALLET_CHAIN_CHECK_LIMIT,
   WALLET_CHAIN_CHECK_TIMEOUT_MS,
-  WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS
+  WALLET_CHAIN_CHECK_TOR_TIMEOUT_MS,
+  WALLET_CHAIN_TIP_LAG_MARGIN
 }

@@ -146,7 +146,8 @@ describe('loadAccountWallets', () => {
 describe('walletForServerChain', () => {
   const DB_PATH = 'acc-1-signet.sqlite'
   const SIGNET_TIP = 280_000
-  const MUTINYNET_BLOCK = { hash: 'mutinynet', height: 3_120_000 }
+  const SIGNET_HASH = 'a'.repeat(64)
+  const MUTINYNET_BLOCK = { hash: 'b'.repeat(64), height: 3_120_000 }
   const MEMPOOL_SERVER: Server = {
     backend: 'electrum',
     name: 'Mempool',
@@ -180,8 +181,8 @@ describe('walletForServerChain', () => {
   })
 
   it('keeps a wallet that is on the server chain', async () => {
-    const wallet = walletWithBlock({ hash: 'signet', height: SIGNET_TIP })
-    const reader = readerFor(SIGNET_TIP, 'signet')
+    const wallet = walletWithBlock({ hash: SIGNET_HASH, height: SIGNET_TIP })
+    const reader = readerFor(SIGNET_TIP, SIGNET_HASH)
     jest.mocked(openServerChainReader).mockResolvedValue(reader)
 
     await expect(
@@ -203,7 +204,7 @@ describe('walletForServerChain', () => {
     useWalletsStore.getState().addAccountWallet(account.id, wallet, DB_PATH)
     jest
       .mocked(openServerChainReader)
-      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+      .mockResolvedValue(readerFor(SIGNET_TIP, SIGNET_HASH))
     jest.mocked(getWalletData).mockResolvedValue({
       dbPath: DB_PATH,
       derivationPath: '',
@@ -232,10 +233,10 @@ describe('walletForServerChain', () => {
 
   it('checks a wallet once per server', async () => {
     const account = makeAccount('acc-3')
-    const wallet = walletWithBlock({ hash: 'signet', height: SIGNET_TIP })
+    const wallet = walletWithBlock({ hash: SIGNET_HASH, height: SIGNET_TIP })
     jest
       .mocked(openServerChainReader)
-      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+      .mockResolvedValue(readerFor(SIGNET_TIP, SIGNET_HASH))
 
     await walletForServerChain(account, wallet, MEMPOOL_SERVER)
     await walletForServerChain(account, wallet, MEMPOOL_SERVER)
@@ -261,7 +262,7 @@ describe('walletForServerChain', () => {
     const wallet = walletWithBlock(MUTINYNET_BLOCK)
     jest
       .mocked(openServerChainReader)
-      .mockResolvedValue(readerFor(SIGNET_TIP, 'signet'))
+      .mockResolvedValue(readerFor(SIGNET_TIP, SIGNET_HASH))
 
     await expect(
       walletForServerChain(makeAccount('acc-5'), wallet, MEMPOOL_SERVER)
