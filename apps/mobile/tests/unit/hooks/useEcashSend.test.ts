@@ -29,6 +29,9 @@ jest.mock<typeof import('@/utils/lnurl')>('@/utils/lnurl', () => ({
   fetchLNURLPayDetails: jest.fn()
 }))
 
+// BOLT 11 spec test vector; the bip321 sample invoices have no valid checksum.
+const DECODABLE_INVOICE =
+  'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql'
 const PASTED = 'Invoice pasted from clipboard'
 const UNSUPPORTED = 'Not a Lightning invoice or LNURL-pay code'
 const LNURL_MAX_LENGTH = 1023
@@ -86,14 +89,14 @@ describe('useEcashSend applyInvoiceInput', () => {
   })
 
   it('confirms a pasted Lightning invoice', async () => {
-    await paste(lightningInvoices.mainnet.basic)
+    await paste(DECODABLE_INVOICE)
 
     expect(toast.success).toHaveBeenCalledWith(PASTED)
     expect(toast.error).not.toHaveBeenCalled()
   })
 
   it('confirms a pasted lightning: URI', async () => {
-    await paste(`lightning:${lightningInvoices.mainnet.basic}`)
+    await paste(`lightning:${DECODABLE_INVOICE}`)
 
     expect(toast.success).toHaveBeenCalledWith(PASTED)
     expect(toast.error).not.toHaveBeenCalled()
@@ -115,9 +118,25 @@ describe('useEcashSend applyInvoiceInput', () => {
   })
 
   it('keeps a pasted invoice in the field', async () => {
+    const result = await paste(DECODABLE_INVOICE)
+
+    expect(result.current?.invoice).toBe(DECODABLE_INVOICE)
+  })
+
+  it('does not confirm an invoice that cannot be decoded', async () => {
     const result = await paste(lightningInvoices.mainnet.basic)
 
+    expect(toast.warning).toHaveBeenCalledTimes(1)
+    expect(toast.success).not.toHaveBeenCalled()
     expect(result.current?.invoice).toBe(lightningInvoices.mainnet.basic)
+  })
+
+  it('does not confirm an LNURL-pay code whose details cannot be fetched', async () => {
+    jest.mocked(fetchLNURLPayDetails).mockRejectedValue(new Error('offline'))
+
+    await paste(encodeLnurl('https://service.example/lnurlp/alice'))
+
+    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it('only explains that an LNURL-withdraw code belongs in Receive', async () => {

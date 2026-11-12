@@ -317,6 +317,7 @@ export function useEcashSend() {
         applyLnurlDetails(details, isCurrentRequest)
       } catch {
         applyLnurlDetails(null, isCurrentRequest)
+        return 'unresolved'
       }
       return 'lnurlPay'
     }
@@ -343,7 +344,7 @@ export function useEcashSend() {
       if (!isConnected) {
         setDecodedInvoice(null)
         toast.warning(t('ecash.error.invoiceDecodeFailed'))
-        return 'invoice'
+        return 'unresolved'
       }
       try {
         const lndDecoded = await makeRequest<LNDDecodedInvoice>(
@@ -352,6 +353,7 @@ export function useEcashSend() {
         applyDecodedInvoice(lndDecoded, isCurrentRequest)
       } catch {
         applyDecodedInvoice(null, isCurrentRequest)
+        return 'unresolved'
       }
     }
     return 'invoice'
@@ -365,6 +367,10 @@ export function useEcashSend() {
     )
     if (inputKind === 'invoice' || inputKind === 'lnurlPay') {
       toast.success(successMessage)
+      return
+    }
+    // The failed decode or lookup was already reported.
+    if (inputKind === 'unresolved') {
       return
     }
     // What this screen can't pay is not left in the field.
