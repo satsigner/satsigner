@@ -1859,6 +1859,7 @@
     "node.protocolVersion": "Protocol Version",
     "node.serverConfig": "Server Configuration",
     "node.serverInfo": "Server Info",
+    "node.serverInfoLoadError": "Could not load the server details",
     "node.serverName": "Server Name",
     "node.serverUrl": "Server URL",
     "node.software": "Software",

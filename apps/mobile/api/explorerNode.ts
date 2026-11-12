@@ -55,9 +55,8 @@ async function fetchElectrumServerInfo(
   serverUrl: string,
   network: Network
 ): Promise<BackendServerInfo> {
-  let client: ElectrumClient | null = null
+  const client = ElectrumClient.fromUrl(serverUrl, network)
   try {
-    client = ElectrumClient.fromUrl(serverUrl, network)
     await client.init()
 
     const [versionResult, bannerResult] = await Promise.allSettled([
@@ -75,8 +74,6 @@ async function fetchElectrumServerInfo(
       protocolVersion: version[1] ?? '',
       serverSoftware: version[0] ?? ''
     }
-  } catch {
-    return EMPTY_SERVER_INFO
   } finally {
     closeElectrumClientQuietly(client)
   }
@@ -86,26 +83,22 @@ async function fetchRpcServerInfo(
   serverUrl: string,
   rpcCredentials?: RpcCredentials
 ): Promise<BackendServerInfo> {
-  try {
-    const rpc = new BitcoinRpc(
-      serverUrl,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    const [chainInfo, networkInfo] = await Promise.all([
-      rpc.getBlockchainInfo(),
-      rpc.getNetworkInfo()
-    ])
+  const rpc = new BitcoinRpc(
+    serverUrl,
+    rpcCredentials?.username ?? '',
+    rpcCredentials?.password ?? ''
+  )
+  const [chainInfo, networkInfo] = await Promise.all([
+    rpc.getBlockchainInfo(),
+    rpc.getNetworkInfo()
+  ])
 
-    return {
-      banner: formatRpcBanner(networkInfo, chainInfo),
-      protocolVersion: networkInfo.protocolversion?.toString() ?? '',
-      serverSoftware:
-        networkInfo.subversion?.trim() ||
-        `Bitcoin Core ${formatCoreVersion(networkInfo.version)}`
-    }
-  } catch {
-    return EMPTY_SERVER_INFO
+  return {
+    banner: formatRpcBanner(networkInfo, chainInfo),
+    protocolVersion: networkInfo.protocolversion?.toString() ?? '',
+    serverSoftware:
+      networkInfo.subversion?.trim() ||
+      `Bitcoin Core ${formatCoreVersion(networkInfo.version)}`
   }
 }
 

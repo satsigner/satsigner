@@ -34,7 +34,11 @@ export default function ExplorerNode() {
     isError: isChainError,
     isLoading: isLoadingChain
   } = useChainData()
-  const { data: serverInfo, isLoading: isLoadingInfo } = useBackendServerInfo()
+  const {
+    data: serverInfo,
+    isError: isServerInfoError,
+    isLoading: isLoadingInfo
+  } = useBackendServerInfo()
   const { data: bitnodesInfo, isLoading: isLoadingBitnodes } =
     useBitnodesNodeInfo(showExternal)
   const nowMs = useNow()
@@ -152,6 +156,11 @@ export default function ExplorerNode() {
                 source="backend"
                 sourceLabel={`${server.name} (${server.backend})`}
               />
+              {isServerInfoError ? (
+                <SSText size="sm" color="muted">
+                  {tn('serverInfoLoadError')}
+                </SSText>
+              ) : null}
               <SSVStack gap="xs">
                 <SSExplorerRow
                   label={tn('software')}
