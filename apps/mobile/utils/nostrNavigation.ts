@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { parseNostrConnectUri } from '@/utils/nip46'
+import { getNip19Type } from '@/utils/nostr'
 
 export function nostrAccountProfileHref(npub: string): Href {
   return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
@@ -138,18 +139,6 @@ export function deviceChatMessageHref(
   }
 }
 
-type Nip19Type = ReturnType<typeof nip19.decode>['type']
-
-// The content detector only checks the prefix and length, so a value with a
-// bad checksum still needs a real decode before it reaches a route.
-function decodesAs(value: string, type: Nip19Type): boolean {
-  try {
-    return nip19.decode(value).type === type
-  } catch {
-    return false
-  }
-}
-
 function nprofileToNpub(nprofile: string): string | undefined {
   try {
     const decoded = nip19.decode(nprofile)
@@ -164,6 +153,8 @@ function nprofileToNpub(nprofile: string): string | undefined {
 /**
  * Where content scanned while viewing identity `ownerNpub` leads. Secret keys
  * and anything else unsupported lead nowhere, so they never reach a route param.
+ * The content detector only checks the prefix and length, so a value with a
+ * bad checksum still needs a real decode before it reaches a route.
  */
 export function nostrScannedContentHref(
   ownerNpub: string,
@@ -178,19 +169,19 @@ export function nostrScannedContentHref(
       return nostrBunkerConnectHref(ownerNpub, value)
     }
     case 'nostr_note': {
-      if (!decodesAs(value, 'note')) {
+      if (getNip19Type(value) !== 'note') {
         return undefined
       }
       return nostrNoteHref(ownerNpub, value)
     }
     case 'nostr_nevent': {
-      if (!decodesAs(value, 'nevent')) {
+      if (getNip19Type(value) !== 'nevent') {
         return undefined
       }
       return nostrNoteHref(ownerNpub, value)
     }
     case 'nostr_npub': {
-      if (!decodesAs(value, 'npub')) {
+      if (getNip19Type(value) !== 'npub') {
         return undefined
       }
       return nostrAuthorProfileHref(ownerNpub, value)
