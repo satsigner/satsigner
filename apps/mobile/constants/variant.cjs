@@ -11,9 +11,11 @@ const APP_NAME_PROD = 'satsigner'
 
 const APP_VARIANT_PRODUCTION = 'production'
 
-const ADAPTIVE_ICON_BACKGROUND = '#ffffff'
+// The background fills the launcher's whole mask, so any shape it crops to
+// shows the logo's gradient instead of white corners around a disc.
+const ADAPTIVE_ICON_BACKGROUND = './assets/adaptive-icon-background.png'
 const ICONS_PROD = {
-  adaptiveForeground: './assets/adaptive-icon.png',
+  adaptiveForeground: './assets/adaptive-icon-foreground.png',
   icon: './assets/icon.png'
 }
 const ICONS_DEV = {

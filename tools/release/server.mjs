@@ -564,6 +564,17 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/listing/icon-background') {
+    res.writeHead(200, {
+      'cache-control': 'no-store',
+      'content-type': 'image/png'
+    })
+    createReadStream(path.resolve(MOBILE_DIR, ADAPTIVE_ICON_BACKGROUND)).pipe(
+      res
+    )
+    return
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/listing/icon') {
     const file = await launcherIconFile(
       releaseChannel(url.searchParams.get('channel'))
@@ -760,7 +771,6 @@ async function releasePreview(value) {
   ])
   const base = {
     appName,
-    launcherIcon: { backgroundColor: ADAPTIVE_ICON_BACKGROUND },
     beforeBuild: libraryChecks(libraryPermissions()),
     channel,
     listing: {

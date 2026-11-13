@@ -95,7 +95,10 @@ describe('variantSuffix utils', () => {
 
   describe('getVariantIcons', () => {
     it('uses the plain icon for production', () => {
-      expect(getVariantIcons(false, 'feat/x').icon).toBe('./assets/icon.png')
+      expect(getVariantIcons(false, 'feat/x')).toStrictEqual({
+        adaptiveForeground: './assets/adaptive-icon-foreground.png',
+        icon: './assets/icon.png'
+      })
     })
 
     it('marks the generic dev build with the dev icon', () => {

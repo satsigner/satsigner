@@ -442,6 +442,7 @@
       }
       .launcher-chiclet {
         position: relative;
+        background: url('/api/listing/icon-background') center / 150%;
         width: 60px;
         height: 60px;
         overflow: hidden;
@@ -1247,7 +1248,6 @@
         app.className = 'launcher-app'
         const chiclet = document.createElement('div')
         chiclet.className = `launcher-chiclet ${shape}`
-        chiclet.style.background = preview.launcherIcon.backgroundColor
         const image = document.createElement('img')
         image.src = `/api/listing/icon?channel=${encodeURIComponent(preview.channel)}`
         image.alt = ''

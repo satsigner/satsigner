@@ -32,7 +32,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
     ...config,
     android: {
       adaptiveIcon: {
-        backgroundColor: ADAPTIVE_ICON_BACKGROUND,
+        backgroundImage: ADAPTIVE_ICON_BACKGROUND,
         foregroundImage: ICONS.adaptiveForeground
       },
       blockedPermissions: ANDROID_BLOCKED_PERMISSIONS,
