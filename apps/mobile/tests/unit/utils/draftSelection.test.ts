@@ -152,6 +152,17 @@ describe('getDraftLabel', () => {
       })
     ).toBe('')
   })
+
+  it('skips a legacy change output that has no kind', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: undefined, label: '' },
+          { kind: undefined, label: 'Change' }
+        ]
+      })
+    ).toBe('')
+  })
 })
 
 describe('getDraftResumeStep', () => {

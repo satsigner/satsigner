@@ -96,7 +96,7 @@ function getDraftLabel(draft?: {
   outputs?: Pick<Output, 'kind' | 'label'>[]
 }): string {
   const labeled = draft?.outputs?.find(
-    (output) => output.kind === undefined && output.label.trim() !== ''
+    (output) => !isReturnToWalletOutput(output) && output.label.trim() !== ''
   )
   return labeled?.label.trim() ?? ''
 }
