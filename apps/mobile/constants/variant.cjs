@@ -6,7 +6,7 @@ const PACKAGE_ID_PROD = 'com.satsigner.satsigner'
 const SCHEME_DEV = 'satsignerdev'
 const SCHEME_PROD = 'satsigner'
 
-const APP_NAME_DEV = 'satsigner (Dev)'
+const APP_NAME_DEV = 'DEV satsigner'
 const APP_NAME_PROD = 'satsigner'
 
 const APP_VARIANT_PRODUCTION = 'production'
@@ -63,7 +63,7 @@ function getVariantAppName(isDev, rawSuffix) {
   const segment = sanitizePackageSegment(rawSuffix)
 
   if (isDev) {
-    return segment ? `${segment} (Dev)` : APP_NAME_DEV
+    return segment ? `DEV ${segment}` : APP_NAME_DEV
   }
 
   return segment ? `${segment} (Prod)` : APP_NAME_PROD

@@ -59,7 +59,7 @@ describe('variantSuffix utils', () => {
 
     it('puts the suffix first for launcher differentiation', () => {
       expect(getVariantAppName(true, 'feat/privacy-algo')).toBe(
-        'feat_privacy_algo (Dev)'
+        'DEV feat_privacy_algo'
       )
     })
   })
