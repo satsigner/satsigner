@@ -45,6 +45,8 @@ The Preview release tab shows both lists.
 | Production        | Production package id, no branch suffix, ARM CPUs only       |
 | Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
+**Version.** Shows the app version from `apps/mobile/package.json`, its Android version code, whether `CHANGELOG.md` has a section for it, and the version in the root, mobile and docs `package.json` and `app.config.ts`, flagging any that differ. Bump them by hand. The console's own version in `tools/release/package.json` is separate.
+
 **Announcements.** Lists your release announcements (notes tagged `#release`) and your latest 20 notes of any kind from the announcement relays. **Delete** or **Delete all** signs one NIP-09 deletion request for the chosen posts. Relays and clients that honour it hide the notes; copies on other relays may stay.
 
 **Cancel.** While a command runs, the header shows it with a **Cancel** button. Cancel stops the command and everything it started, such as `pnpm` and `gradlew`, so a half-done build is thrown away. Sign in stays available during a run, because a publish may be waiting for a signature.
