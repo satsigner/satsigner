@@ -89,6 +89,16 @@ async function newestApkFor(apkDir, namePrefix, packageId) {
   return undefined
 }
 
+// A throw inside a ws listener is uncaught and would stop the whole console.
+function parseFrame(data) {
+  try {
+    const frame = JSON.parse(data.toString())
+    return Array.isArray(frame) ? frame : []
+  } catch {
+    return []
+  }
+}
+
 function relayFinished(socket, packageId, events) {
   return new Promise((resolve, reject) => {
     socket.on('open', () => {
@@ -101,7 +111,7 @@ function relayFinished(socket, packageId, events) {
       )
     })
     socket.on('message', (data) => {
-      const frame = JSON.parse(data.toString())
+      const frame = parseFrame(data)
       if (frame[0] === 'EVENT' && frame[2]?.kind === KIND_ASSET) {
         events.push(frame[2])
       }
