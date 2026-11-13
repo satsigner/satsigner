@@ -10,6 +10,7 @@ import { applyKeyRotation, findApksigner, writeLineage } from './apk-signer.mjs'
 import {
   hasRotation,
   newestSignerDir,
+  nextKeyDir,
   releaseKeyStatus,
   writeKeystore
 } from './keystore.mjs'
@@ -67,7 +68,7 @@ test('status shows the certificate and that it is not the release key', (t) => {
 test('a new key without a lineage is not a rotation', (t) => {
   const dir = tempDir(t)
   writeKeystore(PHRASE, dir)
-  writeKeystore(NEXT_PHRASE, join(dir, 'next'))
+  writeKeystore(NEXT_PHRASE, nextKeyDir(dir))
   assert.equal(hasRotation(dir), false)
   assert.equal(newestSignerDir(dir), dir)
 })
@@ -78,10 +79,10 @@ test(
   (t) => {
     const dir = tempDir(t)
     writeKeystore(PHRASE, dir)
-    writeKeystore(NEXT_PHRASE, join(dir, 'next'))
+    writeKeystore(NEXT_PHRASE, nextKeyDir(dir))
     writeLineage(dir)
     assert.equal(hasRotation(dir), true)
-    assert.equal(newestSignerDir(dir), join(dir, 'next'))
+    assert.equal(newestSignerDir(dir), nextKeyDir(dir))
 
     const apk = join(dir, 'app.apk')
     copyFileSync(sampleApk(), apk)

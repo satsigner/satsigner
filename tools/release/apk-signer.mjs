@@ -8,6 +8,7 @@ import {
   hasRotation,
   keystoreFiles,
   lineageFile,
+  nextKeyDir,
   readKeystorePassword,
   releaseDir
 } from './keystore.mjs'
@@ -79,7 +80,7 @@ function signerEnv(oldDir, newDir) {
 // APK Signature Scheme v3 lineage: the old key signs the new certificate, so
 // Android installs updates from the new key over the old one.
 function writeLineage(dir = releaseDir) {
-  const nextDir = join(dir, 'next')
+  const nextDir = nextKeyDir(dir)
   const out = lineageFile(dir)
   const pending = `${out}.tmp`
   try {
@@ -103,7 +104,7 @@ function writeLineage(dir = releaseDir) {
 }
 
 function signWithLineage(apkPath, dir = releaseDir) {
-  const nextDir = join(dir, 'next')
+  const nextDir = nextKeyDir(dir)
   const pending = `${apkPath}.rotated`
   try {
     execFileSync(
