@@ -10,6 +10,8 @@ import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
+import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
+import { securityChecks, zapstoreChecks } from './apk-review.mjs'
 import { findApksigner } from './apk-signer.mjs'
 import {
   buildApkArgs,
@@ -28,7 +30,7 @@ import {
   parseRequestBody,
   redactSecrets
 } from './commands.mjs'
-import { releaseKeyStatus } from './keystore.mjs'
+import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
@@ -41,7 +43,17 @@ const require = createRequire(import.meta.url)
 const { getVariantAppName, getVariantPackageId } = require(
   path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs')
 )
+const { readListing } = await import(
+  path.join(REPO_ROOT, 'apps/mobile/scripts/zapstore-listing.mjs')
+)
 const APK_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'dist', 'apks')
+const LISTING_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'zapstore')
+const SCREENSHOT_TYPES = {
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp'
+}
 const RELEASE_APK = path.join(
   REPO_ROOT,
   'apps',
@@ -536,6 +548,34 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/preview') {
+    try {
+      send(res, 200, await releasePreview(url.searchParams.get('channel')))
+    } catch (error) {
+      send(res, 500, { error: error.message })
+    }
+    return
+  }
+
+  if (
+    req.method === 'GET' &&
+    url.pathname.startsWith('/api/listing/screenshots/')
+  ) {
+    const screenshot = listingScreenshot(
+      apkNameFromPath(url.pathname, '/api/listing/screenshots/')
+    )
+    if (!screenshot) {
+      send(res, 404, { error: 'screenshot not found' })
+      return
+    }
+    res.writeHead(200, {
+      'cache-control': 'no-store',
+      'content-type': SCREENSHOT_TYPES[path.extname(screenshot).toLowerCase()]
+    })
+    createReadStream(screenshot).pipe(res)
+    return
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/apks') {
     send(res, 200, { apks: await listApks() })
     return
@@ -662,9 +702,66 @@ function apksignerStatus() {
   }
 }
 
-function apkNameFromPath(pathname) {
+function listingScreenshot(name) {
+  return readListing(LISTING_DIR).images.find(
+    (image) => path.basename(image) === name
+  )
+}
+
+function listingPreview() {
+  const listing = readListing(LISTING_DIR)
+  return {
+    ...listing,
+    screenshots: listing.images.map((image) => path.basename(image))
+  }
+}
+
+async function releasePreview(value) {
+  const channel = releaseChannel(value)
+  const channels = await releaseChannels()
+  const { appName, packageId, versionName } = channels[channel]
+  const listing = listingPreview()
+  const namePrefix =
+    channel === 'primary' ? 'satsigner-prod-' : 'satsigner-dev-'
+  const [file, live] = await Promise.all([
+    newestApkFor(APK_DIR, namePrefix, packageId),
+    queryLiveAsset(packageId)
+  ])
+  const base = {
+    appName,
+    channel,
+    listing: {
+      description: listing.description,
+      screenshots: listing.screenshots,
+      summary: listing.summary
+    },
+    live,
+    packageId,
+    versionName
+  }
+  if (!file) {
+    return base
+  }
+  const apk = await inspectApk(file.path)
+  return {
+    ...base,
+    apk: { ...apk, name: file.name },
+    checks: {
+      security: securityChecks(apk),
+      zapstore: zapstoreChecks({
+        apk,
+        expectedPackageId: packageId,
+        listing,
+        live: live.asset,
+        releaseFingerprint: RELEASE_CERT_SHA256
+      })
+    }
+  }
+}
+
+function apkNameFromPath(pathname, prefix = '/api/apks/') {
   try {
-    return decodeURIComponent(pathname.slice('/api/apks/'.length))
+    return decodeURIComponent(pathname.slice(prefix.length))
   } catch {
     return ''
   }

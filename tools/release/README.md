@@ -21,6 +21,15 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. The listing summary and description come from `apps/mobile/zapstore/summary.txt` and `description.md`, and the screenshots come from `apps/mobile/zapstore/screenshots/` in file-name order. Each publish sends all of them. Listing and release-post management stays behind **Manage listings and posts**.
 
+**Preview release.** Shows the listing exactly as a publish sends it: the app name, the summary, the description and every screenshot, in upload order. It then inspects the newest APK for the chosen channel in `apps/mobile/dist/apks` (the Android SDK's `aapt2` and `apksigner`), compares it with the latest release on `wss://relay.zapstore.dev`, and lists each check:
+
+| Group                    | Checks                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Zapstore checks          | What the [Zapstore relay checks](https://zapstore.dev/help/publish) when it reads the APK: a complete `arm64-v8a` build, a version code higher than the published one, a certificate that is the app's current one or linked to it by lineage. Also: the package id, not the debug key, the Satsigner release key, and a listing with a summary, a description and screenshots |
+| Permissions and trackers | Camera, photos and files (gallery), microphone, location, contacts and SMS, overlays and other apps, advertising and install tracking. Each requested permission is listed with its API cap. Tracker libraries are found by the Exodus Privacy class signatures in the APK's dex files                                                                                         |
+
+**OK** passed, **FAIL** means the relay or the phone will reject the release, **CHECK** means a permission or library is present and should be expected. Zapstore does not document a malware or permission scan of its own. The permissions and trackers group is what users see on the app page and what scanners such as Exodus report.
+
 **Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 
 | Option            | What it builds                                               |

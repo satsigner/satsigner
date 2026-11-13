@@ -394,6 +394,63 @@
       .guide {
         margin-top: 14px;
       }
+      .preview-block {
+        margin-top: 18px;
+      }
+      .preview-block h2 {
+        margin: 0 0 8px;
+        color: #ffffff;
+        font-size: 15px;
+      }
+      .preview-description {
+        margin: 8px 0 0;
+        color: #d4d4d4;
+        font-size: 14px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+      .preview-shots {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+      .preview-shots img {
+        height: 260px;
+        border: 1px solid #333333;
+        border-radius: 4px;
+      }
+      .checks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 14px;
+      }
+      .checks li {
+        display: grid;
+        grid-template-columns: 3.5rem 1fr;
+        gap: 2px 10px;
+        padding: 6px 0;
+        border-top: 1px solid #262626;
+      }
+      .checks .badge {
+        font-weight: 600;
+      }
+      .checks .pass .badge {
+        color: #8ce99a;
+      }
+      .checks .warn .badge {
+        color: #ffd43b;
+      }
+      .checks .fail .badge {
+        color: #ff8a8a;
+      }
+      .checks .detail {
+        grid-column: 2;
+        color: #a3a3a3;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
       .key-status {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -621,6 +678,14 @@
             type="button"
             role="tab"
             aria-selected="false"
+            aria-controls="preview-panel"
+          >
+            Preview release
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
             aria-controls="keys-panel"
           >
             Android developer keys
@@ -802,6 +867,30 @@
               </li>
             </ol>
             <ul id="apks"></ul>
+          </section>
+          <section id="preview-panel" hidden>
+            <p class="hint">
+              See the listing exactly as it will be sent, and run the checks the
+              Zapstore relay runs on the APK before you publish. The newest
+              built APK for the channel is inspected with aapt2 and apksigner.
+            </p>
+            <div class="channel" id="preview-channel">
+              <button type="button" data-channel="dev" aria-pressed="true">
+                Branch
+              </button>
+              <button type="button" data-channel="generic" aria-pressed="false">
+                Generic dev
+              </button>
+              <button type="button" data-channel="primary" aria-pressed="false">
+                Production
+              </button>
+            </div>
+            <div class="actions">
+              <button id="run-preview" class="primary" type="button">
+                Run checks
+              </button>
+            </div>
+            <div id="preview" aria-live="polite"></div>
           </section>
           <section id="keys-panel" hidden>
             <p class="hint">
@@ -994,6 +1083,131 @@
             void refreshKeys()
           }
         })
+      }
+
+      const previewEl = document.querySelector('#preview')
+      const previewChannelEl = document.querySelector('#preview-channel')
+      const runPreviewButton = document.querySelector('#run-preview')
+      const CHECK_BADGES = { fail: 'FAIL', pass: 'OK', warn: 'CHECK' }
+
+      previewChannelEl.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-channel]')
+        if (!button) return
+        for (const option of previewChannelEl.querySelectorAll('button')) {
+          option.setAttribute(
+            'aria-pressed',
+            option === button ? 'true' : 'false'
+          )
+        }
+      })
+      runPreviewButton.addEventListener('click', () => void runPreview())
+
+      function previewBlock(title) {
+        const block = document.createElement('div')
+        block.className = 'preview-block'
+        const heading = document.createElement('h2')
+        heading.textContent = title
+        block.append(heading)
+        previewEl.append(block)
+        return block
+      }
+
+      function previewText(block, text, className = 'hint') {
+        const paragraph = document.createElement('p')
+        paragraph.className = className
+        paragraph.textContent = text
+        block.append(paragraph)
+      }
+
+      function renderChecks(title, checks) {
+        const block = previewBlock(title)
+        const list = document.createElement('ul')
+        list.className = 'checks'
+        for (const item of checks) {
+          const row = document.createElement('li')
+          row.className = item.status
+          const badge = document.createElement('span')
+          badge.className = 'badge'
+          badge.textContent = CHECK_BADGES[item.status]
+          const label = document.createElement('span')
+          label.textContent = item.label
+          const detail = document.createElement('span')
+          detail.className = 'detail'
+          detail.textContent = item.detail
+          row.append(badge, label, detail)
+          list.append(row)
+        }
+        block.append(list)
+      }
+
+      function renderListing(preview) {
+        const block = previewBlock(`${preview.appName} ${preview.versionName}`)
+        previewText(
+          block,
+          preview.listing.summary || 'No summary',
+          'step-title'
+        )
+        previewText(
+          block,
+          preview.listing.description || 'No description',
+          'preview-description'
+        )
+        const shots = document.createElement('div')
+        shots.className = 'preview-shots'
+        for (const name of preview.listing.screenshots) {
+          const image = document.createElement('img')
+          image.src = `/api/listing/screenshots/${encodeURIComponent(name)}`
+          image.alt = name
+          image.loading = 'lazy'
+          shots.append(image)
+        }
+        block.append(shots)
+      }
+
+      function renderApkFacts(preview) {
+        const block = previewBlock('APK')
+        if (!preview.apk) {
+          previewText(
+            block,
+            `No built APK for ${preview.packageId} in dist/apks. Build one first.`
+          )
+          return
+        }
+        const { apk } = preview
+        previewText(
+          block,
+          `${apk.name} · ${formatBytes(apk.bytes)} · version ${apk.versionName} (${apk.versionCode}) · API ${apk.minSdk} to ${apk.targetSdk}`
+        )
+        if (preview.live.error) {
+          previewText(block, `Zapstore lookup failed: ${preview.live.error}`)
+        }
+      }
+
+      async function runPreview() {
+        const channel = previewChannelEl.querySelector('[aria-pressed="true"]')
+          .dataset.channel
+        runPreviewButton.disabled = true
+        previewEl.replaceChildren()
+        previewText(previewEl, 'Inspecting the APK and asking Zapstore...')
+        try {
+          const response = await fetch(
+            `/api/preview?channel=${encodeURIComponent(channel)}`
+          )
+          const preview = await response.json()
+          previewEl.replaceChildren()
+          if (!response.ok) {
+            previewText(previewEl, preview.error)
+            return
+          }
+          renderListing(preview)
+          renderApkFacts(preview)
+          if (preview.checks) {
+            renderChecks('Zapstore checks', preview.checks.zapstore)
+            renderChecks('Permissions and trackers', preview.checks.security)
+          }
+        } finally {
+          runPreviewButton.disabled = false
+        }
       }
 
       const keyStatusEl = document.querySelector('#key-status')

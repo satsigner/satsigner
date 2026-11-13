@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
+import { parseSigners } from './apk-review.mjs'
 import { applyKeyRotation, findApksigner, writeLineage } from './apk-signer.mjs'
 import {
   hasRotation,
@@ -92,9 +93,14 @@ test(
       { encoding: 'utf8' }
     )
     assert.match(report, /Verified using v3\.1 scheme.*: true/)
-    assert.match(
-      report,
-      new RegExp(`certificate SHA-256 digest: ${NEXT_CERTIFICATE_SHA256}`)
+    assert.deepEqual(
+      [
+        ...new Set(parseSigners(report).map((signer) => signer.sha256))
+      ].toSorted(),
+      [
+        PHRASE_CERTIFICATE_SHA256.replaceAll(':', '').toLowerCase(),
+        NEXT_CERTIFICATE_SHA256
+      ]
     )
     assert.match(
       report,

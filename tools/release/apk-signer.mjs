@@ -26,19 +26,23 @@ function compareVersions(left, right) {
   return index === -1 ? 0 : a[index] - (b[index] ?? 0)
 }
 
-function findApksigner(env = process.env) {
+function findBuildTool(tool, env = process.env) {
   const buildTools = join(androidHome(env), 'build-tools')
   if (!existsSync(buildTools)) {
     throw new Error(`No Android build-tools at ${buildTools}`)
   }
   const newest = readdirSync(buildTools)
-    .filter((name) => existsSync(join(buildTools, name, 'apksigner')))
+    .filter((name) => existsSync(join(buildTools, name, tool)))
     .toSorted(compareVersions)
     .at(-1)
   if (!newest) {
-    throw new Error(`No apksigner under ${buildTools}`)
+    throw new Error(`No ${tool} under ${buildTools}`)
   }
-  return join(buildTools, newest, 'apksigner')
+  return join(buildTools, newest, tool)
+}
+
+function findApksigner(env = process.env) {
+  return findBuildTool('apksigner', env)
 }
 
 function signerArgs(dir, passEnv) {
@@ -124,4 +128,4 @@ function applyKeyRotation(apkPath, dir = releaseDir) {
   return true
 }
 
-export { applyKeyRotation, findApksigner, writeLineage }
+export { applyKeyRotation, findApksigner, findBuildTool, writeLineage }
