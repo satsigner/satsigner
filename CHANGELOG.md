@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-13
+
+### Fixed
+
+- The Android 14+ launch crash fix from 0.4.1 never reached the app: Expo
+  linked its prebuilt `expo-screen-capture` instead of the patched source. The
+  module is now built from source.
+
 ## [0.4.1] - 2026-11-13
 
 ### Fixed
