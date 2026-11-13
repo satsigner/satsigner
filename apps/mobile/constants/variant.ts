@@ -9,6 +9,7 @@ export {
   VARIANT_SUFFIX_MAX_LENGTH,
   getVariantAndroidAbis,
   getVariantAppName,
+  getVariantIcons,
   getVariantPackageId,
   getVariantScheme,
   sanitizePackageSegment,

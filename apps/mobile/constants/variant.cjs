@@ -11,6 +11,20 @@ const APP_NAME_PROD = 'satsigner'
 
 const APP_VARIANT_PRODUCTION = 'production'
 
+const ADAPTIVE_ICON_BACKGROUND = '#ffffff'
+const ICONS_PROD = {
+  adaptiveForeground: './assets/adaptive-icon.png',
+  icon: './assets/icon.png'
+}
+const ICONS_DEV = {
+  adaptiveForeground: './assets/adaptive-icon-badge-dev.png',
+  icon: './assets/icon-badge-dev.png'
+}
+const ICONS_BRANCH = {
+  adaptiveForeground: './assets/adaptive-icon-badge-branch.png',
+  icon: './assets/icon-badge-branch.png'
+}
+
 const ANDROID_ABI_ARM64 = 'arm64-v8a'
 const ANDROID_ABI_ARMV7 = 'armeabi-v7a'
 const ANDROID_ABI_X86 = 'x86'
@@ -76,11 +90,19 @@ function getVariantScheme(isDev, rawSuffix) {
   return segment ? `${base}${segment}` : base
 }
 
+function getVariantIcons(isDev, rawSuffix) {
+  if (!isDev) {
+    return ICONS_PROD
+  }
+  return sanitizePackageSegment(rawSuffix) ? ICONS_BRANCH : ICONS_DEV
+}
+
 function getVariantAndroidAbis(isDev) {
   return isDev ? ANDROID_ABIS_DEV : ANDROID_ABIS_PRODUCTION
 }
 
 module.exports = {
+  ADAPTIVE_ICON_BACKGROUND,
   ANDROID_ABI_ARM64,
   ANDROID_ABI_LABELS,
   ANDROID_ABI_X86_64,
@@ -93,6 +115,7 @@ module.exports = {
   SCHEME_PROD,
   VARIANT_SUFFIX_MAX_LENGTH,
   getVariantAndroidAbis,
+  getVariantIcons,
   getVariantAppName,
   getVariantPackageId,
   getVariantScheme,

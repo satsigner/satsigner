@@ -7,6 +7,7 @@ import {
 import {
   getVariantAndroidAbis,
   getVariantAppName,
+  getVariantIcons,
   getVariantPackageId,
   getVariantScheme,
   sanitizePackageSegment,
@@ -89,6 +90,24 @@ describe('variantSuffix utils', () => {
         'armeabi-v7a',
         'arm64-v8a'
       ])
+    })
+  })
+
+  describe('getVariantIcons', () => {
+    it('uses the plain icon for production', () => {
+      expect(getVariantIcons(false, 'feat/x').icon).toBe('./assets/icon.png')
+    })
+
+    it('marks the generic dev build with the dev icon', () => {
+      expect(getVariantIcons(true, '').adaptiveForeground).toBe(
+        './assets/adaptive-icon-badge-dev.png'
+      )
+    })
+
+    it('marks branch builds with the branch icon', () => {
+      expect(getVariantIcons(true, 'feat/x').adaptiveForeground).toBe(
+        './assets/adaptive-icon-badge-branch.png'
+      )
     })
   })
 })

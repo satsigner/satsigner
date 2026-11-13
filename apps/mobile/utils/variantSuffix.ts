@@ -1,6 +1,7 @@
 export {
   getVariantAndroidAbis,
   getVariantAppName,
+  getVariantIcons,
   getVariantPackageId,
   getVariantScheme,
   sanitizePackageSegment,

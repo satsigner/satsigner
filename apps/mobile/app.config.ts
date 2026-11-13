@@ -2,9 +2,11 @@ import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
 import { ANDROID_BLOCKED_PERMISSIONS } from './constants/androidPermissions.cjs'
 import {
+  ADAPTIVE_ICON_BACKGROUND,
   APP_VARIANT_PRODUCTION,
   getVariantAndroidAbis,
   getVariantAppName,
+  getVariantIcons,
   getVariantPackageId,
   getVariantScheme
 } from './constants/variant.cjs'
@@ -23,13 +25,15 @@ const getAppName = () => getVariantAppName(IS_DEV, RAW_SUFFIX)
 
 const getScheme = () => getVariantScheme(IS_DEV, RAW_SUFFIX)
 
+const ICONS = getVariantIcons(IS_DEV, RAW_SUFFIX)
+
 function getExpoConfig({ config }: ConfigContext): ExpoConfig {
   return {
     ...config,
     android: {
       adaptiveIcon: {
-        backgroundColor: '#ffffff',
-        foregroundImage: './assets/adaptive-icon.png'
+        backgroundColor: ADAPTIVE_ICON_BACKGROUND,
+        foregroundImage: ICONS.adaptiveForeground
       },
       blockedPermissions: ANDROID_BLOCKED_PERMISSIONS,
       package: getUniqueIdentifier(),
@@ -48,7 +52,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         origin: false
       }
     },
-    icon: './assets/icon.png',
+    icon: ICONS.icon,
     ios: {
       bundleIdentifier: getUniqueIdentifier(),
       infoPlist: {
