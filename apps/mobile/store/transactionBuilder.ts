@@ -93,6 +93,7 @@ type TransactionBuilderAction = {
   clearPsbt: () => void
   clearTransaction: () => void
   clearAllData: () => void
+  discardDraft: (accountId: string) => void
   setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
   hasInput: (utxo: Utxo) => boolean
@@ -333,6 +334,15 @@ const useTransactionBuilderStore = create<
         })
       },
       cpfp: true,
+      discardDraft: (accountId) => {
+        if (get().accountId === accountId) {
+          get().clearTransaction()
+          return
+        }
+        set((state) => {
+          delete state.drafts[accountId]
+        })
+      },
       drafts: {},
       fee: 0,
       feeRate: 0,

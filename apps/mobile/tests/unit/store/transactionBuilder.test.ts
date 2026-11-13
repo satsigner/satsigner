@@ -140,6 +140,44 @@ describe('transactionBuilder signed draft persistence', () => {
   })
 })
 
+describe('transactionBuilder discardDraft', () => {
+  const OTHER_ACCOUNT_ID = 'acc-draft-2'
+
+  beforeEach(() => {
+    useTransactionBuilderStore.getState().clearTransaction()
+    useTransactionBuilderStore.setState({ drafts: {} })
+  })
+
+  it('discards the draft of an account the builder is not on', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: '', to: 'tb1qtest' })
+    store.setAccountId(OTHER_ACCOUNT_ID)
+    store.addOutput({ amount: 20_000, label: '', to: 'tb1qother' })
+
+    store.discardDraft(ACCOUNT_ID)
+
+    const state = useTransactionBuilderStore.getState()
+    expect(state.drafts[ACCOUNT_ID]).toBeUndefined()
+    expect(state.drafts[OTHER_ACCOUNT_ID]?.outputs).toHaveLength(1)
+    expect(state.accountId).toBe(OTHER_ACCOUNT_ID)
+    expect(state.outputs).toHaveLength(1)
+  })
+
+  it('clears the builder when it discards the open draft', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId(ACCOUNT_ID)
+    store.addOutput({ amount: 10_000, label: '', to: 'tb1qtest' })
+
+    store.discardDraft(ACCOUNT_ID)
+
+    const state = useTransactionBuilderStore.getState()
+    expect(state.drafts[ACCOUNT_ID]).toBeUndefined()
+    expect(state.accountId).toBeUndefined()
+    expect(state.outputs).toHaveLength(0)
+  })
+})
+
 describe('transactionBuilder draft after an app restart', () => {
   // A fresh module registry stands in for a cold start: the store is created
   // again and hydrates from what the previous run left in storage.

@@ -384,8 +384,8 @@ const DRAFT_RESUME_SCREEN: Record<DraftResumeStep, string> = {
 
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
-  const [drafts, clearTransaction] = useTransactionBuilderStore(
-    useShallow((state) => [state.drafts, state.clearTransaction])
+  const [drafts, discardDraft] = useTransactionBuilderStore(
+    useShallow((state) => [state.drafts, state.discardDraft])
   )
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
@@ -489,7 +489,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
           <SSPressable
             onPress={(e) => {
               e.stopPropagation()
-              clearTransaction()
+              discardDraft(accountId)
             }}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
           >
