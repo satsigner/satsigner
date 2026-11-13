@@ -2042,10 +2042,15 @@
             (url) =>
               new Promise((resolve) => {
                 const socket = new WebSocket(url)
+                let notice = ''
                 const timer = setTimeout(() => {
                   socket.close()
-                  resolve({ accepted: false, message: 'no reply', relay: url })
-                }, RELEASE_QUERY_MS)
+                  resolve({
+                    accepted: false,
+                    message: notice ? `no reply (${notice})` : 'no reply',
+                    relay: url
+                  })
+                }, PUBLISH_REPLY_MS)
                 socket.addEventListener('open', () => {
                   socket.send(JSON.stringify(['EVENT', event]))
                 })
@@ -2054,6 +2059,10 @@
                   try {
                     frame = JSON.parse(message.data)
                   } catch {
+                    return
+                  }
+                  if (frame[0] === 'NOTICE' && typeof frame[1] === 'string') {
+                    notice = frame[1]
                     return
                   }
                   if (frame[0] !== 'OK' || frame[1] !== event.id) return
@@ -2086,6 +2095,14 @@
         }
       }
 
+      function isSignedEvent(event) {
+        return (
+          typeof event?.id === 'string' &&
+          typeof event.sig === 'string' &&
+          typeof event.pubkey === 'string'
+        )
+      }
+
       async function deleteReleases(ids, buttons) {
         if (!window.nostr?.signEvent) {
           statusEl.textContent = 'Sign in before deleting a release post.'
@@ -2104,6 +2121,12 @@
             tags: ids.map((id) => ['e', id]),
             content: ''
           })
+          if (!isSignedEvent(signed)) {
+            throw new Error(
+              'The extension returned an event without an id or signature.'
+            )
+          }
+          writeLog(`deletion event ${signed.id}\n`)
           const results = await publishEvent(signed)
           for (const result of results) logRelayReply(result)
           if (!results.some((result) => result.accepted)) {
@@ -2227,13 +2250,15 @@
       const RELEASE_RELAYS = [
         'wss://relay.damus.io',
         'wss://nos.lol',
-        'wss://relay.nostr.band',
+        'wss://relay.primal.net',
         'wss://nostr.mom'
       ]
       const LATEST_POSTS_LIMIT = 20
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
+      // Busy relays such as damus can take well over the query time to answer OK.
+      const PUBLISH_REPLY_MS = 15000
       const STATUS_REFRESH_MS = 15000
       const LISTING_READ_LOGS = {
         found: ['  the relay still serves the listing\n', 'detail'],

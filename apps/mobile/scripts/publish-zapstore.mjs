@@ -186,7 +186,7 @@ const ZAPSTORE_APP_URL = `https://zapstore.dev/apps/${apkPackageId()}`
 const ANNOUNCEMENT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
-  'wss://relay.nostr.band',
+  'wss://relay.primal.net',
   'wss://nostr.mom'
 ]
 
