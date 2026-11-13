@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-13
+
+### Fixed
+
+- The app crashed on launch on Android 14 and newer: `expo-screen-capture`
+  registered a screenshot listener that needs a permission Satsigner blocks.
+  It now skips the listener; screenshots are still blocked on secret screens.
+- Launcher and store icons fill the whole shape instead of showing a round
+  logo with white corners.
+- Dev and branch builds carry a coloured badge on the icon.
+- The Zapstore description keeps its line breaks.
+
 ## [0.4.0] - 2026-11-13
 
 ### Added
