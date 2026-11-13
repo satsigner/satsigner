@@ -35,19 +35,23 @@ import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
 import { libraryPermissions, permissionStatus } from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
-import { versionStatus, writeVersion } from './version.mjs'
+import { versionStatus } from './version.mjs'
 
 const execFileAsync = promisify(execFile)
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(HERE, '../..')
 const require = createRequire(import.meta.url)
-const { getVariantAppName, getVariantPackageId } = require(
-  path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs')
-)
+const {
+  ADAPTIVE_ICON_BACKGROUND,
+  getVariantAppName,
+  getVariantIcons,
+  getVariantPackageId
+} = require(path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs'))
 const { readListing } = await import(
   path.join(REPO_ROOT, 'apps/mobile/scripts/zapstore-listing.mjs')
 )
+const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile')
 const APK_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'dist', 'apks')
 const LISTING_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'zapstore')
 const SCREENSHOT_TYPES = {
@@ -69,6 +73,7 @@ const RELEASE_APK = path.join(
   'app-release.apk'
 )
 const PAGE = path.join(HERE, 'public', 'index.html')
+const { version: TOOL_VERSION } = require('./package.json')
 const LOGO = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'icon.png')
 const HOST = '127.0.0.1'
 const PORT = 4717
@@ -559,6 +564,18 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/listing/icon') {
+    const file = await launcherIconFile(
+      releaseChannel(url.searchParams.get('channel'))
+    )
+    res.writeHead(200, {
+      'cache-control': 'no-store',
+      'content-type': SCREENSHOT_TYPES[path.extname(file).toLowerCase()]
+    })
+    createReadStream(file).pipe(res)
+    return
+  }
+
   if (
     req.method === 'GET' &&
     url.pathname.startsWith('/api/listing/screenshots/')
@@ -623,7 +640,8 @@ const server = createServer(async (req, res) => {
       job: jobStatus(),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
-      releaseApk: await releaseApk()
+      releaseApk: await releaseApk(),
+      toolVersion: TOOL_VERSION
     })
     return
   }
@@ -642,20 +660,6 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/api/version') {
     send(res, 200, await versionStatus())
-    return
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/version') {
-    if (job) {
-      send(res, 409, { error: 'a command is already running' })
-      return
-    }
-    try {
-      const body = await readBody(req)
-      send(res, 200, await writeVersion(body.part))
-    } catch (error) {
-      send(res, 400, { error: error.message })
-    }
     return
   }
 
@@ -737,6 +741,12 @@ function listingPreview() {
   }
 }
 
+async function launcherIconFile(channel) {
+  const branch = channel === 'dev' ? await gitBranch() : ''
+  const { adaptiveForeground } = getVariantIcons(channel !== 'primary', branch)
+  return path.resolve(MOBILE_DIR, adaptiveForeground)
+}
+
 async function releasePreview(value) {
   const channel = releaseChannel(value)
   const channels = await releaseChannels()
@@ -750,6 +760,7 @@ async function releasePreview(value) {
   ])
   const base = {
     appName,
+    launcherIcon: { backgroundColor: ADAPTIVE_ICON_BACKGROUND },
     beforeBuild: libraryChecks(libraryPermissions()),
     channel,
     listing: {

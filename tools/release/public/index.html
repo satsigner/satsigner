@@ -47,6 +47,11 @@
         height: 36px;
         border-radius: 8px;
       }
+      .tool-version {
+        color: #a3a3a3;
+        font-family: 'SF Mono', ui-monospace, monospace;
+        font-size: 13px;
+      }
       h1 {
         margin: 0;
         font-size: 30px;
@@ -409,6 +414,58 @@
         line-height: 1.5;
         white-space: pre-wrap;
       }
+      .launcher {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .launcher-screen {
+        display: flex;
+        gap: 18px;
+        padding: 20px 22px 14px;
+        border-radius: 12px;
+      }
+      .launcher-screen.dark {
+        background: linear-gradient(160deg, #1f2a44, #0b0f1a);
+        color: #ffffff;
+      }
+      .launcher-screen.light {
+        background: linear-gradient(160deg, #e8eef8, #c9d6ea);
+        color: #111111;
+      }
+      .launcher-app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 76px;
+      }
+      .launcher-chiclet {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        overflow: hidden;
+      }
+      .launcher-chiclet.circle {
+        border-radius: 50%;
+      }
+      .launcher-chiclet.squircle {
+        border-radius: 30%;
+      }
+      .launcher-chiclet img {
+        position: absolute;
+        inset: -25%;
+        width: 150%;
+        height: 150%;
+      }
+      .launcher-label {
+        width: 100%;
+        overflow: hidden;
+        font-size: 12px;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .preview-shots {
         display: flex;
         gap: 8px;
@@ -629,6 +686,7 @@
         <div class="title">
           <img src="/logo.png" alt="" width="36" height="36" />
           <h1>Satsigner release</h1>
+          <span id="tool-version" class="tool-version"></span>
         </div>
         <p id="status" class="hint">
           Sign in with a NIP-07 extension. The key stays in the extension.
@@ -902,20 +960,12 @@
           </section>
           <section id="version-panel" hidden>
             <p class="hint">
-              The app version is set in every package.json and in app.config.ts.
+              The app version is set in the root, mobile and docs package.json
+              and in app.config.ts. The release console has its own version.
               Android compares the version code, which comes from the version,
               so it must rise with every release.
             </p>
             <dl id="version-status" class="key-status" aria-live="polite"></dl>
-            <div class="actions" id="version-bumps">
-              <button type="button" data-part="patch">Bump patch</button>
-              <button type="button" data-part="minor">Bump minor</button>
-              <button type="button" data-part="major">Bump major</button>
-            </div>
-            <p class="hint">
-              A bump only edits the files. Add the release notes to
-              CHANGELOG.md, then commit and tag the release.
-            </p>
           </section>
           <section id="keys-panel" hidden>
             <p class="hint">
@@ -1192,6 +1242,44 @@
         block.append(shots)
       }
 
+      function launcherApp(preview, shape) {
+        const app = document.createElement('div')
+        app.className = 'launcher-app'
+        const chiclet = document.createElement('div')
+        chiclet.className = `launcher-chiclet ${shape}`
+        chiclet.style.background = preview.launcherIcon.backgroundColor
+        const image = document.createElement('img')
+        image.src = `/api/listing/icon?channel=${encodeURIComponent(preview.channel)}`
+        image.alt = ''
+        chiclet.append(image)
+        const label = document.createElement('span')
+        label.className = 'launcher-label'
+        label.textContent = preview.appName
+        label.title = preview.appName
+        app.append(chiclet, label)
+        return app
+      }
+
+      function renderLauncher(preview) {
+        const block = previewBlock('On the phone')
+        previewText(
+          block,
+          'The home screen icon and name. Launchers crop the icon to their own shape and cut long names.'
+        )
+        const launcher = document.createElement('div')
+        launcher.className = 'launcher'
+        for (const wallpaper of ['dark', 'light']) {
+          const screen = document.createElement('div')
+          screen.className = `launcher-screen ${wallpaper}`
+          screen.append(
+            launcherApp(preview, 'circle'),
+            launcherApp(preview, 'squircle')
+          )
+          launcher.append(screen)
+        }
+        block.append(launcher)
+      }
+
       function renderApkFacts(preview) {
         const block = previewBlock('APK')
         if (!preview.apk) {
@@ -1228,6 +1316,7 @@
             return
           }
           renderListing(preview)
+          renderLauncher(preview)
           renderChecks(
             'Before the build: permissions from native dependencies',
             preview.beforeBuild
@@ -1251,7 +1340,6 @@
         .addEventListener('click', () => void refreshKeys())
 
       const versionStatusEl = document.querySelector('#version-status')
-      const versionBumpsEl = document.querySelector('#version-bumps')
 
       function versionRow(term, value, tone = '') {
         const dt = document.createElement('dt')
@@ -1280,41 +1368,12 @@
             entry.version === status.version ? '' : 'bad'
           )
         }
-        for (const button of versionBumpsEl.querySelectorAll('button')) {
-          button.dataset.next = status.next[button.dataset.part]
-          button.textContent = `Bump ${button.dataset.part} to ${button.dataset.next}`
-        }
       }
 
       async function refreshVersion() {
         const response = await fetch('/api/version')
         renderVersion(await response.json())
       }
-
-      async function bumpVersion(part, next) {
-        if (!confirm(`Set the version to ${next} in every file?`)) return
-        const response = await fetch('/api/version', {
-          body: JSON.stringify({ part }),
-          headers: { 'content-type': 'application/json' },
-          method: 'POST'
-        })
-        const result = await response.json()
-        if (!response.ok) {
-          writeLog(`${result.error}\n`, 'error')
-          return
-        }
-        writeLog(
-          `Version set to ${result.version} (code ${result.versionCode})\n`
-        )
-        renderVersion(result)
-        void refreshStatus()
-      }
-
-      versionBumpsEl.addEventListener('click', (event) => {
-        const button = event.target.closest('button[data-part]')
-        if (!button) return
-        void bumpVersion(button.dataset.part, button.dataset.next)
-      })
 
       function keyRow(term, value, tone = '') {
         const dt = document.createElement('dt')
@@ -2384,9 +2443,12 @@
           })
       }
 
+      const toolVersionEl = document.querySelector('#tool-version')
+
       async function refreshStatus() {
         const response = await fetch('/api/status')
         const status = await response.json()
+        toolVersionEl.textContent = `v${status.toolVersion}`
         publishButton.dataset.hidden = status.published ? '1' : '0'
         publishStep.hidden = status.published
         pushButton.dataset.ready = status.published ? '1' : '0'
