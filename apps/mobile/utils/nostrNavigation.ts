@@ -172,24 +172,28 @@ export function nostrScannedContentHref(
   const value = content.cleaned || content.raw
   switch (content.type) {
     case 'nostr_connect': {
-      return parseNostrConnectUri(value)
-        ? nostrBunkerConnectHref(ownerNpub, value)
-        : undefined
+      if (!parseNostrConnectUri(value)) {
+        return undefined
+      }
+      return nostrBunkerConnectHref(ownerNpub, value)
     }
     case 'nostr_note': {
-      return decodesAs(value, 'note')
-        ? nostrNoteHref(ownerNpub, value)
-        : undefined
+      if (!decodesAs(value, 'note')) {
+        return undefined
+      }
+      return nostrNoteHref(ownerNpub, value)
     }
     case 'nostr_nevent': {
-      return decodesAs(value, 'nevent')
-        ? nostrNoteHref(ownerNpub, value)
-        : undefined
+      if (!decodesAs(value, 'nevent')) {
+        return undefined
+      }
+      return nostrNoteHref(ownerNpub, value)
     }
     case 'nostr_npub': {
-      return decodesAs(value, 'npub')
-        ? nostrAuthorProfileHref(ownerNpub, value)
-        : undefined
+      if (!decodesAs(value, 'npub')) {
+        return undefined
+      }
+      return nostrAuthorProfileHref(ownerNpub, value)
     }
     case 'nostr_nprofile': {
       const npub = nprofileToNpub(value)
