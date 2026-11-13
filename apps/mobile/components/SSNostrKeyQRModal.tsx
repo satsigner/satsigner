@@ -11,7 +11,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { formatNostrKey, getNip19Type } from '@/utils/nostr'
+import {
+  formatNostrKey,
+  getNip19Type,
+  getNostrKeyLabel,
+  type NostrKeyFormat
+} from '@/utils/nostr'
 import { nostrScannedContentHref } from '@/utils/nostrNavigation'
 
 import SSCameraModal from './SSCameraModal'
@@ -21,7 +26,20 @@ import SSShadedKeyText from './SSShadedKeyText'
 import SSShareableQR from './SSShareableQR'
 import SSText from './SSText'
 
-type KeyQrFormat = 'bech32' | 'hex' | 'lnaddress'
+type KeyQrFormat = NostrKeyFormat | 'lnaddress'
+
+type KeyQr = {
+  format: KeyQrFormat
+  label: string
+  value: string
+}
+
+type KeyQrSource = {
+  hexValue: string | null
+  key: string
+  keyLabel: string
+  lnAddress: string
+}
 
 type SSNostrKeyQRModalProps = {
   value: string
@@ -33,18 +51,23 @@ type SSNostrKeyQRModalProps = {
   ownerNpub?: string
 }
 
-function resolveFormat(
-  format: KeyQrFormat,
-  hexValue: string | null,
-  lnAddress: string
-): KeyQrFormat {
-  if (format === 'hex' && hexValue) {
-    return 'hex'
+function resolveKeyQr(requested: KeyQrFormat, source: KeyQrSource): KeyQr {
+  if (requested === 'hex' && source.hexValue) {
+    const keyType = getNip19Type(source.key) === 'nsec' ? 'nsec' : 'npub'
+    return {
+      format: 'hex',
+      label: getNostrKeyLabel(keyType, 'hex'),
+      value: source.hexValue
+    }
   }
-  if (format === 'lnaddress' && lnAddress) {
-    return 'lnaddress'
+  if (requested === 'lnaddress' && source.lnAddress) {
+    return {
+      format: 'lnaddress',
+      label: t('nostrIdentity.keys.lnaddress'),
+      value: source.lnAddress
+    }
   }
-  return 'bech32'
+  return { format: 'bech32', label: source.keyLabel, value: source.key }
 }
 
 function SSNostrKeyQRModal({
@@ -61,23 +84,13 @@ function SSNostrKeyQRModal({
   const [cameraVisible, setCameraVisible] = useState(false)
 
   const trimmedLnAddress = lnAddress?.trim() ?? ''
-  const isSecret = getNip19Type(value) === 'nsec'
   const hexValue = formatNostrKey(value, 'hex')
-  const activeFormat = resolveFormat(format, hexValue, trimmedLnAddress)
-  const qrValue =
-    activeFormat === 'hex'
-      ? (hexValue ?? value)
-      : activeFormat === 'lnaddress'
-        ? trimmedLnAddress
-        : value
-  const qrLabel =
-    activeFormat === 'hex'
-      ? t(
-          isSecret ? 'nostrIdentity.keys.nsecHex' : 'nostrIdentity.keys.npubHex'
-        )
-      : activeFormat === 'lnaddress'
-        ? t('nostrIdentity.keys.lnaddress')
-        : label
+  const keyQr = resolveKeyQr(format, {
+    hexValue,
+    key: value,
+    keyLabel: label,
+    lnAddress: trimmedLnAddress
+  })
   const showFormatTabs = Boolean(hexValue) || Boolean(trimmedLnAddress)
   const canScan = Boolean(ownerNpub)
 
@@ -126,11 +139,11 @@ function SSNostrKeyQRModal({
       >
         <SSVStack gap="lg" style={styles.content}>
           <SSText center uppercase>
-            {qrLabel}
+            {keyQr.label}
           </SSText>
           {showFormatTabs ? (
             <SSPairedTabs
-              activeTab={activeFormat}
+              activeTab={keyQr.format}
               primary={{
                 key: 'bech32',
                 label: t('nostrIdentity.keys.format.bech32')
@@ -151,7 +164,7 @@ function SSNostrKeyQRModal({
             />
           ) : null}
           <SSShareableQR
-            value={qrValue}
+            value={keyQr.value}
             size={NOSTR_KEY_QR_SIZE}
             color={Colors.white}
             backgroundColor={Colors.gray[950]}
@@ -161,7 +174,7 @@ function SSNostrKeyQRModal({
           >
             <View style={styles.dataBox}>
               <SSShadedKeyText
-                value={qrValue}
+                value={keyQr.value}
                 size="sm"
                 lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
               />
