@@ -246,6 +246,70 @@ describe('transactionBuilder draft after an app restart', () => {
         ?.prebuiltPsbtBase64
     ).toBeUndefined()
   })
+
+  it('does not save a prebuilt psbt that no longer matches an edited builder', () => {
+    const psbt = new Psbt('')
+    jest.mocked(psbt.toBase64).mockReturnValue('cHNidP8=')
+    const store = useTransactionBuilderStore.getState()
+    store.replaceDraft(
+      ACCOUNT_ID,
+      {
+        fee: 500,
+        feeRate: 4,
+        inputs: [
+          {
+            keychain: 'internal',
+            txid: 'aa'.repeat(32),
+            value: 90_500,
+            vout: 1
+          }
+        ],
+        outputs: [{ amount: 90_000, label: '', to: 'tb1qtest' }]
+      },
+      { psbt, replacesTxid: 'cc'.repeat(32) }
+    )
+    store.setFeeRate(8)
+
+    const live = useTransactionBuilderStore.getState()
+    expect(live.isPsbtPrebuilt).toBe(true)
+    expect(live.drafts[ACCOUNT_ID]?.prebuiltPsbtBase64).toBeUndefined()
+
+    const restored = restartStore().getState()
+    expect(restored.isPsbtPrebuilt).toBe(false)
+    expect(restored.psbt).toBeUndefined()
+    expect(restored.feeRate).toBe(8)
+    expect(restored.replacesTxid).toBe('cc'.repeat(32))
+  })
+
+  it('saves the prebuilt psbt again once an edit is undone', () => {
+    const psbt = new Psbt('')
+    jest.mocked(psbt.toBase64).mockReturnValue('cHNidP8=')
+    const store = useTransactionBuilderStore.getState()
+    store.replaceDraft(
+      ACCOUNT_ID,
+      {
+        fee: 500,
+        feeRate: 4,
+        inputs: [
+          {
+            keychain: 'internal',
+            txid: 'aa'.repeat(32),
+            value: 90_500,
+            vout: 1
+          }
+        ],
+        outputs: [{ amount: 90_000, label: '', to: 'tb1qtest' }]
+      },
+      { psbt, replacesTxid: 'cc'.repeat(32) }
+    )
+    store.setFeeRate(8)
+    store.setFeeRate(4)
+
+    expect(
+      useTransactionBuilderStore.getState().drafts[ACCOUNT_ID]
+        ?.prebuiltPsbtBase64
+    ).toBe('cHNidP8=')
+  })
 })
 
 describe('transactionBuilder fee replacement drafts', () => {

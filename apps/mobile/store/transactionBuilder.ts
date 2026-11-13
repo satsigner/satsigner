@@ -77,6 +77,8 @@ type TransactionBuilderState = {
   psbt?: PsbtLike
   /** Built outside the preview (fee replacement), so the preview must not rebuild it from inputs. */
   isPsbtPrebuilt: boolean
+  /** Builder fields the prebuilt PSBT was made from; see builderFingerprint. */
+  prebuiltFingerprint?: string
   /** Txid this draft replaces (RBF bump or cancel). */
   replacesTxid?: string
   signedTx?: string
@@ -154,24 +156,28 @@ function restorePrebuiltPsbt(base64?: string): PsbtLike | undefined {
 // builder when the account has no draft.
 function workingStateFromDraft(draft: SavedDraft | undefined) {
   const prebuiltPsbt = restorePrebuiltPsbt(draft?.prebuiltPsbtBase64)
-  return {
-    cpfp: draft?.cpfp ?? true,
+  const fields = {
     fee: draft?.fee ?? 0,
     feeRate: draft?.feeRate ?? 0,
     inputs: draft
       ? new Map(Object.entries(draft.inputs))
       : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-    isPsbtPrebuilt: prebuiltPsbt !== undefined,
     outputs: draft?.outputs ?? [],
-    payjoinUri: draft?.payjoinUri,
-    psbt: prebuiltPsbt,
     rbf: draft?.rbf ?? true,
+    timeLock: draft?.timeLock ?? 0
+  }
+  return {
+    ...fields,
+    cpfp: draft?.cpfp ?? true,
+    isPsbtPrebuilt: prebuiltPsbt !== undefined,
+    payjoinUri: draft?.payjoinUri,
+    prebuiltFingerprint: prebuiltPsbt ? builderFingerprint(fields) : undefined,
+    psbt: prebuiltPsbt,
     replacesTxid: draft?.replacesTxid,
     selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
     signedPsbtBase64: draft?.signedPsbtBase64,
     signedTx: draft?.signedTx,
-    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview),
-    timeLock: draft?.timeLock ?? 0
+    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview)
   }
 }
 
@@ -189,6 +195,7 @@ type DraftSource = Pick<
   | 'isPsbtPrebuilt'
   | 'outputs'
   | 'payjoinUri'
+  | 'prebuiltFingerprint'
   | 'psbt'
   | 'rbf'
   | 'replacesTxid'
@@ -199,6 +206,35 @@ type DraftSource = Pick<
   | 'timeLock'
 >
 
+type FingerprintSource = Pick<
+  TransactionBuilderState,
+  'fee' | 'feeRate' | 'inputs' | 'outputs' | 'rbf' | 'timeLock'
+>
+
+// The fields a PSBT commits to. A prebuilt PSBT is only saved while the
+// builder still matches it: an edit made before the app stops must not come
+// back as a PSBT that ignores it.
+function builderFingerprint(source: FingerprintSource): string {
+  return JSON.stringify({
+    fee: source.fee,
+    feeRate: source.feeRate,
+    inputs: [...source.inputs.keys()].toSorted(),
+    outputs: source.outputs.map((output) => [output.to, output.amount]),
+    rbf: source.rbf,
+    timeLock: source.timeLock
+  })
+}
+
+function savedPrebuiltPsbt(source: DraftSource): string | undefined {
+  if (
+    !source.isPsbtPrebuilt ||
+    source.prebuiltFingerprint !== builderFingerprint(source)
+  ) {
+    return undefined
+  }
+  return source.psbt?.toBase64()
+}
+
 function toSavedDraft(source: DraftSource): SavedDraft {
   const preview = source.stonewallPreview
   return {
@@ -208,9 +244,7 @@ function toSavedDraft(source: DraftSource): SavedDraft {
     inputs: Object.fromEntries(source.inputs),
     outputs: [...source.outputs],
     payjoinUri: source.payjoinUri,
-    prebuiltPsbtBase64: source.isPsbtPrebuilt
-      ? source.psbt?.toBase64()
-      : undefined,
+    prebuiltPsbtBase64: savedPrebuiltPsbt(source),
     rbf: source.rbf,
     replacesTxid: source.replacesTxid,
     selectedAutoSelectUtxos: source.selectedAutoSelectUtxos,
@@ -413,6 +447,9 @@ const useTransactionBuilderStore = create<
           state.timeLock = 0
           state.isPsbtPrebuilt = replacement !== undefined
           state.psbt = replacement?.psbt
+          state.prebuiltFingerprint = replacement
+            ? builderFingerprint(state)
+            : undefined
           syncDraft(state)
         })
       },
