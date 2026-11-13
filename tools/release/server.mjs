@@ -35,6 +35,7 @@ import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
 import { libraryPermissions, permissionStatus } from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
+import { versionStatus, writeVersion } from './version.mjs'
 
 const execFileAsync = promisify(execFile)
 
@@ -636,6 +637,25 @@ const server = createServer(async (req, res) => {
     res.write('\n')
     listeners.add(res)
     req.on('close', () => listeners.delete(res))
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/version') {
+    send(res, 200, await versionStatus())
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/version') {
+    if (job) {
+      send(res, 409, { error: 'a command is already running' })
+      return
+    }
+    try {
+      const body = await readBody(req)
+      send(res, 200, await writeVersion(body.part))
+    } catch (error) {
+      send(res, 400, { error: error.message })
+    }
     return
   }
 

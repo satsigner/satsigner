@@ -690,6 +690,14 @@
           >
             Android developer keys
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="version-panel"
+          >
+            Version
+          </button>
         </div>
         <div class="panels">
           <section id="ngit">
@@ -892,6 +900,23 @@
             </div>
             <div id="preview" aria-live="polite"></div>
           </section>
+          <section id="version-panel" hidden>
+            <p class="hint">
+              The app version is set in every package.json and in app.config.ts.
+              Android compares the version code, which comes from the version,
+              so it must rise with every release.
+            </p>
+            <dl id="version-status" class="key-status" aria-live="polite"></dl>
+            <div class="actions" id="version-bumps">
+              <button type="button" data-part="patch">Bump patch</button>
+              <button type="button" data-part="minor">Bump minor</button>
+              <button type="button" data-part="major">Bump major</button>
+            </div>
+            <p class="hint">
+              A bump only edits the files. Add the release notes to
+              CHANGELOG.md, then commit and tag the release.
+            </p>
+          </section>
           <section id="keys-panel" hidden>
             <p class="hint">
               The Android release key on this computer signs every APK. Android
@@ -1082,6 +1107,9 @@
           if (tab.getAttribute('aria-controls') === 'keys-panel') {
             void refreshKeys()
           }
+          if (tab.getAttribute('aria-controls') === 'version-panel') {
+            void refreshVersion()
+          }
         })
       }
 
@@ -1221,6 +1249,72 @@
       document
         .querySelector('#refresh-keys')
         .addEventListener('click', () => void refreshKeys())
+
+      const versionStatusEl = document.querySelector('#version-status')
+      const versionBumpsEl = document.querySelector('#version-bumps')
+
+      function versionRow(term, value, tone = '') {
+        const dt = document.createElement('dt')
+        dt.textContent = term
+        const dd = document.createElement('dd')
+        dd.textContent = value
+        if (tone) dd.className = tone
+        versionStatusEl.append(dt, dd)
+      }
+
+      function renderVersion(status) {
+        versionStatusEl.replaceChildren()
+        versionRow('Version', status.version)
+        versionRow('Version code', String(status.versionCode))
+        versionRow(
+          'Release notes',
+          status.changelogReady
+            ? `CHANGELOG.md has a ${status.version} section`
+            : `CHANGELOG.md has no ${status.version} section yet`,
+          status.changelogReady ? 'good' : 'bad'
+        )
+        for (const entry of status.files) {
+          versionRow(
+            entry.file,
+            entry.version || 'Not found',
+            entry.version === status.version ? '' : 'bad'
+          )
+        }
+        for (const button of versionBumpsEl.querySelectorAll('button')) {
+          button.dataset.next = status.next[button.dataset.part]
+          button.textContent = `Bump ${button.dataset.part} to ${button.dataset.next}`
+        }
+      }
+
+      async function refreshVersion() {
+        const response = await fetch('/api/version')
+        renderVersion(await response.json())
+      }
+
+      async function bumpVersion(part, next) {
+        if (!confirm(`Set the version to ${next} in every file?`)) return
+        const response = await fetch('/api/version', {
+          body: JSON.stringify({ part }),
+          headers: { 'content-type': 'application/json' },
+          method: 'POST'
+        })
+        const result = await response.json()
+        if (!response.ok) {
+          writeLog(`${result.error}\n`, 'error')
+          return
+        }
+        writeLog(
+          `Version set to ${result.version} (code ${result.versionCode})\n`
+        )
+        renderVersion(result)
+        void refreshStatus()
+      }
+
+      versionBumpsEl.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-part]')
+        if (!button) return
+        void bumpVersion(button.dataset.part, button.dataset.next)
+      })
 
       function keyRow(term, value, tone = '') {
         const dt = document.createElement('dt')
