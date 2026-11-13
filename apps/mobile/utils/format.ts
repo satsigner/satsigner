@@ -535,8 +535,9 @@ function formatShortSatsNumber(sats: number, round: Rounding): string {
   if (sats < SHORT_SATS_TEN_THOUSAND) {
     return `${formatShortScaled(sats, SHORT_SATS_THOUSAND, round)}k`
   }
-  if (sats < SHORT_SATS_MILLION) {
-    return `${round(sats / SHORT_SATS_THOUSAND)}k`
+  const thousands = round(sats / SHORT_SATS_THOUSAND)
+  if (thousands < SHORT_SATS_THOUSAND) {
+    return `${thousands}k`
   }
   if (sats < SHORT_SATS_TEN_MILLION) {
     return `${formatShortScaled(sats, SHORT_SATS_MILLION, round)}m`

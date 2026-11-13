@@ -217,6 +217,11 @@ describe('formatShortSats', () => {
     expect(formatShortSats(2_400_000)).toBe('2.4m sats')
   })
 
+  it('moves to millions when thousands round up to a thousand', () => {
+    expect(formatShortSats(999_600)).toBe('1m sats')
+    expect(formatShortSats(999_499)).toBe('999k sats')
+  })
+
   it('marks a lower bound with a plus', () => {
     expect(formatShortSats(1400, true)).toBe('1.4k+ sats')
   })
