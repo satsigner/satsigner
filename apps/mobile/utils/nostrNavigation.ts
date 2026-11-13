@@ -3,6 +3,7 @@ import { nip19 } from 'nostr-tools'
 
 import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { parseNostrConnectUri } from '@/utils/nip46'
 
 export function nostrAccountProfileHref(npub: string): Href {
   return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
@@ -137,6 +138,18 @@ export function deviceChatMessageHref(
   }
 }
 
+type Nip19Type = ReturnType<typeof nip19.decode>['type']
+
+// The content detector only checks the prefix and length, so a value with a
+// bad checksum still needs a real decode before it reaches a route.
+function decodesAs(value: string, type: Nip19Type): boolean {
+  try {
+    return nip19.decode(value).type === type
+  } catch {
+    return false
+  }
+}
+
 function nprofileToNpub(nprofile: string): string | undefined {
   try {
     const decoded = nip19.decode(nprofile)
@@ -159,14 +172,24 @@ export function nostrScannedContentHref(
   const value = content.cleaned || content.raw
   switch (content.type) {
     case 'nostr_connect': {
-      return nostrBunkerConnectHref(ownerNpub, value)
+      return parseNostrConnectUri(value)
+        ? nostrBunkerConnectHref(ownerNpub, value)
+        : undefined
     }
-    case 'nostr_note':
+    case 'nostr_note': {
+      return decodesAs(value, 'note')
+        ? nostrNoteHref(ownerNpub, value)
+        : undefined
+    }
     case 'nostr_nevent': {
-      return nostrNoteHref(ownerNpub, value)
+      return decodesAs(value, 'nevent')
+        ? nostrNoteHref(ownerNpub, value)
+        : undefined
     }
     case 'nostr_npub': {
-      return nostrAuthorProfileHref(ownerNpub, value)
+      return decodesAs(value, 'npub')
+        ? nostrAuthorProfileHref(ownerNpub, value)
+        : undefined
     }
     case 'nostr_nprofile': {
       const npub = nprofileToNpub(value)
