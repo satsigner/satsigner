@@ -368,9 +368,10 @@ export async function requestZapInvoice(
 }
 
 /**
- * Kind 9735 zap receipts for a note: cached receipts first, then newer ones
- * from relays. On relay failure the cached receipts come back with source
- * 'cache' and the error code.
+ * Kind 9735 zap receipts for a note: cached receipts first, then the newest
+ * page from relays (only newer ones once the cache holds a full page). On
+ * relay failure the cached receipts come back with source 'cache' and the
+ * error code.
  */
 export async function fetchZapReceipts(
   eventIdHex: string,
@@ -388,8 +389,10 @@ export async function fetchZapReceipts(
     kinds: [nostrKinds.Zap],
     limit: NOSTR_ZAP_RECEIPT_FETCH_LIMIT
   }
+  // Receipts that fail to parse are never cached, so below a full page the
+  // cache can't tell a complete list from a capped one: refetch the page.
   const [newestCached] = cachedEvents
-  if (newestCached) {
+  if (newestCached && cachedReceipts.length >= NOSTR_ZAP_RECEIPT_FETCH_LIMIT) {
     filter.since = newestCached.created_at + 1
   }
 
