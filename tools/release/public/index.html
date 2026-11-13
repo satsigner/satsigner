@@ -1200,10 +1200,17 @@
             return
           }
           renderListing(preview)
+          renderChecks(
+            'Before the build: permissions from native dependencies',
+            preview.beforeBuild
+          )
           renderApkFacts(preview)
           if (preview.checks) {
+            renderChecks(
+              'After the build: permissions and trackers in the APK',
+              preview.checks.security
+            )
             renderChecks('Zapstore checks', preview.checks.zapstore)
-            renderChecks('Permissions and trackers', preview.checks.security)
           }
         } finally {
           runPreviewButton.disabled = false

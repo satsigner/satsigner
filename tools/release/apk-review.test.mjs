@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   findTrackers,
   latestAsset,
+  libraryChecks,
   parseBadging,
   parsePermissions,
   parseSigners,
@@ -75,11 +76,47 @@ test('reads every signer certificate, rotated ones included', () => {
   )
 })
 
-test('flags camera, gallery and microphone access for review', () => {
-  const checks = securityChecks(apk())
+function withStatus(statuses) {
+  return parsePermissions(PERMISSIONS).map((permission) => ({
+    ...permission,
+    status: statuses[permission.name] ?? 'allowed'
+  }))
+}
+
+test('shows allowed camera access for review and absent microphone as ok', () => {
+  const checks = securityChecks({ permissions: withStatus({}), trackers: [] })
+  assert.equal(statusOf(checks, 'allowlist'), 'pass')
   assert.equal(statusOf(checks, 'permission-camera'), 'warn')
-  assert.equal(statusOf(checks, 'permission-gallery'), 'warn')
   assert.equal(statusOf(checks, 'permission-microphone'), 'pass')
+})
+
+test('fails a permission that is blocked or not on the allow list', () => {
+  const checks = securityChecks({
+    permissions: withStatus({
+      'android.permission.READ_EXTERNAL_STORAGE': 'blocked'
+    }),
+    trackers: []
+  })
+  assert.equal(statusOf(checks, 'allowlist'), 'fail')
+  assert.equal(statusOf(checks, 'permission-gallery'), 'fail')
+})
+
+test('before a build, only a permission neither allowed nor blocked fails', () => {
+  const checks = libraryChecks([
+    { library: 'a', name: 'CAMERA', status: 'allowed' },
+    { library: 'b', name: 'WAKE_LOCK', status: 'blocked' },
+    { library: 'c', name: 'READ_SMS', status: 'unexpected' },
+    { library: 'd', name: 'CAMERA', status: 'allowed' }
+  ])
+  assert.deepEqual(
+    checks.map(({ label, status }) => [label, status]),
+    [
+      ['CAMERA', 'pass'],
+      ['WAKE_LOCK', 'pass'],
+      ['READ_SMS', 'fail']
+    ]
+  )
+  assert.match(checks[0].detail, /a, d/)
 })
 
 test('finds tracker libraries by their class prefix', () => {

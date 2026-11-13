@@ -11,7 +11,7 @@ import { promisify } from 'node:util'
 import { WebSocketServer } from 'ws'
 
 import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
-import { securityChecks, zapstoreChecks } from './apk-review.mjs'
+import { libraryChecks, securityChecks, zapstoreChecks } from './apk-review.mjs'
 import { findApksigner } from './apk-signer.mjs'
 import {
   buildApkArgs,
@@ -33,6 +33,7 @@ import {
 import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
+import { libraryPermissions, permissionStatus } from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -729,6 +730,7 @@ async function releasePreview(value) {
   ])
   const base = {
     appName,
+    beforeBuild: libraryChecks(libraryPermissions()),
     channel,
     listing: {
       description: listing.description,
@@ -742,7 +744,14 @@ async function releasePreview(value) {
   if (!file) {
     return base
   }
-  const apk = await inspectApk(file.path)
+  const inspected = await inspectApk(file.path)
+  const apk = {
+    ...inspected,
+    permissions: inspected.permissions.map((permission) => ({
+      ...permission,
+      status: permissionStatus(permission.name)
+    }))
+  }
   return {
     ...base,
     apk: { ...apk, name: file.name },

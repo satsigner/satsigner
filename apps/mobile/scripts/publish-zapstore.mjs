@@ -80,6 +80,7 @@ import {
   signingEnv,
   storedIdentity
 } from '../../../tools/release/keystore.mjs'
+import { assertApkPermissions } from '../../../tools/release/permission-check.mjs'
 import { LOCAL_ENV_FILES, buildEnvEntries } from './zapstore-build-env.mjs'
 import {
   PRODUCTION_CHANNEL,
@@ -691,6 +692,7 @@ async function main() {
     if (!usingCustomConfig) {
       step(2, 'Build APK')
       apkPath = await buildReleaseApk()
+      assertApkPermissions(apkPath)
       console.log(`\n  APK: ${apkPath}`)
     } else {
       step(2, 'Build APK')

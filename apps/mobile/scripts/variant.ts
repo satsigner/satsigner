@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url'
 
 import { applyKeyRotation } from '../../../tools/release/apk-signer.mjs'
 import { signingEnv } from '../../../tools/release/keystore.mjs'
+import { assertApkPermissions } from '../../../tools/release/permission-check.mjs'
 import {
   ANDROID_ABI_LABELS,
   APP_VARIANT_PRODUCTION,
@@ -260,6 +261,9 @@ function buildApk({
 
   if (buildType === 'release' && applyKeyRotation(builtApk)) {
     console.log('Signed with the rotated key and its lineage.')
+  }
+  if (buildType === 'release') {
+    assertApkPermissions(builtApk)
   }
   copyFileSync(builtApk, outApk)
 

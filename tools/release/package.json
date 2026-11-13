@@ -11,7 +11,8 @@
     "keystore:confirm": "node confirm-keystore.mjs",
     "keystore:status": "node key-status.mjs",
     "keystore:rotate": "node rotate-keystore.mjs",
-    "test": "node --test commands.test.mjs hidden-prompt.test.mjs keystore.test.mjs process-group.test.mjs key-rotation.test.mjs apk-review.test.mjs"
+    "permissions": "node check-permissions.mjs",
+    "test": "node --test commands.test.mjs hidden-prompt.test.mjs keystore.test.mjs process-group.test.mjs key-rotation.test.mjs apk-review.test.mjs permission-check.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.0.1",

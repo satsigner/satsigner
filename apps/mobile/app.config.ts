@@ -1,5 +1,6 @@
 import { type ConfigContext, type ExpoConfig } from 'expo/config'
 
+import { ANDROID_BLOCKED_PERMISSIONS } from './constants/androidPermissions.cjs'
 import {
   APP_VARIANT_PRODUCTION,
   getVariantAndroidAbis,
@@ -10,19 +11,6 @@ import {
 import { getAndroidVersionCode } from './constants/versionCode.cjs'
 
 const APP_VERSION = '0.3.6'
-
-// Satsigner never records audio or draws over other apps, and has no use for
-// Google Play's install referrer. Blocking them also strips the copies that
-// libraries (expo-camera, the Expo template) merge into the manifest.
-// expo-screen-capture asks for photo and screenshot access only for its
-// screenshot listener; blocking screen capture (FLAG_SECURE) needs neither.
-const ANDROID_BLOCKED_PERMISSIONS = [
-  'android.permission.RECORD_AUDIO',
-  'android.permission.SYSTEM_ALERT_WINDOW',
-  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
-  'android.permission.READ_MEDIA_IMAGES',
-  'android.permission.DETECT_SCREEN_CAPTURE'
-]
 
 const projectId = process.env.EXPO_PROJECT_ID
 

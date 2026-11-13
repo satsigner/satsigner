@@ -251,24 +251,37 @@ function zapstoreChecks({
   ]
 }
 
+function permissionText({ maxSdk, name }) {
+  return maxSdk ? `${name} (up to API ${maxSdk})` : name
+}
+
+function groupStatus(requested) {
+  if (requested.length === 0) {
+    return 'pass'
+  }
+  return requested.every((permission) => permission.status === 'allowed')
+    ? 'warn'
+    : 'fail'
+}
+
 function securityChecks({ permissions, trackers }) {
-  const groups = permissionGroups(permissions)
+  const extra = permissions.filter(
+    (permission) => permission.status !== 'allowed'
+  )
+  const groups = permissionGroups(permissions).map((group) => ({
+    detail: group.requested.map(permissionText).join(', ') || 'Not requested',
+    id: `permission-${group.id}`,
+    label: group.label,
+    status: groupStatus(group.requested)
+  }))
   return [
-    ...groups.map((group) =>
-      check(
-        `permission-${group.id}`,
-        group.label,
-        group.requested.length === 0,
-        group.requested.length
-          ? group.requested
-              .map(({ maxSdk, name }) =>
-                maxSdk ? `${name} (up to API ${maxSdk})` : name
-              )
-              .join(', ')
-          : 'Not requested',
-        'warn'
-      )
+    check(
+      'allowlist',
+      'Only allowed permissions',
+      extra.length === 0,
+      extra.map(permissionText).join(', ') || 'All on the allow list'
     ),
+    ...groups,
     check(
       'trackers',
       'No known tracker libraries',
@@ -277,6 +290,26 @@ function securityChecks({ permissions, trackers }) {
       'warn'
     )
   ]
+}
+
+const LIBRARY_STATUS = {
+  allowed: { detail: 'Allowed', status: 'pass' },
+  blocked: { detail: 'Blocked, stripped from the build', status: 'pass' },
+  unexpected: { detail: 'Neither allowed nor blocked', status: 'fail' }
+}
+
+function libraryChecks(libraries) {
+  const byName = Map.groupBy(libraries, (permission) => permission.name)
+  return [...byName].map(([name, entries]) => {
+    const { detail, status } = LIBRARY_STATUS[entries[0].status]
+    const from = [...new Set(entries.map((entry) => entry.library))]
+    return {
+      detail: `${detail} · ${from.join(', ')}`,
+      id: `library-${name}`,
+      label: name,
+      status
+    }
+  })
 }
 
 function latestAsset(events) {
@@ -298,6 +331,7 @@ export {
   ZAPSTORE_ABI,
   findTrackers,
   latestAsset,
+  libraryChecks,
   parseBadging,
   parsePermissions,
   parseSigners,

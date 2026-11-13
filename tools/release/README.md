@@ -30,6 +30,13 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **OK** passed, **FAIL** means the relay or the phone will reject the release, **CHECK** means a permission or library is present and should be expected. Zapstore does not document a malware or permission scan of its own. The permissions and trackers group is what users see on the app page and what scanners such as Exodus report.
 
+**Android permissions.** `apps/mobile/constants/androidPermissions.cjs` lists the only permissions a release may request, and the ones stripped from libraries. The same check runs at two points:
+
+- **Before the build:** `pnpm --dir tools/release permissions` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
+- **After the build:** `pnpm --dir tools/release permissions path/to/app.apk` reads the merged permissions with `aapt2`. Every release build (Build APK, `variant --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
+
+The Preview release tab shows both lists.
+
 **Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 
 | Option            | What it builds                                               |
