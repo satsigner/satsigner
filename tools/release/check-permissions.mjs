@@ -1,7 +1,7 @@
+import { notAllowed, permissionText } from './apk-review.mjs'
 import {
   apkPermissions,
   libraryPermissions,
-  notAllowed,
   unexpected
 } from './permission-check.mjs'
 
@@ -21,9 +21,7 @@ if (apkPath) {
   console.log(`\nAfter the build: permissions ${apkPath} requests`)
 }
 const apk = apkPath ? apkPermissions(apkPath) : []
-printPermissions(apk, ({ maxSdk, name }) =>
-  maxSdk ? `${name} (up to API ${maxSdk})` : name
-)
+printPermissions(apk, permissionText)
 
 const failures = [...unexpected(libraries), ...notAllowed(apk)]
 if (failures.length > 0) {

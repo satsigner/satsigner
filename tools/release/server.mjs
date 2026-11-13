@@ -33,7 +33,10 @@ import {
 import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
-import { libraryPermissions, permissionStatus } from './permission-check.mjs'
+import {
+  libraryPermissions,
+  withPermissionStatus
+} from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
 import { versionStatus } from './version.mjs'
 
@@ -788,10 +791,7 @@ async function releasePreview(value) {
   const inspected = await inspectApk(file.path)
   const apk = {
     ...inspected,
-    permissions: inspected.permissions.map((permission) => ({
-      ...permission,
-      status: permissionStatus(permission.name)
-    }))
+    permissions: withPermissionStatus(inspected.permissions)
   }
   return {
     ...base,

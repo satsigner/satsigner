@@ -264,10 +264,13 @@ function groupStatus(requested) {
     : 'fail'
 }
 
+// In the APK a blocked permission is a failure too: the block did not apply.
+function notAllowed(permissions) {
+  return permissions.filter((permission) => permission.status !== 'allowed')
+}
+
 function securityChecks({ permissions, trackers }) {
-  const extra = permissions.filter(
-    (permission) => permission.status !== 'allowed'
-  )
+  const extra = notAllowed(permissions)
   const groups = permissionGroups(permissions).map((group) => ({
     detail: group.requested.map(permissionText).join(', ') || 'Not requested',
     id: `permission-${group.id}`,
@@ -332,10 +335,12 @@ export {
   findTrackers,
   latestAsset,
   libraryChecks,
+  notAllowed,
   parseBadging,
   parsePermissions,
   parseSigners,
   permissionGroups,
+  permissionText,
   securityChecks,
   zapstoreChecks
 }
