@@ -1172,7 +1172,32 @@
         void loadApps()
       }
 
+      const EXTENSION_POLL_MS = 250
+      const EXTENSION_POLL_ATTEMPTS = 12
+      const UI_STATE_KEY = 'satsigner.releaseConsole.ui'
+
+      function readUiState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(UI_STATE_KEY) ?? '{}')
+          return parsed && typeof parsed === 'object' ? parsed : {}
+        } catch {
+          return {}
+        }
+      }
+
+      function saveUiState(patch) {
+        try {
+          localStorage.setItem(
+            UI_STATE_KEY,
+            JSON.stringify({ ...readUiState(), ...patch })
+          )
+        } catch {
+          // Private windows can refuse storage; the page works without it.
+        }
+      }
+
       function showTab(id) {
+        saveUiState({ tab: id })
         for (const tab of tabs) {
           const selected = tab.getAttribute('aria-controls') === id
           tab.setAttribute('aria-selected', selected ? 'true' : 'false')
@@ -1204,6 +1229,7 @@
       previewChannelEl.addEventListener('click', (event) => {
         const button = event.target.closest('button[data-channel]')
         if (!button) return
+        saveUiState({ previewChannel: button.dataset.channel })
         for (const option of previewChannelEl.querySelectorAll('button')) {
           option.setAttribute(
             'aria-pressed',
@@ -2120,7 +2146,9 @@
       const zapstoreLink = document.querySelector('#zapstore-link')
       const zapstorePreview = document.querySelector('#zapstore-preview')
       const channelHint = document.querySelector('#channel-hint')
-      const channelButtons = [...document.querySelectorAll('[data-channel]')]
+      const channelButtons = [
+        ...document.querySelectorAll('#zap [data-channel]')
+      ]
       let releaseChannel = 'dev'
       let releaseStatus = null
       const releasesEl = document.querySelector('#releases')
@@ -2629,6 +2657,7 @@
             setBusy(busy)
             void showProfile(signerPubkey)
             refreshListings()
+            saveUiState({ signedIn: true })
             writeLog('extension connected\n', 'success')
             resolve()
           })
@@ -2665,16 +2694,20 @@
         }
       }
 
-      connectButton.addEventListener('click', () => {
+      function signIn() {
         connectSigner().catch((error) => {
+          saveUiState({ signedIn: false })
           statusEl.textContent = error.message
         })
-      })
+      }
+
+      connectButton.addEventListener('click', signIn)
       publishButton.addEventListener('click', () => runAction('publish'))
       pushButton.addEventListener('click', () => runAction('push'))
       for (const button of channelButtons) {
         button.addEventListener('click', () => {
           releaseChannel = button.dataset.channel
+          saveUiState({ channel: releaseChannel })
           for (const item of channelButtons) {
             item.setAttribute(
               'aria-pressed',
@@ -2734,12 +2767,14 @@
       for (const button of identityButtons) {
         button.addEventListener('click', () => {
           apkIdentity = button.dataset.identity
+          saveUiState({ apkIdentity })
           showApkSelection()
         })
       }
       for (const button of kindButtons) {
         button.addEventListener('click', () => {
           apkKind = button.dataset.kind
+          saveUiState({ apkKind })
           showApkSelection()
         })
       }
@@ -2761,6 +2796,45 @@
           refreshListings()
         }
       }
+      function clickSaved(selector) {
+        document.querySelector(selector)?.click()
+      }
+
+      // NIP-07 extensions inject window.nostr after the page scripts run.
+      function signInWhenExtensionLoads(attemptsLeft) {
+        if (window.nostr?.signEvent || attemptsLeft <= 1) {
+          signIn()
+          return
+        }
+        setTimeout(
+          () => signInWhenExtensionLoads(attemptsLeft - 1),
+          EXTENSION_POLL_MS
+        )
+      }
+
+      function restoreUiState() {
+        const saved = readUiState()
+        if (saved.channel) {
+          clickSaved(`#zap [data-channel="${CSS.escape(saved.channel)}"]`)
+        }
+        if (saved.previewChannel) {
+          clickSaved(
+            `#preview-channel [data-channel="${CSS.escape(saved.previewChannel)}"]`
+          )
+        }
+        if (saved.apkIdentity) {
+          clickSaved(`[data-identity="${CSS.escape(saved.apkIdentity)}"]`)
+        }
+        if (saved.apkKind) {
+          clickSaved(`[data-kind="${CSS.escape(saved.apkKind)}"]`)
+        }
+        if (saved.tab) {
+          clickSaved(`[role="tab"][aria-controls="${CSS.escape(saved.tab)}"]`)
+        }
+        if (saved.signedIn) signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
+      }
+
+      restoreUiState()
       refreshStatus()
       refreshListings()
       setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
