@@ -133,12 +133,18 @@ export function parseInlineSegments(text: string): MarkdownInlineSegment[] {
       (token.startsWith('**') && token.endsWith('**')) ||
       (token.startsWith('__') && token.endsWith('__'))
     ) {
-      segments.push({ type: 'bold', value: token.slice(2, -2) })
+      segments.push({
+        segments: parseInlineSegments(token.slice(2, -2)),
+        type: 'bold'
+      })
     } else if (
       (token.startsWith('*') && token.endsWith('*')) ||
       (token.startsWith('_') && token.endsWith('_'))
     ) {
-      segments.push({ type: 'italic', value: token.slice(1, -1) })
+      segments.push({
+        segments: parseInlineSegments(token.slice(1, -1)),
+        type: 'italic'
+      })
     } else if (token.startsWith('[')) {
       const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
       if (linkMatch && isSafeHttpUrl(linkMatch[2])) {

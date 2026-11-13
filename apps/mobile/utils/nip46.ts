@@ -10,7 +10,8 @@ import type {
   Nip46IncomingRequest,
   Nip46Method,
   Nip46ParsedUri,
-  Nip46Session
+  Nip46Session,
+  NostrIdentity
 } from '@/types/models/Nostr'
 import { isNostrTags } from '@/utils/nostrEvent'
 import { isRecord } from '@/utils/object'
@@ -189,4 +190,10 @@ export function canAutoApproveRequest(
     )
   }
   return true
+}
+
+export function canNostrIdentitySignRemotely(
+  identity: Pick<NostrIdentity, 'isWatchOnly' | 'nsec'> | undefined
+): boolean {
+  return identity?.isWatchOnly === false && Boolean(identity.nsec)
 }

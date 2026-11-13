@@ -1,6 +1,5 @@
-import { type Token } from '@cashu/cashu-ts'
+import { getTokenMetadata } from '@cashu/cashu-ts'
 
-import { SAT_UNIT } from '@/constants/ecash'
 import {
   type EcashToken,
   type EcashTokenValidation,
@@ -8,16 +7,21 @@ import {
 } from '@/types/models/Ecash'
 
 /**
- * Maps a token decoded by cashu-ts onto the app's token shape: every proof is
- * tagged with the token's mint, and the unit is kept only when it is sats, the
- * one unit the app models.
+ * Reads a token without its mint's keysets, so it works for any mint. Full
+ * proofs need them: cashu-ts writes short keyset ids, and v2 ones only map
+ * back to full ids against the mint's keysets.
  */
-export function toEcashToken(token: Token): EcashToken {
-  return {
-    memo: token.memo,
-    mint: token.mint,
-    proofs: token.proofs.map((proof) => ({ ...proof, mintUrl: token.mint })),
-    unit: token.unit === SAT_UNIT ? SAT_UNIT : undefined
+export function readEcashToken(token: string): EcashToken | null {
+  try {
+    const { amount, incompleteProofs, memo, mint } = getTokenMetadata(token)
+    return {
+      amount,
+      memo,
+      mint,
+      proofAmounts: incompleteProofs.map((proof) => proof.amount)
+    }
+  } catch {
+    return null
   }
 }
 

@@ -32,28 +32,24 @@ function emptyChainData(source: ChainSource = 'backend'): ChainData {
 
 async function fromEsplora(esplora: Esplora): Promise<ChainData> {
   const data = emptyChainData('backend')
-  try {
-    const [rawHeight, rawHash] = await Promise.all([
-      esplora.getLatestBlockHeight(),
-      esplora.getLatestBlockHash()
-    ])
-    data.height = Number(rawHeight)
-    data.hash = String(rawHash)
+  const [rawHeight, rawHash] = await Promise.all([
+    esplora.getLatestBlockHeight(),
+    esplora.getLatestBlockHash()
+  ])
+  data.height = Number(rawHeight)
+  data.hash = String(rawHash)
 
-    const block = await esplora.getBlockInfo(data.hash)
-    data.timestamp = block.timestamp
-    data.difficulty = block.difficulty
-  } catch {
-    /* silently ignored */
-  }
+  // The tip alone is worth showing: its details are optional.
+  const block = await esplora.getBlockInfo(data.hash).catch(() => null)
+  data.timestamp = block?.timestamp ?? null
+  data.difficulty = block?.difficulty ?? null
   return data
 }
 
 async function fromElectrum(url: string, network: Network): Promise<ChainData> {
   const data = emptyChainData('backend')
-  let client: ElectrumClient | null = null
+  const client = ElectrumClient.fromUrl(url, network)
   try {
-    client = ElectrumClient.fromUrl(url, network)
     await client.init()
 
     const tip = await client.subscribeToBlockHeaders()
@@ -62,14 +58,17 @@ async function fromElectrum(url: string, network: Network): Promise<ChainData> {
     }
     data.height = tip.height
 
-    const header: bitcoinjs.Block = await client.getBlock(tip.height)
+    const header: bitcoinjs.Block | null = await client
+      .getBlock(tip.height)
+      .catch(() => null)
+    if (!header) {
+      return data
+    }
     data.hash = header.getId()
     data.timestamp = header.timestamp
     if (header.bits) {
       data.difficulty = getDifficultyFromBits(header.bits)
     }
-  } catch {
-    /* silently ignored */
   } finally {
     closeElectrumClientQuietly(client)
   }
@@ -82,19 +81,15 @@ async function fromRpc(
   password: string
 ): Promise<ChainData> {
   const data = emptyChainData('backend')
-  try {
-    const rpc = new BitcoinRpc(url, username, password)
-    const info = await rpc.getBlockchainInfo()
-    data.height = info.blocks
-    data.hash = info.bestblockhash
-    data.difficulty = info.difficulty
-    data.source = 'backend'
+  const rpc = new BitcoinRpc(url, username, password)
+  const info = await rpc.getBlockchainInfo()
+  data.height = info.blocks
+  data.hash = info.bestblockhash
+  data.difficulty = info.difficulty
+  data.source = 'backend'
 
-    const block = await rpc.getBlock(info.bestblockhash)
-    data.timestamp = block.time
-  } catch {
-    /* silently ignored */
-  }
+  const block = await rpc.getBlock(info.bestblockhash).catch(() => null)
+  data.timestamp = block?.time ?? null
   return data
 }
 

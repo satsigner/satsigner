@@ -44,6 +44,7 @@ export default function EcashSendPage() {
     activeAccount,
     amount,
     animatedQR,
+    applyInvoiceInput,
     comment,
     currentChunkIndex,
     decodedInvoice,
@@ -113,8 +114,7 @@ export default function EcashSendPage() {
     try {
       const clipboardText = await Clipboard.getStringAsync()
       if (clipboardText) {
-        await handleInvoiceChange(clipboardText)
-        toast.success(t('ecash.success.invoicePasted'))
+        await applyInvoiceInput(clipboardText, t('ecash.success.invoicePasted'))
       } else {
         toast.error(t('ecash.error.noTextInClipboard'))
       }
@@ -125,9 +125,7 @@ export default function EcashSendPage() {
 
   function handleContentScanned(content: DetectedContent) {
     setCameraModalVisible(false)
-    const cleanData = content.cleaned.replace(/^lightning:/i, '')
-    handleInvoiceChange(cleanData)
-    toast.success(t('ecash.success.invoiceScanned'))
+    applyInvoiceInput(content.cleaned, t('ecash.success.invoiceScanned'))
   }
 
   async function handleCopyToken() {

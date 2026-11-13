@@ -2,7 +2,6 @@ import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { walletNameFromDescriptor } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -24,7 +23,7 @@ import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
 import { type NFCReadResult } from '@/types/models/Nfc'
 import {
-  appNetworkToBdkNetwork,
+  convertKeyFormat,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
@@ -39,6 +38,7 @@ import {
   validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
+  validateDescriptorNetwork,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
@@ -152,7 +152,8 @@ export default function UnifiedImport() {
         scriptVersion,
         network
       )
-      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${nextXpub}/0/*`
+      const standardXpub = convertKeyFormat(nextXpub, 'xpub', network)
+      const formattedXpub = `[${fingerprintForDescriptor}/${derivationPath}]${standardXpub}/0/*`
       setExtendedPublicKey(formattedXpub)
     }
   }
@@ -194,39 +195,19 @@ export default function UnifiedImport() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
-    if (basicValidation && descriptor) {
-      try {
-        walletNameFromDescriptor(
-          descriptor,
-          undefined,
-          appNetworkToBdkNetwork(network)
-        )
-        networkValidation = { isValid: true }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        networkValidation =
-          errorMessage.includes('Invalid network') ||
-          errorMessage.includes('network')
-            ? {
-                error: 'networkIncompatible' as const,
-                isValid: false
-              }
-            : { isValid: true }
-      }
-    }
-
-    const isValid = basicValidation && networkValidation.isValid
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
+    const isValid = basicValidation && validNetwork
+    const networkError =
+      basicValidation && !validNetwork
+        ? t('account.import.error.networkIncompatible')
+        : ''
     const nextValidExternalDescriptor = !descriptor || isValid
 
     setValidExternalDescriptor(nextValidExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
+    setExternalDescriptorError(networkError)
     if (isValid) {
       setExternalDescriptor(descriptor)
-      setExternalDescriptorError('')
     }
 
     updateDescriptorValidationState({
@@ -250,38 +231,18 @@ export default function UnifiedImport() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    let networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
-    if (basicValidation && descriptor) {
-      try {
-        walletNameFromDescriptor(
-          descriptor,
-          undefined,
-          appNetworkToBdkNetwork(network)
-        )
-        networkValidation = { isValid: true }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        networkValidation =
-          errorMessage.includes('Invalid network') ||
-          errorMessage.includes('network')
-            ? {
-                error: 'networkIncompatible' as const,
-                isValid: false
-              }
-            : { isValid: true }
-      }
-    }
-
-    const isValid = basicValidation && networkValidation.isValid
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
+    const isValid = basicValidation && validNetwork
+    const networkError =
+      basicValidation && !validNetwork
+        ? t('account.import.error.networkIncompatible')
+        : ''
     const nextValidInternalDescriptor = !descriptor || isValid
     setValidInternalDescriptor(nextValidInternalDescriptor)
     setLocalInternalDescriptor(descriptor)
+    setInternalDescriptorError(networkError)
     if (isValid) {
       setInternalDescriptor(descriptor)
-      setInternalDescriptorError('')
     }
 
     updateDescriptorValidationState({

@@ -1,4 +1,8 @@
-import { BTC_DECIMALS, SATS_PER_BITCOIN } from '@/constants/btc'
+import {
+  BTC_DECIMALS,
+  MAX_BLOCK_WEIGHT,
+  SATS_PER_BITCOIN
+} from '@/constants/btc'
 import {
   ADDRESS_TRUNCATE_CHARS,
   ADDRESS_TRUNCATE_CHARS_COMPACT,
@@ -224,7 +228,12 @@ function formatConfirmationCount(confirmations: number) {
   return `~${roundedValue}M`
 }
 
-function formatConfirmations(confirmations: number) {
+/** `null` is a mined transaction whose count is not known yet. */
+function formatConfirmations(confirmations: number | null) {
+  if (confirmations === null) {
+    return t('bitcoin.confirmations.confirmed')
+  }
+
   if (confirmations <= 0) {
     return t('bitcoin.confirmations.unconfirmed')
   }
@@ -238,18 +247,30 @@ function formatConfirmations(confirmations: number) {
   })
 }
 
+function formatShortConfirmations(confirmations: number | null) {
+  if (confirmations === null) {
+    return t('bitcoin.confirmations.confirmed')
+  }
+
+  if (confirmations <= 0) {
+    return t('bitcoin.confirmations.unconfirmed')
+  }
+
+  if (confirmations === 1) {
+    return t('bitcoin.confirmations.oneConf')
+  }
+
+  return t('bitcoin.confirmations.manyConfs', {
+    blocks: formatConfirmationCount(confirmations)
+  })
+}
+
+/** `null` is a mined transaction whose count is not known yet. */
 function formatConfirmationsWithBlock(
-  confirmations: number,
+  confirmations: number | null,
   blockHeight: number
 ) {
-  const confLabel =
-    confirmations === 1
-      ? t('bitcoin.confirmations.oneConf')
-      : t('bitcoin.confirmations.manyConfs', {
-          blocks: formatConfirmationCount(confirmations)
-        })
-
-  return `${confLabel} • ${blockHeight.toLocaleString('en-US')}`
+  return `${formatShortConfirmations(confirmations)} • ${blockHeight.toLocaleString('en-US')}`
 }
 
 type TimeFromNow = [
@@ -376,6 +397,11 @@ function formatTxOutputToUtxo(
     value: output.value,
     vout
   }
+}
+
+/** A block's weight against the consensus limit, e.g. "1,039,432 / 4,000,000 WU". */
+function formatBlockWeight(weight: number): string {
+  return `${formatNumber(weight)} / ${formatNumber(MAX_BLOCK_WEIGHT)} WU`
 }
 
 /**
@@ -525,6 +551,7 @@ function formatShortSats(amount: number, isLowerBound = false): string {
 export {
   formatAddress,
   formatBtc,
+  formatBlockWeight,
   formatBytes,
   formatConfirmations,
   formatConfirmationsWithBlock,

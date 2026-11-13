@@ -2,7 +2,10 @@ import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import {
   formatAddress,
+  formatBlockWeight,
   formatBtc,
+  formatConfirmations,
+  formatConfirmationsWithBlock,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
@@ -261,5 +264,35 @@ describe('formatMaskedSats', () => {
     expect(formatMaskedSats(1234, true)).toBe(
       `${PRIVACY_MASK} ${t('bitcoin.sats')}`
     )
+  })
+})
+
+describe('formatConfirmations', () => {
+  it('reads as confirmed while the count is not known', () => {
+    expect(formatConfirmations(null)).toBe(t('bitcoin.confirmations.confirmed'))
+  })
+
+  it('reads as unconfirmed without a confirmation', () => {
+    expect(formatConfirmations(0)).toBe(t('bitcoin.confirmations.unconfirmed'))
+  })
+})
+
+describe('formatConfirmationsWithBlock', () => {
+  it('shows the block without a count while the count is not known', () => {
+    expect(formatConfirmationsWithBlock(null, 330_183)).toBe(
+      `${t('bitcoin.confirmations.confirmed')} • 330,183`
+    )
+  })
+
+  it('shows the count next to the block', () => {
+    expect(formatConfirmationsWithBlock(1, 330_183)).toBe(
+      `${t('bitcoin.confirmations.oneConf')} • 330,183`
+    )
+  })
+})
+
+describe('formatBlockWeight', () => {
+  it('shows the weight against the block limit in weight units', () => {
+    expect(formatBlockWeight(1_039_432)).toBe('1,039,432 / 4,000,000 WU')
   })
 })

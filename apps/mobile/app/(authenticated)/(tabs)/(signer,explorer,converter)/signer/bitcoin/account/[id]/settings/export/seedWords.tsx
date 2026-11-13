@@ -85,6 +85,11 @@ export default function SeedWordsPage() {
     }
   }
 
+  // A cancelled prompt can be opened again without leaving the screen.
+  function askForPin() {
+    setReveal({ status: 'locked' })
+  }
+
   function handlePinTriesOver() {
     router.back()
   }
@@ -241,9 +246,11 @@ export default function SeedWordsPage() {
               style={{ flex: 1, justifyContent: 'center' }}
               gap="lg"
             >
-              <SSText center color="muted">
-                {t('account.seed.enterPinToView')}
-              </SSText>
+              <SSButton
+                label={t('account.seed.enterPinToView')}
+                variant="outline"
+                onPress={askForPin}
+              />
             </SSVStack>
           )}
         </SSVStack>

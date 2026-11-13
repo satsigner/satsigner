@@ -93,6 +93,11 @@ export default function ConfirmScreen() {
     }
   }
 
+  function handleViewAllWallets() {
+    router.dismissAll()
+    router.navigate('/signer/bitcoin/accountList')
+  }
+
   function handleGoToWallet() {
     if (accountId) {
       router.dismissAll()
@@ -155,7 +160,7 @@ export default function ConfirmScreen() {
               label={t('account.multisig.viewAllWallets')}
               variant="outline"
               uppercase
-              onPress={() => router.dismissAll()}
+              onPress={handleViewAllWallets}
             />
             <SSButton
               label={t('account.multisig.gotoWallet')}

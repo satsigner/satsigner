@@ -13,9 +13,16 @@ import {
 } from '@/utils/pinKdf'
 import { applyPendingPinRekey, clearPinRekeyJournalFor } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
+import { isCurrentPinRequired } from '@/utils/pinSetup'
+
+type PinChangeRequest = {
+  currentPin: string
+  newPin: string
+}
 
 type PinChangeResult =
   | 'changed'
+  | 'currentPinRejected'
   | 'duressCleared'
   | 'duressClearFailed'
   | 'matchesDuress'
@@ -60,6 +67,14 @@ async function commitOrRollBack(material: PinMaterial): Promise<boolean> {
   return true
 }
 
+function isCurrentPinAccepted(currentPin: string): Promise<boolean> {
+  const authState = useAuthStore.getState()
+  if (!isCurrentPinRequired(authState)) {
+    return Promise.resolve(true)
+  }
+  return authState.validatePin(currentPin)
+}
+
 /** Returns null on first-time setup, where no PIN exists yet. */
 async function getCurrentPinDigest(): Promise<string | null> {
   try {
@@ -72,6 +87,10 @@ async function getCurrentPinDigest(): Promise<string | null> {
 /**
  * Sets a new main PIN, re-encrypting every PIN-bound secret first.
  *
+ * An established PIN is only replaced by someone who enters it, checked here
+ * so no screen can skip it. It goes first, so the duress check below cannot be
+ * probed without it.
+ *
  * Unlock tests the duress PIN before the main PIN, so a main PIN equal to the
  * duress PIN would wipe the wallet on a normal unlock. The duress digest is
  * checked even while disabled, since re-enabling it keeps the stored digest.
@@ -80,9 +99,12 @@ async function getCurrentPinDigest(): Promise<string | null> {
  * could no longer be entered after a length change; it is cleared instead.
  */
 async function changePin(
-  newPin: string,
+  { currentPin, newPin }: PinChangeRequest,
   reEncryptSecrets: (oldDigest: string, newDigest: string) => Promise<void>
 ): Promise<PinChangeResult> {
+  if (!(await isCurrentPinAccepted(currentPin))) {
+    return 'currentPinRejected'
+  }
   const duressDigest = await getItem(DURESS_PIN_KEY)
   if (duressDigest && (await pinMatchesDuressDigest(newPin, duressDigest))) {
     return 'matchesDuress'
@@ -126,11 +148,11 @@ async function changePin(
  * it reports a failed change instead of leaving the caller waiting.
  */
 async function changePinOrFail(
-  newPin: string,
+  request: PinChangeRequest,
   reEncryptSecrets: (oldDigest: string, newDigest: string) => Promise<void>
 ): Promise<PinChangeResult> {
   try {
-    return await changePin(newPin, reEncryptSecrets)
+    return await changePin(request, reEncryptSecrets)
   } catch {
     return 'reEncryptFailed'
   }

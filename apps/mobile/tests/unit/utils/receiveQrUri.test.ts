@@ -1,5 +1,7 @@
+import { MAX_SUPPLY_SATS } from '@/constants/consensus'
 import {
   buildReceiveQrUri,
+  parseReceiveAmountSats,
   shouldIncludePayjoinInUri
 } from '@/utils/receiveQrUri'
 
@@ -89,5 +91,44 @@ describe('buildReceiveQrUri', () => {
     })
 
     expect(uri).toBe('')
+  })
+})
+
+describe('parseReceiveAmountSats', () => {
+  it('reads a whole number of sats', () => {
+    expect(parseReceiveAmountSats('1000')).toBe(1000)
+    expect(parseReceiveAmountSats(' 1000\n')).toBe(1000)
+    expect(parseReceiveAmountSats(String(MAX_SUPPLY_SATS))).toBe(
+      MAX_SUPPLY_SATS
+    )
+  })
+
+  it.each([
+    '',
+    '0',
+    '1e3',
+    '0x10',
+    '0.4',
+    '1.5',
+    '-5',
+    '1,000',
+    'Infinity',
+    String(MAX_SUPPLY_SATS + 1)
+  ])('rejects %p', (text) => {
+    expect(parseReceiveAmountSats(text)).toBeUndefined()
+  })
+
+  it('never puts an amount in the uri for text it rejects', () => {
+    const uri = buildReceiveQrUri({
+      amountSats: parseReceiveAmountSats('1e3'),
+      includeBitcoinPrefix: true,
+      includeLabel: false,
+      includePayjoin: false,
+      localAddress: 'tb1qabc',
+      localAddressQR: 'bitcoin:tb1qabc',
+      payjoinEnabled: false
+    })
+
+    expect(uri).toBe('bitcoin:tb1qabc')
   })
 })

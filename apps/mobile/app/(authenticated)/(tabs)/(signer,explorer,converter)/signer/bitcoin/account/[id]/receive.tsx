@@ -65,6 +65,7 @@ import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
 import {
   buildReceiveQrUri,
+  parseReceiveAmountSats,
   shouldIncludePayjoinInUri
 } from '@/utils/receiveQrUri'
 
@@ -257,13 +258,9 @@ export default function Receive() {
     return (address.match(/(.{1,4})/g) || []).join(' ')
   }
 
-  const amountSatsForPayjoin =
-    includeAmount &&
-    localCustomAmount &&
-    Number(localCustomAmount) > 0 &&
-    Number(localCustomAmount) <= MAX_SUPPLY_SATS
-      ? Number(localCustomAmount)
-      : undefined
+  const amountSatsForPayjoin = includeAmount
+    ? parseReceiveAmountSats(localCustomAmount)
+    : undefined
 
   function signPayjoinPsbt(psbtBase64: string) {
     if (!wallet) {
@@ -618,10 +615,12 @@ export default function Receive() {
   }
 
   async function handlePasteAmount() {
-    const text = await Clipboard.getStringAsync()
-    if (text && !Number.isNaN(Number(text))) {
-      setLocalCustomAmount(text)
+    const amountSats = parseReceiveAmountSats(await Clipboard.getStringAsync())
+    if (amountSats === undefined) {
+      toast.error(t('receive.error.invalidAmount'))
+      return
     }
+    setLocalCustomAmount(String(amountSats))
   }
 
   async function handlePasteLabel() {

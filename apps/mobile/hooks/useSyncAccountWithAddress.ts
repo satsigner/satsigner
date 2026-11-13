@@ -133,7 +133,7 @@ function useSyncAccountWithAddress() {
     account: Account,
     addressDescriptor: string,
     reportError: SyncErrorReporter
-  ) {
+  ): Promise<Account> {
     setLoading(true)
     setSyncStatus(account.id, 'syncing')
 
@@ -226,19 +226,19 @@ function useSyncAccountWithAddress() {
 
     const addressDescriptors = await decryptAccountAddressDescriptors(latest)
     const initialSyncProgress = { tasksDone: 0, totalTasks: 0 }
+    setSyncProgress(latest.id, initialSyncProgress)
+
+    // The totals are summed address by address from what the server returns.
     let updatedAccount: Account = {
       ...latest,
+      summary: {
+        ...latest.summary,
+        balance: 0,
+        numberOfAddresses: addressDescriptors.length,
+        satsInMempool: 0
+      },
       syncProgress: initialSyncProgress
     }
-    setSyncProgress(updatedAccount.id, initialSyncProgress)
-
-    updatedAccount.summary = {
-      ...updatedAccount.summary,
-      balance: 0,
-      numberOfAddresses: addressDescriptors.length,
-      satsInMempool: 0
-    }
-    updateAccount(updatedAccount)
 
     for (const addressDescriptor of addressDescriptors) {
       const updatedData = await syncAccountWithAddressDescriptor(
@@ -246,18 +246,17 @@ function useSyncAccountWithAddress() {
         addressDescriptor,
         reportError
       )
-
-      const newSummary = updatedData.summary
-
-      // Merge account data while preserving the transactions with prices
-      updatedAccount = Object.assign(updatedAccount, updatedData, {
-        summary: newSummary,
-        transactions: updatedData.transactions // Explicitly preserve the transactions with prices
-      })
-
+      // A failed sync keeps what the account showed before it.
       if (updatedData.syncStatus === 'error') {
-        break
+        const current =
+          useAccountsStore
+            .getState()
+            .accounts.find((entry) => entry.id === latest.id) ?? latest
+        const failedAccount: Account = { ...current, syncStatus: 'error' }
+        updateAccount(failedAccount)
+        return failedAccount
       }
+      updatedAccount = updatedData
     }
 
     updatedAccount.summary = {

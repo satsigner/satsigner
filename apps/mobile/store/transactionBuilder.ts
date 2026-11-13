@@ -17,6 +17,7 @@ import {
   DEFAULT_AUTO_SELECT,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
+import { isRecord } from '@/utils/object'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -151,7 +152,7 @@ function restorePrebuiltPsbt(base64?: string): PsbtLike | undefined {
 
 // The builder fields an account's saved draft resumes into, or a blank
 // builder when the account has no draft.
-function draftWorkingState(draft?: SavedDraft) {
+function workingStateFromDraft(draft: SavedDraft | undefined) {
   const prebuiltPsbt = restorePrebuiltPsbt(draft?.prebuiltPsbtBase64)
   return {
     cpfp: draft?.cpfp ?? true,
@@ -172,23 +173,6 @@ function draftWorkingState(draft?: SavedDraft) {
     stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview),
     timeLock: draft?.timeLock ?? 0
   }
-}
-
-type PersistedTransactionBuilderState = Pick<
-  TransactionBuilderState,
-  'accountId' | 'drafts'
->
-
-function isPersistedTransactionBuilderState(
-  value: unknown
-): value is PersistedTransactionBuilderState {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'drafts' in value &&
-    typeof value.drafts === 'object' &&
-    value.drafts !== null
-  )
 }
 
 function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
@@ -450,7 +434,7 @@ const useTransactionBuilderStore = create<
         }
 
         set({
-          ...draftWorkingState(updatedDrafts[accountId]),
+          ...workingStateFromDraft(updatedDrafts[accountId]),
           accountId,
           broadcasted: false,
           drafts: updatedDrafts,
@@ -554,20 +538,17 @@ const useTransactionBuilderStore = create<
       }
     })),
     {
-      // Storage is synchronous, so hydration runs inside create(): the store
-      // binding does not exist yet and the builder must be restored here.
-      merge: (persisted, current) => {
-        if (!isPersistedTransactionBuilderState(persisted)) {
-          return current
+      // MMKV hydrates while the store is still being created, so the open
+      // draft is rebuilt here: the store itself is not reachable yet.
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(isRecord(persistedState) ? persistedState : {})
         }
-        const { accountId, drafts } = persisted
-        const draft = accountId ? drafts[accountId] : undefined
-        return {
-          ...current,
-          ...draftWorkingState(draft),
-          accountId,
-          drafts
-        }
+        const draft = merged.accountId
+          ? merged.drafts[merged.accountId]
+          : undefined
+        return draft ? { ...merged, ...workingStateFromDraft(draft) } : merged
       },
       name: 'satsigner-transaction-builder',
       partialize: (state) => ({

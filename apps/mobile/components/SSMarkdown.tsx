@@ -36,6 +36,11 @@ type InlineSegmentsProps = {
   style?: ComponentProps<typeof SSText>['style']
 }
 
+type InlineFormat = Required<
+  Pick<InlineSegmentsProps, 'color' | 'size' | 'weight'>
+> &
+  Pick<InlineSegmentsProps, 'style'>
+
 type HeadingStyle = {
   size: TextFontSize
   weight: TextFontWeight
@@ -44,6 +49,7 @@ type HeadingStyle = {
 }
 
 const BODY_SIZE: TextFontSize = 'md'
+const BOLD_WEIGHT: TextFontWeight = 'medium'
 
 async function openLink(url: string) {
   if (!isSafeHttpUrl(url)) {
@@ -113,6 +119,77 @@ function MarkdownLinkSegment({
   )
 }
 
+function InlineSegment({
+  format,
+  segment
+}: {
+  format: InlineFormat
+  segment: MarkdownInlineSegment
+}) {
+  if (segment.type === 'bold') {
+    return (
+      <InlineSegmentGroup
+        format={{ ...format, weight: BOLD_WEIGHT }}
+        segments={segment.segments}
+      />
+    )
+  }
+  if (segment.type === 'italic') {
+    return (
+      <InlineSegmentGroup format={format} italic segments={segment.segments} />
+    )
+  }
+  if (segment.type === 'code') {
+    return (
+      <SSText
+        size="xs"
+        type="mono"
+        style={[styles.body, styles.inlineCode, format.style]}
+      >
+        {segment.value}
+      </SSText>
+    )
+  }
+  if (segment.type === 'link') {
+    return (
+      <MarkdownLinkSegment
+        label={segment.label}
+        size={format.size}
+        style={format.style}
+        url={segment.url}
+      />
+    )
+  }
+  return segment.value
+}
+
+function InlineSegmentGroup({
+  format,
+  italic = false,
+  segments
+}: {
+  format: InlineFormat
+  italic?: boolean
+  segments: MarkdownInlineSegment[]
+}) {
+  return (
+    <SSText
+      size={format.size}
+      weight={format.weight}
+      color={format.color}
+      style={[styles.body, italic && styles.italic, format.style]}
+    >
+      {segments.map((segment, index) => (
+        <InlineSegment
+          key={`${segment.type}-${index}`}
+          format={format}
+          segment={segment}
+        />
+      ))}
+    </SSText>
+  )
+}
+
 function InlineSegments({
   segments,
   size = BODY_SIZE,
@@ -121,65 +198,10 @@ function InlineSegments({
   style
 }: InlineSegmentsProps) {
   return (
-    <SSText
-      size={size}
-      weight={weight}
-      color={color}
-      style={[styles.body, style]}
-    >
-      {segments.map((segment, index) => {
-        const key = `${segment.type}-${index}`
-        if (segment.type === 'bold') {
-          return (
-            <SSText
-              key={key}
-              size={size}
-              weight="medium"
-              color={color}
-              style={[styles.body, style]}
-            >
-              {segment.value}
-            </SSText>
-          )
-        }
-        if (segment.type === 'italic') {
-          return (
-            <SSText
-              key={key}
-              size={size}
-              color={color}
-              style={[styles.body, styles.italic, style]}
-            >
-              {segment.value}
-            </SSText>
-          )
-        }
-        if (segment.type === 'code') {
-          return (
-            <SSText
-              key={key}
-              size="xs"
-              type="mono"
-              style={[styles.body, styles.inlineCode, style]}
-            >
-              {segment.value}
-            </SSText>
-          )
-        }
-        if (segment.type === 'link') {
-          return (
-            <MarkdownLinkSegment
-              key={key}
-              label={segment.label}
-              size={size}
-              style={style}
-              url={segment.url}
-            />
-          )
-        }
-        return segment.value
-      })}
-    </SSText>
+    <InlineSegmentGroup
+      format={{ color, size, style, weight }}
+      segments={segments}
+    />
   )
 }
 

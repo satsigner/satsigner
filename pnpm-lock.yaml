@@ -170,8 +170,10 @@ overrides:
   react-dom: 19.3.0
 
 patchedDependencies:
+  '@ubjs/core@0.31.0-5': 5f96ebc23fd5a956558701e840a6c4905832533f5a16bdf3214b14756878ac08
   react-native-bdk-sdk@0.8.0: 663fbf0d046e12d5f1627417c971d720db0f69a77ae311afe6f3ade19c9996c6
   react-native-draggable-flatlist@4.0.3: 595401cc18c3c8e5eec9af517812e6402d9e8f127950c71961ea1a7920068278
+  react-native-tcp-socket@6.4.1: 70944ffefa1a3e875f23e20c67a566c9b49ae89ad85b4af2f00c48d82efba451
 
 importers:
 
@@ -525,7 +527,7 @@ importers:
         version: 4.3.0(react-native-pager-view@9.0.7(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
       react-native-tcp-socket:
         specifier: ^6.4.1
-        version: 6.4.1(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))
+        version: 6.4.1(patch_hash=70944ffefa1a3e875f23e20c67a566c9b49ae89ad85b4af2f00c48d82efba451)(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))
       react-native-uuid:
         specifier: ^2.0.4
         version: 2.0.4
@@ -12597,7 +12599,7 @@ snapshots:
 
   '@secondts/bark-react-native@0.26.1(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)':
     dependencies:
-      '@ubjs/core': 0.31.0-5
+      '@ubjs/core': 0.31.0-5(patch_hash=5f96ebc23fd5a956558701e840a6c4905832533f5a16bdf3214b14756878ac08)
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
       uniffi-bindgen-react-native: 0.31.0-5
@@ -13430,7 +13432,7 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@ubjs/core@0.31.0-5': {}
+  '@ubjs/core@0.31.0-5(patch_hash=5f96ebc23fd5a956558701e840a6c4905832533f5a16bdf3214b14756878ac08)': {}
 
   '@ungap/structured-clone@1.3.0': {}
 
@@ -17912,7 +17914,7 @@ snapshots:
 
   react-native-bdk-sdk@0.8.0(patch_hash=663fbf0d046e12d5f1627417c971d720db0f69a77ae311afe6f3ade19c9996c6)(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0):
     dependencies:
-      '@ubjs/core': 0.31.0-5
+      '@ubjs/core': 0.31.0-5(patch_hash=5f96ebc23fd5a956558701e840a6c4905832533f5a16bdf3214b14756878ac08)
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
       uniffi-bindgen-react-native: 0.31.0-5
@@ -18019,7 +18021,7 @@ snapshots:
 
   react-native-payjoin@0.7.0(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0):
     dependencies:
-      '@ubjs/core': 0.31.0-5
+      '@ubjs/core': 0.31.0-5(patch_hash=5f96ebc23fd5a956558701e840a6c4905832533f5a16bdf3214b14756878ac08)
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
       uniffi-bindgen-react-native: 0.31.0-5
@@ -18096,7 +18098,7 @@ snapshots:
       react-native-pager-view: 9.0.7(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
       use-latest-callback: 0.2.6(react@19.3.0)
 
-  react-native-tcp-socket@6.4.1(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)):
+  react-native-tcp-socket@6.4.1(patch_hash=70944ffefa1a3e875f23e20c67a566c9b49ae89ad85b4af2f00c48d82efba451)(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)):
     dependencies:
       buffer: 5.7.1
       eventemitter3: 4.0.7

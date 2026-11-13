@@ -8,6 +8,7 @@ import {
   type MeltQuoteBolt11Response,
   type MintQuoteState,
   type Proof,
+  type Token,
   Wallet
 } from '@cashu/cashu-ts'
 
@@ -480,6 +481,18 @@ export function encodeProofsAsToken(
     : getEncodedTokenV4(tokenPayload)
 }
 
+/**
+ * Tokens carry short keyset ids, and v2 ones only map back to full ids
+ * against the mint's keysets, so the mint is loaded before decoding.
+ */
+async function decodeTokenAtMint(
+  wallet: Wallet,
+  token: string
+): Promise<Token> {
+  await wallet.loadMint()
+  return getDecodedToken(token, wallet.keyChain.getAllKeysetIds())
+}
+
 export async function receiveEcash(
   accountId: string,
   mintUrl: string,
@@ -487,14 +500,12 @@ export async function receiveEcash(
   options?: WalletOptions
 ): Promise<EcashReceiveResult> {
   const wallet = getWallet(accountId, mintUrl, options)
-  await wallet.loadMint()
-
-  const decodedToken = getDecodedToken(token)
+  const decodedToken = await decodeTokenAtMint(wallet, token)
   if (decodedToken.mint !== mintUrl) {
     throw new Error('Token mint URL does not match current mint')
   }
 
-  const proofs = await wallet.receive(token)
+  const proofs = await wallet.receive(decodedToken)
   const totalAmount = proofs.reduce((sum, proof) => sum + proof.amount, 0)
 
   return {
@@ -542,12 +553,8 @@ export async function validateEcashToken(
   options?: WalletOptions
 ): Promise<EcashTokenValidation> {
   try {
-    const decodedToken = getDecodedToken(token)
-
     const wallet = getWallet(accountId, mintUrl, options)
-    if (!wallet) {
-      return { details: 'Wallet not found for mint', isValid: false }
-    }
+    const decodedToken = await decodeTokenAtMint(wallet, token)
 
     const proofs = decodedToken.proofs || []
     if (proofs.length === 0) {

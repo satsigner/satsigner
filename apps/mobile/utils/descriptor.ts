@@ -1,12 +1,7 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
-import {
-  DESCRIPTOR_CHECKSUM_CHARSET,
-  DESCRIPTOR_CHECKSUM_GENERATOR,
-  DESCRIPTOR_CHECKSUM_INPUT_CHARSET,
-  DESCRIPTOR_CHECKSUM_LENGTH,
-  KEY_ORIGIN_FINGERPRINT_PATTERN
-} from '@/constants/descriptor'
+import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
 import { type ScriptVersionType } from '@/types/models/Script'
+import { getDescriptorChecksum } from '@/utils/descriptorChecksum'
 import { AppError } from '@/utils/errors'
 import {
   isCombinedDescriptor,
@@ -66,6 +61,27 @@ export function getOriginDerivation(text: string) {
   return derivation.startsWith('m/') ? derivation : `m/${derivation}`
 }
 
+const ORIGIN_PATH_PATTERN = /^\d+['hH]?(?:\/\d+['hH]?)*$/
+
+function withoutMasterPrefix(path: string) {
+  return path.trim().replace(/^m\/?/i, '')
+}
+
+/**
+ * The origin path a key is written with inside `[fingerprint/path]`: the
+ * path the key was imported or derived at, or `fallbackPath` when the key has
+ * no valid one. Both may start with `m/`; the result does not.
+ */
+export function keyOriginPath(
+  keyDerivationPath: string | undefined,
+  fallbackPath: string
+): string {
+  const path = withoutMasterPrefix(keyDerivationPath ?? '')
+  return ORIGIN_PATH_PATTERN.test(path)
+    ? path
+    : withoutMasterPrefix(fallbackPath)
+}
+
 /** Same as getOriginDerivation but the origin bracket need not be at the start (e.g. wpkh([fp/84h/0h/0h]xpub.../0/*)). */
 export function getDescriptorDerivationPath(descriptor: string): string {
   const bracketMatch = descriptor.match(
@@ -100,56 +116,6 @@ export function wrapBareScriptKey(descriptor: string) {
     return descriptor
   }
   return body.replace(BARE_SCRIPT_KEY_PATTERN, '$1pk($2)$3')
-}
-
-// Port of the BIP-380 reference implementation (descsum_expand/polymod).
-function expandDescriptorSymbols(descriptor: string): number[] {
-  const symbols: number[] = []
-  const groups: number[] = []
-  for (const char of descriptor) {
-    const position = DESCRIPTOR_CHECKSUM_INPUT_CHARSET.indexOf(char)
-    if (position === -1) {
-      throw new Error(`Invalid descriptor character: ${char}`)
-    }
-    symbols.push(position & 31)
-    groups.push(position >> 5)
-    if (groups.length === 3) {
-      symbols.push(groups[0] * 9 + groups[1] * 3 + groups[2])
-      groups.length = 0
-    }
-  }
-  if (groups.length === 1) {
-    symbols.push(groups[0])
-  }
-  if (groups.length === 2) {
-    symbols.push(groups[0] * 3 + groups[1])
-  }
-  return symbols
-}
-
-function descriptorPolymod(symbols: number[]): bigint {
-  return symbols.reduce((checksum, value) => {
-    const top = checksum >> 35n
-    const shifted = ((checksum & 0x7_ff_ff_ff_ffn) << 5n) ^ BigInt(value)
-    return DESCRIPTOR_CHECKSUM_GENERATOR.reduce(
-      (result, generator, index) =>
-        (top >> BigInt(index)) & 1n ? result ^ generator : result,
-      shifted
-    )
-  }, 1n)
-}
-
-/** BIP-380 checksum of a descriptor without its `#checksum` suffix. */
-export function getDescriptorChecksum(descriptor: string): string {
-  const padding = Array.from<number>({
-    length: DESCRIPTOR_CHECKSUM_LENGTH
-  }).fill(0)
-  const checksum =
-    descriptorPolymod([...expandDescriptorSymbols(descriptor), ...padding]) ^ 1n
-  return Array.from({ length: DESCRIPTOR_CHECKSUM_LENGTH }, (_, index) => {
-    const shift = BigInt(5 * (DESCRIPTOR_CHECKSUM_LENGTH - 1 - index))
-    return DESCRIPTOR_CHECKSUM_CHARSET[Number((checksum >> shift) & 31n)]
-  }).join('')
 }
 
 /** Replaces any existing `#checksum` suffix with the BIP-380 checksum. */
@@ -232,6 +198,27 @@ export function parseXpubInput(text: string) {
     fingerprint,
     xpub
   }
+}
+
+type DescriptorField = {
+  descriptor: string
+  valid: boolean
+}
+
+/**
+ * Descriptor that identifies a key imported from an External and an Internal
+ * field. Both chains carry the same key, so either one is enough, but none is
+ * returned while a filled field is invalid.
+ */
+export function getImportedKeyDescriptor(
+  external: DescriptorField,
+  internal: DescriptorField
+) {
+  const fields = [external, internal]
+  if (fields.some(({ descriptor, valid }) => descriptor && !valid)) {
+    return
+  }
+  return fields.find(({ descriptor }) => descriptor)?.descriptor
 }
 
 export function parseImportedDescriptorPayload(text: string) {

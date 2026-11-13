@@ -15,7 +15,7 @@ import { useChainData } from '@/hooks/useChainData'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import type { DifficultyAdjustment } from '@/types/models/Blockchain'
@@ -38,7 +38,7 @@ export default function ExplorerChain() {
   const oracle = useMempoolOracle(selectedNetwork)
   const [showExternal, setShowExternal] = useState(false)
 
-  const { data: chainData, isLoading } = useChainData()
+  const { data: chainData, isError, isLoading } = useChainData()
 
   const { data: difficultyAdjustment, isLoading: isLoadingAdj } =
     useQuery<DifficultyAdjustment>({
@@ -101,6 +101,11 @@ export default function ExplorerChain() {
                 chainData?.source ? sourceLabel(chainData.source) : null
               }
             />
+            {isError ? (
+              <SSText size="sm" color="muted">
+                {t('explorer.tipLoadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <Pressable
                 onPress={openTipBlock}

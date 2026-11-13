@@ -14,7 +14,8 @@ import { type Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   ensureBitcoinPrefix,
   hasBitcoinPrefix,
-  type ParsedUriParams
+  type ParsedUriParams,
+  readBitcoinUriAmount
 } from '@/utils/parse'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 
@@ -137,7 +138,7 @@ export function parseBitcoinUri(
 
     return {
       address: bitcoinMethod?.value || result.address || '',
-      amount: result.amount,
+      amount: readBitcoinUriAmount(uri),
       isValid: true,
       label: result.label,
       lightning: result.paymentMethods?.find((m) => m.type === 'lightning')

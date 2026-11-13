@@ -83,25 +83,39 @@ describe('getWalletFromDescriptor', () => {
   it('creates the database in a file named after the network', async () => {
     mockExistingFiles([WALLETS_PATH])
 
-    const { dbPath } = await getWalletFromDescriptor(
+    const { dbPath, isNewDatabase } = await getWalletFromDescriptor(
       DESCRIPTOR,
       undefined,
       Network.Testnet
     )
 
     expect(dbPath).toBe(TESTNET_PATH)
+    expect(isNewDatabase).toBe(true)
+  })
+
+  it('reports a database that already existed as not new', async () => {
+    mockExistingFiles([WALLETS_PATH, TESTNET_PATH])
+
+    const { isNewDatabase } = await getWalletFromDescriptor(
+      DESCRIPTOR,
+      undefined,
+      Network.Testnet
+    )
+
+    expect(isNewDatabase).toBe(false)
   })
 
   it('keeps using a legacy database created for the same network', async () => {
     mockExistingFiles([WALLETS_PATH, LEGACY_PATH])
 
-    const { dbPath } = await getWalletFromDescriptor(
+    const { dbPath, isNewDatabase } = await getWalletFromDescriptor(
       DESCRIPTOR,
       undefined,
       Network.Signet
     )
 
     expect(dbPath).toBe(LEGACY_PATH)
+    expect(isNewDatabase).toBe(false)
     expect(walletNameFromDescriptor).toHaveBeenCalledWith(
       DESCRIPTOR,
       undefined,

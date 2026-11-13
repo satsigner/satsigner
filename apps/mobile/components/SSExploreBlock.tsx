@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
+import { MAX_BLOCK_WEIGHT } from '@/constants/btc'
 import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -8,7 +9,12 @@ import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 import { type Block as BaseBlock } from '@/types/models/Blockchain'
 import type { PartialSome } from '@/types/utils'
-import { formatDate, formatNumber, formatTime } from '@/utils/format'
+import {
+  formatBlockWeight,
+  formatDate,
+  formatNumber,
+  formatTime
+} from '@/utils/format'
 import { weightToVsize } from '@/utils/transaction'
 
 import SSDetailsList from './SSDetailsList'
@@ -30,8 +36,6 @@ type SSExploreBlockProps = {
   onOpenTransactions?: () => void
 }
 
-/** Consensus weight limit (BIP141). */
-const MAX_BLOCK_WEIGHT = 4_000_000
 /** Virtual-size capacity: weight ÷ 4. */
 const MAX_BLOCK_VBYTES = MAX_BLOCK_WEIGHT / 4
 /** Absolute serialized-size ceiling (Bitcoin Core MAX_BLOCK_SERIALIZED_SIZE). */
@@ -245,12 +249,7 @@ function SSExploreBlock({
           [t('explorer.block.version'), block?.version],
           [t('explorer.block.nonce'), block?.nonce],
           [t('explorer.block.difficulty'), block?.difficulty],
-          [
-            t('explorer.block.weight'),
-            weight
-              ? `${formatNumber(weight)} / ${formatNumber(MAX_BLOCK_WEIGHT)} WU`
-              : ''
-          ],
+          [t('explorer.block.weight'), weight ? formatBlockWeight(weight) : ''],
           [
             t('explorer.block.merkleRoot'),
             block?.merkle_root,

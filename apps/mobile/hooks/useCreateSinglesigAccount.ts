@@ -79,7 +79,6 @@ export function useCreateSinglesigAccount() {
       keys: [draftKey],
       keysRequired: 1,
       labels: {},
-      lastSyncedAt: new Date(),
       name,
       network,
       nostr: {

@@ -41,14 +41,17 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  getImportedKeyDescriptor,
   parseImportedDescriptorPayload
 } from '@/utils/descriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import {
+  getInvalidDescriptorError,
   isCombinedDescriptor,
   validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
+  validateDescriptorNetwork,
   validateDescriptorScriptVersion
 } from '@/utils/validation'
 
@@ -56,6 +59,16 @@ function getCombinedDescriptorErrorMessage(error: string | undefined) {
   return error
     ? t(`account.import.error.${error}`)
     : t('account.import.error.descriptorFormat')
+}
+
+function getDescriptorErrorMessage(
+  descriptor: string,
+  skipChecksumValidation: boolean
+) {
+  const error = skipChecksumValidation
+    ? 'descriptorFormat'
+    : getInvalidDescriptorError(descriptor)
+  return t(`account.import.error.${error}`)
 }
 
 export default function ImportDescriptor() {
@@ -130,11 +143,10 @@ export default function ImportDescriptor() {
     ])
   )
 
-  // Allow import if either external or internal descriptor is valid
-  // At least one descriptor must be provided and valid
-  const hasValidExternal = externalDescriptor && validExternalDescriptor
-  const hasValidInternal = internalDescriptor && validInternalDescriptor
-  const disabled = !(hasValidExternal || hasValidInternal)
+  const keyDescriptor = getImportedKeyDescriptor(
+    { descriptor: externalDescriptor, valid: validExternalDescriptor },
+    { descriptor: internalDescriptor, valid: validInternalDescriptor }
+  )
 
   function updateExternalDescriptor(
     descriptor: string,
@@ -146,18 +158,14 @@ export default function ImportDescriptor() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    // Network validation - check if descriptor is compatible with selected network
-    // Skip network validation during confirm stage since it was already validated during input
-    const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
 
     const scriptVersionValidation =
       basicValidation && scriptVersion
         ? validateDescriptorScriptVersion(descriptor, scriptVersion)
         : true
     const validExternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation
+      basicValidation && validNetwork && scriptVersionValidation
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
@@ -166,12 +174,13 @@ export default function ImportDescriptor() {
 
     if (descriptor) {
       if (!basicValidation) {
-        const errorMessage = t('account.import.error.descriptorFormat')
+        const errorMessage = getDescriptorErrorMessage(
+          descriptor,
+          skipChecksumValidation
+        )
         setExternalDescriptorError(errorMessage)
-      } else if (basicValidation && !networkValidation.isValid) {
-        const errorMessage = networkValidation.error
-          ? t(`account.import.error.${networkValidation.error}`)
-          : t('account.import.error.networkIncompatible')
+      } else if (basicValidation && !validNetwork) {
+        const errorMessage = t('account.import.error.networkIncompatible')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
         const errorMessage = t('account.import.error.descriptorIncompatible')
@@ -194,11 +203,7 @@ export default function ImportDescriptor() {
     const basicValidation =
       descriptorValidation && !descriptorHasPrivateKeyMaterial(descriptor)
 
-    // Network validation - check if descriptor is compatible with selected network
-    // Skip network validation during confirm stage since it was already validated during input
-    const networkValidation: { isValid: boolean; error?: string } = {
-      isValid: true
-    }
+    const validNetwork = validateDescriptorNetwork(descriptor, network)
 
     const scriptVersionValidation =
       basicValidation && scriptVersion
@@ -206,7 +211,7 @@ export default function ImportDescriptor() {
         : true
 
     const validInternalDescriptor =
-      basicValidation && networkValidation.isValid && scriptVersionValidation
+      basicValidation && validNetwork && scriptVersionValidation
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
@@ -215,12 +220,13 @@ export default function ImportDescriptor() {
 
     if (descriptor) {
       if (!basicValidation) {
-        const errorMessage = t('account.import.error.descriptorFormat')
+        const errorMessage = getDescriptorErrorMessage(
+          descriptor,
+          skipChecksumValidation
+        )
         setInternalDescriptorError(errorMessage)
-      } else if (basicValidation && !networkValidation.isValid) {
-        const errorMessage = networkValidation.error
-          ? t(`account.import.error.${networkValidation.error}`)
-          : t('account.import.error.networkIncompatible')
+      } else if (basicValidation && !validNetwork) {
+        const errorMessage = t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation) {
         const errorMessage = t('account.import.error.descriptorIncompatible')
@@ -234,13 +240,16 @@ export default function ImportDescriptor() {
   }
 
   function handleConfirm() {
-    // Extract fingerprint from the descriptor if possible
+    if (!keyDescriptor) {
+      return
+    }
+
     const fingerprint =
-      getFingerprint(externalDescriptor) || UNKNOWN_MASTER_FINGERPRINT
+      getFingerprint(keyDescriptor) || UNKNOWN_MASTER_FINGERPRINT
 
     try {
       const { extendedPublicKey, derivationPath } =
-        extractDescriptorInfo(externalDescriptor)
+        extractDescriptorInfo(keyDescriptor)
 
       if (!extendedPublicKey) {
         toast.error(t('account.import.error.descriptorFormat'))
@@ -343,10 +352,6 @@ export default function ImportDescriptor() {
           '/0/*',
           '/1/*'
         )
-        const checksum = originalDescriptor.match(/#[a-z0-9]+$/)
-        if (checksum) {
-          internalDescriptor += checksum[0]
-        }
       }
     } catch {
       if (text.includes('\n')) {
@@ -543,7 +548,7 @@ export default function ImportDescriptor() {
             <SSButton
               label={t('common.confirm')}
               variant="secondary"
-              disabled={disabled}
+              disabled={!keyDescriptor}
               onPress={handleConfirm}
             />
             <SSButton

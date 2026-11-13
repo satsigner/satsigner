@@ -1,31 +1,50 @@
-import { toCheckedTokenStatus, toEcashToken } from '@/utils/ecashToken'
+import { getEncodedTokenV3, getEncodedTokenV4 } from '@cashu/cashu-ts'
+
+import { readEcashToken, toCheckedTokenStatus } from '@/utils/ecashToken'
 
 const MINT_URL = 'https://mint.example'
+const V1_KEYSET_ID = '009a1f293253e41e'
+const V2_KEYSET_ID = `01${'ab'.repeat(32)}`
 
-const PROOF = { C: 'C-1', amount: 8, id: 'ks-1', secret: 's-1' }
+function proof(keysetId: string, amount: number, secret: string) {
+  return {
+    C: '02c020067db727d586bc3183aecf97fcb800c3f4cc4759f69c626c9db5d8f5b5d4',
+    amount,
+    id: keysetId,
+    secret
+  }
+}
 
-describe('toEcashToken', () => {
-  it('tags every proof with the token mint', () => {
-    const token = toEcashToken({
-      memo: 'thanks',
-      mint: MINT_URL,
-      proofs: [PROOF],
-      unit: 'sat'
-    })
+function tokenPayload(keysetId: string) {
+  return {
+    memo: 'thanks',
+    mint: MINT_URL,
+    proofs: [proof(keysetId, 8, 's-1'), proof(keysetId, 2, 's-2')],
+    unit: 'sat'
+  }
+}
 
-    expect(token).toStrictEqual({
-      memo: 'thanks',
-      mint: MINT_URL,
-      proofs: [{ ...PROOF, mintUrl: MINT_URL }],
-      unit: 'sat'
-    })
-  })
+describe('readEcashToken', () => {
+  it.each([
+    ['v4', 'v1', getEncodedTokenV4, V1_KEYSET_ID],
+    ['v4', 'v2', getEncodedTokenV4, V2_KEYSET_ID],
+    ['v3', 'v1', getEncodedTokenV3, V1_KEYSET_ID],
+    ['v3', 'v2', getEncodedTokenV3, V2_KEYSET_ID]
+  ])(
+    'reads a %s token with %s keyset ids without the mint keysets',
+    (_version, _keysetVersion, encode, keysetId) => {
+      expect(readEcashToken(encode(tokenPayload(keysetId)))).toStrictEqual({
+        amount: 10,
+        memo: 'thanks',
+        mint: MINT_URL,
+        proofAmounts: [8, 2]
+      })
+    }
+  )
 
-  it('keeps only the sat unit', () => {
-    expect(
-      toEcashToken({ mint: MINT_URL, proofs: [], unit: 'usd' }).unit
-    ).toBeUndefined()
-    expect(toEcashToken({ mint: MINT_URL, proofs: [] }).unit).toBeUndefined()
+  it('returns null for text that is not a token', () => {
+    expect(readEcashToken('cashuBnot-a-token')).toBeNull()
+    expect(readEcashToken('cashuA')).toBeNull()
   })
 })
 

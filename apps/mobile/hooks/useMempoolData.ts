@@ -7,6 +7,10 @@ import {
 } from '@/api/explorerMempool'
 import useMempoolOracle from '@/hooks/useMempoolOracle'
 import { useBlockchainStore } from '@/store/blockchain'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 export function useMempoolBasicData() {
@@ -17,11 +21,14 @@ export function useMempoolBasicData() {
 
   return useQuery({
     queryFn: () =>
-      fetchMempoolBasicData(
-        server.url,
-        server.backend,
-        selectedNetwork,
-        server.rpcCredentials
+      withExplorerTimeout(
+        fetchMempoolBasicData(
+          server.url,
+          server.backend,
+          selectedNetwork,
+          server.rpcCredentials
+        ),
+        server.url
       ),
     queryKey: [
       'mempool-basic',
@@ -30,6 +37,7 @@ export function useMempoolBasicData() {
       selectedNetwork,
       server.rpcCredentials?.username
     ],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(2)
   })
 }
@@ -40,8 +48,10 @@ export function useMempoolExtendedData(enabled: boolean) {
 
   return useQuery({
     enabled,
-    queryFn: () => fetchMempoolExtendedData(oracle),
+    queryFn: () =>
+      withExplorerTimeout(fetchMempoolExtendedData(oracle), oracle.baseUrl),
     queryKey: ['mempool-extended', selectedNetwork],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(2)
   })
 }

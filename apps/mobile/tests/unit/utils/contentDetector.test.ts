@@ -1,3 +1,5 @@
+import { getEncodedTokenV4 } from '@cashu/cashu-ts'
+
 import {
   detectContentByContext,
   extractCashuTokenFromString,
@@ -408,6 +410,36 @@ describe('contentDetector', () => {
         expect(result.type).toBe('ecash_token')
         expect(result.isValid).toBe(true)
         expect(result.metadata?.version).toBe('v4')
+      })
+
+      it('should read the mint of a token with short v2 keyset ids', async () => {
+        const token = getEncodedTokenV4({
+          mint: 'https://mint.example',
+          proofs: [
+            {
+              C: '02c020067db727d586bc3183aecf97fcb800c3f4cc4759f69c626c9db5d8f5b5d4',
+              amount: 8,
+              id: `01${'ab'.repeat(32)}`,
+              secret: 's-1'
+            }
+          ],
+          unit: 'sat'
+        })
+        const result = await detectContentByContext(token, 'ecash')
+        expect(result.isValid).toBe(true)
+        expect(result.metadata).toStrictEqual({
+          mint: 'https://mint.example',
+          proofs: 1,
+          version: 'v4'
+        })
+      })
+
+      it('should reject a v4 token that does not decode', async () => {
+        const result = await detectContentByContext(
+          'cashuBnot-a-token',
+          'ecash'
+        )
+        expect(result.isValid).toBe(false)
       })
     })
 

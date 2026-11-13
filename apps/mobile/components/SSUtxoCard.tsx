@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native'
 
+import { PRIVACY_MASK } from '@/constants/privacy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -12,9 +13,9 @@ import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 import { utxoAmountTextSize } from '@/utils/utxoAmountTextSize'
 
 import { SSIconExclude } from './icons'
+import SSAmountDisplay from './SSAmountDisplay'
 import SSIconButton from './SSIconButton'
 import SSPressable from './SSPressable'
-import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 import SSUtxoBar from './SSUtxoBar'
@@ -25,6 +26,7 @@ type SSUtxoCardProps = Pick<
   | 'currencyUnit'
   | 'fiatCurrency'
   | 'fiatEnabled'
+  | 'privacyMode'
   | 'useZeroPadding'
 > & {
   utxo: Utxo
@@ -46,6 +48,7 @@ function SSUtxoCard({
   currencyUnit,
   fiatCurrency,
   fiatEnabled,
+  privacyMode,
   useZeroPadding
 }: SSUtxoCardProps) {
   const amountTextSize = utxoAmountTextSize(utxo.value)
@@ -69,28 +72,25 @@ function SSUtxoCard({
             <SSHStack justifyBetween>
               <SSVStack gap="none">
                 <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                  <SSStyledSatText
+                  <SSAmountDisplay
+                    privacyMode={privacyMode}
                     amount={utxo.value}
                     decimals={0}
                     useZeroPadding={useZeroPadding}
                     currency={currencyUnit}
                     textSize={amountTextSize}
+                    unitSize={amountTextSize === '3xl' ? 'md' : 'sm'}
+                    unitStyle={styles.unit}
                   />
-                  <SSText
-                    size={amountTextSize === '3xl' ? 'md' : 'sm'}
-                    color="muted"
-                  >
-                    {currencyUnit === 'btc'
-                      ? t('bitcoin.btc').toLowerCase()
-                      : t('bitcoin.sats').toLowerCase()}
-                  </SSText>
                 </SSHStack>
                 <SSHStack>
                   <SSText>
-                    {formatNumber(
-                      satsToFiat(utxo.value, btcPrice, fiatEnabled),
-                      2
-                    )}
+                    {privacyMode
+                      ? PRIVACY_MASK
+                      : formatNumber(
+                          satsToFiat(utxo.value, btcPrice, fiatEnabled),
+                          2
+                        )}
                   </SSText>
                   <SSText style={{ color: Colors.gray[400] }}>
                     {fiatCurrency}
@@ -152,6 +152,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     alignSelf: 'flex-start',
     flexShrink: 0
+  },
+  unit: {
+    textTransform: 'lowercase'
   }
 })
 

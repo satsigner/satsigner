@@ -693,6 +693,33 @@ describe('performRecoverOverwrite restore', () => {
     )
   })
 
+  it('leaves a restored account never synced', async () => {
+    const result = await performRecoverOverwrite(
+      JSON.stringify({
+        accounts: [
+          {
+            id: 'acc-1',
+            keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+            name: 'Wallet',
+            network: 'bitcoin',
+            policyType: 'singlesig'
+          }
+        ],
+        settings: {
+          currencyUnit: 'sats',
+          mnemonicWordList: 'english',
+          useZeroPadding: false
+        },
+        version: 1
+      })
+    )
+
+    expect(result).toStrictEqual({ success: true })
+    const [[restored]] = addAccount.mock.calls
+    expect(restored.lastSyncedAt).toBeUndefined()
+    expect(restored.syncStatus).toBe('unsynced')
+  })
+
   it('restores a WIF key from its private key', async () => {
     const { aesEncrypt } = jest.requireMock('@/utils/crypto') as {
       aesEncrypt: jest.Mock

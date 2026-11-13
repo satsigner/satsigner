@@ -1,6 +1,7 @@
 import {
   getDraftIoCounts,
   getDraftLabel,
+  getDraftPaymentAmount,
   getDraftResumeStep,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
@@ -169,5 +170,66 @@ describe('getDraftResumeStep', () => {
   it('resumes any other draft at inputs and outputs', () => {
     expect(getDraftResumeStep({})).toBe('io')
     expect(getDraftResumeStep()).toBe('io')
+  })
+})
+
+describe('getDraftPaymentAmount', () => {
+  it('is zero without a draft or outputs', () => {
+    expect(getDraftPaymentAmount()).toBe(0)
+    expect(getDraftPaymentAmount({ outputs: [] })).toBe(0)
+  })
+
+  it('leaves out the change output added before signing', () => {
+    expect(
+      getDraftPaymentAmount({
+        outputs: [
+          { amount: 546, label: 'coffee' },
+          { amount: 158_443, label: 'Change' }
+        ]
+      })
+    ).toBe(546)
+  })
+
+  it('gives the same amount before and after the change is added', () => {
+    const payment = { amount: 546, label: '' }
+    expect(getDraftPaymentAmount({ outputs: [payment] })).toBe(
+      getDraftPaymentAmount({
+        outputs: [payment, { amount: 158_443, label: 'Change' }]
+      })
+    )
+  })
+
+  it('leaves out stonewall change and fake mix outputs', () => {
+    expect(
+      getDraftPaymentAmount({
+        outputs: [
+          { amount: 10_000, label: 'rent' },
+          { amount: 10_000, kind: 'fakeMix', label: '' },
+          { amount: 5000, kind: 'change', label: '' }
+        ]
+      })
+    ).toBe(10_000)
+  })
+
+  it('leaves out outputs labelled as change for a payment', () => {
+    expect(
+      getDraftPaymentAmount({
+        outputs: [
+          { amount: 2000, label: 'rent' },
+          { amount: 3000, label: '[change] rent' }
+        ]
+      })
+    ).toBe(2000)
+  })
+
+  it('adds up every payment output', () => {
+    expect(
+      getDraftPaymentAmount({
+        outputs: [
+          { amount: 1000, label: 'a' },
+          { amount: 2500, label: 'b' }
+        ]
+      })
+    ).toBe(3500)
   })
 })

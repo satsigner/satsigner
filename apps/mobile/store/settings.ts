@@ -156,7 +156,7 @@ const useSettingsStore = create<SettingsState & SettingsAction>()(
         set({ fetchHistoricalPricesFromNetwork })
       },
       setFiatPriceApiUrl: (fiatPriceApiUrl) => {
-        set({ fiatPriceApiUrl: normalizeFiatPriceApiUrl(fiatPriceApiUrl) })
+        set({ fiatPriceApiUrl })
       },
       setFiatPriceProvider: (fiatPriceProvider) => {
         set({ fiatPriceProvider })

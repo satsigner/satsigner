@@ -36,7 +36,7 @@ import {
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { parseXpubInput } from '@/utils/descriptor'
+import { keyOriginPath, parseXpubInput } from '@/utils/descriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
@@ -77,6 +77,8 @@ export default function ImportExtendedPub() {
   const [scanningFor, setScanningFor] = useState<'main' | 'fingerprint'>('main')
 
   const [xpub, setXpub] = useState('')
+  // The origin path of a pasted `[fingerprint/path]xpub`.
+  const [xpubOriginPath, setXpubOriginPath] = useState<string>()
   const [localFingerprint, setLocalFingerprint] = useState('')
 
   const [disabled, setDisabled] = useState(true)
@@ -143,6 +145,7 @@ export default function ImportExtendedPub() {
 
     setValidXpub(!nextXpub || validXpub)
     setXpub(nextXpub)
+    setXpubOriginPath(parsed.derivationPath ?? undefined)
 
     if (parsed.fingerprint) {
       setLocalFingerprint(parsed.fingerprint)
@@ -167,14 +170,6 @@ export default function ImportExtendedPub() {
     )
   }
 
-  function convertVpubToTpub(vpub: string): string {
-    if (!vpub.startsWith('vpub')) {
-      return vpub
-    }
-
-    return convertKeyFormat(vpub, 'tpub', network)
-  }
-
   function handleConfirm() {
     if (!validXpub || !validMasterFingerprint) {
       toast.error(t('watchonly.error.invalidInput'))
@@ -184,7 +179,7 @@ export default function ImportExtendedPub() {
     const fingerprint = localFingerprint || UNKNOWN_MASTER_FINGERPRINT
 
     try {
-      const convertedXpub = convertVpubToTpub(xpub)
+      const convertedXpub = convertKeyFormat(xpub, 'xpub', network)
       if (xpub !== convertedXpub) {
         toast.info(
           t('watchonly.info.vpubConverted', {
@@ -197,9 +192,13 @@ export default function ImportExtendedPub() {
       let derivationPath = ''
 
       if (policyType === 'multisig') {
-        const rawDerivationPath = getMultisigDerivationPathFromScriptVersion(
-          scriptVersion,
-          builderNetwork
+        // A cosigner key pasted with its origin keeps it in the descriptor.
+        const rawDerivationPath = keyOriginPath(
+          xpubOriginPath,
+          getMultisigDerivationPathFromScriptVersion(
+            scriptVersion,
+            builderNetwork
+          )
         )
         derivationPath = `m/${rawDerivationPath}`
       } else {

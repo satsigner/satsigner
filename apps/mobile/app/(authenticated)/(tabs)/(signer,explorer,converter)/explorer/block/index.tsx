@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { useRef, useState } from 'react'
+import {
+  ScrollView,
+  StyleSheet,
+  type TextInputInstance,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -19,9 +24,14 @@ import {
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
+import { parseBlockHeightInput } from '@/utils/explorerBlockHeight'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 const tn = _tn('explorer.block')
@@ -84,24 +94,30 @@ export default function ExplorerBlockSearch() {
 
   const tipQuery = useQuery({
     queryFn: () =>
-      fetchExplorerTipHeight(server.url, server.backend, server.rpcCredentials),
+      withExplorerTimeout(
+        fetchExplorerTipHeight(
+          server.url,
+          server.backend,
+          server.rpcCredentials
+        ),
+        server.url
+      ),
     queryKey: [
       'explorer-tip-height',
       server.backend,
       server.url,
       selectedNetwork
     ],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 
   const maxBlockHeight = tipQuery.data ?? DEFAULT_MAX_BLOCK_HEIGHT
   const [inputHeight, setInputHeight] = useState('0')
+  const heightInputRef = useRef<TextInputInstance>(null)
 
   const heightNumber = Number(inputHeight)
-  const isValidHeight =
-    Number.isInteger(heightNumber) &&
-    heightNumber >= 0 &&
-    heightNumber <= maxBlockHeight
+  const loadHeight = parseBlockHeightInput(inputHeight, maxBlockHeight)
   const atMinHeight = heightNumber <= 0
   const atMaxHeight = heightNumber >= maxBlockHeight
 
@@ -122,15 +138,22 @@ export default function ExplorerBlockSearch() {
   }
 
   function handleLoad() {
-    if (!isValidHeight) {
+    if (loadHeight === null) {
       toast.error(tn('invalid'))
       return
     }
-    navigate(heightNumber)
+    navigate(loadHeight)
+  }
+
+  // The input only shows a new value from outside once it is blurred, and
+  // Android's Back hides the keyboard without blurring it.
+  function showHeight(height: number) {
+    heightInputRef.current?.blur()
+    setInputHeight(height.toString())
   }
 
   function handleExample(height: number) {
-    setInputHeight(height.toString())
+    showHeight(height)
     navigate(height)
   }
 
@@ -138,16 +161,16 @@ export default function ExplorerBlockSearch() {
     if (tipQuery.data === undefined) {
       return
     }
-    setInputHeight(tipQuery.data.toString())
+    showHeight(tipQuery.data)
     navigate(tipQuery.data)
   }
 
   function nextBlockHeight() {
-    setInputHeight(Math.min(maxBlockHeight, heightNumber + 1).toString())
+    showHeight(Math.min(maxBlockHeight, heightNumber + 1))
   }
 
   function prevBlockHeight() {
-    setInputHeight(Math.max(0, heightNumber - 1).toString())
+    showHeight(Math.max(0, heightNumber - 1))
   }
 
   return (
@@ -176,12 +199,14 @@ export default function ExplorerBlockSearch() {
             </SSIconButton>
             <View style={styles.navInput}>
               <SSNumberInput
+                ref={heightInputRef}
                 variant="outline"
                 align="center"
                 min={0}
                 max={maxBlockHeight}
                 value={inputHeight}
                 onChangeText={setInputHeight}
+                alwaysTriggerOnChange
                 placeholder={tn('placeholder')}
               />
             </View>
@@ -204,7 +229,7 @@ export default function ExplorerBlockSearch() {
             label={tn('load')}
             variant="outline"
             onPress={handleLoad}
-            disabled={!isValidHeight}
+            disabled={loadHeight === null}
           />
           <SSButton
             label={tn('latest')}
@@ -213,6 +238,11 @@ export default function ExplorerBlockSearch() {
             loading={tipQuery.isLoading || tipQuery.isFetching}
             disabled={tipQuery.data === undefined}
           />
+          {tipQuery.isError ? (
+            <SSText size="sm" color="muted" center>
+              {t('explorer.tipLoadError')}
+            </SSText>
+          ) : null}
           {showExamples ? (
             <SSVStack gap="none">
               {EXPLORER_EXAMPLE_BLOCKS.map((example) => (

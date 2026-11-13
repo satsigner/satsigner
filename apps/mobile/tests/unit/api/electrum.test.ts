@@ -2,6 +2,10 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import TcpSocket from 'react-native-tcp-socket'
 
 import ElectrumClient from '@/api/electrum'
+import {
+  ELECTRUM_CONNECT_TIMEOUT_MS,
+  ELECTRUM_CONNECT_TOR_TIMEOUT_MS
+} from '@/constants/electrum'
 
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() }
@@ -55,6 +59,43 @@ describe('electrumClient TLS', () => {
     makeClient('ssl')
 
     expect(tlsSocket.lastOptions).toStrictEqual({ rejectUnauthorized: true })
+  })
+})
+
+describe('electrumClient connect', () => {
+  type MockedSocket = { connect: jest.Mock }
+  const sockets = (TcpSocket.Socket as unknown as { instances: MockedSocket[] })
+    .instances
+
+  it.each([
+    ['electrum.example.com', ELECTRUM_CONNECT_TIMEOUT_MS],
+    [`${'a'.repeat(56)}.onion`, ELECTRUM_CONNECT_TOR_TIMEOUT_MS]
+  ])('bounds the connect to %s', (host, connectTimeout) => {
+    const firstNewSocket = sockets.length
+    const client = ElectrumClient.fromUrl(`ssl://${host}:50002`, 'bitcoin')
+
+    void client.init()
+
+    const connectCalls = sockets
+      .slice(firstNewSocket)
+      .flatMap((socket) => socket.connect.mock.calls)
+    expect(connectCalls).toStrictEqual([
+      [{ connectTimeout, host, port: 50_002 }, expect.any(Function)]
+    ])
+  })
+})
+
+describe('electrumClient url validation', () => {
+  it('accepts a port within the TCP range', () => {
+    expect(() =>
+      ElectrumClient.fromUrl('ssl://electrum.example.com:65535', 'bitcoin')
+    ).not.toThrow()
+  })
+
+  it.each(['0', '65536', '99999'])('rejects port %s', (port) => {
+    expect(() =>
+      ElectrumClient.fromUrl(`ssl://electrum.example.com:${port}`, 'bitcoin')
+    ).toThrow('seems invalid')
   })
 })
 

@@ -8,6 +8,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import { ENTROPY_TYPES } from '@/config/entropy'
+import { useSelectModalDraft } from '@/hooks/useSelectModalDraft'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -46,31 +47,27 @@ export default function MultiSigKeySettings() {
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
-  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
-    useState<NonNullable<Key['mnemonicWordCount']>>(24)
+  const entropyPicker = useSelectModalDraft<EntropyType>('none')
+  const wordCountPicker =
+    useSelectModalDraft<NonNullable<Key['mnemonicWordCount']>>(24)
   // TODO: add support for multi-lang word list
-
-  const [entropyModalVisible, setEntropyModalVisible] = useState(false)
-  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
-    useState(false)
 
   const [loading, setLoading] = useState(false)
 
   function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
-    setEntropy(localEntropyType)
-    setMnemonicWordCount(localMnemonicWordCount)
+    setEntropy(entropyPicker.value)
+    setMnemonicWordCount(wordCountPicker.value)
     setMnemonicWordList('english')
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      switch (localEntropyType) {
+      switch (entropyPicker.value) {
         case 'none': {
           setLoading(true)
 
           // Multisig generate currently always uses the English wordlist.
-          const mnemonic = generateMnemonic(localMnemonicWordCount, 'english')
+          const mnemonic = generateMnemonic(wordCountPicker.value, 'english')
           setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
 
           setLoading(false)
@@ -107,16 +104,6 @@ export default function MultiSigKeySettings() {
     }
   }
 
-  function handleOnSelectMnemonicWordCount() {
-    setLocalMnemonicWordCount(localMnemonicWordCount)
-    setMnemonicWordCountModalVisibile(false)
-  }
-
-  function handleOnSelectEntropy() {
-    setLocalEntropyType(localEntropyType)
-    setEntropyModalVisible(false)
-  }
-
   if (!name) {
     return <Redirect href="/" />
   }
@@ -146,19 +133,19 @@ export default function MultiSigKeySettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSButton
-                label={`${localMnemonicWordCount} ${t(
+                label={`${wordCountPicker.value} ${t(
                   'bitcoin.words'
                 ).toLowerCase()}`}
                 withSelect
-                onPress={() => setMnemonicWordCountModalVisibile(true)}
+                onPress={wordCountPicker.open}
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.entropy.title')} />
               <SSButton
-                label={t(`account.entropy.${localEntropyType}.label`)}
+                label={t(`account.entropy.${entropyPicker.value}.label`)}
                 withSelect
-                onPress={() => setEntropyModalVisible(true)}
+                onPress={entropyPicker.open}
               />
             </SSFormLayout.Item>
           </SSFormLayout>
@@ -178,26 +165,26 @@ export default function MultiSigKeySettings() {
         </SSVStack>
       </SSVStack>
       <SSMnemonicWordCountSelectModal
-        visible={mnemonicWordCountModalVisible}
-        selectedWordCount={localMnemonicWordCount}
-        onChange={setLocalMnemonicWordCount}
-        onSelect={handleOnSelectMnemonicWordCount}
-        onCancel={() => setMnemonicWordCountModalVisibile(false)}
+        visible={wordCountPicker.visible}
+        selectedWordCount={wordCountPicker.draft}
+        onChange={wordCountPicker.setDraft}
+        onSelect={wordCountPicker.select}
+        onCancel={wordCountPicker.cancel}
       />
       <SSSelectModal
-        visible={entropyModalVisible}
+        visible={entropyPicker.visible}
         title={t('account.entropy.title')}
-        selectedText={t(`account.entropy.${localEntropyType}.label`)}
-        onSelect={handleOnSelectEntropy}
-        onCancel={() => setEntropyModalVisible(false)}
+        selectedText={t(`account.entropy.${entropyPicker.draft}.label`)}
+        onSelect={entropyPicker.select}
+        onCancel={entropyPicker.cancel}
       >
         {ENTROPY_TYPES.map((entropy) => (
           <SSRadioButton
             key={entropy}
             label={t(`account.entropy.${entropy}.label`)}
-            selected={localEntropyType === entropy}
+            selected={entropyPicker.draft === entropy}
             onPress={() =>
-              setStateWithLayoutAnimation(setLocalEntropyType, entropy)
+              setStateWithLayoutAnimation(entropyPicker.setDraft, entropy)
             }
           />
         ))}

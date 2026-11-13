@@ -1,7 +1,17 @@
+import { MAX_SUPPLY_SATS } from '@/constants/consensus'
 import { PAYJOIN_MIN_RECEIVE_SATS } from '@/constants/payjoin'
 import { formatSatsAsBtc } from '@/utils/format'
+import { parsePositiveSats } from '@/utils/lndPayInvoice'
 import { stripBitcoinPrefix } from '@/utils/parse'
 import { appendParamsToPayjoinUri, parsePayjoinUri } from '@/utils/payjoinUri'
+
+function parseReceiveAmountSats(text: string) {
+  const amountSats = parsePositiveSats(text)
+  if (amountSats === null || amountSats > MAX_SUPPLY_SATS) {
+    return undefined
+  }
+  return amountSats
+}
 
 /**
  * Advertise `pj=` only when amount is unset or meets the anti-probing floor.
@@ -101,4 +111,4 @@ function buildPlainBip21Uri(params: {
   return queryParts.length > 0 ? `${baseUri}?${queryParts.join('&')}` : baseUri
 }
 
-export { buildReceiveQrUri, shouldIncludePayjoinInUri }
+export { buildReceiveQrUri, parseReceiveAmountSats, shouldIncludePayjoinInUri }

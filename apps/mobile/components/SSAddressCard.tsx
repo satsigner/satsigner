@@ -4,13 +4,14 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { type WatchedAddress } from '@/types/models/Address'
-import { formatNumber } from '@/utils/format'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { formatMaskedNumber, formatNumber } from '@/utils/format'
 
 import { SSIconEyeOn, SSIconTrash } from './icons'
 import SSDetailsList from './SSDetailsList'
 import SSPressable from './SSPressable'
 
-type AddressCardProps = {
+type AddressCardProps = Pick<DisplayPreferences, 'privacyMode'> & {
   address: WatchedAddress
   showDelete?: boolean
   showView?: boolean
@@ -25,7 +26,8 @@ export function AddressCard({
   showDelete = false,
   showView = false,
   onViewDetails,
-  onDelete
+  onDelete,
+  privacyMode
 }: AddressCardProps) {
   const index = address.index !== undefined ? address.index : -1
   return (
@@ -56,10 +58,13 @@ export function AddressCard({
         <SSDetailsList
           columns={2}
           items={[
-            [tl('summary.balance'), address.summary.balance],
+            [
+              tl('summary.balance'),
+              formatMaskedNumber(address.summary.balance, privacyMode)
+            ],
             [
               tl('summary.balanceUncofirmed'),
-              formatNumber(address.summary.satsInMempool)
+              formatMaskedNumber(address.summary.satsInMempool, privacyMode)
             ],
             [tl('summary.tx'), formatNumber(address.summary.transactions)],
             [tl('summary.utxo'), formatNumber(address.summary.utxos)],

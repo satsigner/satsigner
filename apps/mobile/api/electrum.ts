@@ -5,6 +5,8 @@ import TcpSocket from 'react-native-tcp-socket'
 import z from 'zod'
 
 import {
+  ELECTRUM_CONNECT_TIMEOUT_MS,
+  ELECTRUM_CONNECT_TOR_TIMEOUT_MS,
   ELECTRUM_CONNECTION_CHECK_INTERVAL,
   ELECTRUM_CONNECTION_TIMEOUT,
   ELECTRUM_TX_CACHE_MAX_ENTRIES
@@ -19,9 +21,13 @@ import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
+import { isOnionUrl } from '@/utils/serverPrivacy'
+import { destroyOnceSettled } from '@/utils/socketLifecycle'
 import { time } from '@/utils/time'
 import { TxDecoded } from '@/utils/txDecoded'
-import { isValidDomainName, isValidIPAddress } from '@/utils/url'
+import { isValidDomainName, isValidIPAddress, isValidPort } from '@/utils/url'
+
+type TcpSocketInstance = InstanceType<typeof TcpSocket.Socket>
 
 // TLSSocketOptions omits rejectUnauthorized from its types, but both native
 // implementations (Android/iOS) honor it.
@@ -36,9 +42,21 @@ type VerifyingTLSSocketOptions = ConstructorParameters<
 // CA configured, react-native-tcp-socket then uses the system trust store
 // on Android and kCFStreamSSLPeerName + system trust evaluation on iOS.
 class VerifyingTLSSocket extends TcpSocket.TLSSocket {
-  constructor(socket: InstanceType<typeof TcpSocket.Socket>) {
+  constructor(socket: TcpSocketInstance) {
     const options: VerifyingTLSSocketOptions = { rejectUnauthorized: true }
     super(socket, options)
+  }
+
+  destroy() {
+    destroyOnceSettled(this, () => super.destroy())
+    return this
+  }
+}
+
+class SettledDestroySocket extends TcpSocket.Socket {
+  destroy() {
+    destroyOnceSettled(this, () => super.destroy())
+    return this
   }
 }
 
@@ -49,6 +67,23 @@ class VerifyingTLSSocket extends TcpSocket.TLSSocket {
 export const ElectrumServerVersionSchema = z.tuple([z.string(), z.string()])
 
 class ModifiedClient extends BlueWalletElectrumClient {
+  // Same as the library's connectSocket, plus a connect timeout.
+  connectSocket(conn: TcpSocketInstance, port: number, host: string) {
+    const connectTimeout = isOnionUrl(host)
+      ? ELECTRUM_CONNECT_TOR_TIMEOUT_MS
+      : ELECTRUM_CONNECT_TIMEOUT_MS
+    return new Promise<void>((resolve, reject) => {
+      function handleError(error: Error) {
+        reject(error)
+      }
+      conn.connect({ connectTimeout, host, port: Number(port) }, () => {
+        conn.removeListener('error', handleError)
+        resolve()
+      })
+      conn.on('error', handleError)
+    })
+  }
+
   keepAlive() {
     if (this.timeout !== null && this.timeout !== undefined) {
       clearTimeout(this.timeout)
@@ -110,7 +145,7 @@ class BaseElectrumClient {
     protocol = 'ssl',
     network = 'signet'
   }: ElectrumClientInterface['props']) {
-    const net = TcpSocket
+    const net = { Socket: SettledDestroySocket }
     const tls = { TLSSocket: VerifyingTLSSocket }
     const options = {}
     this.client = new ModifiedClient(net, tls, port, host, protocol, options)
@@ -124,9 +159,12 @@ class BaseElectrumClient {
 
     const isValidDomain = isValidDomainName(host)
     const isValidIP = isValidIPAddress(host)
-    const isValidPort = port.match(/^[0-9]+$/) !== null
     const isValidProtocol = ['ssl', 'tls', 'tcp'].includes(protocol)
-    if (!(isValidDomain || isValidIP) || !isValidPort || !isValidProtocol) {
+    if (
+      !(isValidDomain || isValidIP) ||
+      !isValidPort(port) ||
+      !isValidProtocol
+    ) {
       throw new Error(`Backend URL ${url} seems invalid.`)
     }
 

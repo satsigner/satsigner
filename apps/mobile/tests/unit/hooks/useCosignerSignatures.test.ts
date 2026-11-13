@@ -200,6 +200,12 @@ describe('useCosignerSignatures', () => {
 
     expect(result.hex).toMatch(/^[0-9a-f]+$/)
     expect(useTransactionBuilderStore.getState().signedTx).toBe(result.hex)
+    const { signedPsbtBase64 } = useTransactionBuilderStore.getState()
+    expect(
+      bitcoinjs.Psbt.fromBase64(signedPsbtBase64 ?? '')
+        .extractTransaction()
+        .toHex()
+    ).toBe(result.hex)
     expect(onNotice).toHaveBeenCalledWith({
       key: 'transaction.finalizedSuccessfully',
       type: 'success'

@@ -18,11 +18,12 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { assertElectrumReachable } from '@/api/electrumReachability'
-import { BDK_RPC_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
+import { BDK_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
 import {
   BTC_DECIMALS,
   SATS_PER_BITCOIN,
   SEQUENCE_FINAL,
+  SEQUENCE_LOCKTIME_NO_RBF,
   SEQUENCE_RBF
 } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
@@ -57,6 +58,7 @@ import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,
   getFingerprint,
+  keyOriginPath,
   PrivateKeyDescriptorError
 } from '@/utils/descriptor'
 import { devLog } from '@/utils/devConsole'
@@ -125,7 +127,11 @@ type WalletData = {
   externalDescriptor: string
   fingerprint: string
   internalDescriptor: string
+  /** Multisig only, by key index: the origin path each key is written with. */
+  keyDerivationPaths?: string[]
   keyFingerprints?: string[] // Optional for multisig accounts
+  /** True when no database existed for these descriptors before. */
+  isNewDatabase: boolean
   wallet: BdkWallet
 }
 
@@ -186,7 +192,7 @@ async function getWalletData(
           throw new Error('Invalid secret')
         }
 
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           signingDescriptors.receive,
           signingDescriptors.change,
           network
@@ -198,6 +204,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: '',
           internalDescriptor: externalDescriptor,
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importDescriptor') {
@@ -209,7 +216,7 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -221,6 +228,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor || '',
+          isNewDatabase,
           wallet
         }
       }
@@ -231,6 +239,10 @@ async function getWalletData(
       const scriptVersion = account.keys[0]?.scriptVersion || 'P2WSH'
       const multisigScriptType =
         getMultisigScriptTypeFromScriptVersion(scriptVersion)
+      const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
+        scriptVersion,
+        toAppNetwork(network)
+      )
 
       const keyData = await Promise.all(
         account.keys.map((key, keyIndex) => {
@@ -263,7 +275,19 @@ async function getWalletData(
             fingerprint = getFingerprintFromExtendedPublicKey(extendedPublicKey)
           }
 
-          return { extendedPublicKey, fingerprint, index: keyIndex }
+          // A key imported with its own origin (or taken from another
+          // account) keeps it, so signers find their key in the PSBT.
+          const originPath = keyOriginPath(
+            key.derivationPath,
+            policyDerivationPath
+          )
+
+          return {
+            extendedPublicKey,
+            fingerprint,
+            index: keyIndex,
+            originPath
+          }
         })
       )
 
@@ -274,6 +298,7 @@ async function getWalletData(
           fingerprint: string
           extendedPublicKey: string
           index: number
+          originPath: string
         } =>
           kd !== null &&
           kd.fingerprint !== undefined &&
@@ -286,21 +311,14 @@ async function getWalletData(
         )
       }
 
-      const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
-        scriptVersion,
-        toAppNetwork(network)
-      )
-
-      const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
-
       const sortedKeyData = validKeyData.toSorted((a, b) =>
         a.extendedPublicKey.localeCompare(b.extendedPublicKey)
       )
 
       const keySection = sortedKeyData
         .map(
-          ({ fingerprint, extendedPublicKey }) =>
-            `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+          ({ fingerprint, extendedPublicKey, originPath }) =>
+            `[${fingerprint}/${originPath}]${extendedPublicKey}/<0;1>/*`
         )
         .join(',')
 
@@ -332,13 +350,14 @@ async function getWalletData(
 
       const parsedDescriptor = parseDescriptor(externalDescriptor)
 
-      const { wallet, dbPath } = await getWalletFromDescriptor(
+      const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
         externalDescriptor,
         internalDescriptor,
         network
       )
 
       const keyFingerprints = validKeyData.map((kd) => kd.fingerprint)
+      const keyDerivationPaths = validKeyData.map((kd) => `m/${kd.originPath}`)
 
       return {
         dbPath,
@@ -346,6 +365,8 @@ async function getWalletData(
         externalDescriptor: finalDescriptor,
         fingerprint: parsedDescriptor.fingerprint,
         internalDescriptor: '',
+        isNewDatabase,
+        keyDerivationPaths,
         keyFingerprints,
         wallet
       }
@@ -366,7 +387,7 @@ async function getWalletData(
         const { internalDescriptor } = key.secret
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -378,6 +399,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor: internalDescriptor || '',
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importExtendedPub') {
@@ -406,7 +428,7 @@ async function getWalletData(
         )
 
         const parsedDescriptor = parseDescriptor(externalDescriptor)
-        const { wallet, dbPath } = await getWalletFromDescriptor(
+        const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network
@@ -418,6 +440,7 @@ async function getWalletData(
           externalDescriptor,
           fingerprint: parsedDescriptor.fingerprint,
           internalDescriptor,
+          isNewDatabase,
           wallet
         }
       } else if (key.creationType === 'importAddress') {
@@ -516,7 +539,7 @@ async function getWalletDataFromMnemonic(
 
   const { fingerprint, derivationPath } = parseDescriptor(externalDescriptor)
 
-  const { wallet, dbPath } = await getWalletFromDescriptor(
+  const { dbPath, isNewDatabase, wallet } = await getWalletFromDescriptor(
     externalDescriptor,
     internalDescriptor,
     network
@@ -528,6 +551,7 @@ async function getWalletDataFromMnemonic(
     externalDescriptor,
     fingerprint,
     internalDescriptor,
+    isNewDatabase,
     wallet
   }
 }
@@ -628,7 +652,7 @@ async function getWalletFromDescriptor(
   externalDescriptor: string,
   internalDescriptor: string | undefined,
   network: Network
-): Promise<{ wallet: BdkWallet; dbPath: string }> {
+): Promise<{ dbPath: string; isNewDatabase: boolean; wallet: BdkWallet }> {
   const { ext, int, legacyInt } = resolveWalletDescriptors(
     externalDescriptor,
     internalDescriptor
@@ -642,10 +666,15 @@ async function getWalletFromDescriptor(
     uri
   )
   if (legacyWallet) {
-    return legacyWallet
+    return { ...legacyWallet, isNewDatabase: false }
   }
   const dbPath = uriToPath(uri)
-  return { dbPath, wallet: new BdkWallet(ext, int, network, dbPath) }
+  const isNewDatabase = !(await fileExists(uri))
+  return {
+    dbPath,
+    isNewDatabase,
+    wallet: new BdkWallet(ext, int, network, dbPath)
+  }
 }
 
 // Databases created before the network was part of the file name.
@@ -689,49 +718,6 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   return getExtendedKeyFromDescriptor(externalDescriptor)
 }
 
-function createThrottledRpcProgress(
-  onRpcProgress: (current: number, tip: number, pct: number) => void
-): (current: number, tip: number, pct: number) => void {
-  let lastEmitMs = 0
-  let pending: { current: number; pct: number; tip: number } | null = null
-  let timer: ReturnType<typeof setTimeout> | null = null
-
-  function flush() {
-    timer = null
-    if (!pending) {
-      return
-    }
-    const { current, tip, pct } = pending
-    pending = null
-    lastEmitMs = Date.now()
-    onRpcProgress(current, tip, pct)
-  }
-
-  return function emit(current: number, tip: number, pct: number) {
-    const isComplete = pct >= 1 || (tip > 0 && current >= tip)
-    if (isComplete) {
-      if (timer) {
-        clearTimeout(timer)
-        timer = null
-      }
-      pending = null
-      lastEmitMs = Date.now()
-      onRpcProgress(current, tip, pct)
-      return
-    }
-
-    pending = { current, pct, tip }
-    const elapsed = Date.now() - lastEmitMs
-    if (elapsed >= BDK_RPC_PROGRESS_THROTTLE_MS) {
-      flush()
-      return
-    }
-    if (!timer) {
-      timer = setTimeout(flush, BDK_RPC_PROGRESS_THROTTLE_MS - elapsed)
-    }
-  }
-}
-
 function electrumHost(url: string): string {
   try {
     return new URL(url).host
@@ -756,6 +742,66 @@ async function connectElectrum(url: string): Promise<BdkElectrumClient> {
   return client
 }
 
+/** `total` is 0 during a full scan, which has no fixed end. */
+type ScanProgress = (done: number, total: number) => void
+
+type SyncWalletOptions = {
+  onProgress?: ScanProgress
+  signal?: AbortSignal
+}
+
+/**
+ * Inspectors fire once per script or block, so the UI gets at most one update
+ * per throttle window, plus the final one. `stop` drops an update still
+ * waiting once the scan is over.
+ */
+function throttleProgress(onProgress: ScanProgress) {
+  const state: {
+    lastEmitMs: number
+    pending: { done: number; total: number } | null
+    timer: ReturnType<typeof setTimeout> | null
+  } = { lastEmitMs: 0, pending: null, timer: null }
+
+  function stop() {
+    if (state.timer) {
+      clearTimeout(state.timer)
+    }
+    state.timer = null
+    state.pending = null
+  }
+
+  function emit(done: number, total: number) {
+    stop()
+    state.lastEmitMs = Date.now()
+    onProgress(done, total)
+  }
+
+  function flush() {
+    const { pending } = state
+    state.timer = null
+    state.pending = null
+    if (pending) {
+      emit(pending.done, pending.total)
+    }
+  }
+
+  function report(done: number, total: number) {
+    if (total > 0 && done >= total) {
+      emit(done, total)
+      return
+    }
+    state.pending = { done, total }
+    const elapsed = Date.now() - state.lastEmitMs
+    if (elapsed >= BDK_PROGRESS_THROTTLE_MS) {
+      flush()
+      return
+    }
+    state.timer ??= setTimeout(flush, BDK_PROGRESS_THROTTLE_MS - elapsed)
+  }
+
+  return { report, stop }
+}
+
 async function syncWallet(
   wallet: BdkWallet,
   backend: Backend,
@@ -767,8 +813,63 @@ async function syncWallet(
   currentTip?: number,
   rpcScanFromHeight?: number,
   isGeneratedWallet?: boolean,
-  onRpcProgress?: (current: number, tip: number, pct: number) => void,
-  { onScanProgress, signal }: ScanOptions = {}
+  { onProgress, signal }: SyncWalletOptions = {}
+) {
+  const progress = onProgress ? throttleProgress(onProgress) : undefined
+  try {
+    await scanWallet(wallet, {
+      backend,
+      currentTip,
+      isFullScan,
+      isGeneratedWallet,
+      onProgress: progress?.report,
+      rpcCredentials,
+      rpcScanFromHeight,
+      signal,
+      stopGap,
+      url,
+      walletBirthday
+    })
+  } finally {
+    progress?.stop()
+  }
+
+  // A sync that was given up on must not persist a late, partial update.
+  if (signal?.aborted) {
+    throw new Error(SYNC_CANCELLED_ERROR)
+  }
+  wallet.persist()
+}
+
+type ScanWalletParams = {
+  backend: Backend
+  currentTip?: number
+  isFullScan: boolean
+  isGeneratedWallet?: boolean
+  onProgress?: ScanProgress
+  rpcCredentials?: RpcCredentials
+  rpcScanFromHeight?: number
+  signal?: AbortSignal
+  stopGap: number
+  url: string
+  walletBirthday?: Date
+}
+
+async function scanWallet(
+  wallet: BdkWallet,
+  {
+    backend,
+    currentTip,
+    isFullScan,
+    isGeneratedWallet,
+    onProgress,
+    rpcCredentials,
+    rpcScanFromHeight,
+    signal,
+    stopGap,
+    url,
+    walletBirthday
+  }: ScanWalletParams
 ) {
   if (backend === 'rpc') {
     const rpcClient = new BdkRpcClient({
@@ -804,41 +905,27 @@ async function syncWallet(
       startHeight = scanFloor
     }
 
-    const emitProgress = onRpcProgress
-      ? createThrottledRpcProgress(onRpcProgress)
-      : undefined
-
     await wallet.syncWithRpc(rpcClient, startHeight, {
       fetchMempool: true,
-      inspector: {
-        inspect({ currentHeight, tipHeight, progress }) {
-          emitProgress?.(currentHeight, tipHeight, progress)
-        }
+      inspector: onProgress && {
+        inspect: ({ currentHeight, tipHeight }) =>
+          onProgress(currentHeight, tipHeight)
       }
     })
-  } else {
-    await scanWithServer(wallet, backend, url, stopGap, isFullScan, {
-      onScanProgress,
-      signal
-    })
+    return
   }
-
-  // A sync that was given up on must not persist a late, partial update.
-  if (signal?.aborted) {
-    throw new Error(SYNC_CANCELLED_ERROR)
-  }
-  wallet.persist()
-}
-
-type ScanOptions = {
-  /** `total` is 0 during a full scan, which has no fixed end. */
-  onScanProgress?: (done: number, total: number) => void
-  signal?: AbortSignal
+  await scanWithServer(wallet, backend, url, stopGap, isFullScan, {
+    onProgress,
+    signal
+  })
 }
 
 /**
  * Electrum and Esplora scans go through the raw FFI wallet: the SDK wrapper
  * drops the abort signal, which is what lets a stalled sync be cancelled.
+ * Their progress inspectors need the @ubjs/core patch: without it the runtime
+ * cannot write a JS object into an optional argument and the scan throws
+ * "Cannot lower this object to a pointer" before it starts.
  */
 async function scanWithServer(
   wallet: BdkWallet,
@@ -846,24 +933,17 @@ async function scanWithServer(
   url: string,
   stopGap: number,
   isFullScan: boolean,
-  { onScanProgress, signal }: ScanOptions
+  { onProgress, signal }: SyncWalletOptions
 ) {
-  const emitProgress = onScanProgress
-    ? createThrottledRpcProgress((done, total) => onScanProgress(done, total))
-    : undefined
   const asyncOpts = signal ? { signal } : undefined
   const gap = BigInt(stopGap)
-  const fullScanInspector = {
+  const fullScanInspector = onProgress && {
     inspect: (_keychain: KeychainKind, _index: number, visited: bigint) =>
-      emitProgress?.(Number(visited), 0, 0)
+      onProgress(Number(visited), 0)
   }
-  const syncInspector = {
+  const syncInspector = onProgress && {
     inspect: (consumed: bigint, total: bigint) =>
-      emitProgress?.(
-        Number(consumed),
-        Number(total),
-        total > 0n ? Number(consumed) / Number(total) : 0
-      )
+      onProgress(Number(consumed), Number(total))
   }
 
   if (backend === 'electrum') {
@@ -1063,10 +1143,11 @@ function buildTransaction(
   }
 
   txBuilder.feeAbsolute(data.fee)
-
-  if (data.options.rbf) {
-    txBuilder.enableRbf()
-  }
+  // bdk_wallet signals RBF when no sequence is set. Without RBF the sequence
+  // stays below final so its anti-fee-sniping nLockTime is still enforced.
+  txBuilder.setExactSequence(
+    data.options.rbf ? SEQUENCE_RBF : SEQUENCE_LOCKTIME_NO_RBF
+  )
 
   return txBuilder.finish(wallet)
 }
@@ -1108,6 +1189,36 @@ async function buildReplacementPsbt(
   return psbt
 }
 
+/** The Bitcoin Core wallet that builds the account's sends, if any. */
+function coreWalletBuilder(server: Server, account: Account | undefined) {
+  const { backend, url, rpcCredentials, rpcWalletName } = server
+  if (backend !== 'rpc' || !url || !rpcCredentials || !account) {
+    return undefined
+  }
+  return {
+    rpcCredentials,
+    url,
+    walletName: resolveRpcWalletName(account, rpcWalletName)
+  }
+}
+
+/**
+ * Whether the BDK wallet that builds this send lacks one of its inputs. The
+ * change of a send broadcast moments ago is already in the account, but the
+ * wallet only learns its transaction with the next sync.
+ */
+function hasInputsMissingFromWallet(
+  wallet: BdkWallet,
+  server: Server,
+  account: Account | undefined,
+  inputs: Utxo[]
+): boolean {
+  if (coreWalletBuilder(server, account)) {
+    return false
+  }
+  return inputs.some((utxo) => !isUtxoInWallet(wallet, utxo))
+}
+
 function buildPsbtWithRpcOrBdkWallet(
   wallet: BdkWallet,
   server: Server,
@@ -1119,15 +1230,18 @@ function buildPsbtWithRpcOrBdkWallet(
     options: { rbf: boolean }
   }
 ): Promise<PsbtLike> {
-  const { backend, url, rpcCredentials, rpcWalletName } = server
-
-  if (backend === 'rpc' && url && rpcCredentials && account) {
-    const walletName = resolveRpcWalletName(account, rpcWalletName)
-    return buildTransactionWithRpc(url, rpcCredentials, walletName, {
-      inputs: data.inputs,
-      options: data.options,
-      outputs: data.outputs
-    })
+  const core = coreWalletBuilder(server, account)
+  if (core) {
+    return buildTransactionWithRpc(
+      core.url,
+      core.rpcCredentials,
+      core.walletName,
+      {
+        inputs: data.inputs,
+        options: data.options,
+        outputs: data.outputs
+      }
+    )
   }
 
   return buildTransaction(wallet, data)
@@ -1318,6 +1432,7 @@ export {
   getTransactionInputValues,
   getWalletData,
   getWalletFromDescriptor,
+  hasInputsMissingFromWallet,
   isUtxoInWallet,
   parseDescriptor,
   resolveRpcWalletName,

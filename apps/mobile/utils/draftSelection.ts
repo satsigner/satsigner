@@ -1,6 +1,7 @@
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { isChangeOutputLabel } from '@/utils/address'
 
 const DEFAULT_AUTO_SELECT: AutoSelectUtxosAlgorithm = 'user'
 
@@ -18,6 +19,10 @@ type DraftIoSource = {
     changeValues?: number[]
     fakeMixValues?: number[]
   }
+}
+
+type DraftPaymentSource = {
+  outputs?: Pick<Output, 'amount' | 'kind' | 'label'>[]
 }
 
 /**
@@ -115,10 +120,30 @@ function getDraftResumeStep(draft?: {
   return 'io'
 }
 
+function isReturnToWalletOutput(output: Pick<Output, 'kind' | 'label'>) {
+  return (
+    output.kind === 'change' ||
+    output.kind === 'fakeMix' ||
+    isChangeOutputLabel(output.label)
+  )
+}
+
+/**
+ * Amount the draft pays out. Change, including the change output added on the
+ * way to signing, goes back to the wallet, as the sign screen's chart shows.
+ */
+function getDraftPaymentAmount(draft?: DraftPaymentSource): number {
+  const outputs = draft?.outputs ?? []
+  return outputs
+    .filter((output) => !isReturnToWalletOutput(output))
+    .reduce((sum, output) => sum + output.amount, 0)
+}
+
 export {
   DEFAULT_AUTO_SELECT,
   getDraftIoCounts,
   getDraftLabel,
+  getDraftPaymentAmount,
   getDraftResumeStep,
   resolveDraftAlgorithm
 }

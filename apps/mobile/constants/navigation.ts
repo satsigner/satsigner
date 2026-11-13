@@ -55,6 +55,20 @@ const LAST_ROUTE_DENYLIST = [
   '/signer/nostr/account/[npub]/compose'
 ] as const
 
+/**
+ * Lock and PIN screens, by route file name. A link from outside the app that
+ * names one is never followed.
+ */
+const EXTERNAL_LINK_BLOCKED_SCREENS = [
+  'setPin',
+  'unlock',
+  'changePin',
+  'duressPin'
+] as const
+
+/** Percent-encoding layers a followed link may carry; deeper ones are dropped. */
+const EXTERNAL_LINK_MAX_ENCODING_LAYERS = 3
+
 const BITCOIN_ACCOUNT_ROUTE = '/signer/bitcoin/account/[id]'
 const ARK_ACCOUNT_ROUTE = '/signer/ark/account/[id]'
 const ECASH_ACCOUNT_ROUTE = '/signer/ecash/account/[id]'
@@ -65,6 +79,8 @@ export {
   AUTHENTICATED_ROUTE_GROUP,
   BITCOIN_ACCOUNT_ROUTE,
   ECASH_ACCOUNT_ROUTE,
+  EXTERNAL_LINK_BLOCKED_SCREENS,
+  EXTERNAL_LINK_MAX_ENCODING_LAYERS,
   HOME_ROUTE,
   LAST_ROUTE_DENYLIST,
   LAST_ROUTE_MAX_PARAM_COUNT,

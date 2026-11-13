@@ -17,11 +17,14 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
-import { convertKeyFormat } from '@/utils/bitcoin'
+import {
+  convertKeyFormat,
+  getNetworkKeyFormatName,
+  getPubkeyExportFormats,
+  type PubkeyExportFormat
+} from '@/utils/bitcoin'
 import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
-
-type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub' | 'tpub' | 'upub'
 
 export default function PublicKeyPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
@@ -38,97 +41,13 @@ export default function PublicKeyPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<ViewInstance>(null)
-  const networkDefaultFormat = network === 'bitcoin' ? 'xpub' : 'tpub'
   const [selectedFormat, setSelectedFormat] =
-    useState<PublicKeyFormat>(networkDefaultFormat)
-  const [formatNetwork, setFormatNetwork] = useState(network)
-  if (network !== formatNetwork) {
-    setFormatNetwork(network)
-    setSelectedFormat(networkDefaultFormat)
-  }
+    useState<PubkeyExportFormat>('xpub')
   const [rawPublicKey, setRawPublicKey] = useState('')
-
-  function getFormatButtons(scriptVersion: string) {
-    const formatButtons: {
-      format: PublicKeyFormat
-      label: string
-    }[] = []
-
-    if (
-      scriptVersion === 'P2SH' ||
-      scriptVersion === 'P2SH-P2WSH' ||
-      scriptVersion === 'P2WSH'
-    ) {
-      // ypub/zpub (upub/vpub) are SLIP-132 single-sig versions, so
-      // multisig keys are only shown as xpub/tpub.
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2PKH') {
-      // P2PKH: Only show xpub/tpub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2SH-P2WPKH') {
-      // P2SH-P2WPKH: Show xpub/ypub or tpub/upub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'ypub' : 'upub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2WPKH') {
-      // P2WPKH: Show xpub/zpub or tpub/vpub
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'xpub' : 'tpub'
-          }`
-        )
-      })
-      formatButtons.push({
-        format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: t(
-          `account.seed.formatButtons.${
-            network === 'bitcoin' ? 'zpub' : 'vpub'
-          }`
-        )
-      })
-    } else if (scriptVersion === 'P2TR') {
-      // P2TR: Only show vpub (same for all networks)
-      formatButtons.push({
-        format: 'vpub',
-        label: t('account.seed.formatButtons.vpub')
-      })
-    }
-
-    return formatButtons
-  }
 
   function convertPublicKeyFormat(
     publicKey: string,
-    targetFormat: PublicKeyFormat
+    targetFormat: PubkeyExportFormat
   ) {
     const validPrefixes = [
       'xpub',
@@ -194,7 +113,7 @@ export default function PublicKeyPage() {
     const ext = 'txt'
     const filename = `PublicKey_${accountData.name}_Key${
       Number.parseInt(keyIndex || '0', 10) + 1
-    }_${selectedFormat.toUpperCase()}_${date}.${ext}`
+    }_${getNetworkKeyFormatName(selectedFormat, network).toUpperCase()}_${date}.${ext}`
     shareFile({
       dialogTitle: t('export.file.save'),
       fileContent: publicKey,
@@ -203,7 +122,8 @@ export default function PublicKeyPage() {
     })
   }
 
-  const formatButtons = getFormatButtons(scriptVersion)
+  // Keys being added here are multisig keys.
+  const formats = getPubkeyExportFormats('multisig', scriptVersion)
 
   return (
     <ScrollView style={{ width: '100%' }}>
@@ -216,10 +136,12 @@ export default function PublicKeyPage() {
         {!isLoading && rawPublicKey && (
           <SSVStack gap="sm">
             <SSHStack style={{ justifyContent: 'center' }} gap="sm">
-              {formatButtons.map(({ format, label }) => (
+              {formats.map((format) => (
                 <SSButton
                   key={format}
-                  label={label}
+                  label={t(
+                    `account.seed.formatButtons.${getNetworkKeyFormatName(format, network)}`
+                  )}
                   variant={selectedFormat === format ? 'gradient' : 'secondary'}
                   onPress={() => setSelectedFormat(format)}
                   style={{ flex: 1 }}
