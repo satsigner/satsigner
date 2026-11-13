@@ -2106,10 +2106,6 @@
           statusEl.textContent = 'Sign in before deleting a release post.'
           return
         }
-        if (!ids.length) {
-          statusEl.textContent = 'No release posts to delete.'
-          return
-        }
         for (const button of buttons) button.disabled = true
         statusEl.textContent = 'Approve the deletion in the extension.'
         try {
