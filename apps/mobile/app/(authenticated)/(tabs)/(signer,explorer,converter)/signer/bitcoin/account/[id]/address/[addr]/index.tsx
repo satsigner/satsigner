@@ -250,6 +250,7 @@ function AddressDetails() {
                         }}
                         inputs={addressUtxoInputs}
                         dimUnselected
+                        privacyMode={display.privacyMode}
                         onPress={({ txid, vout }: Utxo) =>
                           router.navigate(
                             `/signer/bitcoin/account/${accountId}/transaction/${txid}/utxo/${vout}`

@@ -1,7 +1,7 @@
 export type MarkdownInlineSegment =
   | { type: 'text'; value: string }
-  | { type: 'bold'; value: string }
-  | { type: 'italic'; value: string }
+  | { type: 'bold'; segments: MarkdownInlineSegment[] }
+  | { type: 'italic'; segments: MarkdownInlineSegment[] }
   | { type: 'code'; value: string }
   | { type: 'link'; label: string; url: string }
 

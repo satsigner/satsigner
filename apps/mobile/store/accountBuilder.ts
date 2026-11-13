@@ -239,7 +239,6 @@ const useAccountBuilderStore = create<
         keys,
         keysRequired,
         labels: {},
-        lastSyncedAt: new Date(),
         name,
         network,
         nostr: {
@@ -443,4 +442,4 @@ const useAccountBuilderStore = create<
   }))
 )
 
-export { DEFAULT_SCRIPT_VERSION, useAccountBuilderStore }
+export { useAccountBuilderStore }

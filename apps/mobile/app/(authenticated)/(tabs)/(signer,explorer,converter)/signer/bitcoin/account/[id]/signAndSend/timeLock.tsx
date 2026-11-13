@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router'
+import { router } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -164,55 +164,48 @@ function TimeLock() {
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>EXTRA SECURITY</SSText>
-        }}
-      />
-      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
-        <SSVStack justifyBetween>
-          <SSVStack style={{ height: 300 }}>
-            <SSText center uppercase size="lg">
-              {t('transaction.build.options.timeLock')}
-            </SSText>
-            <TabView
-              swipeEnabled={false}
-              navigationState={{ index: tabIndex, routes: tabs }}
-              renderScene={renderScene}
-              renderTabBar={renderTab}
-              onIndexChange={setTabIndex}
-            />
-          </SSVStack>
-          <SSVStack>
-            <SSButton
-              uppercase
-              label={t('common.remove')}
-              onPress={removeTimeLock}
-            />
-            <SSButton
-              variant="secondary"
-              label={t('common.save')}
-              onPress={saveChanges}
-              disabled={
-                (timeLockType === 'blockHeight' && !validBlockHeight) ||
-                (timeLockType === 'date' &&
-                  (!validYear ||
-                    !validMonth ||
-                    !validDay ||
-                    !validHour ||
-                    !validMinute))
-              }
-            />
-            <SSButton
-              variant="ghost"
-              label={t('common.cancel')}
-              onPress={cancel}
-            />
-          </SSVStack>
+    <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
+      <SSVStack justifyBetween>
+        <SSVStack style={{ height: 300 }}>
+          <SSText center uppercase size="lg">
+            {t('transaction.build.options.timeLock')}
+          </SSText>
+          <TabView
+            swipeEnabled={false}
+            navigationState={{ index: tabIndex, routes: tabs }}
+            renderScene={renderScene}
+            renderTabBar={renderTab}
+            onIndexChange={setTabIndex}
+          />
         </SSVStack>
-      </SSMainLayout>
-    </>
+        <SSVStack>
+          <SSButton
+            uppercase
+            label={t('common.remove')}
+            onPress={removeTimeLock}
+          />
+          <SSButton
+            variant="secondary"
+            label={t('common.save')}
+            onPress={saveChanges}
+            disabled={
+              (timeLockType === 'blockHeight' && !validBlockHeight) ||
+              (timeLockType === 'date' &&
+                (!validYear ||
+                  !validMonth ||
+                  !validDay ||
+                  !validHour ||
+                  !validMinute))
+            }
+          />
+          <SSButton
+            variant="ghost"
+            label={t('common.cancel')}
+            onPress={cancel}
+          />
+        </SSVStack>
+      </SSVStack>
+    </SSMainLayout>
   )
 }
 

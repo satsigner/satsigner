@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -113,41 +113,31 @@ export default function ExcludeUtxos() {
   )
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerRight: undefined,
-          headerTitle: () => (
-            <SSText uppercase>{t('utxo.exclude.title')}</SSText>
-          )
-        }}
-      />
-      <SSMainLayout>
-        <SSVStack gap="sm" style={styles.container}>
-          <SSText size="sm" color="muted">
-            {excludedUtxos.length === 0
-              ? t('utxo.exclude.empty')
-              : t('utxo.exclude.count', { count: excludedUtxos.length })}
-          </SSText>
-          {excludedUtxos.length > 0 ? (
-            <View style={styles.list}>
-              <FlashList
-                data={excludedUtxos}
-                keyExtractor={getUtxoOutpoint}
-                ItemSeparatorComponent={listSeparator}
-                renderItem={({ item }) => (
-                  <SSExcludedUtxoRow
-                    {...display}
-                    utxo={item}
-                    accountId={account.id}
-                  />
-                )}
-              />
-            </View>
-          ) : null}
-        </SSVStack>
-      </SSMainLayout>
-    </>
+    <SSMainLayout>
+      <SSVStack gap="sm" style={styles.container}>
+        <SSText size="sm" color="muted">
+          {excludedUtxos.length === 0
+            ? t('utxo.exclude.empty')
+            : t('utxo.exclude.count', { count: excludedUtxos.length })}
+        </SSText>
+        {excludedUtxos.length > 0 ? (
+          <View style={styles.list}>
+            <FlashList
+              data={excludedUtxos}
+              keyExtractor={getUtxoOutpoint}
+              ItemSeparatorComponent={listSeparator}
+              renderItem={({ item }) => (
+                <SSExcludedUtxoRow
+                  {...display}
+                  utxo={item}
+                  accountId={account.id}
+                />
+              )}
+            />
+          </View>
+        ) : null}
+      </SSVStack>
+    </SSMainLayout>
   )
 }
 

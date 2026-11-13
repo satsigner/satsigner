@@ -1,6 +1,6 @@
 import { finalizeEvent, getPublicKey, nip44, nip59 } from 'nostr-tools'
 
-import { unwrapNip59EventOrNull } from '@/api/nostr'
+import { hasValidEventId, unwrapNip59EventOrNull } from '@/api/nostr'
 
 // The repo-wide manual mock at tests/__mocks__/nostr-tools.js stubs out the
 // crypto this test exercises — use the real module.
@@ -183,5 +183,19 @@ describe('unwrapNip59EventOrNull (NIP-17 sender verification)', () => {
     )
 
     expect(unwrapNip59EventOrNull(wrap, recipientSecret)).toBeNull()
+  })
+})
+
+describe('hasValidEventId', () => {
+  it('accepts an event whose id is its hash', () => {
+    const wrap = buildGiftWrap({}, nextSecretKey())
+
+    expect(hasValidEventId(wrap)).toBe(true)
+  })
+
+  it('rejects a signed event that claims a forged id', () => {
+    const wrap = buildGiftWrap({}, nextSecretKey())
+
+    expect(hasValidEventId({ ...wrap, id: '0'.repeat(64) })).toBe(false)
   })
 })

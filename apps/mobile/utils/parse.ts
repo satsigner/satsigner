@@ -1,4 +1,4 @@
-import { BITCOIN_URI_SCHEME } from '@/constants/btc'
+import { BITCOIN_URI_AMOUNT_PATTERN, BITCOIN_URI_SCHEME } from '@/constants/btc'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account, Key } from '@/types/models/Account'
@@ -323,6 +323,73 @@ type ParsedUriParams = {
   pjos?: 0 | 1
 }
 
+function isMalformedUriComponent(component: string) {
+  try {
+    decodeURIComponent(component)
+    return false
+  } catch {
+    return true
+  }
+}
+
+function getUriQueryParts(uri: string) {
+  const queryStart = uri.indexOf('?')
+  return queryStart === -1 ? [] : uri.slice(queryStart + 1).split('&')
+}
+
+function getUriQueryKey(part: string) {
+  const separator = part.indexOf('=')
+  return (separator === -1 ? part : part.slice(0, separator)).toLowerCase()
+}
+
+/** BIP21 keys are case-insensitive: a QR code may upper-case the whole URI. */
+function parseUriAmount(uri: string) {
+  const amounts = getUriQueryParts(uri).filter(
+    (part) => getUriQueryKey(part) === 'amount'
+  )
+  if (amounts.length !== 1) {
+    return undefined
+  }
+  const amount = amounts[0].slice(amounts[0].indexOf('=') + 1)
+  return BITCOIN_URI_AMOUNT_PATTERN.test(amount) ? Number(amount) : undefined
+}
+
+/**
+ * The amount in BTC of a bitcoin URI, or undefined when it is missing,
+ * repeated or not a plain decimal: a lenient read of "0.001xyz" or "1e-3"
+ * would ask for an amount the payee never wrote.
+ */
+function readBitcoinUriAmount(uri: string) {
+  return parseUriAmount(uri.trim())
+}
+
+/** BIP21: a parameter starting with "req-" must be understood to pay. */
+function hasRequiredUriParam(uri: string) {
+  return getUriQueryParts(uri).some((part) => {
+    const key = getUriQueryKey(part)
+    const decodedKey = isMalformedUriComponent(key)
+      ? key
+      : decodeURIComponent(key)
+    return decodedKey.startsWith('req-')
+  })
+}
+
+/**
+ * A label with broken percent-encoding: decoding it leniently would show text
+ * the payee never wrote, so it is dropped instead.
+ */
+function hasMalformedUriLabel(uri: string) {
+  return getUriQueryParts(uri).some(
+    (part) =>
+      getUriQueryKey(part) === 'label' &&
+      isMalformedUriComponent(part.slice(part.indexOf('=') + 1))
+  )
+}
+
+function hasMalformedUriEncoding(uri: string) {
+  return getUriQueryParts(uri).some(isMalformedUriComponent)
+}
+
 /**
  * Parses URI parameters from a bitcoin address string (without the "bitcoin:" prefix)
  * Returns null if the format is invalid
@@ -341,7 +408,6 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   const rawQuery = queryString.slice(1)
   const params = new URLSearchParams(rawQuery)
-  const amountParam = params.get('amount')
   const labelParam = params.get('label')
 
   // Extract pj without URLSearchParams mutating :// encoding.
@@ -372,8 +438,9 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 
   return {
     address: addressPart,
-    amount: amountParam ? Number.parseFloat(amountParam) : undefined,
-    label: labelParam ? decodeURIComponent(labelParam) : undefined,
+    amount: parseUriAmount(content),
+    label:
+      labelParam && !hasMalformedUriLabel(content) ? labelParam : undefined,
     ...(pj ? { pj } : {}),
     ...(pjos !== undefined ? { pjos } : {})
   }
@@ -382,12 +449,16 @@ function parseUriParameters(content: string): ParsedUriParams | null {
 export {
   ensureBitcoinPrefix,
   hasBitcoinPrefix,
+  hasMalformedUriEncoding,
+  hasRequiredUriParam,
+  isMalformedUriComponent,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseLabel,
   parseLabelTags,
   parseTXOutputs,
   parseUriParameters,
+  readBitcoinUriAmount,
   resolveExplorerAddressParam,
   stripBitcoinPrefix
 }

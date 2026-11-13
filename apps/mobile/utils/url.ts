@@ -1,6 +1,10 @@
 import { Linking } from 'react-native'
 import { toast } from 'sonner-native'
 
+const PORT_DIGITS_REGEX = /^[0-9]+$/
+const MIN_PORT = 1
+const MAX_PORT = 65_535
+
 export async function openUrl(url: string) {
   try {
     await Linking.openURL(url)
@@ -17,4 +21,12 @@ export function isValidIPAddress(host: string) {
   return /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
     host
   )
+}
+
+export function isValidPort(port: string) {
+  if (!PORT_DIGITS_REGEX.test(port)) {
+    return false
+  }
+  const portNumber = Number(port)
+  return portNumber >= MIN_PORT && portNumber <= MAX_PORT
 }

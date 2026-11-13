@@ -49,10 +49,11 @@ export type EcashProof = {
   mintUrl: string
 }
 
+/** A token read without its mint's keysets, so its proofs carry no keyset ids. */
 export type EcashToken = {
   mint: string
-  proofs: EcashProof[]
-  unit?: 'sat'
+  amount: number
+  proofAmounts: number[]
   memo?: string
 }
 

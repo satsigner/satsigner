@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
+import { isSizedByContent } from '@/utils/buttonLayout'
 
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
@@ -88,6 +89,12 @@ function SSButton({
   ]
 
   const textStyles = [getTextVariantStyle(variant), textStyle]
+
+  // The absolute label layer adds no size, so a button whose style leaves its
+  // size to the content keeps the label in the layout flow instead.
+  const labelLayerStyle = isSizedByContent(buttonStyle)
+    ? styles.labelInFlow
+    : styles.labelLayer
 
   const activityIndicatorColor =
     variant === 'secondary'
@@ -234,11 +241,11 @@ function SSButton({
       )}
       {!loading ? (
         icon ? (
-          <View pointerEvents="none" style={styles.labelLayer}>
+          <View pointerEvents="none" style={labelLayerStyle}>
             {icon}
           </View>
         ) : (
-          <View pointerEvents="none" style={styles.labelLayer}>
+          <View pointerEvents="none" style={labelLayerStyle}>
             <SSText
               center
               color={getLabelColor(variant)}
@@ -252,7 +259,7 @@ function SSButton({
           </View>
         )
       ) : (
-        <View pointerEvents="none" style={styles.labelLayer}>
+        <View pointerEvents="none" style={labelLayerStyle}>
           <ActivityIndicator color={activityIndicatorColor} />
         </View>
       )}
@@ -401,6 +408,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0
+  },
+  labelInFlow: {
+    alignItems: 'center',
+    flexShrink: 1,
+    justifyContent: 'center',
+    maxWidth: '100%',
+    zIndex: 2
   },
   labelLayer: {
     alignItems: 'center',

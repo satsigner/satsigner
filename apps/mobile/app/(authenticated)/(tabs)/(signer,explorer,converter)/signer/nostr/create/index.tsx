@@ -47,8 +47,11 @@ export default function CreateNostrIdentity() {
   }
 
   function handleNext() {
-    useNostrIdentityDraftStore.getState().setDraftMnemonic(mnemonic)
-    router.navigate('/signer/nostr/create/profile')
+    const draftId = useNostrIdentityDraftStore.getState().startDraft(mnemonic)
+    router.navigate({
+      params: { draftId },
+      pathname: '/signer/nostr/create/profile'
+    })
   }
 
   return (

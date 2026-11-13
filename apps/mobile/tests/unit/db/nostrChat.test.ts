@@ -1,8 +1,10 @@
 import { getDb } from '@/db/connection'
 import { deleteChatMessagesForIdentity } from '@/db/mutations/nostrChat'
 import {
+  getChatReplyParent,
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
+  listChatReplies,
   listChatThread,
   listPeersWrittenTo
 } from '@/db/queries/nostrChat'
@@ -136,19 +138,60 @@ describe('nostr chat queries', () => {
     })
   })
 
+  describe('reply links', () => {
+    const message = {
+      id: 'msg-2',
+      identityNpub: 'npub1me',
+      peerPubkey: 'peer-1',
+      protocol: 'nip17' as const,
+      replyToId: 'msg-1'
+    }
+
+    it('looks for the parent only in the same chat', () => {
+      getChatReplyParent(message)
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('protocol = ? AND peer_pubkey = ? AND id = ?'),
+        ['npub1me', 'nip17', 'peer-1', 'msg-1']
+      )
+    })
+
+    it('has no parent for a message that is not a reply', () => {
+      expect(
+        getChatReplyParent({ ...message, replyToId: undefined })
+      ).toBeNull()
+      expect(execute).not.toHaveBeenCalled()
+    })
+
+    it('lists replies only from the same chat', () => {
+      listChatReplies(message)
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('protocol = ? AND peer_pubkey = ?'),
+        ['npub1me', 'nip17', 'peer-1', 'msg-2']
+      )
+    })
+  })
+
   describe('listPeersWrittenTo', () => {
     it('lists each peer with an outgoing message once', () => {
       execute.mockReturnValueOnce(
         mockQueryResult([{ peer_pubkey: 'peer-1' }, { peer_pubkey: 'peer-2' }])
       )
 
-      expect(listPeersWrittenTo('npub1me', 'nip17')).toStrictEqual([
-        'peer-1',
-        'peer-2'
-      ])
+      expect(listPeersWrittenTo('npub1me')).toStrictEqual(['peer-1', 'peer-2'])
       expect(execute).toHaveBeenCalledWith(
         expect.stringContaining("direction = 'out'"),
-        ['npub1me', 'nip17']
+        ['npub1me']
+      )
+    })
+
+    it('counts a peer written to over any protocol', () => {
+      listPeersWrittenTo('npub1me')
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.not.stringContaining('protocol'),
+        ['npub1me']
       )
     })
   })

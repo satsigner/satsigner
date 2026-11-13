@@ -41,6 +41,11 @@ export default function MultiSig() {
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
+  function handleOnPressImportDescriptor() {
+    setScriptVersion(localScriptVersion)
+    router.navigate('/signer/bitcoin/account/add/multiSig/importDescriptor')
+  }
+
   function handleOnPressContinue() {
     setKeyCount(localKeyCount)
     setKeysRequired(localKeysRequired)
@@ -92,11 +97,7 @@ export default function MultiSig() {
           <SSButton
             label={t('account.import.descriptor')}
             variant="subtle"
-            onPress={() =>
-              router.navigate(
-                '/signer/bitcoin/account/add/multiSig/importDescriptor'
-              )
-            }
+            onPress={handleOnPressImportDescriptor}
           />
           <SSButton
             label={t('common.continue')}

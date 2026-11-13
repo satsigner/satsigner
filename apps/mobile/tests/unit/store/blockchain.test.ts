@@ -49,6 +49,16 @@ describe('blockchain store - setSelectedNetwork', () => {
     expect(useBlockchainStore.getState().nextBlockFee).toBeNull()
   })
 
+  it('forgets the chain tip of the network it leaves', () => {
+    const store = useBlockchainStore.getState()
+    store.setSelectedNetwork('signet')
+    store.setLastKnownBlockHeight(330_361)
+
+    store.setSelectedNetwork('bitcoin')
+
+    expect(useBlockchainStore.getState().lastKnownBlockHeight).toBe(0)
+  })
+
   it('keeps the fee when the same network is selected again', () => {
     const store = useBlockchainStore.getState()
     store.setSelectedNetwork('signet')

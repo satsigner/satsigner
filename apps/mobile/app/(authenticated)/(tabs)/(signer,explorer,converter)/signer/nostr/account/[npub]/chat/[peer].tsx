@@ -23,7 +23,10 @@ import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
 import { buildChatThreadAuthors } from '@/utils/nostrChat'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
-import { nostrChatMessageHref } from '@/utils/nostrNavigation'
+import {
+  nostrAuthorProfileHref,
+  nostrChatMessageHref
+} from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
 
 type ThreadParams = {
@@ -123,10 +126,7 @@ export default function NostrChatThread() {
     if (!identity) {
       return
     }
-    router.push({
-      params: { npub: identity.npub, targetNpub: authorNpub },
-      pathname: '/signer/nostr/account/[npub]/contact/[targetNpub]'
-    })
+    router.push(nostrAuthorProfileHref(identity.npub, authorNpub))
   }
 
   const formattedNpubs = buildChatThreadAuthors({

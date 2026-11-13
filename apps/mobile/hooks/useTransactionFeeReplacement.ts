@@ -17,6 +17,7 @@ import {
   hasUnfinishedDraft,
   useTransactionBuilderStore
 } from '@/store/transactionBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import {
   type FeeReplacementDraft,
@@ -65,7 +66,9 @@ type FeeReplacementBuildInput = {
   backend: Backend
   feeRate: number
   kind: FeeReplacementKind
-  syncWallet: () => Promise<void>
+  /** Syncs the account and returns the wallet to build with: a sync that
+   * finds the wallet on another chain replaces it. */
+  syncWallet: () => Promise<BdkWallet>
   tx: Transaction
   wallet: BdkWallet
 }
@@ -89,9 +92,27 @@ async function buildReplacementPsbtAfterSync(
     }
     // Broadcasting does not add the transaction to the BDK wallet; it only
     // gets there with the next sync.
-    await input.syncWallet()
-    return buildReplacementPsbt(input.wallet, data)
+    const syncedWallet = await input.syncWallet()
+    return buildReplacementPsbt(syncedWallet, data)
   }
+}
+
+// The child is built by the BDK wallet, which only learns a just-broadcast
+// parent with the next sync. The Core backend builds it from its own wallet.
+async function walletHoldingUtxo(
+  input: FeeReplacementBuildInput,
+  utxo: Parameters<typeof isUtxoInWallet>[1]
+): Promise<BdkWallet> {
+  if (input.backend === 'rpc' || isUtxoInWallet(input.wallet, utxo)) {
+    return input.wallet
+  }
+  const syncedWallet = await input.syncWallet()
+  if (!isUtxoInWallet(syncedWallet, utxo)) {
+    throw new FeeReplacementError(
+      'transaction.feeReplacement.error.notInWallet'
+    )
+  }
+  return syncedWallet
 }
 
 function getOutputLabels(
@@ -123,21 +144,12 @@ function getSelfDestination(account: Account, wallet: BdkWallet): string {
 async function buildCpfpReplacement(
   input: FeeReplacementBuildInput
 ): Promise<FeeReplacementBuild> {
-  const { account, feeRate, tx, wallet } = input
+  const { account, feeRate, tx } = input
   const utxo = pickCpfpUtxo(account, tx.id)
   if (!utxo) {
     throw new FeeReplacementError('transaction.feeReplacement.error.failed')
   }
-  // The child is built by the BDK wallet, which only learns a just-broadcast
-  // parent with the next sync. The Core backend builds it from its own wallet.
-  if (input.backend !== 'rpc' && !isUtxoInWallet(wallet, utxo)) {
-    await input.syncWallet()
-    if (!isUtxoInWallet(wallet, utxo)) {
-      throw new FeeReplacementError(
-        'transaction.feeReplacement.error.notInWallet'
-      )
-    }
-  }
+  const wallet = await walletHoldingUtxo(input, utxo)
   const result = buildCpfpDraft({
     destination: getSelfDestination(account, wallet),
     destinationLabel: t('transaction.feeReplacement.cpfp'),
@@ -307,6 +319,7 @@ export function useTransactionFeeReplacement({
             if (synced) {
               updateAccount(synced)
             }
+            return useWalletsStore.getState().wallets[accountId] ?? wallet
           },
           tx,
           wallet

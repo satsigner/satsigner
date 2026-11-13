@@ -9,6 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,8 +24,12 @@ import { formatNumber } from '@/utils/format'
 export default function EcashBackupPage() {
   const { activeAccountId, mints, proofs, transactions } =
     useEcashAccountState()
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
   const [showBackupData, setShowBackupData] = useState(false)
@@ -115,11 +120,13 @@ export default function EcashBackupPage() {
                   {t('ecash.backup.totalBalance')}:
                 </SSText>
                 <SSText weight="medium">
-                  {formatNumber(
-                    proofs.reduce((sum, proof) => sum + proof.amount, 0),
-                    0,
-                    zeroPadding
-                  )}{' '}
+                  {privacyMode
+                    ? PRIVACY_MASK
+                    : formatNumber(
+                        proofs.reduce((sum, proof) => sum + proof.amount, 0),
+                        0,
+                        zeroPadding
+                      )}{' '}
                   {currencyUnit === 'btc'
                     ? t('bitcoin.btc')
                     : t('bitcoin.sats')}
@@ -135,7 +142,9 @@ export default function EcashBackupPage() {
                 <SSText color="muted" style={{ flex: 1 }}>
                   {t('ecash.backup.totalProofs')}:
                 </SSText>
-                <SSText weight="medium">{proofs.length}</SSText>
+                <SSText weight="medium">
+                  {privacyMode ? PRIVACY_MASK : proofs.length}
+                </SSText>
               </SSHStack>
             </SSVStack>
           </SSVStack>

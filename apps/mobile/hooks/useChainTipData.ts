@@ -20,6 +20,10 @@ import type {
   RpcCredentials
 } from '@/types/settings/blockchain'
 import { getDifficultyFromBits } from '@/utils/bitcoin/difficulty'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { PRICE_CHART_DAYS } from '@/utils/priceChart'
 import { time } from '@/utils/time'
 
@@ -158,17 +162,17 @@ async function fetchChainTipData(
   rpcCredentials?: RpcCredentials
 ): Promise<ChainTipData> {
   const [block, basic] = await Promise.all([
-    fetchTipBlock(serverUrl, backend, network, rpcCredentials).catch(
-      () => ({})
-    ),
-    fetchMempoolBasicData(serverUrl, backend, network, rpcCredentials)
+    fetchTipBlock(serverUrl, backend, network, rpcCredentials),
+    fetchMempoolBasicData(serverUrl, backend, network, rpcCredentials).catch(
+      () => null
+    )
   ])
   return {
     ...emptyChainTipData(),
     ...block,
-    fees: basic.fees,
-    feesSource: basic.fees ? 'backend' : 'mempool',
-    mempool: toChainTipMempool(basic)
+    fees: basic?.fees ?? null,
+    feesSource: basic?.fees ? 'backend' : 'mempool',
+    mempool: basic ? toChainTipMempool(basic) : null
   }
 }
 
@@ -180,11 +184,14 @@ export function useChainTipData() {
 
   return useQuery({
     queryFn: () =>
-      fetchChainTipData(
-        server.url,
-        server.backend,
-        selectedNetwork,
-        server.rpcCredentials
+      withExplorerTimeout(
+        fetchChainTipData(
+          server.url,
+          server.backend,
+          selectedNetwork,
+          server.rpcCredentials
+        ),
+        server.url
       ),
     queryKey: [
       'chain-tip',
@@ -193,6 +200,7 @@ export function useChainTipData() {
       selectedNetwork,
       server.rpcCredentials?.username
     ],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 }
@@ -206,8 +214,13 @@ export function useChainTipMempoolStats(
 
   return useQuery({
     enabled,
-    queryFn: () => oracle.getMempoolStatistics(timeRange),
+    queryFn: () =>
+      withExplorerTimeout(
+        oracle.getMempoolStatistics(timeRange),
+        oracle.baseUrl
+      ),
     queryKey: ['chaintip-statistics', timeRange, selectedNetwork],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(5)
   })
 }
@@ -235,7 +248,10 @@ export function useChainTipPriceHistory(
     enabled,
     queryFn: async () => {
       try {
-        const series = await oracle.getHistoricalPriceSeries(fiatCurrency)
+        const series = await withExplorerTimeout(
+          oracle.getHistoricalPriceSeries(fiatCurrency),
+          oracle.baseUrl
+        )
         return windowPriceHistory(series)
       } catch {
         const parsed = CurrencySchema.safeParse(fiatCurrency)

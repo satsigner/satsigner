@@ -146,6 +146,43 @@ describe('useAccountBuilderFinish', () => {
     )
   })
 
+  it('keeps the origin path of each multisig key', async () => {
+    const ownOrigin = "m/48'/1'/3'/2'"
+    const defaultOrigin = "m/48'/1'/0'/2'"
+    jest.mocked(getWalletData).mockResolvedValue({
+      dbPath: 'db',
+      derivationPath: defaultOrigin,
+      externalDescriptor: 'ext',
+      fingerprint: 'abcd1234',
+      internalDescriptor: '',
+      keyDerivationPaths: [ownOrigin, defaultOrigin],
+      keyFingerprints: ['abcd1234', 'ef015678'],
+      wallet: {}
+    })
+    useAccountBuilderStore.setState({
+      keyCount: 2,
+      keys: [0, 1].map((index) => ({
+        creationType: 'importExtendedPub',
+        index,
+        iv: 'iv',
+        scriptVersion: 'P2WSH',
+        secret: { extendedPublicKey: `tpub${index}` }
+      })),
+      keysRequired: 2,
+      policyType: 'multisig'
+    })
+    const result = renderBuilderFinish()
+
+    const data = await finish(
+      result,
+      useAccountBuilderStore.getState().getAccountData()
+    )
+
+    expect(
+      data?.accountWithEncryptedSecret.keys.map((key) => key.derivationPath)
+    ).toStrictEqual([ownOrigin, defaultOrigin])
+  })
+
   it('finishes on retry after an attempt that failed late', async () => {
     jest
       .mocked(useWalletsStore.getState().addAccountWallet)

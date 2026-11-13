@@ -57,6 +57,7 @@ import {
 } from '@/utils/connectionTestDisplay'
 import { trimOnionAddress } from '@/utils/format'
 import { isNewlyPublic } from '@/utils/serverPrivacy'
+import { isValidPort } from '@/utils/url'
 
 const tnServer = _tn('settings.network.server')
 
@@ -209,11 +210,11 @@ export default function CustomNetwork() {
         return false
       }
 
-      if (!/^[0-9]+$/.test(formData.port)) {
+      if (!isValidPort(formData.port)) {
         toast.warning(t('error.invalid.port'))
         return false
       }
-    } else if (formData.port.trim() && !/^[0-9]+$/.test(formData.port)) {
+    } else if (formData.port.trim() && !isValidPort(formData.port)) {
       toast.warning(t('error.invalid.port'))
       return false
     }

@@ -11,8 +11,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
 import { collectMintUrlsForRestore } from '@/utils/ecashBackup'
+import { formatMaskedNumber } from '@/utils/format'
 
 export default function EcashAccountRecoveryPage() {
   const {
@@ -22,6 +24,7 @@ export default function EcashAccountRecoveryPage() {
     restoreAllAccountMintsFromSeed,
     restoreFromBackup
   } = useEcash()
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const [mintUrl, setMintUrl] = useState('')
   const [backupJson, setBackupJson] = useState('')
   const [isRestoring, setIsRestoring] = useState(false)
@@ -56,13 +59,7 @@ export default function EcashAccountRecoveryPage() {
 
   function handleRestoreBackup() {
     setIsRestoringBackup(true)
-    try {
-      const parsed: unknown = JSON.parse(backupJson)
-      restoreFromBackup(parsed)
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown'
-      toast.error(t('ecash.recovery.restoreFailed', { error: reason }))
-    }
+    restoreFromBackup(backupJson)
     setIsRestoringBackup(false)
   }
 
@@ -139,7 +136,10 @@ export default function EcashAccountRecoveryPage() {
                   </SSText>
                   <SSText>
                     {t('ecash.recovery.totalAmount', {
-                      amount: result.totalAmount
+                      amount: formatMaskedNumber(
+                        result.totalAmount,
+                        privacyMode
+                      )
                     })}
                   </SSText>
                   {result.mintsFailed > 0 ? (

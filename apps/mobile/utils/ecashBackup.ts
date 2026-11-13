@@ -334,6 +334,19 @@ export function parseEcashBackupPayload(input: unknown): ParsedEcashBackup {
   }
 }
 
+/** Backup text as the user pasted it; text that is not JSON is an invalid backup. */
+export function parseEcashBackupJson(text: string): ParsedEcashBackup {
+  return parseEcashBackupPayload(parseBackupJson(text))
+}
+
+function parseBackupJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new EcashBackupValidationError('invalid')
+  }
+}
+
 export function mergeByKey<T>(
   existing: T[],
   incoming: T[],

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 
 import { NOSTR_NIP46_DEFAULT_PERMISSIONS } from '@/constants/nostr'
+import { t } from '@/locales'
 import { useNip46Store } from '@/store/nip46'
 import type { Nip46Session } from '@/types/models/Nostr'
 import { randomUuid } from '@/utils/crypto'
 import { parseNostrConnectUri } from '@/utils/nip46'
+import { deriveNpubFromNsec } from '@/utils/nostr'
 
 import { useNip46SessionManager } from './useNip46SessionManager'
 
@@ -18,6 +20,14 @@ export function useNip46Connect(signerNpub: string, nsec: string) {
   async function initiateConnection(uri: string): Promise<Nip46Session | null> {
     setIsConnecting(true)
     setError(null)
+
+    // Checked before the session is stored, so a pairing that can never
+    // sign leaves no app card behind.
+    if (deriveNpubFromNsec(nsec) !== signerNpub) {
+      setError(t('nip46.watchOnly'))
+      setIsConnecting(false)
+      return null
+    }
 
     const parsed = parseNostrConnectUri(uri)
     if (!parsed) {

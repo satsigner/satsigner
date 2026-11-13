@@ -16,6 +16,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { tn } from '@/locales'
+import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 
 const tl = tn('settings.features.fiatData')
 
@@ -45,6 +46,10 @@ export default function FiatData() {
 
   function selectCustom() {
     setFiatPriceProvider('custom')
+  }
+
+  function normalizeCustomUrl() {
+    setCustomFiatPriceApiUrl(normalizeFiatPriceApiUrl(customFiatPriceApiUrl))
   }
 
   function toggleFetchCurrentPrices() {
@@ -129,6 +134,7 @@ export default function FiatData() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="url"
+                        onBlur={normalizeCustomUrl}
                         onChangeText={setCustomFiatPriceApiUrl}
                         placeholder={tl('provider.customPlaceholder')}
                         value={customFiatPriceApiUrl}

@@ -7,7 +7,10 @@ import { t } from '@/locales'
 import { Colors, Layout, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import { getConfirmationsColorStyle } from '@/utils/confirmations'
+import {
+  getConfirmations,
+  getConfirmationsColorStyle
+} from '@/utils/confirmations'
 import {
   formatConfirmationsWithBlock,
   formatFiatPrice,
@@ -111,8 +114,8 @@ function SSTransactionCard({
 
   const hasConfirmation = confirmedAtBlockHeight !== null
 
-  const confirmations = transaction.blockHeight
-    ? blockHeight - transaction.blockHeight + 1
+  const confirmations = hasConfirmation
+    ? getConfirmations(confirmedAtBlockHeight, blockHeight)
     : 0
 
   const confirmationColor = getConfirmationsColorStyle(confirmations)
@@ -193,20 +196,14 @@ function SSTransactionCard({
             </SSText>
           )}
           <SSHStack gap="none" style={{ flexShrink: 0 }}>
-            {hasConfirmation ? (
-              <SSText size="xs" style={confirmationColor}>
-                {confirmations <= 0
-                  ? `${t('bitcoin.confirmations.unconfirmed')} • ${confirmedAtBlockHeight.toLocaleString('en-US')}`
-                  : formatConfirmationsWithBlock(
-                      confirmations,
-                      confirmedAtBlockHeight
-                    )}
-              </SSText>
-            ) : (
-              <SSText size="xs" style={confirmationColor}>
-                {t('bitcoin.confirmations.unconfirmed')}
-              </SSText>
-            )}
+            <SSText size="xs" style={confirmationColor}>
+              {hasConfirmation
+                ? formatConfirmationsWithBlock(
+                    confirmations,
+                    confirmedAtBlockHeight
+                  )
+                : t('bitcoin.confirmations.unconfirmed')}
+            </SSText>
           </SSHStack>
         </SSHStack>
         <SSHStack

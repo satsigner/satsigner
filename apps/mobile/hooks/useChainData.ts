@@ -3,6 +3,10 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { fetchChainData } from '@/api/explorerChain'
 import { useBlockchainStore } from '@/store/blockchain'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 export function useChainData() {
@@ -12,7 +16,8 @@ export function useChainData() {
   const { server } = configs[selectedNetwork]
 
   return useQuery({
-    queryFn: () => fetchChainData(server, selectedNetwork),
+    queryFn: () =>
+      withExplorerTimeout(fetchChainData(server, selectedNetwork), server.url),
     queryKey: [
       'chain-data',
       server.url,
@@ -20,6 +25,7 @@ export function useChainData() {
       selectedNetwork,
       server.rpcCredentials?.username
     ],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(1)
   })
 }

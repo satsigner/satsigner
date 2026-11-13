@@ -43,11 +43,12 @@ import { randomKey } from '@/utils/crypto'
 import {
   collectMintUrlsForRestore,
   EcashBackupValidationError,
-  parseEcashBackupPayload
+  parseEcashBackupJson
 } from '@/utils/ecashBackup'
 import { proofsAfterMeltResult } from '@/utils/ecashMelt'
 import { toPaymentErrorMessage } from '@/utils/ecashPaymentError'
 import { proofsAfterSend, removeSpentSecrets } from '@/utils/ecashProofs'
+import { toError } from '@/utils/error'
 
 const TOKEN_NOT_CHECKED: EcashTokenValidation = {
   details: 'Token could not be checked',
@@ -146,7 +147,13 @@ export function useEcash() {
       return existingMint
     }
 
-    const mint = await connectToMint(mintUrl)
+    // Callers rely on the rethrow to keep what the user typed.
+    const mint = await connectToMint(mintUrl).catch((error: unknown) => {
+      toast.error(
+        t('ecash.error.mintConnectionFailed', { error: toError(error).message })
+      )
+      throw error
+    })
     addMintAction(activeAccountId, mint)
     toast.success(t('ecash.success.mintConnected'))
 
@@ -180,12 +187,20 @@ export function useEcash() {
       throw new Error('No active account')
     }
     const options = await getWalletOptions()
+    // The rethrow keeps the caller from showing an invoice.
     const quote = await createMintQuote(
       activeAccountId,
       mintUrl,
       amount,
       options
-    )
+    ).catch((error: unknown) => {
+      toast.error(
+        t('ecash.error.invoiceCreationFailed', {
+          error: toError(error).message
+        })
+      )
+      throw error
+    })
     addMintQuoteAction(activeAccountId, quote)
 
     const transaction: EcashTransaction = {
@@ -592,12 +607,12 @@ export function useEcash() {
     }
   }
 
-  function restoreFromBackupHandler(backupData: unknown) {
+  function restoreFromBackupHandler(backupJson: string) {
     if (!activeAccountId) {
       return
     }
     try {
-      restoreFromBackup(activeAccountId, parseEcashBackupPayload(backupData))
+      restoreFromBackup(activeAccountId, parseEcashBackupJson(backupJson))
       toast.success(t('ecash.success.backupRestored'))
     } catch (error) {
       if (

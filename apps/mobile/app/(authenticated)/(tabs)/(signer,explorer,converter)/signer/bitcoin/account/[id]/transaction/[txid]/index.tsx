@@ -34,7 +34,10 @@ import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
-import { getConfirmationsColorStyle } from '@/utils/confirmations'
+import {
+  getConfirmations,
+  getConfirmationsColorStyle
+} from '@/utils/confirmations'
 import { getFeeReplacementOptions } from '@/utils/feeReplacement'
 import {
   formatConfirmations,
@@ -422,10 +425,9 @@ export function SSTxDetailsHeader({
   const inputsCount = tx?.vin?.length ?? 0
   const outputsCount = tx?.vout?.length ?? 0
 
-  const confirmations =
-    tx?.blockHeight && lastKnownBlockHeight > 0
-      ? lastKnownBlockHeight - tx.blockHeight + 1
-      : 0
+  const confirmations = tx?.blockHeight
+    ? getConfirmations(tx.blockHeight, lastKnownBlockHeight)
+    : 0
   const confirmationColorStyle = getConfirmationsColorStyle(confirmations)
 
   const historicalBtcPrice = showHistoricalFiat

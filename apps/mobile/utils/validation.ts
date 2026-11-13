@@ -8,11 +8,12 @@ import {
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { ScriptVersionType } from '@/types/models/Script'
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import { isDescriptorChecksumValid } from '@/utils/descriptorChecksum'
 
 bitcoinjs.initEccLib(ecc)
 
 const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
-  bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
+  bitcoin: ['xpub', 'ypub', 'zpub'],
   signet: ['tpub', 'upub', 'vpub'],
   testnet: ['tpub', 'upub', 'vpub']
 }
@@ -32,6 +33,16 @@ export function validateExtendedKey(key: string, network?: AppNetwork) {
   return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
+/** True when every extended public key in the descriptor is for the network. */
+export function validateDescriptorNetwork(
+  descriptor: string,
+  network: AppNetwork
+) {
+  const extendedKeys =
+    descriptor.match(new RegExp(EXTENDED_PUBKEY_PATTERN, 'g')) ?? []
+  return extendedKeys.every((key) => validateExtendedKey(key, network))
+}
+
 export function validateDerivationPath(path: string) {
   // Updated regex to better handle both h and ' formats
   // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
@@ -43,19 +54,20 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 function validateDescriptorChecksum(descriptor: string) {
-  // Try the descriptor as-is first (works for h-notation with valid checksum)
-  if (
+  if (!isDescriptorChecksumValid(descriptor)) {
+    return false
+  }
+  return (
     bdkValidateDescriptor(descriptor, Network.Bitcoin) ||
     bdkValidateDescriptor(descriptor, Network.Testnet)
-  ) {
-    return true
-  }
-  // Fall back: normalize ' → h and strip checksum (for '-notation descriptors)
-  const normalized = descriptor.replace(/#\w+$/, '').replaceAll("'", 'h')
-  return (
-    bdkValidateDescriptor(normalized, Network.Bitcoin) ||
-    bdkValidateDescriptor(normalized, Network.Testnet)
   )
+}
+
+/** Error key for a descriptor that failed `validateDescriptor`. */
+export function getInvalidDescriptorError(descriptor: string) {
+  return isDescriptorChecksumValid(descriptor)
+    ? 'descriptorFormat'
+    : 'checksumInvalid'
 }
 
 export function validateDescriptor(descriptor: string) {
@@ -91,9 +103,9 @@ function validateDescriptorInternal(
   const checksumRegex = new RegExp(`#[a-zA-Z0-9]{1,8}$`)
   const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
 
-  const singleKeyRegex = new RegExp(singleKey, 'gm')
-  const multiKeyRegex = new RegExp(multiKey, 'gm')
-  const nestedRegex = new RegExp(nestedDescriptor, 'gm')
+  const singleKeyRegex = new RegExp(singleKey)
+  const multiKeyRegex = new RegExp(multiKey)
+  const nestedRegex = new RegExp(nestedDescriptor)
 
   // Validate checksum first (only if validateChecksum is true)
   if (validateChecksum) {
@@ -277,7 +289,7 @@ function separateCombinedDescriptor(combinedDescriptor: string) {
 export function validateCombinedDescriptor(
   combinedDescriptor: string,
   scriptVersion?: ScriptVersionType,
-  networkType?: string
+  network?: AppNetwork
 ) {
   const combinedValidation = validateDescriptor(combinedDescriptor)
 
@@ -286,7 +298,7 @@ export function validateCombinedDescriptor(
       separateCombinedDescriptor(combinedDescriptor)
 
     return {
-      error: 'descriptorFormat',
+      error: getInvalidDescriptorError(combinedDescriptor),
       externalDescriptor: external,
       internalDescriptor: internal,
       isValid: false
@@ -312,29 +324,9 @@ export function validateCombinedDescriptor(
   const { external: externalDesc, internal: internalDesc } =
     separateCombinedDescriptor(combinedDescriptor)
 
-  let networkValidation: { isValid: boolean; error?: string } = {
-    isValid: true
-  }
-
-  if (networkType && combinedDescriptor) {
-    let bdkNetwork = Network.Bitcoin
-    if (networkType === 'testnet') {
-      bdkNetwork = Network.Testnet
-    }
-    if (networkType === 'regtest') {
-      bdkNetwork = Network.Regtest
-    }
-    if (networkType === 'signet') {
-      bdkNetwork = Network.Signet
-    }
-    if (bdkValidateDescriptor(combinedDescriptor, bdkNetwork)) {
-      networkValidation = { isValid: true }
-    }
-  }
-
-  if (!networkValidation.isValid) {
+  if (network && !validateDescriptorNetwork(combinedDescriptor, network)) {
     return {
-      error: networkValidation.error,
+      error: 'networkIncompatible',
       externalDescriptor: externalDesc,
       internalDescriptor: internalDesc,
       isValid: false

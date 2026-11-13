@@ -6,10 +6,8 @@ import {
 } from 'expo-router/react-navigation'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletData } from '@/api/bdk'
 import { initRpcUrlAdjustments } from '@/api/rpc'
 import SSArkReceiveOverlay from '@/components/SSArkReceiveOverlay'
 import SSNavMenu from '@/components/SSNavMenu'
@@ -27,15 +25,13 @@ import { useAuthStore } from '@/store/auth'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
-import type { Account, Key } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { type PageParams, type PageRoute } from '@/types/navigation/page'
 import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
-import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { decryptAccountKeySecrets } from '@/utils/decryption'
+import { loadAccountWallets } from '@/utils/accountWallets'
 import { devLog, devStep } from '@/utils/devConsole'
 import { startNostrLifecycle, stopNostrLifecycle } from '@/utils/nostrLifecycle'
 import { migrateAndHydrateNostrSecrets } from '@/utils/nostrSecrets'
-import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
@@ -44,71 +40,7 @@ import {
   type SyncErrorReporter,
   createSyncFailureBatch
 } from '@/utils/syncFailureToasts'
-
-function yieldToUi() {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, 0)
-  })
-}
-
-type AccountWalletLoaders = Pick<
-  ReturnType<typeof useWalletsStore.getState>,
-  'wallets' | 'addresses' | 'addAccountWallet' | 'addAccountAddress'
->
-
-async function loadAccountWallets({
-  wallets,
-  addresses,
-  addAccountWallet,
-  addAccountAddress
-}: AccountWalletLoaders) {
-  for (const account of useAccountsStore.getState().accounts) {
-    try {
-      const isImportAddress = account.keys[0].creationType === 'importAddress'
-      const existsWallet = !isImportAddress
-        ? !!wallets[account.id]
-        : !!addresses[account.id]
-      if (existsWallet) {
-        continue
-      }
-
-      const secrets = await decryptAccountKeySecrets(account)
-      const tmpAccount: Account = {
-        ...account,
-        keys: account.keys.map((key, index) => {
-          const decryptedKey: Key = { ...key, secret: secrets[index] }
-          return decryptedKey
-        })
-      }
-
-      const walletData = !isImportAddress
-        ? await getWalletData(
-            tmpAccount,
-            appNetworkToBdkNetwork(account.network)
-          )
-        : undefined
-      if (walletData) {
-        addAccountWallet(account.id, walletData.wallet, walletData.dbPath)
-      }
-
-      const importSecret = tmpAccount.keys[0].secret
-      if (isImportAddress && typeof importSecret === 'object') {
-        const descriptor = importSecret.externalDescriptor
-        if (descriptor) {
-          addAccountAddress(
-            account.id,
-            parseAddressDescriptorToAddress(descriptor)
-          )
-        }
-      }
-    } catch (error) {
-      const label = account.name ?? account.id
-      const reason = error instanceof Error ? error.message : String(error)
-      toast.error(`${label}: ${reason}`)
-    }
-    await yieldToUi()
-  }
-}
+import { yieldToUi } from '@/utils/time'
 
 function toPageRoute(path: string, params: Record<string, unknown>): PageRoute {
   const pageParams: PageParams = {}
@@ -142,15 +74,6 @@ function AuthenticatedSession() {
     ])
   )
   const updateAccount = useAccountsStore((state) => state.updateAccount)
-  const [wallets, addresses, addAccountWallet, addAccountAddress] =
-    useWalletsStore(
-      useShallow((state) => [
-        state.wallets,
-        state.addresses,
-        state.addAccountWallet,
-        state.addAccountAddress
-      ])
-    )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const router = useRouter()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
@@ -172,12 +95,7 @@ function AuthenticatedSession() {
       return
     }
 
-    await loadAccountWallets({
-      addAccountAddress,
-      addAccountWallet,
-      addresses,
-      wallets
-    })
+    await loadAccountWallets()
     setJustUnlocked(false)
   }
 

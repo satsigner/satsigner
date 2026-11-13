@@ -4,17 +4,19 @@ import {
   addDescriptorChecksum,
   deriveChangeDescriptor,
   descriptorHasPrivateKeyMaterial,
-  getDescriptorChecksum,
   getDescriptorDerivationPath,
   getFingerprint,
+  getImportedKeyDescriptor,
   getScriptVersionFromDescriptor,
   getXpubFingerprint,
+  keyOriginPath,
   parseImportedDescriptorPayload,
   parseXpubInput,
   processCombinedDescriptor,
   splitMultipathDescriptor,
   wrapBareScriptKey
 } from '@/utils/descriptor'
+import { getDescriptorChecksum } from '@/utils/descriptorChecksum'
 
 const SPARROW_ORIGIN_XPUB =
   "[d34db33f/84'/0'/0']xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWZiD6gkqamhVgBkt3Y5MpcMbTexKCNc5shV4zrtJzeYp5G5ayUCsKcxV4kVFCYiyCMJNWv4sh2XycHBG"
@@ -360,5 +362,61 @@ describe('splitMultipathDescriptor', () => {
     expect(
       splitMultipathDescriptor(`${SPARROW_DESCRIPTOR}#yvl3yusl`)
     ).toStrictEqual([`${SPARROW_DESCRIPTOR}#yvl3yusl`])
+  })
+})
+
+describe('getImportedKeyDescriptor', () => {
+  const EXTERNAL = 'wpkh([d34db33f/84h/0h/0h]xpubA/0/*)'
+  const INTERNAL = 'wpkh([d34db33f/84h/0h/0h]xpubA/1/*)'
+  const EMPTY = { descriptor: '', valid: true }
+
+  it('prefers the External descriptor', () => {
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: true },
+        { descriptor: INTERNAL, valid: true }
+      )
+    ).toBe(EXTERNAL)
+  })
+
+  it('uses the Internal descriptor when External is empty', () => {
+    expect(
+      getImportedKeyDescriptor(EMPTY, { descriptor: INTERNAL, valid: true })
+    ).toBe(INTERNAL)
+  })
+
+  it('returns nothing while a filled descriptor is invalid', () => {
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: false },
+        { descriptor: INTERNAL, valid: true }
+      )
+    ).toBeUndefined()
+    expect(
+      getImportedKeyDescriptor(
+        { descriptor: EXTERNAL, valid: true },
+        { descriptor: INTERNAL, valid: false }
+      )
+    ).toBeUndefined()
+  })
+
+  it('returns nothing when both are empty', () => {
+    expect(getImportedKeyDescriptor(EMPTY, EMPTY)).toBeUndefined()
+  })
+})
+
+describe('keyOriginPath', () => {
+  const POLICY_PATH = "48'/1'/0'/2'"
+
+  it('uses the path the key was imported at', () => {
+    expect(keyOriginPath("m/48'/1'/3'/2'", POLICY_PATH)).toBe("48'/1'/3'/2'")
+    expect(keyOriginPath('84h/1h/0h', POLICY_PATH)).toBe('84h/1h/0h')
+  })
+
+  it('falls back to the policy path without a valid one', () => {
+    expect(keyOriginPath(undefined, POLICY_PATH)).toBe(POLICY_PATH)
+    expect(keyOriginPath('', `m/${POLICY_PATH}`)).toBe(POLICY_PATH)
+    expect(keyOriginPath('m//0', POLICY_PATH)).toBe(POLICY_PATH)
+    expect(keyOriginPath("m/48'/x'", POLICY_PATH)).toBe(POLICY_PATH)
   })
 })

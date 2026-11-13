@@ -91,7 +91,9 @@ import {
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import { nostrAuthorProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import {
+  buildNoteEventJson,
   getJsonNoteData,
+  getNoteTagsForDisplay,
   type NostrNoteEvent,
   withAuthorProfile
 } from '@/utils/nostrNoteDetail'
@@ -617,19 +619,11 @@ export default function NostrNotePage() {
   }
 
   const eventJson = fetched
-    ? JSON.stringify(
-        {
-          content: fetched.content,
-          created_at: fetched.created_at,
-          id: decoded?.data ?? '',
-          kind: fetched.kind,
-          pubkey: fetched.pubkey,
-          tags: fetched.tags
-        },
-        null,
-        2
-      )
+    ? buildNoteEventJson(fetched, decoded?.data ?? '', privacyMode)
     : ''
+  const metadataTags = fetched
+    ? getNoteTagsForDisplay(fetched.tags, privacyMode)
+    : []
 
   if (!decoded || decoded.kind === 'unknown') {
     return (
@@ -1072,7 +1066,7 @@ export default function NostrNotePage() {
                         </SSText>
                       </SSClipboardCopy>
                     </SSHStack>
-                    {fetched.tags.map((tag, index) => (
+                    {metadataTags.map((tag, index) => (
                       <SSHStack key={index} gap="xs" style={styles.metaRow}>
                         <View style={styles.tagTypeBadge}>
                           <SSText size="xxs" type="mono">

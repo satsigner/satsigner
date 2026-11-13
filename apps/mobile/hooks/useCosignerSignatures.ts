@@ -145,7 +145,7 @@ export function useCosignerSignatures({
       })
       return null
     }
-    setSignedTx(result.hex)
+    setSignedTx(result.hex, result.psbtBase64)
     onNotice({ key: 'transaction.finalizedSuccessfully', type: 'success' })
     return result.hex
   }

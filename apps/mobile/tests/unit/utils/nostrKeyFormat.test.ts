@@ -6,7 +6,8 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
 import { hexToBytes } from '@noble/hashes/utils'
 import { getPublicKey } from 'nostr-tools'
 
-import { formatNostrKey } from '@/utils/nostr'
+import { t } from '@/locales'
+import { formatNostrKey, getNostrKeyLabel } from '@/utils/nostr'
 
 import { nostrKeys } from './nostrSamples'
 
@@ -41,5 +42,22 @@ describe('formatNostrKey', () => {
     const note =
       'note1fntxtkcy9pjwucqwa9mddn7v03wwwsu9j330jj350nvhpky2tuaspk6nqc'
     expect(formatNostrKey(note, 'bech32')).toBeNull()
+  })
+})
+
+describe('getNostrKeyLabel', () => {
+  it('names the key in the format it is shown in', () => {
+    expect(getNostrKeyLabel('npub', 'bech32')).toBe(
+      t('nostrIdentity.keys.npub')
+    )
+    expect(getNostrKeyLabel('npub', 'hex')).toBe(
+      t('nostrIdentity.keys.npubHex')
+    )
+    expect(getNostrKeyLabel('nsec', 'hex')).toBe(
+      t('nostrIdentity.keys.nsecHex')
+    )
+    expect(getNostrKeyLabel('npub', 'hex')).not.toBe(
+      getNostrKeyLabel('npub', 'bech32')
+    )
   })
 })

@@ -5,6 +5,8 @@ import {
   parseLabel,
   parseLabelTags,
   parseUriParameters,
+  readBitcoinUriAmount,
+  resolveExplorerAddressParam,
   sanitizeScannedText,
   stripBitcoinPrefix
 } from '@/utils/parse'
@@ -91,6 +93,87 @@ describe('parse utils', () => {
         label: undefined
       })
     })
+
+    it('decodes a percent-encoded label only once', () => {
+      expect(
+        parseUriParameters('bc1qtest123?amount=0.001&label=50%25%20off')
+      ).toStrictEqual({
+        address: 'bc1qtest123',
+        amount: 0.001,
+        label: '50% off'
+      })
+    })
+
+    it.each(['%ZZ', '%E0%A4%A'])(
+      'keeps the exact address and amount when the label is malformed (%s)',
+      (label) => {
+        const result = parseUriParameters(
+          `bc1qtest123?amount=0.001&label=${label}`
+        )
+        expect(result?.address).toBe('bc1qtest123')
+        expect(result?.amount).toBe(0.001)
+      }
+    )
+  })
+
+  describe('parseUriParameters amount', () => {
+    it.each([
+      ['1.5', 1.5],
+      ['0.00001', 0.000_01],
+      ['.5', 0.5],
+      ['2.', 2],
+      ['0', 0]
+    ])('reads the decimal amount %s', (amount, expected) => {
+      expect(parseUriParameters(`bc1qtest123?amount=${amount}`)?.amount).toBe(
+        expected
+      )
+    })
+
+    it.each([
+      '1,5',
+      '0.001abc',
+      '1e3',
+      '0x10',
+      '-1',
+      ' 1',
+      'Infinity',
+      '0.001&amount=5'
+    ])('drops the malformed amount %s but keeps the address', (amount) => {
+      expect(parseUriParameters(`bc1qtest123?amount=${amount}`)).toMatchObject({
+        address: 'bc1qtest123',
+        amount: undefined
+      })
+    })
+  })
+
+  describe('readBitcoinUriAmount', () => {
+    it('reads a plain decimal amount whatever the key case', () => {
+      expect(readBitcoinUriAmount('bitcoin:bc1qtest123?amount=0.5')).toBe(0.5)
+      expect(readBitcoinUriAmount('BITCOIN:BC1QTEST123?AMOUNT=0.01')).toBe(0.01)
+    })
+
+    it.each([
+      'bitcoin:bc1qtest123',
+      'bitcoin:bc1qtest123?amount=0.001xyz',
+      'bitcoin:bc1qtest123?amount=1e-3',
+      'bitcoin:bc1qtest123?amount=0x1&pj=https://payjo.in/abc',
+      'bitcoin:bc1qtest123?amount=1&AMOUNT=2'
+    ])('has no amount for %s', (uri) => {
+      expect(readBitcoinUriAmount(uri)).toBeUndefined()
+    })
+  })
+
+  describe('resolveExplorerAddressParam', () => {
+    it.each(['%ZZ', '50%25%20off', '%E0%A4%A'])(
+      'returns the address of a uri whose label is %s',
+      (label) => {
+        expect(
+          resolveExplorerAddressParam(
+            `bitcoin:bc1qtest123?amount=0.001&label=${label}`
+          )
+        ).toBe('bc1qtest123')
+      }
+    )
   })
 
   describe('parseLabel', () => {

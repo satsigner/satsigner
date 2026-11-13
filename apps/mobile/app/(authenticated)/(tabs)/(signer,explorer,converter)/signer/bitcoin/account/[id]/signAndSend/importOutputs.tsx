@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
@@ -46,63 +46,56 @@ function ImportOuputs() {
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>EXTRA SECURITY</SSText>
-        }}
-      />
-      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
-        <SSVStack justifyBetween>
-          <SSVStack>
-            <SSText uppercase center size="lg">
-              {tn('title')}
-            </SSText>
-            <ScrollView>
-              <View
-                style={{
-                  backgroundColor: Colors.gray[950],
-                  borderRadius: 5,
-                  minHeight: 400,
-                  padding: 10
-                }}
-              >
-                <SSText color="white" size="md" type="mono">
-                  {importedOutputs}
-                </SSText>
-              </View>
-            </ScrollView>
-          </SSVStack>
-          <SSVStack>
-            <SSHStack>
-              <SSButton
-                label="PASTE"
-                style={{ flexGrow: 1, width: '45%' }}
-                onPress={readFromClibpoard}
-              />
-              <SSButton
-                label="SCAN QRCODE"
-                style={{ flexGrow: 1, width: '45%' }}
-                disabled
-              />
-            </SSHStack>
-            <SSButton
-              uppercase
-              label={tn('button')}
-              variant="secondary"
-              onPress={importOutputs}
-              disabled={!validInput}
-            />
-            <SSButton
-              uppercase
-              label={t('common.cancel')}
-              variant="ghost"
-              onPress={cancel}
-            />
-          </SSVStack>
+    <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
+      <SSVStack justifyBetween>
+        <SSVStack>
+          <SSText uppercase center size="lg">
+            {tn('title')}
+          </SSText>
+          <ScrollView>
+            <View
+              style={{
+                backgroundColor: Colors.gray[950],
+                borderRadius: 5,
+                minHeight: 400,
+                padding: 10
+              }}
+            >
+              <SSText color="white" size="md" type="mono">
+                {importedOutputs}
+              </SSText>
+            </View>
+          </ScrollView>
         </SSVStack>
-      </SSMainLayout>
-    </>
+        <SSVStack>
+          <SSHStack>
+            <SSButton
+              label="PASTE"
+              style={{ flexGrow: 1, width: '45%' }}
+              onPress={readFromClibpoard}
+            />
+            <SSButton
+              label="SCAN QRCODE"
+              style={{ flexGrow: 1, width: '45%' }}
+              disabled
+            />
+          </SSHStack>
+          <SSButton
+            uppercase
+            label={tn('button')}
+            variant="secondary"
+            onPress={importOutputs}
+            disabled={!validInput}
+          />
+          <SSButton
+            uppercase
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={cancel}
+          />
+        </SSVStack>
+      </SSVStack>
+    </SSMainLayout>
   )
 }
 

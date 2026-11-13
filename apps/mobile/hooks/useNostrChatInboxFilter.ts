@@ -6,10 +6,7 @@ import {
   type NostrChatFilter,
   useNostrChatSettingsStore
 } from '@/store/nostrChatSettings'
-import {
-  type NostrChatConversationItem,
-  type NostrChatProtocol
-} from '@/types/models/Nostr'
+import { type NostrChatConversationItem } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { nostrChatQueryKeys } from '@/utils/nostrChat'
 import {
@@ -26,21 +23,16 @@ type UseNostrChatInboxFilterOptions = {
   conversations: NostrChatConversationItem[]
   identityNpub: string
   identityRelays: string[] | undefined
-  protocol: NostrChatProtocol
 }
 
-function useNostrChatPeersWrittenTo(
-  identityNpub: string,
-  protocol: NostrChatProtocol
-) {
+function useNostrChatPeersWrittenTo(identityNpub: string) {
   const { data } = useQuery({
     enabled: identityNpub.length > 0,
-    queryFn: () => listPeersWrittenTo(identityNpub, protocol),
+    queryFn: () => listPeersWrittenTo(identityNpub),
     // Under the identity prefix so every chat invalidation refreshes it.
     queryKey: [
       ...nostrChatQueryKeys.identity(identityNpub),
-      PEERS_WRITTEN_TO_QUERY_KEY,
-      protocol
+      PEERS_WRITTEN_TO_QUERY_KEY
     ]
   })
   return data ?? NO_PEERS
@@ -49,8 +41,7 @@ function useNostrChatPeersWrittenTo(
 function useNostrChatInboxFilter({
   conversations,
   identityNpub,
-  identityRelays,
-  protocol
+  identityRelays
 }: UseNostrChatInboxFilterOptions) {
   const filter = useNostrChatSettingsStore(
     (state) => state.chatFilterByNpub[identityNpub] ?? DEFAULT_CHAT_FILTER
@@ -63,7 +54,7 @@ function useNostrChatInboxFilter({
     npub: identityNpub,
     relays: getNostrContactsRelays(identityRelays)
   })
-  const peersWrittenTo = useNostrChatPeersWrittenTo(identityNpub, protocol)
+  const peersWrittenTo = useNostrChatPeersWrittenTo(identityNpub)
 
   const followedPubkeys = getFollowedPubkeySet(follows.data)
   const { othersCount, visibleConversations } = selectInboxConversations({

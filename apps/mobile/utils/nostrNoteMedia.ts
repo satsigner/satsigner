@@ -1,19 +1,67 @@
 const IMAGE_FILE_EXT_RE = /\.(?:jpg|jpeg|png|gif|webp|avif|bmp)(?:\?[^\s]*)?$/i
+export const VIDEO_FILE_EXT_RE = /\.(?:mp4|webm|mov|m3u8)(?:\?[^\s]*)?$/i
+const IMAGE_HOST_HINT_RE = /nostr\.build|blossom|\/nip95|\/image\//i
+const IMAGE_MIME_PREFIX = 'image/'
 const MARKDOWN_IMAGE_RE = /!\[[^\]]*]\((https?:[^)\s]+)\)/gi
 const BARE_URL_RE = /https?:\/\/[^\s<>"')]+/gi
+const IMETA_DIM_RE = /^(\d+)x(\d+)$/
 
-export function isPlausibleImageHttpUrl(url: string): boolean {
+export type NostrImetaInfo = {
+  aspectRatio?: number
+  image?: string
+  mime?: string
+}
+
+function aspectRatioFromDim(dim: string | undefined): number | undefined {
+  const match = dim ? IMETA_DIM_RE.exec(dim) : null
+  const width = Number(match?.[1])
+  const height = Number(match?.[2])
+  return width > 0 && height > 0 ? width / height : undefined
+}
+
+function imetaField(tag: string[], name: string): string | undefined {
+  const prefix = `${name} `
+  return tag
+    .find((part) => typeof part === 'string' && part.startsWith(prefix))
+    ?.slice(prefix.length)
+    .trim()
+}
+
+/** NIP-92 `imeta` details (dimensions, poster image, mime type) per url. */
+export function parseImetaByUrl(tags: string[][]): Map<string, NostrImetaInfo> {
+  return new Map(
+    tags.flatMap((tag) => {
+      const url = tag[0] === 'imeta' ? imetaField(tag, 'url') : undefined
+      if (!url) {
+        return []
+      }
+      const info: NostrImetaInfo = {
+        aspectRatio: aspectRatioFromDim(imetaField(tag, 'dim')),
+        image: imetaField(tag, 'image'),
+        mime: imetaField(tag, 'm')?.toLowerCase()
+      }
+      return [[url, info]]
+    })
+  )
+}
+
+/**
+ * Whether a url renders as an inline image: by its declared imeta mime type,
+ * else by its file extension, else by hosts that serve extensionless images.
+ * A video is never an image, or it would load before the user taps to play it.
+ */
+export function isPlausibleImageHttpUrl(url: string, mime?: string): boolean {
   const u = url.trim()
   if (!/^https?:\/\//i.test(u)) {
     return false
   }
+  if (mime) {
+    return mime.startsWith(IMAGE_MIME_PREFIX)
+  }
   if (IMAGE_FILE_EXT_RE.test(u)) {
     return true
   }
-  if (/nostr\.build|blossom|\/nip95|\/image\//i.test(u)) {
-    return true
-  }
-  return false
+  return !VIDEO_FILE_EXT_RE.test(u) && IMAGE_HOST_HINT_RE.test(u)
 }
 
 /**
@@ -49,13 +97,14 @@ export function extractImageUrlsFromNote(
 ): string[] {
   const urls: string[] = []
   const seen = new Set<string>()
+  const imetaByUrl = parseImetaByUrl(tags)
 
   function push(raw: string) {
     const u = raw.trim().replace(/\)+$/, '')
     if (!u || seen.has(u)) {
       return
     }
-    if (!isPlausibleImageHttpUrl(u)) {
+    if (!isPlausibleImageHttpUrl(u, imetaByUrl.get(u)?.mime)) {
       return
     }
     seen.add(u)

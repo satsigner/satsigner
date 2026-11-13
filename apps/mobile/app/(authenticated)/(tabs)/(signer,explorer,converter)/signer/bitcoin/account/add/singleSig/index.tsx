@@ -10,6 +10,7 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import { ENTROPY_TYPES } from '@/config/entropy'
+import { useSelectModalDraft } from '@/hooks/useSelectModalDraft'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -53,19 +54,14 @@ export default function SingleSig() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
-  const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
+  const entropyPicker = useSelectModalDraft<EntropyType>('none')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
-  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
-    useState<NonNullable<Key['mnemonicWordCount']>>(24)
-  const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
+  const wordCountPicker =
+    useSelectModalDraft<NonNullable<Key['mnemonicWordCount']>>(24)
+  const wordListPicker = useSelectModalDraft(wordList)
 
-  const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
-    useState(false)
-  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisible] =
-    useState(false)
-  const [mnemonicWordListModalVisible, setMnemonicWordListModalVisible] =
     useState(false)
 
   const [loading, setLoading] = useState(false)
@@ -74,20 +70,20 @@ export default function SingleSig() {
     useAccountBuilderStore.getState().clearKeyState()
     setCreationType(type)
     setScriptVersion(localScriptVersion)
-    setEntropy(localEntropyType)
-    setMnemonicWordCount(localMnemonicWordCount)
-    setMnemonicWordList(localMnemonicWordList)
+    setEntropy(entropyPicker.value)
+    setMnemonicWordCount(wordCountPicker.value)
+    setMnemonicWordList(wordListPicker.value)
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
 
     if (type === 'generateMnemonic') {
-      switch (localEntropyType) {
+      switch (entropyPicker.value) {
         case 'none': {
           setLoading(true)
           const mnemonic = generateMnemonic(
-            localMnemonicWordCount,
-            localMnemonicWordList
+            wordCountPicker.value,
+            wordListPicker.value
           )
           setGeneratedMnemonic(mnemonic, getFingerprintFromMnemonic(mnemonic))
 
@@ -127,21 +123,6 @@ export default function SingleSig() {
     }
   }
 
-  function handleOnSelectMnemonicWordCount() {
-    setMnemonicWordCount(localMnemonicWordCount)
-    setMnemonicWordCountModalVisible(false)
-  }
-
-  function handleOnSelectMnemonicWordList() {
-    setMnemonicWordList(localMnemonicWordList)
-    setMnemonicWordListModalVisible(false)
-  }
-
-  function handleOnSelectEntropy() {
-    setLocalEntropyType(localEntropyType)
-    setEntropyModalVisible(false)
-  }
-
   if (!name) {
     return <Redirect href="/" />
   }
@@ -176,27 +157,27 @@ export default function SingleSig() {
               <SSFormLayout.Item>
                 <SSFormLayout.Label label={t('account.mnemonic.title')} />
                 <SSButton
-                  label={`${localMnemonicWordCount} ${t(
+                  label={`${wordCountPicker.value} ${t(
                     'bitcoin.words'
                   ).toLowerCase()}`}
                   withSelect
-                  onPress={() => setMnemonicWordCountModalVisible(true)}
+                  onPress={wordCountPicker.open}
                 />
               </SSFormLayout.Item>
               <SSFormLayout.Item>
                 <SSFormLayout.Label label={t('account.mnemonic.wordList')} />
                 <SSButton
-                  label={localMnemonicWordList}
+                  label={wordListPicker.value}
                   withSelect
-                  onPress={() => setMnemonicWordListModalVisible(true)}
+                  onPress={wordListPicker.open}
                 />
               </SSFormLayout.Item>
               <SSFormLayout.Item>
                 <SSFormLayout.Label label={t('account.entropy.title')} />
                 <SSButton
-                  label={t(`account.entropy.${localEntropyType}.label`)}
+                  label={t(`account.entropy.${entropyPicker.value}.label`)}
                   withSelect
-                  onPress={() => setEntropyModalVisible(true)}
+                  onPress={entropyPicker.open}
                 />
               </SSFormLayout.Item>
             </SSFormLayout>
@@ -234,49 +215,49 @@ export default function SingleSig() {
         onCancel={() => setScriptVersionModalVisible(false)}
       />
       <SSMnemonicWordCountSelectModal
-        visible={mnemonicWordCountModalVisible}
-        selectedWordCount={localMnemonicWordCount}
-        onChange={setLocalMnemonicWordCount}
-        onSelect={handleOnSelectMnemonicWordCount}
-        onCancel={() => setMnemonicWordCountModalVisible(false)}
+        visible={wordCountPicker.visible}
+        selectedWordCount={wordCountPicker.draft}
+        onChange={wordCountPicker.setDraft}
+        onSelect={wordCountPicker.select}
+        onCancel={wordCountPicker.cancel}
       />
       <SSSelectModal
-        visible={mnemonicWordListModalVisible}
+        visible={wordListPicker.visible}
         title={t('account.mnemonic.wordList')}
         selectedText={t('account.mnemonic.wordListText', {
-          wordList: localMnemonicWordList.replaceAll('_', ' ')
+          wordList: wordListPicker.draft.replaceAll('_', ' ')
         })}
         selectedDescription={t('account.mnemonic.wordListDescription', {
-          wordList: localMnemonicWordList.replaceAll('_', ' ')
+          wordList: wordListPicker.draft.replaceAll('_', ' ')
         })}
-        onSelect={handleOnSelectMnemonicWordList}
-        onCancel={() => setMnemonicWordListModalVisible(false)}
+        onSelect={wordListPicker.select}
+        onCancel={wordListPicker.cancel}
       >
         {WORDLIST_LIST.map((wordList) => (
           <SSRadioButton
             key={wordList}
             label={wordList.replaceAll('_', ' ')}
-            selected={localMnemonicWordList === wordList}
+            selected={wordListPicker.draft === wordList}
             onPress={() =>
-              setStateWithLayoutAnimation(setLocalMnemonicWordList, wordList)
+              setStateWithLayoutAnimation(wordListPicker.setDraft, wordList)
             }
           />
         ))}
       </SSSelectModal>
       <SSSelectModal
-        visible={entropyModalVisible}
+        visible={entropyPicker.visible}
         title={t('account.entropy.title')}
-        selectedText={t(`account.entropy.${localEntropyType}.label`)}
-        onSelect={handleOnSelectEntropy}
-        onCancel={() => setEntropyModalVisible(false)}
+        selectedText={t(`account.entropy.${entropyPicker.draft}.label`)}
+        onSelect={entropyPicker.select}
+        onCancel={entropyPicker.cancel}
       >
         {ENTROPY_TYPES.map((entropy) => (
           <SSRadioButton
             key={entropy}
             label={t(`account.entropy.${entropy}.label`)}
-            selected={localEntropyType === entropy}
+            selected={entropyPicker.draft === entropy}
             onPress={() =>
-              setStateWithLayoutAnimation(setLocalEntropyType, entropy)
+              setStateWithLayoutAnimation(entropyPicker.setDraft, entropy)
             }
           />
         ))}

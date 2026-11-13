@@ -6,31 +6,31 @@ import {
 import { uniqueProofsBySecret } from '@/utils/ecashProofs'
 
 /**
- * Read-only ecash state for the active account. Screens that only display
- * balances, proofs or history use this instead of the full `useEcash`. Each
- * slice is selected for the active account only, so changes to other
- * accounts do not re-render the caller.
+ * Read-only ecash state for one account: the given one, or else the active
+ * one. Screens that only display balances, proofs or history use this instead
+ * of the full `useEcash`. Each slice is selected for that account only, so
+ * changes to other accounts do not re-render the caller.
  */
-export function useEcashAccountState() {
-  const activeAccountId = useEcashStore((state) => state.activeAccountId)
+export function useEcashAccountState(accountId?: string) {
+  const storeActiveAccountId = useEcashStore((state) => state.activeAccountId)
+  const activeAccountId = accountId ?? storeActiveAccountId
   const activeAccount = useEcashStore(
-    (state) =>
-      state.accounts.find((a) => a.id === state.activeAccountId) ?? null
+    (state) => state.accounts.find((a) => a.id === activeAccountId) ?? null
   )
   const mints = useEcashStore((state) =>
-    activeAccountItems(state.mints, state.activeAccountId)
+    activeAccountItems(state.mints, activeAccountId)
   )
   const rawProofs = useEcashStore((state) =>
-    activeAccountItems(state.proofs, state.activeAccountId)
+    activeAccountItems(state.proofs, activeAccountId)
   )
   const transactions = useEcashStore((state) =>
-    activeAccountItems(state.transactions, state.activeAccountId)
+    activeAccountItems(state.transactions, activeAccountId)
   )
   const counters = useEcashStore((state) =>
-    activeAccountItems(state.counters, state.activeAccountId)
+    activeAccountItems(state.counters, activeAccountId)
   )
   const mintQuotes = useEcashStore((state) =>
-    activeAccountMintQuotes(state.quotes, state.activeAccountId)
+    activeAccountMintQuotes(state.quotes, activeAccountId)
   )
 
   return {
