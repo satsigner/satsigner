@@ -757,6 +757,14 @@
           >
             Version
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="announcements-panel"
+          >
+            Announcements
+          </button>
         </div>
         <div class="panels">
           <section id="ngit">
@@ -863,13 +871,12 @@
                     aria-expanded="false"
                     aria-controls="listings"
                   >
-                    Manage listings and posts
+                    Manage listings
                   </button>
                 </div>
               </li>
             </ol>
             <div id="listings" hidden>
-              <ul id="releases"></ul>
               <h2 class="manager">Published apps</h2>
               <p class="hint">
                 Replace a listing by publishing a newer app event with the same
@@ -967,6 +974,21 @@
               so it must rise with every release.
             </p>
             <dl id="version-status" class="key-status" aria-live="polite"></dl>
+          </section>
+          <section id="announcements-panel" hidden>
+            <p class="hint">
+              Release announcements are your notes tagged #release. Deleting one
+              sends a deletion request (NIP-09) to the announcement relays.
+              Relays and clients that honour it hide the note; copies elsewhere
+              may stay.
+            </p>
+            <div class="actions">
+              <button id="refresh-releases" type="button">Refresh</button>
+              <button id="delete-all-releases" class="danger" type="button">
+                Delete all
+              </button>
+            </div>
+            <ul id="releases"></ul>
           </section>
           <section id="keys-panel" hidden>
             <p class="hint">
@@ -1132,14 +1154,14 @@
           open ? 'true' : 'false'
         )
         manageListingsButton.textContent = open
-          ? 'Hide listings and posts'
-          : 'Manage listings and posts'
+          ? 'Hide listings'
+          : 'Manage listings'
         if (open) refreshListings()
       })
 
       function refreshListings() {
+        if (!announcementsPanel.hidden) void loadReleases()
         if (listingsEl.hidden) return
-        void loadReleases()
         void loadApps()
       }
 
@@ -1160,6 +1182,9 @@
           }
           if (tab.getAttribute('aria-controls') === 'version-panel') {
             void refreshVersion()
+          }
+          if (tab.getAttribute('aria-controls') === 'announcements-panel') {
+            void loadReleases()
           }
         })
       }
@@ -1457,6 +1482,7 @@
       function renderReleases(events) {
         const deleted = readDeletedIds()
         releasesEl.replaceChildren()
+        deleteAllReleasesButton.disabled = !signerPubkey
         if (!events.length) {
           const item = document.createElement('li')
           item.textContent = 'No release posts yet.'
@@ -2020,35 +2046,47 @@
         )
       }
 
-      async function deleteRelease(id, button) {
+      function markReleaseDeleted(id) {
+        rememberDeleted(id)
+        const item = releasesEl.querySelector(`li[data-id="${id}"]`)
+        const tag = item?.querySelector('.deleted-tag')
+        if (tag) tag.hidden = false
+        const button = item?.querySelector('[data-delete]')
+        if (button) button.disabled = true
+      }
+
+      async function deleteReleases(ids, buttons) {
         if (!window.nostr?.signEvent) {
           statusEl.textContent = 'Sign in before deleting a release post.'
           return
         }
-        button.disabled = true
+        if (!ids.length) {
+          statusEl.textContent = 'No release posts to delete.'
+          return
+        }
+        for (const button of buttons) button.disabled = true
         statusEl.textContent = 'Approve the deletion in the extension.'
         try {
           const signed = await window.nostr.signEvent({
             kind: 5,
             created_at: Math.floor(Date.now() / 1000),
-            tags: [['e', id]],
+            tags: ids.map((id) => ['e', id]),
             content: ''
           })
           const results = await publishEvent(signed)
           for (const result of results) logRelayReply(result)
           if (!results.some((result) => result.accepted)) {
-            button.disabled = false
+            for (const button of buttons) button.disabled = false
             statusEl.textContent = 'Relays rejected the deletion request.'
-            writeLog(`delete ${id} was rejected\n`, 'error')
+            writeLog(`delete of ${ids.length} post(s) was rejected\n`, 'error')
             return
           }
-          rememberDeleted(id)
-          const tag = button.parentElement?.querySelector('.deleted-tag')
-          if (tag) tag.hidden = false
+          for (const id of ids) markReleaseDeleted(id)
+          deleteAllReleasesButton.disabled = false
           statusEl.textContent = 'Deletion request sent.'
-          writeLog(`delete request ${id}\n`)
+          writeLog(`delete request for ${ids.length} post(s)\n`)
         } catch (error) {
-          button.disabled = false
+          for (const button of buttons) button.disabled = false
           statusEl.textContent = error.message
           writeLog(`${error.message}\n`, 'error')
         }
@@ -2095,10 +2133,37 @@
         void deleteApp(remove.dataset.removeApp, remove)
       })
 
+      const announcementsPanel = document.querySelector('#announcements-panel')
+      const refreshReleasesButton = document.querySelector('#refresh-releases')
+      const deleteAllReleasesButton = document.querySelector(
+        '#delete-all-releases'
+      )
+
       releasesEl.addEventListener('click', (event) => {
         const button = event.target.closest('[data-delete]')
         if (!button) return
-        void deleteRelease(button.dataset.delete, button)
+        void deleteReleases([button.dataset.delete], [button])
+      })
+
+      refreshReleasesButton.addEventListener('click', () => void loadReleases())
+
+      deleteAllReleasesButton.addEventListener('click', () => {
+        const buttons = [
+          ...releasesEl.querySelectorAll('[data-delete]:not(:disabled)')
+        ]
+        if (!buttons.length) {
+          statusEl.textContent = 'No release posts to delete.'
+          return
+        }
+        if (
+          !confirm(`Request deletion of ${buttons.length} release post(s)?`)
+        ) {
+          return
+        }
+        void deleteReleases(
+          buttons.map((button) => button.dataset.delete),
+          [...buttons, deleteAllReleasesButton]
+        )
       })
 
       let signerPubkey = ''
