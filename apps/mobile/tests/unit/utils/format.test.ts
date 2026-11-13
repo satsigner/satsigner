@@ -220,6 +220,13 @@ describe('formatShortSats', () => {
   it('marks a lower bound with a plus', () => {
     expect(formatShortSats(1400, true)).toBe('1.4k+ sats')
   })
+
+  it('rounds a lower bound down so it never overstates the total', () => {
+    expect(formatShortSats(1450, true)).toBe('1.4k+ sats')
+    expect(formatShortSats(1450)).toBe('1.5k sats')
+    expect(formatShortSats(999_600, true)).toBe('999k+ sats')
+    expect(formatShortSats(12.9, true)).toBe('12+ sats')
+  })
 })
 
 describe('formatSatsAsBtc', () => {

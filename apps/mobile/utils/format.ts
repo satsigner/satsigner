@@ -517,35 +517,43 @@ const SHORT_SATS_TEN_THOUSAND = 10_000
 const SHORT_SATS_MILLION = 1_000_000
 const SHORT_SATS_TEN_MILLION = 10_000_000
 
-function formatShortScaled(amount: number, divisor: number): string {
-  const scaled = Math.round(amount / (divisor / 10)) / 10
+type Rounding = (value: number) => number
+
+function formatShortScaled(
+  amount: number,
+  divisor: number,
+  round: Rounding
+): string {
+  const scaled = round(amount / (divisor / 10)) / 10
   return Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1)
 }
 
-function formatShortSatsNumber(sats: number): string {
+function formatShortSatsNumber(sats: number, round: Rounding): string {
   if (sats < SHORT_SATS_THOUSAND) {
     return String(sats)
   }
   if (sats < SHORT_SATS_TEN_THOUSAND) {
-    return `${formatShortScaled(sats, SHORT_SATS_THOUSAND)}k`
+    return `${formatShortScaled(sats, SHORT_SATS_THOUSAND, round)}k`
   }
   if (sats < SHORT_SATS_MILLION) {
-    return `${Math.round(sats / SHORT_SATS_THOUSAND)}k`
+    return `${round(sats / SHORT_SATS_THOUSAND)}k`
   }
   if (sats < SHORT_SATS_TEN_MILLION) {
-    return `${formatShortScaled(sats, SHORT_SATS_MILLION)}m`
+    return `${formatShortScaled(sats, SHORT_SATS_MILLION, round)}m`
   }
-  return `${Math.round(sats / SHORT_SATS_MILLION)}m`
+  return `${round(sats / SHORT_SATS_MILLION)}m`
 }
 
 /**
  * Compact sats label: "12 sats", "1.4k sats", "43k sats". A lower bound
- * (more may exist than were counted) reads "1.4k+ sats".
+ * (more may exist than were counted) reads "1.4k+ sats" and rounds down, so
+ * it never claims more than was counted.
  */
 function formatShortSats(amount: number, isLowerBound = false): string {
-  const sats = Math.max(0, Math.round(amount))
+  const round = isLowerBound ? Math.floor : Math.round
+  const sats = Math.max(0, round(amount))
   const plus = isLowerBound ? '+' : ''
-  return `${formatShortSatsNumber(sats)}${plus} ${t('bitcoin.sats')}`
+  return `${formatShortSatsNumber(sats, round)}${plus} ${t('bitcoin.sats')}`
 }
 
 export {
