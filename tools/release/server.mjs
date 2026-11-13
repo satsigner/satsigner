@@ -74,7 +74,7 @@ const RELEASE_APK = path.join(
 )
 const PAGE = path.join(HERE, 'public', 'index.html')
 const { version: TOOL_VERSION } = require('./package.json')
-const LOGO = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'icon.png')
+const LOGO = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'logo.png')
 const HOST = '127.0.0.1'
 const PORT = 4717
 const SIGNER_RELAY = startLocalRelay(log)

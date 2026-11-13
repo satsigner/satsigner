@@ -34,7 +34,7 @@ export default function Warning() {
         >
           <SSVStack itemsCenter>
             <Image
-              source={require('@/assets/icon.png')}
+              source={require('@/assets/logo.png')}
               style={{ height: 64, width: 64 }}
             />
 
