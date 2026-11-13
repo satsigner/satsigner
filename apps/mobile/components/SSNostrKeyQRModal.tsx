@@ -94,10 +94,6 @@ function SSNostrKeyQRModal({
   const showFormatTabs = Boolean(hexValue) || Boolean(trimmedLnAddress)
   const canScan = Boolean(ownerNpub)
 
-  function handleFormatChange(next: KeyQrFormat) {
-    setFormat(next)
-  }
-
   function handleClose() {
     setFormat('bech32')
     setCameraVisible(false)
@@ -159,7 +155,7 @@ function SSNostrKeyQRModal({
                     }
                   : undefined
               }
-              onChange={handleFormatChange}
+              onChange={setFormat}
             />
           ) : null}
           <SSShareableQR

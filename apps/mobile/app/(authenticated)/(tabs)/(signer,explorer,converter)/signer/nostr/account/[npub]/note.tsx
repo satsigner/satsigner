@@ -537,10 +537,6 @@ export default function NostrNotePage() {
     }
   }
 
-  function handleNoteQrFormat(format: NoteQrFormat) {
-    setNoteQrFormat(format)
-  }
-
   function handleCloseNoteQr() {
     setNoteQrFormat('nevent')
     setQrModalVisible(false)
@@ -1749,7 +1745,7 @@ export default function NostrNotePage() {
               label: t('nostrIdentity.note.metaNevent')
             }}
             secondary={{ key: 'id', label: t('nostrIdentity.note.qrId') }}
-            onChange={handleNoteQrFormat}
+            onChange={setNoteQrFormat}
           />
           <SSShareableQR
             value={noteQrValue}
