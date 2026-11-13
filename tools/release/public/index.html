@@ -394,6 +394,27 @@
       .guide {
         margin-top: 14px;
       }
+      .key-status {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 14px;
+        margin: 14px 0 0;
+        font-size: 14px;
+      }
+      .key-status dt {
+        color: #a3a3a3;
+      }
+      .key-status dd {
+        margin: 0;
+        color: #ffffff;
+        overflow-wrap: anywhere;
+      }
+      .key-status dd.bad {
+        color: #ff8a8a;
+      }
+      .key-status dd.good {
+        color: #8ce99a;
+      }
       .guide summary {
         cursor: pointer;
         color: #ffffff;
@@ -596,6 +617,14 @@
           >
             Build APK
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="keys-panel"
+          >
+            Android developer keys
+          </button>
         </div>
         <div class="panels">
           <section id="ngit">
@@ -716,6 +745,74 @@
               </p>
               <div id="apps"></div>
             </div>
+          </section>
+          <section id="apk-panel" hidden>
+            <p class="hint">
+              Pick the name and package id, then the CPU set. The build runs a
+              clean prebuild, which deletes the android folder, and saves a copy
+              under dist/apks.
+            </p>
+            <ol class="plain">
+              <li class="step">
+                <span class="step-title">Name and package id</span>
+                <div class="channel" id="apk-identity">
+                  <button
+                    type="button"
+                    data-identity="branch"
+                    aria-pressed="true"
+                  >
+                    Branch
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="prod"
+                    aria-pressed="false"
+                  >
+                    Production
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="generic"
+                    aria-pressed="false"
+                  >
+                    Generic dev
+                  </button>
+                </div>
+                <p class="hint" id="apk-identity-hint"></p>
+                <ul id="apk-preview"></ul>
+              </li>
+              <li class="step">
+                <span class="step-title">APK type</span>
+                <div class="channel" id="apk-kind">
+                  <button type="button" data-kind="all" aria-pressed="true">
+                    All CPUs
+                  </button>
+                  <button type="button" data-kind="pixel" aria-pressed="false">
+                    Pixel 8, 9, or 10
+                  </button>
+                </div>
+                <p class="hint" id="apk-kind-hint">
+                  All CPUs installs on phones and emulators. The file is larger.
+                </p>
+                <div class="actions">
+                  <button id="build-apk" class="primary" type="button">
+                    Build APK
+                  </button>
+                </div>
+              </li>
+            </ol>
+            <ul id="apks"></ul>
+          </section>
+          <section id="keys-panel" hidden>
+            <p class="hint">
+              The Android release key on this computer signs every APK. Android
+              and Zapstore trust the certificate, so the same certificate must
+              sign every update.
+            </p>
+            <dl id="key-status" class="key-status" aria-live="polite"></dl>
+            <div class="actions">
+              <button id="refresh-keys" type="button">Check again</button>
+            </div>
             <div class="key-warning" role="note">
               <strong>Keep the 12 words safe.</strong> They are the only backup
               of the Android release key.
@@ -777,63 +874,70 @@
                 a file, a chat or the repository.
               </p>
             </details>
-          </section>
-          <section id="apk-panel" hidden>
-            <p class="hint">
-              Pick the name and package id, then the CPU set. The build runs a
-              clean prebuild, which deletes the android folder, and saves a copy
-              under dist/apks.
-            </p>
-            <ol class="plain">
-              <li class="step">
-                <span class="step-title">Name and package id</span>
-                <div class="channel" id="apk-identity">
-                  <button
-                    type="button"
-                    data-identity="branch"
-                    aria-pressed="true"
-                  >
-                    Branch
-                  </button>
-                  <button
-                    type="button"
-                    data-identity="prod"
-                    aria-pressed="false"
-                  >
-                    Production
-                  </button>
-                  <button
-                    type="button"
-                    data-identity="generic"
-                    aria-pressed="false"
-                  >
-                    Generic dev
-                  </button>
-                </div>
-                <p class="hint" id="apk-identity-hint"></p>
-                <ul id="apk-preview"></ul>
-              </li>
-              <li class="step">
-                <span class="step-title">APK type</span>
-                <div class="channel" id="apk-kind">
-                  <button type="button" data-kind="all" aria-pressed="true">
-                    All CPUs
-                  </button>
-                  <button type="button" data-kind="pixel" aria-pressed="false">
-                    Pixel 8, 9, or 10
-                  </button>
-                </div>
-                <p class="hint" id="apk-kind-hint">
-                  All CPUs installs on phones and emulators. The file is larger.
-                </p>
-                <div class="actions">
-                  <button id="build-apk" class="primary" type="button">
-                    Build APK
-                  </button>
-                </div>
-              </li>
-            </ol>
-            <ul id="apks"></ul>
+            <details class="guide">
+              <summary>Check the 12 words against this key</summary>
+              <p class="hint">
+                The check runs in a terminal so the words never pass through
+                this page. It says whether the words are valid, and whether they
+                rebuild the keystore on this computer.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:confirm</code> and
+                  type the 12 words. Add <code>--next</code> to check the words
+                  of a rotated key.
+                </li>
+                <li>
+                  <em>Valid words that do not match</em> means another phrase,
+                  or a word swapped for another valid one.
+                  <em>Not 12 valid words</em> means a typo.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:status</code> for
+                  the same report as this tab.
+                </li>
+              </ol>
+            </details>
+            <details class="guide">
+              <summary>Rotate to a new signing key</summary>
+              <p class="hint">
+                Rotate only when the old key leaked or must be retired. Android
+                accepts an update from a new certificate only when the APK
+                carries a signing lineage (APK Signature Scheme v3) back to the
+                old one. Zapstore rejects a release whose certificate is neither
+                the app's current one nor linked to it by lineage.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Check the current words first. Rotation needs the old key, and
+                  every release keeps signing with it.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:rotate</code>. It
+                  writes a new key to <code>~/.satsigner/next</code>, the
+                  lineage to <code>~/.satsigner/release.lineage</code>, and
+                  prints 12 new words. Write them down next to the old ones.
+                </li>
+                <li>
+                  Release builds then sign with both keys: Android 13 and later
+                  use the new key (v3.1), older versions keep the old one.
+                </li>
+                <li>
+                  Publish once. The publisher links the new certificate to your
+                  npub with a new identity proof, so Zapstore accepts it.
+                </li>
+                <li>
+                  On another computer, restore the old key with
+                  <code>keystore:restore</code>, then the new one with
+                  <code>keystore:rotate --restore</code>. The lineage is rebuilt
+                  from both keys.
+                </li>
+              </ol>
+              <p class="hint">
+                Never delete the old key or its words after a rotation. Without
+                the lineage, every user must uninstall and reinstall.
+              </p>
+            </details>
           </section>
         </div>
       </div>
@@ -886,7 +990,71 @@
       for (const tab of tabs) {
         tab.addEventListener('click', () => {
           showTab(tab.getAttribute('aria-controls'))
+          if (tab.getAttribute('aria-controls') === 'keys-panel') {
+            void refreshKeys()
+          }
         })
+      }
+
+      const keyStatusEl = document.querySelector('#key-status')
+      document
+        .querySelector('#refresh-keys')
+        .addEventListener('click', () => void refreshKeys())
+
+      function keyRow(term, value, tone = '') {
+        const dt = document.createElement('dt')
+        dt.textContent = term
+        const dd = document.createElement('dd')
+        dd.textContent = value
+        if (tone) dd.className = tone
+        keyStatusEl.append(dt, dd)
+      }
+
+      function describeKey(key) {
+        if (!key.present) return { text: `None at ${key.path}`, tone: '' }
+        if (key.error) return { text: `Cannot read: ${key.error}`, tone: 'bad' }
+        return { text: key.fingerprint, tone: '' }
+      }
+
+      function rotationText(keys) {
+        if (keys.rotating) return 'Active. Builds sign with both keys.'
+        if (keys.next.present)
+          return 'New key has no lineage. Run keystore:rotate --restore --force.'
+        return 'None'
+      }
+
+      async function refreshKeys() {
+        const response = await fetch('/api/keys')
+        const keys = await response.json()
+        keyStatusEl.replaceChildren()
+        const current = describeKey(keys.current)
+        keyRow(
+          'Keystore',
+          keys.current.present ? keys.current.path : 'Missing',
+          keys.current.present ? '' : 'bad'
+        )
+        keyRow('Certificate', current.text, current.tone)
+        if (keys.current.fingerprint) {
+          keyRow(
+            'Release key',
+            keys.current.matchesRelease
+              ? 'Matches the Satsigner release certificate'
+              : `Does not match ${keys.expectedFingerprint}`,
+            keys.current.matchesRelease ? 'good' : 'bad'
+          )
+        }
+        const next = describeKey(keys.next)
+        keyRow('Rotated key', next.text, next.tone)
+        keyRow(
+          'Rotation',
+          rotationText(keys),
+          keys.next.present && !keys.rotating ? 'bad' : ''
+        )
+        keyRow(
+          'apksigner',
+          keys.apksigner.path ?? keys.apksigner.error,
+          keys.apksigner.path ? '' : 'bad'
+        )
       }
 
       function readDeletedIds(key = DELETED_RELEASES_KEY) {

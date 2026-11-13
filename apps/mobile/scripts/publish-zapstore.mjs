@@ -68,8 +68,12 @@ import * as nip06 from 'nostr-tools/nip06'
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
 
+import { applyKeyRotation } from '../../../tools/release/apk-signer.mjs'
 import {
   hasReleaseKeystore,
+  keystoreFiles,
+  lineagePath,
+  newestSignerDir,
   readKeystorePassword,
   keystorePath as releaseKeystorePath,
   requireReleaseKeystore,
@@ -339,10 +343,18 @@ function publisherPubkey(secretKey) {
 async function signIdentityProof(signWith) {
   const output = await run(
     ZSP_BIN,
-    ['identity', '--link-key', releaseKeystorePath, '--offline'],
+    [
+      'identity',
+      '--link-key',
+      keystoreFiles(newestSignerDir()).keystore,
+      '--offline'
+    ],
     {
       cwd: REPO_ROOT,
-      env: { KEYSTORE_PASSWORD: readKeystorePassword(), SIGN_WITH: signWith }
+      env: {
+        KEYSTORE_PASSWORD: readKeystorePassword(newestSignerDir()),
+        SIGN_WITH: signWith
+      }
     }
   )
   const proof = parseZspEvents(output).find(
@@ -460,6 +472,11 @@ function sourceFingerprint() {
   if (hasReleaseKeystore()) {
     hash.update(readFileSync(releaseKeystorePath))
   }
+  const newest = keystoreFiles(newestSignerDir()).keystore
+  if (newest !== releaseKeystorePath) {
+    hash.update(readFileSync(newest))
+    hash.update(readFileSync(lineagePath))
+  }
   for (const [name, value] of buildEnvEntries(process.env)) {
     hash.update(`${name}\0${value}\0`)
   }
@@ -569,6 +586,7 @@ async function buildReleaseApk() {
     if (!existsSync(APK_OUTPUT)) {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
     }
+    applyKeyRotation(APK_OUTPUT)
     return APK_OUTPUT
   }
 
@@ -684,7 +702,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certificate: storedIdentity().certificate,
+        certificate: storedIdentity(newestSignerDir()).certificate,
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })

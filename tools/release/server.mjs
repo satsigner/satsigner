@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
+import { findApksigner } from './apk-signer.mjs'
 import {
   buildApkArgs,
   buildInitArgs,
@@ -27,6 +28,7 @@ import {
   parseRequestBody,
   redactSecrets
 } from './commands.mjs'
+import { releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
@@ -529,6 +531,11 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/keys') {
+    send(res, 200, { ...releaseKeyStatus(), apksigner: apksignerStatus() })
+    return
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/apks') {
     send(res, 200, { apks: await listApks() })
     return
@@ -646,6 +653,14 @@ const server = createServer(async (req, res) => {
   send(res, 202, { ok: true })
   await runJob(body.action, () => action(body))
 })
+
+function apksignerStatus() {
+  try {
+    return { path: findApksigner() }
+  } catch (error) {
+    return { error: error.message }
+  }
+}
 
 function apkNameFromPath(pathname) {
   try {

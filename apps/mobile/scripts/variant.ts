@@ -27,6 +27,7 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { applyKeyRotation } from '../../../tools/release/apk-signer.mjs'
 import { signingEnv } from '../../../tools/release/keystore.mjs'
 import {
   ANDROID_ABI_LABELS,
@@ -257,6 +258,9 @@ function buildApk({
     `satsigner-${variantLabel}-${suffixLabel}-${buildType}${abiLabel}.apk`
   )
 
+  if (buildType === 'release' && applyKeyRotation(builtApk)) {
+    console.log('Signed with the rotated key and its lineage.')
+  }
   copyFileSync(builtApk, outApk)
 
   console.log('')

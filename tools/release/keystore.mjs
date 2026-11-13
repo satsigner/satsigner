@@ -25,7 +25,11 @@ import {
 } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 
-import { certificatePem, selfSignedCertificate } from './certificate.mjs'
+import {
+  certificateFingerprint,
+  certificatePem,
+  selfSignedCertificate
+} from './certificate.mjs'
 
 const KEY_INFO = 'satsigner android release key v1'
 const PASSWORD_INFO = 'satsigner android keystore password v1'
@@ -41,7 +45,13 @@ const PKCS8_PREFIX = Buffer.from(
   'hex'
 )
 
+// The certificate every Satsigner release so far was signed with. A restore
+// or a check that prints anything else used the wrong words.
+const RELEASE_CERT_SHA256 =
+  'E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7'
+
 const releaseDir = join(homedir(), '.satsigner')
+const nextReleaseDir = join(releaseDir, 'next')
 
 function keystoreFiles(dir) {
   return {
@@ -51,6 +61,13 @@ function keystoreFiles(dir) {
 }
 
 const keystorePath = keystoreFiles(releaseDir).keystore
+const nextKeystorePath = keystoreFiles(nextReleaseDir).keystore
+
+function lineageFile(dir = releaseDir) {
+  return join(dir, 'release.lineage')
+}
+
+const lineagePath = lineageFile()
 
 function deriveBytes(seed, info, length) {
   return Buffer.from(
@@ -276,12 +293,65 @@ function signingEnv(baseEnv, dir = releaseDir) {
   }
 }
 
+function storedFingerprint(dir = releaseDir) {
+  return certificateFingerprint(storedIdentity(dir).certificate)
+}
+
+function hasRotation(dir = releaseDir) {
+  return existsSync(lineageFile(dir)) && hasReleaseKeystore(join(dir, 'next'))
+}
+
+// After a rotation the newest certificate is the one Zapstore and new installs
+// see, so the identity proof has to link that one.
+function newestSignerDir(dir = releaseDir) {
+  return hasRotation(dir) ? join(dir, 'next') : dir
+}
+
+function keyFingerprint(dir) {
+  if (!hasReleaseKeystore(dir)) {
+    return { present: false }
+  }
+  try {
+    return { fingerprint: storedFingerprint(dir), present: true }
+  } catch (error) {
+    return { error: error.message, present: true }
+  }
+}
+
+function releaseKeyStatus(dir = releaseDir) {
+  const current = keyFingerprint(dir)
+  const next = keyFingerprint(join(dir, 'next'))
+  return {
+    current: {
+      ...current,
+      matchesRelease: current.fingerprint === RELEASE_CERT_SHA256,
+      path: keystoreFiles(dir).keystore
+    },
+    expectedFingerprint: RELEASE_CERT_SHA256,
+    lineage: existsSync(lineageFile(dir)),
+    next: { ...next, path: keystoreFiles(join(dir, 'next')).keystore },
+    rotating: hasRotation(dir)
+  }
+}
+
 function createMnemonic() {
   return generateMnemonic(wordlist, RELEASE_ENTROPY_BITS)
 }
 
 export {
+  KEY_ALIAS,
+  RELEASE_CERT_SHA256,
   createMnemonic,
+  hasRotation,
+  keystoreFiles,
+  lineageFile,
+  lineagePath,
+  newestSignerDir,
+  nextKeystorePath,
+  nextReleaseDir,
+  releaseDir,
+  releaseKeyStatus,
+  storedFingerprint,
   hasReleaseKeystore,
   keystorePath,
   phraseMatchesKeystore,
