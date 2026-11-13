@@ -47,6 +47,17 @@ import { isRecord } from '@/utils/object'
 
 type ZapFetchResult = NostrFetchResult<ZapReceiptInfo[]>
 
+// Truncation is judged on the raw relay events: receipts that fail to parse
+// are dropped later and would hide a capped response.
+type NoteZapFetchResult = ZapFetchResult & { isTruncated: boolean }
+
+function isZapFetchTruncated(rawEventCount: number, receiptCount: number) {
+  return (
+    rawEventCount >= NOSTR_ZAP_RECEIPT_FETCH_LIMIT ||
+    receiptCount >= NOSTR_ZAP_RECEIPT_FETCH_LIMIT
+  )
+}
+
 type ZapPageQuery = {
   limit: number
   ownPubkeys?: string[]
@@ -365,7 +376,7 @@ export async function fetchZapReceipts(
   eventIdHex: string,
   relays: string[],
   ownPubkeys: string[] = []
-): Promise<ZapFetchResult> {
+): Promise<NoteZapFetchResult> {
   const cachedEvents = getCachedZapReceipts(
     eventIdHex,
     NOSTR_ZAP_CACHE_LOOKUP_LIMIT
@@ -385,14 +396,17 @@ export async function fetchZapReceipts(
   try {
     const events = await collectFromRelays(relays, filter)
     const fresh = ingestZapEvents(events, null, ownPubkeys)
+    const data = mergeZapReceiptsById([...cachedReceipts, ...fresh])
     return {
-      data: mergeZapReceiptsById([...cachedReceipts, ...fresh]),
+      data,
+      isTruncated: isZapFetchTruncated(events.size, data.length),
       source: 'relay'
     }
   } catch (error) {
     return {
       data: cachedReceipts,
       error: getNostrErrorCode(error),
+      isTruncated: isZapFetchTruncated(0, cachedReceipts.length),
       source: 'cache'
     }
   }

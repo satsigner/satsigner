@@ -34,6 +34,7 @@ jest.mock<typeof import('@/db/nostrCache')>('@/db/nostrCache', () => ({
 
 import { createEphemeralNdk } from '@/api/ndkRegistry'
 import { connectToFirstRelay } from '@/api/nostrRelayHealth'
+import { NOSTR_ZAP_RECEIPT_FETCH_LIMIT } from '@/constants/nostr'
 import {
   type CachedEvent,
   cacheEvents,
@@ -200,8 +201,31 @@ describe('zap receipt fetchers', () => {
       expect(result).toStrictEqual({
         data: [expect.objectContaining({ id: 'z'.repeat(64) })],
         error: 'noRelays',
+        isTruncated: false,
         source: 'cache'
       })
+    })
+
+    it('flags a capped relay response even when a receipt fails to parse', async () => {
+      const events = Array.from(
+        { length: NOSTR_ZAP_RECEIPT_FETCH_LIMIT },
+        (_, index) => ({
+          content: '',
+          created_at: 1000 + index,
+          id: index.toString(16).padStart(64, '0'),
+          kind: 9735,
+          pubkey: 'lnurl-server',
+          sig: 's',
+          tags: index === 0 ? [['e', NOTE_ID]] : zapTags(PUBKEY_A)
+        })
+      )
+      jest.mocked(createEphemeralNdk).mockReturnValue(makeFakeNdk(events))
+      jest.mocked(connectToFirstRelay).mockResolvedValue()
+
+      const result = await fetchZapReceipts(NOTE_ID, RELAYS)
+
+      expect(result.data).toHaveLength(NOSTR_ZAP_RECEIPT_FETCH_LIMIT - 1)
+      expect(result.isTruncated).toBe(true)
     })
   })
 })
