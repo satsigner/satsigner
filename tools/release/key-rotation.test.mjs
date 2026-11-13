@@ -4,6 +4,7 @@ import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 import { parseSigners } from './apk-review.mjs'
 import { applyKeyRotation, findApksigner, writeLineage } from './apk-signer.mjs'
@@ -23,8 +24,9 @@ const PHRASE_CERTIFICATE_SHA256 =
   '14:B5:17:E1:28:C8:D2:8C:D7:0E:21:BE:01:9D:A1:FC:4C:7B:04:FE:20:7C:9E:E1:1B:56:0B:AC:51:6E:DC:41'
 const NEXT_CERTIFICATE_SHA256 =
   'ac76436f4cdf7a110fdc266bfe4d9f0717071d6ccc68119685a1d305ffe759dc'
-const APK_DIR = new URL('../../apps/mobile/dist/apks/', import.meta.url)
-  .pathname
+const APK_DIR = fileURLToPath(
+  new URL('../../apps/mobile/dist/apks/', import.meta.url)
+)
 
 function tempDir(t) {
   const dir = mkdtempSync(join(tmpdir(), 'satsigner-rotation-'))
