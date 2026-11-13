@@ -988,7 +988,14 @@
                 Delete all
               </button>
             </div>
+            <h2 class="manager">Release announcements</h2>
             <ul id="releases"></ul>
+            <h2 class="manager">Latest posts</h2>
+            <p class="hint">
+              Your newest notes on the same relays, tagged or not, so a post
+              without #release can be deleted too.
+            </p>
+            <ul id="latest-posts"></ul>
           </section>
           <section id="keys-panel" hidden>
             <p class="hint">
@@ -1479,14 +1486,13 @@
         localStorage.setItem(key, JSON.stringify([...ids]))
       }
 
-      function renderReleases(events) {
+      function renderPosts(listEl, events, emptyText) {
         const deleted = readDeletedIds()
-        releasesEl.replaceChildren()
-        deleteAllReleasesButton.disabled = !signerPubkey
+        listEl.replaceChildren()
         if (!events.length) {
           const item = document.createElement('li')
-          item.textContent = 'No release posts yet.'
-          releasesEl.append(item)
+          item.textContent = emptyText
+          listEl.append(item)
           return
         }
         for (const event of events) {
@@ -1516,11 +1522,11 @@
           button.textContent = 'Delete event'
           button.disabled = deleted.has(event.id) || !signerPubkey
           item.append(copy, button)
-          releasesEl.append(item)
+          listEl.append(item)
         }
       }
 
-      function fetchReleasePosts(author) {
+      function fetchPosts(author, filter) {
         return new Promise((resolve) => {
           const found = new Map()
           const sockets = []
@@ -1536,7 +1542,7 @@
             const events = [...found.values()].toSorted(
               (a, b) => b.created_at - a.created_at
             )
-            resolve(events)
+            resolve(filter.limit ? events.slice(0, filter.limit) : events)
           }
 
           for (const url of RELEASE_RELAYS) {
@@ -1547,12 +1553,7 @@
                 JSON.stringify([
                   'REQ',
                   'releases',
-                  {
-                    kinds: [1],
-                    authors: [author],
-                    '#t': ['release'],
-                    limit: 200
-                  }
+                  { kinds: [1], authors: [author], ...filter }
                 ])
               )
             })
@@ -1578,13 +1579,18 @@
       }
 
       async function loadReleases() {
+        deleteAllReleasesButton.disabled = !signerPubkey
         if (!signerPubkey) {
-          renderReleases([])
-          releasesEl.firstChild.textContent = 'Sign in to load release posts.'
+          renderPosts(releasesEl, [], 'Sign in to load release posts.')
+          renderPosts(latestPostsEl, [], 'Sign in to load your posts.')
           return
         }
-        const events = await fetchReleasePosts(signerPubkey)
-        renderReleases(events)
+        const [releases, latest] = await Promise.all([
+          fetchPosts(signerPubkey, { '#t': ['release'], limit: 200 }),
+          fetchPosts(signerPubkey, { limit: LATEST_POSTS_LIMIT })
+        ])
+        renderPosts(releasesEl, releases, 'No release posts yet.')
+        renderPosts(latestPostsEl, latest, 'No posts yet.')
       }
 
       function tagValue(event, name) {
@@ -2048,11 +2054,10 @@
 
       function markReleaseDeleted(id) {
         rememberDeleted(id)
-        const item = releasesEl.querySelector(`li[data-id="${id}"]`)
-        const tag = item?.querySelector('.deleted-tag')
-        if (tag) tag.hidden = false
-        const button = item?.querySelector('[data-delete]')
-        if (button) button.disabled = true
+        for (const item of document.querySelectorAll(`li[data-id="${id}"]`)) {
+          item.querySelector('.deleted-tag').hidden = false
+          item.querySelector('[data-delete]').disabled = true
+        }
       }
 
       async function deleteReleases(ids, buttons) {
@@ -2139,11 +2144,16 @@
         '#delete-all-releases'
       )
 
-      releasesEl.addEventListener('click', (event) => {
+      const latestPostsEl = document.querySelector('#latest-posts')
+
+      function deletePostOnClick(event) {
         const button = event.target.closest('[data-delete]')
         if (!button) return
         void deleteReleases([button.dataset.delete], [button])
-      })
+      }
+
+      releasesEl.addEventListener('click', deletePostOnClick)
+      latestPostsEl.addEventListener('click', deletePostOnClick)
 
       refreshReleasesButton.addEventListener('click', () => void loadReleases())
 
@@ -2192,6 +2202,7 @@
         'wss://relay.nostr.band',
         'wss://nostr.mom'
       ]
+      const LATEST_POSTS_LIMIT = 20
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000

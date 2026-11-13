@@ -45,7 +45,7 @@ The Preview release tab shows both lists.
 | Production        | Production package id, no branch suffix, ARM CPUs only       |
 | Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
 
-**Announcements.** Lists your release announcements (notes tagged `#release`) from the announcement relays. **Delete** or **Delete all** signs one NIP-09 deletion request for the chosen posts. Relays and clients that honour it hide the notes; copies on other relays may stay.
+**Announcements.** Lists your release announcements (notes tagged `#release`) and your latest 20 notes of any kind from the announcement relays. **Delete** or **Delete all** signs one NIP-09 deletion request for the chosen posts. Relays and clients that honour it hide the notes; copies on other relays may stay.
 
 **Cancel.** While a command runs, the header shows it with a **Cancel** button. Cancel stops the command and everything it started, such as `pnpm` and `gradlew`, so a half-done build is thrown away. Sign in stays available during a run, because a publish may be waiting for a signature.
 
