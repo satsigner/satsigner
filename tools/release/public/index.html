@@ -2086,7 +2086,8 @@
 
       function markReleaseDeleted(id) {
         rememberDeleted(id)
-        for (const item of document.querySelectorAll(`li[data-id="${id}"]`)) {
+        const selector = `li[data-id="${CSS.escape(id)}"]`
+        for (const item of document.querySelectorAll(selector)) {
           item.querySelector('.deleted-tag').hidden = false
           item.querySelector('[data-delete]').disabled = true
         }
