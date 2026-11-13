@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { describeStatus, isLive, parseZspEvents } from './zapstore-verify.mjs'
+import {
+  describeStatus,
+  isLive,
+  parseZspEvents,
+  pendingMessage
+} from './zapstore-verify.mjs'
 
 const APP = {
   id: 'app-id',
@@ -61,4 +66,10 @@ test('the status names each missing piece and the store page', () => {
     text,
     /Store page: https:\/\/zapstore\.dev\/apps\/com\.satsigner\.satsigner\.dev\.branch/
   )
+})
+
+test('a pending release only suggests linking when the key was not linked', () => {
+  assert.doesNotMatch(pendingMessage(true), /link-key/)
+  assert.match(pendingMessage(true), /again in a few minutes/)
+  assert.match(pendingMessage(false), /zsp identity --link-key/)
 })

@@ -746,7 +746,7 @@ async function main() {
             'zsp published no events. This version may already be on Zapstore.'
           )
         }
-        await verifyOnZapstore(events)
+        await verifyOnZapstore(events, { keyLinked: !usingCustomConfig })
       } catch (error) {
         console.log(`\n  ${error.message}`)
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).

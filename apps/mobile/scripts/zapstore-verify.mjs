@@ -3,7 +3,8 @@ import { SimplePool } from 'nostr-tools/pool'
 const ZAPSTORE_RELAY = 'wss://relay.zapstore.dev'
 const ZAPSTORE_APPS_URL = 'https://zapstore.dev/apps'
 const QUERY_MAX_WAIT_MS = 8000
-const VERIFY_ATTEMPTS = 18
+// Zapstore can take several minutes to check the APK and save the events.
+const VERIFY_ATTEMPTS = 60
 const VERIFY_DELAY_MS = 5000
 const HTTP_OK = 200
 
@@ -118,21 +119,33 @@ async function waitForZapstore(events, attemptsLeft) {
 
 // relay.zapstore.dev answers OK to new listings and holds them as "pending"
 // until its own checks pass, so zsp reports success either way. The checks
-// read the APK in the background and take up to about a minute.
-async function verifyOnZapstore(events) {
+// read the APK in the background and can take several minutes.
+function pendingMessage(keyLinked) {
+  const pending =
+    'Zapstore accepted the release but has not saved it yet. The relay holds ' +
+    'new releases as pending until its checks pass.'
+  if (keyLinked) {
+    return `${pending} Check the store page again in a few minutes before publishing again.`
+  }
+  return `${pending} If this signing key is new, link it first: zsp identity --link-key ~/.satsigner/release.p12`
+}
+
+async function verifyOnZapstore(events, { keyLinked }) {
   console.log(
-    '\n  Checking that Zapstore saved the release. This can take a minute...'
+    '\n  Checking that Zapstore saved the release. This can take a few minutes...'
   )
   const status = await waitForZapstore(events, VERIFY_ATTEMPTS)
   console.log(describeStatus(events, status))
   if (!isLive(events, status)) {
-    throw new Error(
-      'Zapstore accepted the release but has not saved it. The relay holds new ' +
-        'listings as pending until its checks pass. If this signing key is new, ' +
-        'link it first: zsp identity --link-key ~/.satsigner/release.p12'
-    )
+    throw new Error(pendingMessage(keyLinked))
   }
   console.log('\n  The release is live on Zapstore.')
 }
 
-export { describeStatus, isLive, parseZspEvents, verifyOnZapstore }
+export {
+  describeStatus,
+  isLive,
+  parseZspEvents,
+  pendingMessage,
+  verifyOnZapstore
+}
