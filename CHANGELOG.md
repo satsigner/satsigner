@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-13
+
+### Fixed
+
+- Syncing an account over Electrum or Esplora failed with "Cannot lower this
+  object to a pointer", most visibly on the first sync after restoring a
+  backup. The UniFFI runtime rejected the JavaScript progress inspector passed
+  to the scan.
+
 ## [0.4.2] - 2026-11-13
 
 ### Fixed
