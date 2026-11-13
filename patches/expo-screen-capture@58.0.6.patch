@@ -1,0 +1,33 @@
+diff --git a/android/src/main/java/expo/modules/screencapture/ScreenCaptureModule.kt b/android/src/main/java/expo/modules/screencapture/ScreenCaptureModule.kt
+index e76da2f2f74f89b45000922400266b830da35f20..a1c9cf5945351ccf45b2ee00b05b0272ff8d6c7c 100644
+--- a/android/src/main/java/expo/modules/screencapture/ScreenCaptureModule.kt
++++ b/android/src/main/java/expo/modules/screencapture/ScreenCaptureModule.kt
+@@ -3,6 +3,7 @@ package expo.modules.screencapture
+ import android.Manifest
+ import android.app.Activity
+ import android.content.Context
++import android.content.pm.PackageManager
+ import android.os.Build
+ import android.util.Log
+ import android.view.WindowManager
+@@ -105,7 +106,7 @@ class ScreenCaptureModule : Module() {
+     OnDestroy {
+       screenshotEventEmitter?.onHostDestroy()
+       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+-        screenCaptureCallback?.let {
++        screenCaptureCallback?.takeIf { isRegistered }?.let {
+           safeCurrentActivity?.unregisterScreenCaptureCallback(it)
+         }
+       }
+@@ -117,6 +118,11 @@ class ScreenCaptureModule : Module() {
+       return
+     }
+     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
++      // Satsigner blocks DETECT_SCREEN_CAPTURE and only uses FLAG_SECURE, so
++      // registering would throw a SecurityException and abort the app.
++      if (context.checkSelfPermission(Manifest.permission.DETECT_SCREEN_CAPTURE) != PackageManager.PERMISSION_GRANTED) {
++        return
++      }
+       safeCurrentActivity?.registerScreenCaptureCallback(currentActivity.mainExecutor, screenCaptureCallback!!) ?: return
+       isRegistered = true
+     }
