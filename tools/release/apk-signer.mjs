@@ -19,7 +19,11 @@ const NEW_PASS_ENV = 'SATSIGNER_NEW_KEYSTORE_PASS'
 const EXECUTABLE_SUFFIX = process.platform === 'win32' ? '.exe' : ''
 
 function androidHome(env = process.env) {
-  return env.ANDROID_HOME ?? join(homedir(), 'Library', 'Android', 'sdk')
+  return (
+    env.ANDROID_HOME ||
+    env.ANDROID_SDK_ROOT ||
+    join(homedir(), 'Library', 'Android', 'sdk')
+  )
 }
 
 function compareVersions(left, right) {
