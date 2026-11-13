@@ -1,6 +1,7 @@
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { isChangeOutputLabel } from '@/utils/address'
 
 const DEFAULT_AUTO_SELECT: AutoSelectUtxosAlgorithm = 'user'
 
@@ -18,6 +19,19 @@ type DraftIoSource = {
     changeValues?: number[]
     fakeMixValues?: number[]
   }
+}
+
+type DraftPaymentSource = {
+  outputs?: Pick<Output, 'amount' | 'kind' | 'label'>[]
+}
+
+type DraftLabelSource = {
+  outputs?: Pick<Output, 'kind' | 'label'>[]
+}
+
+type DraftResumeSource = {
+  prebuiltPsbtBase64?: string
+  signedTx?: string
 }
 
 /**
@@ -87,11 +101,9 @@ function getDraftIoCounts(draft?: DraftIoSource): {
 }
 
 /** First label set on a recipient output; change and stonewall outputs are skipped. */
-function getDraftLabel(draft?: {
-  outputs?: Pick<Output, 'kind' | 'label'>[]
-}): string {
+function getDraftLabel(draft?: DraftLabelSource): string {
   const labeled = draft?.outputs?.find(
-    (output) => output.kind === undefined && output.label.trim() !== ''
+    (output) => !isReturnToWalletOutput(output) && output.label.trim() !== ''
   )
   return labeled?.label.trim() ?? ''
 }
@@ -102,10 +114,7 @@ type DraftResumeStep = 'sign' | 'preview' | 'io'
  * Where an unfinished draft picks up. A fee replacement's inputs are already
  * spent, so it can only resume from the PSBT the replacement built.
  */
-function getDraftResumeStep(draft?: {
-  prebuiltPsbtBase64?: string
-  signedTx?: string
-}): DraftResumeStep {
+function getDraftResumeStep(draft?: DraftResumeSource): DraftResumeStep {
   if (draft?.signedTx) {
     return 'sign'
   }
@@ -115,10 +124,30 @@ function getDraftResumeStep(draft?: {
   return 'io'
 }
 
+function isReturnToWalletOutput(output: Pick<Output, 'kind' | 'label'>) {
+  return (
+    output.kind === 'change' ||
+    output.kind === 'fakeMix' ||
+    isChangeOutputLabel(output.label)
+  )
+}
+
+/**
+ * Amount the draft pays out. Change, including the change output added on the
+ * way to signing, goes back to the wallet, as the sign screen's chart shows.
+ */
+function getDraftPaymentAmount(draft?: DraftPaymentSource): number {
+  const outputs = draft?.outputs ?? []
+  return outputs
+    .filter((output) => !isReturnToWalletOutput(output))
+    .reduce((sum, output) => sum + output.amount, 0)
+}
+
 export {
   DEFAULT_AUTO_SELECT,
   getDraftIoCounts,
   getDraftLabel,
+  getDraftPaymentAmount,
   getDraftResumeStep,
   resolveDraftAlgorithm
 }

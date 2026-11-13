@@ -390,9 +390,24 @@ describe('2-of-2 multisig signatures', () => {
   it('finalizes once every cosigner has signed', () => {
     const original = buildMultisigPsbt()
 
-    expect(combineAndFinalizePsbts(original, signAll(original))).toStrictEqual({
-      hex: expect.stringMatching(/^[0-9a-f]+$/)
+    const result = combineAndFinalizePsbts(original, signAll(original))
+
+    expect(result).toStrictEqual({
+      hex: expect.stringMatching(/^[0-9a-f]+$/),
+      psbtBase64: expect.any(String)
     })
+  })
+
+  it('returns the finalized PSBT of the extracted transaction', () => {
+    const original = buildMultisigPsbt()
+    const result = combineAndFinalizePsbts(original, signAll(original))
+
+    if (!('psbtBase64' in result)) {
+      throw new Error('expected a finalized transaction')
+    }
+    expect(
+      bitcoinjs.Psbt.fromBase64(result.psbtBase64).extractTransaction().toHex()
+    ).toBe(result.hex)
   })
 
   it('keeps a fully signed PSBT imported into a cosigner slot unfinalized', () => {

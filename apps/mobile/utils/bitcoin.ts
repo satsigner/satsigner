@@ -311,6 +311,38 @@ export function convertKeyFormat(
   }
 }
 
+export type PubkeyExportFormat = 'xpub' | 'ypub' | 'zpub'
+
+/**
+ * Formats an account's public keys can be exported in. A ypub or zpub tells
+ * the importing wallet the script type, so it is only offered for the
+ * single-sig type it stands for: on a legacy account it would make another
+ * wallet derive segwit addresses from the same key.
+ */
+export function getPubkeyExportFormats(
+  policyType: Account['policyType'],
+  scriptVersion: Key['scriptVersion']
+): PubkeyExportFormat[] {
+  if (policyType === 'multisig') {
+    return ['xpub']
+  }
+  if (scriptVersion === 'P2SH-P2WPKH') {
+    return ['xpub', 'ypub']
+  }
+  if (scriptVersion === 'P2WPKH') {
+    return ['xpub', 'zpub']
+  }
+  return ['xpub']
+}
+
+/** The name a key format goes by on the network, e.g. zpub is vpub on signet. */
+export function getNetworkKeyFormatName(
+  format: PubkeyExportFormat,
+  network: AppNetwork
+): string {
+  return NETWORK_KEY_FORMATS[network][format]
+}
+
 export function getKeyFormatForScriptVersion(
   scriptVersion: string,
   network: AppNetwork

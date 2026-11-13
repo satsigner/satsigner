@@ -97,11 +97,13 @@ async function fromElectrum(
   serverUrl: string,
   network: Network
 ): Promise<MempoolBasicData> {
-  let client: ElectrumClient | null = null
+  const client = ElectrumClient.fromUrl(serverUrl, network)
   try {
-    client = ElectrumClient.fromUrl(serverUrl, network)
     await client.init()
-    const histogram = normalizeHistogram(await client.getMempoolFeeHistogram())
+    // Not every Electrum server implements the fee histogram.
+    const histogram = normalizeHistogram(
+      await client.getMempoolFeeHistogram().catch(() => null)
+    )
     if (histogram.length === 0) {
       return EMPTY_BASIC
     }
@@ -115,95 +117,83 @@ async function fromElectrum(
       },
       histogram
     )
-  } catch {
-    return EMPTY_BASIC
   } finally {
     closeElectrumClientQuietly(client)
   }
 }
 
 async function fromEsplora(serverUrl: string): Promise<MempoolBasicData> {
-  try {
-    const esplora = new Esplora(serverUrl)
-    const [info, estimates] = await Promise.all([
-      esplora.getMempoolInfo(),
-      esplora.getFeeEstimates().catch(() => null)
-    ])
+  const esplora = new Esplora(serverUrl)
+  const [info, estimates] = await Promise.all([
+    esplora.getMempoolInfo(),
+    esplora.getFeeEstimates().catch(() => null)
+  ])
 
-    const estimateFees = feesFromUnknownEsploraEstimates(estimates)
-    const minFeeRate = estimateFees?.none ?? null
-    const histogram = normalizeHistogram(
-      info && typeof info === 'object'
-        ? Reflect.get(info, 'fee_histogram')
-        : null
-    )
+  const estimateFees = feesFromUnknownEsploraEstimates(estimates)
+  const minFeeRate = estimateFees?.none ?? null
+  const histogram = normalizeHistogram(
+    info && typeof info === 'object' ? Reflect.get(info, 'fee_histogram') : null
+  )
 
-    const base: MempoolBasicData = {
-      ...EMPTY_BASIC,
-      count: typeof info?.count === 'number' ? info.count : null,
-      fees: estimateFees,
-      minFeeRate,
-      source: 'backend',
-      totalFee: typeof info?.total_fee === 'number' ? info.total_fee : null,
-      vsize: typeof info?.vsize === 'number' ? info.vsize : null,
-      vsizeFromHistogram: typeof info?.vsize === 'number' ? info.vsize : 0
-    }
-
-    if (histogram.length === 0) {
-      return base
-    }
-
-    return withHistogramDerived(base, histogram, estimateFees)
-  } catch {
-    return EMPTY_BASIC
+  const base: MempoolBasicData = {
+    ...EMPTY_BASIC,
+    count: typeof info?.count === 'number' ? info.count : null,
+    fees: estimateFees,
+    minFeeRate,
+    source: 'backend',
+    totalFee: typeof info?.total_fee === 'number' ? info.total_fee : null,
+    vsize: typeof info?.vsize === 'number' ? info.vsize : null,
+    vsizeFromHistogram: typeof info?.vsize === 'number' ? info.vsize : 0
   }
+
+  if (histogram.length === 0) {
+    return base
+  }
+
+  return withHistogramDerived(base, histogram, estimateFees)
 }
 
 async function fromRpc(
   serverUrl: string,
   rpcCredentials?: RpcCredentials
 ): Promise<MempoolBasicData> {
-  try {
-    const rpc = new BitcoinRpc(
-      serverUrl,
-      rpcCredentials?.username ?? '',
-      rpcCredentials?.password ?? ''
-    )
-    const [info, fee1, fee3, fee6] = await Promise.all([
-      rpc.getMempoolInfo(),
-      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_FAST_BLOCKS).catch(() => null),
-      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS).catch(() => null),
-      rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_SLOW_BLOCKS).catch(() => null)
-    ])
+  const rpc = new BitcoinRpc(
+    serverUrl,
+    rpcCredentials?.username ?? '',
+    rpcCredentials?.password ?? ''
+  )
+  const [info, fee1, fee3, fee6] = await Promise.all([
+    rpc.getMempoolInfo(),
+    rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_FAST_BLOCKS).catch(() => null),
+    rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_MEDIUM_BLOCKS).catch(() => null),
+    rpc.estimateSmartFee(FEE_ESTIMATE_TARGET_SLOW_BLOCKS).catch(() => null)
+  ])
 
-    const fees =
-      feesFromSmartFeeTargets({
-        highBtcPerKb: fee1?.feerate ?? null,
-        lowBtcPerKb: fee6?.feerate ?? null,
-        mediumBtcPerKb: fee3?.feerate ?? null,
-        minBtcPerKb: info.mempoolminfee
-      }) ??
-      (typeof info.mempoolminfee === 'number'
-        ? feesFromBtcPerKb(info.mempoolminfee)
-        : null)
+  const fees =
+    feesFromSmartFeeTargets({
+      highBtcPerKb: fee1?.feerate ?? null,
+      lowBtcPerKb: fee6?.feerate ?? null,
+      mediumBtcPerKb: fee3?.feerate ?? null,
+      minBtcPerKb: info.mempoolminfee
+    }) ??
+    (typeof info.mempoolminfee === 'number'
+      ? feesFromBtcPerKb(info.mempoolminfee)
+      : null)
 
-    const minFeeRate =
-      fees?.none ??
-      (typeof info.mempoolminfee === 'number'
-        ? Math.round(info.mempoolminfee * SATS_PER_BITCOIN) / VBYTES_PER_KB
-        : null)
+  const minFeeRate =
+    fees?.none ??
+    (typeof info.mempoolminfee === 'number'
+      ? Math.round(info.mempoolminfee * SATS_PER_BITCOIN) / VBYTES_PER_KB
+      : null)
 
-    return {
-      ...EMPTY_BASIC,
-      count: info.size,
-      fees,
-      minFeeRate,
-      source: 'backend',
-      vsize: info.bytes,
-      vsizeFromHistogram: info.bytes
-    }
-  } catch {
-    return EMPTY_BASIC
+  return {
+    ...EMPTY_BASIC,
+    count: info.size,
+    fees,
+    minFeeRate,
+    source: 'backend',
+    vsize: info.bytes,
+    vsizeFromHistogram: info.bytes
   }
 }
 
@@ -239,8 +229,8 @@ export async function fetchBackendNextBlockFee(
     backend,
     network,
     rpcCredentials
-  )
-  return data.fees?.high ?? null
+  ).catch(() => null)
+  return data?.fees?.high ?? null
 }
 
 export async function fetchMempoolExtendedData(

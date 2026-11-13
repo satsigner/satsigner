@@ -318,7 +318,6 @@ function NostrKeysPreview() {
       </SSVStack>
       <SSNostrKeyQRModal
         value={DESIGN_NOSTR_ME_NPUB}
-        label={t('nostrIdentity.keys.npub')}
         shareable
         visible={qrVisible}
         onClose={handleCloseQr}

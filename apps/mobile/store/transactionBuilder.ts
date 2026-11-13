@@ -17,6 +17,7 @@ import {
   DEFAULT_AUTO_SELECT,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
+import { isRecord } from '@/utils/object'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -76,6 +77,8 @@ type TransactionBuilderState = {
   psbt?: PsbtLike
   /** Built outside the preview (fee replacement), so the preview must not rebuild it from inputs. */
   isPsbtPrebuilt: boolean
+  /** Builder fields the prebuilt PSBT was made from; see builderFingerprint. */
+  prebuiltFingerprint?: string
   /** Txid this draft replaces (RBF bump or cancel). */
   replacesTxid?: string
   signedTx?: string
@@ -90,6 +93,7 @@ type TransactionBuilderAction = {
   clearPsbt: () => void
   clearTransaction: () => void
   clearAllData: () => void
+  discardDraft: (accountId: string) => void
   setAccountId: (accountId: string) => void
   getInputs: () => Utxo[]
   hasInput: (utxo: Utxo) => boolean
@@ -151,44 +155,31 @@ function restorePrebuiltPsbt(base64?: string): PsbtLike | undefined {
 
 // The builder fields an account's saved draft resumes into, or a blank
 // builder when the account has no draft.
-function draftWorkingState(draft?: SavedDraft) {
+function workingStateFromDraft(draft: SavedDraft | undefined) {
   const prebuiltPsbt = restorePrebuiltPsbt(draft?.prebuiltPsbtBase64)
-  return {
-    cpfp: draft?.cpfp ?? true,
+  const fields = {
     fee: draft?.fee ?? 0,
     feeRate: draft?.feeRate ?? 0,
     inputs: draft
       ? new Map(Object.entries(draft.inputs))
       : new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-    isPsbtPrebuilt: prebuiltPsbt !== undefined,
     outputs: draft?.outputs ?? [],
-    payjoinUri: draft?.payjoinUri,
-    psbt: prebuiltPsbt,
     rbf: draft?.rbf ?? true,
+    timeLock: draft?.timeLock ?? 0
+  }
+  return {
+    ...fields,
+    cpfp: draft?.cpfp ?? true,
+    isPsbtPrebuilt: prebuiltPsbt !== undefined,
+    payjoinUri: draft?.payjoinUri,
+    prebuiltFingerprint: prebuiltPsbt ? builderFingerprint(fields) : undefined,
+    psbt: prebuiltPsbt,
     replacesTxid: draft?.replacesTxid,
     selectedAutoSelectUtxos: resolveDraftAlgorithm(draft),
     signedPsbtBase64: draft?.signedPsbtBase64,
     signedTx: draft?.signedTx,
-    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview),
-    timeLock: draft?.timeLock ?? 0
+    stonewallPreview: normalizeStonewallPreview(draft?.stonewallPreview)
   }
-}
-
-type PersistedTransactionBuilderState = Pick<
-  TransactionBuilderState,
-  'accountId' | 'drafts'
->
-
-function isPersistedTransactionBuilderState(
-  value: unknown
-): value is PersistedTransactionBuilderState {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'drafts' in value &&
-    typeof value.drafts === 'object' &&
-    value.drafts !== null
-  )
 }
 
 function clearSignedDraftFields(state: Draft<TransactionBuilderState>) {
@@ -205,6 +196,7 @@ type DraftSource = Pick<
   | 'isPsbtPrebuilt'
   | 'outputs'
   | 'payjoinUri'
+  | 'prebuiltFingerprint'
   | 'psbt'
   | 'rbf'
   | 'replacesTxid'
@@ -215,6 +207,35 @@ type DraftSource = Pick<
   | 'timeLock'
 >
 
+type FingerprintSource = Pick<
+  TransactionBuilderState,
+  'fee' | 'feeRate' | 'inputs' | 'outputs' | 'rbf' | 'timeLock'
+>
+
+// The fields a PSBT commits to. A prebuilt PSBT is only saved while the
+// builder still matches it: an edit made before the app stops must not come
+// back as a PSBT that ignores it.
+function builderFingerprint(source: FingerprintSource): string {
+  return JSON.stringify({
+    fee: source.fee,
+    feeRate: source.feeRate,
+    inputs: [...source.inputs.keys()].toSorted(),
+    outputs: source.outputs.map((output) => [output.to, output.amount]),
+    rbf: source.rbf,
+    timeLock: source.timeLock
+  })
+}
+
+function savedPrebuiltPsbt(source: DraftSource): string | undefined {
+  if (
+    !source.isPsbtPrebuilt ||
+    source.prebuiltFingerprint !== builderFingerprint(source)
+  ) {
+    return undefined
+  }
+  return source.psbt?.toBase64()
+}
+
 function toSavedDraft(source: DraftSource): SavedDraft {
   const preview = source.stonewallPreview
   return {
@@ -224,9 +245,7 @@ function toSavedDraft(source: DraftSource): SavedDraft {
     inputs: Object.fromEntries(source.inputs),
     outputs: [...source.outputs],
     payjoinUri: source.payjoinUri,
-    prebuiltPsbtBase64: source.isPsbtPrebuilt
-      ? source.psbt?.toBase64()
-      : undefined,
+    prebuiltPsbtBase64: savedPrebuiltPsbt(source),
     rbf: source.rbf,
     replacesTxid: source.replacesTxid,
     selectedAutoSelectUtxos: source.selectedAutoSelectUtxos,
@@ -280,23 +299,11 @@ const useTransactionBuilderStore = create<
       broadcasted: false,
       clearAllData: () => {
         set({
+          ...workingStateFromDraft(undefined),
           accountId: undefined,
           broadcasted: false,
-          cpfp: true,
           drafts: {},
-          fee: 0,
-          feeRate: 0,
-          inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-          isPsbtPrebuilt: false,
-          outputs: [],
-          psbt: undefined,
-          rbf: true,
-          replacesTxid: undefined,
-          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
-          signedPsbts: new Map<number, string>(),
-          signedTx: undefined,
-          stonewallPreview: normalizeStonewallPreview(),
-          timeLock: 0
+          signedPsbts: new Map<number, string>()
         })
       },
       clearPsbt: () => {
@@ -319,28 +326,23 @@ const useTransactionBuilderStore = create<
           delete updatedDrafts[accountId]
         }
         set({
+          ...workingStateFromDraft(undefined),
           accountId: undefined,
           broadcasted: false,
-          cpfp: true,
           drafts: updatedDrafts,
-          fee: 0,
-          feeRate: 0,
-          inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-          isPsbtPrebuilt: false,
-          outputs: [],
-          payjoinUri: undefined,
-          psbt: undefined,
-          rbf: true,
-          replacesTxid: undefined,
-          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
-          signedPsbtBase64: undefined,
-          signedPsbts: new Map<number, string>(),
-          signedTx: undefined,
-          stonewallPreview: normalizeStonewallPreview(),
-          timeLock: 0
+          signedPsbts: new Map<number, string>()
         })
       },
       cpfp: true,
+      discardDraft: (accountId) => {
+        if (get().accountId === accountId) {
+          get().clearTransaction()
+          return
+        }
+        set((state) => {
+          delete state.drafts[accountId]
+        })
+      },
       drafts: {},
       fee: 0,
       feeRate: 0,
@@ -429,6 +431,9 @@ const useTransactionBuilderStore = create<
           state.timeLock = 0
           state.isPsbtPrebuilt = replacement !== undefined
           state.psbt = replacement?.psbt
+          state.prebuiltFingerprint = replacement
+            ? builderFingerprint(state)
+            : undefined
           syncDraft(state)
         })
       },
@@ -450,7 +455,7 @@ const useTransactionBuilderStore = create<
         }
 
         set({
-          ...draftWorkingState(updatedDrafts[accountId]),
+          ...workingStateFromDraft(updatedDrafts[accountId]),
           accountId,
           broadcasted: false,
           drafts: updatedDrafts,
@@ -554,20 +559,17 @@ const useTransactionBuilderStore = create<
       }
     })),
     {
-      // Storage is synchronous, so hydration runs inside create(): the store
-      // binding does not exist yet and the builder must be restored here.
-      merge: (persisted, current) => {
-        if (!isPersistedTransactionBuilderState(persisted)) {
-          return current
+      // MMKV hydrates while the store is still being created, so the open
+      // draft is rebuilt here: the store itself is not reachable yet.
+      merge: (persistedState, currentState) => {
+        const merged = {
+          ...currentState,
+          ...(isRecord(persistedState) ? persistedState : {})
         }
-        const { accountId, drafts } = persisted
-        const draft = accountId ? drafts[accountId] : undefined
-        return {
-          ...current,
-          ...draftWorkingState(draft),
-          accountId,
-          drafts
-        }
+        const draft = merged.accountId
+          ? merged.drafts[merged.accountId]
+          : undefined
+        return draft ? { ...merged, ...workingStateFromDraft(draft) } : merged
       },
       name: 'satsigner-transaction-builder',
       partialize: (state) => ({

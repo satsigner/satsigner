@@ -163,6 +163,7 @@ function UtxoChartPreview({ setIndex }: SetPreviewProps) {
           utxos={utxos}
           inputs={NO_INPUTS}
           onPress={NOOP}
+          privacyMode={false}
         />
         <SSSeparator />
         <SSDesignSection title={tn('utxoBars')}>

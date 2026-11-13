@@ -133,6 +133,11 @@ function useNostrNoteEngagement({
         queryKey,
         (current = []) => settleEngagementToggle(current, action, published)
       )
+      if (action === 'like') {
+        void queryClient.invalidateQueries({
+          queryKey: nostrKeys.identityNoteReactionsOnAnyRelays(noteId)
+        })
+      }
     }
   })
 

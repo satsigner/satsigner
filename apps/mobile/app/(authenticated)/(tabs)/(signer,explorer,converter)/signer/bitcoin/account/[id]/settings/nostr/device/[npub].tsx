@@ -343,7 +343,11 @@ export default function DeviceAliasPage() {
             />
           </SSHStack>
           <SSButton
-            label={isTrusted ? 'Distrust' : 'Trust'}
+            label={
+              isTrusted
+                ? t('account.nostrSync.distrust')
+                : t('account.nostrSync.trust')
+            }
             onPress={handleTrustToggle}
             variant={isTrusted ? 'danger' : 'outline'}
             style={styles.trustButton}

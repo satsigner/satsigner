@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import { NostrAPI, probeIdentityRelays } from '@/api/nostr'
 import { SSIconChatBubble, SSIconNostr, SSIconQR } from '@/components/icons'
@@ -37,6 +38,7 @@ import {
   type NostrRelayConnectionInfo,
   type ZapReceiptInfo
 } from '@/types/models/Nostr'
+import { canNostrIdentitySignRemotely } from '@/utils/nip46'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   getNostrIdentityRelays,
@@ -123,14 +125,21 @@ export default function NostrAccountLanding() {
     staleTime: NOSTR_RELAY_REACHABILITY_STALE_TIME_MS
   })
 
+  function handleConnectUri(connectUri: string) {
+    if (!canNostrIdentitySignRemotely(identity)) {
+      toast.error(t('nip46.watchOnly'))
+      return
+    }
+    router.navigate(nostrBunkerConnectHref(npub, connectUri))
+  }
+
   function handleContentScanned(detected: {
     type: string
     raw: string
     cleaned: string
   }) {
     if (detected.type === 'nostr_connect') {
-      const connectUri = detected.cleaned || detected.raw
-      router.navigate(nostrBunkerConnectHref(npub, connectUri))
+      handleConnectUri(detected.cleaned || detected.raw)
       return
     }
     const nostrUri = detected.cleaned || detected.raw
@@ -301,7 +310,6 @@ export default function NostrAccountLanding() {
       />
       <SSNostrKeyQRModal
         value={identity.npub}
-        label={t('nostrIdentity.keys.npub')}
         lnAddress={identity.lud16}
         ownerNpub={identity.npub}
         shareable

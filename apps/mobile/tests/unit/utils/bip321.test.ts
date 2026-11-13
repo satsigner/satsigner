@@ -94,6 +94,17 @@ describe('bip321 utils', () => {
       expect(result.amount).toBe(0.001)
     })
 
+    it.each(['0.001xyz', '1e-3', '0x1'])(
+      'drops the malformed amount %s instead of reading part of it',
+      (amount) => {
+        const result = parseBitcoinUri(
+          `bitcoin:${addresses.mainnet.p2wpkh}?amount=${amount}`
+        )
+        expect(result.address).toBe(addresses.mainnet.p2wpkh)
+        expect(result.amount).toBeUndefined()
+      }
+    )
+
     it('should parse URI with label', () => {
       const result = parseBitcoinUri(bip321Uris.valid.withLabel)
       expect(result.isValid).toBe(true)

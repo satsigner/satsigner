@@ -41,7 +41,12 @@ function SSModal({
   const showFooter = showCancel || Boolean(onConfirm)
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={showCancel ? onClose : undefined}
+    >
       <View
         style={[
           styles.safeArea,

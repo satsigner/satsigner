@@ -1,61 +1,22 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSSuccessCheckAnimation from '@/components/SSSuccessCheckAnimation'
 import SSText from '@/components/SSText'
-import { SEQUENCE_FINAL, SEQUENCE_RBF } from '@/constants/btc'
-import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
+import { TXID_HEX_PATTERN } from '@/constants/btc'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Label } from '@/types/bips/329'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { removeReplacedTransaction } from '@/utils/feeReplacement'
+import { type TransactionConfirmationSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
-import { getRawTransactionSizes } from '@/utils/transaction'
-import { annotateTransactionsWithWalletOwnership } from '@/utils/walletOwnership'
-
-function isReturnedBuilderOutput(
-  output: { kind?: string; to: string },
-  ownAddresses: Set<string>
-) {
-  // Builder marks stonewall decoy/change as kind 'change'. Decoy addresses are
-  // often not yet in account.addresses (unused peeked internals).
-  return (
-    output.kind === 'change' ||
-    output.kind === 'fakeMix' ||
-    ownAddresses.has(output.to)
-  )
-}
-
-function makeOptimisticAddress(
-  address: string,
-  keychain: 'internal' | 'external',
-  network: Account['addresses'][number]['network']
-): Account['addresses'][number] {
-  return {
-    address,
-    keychain,
-    label: '',
-    network,
-    summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-    transactions: [],
-    utxos: []
-  }
-}
 
 const TITLE_DELAY_MS = 350
 const DETAILS_DELAY_MS = 550
@@ -63,58 +24,23 @@ const BUTTON_DELAY_MS = 700
 
 export default function TransactionConfirmation() {
   const router = useRouter()
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { arkAccountId, id, txid } =
+    useLocalSearchParams<TransactionConfirmationSearchParams>()
   const [externalWarningModalVisible, setExternalWarningModalVisible] =
     useState(false)
 
-  const [
-    clearTransaction,
-    psbt,
-    broadcasted,
-    outputs,
-    inputs,
-    fee,
-    rbf,
-    replacesTxid,
-    signedTx
-  ] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.clearTransaction,
-      state.psbt,
-      state.broadcasted,
-      state.outputs,
-      state.inputs,
-      state.fee,
-      state.rbf,
-      state.replacesTxid,
-      state.signedTx
-    ])
+  const account = useAccountsStore((state) =>
+    state.accounts.find((entry) => entry.id === id)
   )
-  const [account, importLabels, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.id === id),
-      state.importLabels,
-      state.updateAccount
-    ])
-  )
-
   const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
-  const webExplorerUrl = useMemo(() => {
-    if (!account) {
-      return ''
-    }
-    const { network } = account
-    const mempoolServerUrl = mempoolConfig[network]
-    return mempoolServerUrl
-  }, [account, mempoolConfig])
 
-  const mempoolTxUrl = useMemo(() => {
-    if (!webExplorerUrl || !psbt) {
-      return ''
-    }
-    const base = webExplorerUrl.replace(/\/api\/?$/, '')
-    return `${base}/tx/${psbt.txid()}`
-  }, [webExplorerUrl, psbt])
+  const isArkBoardFunding = Boolean(arkAccountId)
+  const isValidTxid = TXID_HEX_PATTERN.test(txid)
+  const mempoolServerUrl = account ? mempoolConfig[account.network] : ''
+  const mempoolTxUrl =
+    mempoolServerUrl && isValidTxid
+      ? `${mempoolServerUrl.replace(/\/api\/?$/, '')}/tx/${txid}`
+      : ''
 
   function handleViewOnMempool() {
     setExternalWarningModalVisible(true)
@@ -127,239 +53,21 @@ export default function TransactionConfirmation() {
     setExternalWarningModalVisible(false)
   }
 
-  const arkBoardIntent = useArkBoardFundingIntent(outputs)
-  const isArkBoardFunding = arkBoardIntent !== undefined
-
   function handleBackToHome() {
-    clearTransaction()
     router.dismissAll()
     router.navigate(`/signer/bitcoin/account/${id}`)
   }
 
   function handleOpenArkAccount() {
-    if (!arkBoardIntent) {
+    if (!arkAccountId) {
       return
     }
-    const { arkAccountId } = arkBoardIntent
-    clearTransaction()
     router.dismissAll()
     router.navigate(`/signer/ark/account/${arkAccountId}`)
   }
 
-  const defaultChangeAddressLabel = t('sign.changeAddressLabelDefault')
-
-  const txLabelText = outputs
-    .filter((o) => o.label !== defaultChangeAddressLabel)
-    .map((o) => o.label)
-    .filter(Boolean)
-    .join(',')
-
-  // we store the labels in account.labels, then later on the labels will be
-  // restored when the wallet data is fetched.
-  useEffect(() => {
-    if (psbt) {
-      const txid = psbt.txid()
-      const labels: Label[] = []
-
-      for (let i = 0; i < outputs.length; i += 1) {
-        const output = outputs[i]
-
-        // we deal with change address later
-        if (output.label === defaultChangeAddressLabel) {
-          continue
-        }
-
-        const vout = i
-
-        const outputRef = `${txid}:${vout}`
-        labels.push({
-          label: output.label,
-          ref: outputRef,
-          type: 'output'
-        })
-
-        labels.push({
-          label: output.label,
-          ref: output.to,
-          type: 'addr'
-        })
-      }
-
-      // the tx label inherits the output labels separated by comma.
-      labels.push({
-        label: txLabelText,
-        ref: txid,
-        type: 'tx'
-      })
-
-      // add label to change address if it exists.
-      const changeOutputIndex = outputs.findIndex(
-        (output) => output.label === defaultChangeAddressLabel
-      )
-      if (changeOutputIndex !== -1) {
-        const changeOutput = outputs[changeOutputIndex]
-        const changeLabel = t('sign.changeAddressLabelFinal', {
-          txlabel: txLabelText
-        })
-        labels.push({
-          label: changeLabel,
-          ref: `${txid}:${changeOutputIndex}`,
-          type: 'output'
-        })
-        labels.push({
-          label: changeLabel,
-          ref: changeOutput.to,
-          type: 'addr'
-        })
-      }
-
-      importLabels(id, labels)
-    }
-  }, [id, psbt, outputs, importLabels, defaultChangeAddressLabel, txLabelText])
-
-  // Optimistically update the account with the just-broadcast transaction so
-  // the user sees it immediately without waiting for a full sync.
-  useEffect(() => {
-    if (!psbt || !account || !broadcasted) {
-      return
-    }
-
-    const txid = psbt.txid()
-
-    // Idempotent — skip if sync already added it
-    if (account.transactions.some((tx) => tx.id === txid)) {
-      return
-    }
-
-    const inputsList = [...inputs.values()]
-    const totalIn = inputsList.reduce((sum, u) => sum + u.value, 0)
-
-    const ownAddresses = new Set(account.addresses.map((a) => a.address))
-    const addressKeychain = new Map(
-      account.addresses.map(
-        (address) =>
-          [
-            address.address,
-            address.keychain === 'internal' ? 'internal' : 'external'
-          ] as const
-      )
-    )
-    let receivedReturned = 0
-    for (const output of outputs) {
-      if (isReturnedBuilderOutput(output, ownAddresses)) {
-        receivedReturned += output.amount
-      }
-    }
-
-    const optimisticTx: Transaction = {
-      blockHeight: undefined,
-      fee,
-      id: txid,
-      label: txLabelText || undefined,
-      lockTimeEnabled: false,
-      prices: {},
-      received: receivedReturned,
-      sent: totalIn,
-      timestamp: new Date(),
-      type: 'send',
-      vin: inputsList.map((u) => ({
-        label: u.label,
-        previousOutput: { txid: u.txid, vout: u.vout },
-        scriptSig: [],
-        sequence: rbf ? SEQUENCE_RBF : SEQUENCE_FINAL,
-        value: u.value,
-        witness: []
-      })),
-      vout: outputs.map((output) => ({
-        address: output.to,
-        kind: output.kind,
-        label: output.label,
-        script: '',
-        value: output.amount
-      })),
-      ...(signedTx ? getRawTransactionSizes(signedTx) : {})
-    }
-
-    const kept = removeReplacedTransaction(account, replacesTxid)
-    const spentOutpoints = new Set(inputsList.map((u) => `${u.txid}:${u.vout}`))
-    const remainingUtxos = kept.utxos.filter(
-      (u) => !spentOutpoints.has(`${u.txid}:${u.vout}`)
-    )
-    const returnedUtxos: Utxo[] = []
-    const knownAddresses = new Set(ownAddresses)
-    const newAddresses: Account['addresses'] = []
-    const network = account.addresses[0]?.network
-
-    for (const [vout, output] of outputs.entries()) {
-      if (!isReturnedBuilderOutput(output, ownAddresses)) {
-        continue
-      }
-
-      const keychain =
-        output.kind === 'change' || output.kind === 'fakeMix'
-          ? 'internal'
-          : (addressKeychain.get(output.to) ?? 'external')
-
-      returnedUtxos.push({
-        addressTo: output.to,
-        keychain,
-        label: output.label || '',
-        timestamp: new Date(),
-        txid,
-        value: output.amount,
-        vout
-      })
-
-      if (!knownAddresses.has(output.to)) {
-        knownAddresses.add(output.to)
-        newAddresses.push(makeOptimisticAddress(output.to, keychain, network))
-      }
-    }
-
-    const optimisticTransactions = annotateTransactionsWithWalletOwnership(
-      [optimisticTx],
-      [...account.addresses, ...newAddresses]
-    )
-
-    updateAccount({
-      ...account,
-      addresses: [...account.addresses, ...newAddresses],
-      summary: {
-        ...account.summary,
-        balance:
-          account.summary.balance -
-          kept.replacedNet -
-          (totalIn - receivedReturned),
-        numberOfTransactions:
-          account.summary.numberOfTransactions +
-          1 -
-          (account.transactions.length - kept.transactions.length),
-        numberOfUtxos: remainingUtxos.length + returnedUtxos.length
-      },
-      transactions: [
-        ...(optimisticTransactions[0]
-          ? [optimisticTransactions[0]]
-          : [optimisticTx]),
-        ...kept.transactions
-      ],
-      utxos: [...returnedUtxos, ...remainingUtxos]
-    })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!broadcasted && account && psbt) {
-      router.replace(
-        `/signer/bitcoin/account/${id}/signAndSend/signTransaction`
-      )
-    }
-  }, [broadcasted, account, psbt, id, router])
-
-  if (!account || !psbt) {
+  if (!account || !isValidTxid) {
     return <Redirect href="/" />
-  }
-
-  if (!broadcasted) {
-    return null
   }
 
   return (
@@ -382,7 +90,7 @@ export default function TransactionConfirmation() {
                 <SSText color="muted" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText>{formatAddress(psbt.txid())}</SSText>
+                <SSText>{formatAddress(txid)}</SSText>
               </SSVStack>
             </Animated.View>
             {isArkBoardFunding && (
@@ -397,7 +105,7 @@ export default function TransactionConfirmation() {
           </SSVStack>
           <Animated.View entering={FadeIn.delay(BUTTON_DELAY_MS).duration(300)}>
             <SSVStack>
-              <SSClipboardCopy text={psbt.txid()}>
+              <SSClipboardCopy text={txid}>
                 <SSButton
                   variant="outline"
                   label={t('sent.copyTransactionId')}

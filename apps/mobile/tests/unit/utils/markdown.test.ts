@@ -19,7 +19,7 @@ describe('parseMarkdownBlocks', () => {
     expect(blocks[2]).toStrictEqual({
       segments: [
         { type: 'text', value: 'Hello ' },
-        { type: 'bold', value: 'world' }
+        { segments: [{ type: 'text', value: 'world' }], type: 'bold' }
       ],
       type: 'paragraph'
     })
@@ -101,6 +101,38 @@ describe('parseInlineSegments', () => {
       { type: 'text', value: 'Tap ' },
       { type: 'text', value: '[wallet](bitcoin:bc1qxy)' },
       { type: 'text', value: ' now' }
+    ])
+  })
+
+  it('parses a link inside bold or italic text', () => {
+    const link = { label: 'shop', type: 'link', url: 'https://example.com/a_b' }
+
+    expect(
+      parseInlineSegments('**[shop](https://example.com/a_b)** (Food)')
+    ).toStrictEqual([
+      { segments: [link], type: 'bold' },
+      { type: 'text', value: ' (Food)' }
+    ])
+    expect(
+      parseInlineSegments('*see [shop](https://example.com/a_b) now*')
+    ).toStrictEqual([
+      {
+        segments: [
+          { type: 'text', value: 'see ' },
+          link,
+          { type: 'text', value: ' now' }
+        ],
+        type: 'italic'
+      }
+    ])
+  })
+
+  it('keeps an unsafe link inside bold text as plain text', () => {
+    expect(parseInlineSegments('**[pay](bitcoin:bc1qxy)**')).toStrictEqual([
+      {
+        segments: [{ type: 'text', value: '[pay](bitcoin:bc1qxy)' }],
+        type: 'bold'
+      }
     ])
   })
 })

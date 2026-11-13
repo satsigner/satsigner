@@ -114,10 +114,36 @@ describe('nostrScannedContentHref', () => {
     expect(
       nostrScannedContentHref(NPUB, scanned('nostr_nevent', nevent))
     ).toStrictEqual(nostrNoteHref(NPUB, nevent))
-    const connect = 'nostrconnect://abc?relay=wss://relay.example'
+    const connect = `nostrconnect://${HEX_ID}?relay=wss://relay.example`
     expect(
       nostrScannedContentHref(NPUB, scanned('nostr_connect', connect))
     ).toStrictEqual(nostrBunkerConnectHref(NPUB, connect))
+  })
+
+  it('opens a scanned note id', () => {
+    const note = nip19.noteEncode(HEX_ID)
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_note', note))
+    ).toStrictEqual(nostrNoteHref(NPUB, note))
+  })
+
+  it('rejects values that only look valid', () => {
+    const badChecksum = `${TARGET_NPUB.slice(0, -1)}${
+      TARGET_NPUB.endsWith('q') ? 'p' : 'q'
+    }`
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_npub', badChecksum))
+    ).toBeUndefined()
+    const nevent = nip19.neventEncode({ id: HEX_ID })
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_note', nevent))
+    ).toBeUndefined()
+    expect(
+      nostrScannedContentHref(
+        NPUB,
+        scanned('nostr_connect', 'nostrconnect://abc?relay=wss://relay.example')
+      )
+    ).toBeUndefined()
   })
 
   it('never routes a secret key or unsupported content', () => {

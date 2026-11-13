@@ -26,29 +26,17 @@ import { chunkArray } from '@/utils/chunkArray'
 import {
   formatNostrKey,
   generateColorFromNpub,
-  type NostrKeyFormat
+  getNostrKeyLabel,
+  type NostrKeyFormat,
+  type NostrKeyType
 } from '@/utils/nostr'
 
 type KeysParams = {
   npub: string
 }
 
-type KeyType = 'npub' | 'nsec'
-
 const SEED_WORDS_PER_ROW = 3
 const EYE_ICON_SIZE = 18
-
-const KEY_LABEL_KEYS: Record<KeyType, Record<NostrKeyFormat, string>> = {
-  npub: {
-    bech32: 'nostrIdentity.keys.npub',
-    hex: 'nostrIdentity.keys.npubHex'
-  },
-  nsec: { bech32: 'nostrIdentity.keys.nsec', hex: 'nostrIdentity.keys.nsecHex' }
-}
-
-function getKeyLabel(type: KeyType, format: NostrKeyFormat) {
-  return t(KEY_LABEL_KEYS[type][format])
-}
 
 function copyToClipboard(value: string) {
   Clipboard.setStringAsync(value)
@@ -66,7 +54,7 @@ export default function NostrIdentityKeys() {
   const [keyFormat, setKeyFormat] = useState<NostrKeyFormat>('bech32')
   const [nsecRevealed, setNsecRevealed] = useState(false)
   const [seedWordsRevealed, setSeedWordsRevealed] = useState(false)
-  const [qrKeyType, setQrKeyType] = useState<KeyType | null>(null)
+  const [qrKeyType, setQrKeyType] = useState<NostrKeyType | null>(null)
   const [seedQrVisible, setSeedQrVisible] = useState(false)
 
   if (!identity) {
@@ -177,7 +165,7 @@ export default function NostrIdentityKeys() {
                 <View
                   style={[styles.colorCircle, { backgroundColor: npubColor }]}
                 />
-                <SSText center>{getKeyLabel('npub', keyFormat)}</SSText>
+                <SSText center>{getNostrKeyLabel('npub', keyFormat)}</SSText>
               </SSHStack>
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 <SSShadedKeyText
@@ -203,7 +191,7 @@ export default function NostrIdentityKeys() {
 
             {nsecDisplay && (
               <SSVStack gap="sm">
-                <SSText center>{getKeyLabel('nsec', keyFormat)}</SSText>
+                <SSText center>{getNostrKeyLabel('nsec', keyFormat)}</SSText>
                 <SSVStack gap="xxs" style={styles.keysContainer}>
                   {nsecRevealed ? (
                     <>
@@ -363,7 +351,6 @@ export default function NostrIdentityKeys() {
       {qrKeyType && qrValue ? (
         <SSNostrKeyQRModal
           value={qrValue}
-          label={getKeyLabel(qrKeyType, 'bech32')}
           lnAddress={qrKeyType === 'npub' ? identity.lud16 : undefined}
           ownerNpub={identity.npub}
           shareable={qrKeyType === 'npub'}

@@ -4,7 +4,6 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Typography } from '@/styles'
 import { type EcashToken } from '@/types/models/Ecash'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { satsToFiat } from '@/utils/fiat'
@@ -30,10 +29,7 @@ function SSEcashTokenDetails({
   showMint = true,
   showProofs = true
 }: SSEcashTokenDetailsProps) {
-  const totalAmount = decodedToken.proofs.reduce(
-    (sum, proof) => sum + proof.amount,
-    0
-  )
+  const { amount: totalAmount, proofAmounts } = decodedToken
 
   return (
     <SSVStack gap="sm" style={styles.tokenDetails}>
@@ -83,20 +79,20 @@ function SSEcashTokenDetails({
               {t('ecash.tokenDetails.proofs')}
             </SSText>
             <SSText style={styles.detailValue}>
-              {decodedToken.proofs.length}{' '}
-              {decodedToken.proofs.length === 1
+              {proofAmounts.length}{' '}
+              {proofAmounts.length === 1
                 ? t('ecash.tokenDetails.proofsCountSingular')
                 : t('ecash.tokenDetails.proofsCount')}
             </SSText>
           </SSHStack>
         </View>
 
-        {showProofs && decodedToken.proofs.length > 0 && (
+        {showProofs && proofAmounts.length > 0 && (
           <View style={styles.detailSection}>
             <SSText uppercase>{t('ecash.tokenDetails.proofDetails')}</SSText>
-            {decodedToken.proofs.slice(0, 3).map((proof, index) => (
+            {proofAmounts.slice(0, 3).map((proofAmount, index) => (
               <SSHStack
-                key={`${proof.id}-${index}`}
+                key={index}
                 gap="xs"
                 style={[styles.detailRow, styles.proofRow]}
               >
@@ -105,23 +101,15 @@ function SSEcashTokenDetails({
                 </SSText>
                 <SSHStack gap="xs" style={styles.proofContainer}>
                   <SSText weight="medium" size="sm">
-                    {privacyMode ? '•••• sats' : `${proof.amount} sats`}
-                  </SSText>
-                  <SSText
-                    size="xs"
-                    style={[styles.proofId, styles.monospaceInput]}
-                    numberOfLines={1}
-                    ellipsizeMode="middle"
-                  >
-                    {proof.id}
+                    {privacyMode ? '•••• sats' : `${proofAmount} sats`}
                   </SSText>
                 </SSHStack>
               </SSHStack>
             ))}
-            {decodedToken.proofs.length > 3 && (
+            {proofAmounts.length > 3 && (
               <SSText color="muted" size="sm">
                 {t('ecash.tokenDetails.andMore', {
-                  count: decodedToken.proofs.length - 3
+                  count: proofAmounts.length - 3
                 })}
               </SSText>
             )}
@@ -157,21 +145,11 @@ const styles = StyleSheet.create({
   detailsContent: {
     gap: 16
   },
-  monospaceInput: {
-    fontFamily: Typography.geistMonoRegular,
-    fontSize: 14,
-    letterSpacing: 0.5
-  },
   proofContainer: {
     alignItems: 'baseline',
     flex: 1,
     gap: 8,
     justifyContent: 'flex-end'
-  },
-  proofId: {
-    fontFamily: Typography.geistMonoRegular,
-    fontSize: 10,
-    opacity: 0.8
   },
   proofRow: {
     alignItems: 'flex-start',

@@ -163,7 +163,7 @@ describe('secureWipeAfterMaxPinTries', () => {
   })
 
   it('drops the seed of a nostr identity that was being created', async () => {
-    useNostrIdentityDraftStore.getState().setDraftMnemonic('abandon about')
+    useNostrIdentityDraftStore.getState().startDraft('abandon about')
 
     await secureWipeAllWalletData()
 

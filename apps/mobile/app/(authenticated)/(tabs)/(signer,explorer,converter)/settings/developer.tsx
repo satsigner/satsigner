@@ -327,7 +327,7 @@ export default function Developer() {
     await deleteAccounts()
     deleteWallets()
     setSheet({ kind: 'none' })
-    toast.error(t('settings.developer.accountsDeleted'))
+    toast.success(t('settings.developer.accountsDeleted'))
   }
 
   async function handleClearStorage() {

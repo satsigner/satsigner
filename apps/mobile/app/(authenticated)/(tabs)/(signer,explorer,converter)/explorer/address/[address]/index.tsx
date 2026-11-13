@@ -24,6 +24,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import { getExplorerExampleAddress } from '@/constants/explorerExamples'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useExplorerAddress } from '@/hooks/useExplorerAddress'
@@ -35,7 +36,7 @@ import { Colors, Layout } from '@/styles'
 import type { ExplorerAddressUtxo } from '@/types/explorer/address'
 import type { Utxo } from '@/types/models/Utxo'
 import { formatExplorerBackendSource } from '@/utils/explorerCapabilities'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedSats } from '@/utils/format'
 import { resolveExplorerAddressParam } from '@/utils/parse'
 
 const tn = _tn('explorer.address')
@@ -50,6 +51,7 @@ const SCREEN_HORIZONTAL_PADDING = SCREEN_PADDING * 2
 type UtxoView = 'bubbles' | 'list'
 
 type UtxoRowProps = {
+  privacyMode: boolean
   utxo: ExplorerAddressUtxo
 }
 
@@ -70,7 +72,7 @@ function toChartUtxos(utxos: ExplorerAddressUtxo[]): Utxo[] {
   }))
 }
 
-function UtxoRow({ utxo }: UtxoRowProps) {
+function UtxoRow({ privacyMode, utxo }: UtxoRowProps) {
   function openTx() {
     navigateToExplorerTx(utxo.txid)
   }
@@ -80,9 +82,7 @@ function UtxoRow({ utxo }: UtxoRowProps) {
       <SSText type="mono" size="xs">
         {utxo.txid.slice(0, 12)}…:{utxo.vout}
       </SSText>
-      <SSText size="sm">
-        {formatNumber(utxo.value)} {t('bitcoin.sats')}
-      </SSText>
+      <SSText size="sm">{formatMaskedSats(utxo.value, privacyMode)}</SSText>
     </Pressable>
   )
 }
@@ -213,12 +213,18 @@ export default function ExplorerAddressDetail() {
             <SSVStack gap="none" style={styles.header}>
               <SSVStack gap="xs" style={styles.headerAmount}>
                 <SSHStack gap="xs" style={styles.headerAmountRow}>
-                  <SSStyledSatText
-                    amount={totalBalance}
-                    decimals={0}
-                    noColor
-                    weight="light"
-                  />
+                  {display.privacyMode ? (
+                    <SSText size="3xl" weight="light">
+                      {PRIVACY_MASK}
+                    </SSText>
+                  ) : (
+                    <SSStyledSatText
+                      amount={totalBalance}
+                      decimals={0}
+                      noColor
+                      weight="light"
+                    />
+                  )}
                   <SSText color="muted">{t('bitcoin.sats')}</SSText>
                 </SSHStack>
               </SSVStack>
@@ -247,11 +253,11 @@ export default function ExplorerAddressDetail() {
               items={[
                 [
                   tn('confirmed'),
-                  `${formatNumber(data.confirmed)} ${t('bitcoin.sats')}`
+                  formatMaskedSats(data.confirmed, display.privacyMode)
                 ],
                 [
                   tn('unconfirmed'),
-                  `${formatNumber(data.unconfirmed)} ${t('bitcoin.sats')}`
+                  formatMaskedSats(data.unconfirmed, display.privacyMode)
                 ],
                 [tn('utxoCount'), data.utxos.length.toString()],
                 [tn('txCount'), data.txids.length.toString()]
@@ -318,12 +324,17 @@ export default function ExplorerAddressDetail() {
                     }}
                     inputs={EMPTY_UTXO_SELECTION}
                     onPress={handleUtxoBubblePress}
+                    privacyMode={display.privacyMode}
                   />
                 </GestureHandlerRootView>
               ) : (
                 <SSVStack gap="none">
                   {data.utxos.map((utxo) => (
-                    <UtxoRow key={`${utxo.txid}:${utxo.vout}`} utxo={utxo} />
+                    <UtxoRow
+                      key={`${utxo.txid}:${utxo.vout}`}
+                      privacyMode={display.privacyMode}
+                      utxo={utxo}
+                    />
                   ))}
                 </SSVStack>
               )}

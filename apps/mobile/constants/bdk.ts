@@ -1,5 +1,6 @@
-// Cap Zustand/UI updates during BDK RPC scans (inspector fires per block).
-export const BDK_RPC_PROGRESS_THROTTLE_MS = 250
+// Cap store and UI updates during BDK scans: inspectors fire per script or
+// per block.
+export const BDK_PROGRESS_THROTTLE_MS = 250
 
 // Extended-private-key prefixes across mainnet/testnet and SLIP132 script
 // variants (BIP44/49/84/86). Matched case-insensitively against the whole

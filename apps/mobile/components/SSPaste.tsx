@@ -174,6 +174,7 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
         'nostr_note',
         'nostr_nevent',
         'nostr_nprofile',
+        'nostr_connect',
         'nostr_json'
       ]
 
@@ -245,9 +246,9 @@ function SSPaste({ visible, onClose, onContentPasted, context }: SSPasteProps) {
     }
 
     if (isValidContent && detectedContentType) {
-      const contentTypeKey = `paste.validation.${detectedContentType}`
-      const fallbackKey = 'paste.validation.valid'
-      return t(contentTypeKey) || t(fallbackKey)
+      return t(`paste.validation.${detectedContentType}`, {
+        defaults: [{ scope: 'paste.validation.valid' }]
+      })
     }
     return t('paste.validation.invalid')
   }

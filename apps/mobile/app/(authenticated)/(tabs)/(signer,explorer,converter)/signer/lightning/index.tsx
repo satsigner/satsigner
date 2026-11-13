@@ -29,7 +29,7 @@ import {
   liquidityBarSegmentFlexParts,
   readLndChannelSatsField
 } from '@/utils/lndChannelDetail'
-import { lndAliasIsNodeId, lndNodeCardTitle } from '@/utils/lndNodeCardTitle'
+import { lndAliasIsNodeId, lndNodeTitle } from '@/utils/lndNodeCardTitle'
 import { showNavigation } from '@/utils/navigation'
 const HEADER_ICON_STROKE = '#828282'
 const CARD_HORIZONTAL_INSET = 18
@@ -72,15 +72,11 @@ export default function LightningPage() {
   const handleConfigPress = () => {
     if (config) {
       const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
-      const aliasRaw = nodeInfo?.alias?.trim() || ''
-      const aliasParam =
-        lndNodeCardTitle(aliasRaw, identityPubkey) ||
-        t('lightning.landing.unknownNode')
       const pubkeyParam =
         identityPubkey || t('lightning.landing.notConnectedPubkey')
       router.navigate({
         params: {
-          alias: aliasParam,
+          alias: lndNodeTitle(nodeInfo),
           pubkey: pubkeyParam
         },
         pathname: '/signer/lightning/node'
@@ -96,9 +92,7 @@ export default function LightningPage() {
     const aliasRaw = nodeInfo?.alias?.trim() || ''
     const identityPubkey = nodeInfo?.identity_pubkey?.trim() || ''
     const titleIsPubkey = lndAliasIsNodeId(aliasRaw, identityPubkey)
-    const alias =
-      lndNodeCardTitle(aliasRaw, identityPubkey) ||
-      t('lightning.landing.unknownNode')
+    const alias = lndNodeTitle(nodeInfo)
     const pubkey =
       nodeInfo?.identity_pubkey?.trim() ||
       t('lightning.landing.notConnectedPubkey')

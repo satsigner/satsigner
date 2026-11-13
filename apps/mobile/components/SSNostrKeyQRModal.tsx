@@ -11,7 +11,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
-import { formatNostrKey, getNip19Type } from '@/utils/nostr'
+import {
+  formatNostrKey,
+  getNostrKeyQr,
+  type NostrKeyQrFormat
+} from '@/utils/nostr'
 import { nostrScannedContentHref } from '@/utils/nostrNavigation'
 
 import SSCameraModal from './SSCameraModal'
@@ -21,11 +25,8 @@ import SSShadedKeyText from './SSShadedKeyText'
 import SSShareableQR from './SSShareableQR'
 import SSText from './SSText'
 
-type KeyQrFormat = 'bech32' | 'hex' | 'lnaddress'
-
 type SSNostrKeyQRModalProps = {
   value: string
-  label: string
   shareable: boolean
   visible: boolean
   onClose: () => void
@@ -33,23 +34,8 @@ type SSNostrKeyQRModalProps = {
   ownerNpub?: string
 }
 
-function resolveFormat(
-  format: KeyQrFormat,
-  hexValue: string | null,
-  lnAddress: string
-): KeyQrFormat {
-  if (format === 'hex' && hexValue) {
-    return 'hex'
-  }
-  if (format === 'lnaddress' && lnAddress) {
-    return 'lnaddress'
-  }
-  return 'bech32'
-}
-
 function SSNostrKeyQRModal({
   value,
-  label,
   shareable,
   visible,
   onClose,
@@ -57,33 +43,14 @@ function SSNostrKeyQRModal({
   ownerNpub
 }: SSNostrKeyQRModalProps) {
   const router = useRouter()
-  const [format, setFormat] = useState<KeyQrFormat>('bech32')
+  const [format, setFormat] = useState<NostrKeyQrFormat>('bech32')
   const [cameraVisible, setCameraVisible] = useState(false)
 
   const trimmedLnAddress = lnAddress?.trim() ?? ''
-  const isSecret = getNip19Type(value) === 'nsec'
-  const hexValue = formatNostrKey(value, 'hex')
-  const activeFormat = resolveFormat(format, hexValue, trimmedLnAddress)
-  const qrValue =
-    activeFormat === 'hex'
-      ? (hexValue ?? value)
-      : activeFormat === 'lnaddress'
-        ? trimmedLnAddress
-        : value
-  const qrLabel =
-    activeFormat === 'hex'
-      ? t(
-          isSecret ? 'nostrIdentity.keys.nsecHex' : 'nostrIdentity.keys.npubHex'
-        )
-      : activeFormat === 'lnaddress'
-        ? t('nostrIdentity.keys.lnaddress')
-        : label
-  const showFormatTabs = Boolean(hexValue) || Boolean(trimmedLnAddress)
+  const keyQr = getNostrKeyQr(value, format, trimmedLnAddress)
+  const hasHex = formatNostrKey(value, 'hex') !== null
+  const showFormatTabs = hasHex || Boolean(trimmedLnAddress)
   const canScan = Boolean(ownerNpub)
-
-  function handleFormatChange(next: KeyQrFormat) {
-    setFormat(next)
-  }
 
   function handleClose() {
     setFormat('bech32')
@@ -109,8 +76,7 @@ function SSNostrKeyQRModal({
       toast.error(t('nostrIdentity.note.invalidContent'))
       return
     }
-    setFormat('bech32')
-    onClose()
+    handleClose()
     router.navigate(href)
   }
 
@@ -126,11 +92,11 @@ function SSNostrKeyQRModal({
       >
         <SSVStack gap="lg" style={styles.content}>
           <SSText center uppercase>
-            {qrLabel}
+            {keyQr.label}
           </SSText>
           {showFormatTabs ? (
             <SSPairedTabs
-              activeTab={activeFormat}
+              activeTab={keyQr.format}
               primary={{
                 key: 'bech32',
                 label: t('nostrIdentity.keys.format.bech32')
@@ -147,11 +113,11 @@ function SSNostrKeyQRModal({
                     }
                   : undefined
               }
-              onChange={handleFormatChange}
+              onChange={setFormat}
             />
           ) : null}
           <SSShareableQR
-            value={qrValue}
+            value={keyQr.value}
             size={NOSTR_KEY_QR_SIZE}
             color={Colors.white}
             backgroundColor={Colors.gray[950]}
@@ -161,7 +127,7 @@ function SSNostrKeyQRModal({
           >
             <View style={styles.dataBox}>
               <SSShadedKeyText
-                value={qrValue}
+                value={keyQr.value}
                 size="sm"
                 lineBreakEvery={NOSTR_KEY_LINE_BREAK_EVERY}
               />

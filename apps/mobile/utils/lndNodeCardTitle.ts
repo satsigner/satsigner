@@ -3,6 +3,8 @@ import {
   LND_NODE_CARD_PUBKEY_TAIL_CHARS,
   LND_NODE_PUBKEY_HEX_LENGTH
 } from '@/constants/lightning'
+import { t } from '@/locales'
+import type { LNDNodeInfo } from '@/types/models/Lightning'
 import { truncate } from '@/utils/format'
 
 const PUBKEY_HEX_REGEX = new RegExp(
@@ -41,5 +43,14 @@ export function lndNodeCardTitle(
     source,
     LND_NODE_CARD_PUBKEY_HEAD_CHARS,
     LND_NODE_CARD_PUBKEY_TAIL_CHARS
+  )
+}
+
+export function lndNodeTitle(
+  nodeInfo: Pick<LNDNodeInfo, 'alias' | 'identity_pubkey'> | undefined
+): string {
+  return (
+    lndNodeCardTitle(nodeInfo?.alias ?? '', nodeInfo?.identity_pubkey ?? '') ||
+    t('lightning.landing.unknownNode')
   )
 }
