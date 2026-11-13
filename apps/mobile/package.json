@@ -1,6 +1,6 @@
 {
   "name": "@satsigner/mobile",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "main": "./index.js",
@@ -193,7 +193,8 @@
     "autolinking": {
       "android": {
         "buildFromSource": [
-          "expo-camera"
+          "expo-camera",
+          "expo-screen-capture"
         ]
       },
       "nativeModulesDir": "./modules"
