@@ -351,7 +351,6 @@ export default function NostrIdentityKeys() {
       {qrKeyType && qrValue ? (
         <SSNostrKeyQRModal
           value={qrValue}
-          label={getNostrKeyLabel(qrKeyType, 'bech32')}
           lnAddress={qrKeyType === 'npub' ? identity.lud16 : undefined}
           ownerNpub={identity.npub}
           shareable={qrKeyType === 'npub'}

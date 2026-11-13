@@ -13,9 +13,8 @@ import { Colors } from '@/styles'
 import { type DetectedContent } from '@/utils/contentDetector'
 import {
   formatNostrKey,
-  getNip19Type,
-  getNostrKeyLabel,
-  type NostrKeyFormat
+  getNostrKeyQr,
+  type NostrKeyQrFormat
 } from '@/utils/nostr'
 import { nostrScannedContentHref } from '@/utils/nostrNavigation'
 
@@ -26,24 +25,8 @@ import SSShadedKeyText from './SSShadedKeyText'
 import SSShareableQR from './SSShareableQR'
 import SSText from './SSText'
 
-type KeyQrFormat = NostrKeyFormat | 'lnaddress'
-
-type KeyQr = {
-  format: KeyQrFormat
-  label: string
-  value: string
-}
-
-type KeyQrSource = {
-  hexValue: string | null
-  key: string
-  keyLabel: string
-  lnAddress: string
-}
-
 type SSNostrKeyQRModalProps = {
   value: string
-  label: string
   shareable: boolean
   visible: boolean
   onClose: () => void
@@ -51,28 +34,8 @@ type SSNostrKeyQRModalProps = {
   ownerNpub?: string
 }
 
-function resolveKeyQr(requested: KeyQrFormat, source: KeyQrSource): KeyQr {
-  if (requested === 'hex' && source.hexValue) {
-    const keyType = getNip19Type(source.key) === 'nsec' ? 'nsec' : 'npub'
-    return {
-      format: 'hex',
-      label: getNostrKeyLabel(keyType, 'hex'),
-      value: source.hexValue
-    }
-  }
-  if (requested === 'lnaddress' && source.lnAddress) {
-    return {
-      format: 'lnaddress',
-      label: t('nostrIdentity.keys.lnaddress'),
-      value: source.lnAddress
-    }
-  }
-  return { format: 'bech32', label: source.keyLabel, value: source.key }
-}
-
 function SSNostrKeyQRModal({
   value,
-  label,
   shareable,
   visible,
   onClose,
@@ -80,18 +43,13 @@ function SSNostrKeyQRModal({
   ownerNpub
 }: SSNostrKeyQRModalProps) {
   const router = useRouter()
-  const [format, setFormat] = useState<KeyQrFormat>('bech32')
+  const [format, setFormat] = useState<NostrKeyQrFormat>('bech32')
   const [cameraVisible, setCameraVisible] = useState(false)
 
   const trimmedLnAddress = lnAddress?.trim() ?? ''
-  const hexValue = formatNostrKey(value, 'hex')
-  const keyQr = resolveKeyQr(format, {
-    hexValue,
-    key: value,
-    keyLabel: label,
-    lnAddress: trimmedLnAddress
-  })
-  const showFormatTabs = Boolean(hexValue) || Boolean(trimmedLnAddress)
+  const keyQr = getNostrKeyQr(value, format, trimmedLnAddress)
+  const hasHex = formatNostrKey(value, 'hex') !== null
+  const showFormatTabs = hasHex || Boolean(trimmedLnAddress)
   const canScan = Boolean(ownerNpub)
 
   function handleClose() {

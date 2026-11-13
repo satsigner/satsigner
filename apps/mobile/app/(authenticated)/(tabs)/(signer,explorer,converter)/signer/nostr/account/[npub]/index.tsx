@@ -310,7 +310,6 @@ export default function NostrAccountLanding() {
       />
       <SSNostrKeyQRModal
         value={identity.npub}
-        label={t('nostrIdentity.keys.npub')}
         lnAddress={identity.lud16}
         ownerNpub={identity.npub}
         shareable
