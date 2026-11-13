@@ -298,23 +298,11 @@ const useTransactionBuilderStore = create<
       broadcasted: false,
       clearAllData: () => {
         set({
+          ...workingStateFromDraft(undefined),
           accountId: undefined,
           broadcasted: false,
-          cpfp: true,
           drafts: {},
-          fee: 0,
-          feeRate: 0,
-          inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-          isPsbtPrebuilt: false,
-          outputs: [],
-          psbt: undefined,
-          rbf: true,
-          replacesTxid: undefined,
-          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
-          signedPsbts: new Map<number, string>(),
-          signedTx: undefined,
-          stonewallPreview: normalizeStonewallPreview(),
-          timeLock: 0
+          signedPsbts: new Map<number, string>()
         })
       },
       clearPsbt: () => {
@@ -337,25 +325,11 @@ const useTransactionBuilderStore = create<
           delete updatedDrafts[accountId]
         }
         set({
+          ...workingStateFromDraft(undefined),
           accountId: undefined,
           broadcasted: false,
-          cpfp: true,
           drafts: updatedDrafts,
-          fee: 0,
-          feeRate: 0,
-          inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-          isPsbtPrebuilt: false,
-          outputs: [],
-          payjoinUri: undefined,
-          psbt: undefined,
-          rbf: true,
-          replacesTxid: undefined,
-          selectedAutoSelectUtxos: DEFAULT_AUTO_SELECT,
-          signedPsbtBase64: undefined,
-          signedPsbts: new Map<number, string>(),
-          signedTx: undefined,
-          stonewallPreview: normalizeStonewallPreview(),
-          timeLock: 0
+          signedPsbts: new Map<number, string>()
         })
       },
       cpfp: true,
