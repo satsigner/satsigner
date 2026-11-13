@@ -1399,20 +1399,21 @@
 
       const versionStatusEl = document.querySelector('#version-status')
 
-      function versionRow(term, value, tone = '') {
+      function statusRow(listEl, term, value, tone = '') {
         const dt = document.createElement('dt')
         dt.textContent = term
         const dd = document.createElement('dd')
         dd.textContent = value
         if (tone) dd.className = tone
-        versionStatusEl.append(dt, dd)
+        listEl.append(dt, dd)
       }
 
       function renderVersion(status) {
         versionStatusEl.replaceChildren()
-        versionRow('Version', status.version)
-        versionRow('Version code', String(status.versionCode))
-        versionRow(
+        statusRow(versionStatusEl, 'Version', status.version)
+        statusRow(versionStatusEl, 'Version code', String(status.versionCode))
+        statusRow(
+          versionStatusEl,
           'Release notes',
           status.changelogReady
             ? `CHANGELOG.md has a ${status.version} section`
@@ -1420,7 +1421,8 @@
           status.changelogReady ? 'good' : 'bad'
         )
         for (const entry of status.files) {
-          versionRow(
+          statusRow(
+            versionStatusEl,
             entry.file,
             entry.version || 'Not found',
             entry.version === status.version ? '' : 'bad'
@@ -1431,15 +1433,6 @@
       async function refreshVersion() {
         const response = await fetch('/api/version')
         renderVersion(await response.json())
-      }
-
-      function keyRow(term, value, tone = '') {
-        const dt = document.createElement('dt')
-        dt.textContent = term
-        const dd = document.createElement('dd')
-        dd.textContent = value
-        if (tone) dd.className = tone
-        keyStatusEl.append(dt, dd)
       }
 
       function describeKey(key) {
@@ -1460,14 +1453,16 @@
         const keys = await response.json()
         keyStatusEl.replaceChildren()
         const current = describeKey(keys.current)
-        keyRow(
+        statusRow(
+          keyStatusEl,
           'Keystore',
           keys.current.present ? keys.current.path : 'Missing',
           keys.current.present ? '' : 'bad'
         )
-        keyRow('Certificate', current.text, current.tone)
+        statusRow(keyStatusEl, 'Certificate', current.text, current.tone)
         if (keys.current.fingerprint) {
-          keyRow(
+          statusRow(
+            keyStatusEl,
             'Release key',
             keys.current.matchesRelease
               ? 'Matches the Satsigner release certificate'
@@ -1476,13 +1471,15 @@
           )
         }
         const next = describeKey(keys.next)
-        keyRow('Rotated key', next.text, next.tone)
-        keyRow(
+        statusRow(keyStatusEl, 'Rotated key', next.text, next.tone)
+        statusRow(
+          keyStatusEl,
           'Rotation',
           rotationText(keys),
           keys.next.present && !keys.rotating ? 'bad' : ''
         )
-        keyRow(
+        statusRow(
+          keyStatusEl,
           'apksigner',
           keys.apksigner.path ?? keys.apksigner.error,
           keys.apksigner.path ? '' : 'bad'
