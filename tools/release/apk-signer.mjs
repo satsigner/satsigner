@@ -14,6 +14,9 @@ import {
 
 const OLD_PASS_ENV = 'SATSIGNER_OLD_KEYSTORE_PASS'
 const NEW_PASS_ENV = 'SATSIGNER_NEW_KEYSTORE_PASS'
+// aapt2 ships as aapt2.exe on Windows. apksigner ships as a .bat there, which
+// execFile cannot run, so it is reported as missing.
+const EXECUTABLE_SUFFIX = process.platform === 'win32' ? '.exe' : ''
 
 function androidHome(env = process.env) {
   return env.ANDROID_HOME ?? join(homedir(), 'Library', 'Android', 'sdk')
@@ -31,14 +34,15 @@ function findBuildTool(tool, env = process.env) {
   if (!existsSync(buildTools)) {
     throw new Error(`No Android build-tools at ${buildTools}`)
   }
+  const executable = `${tool}${EXECUTABLE_SUFFIX}`
   const newest = readdirSync(buildTools)
-    .filter((name) => existsSync(join(buildTools, name, tool)))
+    .filter((name) => existsSync(join(buildTools, name, executable)))
     .toSorted(compareVersions)
     .at(-1)
   if (!newest) {
-    throw new Error(`No ${tool} under ${buildTools}`)
+    throw new Error(`No ${executable} under ${buildTools}`)
   }
-  return join(buildTools, newest, tool)
+  return join(buildTools, newest, executable)
 }
 
 function findApksigner(env = process.env) {
