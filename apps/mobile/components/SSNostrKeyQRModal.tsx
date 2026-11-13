@@ -122,8 +122,7 @@ function SSNostrKeyQRModal({
       toast.error(t('nostrIdentity.note.invalidContent'))
       return
     }
-    setFormat('bech32')
-    onClose()
+    handleClose()
     router.navigate(href)
   }
 
