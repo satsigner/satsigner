@@ -39,6 +39,7 @@ import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNostrZapSheets from '@/components/SSNostrZapSheets'
 import SSNoteInlineImages from '@/components/SSNoteInlineImages'
 import SSNoteInlineVideos from '@/components/SSNoteInlineVideos'
+import SSPairedTabs from '@/components/SSPairedTabs'
 import SSPressable from '@/components/SSPressable'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSText from '@/components/SSText'
@@ -116,6 +117,8 @@ import {
 const NO_ZAP_RECEIPTS: ZapReceiptInfo[] = []
 const NO_PUBKEYS: string[] = []
 
+type NoteQrFormat = 'nevent' | 'id'
+
 type NoteParams = {
   npub: string
   nostrUri: string
@@ -149,6 +152,7 @@ export default function NostrNotePage() {
     Record<string, boolean>
   >({})
   const [qrModalVisible, setQrModalVisible] = useState(false)
+  const [noteQrFormat, setNoteQrFormat] = useState<NoteQrFormat>('nevent')
   const [zapSortField, setZapSortField] = useState<ZapSortField>('date')
   const [zapSortAsc, setZapSortAsc] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
@@ -332,6 +336,7 @@ export default function NostrNotePage() {
   const effectiveLud16 = enhancedZap.zapLnurl || fetched?.authorLud16
 
   const totalZapped = zapReceipts.reduce((sum, r) => sum + r.amountSats, 0)
+  const zapTotalIsLowerBound = zapsQuery.data?.isTruncated ?? false
 
   const noteImageUrls =
     !fetched || privacyMode
@@ -532,6 +537,11 @@ export default function NostrNotePage() {
     }
   }
 
+  function handleCloseNoteQr() {
+    setNoteQrFormat('nevent')
+    setQrModalVisible(false)
+  }
+
   function handleZapSortPress(field: 'date' | 'amount') {
     if (zapSortField === field) {
       setZapSortAsc((v) => !v)
@@ -550,6 +560,7 @@ export default function NostrNotePage() {
   const noteHexId = decoded?.data ?? ''
   const noteId = noteHexId ? nip19.noteEncode(noteHexId) : ''
   const noteNeventId = noteHexId ? nip19.neventEncode({ id: noteHexId }) : ''
+  const noteQrValue = noteQrFormat === 'id' ? noteHexId : noteNeventId
   const formatMarkdown = noteHexId
     ? formatMarkdownByNoteId[noteHexId] === true
     : false
@@ -926,6 +937,8 @@ export default function NostrNotePage() {
                   canZap: zapFlow.canZap && Boolean(effectiveLud16),
                   onLongPress: handleOpenZapSheet,
                   onPress: handleOneTapZap,
+                  totalIsLowerBound: zapTotalIsLowerBound,
+                  totalSats: privacyMode ? undefined : totalZapped,
                   zapping: zapFlow.zapping
                 }}
               >
@@ -1717,7 +1730,7 @@ export default function NostrNotePage() {
       </SSModal>
       <SSModal
         visible={qrModalVisible}
-        onClose={() => setQrModalVisible(false)}
+        onClose={handleCloseNoteQr}
         closeButtonVariant="ghost"
         label={t('common.close')}
       >
@@ -1725,14 +1738,23 @@ export default function NostrNotePage() {
           <SSText center uppercase>
             {t('nostrIdentity.note.qrTitle')}
           </SSText>
+          <SSPairedTabs
+            activeTab={noteQrFormat}
+            primary={{
+              key: 'nevent',
+              label: t('nostrIdentity.note.metaNevent')
+            }}
+            secondary={{ key: 'id', label: t('nostrIdentity.note.qrId') }}
+            onChange={setNoteQrFormat}
+          />
           <SSShareableQR
-            value={noteNeventId}
+            value={noteQrValue}
             size={260}
             color={Colors.black}
             backgroundColor={Colors.white}
             containerStyle={styles.qrContainer}
           >
-            <SSClipboardCopy text={noteNeventId}>
+            <SSClipboardCopy text={noteQrValue}>
               <SSText
                 center
                 size="xxs"
@@ -1741,7 +1763,7 @@ export default function NostrNotePage() {
                 numberOfLines={2}
                 ellipsizeMode="middle"
               >
-                {noteNeventId}
+                {noteQrValue}
               </SSText>
             </SSClipboardCopy>
           </SSShareableQR>
@@ -1998,6 +2020,7 @@ const styles = StyleSheet.create({
   },
   qrModalContent: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     paddingBottom: 24,
     paddingHorizontal: 20
   },

@@ -1,6 +1,8 @@
 import {
   getDraftIoCounts,
+  getDraftLabel,
   getDraftPaymentAmount,
+  getDraftResumeStep,
   resolveDraftAlgorithm
 } from '@/utils/draftSelection'
 
@@ -120,6 +122,65 @@ describe('getDraftIoCounts', () => {
         }
       })
     ).toStrictEqual({ inputCount: 1, outputCount: 3 })
+  })
+})
+
+describe('getDraftLabel', () => {
+  it('returns an empty label without a draft', () => {
+    expect(getDraftLabel()).toBe('')
+  })
+
+  it('returns the first non-empty recipient output label', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: undefined, label: '  ' },
+          { kind: undefined, label: ' Rent #home ' },
+          { kind: undefined, label: 'Other' }
+        ]
+      })
+    ).toBe('Rent #home')
+  })
+
+  it('skips change and stonewall output labels', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: 'change', label: 'Change for rent' },
+          { kind: 'fakeMix', label: 'Mix' }
+        ]
+      })
+    ).toBe('')
+  })
+
+  it('skips a legacy change output that has no kind', () => {
+    expect(
+      getDraftLabel({
+        outputs: [
+          { kind: undefined, label: '' },
+          { kind: undefined, label: 'Change' }
+        ]
+      })
+    ).toBe('')
+  })
+})
+
+describe('getDraftResumeStep', () => {
+  it('resumes a signed draft at signing', () => {
+    expect(
+      getDraftResumeStep({ prebuiltPsbtBase64: 'cHNidP8=', signedTx: 'aa' })
+    ).toBe('sign')
+  })
+
+  it('resumes an unsigned fee replacement at the preview', () => {
+    expect(getDraftResumeStep({ prebuiltPsbtBase64: 'cHNidP8=' })).toBe(
+      'preview'
+    )
+  })
+
+  it('resumes any other draft at inputs and outputs', () => {
+    expect(getDraftResumeStep({})).toBe('io')
+    expect(getDraftResumeStep()).toBe('io')
   })
 })
 

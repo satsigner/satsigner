@@ -88,7 +88,8 @@ const STANDARD_CHAT: NostrDM[] = [
   dm('5', ME_HEX, NOW - 2 * HOUR + MINUTE, 'On it.', {
     replyToId: '4'.padStart(64, '0')
   }),
-  dm('6', ALICE_HEX, NOW - 10 * MINUTE, 'Thanks 🙏')
+  dm('6', ALICE_HEX, NOW - 10 * MINUTE, 'Thanks 🙏'),
+  dm('7', STRANGER_HEX, NOW - 8 * MINUTE, 'I only have an npub, no profile.')
 ]
 
 const MINIMAL_CHAT: NostrDM[] = [dm('1', ME_HEX, NOW - MINUTE, 'hi')]

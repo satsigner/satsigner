@@ -18,7 +18,7 @@ import { type TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 
-function getNip19Type(value: string): string | null {
+export function getNip19Type(value: string): string | null {
   try {
     return nip19.decode(value).type
   } catch {
@@ -164,6 +164,46 @@ export function formatNostrKey(
   }
   const secret = getSecretFromNsec(trimmed)
   return secret ? bytesToHex(secret) : null
+}
+
+export type NostrKeyQrFormat = NostrKeyFormat | 'lnaddress'
+
+type NostrKeyQr = {
+  format: NostrKeyQrFormat
+  label: string
+  value: string
+}
+
+/**
+ * What a key's QR shows in the `requested` format. Falls back to the bech32
+ * key when the key has no hex form or `lnAddress` is empty.
+ */
+export function getNostrKeyQr(
+  key: string,
+  requested: NostrKeyQrFormat,
+  lnAddress = ''
+): NostrKeyQr {
+  const keyType: NostrKeyType = getNip19Type(key) === 'nsec' ? 'nsec' : 'npub'
+  const hexValue = formatNostrKey(key, 'hex')
+  if (requested === 'hex' && hexValue) {
+    return {
+      format: 'hex',
+      label: getNostrKeyLabel(keyType, 'hex'),
+      value: hexValue
+    }
+  }
+  if (requested === 'lnaddress' && lnAddress) {
+    return {
+      format: 'lnaddress',
+      label: t('nostrIdentity.keys.lnaddress'),
+      value: lnAddress
+    }
+  }
+  return {
+    format: 'bech32',
+    label: getNostrKeyLabel(keyType, 'bech32'),
+    value: key
+  }
 }
 
 export function parseNostrTransaction(message: string): TransactionData | null {

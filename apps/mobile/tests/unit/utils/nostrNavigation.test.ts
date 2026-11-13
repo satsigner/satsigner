@@ -1,3 +1,10 @@
+// Real nostr-tools: the shared manual mock cannot encode nprofile or nevent.
+jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
+  jest.requireActual('nostr-tools')
+)
+
+import { nip19 } from 'nostr-tools'
+
 import {
   nostrAccountHref,
   nostrAccountProfileHref,
@@ -7,6 +14,7 @@ import {
   nostrFileDetailHref,
   nostrIndexHref,
   nostrNoteHref,
+  nostrScannedContentHref,
   nostrZapDetailHref
 } from '@/utils/nostrNavigation'
 
@@ -67,5 +75,83 @@ describe('nostrNavigation', () => {
     expect(nostrAuthorProfileHref(NPUB, TARGET_NPUB)).toStrictEqual(
       nostrContactProfileHref(NPUB, TARGET_NPUB)
     )
+  })
+})
+
+describe('nostrScannedContentHref', () => {
+  function scanned(
+    type: Parameters<typeof nostrScannedContentHref>[1]['type'],
+    value: string
+  ) {
+    return { cleaned: value, raw: `nostr:${value}`, type }
+  }
+
+  it('opens a scanned npub as a contact profile', () => {
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_npub', TARGET_NPUB))
+    ).toStrictEqual(nostrContactProfileHref(NPUB, TARGET_NPUB))
+  })
+
+  it('opens the own profile when the scanned npub is the identity', () => {
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_npub', NPUB))
+    ).toStrictEqual(nostrAccountProfileHref(NPUB))
+  })
+
+  it('opens a scanned nprofile as the profile of its pubkey', () => {
+    const decoded = nip19.decode(TARGET_NPUB)
+    if (decoded.type !== 'npub') {
+      throw new Error('fixture is not an npub')
+    }
+    const nprofile = nip19.nprofileEncode({ pubkey: decoded.data })
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_nprofile', nprofile))
+    ).toStrictEqual(nostrContactProfileHref(NPUB, TARGET_NPUB))
+  })
+
+  it('opens scanned notes and bunker connections', () => {
+    const nevent = nip19.neventEncode({ id: HEX_ID })
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_nevent', nevent))
+    ).toStrictEqual(nostrNoteHref(NPUB, nevent))
+    const connect = `nostrconnect://${HEX_ID}?relay=wss://relay.example`
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_connect', connect))
+    ).toStrictEqual(nostrBunkerConnectHref(NPUB, connect))
+  })
+
+  it('opens a scanned note id', () => {
+    const note = nip19.noteEncode(HEX_ID)
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_note', note))
+    ).toStrictEqual(nostrNoteHref(NPUB, note))
+  })
+
+  it('rejects values that only look valid', () => {
+    const badChecksum = `${TARGET_NPUB.slice(0, -1)}${
+      TARGET_NPUB.endsWith('q') ? 'p' : 'q'
+    }`
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_npub', badChecksum))
+    ).toBeUndefined()
+    const nevent = nip19.neventEncode({ id: HEX_ID })
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_note', nevent))
+    ).toBeUndefined()
+    expect(
+      nostrScannedContentHref(
+        NPUB,
+        scanned('nostr_connect', 'nostrconnect://abc?relay=wss://relay.example')
+      )
+    ).toBeUndefined()
+  })
+
+  it('never routes a secret key or unsupported content', () => {
+    expect(
+      nostrScannedContentHref(NPUB, scanned('nostr_nsec', 'nsec1secret'))
+    ).toBeUndefined()
+    expect(
+      nostrScannedContentHref(NPUB, scanned('lightning_invoice', 'lnbc1'))
+    ).toBeUndefined()
   })
 })

@@ -121,7 +121,13 @@ import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
-import { getDraftIoCounts, getDraftPaymentAmount } from '@/utils/draftSelection'
+import {
+  type DraftResumeStep,
+  getDraftIoCounts,
+  getDraftLabel,
+  getDraftPaymentAmount,
+  getDraftResumeStep
+} from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -131,7 +137,7 @@ import {
   formatNumber
 } from '@/utils/format'
 import { nostrSyncService } from '@/utils/nostrSyncService'
-import { parseAccountAddressesDetails } from '@/utils/parse'
+import { parseAccountAddressesDetails, parseLabel } from '@/utils/parse'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
@@ -370,10 +376,16 @@ function PayjoinSessionCard({
   )
 }
 
+const DRAFT_RESUME_SCREEN: Record<DraftResumeStep, string> = {
+  io: 'ioPreview',
+  preview: 'previewTransaction',
+  sign: 'signTransaction'
+}
+
 function DraftTransactionCard({ accountId }: { accountId: string }) {
   const router = useRouter()
-  const [drafts, clearTransaction] = useTransactionBuilderStore(
-    useShallow((state) => [state.drafts, state.clearTransaction])
+  const [drafts, discardDraft] = useTransactionBuilderStore(
+    useShallow((state) => [state.drafts, state.discardDraft])
   )
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
@@ -385,6 +397,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
   const readyToBroadcast = !!draft?.signedTx
   const { inputCount, outputCount } = getDraftIoCounts(draft)
   const fee = draft?.fee ?? 0
+  const { label } = parseLabel(getDraftLabel(draft))
   const totalOut = getDraftPaymentAmount(draft)
   const inputLabel =
     inputCount === 1
@@ -403,9 +416,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
     <SSPressable
       onPress={() =>
         router.navigate(
-          readyToBroadcast
-            ? `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`
-            : `/signer/bitcoin/account/${accountId}/signAndSend/ioPreview`
+          `/signer/bitcoin/account/${accountId}/signAndSend/${DRAFT_RESUME_SCREEN[getDraftResumeStep(draft)]}`
         )
       }
       activeOpacity={0.7}
@@ -462,6 +473,13 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
             </SSHStack>
           ) : null}
         </SSVStack>
+        <SSText
+          size="xs"
+          numberOfLines={1}
+          style={[{ marginTop: 4 }, !label && { color: Colors.gray[500] }]}
+        >
+          {label || t('transaction.noLabel').toUpperCase()}
+        </SSText>
         <SSHStack justifyBetween style={{ marginTop: 2 }}>
           <SSText size="xs" color="muted">
             {inputCount} {inputLabel}
@@ -471,7 +489,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
           <SSPressable
             onPress={(e) => {
               e.stopPropagation()
-              clearTransaction()
+              discardDraft(accountId)
             }}
             hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
           >

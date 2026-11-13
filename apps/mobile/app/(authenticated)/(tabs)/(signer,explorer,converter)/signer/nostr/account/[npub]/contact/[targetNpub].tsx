@@ -413,7 +413,8 @@ export default function NostrContactProfile() {
 
       <SSNostrKeyQRModal
         value={targetNpub}
-        label={t('nostrIdentity.keys.npub')}
+        lnAddress={lud16Value}
+        ownerNpub={npub}
         shareable
         visible={npubQrVisible}
         onClose={handleCloseNpubQr}

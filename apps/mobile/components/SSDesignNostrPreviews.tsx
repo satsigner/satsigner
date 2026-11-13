@@ -39,11 +39,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { type Account } from '@/types/models/Account'
 import { type NostrDM } from '@/types/models/Nostr'
-import {
-  formatNostrKey,
-  getNostrKeyLabel,
-  type NostrKeyFormat
-} from '@/utils/nostr'
+import { formatNostrKey, type NostrKeyFormat } from '@/utils/nostr'
 import {
   buildChatRows,
   buildReplyPreview,
@@ -321,8 +317,7 @@ function NostrKeysPreview() {
         </SSDesignSection>
       </SSVStack>
       <SSNostrKeyQRModal
-        value={publicKey}
-        label={getNostrKeyLabel('npub', format)}
+        value={DESIGN_NOSTR_ME_NPUB}
         shareable
         visible={qrVisible}
         onClose={handleCloseQr}

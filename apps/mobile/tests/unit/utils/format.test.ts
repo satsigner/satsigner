@@ -14,6 +14,7 @@ import {
   formatNpub,
   formatNumber,
   formatSatsAsBtc,
+  formatShortSats,
   formatShortPubkey,
   formatTime,
   formatTxId,
@@ -24,6 +25,7 @@ jest.mock<typeof import('@/locales')>('@/locales', () => ({
   i18n: { locale: 'en' },
   t: jest.fn((key: string) => {
     const words: Record<string, string> = {
+      'bitcoin.sats': 'sats',
       'numbers.billiard': 'billiard',
       'numbers.quadrillion': 'quadrillion',
       'numbers.trilliard': 'trilliard',
@@ -203,6 +205,32 @@ describe('format utils', () => {
       expect(formatLargeNumber(1e18, true)).toBe('1 trillion')
       expect(formatLargeNumber(1e21, true)).toBe('1 trilliard')
     })
+  })
+})
+
+describe('formatShortSats', () => {
+  it('keeps small amounts exact and compacts thousands', () => {
+    expect(formatShortSats(12)).toBe('12 sats')
+    expect(formatShortSats(1400)).toBe('1.4k sats')
+    expect(formatShortSats(43_000)).toBe('43k sats')
+    expect(formatShortSats(1000)).toBe('1k sats')
+    expect(formatShortSats(2_400_000)).toBe('2.4m sats')
+  })
+
+  it('moves to millions when thousands round up to a thousand', () => {
+    expect(formatShortSats(999_600)).toBe('1m sats')
+    expect(formatShortSats(999_499)).toBe('999k sats')
+  })
+
+  it('marks a lower bound with a plus', () => {
+    expect(formatShortSats(1400, true)).toBe('1.4k+ sats')
+  })
+
+  it('rounds a lower bound down so it never overstates the total', () => {
+    expect(formatShortSats(1450, true)).toBe('1.4k+ sats')
+    expect(formatShortSats(1450)).toBe('1.5k sats')
+    expect(formatShortSats(999_600, true)).toBe('999k+ sats')
+    expect(formatShortSats(12.9, true)).toBe('12+ sats')
   })
 })
 

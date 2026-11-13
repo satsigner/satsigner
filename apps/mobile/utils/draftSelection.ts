@@ -25,6 +25,15 @@ type DraftPaymentSource = {
   outputs?: Pick<Output, 'amount' | 'kind' | 'label'>[]
 }
 
+type DraftLabelSource = {
+  outputs?: Pick<Output, 'kind' | 'label'>[]
+}
+
+type DraftResumeSource = {
+  prebuiltPsbtBase64?: string
+  signedTx?: string
+}
+
 /**
  * Resolve the UTXO selection algorithm for a saved draft.
  * Legacy drafts without `selectedAutoSelectUtxos` infer privacy from stonewall outputs.
@@ -91,6 +100,30 @@ function getDraftIoCounts(draft?: DraftIoSource): {
   return { inputCount, outputCount: outputs.length }
 }
 
+/** First label set on a recipient output; change and stonewall outputs are skipped. */
+function getDraftLabel(draft?: DraftLabelSource): string {
+  const labeled = draft?.outputs?.find(
+    (output) => !isReturnToWalletOutput(output) && output.label.trim() !== ''
+  )
+  return labeled?.label.trim() ?? ''
+}
+
+type DraftResumeStep = 'sign' | 'preview' | 'io'
+
+/**
+ * Where an unfinished draft picks up. A fee replacement's inputs are already
+ * spent, so it can only resume from the PSBT the replacement built.
+ */
+function getDraftResumeStep(draft?: DraftResumeSource): DraftResumeStep {
+  if (draft?.signedTx) {
+    return 'sign'
+  }
+  if (draft?.prebuiltPsbtBase64) {
+    return 'preview'
+  }
+  return 'io'
+}
+
 function isReturnToWalletOutput(output: Pick<Output, 'kind' | 'label'>) {
   return (
     output.kind === 'change' ||
@@ -113,6 +146,9 @@ function getDraftPaymentAmount(draft?: DraftPaymentSource): number {
 export {
   DEFAULT_AUTO_SELECT,
   getDraftIoCounts,
+  getDraftLabel,
   getDraftPaymentAmount,
+  getDraftResumeStep,
   resolveDraftAlgorithm
 }
+export type { DraftResumeStep }

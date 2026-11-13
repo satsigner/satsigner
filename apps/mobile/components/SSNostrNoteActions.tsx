@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 
 import SSIconHeart from '@/components/icons/SSIconHeart'
 import SSIconLightning from '@/components/icons/SSIconLightning'
@@ -10,10 +10,13 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { formatShortSats } from '@/utils/format'
 
 const ACTION_HIT_SLOP = 6
 const ZAP_LONG_PRESS_DELAY_MS = 400
 const ICON_STROKE_WIDTH = 1.5
+const LIGHTNING_ASPECT = 16 / 20
+const LIGHTNING_SCALE = 0.72
 
 const ICON_SIZE = {
   md: 20,
@@ -24,6 +27,9 @@ type ZapAction = {
   canZap: boolean
   onLongPress: () => void
   onPress: () => void
+  totalSats?: number
+  /** The total counts a capped sample of receipts, so more may exist. */
+  totalIsLowerBound?: boolean
   zapping: boolean
 }
 
@@ -47,10 +53,12 @@ type SSNostrNoteActionsProps = {
 function ActionCount({
   active,
   count,
+  label,
   visible
 }: {
   active: boolean
   count: number
+  label?: string
   visible: boolean
 }) {
   if (!visible || count === 0) {
@@ -58,7 +66,7 @@ function ActionCount({
   }
   return (
     <SSText size="xs" color={active ? 'white' : 'muted'}>
-      {count}
+      {label ?? count}
     </SSText>
   )
 }
@@ -83,6 +91,12 @@ function SSNostrNoteActions({
   const disabled = !canEngage || toggling
   const likeCountPressable =
     Boolean(onLikeCountPress) && showCounts && likeCount > 0
+  const zapTotalSats = zap?.totalSats ?? 0
+  const zapTotalLabel = formatShortSats(zapTotalSats, zap?.totalIsLowerBound)
+  const zapAccessibilityLabel =
+    showCounts && zapTotalSats > 0
+      ? t('nostrIdentity.note.zapWithTotal', { total: zapTotalLabel })
+      : t('nostrIdentity.note.zap')
 
   return (
     <SSHStack gap="none" style={[styles.row, style]}>
@@ -147,20 +161,28 @@ function SSNostrNoteActions({
       {zap ? (
         <SSIconButton
           accessibilityHint={t('nostrIdentity.note.zapLongPressHint')}
-          accessibilityLabel={t('nostrIdentity.note.zap')}
+          accessibilityLabel={zapAccessibilityLabel}
           accessibilityState={{ busy: zap.zapping, disabled: !zap.canZap }}
           delayLongPress={ZAP_LONG_PRESS_DELAY_MS}
           disabled={!zap.canZap || zap.zapping}
           hitSlop={ACTION_HIT_SLOP}
           onLongPress={zap.onLongPress}
           onPress={zap.onPress}
-          style={styles.action}
+          style={[styles.action, styles.zapAction]}
         >
-          <SSIconLightning
-            width={iconSize}
-            height={iconSize}
-            stroke={zap.zapping ? Colors.gold : Colors.gray[300]}
-            strokeWidth={ICON_STROKE_WIDTH}
+          <View style={[styles.bolt, { height: iconSize, width: iconSize }]}>
+            <SSIconLightning
+              width={iconSize * LIGHTNING_SCALE * LIGHTNING_ASPECT}
+              height={iconSize * LIGHTNING_SCALE}
+              stroke={zap.zapping ? Colors.gold : Colors.gray[300]}
+              strokeWidth={ICON_STROKE_WIDTH}
+            />
+          </View>
+          <ActionCount
+            active={zap.zapping}
+            count={zapTotalSats}
+            visible={showCounts}
+            label={zapTotalLabel}
           />
         </SSIconButton>
       ) : null}
@@ -182,6 +204,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingRight: 6
   },
+  bolt: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   count: {
     justifyContent: 'center',
     minHeight: 36,
@@ -189,6 +215,9 @@ const styles = StyleSheet.create({
   },
   row: {
     alignItems: 'center'
+  },
+  zapAction: {
+    minWidth: 0
   }
 })
 

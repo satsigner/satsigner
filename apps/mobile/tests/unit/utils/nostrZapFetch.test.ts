@@ -34,6 +34,7 @@ jest.mock<typeof import('@/db/nostrCache')>('@/db/nostrCache', () => ({
 
 import { createEphemeralNdk } from '@/api/ndkRegistry'
 import { connectToFirstRelay } from '@/api/nostrRelayHealth'
+import { NOSTR_ZAP_RECEIPT_FETCH_LIMIT } from '@/constants/nostr'
 import {
   type CachedEvent,
   cacheEvents,
@@ -77,7 +78,20 @@ function cachedZap(id: string, target: string, createdAt: number): CachedEvent {
   }
 }
 
-function makeFakeNdk(events: object[]) {
+/** A full relay page of note receipts; the oldest has no zap request, so it fails to parse. */
+function cappedNoteZapPage() {
+  return Array.from({ length: NOSTR_ZAP_RECEIPT_FETCH_LIMIT }, (_, index) => ({
+    content: '',
+    created_at: 1000 + index,
+    id: index.toString(16).padStart(64, '0'),
+    kind: 9735,
+    pubkey: 'lnurl-server',
+    sig: 's',
+    tags: index === 0 ? [['e', NOTE_ID]] : zapTags(PUBKEY_A)
+  }))
+}
+
+function makeFakeNdk(events: { created_at: number }[]) {
   const filters: NDKFilter[] = []
   return {
     filters,
@@ -85,8 +99,9 @@ function makeFakeNdk(events: object[]) {
     subscribe: jest.fn((filter: NDKFilter) => {
       filters.push(filter)
       const handlers: Record<string, ((arg: unknown) => void)[]> = {}
+      const since = filter.since ?? 0
       queueMicrotask(() => {
-        for (const event of events) {
+        for (const event of events.filter((e) => e.created_at >= since)) {
           for (const fn of handlers.event ?? []) {
             fn(event)
           }
@@ -200,8 +215,61 @@ describe('zap receipt fetchers', () => {
       expect(result).toStrictEqual({
         data: [expect.objectContaining({ id: 'z'.repeat(64) })],
         error: 'noRelays',
+        isTruncated: false,
         source: 'cache'
       })
+    })
+
+    it('flags a capped relay response even when a receipt fails to parse', async () => {
+      jest
+        .mocked(createEphemeralNdk)
+        .mockReturnValue(makeFakeNdk(cappedNoteZapPage()))
+      jest.mocked(connectToFirstRelay).mockResolvedValue()
+
+      const result = await fetchZapReceipts(NOTE_ID, RELAYS)
+
+      expect(result.data).toHaveLength(NOSTR_ZAP_RECEIPT_FETCH_LIMIT - 1)
+      expect(result.isTruncated).toBe(true)
+    })
+
+    it('keeps flagging a capped note when a refetch finds nothing newer', async () => {
+      const page = cappedNoteZapPage()
+      const cachedValidReceipts = page
+        .slice(1)
+        .map((event) => cachedZap(event.id, PUBKEY_A, event.created_at))
+        .toReversed()
+      jest.mocked(getCachedZapReceipts).mockReturnValue(cachedValidReceipts)
+      const ndk = makeFakeNdk(page)
+      jest.mocked(createEphemeralNdk).mockReturnValue(ndk)
+      jest.mocked(connectToFirstRelay).mockResolvedValue()
+
+      const result = await fetchZapReceipts(NOTE_ID, RELAYS)
+
+      expect(ndk.filters[0].since).toBeUndefined()
+      expect(result.data).toHaveLength(NOSTR_ZAP_RECEIPT_FETCH_LIMIT - 1)
+      expect(result.isTruncated).toBe(true)
+    })
+
+    it('asks only for newer receipts once the cache holds a full page', async () => {
+      const newest = 2000
+      const cachedFullPage = Array.from(
+        { length: NOSTR_ZAP_RECEIPT_FETCH_LIMIT },
+        (_, index) =>
+          cachedZap(
+            index.toString(16).padStart(64, '0'),
+            PUBKEY_A,
+            newest - index
+          )
+      )
+      jest.mocked(getCachedZapReceipts).mockReturnValue(cachedFullPage)
+      const ndk = makeFakeNdk([])
+      jest.mocked(createEphemeralNdk).mockReturnValue(ndk)
+      jest.mocked(connectToFirstRelay).mockResolvedValue()
+
+      const result = await fetchZapReceipts(NOTE_ID, RELAYS)
+
+      expect(ndk.filters[0].since).toBe(newest + 1)
+      expect(result.isTruncated).toBe(true)
     })
   })
 })
