@@ -173,6 +173,7 @@ patchedDependencies:
   expo-screen-capture@58.0.6: 0ef467c6cb2c76c7341abd04ec449ab705259f8c99453e5ec607e808b79e5006
   react-native-bdk-sdk@0.8.0: 663fbf0d046e12d5f1627417c971d720db0f69a77ae311afe6f3ade19c9996c6
   react-native-draggable-flatlist@4.0.3: 595401cc18c3c8e5eec9af517812e6402d9e8f127950c71961ea1a7920068278
+  uniffi-bindgen-react-native@0.31.0-5: c5a04a8fdef53b432e8d0f2c833fd9b23a9c1f36640f5e17c38dc3099565f4e0
 
 importers:
 
@@ -12601,7 +12602,7 @@ snapshots:
       '@ubjs/core': 0.31.0-5
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
-      uniffi-bindgen-react-native: 0.31.0-5
+      uniffi-bindgen-react-native: 0.31.0-5(patch_hash=c5a04a8fdef53b432e8d0f2c833fd9b23a9c1f36640f5e17c38dc3099565f4e0)
 
   '@shikijs/core@3.23.0':
     dependencies:
@@ -17916,7 +17917,7 @@ snapshots:
       '@ubjs/core': 0.31.0-5
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
-      uniffi-bindgen-react-native: 0.31.0-5
+      uniffi-bindgen-react-native: 0.31.0-5(patch_hash=c5a04a8fdef53b432e8d0f2c833fd9b23a9c1f36640f5e17c38dc3099565f4e0)
 
   react-native-bouncy-checkbox@4.1.4:
     dependencies:
@@ -18023,7 +18024,7 @@ snapshots:
       '@ubjs/core': 0.31.0-5
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
-      uniffi-bindgen-react-native: 0.31.0-5
+      uniffi-bindgen-react-native: 0.31.0-5(patch_hash=c5a04a8fdef53b432e8d0f2c833fd9b23a9c1f36640f5e17c38dc3099565f4e0)
 
   react-native-qrcode-svg@6.3.21(react-native-svg@15.16.0(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(@react-native-community/cli@20.1.3(supports-color@10.2.2)(typescript@6.0.3))(@react-native/metro-config@0.88.0(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0):
     dependencies:
@@ -19111,7 +19112,7 @@ snapshots:
 
   unicode-property-aliases-ecmascript@2.2.0: {}
 
-  uniffi-bindgen-react-native@0.31.0-5: {}
+  uniffi-bindgen-react-native@0.31.0-5(patch_hash=c5a04a8fdef53b432e8d0f2c833fd9b23a9c1f36640f5e17c38dc3099565f4e0): {}
 
   unified@11.0.5:
     dependencies:

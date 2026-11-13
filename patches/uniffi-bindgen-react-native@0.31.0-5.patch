@@ -1,0 +1,48 @@
+diff --git a/typescript/dist/cjs/objects.js b/typescript/dist/cjs/objects.js
+index 8e859899eebba663e027ec25bcb583918a290d34..9b3b024795371c5d6173dc9d842e9eb45bcf373e 100644
+--- a/typescript/dist/cjs/objects.js
++++ b/typescript/dist/cjs/objects.js
+@@ -79,6 +79,11 @@ class FfiConverterObjectWithCallbacks extends FfiConverterObject {
+         }
+         return this.handleMap.insert(value);
+     }
++    // Optional and other compound converters write through writeIntoCursor,
++    // which in FfiConverterObject skips the handle map and rejects JS objects.
++    writeIntoCursor(value, c) {
++        pointerConverter.writeIntoCursor(this.lower(value), c);
++    }
+     lift(value) {
+         if (this.handleMap.has(value)) {
+             return this.handleMap.get(value);
+diff --git a/typescript/dist/esm/objects.js b/typescript/dist/esm/objects.js
+index c451087c9cf27b35c08de7f51656c42f4c44504f..ca235560bcb72d354677285c030b73bd6f9dba88 100644
+--- a/typescript/dist/esm/objects.js
++++ b/typescript/dist/esm/objects.js
+@@ -74,6 +74,11 @@ export class FfiConverterObjectWithCallbacks extends FfiConverterObject {
+         }
+         return this.handleMap.insert(value);
+     }
++    // Optional and other compound converters write through writeIntoCursor,
++    // which in FfiConverterObject skips the handle map and rejects JS objects.
++    writeIntoCursor(value, c) {
++        pointerConverter.writeIntoCursor(this.lower(value), c);
++    }
+     lift(value) {
+         if (this.handleMap.has(value)) {
+             return this.handleMap.get(value);
+diff --git a/typescript/src/objects.ts b/typescript/src/objects.ts
+index 0bac440158a260170d956ac341268c50cf580eb2..5c7ec39e8be1d555a4de3241ff853633db556bea 100644
+--- a/typescript/src/objects.ts
++++ b/typescript/src/objects.ts
+@@ -109,6 +109,11 @@ export class FfiConverterObjectWithCallbacks<T> extends FfiConverterObject<T> {
+     }
+     return this.handleMap.insert(value);
+   }
++  // Optional and other compound converters write through writeIntoCursor,
++  // which in FfiConverterObject skips the handle map and rejects JS objects.
++  writeIntoCursor(value: T, c: Cursor): void {
++    pointerConverter.writeIntoCursor(this.lower(value, undefined as never), c);
++  }
+ 
+   lift(value: UniffiHandle): T {
+     if (this.handleMap.has(value)) {
