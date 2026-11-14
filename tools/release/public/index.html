@@ -1387,6 +1387,12 @@
             )
             renderChecks('Zapstore checks', preview.checks.zapstore)
           }
+        } catch (error) {
+          previewEl.replaceChildren()
+          previewText(
+            previewEl,
+            `Preview failed: ${error.message}. Check the console server and try again.`
+          )
         } finally {
           runPreviewButton.disabled = false
         }
@@ -2649,6 +2655,11 @@
             await refreshStatus()
             return
           }
+          if (request.type === 'error') {
+            statusEl.textContent = request.error
+            writeLog(`${request.error}\n`, 'error')
+            return
+          }
           if (request.type !== 'sign') return
           statusEl.textContent = 'Approve the signature in the extension.'
           try {
@@ -2858,10 +2869,10 @@
         }
       }
 
-      // Signing in replaces the server's bunker, and a running publish keeps
-      // waiting on the old one, so a reload or a second tab must not do it.
+      // While a command runs the server keeps its bunker and only reattaches
+      // this page, so resuming here never cuts off a publish.
       function resumeSignIn() {
-        if (!readUiState().signedIn || busy) return
+        if (!readUiState().signedIn) return
         signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
       }
 

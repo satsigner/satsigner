@@ -86,6 +86,7 @@ const ADB_TIMEOUT_MS = 5000
 const listeners = new Set()
 let bunkerUrl = ''
 let bridge = null
+let bridgePubkey = ''
 let pageSocket = null
 let child = null
 let job = null
@@ -838,6 +839,34 @@ function requestSignature(eventJson) {
   })
 }
 
+// A running job signs through the bunker it started with. A reload or a second
+// tab takes over the signature requests through pageSocket, so it keeps that
+// bunker instead of closing it under the job.
+async function connectSigner(userPubkey) {
+  if (job !== null && bridge) {
+    if (userPubkey !== bridgePubkey) {
+      throw new Error(
+        'a command is signing with another account; sign in again after it finishes'
+      )
+    }
+    log('signer reattached to the running command\n')
+    return
+  }
+  bridge?.close()
+  const bunker = createBunker(SIGNER_RELAY)
+  bunkerUrl = bunker.bunkerUrl
+  bridgePubkey = userPubkey
+  bridge = startBridge({
+    bunker,
+    log,
+    onSign: requestSignature,
+    relayUrl: SIGNER_RELAY,
+    userPubkey
+  })
+  await bridge.ready
+  log('signer connected\n')
+}
+
 const pageSockets = new WebSocketServer({
   path: '/api/signer',
   server,
@@ -855,18 +884,7 @@ pageSockets.on('connection', (socket) => {
     }
     try {
       if (message.type === 'ready' && typeof message.userPubkey === 'string') {
-        bridge?.close()
-        const bunker = createBunker(SIGNER_RELAY)
-        bunkerUrl = bunker.bunkerUrl
-        bridge = startBridge({
-          bunker,
-          log,
-          onSign: requestSignature,
-          relayUrl: SIGNER_RELAY,
-          userPubkey: message.userPubkey
-        })
-        await bridge.ready
-        log('signer connected\n')
+        await connectSigner(message.userPubkey)
         socket.send(JSON.stringify({ type: 'ok' }))
         return
       }
