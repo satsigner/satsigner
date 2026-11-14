@@ -16,7 +16,7 @@ const RELEASE_FINGERPRINT = 'AA:BB'
 const RELEASE_HASH = 'aabb'
 
 const BADGING = `package: name='com.example' versionCode='7' versionName='1.2.0' platformBuildVersionName='17'
-sdkVersion:'24'
+minSdkVersion:'24'
 targetSdkVersion:'36'
 application-label:'Example'
 native-code: 'arm64-v8a'`
@@ -60,6 +60,11 @@ test('reads the package, version, sdk levels and abis from badging', () => {
     versionCode: 7,
     versionName: '1.2.0'
   })
+})
+
+test('reads the min sdk from aapt2 before build-tools 35 too', () => {
+  const older = BADGING.replace("minSdkVersion:'24'", "sdkVersion:'23'")
+  assert.equal(parseBadging(older).minSdk, 23)
 })
 
 test('reads requested permissions with their sdk cap', () => {

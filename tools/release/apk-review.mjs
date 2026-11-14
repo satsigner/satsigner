@@ -91,10 +91,12 @@ function parseBadging(text) {
   const lineValue = (prefix) =>
     lines.find((line) => line.startsWith(prefix))?.slice(prefix.length)
   const nativeCode = lineValue('native-code:') ?? ''
+  // aapt2 from build-tools 35 on prints minSdkVersion:, older ones sdkVersion:.
+  const minSdk = lineValue('minSdkVersion:') ?? lineValue('sdkVersion:')
   return {
     abis: [...nativeCode.matchAll(/'([^']+)'/g)].map((match) => match[1]),
     label: lineValue('application-label:')?.replaceAll("'", '') ?? '',
-    minSdk: Number(lineValue('sdkVersion:')?.replaceAll("'", '')),
+    minSdk: Number(minSdk?.replaceAll("'", '')),
     packageId: quoted(packageLine, 'name') ?? '',
     targetSdk: Number(lineValue('targetSdkVersion:')?.replaceAll("'", '')),
     versionCode: Number(quoted(packageLine, 'versionCode')),
