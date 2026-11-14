@@ -30,6 +30,9 @@ import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
+// Long enough for a scroll to claim the touch before the card dims.
+const PRESS_FEEDBACK_DELAY_MS = 100
+
 type HistoricalFiatUnavailableProps = {
   onOpenFiatSettings: () => void
 }
@@ -164,7 +167,10 @@ function SSTransactionCard({
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <SSPressable onPress={onPress}>
+    <SSPressable
+      onPress={onPress}
+      unstable_pressDelay={PRESS_FEEDBACK_DELAY_MS}
+    >
       <SSVStack
         style={[
           {
