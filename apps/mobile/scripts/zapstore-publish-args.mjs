@@ -6,11 +6,8 @@ const SOURCE_REPOSITORY = 'https://github.com/satsigner/satsigner'
  * Arguments for `zsp publish`. The commit is only claimed for a local build
  * from a clean tree, so it matches the published code.
  */
-function zspPublishArgs({ commit, indexerMode, localBuild, target }) {
+function zspPublishArgs({ commit, localBuild, target }) {
   const args = ['publish', '--json', '--quiet', '--skip-preview']
-  if (indexerMode) {
-    args.push('--indexer-mode')
-  }
   if (localBuild && commit) {
     args.push('--commit', commit)
   }

@@ -26,7 +26,7 @@
  *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
  *   SIGN_WITH_MNEMONIC Space-separated BIP39 mnemonic (alternative to SIGN_WITH nsec)
  *   RELEASE_NOTES      Release notes string (preferred over --notes to avoid argv injection)
- *   CI=true            Implies --yes and structured output (set automatically by most CI)
+ *   CI=true            Implies --yes (set automatically by most CI)
  *   AGENT=true         Same as CI=true — set when calling from an agent or script
  *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
  *
@@ -125,7 +125,7 @@ const { values: flags } = parseArgs({
   strict: true
 })
 
-// Agent / CI mode: CI=true or AGENT=true implies --yes and structured output
+// Agent / CI mode: CI=true or AGENT=true implies --yes
 const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
 const yes = flags.yes === true || isAgent
 const dryRun = flags['dry-run'] === true
@@ -703,10 +703,10 @@ async function main() {
     const listing = writeListingConfig(apkPath)
     // --json keeps zsp non-interactive but still reports errors, and prints
     // every event it published. --quiet alone hides a run that publishes nothing.
-    // --indexer-mode overrides config with repo-root zapstore.yaml.
+    // Never --indexer-mode: zsp then swaps this config for the repository's
+    // zapstore.yaml and uploads a forge release instead of the checked APK.
     const zspFlags = zspPublishArgs({
       commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
-      indexerMode: isAgent,
       localBuild: true,
       target: listing.file
     })
