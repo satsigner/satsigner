@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs'
+
 import { findApksigner, writeLineage } from './apk-signer.mjs'
 import { certificateFingerprint } from './certificate.mjs'
 import { readHiddenLine } from './hidden-prompt.mjs'
@@ -46,6 +48,9 @@ const phrase = restore
   ? await readHiddenLine('12 words of the new key: ')
   : createMnemonic()
 
+// A lineage left from a replaced key would mark the rotation active while it
+// links another certificate, should the new lineage fail to write.
+rmSync(lineagePath, { force: true })
 const { certificate } = writeKeystore(phrase, nextReleaseDir)
 
 // Show the words before the lineage step: if apksigner fails there, the new
