@@ -137,9 +137,4 @@ async function verifyOnZapstore(events) {
   console.log('\n  The release is live on Zapstore.')
 }
 
-export {
-  describeStatus,
-  isLive,
-  parseZspEvents,
-  verifyOnZapstore
-}
+export { describeStatus, isLive, parseZspEvents, verifyOnZapstore }
