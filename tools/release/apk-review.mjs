@@ -10,10 +10,10 @@ const DEBUG_CERT_NAME = 'CN=Android Debug'
 const PERMISSION_LINE = /^uses-permission(-sdk-23)?:/
 // variant.ts names builds satsigner-<label>-<segment>-<buildType>[-<abi>].apk,
 // so a debug build from a branch named `release` also ends in -release-debug.
-const RELEASE_APK_SUFFIXES = new Set([
+const RELEASE_APK_SUFFIXES = [
   '-release.apk',
   ...[...ANDROID_ABI_LABELS.values()].map((abi) => `-release-${abi}.apk`)
-])
+]
 // apksigner prints the optional Source Stamp signer next to the APK signers.
 // It does not sign the APK, so it never counts as a signing identity.
 const SOURCE_STAMP_SIGNER = /source stamp/i
@@ -135,7 +135,7 @@ function parsePermissions(text) {
 }
 
 function isReleaseApkName(name) {
-  return [...RELEASE_APK_SUFFIXES].some((suffix) => name.endsWith(suffix))
+  return RELEASE_APK_SUFFIXES.some((suffix) => name.endsWith(suffix))
 }
 
 function parseSigners(text) {
