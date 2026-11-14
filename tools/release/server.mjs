@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
+import { readListing } from '../../apps/mobile/scripts/zapstore-listing.mjs'
 import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
 import { libraryChecks, securityChecks, zapstoreChecks } from './apk-review.mjs'
 import { findApksigner } from './apk-signer.mjs'
@@ -51,9 +52,6 @@ const {
   getVariantIcons,
   getVariantPackageId
 } = require(path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs'))
-const { readListing } = await import(
-  path.join(REPO_ROOT, 'apps/mobile/scripts/zapstore-listing.mjs')
-)
 const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile')
 const APK_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'dist', 'apks')
 const LISTING_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'zapstore')
