@@ -7,52 +7,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- NIP-04 + NIP-17 direct messages in the nostr identity section: conversation
-  lists per protocol, thread view with composer, new-message modal (contacts or
-  npub), and focus-scoped relay subscriptions with local SQLite history.
-- "Report a security issue" in Settings > About: sends an encrypted NIP-17
-  message to the project npub, anonymous by default (throwaway key) or from the
-  active identity for a reply channel; shows the publish relays up front and a
-  confirmation screen with the exact sent message.
-- Settings and About links above the version in the side navigation.
-- One-click developer diagnostics (Settings > Developer > Diagnostics): crypto
-  roundtrip, entropy collision test against the device RNG, PIN KDF, secure
-  store, SQLite integrity, NIP-17 wrap/unwrap, and a live relay roundtrip that
-  publishes a test gift wrap to the project security npub and verifies
-  retrieval + decryption.
-- Dev console now logs symbolicated source file:line for crashes and unhandled
-  promise rejections (Metro symbolication via the same path LogBox uses).
+## [0.4.4] - 2026-11-14
 
 ### Fixed
 
-- Signing a transaction crashed with "undefined is not a function":
-  `psbt.txid()` was called unguarded though the stored PSBT is not always a BDK
-  Psbt instance; the txid now derives from the PSBT bytes (ground truth) with a
-  guarded fallback.
-- `TypedArray.prototype.toReversed()` is missing in Hermes — replaced the
-  remaining bare call sites (PSBT input extraction, Electrum scripthash,
-  energy converter) with the established `Buffer.from(x).reverse()` pattern.
-  This was the actual blocker for signing pasted/scanned PSBTs.
-- First-ever PIN set hung forever on the confirm step on fresh installs
-  (`getPin()` throws before any PIN exists since the security hardening).
-- Event publishing raced relay TLS handshakes and failed with "failed to
-  publish on any relay"; publishing now waits for at least one connected relay
-  and sends only to connected sockets.
-- Nostr kind0 profile name/image never loaded for freshly created identities:
-  identities now connect relays by default and relay resolution falls back to
-  the well-known indexing relays when none are configured.
-- Left-aligned the security report message textarea.
-- Receive QR codes no longer emit `amount=0` for zero-satoshi requests, and
-  receive URIs are now round-trip validated against the real BIP-321 parser in
-  tests (plain, amount, label, and payjoin variants).
-- "Follow us" links on About now render as a centered, aligned row.
+- The 0.4.3 sync fix patched a copy of the UniFFI runtime the app does not
+  load. It now patches `@ubjs/core`, which the BDK, payjoin and Ark bindings
+  use, so Electrum and Esplora syncs no longer fail with "Cannot lower this
+  object to a pointer".
+
+## [0.4.3] - 2026-11-13
+
+### Fixed
+
+- Syncing an account over Electrum or Esplora failed with "Cannot lower this
+  object to a pointer", most visibly on the first sync after restoring a
+  backup. The UniFFI runtime rejected the JavaScript progress inspector passed
+  to the scan.
+
+## [0.4.2] - 2026-11-13
+
+### Fixed
+
+- The Android 14+ launch crash fix from 0.4.1 never reached the app: Expo
+  linked its prebuilt `expo-screen-capture` instead of the patched source. The
+  module is now built from source.
+
+## [0.4.1] - 2026-11-13
+
+### Fixed
+
+- The app crashed on launch on Android 14 and newer: `expo-screen-capture`
+  registered a screenshot listener that needs a permission Satsigner blocks.
+  It now skips the listener; screenshots are still blocked on secret screens.
+- Launcher and store icons fill the whole shape instead of showing a round
+  logo with white corners.
+- Dev and branch builds carry a coloured badge on the icon.
+- The Zapstore description keeps its line breaks.
+
+## [0.4.0] - 2026-11-13
+
+### Added
+
+- **Payjoin** (BIP77 and BIP78) send and receive, with a manual offline PSBT
+  handoff, directory or manual coordination modes, session expiry, and payjoin
+  details on the send preview. Mixed-ownership transactions are labelled.
+- **Replace-by-fee**: bump an unconfirmed transaction with a higher fee, with a
+  replacement fee floor and optional extra confirmed UTXOs.
+- **Bitcoin Core RPC backend**: sync, rescan (with wallet birthday and
+  checkpoints), broadcast, and chain data over RPC, alongside Electrum and
+  Esplora.
+- **Explorer**: block, transaction, address, chain, halving, mempool, node and
+  network pages; raw block hex with a hex dump and decoded view; raw
+  transaction broadcast; fee and mempool backlog estimates.
+- **Ark**: swaps between on-chain, Ark and Lightning; boarding in one
+  transaction from any Satsigner wallet (also with payjoin); VTXO details with
+  expiry and exit cost; tracking, funding and claiming exits; on-chain balance
+  sweep; labels and tags on movements; full Ark state in backups.
+- **Lightning**: LND REST client (lndconnect and gRPC pairing), on-chain
+  receive and send, channel opening, invoice polling, and amountless BOLT11
+  payments. Ecash multi-mint payments and proof restore from backups.
+- **Nostr**: NIP-04 and NIP-17 direct messages with replies, reactions,
+  deletion and proof of work; DM inbox split by follows; feed with likes,
+  reposts, zaps and zap totals; note proof-of-work mining and deletion
+  requests; relay settings and connection status; key QR codes (npub, hex,
+  Lightning address).
+- **Message signing**: BIP-137 and BIP-322 for P2WPKH and P2SH-P2WPKH, with
+  low-R signatures.
+- **UTXO control**: sort, group, filter (script and tag), exclude, and nested
+  bubbles; Stonewall outputs ordered like Sparrow; privacy change and fake-mix
+  outputs shown on charts.
+- **Transactions**: Sankey flow charts with labels from previous transactions,
+  wallet ownership annotations, historical fiat values resolved on device
+  (opt-in), and signed drafts kept across restarts.
+- Import a single-signature WIF as one address; view key material and WIF in
+  address details.
+- Encrypted backups now include labels, Ark, Lightning and ecash data, with a
+  per-section summary.
+- Stronger PIN key derivation, more PIN lengths, and a passphrase strength
+  meter; reopen the last screen after unlocking.
+- Warn before connecting to a public server; account syncs are queued and
+  stalled ones over Tor are stopped.
+- "Report a security issue" in Settings > About: an encrypted NIP-17 message
+  to the project, anonymous by default.
+- Developer diagnostics (crypto, entropy, PIN KDF, secure store, SQLite,
+  NIP-17, relay and payjoin roundtrips) and an opt-in on-screen dev console.
+- Onboarding intro and guided tour; converter with written numbers and
+  date-anchored prices; drawing entropy for seed creation; share buttons on QR
+  screens; wallets can be reordered.
+- QR scanning on Android without Google ML Kit.
+
+### Changed
+
+- App fonts switched to Geist and Geist Mono.
+- Stop gap can be set up to 200; long-press refresh forces a full rescan.
+- Unused Android permissions removed; the release build enforces an allow list.
+
+### Fixed
+
+- Signing pasted or scanned PSBTs crashed on Hermes (`psbt.txid()` and
+  `toReversed()` calls).
+- First PIN setup hung on the confirm step on fresh installs.
+- Nostr publishing raced relay handshakes; profiles never loaded for new
+  identities.
+- Receive QR codes no longer include `amount=0`; receive URIs are validated
+  against the BIP-321 parser.
+- Payjoin URI and replacement PSBT are kept in saved drafts.
+- Many smaller layout, sync and translation fixes.
 
 ### Security
 
-- Security policy (`SECURITY.md`) with a Nostr NIP-17 private reporting channel
-  (project npub inbox relays).
+- Security policy (`SECURITY.md`) with a private Nostr NIP-17 reporting
+  channel.
+- Backups are encrypted with Argon2id and authenticated encryption.
+- PIN secrets are never rolled back when the keychain is unreadable.
 
 ## [0.3.6] - 2026-06-10
 

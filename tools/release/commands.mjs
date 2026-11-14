@@ -248,10 +248,47 @@ function hasInstalledPackage(text, packageId) {
   return parsePackageList(text).includes(packageId)
 }
 
+// Build APK and Uninstall never ask the extension for a signature.
+const UNSIGNED_ACTIONS = new Set(['apk', 'uninstall'])
+
+function actionSigns(action) {
+  return !UNSIGNED_ACTIONS.has(action)
+}
+
+// A command that signs keeps the bunker it started with, so a page that signs
+// in meanwhile reattaches to it, and only with the same account.
+function signerConnection({ bridgePubkey, runningAction, userPubkey }) {
+  if (!runningAction || !actionSigns(runningAction) || !bridgePubkey) {
+    return 'replace'
+  }
+  return userPubkey === bridgePubkey ? 'reattach' : 'refuse'
+}
+
+function eventAuthor(eventJson) {
+  try {
+    return JSON.parse(eventJson)?.pubkey
+  } catch {
+    return undefined
+  }
+}
+
+// The extension can switch accounts after sign-in, so a signature counts only
+// when it comes from the account the bunker speaks for.
+function signatureResult({ message, pubkey }) {
+  if (message.type === 'rejected') {
+    return { error: message.error || 'extension rejected the signature' }
+  }
+  if (eventAuthor(message.event) !== pubkey) {
+    return { error: 'the extension signed with another account' }
+  }
+  return { event: message.event }
+}
+
 export {
   REPO_IDENTIFIER,
   SIGNER_ALIAS,
   TRUNCATED_LINE_MARKER,
+  actionSigns,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
@@ -267,5 +304,7 @@ export {
   parseReleaseChannel,
   parseRequestBody,
   redactSecrets,
+  signatureResult,
+  signerConnection,
   splitCompleteLines
 }

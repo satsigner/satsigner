@@ -47,6 +47,11 @@
         height: 36px;
         border-radius: 8px;
       }
+      .tool-version {
+        color: #a3a3a3;
+        font-family: 'SF Mono', ui-monospace, monospace;
+        font-size: 13px;
+      }
       h1 {
         margin: 0;
         font-size: 30px;
@@ -394,6 +399,137 @@
       .guide {
         margin-top: 14px;
       }
+      .preview-block {
+        margin-top: 18px;
+      }
+      .preview-block h2 {
+        margin: 0 0 8px;
+        color: #ffffff;
+        font-size: 15px;
+      }
+      .preview-description {
+        margin: 8px 0 0;
+        color: #d4d4d4;
+        font-size: 14px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+      .launcher {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .launcher-screen {
+        display: flex;
+        gap: 18px;
+        padding: 20px 22px 14px;
+        border-radius: 12px;
+      }
+      .launcher-screen.dark {
+        background: linear-gradient(160deg, #1f2a44, #0b0f1a);
+        color: #ffffff;
+      }
+      .launcher-screen.light {
+        background: linear-gradient(160deg, #e8eef8, #c9d6ea);
+        color: #111111;
+      }
+      .launcher-app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 76px;
+      }
+      .launcher-chiclet {
+        position: relative;
+        background: url('/api/listing/icon-background') center / 150%;
+        width: 60px;
+        height: 60px;
+        overflow: hidden;
+      }
+      .launcher-chiclet.circle {
+        border-radius: 50%;
+      }
+      .launcher-chiclet.squircle {
+        border-radius: 30%;
+      }
+      .launcher-chiclet img {
+        position: absolute;
+        inset: -25%;
+        width: 150%;
+        height: 150%;
+      }
+      .launcher-label {
+        width: 100%;
+        overflow: hidden;
+        font-size: 12px;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .preview-shots {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
+      .preview-shots img {
+        height: 260px;
+        border: 1px solid #333333;
+        border-radius: 4px;
+      }
+      .checks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 14px;
+      }
+      .checks li {
+        display: grid;
+        grid-template-columns: 3.5rem 1fr;
+        gap: 2px 10px;
+        padding: 6px 0;
+        border-top: 1px solid #262626;
+      }
+      .checks .badge {
+        font-weight: 600;
+      }
+      .checks .pass .badge {
+        color: #8ce99a;
+      }
+      .checks .warn .badge {
+        color: #ffd43b;
+      }
+      .checks .fail .badge {
+        color: #ff8a8a;
+      }
+      .checks .detail {
+        grid-column: 2;
+        color: #a3a3a3;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .key-status {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 14px;
+        margin: 14px 0 0;
+        font-size: 14px;
+      }
+      .key-status dt {
+        color: #a3a3a3;
+      }
+      .key-status dd {
+        margin: 0;
+        color: #ffffff;
+        overflow-wrap: anywhere;
+      }
+      .key-status dd.bad {
+        color: #ff8a8a;
+      }
+      .key-status dd.good {
+        color: #8ce99a;
+      }
       .guide summary {
         cursor: pointer;
         color: #ffffff;
@@ -551,6 +687,7 @@
         <div class="title">
           <img src="/logo.png" alt="" width="36" height="36" />
           <h1>Satsigner release</h1>
+          <span id="tool-version" class="tool-version"></span>
         </div>
         <p id="status" class="hint">
           Sign in with a NIP-07 extension. The key stays in the extension.
@@ -595,6 +732,38 @@
             aria-controls="apk-panel"
           >
             Build APK
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="preview-panel"
+          >
+            Preview release
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="keys-panel"
+          >
+            Android developer keys
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="version-panel"
+          >
+            Version
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="announcements-panel"
+          >
+            Announcements
           </button>
         </div>
         <div class="panels">
@@ -702,19 +871,141 @@
                     aria-expanded="false"
                     aria-controls="listings"
                   >
-                    Manage listings and posts
+                    Manage listings
                   </button>
                 </div>
               </li>
             </ol>
             <div id="listings" hidden>
-              <ul id="releases"></ul>
               <h2 class="manager">Published apps</h2>
               <p class="hint">
                 Replace a listing by publishing a newer app event with the same
                 package id. The APK already on Zapstore stays.
               </p>
               <div id="apps"></div>
+            </div>
+          </section>
+          <section id="apk-panel" hidden>
+            <p class="hint">
+              Pick the name and package id, then the CPU set. The build runs a
+              clean prebuild, which deletes the android folder, and saves a copy
+              under dist/apks.
+            </p>
+            <ol class="plain">
+              <li class="step">
+                <span class="step-title">Name and package id</span>
+                <div class="channel" id="apk-identity">
+                  <button
+                    type="button"
+                    data-identity="branch"
+                    aria-pressed="true"
+                  >
+                    Branch
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="prod"
+                    aria-pressed="false"
+                  >
+                    Production
+                  </button>
+                  <button
+                    type="button"
+                    data-identity="generic"
+                    aria-pressed="false"
+                  >
+                    Generic dev
+                  </button>
+                </div>
+                <p class="hint" id="apk-identity-hint"></p>
+                <ul id="apk-preview"></ul>
+              </li>
+              <li class="step">
+                <span class="step-title">APK type</span>
+                <div class="channel" id="apk-kind">
+                  <button type="button" data-kind="all" aria-pressed="true">
+                    All CPUs
+                  </button>
+                  <button type="button" data-kind="pixel" aria-pressed="false">
+                    Pixel 8, 9, or 10
+                  </button>
+                </div>
+                <p class="hint" id="apk-kind-hint">
+                  All CPUs installs on phones and emulators. The file is larger.
+                </p>
+                <div class="actions">
+                  <button id="build-apk" class="primary" type="button">
+                    Build APK
+                  </button>
+                </div>
+              </li>
+            </ol>
+            <ul id="apks"></ul>
+          </section>
+          <section id="preview-panel" hidden>
+            <p class="hint">
+              See the listing exactly as it will be sent, and run the checks the
+              Zapstore relay runs on the APK before you publish. The newest
+              release APK for the channel is inspected with aapt2 and apksigner.
+            </p>
+            <div class="channel" id="preview-channel">
+              <button type="button" data-channel="dev" aria-pressed="true">
+                Branch
+              </button>
+              <button type="button" data-channel="generic" aria-pressed="false">
+                Generic dev
+              </button>
+              <button type="button" data-channel="primary" aria-pressed="false">
+                Production
+              </button>
+            </div>
+            <div class="actions">
+              <button id="run-preview" class="primary" type="button">
+                Run checks
+              </button>
+            </div>
+            <div id="preview" aria-live="polite"></div>
+          </section>
+          <section id="version-panel" hidden>
+            <p class="hint">
+              The app version is set in the root, mobile and docs package.json
+              and in app.config.ts. The release console has its own version.
+              Android compares the version code, which comes from the version,
+              so it must rise with every release.
+            </p>
+            <dl id="version-status" class="key-status" aria-live="polite"></dl>
+          </section>
+          <section id="announcements-panel" hidden>
+            <p class="hint">
+              Release announcements are your notes tagged #release. Deleting one
+              sends a deletion request (NIP-09) to the announcement relays.
+              Relays and clients that honour it hide the note; copies elsewhere
+              may stay.
+            </p>
+            <div class="actions">
+              <button id="refresh-releases" type="button">Refresh</button>
+              <button id="delete-all-releases" class="danger" type="button">
+                Delete all
+              </button>
+            </div>
+            <h2 class="manager">Release announcements</h2>
+            <ul id="releases"></ul>
+            <h2 class="manager">Latest posts</h2>
+            <p class="hint">
+              Your newest notes on the same relays, tagged or not, so a post
+              without #release can be deleted too.
+            </p>
+            <ul id="latest-posts"></ul>
+          </section>
+          <section id="keys-panel" hidden>
+            <p class="hint">
+              The Android release key on this computer signs every APK. Android
+              and Zapstore trust the certificate, so the same certificate must
+              sign every update.
+            </p>
+            <dl id="key-status" class="key-status" aria-live="polite"></dl>
+            <div class="actions">
+              <button id="refresh-keys" type="button">Check again</button>
             </div>
             <div class="key-warning" role="note">
               <strong>Keep the 12 words safe.</strong> They are the only backup
@@ -777,63 +1068,70 @@
                 a file, a chat or the repository.
               </p>
             </details>
-          </section>
-          <section id="apk-panel" hidden>
-            <p class="hint">
-              Pick the name and package id, then the CPU set. The build runs a
-              clean prebuild, which deletes the android folder, and saves a copy
-              under dist/apks.
-            </p>
-            <ol class="plain">
-              <li class="step">
-                <span class="step-title">Name and package id</span>
-                <div class="channel" id="apk-identity">
-                  <button
-                    type="button"
-                    data-identity="branch"
-                    aria-pressed="true"
-                  >
-                    Branch
-                  </button>
-                  <button
-                    type="button"
-                    data-identity="prod"
-                    aria-pressed="false"
-                  >
-                    Production
-                  </button>
-                  <button
-                    type="button"
-                    data-identity="generic"
-                    aria-pressed="false"
-                  >
-                    Generic dev
-                  </button>
-                </div>
-                <p class="hint" id="apk-identity-hint"></p>
-                <ul id="apk-preview"></ul>
-              </li>
-              <li class="step">
-                <span class="step-title">APK type</span>
-                <div class="channel" id="apk-kind">
-                  <button type="button" data-kind="all" aria-pressed="true">
-                    All CPUs
-                  </button>
-                  <button type="button" data-kind="pixel" aria-pressed="false">
-                    Pixel 8, 9, or 10
-                  </button>
-                </div>
-                <p class="hint" id="apk-kind-hint">
-                  All CPUs installs on phones and emulators. The file is larger.
-                </p>
-                <div class="actions">
-                  <button id="build-apk" class="primary" type="button">
-                    Build APK
-                  </button>
-                </div>
-              </li>
-            </ol>
-            <ul id="apks"></ul>
+            <details class="guide">
+              <summary>Check the 12 words against this key</summary>
+              <p class="hint">
+                The check runs in a terminal so the words never pass through
+                this page. It says whether the words are valid, and whether they
+                rebuild the keystore on this computer.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:confirm</code> and
+                  type the 12 words. Add <code>--next</code> to check the words
+                  of a rotated key.
+                </li>
+                <li>
+                  <em>Valid words that do not match</em> means another phrase,
+                  or a word swapped for another valid one.
+                  <em>Not 12 valid words</em> means a typo.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:status</code> for
+                  the same report as this tab.
+                </li>
+              </ol>
+            </details>
+            <details class="guide">
+              <summary>Rotate to a new signing key</summary>
+              <p class="hint">
+                Rotate only when the old key leaked or must be retired. Android
+                accepts an update from a new certificate only when the APK
+                carries a signing lineage (APK Signature Scheme v3) back to the
+                old one. Zapstore rejects a release whose certificate is neither
+                the app's current one nor linked to it by lineage.
+              </p>
+              <ol class="guide-steps">
+                <li>
+                  Check the current words first. Rotation needs the old key, and
+                  every release keeps signing with it.
+                </li>
+                <li>
+                  Run <code>pnpm --dir tools/release keystore:rotate</code>. It
+                  writes a new key to <code>~/.satsigner/next</code>, the
+                  lineage to <code>~/.satsigner/release.lineage</code>, and
+                  prints 12 new words. Write them down next to the old ones.
+                </li>
+                <li>
+                  Release builds then sign with both keys: Android 13 and later
+                  use the new key (v3.1), older versions keep the old one.
+                </li>
+                <li>
+                  Publish once. The publisher links the new certificate to your
+                  npub with a new identity proof, so Zapstore accepts it.
+                </li>
+                <li>
+                  On another computer, restore the old key with
+                  <code>keystore:restore</code>, then the new one with
+                  <code>keystore:rotate --restore</code>. The lineage is rebuilt
+                  from both keys.
+                </li>
+              </ol>
+              <p class="hint">
+                Never delete the old key or its words after a rotation. Without
+                the lineage, every user must uninstall and reinstall.
+              </p>
+            </details>
           </section>
         </div>
       </div>
@@ -863,18 +1161,43 @@
           open ? 'true' : 'false'
         )
         manageListingsButton.textContent = open
-          ? 'Hide listings and posts'
-          : 'Manage listings and posts'
+          ? 'Hide listings'
+          : 'Manage listings'
         if (open) refreshListings()
       })
 
       function refreshListings() {
+        if (!announcementsPanel.hidden) void loadReleases()
         if (listingsEl.hidden) return
-        void loadReleases()
         void loadApps()
       }
 
+      const EXTENSION_POLL_MS = 250
+      const EXTENSION_POLL_ATTEMPTS = 12
+      const UI_STATE_KEY = 'satsigner.releaseConsole.ui'
+
+      function readUiState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(UI_STATE_KEY) ?? '{}')
+          return parsed && typeof parsed === 'object' ? parsed : {}
+        } catch {
+          return {}
+        }
+      }
+
+      function saveUiState(patch) {
+        try {
+          localStorage.setItem(
+            UI_STATE_KEY,
+            JSON.stringify({ ...readUiState(), ...patch })
+          )
+        } catch {
+          // Private windows can refuse storage; the page works without it.
+        }
+      }
+
       function showTab(id) {
+        saveUiState({ tab: id })
         for (const tab of tabs) {
           const selected = tab.getAttribute('aria-controls') === id
           tab.setAttribute('aria-selected', selected ? 'true' : 'false')
@@ -886,7 +1209,293 @@
       for (const tab of tabs) {
         tab.addEventListener('click', () => {
           showTab(tab.getAttribute('aria-controls'))
+          if (tab.getAttribute('aria-controls') === 'keys-panel') {
+            void refreshKeys()
+          }
+          if (tab.getAttribute('aria-controls') === 'version-panel') {
+            void refreshVersion()
+          }
+          if (tab.getAttribute('aria-controls') === 'announcements-panel') {
+            void loadReleases()
+          }
         })
+      }
+
+      const previewEl = document.querySelector('#preview')
+      const previewChannelEl = document.querySelector('#preview-channel')
+      const runPreviewButton = document.querySelector('#run-preview')
+      const CHECK_BADGES = { fail: 'FAIL', pass: 'OK', warn: 'CHECK' }
+
+      previewChannelEl.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-channel]')
+        if (!button) return
+        saveUiState({ previewChannel: button.dataset.channel })
+        for (const option of previewChannelEl.querySelectorAll('button')) {
+          option.setAttribute(
+            'aria-pressed',
+            option === button ? 'true' : 'false'
+          )
+        }
+      })
+      runPreviewButton.addEventListener('click', () => void runPreview())
+
+      function previewBlock(title) {
+        const block = document.createElement('div')
+        block.className = 'preview-block'
+        const heading = document.createElement('h2')
+        heading.textContent = title
+        block.append(heading)
+        previewEl.append(block)
+        return block
+      }
+
+      function previewText(block, text, className = 'hint') {
+        const paragraph = document.createElement('p')
+        paragraph.className = className
+        paragraph.textContent = text
+        block.append(paragraph)
+      }
+
+      function renderChecks(title, checks) {
+        const block = previewBlock(title)
+        const list = document.createElement('ul')
+        list.className = 'checks'
+        for (const item of checks) {
+          const row = document.createElement('li')
+          row.className = item.status
+          const badge = document.createElement('span')
+          badge.className = 'badge'
+          badge.textContent = CHECK_BADGES[item.status]
+          const label = document.createElement('span')
+          label.textContent = item.label
+          const detail = document.createElement('span')
+          detail.className = 'detail'
+          detail.textContent = item.detail
+          row.append(badge, label, detail)
+          list.append(row)
+        }
+        block.append(list)
+      }
+
+      function renderListing(preview) {
+        const block = previewBlock(`${preview.appName} ${preview.versionName}`)
+        previewText(
+          block,
+          preview.listing.summary || 'No summary',
+          'step-title'
+        )
+        previewText(
+          block,
+          preview.listing.description || 'No description',
+          'preview-description'
+        )
+        const shots = document.createElement('div')
+        shots.className = 'preview-shots'
+        for (const name of preview.listing.screenshots) {
+          const image = document.createElement('img')
+          image.src = `/api/listing/screenshots/${encodeURIComponent(name)}`
+          image.alt = name
+          image.loading = 'lazy'
+          shots.append(image)
+        }
+        block.append(shots)
+      }
+
+      function launcherApp(preview, shape) {
+        const app = document.createElement('div')
+        app.className = 'launcher-app'
+        const chiclet = document.createElement('div')
+        chiclet.className = `launcher-chiclet ${shape}`
+        const image = document.createElement('img')
+        image.src = `/api/listing/icon?channel=${encodeURIComponent(preview.channel)}`
+        image.alt = ''
+        chiclet.append(image)
+        const label = document.createElement('span')
+        label.className = 'launcher-label'
+        label.textContent = preview.appName
+        label.title = preview.appName
+        app.append(chiclet, label)
+        return app
+      }
+
+      function renderLauncher(preview) {
+        const block = previewBlock('On the phone')
+        previewText(
+          block,
+          'The home screen icon and name. Launchers crop the icon to their own shape and cut long names.'
+        )
+        const launcher = document.createElement('div')
+        launcher.className = 'launcher'
+        for (const wallpaper of ['dark', 'light']) {
+          const screen = document.createElement('div')
+          screen.className = `launcher-screen ${wallpaper}`
+          screen.append(
+            launcherApp(preview, 'circle'),
+            launcherApp(preview, 'squircle')
+          )
+          launcher.append(screen)
+        }
+        block.append(launcher)
+      }
+
+      function renderApkFacts(preview) {
+        const block = previewBlock('APK')
+        if (!preview.apk) {
+          previewText(
+            block,
+            `No release APK for ${preview.packageId} in dist/apks. Build one first.`
+          )
+          return
+        }
+        const { apk } = preview
+        previewText(
+          block,
+          `${apk.name} · ${formatBytes(apk.bytes)} · version ${apk.versionName} (${apk.versionCode}) · API ${apk.minSdk} to ${apk.targetSdk}`
+        )
+        if (preview.live.error) {
+          previewText(block, `Zapstore lookup failed: ${preview.live.error}`)
+        }
+      }
+
+      async function runPreview() {
+        const channel = previewChannelEl.querySelector('[aria-pressed="true"]')
+          .dataset.channel
+        runPreviewButton.disabled = true
+        previewEl.replaceChildren()
+        previewText(previewEl, 'Inspecting the APK and asking Zapstore...')
+        try {
+          const response = await fetch(
+            `/api/preview?channel=${encodeURIComponent(channel)}`
+          )
+          const preview = await response.json()
+          previewEl.replaceChildren()
+          if (!response.ok) {
+            previewText(previewEl, preview.error)
+            return
+          }
+          renderListing(preview)
+          renderLauncher(preview)
+          renderChecks(
+            'Before the build: permissions from native dependencies',
+            preview.beforeBuild
+          )
+          renderApkFacts(preview)
+          if (preview.checks) {
+            renderChecks(
+              'After the build: permissions and trackers in the APK',
+              preview.checks.security
+            )
+            renderChecks('Zapstore checks', preview.checks.zapstore)
+          }
+        } catch (error) {
+          previewEl.replaceChildren()
+          previewText(
+            previewEl,
+            `Preview failed: ${error.message}. Check the console server and try again.`
+          )
+        } finally {
+          runPreviewButton.disabled = false
+        }
+      }
+
+      const keyStatusEl = document.querySelector('#key-status')
+      document
+        .querySelector('#refresh-keys')
+        .addEventListener('click', () => void refreshKeys())
+
+      const versionStatusEl = document.querySelector('#version-status')
+
+      function statusRow(listEl, term, value, tone = '') {
+        const dt = document.createElement('dt')
+        dt.textContent = term
+        const dd = document.createElement('dd')
+        dd.textContent = value
+        if (tone) dd.className = tone
+        listEl.append(dt, dd)
+      }
+
+      function renderVersion(status) {
+        versionStatusEl.replaceChildren()
+        statusRow(versionStatusEl, 'Version', status.version)
+        statusRow(versionStatusEl, 'Version code', String(status.versionCode))
+        statusRow(
+          versionStatusEl,
+          'Release notes',
+          status.changelogReady
+            ? `CHANGELOG.md has a ${status.version} section`
+            : `CHANGELOG.md has no ${status.version} section yet`,
+          status.changelogReady ? 'good' : 'bad'
+        )
+        for (const entry of status.files) {
+          statusRow(
+            versionStatusEl,
+            entry.file,
+            entry.version || 'Not found',
+            entry.version === status.version ? '' : 'bad'
+          )
+        }
+      }
+
+      async function refreshVersion() {
+        const response = await fetch('/api/version')
+        const status = await response.json()
+        if (!response.ok) {
+          versionStatusEl.replaceChildren()
+          statusRow(versionStatusEl, 'Version', status.error, 'bad')
+          return
+        }
+        renderVersion(status)
+      }
+
+      function describeKey(key) {
+        if (!key.present) return { text: `None at ${key.path}`, tone: '' }
+        if (key.error) return { text: `Cannot read: ${key.error}`, tone: 'bad' }
+        return { text: key.fingerprint, tone: '' }
+      }
+
+      function rotationText(keys) {
+        if (keys.rotating) return 'Active. Builds sign with both keys.'
+        if (keys.next.present)
+          return 'New key has no lineage. Run keystore:rotate --restore --force.'
+        return 'None'
+      }
+
+      async function refreshKeys() {
+        const response = await fetch('/api/keys')
+        const keys = await response.json()
+        keyStatusEl.replaceChildren()
+        const current = describeKey(keys.current)
+        statusRow(
+          keyStatusEl,
+          'Keystore',
+          keys.current.present ? keys.current.path : 'Missing',
+          keys.current.present ? '' : 'bad'
+        )
+        statusRow(keyStatusEl, 'Certificate', current.text, current.tone)
+        if (keys.current.fingerprint) {
+          statusRow(
+            keyStatusEl,
+            'Release key',
+            keys.current.matchesRelease
+              ? 'Matches the Satsigner release certificate'
+              : `Does not match ${keys.expectedFingerprint}`,
+            keys.current.matchesRelease ? 'good' : 'bad'
+          )
+        }
+        const next = describeKey(keys.next)
+        statusRow(keyStatusEl, 'Rotated key', next.text, next.tone)
+        statusRow(
+          keyStatusEl,
+          'Rotation',
+          rotationText(keys),
+          keys.next.present && !keys.rotating ? 'bad' : ''
+        )
+        statusRow(
+          keyStatusEl,
+          'apksigner',
+          keys.apksigner.path ?? keys.apksigner.error,
+          keys.apksigner.path ? '' : 'bad'
+        )
       }
 
       function readDeletedIds(key = DELETED_RELEASES_KEY) {
@@ -912,13 +1521,13 @@
         localStorage.setItem(key, JSON.stringify([...ids]))
       }
 
-      function renderReleases(events) {
+      function renderPosts(listEl, events, emptyText) {
         const deleted = readDeletedIds()
-        releasesEl.replaceChildren()
+        listEl.replaceChildren()
         if (!events.length) {
           const item = document.createElement('li')
-          item.textContent = 'No release posts yet.'
-          releasesEl.append(item)
+          item.textContent = emptyText
+          listEl.append(item)
           return
         }
         for (const event of events) {
@@ -948,11 +1557,11 @@
           button.textContent = 'Delete event'
           button.disabled = deleted.has(event.id) || !signerPubkey
           item.append(copy, button)
-          releasesEl.append(item)
+          listEl.append(item)
         }
       }
 
-      function fetchReleasePosts(author) {
+      function fetchPosts(author, filter) {
         return new Promise((resolve) => {
           const found = new Map()
           const sockets = []
@@ -968,7 +1577,7 @@
             const events = [...found.values()].toSorted(
               (a, b) => b.created_at - a.created_at
             )
-            resolve(events)
+            resolve(filter.limit ? events.slice(0, filter.limit) : events)
           }
 
           for (const url of RELEASE_RELAYS) {
@@ -979,12 +1588,7 @@
                 JSON.stringify([
                   'REQ',
                   'releases',
-                  {
-                    kinds: [1],
-                    authors: [author],
-                    '#t': ['release'],
-                    limit: 200
-                  }
+                  { kinds: [1], authors: [author], ...filter }
                 ])
               )
             })
@@ -1010,13 +1614,18 @@
       }
 
       async function loadReleases() {
+        deleteAllReleasesButton.disabled = !signerPubkey
         if (!signerPubkey) {
-          renderReleases([])
-          releasesEl.firstChild.textContent = 'Sign in to load release posts.'
+          renderPosts(releasesEl, [], 'Sign in to load release posts.')
+          renderPosts(latestPostsEl, [], 'Sign in to load your posts.')
           return
         }
-        const events = await fetchReleasePosts(signerPubkey)
-        renderReleases(events)
+        const [releases, latest] = await Promise.all([
+          fetchPosts(signerPubkey, { '#t': ['release'], limit: 200 }),
+          fetchPosts(signerPubkey, { limit: LATEST_POSTS_LIMIT })
+        ])
+        renderPosts(releasesEl, releases, 'No release posts yet.')
+        renderPosts(latestPostsEl, latest, 'No posts yet.')
       }
 
       function tagValue(event, name) {
@@ -1442,10 +2051,15 @@
             (url) =>
               new Promise((resolve) => {
                 const socket = new WebSocket(url)
+                let notice = ''
                 const timer = setTimeout(() => {
                   socket.close()
-                  resolve({ accepted: false, message: 'no reply', relay: url })
-                }, RELEASE_QUERY_MS)
+                  resolve({
+                    accepted: false,
+                    message: notice ? `no reply (${notice})` : 'no reply',
+                    relay: url
+                  })
+                }, PUBLISH_REPLY_MS)
                 socket.addEventListener('open', () => {
                   socket.send(JSON.stringify(['EVENT', event]))
                 })
@@ -1454,6 +2068,10 @@
                   try {
                     frame = JSON.parse(message.data)
                   } catch {
+                    return
+                  }
+                  if (frame[0] === 'NOTICE' && typeof frame[1] === 'string') {
+                    notice = frame[1]
                     return
                   }
                   if (frame[0] !== 'OK' || frame[1] !== event.id) return
@@ -1478,35 +2096,57 @@
         )
       }
 
-      async function deleteRelease(id, button) {
+      function markReleaseDeleted(id) {
+        rememberDeleted(id)
+        const selector = `li[data-id="${CSS.escape(id)}"]`
+        for (const item of document.querySelectorAll(selector)) {
+          item.querySelector('.deleted-tag').hidden = false
+          item.querySelector('[data-delete]').disabled = true
+        }
+      }
+
+      function isSignedEvent(event) {
+        return (
+          typeof event?.id === 'string' &&
+          typeof event.sig === 'string' &&
+          typeof event.pubkey === 'string'
+        )
+      }
+
+      async function deleteReleases(ids, buttons) {
         if (!window.nostr?.signEvent) {
           statusEl.textContent = 'Sign in before deleting a release post.'
           return
         }
-        button.disabled = true
+        for (const button of buttons) button.disabled = true
         statusEl.textContent = 'Approve the deletion in the extension.'
         try {
           const signed = await window.nostr.signEvent({
             kind: 5,
             created_at: Math.floor(Date.now() / 1000),
-            tags: [['e', id]],
+            tags: ids.map((id) => ['e', id]),
             content: ''
           })
+          if (!isSignedEvent(signed)) {
+            throw new Error(
+              'The extension returned an event without an id or signature.'
+            )
+          }
+          writeLog(`deletion event ${signed.id}\n`)
           const results = await publishEvent(signed)
           for (const result of results) logRelayReply(result)
           if (!results.some((result) => result.accepted)) {
-            button.disabled = false
+            for (const button of buttons) button.disabled = false
             statusEl.textContent = 'Relays rejected the deletion request.'
-            writeLog(`delete ${id} was rejected\n`, 'error')
+            writeLog(`delete of ${ids.length} post(s) was rejected\n`, 'error')
             return
           }
-          rememberDeleted(id)
-          const tag = button.parentElement?.querySelector('.deleted-tag')
-          if (tag) tag.hidden = false
+          for (const id of ids) markReleaseDeleted(id)
+          deleteAllReleasesButton.disabled = false
           statusEl.textContent = 'Deletion request sent.'
-          writeLog(`delete request ${id}\n`)
+          writeLog(`delete request for ${ids.length} post(s)\n`)
         } catch (error) {
-          button.disabled = false
+          for (const button of buttons) button.disabled = false
           statusEl.textContent = error.message
           writeLog(`${error.message}\n`, 'error')
         }
@@ -1535,7 +2175,9 @@
       const zapstoreLink = document.querySelector('#zapstore-link')
       const zapstorePreview = document.querySelector('#zapstore-preview')
       const channelHint = document.querySelector('#channel-hint')
-      const channelButtons = [...document.querySelectorAll('[data-channel]')]
+      const channelButtons = [
+        ...document.querySelectorAll('#zap [data-channel]')
+      ]
       let releaseChannel = 'dev'
       let releaseStatus = null
       const releasesEl = document.querySelector('#releases')
@@ -1553,10 +2195,42 @@
         void deleteApp(remove.dataset.removeApp, remove)
       })
 
-      releasesEl.addEventListener('click', (event) => {
+      const announcementsPanel = document.querySelector('#announcements-panel')
+      const refreshReleasesButton = document.querySelector('#refresh-releases')
+      const deleteAllReleasesButton = document.querySelector(
+        '#delete-all-releases'
+      )
+
+      const latestPostsEl = document.querySelector('#latest-posts')
+
+      function deletePostOnClick(event) {
         const button = event.target.closest('[data-delete]')
         if (!button) return
-        void deleteRelease(button.dataset.delete, button)
+        void deleteReleases([button.dataset.delete], [button])
+      }
+
+      releasesEl.addEventListener('click', deletePostOnClick)
+      latestPostsEl.addEventListener('click', deletePostOnClick)
+
+      refreshReleasesButton.addEventListener('click', () => void loadReleases())
+
+      deleteAllReleasesButton.addEventListener('click', () => {
+        const buttons = [
+          ...releasesEl.querySelectorAll('[data-delete]:not(:disabled)')
+        ]
+        if (!buttons.length) {
+          statusEl.textContent = 'No release posts to delete.'
+          return
+        }
+        if (
+          !confirm(`Request deletion of ${buttons.length} release post(s)?`)
+        ) {
+          return
+        }
+        void deleteReleases(
+          buttons.map((button) => button.dataset.delete),
+          [...buttons, deleteAllReleasesButton]
+        )
       })
 
       let signerPubkey = ''
@@ -1582,12 +2256,15 @@
       const RELEASE_RELAYS = [
         'wss://relay.damus.io',
         'wss://nos.lol',
-        'wss://relay.nostr.band',
+        'wss://relay.primal.net',
         'wss://nostr.mom'
       ]
+      const LATEST_POSTS_LIMIT = 20
       const DELETED_RELEASES_KEY = 'satsigner.deletedReleaseEvents'
       const DELETED_APPS_KEY = 'satsigner.deletedZapstoreApps'
       const RELEASE_QUERY_MS = 8000
+      // Busy relays such as damus can take well over the query time to answer OK.
+      const PUBLISH_REPLY_MS = 15000
       const STATUS_REFRESH_MS = 15000
       const LISTING_READ_LOGS = {
         found: ['  the relay still serves the listing\n', 'detail'],
@@ -1901,9 +2578,12 @@
           })
       }
 
+      const toolVersionEl = document.querySelector('#tool-version')
+
       async function refreshStatus() {
         const response = await fetch('/api/status')
         const status = await response.json()
+        toolVersionEl.textContent = `v${status.toolVersion}`
         publishButton.dataset.hidden = status.published ? '1' : '0'
         publishStep.hidden = status.published
         pushButton.dataset.ready = status.published ? '1' : '0'
@@ -1967,14 +2647,30 @@
           return Promise.reject(new Error('No NIP-07 extension found.'))
         }
         const socket = new WebSocket(`ws://${location.host}/api/signer`)
+        const pubkeyRequest = window.nostr.getPublicKey()
+        // The page counts as signed in only once the server accepts its
+        // account: it refuses another account while a command is signing.
+        const accepted = new Promise((resolve, reject) => {
+          pubkeyRequest.catch(reject)
+          socket.addEventListener('open', async () => {
+            const userPubkey = await pubkeyRequest.catch(() => '')
+            if (!userPubkey) {
+              socket.close()
+              return
+            }
+            socket.send(JSON.stringify({ type: 'ready', userPubkey }))
+          })
+          socket.addEventListener('error', () => {
+            reject(new Error('could not reach the local signer'))
+          })
+          socket.addEventListener('message', (message) => {
+            const reply = JSON.parse(message.data)
+            if (reply.type === 'ok') resolve(pubkeyRequest)
+            if (reply.type === 'error') reject(new Error(reply.error))
+          })
+        })
         socket.addEventListener('message', async (message) => {
           const request = JSON.parse(message.data)
-          if (request.type === 'ok') {
-            statusEl.textContent =
-              'Signed in. Signatures still need approval in the extension.'
-            await refreshStatus()
-            return
-          }
           if (request.type !== 'sign') return
           statusEl.textContent = 'Approve the signature in the extension.'
           try {
@@ -1999,22 +2695,7 @@
             writeLog(`${error.message}\n`, 'error')
           }
         })
-        return new Promise((resolve, reject) => {
-          socket.addEventListener('open', async () => {
-            signerPubkey = await window.nostr.getPublicKey()
-            socket.send(
-              JSON.stringify({ type: 'ready', userPubkey: signerPubkey })
-            )
-            setBusy(busy)
-            void showProfile(signerPubkey)
-            refreshListings()
-            writeLog('extension connected\n', 'success')
-            resolve()
-          })
-          socket.addEventListener('error', () => {
-            reject(new Error('could not reach the local signer'))
-          })
-        })
+        return accepted
       }
 
       async function runAction(action, confirmedVersion = '') {
@@ -2044,16 +2725,32 @@
         }
       }
 
-      connectButton.addEventListener('click', () => {
-        connectSigner().catch((error) => {
+      async function signIn() {
+        try {
+          signerPubkey = await connectSigner()
+        } catch (error) {
+          saveUiState({ signedIn: false })
           statusEl.textContent = error.message
-        })
-      })
+          writeLog(`${error.message}\n`, 'error')
+          return
+        }
+        statusEl.textContent =
+          'Signed in. Signatures still need approval in the extension.'
+        setBusy(busy)
+        void showProfile(signerPubkey)
+        refreshListings()
+        saveUiState({ signedIn: true })
+        writeLog('extension connected\n', 'success')
+        await refreshStatus()
+      }
+
+      connectButton.addEventListener('click', signIn)
       publishButton.addEventListener('click', () => runAction('publish'))
       pushButton.addEventListener('click', () => runAction('push'))
       for (const button of channelButtons) {
         button.addEventListener('click', () => {
           releaseChannel = button.dataset.channel
+          saveUiState({ channel: releaseChannel })
           for (const item of channelButtons) {
             item.setAttribute(
               'aria-pressed',
@@ -2113,12 +2810,14 @@
       for (const button of identityButtons) {
         button.addEventListener('click', () => {
           apkIdentity = button.dataset.identity
+          saveUiState({ apkIdentity })
           showApkSelection()
         })
       }
       for (const button of kindButtons) {
         button.addEventListener('click', () => {
           apkKind = button.dataset.kind
+          saveUiState({ apkKind })
           showApkSelection()
         })
       }
@@ -2140,7 +2839,52 @@
           refreshListings()
         }
       }
-      refreshStatus()
+      function clickSaved(selector) {
+        document.querySelector(selector)?.click()
+      }
+
+      // NIP-07 extensions inject window.nostr after the page scripts run.
+      function signInWhenExtensionLoads(attemptsLeft) {
+        if (window.nostr?.signEvent || attemptsLeft <= 1) {
+          signIn()
+          return
+        }
+        setTimeout(
+          () => signInWhenExtensionLoads(attemptsLeft - 1),
+          EXTENSION_POLL_MS
+        )
+      }
+
+      function restoreUiState() {
+        const saved = readUiState()
+        if (saved.channel) {
+          clickSaved(`#zap [data-channel="${CSS.escape(saved.channel)}"]`)
+        }
+        if (saved.previewChannel) {
+          clickSaved(
+            `#preview-channel [data-channel="${CSS.escape(saved.previewChannel)}"]`
+          )
+        }
+        if (saved.apkIdentity) {
+          clickSaved(`[data-identity="${CSS.escape(saved.apkIdentity)}"]`)
+        }
+        if (saved.apkKind) {
+          clickSaved(`[data-kind="${CSS.escape(saved.apkKind)}"]`)
+        }
+        if (saved.tab) {
+          clickSaved(`[role="tab"][aria-controls="${CSS.escape(saved.tab)}"]`)
+        }
+      }
+
+      // While a command runs the server keeps its bunker and only reattaches
+      // this page, so resuming here never cuts off a publish.
+      function resumeSignIn() {
+        if (!readUiState().signedIn) return
+        signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
+      }
+
+      restoreUiState()
+      void refreshStatus().then(resumeSignIn)
       refreshListings()
       setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
       window.addEventListener('focus', refreshStatusInBackground)

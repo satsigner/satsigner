@@ -1,27 +1,37 @@
-import { certificateFingerprint } from './certificate.mjs'
 import { readHiddenLine } from './hidden-prompt.mjs'
 import {
+  RELEASE_CERT_SHA256,
   hasReleaseKeystore,
-  keystorePath,
+  keystoreFiles,
+  nextReleaseDir,
   phraseMatchesKeystore,
-  storedIdentity
+  releaseDir,
+  storedFingerprint
 } from './keystore.mjs'
 
-if (!hasReleaseKeystore()) {
-  console.error(`No release keystore at ${keystorePath}`)
+const dir = process.argv.includes('--next') ? nextReleaseDir : releaseDir
+const { keystore } = keystoreFiles(dir)
+
+if (!hasReleaseKeystore(dir)) {
+  console.error(`No release keystore at ${keystore}`)
   process.exit(1)
 }
 
-console.log(
-  `Certificate SHA-256: ${certificateFingerprint(storedIdentity().certificate)}`
-)
+const fingerprint = storedFingerprint(dir)
+console.log(`Keystore: ${keystore}`)
+console.log(`Certificate SHA-256: ${fingerprint}`)
+if (dir === releaseDir && fingerprint !== RELEASE_CERT_SHA256) {
+  console.log(
+    `Warning: this is not the Satsigner release key (${RELEASE_CERT_SHA256}).`
+  )
+}
 
 const phrase = await readHiddenLine('12 words: ')
 
 try {
-  const matches = phraseMatchesKeystore(phrase)
+  const matches = phraseMatchesKeystore(phrase, dir)
   if (!matches) {
-    console.error('These words do not match the release keystore.')
+    console.error('These words are valid, but they do not match this keystore.')
     process.exit(1)
   }
 } catch (error) {
@@ -29,4 +39,4 @@ try {
   process.exit(1)
 }
 
-console.log('These words match the release keystore.')
+console.log('These words match this keystore.')

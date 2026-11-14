@@ -21,14 +21,12 @@
  *               Production confirmation for runs without a terminal. Only the
  *               release console passes it, after its own confirm dialog.
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
- *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
- *               zsp fetches the APK from the configured source — no local build.
  *
  * Non-interactive / agent / CI env vars:
  *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
  *   SIGN_WITH_MNEMONIC Space-separated BIP39 mnemonic (alternative to SIGN_WITH nsec)
  *   RELEASE_NOTES      Release notes string (preferred over --notes to avoid argv injection)
- *   CI=true            Implies --yes and structured output (set automatically by most CI)
+ *   CI=true            Implies --yes (set automatically by most CI)
  *   AGENT=true         Same as CI=true — set when calling from an agent or script
  *   ZSP_BIN            Path to zsp binary (default: ~/go/bin/zsp, or %USERPROFILE%\go\bin\zsp.exe on Windows)
  *
@@ -39,7 +37,6 @@
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
  *   go install github.com/zapstore/zsp@latest
- *   zapstore.yaml must exist at repo root (copy from zapstore.yaml.example)
  */
 
 import { execFileSync, spawn } from 'child_process'
@@ -68,14 +65,19 @@ import * as nip06 from 'nostr-tools/nip06'
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { SimplePool } from 'nostr-tools/pool'
 
+import { applyKeyRotation } from '../../../tools/release/apk-signer.mjs'
 import {
   hasReleaseKeystore,
+  keystoreFiles,
+  lineagePath,
+  newestSignerDir,
   readKeystorePassword,
   keystorePath as releaseKeystorePath,
   requireReleaseKeystore,
   signingEnv,
-  storedIdentity
+  storedCertificate
 } from '../../../tools/release/keystore.mjs'
+import { assertApkPermissions } from '../../../tools/release/permission-check.mjs'
 import { LOCAL_ENV_FILES, buildEnvEntries } from './zapstore-build-env.mjs'
 import {
   PRODUCTION_CHANNEL,
@@ -113,7 +115,6 @@ const { values: flags } = parseArgs({
   options: {
     blossom: { type: 'string' },
     channel: { type: 'string' },
-    config: { type: 'string' },
     'confirm-production': { type: 'string' },
     'dry-run': { type: 'boolean' },
     notes: { type: 'string' },
@@ -123,7 +124,7 @@ const { values: flags } = parseArgs({
   strict: true
 })
 
-// Agent / CI mode: CI=true or AGENT=true implies --yes and structured output
+// Agent / CI mode: CI=true or AGENT=true implies --yes
 const isAgent = process.env.CI === 'true' || process.env.AGENT === 'true'
 const yes = flags.yes === true || isAgent
 const dryRun = flags['dry-run'] === true
@@ -151,9 +152,6 @@ const NOTES_ARG =
     : (flags.notes ?? null)
 const ONLY = flags.only ?? ''
 const CHANNEL = flags.channel ?? ''
-const CONFIG_YAML = flags.config
-  ? path.resolve(REPO_ROOT, flags.config)
-  : path.join(REPO_ROOT, 'zapstore.yaml')
 const LISTING_DIR = path.join(MOBILE_DIR, 'zapstore')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
@@ -181,7 +179,7 @@ const ZAPSTORE_APP_URL = `https://zapstore.dev/apps/${apkPackageId()}`
 const ANNOUNCEMENT_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
-  'wss://relay.nostr.band',
+  'wss://relay.primal.net',
   'wss://nostr.mom'
 ]
 
@@ -339,10 +337,18 @@ function publisherPubkey(secretKey) {
 async function signIdentityProof(signWith) {
   const output = await run(
     ZSP_BIN,
-    ['identity', '--link-key', releaseKeystorePath, '--offline'],
+    [
+      'identity',
+      '--link-key',
+      keystoreFiles(newestSignerDir()).keystore,
+      '--offline'
+    ],
     {
       cwd: REPO_ROOT,
-      env: { KEYSTORE_PASSWORD: readKeystorePassword(), SIGN_WITH: signWith }
+      env: {
+        KEYSTORE_PASSWORD: readKeystorePassword(newestSignerDir()),
+        SIGN_WITH: signWith
+      }
     }
   )
   const proof = parseZspEvents(output).find(
@@ -401,16 +407,6 @@ async function publishAnnouncement(secretKey, releaseNotes) {
 
 // ── pre-flight checks ─────────────────────────────────────────────────────────
 
-function checkPrerequisites() {
-  if (!existsSync(CONFIG_YAML)) {
-    throw new Error(
-      `${CONFIG_YAML} not found.\n` +
-        'Create it first: cp zapstore.yaml.example zapstore.yaml\n' +
-        'Then fill in your npub.'
-    )
-  }
-}
-
 function git(args) {
   return execFileSync('git', args, {
     cwd: REPO_ROOT,
@@ -460,6 +456,11 @@ function sourceFingerprint() {
   if (hasReleaseKeystore()) {
     hash.update(readFileSync(releaseKeystorePath))
   }
+  const newest = keystoreFiles(newestSignerDir()).keystore
+  if (newest !== releaseKeystorePath) {
+    hash.update(readFileSync(newest))
+    hash.update(readFileSync(lineagePath))
+  }
   for (const [name, value] of buildEnvEntries(process.env)) {
     hash.update(`${name}\0${value}\0`)
   }
@@ -496,9 +497,7 @@ function writeListingConfig(apkPath) {
 }
 
 function removeListingConfig(listing) {
-  if (listing) {
-    rmSync(listing.dir, { force: true, recursive: true })
-  }
+  rmSync(listing.dir, { force: true, recursive: true })
 }
 
 async function runZspPublish(args, signWith, listing) {
@@ -569,6 +568,7 @@ async function buildReleaseApk() {
     if (!existsSync(APK_OUTPUT)) {
       throw new Error(`APK not found at expected path:\n  ${APK_OUTPUT}`)
     }
+    applyKeyRotation(APK_OUTPUT)
     return APK_OUTPUT
   }
 
@@ -647,7 +647,6 @@ async function main() {
     throw new Error('--only must be zapstore or announce')
   }
 
-  checkPrerequisites()
   checkProductionSource()
   await confirmProduction()
 
@@ -664,27 +663,17 @@ async function main() {
   }
 
   if (!ANNOUNCE_ONLY) {
-    // When a custom config yaml is specified, zsp fetches the APK from the
-    // configured source (GitHub releases etc.) — no local build needed.
-    // When using the default zapstore.yaml, we build locally and pass the APK path.
-    const usingCustomConfig = Boolean(flags.config)
+    // Every publish builds here so the permission check sees the exact APK
+    // zsp uploads. A remote source would skip it.
+    step(2, 'Build APK')
+    const apkPath = await buildReleaseApk()
+    assertApkPermissions(apkPath)
+    console.log(`\n  APK: ${apkPath}`)
 
-    let apkPath = null
-    if (!usingCustomConfig) {
-      step(2, 'Build APK')
-      apkPath = await buildReleaseApk()
-      console.log(`\n  APK: ${apkPath}`)
-    } else {
-      step(2, 'Build APK')
-      console.log(
-        '  Using config yaml — zsp will fetch APK from configured source.'
-      )
-    }
-
-    if (!usingCustomConfig && !dryRun) {
+    if (!dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certificate: storedIdentity().certificate,
+        certificate: storedCertificate(newestSignerDir()),
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })
@@ -696,25 +685,20 @@ async function main() {
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
     )
 
-    const listing = usingCustomConfig ? null : writeListingConfig(apkPath)
-    const zspTarget = listing ? listing.file : CONFIG_YAML
+    const listing = writeListingConfig(apkPath)
     // --json keeps zsp non-interactive but still reports errors, and prints
     // every event it published. --quiet alone hides a run that publishes nothing.
-    // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
-    // when we're using the default yaml.
+    // Never --indexer-mode: zsp then swaps this config for the repository's
+    // zapstore.yaml and uploads a forge release instead of the checked APK.
     const zspFlags = zspPublishArgs({
       commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
-      indexerMode: isAgent && !usingCustomConfig,
-      localBuild: !usingCustomConfig,
-      target: zspTarget
+      target: listing.file
     })
 
     if (dryRun) {
-      if (listing) {
-        console.log(
-          `  [dry-run] zsp config:\n${readFileSync(listing.file, 'utf8')}`
-        )
-      }
+      console.log(
+        `  [dry-run] zsp config:\n${readFileSync(listing.file, 'utf8')}`
+      )
       removeListingConfig(listing)
       console.log('  [dry-run] Skipping zsp publish.')
     } else {

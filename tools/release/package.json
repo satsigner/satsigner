@@ -1,6 +1,6 @@
 {
   "name": "@satsigner/release",
-  "version": "0.3.6",
+  "version": "0.1.0",
   "private": true,
   "description": "Localhost page for GitWorkshop pushes and Zapstore releases",
   "type": "module",
@@ -9,7 +9,10 @@
     "keystore": "node create-keystore.mjs",
     "keystore:restore": "node create-keystore.mjs --restore",
     "keystore:confirm": "node confirm-keystore.mjs",
-    "test": "node --test commands.test.mjs hidden-prompt.test.mjs keystore.test.mjs process-group.test.mjs"
+    "keystore:status": "node key-status.mjs",
+    "keystore:rotate": "node rotate-keystore.mjs",
+    "permissions:check": "node check-permissions.mjs",
+    "test": "node --test commands.test.mjs hidden-prompt.test.mjs keystore.test.mjs process-group.test.mjs key-rotation.test.mjs apk-review.test.mjs permission-check.test.mjs version.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.0.1",

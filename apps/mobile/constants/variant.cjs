@@ -6,10 +6,26 @@ const PACKAGE_ID_PROD = 'com.satsigner.satsigner'
 const SCHEME_DEV = 'satsignerdev'
 const SCHEME_PROD = 'satsigner'
 
-const APP_NAME_DEV = 'satsigner (Dev)'
+const APP_NAME_DEV = 'DEV satsigner'
 const APP_NAME_PROD = 'satsigner'
 
 const APP_VARIANT_PRODUCTION = 'production'
+
+// The background fills the launcher's whole mask, so any shape it crops to
+// shows the logo's gradient instead of white corners around a disc.
+const ADAPTIVE_ICON_BACKGROUND = './assets/adaptive-icon-background.png'
+const ICONS_PROD = {
+  adaptiveForeground: './assets/adaptive-icon-foreground.png',
+  icon: './assets/icon.png'
+}
+const ICONS_DEV = {
+  adaptiveForeground: './assets/adaptive-icon-badge-dev.png',
+  icon: './assets/icon-badge-dev.png'
+}
+const ICONS_BRANCH = {
+  adaptiveForeground: './assets/adaptive-icon-badge-branch.png',
+  icon: './assets/icon-badge-branch.png'
+}
 
 const ANDROID_ABI_ARM64 = 'arm64-v8a'
 const ANDROID_ABI_ARMV7 = 'armeabi-v7a'
@@ -63,7 +79,7 @@ function getVariantAppName(isDev, rawSuffix) {
   const segment = sanitizePackageSegment(rawSuffix)
 
   if (isDev) {
-    return segment ? `${segment} (Dev)` : APP_NAME_DEV
+    return segment ? `DEV ${segment}` : APP_NAME_DEV
   }
 
   return segment ? `${segment} (Prod)` : APP_NAME_PROD
@@ -76,11 +92,19 @@ function getVariantScheme(isDev, rawSuffix) {
   return segment ? `${base}${segment}` : base
 }
 
+function getVariantIcons(isDev, rawSuffix) {
+  if (!isDev) {
+    return ICONS_PROD
+  }
+  return sanitizePackageSegment(rawSuffix) ? ICONS_BRANCH : ICONS_DEV
+}
+
 function getVariantAndroidAbis(isDev) {
   return isDev ? ANDROID_ABIS_DEV : ANDROID_ABIS_PRODUCTION
 }
 
 module.exports = {
+  ADAPTIVE_ICON_BACKGROUND,
   ANDROID_ABI_ARM64,
   ANDROID_ABI_LABELS,
   ANDROID_ABI_X86_64,
@@ -94,6 +118,7 @@ module.exports = {
   VARIANT_SUFFIX_MAX_LENGTH,
   getVariantAndroidAbis,
   getVariantAppName,
+  getVariantIcons,
   getVariantPackageId,
   getVariantScheme,
   sanitizePackageSegment,

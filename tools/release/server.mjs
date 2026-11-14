@@ -10,7 +10,12 @@ import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
+import { readListing } from '../../apps/mobile/scripts/zapstore-listing.mjs'
+import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
+import { libraryChecks, securityChecks, zapstoreChecks } from './apk-review.mjs'
+import { findApksigner } from './apk-signer.mjs'
 import {
+  actionSigns,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
@@ -25,21 +30,40 @@ import {
   parsePackageList,
   parseReleaseChannel,
   parseRequestBody,
-  redactSecrets
+  redactSecrets,
+  signatureResult,
+  signerConnection
 } from './commands.mjs'
+import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
+import {
+  libraryPermissions,
+  withPermissionStatus
+} from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
+import { versionStatus } from './version.mjs'
 
 const execFileAsync = promisify(execFile)
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(HERE, '../..')
 const require = createRequire(import.meta.url)
-const { getVariantAppName, getVariantPackageId } = require(
-  path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs')
-)
+const {
+  ADAPTIVE_ICON_BACKGROUND,
+  getVariantAppName,
+  getVariantIcons,
+  getVariantPackageId
+} = require(path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs'))
+const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile')
 const APK_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'dist', 'apks')
+const LISTING_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'zapstore')
+const IMAGE_TYPES = {
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp'
+}
 const RELEASE_APK = path.join(
   REPO_ROOT,
   'apps',
@@ -53,7 +77,8 @@ const RELEASE_APK = path.join(
   'app-release.apk'
 )
 const PAGE = path.join(HERE, 'public', 'index.html')
-const LOGO = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'icon.png')
+const { version: TOOL_VERSION } = require('./package.json')
+const LOGO = path.join(REPO_ROOT, 'apps', 'mobile', 'assets', 'logo.png')
 const HOST = '127.0.0.1'
 const PORT = 4717
 const SIGNER_RELAY = startLocalRelay(log)
@@ -64,6 +89,7 @@ const ADB_TIMEOUT_MS = 5000
 const listeners = new Set()
 let bunkerUrl = ''
 let bridge = null
+let bridgePubkey = ''
 let pageSocket = null
 let child = null
 let job = null
@@ -502,6 +528,26 @@ function requireLocal(req, res) {
   return true
 }
 
+// An unhandled stream error would stop the console, and a branch checkout can
+// remove an image while it runs.
+function sendImage(res, file) {
+  const stream = createReadStream(file)
+  stream.on('open', () => {
+    res.writeHead(200, {
+      'cache-control': 'no-store',
+      'content-type': IMAGE_TYPES[path.extname(file).toLowerCase()]
+    })
+    stream.pipe(res)
+  })
+  stream.on('error', () => {
+    if (res.headersSent) {
+      res.destroy()
+      return
+    }
+    send(res, 404, { error: 'image not found' })
+  })
+}
+
 const server = createServer(async (req, res) => {
   if (!requireLocal(req, res)) {
     return
@@ -526,6 +572,48 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname === '/api/config') {
     send(res, 200, { relays: [SIGNER_RELAY] })
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/keys') {
+    send(res, 200, { ...releaseKeyStatus(), apksigner: apksignerStatus() })
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/preview') {
+    try {
+      send(res, 200, await releasePreview(url.searchParams.get('channel')))
+    } catch (error) {
+      send(res, 500, { error: error.message })
+    }
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/listing/icon-background') {
+    sendImage(res, path.resolve(MOBILE_DIR, ADAPTIVE_ICON_BACKGROUND))
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/listing/icon') {
+    const file = await launcherIconFile(
+      releaseChannel(url.searchParams.get('channel'))
+    )
+    sendImage(res, file)
+    return
+  }
+
+  if (
+    req.method === 'GET' &&
+    url.pathname.startsWith('/api/listing/screenshots/')
+  ) {
+    const screenshot = listingScreenshot(
+      apkNameFromPath(url.pathname, '/api/listing/screenshots/')
+    )
+    if (!screenshot) {
+      send(res, 404, { error: 'screenshot not found' })
+      return
+    }
+    sendImage(res, screenshot)
     return
   }
 
@@ -574,7 +662,8 @@ const server = createServer(async (req, res) => {
       job: jobStatus(),
       origin: redactSecrets(origin),
       published: isNostrRemote(origin),
-      releaseApk: await releaseApk()
+      releaseApk: await releaseApk(),
+      toolVersion: TOOL_VERSION
     })
     return
   }
@@ -591,6 +680,15 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/version') {
+    try {
+      send(res, 200, await versionStatus())
+    } catch (error) {
+      send(res, 500, { error: error.message })
+    }
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/cancel') {
     send(res, 200, { cancelled: cancelJob() })
     return
@@ -599,6 +697,7 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/abort') {
     cancelJob()
     bunkerUrl = ''
+    bridgePubkey = ''
     bridge?.close()
     bridge = null
     send(res, 200, { ok: true })
@@ -630,11 +729,7 @@ const server = createServer(async (req, res) => {
     send(res, 400, { error: 'unknown action' })
     return
   }
-  if (
-    body.action !== 'apk' &&
-    body.action !== 'uninstall' &&
-    !bunkerUrl.startsWith('bunker://')
-  ) {
+  if (actionSigns(body.action) && !bunkerUrl.startsWith('bunker://')) {
     send(res, 400, { error: 'connect the extension first' })
     return
   }
@@ -647,24 +742,176 @@ const server = createServer(async (req, res) => {
   await runJob(body.action, () => action(body))
 })
 
-function apkNameFromPath(pathname) {
+function apksignerStatus() {
   try {
-    return decodeURIComponent(pathname.slice('/api/apks/'.length))
+    return { path: findApksigner() }
+  } catch (error) {
+    return { error: error.message }
+  }
+}
+
+function listingScreenshot(name) {
+  return readListing(LISTING_DIR).images.find(
+    (image) => path.basename(image) === name
+  )
+}
+
+function listingPreview() {
+  const listing = readListing(LISTING_DIR)
+  return {
+    ...listing,
+    screenshots: listing.images.map((image) => path.basename(image))
+  }
+}
+
+async function launcherIconFile(channel) {
+  const branch = channel === 'dev' ? await gitBranch() : ''
+  const { adaptiveForeground } = getVariantIcons(channel !== 'primary', branch)
+  return path.resolve(MOBILE_DIR, adaptiveForeground)
+}
+
+async function releasePreview(value) {
+  const channel = releaseChannel(value)
+  const channels = await releaseChannels()
+  const { appName, packageId, versionName } = channels[channel]
+  const listing = listingPreview()
+  const namePrefix =
+    channel === 'primary' ? 'satsigner-prod-' : 'satsigner-dev-'
+  const [file, live] = await Promise.all([
+    newestApkFor(APK_DIR, namePrefix, packageId),
+    queryLiveAsset(packageId)
+  ])
+  const base = {
+    appName,
+    beforeBuild: libraryChecks(libraryPermissions()),
+    channel,
+    listing: {
+      description: listing.description,
+      screenshots: listing.screenshots,
+      summary: listing.summary
+    },
+    live,
+    packageId,
+    versionName
+  }
+  if (!file) {
+    return base
+  }
+  const inspected = await inspectApk(file.path)
+  const apk = {
+    ...inspected,
+    permissions: withPermissionStatus(inspected.permissions)
+  }
+  return {
+    ...base,
+    apk: { ...apk, name: file.name },
+    checks: {
+      security: securityChecks(apk),
+      zapstore: zapstoreChecks({
+        apk,
+        expectedPackageId: packageId,
+        listing,
+        live: live.asset,
+        liveError: live.error,
+        releaseFingerprint: RELEASE_CERT_SHA256
+      })
+    }
+  }
+}
+
+function apkNameFromPath(pathname, prefix = '/api/apks/') {
+  try {
+    return decodeURIComponent(pathname.slice(prefix.length))
   } catch {
     return ''
   }
 }
 
-function requestSignature(eventJson) {
+function requestSignature(eventJson, pubkey) {
   return new Promise((resolve, reject) => {
     if (!pageSocket || pageSocket.readyState !== 1) {
       reject(new Error('extension page is not connected'))
       return
     }
     const id = randomUUID()
-    signWaiters.set(id, { reject, resolve })
+    signWaiters.set(id, { pubkey, reject, resolve, socket: pageSocket })
     pageSocket.send(JSON.stringify({ event: eventJson, id, type: 'sign' }))
   })
+}
+
+// A reload or a second tab takes over the signature requests through
+// pageSocket, and a running command keeps the bunker it started with.
+async function connectSigner(userPubkey) {
+  const connection = signerConnection({
+    bridgePubkey,
+    runningAction: job?.action,
+    userPubkey
+  })
+  if (connection === 'refuse') {
+    throw new Error(
+      'a command is signing with another account; sign in again after it finishes'
+    )
+  }
+  if (connection === 'reattach') {
+    log('signer reattached to the running command\n')
+    return
+  }
+  bridge?.close()
+  const bunker = createBunker(SIGNER_RELAY)
+  bunkerUrl = bunker.bunkerUrl
+  bridgePubkey = userPubkey
+  bridge = startBridge({
+    bunker,
+    log,
+    onSign: (eventJson) => requestSignature(eventJson, userPubkey),
+    relayUrl: SIGNER_RELAY,
+    userPubkey
+  })
+  await bridge.ready
+  log('signer connected\n')
+}
+
+// Only a page whose account the bunker accepted gets signature requests.
+async function attachPage(socket, userPubkey) {
+  try {
+    await connectSigner(userPubkey)
+  } catch (error) {
+    log(`signer: ${error.message}\n`)
+    socket.send(JSON.stringify({ error: error.message, type: 'error' }))
+    socket.close()
+    return
+  }
+  pageSocket = socket
+  socket.send(JSON.stringify({ type: 'ok' }))
+}
+
+function settleSignature(socket, message) {
+  const waiter = signWaiters.get(message.id)
+  // Only the page a request went to can answer it.
+  if (waiter?.socket !== socket) {
+    return
+  }
+  signWaiters.delete(message.id)
+  const { error, event } = signatureResult({ message, pubkey: waiter.pubkey })
+  if (error) {
+    waiter.reject(new Error(error))
+    return
+  }
+  waiter.resolve(event)
+}
+
+// Requests sent to a page that went away fail now instead of waiting forever,
+// even after another page took over.
+function dropPage(socket) {
+  if (pageSocket === socket) {
+    pageSocket = null
+  }
+  for (const [id, waiter] of signWaiters) {
+    if (waiter.socket === socket) {
+      signWaiters.delete(id)
+      waiter.reject(new Error('extension page disconnected'))
+    }
+  }
 }
 
 const pageSockets = new WebSocketServer({
@@ -673,7 +920,6 @@ const pageSockets = new WebSocketServer({
   verifyClient: ({ req }) => isTrustedLocalRequest(req)
 })
 pageSockets.on('connection', (socket) => {
-  pageSocket = socket
   socket.on('message', async (raw) => {
     let message
     try {
@@ -682,51 +928,15 @@ pageSockets.on('connection', (socket) => {
       log(`signer: bad message ${error.message}\n`)
       return
     }
-    try {
-      if (message.type === 'ready' && typeof message.userPubkey === 'string') {
-        bridge?.close()
-        const bunker = createBunker(SIGNER_RELAY)
-        bunkerUrl = bunker.bunkerUrl
-        bridge = startBridge({
-          bunker,
-          log,
-          onSign: requestSignature,
-          relayUrl: SIGNER_RELAY,
-          userPubkey: message.userPubkey
-        })
-        await bridge.ready
-        log('signer connected\n')
-        socket.send(JSON.stringify({ type: 'ok' }))
-        return
-      }
-      if (message.type === 'signed' || message.type === 'rejected') {
-        const waiter = signWaiters.get(message.id)
-        if (!waiter) {
-          return
-        }
-        signWaiters.delete(message.id)
-        if (message.type === 'signed') {
-          waiter.resolve(message.event)
-        } else {
-          waiter.reject(
-            new Error(message.error || 'extension rejected the signature')
-          )
-        }
-      }
-    } catch (error) {
-      log(`signer: ${error.message}\n`)
-      socket.send(JSON.stringify({ error: error.message, type: 'error' }))
+    if (message?.type === 'ready' && typeof message.userPubkey === 'string') {
+      await attachPage(socket, message.userPubkey)
+      return
+    }
+    if (message?.type === 'signed' || message?.type === 'rejected') {
+      settleSignature(socket, message)
     }
   })
-  socket.on('close', () => {
-    if (pageSocket === socket) {
-      pageSocket = null
-      for (const waiter of signWaiters.values()) {
-        waiter.reject(new Error('extension page disconnected'))
-      }
-      signWaiters.clear()
-    }
-  })
+  socket.on('close', () => dropPage(socket))
 })
 
 // Jobs run in their own process group, so Ctrl+C on the console no longer
