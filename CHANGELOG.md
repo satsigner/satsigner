@@ -7,46 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.4] - 2026-11-14
-
-### Fixed
-
-- The 0.4.3 sync fix patched a copy of the UniFFI runtime the app does not
-  load. It now patches `@ubjs/core`, which the BDK, payjoin and Ark bindings
-  use, so Electrum and Esplora syncs no longer fail with "Cannot lower this
-  object to a pointer".
-
-## [0.4.3] - 2026-11-13
-
-### Fixed
-
-- Syncing an account over Electrum or Esplora failed with "Cannot lower this
-  object to a pointer", most visibly on the first sync after restoring a
-  backup. The UniFFI runtime rejected the JavaScript progress inspector passed
-  to the scan.
-
-## [0.4.2] - 2026-11-13
-
-### Fixed
-
-- The Android 14+ launch crash fix from 0.4.1 never reached the app: Expo
-  linked its prebuilt `expo-screen-capture` instead of the patched source. The
-  module is now built from source.
-
-## [0.4.1] - 2026-11-13
-
-### Fixed
-
-- The app crashed on launch on Android 14 and newer: `expo-screen-capture`
-  registered a screenshot listener that needs a permission Satsigner blocks.
-  It now skips the listener; screenshots are still blocked on secret screens.
-- Launcher and store icons fill the whole shape instead of showing a round
-  logo with white corners.
-- Dev and branch builds carry a coloured badge on the icon.
-- The Zapstore description keeps its line breaks.
-
-## [0.4.0] - 2026-11-13
-
 ### Added
 
 - **Payjoin** (BIP77 and BIP78) send and receive, with a manual offline PSBT
@@ -102,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - App fonts switched to Geist and Geist Mono.
 - Stop gap can be set up to 200; long-press refresh forces a full rescan.
 - Unused Android permissions removed; the release build enforces an allow list.
+- Launcher and store icons fill the whole shape instead of a round logo with
+  white corners.
 
 ### Fixed
 
