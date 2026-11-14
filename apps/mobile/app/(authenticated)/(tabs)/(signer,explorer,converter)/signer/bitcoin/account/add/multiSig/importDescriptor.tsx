@@ -45,7 +45,8 @@ export default function ImportDescriptor() {
     setKeyName,
     setCreationType,
     setFingerprint,
-    setExtendedPublicKey
+    setExtendedPublicKey,
+    setKeyDerivationPath
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.scriptVersion,
@@ -58,7 +59,8 @@ export default function ImportDescriptor() {
       state.setKeyName,
       state.setCreationType,
       state.setFingerprint,
-      state.setExtendedPublicKey
+      state.setExtendedPublicKey,
+      state.setKeyDerivationPath
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -177,6 +179,7 @@ export default function ImportDescriptor() {
       setExtendedPublicKey(keyData.extendedPublicKey)
 
       setKey(i)
+      setKeyDerivationPath(i, `m/${keyData.derivationPath}`)
     }
 
     toast.success(t('account.import.success'))
