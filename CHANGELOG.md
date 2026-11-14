@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-14
+
+### Fixed
+
+- The 0.4.3 sync fix patched a copy of the UniFFI runtime the app does not
+  load. It now patches `@ubjs/core`, which the BDK, payjoin and Ark bindings
+  use, so Electrum and Esplora syncs no longer fail with "Cannot lower this
+  object to a pointer".
+
 ## [0.4.3] - 2026-11-13
 
 ### Fixed
