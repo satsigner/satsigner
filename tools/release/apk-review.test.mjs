@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   findTrackers,
+  isReleaseApkName,
   latestAsset,
   libraryChecks,
   parseBadging,
@@ -215,4 +216,21 @@ test('picks the highest published version code', () => {
     versionName: 'v5'
   })
   assert.equal(latestAsset([]), undefined)
+})
+
+test('matches release apks and skips a debug build from a branch named release', () => {
+  assert.equal(isReleaseApkName('satsigner-prod-release.apk'), true)
+  assert.equal(isReleaseApkName('satsigner-dev-main-release-arm64.apk'), true)
+  assert.equal(isReleaseApkName('satsigner-dev-release-debug.apk'), false)
+  assert.equal(isReleaseApkName('satsigner-dev-main-debug.apk'), false)
+})
+
+test('ignores the source stamp certificate when reading apk signers', () => {
+  const signers = parseSigners(`Signer #1 certificate DN: CN=Satsigner release
+Signer #1 certificate SHA-256 digest: AABB
+Source Stamp Signer certificate DN: CN=Stamp
+Source Stamp Signer certificate SHA-256 digest: AABB`)
+  assert.deepEqual(signers, [
+    { name: 'CN=Satsigner release', sha256: 'aabb', signer: 'Signer #1' }
+  ])
 })

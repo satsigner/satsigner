@@ -1,10 +1,22 @@
-import { ANDROID_ABI_ARM64 as ZAPSTORE_ABI } from '../../apps/mobile/constants/variant.cjs'
+import {
+  ANDROID_ABI_ARM64 as ZAPSTORE_ABI,
+  ANDROID_ABI_LABELS
+} from '../../apps/mobile/constants/variant.cjs'
 
 const ANDROID_PERMISSION = 'android.permission.'
 const DEBUG_CERT_NAME = 'CN=Android Debug'
 // <uses-permission-sdk-23> grants the same access on Android 6 and later, and
 // Expo's blockedPermissions does not strip it.
 const PERMISSION_LINE = /^uses-permission(-sdk-23)?:/
+// variant.ts names builds satsigner-<label>-<segment>-<buildType>[-<abi>].apk,
+// so a debug build from a branch named `release` also ends in -release-debug.
+const RELEASE_APK_SUFFIXES = new Set([
+  '-release.apk',
+  ...[...ANDROID_ABI_LABELS.values()].map((abi) => `-release-${abi}.apk`)
+])
+// apksigner prints the optional Source Stamp signer next to the APK signers.
+// It does not sign the APK, so it never counts as a signing identity.
+const SOURCE_STAMP_SIGNER = /source stamp/i
 const VERSION_CODE_LABEL = 'Version code is higher than the published one'
 const CERTIFICATE_LABEL =
   "Certificate is the app's current one or linked by lineage"
@@ -122,13 +134,17 @@ function parsePermissions(text) {
   })
 }
 
+function isReleaseApkName(name) {
+  return [...RELEASE_APK_SUFFIXES].some((suffix) => name.endsWith(suffix))
+}
+
 function parseSigners(text) {
   const signers = new Map()
   for (const line of text.split('\n')) {
     const match = line.match(
       /^(.*?Signer.*?):? certificate (SHA-256 digest|DN): (.+)$/
     )
-    if (!match) {
+    if (!match || SOURCE_STAMP_SIGNER.test(match[1])) {
       continue
     }
     const [, signer, field, value] = match
@@ -358,6 +374,7 @@ function latestAsset(events) {
 
 export {
   findTrackers,
+  isReleaseApkName,
   latestAsset,
   libraryChecks,
   notAllowed,
