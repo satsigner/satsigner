@@ -1,4 +1,3 @@
-import { certificateFingerprint } from './certificate.mjs'
 import { readHiddenLine } from './hidden-prompt.mjs'
 import {
   RELEASE_CERT_SHA256,
@@ -7,7 +6,7 @@ import {
   nextReleaseDir,
   phraseMatchesKeystore,
   releaseDir,
-  storedIdentity
+  storedFingerprint
 } from './keystore.mjs'
 
 const dir = process.argv.includes('--next') ? nextReleaseDir : releaseDir
@@ -18,7 +17,7 @@ if (!hasReleaseKeystore(dir)) {
   process.exit(1)
 }
 
-const fingerprint = certificateFingerprint(storedIdentity(dir).certificate)
+const fingerprint = storedFingerprint(dir)
 console.log(`Keystore: ${keystore}`)
 console.log(`Certificate SHA-256: ${fingerprint}`)
 if (dir === releaseDir && fingerprint !== RELEASE_CERT_SHA256) {

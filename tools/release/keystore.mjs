@@ -240,9 +240,14 @@ function readPkcs12(dir, sectionArg) {
   )
 }
 
+// Reads only the certificate, so status checks never decrypt the private key.
+function storedCertificate(dir = releaseDir) {
+  return new X509Certificate(readPkcs12(dir, '-nokeys')).raw
+}
+
 function storedIdentity(dir = releaseDir) {
   return {
-    certificate: new X509Certificate(readPkcs12(dir, '-nokeys')).raw,
+    certificate: storedCertificate(dir),
     key: createPrivateKey(readPkcs12(dir, '-nocerts'))
   }
 }
@@ -269,9 +274,7 @@ function readKeystorePassword(dir = releaseDir) {
 }
 
 function storedCertificateHash(dir = releaseDir) {
-  return createHash('sha256')
-    .update(storedIdentity(dir).certificate)
-    .digest('hex')
+  return createHash('sha256').update(storedCertificate(dir)).digest('hex')
 }
 
 function requireReleaseKeystore(dir = releaseDir) {
@@ -299,7 +302,7 @@ function signingEnv(baseEnv, dir = releaseDir) {
 }
 
 function storedFingerprint(dir = releaseDir) {
-  return certificateFingerprint(storedIdentity(dir).certificate)
+  return certificateFingerprint(storedCertificate(dir))
 }
 
 function hasRotation(dir = releaseDir) {
@@ -367,6 +370,7 @@ export {
   releaseIdentityFromMnemonic,
   requireReleaseKeystore,
   signingEnv,
+  storedCertificate,
   storedCertificateHash,
   storedIdentity,
   writeKeystore

@@ -78,7 +78,7 @@ import {
   keystorePath as releaseKeystorePath,
   requireReleaseKeystore,
   signingEnv,
-  storedIdentity
+  storedCertificate
 } from '../../../tools/release/keystore.mjs'
 import { assertApkPermissions } from '../../../tools/release/permission-check.mjs'
 import { LOCAL_ENV_FILES, buildEnvEntries } from './zapstore-build-env.mjs'
@@ -704,7 +704,7 @@ async function main() {
     if (!usingCustomConfig && !dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
-        certificate: storedIdentity(newestSignerDir()).certificate,
+        certificate: storedCertificate(newestSignerDir()),
         pubkey: await publisherPubkey(secretKey),
         signProof: () => signIdentityProof(signWith)
       })
