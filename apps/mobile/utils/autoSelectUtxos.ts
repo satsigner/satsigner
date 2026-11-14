@@ -90,7 +90,8 @@ export function resolveUriAutoSelectAlgorithm({
 
 /**
  * The inputs "User" restores. They are captured only while the user's own
- * selection is active, so moving between automatic methods keeps them.
+ * selection is active, so moving between automatic methods keeps them. An
+ * empty selection is not kept, so "User" goes back to pick inputs instead.
  */
 export function rememberUserSelection<Input>(
   activeAlgorithm: AutoSelectUtxosAlgorithm,
@@ -99,6 +100,9 @@ export function rememberUserSelection<Input>(
 ): Input[] | undefined {
   if (activeAlgorithm !== 'user') {
     return savedInputs
+  }
+  if (currentInputs.length === 0) {
+    return undefined
   }
   return currentInputs
 }
