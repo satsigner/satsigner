@@ -1,4 +1,5 @@
-const ZAPSTORE_ABI = 'arm64-v8a'
+import { ANDROID_ABI_ARM64 as ZAPSTORE_ABI } from '../../apps/mobile/constants/variant.cjs'
+
 const ANDROID_PERMISSION = 'android.permission.'
 const DEBUG_CERT_NAME = 'CN=Android Debug'
 // <uses-permission-sdk-23> grants the same access on Android 6 and later, and
@@ -356,8 +357,6 @@ function latestAsset(events) {
 }
 
 export {
-  PERMISSION_GROUPS,
-  ZAPSTORE_ABI,
   findTrackers,
   latestAsset,
   libraryChecks,
@@ -365,7 +364,6 @@ export {
   parseBadging,
   parsePermissions,
   parseSigners,
-  permissionGroups,
   permissionText,
   securityChecks,
   zapstoreChecks
