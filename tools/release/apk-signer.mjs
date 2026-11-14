@@ -80,12 +80,10 @@ function signerEnv(oldDir, newDir) {
 }
 
 // APK Signature Scheme v3 lineage: the old key signs the new certificate, so
-// Android installs updates from the new key over the old one.
-function writeLineage(
-  dir = releaseDir,
-  nextDir = nextKeyDir(dir),
-  out = lineageFile(dir)
-) {
+// Android installs updates from the new key over the old one. It is written
+// beside the new key, and both are installed together.
+function writeLineage(oldDir, newDir) {
+  const out = lineageFile(newDir)
   const pending = `${out}.tmp`
   try {
     execFileSync(
@@ -95,11 +93,14 @@ function writeLineage(
         '--out',
         pending,
         '--old-signer',
-        ...signerArgs(dir, OLD_PASS_ENV),
+        ...signerArgs(oldDir, OLD_PASS_ENV),
         '--new-signer',
-        ...signerArgs(nextDir, NEW_PASS_ENV)
+        ...signerArgs(newDir, NEW_PASS_ENV)
       ],
-      { env: signerEnv(dir, nextDir), stdio: ['ignore', 'inherit', 'inherit'] }
+      {
+        env: signerEnv(oldDir, newDir),
+        stdio: ['ignore', 'inherit', 'inherit']
+      }
     )
     renameSync(pending, out)
   } finally {
@@ -114,7 +115,7 @@ function rotateReleaseKey(phrase, dir = releaseDir) {
   rmSync(staged, { force: true, recursive: true })
   try {
     const identity = writeKeystore(phrase, staged)
-    writeLineage(dir, staged, lineageFile(staged))
+    writeLineage(dir, staged)
     installRotation(staged, dir)
     return identity
   } finally {
@@ -156,10 +157,4 @@ function applyKeyRotation(apkPath, dir = releaseDir) {
   return true
 }
 
-export {
-  applyKeyRotation,
-  findApksigner,
-  findBuildTool,
-  rotateReleaseKey,
-  writeLineage
-}
+export { applyKeyRotation, findApksigner, findBuildTool, rotateReleaseKey }
