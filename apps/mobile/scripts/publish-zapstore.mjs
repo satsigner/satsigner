@@ -37,7 +37,6 @@
  * Prerequisites (one-time setup):
  *   npm i -g eas-cli
  *   go install github.com/zapstore/zsp@latest
- *   zapstore.yaml must exist at repo root (copy from zapstore.yaml.example)
  */
 
 import { execFileSync, spawn } from 'child_process'
@@ -153,7 +152,6 @@ const NOTES_ARG =
     : (flags.notes ?? null)
 const ONLY = flags.only ?? ''
 const CHANNEL = flags.channel ?? ''
-const CONFIG_YAML = path.join(REPO_ROOT, 'zapstore.yaml')
 const LISTING_DIR = path.join(MOBILE_DIR, 'zapstore')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
@@ -409,16 +407,6 @@ async function publishAnnouncement(secretKey, releaseNotes) {
 
 // ── pre-flight checks ─────────────────────────────────────────────────────────
 
-function checkPrerequisites() {
-  if (!existsSync(CONFIG_YAML)) {
-    throw new Error(
-      `${CONFIG_YAML} not found.\n` +
-        'Create it first: cp zapstore.yaml.example zapstore.yaml\n' +
-        'Then fill in your npub.'
-    )
-  }
-}
-
 function git(args) {
   return execFileSync('git', args, {
     cwd: REPO_ROOT,
@@ -659,7 +647,6 @@ async function main() {
     throw new Error('--only must be zapstore or announce')
   }
 
-  checkPrerequisites()
   checkProductionSource()
   await confirmProduction()
 
