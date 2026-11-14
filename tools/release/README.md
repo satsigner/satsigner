@@ -33,7 +33,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 **Android permissions.** `apps/mobile/constants/androidPermissions.cjs` lists the only permissions a release may request, and the ones stripped from libraries. The same check runs at two points:
 
 - **Before the build:** `pnpm --dir tools/release permissions:check` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
-- **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release build (Build APK, `variant --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
+- **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release APK build (Build APK, `variant --apk --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
 
 The Preview release tab shows both lists.
 
@@ -59,6 +59,7 @@ The Preview release tab shows both lists.
 | Sync with ngit    | `ngit` on `PATH`                                                                                         |
 | Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
 | Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore        |
+| Preview release   | The SDK's build-tools (`aapt2`, `apksigner`) and `unzip` on `PATH`                                       |
 
 ## Android developer keys
 
