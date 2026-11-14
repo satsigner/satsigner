@@ -1,6 +1,9 @@
 const ZAPSTORE_ABI = 'arm64-v8a'
 const ANDROID_PERMISSION = 'android.permission.'
 const DEBUG_CERT_NAME = 'CN=Android Debug'
+// <uses-permission-sdk-23> grants the same access on Android 6 and later, and
+// Expo's blockedPermissions does not strip it.
+const PERMISSION_LINE = /^uses-permission(-sdk-23)?:/
 
 const PERMISSION_GROUPS = [
   { id: 'camera', label: 'Camera', permissions: ['CAMERA'] },
@@ -101,7 +104,7 @@ function parseBadging(text) {
 
 function parsePermissions(text) {
   return text.split('\n').flatMap((line) => {
-    if (!line.startsWith('uses-permission:')) {
+    if (!PERMISSION_LINE.test(line)) {
       return []
     }
     const name = quoted(line, 'name')

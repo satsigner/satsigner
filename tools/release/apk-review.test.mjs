@@ -25,6 +25,7 @@ const PERMISSIONS = `package: com.example
 uses-permission: name='android.permission.CAMERA'
 uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'
 uses-permission: name='android.permission.INTERNET'
+uses-permission-sdk-23: name='android.permission.ACCESS_FINE_LOCATION'
 permission: com.example.DYNAMIC`
 
 const SIGNERS = `Verified using v2 scheme (APK Signature Scheme v2): true
@@ -65,7 +66,8 @@ test('reads requested permissions with their sdk cap', () => {
   assert.deepEqual(parsePermissions(PERMISSIONS), [
     { maxSdk: undefined, name: 'android.permission.CAMERA' },
     { maxSdk: 32, name: 'android.permission.READ_EXTERNAL_STORAGE' },
-    { maxSdk: undefined, name: 'android.permission.INTERNET' }
+    { maxSdk: undefined, name: 'android.permission.INTERNET' },
+    { maxSdk: undefined, name: 'android.permission.ACCESS_FINE_LOCATION' }
   ])
 })
 
