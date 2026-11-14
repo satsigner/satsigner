@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   TRUNCATED_LINE_MARKER,
+  actionSigns,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
@@ -18,6 +19,8 @@ import {
   parseReleaseChannel,
   parseRequestBody,
   redactSecrets,
+  signatureResult,
+  signerConnection,
   splitCompleteLines
 } from './commands.mjs'
 import { acceptConnect } from './nip46-bridge.mjs'
@@ -267,4 +270,53 @@ test('accepts only the known release channels', () => {
   for (const value of [undefined, '', 'prod', 'DEV', '__proto__', 1]) {
     assert.equal(parseReleaseChannel(value), undefined)
   }
+})
+
+test('only build and uninstall run without signing', () => {
+  assert.equal(actionSigns('apk'), false)
+  assert.equal(actionSigns('uninstall'), false)
+  for (const action of ['announce', 'publish', 'push', 'zapstore']) {
+    assert.equal(actionSigns(action), true)
+  }
+})
+
+test('a signing command keeps its bunker for the same account only', () => {
+  const signing = { bridgePubkey: 'a', runningAction: 'zapstore' }
+  assert.equal(signerConnection({ ...signing, userPubkey: 'a' }), 'reattach')
+  assert.equal(signerConnection({ ...signing, userPubkey: 'b' }), 'refuse')
+  assert.equal(
+    signerConnection({ ...signing, runningAction: 'apk', userPubkey: 'b' }),
+    'replace'
+  )
+  assert.equal(
+    signerConnection({ ...signing, runningAction: undefined, userPubkey: 'b' }),
+    'replace'
+  )
+  assert.equal(
+    signerConnection({ ...signing, bridgePubkey: '', userPubkey: 'b' }),
+    'replace'
+  )
+})
+
+test('accepts a signature only from the bunker account', () => {
+  const event = JSON.stringify({ id: 'x', pubkey: 'a' })
+  assert.deepEqual(
+    signatureResult({ message: { event, type: 'signed' }, pubkey: 'a' }),
+    { event }
+  )
+  assert.deepEqual(
+    signatureResult({ message: { event, type: 'signed' }, pubkey: 'b' }),
+    { error: 'the extension signed with another account' }
+  )
+  assert.deepEqual(
+    signatureResult({ message: { event: '{', type: 'signed' }, pubkey: 'a' }),
+    { error: 'the extension signed with another account' }
+  )
+  assert.deepEqual(
+    signatureResult({
+      message: { error: 'no', type: 'rejected' },
+      pubkey: 'a'
+    }),
+    { error: 'no' }
+  )
 })

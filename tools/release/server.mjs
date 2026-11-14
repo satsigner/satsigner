@@ -15,6 +15,7 @@ import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
 import { libraryChecks, securityChecks, zapstoreChecks } from './apk-review.mjs'
 import { findApksigner } from './apk-signer.mjs'
 import {
+  actionSigns,
   buildApkArgs,
   buildInitArgs,
   buildLoginArgs,
@@ -29,7 +30,9 @@ import {
   parsePackageList,
   parseReleaseChannel,
   parseRequestBody,
-  redactSecrets
+  redactSecrets,
+  signatureResult,
+  signerConnection
 } from './commands.mjs'
 import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
@@ -694,6 +697,7 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/abort') {
     cancelJob()
     bunkerUrl = ''
+    bridgePubkey = ''
     bridge?.close()
     bridge = null
     send(res, 200, { ok: true })
@@ -725,11 +729,7 @@ const server = createServer(async (req, res) => {
     send(res, 400, { error: 'unknown action' })
     return
   }
-  if (
-    body.action !== 'apk' &&
-    body.action !== 'uninstall' &&
-    !bunkerUrl.startsWith('bunker://')
-  ) {
+  if (actionSigns(body.action) && !bunkerUrl.startsWith('bunker://')) {
     send(res, 400, { error: 'connect the extension first' })
     return
   }
@@ -827,28 +827,32 @@ function apkNameFromPath(pathname, prefix = '/api/apks/') {
   }
 }
 
-function requestSignature(eventJson) {
+function requestSignature(eventJson, pubkey) {
   return new Promise((resolve, reject) => {
     if (!pageSocket || pageSocket.readyState !== 1) {
       reject(new Error('extension page is not connected'))
       return
     }
     const id = randomUUID()
-    signWaiters.set(id, { reject, resolve })
+    signWaiters.set(id, { pubkey, reject, resolve, socket: pageSocket })
     pageSocket.send(JSON.stringify({ event: eventJson, id, type: 'sign' }))
   })
 }
 
-// A running job signs through the bunker it started with. A reload or a second
-// tab takes over the signature requests through pageSocket, so it keeps that
-// bunker instead of closing it under the job.
+// A reload or a second tab takes over the signature requests through
+// pageSocket, and a running command keeps the bunker it started with.
 async function connectSigner(userPubkey) {
-  if (job !== null && bridge) {
-    if (userPubkey !== bridgePubkey) {
-      throw new Error(
-        'a command is signing with another account; sign in again after it finishes'
-      )
-    }
+  const connection = signerConnection({
+    bridgePubkey,
+    runningAction: job?.action,
+    userPubkey
+  })
+  if (connection === 'refuse') {
+    throw new Error(
+      'a command is signing with another account; sign in again after it finishes'
+    )
+  }
+  if (connection === 'reattach') {
     log('signer reattached to the running command\n')
     return
   }
@@ -859,12 +863,55 @@ async function connectSigner(userPubkey) {
   bridge = startBridge({
     bunker,
     log,
-    onSign: requestSignature,
+    onSign: (eventJson) => requestSignature(eventJson, userPubkey),
     relayUrl: SIGNER_RELAY,
     userPubkey
   })
   await bridge.ready
   log('signer connected\n')
+}
+
+// Only a page whose account the bunker accepted gets signature requests.
+async function attachPage(socket, userPubkey) {
+  try {
+    await connectSigner(userPubkey)
+  } catch (error) {
+    log(`signer: ${error.message}\n`)
+    socket.send(JSON.stringify({ error: error.message, type: 'error' }))
+    socket.close()
+    return
+  }
+  pageSocket = socket
+  socket.send(JSON.stringify({ type: 'ok' }))
+}
+
+function settleSignature(socket, message) {
+  const waiter = signWaiters.get(message.id)
+  // Only the page a request went to can answer it.
+  if (waiter?.socket !== socket) {
+    return
+  }
+  signWaiters.delete(message.id)
+  const { error, event } = signatureResult({ message, pubkey: waiter.pubkey })
+  if (error) {
+    waiter.reject(new Error(error))
+    return
+  }
+  waiter.resolve(event)
+}
+
+// Requests sent to a page that went away fail now instead of waiting forever,
+// even after another page took over.
+function dropPage(socket) {
+  if (pageSocket === socket) {
+    pageSocket = null
+  }
+  for (const [id, waiter] of signWaiters) {
+    if (waiter.socket === socket) {
+      signWaiters.delete(id)
+      waiter.reject(new Error('extension page disconnected'))
+    }
+  }
 }
 
 const pageSockets = new WebSocketServer({
@@ -881,42 +928,15 @@ pageSockets.on('connection', (socket) => {
       log(`signer: bad message ${error.message}\n`)
       return
     }
-    try {
-      if (message.type === 'ready' && typeof message.userPubkey === 'string') {
-        await connectSigner(message.userPubkey)
-        // Only a page whose account the bunker accepted gets signature requests.
-        pageSocket = socket
-        socket.send(JSON.stringify({ type: 'ok' }))
-        return
-      }
-      if (message.type === 'signed' || message.type === 'rejected') {
-        const waiter = signWaiters.get(message.id)
-        if (!waiter) {
-          return
-        }
-        signWaiters.delete(message.id)
-        if (message.type === 'signed') {
-          waiter.resolve(message.event)
-        } else {
-          waiter.reject(
-            new Error(message.error || 'extension rejected the signature')
-          )
-        }
-      }
-    } catch (error) {
-      log(`signer: ${error.message}\n`)
-      socket.send(JSON.stringify({ error: error.message, type: 'error' }))
+    if (message?.type === 'ready' && typeof message.userPubkey === 'string') {
+      await attachPage(socket, message.userPubkey)
+      return
+    }
+    if (message?.type === 'signed' || message?.type === 'rejected') {
+      settleSignature(socket, message)
     }
   })
-  socket.on('close', () => {
-    if (pageSocket === socket) {
-      pageSocket = null
-      for (const waiter of signWaiters.values()) {
-        waiter.reject(new Error('extension page disconnected'))
-      }
-      signWaiters.clear()
-    }
-  })
+  socket.on('close', () => dropPage(socket))
 })
 
 // Jobs run in their own process group, so Ctrl+C on the console no longer
