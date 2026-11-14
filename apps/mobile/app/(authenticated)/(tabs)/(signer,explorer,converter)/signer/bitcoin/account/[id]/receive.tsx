@@ -654,7 +654,7 @@ export default function Receive() {
       />
       <SSScrollView keyboardDismissMode="on-drag">
         <SSVStack itemsCenter gap="lg">
-          <SSVStack>
+          <SSVStack gap="md" widthFull>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
                 {t('receive.address')}
@@ -683,7 +683,7 @@ export default function Receive() {
               <SSText>{t(addressUsageKey)}</SSText>
             </SSVStack>
             {payjoinCompleted ? (
-              <SSVStack itemsCenter gap="md" style={styles.sectionSpacing}>
+              <SSVStack itemsCenter gap="md">
                 <SSIconSuccess width={159} height={159} variant="outline" />
                 <SSText
                   testID="receive-payjoin-completed"
@@ -740,7 +740,7 @@ export default function Receive() {
               )
             )}
             {!payjoinCompleted && localFinalAddressQR ? (
-              <SSVStack gap="sm" itemsCenter style={styles.sectionSpacing}>
+              <SSVStack gap="sm" itemsCenter widthFull>
                 <SSText>Bitcoin URI</SSText>
                 <TextInput
                   testID="receive-bitcoin-uri"
@@ -756,7 +756,6 @@ export default function Receive() {
                   testID="receive-copy-uri"
                   label={t('common.copy')}
                   variant="secondary"
-                  style={styles.copyButton}
                   onPress={() => copyToClipboard(localFinalAddressQR)}
                 />
                 <SSShareButton qrRef={qrRef} />
@@ -1008,14 +1007,14 @@ export default function Receive() {
                   />
                 </SSFormLayout.Item>
               </SSFormLayout>
-              <SSVStack>
-                <SSVStack gap="xs" itemsCenter style={styles.sectionSpacing}>
+              <SSVStack widthFull>
+                <SSVStack gap="sm" itemsCenter>
                   <SSText>{t('receive.address')}</SSText>
                   {isLoading ? (
                     <SSText color="muted">...</SSText>
                   ) : (
                     localAddress && (
-                      <SSVStack itemsCenter gap="xs">
+                      <SSVStack itemsCenter gap="sm" widthFull>
                         <TextInput
                           value={formatAddressInGroups(localAddress)}
                           editable={false}
@@ -1024,13 +1023,11 @@ export default function Receive() {
                           multiline
                           style={styles.addressTextInput}
                         />
-                        <SSHStack>
-                          <SSButton
-                            label={t('common.copy')}
-                            variant="subtle"
-                            onPress={() => copyToClipboard(localAddress)}
-                          />
-                        </SSHStack>
+                        <SSButton
+                          label={t('common.copy')}
+                          variant="subtle"
+                          onPress={() => copyToClipboard(localAddress)}
+                        />
                       </SSVStack>
                     )
                   )}
@@ -1091,17 +1088,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 1.5,
     lineHeight: 30,
-    minWidth: 280,
     padding: 16,
     paddingBottom: 22,
-    textAlign: 'left'
+    textAlign: 'left',
+    width: '100%'
   },
   amountTextInput: {
     fontSize: 21
-  },
-  copyButton: {
-    alignSelf: 'stretch',
-    width: '100%'
   },
   fiatTextInput: {
     backgroundColor: Colors.gray[850],
@@ -1122,16 +1115,12 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     textAlignVertical: 'top'
   },
-  sectionSpacing: {
-    marginVertical: 10
-  },
   switchableAmount: {
     textDecorationLine: 'underline'
   },
   toggleButton: {
     flex: 1,
-    minWidth: 0,
-    paddingHorizontal: 8
+    minWidth: 0
   },
   uriActionsRow: {
     alignSelf: 'stretch',
@@ -1146,9 +1135,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     lineHeight: 18,
     minHeight: 80,
-    minWidth: 280,
     padding: 8,
     paddingBottom: 32,
-    textAlign: 'left'
+    textAlign: 'left',
+    width: '100%'
   }
 })

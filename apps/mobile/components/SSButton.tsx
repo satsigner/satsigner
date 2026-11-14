@@ -360,10 +360,9 @@ const styles = StyleSheet.create({
   buttonGradient: {
     alignItems: 'center',
     borderRadius: Sizes.button.borderRadius,
-    height: '100%',
+    inset: 0,
     justifyContent: 'center',
-    position: 'absolute',
-    width: '100%'
+    position: 'absolute'
   },
   buttonLabelSingleLine: {
     flexShrink: 1,
