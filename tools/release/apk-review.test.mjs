@@ -165,6 +165,19 @@ test('fails a certificate that zapstore does not know', () => {
   assert.equal(statusOf(checks, 'certificate'), 'fail')
 })
 
+test('warns instead of passing when zapstore did not answer', () => {
+  const checks = zapstoreChecks({
+    apk: apk(),
+    expectedPackageId: 'com.example',
+    listing: LISTING,
+    live: undefined,
+    liveError: 'wss://relay.zapstore.dev did not answer',
+    releaseFingerprint: RELEASE_FINGERPRINT
+  })
+  assert.equal(statusOf(checks, 'version-code'), 'warn')
+  assert.equal(statusOf(checks, 'certificate'), 'warn')
+})
+
 test('fails the debug key, a missing arm64 build and an empty listing', () => {
   const checks = zapstoreChecks({
     apk: apk({

@@ -811,6 +811,7 @@ async function releasePreview(value) {
         expectedPackageId: packageId,
         listing,
         live: live.asset,
+        liveError: live.error,
         releaseFingerprint: RELEASE_CERT_SHA256
       })
     }

@@ -4,6 +4,9 @@ const DEBUG_CERT_NAME = 'CN=Android Debug'
 // <uses-permission-sdk-23> grants the same access on Android 6 and later, and
 // Expo's blockedPermissions does not strip it.
 const PERMISSION_LINE = /^uses-permission(-sdk-23)?:/
+const VERSION_CODE_LABEL = 'Version code is higher than the published one'
+const CERTIFICATE_LABEL =
+  "Certificate is the app's current one or linked by lineage"
 
 const PERMISSION_GROUPS = [
   { id: 'camera', label: 'Camera', permissions: ['CAMERA'] },
@@ -168,11 +171,11 @@ function check(id, label, ok, detail, failStatus = 'fail') {
   return { detail, id, label, status: ok ? 'pass' : failStatus }
 }
 
-function certificateChecks({ releaseFingerprint, signers, live }) {
+function signerChecks({ releaseFingerprint, signers }) {
   const hashes = signers.map((signer) => signer.sha256)
   const debug = signers.some((signer) => signer.name?.includes(DEBUG_CERT_NAME))
   const releaseHash = fingerprintHex(releaseFingerprint)
-  const checks = [
+  return [
     check(
       'debug-key',
       'Not signed with the debug key',
@@ -186,14 +189,43 @@ function certificateChecks({ releaseFingerprint, signers, live }) {
       hashes.join(', ') || 'No certificate'
     )
   ]
-  if (!live) {
-    return checks
-  }
+}
+
+// Without an answer from the relay neither check can pass: a timeout must not
+// read as "nothing published yet".
+function unansweredChecks(liveError) {
+  const detail = `Could not ask Zapstore: ${liveError}`
   return [
-    ...checks,
+    { detail, id: 'version-code', label: VERSION_CODE_LABEL, status: 'warn' },
+    { detail, id: 'certificate', label: CERTIFICATE_LABEL, status: 'warn' }
+  ]
+}
+
+function publishedChecks({ apk, live, liveError }) {
+  if (liveError) {
+    return unansweredChecks(liveError)
+  }
+  if (!live) {
+    return [
+      check(
+        'version-code',
+        VERSION_CODE_LABEL,
+        true,
+        `${apk.versionCode}, nothing published yet`
+      )
+    ]
+  }
+  const hashes = apk.signers.map((signer) => signer.sha256)
+  return [
+    check(
+      'version-code',
+      VERSION_CODE_LABEL,
+      apk.versionCode > live.versionCode,
+      `${apk.versionCode} here, ${live.versionCode} on Zapstore (${live.versionName})`
+    ),
     check(
       'certificate',
-      "Certificate is the app's current one or linked by lineage",
+      CERTIFICATE_LABEL,
       hashes.includes(live.certificateHash),
       `Zapstore has ${live.certificateHash}`
     )
@@ -204,11 +236,11 @@ function zapstoreChecks({
   apk,
   expectedPackageId,
   live,
+  liveError,
   listing,
   releaseFingerprint
 }) {
   const nativeOk = apk.abis.length === 0 || apk.abis.includes(ZAPSTORE_ABI)
-  const versionOk = !live || apk.versionCode > live.versionCode
   return [
     check(
       'package',
@@ -222,19 +254,8 @@ function zapstoreChecks({
       nativeOk,
       apk.abis.join(', ') || 'No native code'
     ),
-    check(
-      'version-code',
-      'Version code is higher than the published one',
-      versionOk,
-      live
-        ? `${apk.versionCode} here, ${live.versionCode} on Zapstore (${live.versionName})`
-        : `${apk.versionCode}, nothing published yet`
-    ),
-    ...certificateChecks({
-      live,
-      releaseFingerprint,
-      signers: apk.signers
-    }),
+    ...publishedChecks({ apk, live, liveError }),
+    ...signerChecks({ releaseFingerprint, signers: apk.signers }),
     check(
       'summary',
       'Listing has a summary',
