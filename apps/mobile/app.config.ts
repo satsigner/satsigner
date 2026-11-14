@@ -108,6 +108,7 @@ function getExpoConfig({ config }: ConfigContext): ExpoConfig {
         }
       ],
       './plugins/withoutGoogleDocumentScanner.cjs',
+      './plugins/withGradleHeap.cjs',
       'expo-localization',
       [
         'expo-build-properties',
