@@ -423,3 +423,27 @@ html[data-theme="light"] .logo-on-dark { filter: invert(1); }
   .review-cta { margin-top: 0; }
 }
 
+
+.report-form { display: grid; gap: 12px; margin: 16px 0 32px; }
+.report-form label { color: var(--muted); font-size: 13px; }
+
+.report-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-actions .review-button { cursor: pointer; }
+.report-actions .review-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.report-hint { color: var(--muted); font-size: 13px; margin: 0; }
+.report-status { min-height: 1.4em; margin: 0; font-size: 14px; }
+.report-status[data-tone="ok"] { color: var(--ok); }
+.report-status[data-tone="bad"] { color: var(--bad); }

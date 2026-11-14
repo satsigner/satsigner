@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-0r9J87BcheApmSwn6viaTEEQk5JLr3gC1fjXvByYZAE='; style-src 'self'; img-src 'self'; font-src 'self'; connect-src wss:; base-uri 'none'; form-action 'none'">
+    <title>Bug bounty · satsigner</title>
+    <meta name="description" content="Found a bug in satsigner? Report it privately over Nostr.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="satsigner Bug bounty">
+    <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css?v=12">
+  </head>
+  <body>
+    <nav class="page-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER</span></a>
+      <div class="page-nav-links">
+        <a href="/privacy-policy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/reviews/">Reviews</a>
+        <a href="/support/">Support</a>
+        <a href="/bug-bounty/" aria-current="page">Bug bounty</a>
+      </div>
+    </nav>
+
+    <main class="page">
+      <h1>Bug bounty</h1>
+      <p class="lede">Found a bug in satsigner? Tell us privately over Nostr, with or without your identity.</p>
+
+      <div class="callout">
+        <strong>Never include your seed phrase, private keys or PIN.</strong> We will never ask for them. Use a test wallet if you need to show funds.
+      </div>
+
+      <h2>How to claim</h2>
+      <ol>
+        <li><strong>Check that we can reproduce it.</strong> We can only consider bugs we can reproduce ourselves. Try it more than once, ideally on the latest release.</li>
+        <li><strong>Write it up.</strong> Include the app version and where you installed it from, your device and OS, the network (Mainnet, Testnet, Signet), the account type, the exact steps, what you expected and what happened. Screenshots or a recording help; link to them.</li>
+        <li><strong>Send it below.</strong> Your report goes as a NIP-17 private message to <a href="https://njump.me/npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn">satsigner</a>. It is encrypted in your browser; relays only see an unlinkable envelope.</li>
+        <li><strong>Leave a way to reach you.</strong> Sign with your Nostr extension so we can reply to your npub. If you send anonymously, put an npub, email or other contact in the report, or we will have no way to answer.</li>
+        <li><strong>Keep it private until it is fixed.</strong> For security vulnerabilities, also read our <a href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md">security policy</a>.</li>
+      </ol>
+
+      <h2>Rewards</h2>
+      <p>satsigner is an open-source project with limited funds. Reproducible reports may be rewarded at the team's discretion, but we can't promise a reward, an amount or a timeline. Duplicates, already-known issues and reports we can't reproduce are not eligible.</p>
+
+      <h2>Send a report</h2>
+      <form id="report-form" class="report-form" novalidate>
+        <label for="report">Report</label>
+        <textarea id="report" name="report" rows="12" maxlength="20000" placeholder="What happened, steps to reproduce, app version, device, network, account type, how to contact you…" required></textarea>
+        <div class="report-actions">
+          <button type="button" class="review-button" id="send-anonymous">Send anonymously</button>
+          <button type="button" class="review-button" id="send-signed" disabled>Send signed with Nostr extension</button>
+        </div>
+        <p class="report-hint">Anonymous reports use a throwaway key made in your browser and discarded after sending. Signed reports need a Nostr extension that supports NIP-44, such as Alby or nos2x.</p>
+        <p id="report-status" class="report-status" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+
+    <footer class="page-footer">
+      <span>© 2026 satsigner</span>
+      <a href="/privacy-policy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/reviews/">Reviews</a>
+      <a href="/support/">Support</a>
+      <a href="/bug-bounty/">Bug bounty</a>
+      <a href="https://github.com/satsigner/satsigner">GitHub</a>
+    </footer>
+
+    <script src="/vendor/nostr-tools-2.23.3.js"></script>
+    <script src="/bug-bounty/report.js"></script>
+  </body>
+</html>
