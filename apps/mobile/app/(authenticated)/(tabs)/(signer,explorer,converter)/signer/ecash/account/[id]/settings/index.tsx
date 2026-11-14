@@ -76,7 +76,7 @@ export default function EcashAccountSettingsPage() {
               await deleteEcashMnemonic(id)
               removeAccount(id)
             }
-            router.navigate('/signer/ecash')
+            router.dismissTo('/signer/ecash')
           },
           style: 'destructive',
           text: t('common.delete')

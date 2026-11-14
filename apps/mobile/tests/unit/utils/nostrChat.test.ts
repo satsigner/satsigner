@@ -52,6 +52,7 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
         (_npub: string, id: string) =>
           storedMessages().find((m) => m.id === id) ?? null
       ),
+      getChatReplyParent: jest.fn(() => null),
       getNewestSentChatMessageCreatedAt: jest.fn(
         (_npub: string, protocol: string) => {
           const times = storedMessages()
@@ -589,6 +590,14 @@ describe('nostrChat', () => {
       await receiveFromPeer()
 
       expect(storedMessages()).toHaveLength(0)
+    })
+
+    it('leaves a dropped message to be read again', async () => {
+      setNostrFollowCache(senderNpub, [])
+
+      await receiveFromPeer()
+
+      expect(processedWraps).not.toContain(`chat:${senderNpub}|wrap-stranger`)
     })
 
     it('keeps the message of someone we follow', async () => {

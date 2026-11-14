@@ -109,12 +109,7 @@ export default function Security() {
               </SSVStack>
               <SSButton
                 label={tn('changePin')}
-                onPress={() =>
-                  router.navigate({
-                    params: { source: 'settings' },
-                    pathname: '/settings/changePin'
-                  })
-                }
+                onPress={() => router.navigate('/settings/changePin')}
               />
             </SSVStack>
 

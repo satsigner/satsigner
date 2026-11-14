@@ -1,11 +1,17 @@
+import { resolve } from 'node:path'
+
+import { notAllowed, permissionText } from './apk-review.mjs'
 import {
   apkPermissions,
   libraryPermissions,
-  notAllowed,
   unexpected
 } from './permission-check.mjs'
 
-const apkPath = process.argv.at(2)
+// pnpm runs the script from tools/release; INIT_CWD is where it was typed.
+const apkArg = process.argv.at(2)
+const apkPath = apkArg
+  ? resolve(process.env.INIT_CWD ?? process.cwd(), apkArg)
+  : undefined
 
 function printPermissions(permissions, describe) {
   for (const permission of permissions) {
@@ -21,9 +27,7 @@ if (apkPath) {
   console.log(`\nAfter the build: permissions ${apkPath} requests`)
 }
 const apk = apkPath ? apkPermissions(apkPath) : []
-printPermissions(apk, ({ maxSdk, name }) =>
-  maxSdk ? `${name} (up to API ${maxSdk})` : name
-)
+printPermissions(apk, permissionText)
 
 const failures = [...unexpected(libraries), ...notAllowed(apk)]
 if (failures.length > 0) {

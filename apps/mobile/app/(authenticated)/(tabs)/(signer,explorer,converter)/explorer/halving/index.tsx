@@ -18,7 +18,7 @@ import { useChainData } from '@/hooks/useChainData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
@@ -52,7 +52,7 @@ export default function ExplorerHalving() {
   )
   const { server } = configs[selectedNetwork]
 
-  const { data: chainData, isLoading } = useChainData()
+  const { data: chainData, isError, isLoading } = useChainData()
 
   const height = chainData?.height ?? null
   const epoch = height !== null ? halvingEpoch(height) : null
@@ -103,6 +103,11 @@ export default function ExplorerHalving() {
               source={chainData?.source ?? null}
               sourceLabel={chainData?.source ? sourceLabel() : null}
             />
+            {isError ? (
+              <SSText size="sm" color="muted">
+                {t('explorer.tipLoadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <SSExplorerRow
                 label={tn('height')}

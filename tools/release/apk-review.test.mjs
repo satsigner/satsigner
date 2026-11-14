@@ -16,7 +16,7 @@ const RELEASE_FINGERPRINT = 'AA:BB'
 const RELEASE_HASH = 'aabb'
 
 const BADGING = `package: name='com.example' versionCode='7' versionName='1.2.0' platformBuildVersionName='17'
-sdkVersion:'24'
+minSdkVersion:'24'
 targetSdkVersion:'36'
 application-label:'Example'
 native-code: 'arm64-v8a'`
@@ -25,6 +25,7 @@ const PERMISSIONS = `package: com.example
 uses-permission: name='android.permission.CAMERA'
 uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'
 uses-permission: name='android.permission.INTERNET'
+uses-permission-sdk-23: name='android.permission.ACCESS_FINE_LOCATION'
 permission: com.example.DYNAMIC`
 
 const SIGNERS = `Verified using v2 scheme (APK Signature Scheme v2): true
@@ -61,11 +62,17 @@ test('reads the package, version, sdk levels and abis from badging', () => {
   })
 })
 
+test('reads the min sdk from aapt2 before build-tools 35 too', () => {
+  const older = BADGING.replace("minSdkVersion:'24'", "sdkVersion:'23'")
+  assert.equal(parseBadging(older).minSdk, 23)
+})
+
 test('reads requested permissions with their sdk cap', () => {
   assert.deepEqual(parsePermissions(PERMISSIONS), [
     { maxSdk: undefined, name: 'android.permission.CAMERA' },
     { maxSdk: 32, name: 'android.permission.READ_EXTERNAL_STORAGE' },
-    { maxSdk: undefined, name: 'android.permission.INTERNET' }
+    { maxSdk: undefined, name: 'android.permission.INTERNET' },
+    { maxSdk: undefined, name: 'android.permission.ACCESS_FINE_LOCATION' }
   ])
 })
 
@@ -156,6 +163,19 @@ test('fails a certificate that zapstore does not know', () => {
     releaseFingerprint: RELEASE_FINGERPRINT
   })
   assert.equal(statusOf(checks, 'certificate'), 'fail')
+})
+
+test('warns instead of passing when zapstore did not answer', () => {
+  const checks = zapstoreChecks({
+    apk: apk(),
+    expectedPackageId: 'com.example',
+    listing: LISTING,
+    live: undefined,
+    liveError: 'wss://relay.zapstore.dev did not answer',
+    releaseFingerprint: RELEASE_FINGERPRINT
+  })
+  assert.equal(statusOf(checks, 'version-code'), 'warn')
+  assert.equal(statusOf(checks, 'certificate'), 'warn')
 })
 
 test('fails the debug key, a missing arm64 build and an empty listing', () => {

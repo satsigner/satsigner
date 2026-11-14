@@ -3,6 +3,8 @@ import { nip19 } from 'nostr-tools'
 
 import { type NostrChatProtocol } from '@/types/models/Nostr'
 import { type DetectedContent } from '@/utils/contentDetector'
+import { parseNostrConnectUri } from '@/utils/nip46'
+import { getNip19Type } from '@/utils/nostr'
 
 export function nostrAccountProfileHref(npub: string): Href {
   return { params: { npub }, pathname: '/signer/nostr/account/[npub]' }
@@ -151,6 +153,8 @@ function nprofileToNpub(nprofile: string): string | undefined {
 /**
  * Where content scanned while viewing identity `ownerNpub` leads. Secret keys
  * and anything else unsupported lead nowhere, so they never reach a route param.
+ * The content detector only checks the prefix and length, so a value with a
+ * bad checksum still needs a real decode before it reaches a route.
  */
 export function nostrScannedContentHref(
   ownerNpub: string,
@@ -159,13 +163,27 @@ export function nostrScannedContentHref(
   const value = content.cleaned || content.raw
   switch (content.type) {
     case 'nostr_connect': {
+      if (!parseNostrConnectUri(value)) {
+        return undefined
+      }
       return nostrBunkerConnectHref(ownerNpub, value)
     }
-    case 'nostr_note':
+    case 'nostr_note': {
+      if (getNip19Type(value) !== 'note') {
+        return undefined
+      }
+      return nostrNoteHref(ownerNpub, value)
+    }
     case 'nostr_nevent': {
+      if (getNip19Type(value) !== 'nevent') {
+        return undefined
+      }
       return nostrNoteHref(ownerNpub, value)
     }
     case 'nostr_npub': {
+      if (getNip19Type(value) !== 'npub') {
+        return undefined
+      }
       return nostrAuthorProfileHref(ownerNpub, value)
     }
     case 'nostr_nprofile': {

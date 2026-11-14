@@ -26,6 +26,10 @@ type ShouldFullScanParams = {
   forceFullScan: boolean
 }
 
+function hasAccountChainData(account: AccountSyncHistory): boolean {
+  return account.transactions.length > 0 || account.addresses.length > 0
+}
+
 /**
  * Decide Electrum/Esplora full scan vs incremental catch-up.
  * Used by account sync before calling the BDK adapter. Backend/URL/proxy
@@ -40,9 +44,7 @@ function shouldFullScan({
     return true
   }
 
-  const hasHistory =
-    account.transactions.length > 0 || account.addresses.length > 0
-  if (hasHistory) {
+  if (hasAccountChainData(account)) {
     return false
   }
 
@@ -103,6 +105,7 @@ function toRestoredSyncStatus(
 export {
   getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
+  hasAccountChainData,
   shouldFullScan,
   toRestoredSyncStatus
 }

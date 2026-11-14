@@ -8,15 +8,23 @@ import {
   hasRotation,
   keystoreFiles,
   lineageFile,
+  nextKeyDir,
   readKeystorePassword,
   releaseDir
 } from './keystore.mjs'
 
 const OLD_PASS_ENV = 'SATSIGNER_OLD_KEYSTORE_PASS'
 const NEW_PASS_ENV = 'SATSIGNER_NEW_KEYSTORE_PASS'
+// aapt2 ships as aapt2.exe on Windows. apksigner ships as a .bat there, which
+// execFile cannot run, so it is reported as missing.
+const EXECUTABLE_SUFFIX = process.platform === 'win32' ? '.exe' : ''
 
 function androidHome(env = process.env) {
-  return env.ANDROID_HOME ?? join(homedir(), 'Library', 'Android', 'sdk')
+  return (
+    env.ANDROID_HOME ||
+    env.ANDROID_SDK_ROOT ||
+    join(homedir(), 'Library', 'Android', 'sdk')
+  )
 }
 
 function compareVersions(left, right) {
@@ -31,14 +39,15 @@ function findBuildTool(tool, env = process.env) {
   if (!existsSync(buildTools)) {
     throw new Error(`No Android build-tools at ${buildTools}`)
   }
+  const executable = `${tool}${EXECUTABLE_SUFFIX}`
   const newest = readdirSync(buildTools)
-    .filter((name) => existsSync(join(buildTools, name, tool)))
+    .filter((name) => existsSync(join(buildTools, name, executable)))
     .toSorted(compareVersions)
     .at(-1)
   if (!newest) {
-    throw new Error(`No ${tool} under ${buildTools}`)
+    throw new Error(`No ${executable} under ${buildTools}`)
   }
-  return join(buildTools, newest, tool)
+  return join(buildTools, newest, executable)
 }
 
 function findApksigner(env = process.env) {
@@ -71,7 +80,7 @@ function signerEnv(oldDir, newDir) {
 // APK Signature Scheme v3 lineage: the old key signs the new certificate, so
 // Android installs updates from the new key over the old one.
 function writeLineage(dir = releaseDir) {
-  const nextDir = join(dir, 'next')
+  const nextDir = nextKeyDir(dir)
   const out = lineageFile(dir)
   const pending = `${out}.tmp`
   try {
@@ -95,7 +104,7 @@ function writeLineage(dir = releaseDir) {
 }
 
 function signWithLineage(apkPath, dir = releaseDir) {
-  const nextDir = join(dir, 'next')
+  const nextDir = nextKeyDir(dir)
   const pending = `${apkPath}.rotated`
   try {
     execFileSync(

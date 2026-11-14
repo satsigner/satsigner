@@ -47,8 +47,7 @@ import SSZapAmountDisplay from '@/components/SSZapAmountDisplay'
 import {
   NOSTR_PRIVACY_MASK,
   NOSTR_PROFILE_QUERY_STALE_TIME_MS,
-  NOSTR_RELAYS,
-  NOSTR_ZAP_RECEIPT_FETCH_LIMIT
+  NOSTR_RELAYS
 } from '@/constants/nostr'
 import { useNostrContactProfile } from '@/hooks/useNostrContactProfile'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
@@ -93,7 +92,9 @@ import {
 import { isLongFormNostrKind } from '@/utils/nostrLongForm'
 import { nostrAuthorProfileHref, nostrNoteHref } from '@/utils/nostrNavigation'
 import {
+  buildNoteEventJson,
   getJsonNoteData,
+  getNoteTagsForDisplay,
   type NostrNoteEvent,
   withAuthorProfile
 } from '@/utils/nostrNoteDetail'
@@ -335,8 +336,7 @@ export default function NostrNotePage() {
   const effectiveLud16 = enhancedZap.zapLnurl || fetched?.authorLud16
 
   const totalZapped = zapReceipts.reduce((sum, r) => sum + r.amountSats, 0)
-  const zapTotalIsLowerBound =
-    zapReceipts.length >= NOSTR_ZAP_RECEIPT_FETCH_LIMIT
+  const zapTotalIsLowerBound = zapsQuery.data?.isTruncated ?? false
 
   const noteImageUrls =
     !fetched || privacyMode
@@ -537,10 +537,6 @@ export default function NostrNotePage() {
     }
   }
 
-  function handleNoteQrFormat(format: NoteQrFormat) {
-    setNoteQrFormat(format)
-  }
-
   function handleCloseNoteQr() {
     setNoteQrFormat('nevent')
     setQrModalVisible(false)
@@ -634,19 +630,11 @@ export default function NostrNotePage() {
   }
 
   const eventJson = fetched
-    ? JSON.stringify(
-        {
-          content: fetched.content,
-          created_at: fetched.created_at,
-          id: decoded?.data ?? '',
-          kind: fetched.kind,
-          pubkey: fetched.pubkey,
-          tags: fetched.tags
-        },
-        null,
-        2
-      )
+    ? buildNoteEventJson(fetched, decoded?.data ?? '', privacyMode)
     : ''
+  const metadataTags = fetched
+    ? getNoteTagsForDisplay(fetched.tags, privacyMode)
+    : []
 
   if (!decoded || decoded.kind === 'unknown') {
     return (
@@ -1091,7 +1079,7 @@ export default function NostrNotePage() {
                         </SSText>
                       </SSClipboardCopy>
                     </SSHStack>
-                    {fetched.tags.map((tag, index) => (
+                    {metadataTags.map((tag, index) => (
                       <SSHStack key={index} gap="xs" style={styles.metaRow}>
                         <View style={styles.tagTypeBadge}>
                           <SSText size="xxs" type="mono">
@@ -1757,7 +1745,7 @@ export default function NostrNotePage() {
               label: t('nostrIdentity.note.metaNevent')
             }}
             secondary={{ key: 'id', label: t('nostrIdentity.note.qrId') }}
-            onChange={handleNoteQrFormat}
+            onChange={setNoteQrFormat}
           />
           <SSShareableQR
             value={noteQrValue}

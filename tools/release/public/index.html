@@ -946,7 +946,7 @@
             <p class="hint">
               See the listing exactly as it will be sent, and run the checks the
               Zapstore relay runs on the APK before you publish. The newest
-              built APK for the channel is inspected with aapt2 and apksigner.
+              release APK for the channel is inspected with aapt2 and apksigner.
             </p>
             <div class="channel" id="preview-channel">
               <button type="button" data-channel="dev" aria-pressed="true">
@@ -1343,7 +1343,7 @@
         if (!preview.apk) {
           previewText(
             block,
-            `No built APK for ${preview.packageId} in dist/apks. Build one first.`
+            `No release APK for ${preview.packageId} in dist/apks. Build one first.`
           )
           return
         }
@@ -1399,20 +1399,21 @@
 
       const versionStatusEl = document.querySelector('#version-status')
 
-      function versionRow(term, value, tone = '') {
+      function statusRow(listEl, term, value, tone = '') {
         const dt = document.createElement('dt')
         dt.textContent = term
         const dd = document.createElement('dd')
         dd.textContent = value
         if (tone) dd.className = tone
-        versionStatusEl.append(dt, dd)
+        listEl.append(dt, dd)
       }
 
       function renderVersion(status) {
         versionStatusEl.replaceChildren()
-        versionRow('Version', status.version)
-        versionRow('Version code', String(status.versionCode))
-        versionRow(
+        statusRow(versionStatusEl, 'Version', status.version)
+        statusRow(versionStatusEl, 'Version code', String(status.versionCode))
+        statusRow(
+          versionStatusEl,
           'Release notes',
           status.changelogReady
             ? `CHANGELOG.md has a ${status.version} section`
@@ -1420,7 +1421,8 @@
           status.changelogReady ? 'good' : 'bad'
         )
         for (const entry of status.files) {
-          versionRow(
+          statusRow(
+            versionStatusEl,
             entry.file,
             entry.version || 'Not found',
             entry.version === status.version ? '' : 'bad'
@@ -1430,16 +1432,13 @@
 
       async function refreshVersion() {
         const response = await fetch('/api/version')
-        renderVersion(await response.json())
-      }
-
-      function keyRow(term, value, tone = '') {
-        const dt = document.createElement('dt')
-        dt.textContent = term
-        const dd = document.createElement('dd')
-        dd.textContent = value
-        if (tone) dd.className = tone
-        keyStatusEl.append(dt, dd)
+        const status = await response.json()
+        if (!response.ok) {
+          versionStatusEl.replaceChildren()
+          statusRow(versionStatusEl, 'Version', status.error, 'bad')
+          return
+        }
+        renderVersion(status)
       }
 
       function describeKey(key) {
@@ -1460,14 +1459,16 @@
         const keys = await response.json()
         keyStatusEl.replaceChildren()
         const current = describeKey(keys.current)
-        keyRow(
+        statusRow(
+          keyStatusEl,
           'Keystore',
           keys.current.present ? keys.current.path : 'Missing',
           keys.current.present ? '' : 'bad'
         )
-        keyRow('Certificate', current.text, current.tone)
+        statusRow(keyStatusEl, 'Certificate', current.text, current.tone)
         if (keys.current.fingerprint) {
-          keyRow(
+          statusRow(
+            keyStatusEl,
             'Release key',
             keys.current.matchesRelease
               ? 'Matches the Satsigner release certificate'
@@ -1476,13 +1477,15 @@
           )
         }
         const next = describeKey(keys.next)
-        keyRow('Rotated key', next.text, next.tone)
-        keyRow(
+        statusRow(keyStatusEl, 'Rotated key', next.text, next.tone)
+        statusRow(
+          keyStatusEl,
           'Rotation',
           rotationText(keys),
           keys.next.present && !keys.rotating ? 'bad' : ''
         )
-        keyRow(
+        statusRow(
+          keyStatusEl,
           'apksigner',
           keys.apksigner.path ?? keys.apksigner.error,
           keys.apksigner.path ? '' : 'bad'
@@ -2089,7 +2092,8 @@
 
       function markReleaseDeleted(id) {
         rememberDeleted(id)
-        for (const item of document.querySelectorAll(`li[data-id="${id}"]`)) {
+        const selector = `li[data-id="${CSS.escape(id)}"]`
+        for (const item of document.querySelectorAll(selector)) {
           item.querySelector('.deleted-tag').hidden = false
           item.querySelector('[data-delete]').disabled = true
         }
@@ -2106,10 +2110,6 @@
       async function deleteReleases(ids, buttons) {
         if (!window.nostr?.signEvent) {
           statusEl.textContent = 'Sign in before deleting a release post.'
-          return
-        }
-        if (!ids.length) {
-          statusEl.textContent = 'No release posts to delete.'
           return
         }
         for (const button of buttons) button.disabled = true
@@ -2856,11 +2856,17 @@
         if (saved.tab) {
           clickSaved(`[role="tab"][aria-controls="${CSS.escape(saved.tab)}"]`)
         }
-        if (saved.signedIn) signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
+      }
+
+      // Signing in replaces the server's bunker, and a running publish keeps
+      // waiting on the old one, so a reload or a second tab must not do it.
+      function resumeSignIn() {
+        if (!readUiState().signedIn || busy) return
+        signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
       }
 
       restoreUiState()
-      refreshStatus()
+      void refreshStatus().then(resumeSignIn)
       refreshListings()
       setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
       window.addEventListener('focus', refreshStatusInBackground)

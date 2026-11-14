@@ -1,4 +1,5 @@
 import { NostrAPI } from '@/api/nostr'
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import type {
   NostrDecodedContent,
   NostrFetchedNoteData,
@@ -12,6 +13,40 @@ type NostrNoteEvent = {
   kind: number
   pubkey: string
   tags: string[][]
+}
+
+const EVENT_JSON_INDENT = 2
+
+/** Privacy mode hides tag values (media urls, mentions) but not tag names. */
+function getNoteTagsForDisplay(
+  tags: string[][],
+  privacyMode: boolean
+): string[][] {
+  if (!privacyMode) {
+    return tags
+  }
+  return tags.map(([name, ...values]) =>
+    values.length > 0 ? [name, NOSTR_PRIVACY_MASK] : [name]
+  )
+}
+
+function buildNoteEventJson(
+  note: NostrNoteEvent,
+  id: string,
+  privacyMode: boolean
+): string {
+  return JSON.stringify(
+    {
+      content: privacyMode ? NOSTR_PRIVACY_MASK : note.content,
+      created_at: note.created_at,
+      id,
+      kind: note.kind,
+      pubkey: note.pubkey,
+      tags: getNoteTagsForDisplay(note.tags, privacyMode)
+    },
+    null,
+    EVENT_JSON_INDENT
+  )
 }
 
 /** A note pasted as raw JSON needs no fetch: it is shown as given. */
@@ -84,5 +119,11 @@ async function lookupNostrEvent(
   return null
 }
 
-export { getJsonNoteData, lookupNostrEvent, withAuthorProfile }
+export {
+  buildNoteEventJson,
+  getJsonNoteData,
+  getNoteTagsForDisplay,
+  lookupNostrEvent,
+  withAuthorProfile
+}
 export type { NostrNoteEvent }

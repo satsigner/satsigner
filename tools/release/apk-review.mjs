@@ -1,6 +1,13 @@
-const ZAPSTORE_ABI = 'arm64-v8a'
+import { ANDROID_ABI_ARM64 as ZAPSTORE_ABI } from '../../apps/mobile/constants/variant.cjs'
+
 const ANDROID_PERMISSION = 'android.permission.'
 const DEBUG_CERT_NAME = 'CN=Android Debug'
+// <uses-permission-sdk-23> grants the same access on Android 6 and later, and
+// Expo's blockedPermissions does not strip it.
+const PERMISSION_LINE = /^uses-permission(-sdk-23)?:/
+const VERSION_CODE_LABEL = 'Version code is higher than the published one'
+const CERTIFICATE_LABEL =
+  "Certificate is the app's current one or linked by lineage"
 
 const PERMISSION_GROUPS = [
   { id: 'camera', label: 'Camera', permissions: ['CAMERA'] },
@@ -88,10 +95,12 @@ function parseBadging(text) {
   const lineValue = (prefix) =>
     lines.find((line) => line.startsWith(prefix))?.slice(prefix.length)
   const nativeCode = lineValue('native-code:') ?? ''
+  // aapt2 from build-tools 35 on prints minSdkVersion:, older ones sdkVersion:.
+  const minSdk = lineValue('minSdkVersion:') ?? lineValue('sdkVersion:')
   return {
     abis: [...nativeCode.matchAll(/'([^']+)'/g)].map((match) => match[1]),
     label: lineValue('application-label:')?.replaceAll("'", '') ?? '',
-    minSdk: Number(lineValue('sdkVersion:')?.replaceAll("'", '')),
+    minSdk: Number(minSdk?.replaceAll("'", '')),
     packageId: quoted(packageLine, 'name') ?? '',
     targetSdk: Number(lineValue('targetSdkVersion:')?.replaceAll("'", '')),
     versionCode: Number(quoted(packageLine, 'versionCode')),
@@ -101,7 +110,7 @@ function parseBadging(text) {
 
 function parsePermissions(text) {
   return text.split('\n').flatMap((line) => {
-    if (!line.startsWith('uses-permission:')) {
+    if (!PERMISSION_LINE.test(line)) {
       return []
     }
     const name = quoted(line, 'name')
@@ -163,11 +172,11 @@ function check(id, label, ok, detail, failStatus = 'fail') {
   return { detail, id, label, status: ok ? 'pass' : failStatus }
 }
 
-function certificateChecks({ releaseFingerprint, signers, live }) {
+function signerChecks({ releaseFingerprint, signers }) {
   const hashes = signers.map((signer) => signer.sha256)
   const debug = signers.some((signer) => signer.name?.includes(DEBUG_CERT_NAME))
   const releaseHash = fingerprintHex(releaseFingerprint)
-  const checks = [
+  return [
     check(
       'debug-key',
       'Not signed with the debug key',
@@ -181,14 +190,43 @@ function certificateChecks({ releaseFingerprint, signers, live }) {
       hashes.join(', ') || 'No certificate'
     )
   ]
-  if (!live) {
-    return checks
-  }
+}
+
+// Without an answer from the relay neither check can pass: a timeout must not
+// read as "nothing published yet".
+function unansweredChecks(liveError) {
+  const detail = `Could not ask Zapstore: ${liveError}`
   return [
-    ...checks,
+    { detail, id: 'version-code', label: VERSION_CODE_LABEL, status: 'warn' },
+    { detail, id: 'certificate', label: CERTIFICATE_LABEL, status: 'warn' }
+  ]
+}
+
+function publishedChecks({ apk, live, liveError }) {
+  if (liveError) {
+    return unansweredChecks(liveError)
+  }
+  if (!live) {
+    return [
+      check(
+        'version-code',
+        VERSION_CODE_LABEL,
+        true,
+        `${apk.versionCode}, nothing published yet`
+      )
+    ]
+  }
+  const hashes = apk.signers.map((signer) => signer.sha256)
+  return [
+    check(
+      'version-code',
+      VERSION_CODE_LABEL,
+      apk.versionCode > live.versionCode,
+      `${apk.versionCode} here, ${live.versionCode} on Zapstore (${live.versionName})`
+    ),
     check(
       'certificate',
-      "Certificate is the app's current one or linked by lineage",
+      CERTIFICATE_LABEL,
       hashes.includes(live.certificateHash),
       `Zapstore has ${live.certificateHash}`
     )
@@ -199,11 +237,11 @@ function zapstoreChecks({
   apk,
   expectedPackageId,
   live,
+  liveError,
   listing,
   releaseFingerprint
 }) {
   const nativeOk = apk.abis.length === 0 || apk.abis.includes(ZAPSTORE_ABI)
-  const versionOk = !live || apk.versionCode > live.versionCode
   return [
     check(
       'package',
@@ -217,19 +255,8 @@ function zapstoreChecks({
       nativeOk,
       apk.abis.join(', ') || 'No native code'
     ),
-    check(
-      'version-code',
-      'Version code is higher than the published one',
-      versionOk,
-      live
-        ? `${apk.versionCode} here, ${live.versionCode} on Zapstore (${live.versionName})`
-        : `${apk.versionCode}, nothing published yet`
-    ),
-    ...certificateChecks({
-      live,
-      releaseFingerprint,
-      signers: apk.signers
-    }),
+    ...publishedChecks({ apk, live, liveError }),
+    ...signerChecks({ releaseFingerprint, signers: apk.signers }),
     check(
       'summary',
       'Listing has a summary',
@@ -264,10 +291,13 @@ function groupStatus(requested) {
     : 'fail'
 }
 
+// In the APK a blocked permission is a failure too: the block did not apply.
+function notAllowed(permissions) {
+  return permissions.filter((permission) => permission.status !== 'allowed')
+}
+
 function securityChecks({ permissions, trackers }) {
-  const extra = permissions.filter(
-    (permission) => permission.status !== 'allowed'
-  )
+  const extra = notAllowed(permissions)
   const groups = permissionGroups(permissions).map((group) => ({
     detail: group.requested.map(permissionText).join(', ') || 'Not requested',
     id: `permission-${group.id}`,
@@ -327,15 +357,14 @@ function latestAsset(events) {
 }
 
 export {
-  PERMISSION_GROUPS,
-  ZAPSTORE_ABI,
   findTrackers,
   latestAsset,
   libraryChecks,
+  notAllowed,
   parseBadging,
   parsePermissions,
   parseSigners,
-  permissionGroups,
+  permissionText,
   securityChecks,
   zapstoreChecks
 }

@@ -20,6 +20,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useSettingsStore } from '@/store/settings'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Address, type WatchedAddress } from '@/types/models/Address'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -97,6 +98,7 @@ export function ManageAccountAddresses({
   const [showDeleteAddressModal, setShowDeleteAddressModal] = useState(false)
   const [addressInput, setAddressInput] = useState('')
   const [addressToDelete, setAddressToDelete] = useState('')
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
 
   function renderItem({
     item,
@@ -120,6 +122,7 @@ export function ManageAccountAddresses({
             showDelete={addresses.length > 2}
             onViewDetails={() => onViewAddressDetails(address.address)}
             onDelete={() => handleDeleteAddress(address.address)}
+            privacyMode={privacyMode}
           />
         </SSPressable>
       </ScaleDecorator>

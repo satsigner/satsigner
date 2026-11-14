@@ -7,6 +7,10 @@ import {
   fetchBitnodesNodeInfo
 } from '@/api/explorerNode'
 import { useBlockchainStore } from '@/store/blockchain'
+import {
+  retryExplorerQuery,
+  withExplorerTimeout
+} from '@/utils/explorerTimeout'
 import { time } from '@/utils/time'
 
 export function useBackendServerInfo() {
@@ -21,11 +25,14 @@ export function useBackendServerInfo() {
   return useQuery({
     enabled: supportsServerInfo,
     queryFn: () =>
-      fetchBackendServerInfo(
-        server.url,
-        server.backend,
-        selectedNetwork,
-        server.rpcCredentials
+      withExplorerTimeout(
+        fetchBackendServerInfo(
+          server.url,
+          server.backend,
+          selectedNetwork,
+          server.rpcCredentials
+        ),
+        server.url
       ),
     queryKey: [
       'backend-server-info',
@@ -34,6 +41,7 @@ export function useBackendServerInfo() {
       selectedNetwork,
       server.rpcCredentials?.username
     ],
+    retry: retryExplorerQuery,
     staleTime: time.minutes(30)
   })
 }

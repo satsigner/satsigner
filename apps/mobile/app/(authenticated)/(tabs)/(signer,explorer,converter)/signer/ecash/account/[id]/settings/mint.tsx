@@ -1,13 +1,15 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Alert, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getMintBalance } from '@/api/ecash'
 import { SSIconBlackIndicator, SSIconGreenIndicator } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { PRIVACY_MASK } from '@/constants/privacy'
 import { useEcash } from '@/hooks/useEcash'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -16,7 +18,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { formatNumber } from '@/utils/format'
+import { formatMaskedNumber, formatNumber } from '@/utils/format'
 
 const DEFAULT_MINTS = [
   { name: 'Bitcoin Minibits mint', url: 'https://mint.minibits.cash/Bitcoin' },
@@ -36,13 +38,18 @@ export default function EcashAccountMintPage() {
   const {
     activeAccount,
     mints,
+    proofs,
     connectToMint,
     disconnectMint,
     restoreFromSeed
   } = useEcash()
 
-  const [currencyUnit, useZeroPadding] = useSettingsStore(
-    useShallow((state) => [state.currencyUnit, state.useZeroPadding])
+  const [currencyUnit, privacyMode, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [
+      state.currencyUnit,
+      state.privacyMode,
+      state.useZeroPadding
+    ])
   )
   const zeroPadding = useZeroPadding || currencyUnit === 'btc'
 
@@ -66,8 +73,28 @@ export default function EcashAccountMintPage() {
     setMintUrl(url)
   }
 
+  // Removing a mint keeps its proofs, which come back when it is added again,
+  // but they can't be spent meanwhile, so the user is told how much that is.
   function handleRemoveMint(url: string) {
-    disconnectMint(url)
+    const balance = getMintBalance(url, proofs)
+    if (balance === 0) {
+      disconnectMint(url)
+      return
+    }
+    Alert.alert(
+      t('ecash.mint.removeConfirmTitle'),
+      t('ecash.mint.removeConfirmMessage', {
+        amount: formatMaskedNumber(balance, privacyMode)
+      }),
+      [
+        { style: 'cancel', text: t('common.cancel') },
+        {
+          onPress: () => disconnectMint(url),
+          style: 'destructive',
+          text: t('common.remove')
+        }
+      ]
+    )
   }
 
   async function handleRecoverFromMint(url: string) {
@@ -77,7 +104,7 @@ export default function EcashAccountMintPage() {
       if (result.proofsFound > 0) {
         toast.success(
           t('ecash.recovery.totalAmount', {
-            amount: result.totalAmount.toString()
+            amount: formatMaskedNumber(result.totalAmount, privacyMode)
           })
         )
       } else {
@@ -114,7 +141,13 @@ export default function EcashAccountMintPage() {
                           {t('ecash.mint.balance')}
                         </SSText>
                         <SSText weight="medium">
-                          {formatNumber(mint.balance, 0, zeroPadding)}{' '}
+                          {privacyMode
+                            ? PRIVACY_MASK
+                            : formatNumber(
+                                getMintBalance(mint.url, proofs),
+                                0,
+                                zeroPadding
+                              )}{' '}
                           {currencyUnit === 'btc'
                             ? t('bitcoin.btc')
                             : t('bitcoin.sats')}

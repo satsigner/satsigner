@@ -33,6 +33,10 @@ class NDKEvent {
     }
   }
 
+  rawEvent() {
+    return this.toNostrEvent()
+  }
+
   sign() {
     this.sig = 'a'.repeat(128)
     return Promise.resolve()

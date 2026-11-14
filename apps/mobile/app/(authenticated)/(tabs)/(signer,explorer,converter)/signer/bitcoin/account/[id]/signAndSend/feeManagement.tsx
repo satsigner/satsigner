@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router'
+import { router } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,41 +27,34 @@ function FeeManagement() {
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>Extra Options</SSText>
-        }}
-      />
-      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
-        <SSVStack justifyBetween>
-          <SSVStack gap="lg">
-            <SSText center uppercase size="lg">
-              {t('transaction.build.options.feeManagement')}
-            </SSText>
-            <SSVStack>
-              <SSCheckbox
-                selected={localRBF}
-                label={t('bitcoin.rbf').toUpperCase()}
-                onPress={() => setLocalRBF(!localRBF)}
-              />
-            </SSVStack>
-          </SSVStack>
+    <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
+      <SSVStack justifyBetween>
+        <SSVStack gap="lg">
+          <SSText center uppercase size="lg">
+            {t('transaction.build.options.feeManagement')}
+          </SSText>
           <SSVStack>
-            <SSButton
-              variant="secondary"
-              label={t('common.save')}
-              onPress={saveChanges}
-            />
-            <SSButton
-              variant="ghost"
-              label={t('common.cancel')}
-              onPress={cancel}
+            <SSCheckbox
+              selected={localRBF}
+              label={t('bitcoin.rbf').toUpperCase()}
+              onPress={() => setLocalRBF(!localRBF)}
             />
           </SSVStack>
         </SSVStack>
-      </SSMainLayout>
-    </>
+        <SSVStack>
+          <SSButton
+            variant="secondary"
+            label={t('common.save')}
+            onPress={saveChanges}
+          />
+          <SSButton
+            variant="ghost"
+            label={t('common.cancel')}
+            onPress={cancel}
+          />
+        </SSVStack>
+      </SSVStack>
+    </SSMainLayout>
   )
 }
 

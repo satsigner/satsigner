@@ -30,6 +30,7 @@ import { shareFile } from '@/utils/filesystem'
 import { lightningOpenChannelHref } from '@/utils/lightningNavigation'
 import { formatLndChainsForUi } from '@/utils/lndGetInfoChains'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
+import { lndNodeTitle } from '@/utils/lndNodeCardTitle'
 import {
   formatBestHeaderUtc,
   formatLndVersion,
@@ -259,7 +260,9 @@ export default function NodeSettingsPage() {
           ),
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('lightning.nodeSettings.title', { alias: params.alias })}
+              {t('lightning.nodeSettings.title', {
+                alias: params.alias || lndNodeTitle(nodeInfo)
+              })}
             </SSText>
           )
         }}

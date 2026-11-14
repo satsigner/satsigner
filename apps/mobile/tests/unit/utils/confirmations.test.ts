@@ -1,6 +1,7 @@
 import { FULLY_CONFIRMED_COUNT } from '@/constants/btc'
 import { Colors } from '@/styles'
 import {
+  getConfirmations,
   getConfirmationsColor,
   getConfirmationsColorStyle
 } from '@/utils/confirmations'
@@ -39,5 +40,28 @@ describe('confirmations utils', () => {
         getConfirmationsColorStyle(FULLY_CONFIRMED_COUNT + 1)
       )
     })
+  })
+})
+
+describe('getConfirmations', () => {
+  it('counts the block a transaction was mined in as its first confirmation', () => {
+    expect(getConfirmations(330_000, 330_000)).toBe(1)
+    expect(getConfirmations(330_000, 330_005)).toBe(6)
+  })
+
+  it('has no count while the tip is unknown', () => {
+    expect(getConfirmations(330_000, 0)).toBeNull()
+  })
+
+  it('has no count while the known tip is behind the block', () => {
+    expect(getConfirmations(330_000, 329_999)).toBeNull()
+  })
+})
+
+describe('getConfirmationsColorStyle without a count', () => {
+  it('shows a mined transaction as confirmed, never as unconfirmed', () => {
+    expect(getConfirmationsColorStyle(null)).toBe(
+      getConfirmationsColorStyle(FULLY_CONFIRMED_COUNT)
+    )
   })
 })

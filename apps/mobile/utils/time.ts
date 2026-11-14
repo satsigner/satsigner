@@ -43,6 +43,11 @@ export function sleep(ms: number) {
   })
 }
 
+/** Lets pending renders and touches run between chunks of work. */
+export function yieldToUi() {
+  return sleep(0)
+}
+
 /**
  * Settles like `promise`, or rejects with `message` once `ms` pass first.
  * The timer is cleared either way. `promise` itself keeps running.

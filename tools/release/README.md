@@ -21,7 +21,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. The listing summary and description come from `apps/mobile/zapstore/summary.txt` and `description.md`, and the screenshots come from `apps/mobile/zapstore/screenshots/` in file-name order. Each publish sends all of them. Listing management stays behind **Manage listings**.
 
-**Preview release.** Shows the listing exactly as a publish sends it: the app name, the summary, the description and every screenshot, in upload order. It then inspects the newest APK for the chosen channel in `apps/mobile/dist/apks` (the Android SDK's `aapt2` and `apksigner`), compares it with the latest release on `wss://relay.zapstore.dev`, and lists each check:
+**Preview release.** Shows the listing exactly as a publish sends it: the app name, the summary, the description and every screenshot, in upload order. It then inspects the newest release APK for the chosen channel in `apps/mobile/dist/apks` (the Android SDK's `aapt2` and `apksigner`), compares it with the latest release on `wss://relay.zapstore.dev`, and lists each check:
 
 | Group                    | Checks                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -32,8 +32,8 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 **Android permissions.** `apps/mobile/constants/androidPermissions.cjs` lists the only permissions a release may request, and the ones stripped from libraries. The same check runs at two points:
 
-- **Before the build:** `pnpm --dir tools/release permissions` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
-- **After the build:** `pnpm --dir tools/release permissions path/to/app.apk` reads the merged permissions with `aapt2`. Every release build (Build APK, `variant --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
+- **Before the build:** `pnpm --dir tools/release permissions:check` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
+- **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release APK build (Build APK, `variant --apk --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
 
 The Preview release tab shows both lists.
 
@@ -44,6 +44,8 @@ The Preview release tab shows both lists.
 | Branch            | Dev package id for the current branch, all CPU architectures |
 | Production        | Production package id, no branch suffix, ARM CPUs only       |
 | Pixel 8, 9, or 10 | `arm64-v8a` only                                             |
+
+**Version.** Shows the app version from `apps/mobile/package.json`, its Android version code, whether `CHANGELOG.md` has a section for it, and the version in the root, mobile and docs `package.json` and `app.config.ts`, flagging any that differ. Bump them by hand. The console's own version in `tools/release/package.json` is separate.
 
 **Announcements.** Lists your release announcements (notes tagged `#release`) and your latest 20 notes of any kind from the announcement relays. **Delete** or **Delete all** signs one NIP-09 deletion request for the chosen posts. Relays and clients that honour it hide the notes; copies on other relays may stay.
 
@@ -57,6 +59,7 @@ The Preview release tab shows both lists.
 | Sync with ngit    | `ngit` on `PATH`                                                                                         |
 | Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
 | Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore        |
+| Preview release   | The SDK's build-tools (`aapt2`, `apksigner`) and `unzip` on `PATH`                                       |
 
 ## Android developer keys
 

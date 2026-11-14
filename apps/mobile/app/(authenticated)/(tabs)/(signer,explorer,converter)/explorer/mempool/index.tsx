@@ -30,7 +30,11 @@ export default function ExplorerMempool() {
   const { server } = configs[selectedNetwork]
   const [showExternal, setShowExternal] = useState(false)
 
-  const { data: basicData, isLoading: isLoadingBasic } = useMempoolBasicData()
+  const {
+    data: basicData,
+    isError: isBasicError,
+    isLoading: isLoadingBasic
+  } = useMempoolBasicData()
   const { data: extendedData, isLoading: isLoadingExtended } =
     useMempoolExtendedData(showExternal)
 
@@ -77,6 +81,11 @@ export default function ExplorerMempool() {
                 basicData?.source ? sourceLabel(basicData.source) : null
               }
             />
+            {isBasicError ? (
+              <SSText size="sm" color="muted">
+                {tn('loadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               {basicData?.count !== null && basicData?.count !== undefined ? (
                 <SSExplorerRow

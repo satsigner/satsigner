@@ -4,6 +4,7 @@ import {
   collectMintUrlsForRestore,
   EcashBackupValidationError,
   normalizeRestoredProofs,
+  parseEcashBackupJson,
   parseEcashBackupPayload
 } from '@/utils/ecashBackup'
 
@@ -140,6 +141,22 @@ describe('ecash backup', () => {
         proofs: [proof('s1', 'https://a.example')]
       })
     ).toThrow(EcashBackupValidationError)
+  })
+
+  it('parses a backup from its JSON text', () => {
+    const parsed = parseEcashBackupJson(
+      JSON.stringify({
+        mints: [mint('https://a.example')],
+        proofs: [proof('s1', 'https://a.example')]
+      })
+    )
+    expect(parsed.proofs.map(({ secret }) => secret)).toStrictEqual(['s1'])
+  })
+
+  it('treats text that is not JSON as an invalid backup', () => {
+    expect(() => parseEcashBackupJson('abc')).toThrow(
+      new EcashBackupValidationError('invalid')
+    )
   })
 
   it('parses a valid backup payload', () => {

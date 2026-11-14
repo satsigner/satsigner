@@ -4,6 +4,7 @@ import {
   getBitcoinUriAmountSats,
   isAutoSelectFromUriSearchParam,
   isUriPaymentAmount,
+  rememberUserSelection,
   resolveUriAutoSelectAlgorithm,
   shouldApplyDefaultAutoSelectFromUri,
   shouldAutoSelectUtxosFromBitcoinUri,
@@ -124,6 +125,48 @@ describe('autoSelectUtxos helpers', () => {
           outputsLength: 1
         })
       ).toBe(true)
+    })
+  })
+
+  describe('rememberUserSelection', () => {
+    const userPicked = ['user-a']
+    const privacyPicked = ['privacy-a', 'privacy-b']
+    const efficiencyPicked = ['efficiency-a']
+
+    it('captures the inputs when leaving the user selection', () => {
+      expect(rememberUserSelection('user', userPicked, undefined)).toBe(
+        userPicked
+      )
+    })
+
+    it('keeps the saved inputs when leaving an automatic method', () => {
+      expect(rememberUserSelection('privacy', privacyPicked, userPicked)).toBe(
+        userPicked
+      )
+      expect(
+        rememberUserSelection('efficiency', efficiencyPicked, userPicked)
+      ).toBe(userPicked)
+    })
+
+    it('restores the hand-picked inputs after user, privacy, efficiency, user', () => {
+      const leavingUser = rememberUserSelection('user', userPicked, undefined)
+      const leavingPrivacy = rememberUserSelection(
+        'privacy',
+        privacyPicked,
+        leavingUser
+      )
+      const leavingEfficiency = rememberUserSelection(
+        'efficiency',
+        efficiencyPicked,
+        leavingPrivacy
+      )
+      expect(leavingEfficiency).toBe(userPicked)
+    })
+
+    it('has nothing to restore when the user never picked inputs', () => {
+      expect(
+        rememberUserSelection('privacy', privacyPicked, undefined)
+      ).toBeUndefined()
     })
   })
 })

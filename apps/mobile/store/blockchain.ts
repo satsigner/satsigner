@@ -129,13 +129,14 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       setNextBlockFee: (fee: number | null) => {
         set({ nextBlockFee: fee })
       },
-      // The next-block fee belongs to one network; keeping it across a switch
-      // would prefill another network's fee and skew the elevated-fee warning.
+      // The next-block fee and the tip belong to one network; keeping them
+      // across a switch would prefill another network's fee, skew the
+      // elevated-fee warning and count confirmations against another chain.
       setSelectedNetwork: (selectedNetwork) =>
         set((state) =>
           state.selectedNetwork === selectedNetwork
             ? state
-            : { nextBlockFee: null, selectedNetwork }
+            : { lastKnownBlockHeight: 0, nextBlockFee: null, selectedNetwork }
         ),
       stripAllRpcCredentials: () => {
         set((state) => {

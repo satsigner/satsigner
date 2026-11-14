@@ -23,6 +23,9 @@ const RELAY_TIMEOUT_MS = 8000
 const LIVE_ASSET_LIMIT = 20
 const TOOL_BUFFER_BYTES = 16 * 1024 * 1024
 const DEX_BUFFER_BYTES = 1024 * 1024 * 1024
+// variant.ts names builds satsigner-<label>-<segment>-<buildType>[-<abi>].apk.
+// Publish only uploads release builds, so a newer debug build is skipped.
+const RELEASE_APK_NAME = /-release(-[a-z0-9_]+)?\.apk$/
 
 async function toolOutput(command, args, maxBuffer = TOOL_BUFFER_BYTES) {
   const { stdout } = await execFileAsync(command, args, {
@@ -59,11 +62,11 @@ async function inspectApk(apkPath) {
   }
 }
 
-async function apkNames(apkDir, namePrefix) {
+async function releaseApkNames(apkDir, namePrefix) {
   try {
     const names = await readdir(apkDir)
     return names.filter(
-      (name) => name.startsWith(namePrefix) && name.endsWith('.apk')
+      (name) => name.startsWith(namePrefix) && RELEASE_APK_NAME.test(name)
     )
   } catch {
     return []
@@ -71,7 +74,7 @@ async function apkNames(apkDir, namePrefix) {
 }
 
 async function newestApkFor(apkDir, namePrefix, packageId) {
-  const names = await apkNames(apkDir, namePrefix)
+  const names = await releaseApkNames(apkDir, namePrefix)
   const files = await Promise.all(
     names.map(async (name) => {
       const path = join(apkDir, name)
@@ -89,6 +92,16 @@ async function newestApkFor(apkDir, namePrefix, packageId) {
   return undefined
 }
 
+// A throw inside a ws listener is uncaught and would stop the whole console.
+function parseFrame(data) {
+  try {
+    const frame = JSON.parse(data.toString())
+    return Array.isArray(frame) ? frame : []
+  } catch {
+    return []
+  }
+}
+
 function relayFinished(socket, packageId, events) {
   return new Promise((resolve, reject) => {
     socket.on('open', () => {
@@ -101,7 +114,7 @@ function relayFinished(socket, packageId, events) {
       )
     })
     socket.on('message', (data) => {
-      const frame = JSON.parse(data.toString())
+      const frame = parseFrame(data)
       if (frame[0] === 'EVENT' && frame[2]?.kind === KIND_ASSET) {
         events.push(frame[2])
       }

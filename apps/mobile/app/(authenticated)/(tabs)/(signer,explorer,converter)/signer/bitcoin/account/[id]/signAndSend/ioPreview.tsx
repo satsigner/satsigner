@@ -2,12 +2,7 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useQuery } from '@tanstack/react-query'
 import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  Stack,
-  useFocusEffect,
-  useLocalSearchParams,
-  useRouter
-} from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useIsFocused } from 'expo-router/react-navigation'
 import {
   useCallback,
@@ -80,6 +75,7 @@ import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
   bitcoinAmountBtcToSats,
+  rememberUserSelection,
   resolveUriAutoSelectAlgorithm,
   shouldAutoSelectUtxosFromBitcoinUri,
   shouldAutoSelectUtxosFromParsedAmount
@@ -371,6 +367,14 @@ export default function IOPreview() {
 
     let selectionSucceeded = true
 
+    setPreviousUserSelectedUtxos(
+      rememberUserSelection(
+        selectedAutoSelectUtxos,
+        getInputs(),
+        previousUserSelectedUtxos
+      )
+    )
+
     switch (type) {
       case 'user': {
         if (previousUserSelectedUtxos) {
@@ -391,15 +395,12 @@ export default function IOPreview() {
           break
         }
 
-        setPreviousUserSelectedUtxos(getInputs())
         selectionSucceeded = applyStonewallSelection(new Set())
 
         break
       }
       case 'efficiency': {
         setLoadingOptimizeAlgorithm('efficiency')
-
-        setPreviousUserSelectedUtxos(getInputs())
 
         const selectableUtxos = applyUtxoDenylist(
           account.utxos,
@@ -1237,11 +1238,6 @@ export default function IOPreview() {
         position: 'relative'
       }}
     >
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       {inputs.size > 0 && (
         <View
           style={{
@@ -1295,14 +1291,18 @@ export default function IOPreview() {
           style={{
             paddingHorizontal: Layout.mainContainer.paddingHorizontal,
             paddingTop: Layout.vStack.gap.sm,
-            pointerEvents: 'none',
+            pointerEvents: 'box-none',
             width: '100%'
           }}
           onLayout={handleTopLayout}
           locations={[0.19, 0.566, 0.77, 1]}
           colors={['#0A0A0AFF', '#0A0A0A85', '#0A0A0A68', '#0A0A0A00']}
         >
-          <SSVStack gap="xs" itemsCenter style={{ flex: 1 }}>
+          <SSVStack
+            gap="xs"
+            itemsCenter
+            style={{ flex: 1, pointerEvents: 'box-none' }}
+          >
             <SSBlockFeePriceRow
               blockHeight={blockHeight}
               btcPrice={btcPrice}
@@ -1314,7 +1314,11 @@ export default function IOPreview() {
 
             <SSHStack
               gap="sm"
-              style={{ alignItems: 'center', flexWrap: 'wrap' }}
+              style={{
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                pointerEvents: 'none'
+              }}
             >
               <SSHStack gap="xxs">
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
@@ -1362,6 +1366,7 @@ export default function IOPreview() {
             {isUnderfunded ? (
               <SSText
                 size="xxs"
+                pointerEvents="none"
                 style={{
                   color: warning,
                   marginTop: IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
@@ -1370,7 +1375,7 @@ export default function IOPreview() {
                 {t('transaction.error.insufficientInputs')}
               </SSText>
             ) : null}
-            <SSVStack gap="xxs" itemsCenter>
+            <SSVStack gap="xxs" itemsCenter style={{ pointerEvents: 'none' }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText
                   size="5xl"

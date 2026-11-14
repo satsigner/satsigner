@@ -24,26 +24,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { detectTransactionSearchInput } from '@/utils/bitcoinContent'
 import { formatTxId } from '@/utils/format'
 
 const tn = _tn('explorer.transaction')
-
-const TXID_LENGTH = 64
-const HEX_REGEX = /^[0-9a-f]+$/
-
-function detectInputType(value: string): 'txid' | 'rawTx' | null {
-  const v = value.trim().toLowerCase()
-  if (!v || !HEX_REGEX.test(v)) {
-    return null
-  }
-  if (v.length === TXID_LENGTH) {
-    return 'txid'
-  }
-  if (v.length > TXID_LENGTH && v.length % 2 === 0) {
-    return 'rawTx'
-  }
-  return null
-}
 
 function ExampleIoCount({
   count,
@@ -86,7 +70,7 @@ export default function ExplorerTransaction() {
   const { server } = configs[selectedNetwork]
   const showExamples = selectedNetwork === 'bitcoin'
 
-  const inputType = detectInputType(inputTxid)
+  const inputType = detectTransactionSearchInput(inputTxid)
 
   const { mutate: broadcast, isPending: isBroadcasting } = useMutation({
     mutationFn: (hex: string) => broadcastRawTransaction(hex, server),
@@ -104,7 +88,7 @@ export default function ExplorerTransaction() {
   function handleInputContent(text: string) {
     const trimmed = text.trim().toLowerCase()
     setInputTxid(trimmed)
-    if (detectInputType(trimmed) === 'txid') {
+    if (detectTransactionSearchInput(trimmed) === 'txid') {
       navigate(trimmed)
     }
   }

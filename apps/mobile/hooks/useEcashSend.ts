@@ -33,6 +33,7 @@ const ANIMATED_QR_FRAGMENT_SIZE = 200
 const ANIMATED_QR_INTERVAL_MS = 500
 const NFC_MAX_SIZE = 8192
 const LNURL_PAY_DELAY_MS = 1000
+const LIGHTNING_URI_PREFIX = /^lightning:/i
 
 export function useEcashSend() {
   const router = useRouter()
@@ -205,7 +206,7 @@ export function useEcashSend() {
       router.back()
       return
     }
-    router.navigate('/signer/ecash')
+    router.dismissTo('/signer/ecash')
   }
 
   async function resolveBolt11Invoice(): Promise<string | null> {
@@ -303,7 +304,7 @@ export function useEcashSend() {
 
     const cleanText = text.trim()
     if (!cleanText) {
-      return
+      return 'unsupported'
     }
 
     const { isLNURL: isLNURLInput, type: lnurlType } = getLNURLType(cleanText)
@@ -316,18 +317,19 @@ export function useEcashSend() {
         applyLnurlDetails(details, isCurrentRequest)
       } catch {
         applyLnurlDetails(null, isCurrentRequest)
+        return 'unresolved'
       }
-      return
+      return 'lnurlPay'
     }
 
     if (isLNURLInput && lnurlType === 'withdraw') {
       toast.error(t('ecash.error.lnurlWithdrawInSendTab'))
-      return
+      return 'lnurlWithdraw'
     }
 
     if (!isLightningInvoice(cleanText)) {
       setIsLNURLMode(false)
-      return
+      return 'unsupported'
     }
 
     setIsLNURLMode(false)
@@ -342,7 +344,7 @@ export function useEcashSend() {
       if (!isConnected) {
         setDecodedInvoice(null)
         toast.warning(t('ecash.error.invoiceDecodeFailed'))
-        return
+        return 'unresolved'
       }
       try {
         const lndDecoded = await makeRequest<LNDDecodedInvoice>(
@@ -351,7 +353,30 @@ export function useEcashSend() {
         applyDecodedInvoice(lndDecoded, isCurrentRequest)
       } catch {
         applyDecodedInvoice(null, isCurrentRequest)
+        return 'unresolved'
       }
+    }
+    return 'invoice'
+  }
+
+  // Unlike typing, a paste or scan fills the whole field at once, so it tells
+  // the user whether the content is something this screen can pay.
+  async function applyInvoiceInput(text: string, successMessage: string) {
+    const inputKind = await handleInvoiceChange(
+      text.trim().replace(LIGHTNING_URI_PREFIX, '')
+    )
+    if (inputKind === 'invoice' || inputKind === 'lnurlPay') {
+      toast.success(successMessage)
+      return
+    }
+    // The failed decode or lookup was already reported.
+    if (inputKind === 'unresolved') {
+      return
+    }
+    // What this screen can't pay is not left in the field.
+    setInvoice('')
+    if (inputKind === 'unsupported') {
+      toast.error(t('ecash.error.unsupportedInvoiceInput'))
     }
   }
 
@@ -454,6 +479,7 @@ export function useEcashSend() {
     activeAccount,
     amount,
     animatedQR,
+    applyInvoiceInput,
     comment,
     currentChunkIndex,
     decodedInvoice,

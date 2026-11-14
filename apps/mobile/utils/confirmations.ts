@@ -5,6 +5,15 @@ const UNCONFIRMED_COLOR_STYLE = { color: Colors.mainRed }
 const PENDING_COLOR_STYLE = { color: Colors.warning }
 const CONFIRMED_COLOR_STYLE = { color: Colors.gray[300] }
 
+/**
+ * Confirmations of a transaction mined at `minedAtHeight`, or null while the
+ * known tip has not reached that block (the tip is 0 until a backend reports
+ * one).
+ */
+function getConfirmations(minedAtHeight: number, tipHeight: number) {
+  return tipHeight >= minedAtHeight ? tipHeight - minedAtHeight + 1 : null
+}
+
 function getConfirmationsColor(confirmations: number) {
   if (confirmations <= 0) {
     return Colors.mainRed
@@ -15,7 +24,11 @@ function getConfirmationsColor(confirmations: number) {
   return Colors.gray[300]
 }
 
-function getConfirmationsColorStyle(confirmations: number) {
+/** `null` is a mined transaction whose count is not known yet. */
+function getConfirmationsColorStyle(confirmations: number | null) {
+  if (confirmations === null) {
+    return CONFIRMED_COLOR_STYLE
+  }
   if (confirmations <= 0) {
     return UNCONFIRMED_COLOR_STYLE
   }
@@ -25,4 +38,4 @@ function getConfirmationsColorStyle(confirmations: number) {
   return CONFIRMED_COLOR_STYLE
 }
 
-export { getConfirmationsColor, getConfirmationsColorStyle }
+export { getConfirmations, getConfirmationsColor, getConfirmationsColorStyle }

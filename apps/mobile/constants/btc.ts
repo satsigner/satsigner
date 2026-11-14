@@ -12,8 +12,10 @@ export const HASH_BYTE_LENGTH = 32
 export const HASH_HEX_LENGTH = HASH_BYTE_LENGTH * 2
 export const TXID_HEX_PATTERN = new RegExp(`^[0-9a-fA-F]{${HASH_HEX_LENGTH}}$`)
 export const COINBASE_PREV_TXID = '0'.repeat(HASH_HEX_LENGTH)
-// nSequence values: final (no RBF, no relative locktime) and BIP125 opt-in RBF.
+// nSequence values: final (no RBF, no relative locktime), no RBF with
+// nLockTime still enforced, and BIP125 opt-in RBF.
 export const SEQUENCE_FINAL = 0xff_ff_ff_ff
+export const SEQUENCE_LOCKTIME_NO_RBF = 0xff_ff_ff_fe
 export const SEQUENCE_RBF = 0xff_ff_ff_fd
 // Prevout index used by coinbase and BIP322 virtual inputs.
 export const NULL_PREVOUT_INDEX = 0xff_ff_ff_ff
@@ -62,8 +64,13 @@ export const PSBT_MAGIC_BASE64 = 'cHNidP'
 // OP_m <pubkey> OP_n OP_CHECKMULTISIG
 export const MIN_MULTISIG_SCRIPT_CHUNKS = 4
 export const BITCOIN_URI_SCHEME = 'bitcoin:'
+// BIP21 amount: decimal BTC with a "." separator, no sign or exponent.
+export const BITCOIN_URI_AMOUNT_PATTERN = /^(\d+(\.\d*)?|\.\d+)$/
 // Output amount placeholder the user fills in on ioPreview.
 export const UNSET_OUTPUT_AMOUNT_SATS = 1
 export const MIN_TYPED_ADDRESS_LENGTH_TO_VALIDATE = 10
 export const BARE_BITCOIN_ADDRESS_PATTERN = /^[a-zA-Z0-9]{26,62}$/
 export const HEX_PATTERN = /^[0-9a-fA-F]+$/
+
+/** Consensus weight limit of a block (BIP141). */
+export const MAX_BLOCK_WEIGHT = 4_000_000

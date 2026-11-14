@@ -1,5 +1,4 @@
 import ecc from '@bitcoinerlab/secp256k1'
-import { getDecodedToken } from '@cashu/cashu-ts'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import * as nostrKinds from 'nostr-tools/kinds'
 
@@ -17,6 +16,7 @@ import {
   parseImportedDescriptorPayload,
   parseXpubInput
 } from '@/utils/descriptor'
+import { readEcashToken } from '@/utils/ecashToken'
 import { formatParsedLndPeer, parseLndPeerUri } from '@/utils/lndOpenChannel'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 import { isLNURL } from '@/utils/lnurl'
@@ -41,34 +41,37 @@ function isBitcoinTransaction(data: string): boolean {
   }
 }
 
-export type ContentType =
-  | 'bitcoin_address'
-  | 'bitcoin_uri'
-  | 'psbt'
-  | 'bitcoin_transaction'
-  | 'lightning_invoice'
-  | 'lightning_address'
-  | 'lightning_node'
-  | 'lnurl'
-  | 'lnd_rest_config'
-  | 'ark_address'
-  | 'ecash_token'
-  | 'encrypted_backup'
-  | 'bbqr_fragment'
-  | 'seed_qr'
-  | 'ur'
-  | 'bitcoin_descriptor'
-  | 'extended_public_key'
-  | 'master_fingerprint'
-  | 'nostr_npub'
-  | 'nostr_nsec'
-  | 'nostr_note'
-  | 'nostr_nevent'
-  | 'nostr_nprofile'
-  | 'nostr_connect'
-  | 'nostr_json'
-  | 'incompatible'
-  | 'unknown'
+export const CONTENT_TYPES = [
+  'bitcoin_address',
+  'bitcoin_uri',
+  'psbt',
+  'bitcoin_transaction',
+  'lightning_invoice',
+  'lightning_address',
+  'lightning_node',
+  'lnurl',
+  'lnd_rest_config',
+  'ark_address',
+  'ecash_token',
+  'encrypted_backup',
+  'bbqr_fragment',
+  'seed_qr',
+  'ur',
+  'bitcoin_descriptor',
+  'extended_public_key',
+  'master_fingerprint',
+  'nostr_npub',
+  'nostr_nsec',
+  'nostr_note',
+  'nostr_nevent',
+  'nostr_nprofile',
+  'nostr_connect',
+  'nostr_json',
+  'incompatible',
+  'unknown'
+] as const
+
+export type ContentType = (typeof CONTENT_TYPES)[number]
 
 export type ContentContext =
   | 'bitcoin'
@@ -373,36 +376,32 @@ function detectLightningContent(data: string): DetectedContent | null {
 function detectEcashContent(data: string): DetectedContent | null {
   const trimmed = prepareEcashTokenInput(data)
 
-  if (trimmed.startsWith('cashuA') || trimmed.startsWith('cashuB')) {
-    try {
-      const decoded = getDecodedToken(trimmed)
-      if (decoded) {
-        return {
-          cleaned: trimmed,
-          isValid: true,
-          metadata: {
-            mint: decoded.mint,
-            proofs: decoded.proofs?.length || 0,
-            version: trimmed.startsWith('cashuA') ? 'v3' : 'v4'
-          },
-          raw: data,
-          type: 'ecash_token'
-        }
-      }
-    } catch {
-      const isV4 = trimmed.startsWith('cashuB')
-      return {
-        cleaned: trimmed,
-        // v4 often needs keysets to decode (short keyset ID, key type); treat as valid when format is v4
-        isValid: isV4,
-        metadata: { version: isV4 ? 'v4' : 'v3' },
-        raw: data,
-        type: 'ecash_token'
-      }
-    }
+  if (!trimmed.startsWith('cashuA') && !trimmed.startsWith('cashuB')) {
+    return null
   }
 
-  return null
+  const version = trimmed.startsWith('cashuA') ? 'v3' : 'v4'
+  const token = readEcashToken(trimmed)
+  if (!token) {
+    return {
+      cleaned: trimmed,
+      isValid: false,
+      metadata: { version },
+      raw: data,
+      type: 'ecash_token'
+    }
+  }
+  return {
+    cleaned: trimmed,
+    isValid: true,
+    metadata: {
+      mint: token.mint,
+      proofs: token.proofAmounts.length,
+      version
+    },
+    raw: data,
+    type: 'ecash_token'
+  }
 }
 
 function stripNostrPrefix(data: string): string {

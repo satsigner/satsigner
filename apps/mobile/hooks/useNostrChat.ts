@@ -218,12 +218,13 @@ export function useNostrChatThread(
     // the draft is restored if the send fails.
     setInput('')
     setSending(true)
+    // Taken from the store, not the parent query, which may still be loading.
+    const replyParentId = replyToId
     clearReplyTo()
     // Prefer the warm pipeline (live relay connections) over a fresh API.
     const pipelineApi = getChatPipelineApi(identity.npub)
     const api =
       pipelineApi ?? new NostrAPI(getNostrContactsRelays(identity.relays))
-    const replyParentId = replyParent?.id
     try {
       await sendChatMessage(
         api,

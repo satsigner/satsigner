@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { parsePermissions } from './apk-review.mjs'
+import { notAllowed, parsePermissions } from './apk-review.mjs'
 import { findBuildTool } from './apk-signer.mjs'
 
 const MOBILE_DIR = join(
@@ -58,6 +58,13 @@ function libraryPermissions() {
   })
 }
 
+function withPermissionStatus(permissions) {
+  return permissions.map((permission) => ({
+    ...permission,
+    status: permissionStatus(permission.name)
+  }))
+}
+
 // After a build: what the APK really requests once every manifest is merged.
 function apkPermissions(apkPath) {
   const output = execFileSync(
@@ -65,19 +72,11 @@ function apkPermissions(apkPath) {
     ['dump', 'permissions', apkPath],
     { encoding: 'utf8' }
   )
-  return parsePermissions(output).map((permission) => ({
-    ...permission,
-    status: permissionStatus(permission.name)
-  }))
+  return withPermissionStatus(parsePermissions(output))
 }
 
 function unexpected(permissions) {
   return permissions.filter((permission) => permission.status === 'unexpected')
-}
-
-// In the APK a blocked permission is a failure too: the block did not apply.
-function notAllowed(permissions) {
-  return permissions.filter((permission) => permission.status !== 'allowed')
 }
 
 function assertApkPermissions(apkPath) {
@@ -97,7 +96,7 @@ export {
   apkPermissions,
   assertApkPermissions,
   libraryPermissions,
-  notAllowed,
   permissionStatus,
-  unexpected
+  unexpected,
+  withPermissionStatus
 }

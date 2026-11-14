@@ -1,4 +1,8 @@
-import { PSBT_MAGIC_HEX } from '@/constants/btc'
+import {
+  HASH_HEX_LENGTH,
+  PSBT_MAGIC_HEX,
+  TXID_HEX_PATTERN
+} from '@/constants/btc'
 
 // Heuristic minimum lengths for a plausible base64/hex-encoded PSBT.
 const PSBT_BASE64_MIN_LENGTH = 50
@@ -30,4 +34,15 @@ export function isFinalTransactionHex(text: string) {
     /^[0-9a-fA-F]+$/.test(trimmed) &&
     !trimmed.toLowerCase().startsWith(PSBT_MAGIC_HEX)
   )
+}
+
+export function detectTransactionSearchInput(text: string) {
+  const trimmed = text.trim()
+  if (TXID_HEX_PATTERN.test(trimmed)) {
+    return 'txid'
+  }
+  if (trimmed.length > HASH_HEX_LENGTH && isFinalTransactionHex(trimmed)) {
+    return 'rawTx'
+  }
+  return null
 }

@@ -29,12 +29,17 @@ import { useMempoolExtendedData } from '@/hooks/useMempoolData'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Typography } from '@/styles'
 import type { MemPoolFees } from '@/types/models/Blockchain'
-import { formatBytes, formatDate, formatPercentualChange } from '@/utils/format'
+import {
+  formatBlockWeight,
+  formatBytes,
+  formatDate,
+  formatPercentualChange
+} from '@/utils/format'
 import {
   MAIN_HORIZONTAL_PAD_RATIO,
   PRICE_CHART_HEIGHT,
@@ -86,7 +91,7 @@ export default function ChainTip() {
 
   const [showExternal, setShowExternal] = useState(false)
 
-  const { data: chainData, isLoading } = useChainTipData()
+  const { data: chainData, isError, isLoading } = useChainTipData()
   const { data: externalData, isLoading: isLoadingExternal } =
     useMempoolExtendedData(showExternal)
   const { data: mempoolStatistics } = useChainTipMempoolStats(
@@ -159,6 +164,11 @@ export default function ChainTip() {
                   : null
               }
             />
+            {isError ? (
+              <SSText size="sm" color="muted">
+                {t('explorer.tipLoadError')}
+              </SSText>
+            ) : null}
             <SSVStack gap="xs">
               <Pressable
                 onPress={openTipBlock}
@@ -196,7 +206,7 @@ export default function ChainTip() {
               {chainData?.block?.weight !== undefined && (
                 <SSExplorerRow
                   label={tn('weight')}
-                  value={formatBytes(chainData.block.weight)}
+                  value={formatBlockWeight(chainData.block.weight)}
                   loading={isLoading}
                 />
               )}

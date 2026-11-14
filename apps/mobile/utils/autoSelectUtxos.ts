@@ -88,6 +88,21 @@ export function resolveUriAutoSelectAlgorithm({
   return defaultAlgorithm
 }
 
+/**
+ * The inputs "User" restores. They are captured only while the user's own
+ * selection is active, so moving between automatic methods keeps them.
+ */
+export function rememberUserSelection<Input>(
+  activeAlgorithm: AutoSelectUtxosAlgorithm,
+  currentInputs: Input[],
+  savedInputs: Input[] | undefined
+): Input[] | undefined {
+  if (activeAlgorithm !== 'user') {
+    return savedInputs
+  }
+  return currentInputs
+}
+
 const AUTO_SELECT_UTXO_TITLE_KEYS = {
   efficiency: 'transaction.build.options.autoSelect.utxos.efficiency.title',
   privacy: 'transaction.build.options.autoSelect.utxos.privacy.title',

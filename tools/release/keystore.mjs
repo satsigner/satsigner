@@ -51,7 +51,12 @@ const RELEASE_CERT_SHA256 =
   'E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7'
 
 const releaseDir = join(homedir(), '.satsigner')
-const nextReleaseDir = join(releaseDir, 'next')
+
+function nextKeyDir(dir = releaseDir) {
+  return join(dir, 'next')
+}
+
+const nextReleaseDir = nextKeyDir()
 
 function keystoreFiles(dir) {
   return {
@@ -235,9 +240,14 @@ function readPkcs12(dir, sectionArg) {
   )
 }
 
+// Reads only the certificate, so status checks never decrypt the private key.
+function storedCertificate(dir = releaseDir) {
+  return new X509Certificate(readPkcs12(dir, '-nokeys')).raw
+}
+
 function storedIdentity(dir = releaseDir) {
   return {
-    certificate: new X509Certificate(readPkcs12(dir, '-nokeys')).raw,
+    certificate: storedCertificate(dir),
     key: createPrivateKey(readPkcs12(dir, '-nocerts'))
   }
 }
@@ -264,9 +274,7 @@ function readKeystorePassword(dir = releaseDir) {
 }
 
 function storedCertificateHash(dir = releaseDir) {
-  return createHash('sha256')
-    .update(storedIdentity(dir).certificate)
-    .digest('hex')
+  return createHash('sha256').update(storedCertificate(dir)).digest('hex')
 }
 
 function requireReleaseKeystore(dir = releaseDir) {
@@ -294,17 +302,17 @@ function signingEnv(baseEnv, dir = releaseDir) {
 }
 
 function storedFingerprint(dir = releaseDir) {
-  return certificateFingerprint(storedIdentity(dir).certificate)
+  return certificateFingerprint(storedCertificate(dir))
 }
 
 function hasRotation(dir = releaseDir) {
-  return existsSync(lineageFile(dir)) && hasReleaseKeystore(join(dir, 'next'))
+  return existsSync(lineageFile(dir)) && hasReleaseKeystore(nextKeyDir(dir))
 }
 
 // After a rotation the newest certificate is the one Zapstore and new installs
 // see, so the identity proof has to link that one.
 function newestSignerDir(dir = releaseDir) {
-  return hasRotation(dir) ? join(dir, 'next') : dir
+  return hasRotation(dir) ? nextKeyDir(dir) : dir
 }
 
 function keyFingerprint(dir) {
@@ -320,7 +328,8 @@ function keyFingerprint(dir) {
 
 function releaseKeyStatus(dir = releaseDir) {
   const current = keyFingerprint(dir)
-  const next = keyFingerprint(join(dir, 'next'))
+  const nextDir = nextKeyDir(dir)
+  const next = keyFingerprint(nextDir)
   return {
     current: {
       ...current,
@@ -329,7 +338,7 @@ function releaseKeyStatus(dir = releaseDir) {
     },
     expectedFingerprint: RELEASE_CERT_SHA256,
     lineage: existsSync(lineageFile(dir)),
-    next: { ...next, path: keystoreFiles(join(dir, 'next')).keystore },
+    next: { ...next, path: keystoreFiles(nextDir).keystore },
     rotating: hasRotation(dir)
   }
 }
@@ -347,6 +356,7 @@ export {
   lineageFile,
   lineagePath,
   newestSignerDir,
+  nextKeyDir,
   nextKeystorePath,
   nextReleaseDir,
   releaseDir,
@@ -360,6 +370,7 @@ export {
   releaseIdentityFromMnemonic,
   requireReleaseKeystore,
   signingEnv,
+  storedCertificate,
   storedCertificateHash,
   storedIdentity,
   writeKeystore

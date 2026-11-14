@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 
 import { WebSocketServer } from 'ws'
 
+import { readListing } from '../../apps/mobile/scripts/zapstore-listing.mjs'
 import { inspectApk, newestApkFor, queryLiveAsset } from './apk-inspect.mjs'
 import { libraryChecks, securityChecks, zapstoreChecks } from './apk-review.mjs'
 import { findApksigner } from './apk-signer.mjs'
@@ -33,7 +34,10 @@ import {
 import { RELEASE_CERT_SHA256, releaseKeyStatus } from './keystore.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { createBunker, startBridge } from './nip46-bridge.mjs'
-import { libraryPermissions, permissionStatus } from './permission-check.mjs'
+import {
+  libraryPermissions,
+  withPermissionStatus
+} from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
 import { versionStatus } from './version.mjs'
 
@@ -48,13 +52,10 @@ const {
   getVariantIcons,
   getVariantPackageId
 } = require(path.join(REPO_ROOT, 'apps/mobile/constants/variant.cjs'))
-const { readListing } = await import(
-  path.join(REPO_ROOT, 'apps/mobile/scripts/zapstore-listing.mjs')
-)
 const MOBILE_DIR = path.join(REPO_ROOT, 'apps', 'mobile')
 const APK_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'dist', 'apks')
 const LISTING_DIR = path.join(REPO_ROOT, 'apps', 'mobile', 'zapstore')
-const SCREENSHOT_TYPES = {
+const IMAGE_TYPES = {
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
   '.png': 'image/png',
@@ -523,6 +524,26 @@ function requireLocal(req, res) {
   return true
 }
 
+// An unhandled stream error would stop the console, and a branch checkout can
+// remove an image while it runs.
+function sendImage(res, file) {
+  const stream = createReadStream(file)
+  stream.on('open', () => {
+    res.writeHead(200, {
+      'cache-control': 'no-store',
+      'content-type': IMAGE_TYPES[path.extname(file).toLowerCase()]
+    })
+    stream.pipe(res)
+  })
+  stream.on('error', () => {
+    if (res.headersSent) {
+      res.destroy()
+      return
+    }
+    send(res, 404, { error: 'image not found' })
+  })
+}
+
 const server = createServer(async (req, res) => {
   if (!requireLocal(req, res)) {
     return
@@ -565,13 +586,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/listing/icon-background') {
-    res.writeHead(200, {
-      'cache-control': 'no-store',
-      'content-type': 'image/png'
-    })
-    createReadStream(path.resolve(MOBILE_DIR, ADAPTIVE_ICON_BACKGROUND)).pipe(
-      res
-    )
+    sendImage(res, path.resolve(MOBILE_DIR, ADAPTIVE_ICON_BACKGROUND))
     return
   }
 
@@ -579,11 +594,7 @@ const server = createServer(async (req, res) => {
     const file = await launcherIconFile(
       releaseChannel(url.searchParams.get('channel'))
     )
-    res.writeHead(200, {
-      'cache-control': 'no-store',
-      'content-type': SCREENSHOT_TYPES[path.extname(file).toLowerCase()]
-    })
-    createReadStream(file).pipe(res)
+    sendImage(res, file)
     return
   }
 
@@ -598,11 +609,7 @@ const server = createServer(async (req, res) => {
       send(res, 404, { error: 'screenshot not found' })
       return
     }
-    res.writeHead(200, {
-      'cache-control': 'no-store',
-      'content-type': SCREENSHOT_TYPES[path.extname(screenshot).toLowerCase()]
-    })
-    createReadStream(screenshot).pipe(res)
+    sendImage(res, screenshot)
     return
   }
 
@@ -670,7 +677,11 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/version') {
-    send(res, 200, await versionStatus())
+    try {
+      send(res, 200, await versionStatus())
+    } catch (error) {
+      send(res, 500, { error: error.message })
+    }
     return
   }
 
@@ -788,10 +799,7 @@ async function releasePreview(value) {
   const inspected = await inspectApk(file.path)
   const apk = {
     ...inspected,
-    permissions: inspected.permissions.map((permission) => ({
-      ...permission,
-      status: permissionStatus(permission.name)
-    }))
+    permissions: withPermissionStatus(inspected.permissions)
   }
   return {
     ...base,
@@ -803,6 +811,7 @@ async function releasePreview(value) {
         expectedPackageId: packageId,
         listing,
         live: live.asset,
+        liveError: live.error,
         releaseFingerprint: RELEASE_CERT_SHA256
       })
     }

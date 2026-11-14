@@ -2,7 +2,10 @@ import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import {
   formatAddress,
+  formatBlockWeight,
   formatBtc,
+  formatConfirmations,
+  formatConfirmationsWithBlock,
   formatDate,
   formatFeeRateSatPerVb,
   formatLargeNumber,
@@ -214,8 +217,20 @@ describe('formatShortSats', () => {
     expect(formatShortSats(2_400_000)).toBe('2.4m sats')
   })
 
+  it('moves to millions when thousands round up to a thousand', () => {
+    expect(formatShortSats(999_600)).toBe('1m sats')
+    expect(formatShortSats(999_499)).toBe('999k sats')
+  })
+
   it('marks a lower bound with a plus', () => {
     expect(formatShortSats(1400, true)).toBe('1.4k+ sats')
+  })
+
+  it('rounds a lower bound down so it never overstates the total', () => {
+    expect(formatShortSats(1450, true)).toBe('1.4k+ sats')
+    expect(formatShortSats(1450)).toBe('1.5k sats')
+    expect(formatShortSats(999_600, true)).toBe('999k+ sats')
+    expect(formatShortSats(12.9, true)).toBe('12+ sats')
   })
 })
 
@@ -261,5 +276,35 @@ describe('formatMaskedSats', () => {
     expect(formatMaskedSats(1234, true)).toBe(
       `${PRIVACY_MASK} ${t('bitcoin.sats')}`
     )
+  })
+})
+
+describe('formatConfirmations', () => {
+  it('reads as confirmed while the count is not known', () => {
+    expect(formatConfirmations(null)).toBe(t('bitcoin.confirmations.confirmed'))
+  })
+
+  it('reads as unconfirmed without a confirmation', () => {
+    expect(formatConfirmations(0)).toBe(t('bitcoin.confirmations.unconfirmed'))
+  })
+})
+
+describe('formatConfirmationsWithBlock', () => {
+  it('shows the block without a count while the count is not known', () => {
+    expect(formatConfirmationsWithBlock(null, 330_183)).toBe(
+      `${t('bitcoin.confirmations.confirmed')} • 330,183`
+    )
+  })
+
+  it('shows the count next to the block', () => {
+    expect(formatConfirmationsWithBlock(1, 330_183)).toBe(
+      `${t('bitcoin.confirmations.oneConf')} • 330,183`
+    )
+  })
+})
+
+describe('formatBlockWeight', () => {
+  it('shows the weight against the block limit in weight units', () => {
+    expect(formatBlockWeight(1_039_432)).toBe('1,039,432 / 4,000,000 WU')
   })
 })
