@@ -2856,11 +2856,17 @@
         if (saved.tab) {
           clickSaved(`[role="tab"][aria-controls="${CSS.escape(saved.tab)}"]`)
         }
-        if (saved.signedIn) signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
+      }
+
+      // Signing in replaces the server's bunker, and a running publish keeps
+      // waiting on the old one, so a reload or a second tab must not do it.
+      function resumeSignIn() {
+        if (!readUiState().signedIn || busy) return
+        signInWhenExtensionLoads(EXTENSION_POLL_ATTEMPTS)
       }
 
       restoreUiState()
-      refreshStatus()
+      void refreshStatus().then(resumeSignIn)
       refreshListings()
       setInterval(refreshStatusInBackground, STATUS_REFRESH_MS)
       window.addEventListener('focus', refreshStatusInBackground)
