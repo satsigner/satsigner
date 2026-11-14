@@ -1,0 +1,114 @@
+/* Copied from satsigner apps/mobile/styles (colors, sizes, layout).
+   Do not invent values here. Glass rgba values come from SSButton elevated borders. */
+
+:root {
+  --transparent: transparent;
+  --white: #ffffff;
+  --black: #000000;
+
+  --gray-25: #f5f5f5;
+  --gray-50: #f0f0f0;
+  --gray-75: #cdcdcd;
+  --gray-100: #a0a0a0;
+  --gray-200: #828282;
+  --gray-300: #777777;
+  --gray-400: #686868;
+  --gray-450: #606060;
+  --gray-500: #515151;
+  --gray-600: #434343;
+  --gray-700: #363636;
+  --gray-800: #2d2d2d;
+  --gray-820: #2a2a2a;
+  --gray-830: #272727;
+  --gray-850: #242424;
+  --gray-855: #232323;
+  --gray-860: #222222;
+  --gray-875: #212121;
+  --gray-880: #1c1c1c;
+  --gray-890: #161616;
+  --gray-900: #111111;
+  --gray-905: #0f0f0f;
+  --gray-915: #101010;
+  --gray-920: #0e0e0e;
+  --gray-925: #121212;
+  --gray-930: #0c0c0c;
+  --gray-940: #0b0b0b;
+  --gray-950: #0a0a0a;
+
+  --success: #237c3c;
+  --warning: #dcbb13;
+  --error: #c13939;
+  --soft-green: #a7ffaf4f;
+  --main-green: #a7ffaf;
+  --soft-red: #ff71714f;
+  --main-red: #ff7171;
+  --soft-white: #767676;
+  --soft-bar-green: #547b58;
+  --bar-green: #0e5d0c;
+  --soft-bar-red: #7b4e4e;
+  --bar-red: #7b0b0b;
+  --bar-gray: #2c2c2c;
+
+  --font-2xxs: 8px;
+  --font-xxs: 9px;
+  --font-xs: 10px;
+  --font-sm: 12px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-2xl: 20px;
+  --font-3xl: 24px;
+  --font-4xl: 30px;
+  --font-5xl: 36px;
+  --font-6xl: 42px;
+  --font-7xl: 50px;
+  --font-8xl: 62px;
+
+  --weight-ultralight: 200;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --gap-none: 0;
+  --gap-xxs: 2px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 16px;
+  --gap-lg: 32px;
+  --gap-xl: 64px;
+  --gap-2xl: 128px;
+
+  --pad-main-x: 6%;
+  --pad-main-top: 18px;
+  --pad-main-bottom: 32px;
+
+  --button-radius: 3px;
+  --button-font: var(--font-sm);
+  --button-height: 58px;
+
+  --glass-top: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.22) 35%,
+    rgba(255, 255, 255, 0.05)
+  );
+  --glass-bottom: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0.3),
+    rgba(0, 0, 0, 0)
+  );
+  --glass-left: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.04)
+  );
+  --glass-right: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.02)
+  );
+  --button-fill: linear-gradient(180deg, var(--gray-875), var(--gray-880));
+  --header-glow: rgba(255, 255, 255, 0.12);
+}

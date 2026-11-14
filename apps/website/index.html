@@ -1,16 +1,112 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8">
     <title>satsigner</title>
-    <meta name="description" content="A bitcoin first mobile application concept">
+    <meta name="description" content="See every sat, own your keys. Mobile self-custody that’s clear, private, and yours.">
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      (function () {
+        var root = document.documentElement;
+        function settle() {
+          root.style.scrollBehavior = '';
+          root.classList.add('is-settled');
+        }
+        if (location.hash) {
+          addEventListener('load', function () { setTimeout(settle, 0); });
+          return;
+        }
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        function pin() {
+          if (location.hash) return;
+          root.style.scrollBehavior = 'auto';
+          scrollTo(0, 0);
+        }
+        pin();
+        addEventListener('pageshow', pin);
+        addEventListener('load', function () {
+          pin();
+          requestAnimationFrame(function () { requestAnimationFrame(settle); });
+        });
+      })();
+    </script>
+    <meta name="color-scheme" content="dark light">
+    <style>
+      html { color-scheme: dark; background: #000; }
+      html[data-theme="light"] { color-scheme: light; background: #e6e6e6; }
+      html, body { background: #000; color: #fff; margin: 0; }
+      html[data-theme="light"], html[data-theme="light"] body { background: #e6e6e6; color: #161616; }
+      html:not(.is-ready) body > :not(.boot) { visibility: hidden; }
+      html:not(.is-ready) .hero.is-badge .hero-mark-type {
+        visibility: visible;
+        position: fixed;
+        z-index: 1001;
+        left: 50%;
+        top: 50%;
+        width: 112px;
+        margin: 0;
+        opacity: 1;
+        animation: none;
+        transform: translate(-50%, -50%);
+      }
+      html.is-ready .hero.is-intro .hero-mark-type,
+      html.is-ready .hero.is-intro .hero-logo-light {
+        animation: none;
+        opacity: 1;
+      }
+      .boot {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        background: #000;
+        color: #fff;
+        pointer-events: none;
+      }
+      html[data-theme="light"] .boot { background: #e6e6e6; color: #161616; }
+      .boot-line {
+        position: absolute;
+        bottom: 18vh;
+        width: 72px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.16);
+        overflow: hidden;
+      }
+      html[data-theme="light"] .boot-line { background: rgba(0, 0, 0, 0.12); }
+      .boot-line i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: rgba(255, 255, 255, 0.85);
+        animation: boot-line 1.15s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+      }
+      html[data-theme="light"] .boot-line i { background: rgba(0, 0, 0, 0.7); }
+      html.is-ready .boot {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.7s ease, visibility 0s linear 0.7s;
+      }
+      @keyframes boot-line {
+        to { width: 100%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-line i { animation: none; width: 100%; }
+        html.is-ready .boot { transition: none; }
+      }
+    </style>
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-    <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="fonts/inter.css">
+    <link rel="stylesheet" href="studio/tokens.css">
+    <link rel="stylesheet" href="studio/screen.css">
+    <link rel="stylesheet" type="text/css" href="styles.css?v=109" media="screen" />
 
-
-    <meta property="og:title" content="SatSigner - A bitcoin first mobile application concept" />
+    <meta property="og:title" content="SatSigner — Your bitcoin, fully visible and under your control" />
     <meta property="og:type" content="website" />
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg"/>
@@ -19,325 +115,434 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-
-
-
-
-
   </head>
   <body>
-
-
-  <div id="header">
-    <img id="logo" src="imgs/satSigner_symbol.png">
-    <h1>
-      Take control of your UTXOs
-    </h1>
-
-
-
-
-    <script>
-          function submitForm(event) {
-              event.preventDefault(); // Prevent the default form submission
-
-              const inputField = document.getElementById('inputField').value;
-
-              // Create a new FormData object
-              const formData = new FormData();
-              formData.append('inputField', inputField);
-
-              // Send the data using fetch
-              fetch('https://pvxg.net/satsigner/interest/index.php', {
-                  method: 'POST',
-                  body: formData
-              })
-              .then(response => response.json())
-              .then(data => {
-                  // Get the message element
-                  const messageElement = document.getElementById('message');
-
-                  // Update the message element based on the response
-                  if (data.status === 'success') {
-                      messageElement.textContent = data.message; // Show success message
-                      messageElement.style.color = '#6da66d'; // Set text color to green
-                  } else {
-                      messageElement.textContent = data.message; // Show error message
-                      messageElement.style.color = 'red'; // Set text color to red
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  const messageElement = document.getElementById('message');
-                  messageElement.textContent = 'An error occurred while submitting the form.';
-                  messageElement.style.color = 'red'; // Set text color to red
-              });
-          }
-      </script>
-
-
-
-      <form onsubmit="submitForm(event)" id="nostr-form">
-          <label for="inputField"><h3>Enter your npub for beta access</h3></label>
-          <input type="text" id="inputField" name="inputField" placeholder="npub..." required><br><br>
-          <input class="button" type="submit" value="Submit">
-          <div id="message" style="margin-top: 10px;"></div> <!-- Message display area -->
-      </form>
-
-
-
-    <div id="social-links">
-      <br><br><h3>Follow and contribute</h3><br>
-      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank">nostr</a> <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank">figma</a>   <a href="https://github.com/satsigner/" target="_blank">github</a>
-    </div>
-
+  <div class="boot" aria-hidden="true">
+    <div class="boot-line"><i></i></div>
   </div>
 
-  <!--
-  <img width="100%" src="imgs/satsigner_screens.png">
-  -->
-
-
-  <video width="320" height="240" autoplay  muted loop>
-    <source src="imgs/satSigner_UX_intro_SOUND2.mp4" type="video/mp4">
-    <source src="movie.ogg" type="video/ogg">
-    Your browser does not support the video tag.
-  </video>
-
-
-
-
-
-
-  <div class="dontion-outter">
-              <div class="dontion-inner">
-
-
-    <div>
-
-
-
-                  <!--
-                  <script>if(!window.btcpay){    var head = document.getElementsByTagName('head')[0];   var script = document.createElement('script');   script.src='https://btcpay989117.lndyn.com/modal/btcpay.js';   script.type = 'text/javascript';   head.append(script);}function onBTCPayFormSubmit(event){    var xhttp = new XMLHttpRequest();    xhttp.onreadystatechange = function() {        if (this.readyState == 4 && this.status == 200) {            if(this.status == 200 && this.responseText){                var response = JSON.parse(this.responseText);                window.btcpay.showInvoice(response.invoiceId);            }        }    };    xhttp.open("POST", event.target.getAttribute('action'), true);    xhttp.send(new FormData( event.target ));}</script><style type="text/css"> .btcpay-form { display: inline-flex; align-items: center; justify-content: center; } .btcpay-form--inline { flex-direction: row; } .btcpay-form--block { flex-direction: column; } .btcpay-form--inline .submit { margin-left: 15px; } .btcpay-form--block select { margin-bottom: 10px; } .btcpay-form .btcpay-custom-container{ text-align: center; }.btcpay-custom { display: flex; align-items: center; justify-content: center; } .btcpay-form .plus-minus { cursor:pointer; font-size:25px; line-height: 25px; background: #DFE0E1; height: 30px; width: 45px; border:none; border-radius: 60px; margin: auto 5px; display: inline-flex; justify-content: center; } .btcpay-form select { -moz-appearance: none; -webkit-appearance: none; appearance: none; color: currentColor; background: transparent; border:1px solid transparent; display: block; padding: 1px; margin-left: auto; margin-right: auto; font-size: 11px; cursor: pointer; } .btcpay-form select:hover { border-color: #ccc; } #btcpay-input-price { -moz-appearance: none; -webkit-appearance: none; border: none; box-shadow: none; text-align: center; font-size: 25px; margin: auto; border-radius: 5px; line-height: 35px; background: #fff; } #btcpay-input-price::-webkit-outer-spin-button, #btcpay-input-price::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } </style>
-                  <form method="POST"  onsubmit="onBTCPayFormSubmit(event);return false"  action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
-                    <input type="hidden" name="storeId" value="ERVAn9xx7uhcPyEFSBdDazaNMwXQEYyshSyUdw1iiGtv" />
-                    <input type="hidden" name="jsonResponse" value="true" />
-                    <input type="" name="price" value="10" />
-                    <input type="select-list" name="currency" value="USD" />
-                  <button type="submit" class="submit" name="submit" style="min-width:146px; min-height:40px; border-radius: 4px;border-style: none;background-color: #333333;" alt="Pay with BtcPay, Self-Hosted Bitcoin Payment Processor"><span style="color:#fff">Support</span>
-                  </button></form>
-                -->
-
-
-
-
-                <script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
-
-
-                <script>
-                $( document ).ready(function() {
-                  $(".btcpay-form").each(function( index, element ) {
-
-                    var jsonForm = new Object();
-                    var type = $(element).find('.input-checkoutDesc').val();
-                    $(element).find('.btcpay-input').keyup(function() {
-
-                      // limit, for validation
-                      // {"p":"Contributor","n":"wdhgt735344eew","t":"rwfrw66uiolou3746467456fwwed","g":"546646665644664654"}
-                      $(element).find('.input-checkoutDesc').val( type + ':' + $(element).find('.input-name').val());
-                      jsonForm.p = type;
-                      jsonForm.t = $(element).find('.input-twitterHandle').val();
-                      console.log(JSON.stringify(jsonForm));
-                      $(element).find('.input-orderId').val(JSON.stringify(jsonForm));
-                    });
-
-                  });
-                });
-                </script>
-
-                <h3>Support the developers</h3>
-                <form method="POST" onsubmit="onBTCPayFormSubmit(event);return false" action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
-                  <input type="hidden" name="storeId" value="GRqWiPg5FBP5j7yNqaHVyAr884e65B7ebFjqE4g8Fu8k" />
-                  <input type="hidden" name="jsonResponse" value="true" />
-
-                  <input class="btcpay-input input-orderId" name="orderId" value="" placeholder="DATA" />
-                  <input class="btcpay-input input-checkoutDesc" name="checkoutDesc" value="Producer" placeholder="" />
-
-
-
-
-                  <div class="form-group">
-                    <!--<label class="form-label" for="first">Twitter Handle</label>-->
-                    <input class="btcpay-input input-twitterHandle form-input" placeholder="name/nym" name="twitter" value="" />
-                  </div>
-
-                  <!--
-                  <div class="form-group">
-                    <label class="form-label" for="first">Display/Company Name</label>
-                    <input class="btcpay-input input-name form-input" name="name" value="" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="first">Github Username</label>
-                    <input class="btcpay-input input-githubUsername form-input" name="github" value="" />
-                  </div>
-                  -->
-
-                  <input type="hidden" name="checkoutQueryString" value="payerData" />
-
-
-
-                  <div class="btcpay-custom-container">
-                    <input class="btcpay-input-price" type="number" name="price" min="1" max="21000" step="1" value="21" data-price="1" style="width:209px;" oninput="handlePriceInput(event);return false" onchange="handleSliderChange(event);return false" />
-                  <select name="currency">
-                    <option value="USD" selected>USD</option>
-                    <option value="GBP">GBP</option>
-                    <option value="EUR">EUR</option>
-                    <option value="BTC">BTC</option>
-                  </select>
-                  <input type="range" class="btcpay-input-range" min="1" max="21000" step="1" value="21" style="width:209px;" oninput="handleSliderInput(event);return false" />
-                  </div>
-                  <button type="submit" class="submit donation" name="submit" title="Pay with BTCPay Server, a Self-Hosted Bitcoin Payment Processor">DONATE NOW</button>
-                </form>
-
-                <script>
-                    if (!window.btcpay) {
-                        var script = document.createElement('script');
-                        script.src = "https://btcpay989117.lndyn.com/modal/btcpay.js";
-                        document.getElementsByTagName('head')[0].append(script);
-                    }
-                    function onBTCPayFormSubmit(event) {
-                        event.preventDefault();
-                        var xhttp = new XMLHttpRequest();
-                        xhttp.onreadystatechange = function() {
-                            if (this.readyState == 4 && this.status == 200 && this.responseText) {
-                                window.btcpay.showInvoice(JSON.parse(this.responseText).invoiceId);
-                            }
-                        };
-                        xhttp.open('POST', event.target.getAttribute('action'), true);
-                        xhttp.send(new FormData(event.target));
-                    }
-
-                    function handleSliderChange(event) {
-                        event.preventDefault();
-                        const root = event.target.closest('.btcpay-form');
-                        const el = root.querySelector('.btcpay-input-price');
-                        const price = parseInt(el.value);
-                        const min = parseInt(event.target.getAttribute('min')) || 1;
-                        const max = parseInt(event.target.getAttribute('max'));
-                        if (price < min) {
-                            el.value = min;
-                        } else if (price > max) {
-                            el.value = max;
-                        }
-                        root.querySelector('.btcpay-input-range').value = el.value;
-                    }
-
-                    function handleSliderInput(event) {
-                        event.target.closest('.btcpay-form').querySelector('.btcpay-input-price').value = event.target.value;
-                    }
-
-                    function handlePriceInput(event) {
-                        event.preventDefault();
-                        const root = event.target.closest('.btcpay-form');
-                        const price = parseInt(event.target.dataset.price);
-                        if (isNaN(event.target.value)) root.querySelector('.btcpay-input-price').value = price;
-                        const min = parseInt(event.target.getAttribute('min')) || 1;
-                        const max = parseInt(event.target.getAttribute('max'));
-                        if (event.target.value < min) {
-                            event.target.value = min;
-                        } else if (event.target.value > max) {
-                            event.target.value = max;
-                        }
-                    }
-                    </script>
-
-
-
-
-
-
+  <nav class="site-nav">
+    <div class="site-nav-inner">
+      <a href="#beta" class="nav-logo"><img src="imgs/satSigner_symbol.png" alt=""><span class="nav-wordmark">SATSIGNER</span></a>
+        <button type="button" class="nav-menu" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+          <span></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="#features">Features</a>
+          <a href="#studio">Studio</a>
+          <a href="#contribute">Contribute</a>
+          <a href="/stack/">Stack</a>
+          <div class="nav-drop">
+            <a href="#git" class="nav-drop-label" aria-haspopup="true">Git</a>
+            <div class="nav-drop-menu">
+              <a href="https://github.com/satsigner/" target="_blank" rel="noopener"><svg class="host-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+              <a href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener"><img class="host-logo" src="imgs/gitworkshop.svg" alt="">gitworkshop.dev</a>
+            </div>
+          </div>
+          <button type="button" class="theme-toggle" aria-label="Toggle color theme">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"></circle>
+              <path d="M8 1.75a6.25 6.25 0 0 0 0 12.5z" fill="currentColor"></path>
+            </svg>
+          </button>
         </div>
-
-
-
-
-                      <!--
-                      <a href="https://geyser.fund/project/satsigner/" target="_blank" class="submit donation-cta geyser"  title="">
-                        <span style="color:#fff">Support on</span><img src="imgs/geyser.svg" style="height: 27px;display:inline-block;padding: 4% 0 9% 5px;vertical-align:middle;">
-                      </a>
-                      -->
-
-        						</div>
-        					</div>
-
-
-
     </div>
+  </nav>
 
-
-
-
-
-
-
-
-
-    <h3>Progess updates</h3>
-    <div class="swiper events">
-
-      <div class="swiper-wrapper">
-
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-02-23_opensats_development_update_1.jpg">
-          <div class="swiper-slide-title">Update 1</div>
+  <section class="hero is-phone is-badge is-intro" id="beta">
+    <canvas class="hero-canvas" aria-hidden="true"></canvas>
+    <div class="hero-stage">
+      <div class="hero-copy">
+        <h1 class="hero-title">See every sat.<br>Control every key.</h1>
+        <a class="zapstore-badge" href="https://zapstore.dev/apps/satsigner" target="_blank" rel="noopener">
+          <img src="imgs/get-it-on-zapstore.svg" alt="Get it on Zapstore" height="36">
+        </a>
+        <div class="hero-meta">
+          <a class="hero-version" href="https://github.com/satsigner/satsigner/releases/tag/v0.3.6" target="_blank" rel="noopener">v0.3.6</a>
+          <div class="hero-demo">
+            <button type="button" class="hero-demo-link" aria-expanded="false" aria-haspopup="menu" aria-controls="hero-demo-menu">Demo<span class="hero-demo-caret" aria-hidden="true"></span></button>
+            <span class="hero-demo-now" aria-live="polite"></span>
+            <div class="hero-demo-menu" id="hero-demo-menu" role="menu">
+              <button type="button" role="menuitem" data-flow="send">Send transaction</button>
+              <button type="button" role="menuitem" data-flow="account">Create account</button>
+              <button type="button" role="menuitem" data-flow="import">Import from seed</button>
+              <button type="button" role="menuitem" data-flow="multisig">Multisig 2-of-3</button>
+              <button type="button" role="menuitem" data-flow="nostr">Nostr sync</button>
+              <button type="button" role="menuitem" data-flow="ecash">Receive ecash</button>
+              <button type="button" role="menuitem" data-flow="ark">Board Ark</button>
+            </div>
+          </div>
         </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-04-11_opensats_development_update_2.jpg">
-          <div class="swiper-slide-title">Update 2</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/44f360a2056472eb39e3482013c5fbc49350ceacf3f988d4017aa9a6199cfd36.jpg">
-          <div class="swiper-slide-title">Update 3</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/098e10aa9c420a2a3d247e9586f6e1b3071499ec36cc227b5ab9ddc3f5432bea.jpeg">
-          <div class="swiper-slide-title">Update 4.1</div>
-        </div>
-        <div class="swiper-slide">
-          <img class="swiper-slide-image" src="https://cdn.satellite.earth/cd254efd7acae2e0c9da84ddbd0ce8d40c319c65ed08fb435032d4e1926f2017.jpeg">
-          <div class="swiper-slide-title">Update 4.2</div>
-        </div>
-
       </div>
+      <div class="hero-mark">
+        <span class="phone-key phone-key-silent" aria-hidden="true"></span>
+        <span class="phone-key phone-key-up" aria-hidden="true"></span>
+        <span class="phone-key phone-key-down" aria-hidden="true"></span>
+        <span class="phone-key phone-key-power" aria-hidden="true"></span>
+        <div class="hero-app" aria-hidden="true">
+          <div class="phone" aria-label="SatSigner">
+            <div class="phone-status" aria-hidden="true">
+              <span class="phone-time">9:41</span>
+              <span class="phone-signals">
+                <svg viewBox="0 0 18 12" width="17" height="12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="0.6" fill="currentColor"/><rect x="5" y="4.5" width="3" height="7.5" rx="0.6" fill="currentColor"/><rect x="10" y="2" width="3" height="10" rx="0.6" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="0.6" fill="currentColor" opacity="0.35"/></svg>
+                <svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path d="M8 9.6a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7Z" fill="currentColor"/><path d="M4.2 7.4a5.4 5.4 0 0 1 7.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1.6 4.7a9 9 0 0 1 12.8 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <svg viewBox="0 0 27 12" width="25" height="12" aria-hidden="true"><rect x="0.6" y="0.6" width="22" height="10.8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.2" y="2.2" width="16" height="7.6" rx="1.2" fill="currentColor"/><path d="M24.2 4.2v3.6c.9-.3 1.6-1.2 1.6-1.8s-.7-1.5-1.6-1.8Z" fill="currentColor"/></svg>
+              </span>
+            </div>
+            <div class="phone-screen">
+              <!-- The live Studio prototype (bare embed: screen only, the hero draws the frame and status bar) -->
+              <iframe class="hero-studio" src="/studio/?embed=1&amp;bare=1&amp;screen=intro" title="SatSigner prototype" tabindex="-1"></iframe>
+            </div>
+          </div>
+        </div>
+        <p class="hero-mark-type"><span>SAT<br>SIGNER</span></p>
+        <canvas class="hero-logo-light" aria-hidden="true"></canvas>
+        <button type="button" class="hero-splash" aria-label="Open the SatSigner demo"></button>
+      </div>
+      <div class="hero-aside">
+        <p class="hero-subline">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+      </div>
+    </div>
+  </section>
 
-      <div class="swiper-pagination"></div>
-      <div class="swiper-button-prev"></div>
-      <div class="swiper-button-next"></div>
+  <section class="as-seen-in">
+    <span class="as-seen-in-label">Supported by</span>
+    <div class="as-seen-in-row">
+      <a href="https://opensats.org" target="_blank" rel="noopener" class="as-seen-in-logo-link">
+        <img class="as-seen-in-logo" src="imgs/open_sats.png" width="510" height="125" alt="OpenSats">
+        <img class="as-seen-in-logo as-seen-in-logo--light" src="imgs/open_sats-light.png" width="510" height="125" alt="">
+      </a>
+      <a href="https://b.tc/conference" target="_blank" rel="noopener" class="as-seen-in-logo-link">
+        <img class="as-seen-in-logo as-seen-in-logo--btc-conf" src="imgs/bitcoin_conference.png" width="368" height="120" alt="Bitcoin Conference">
+        <img class="as-seen-in-logo as-seen-in-logo--btc-conf as-seen-in-logo--light" src="imgs/bitcoin_conference-light.png" width="368" height="120" alt="">
+      </a>
+    </div>
+  </section>
 
-  </div>
+  <section class="feature-grid-section" id="features">
+    <h2 class="feature-grid-title">The full toolkit</h2>
+    <p class="feature-grid-intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+    <div class="feature-grid">
+      <article class="feature-grid-card is-span-4" data-screen="coins">
+        <h3>UTXO control</h3>
+        <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="new-account">
+        <h3>Account types</h3>
+        <p>Single-signature, multi-signature, and watch-only on mainnet, testnet, and signet.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="send">
+        <h3>Transaction builder</h3>
+        <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="multisig-sign">
+        <h3>Multisig</h3>
+        <p>M-of-N wallets, sortedmulti descriptors, and per-cosigner PSBT tracking.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="account-export-labels">
+        <h3>BIP329 labels</h3>
+        <p>Label transactions, addresses, and UTXOs. Import and export JSON, JSONL, and CSV.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="payjoin-tx">
+        <h3>Payjoin</h3>
+        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="settings">
+        <h3>Keys and PIN</h3>
+        <p>AES-256 storage, PIN lock, duress PIN, and the option to drop the seed after key extraction.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="psbt-qr">
+        <h3>Air-gapped signing</h3>
+        <p>Seed QR scanning, signature threshold checks, and per-cosigner PSBT export.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="settings-network-server">
+        <h3>Connect to your node</h3>
+        <p>Point the app at your own Electrum, Esplora, or Bitcoin Core server.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="script">
+        <h3>Every script</h3>
+        <p>P2PKH, P2SH, nested and native SegWit, and Taproot (P2TR).</p>
+      </article>
+      <article class="feature-grid-card" data-screen="chart">
+        <h3>Balance history</h3>
+        <p>A line chart of the account balance over time, with each receive and send marked.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="account-export-descriptors">
+        <h3>Import and export</h3>
+        <p>Descriptors, xpub formats, PSBTs over QR and NFC, and full account backup.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="lightning">
+        <h3>Lightning</h3>
+        <p>Connect an LND node, then create invoices and pay them.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="ecash">
+        <h3>eCash</h3>
+        <p>Cashu mints for private tokens. Send and receive without leaving the app.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="ark">
+        <h3>Ark accounts</h3>
+        <p>A balance per server, on Bitcoin or Signet, next to the onchain wallet.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="account-nostr">
+        <h3>Nostr sync</h3>
+        <p>Decentralized label sync over DMs, with relays and a trusted-device list.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="difficulty">
+        <h3>Explorer</h3>
+        <p>Blocks, the mempool, and each difficulty epoch drawn as a spiral of blocks.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="output">
+        <h3>Scripts and outputs</h3>
+        <p>See inputs, outputs, and script types in one view.</p>
+      </article>
+      <article class="feature-grid-card is-span-3" data-screen="ark-account">
+        <h3>Vtxos</h3>
+        <p>See the virtual outputs behind an Ark balance before you spend them.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="tx" data-scroll=".tx-decode-tools">
+        <h3>Raw transaction</h3>
+        <p>Decode the bytes instead of accepting a summary.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="duress">
+        <h3>Duress PIN</h3>
+        <p>A separate PIN for situations where you cannot unlock normally.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="settings-security">
+        <h3>PIN and encryption</h3>
+        <p>AES-256-CBC storage with PIN-protected access.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="seed-drop">
+        <h3>Seed dropping</h3>
+        <p>Remove the mnemonic after the keys are extracted.</p>
+      </article>
+      <article class="feature-grid-card" data-screen="account">
+        <h3>Your labels</h3>
+        <p>BIP329 labels on device, with optional Nostr sync and export when you choose.</p>
+      </article>
+      <article class="feature-grid-card is-span-2" data-screen="payjoin-tx">
+        <h3>Payjoin</h3>
+        <p>BIP77 and BIP78 send and receive, with a normal transaction when Payjoin is unavailable.</p>
+      </article>
+    </div>
+  </section>
 
+  <section class="topic-section" id="studio">
+    <h2 class="feature-grid-title">Studio</h2>
+    <p class="feature-grid-intro">Walk the app in the browser. Prototype flows, screen catalog, and components, without installing a build.</p>
+    <a class="studio-entry" href="/studio/" target="_blank" rel="noopener">
+      <span class="studio-entry-phone" aria-hidden="true">
+        <iframe src="/studio/?embed=1&amp;device=1&amp;screen=accounts" title="" tabindex="-1" loading="lazy"></iframe>
+      </span>
+      <span class="studio-entry-copy">
+        <span class="studio-entry-kicker">In the browser</span>
+        <span class="studio-entry-title">Open SatSigner Studio</span>
+        <span class="studio-entry-modes">
+          <span>Prototype</span>
+          <span>Screens</span>
+          <span>Table</span>
+          <span>Map</span>
+          <span>Components</span>
+        </span>
+      </span>
+    </a>
+  </section>
 
+  <section class="topic-section" id="contribute">
+    <h2 class="feature-grid-title">Contribute</h2>
+    <p class="feature-grid-intro">Install a test build and report what breaks, or open a pull request. Security reports follow the published policy.</p>
+    <div class="support-actions">
+      <a class="support-action" href="https://github.com/satsigner/satsigner/issues" target="_blank" rel="noopener">
+        <span>Issues</span>
+        Open an issue
+      </a>
+      <a class="support-action" href="https://github.com/satsigner/satsigner/blob/master/SECURITY.md" target="_blank" rel="noopener">
+        <span>Security</span>
+        Read the security policy
+      </a>
+      <a class="support-action" href="https://github.com/satsigner/satsigner/pulls" target="_blank" rel="noopener">
+        <span>Pull requests</span>
+        Send a change
+      </a>
+    </div>
+  </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-  <script src="script.js"></script>
+  <section class="topic-section" id="git">
+    <h2 class="feature-grid-title">Git</h2>
+    <p class="feature-grid-intro">The app is open source. Clone it from either host, then install dependencies and run a native build. Wallet logic uses <a href="/stack/">Bitcoin Dev Kit</a>. Open pull requests are read by CodeRabbit, then by a person.</p>
+    <div class="git-hosts">
+      <a class="git-host" href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">
+        <svg class="host-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <span class="git-host-copy"><span>GitHub</span><span class="git-host-url">github.com/satsigner/satsigner</span></span>
+      </a>
+      <a class="git-host" href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener">
+        <img class="host-logo" src="imgs/gitworkshop.svg" alt="">
+        <span class="git-host-copy"><span>gitworkshop.dev</span><span class="git-host-url">satsigner@satsigner.com/relay.ngit.dev/satsigner</span></span>
+      </a>
+    </div>
+    <div class="git-build">
+      <div class="git-tabs" role="tablist" aria-label="Build target">
+        <button type="button" class="git-tab is-active" role="tab" id="git-tab-android" aria-selected="true" aria-controls="git-panel-android">Android</button>
+        <button type="button" class="git-tab" role="tab" id="git-tab-ios" aria-selected="false" aria-controls="git-panel-ios" tabindex="-1">iOS</button>
+      </div>
+      <ol class="git-commands" id="git-panel-android" role="tabpanel" aria-labelledby="git-tab-android">
+        <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
+        <li><code>cd satsigner</code></li>
+        <li><code>pnpm install</code></li>
+        <li><code>pnpm expo run:android</code></li>
+      </ol>
+      <ol class="git-commands" id="git-panel-ios" role="tabpanel" aria-labelledby="git-tab-ios" hidden>
+        <li><code>git clone https://github.com/satsigner/satsigner.git</code></li>
+        <li><code>cd satsigner</code></li>
+        <li><code>pnpm install</code></li>
+        <li><code>pnpm expo run:ios</code></li>
+      </ol>
+    </div>
+  </section>
 
+  <section class="section section-releases" id="releases">
+    <h3 class="section-title">Test APK releases</h3>
+    <p class="releases-disclaimer">
+      <strong>Disclaimer:</strong> State management and stores have changed in newer versions. Using these older builds may corrupt or invalidate your app data. Use <strong>test-only</strong> devices or profiles. Do not use with real funds or important data.
+    </p>
+    <div class="releases-card">
+      <table class="releases-table">
+        <thead>
+          <tr>
+            <th scope="col">Version</th>
+            <th scope="col">Released</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.6" target="_blank" rel="noopener">v0.3.6</a></td>
+            <td><time datetime="2026-06-10">Jun 10, 2026</time></td>
+            <td>Expo SDK 56, Ark updates, and a round of refactors and fixes.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.5" target="_blank" rel="noopener">v0.3.5</a></td>
+            <td><time datetime="2026-05-15">May 15, 2026</time></td>
+            <td>Import an xpub, block duplicate account names, and miscellaneous fixes.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/satsigner/satsigner/releases/tag/v0.3.4" target="_blank" rel="noopener">v0.3.4</a></td>
+            <td><time datetime="2026-04-29">Apr 29, 2026</time></td>
+            <td>LNURL pay uses minSendable, export the bark database, and pay zaps with Ark.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="releases-all">
+        <a href="https://github.com/satsigner/satsigner/releases" target="_blank" rel="noopener">All releases on GitHub</a>
+      </p>
+    </div>
+  </section>
 
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#features">Features</a>
+      <a href="#studio">Studio</a>
+      <a href="#contribute">Contribute</a>
+      <a href="/stack/">Stack</a>
+      <a href="https://github.com/satsigner/satsigner" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://gitworkshop.dev/satsigner@satsigner.com/relay.ngit.dev/satsigner" target="_blank" rel="noopener">ngit</a>
+      <a href="https://x.com/satsigner" target="_blank" rel="noopener">X</a>
+      <a href="https://njump.me/npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank" rel="noopener">Nostr</a>
+      <a href="/reviews/">Reviews</a>
+      <a href="/support/">Support</a>
+      <a href="/privacy-policy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+    </div>
+    <p class="footer-legal">© 2026 satsigner. Bitcoin-first mobile. Your keys, your coins.</p>
+  </footer>
 
-
-  <h3>Original Design</h3>
-  <div id="flex-container">
-
-    <img class="flex-cell" src="imgs/ui/satSigner1.png">
-    <img class="flex-cell" src="imgs/ui/satSigner2.png">
-    <img class="flex-cell" src="imgs/ui/satSigner3.png">
-    <img class="flex-cell" src="imgs/ui/satSigner4.png">
-
-    <img class="flex-cell" src="imgs/ui/satSigner5.png">
-    <img class="flex-cell" src="imgs/ui/satSigner6.png">
-    <img class="flex-cell" src="imgs/ui/satSigner7.png">
-    <img class="flex-cell" src="imgs/ui/satSigner8.png">
-
-  </div>
+  <dialog class="flow-modal" id="flow-modal" tabindex="-1">
+    <canvas class="flow-modal-light" aria-hidden="true"></canvas>
+    <a href="#features" class="flow-modal-logo" tabindex="-1">
+      <img src="imgs/satSigner_symbol.png" alt="">
+      <span>SATSIGNER</span>
+    </a>
+    <button type="button" class="flow-modal-close" data-flow-close aria-label="Close"></button>
+    <div class="flow-modal-panel">
+      <div class="flow-modal-copy">
+        <h2 id="flow-modal-title"></h2>
+        <p id="flow-modal-desc"></p>
+      </div>
+      <div class="flow-modal-stage">
+        <iframe class="flow-modal-frame" title="SatSigner flow" tabindex="-1"></iframe>
+      </div>
+      <button type="button" class="flow-modal-arrow flow-modal-arrow-prev" data-flow-prev aria-label="Previous"></button>
+      <button type="button" class="flow-modal-arrow flow-modal-arrow-next" data-flow-next aria-label="Next"></button>
+    </div>
+  </dialog>
+  <script src="script.js?v=61"></script>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var started = performance.now();
+      var min = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900;
+      var shown = false;
+      function reveal() {
+        if (shown) return;
+        shown = true;
+        var wait = Math.max(0, min - (performance.now() - started));
+        setTimeout(function () {
+          var logo = document.querySelector('.hero-mark-type');
+          var mark = logo && logo.closest('.hero-mark');
+          var reduce = min === 0;
+          if (logo) logo.style.animation = 'none';
+          // will-change: transform on the phone would trap a fixed logo, so clear it before measuring the boot position against the viewport.
+          if (mark) {
+            mark.style.willChange = 'auto';
+            mark.style.animation = 'none';
+          }
+          var first = logo ? logo.getBoundingClientRect() : null;
+          root.classList.add('is-ready');
+          if (logo && first && !reduce && first.width > 0) {
+            var last = logo.getBoundingClientRect();
+            var dx = (first.left + first.width / 2) - (last.left + last.width / 2);
+            var dy = (first.top + first.height / 2) - (last.top + last.height / 2);
+            var scale = last.width ? first.width / last.width : 1;
+            var done = false;
+            function finish() {
+              if (done) return;
+              done = true;
+              logo.removeAttribute('style');
+              if (mark) mark.style.willChange = '';
+            }
+            // Stay on left:50% / translate(-50%, -50%) so the badge center never leaves the phone axis. Only the extra offset and scale animate away.
+            logo.style.transformOrigin = 'center';
+            logo.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) translate(-50%, -50%) scale(' + scale + ')';
+            if (mark) mark.style.animation = '';
+            requestAnimationFrame(function () {
+              logo.style.transition = 'transform 4.4s cubic-bezier(0.16, 1, 0.3, 1)';
+              logo.style.transform = 'translate(-50%, -50%)';
+            });
+            logo.addEventListener('transitionend', function (event) {
+              if (event.propertyName !== 'transform') return;
+              finish();
+            });
+            setTimeout(finish, 4600);
+          } else if (logo) {
+            logo.removeAttribute('style');
+            if (mark) {
+              mark.style.animation = '';
+              mark.style.willChange = '';
+            }
+          }
+          var boot = document.querySelector('.boot');
+          if (!boot) return;
+          setTimeout(function () { if (boot.parentNode) boot.remove(); }, 4800);
+        }, wait);
+      }
+      function arm() {
+        var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+        fonts.then(reveal).catch(reveal);
+      }
+      if (document.readyState === 'complete') arm();
+      else window.addEventListener('load', arm);
+      setTimeout(reveal, 3500);
+    })();
+  </script>
 
   </body>
 </html>

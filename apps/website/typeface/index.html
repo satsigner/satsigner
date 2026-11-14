@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Typeface — SatSigner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@400;500&family=Inter:wght@100..900&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --fg: #fff;
+      --muted: #9a9a9a;
+      --line: rgba(255, 255, 255, 0.12);
+      --card: #141414;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Geist, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .board-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: baseline;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .board-head h1 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .board-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      max-width: 46rem;
+      text-align: right;
+    }
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(320px, 1fr));
+      min-height: calc(100vh - 69px);
+    }
+    .col {
+      border-right: 1px solid var(--line);
+      min-width: 0;
+    }
+    .col:last-child { border-right: 0; }
+    .col[data-face="inter"] { font-family: Inter, sans-serif; }
+    .col[data-face="geist"] { font-family: Geist, sans-serif; }
+    .col[data-face="manrope"] { font-family: Manrope, sans-serif; }
+
+    .label {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 14px 22px;
+      background: rgba(10, 10, 10, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .label strong {
+      font-weight: 500;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+    .label span {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    .proto { padding: 28px 28px 64px; text-align: left; }
+
+    .device {
+      --frame: min(250px, 100%);
+      position: relative;
+      width: var(--frame);
+      aspect-ratio: 390 / 844;
+      margin: 0 auto 36px;
+      border-radius: calc(var(--frame) * 48 / 280);
+      background: #000;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+        0 28px 70px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+    .device::before {
+      content: "";
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      border: calc(var(--frame) * 4 / 280) solid transparent;
+      background:
+        linear-gradient(#000, #000) padding-box,
+        radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+        radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 0, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.16) 22%, transparent 58%) border-box,
+        radial-gradient(circle calc(var(--frame) * 78 / 280) at 0 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box,
+        radial-gradient(circle calc(var(--frame) * 78 / 280) at 100% 100%, rgba(255, 255, 255, 0.44) 0%, rgba(255, 255, 255, 0.12) 22%, transparent 58%) border-box;
+      background-clip: padding-box, border-box, border-box, border-box, border-box;
+    }
+    .island {
+      position: absolute;
+      z-index: 4;
+      top: 10px;
+      left: 50%;
+      width: 72px;
+      height: 18px;
+      margin-left: -36px;
+      border-radius: 20px;
+      background: #000;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    .device iframe {
+      position: absolute;
+      inset: 7px;
+      width: calc(100% - 14px);
+      height: calc(100% - 14px);
+      border: 0;
+      border-radius: calc(var(--frame) * 40 / 280);
+      background: #0a0a0a;
+    }
+
+    .wordmark {
+      margin: 0 0 56px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+    }
+    .hero-title {
+      margin: 0;
+      font-weight: 500;
+      font-size: clamp(2.4rem, 3.4vw, 3.6rem);
+      letter-spacing: -0.045em;
+      line-height: 0.95;
+    }
+    .sub {
+      margin: 22px 0 0;
+      max-width: 28ch;
+      color: #d4d4d4;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 28px; }
+    .btn {
+      display: inline-block;
+      border: 1px solid #6b6b6b;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 12px;
+      letter-spacing: 0.05rem;
+      text-transform: uppercase;
+    }
+    .ver { color: var(--muted); font-size: 13px; font-weight: 400; }
+
+    .section-kicker {
+      margin: 56px 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h2.feature-title {
+      margin: 0 0 8px;
+      font-weight: 500;
+      font-size: 1.7rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .intro {
+      margin: 0 0 18px;
+      color: #cfcfcf;
+      font-size: 15px;
+      line-height: 1.45;
+      max-width: 36ch;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 16px 18px;
+      margin-top: 10px;
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-weight: 500;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .card p {
+      margin: 0;
+      color: #bdbdbd;
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 400;
+    }
+    .amount {
+      margin-top: 22px;
+      font-weight: 500;
+      font-size: 28px;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .figs {
+      margin-top: 18px;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1.35;
+      font-variant-numeric: proportional-nums;
+    }
+    .mono {
+      margin-top: 18px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+    .col[data-face="geist"] .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+    .col[data-face="geist"] .mono small::after { content: " · Geist Mono"; }
+    .mono small {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .mono p { margin: 0 0 8px; word-break: break-all; }
+    .mono table { width: 100%; border-collapse: collapse; }
+    .mono td { padding: 2px 0; }
+    .mono td:last-child { text-align: right; }
+    .figs small {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+    .amount small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+    .weights {
+      display: grid;
+      gap: 6px;
+      margin-top: 22px;
+      font-size: 15px;
+    }
+    .weights div { display: flex; justify-content: space-between; gap: 12px; }
+    .weights b { font-weight: inherit; }
+    .thin {
+      margin: 28px 0 0;
+      font-weight: 100;
+      font-size: clamp(2.2rem, 3vw, 3.2rem);
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+    }
+    .thin span { display: block; font-weight: 200; }
+    .w100 { font-weight: 100; }
+    .w200 { font-weight: 200; }
+    .w300 { font-weight: 300; }
+    .w400 { font-weight: 400; }
+    .w500 { font-weight: 500; }
+    .w600 { font-weight: 600; }
+    .w700 { font-weight: 700; }
+    .w800 { font-weight: 800; }
+    .w900 { font-weight: 900; }
+    .pangram {
+      margin: 22px 0 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #c8c8c8;
+    }
+
+    @media (max-width: 980px) {
+      .board-head { flex-direction: column; align-items: flex-start; }
+      .board-head p { text-align: left; }
+      .cols { grid-template-columns: 1fr; }
+      .col { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <header class="board-head">
+    <h1>Typeface</h1>
+    <p>Same layout, three faces. Geist is the current face. Inter and Manrope are the candidates.</p>
+  </header>
+  <div class="cols">
+    <section class="col" data-face="geist">
+      <div class="label"><strong>Geist</strong><span>Current</span></div>
+      <div class="proto">
+        <div class="device">
+          <iframe src="/studio/?embed=1&amp;bare=1&amp;screen=account" title="SatSigner account"></iframe>
+          <div class="island"></div>
+        </div>
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>Tabular figures · bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <p class="figs"><small>Proportional figures</small>0.08421961 BTC<br>11111111 · 88888888<br>Block 881,204 · 12 sat/vB · 3 of 8</p>
+        <div class="mono">
+          <small>System mono</small>
+          <p>abandon ability able about above absent absorb abstract absurd abuse access accident</p>
+          <p>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</p>
+          <p>a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d</p>
+          <p>wpkh([73c5da0a/84'/0'/0']xpub6CUGR…/0/*)</p>
+          <table>
+            <tr><td>fee</td><td>1,250 sat</td></tr>
+            <tr><td>vsize</td><td>141 vB</td></tr>
+            <tr><td>rate</td><td>8.9 sat/vB</td></tr>
+            <tr><td>change</td><td>0.07396961</td></tr>
+          </table>
+        </div>
+        <p class="thin">See every sat.<span>Control every key.</span></p>
+        <div class="weights">
+          <div class="w100"><b>Thin 100</b><span>Sign every output</span></div>
+          <div class="w200"><b>ExtraLight 200</b><span>Sign every output</span></div>
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+          <div class="w700"><b>Bold 700</b><span>Sign every output</span></div>
+          <div class="w800"><b>ExtraBold 800</b><span>Sign every output</span></div>
+          <div class="w900"><b>Black 900</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — “quotes” &amp; sats.</p>
+      </div>
+    </section>
+
+    <section class="col" data-face="inter">
+      <div class="label"><strong>Inter</strong><span>Candidate</span></div>
+      <div class="proto">
+        <div class="device">
+          <iframe src="/studio/?embed=1&amp;bare=1&amp;screen=account" title="SatSigner account" data-face="Inter"></iframe>
+          <div class="island"></div>
+        </div>
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>Tabular figures · bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <p class="figs"><small>Proportional figures</small>0.08421961 BTC<br>11111111 · 88888888<br>Block 881,204 · 12 sat/vB · 3 of 8</p>
+        <div class="mono">
+          <small>System mono</small>
+          <p>abandon ability able about above absent absorb abstract absurd abuse access accident</p>
+          <p>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</p>
+          <p>a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d</p>
+          <p>wpkh([73c5da0a/84'/0'/0']xpub6CUGR…/0/*)</p>
+          <table>
+            <tr><td>fee</td><td>1,250 sat</td></tr>
+            <tr><td>vsize</td><td>141 vB</td></tr>
+            <tr><td>rate</td><td>8.9 sat/vB</td></tr>
+            <tr><td>change</td><td>0.07396961</td></tr>
+          </table>
+        </div>
+        <p class="thin">See every sat.<span>Control every key.</span></p>
+        <div class="weights">
+          <div class="w100"><b>Thin 100</b><span>Sign every output</span></div>
+          <div class="w200"><b>ExtraLight 200</b><span>Sign every output</span></div>
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+          <div class="w700"><b>Bold 700</b><span>Sign every output</span></div>
+          <div class="w800"><b>ExtraBold 800</b><span>Sign every output</span></div>
+          <div class="w900"><b>Black 900</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 — “quotes” &amp; sats.</p>
+      </div>
+    </section>
+
+    <section class="col" data-face="manrope">
+      <div class="label"><strong>Manrope</strong><span>Candidate</span></div>
+      <div class="proto">
+        <div class="device">
+          <iframe src="/studio/?embed=1&amp;bare=1&amp;screen=account" title="SatSigner account" data-face="Manrope"></iframe>
+          <div class="island"></div>
+        </div>
+        <p class="wordmark">SATSIGNER</p>
+        <h2 class="hero-title">See every sat.<br>Control every key.</h2>
+        <p class="sub">Mobile self-custody that’s clear, private, and actually yours—no blind spots, no surprises.</p>
+        <div class="actions"><span class="btn">Get it on Zapstore</span><span class="ver">v0.3.6</span></div>
+        <p class="section-kicker">Features</p>
+        <h2 class="feature-title">The full toolkit</h2>
+        <p class="intro">Accounts, coins, multisig, Payjoin, and labels — in one signing app.</p>
+        <article class="card">
+          <h3>UTXO control</h3>
+          <p>Each coin is a bubble. See size, age, and labels at a glance, then choose exactly which outputs to spend.</p>
+        </article>
+        <article class="card">
+          <h3>Transaction builder</h3>
+          <p>Manual fees, RBF, time-locks, and custom outputs. Electrum or Esplora backends.</p>
+        </article>
+        <p class="amount">0.08421961 BTC<small>Tabular figures · bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small></p>
+        <p class="figs"><small>Proportional figures</small>0.08421961 BTC<br>11111111 · 88888888<br>Block 881,204 · 12 sat/vB · 3 of 8</p>
+        <div class="mono">
+          <small>System mono</small>
+          <p>abandon ability able about above absent absorb abstract absurd abuse access accident</p>
+          <p>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</p>
+          <p>a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d</p>
+          <p>wpkh([73c5da0a/84'/0'/0']xpub6CUGR…/0/*)</p>
+          <table>
+            <tr><td>fee</td><td>1,250 sat</td></tr>
+            <tr><td>vsize</td><td>141 vB</td></tr>
+            <tr><td>rate</td><td>8.9 sat/vB</td></tr>
+            <tr><td>change</td><td>0.07396961</td></tr>
+          </table>
+        </div>
+        <p class="thin">See every sat.<span>Control every key.</span></p>
+        <div class="weights">
+          <div class="w100"><b>Thin 100</b><span>Sign every output</span></div>
+          <div class="w200"><b>ExtraLight 200</b><span>Sign every output</span></div>
+          <div class="w300"><b>Light 300</b><span>Sign every output</span></div>
+          <div class="w400"><b>Regular 400</b><span>Sign every output</span></div>
+          <div class="w500"><b>Medium 500</b><span>Sign every output</span></div>
+          <div class="w600"><b>Semibold 600</b><span>Sign every output</span></div>
+          <div class="w700"><b>Bold 700</b><span>Sign every output</span></div>
+          <div class="w800"><b>ExtraBold 800</b><span>Sign every output</span></div>
+          <div class="w900"><b>Black 900</b><span>Sign every output</span></div>
+        </div>
+        <p class="pangram">Manrope ships 200–800. Thin 100 and Black 900 fall back to the nearest weight.</p>
+      </div>
+    </section>
+  </div>
+<script>
+  document.querySelectorAll(".device iframe[data-face]").forEach(function (frame) {
+    frame.addEventListener("load", function () {
+      var face = frame.dataset.face
+      var doc = frame.contentDocument
+      if (!doc || !doc.head) return
+      var link = doc.createElement("link")
+      link.rel = "stylesheet"
+      link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(face) + ":wght@" + (face === "Manrope" ? "200..800" : "100..900") + "&display=swap"
+      doc.head.appendChild(link)
+      var style = doc.createElement("style")
+      style.textContent = "html, body, body * { font-family: '" + face + "', sans-serif !important; }"
+      doc.head.appendChild(style)
+    })
+  })
+</script>
+</body>
+</html>
