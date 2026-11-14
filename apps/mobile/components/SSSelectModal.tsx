@@ -32,7 +32,7 @@ function SSSelectModal({
   const insets = useSafeAreaInsets()
 
   return (
-    <Modal visible={visible} transparent={false}>
+    <Modal visible={visible} transparent={false} onRequestClose={onCancel}>
       <View
         style={{
           backgroundColor: Colors.black,
