@@ -2,7 +2,7 @@ import {
   FfiConverterObjectWithCallbacks,
   FfiConverterOptional,
   type UniffiObjectFactory
-} from 'uniffi-bindgen-react-native'
+} from '@ubjs/core'
 
 type Inspector = { inspect: () => void }
 
