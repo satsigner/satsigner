@@ -2647,19 +2647,30 @@
           return Promise.reject(new Error('No NIP-07 extension found.'))
         }
         const socket = new WebSocket(`ws://${location.host}/api/signer`)
+        const pubkeyRequest = window.nostr.getPublicKey()
+        // The page counts as signed in only once the server accepts its
+        // account: it refuses another account while a command is signing.
+        const accepted = new Promise((resolve, reject) => {
+          pubkeyRequest.catch(reject)
+          socket.addEventListener('open', async () => {
+            const userPubkey = await pubkeyRequest.catch(() => '')
+            if (!userPubkey) {
+              socket.close()
+              return
+            }
+            socket.send(JSON.stringify({ type: 'ready', userPubkey }))
+          })
+          socket.addEventListener('error', () => {
+            reject(new Error('could not reach the local signer'))
+          })
+          socket.addEventListener('message', (message) => {
+            const reply = JSON.parse(message.data)
+            if (reply.type === 'ok') resolve(pubkeyRequest)
+            if (reply.type === 'error') reject(new Error(reply.error))
+          })
+        })
         socket.addEventListener('message', async (message) => {
           const request = JSON.parse(message.data)
-          if (request.type === 'ok') {
-            statusEl.textContent =
-              'Signed in. Signatures still need approval in the extension.'
-            await refreshStatus()
-            return
-          }
-          if (request.type === 'error') {
-            statusEl.textContent = request.error
-            writeLog(`${request.error}\n`, 'error')
-            return
-          }
           if (request.type !== 'sign') return
           statusEl.textContent = 'Approve the signature in the extension.'
           try {
@@ -2684,23 +2695,7 @@
             writeLog(`${error.message}\n`, 'error')
           }
         })
-        return new Promise((resolve, reject) => {
-          socket.addEventListener('open', async () => {
-            signerPubkey = await window.nostr.getPublicKey()
-            socket.send(
-              JSON.stringify({ type: 'ready', userPubkey: signerPubkey })
-            )
-            setBusy(busy)
-            void showProfile(signerPubkey)
-            refreshListings()
-            saveUiState({ signedIn: true })
-            writeLog('extension connected\n', 'success')
-            resolve()
-          })
-          socket.addEventListener('error', () => {
-            reject(new Error('could not reach the local signer'))
-          })
-        })
+        return accepted
       }
 
       async function runAction(action, confirmedVersion = '') {
@@ -2730,11 +2725,23 @@
         }
       }
 
-      function signIn() {
-        connectSigner().catch((error) => {
+      async function signIn() {
+        try {
+          signerPubkey = await connectSigner()
+        } catch (error) {
           saveUiState({ signedIn: false })
           statusEl.textContent = error.message
-        })
+          writeLog(`${error.message}\n`, 'error')
+          return
+        }
+        statusEl.textContent =
+          'Signed in. Signatures still need approval in the extension.'
+        setBusy(busy)
+        void showProfile(signerPubkey)
+        refreshListings()
+        saveUiState({ signedIn: true })
+        writeLog('extension connected\n', 'success')
+        await refreshStatus()
       }
 
       connectButton.addEventListener('click', signIn)
