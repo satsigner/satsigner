@@ -6,11 +6,13 @@ import { join } from 'node:path'
 import {
   KEY_ALIAS,
   hasRotation,
+  installRotation,
   keystoreFiles,
   lineageFile,
   nextKeyDir,
   readKeystorePassword,
-  releaseDir
+  releaseDir,
+  writeKeystore
 } from './keystore.mjs'
 
 const OLD_PASS_ENV = 'SATSIGNER_OLD_KEYSTORE_PASS'
@@ -79,9 +81,11 @@ function signerEnv(oldDir, newDir) {
 
 // APK Signature Scheme v3 lineage: the old key signs the new certificate, so
 // Android installs updates from the new key over the old one.
-function writeLineage(dir = releaseDir) {
-  const nextDir = nextKeyDir(dir)
-  const out = lineageFile(dir)
+function writeLineage(
+  dir = releaseDir,
+  nextDir = nextKeyDir(dir),
+  out = lineageFile(dir)
+) {
   const pending = `${out}.tmp`
   try {
     execFileSync(
@@ -100,6 +104,21 @@ function writeLineage(dir = releaseDir) {
     renameSync(pending, out)
   } finally {
     rmSync(pending, { force: true })
+  }
+}
+
+// The new key and its lineage are built aside and only replace the active
+// rotation once both exist, so a bad phrase or an apksigner failure keeps it.
+function rotateReleaseKey(phrase, dir = releaseDir) {
+  const staged = `${nextKeyDir(dir)}.pending`
+  rmSync(staged, { force: true, recursive: true })
+  try {
+    const identity = writeKeystore(phrase, staged)
+    writeLineage(dir, staged, lineageFile(staged))
+    installRotation(staged, dir)
+    return identity
+  } finally {
+    rmSync(staged, { force: true, recursive: true })
   }
 }
 
@@ -137,4 +156,10 @@ function applyKeyRotation(apkPath, dir = releaseDir) {
   return true
 }
 
-export { applyKeyRotation, findApksigner, findBuildTool, writeLineage }
+export {
+  applyKeyRotation,
+  findApksigner,
+  findBuildTool,
+  rotateReleaseKey,
+  writeLineage
+}

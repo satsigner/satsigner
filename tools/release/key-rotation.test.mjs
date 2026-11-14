@@ -1,15 +1,28 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { parseSigners } from './apk-review.mjs'
-import { applyKeyRotation, findApksigner, writeLineage } from './apk-signer.mjs'
+import {
+  applyKeyRotation,
+  findApksigner,
+  rotateReleaseKey,
+  writeLineage
+} from './apk-signer.mjs'
 import {
   hasRotation,
+  lineageFile,
   newestSignerDir,
   nextKeyDir,
   releaseKeyStatus,
@@ -117,3 +130,35 @@ test('without a rotation the apk is left alone', (t) => {
   writeKeystore(PHRASE, dir)
   assert.equal(applyKeyRotation(join(dir, 'missing.apk'), dir), false)
 })
+
+test('a failed rotation keeps the active one', (t) => {
+  const dir = tempDir(t)
+  writeKeystore(PHRASE, dir)
+  writeKeystore(NEXT_PHRASE, nextKeyDir(dir))
+  writeFileSync(lineageFile(dir), 'lineage')
+  assert.throws(() => rotateReleaseKey('not twelve words', dir))
+  assert.equal(hasRotation(dir), true)
+  assert.equal(
+    releaseKeyStatus(dir).next.fingerprint.replaceAll(':', '').toLowerCase(),
+    NEXT_CERTIFICATE_SHA256
+  )
+  assert.equal(existsSync(`${nextKeyDir(dir)}.pending`), false)
+})
+
+test(
+  'rotation replaces the key and lineage together',
+  { skip: !apksignerPath() },
+  (t) => {
+    const dir = tempDir(t)
+    writeKeystore(NEXT_PHRASE, dir)
+    writeKeystore(NEXT_PHRASE, nextKeyDir(dir))
+    writeFileSync(lineageFile(dir), 'stale')
+    rotateReleaseKey(PHRASE, dir)
+    assert.equal(hasRotation(dir), true)
+    assert.equal(
+      releaseKeyStatus(dir).next.fingerprint,
+      PHRASE_CERTIFICATE_SHA256
+    )
+    assert.equal(existsSync(`${lineageFile(dir)}.bak`), false)
+  }
+)

@@ -208,6 +208,26 @@ function writeKeystore(phrase, dir = releaseDir) {
   return identity
 }
 
+// Swaps a staged key and lineage in for the active rotation in one step, so a
+// failed rotation never leaves the old key half replaced.
+function installRotation(stagedDir, dir = releaseDir) {
+  const lineage = lineageFile(dir)
+  const backups = [nextKeyDir(dir), lineage]
+    .filter((path) => existsSync(path))
+    .map((path) => ({ from: path, to: `${path}.bak` }))
+  for (const backup of backups) {
+    rmSync(backup.to, { force: true, recursive: true })
+  }
+  moveAll([
+    ...backups,
+    { from: lineageFile(stagedDir), to: lineage },
+    { from: stagedDir, to: nextKeyDir(dir) }
+  ])
+  for (const backup of backups) {
+    rmSync(backup.to, { force: true, recursive: true })
+  }
+}
+
 function buffersMatch(left, right) {
   return left.length === right.length && timingSafeEqual(left, right)
 }
@@ -352,6 +372,7 @@ export {
   RELEASE_CERT_SHA256,
   createMnemonic,
   hasRotation,
+  installRotation,
   keystoreFiles,
   lineageFile,
   lineagePath,
