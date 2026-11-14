@@ -21,8 +21,6 @@
  *               Production confirmation for runs without a terminal. Only the
  *               release console passes it, after its own confirm dialog.
  *   --dry-run   Build the APK but skip zsp publish and announcement (safe testing)
- *   --config    Path to a custom zapstore yaml (default: zapstore.yaml). When set,
- *               zsp fetches the APK from the configured source — no local build.
  *
  * Non-interactive / agent / CI env vars:
  *   SIGN_WITH          nsec1..., bunker:// URL, or omit for interactive prompt
@@ -118,7 +116,6 @@ const { values: flags } = parseArgs({
   options: {
     blossom: { type: 'string' },
     channel: { type: 'string' },
-    config: { type: 'string' },
     'confirm-production': { type: 'string' },
     'dry-run': { type: 'boolean' },
     notes: { type: 'string' },
@@ -156,9 +153,7 @@ const NOTES_ARG =
     : (flags.notes ?? null)
 const ONLY = flags.only ?? ''
 const CHANNEL = flags.channel ?? ''
-const CONFIG_YAML = flags.config
-  ? path.resolve(REPO_ROOT, flags.config)
-  : path.join(REPO_ROOT, 'zapstore.yaml')
+const CONFIG_YAML = path.join(REPO_ROOT, 'zapstore.yaml')
 const LISTING_DIR = path.join(MOBILE_DIR, 'zapstore')
 const ZAPSTORE_ONLY = ONLY === 'zapstore'
 const ANNOUNCE_ONLY = ONLY === 'announce'
@@ -683,25 +678,14 @@ async function main() {
   }
 
   if (!ANNOUNCE_ONLY) {
-    // When a custom config yaml is specified, zsp fetches the APK from the
-    // configured source (GitHub releases etc.) — no local build needed.
-    // When using the default zapstore.yaml, we build locally and pass the APK path.
-    const usingCustomConfig = Boolean(flags.config)
+    // Every publish builds here so the permission check sees the exact APK
+    // zsp uploads. A remote source would skip it.
+    step(2, 'Build APK')
+    const apkPath = await buildReleaseApk()
+    assertApkPermissions(apkPath)
+    console.log(`\n  APK: ${apkPath}`)
 
-    let apkPath = null
-    if (!usingCustomConfig) {
-      step(2, 'Build APK')
-      apkPath = await buildReleaseApk()
-      assertApkPermissions(apkPath)
-      console.log(`\n  APK: ${apkPath}`)
-    } else {
-      step(2, 'Build APK')
-      console.log(
-        '  Using config yaml — zsp will fetch APK from configured source.'
-      )
-    }
-
-    if (!usingCustomConfig && !dryRun) {
+    if (!dryRun) {
       step(3, 'Link signing key to your npub')
       await ensureIdentityProof({
         certificate: storedCertificate(newestSignerDir()),
@@ -716,25 +700,21 @@ async function main() {
       '  Signing and publishing Zapstore event to wss://relay.zapstore.dev\n'
     )
 
-    const listing = usingCustomConfig ? null : writeListingConfig(apkPath)
-    const zspTarget = listing ? listing.file : CONFIG_YAML
+    const listing = writeListingConfig(apkPath)
     // --json keeps zsp non-interactive but still reports errors, and prints
     // every event it published. --quiet alone hides a run that publishes nothing.
-    // --indexer-mode overrides config with repo-root zapstore.yaml — only safe
-    // when we're using the default yaml.
+    // --indexer-mode overrides config with repo-root zapstore.yaml.
     const zspFlags = zspPublishArgs({
       commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
-      indexerMode: isAgent && !usingCustomConfig,
-      localBuild: !usingCustomConfig,
-      target: zspTarget
+      indexerMode: isAgent,
+      localBuild: true,
+      target: listing.file
     })
 
     if (dryRun) {
-      if (listing) {
-        console.log(
-          `  [dry-run] zsp config:\n${readFileSync(listing.file, 'utf8')}`
-        )
-      }
+      console.log(
+        `  [dry-run] zsp config:\n${readFileSync(listing.file, 'utf8')}`
+      )
       removeListingConfig(listing)
       console.log('  [dry-run] Skipping zsp publish.')
     } else {
@@ -746,7 +726,7 @@ async function main() {
             'zsp published no events. This version may already be on Zapstore.'
           )
         }
-        await verifyOnZapstore(events, { keyLinked: !usingCustomConfig })
+        await verifyOnZapstore(events, { keyLinked: true })
       } catch (error) {
         console.log(`\n  ${error.message}`)
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).
