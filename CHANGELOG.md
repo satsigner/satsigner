@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused Android permissions removed; the release build enforces an allow list.
 - Launcher and store icons fill the whole shape instead of a round logo with
   white corners.
+- Dev and branch builds carry a coloured badge on the icon.
 
 ### Removed
 
@@ -113,6 +114,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against the BIP-321 parser.
 - Swiping back reached the PIN screen, toasts showed behind modals, the
   keyboard covered inputs, and "No transactions" showed while syncing.
+- The app crashed on launch on Android 14 and newer: `expo-screen-capture`
+  registered a screenshot listener that needs a permission Satsigner blocks.
+  It is now built from patched source and skips the listener; screenshots are
+  still blocked on secret screens.
+- Syncing over Electrum or Esplora failed with "Cannot lower this object to a
+  pointer", most visibly on the first sync after restoring a backup. The
+  UniFFI runtime in `@ubjs/core` rejected the JavaScript progress inspector
+  passed to the scan.
+- The Zapstore description keeps its line breaks.
 - Many smaller layout, sync and translation fixes.
 
 ### Security
