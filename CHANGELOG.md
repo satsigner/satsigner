@@ -74,8 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Breaking:** TLS certificates of `ssl://` Electrum servers are now verified,
-  so servers with self-signed certificates fail. On a trusted LAN, use
-  `tcp://` or install the CA on the device.
+  so servers with self-signed certificates fail. Install the CA on the device.
+  `tcp://` still works on a trusted LAN, but it is unencrypted and does not
+  authenticate the server, so anyone on the network can see wallet activity
+  or impersonate the server.
 - Upgraded to Expo SDK 58 and React Native 0.88.
 - Large accounts load faster with fewer database queries.
 - Switching between Electrum, Esplora and Bitcoin Core RPC no longer forces a
@@ -127,9 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Electrum data is verified: transactions against their txid, and UTXO values
-  and scripts against the transaction that created them, so a malicious server
-  cannot fake deposits or inflate fees.
+- Electrum data is cross-checked: transactions against their txid, and each
+  UTXO's value and script against the transaction that created it. This does
+  not prove the transaction is in a block, so a malicious server can still
+  present a fabricated deposit; use your own node for full assurance.
 - Signing refuses a foreign or changed PSBT returned by a cosigner or
   coordinator; the transaction you review is the one broadcast.
 - Nostr keys, LND macaroons and certificates, and Bitcoin Core RPC credentials
