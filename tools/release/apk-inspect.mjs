@@ -120,7 +120,8 @@ function relayFinished(socket, packageId, events) {
         resolve()
       }
       if (frame[0] === 'CLOSED') {
-        reject(new Error(`${ZAPSTORE_RELAY} refused the query: ${frame[2]}`))
+        const reason = frame[2] || 'no reason given'
+        reject(new Error(`${ZAPSTORE_RELAY} refused the query: ${reason}`))
       }
     })
     socket.on('error', reject)
