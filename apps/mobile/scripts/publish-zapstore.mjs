@@ -509,9 +509,7 @@ function writeListingConfig(apkPath) {
 }
 
 function removeListingConfig(listing) {
-  if (listing) {
-    rmSync(listing.dir, { force: true, recursive: true })
-  }
+  rmSync(listing.dir, { force: true, recursive: true })
 }
 
 async function runZspPublish(args, signWith, listing) {
@@ -707,7 +705,6 @@ async function main() {
     // zapstore.yaml and uploads a forge release instead of the checked APK.
     const zspFlags = zspPublishArgs({
       commit: isCleanTree() ? git(['rev-parse', 'HEAD']).toString().trim() : '',
-      localBuild: true,
       target: listing.file
     })
 
@@ -726,7 +723,7 @@ async function main() {
             'zsp published no events. This version may already be on Zapstore.'
           )
         }
-        await verifyOnZapstore(events, { keyLinked: true })
+        await verifyOnZapstore(events)
       } catch (error) {
         console.log(`\n  ${error.message}`)
         // zsp exits 1 on partial publish failures (e.g. relay whitelisting pending).

@@ -120,24 +120,19 @@ async function waitForZapstore(events, attemptsLeft) {
 // relay.zapstore.dev answers OK to new listings and holds them as "pending"
 // until its own checks pass, so zsp reports success either way. The checks
 // read the APK in the background and can take several minutes.
-function pendingMessage(keyLinked) {
-  const pending =
-    'Zapstore accepted the release but has not saved it yet. The relay holds ' +
-    'new releases as pending until its checks pass.'
-  if (keyLinked) {
-    return `${pending} Check the store page again in a few minutes before publishing again.`
-  }
-  return `${pending} If this signing key is new, link it first: zsp identity --link-key ~/.satsigner/release.p12`
-}
+const PENDING_MESSAGE =
+  'Zapstore accepted the release but has not saved it yet. The relay holds ' +
+  'new releases as pending until its checks pass. Check the store page ' +
+  'again in a few minutes before publishing again.'
 
-async function verifyOnZapstore(events, { keyLinked }) {
+async function verifyOnZapstore(events) {
   console.log(
     '\n  Checking that Zapstore saved the release. This can take a few minutes...'
   )
   const status = await waitForZapstore(events, VERIFY_ATTEMPTS)
   console.log(describeStatus(events, status))
   if (!isLive(events, status)) {
-    throw new Error(pendingMessage(keyLinked))
+    throw new Error(PENDING_MESSAGE)
   }
   console.log('\n  The release is live on Zapstore.')
 }
@@ -146,6 +141,5 @@ export {
   describeStatus,
   isLive,
   parseZspEvents,
-  pendingMessage,
   verifyOnZapstore
 }
