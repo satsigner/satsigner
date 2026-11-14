@@ -1432,7 +1432,13 @@
 
       async function refreshVersion() {
         const response = await fetch('/api/version')
-        renderVersion(await response.json())
+        const status = await response.json()
+        if (!response.ok) {
+          versionStatusEl.replaceChildren()
+          statusRow(versionStatusEl, 'Version', status.error, 'bad')
+          return
+        }
+        renderVersion(status)
       }
 
       function describeKey(key) {

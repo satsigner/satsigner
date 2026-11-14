@@ -677,7 +677,11 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/version') {
-    send(res, 200, await versionStatus())
+    try {
+      send(res, 200, await versionStatus())
+    } catch (error) {
+      send(res, 500, { error: error.message })
+    }
     return
   }
 
