@@ -946,7 +946,7 @@
             <p class="hint">
               See the listing exactly as it will be sent, and run the checks the
               Zapstore relay runs on the APK before you publish. The newest
-              built APK for the channel is inspected with aapt2 and apksigner.
+              release APK for the channel is inspected with aapt2 and apksigner.
             </p>
             <div class="channel" id="preview-channel">
               <button type="button" data-channel="dev" aria-pressed="true">
@@ -1343,7 +1343,7 @@
         if (!preview.apk) {
           previewText(
             block,
-            `No built APK for ${preview.packageId} in dist/apks. Build one first.`
+            `No release APK for ${preview.packageId} in dist/apks. Build one first.`
           )
           return
         }
