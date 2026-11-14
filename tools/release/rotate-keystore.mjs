@@ -7,6 +7,7 @@ import {
   keystorePath,
   lineagePath,
   nextKeystorePath,
+  nextReleaseDir,
   storedFingerprint
 } from './keystore.mjs'
 
