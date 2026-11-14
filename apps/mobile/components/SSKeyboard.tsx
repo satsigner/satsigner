@@ -55,7 +55,7 @@ const KEY_LIGHT_INTENSITY_DROP_PER_ROW = 0.16 /** Each full row of keys dims the
 const KEY_LIGHT_MIN_INTENSITY = 0.5
 const KEY_LIGHT_ALPHAS = [0.11, 0.03, 0.08] as const
 const KEY_PRESS_IN_MS = 140
-const KEY_PRESS_OUT_MS = 560
+const KEY_PRESS_OUT_MS = 80
 const KEY_PRESS_GLOW_RADIUS =
   '75%' /** Glow reaches the key edges, centered so the tap lights the middle of the key. */
 const KEY_PRESS_OVERLAY_OPACITY = 0.42 /** Peak opacity of the press highlight gradient wash. */
