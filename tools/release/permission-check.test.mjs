@@ -14,7 +14,9 @@ test('sorts permissions into allowed, blocked and unexpected', () => {
 })
 
 test('every permission a native dependency declares is allowed or blocked', () => {
-  const unknown = libraryPermissions().filter(
+  const permissions = libraryPermissions()
+  assert.ok(permissions.length > 0, 'no dependency manifest was found')
+  const unknown = permissions.filter(
     (permission) => permission.status === 'unexpected'
   )
   assert.deepEqual(unknown, [])
