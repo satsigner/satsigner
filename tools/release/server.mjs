@@ -873,7 +873,6 @@ const pageSockets = new WebSocketServer({
   verifyClient: ({ req }) => isTrustedLocalRequest(req)
 })
 pageSockets.on('connection', (socket) => {
-  pageSocket = socket
   socket.on('message', async (raw) => {
     let message
     try {
@@ -885,6 +884,8 @@ pageSockets.on('connection', (socket) => {
     try {
       if (message.type === 'ready' && typeof message.userPubkey === 'string') {
         await connectSigner(message.userPubkey)
+        // Only a page whose account the bunker accepted gets signature requests.
+        pageSocket = socket
         socket.send(JSON.stringify({ type: 'ok' }))
         return
       }
