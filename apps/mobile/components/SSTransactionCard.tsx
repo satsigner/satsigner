@@ -4,7 +4,7 @@ import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Layout, Sizes } from '@/styles'
+import { Colors, Layout, Sizes, Typography } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
@@ -243,7 +243,7 @@ function SSTransactionCard({
                     noColor={false}
                     showSign={false}
                     weight="light"
-                    letterSpacing={smallView ? 0 : -0.5}
+                    letterSpacing={Typography.amountLetterSpacing.card}
                     unitSize={smallView ? 'xs' : 'sm'}
                   />
                 </SSHStack>

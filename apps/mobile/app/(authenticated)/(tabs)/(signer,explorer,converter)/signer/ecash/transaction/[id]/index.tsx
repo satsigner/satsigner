@@ -273,7 +273,7 @@ export default function EcashTransactionDetailPage() {
                     textSize="xl"
                     noColor={false}
                     weight="light"
-                    letterSpacing={-0.5}
+                    letterSpacing={Typography.amountLetterSpacing.card}
                     unitSize="sm"
                   />
                 </SSHStack>

@@ -13,7 +13,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Layout } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { satsToFiat } from '@/utils/fiat'
@@ -239,7 +239,7 @@ function SSAccountCard({
                 currency={currencyUnit}
                 textSize="3xl"
                 weight="light"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="xl"
               />
             </SSHStack>
