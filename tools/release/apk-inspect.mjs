@@ -8,6 +8,7 @@ import WebSocket from 'ws'
 
 import {
   findTrackers,
+  isReleaseApkName,
   latestAsset,
   parseBadging,
   parsePermissions,
@@ -23,9 +24,6 @@ const RELAY_TIMEOUT_MS = 8000
 const LIVE_ASSET_LIMIT = 20
 const TOOL_BUFFER_BYTES = 16 * 1024 * 1024
 const DEX_BUFFER_BYTES = 1024 * 1024 * 1024
-// variant.ts names builds satsigner-<label>-<segment>-<buildType>[-<abi>].apk.
-// Publish only uploads release builds, so a newer debug build is skipped.
-const RELEASE_APK_NAME = /-release(-[a-z0-9_]+)?\.apk$/
 
 async function toolOutput(command, args, maxBuffer = TOOL_BUFFER_BYTES) {
   const { stdout } = await execFileAsync(command, args, {
@@ -66,7 +64,7 @@ async function releaseApkNames(apkDir, namePrefix) {
   try {
     const names = await readdir(apkDir)
     return names.filter(
-      (name) => name.startsWith(namePrefix) && RELEASE_APK_NAME.test(name)
+      (name) => name.startsWith(namePrefix) && isReleaseApkName(name)
     )
   } catch {
     return []
@@ -118,8 +116,11 @@ function relayFinished(socket, packageId, events) {
       if (frame[0] === 'EVENT' && frame[2]?.kind === KIND_ASSET) {
         events.push(frame[2])
       }
-      if (frame[0] === 'EOSE' || frame[0] === 'CLOSED') {
+      if (frame[0] === 'EOSE') {
         resolve()
+      }
+      if (frame[0] === 'CLOSED') {
+        reject(new Error(`${ZAPSTORE_RELAY} refused the query: ${frame[2]}`))
       }
     })
     socket.on('error', reject)
