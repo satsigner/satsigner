@@ -21,7 +21,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
-import { Colors, Layout } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -297,7 +297,7 @@ export default function SelectUtxoList() {
                     currency={currencyUnit}
                     textSize="7xl"
                     weight="ultralight"
-                    letterSpacing={-1}
+                    letterSpacing={Typography.amountLetterSpacing.header}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">

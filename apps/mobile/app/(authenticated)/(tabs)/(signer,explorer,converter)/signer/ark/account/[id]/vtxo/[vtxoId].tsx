@@ -423,7 +423,7 @@ export default function ArkVtxoDetailPage() {
                 showSign={false}
                 textSize="4xl"
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="lg"
               />
             </SSHStack>

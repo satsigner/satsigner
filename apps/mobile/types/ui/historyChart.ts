@@ -68,7 +68,8 @@ export type UtxoGeometryParams = {
   transactions: Transaction[]
   xScale: XScale
   yScale: YScale
-  chartWidth: number
+  minX: number
+  maxX: number
   currentDate: Date
 }
 

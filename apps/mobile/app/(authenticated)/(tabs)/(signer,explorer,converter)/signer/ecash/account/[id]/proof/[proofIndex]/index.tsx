@@ -233,7 +233,7 @@ export default function EcashProofDetailPage() {
                 currency={currencyUnit}
                 textSize="4xl"
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="xl"
               />
             </SSHStack>

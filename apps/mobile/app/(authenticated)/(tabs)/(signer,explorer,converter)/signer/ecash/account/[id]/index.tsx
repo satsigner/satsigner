@@ -43,7 +43,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { getEcashMintLabel } from '@/utils/ecashAccount'
 import { ecashProofsToBubbleData } from '@/utils/ecashProofs'
 import { formatFiatPrice } from '@/utils/format'
@@ -331,7 +331,7 @@ export default function EcashAccountDetailPage() {
                   currency={currencyUnit}
                   textSize={totalBalance > 1_000_000_000 ? '4xl' : '6xl'}
                   weight="ultralight"
-                  letterSpacing={-1}
+                  letterSpacing={Typography.amountLetterSpacing.header}
                   unitSize="xl"
                   unitStyle={styles.balanceUnit}
                 />

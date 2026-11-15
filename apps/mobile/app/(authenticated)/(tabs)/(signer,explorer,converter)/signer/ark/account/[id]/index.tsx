@@ -74,7 +74,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
-import { Colors, Layout } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
 import { getArkBalanceBreakdown } from '@/utils/ark'
@@ -772,7 +772,7 @@ export default function ArkAccountDetailPage() {
                 currency={currencyUnit}
                 textSize={totalSize}
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="xl"
               />
             </SSHStack>

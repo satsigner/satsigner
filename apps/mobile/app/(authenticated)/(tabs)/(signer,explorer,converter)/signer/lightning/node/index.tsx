@@ -52,7 +52,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { type LNDCombinedTransaction } from '@/types/models/Lightning'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, truncate } from '@/utils/format'
@@ -398,7 +398,7 @@ export default function NodeDetailPage() {
                 size="5xl"
                 weight="light"
                 style={{
-                  letterSpacing: -1,
+                  letterSpacing: Typography.amountLetterSpacing.header,
                   lineHeight: Sizes.text.fontSize['5xl']
                 }}
               >

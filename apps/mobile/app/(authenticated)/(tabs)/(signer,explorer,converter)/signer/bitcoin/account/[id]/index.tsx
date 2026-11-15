@@ -110,7 +110,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
@@ -325,7 +325,7 @@ function PayjoinSessionCard({
               weight="light"
               style={{
                 color: Colors.gray[400],
-                letterSpacing: -0.5,
+                letterSpacing: Typography.amountLetterSpacing.header,
                 lineHeight: Sizes.text.fontSize['4xl']
               }}
             >
@@ -448,7 +448,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
               weight="light"
               style={{
                 color: Colors.gray[400],
-                letterSpacing: -0.5,
+                letterSpacing: Typography.amountLetterSpacing.header,
                 lineHeight: Sizes.text.fontSize['4xl']
               }}
             >
@@ -2518,7 +2518,7 @@ export default function AccountView() {
                     currency={currencyUnit}
                     textSize={balanceTextSize}
                     weight="ultralight"
-                    letterSpacing={-1}
+                    letterSpacing={Typography.amountLetterSpacing.header}
                     unitSize="xl"
                   />
                 </SSHStack>

@@ -5,6 +5,7 @@ import { area, curveStepAfter, line } from 'd3-shape'
 import { memo, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
+import { useDerivedValue } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLocalPriceCloses } from '@/api/localPrices'
@@ -56,6 +57,16 @@ import {
   SATS_AXIS_LABEL_X,
   satsYDomain
 } from '@/utils/historyChart'
+import { viewportTransform } from '@/utils/historyChartViewport'
+
+// Geometry drawn beyond each side of the visible window, in window widths, so
+// a pan or pinch out has history to reveal before the gesture ends.
+const GESTURE_PADDING_WINDOWS = 1
+
+const FONT_STYLE = {
+  fontFamily: Typography.geistSkiaFamily,
+  fontSize: 10
+} as const
 
 type SSHistoryChartProps = {
   transactions: Transaction[]
@@ -123,6 +134,8 @@ function SSHistoryChart({
     cursorY,
     endDate,
     handleLayout,
+    live,
+    rendered,
     scale,
     startY
   } = viewport
@@ -164,6 +177,21 @@ function SSHistoryChart({
     [chartData, lockZoomToXAxis, mountDate, startDate, endDate]
   )
 
+  const visibleSpanMs = endDate.getTime() - startDate.getTime()
+  const geometryStartDate = new Date(
+    startDate.getTime() - visibleSpanMs * GESTURE_PADDING_WINDOWS
+  )
+  const geometryEndDate = new Date(
+    endDate.getTime() + visibleSpanMs * GESTURE_PADDING_WINDOWS
+  )
+  const [, geometryChartData] = computeValidChartData(
+    chartData,
+    geometryStartDate,
+    geometryEndDate,
+    mountDate,
+    lockZoomToXAxis
+  )
+
   const showFiatLine =
     showHistoricalFiatLine &&
     isHistoricalFiatAvailable({
@@ -193,6 +221,11 @@ function SSHistoryChart({
   const fiatChartPoints = useMemo(
     () => fiatPointsInWindow(fiatSeries, startDate, endDate),
     [endDate, fiatSeries, startDate]
+  )
+  const geometryFiatChartPoints = fiatPointsInWindow(
+    fiatSeries,
+    geometryStartDate,
+    geometryEndDate
   )
   const fiatColor = fiatSeriesColor(fiatCurrency)
   const maxFiatAll = maxFiatValue(fiatSeries.map((point) => point.value))
@@ -230,20 +263,17 @@ function SSHistoryChart({
     [chartHeight, lockZoomToXAxis, maxBalance, maxFiat, scale, startY]
   )
 
-  const fiatLinePath = useMemo(
-    () =>
-      showFiatAxis
-        ? buildFiatLinePath(fiatChartPoints, xScale, fiatYScale)
-        : null,
-    [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
-  )
+  const fiatLinePath = showFiatAxis
+    ? buildFiatLinePath(geometryFiatChartPoints, xScale, fiatYScale)
+    : null
 
   const utxoRectangleData = useMemo(
     () =>
       buildUtxoRectangles({
         balanceHistory,
-        chartWidth,
         currentDate: mountDate,
+        maxX: chartWidth * (1 + GESTURE_PADDING_WINDOWS),
+        minX: -chartWidth * GESTURE_PADDING_WINDOWS,
         transactions,
         xScale,
         yScale
@@ -255,8 +285,9 @@ function SSHistoryChart({
     () =>
       buildUtxoLabels({
         balanceHistory,
-        chartWidth,
         currentDate: mountDate,
+        maxX: chartWidth * (1 + GESTURE_PADDING_WINDOWS),
+        minX: -chartWidth * GESTURE_PADDING_WINDOWS,
         transactions,
         xScale,
         yScale
@@ -303,14 +334,8 @@ function SSHistoryChart({
     [chartHeight, scale, xScale, yScale]
   )
 
-  const linePath = useMemo(
-    () => lineGenerator(validChartData),
-    [lineGenerator, validChartData]
-  )
-  const areaPath = useMemo(
-    () => areaGenerator(validChartData),
-    [areaGenerator, validChartData]
-  )
+  const linePath = lineGenerator(geometryChartData)
+  const areaPath = areaGenerator(geometryChartData)
 
   const yAxisFormatter = useMemo(() => format('.3s'), [])
 
@@ -377,10 +402,30 @@ function SSHistoryChart({
   )
 
   const customFontManager = useGeistFonts()
-  const fontStyle = {
-    fontFamily: Typography.geistSkiaFamily,
-    fontSize: 10
-  } as const
+
+  const gestureTransform = useDerivedValue(() =>
+    viewportTransform({
+      chartHeight,
+      chartWidth,
+      live: live.value,
+      lockZoomToXAxis,
+      maxBalance,
+      rendered,
+      timeOffset
+    })
+  )
+  const plotTransform = useDerivedValue(() => {
+    const { scaleX, scaleY, translateX, translateY } = gestureTransform.value
+    return [{ translateX }, { translateY }, { scaleX }, { scaleY }]
+  })
+  const xAxisTransform = useDerivedValue(() => {
+    const { scaleX, translateX } = gestureTransform.value
+    return [{ translateX }, { scaleX }]
+  })
+  const yAxisTransform = useDerivedValue(() => {
+    const { scaleY, translateY } = gestureTransform.value
+    return [{ translateY }, { scaleY }]
+  })
 
   const labelParagraphs = useHistoryChartLabels({
     chartWidth,
@@ -421,91 +466,97 @@ function SSHistoryChart({
               { translateY: margin.top }
             ]}
           >
-            <MemoizedYScaleRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              yScale={yScale}
-              chartHeight={chartHeight}
-              chartWidth={chartWidth}
-              yAxisFormatter={yAxisFormatter}
-              color={Colors.white}
-              labelX={SATS_AXIS_LABEL_X}
-              showGridLines
-            />
-            {showFiatAxis ? (
+            <Group transform={yAxisTransform}>
               <MemoizedYScaleRenderer
                 customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                yScale={fiatYScale}
+                fontStyle={FONT_STYLE}
+                yScale={yScale}
                 chartHeight={chartHeight}
                 chartWidth={chartWidth}
-                yAxisFormatter={formatFiatAxisTick}
-                color={fiatColor}
-                labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
-                showGridLines={false}
-                title={fiatCurrency}
-              />
-            ) : null}
-            <MemoizedXScaleRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              showTransactionInfo={showTransactionInfo}
-              txXAxisLabels={txXAxisLabels}
-              chartHeight={chartHeight}
-              zeroPadding={zeroPadding}
-            />
-            <MemoizedXAxisRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              xScale={xScale}
-              chartHeight={chartHeight}
-              showTransactionInfo={showTransactionInfo}
-            />
-            <Group clip={clipPathRect}>
-              <MemoizedHistoryChartUtxoSeries
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                utxoRectangleData={utxoRectangleData}
-                utxoLabels={utxoLabels}
-                showOutputField={showOutputField}
-              />
-              <MemoizedTransactionInfoRenderer
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                txInfoLabels={txInfoLabels}
-                labelParagraphs={labelParagraphs}
-                showLabel={showLabel}
-                showAmount={showAmount}
-                zeroPadding={zeroPadding}
-                labelRectRef={labelRectRef}
-              />
-              <Path
-                path={linePath ?? ''}
-                color="white"
-                strokeWidth={2}
-                style="stroke"
+                yAxisFormatter={yAxisFormatter}
+                color={Colors.white}
+                labelX={SATS_AXIS_LABEL_X}
+                showGridLines
               />
               {showFiatAxis ? (
-                <Path
-                  path={fiatLinePath ?? ''}
+                <MemoizedYScaleRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  yScale={fiatYScale}
+                  chartHeight={chartHeight}
+                  chartWidth={chartWidth}
+                  yAxisFormatter={formatFiatAxisTick}
                   color={fiatColor}
+                  labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
+                  showGridLines={false}
+                  title={fiatCurrency}
+                />
+              ) : null}
+            </Group>
+            <Group transform={xAxisTransform}>
+              <MemoizedXScaleRenderer
+                customFontManager={customFontManager}
+                fontStyle={FONT_STYLE}
+                showTransactionInfo={showTransactionInfo}
+                txXAxisLabels={txXAxisLabels}
+                chartHeight={chartHeight}
+                zeroPadding={zeroPadding}
+              />
+              <MemoizedXAxisRenderer
+                customFontManager={customFontManager}
+                fontStyle={FONT_STYLE}
+                xScale={xScale}
+                chartHeight={chartHeight}
+                showTransactionInfo={showTransactionInfo}
+              />
+            </Group>
+            <Group clip={clipPathRect}>
+              <Group transform={plotTransform}>
+                <MemoizedHistoryChartUtxoSeries
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  utxoRectangleData={utxoRectangleData}
+                  utxoLabels={utxoLabels}
+                  showOutputField={showOutputField}
+                />
+                <MemoizedTransactionInfoRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  txInfoLabels={txInfoLabels}
+                  labelParagraphs={labelParagraphs}
+                  showLabel={showLabel}
+                  showAmount={showAmount}
+                  zeroPadding={zeroPadding}
+                  labelRectRef={labelRectRef}
+                />
+                <Path
+                  path={linePath ?? ''}
+                  color="white"
                   strokeWidth={2}
                   style="stroke"
                 />
-              ) : null}
-              <MemoizedHistoryChartAreaSeries
-                areaPath={areaPath}
-                showOutputField={showOutputField}
-              />
-              <MemoizedCursorRenderer
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                cursorX={cursorX}
-                cursorY={cursorY}
-                xScale={xScale}
-                chartHeight={chartHeight}
-                zeroPadding={zeroPadding}
-              />
+                {showFiatAxis ? (
+                  <Path
+                    path={fiatLinePath ?? ''}
+                    color={fiatColor}
+                    strokeWidth={2}
+                    style="stroke"
+                  />
+                ) : null}
+                <MemoizedHistoryChartAreaSeries
+                  areaPath={areaPath}
+                  showOutputField={showOutputField}
+                />
+                <MemoizedCursorRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  cursorX={cursorX}
+                  cursorY={cursorY}
+                  xScale={xScale}
+                  chartHeight={chartHeight}
+                  zeroPadding={zeroPadding}
+                />
+              </Group>
             </Group>
           </Group>
         </Canvas>

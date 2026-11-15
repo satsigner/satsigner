@@ -10,7 +10,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { type EcashTransaction } from '@/types/models/Ecash'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatFiatPrice } from '@/utils/format'
@@ -206,7 +206,7 @@ function SSEcashTransactionCard({
                   textSize="xl"
                   noColor={false}
                   weight="light"
-                  letterSpacing={-0.5}
+                  letterSpacing={Typography.amountLetterSpacing.card}
                   unitStyle={styles.unit}
                 />
               </SSHStack>

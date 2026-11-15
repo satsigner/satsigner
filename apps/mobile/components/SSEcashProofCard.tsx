@@ -7,7 +7,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { EcashKeyset, EcashProof } from '@/types/models/Ecash'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 
@@ -75,7 +75,7 @@ function SSEcashProofCard({
               currency={currencyUnit}
               textSize="lg"
               weight="medium"
-              letterSpacing={-0.5}
+              letterSpacing={Typography.amountLetterSpacing.card}
               unitSize="xs"
             />
           </SSHStack>

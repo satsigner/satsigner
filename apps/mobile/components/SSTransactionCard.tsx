@@ -4,7 +4,7 @@ import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Layout, Sizes } from '@/styles'
+import { Colors, Layout, Sizes, Typography } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
@@ -25,7 +25,7 @@ import SSAmountDisplay from './SSAmountDisplay'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
-import SSPressable from './SSPressable'
+import SSPressable, { LIST_ITEM_PRESS_DELAY_MS } from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -164,13 +164,16 @@ function SSTransactionCard({
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <SSPressable onPress={onPress}>
+    <SSPressable
+      onPress={onPress}
+      unstable_pressDelay={LIST_ITEM_PRESS_DELAY_MS}
+    >
       <SSVStack
         style={[
           {
             paddingBottom: expand ? 6 : 12,
             paddingHorizontal: 0,
-            paddingTop: expand ? 0 : 4
+            paddingTop: 4
           },
           style
         ]}
@@ -243,7 +246,7 @@ function SSTransactionCard({
                     noColor={false}
                     showSign={false}
                     weight="light"
-                    letterSpacing={smallView ? 0 : -0.5}
+                    letterSpacing={Typography.amountLetterSpacing.card}
                     unitSize={smallView ? 'xs' : 'sm'}
                   />
                 </SSHStack>

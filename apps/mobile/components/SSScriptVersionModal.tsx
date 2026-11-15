@@ -7,10 +7,9 @@ import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
-import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
 import SSCollapsible from './SSCollapsible'
-import SSLink from './SSLink'
 import SSRadioButton from './SSRadioButton'
+import SSScriptDiagram from './SSScriptDiagram'
 import SSSelectModal from './SSSelectModal'
 import SSText from './SSText'
 
@@ -68,16 +67,12 @@ function SSScriptVersionModal({
       )}`}
       selectedDescription={
         <SSCollapsible fadeColor={Colors.black}>
-          <SSText color="muted" size="md">
-            {t(`script.${localScriptVersion.toLowerCase()}.description.1`)}
-            <SSLink
-              size="md"
-              text={t(`script.${localScriptVersion.toLowerCase()}.link.name`)}
-              url={t(`script.${localScriptVersion.toLowerCase()}.link.url`)}
-            />
-            {t(`script.${localScriptVersion.toLowerCase()}.description.2`)}
-          </SSText>
-          <SSIconScriptsP2pkh height={80} width="100%" />
+          <SSVStack gap="md">
+            <SSText color="muted" size="md">
+              {t(`script.${localScriptVersion.toLowerCase()}.description`)}
+            </SSText>
+            <SSScriptDiagram scriptVersion={localScriptVersion} />
+          </SSVStack>
         </SSCollapsible>
       }
       onSelect={() => handleOnSelectScriptVersion()}
