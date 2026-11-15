@@ -162,6 +162,7 @@ export function useHistoryChartGestures({
     .onUpdate((event) => {
       live.value = pinchViewport({
         live: live.value,
+        maxBalance,
         originScale: gestureOrigin.value.scale,
         pinchScale: event.scale,
         timeOffset

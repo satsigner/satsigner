@@ -27,6 +27,7 @@ type PanParams = ViewportBounds & {
 
 type PinchParams = {
   timeOffset: number
+  maxBalance: number
   originScale: number
   live: HistoryChartViewportState
   pinchScale: number
@@ -45,6 +46,12 @@ type TransformParams = {
 function clamp(value: number, min: number, max: number) {
   'worklet'
   return Math.max(Math.min(value, max), min)
+}
+
+function clampStartY(startY: number, scale: number, maxBalance: number) {
+  'worklet'
+  const ySpan = maxBalance * HISTORY_CHART_Y_HEADROOM
+  return clamp(startY, 0, ySpan - ySpan / scale)
 }
 
 export function panViewport({
@@ -71,16 +78,17 @@ export function panViewport({
     return { ...live, endMs }
   }
   const ySpan = maxBalance * HISTORY_CHART_Y_HEADROOM
-  const startY = clamp(
+  const startY = clampStartY(
     origin.startY + ((ySpan / live.scale) * translationY) / chartHeight,
-    0,
-    ySpan - ySpan / live.scale
+    live.scale,
+    maxBalance
   )
   return { ...live, endMs, startY }
 }
 
 export function pinchViewport({
   timeOffset,
+  maxBalance,
   originScale,
   live,
   pinchScale
@@ -88,7 +96,11 @@ export function pinchViewport({
   'worklet'
   const scale = Math.max(originScale * pinchScale, MIN_SCALE)
   const middleMs = live.endMs - timeOffset / live.scale / 2
-  return { ...live, endMs: middleMs + timeOffset / scale / 2, scale }
+  return {
+    endMs: middleMs + timeOffset / scale / 2,
+    scale,
+    startY: clampStartY(live.startY, scale, maxBalance)
+  }
 }
 
 // Maps pixels drawn for the rendered viewport onto the live one, so gestures

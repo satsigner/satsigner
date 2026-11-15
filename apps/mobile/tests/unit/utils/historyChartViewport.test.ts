@@ -91,6 +91,7 @@ describe('pinchViewport', () => {
   it('zooms around the middle of the visible window', () => {
     const next = pinchViewport({
       live: origin,
+      maxBalance: MAX_BALANCE,
       originScale: origin.scale,
       pinchScale: 2,
       timeOffset: TIME_OFFSET
@@ -104,11 +105,26 @@ describe('pinchViewport', () => {
   it('never zooms out past the full history', () => {
     const next = pinchViewport({
       live: origin,
+      maxBalance: MAX_BALANCE,
       originScale: origin.scale,
       pinchScale: 0.1,
       timeOffset: TIME_OFFSET
     })
     expect(next.scale).toBe(1)
+  })
+
+  it('pulls startY back inside the zoomed-out vertical span', () => {
+    const ySpan = MAX_BALANCE * 1.2
+    const zoomedIn = { ...origin, scale: 4, startY: ySpan - ySpan / 4 }
+    const next = pinchViewport({
+      live: zoomedIn,
+      maxBalance: MAX_BALANCE,
+      originScale: zoomedIn.scale,
+      pinchScale: 0.5,
+      timeOffset: TIME_OFFSET
+    })
+    expect(next.scale).toBe(2)
+    expect(next.startY).toBe(ySpan - ySpan / 2)
   })
 })
 
