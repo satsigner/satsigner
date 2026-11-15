@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-11-15
+
 ### Added
 
 - **Payjoin** (BIP77 and BIP78) send and receive, with a manual offline PSBT
@@ -97,6 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Android back closes select modals, and leaves User coin selection when no
+  inputs were picked.
 - Signing pasted or scanned PSBTs crashed on Hermes (`psbt.txid()` and
   `toReversed()` calls).
 - Multisig: each key keeps its own origin path, `sh(wsh())` descriptors parse,
