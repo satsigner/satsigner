@@ -4,9 +4,9 @@ if (typeof TextDecoder === 'undefined') {
   class TextDecoderPolyfill {
     decode(buffer) {
       if (buffer instanceof Uint8Array) {
-        return String.fromCharCode.apply(null, buffer)
+        return String.fromCodePoint.apply(null, buffer)
       }
-      return String.fromCharCode.apply(null, new Uint8Array(buffer))
+      return String.fromCodePoint.apply(null, new Uint8Array(buffer))
     }
   }
   global.TextDecoder = TextDecoderPolyfill
@@ -17,6 +17,7 @@ if (typeof TextEncoder === 'undefined') {
     encode(str) {
       const arr = new Uint8Array(str.length)
       for (let i = 0; i < str.length; i += 1) {
+        // oxlint-disable-next-line unicorn/prefer-code-point -- one byte per UTF-16 code unit, as the polyfill always wrote
         arr[i] = str.charCodeAt(i)
       }
       return arr

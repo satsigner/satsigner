@@ -452,7 +452,7 @@ export function safeEqualHex(a: string, b: string): boolean {
   }
   let diff = 0
   for (let i = 0; i < a.length; i += 1) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+    diff |= (a.codePointAt(i) ?? 0) ^ (b.codePointAt(i) ?? 0)
   }
   return diff === 0
 }

@@ -36,7 +36,7 @@ function hexToAsciiFromHex(hex: string) {
       out += '?'
       continue
     }
-    out += n >= 32 && n <= 126 ? String.fromCharCode(n) : '.'
+    out += n >= 32 && n <= 126 ? String.fromCodePoint(n) : '.'
   }
   if (normalized.length % 2 === 1) {
     out += '?'
