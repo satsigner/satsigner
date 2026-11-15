@@ -29,6 +29,11 @@
       }
     ],
     "typescript/consistent-type-definitions": ["allow", "type"],
+    // Skia paint style is a string ("fill" | "stroke")
+    "react/style-prop-object": [
+      "error",
+      { "allow": ["Circle", "Line", "Paint", "Path", "Rect"] }
+    ],
     "no-negated-condition": "allow",
     "no-inline-comments": "allow", // Remove it later
     "no-warning-comments": "allow", // Remove it later
@@ -53,7 +58,6 @@
     "import/no-named-as-default": "allow",
     "typescript/no-dynamic-delete": "allow",
     "unicorn/no-array-reduce": "allow",
-    "react/style-prop-object": "allow",
     "import/no-named-as-default-member": "allow",
     "unicorn/prefer-event-target": "allow",
     "no-bitwise": "allow",
