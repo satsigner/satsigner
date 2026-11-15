@@ -263,13 +263,9 @@ function SSHistoryChart({
     [chartHeight, lockZoomToXAxis, maxBalance, maxFiat, scale, startY]
   )
 
-  const fiatLinePath = useMemo(
-    () =>
-      showFiatAxis
-        ? buildFiatLinePath(geometryFiatChartPoints, xScale, fiatYScale)
-        : null,
-    [geometryFiatChartPoints, fiatYScale, showFiatAxis, xScale]
-  )
+  const fiatLinePath = showFiatAxis
+    ? buildFiatLinePath(geometryFiatChartPoints, xScale, fiatYScale)
+    : null
 
   const utxoRectangleData = useMemo(
     () =>
