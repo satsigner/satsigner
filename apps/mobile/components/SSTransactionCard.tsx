@@ -176,7 +176,7 @@ function SSTransactionCard({
           {
             paddingBottom: expand ? 6 : 12,
             paddingHorizontal: 0,
-            paddingTop: expand ? 0 : 4
+            paddingTop: 4
           },
           style
         ]}
