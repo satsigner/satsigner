@@ -168,5 +168,13 @@ describe('autoSelectUtxos helpers', () => {
         rememberUserSelection('privacy', privacyPicked, undefined)
       ).toBeUndefined()
     })
+
+    it('has nothing to restore when leaving an empty user selection', () => {
+      const leavingUser = rememberUserSelection('user', [], undefined)
+      expect(leavingUser).toBeUndefined()
+      expect(
+        rememberUserSelection('privacy', privacyPicked, leavingUser)
+      ).toBeUndefined()
+    })
   })
 })
