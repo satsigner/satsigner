@@ -750,6 +750,7 @@ export default function Receive() {
                   selectTextOnFocus
                   showSoftInputOnFocus={false}
                   multiline
+                  scrollEnabled={false}
                   style={styles.uriTextInput}
                 />
                 <SSButton
@@ -1021,6 +1022,7 @@ export default function Receive() {
                           selectTextOnFocus
                           showSoftInputOnFocus={false}
                           multiline
+                          scrollEnabled={false}
                           style={styles.addressTextInput}
                         />
                         <SSButton

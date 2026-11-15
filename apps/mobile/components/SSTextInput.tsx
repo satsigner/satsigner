@@ -7,6 +7,7 @@ import {
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
+import { isAutoDimension } from '@/utils/buttonLayout'
 
 import SSText from './SSText'
 
@@ -47,6 +48,11 @@ function SSTextInput({
         ? styles.statusInvalid
         : {}
 
+  // A multiline input that grows with its text has nothing to scroll itself,
+  // so leave the drag to the parent scroll view instead of capturing it (iOS).
+  const growsWithContent =
+    props.multiline && isAutoDimension(StyleSheet.flatten(style)?.height)
+
   const textInputStyle = [
     styles.textInputBase,
     variantStyle,
@@ -68,6 +74,7 @@ function SSTextInput({
             spellCheck={false}
             value={value}
             style={textInputStyle}
+            scrollEnabled={!growsWithContent}
             {...props}
           />
           <View style={styles.actionRightBase}>{actionRight}</View>

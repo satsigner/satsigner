@@ -15,4 +15,4 @@ function isSizedByContent(style: StyleProp<ViewStyle>) {
   return isAutoDimension(flattened?.width) || isAutoDimension(flattened?.height)
 }
 
-export { isSizedByContent }
+export { isAutoDimension, isSizedByContent }
