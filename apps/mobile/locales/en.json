@@ -3086,6 +3086,7 @@
     "payjoin.status.waitingHint": "Keep this screen open. When the sender posts, we contribute a coin and sign."
   },
   "script": {
+    "diagram.data.emptyElement": "empty",
     "diagram.data.pubKey": "public key",
     "diagram.data.pubKeyHash": "public key hash",
     "diagram.data.redeemScript": "redeem script",

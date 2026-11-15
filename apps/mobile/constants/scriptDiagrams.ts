@@ -1,6 +1,7 @@
 import { type ScriptVersionType } from '@/types/models/Script'
 
 type ScriptDiagramData =
+  | 'emptyElement'
   | 'pubKey'
   | 'pubKeyHash'
   | 'redeemScript'
@@ -64,7 +65,10 @@ export const SCRIPT_DIAGRAMS: Record<ScriptVersionType, ScriptDiagramRow[]> = {
   'P2SH-P2WSH': [
     P2SH_LOCK,
     { items: [data('witnessProgram')], label: 'scriptSig' },
-    { items: [data('signatures'), data('witnessScript')], label: 'witness' }
+    {
+      items: [data('emptyElement'), data('signatures'), data('witnessScript')],
+      label: 'witness'
+    }
   ],
   P2TR: [
     { items: [op('OP_1'), data('tweakedPubKey')], label: 'scriptPubKey' },
@@ -76,6 +80,9 @@ export const SCRIPT_DIAGRAMS: Record<ScriptVersionType, ScriptDiagramRow[]> = {
   ],
   P2WSH: [
     { items: [op('OP_0'), data('scriptHash')], label: 'scriptPubKey' },
-    { items: [data('signatures'), data('witnessScript')], label: 'witness' }
+    {
+      items: [data('emptyElement'), data('signatures'), data('witnessScript')],
+      label: 'witness'
+    }
   ]
 }

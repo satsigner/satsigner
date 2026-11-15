@@ -1,9 +1,10 @@
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import {
   SCRIPT_DIAGRAMS,
   type ScriptDiagramItem
 } from '@/constants/scriptDiagrams'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -18,20 +19,20 @@ type SSScriptDiagramProps = {
 function SSScriptDiagramChip({ item }: { item: ScriptDiagramItem }) {
   if (item.kind === 'opcode') {
     return (
-      <View style={[styles.chip, styles.opcodeChip]}>
+      <SSHStack gap="none" style={[styles.chip, styles.opcodeChip]}>
         <SSText type="mono" size="xs" color="black">
           {item.value}
         </SSText>
-      </View>
+      </SSHStack>
     )
   }
 
   return (
-    <View style={[styles.chip, styles.dataChip]}>
+    <SSHStack gap="none" style={[styles.chip, styles.dataChip]}>
       <SSText type="mono" size="xs">
         {t(`script.diagram.data.${item.value}`)}
       </SSText>
-    </View>
+    </SSHStack>
   )
 }
 
@@ -43,11 +44,11 @@ function SSScriptDiagram({ scriptVersion }: SSScriptDiagramProps) {
           <SSText color="muted" size="xs" uppercase>
             {t(`script.diagram.${row.label}`)}
           </SSText>
-          <View style={styles.chips}>
+          <SSHStack gap="xs" style={styles.chips}>
             {row.items.map((item) => (
               <SSScriptDiagramChip key={item.value} item={item} />
             ))}
-          </View>
+          </SSHStack>
         </SSVStack>
       ))}
     </SSVStack>
@@ -62,9 +63,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2
   },
   chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4
+    flexWrap: 'wrap'
   },
   container: {
     backgroundColor: Colors.gray[880],
