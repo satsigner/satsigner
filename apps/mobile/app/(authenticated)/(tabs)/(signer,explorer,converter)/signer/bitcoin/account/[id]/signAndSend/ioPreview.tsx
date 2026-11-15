@@ -12,7 +12,12 @@ import {
   useRef,
   useState
 } from 'react'
-import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
+import {
+  type LayoutChangeEvent,
+  StyleSheet,
+  type TextInputInstance,
+  View
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -469,6 +474,7 @@ export default function IOPreview() {
     })
 
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
+  const outputLabelInputRef = useRef<TextInputInstance>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
   const payjoinDataBottomSheetRef = useRef<BottomSheet>(null)
   const { payjoinExpiryLabel, payjoinInvoice } = usePayjoinInvoice()
@@ -1635,6 +1641,9 @@ export default function IOPreview() {
                     align="left"
                     multiline
                     numberOfLines={4}
+                    submitBehavior="submit"
+                    returnKeyType="next"
+                    onSubmitEditing={() => outputLabelInputRef.current?.focus()}
                     editable={!isEditingStonewallManagedOutput}
                     style={{
                       fontFamily: Typography.geistMonoRegular,
@@ -1644,7 +1653,8 @@ export default function IOPreview() {
                       paddingTop: 12,
                       textAlignVertical: 'top'
                     }}
-                    onChangeText={(text) => {
+                    onChangeText={(input) => {
+                      const text = input.replaceAll(/[\r\n]/g, '')
                       // Long-press paste / Maestro inputText hit onChangeText,
                       // not the Paste button — still detect Payjoin URIs.
                       if (hasPayjoinParam(text)) {
@@ -1674,6 +1684,7 @@ export default function IOPreview() {
                   ) : null}
                 </SSVStack>
                 <SSTextInput
+                  ref={outputLabelInputRef}
                   testID="send-output-label"
                   multiline
                   numberOfLines={4}
