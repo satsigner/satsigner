@@ -7,6 +7,9 @@ import {
 
 const DEFAULT_ACTIVE_OPACITY = 0.2
 
+// Long enough for a list scroll to claim the touch before a row dims.
+export const LIST_ITEM_PRESS_DELAY_MS = 100
+
 type SSPressableProps = Omit<PressableProps, 'style'> & {
   activeOpacity?: number
   style?: StyleProp<ViewStyle>

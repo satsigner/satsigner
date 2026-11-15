@@ -23,7 +23,7 @@ import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSIconSync from './icons/SSIconSync'
 import SSAmountDisplay from './SSAmountDisplay'
 import SSFingerprint from './SSFingerprint'
-import SSPressable from './SSPressable'
+import SSPressable, { LIST_ITEM_PRESS_DELAY_MS } from './SSPressable'
 import SSText from './SSText'
 
 export type SSAccountCardStat = {
@@ -214,6 +214,7 @@ function SSAccountCard({
 
   return (
     <SSPressable
+      unstable_pressDelay={LIST_ITEM_PRESS_DELAY_MS}
       activeOpacity={activeOpacity}
       onPress={onPress}
       onLongPress={onLongPress}
