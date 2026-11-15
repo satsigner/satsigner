@@ -1,3 +1,4 @@
+/* oxlint-disable class-methods-use-this -- polyfills mirror the TextDecoder and TextEncoder instance APIs */
 import 'react-native-get-random-values'
 
 if (typeof TextDecoder === 'undefined') {

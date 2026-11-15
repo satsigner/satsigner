@@ -665,7 +665,7 @@ export class NostrAPI {
     const extra = indexingRelaysBeyond(this.relays)
     const fallback =
       extra.length > 0
-        ? await this.tryKind3On(extra, npub, hexPubkey)
+        ? await NostrAPI.tryKind3On(extra, npub, hexPubkey)
         : { list: null }
 
     if (fallback.list?.kind3Found) {
@@ -696,7 +696,7 @@ export class NostrAPI {
     }
   }
 
-  private async tryKind3On(
+  private static async tryKind3On(
     relays: string[],
     npub: string,
     hexPubkey: string
@@ -1552,7 +1552,7 @@ export class NostrAPI {
     this.ndk = null
   }
 
-  createKind1059(
+  static createKind1059(
     nsec: string,
     recipientNpub: string,
     content: string
@@ -1580,7 +1580,7 @@ export class NostrAPI {
    * done inline, so publishEvent needs no signer. Prefer NIP-17
    * (createKind1059) for new conversations — kind 4 leaks metadata.
    */
-  async createKind4(
+  static async createKind4(
     nsec: string,
     recipientNpub: string,
     content: string,

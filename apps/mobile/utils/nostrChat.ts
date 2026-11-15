@@ -508,7 +508,7 @@ async function sendNip04Chat(
   }
 
   const { sendPowBits } = useNostrChatSettingsStore.getState()
-  const event = await api.createKind4(
+  const event = await NostrAPI.createKind4(
     identity.nsec,
     peerNpub,
     text,

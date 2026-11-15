@@ -384,12 +384,12 @@ export async function checkNip17LiveRoundtrip(
     // The wrap to the project npub proves the security-report delivery path;
     // the self wrap is retrievable AND decryptable by us, proving retrieval
     // and NIP-59 decryption of relay-served bytes.
-    const reportWrap = api.createKind1059(
+    const reportWrap = NostrAPI.createKind1059(
       nsec,
       NOSTR_SECURITY_REPORT_NPUB,
       probe
     )
-    const selfWrap = api.createKind1059(nsec, npub, probe)
+    const selfWrap = NostrAPI.createKind1059(nsec, npub, probe)
 
     // nip17.wrapEvent signs internally, so publishEvent needs no signer.
     await api.publishEvent(reportWrap)

@@ -32,7 +32,7 @@ async function announceNostrDevice(
   try {
     await nostrApi.connect()
     await nostrApi.publishEvent(
-      nostrApi.createKind1059(commonNsec, commonNpub, compressedMessage)
+      NostrAPI.createKind1059(commonNsec, commonNpub, compressedMessage)
     )
     return true
   } catch (error) {

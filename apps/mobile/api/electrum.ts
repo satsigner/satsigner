@@ -68,7 +68,7 @@ export const ElectrumServerVersionSchema = z.tuple([z.string(), z.string()])
 
 class ModifiedClient extends BlueWalletElectrumClient {
   // Same as the library's connectSocket, plus a connect timeout.
-  connectSocket(conn: TcpSocketInstance, port: number, host: string) {
+  override connectSocket(conn: TcpSocketInstance, port: number, host: string) {
     const connectTimeout = isOnionUrl(host)
       ? ELECTRUM_CONNECT_TOR_TIMEOUT_MS
       : ELECTRUM_CONNECT_TIMEOUT_MS

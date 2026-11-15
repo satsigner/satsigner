@@ -17,6 +17,7 @@ declare module 'electrum-client' {
     conn?: {
       setTimeout?: (timeout: number) => void
     }
+    connectSocket(conn: unknown, port: number, host: string): Promise<void>
     reconnect(): void
     onError(error: Error): void
     server_ping(): Promise<void>

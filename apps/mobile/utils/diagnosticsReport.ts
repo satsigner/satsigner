@@ -85,7 +85,7 @@ export async function submitDiagnosticsReport(
 
   const api = new NostrAPI(relays)
   try {
-    const wrap = api.createKind1059(
+    const wrap = NostrAPI.createKind1059(
       nsec,
       NOSTR_SECURITY_REPORT_NPUB,
       JSON.stringify(payload)
