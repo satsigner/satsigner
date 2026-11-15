@@ -631,6 +631,7 @@ export function satsYDomain({
   scale,
   startY
 }: YDomainParams): [number, number] {
+  'worklet'
   const span = maxBalance * HISTORY_CHART_Y_HEADROOM
   if (lockZoomToXAxis) {
     return [0, span]

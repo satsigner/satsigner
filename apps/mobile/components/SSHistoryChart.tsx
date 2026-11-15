@@ -5,6 +5,7 @@ import { area, curveStepAfter, line } from 'd3-shape'
 import { memo, useMemo, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
+import { useDerivedValue } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLocalPriceCloses } from '@/api/localPrices'
@@ -56,6 +57,12 @@ import {
   SATS_AXIS_LABEL_X,
   satsYDomain
 } from '@/utils/historyChart'
+import { viewportTransform } from '@/utils/historyChartViewport'
+
+const FONT_STYLE = {
+  fontFamily: Typography.geistSkiaFamily,
+  fontSize: 10
+} as const
 
 type SSHistoryChartProps = {
   transactions: Transaction[]
@@ -123,6 +130,8 @@ function SSHistoryChart({
     cursorY,
     endDate,
     handleLayout,
+    live,
+    rendered,
     scale,
     startY
   } = viewport
@@ -377,10 +386,30 @@ function SSHistoryChart({
   )
 
   const customFontManager = useGeistFonts()
-  const fontStyle = {
-    fontFamily: Typography.geistSkiaFamily,
-    fontSize: 10
-  } as const
+
+  const gestureTransform = useDerivedValue(() =>
+    viewportTransform({
+      chartHeight,
+      chartWidth,
+      live: live.value,
+      lockZoomToXAxis,
+      maxBalance,
+      rendered,
+      timeOffset
+    })
+  )
+  const plotTransform = useDerivedValue(() => {
+    const { scaleX, scaleY, translateX, translateY } = gestureTransform.value
+    return [{ translateX }, { translateY }, { scaleX }, { scaleY }]
+  })
+  const xAxisTransform = useDerivedValue(() => {
+    const { scaleX, translateX } = gestureTransform.value
+    return [{ translateX }, { scaleX }]
+  })
+  const yAxisTransform = useDerivedValue(() => {
+    const { scaleY, translateY } = gestureTransform.value
+    return [{ translateY }, { scaleY }]
+  })
 
   const labelParagraphs = useHistoryChartLabels({
     chartWidth,
@@ -421,91 +450,97 @@ function SSHistoryChart({
               { translateY: margin.top }
             ]}
           >
-            <MemoizedYScaleRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              yScale={yScale}
-              chartHeight={chartHeight}
-              chartWidth={chartWidth}
-              yAxisFormatter={yAxisFormatter}
-              color={Colors.white}
-              labelX={SATS_AXIS_LABEL_X}
-              showGridLines
-            />
-            {showFiatAxis ? (
+            <Group transform={yAxisTransform}>
               <MemoizedYScaleRenderer
                 customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                yScale={fiatYScale}
+                fontStyle={FONT_STYLE}
+                yScale={yScale}
                 chartHeight={chartHeight}
                 chartWidth={chartWidth}
-                yAxisFormatter={formatFiatAxisTick}
-                color={fiatColor}
-                labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
-                showGridLines={false}
-                title={fiatCurrency}
-              />
-            ) : null}
-            <MemoizedXScaleRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              showTransactionInfo={showTransactionInfo}
-              txXAxisLabels={txXAxisLabels}
-              chartHeight={chartHeight}
-              zeroPadding={zeroPadding}
-            />
-            <MemoizedXAxisRenderer
-              customFontManager={customFontManager}
-              fontStyle={fontStyle}
-              xScale={xScale}
-              chartHeight={chartHeight}
-              showTransactionInfo={showTransactionInfo}
-            />
-            <Group clip={clipPathRect}>
-              <MemoizedHistoryChartUtxoSeries
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                utxoRectangleData={utxoRectangleData}
-                utxoLabels={utxoLabels}
-                showOutputField={showOutputField}
-              />
-              <MemoizedTransactionInfoRenderer
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                txInfoLabels={txInfoLabels}
-                labelParagraphs={labelParagraphs}
-                showLabel={showLabel}
-                showAmount={showAmount}
-                zeroPadding={zeroPadding}
-                labelRectRef={labelRectRef}
-              />
-              <Path
-                path={linePath ?? ''}
-                color="white"
-                strokeWidth={2}
-                style="stroke"
+                yAxisFormatter={yAxisFormatter}
+                color={Colors.white}
+                labelX={SATS_AXIS_LABEL_X}
+                showGridLines
               />
               {showFiatAxis ? (
-                <Path
-                  path={fiatLinePath ?? ''}
+                <MemoizedYScaleRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  yScale={fiatYScale}
+                  chartHeight={chartHeight}
+                  chartWidth={chartWidth}
+                  yAxisFormatter={formatFiatAxisTick}
                   color={fiatColor}
+                  labelX={chartWidth + FIAT_AXIS_LABEL_GAP}
+                  showGridLines={false}
+                  title={fiatCurrency}
+                />
+              ) : null}
+            </Group>
+            <Group transform={xAxisTransform}>
+              <MemoizedXScaleRenderer
+                customFontManager={customFontManager}
+                fontStyle={FONT_STYLE}
+                showTransactionInfo={showTransactionInfo}
+                txXAxisLabels={txXAxisLabels}
+                chartHeight={chartHeight}
+                zeroPadding={zeroPadding}
+              />
+              <MemoizedXAxisRenderer
+                customFontManager={customFontManager}
+                fontStyle={FONT_STYLE}
+                xScale={xScale}
+                chartHeight={chartHeight}
+                showTransactionInfo={showTransactionInfo}
+              />
+            </Group>
+            <Group clip={clipPathRect}>
+              <Group transform={plotTransform}>
+                <MemoizedHistoryChartUtxoSeries
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  utxoRectangleData={utxoRectangleData}
+                  utxoLabels={utxoLabels}
+                  showOutputField={showOutputField}
+                />
+                <MemoizedTransactionInfoRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  txInfoLabels={txInfoLabels}
+                  labelParagraphs={labelParagraphs}
+                  showLabel={showLabel}
+                  showAmount={showAmount}
+                  zeroPadding={zeroPadding}
+                  labelRectRef={labelRectRef}
+                />
+                <Path
+                  path={linePath ?? ''}
+                  color="white"
                   strokeWidth={2}
                   style="stroke"
                 />
-              ) : null}
-              <MemoizedHistoryChartAreaSeries
-                areaPath={areaPath}
-                showOutputField={showOutputField}
-              />
-              <MemoizedCursorRenderer
-                customFontManager={customFontManager}
-                fontStyle={fontStyle}
-                cursorX={cursorX}
-                cursorY={cursorY}
-                xScale={xScale}
-                chartHeight={chartHeight}
-                zeroPadding={zeroPadding}
-              />
+                {showFiatAxis ? (
+                  <Path
+                    path={fiatLinePath ?? ''}
+                    color={fiatColor}
+                    strokeWidth={2}
+                    style="stroke"
+                  />
+                ) : null}
+                <MemoizedHistoryChartAreaSeries
+                  areaPath={areaPath}
+                  showOutputField={showOutputField}
+                />
+                <MemoizedCursorRenderer
+                  customFontManager={customFontManager}
+                  fontStyle={FONT_STYLE}
+                  cursorX={cursorX}
+                  cursorY={cursorY}
+                  xScale={xScale}
+                  chartHeight={chartHeight}
+                  zeroPadding={zeroPadding}
+                />
+              </Group>
             </Group>
           </Group>
         </Canvas>

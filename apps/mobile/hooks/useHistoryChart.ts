@@ -1,14 +1,10 @@
 import { Skia, type SkParagraph, TextAlign } from '@shopify/react-native-skia'
 import { type ScaleTime } from 'd3-scale'
-import {
-  type MutableRefObject,
-  useCallback,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { type MutableRefObject, useMemo, useState } from 'react'
 import { type LayoutChangeEvent } from 'react-native'
 import { Gesture } from 'react-native-gesture-handler'
+import { useSharedValue } from 'react-native-reanimated'
+import { scheduleOnRN } from 'react-native-worklets'
 
 import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { Colors, Typography } from '@/styles'
@@ -26,7 +22,12 @@ import {
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
-import { HISTORY_CHART_Y_HEADROOM, hexToRgba } from '@/utils/historyChart'
+import { hexToRgba } from '@/utils/historyChart'
+import {
+  type HistoryChartViewportState,
+  panViewport,
+  pinchViewport
+} from '@/utils/historyChartViewport'
 
 const DAYS_AHEAD = 5
 const LABEL_FONT = [Typography.geistSkiaFamily]
@@ -75,64 +76,34 @@ export function useHistoryChartViewport(currentDate: MutableRefObject<Date>) {
   const [containerSize, setContainersize] = useState({ height: 0, width: 0 })
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [startY, setStartY] = useState<number>(0)
-  const [{ endDate, scale }, setLocationState] = useState<{
-    endDate: Date
-    scale: number
-  }>(() => ({
-    endDate: futureDate(currentDate.current, DAYS_AHEAD),
-    scale: 1
+  const [rendered, setRendered] = useState<HistoryChartViewportState>(() => ({
+    endMs: futureDate(currentDate.current, DAYS_AHEAD).getTime(),
+    scale: 1,
+    startY: 0
   }))
 
-  const prevScale = useRef<number>(1)
-  const scaleRef = useRef<number>(1)
-  const endDateRef = useRef<Date>(endDate)
-  const prevEndDate = useRef<Date>(currentDate.current)
-  const startYRef = useRef<number>(0)
-  const prevStartY = useRef<number>(0)
-  const gestureUpdateAnimationFrameRef = useRef<number | null>(null)
-  const isGestureActiveRef = useRef<boolean>(false)
+  const live = useSharedValue(rendered)
+  const gestureOrigin = useSharedValue(rendered)
 
-  const updateLocationState = useCallback(() => {
-    if (gestureUpdateAnimationFrameRef.current) {
-      cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-    }
-    gestureUpdateAnimationFrameRef.current = requestAnimationFrame(() => {
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current,
-        scale: scaleRef.current
-      }))
-      gestureUpdateAnimationFrameRef.current = null
-    })
-  }, [])
-
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+  function handleLayout(event: LayoutChangeEvent) {
     const { width, height } = event.nativeEvent.layout
     setContainersize({ height, width })
-  }, [])
+  }
 
   return {
     containerSize,
     cursorX,
     cursorY,
-    endDate,
-    endDateRef,
-    gestureUpdateAnimationFrameRef,
+    endDate: new Date(rendered.endMs),
+    gestureOrigin,
     handleLayout,
-    isGestureActiveRef,
-    prevEndDate,
-    prevScale,
-    prevStartY,
-    scale,
-    scaleRef,
+    live,
+    rendered,
+    scale: rendered.scale,
     setCursorX,
     setCursorY,
-    setLocationState,
-    setStartY,
-    startY,
-    startYRef,
-    updateLocationState
+    setRendered,
+    startY: rendered.startY
   }
 }
 
@@ -155,101 +126,50 @@ export function useHistoryChartGestures({
   onOpenUtxo,
   onOpenTransaction
 }: UseHistoryChartGesturesParams) {
-  const {
-    endDate,
-    endDateRef,
-    gestureUpdateAnimationFrameRef,
-    isGestureActiveRef,
-    prevEndDate,
-    prevScale,
-    prevStartY,
-    scale,
-    scaleRef,
-    setCursorX,
-    setCursorY,
-    setLocationState,
-    setStartY,
-    startY,
-    startYRef,
-    updateLocationState
-  } = viewport
+  const { gestureOrigin, live, setCursorX, setCursorY, setRendered } = viewport
+  const nowMs = currentDate.current.getTime()
+  const firstTxMs = new Date(transactions[0]?.timestamp ?? 0).getTime()
 
   const panGesture = Gesture.Pan()
     .minDistance(1)
     .maxPointers(1)
     .onStart(() => {
-      isGestureActiveRef.current = true
-      prevEndDate.current = endDate
-      prevStartY.current = startY
+      gestureOrigin.value = live.value
     })
     .onUpdate((event) => {
-      endDateRef.current = new Date(
-        Math.max(
-          Math.min(
-            prevEndDate.current.getTime() -
-              ((timeOffset / scale) * event.translationX) / chartWidth,
-            new Date(
-              currentDate.current.getTime() + timeOffset / scale
-            ).getTime()
-          ),
-          new Date(transactions[0]?.timestamp ?? 0).getTime()
-        )
-      )
-      if (!lockZoomToXAxis) {
-        const ySpan = maxBalance * HISTORY_CHART_Y_HEADROOM
-        startYRef.current = Math.max(
-          Math.min(
-            prevStartY.current +
-              ((ySpan / scale) * event.translationY) / chartHeight,
-            ySpan - ySpan / scale
-          ),
-          0
-        )
-        setStartY(startYRef.current)
-      }
-      updateLocationState()
+      live.value = panViewport({
+        chartHeight,
+        chartWidth,
+        firstTxMs,
+        live: live.value,
+        lockZoomToXAxis,
+        maxBalance,
+        nowMs,
+        origin: gestureOrigin.value,
+        timeOffset,
+        translationX: event.translationX,
+        translationY: event.translationY
+      })
     })
     .onEnd(() => {
-      isGestureActiveRef.current = false
-      prevEndDate.current = endDate
-      prevStartY.current = startY
-      if (gestureUpdateAnimationFrameRef.current) {
-        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-        gestureUpdateAnimationFrameRef.current = null
-      }
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current
-      }))
+      scheduleOnRN(setRendered, live.value)
     })
-    .runOnJS(true)
 
   const pinchGesture = Gesture.Pinch()
     .onStart(() => {
-      isGestureActiveRef.current = true
+      gestureOrigin.value = live.value
     })
     .onUpdate((event) => {
-      const cScale = Math.max(prevScale.current * event.scale, 1)
-      const middleDate =
-        endDateRef.current.getTime() - timeOffset / scaleRef.current / 2
-      endDateRef.current = new Date(middleDate + timeOffset / cScale / 2)
-      scaleRef.current = cScale
-      updateLocationState()
+      live.value = pinchViewport({
+        live: live.value,
+        originScale: gestureOrigin.value.scale,
+        pinchScale: event.scale,
+        timeOffset
+      })
     })
     .onEnd(() => {
-      isGestureActiveRef.current = false
-      prevScale.current = scaleRef.current
-      if (gestureUpdateAnimationFrameRef.current) {
-        cancelAnimationFrame(gestureUpdateAnimationFrameRef.current)
-        gestureUpdateAnimationFrameRef.current = null
-      }
-      setLocationState((prev) => ({
-        ...prev,
-        endDate: endDateRef.current,
-        scale: scaleRef.current
-      }))
+      scheduleOnRN(setRendered, live.value)
     })
-    .runOnJS(true)
 
   const longPressGesture = Gesture.LongPress()
     .minDuration(300)
