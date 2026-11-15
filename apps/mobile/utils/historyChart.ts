@@ -202,7 +202,8 @@ export function buildUtxoRectangles({
   transactions,
   xScale,
   yScale,
-  chartWidth,
+  minX,
+  maxX,
   currentDate
 }: UtxoGeometryParams): UtxoRectangle[] {
   return [...balanceHistory.entries()]
@@ -215,7 +216,7 @@ export function buildUtxoRectangles({
           ? currentDate
           : new Date(transactions.at(index + 1)?.timestamp ?? currentDate)
       )
-      if (x2 < 0 || x1 >= chartWidth) {
+      if (x2 < minX || x1 >= maxX) {
         return []
       }
       let totalBalance = 0
@@ -260,7 +261,8 @@ export function buildUtxoLabels({
   transactions,
   xScale,
   yScale,
-  chartWidth,
+  minX,
+  maxX,
   currentDate
 }: UtxoGeometryParams): UtxoLabel[] {
   const result: UtxoLabel[] = []
@@ -273,7 +275,7 @@ export function buildUtxoLabels({
         ? currentDate
         : new Date(transactions.at(index + 1)?.timestamp ?? currentDate)
     )
-    if (x2 < 0 || x1 >= chartWidth) {
+    if (x2 < minX || x1 >= maxX) {
       continue
     }
     let totalBalance = 0

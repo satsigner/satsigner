@@ -59,6 +59,10 @@ import {
 } from '@/utils/historyChart'
 import { viewportTransform } from '@/utils/historyChartViewport'
 
+// Geometry drawn beyond each side of the visible window, in window widths, so
+// a pan or pinch out has history to reveal before the gesture ends.
+const GESTURE_PADDING_WINDOWS = 1
+
 const FONT_STYLE = {
   fontFamily: Typography.geistSkiaFamily,
   fontSize: 10
@@ -173,6 +177,21 @@ function SSHistoryChart({
     [chartData, lockZoomToXAxis, mountDate, startDate, endDate]
   )
 
+  const visibleSpanMs = endDate.getTime() - startDate.getTime()
+  const geometryStartDate = new Date(
+    startDate.getTime() - visibleSpanMs * GESTURE_PADDING_WINDOWS
+  )
+  const geometryEndDate = new Date(
+    endDate.getTime() + visibleSpanMs * GESTURE_PADDING_WINDOWS
+  )
+  const [, geometryChartData] = computeValidChartData(
+    chartData,
+    geometryStartDate,
+    geometryEndDate,
+    mountDate,
+    lockZoomToXAxis
+  )
+
   const showFiatLine =
     showHistoricalFiatLine &&
     isHistoricalFiatAvailable({
@@ -202,6 +221,11 @@ function SSHistoryChart({
   const fiatChartPoints = useMemo(
     () => fiatPointsInWindow(fiatSeries, startDate, endDate),
     [endDate, fiatSeries, startDate]
+  )
+  const geometryFiatChartPoints = fiatPointsInWindow(
+    fiatSeries,
+    geometryStartDate,
+    geometryEndDate
   )
   const fiatColor = fiatSeriesColor(fiatCurrency)
   const maxFiatAll = maxFiatValue(fiatSeries.map((point) => point.value))
@@ -242,17 +266,18 @@ function SSHistoryChart({
   const fiatLinePath = useMemo(
     () =>
       showFiatAxis
-        ? buildFiatLinePath(fiatChartPoints, xScale, fiatYScale)
+        ? buildFiatLinePath(geometryFiatChartPoints, xScale, fiatYScale)
         : null,
-    [fiatChartPoints, fiatYScale, showFiatAxis, xScale]
+    [geometryFiatChartPoints, fiatYScale, showFiatAxis, xScale]
   )
 
   const utxoRectangleData = useMemo(
     () =>
       buildUtxoRectangles({
         balanceHistory,
-        chartWidth,
         currentDate: mountDate,
+        maxX: chartWidth * (1 + GESTURE_PADDING_WINDOWS),
+        minX: -chartWidth * GESTURE_PADDING_WINDOWS,
         transactions,
         xScale,
         yScale
@@ -264,8 +289,9 @@ function SSHistoryChart({
     () =>
       buildUtxoLabels({
         balanceHistory,
-        chartWidth,
         currentDate: mountDate,
+        maxX: chartWidth * (1 + GESTURE_PADDING_WINDOWS),
+        minX: -chartWidth * GESTURE_PADDING_WINDOWS,
         transactions,
         xScale,
         yScale
@@ -312,14 +338,8 @@ function SSHistoryChart({
     [chartHeight, scale, xScale, yScale]
   )
 
-  const linePath = useMemo(
-    () => lineGenerator(validChartData),
-    [lineGenerator, validChartData]
-  )
-  const areaPath = useMemo(
-    () => areaGenerator(validChartData),
-    [areaGenerator, validChartData]
-  )
+  const linePath = lineGenerator(geometryChartData)
+  const areaPath = areaGenerator(geometryChartData)
 
   const yAxisFormatter = useMemo(() => format('.3s'), [])
 
