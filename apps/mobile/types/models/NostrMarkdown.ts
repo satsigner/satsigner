@@ -8,7 +8,7 @@ export type MarkdownInlineSegment =
 export type MarkdownBlock =
   | { type: 'heading'; level: number; segments: MarkdownInlineSegment[] }
   | { type: 'paragraph'; segments: MarkdownInlineSegment[] }
-  | { type: 'code'; value: string }
+  | { type: 'code'; value: string; language?: string }
   | {
       type: 'list'
       ordered: boolean
