@@ -1,4 +1,4 @@
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 const MS_PER_SECOND = 1000

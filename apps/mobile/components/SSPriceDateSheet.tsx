@@ -8,7 +8,7 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 import { formatDate, formatNumber } from '@/utils/format'
 
 const PRICE_HISTORY_START_YEAR = 2011
