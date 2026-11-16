@@ -12,6 +12,7 @@ import {
 
 import SSButton from '@/components/SSButton'
 import SSDatePicker from '@/components/SSDatePicker'
+import SSPressable from '@/components/SSPressable'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -74,7 +75,7 @@ export default function AccountTransactionSearchPage() {
     Record<DateEdge, Date | undefined>
   >({ from: undefined, to: undefined })
   const [editingEdge, setEditingEdge] = useState<DateEdge>()
-  const [dateInputMode, setDateInputMode] = useState<DateInputMode>('calendar')
+  const [dateInputMode, setDateInputMode] = useState<DateInputMode>('slider')
   const resultsListRef = useRef<FlashListRef<Transaction>>(null)
   const [filtersHeight, setFiltersHeight] = useState(0)
   const [isPastFilters, setIsPastFilters] = useState(false)
@@ -219,14 +220,22 @@ export default function AccountTransactionSearchPage() {
           </SSText>
           <SSHStack gap="xs" style={styles.wrap}>
             {availableTags.map((tag) => (
-              <SSRadioButton
+              <SSPressable
                 key={tag}
-                variant="outline"
-                label={`#${tag}`}
-                selected={selectedTags.includes(tag)}
                 onPress={() => setSelectedTags((tags) => toggleTag(tags, tag))}
-                style={styles.tagButton}
-              />
+                style={[
+                  styles.tagChip,
+                  selectedTags.includes(tag) && styles.tagChipSelected
+                ]}
+              >
+                <SSText
+                  size="xs"
+                  uppercase
+                  color={selectedTags.includes(tag) ? 'white' : 'muted'}
+                >
+                  {`#${tag}`}
+                </SSText>
+              </SSPressable>
             ))}
           </SSHStack>
         </SSVStack>
@@ -400,6 +409,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 8
   },
-  tagButton: { paddingHorizontal: 12 },
+  tagChip: {
+    borderColor: Colors.gray[700],
+    borderRadius: 4,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  tagChipSelected: {
+    backgroundColor: Colors.gray[700]
+  },
   wrap: { flexWrap: 'wrap' }
 })
