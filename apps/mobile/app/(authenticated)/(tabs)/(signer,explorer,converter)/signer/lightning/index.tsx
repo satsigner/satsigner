@@ -34,6 +34,10 @@ import { showNavigation } from '@/utils/navigation'
 const HEADER_ICON_STROKE = '#828282'
 const CARD_HORIZONTAL_INSET = 18
 
+const handleLDKPress = () => {
+  // TODO: Implement LDK functionality
+}
+
 export default function LightningPage() {
   const router = useRouter()
   const pathname = usePathname()
@@ -63,10 +67,6 @@ export default function LightningPage() {
 
   const handleLNDRestPress = () => {
     router.navigate('/signer/lightning/LNDRest')
-  }
-
-  const handleLDKPress = () => {
-    // TODO: Implement LDK functionality
   }
 
   const handleConfigPress = () => {

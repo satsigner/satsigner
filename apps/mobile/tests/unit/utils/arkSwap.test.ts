@@ -507,12 +507,12 @@ describe('isArkSwapInvoiceAbandoned', () => {
   })
 })
 
+function sentTo(address: string, status: string) {
+  return { sentToAddresses: [address], status }
+}
+
 describe('getArkSwapPayoutOutcome', () => {
   const ADDRESS = 'tb1qpayout'
-
-  function sentTo(address: string, status: string) {
-    return { sentToAddresses: [address], status }
-  }
 
   it('completes only once a movement to the address is successful', () => {
     expect(

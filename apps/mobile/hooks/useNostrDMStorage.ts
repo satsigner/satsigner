@@ -200,6 +200,10 @@ function storeNostrDmBatch(
   return { deferredIds }
 }
 
+function loadAccountDms(account?: Account) {
+  return account?.nostr?.dms || []
+}
+
 function useNostrDMStorage() {
   function store(
     account: Account,
@@ -213,10 +217,6 @@ function useNostrDMStorage() {
     storeNostrDmBatch(account.id, pendingDms)
   }
 
-  function load(account?: Account) {
-    return account?.nostr?.dms || []
-  }
-
   function clear(account?: Account) {
     if (!account?.nostr) {
       return
@@ -225,7 +225,7 @@ function useNostrDMStorage() {
     useAccountsStore.getState().updateAccountNostr(account.id, { dms: [] })
   }
 
-  return { clear, load, store, storeBatch }
+  return { clear, load: loadAccountDms, store, storeBatch }
 }
 
 export type { NostrDmBatchOutcome }

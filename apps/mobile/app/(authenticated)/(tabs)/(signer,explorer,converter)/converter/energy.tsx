@@ -346,6 +346,67 @@ function appendTemplateTransaction(
   }
 }
 
+const checkDifficulty = (hash: string, bits: string) => {
+  // For regtest, we use a fixed target of 0x7fffff0000000000000000000000000000000000000000000000000000000000
+  if (bits === '207fffff') {
+    const regtestTarget = Buffer.from(
+      '7fffff0000000000000000000000000000000000000000000000000000000000',
+      'hex'
+    )
+    const hashBytes = Buffer.from(hash, 'hex')
+    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+    const hashLE = Buffer.from(hashBytes).reverse()
+
+    // For regtest, we just need to check if the hash is less than the target
+    const isValid = hashLE.compare(regtestTarget) <= 0
+
+    return isValid
+  }
+
+  // For other networks, calculate target from bits
+  const bitsNum = Number.parseInt(bits, 16)
+  const exponent = bitsNum >>> 24
+  const mantissa = bitsNum & 0xff_ff_ff
+  const target = Buffer.alloc(32, 0)
+  let mantissaBuf = Buffer.alloc(4)
+  mantissaBuf.writeUInt32BE(mantissa, 0)
+  if (exponent <= 3) {
+    mantissaBuf = mantissaBuf.slice(4 - exponent)
+    mantissaBuf.copy(target, 32 - mantissaBuf.length)
+  } else {
+    mantissaBuf.copy(target, 32 - exponent)
+  }
+
+  // Convert hash to little-endian for comparison
+  const hashBytes = Buffer.from(hash, 'hex')
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  const hashLE = Buffer.from(hashBytes).reverse()
+
+  // Compare hash with target
+  const isValid = hashLE.compare(target) <= 0
+
+  return isValid
+}
+
+const validateBlockTemplate = (template: EnergyBlockTemplate) => {
+  if (
+    !template.version ||
+    !template.previousblockhash ||
+    !template.bits ||
+    !template.height
+  ) {
+    throw new Error('Block template missing required fields')
+  }
+
+  if (template.curtime < template.mintime) {
+    throw new Error(
+      `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
+    )
+  }
+
+  return true
+}
+
 export default function Energy() {
   const [
     rpcUrl,
@@ -633,67 +694,6 @@ export default function Energy() {
       setBlockchainInfo(null)
     }
     setIsConnecting(false)
-  }
-
-  const checkDifficulty = (hash: string, bits: string) => {
-    // For regtest, we use a fixed target of 0x7fffff0000000000000000000000000000000000000000000000000000000000
-    if (bits === '207fffff') {
-      const regtestTarget = Buffer.from(
-        '7fffff0000000000000000000000000000000000000000000000000000000000',
-        'hex'
-      )
-      const hashBytes = Buffer.from(hash, 'hex')
-      // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-      const hashLE = Buffer.from(hashBytes).reverse()
-
-      // For regtest, we just need to check if the hash is less than the target
-      const isValid = hashLE.compare(regtestTarget) <= 0
-
-      return isValid
-    }
-
-    // For other networks, calculate target from bits
-    const bitsNum = Number.parseInt(bits, 16)
-    const exponent = bitsNum >>> 24
-    const mantissa = bitsNum & 0xff_ff_ff
-    const target = Buffer.alloc(32, 0)
-    let mantissaBuf = Buffer.alloc(4)
-    mantissaBuf.writeUInt32BE(mantissa, 0)
-    if (exponent <= 3) {
-      mantissaBuf = mantissaBuf.slice(4 - exponent)
-      mantissaBuf.copy(target, 32 - mantissaBuf.length)
-    } else {
-      mantissaBuf.copy(target, 32 - exponent)
-    }
-
-    // Convert hash to little-endian for comparison
-    const hashBytes = Buffer.from(hash, 'hex')
-    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-    const hashLE = Buffer.from(hashBytes).reverse()
-
-    // Compare hash with target
-    const isValid = hashLE.compare(target) <= 0
-
-    return isValid
-  }
-
-  const validateBlockTemplate = (template: EnergyBlockTemplate) => {
-    if (
-      !template.version ||
-      !template.previousblockhash ||
-      !template.bits ||
-      !template.height
-    ) {
-      throw new Error('Block template missing required fields')
-    }
-
-    if (template.curtime < template.mintime) {
-      throw new Error(
-        `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
-      )
-    }
-
-    return true
   }
 
   const createCoinbaseTransaction = useCallback(

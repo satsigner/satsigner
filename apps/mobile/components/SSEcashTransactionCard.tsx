@@ -32,6 +32,26 @@ type SSEcashTransactionCardProps = Pick<
   onPress: () => void
 }
 
+function getTransactionIcon(type: EcashTransaction['type']) {
+  switch (type) {
+    case 'send': {
+      return <SSIconOutgoing height={12} width={12} />
+    }
+    case 'receive': {
+      return <SSIconIncoming height={12} width={12} />
+    }
+    case 'mint': {
+      return <SSIconIncomingLightning height={12} width={12} />
+    }
+    case 'melt': {
+      return <SSIconOutgoingLightning height={12} width={12} />
+    }
+    default: {
+      return <SSText size="2xl">•</SSText>
+    }
+  }
+}
+
 function SSEcashTransactionCard({
   transaction,
   mintLabel,
@@ -89,26 +109,6 @@ function SSEcashTransactionCard({
       }
       default: {
         return String(status).toUpperCase()
-      }
-    }
-  }
-
-  function getTransactionIcon(type: EcashTransaction['type']) {
-    switch (type) {
-      case 'send': {
-        return <SSIconOutgoing height={12} width={12} />
-      }
-      case 'receive': {
-        return <SSIconIncoming height={12} width={12} />
-      }
-      case 'mint': {
-        return <SSIconIncomingLightning height={12} width={12} />
-      }
-      case 'melt': {
-        return <SSIconOutgoingLightning height={12} width={12} />
-      }
-      default: {
-        return <SSText size="2xl">•</SSText>
       }
     }
   }

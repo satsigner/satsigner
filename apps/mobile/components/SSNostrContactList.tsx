@@ -37,13 +37,13 @@ function NostrContactRow({ item, onPress }: NostrContactRowProps) {
   )
 }
 
+function keyExtractor(item: NostrContactItem) {
+  return item.pubkey
+}
+
 function SSNostrContactList({ contacts, onPress }: SSNostrContactListProps) {
   function renderItem({ item }: { item: NostrContactItem }) {
     return <NostrContactRow item={item} onPress={onPress} />
-  }
-
-  function keyExtractor(item: NostrContactItem) {
-    return item.pubkey
   }
 
   return (

@@ -92,6 +92,10 @@ function filterUtxosByExcludedOutpoints(
   return utxos.filter((utxo) => !excluded.has(getUtxoOutpoint(utxo)))
 }
 
+function sumUtxoValues(utxos: readonly Utxo[]): number {
+  return utxos.reduce((sum, utxo) => sum + utxo.value, 0)
+}
+
 function sumValue(groups: OutputGroup[]) {
   return groups.reduce((sum, group) => sum + group.value, 0)
 }
@@ -958,5 +962,6 @@ export {
   selectStonewallUtxos,
   selectUtxos,
   sortUtxosForSparrowSelection,
-  splitStonewallOutputValues
+  splitStonewallOutputValues,
+  sumUtxoValues
 }

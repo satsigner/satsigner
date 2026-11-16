@@ -215,6 +215,10 @@ export function createResetKey(index: Key['index']): Key {
   }
 }
 
+export function isZeroFingerprint(fingerprint?: string): boolean {
+  return !fingerprint || /^0+$/.test(fingerprint)
+}
+
 export function getAccountFingerprint(
   account: Account,
   decryptedKeys?: Key[]

@@ -84,16 +84,16 @@ describe('shareImage', () => {
   })
 })
 
+function refWithView(
+  current: ViewInstance | null
+): RefObject<ViewInstance | null> {
+  return { current }
+}
+
 describe('shareViewAsImage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
-
-  function refWithView(
-    current: ViewInstance | null
-  ): RefObject<ViewInstance | null> {
-    return { current }
-  }
 
   it('does nothing when the ref has no attached view', async () => {
     await shareViewAsImage({

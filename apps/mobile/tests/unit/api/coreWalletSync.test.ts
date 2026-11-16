@@ -98,19 +98,19 @@ describe('mergeWalletTxEntries', () => {
   })
 })
 
-describe('reorgedOutTxids', () => {
-  function listTx(txid: string, confirmations: number): CoreWalletListTx {
-    return {
-      amount: 0.1,
-      category: 'receive',
-      confirmations,
-      time: 1,
-      timereceived: 1,
-      txid,
-      vout: 0
-    }
+function listTx(txid: string, confirmations: number): CoreWalletListTx {
+  return {
+    amount: 0.1,
+    category: 'receive',
+    confirmations,
+    time: 1,
+    timereceived: 1,
+    txid,
+    vout: 0
   }
+}
 
+describe('reorgedOutTxids', () => {
   it('keeps removed txs Core lists again and drops gone or conflicted ones', () => {
     const transactions = [
       listTx('remined', 2),

@@ -297,6 +297,13 @@ function createEventStore(verifySignatures: boolean) {
   return { all, query, store }
 }
 
+function send(connection: Connection, message: unknown[]) {
+  if (connection.socket.readyState !== connection.socket.OPEN) {
+    return
+  }
+  connection.socket.send(JSON.stringify(message))
+}
+
 async function startTestRelay(
   options: TestRelayOptions = {}
 ): Promise<TestRelay> {
@@ -320,13 +327,6 @@ async function startTestRelay(
       done(true)
     }
   })
-
-  function send(connection: Connection, message: unknown[]) {
-    if (connection.socket.readyState !== connection.socket.OPEN) {
-      return
-    }
-    connection.socket.send(JSON.stringify(message))
-  }
 
   function sendEvent(connection: Connection, subId: string, event: Event) {
     const { fault } = state

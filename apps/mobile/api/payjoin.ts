@@ -807,6 +807,12 @@ async function startBip77SendOnce(
   }
 }
 
+function isDeadNativeSession(message: string): boolean {
+  // Durable nativeState can replay after process death. "not found" means
+  // a legacy id-only blob or a corrupt/expired event log.
+  return /sender session not found/i.test(message)
+}
+
 /** Resume a persisted BIP77 sender session (after visiting Receive). */
 async function pollBip77Send(params: {
   session: PayjoinSession
@@ -857,12 +863,6 @@ async function pollBip77Send(params: {
   const mailbox = mailboxFromEndpoint(params.session.pjEndpoint)
   const startedAt = Date.now()
   let polls = 0
-
-  function isDeadNativeSession(message: string): boolean {
-    // Durable nativeState can replay after process death. "not found" means
-    // a legacy id-only blob or a corrupt/expired event log.
-    return /sender session not found/i.test(message)
-  }
 
   function fallbackDeadSession(reason: string): Bip77AsyncSendResult {
     params.deps.sessions.updateSessionStatus(params.session.id, 'fallback', {

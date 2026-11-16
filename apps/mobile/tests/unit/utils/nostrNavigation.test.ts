@@ -78,14 +78,14 @@ describe('nostrNavigation', () => {
   })
 })
 
-describe('nostrScannedContentHref', () => {
-  function scanned(
-    type: Parameters<typeof nostrScannedContentHref>[1]['type'],
-    value: string
-  ) {
-    return { cleaned: value, raw: `nostr:${value}`, type }
-  }
+function scanned(
+  type: Parameters<typeof nostrScannedContentHref>[1]['type'],
+  value: string
+) {
+  return { cleaned: value, raw: `nostr:${value}`, type }
+}
 
+describe('nostrScannedContentHref', () => {
   it('opens a scanned npub as a contact profile', () => {
     expect(
       nostrScannedContentHref(NPUB, scanned('nostr_npub', TARGET_NPUB))

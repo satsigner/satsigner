@@ -28,6 +28,7 @@ import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import { sleep } from '@/utils/time'
+import { sumUtxoValues } from '@/utils/utxo'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -796,19 +797,19 @@ async function syncWithCoreWallet(
       .filter((tx) => (tx.blockHeight ?? 0) > 0)
       .map((tx) => tx.id)
   )
-  const sumValues = (list: Utxo[]) => list.reduce((sum, u) => sum + u.value, 0)
-
   return {
     addresses,
     rpcLastBlockHash: sinceResult.lastblock,
     summary: {
-      balance: sumValues(utxos.filter((u) => confirmedTxids.has(u.txid))),
+      balance: sumUtxoValues(utxos.filter((u) => confirmedTxids.has(u.txid))),
       numberOfAddresses: addresses.filter(
         (a) => a.keychain === 'external' && usedAddresses.has(a.address)
       ).length,
       numberOfTransactions: ownedTransactions.length,
       numberOfUtxos: utxos.length,
-      satsInMempool: sumValues(utxos.filter((u) => !confirmedTxids.has(u.txid)))
+      satsInMempool: sumUtxoValues(
+        utxos.filter((u) => !confirmedTxids.has(u.txid))
+      )
     },
     transactions: ownedTransactions,
     utxos

@@ -153,6 +153,10 @@ function findAddressLabel(addresses: Account['addresses'], address: string) {
   return addresses.find((addr) => addr.address === address)?.label || ''
 }
 
+function formatAddressInGroups(address: string): string {
+  return (address.match(/(.{1,4})/g) || []).join(' ')
+}
+
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
@@ -253,10 +257,6 @@ export default function Receive() {
   const saveLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   )
-
-  function formatAddressInGroups(address: string): string {
-    return (address.match(/(.{1,4})/g) || []).join(' ')
-  }
 
   const amountSatsForPayjoin = includeAmount
     ? parseReceiveAmountSats(localCustomAmount)

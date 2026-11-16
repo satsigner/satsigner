@@ -519,6 +519,10 @@ describe('2-of-2 multisig signatures', () => {
   })
 })
 
+const throwingConvert = () => {
+  throw new Error('mismatch')
+}
+
 describe('bindScannedDataToPsbt', () => {
   const network = bitcoinjs.networks.bitcoin
   const address = required(
@@ -586,9 +590,6 @@ describe('bindScannedDataToPsbt', () => {
   })
 
   it('rejects a PSBT the conversion refuses as a mismatch', () => {
-    const throwingConvert = () => {
-      throw new Error('mismatch')
-    }
     expect(
       bindScannedDataToPsbt(psbt.toHex(), psbtBase64, throwingConvert)
     ).toBeNull()

@@ -23,12 +23,12 @@ function outpoint(txid: string, vout: number) {
   return `${txid}:${vout}`
 }
 
+const take = (random: () => number) => Array.from({ length: 5 }, () => random())
+
 describe('createSampleRandom', () => {
   it('repeats the same sequence for the same seed', () => {
     const first = createSampleRandom(7)
     const second = createSampleRandom(7)
-    const take = (random: () => number) =>
-      Array.from({ length: 5 }, () => random())
     expect(take(first)).toStrictEqual(take(second))
   })
 

@@ -138,7 +138,8 @@ import {
   getUtxoOutpoint,
   selectEfficientUtxos,
   selectStonewallUtxos,
-  splitStonewallOutputValues
+  splitStonewallOutputValues,
+  sumUtxoValues
 } from '@/utils/utxo'
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
@@ -491,14 +492,11 @@ export default function IOPreview() {
     toast.success(t('common.copiedToClipboard'))
   }
 
-  const utxosValue = (utxos: Utxo[]): number =>
-    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
-
   const utxosTotalValue = useMemo(
-    () => utxosValue(account.utxos),
+    () => sumUtxoValues(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue([...inputs.values()])
+  const utxosSelectedValue = sumUtxoValues([...inputs.values()])
 
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(

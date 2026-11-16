@@ -72,6 +72,9 @@ type SSDatePickerProps = {
   onDragStart?: () => void
 }
 
+const getDaysInMonth = (month: number, year: number) =>
+  new Date(year, month, 0).getDate()
+
 function SSDatePicker({
   value,
   onChange,
@@ -146,9 +149,6 @@ function SSDatePicker({
       onChange(newDate)
     }
   }
-
-  const getDaysInMonth = (month: number, year: number) =>
-    new Date(year, month, 0).getDate()
 
   const formatMonth = (m: number) => t(`date.${MONTH_KEYS[m - 1]}`)
   const renderDayItem = (

@@ -642,6 +642,13 @@ describe('recalculateDepthH', () => {
   })
 })
 
+function getDepthOrders(
+  transactions: Map<string, ExtendedTransaction>,
+  txid: string
+) {
+  return transactions.get(txid)?.vout.map((output) => output.depthOrder)
+}
+
 describe('assignOutputDepthOrder', () => {
   function buildTransaction(id: string, depthH: number, outputCount: number) {
     return {
@@ -654,13 +661,6 @@ describe('assignOutputDepthOrder', () => {
         value: 1000
       })) as unknown as ExtendedTransaction['vout']
     }
-  }
-
-  function getDepthOrders(
-    transactions: Map<string, ExtendedTransaction>,
-    txid: string
-  ) {
-    return transactions.get(txid)?.vout.map((output) => output.depthOrder)
   }
 
   it('numbers outputs across transactions sharing a depth', () => {

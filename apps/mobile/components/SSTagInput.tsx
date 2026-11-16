@@ -23,6 +23,10 @@ type SSTagInputHandle = {
   focus: () => void
 }
 
+function search(a: string, b: string) {
+  return a.toLowerCase().includes(b.toLowerCase())
+}
+
 const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
   function SSTagInput({ tags, selectedTags, onAdd, onSelect, onRemove }, ref) {
     const [text, setText] = useState('')
@@ -60,10 +64,6 @@ const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
       } else if (onSelect) {
         onSelect(selectedTags.filter((t) => t !== tag))
       }
-    }
-
-    function search(a: string, b: string) {
-      return a.toLowerCase().includes(b.toLowerCase())
     }
 
     const suggestedTags = tags.filter(

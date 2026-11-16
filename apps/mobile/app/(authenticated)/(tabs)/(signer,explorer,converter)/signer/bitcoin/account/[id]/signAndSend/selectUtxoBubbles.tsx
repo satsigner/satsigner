@@ -25,7 +25,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
-import { getUtxoOutpoint } from '@/utils/utxo'
+import { getUtxoOutpoint, sumUtxoValues } from '@/utils/utxo'
 import {
   applyUtxoDenylist,
   DEFAULT_UTXO_LIST_FILTER,
@@ -83,12 +83,8 @@ function SelectUtxoBubbles() {
     selectableUtxos.length > 0 &&
     selectableUtxos.every((utxo) => inputs.has(getUtxoOutpoint(utxo)))
 
-  function utxosValue(utxos: Utxo[]): number {
-    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
-  }
-
-  const utxosTotalValue = utxosValue(selectableUtxos)
-  const utxosSelectedValue = utxosValue([...inputs.values()])
+  const utxosTotalValue = sumUtxoValues(selectableUtxos)
+  const utxosSelectedValue = sumUtxoValues([...inputs.values()])
   const controlsActive =
     filter.keychain !== 'all' ||
     filter.label !== 'all' ||

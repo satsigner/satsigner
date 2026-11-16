@@ -13,7 +13,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { MnemonicWordCountSchema } from '@/types/bips/39'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { getNextDisplayIndex } from '@/utils/account'
+import { getNextDisplayIndex, isZeroFingerprint } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getFingerprintFromMnemonic
@@ -115,7 +115,6 @@ async function createSeedAccount(
   )
   await storeKeySecret(account.id, 0, encryptedSecret, key.iv)
 
-  const isZeroFingerprint = (fp?: string) => !fp || /^0+$/.test(fp)
   const finalFingerprint = !isZeroFingerprint(walletData.fingerprint)
     ? walletData.fingerprint
     : key.fingerprint

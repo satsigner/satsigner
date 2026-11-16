@@ -99,20 +99,20 @@ describe('getEventContent', () => {
   )
 })
 
+function rumor(id: string, createdAt: number, content = '{}') {
+  return {
+    content: { content, created_at: createdAt, id, pubkey: 'a'.repeat(64) },
+    created_at: createdAt,
+    id,
+    wrapId: `wrap-${id}`
+  }
+}
+
 describe('processNostrEventBatch', () => {
   const account = {
     id: 'account-1',
     nostr: { syncStart: new Date(0) }
   } as unknown as Account
-
-  function rumor(id: string, createdAt: number, content = '{}') {
-    return {
-      content: { content, created_at: createdAt, id, pubkey: 'a'.repeat(64) },
-      created_at: createdAt,
-      id,
-      wrapId: `wrap-${id}`
-    }
-  }
 
   beforeEach(() => {
     mockProcessedIds.clear()

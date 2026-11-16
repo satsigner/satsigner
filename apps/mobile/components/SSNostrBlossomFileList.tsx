@@ -53,16 +53,16 @@ function SSNostrBlossomFileRow({ file, onPress }: SSNostrBlossomFileRowProps) {
   )
 }
 
+function keyExtractor(item: BlobDescriptor) {
+  return item.sha256
+}
+
 function SSNostrBlossomFileList({
   files,
   onPress
 }: SSNostrBlossomFileListProps) {
   function renderItem({ item }: { item: BlobDescriptor }) {
     return <SSNostrBlossomFileRow file={item} onPress={onPress} />
-  }
-
-  function keyExtractor(item: BlobDescriptor) {
-    return item.sha256
   }
 
   return (

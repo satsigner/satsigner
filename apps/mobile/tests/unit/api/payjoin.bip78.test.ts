@@ -71,6 +71,16 @@ const callbacks: PayjoinWalletCallbacks = {
   signPsbt: (psbt) => `SIGNED:${psbt}`
 }
 
+const unavailableFetch: FetchLike = () =>
+  Promise.resolve({
+    body: JSON.stringify({
+      errorCode: 'unavailable',
+      message: 'try later'
+    }),
+    bytes: new Uint8Array(),
+    status: 503
+  })
+
 describe('payjoin BIP78 send (phase 2)', () => {
   beforeEach(() => {
     __resetPayjoinMock()
@@ -97,19 +107,9 @@ describe('payjoin BIP78 send (phase 2)', () => {
   })
 
   it('maps BIP78 unavailable JSON error', async () => {
-    const fetchImpl: FetchLike = () =>
-      Promise.resolve({
-        body: JSON.stringify({
-          errorCode: 'unavailable',
-          message: 'try later'
-        }),
-        bytes: new Uint8Array(),
-        status: 503
-      })
-
     const result = await postBip78OriginalPsbt({
       endpoint: 'https://example.com/pj',
-      fetchImpl,
+      fetchImpl: unavailableFetch,
       psbtBase64: original.toBase64()
     })
 

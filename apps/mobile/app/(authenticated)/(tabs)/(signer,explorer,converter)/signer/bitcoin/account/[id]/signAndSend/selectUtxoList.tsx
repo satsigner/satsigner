@@ -28,7 +28,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
-import { getUtxoOutpoint } from '@/utils/utxo'
+import { getUtxoOutpoint, sumUtxoValues } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
   isUtxoExcluded,
@@ -147,12 +147,8 @@ export default function SelectUtxoList() {
 
   const largestValue = Math.max(0, ...account.utxos.map((utxo) => utxo.value))
 
-  function utxosValue(utxos: Utxo[]): number {
-    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
-  }
-
-  const utxosTotalValue = utxosValue(selectableUtxos)
-  const utxosSelectedValue = utxosValue([...inputs.values()])
+  const utxosTotalValue = sumUtxoValues(selectableUtxos)
+  const utxosSelectedValue = sumUtxoValues([...inputs.values()])
 
   function handleSelectAllUtxos() {
     for (const utxo of selectableUtxos) {

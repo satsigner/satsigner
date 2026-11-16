@@ -188,6 +188,14 @@ describe('loadAccountWallets', () => {
   })
 })
 
+function readerFor(tipHeight: number, blockHash: string) {
+  return {
+    blockHash: jest.fn(() => Promise.resolve(blockHash)),
+    close: jest.fn(),
+    tipHeight: jest.fn(() => Promise.resolve(tipHeight))
+  }
+}
+
 describe('walletForServerChain', () => {
   const DB_PATH = 'acc-1-signet.sqlite'
   const SIGNET_TIP = 280_000
@@ -204,14 +212,6 @@ describe('walletForServerChain', () => {
     name: 'Mutinynet',
     network: 'signet',
     url: 'https://mutinynet.com/api'
-  }
-
-  function readerFor(tipHeight: number, blockHash: string) {
-    return {
-      blockHash: jest.fn(() => Promise.resolve(blockHash)),
-      close: jest.fn(),
-      tipHeight: jest.fn(() => Promise.resolve(tipHeight))
-    }
   }
 
   function walletWithBlock(block: { hash: string; height: number }) {
