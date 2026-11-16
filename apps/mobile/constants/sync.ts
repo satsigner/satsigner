@@ -47,8 +47,24 @@ const SYNC_FAILURE_TOAST_LIMIT = 2
 // for a superseded run of the same account before giving up.
 const SUPERSEDED_SYNC_WAIT_TIMEOUT_MS = 15_000
 
+// A sync this long after the last successful one re-checks every address.
+// Sooner syncs only need recent addresses (once the SDK supports partial sync).
+const FULL_ADDRESS_CHECK_AFTER_MS = 14 * 24 * 60 * 60_000
+
+// Recent addresses per keychain checked right after a sync, and just before
+// FULL_ADDRESS_CHECK_AFTER_MS. The count grows linearly in between.
+const QUICK_CHECK_MIN_ADDRESSES = 5
+const QUICK_CHECK_MAX_ADDRESSES = 50
+
+// The sync toolbar alternates between the progress and the check kind.
+const SYNC_LABEL_TICK_MS = 3000
+
 export {
   CORE_NODE_WAIT_HEARTBEAT_MS,
+  FULL_ADDRESS_CHECK_AFTER_MS,
+  QUICK_CHECK_MAX_ADDRESSES,
+  QUICK_CHECK_MIN_ADDRESSES,
+  SYNC_LABEL_TICK_MS,
   MIN_USABLE_CHECKPOINT_HEIGHT,
   SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,

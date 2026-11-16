@@ -1,5 +1,8 @@
 import {
+  FULL_ADDRESS_CHECK_AFTER_MS,
   MIN_USABLE_CHECKPOINT_HEIGHT,
+  QUICK_CHECK_MAX_ADDRESSES,
+  QUICK_CHECK_MIN_ADDRESSES,
   SYNC_STALL_TIMEOUT_MS,
   SYNC_STALL_TIMEOUT_RPC_MS,
   SYNC_STALL_TIMEOUT_TOR_MS
@@ -102,11 +105,40 @@ function toRestoredSyncStatus(
   return lastSyncedAt ? 'synced' : 'unsynced'
 }
 
+type SyncScope = { kind: 'all' } | { kind: 'recent'; recentPerKeychain: number }
+
+type GetSyncScopeParams = {
+  lastSyncedAt: Account['lastSyncedAt']
+  nowMs: number
+}
+
+/**
+ * How many addresses an incremental sync should re-check. Right after a sync
+ * only recent addresses are worth asking about; the longer the gap, the more
+ * addresses, until FULL_ADDRESS_CHECK_AFTER_MS when every address is checked.
+ */
+function getSyncScope({ lastSyncedAt, nowMs }: GetSyncScopeParams): SyncScope {
+  if (!lastSyncedAt) {
+    return { kind: 'all' }
+  }
+  const elapsedMs = nowMs - new Date(lastSyncedAt).getTime()
+  if (Number.isNaN(elapsedMs) || elapsedMs >= FULL_ADDRESS_CHECK_AFTER_MS) {
+    return { kind: 'all' }
+  }
+  const ratio = Math.max(0, elapsedMs) / FULL_ADDRESS_CHECK_AFTER_MS
+  const range = QUICK_CHECK_MAX_ADDRESSES - QUICK_CHECK_MIN_ADDRESSES
+  return {
+    kind: 'recent',
+    recentPerKeychain: Math.round(QUICK_CHECK_MIN_ADDRESSES + ratio * range)
+  }
+}
+
 export {
+  getSyncScope,
   getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
   hasAccountChainData,
   shouldFullScan,
   toRestoredSyncStatus
 }
-export type { AccountSyncHistory }
+export type { AccountSyncHistory, SyncScope }

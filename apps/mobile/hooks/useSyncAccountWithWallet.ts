@@ -140,7 +140,7 @@ async function syncWalletAccount({
     // Start indeterminate; block-count progress only exists during a full
     // rescan. Incremental syncs (listsinceblock) have no scan phase, so
     // this stays indeterminate rather than showing a misleading 100%.
-    setSyncProgress(latest.id, { tasksDone: 0, totalTasks: 0 })
+    setSyncProgress(latest.id, { tasksDone: 0, totalTasks: 0, unit: 'blocks' })
     const coreResult = await syncWithCoreWallet(
       latest,
       wallet,
@@ -154,7 +154,8 @@ async function syncWalletAccount({
           scanFromTimeSec: meta?.scanFromTimeSec,
           tasksDone: currentHeight,
           totalTasks: tipHeight,
-          transactionsFound: meta?.transactionsFound
+          transactionsFound: meta?.transactionsFound,
+          unit: 'blocks'
         })
       },
       () => signal.aborted,
@@ -187,8 +188,16 @@ async function syncWalletAccount({
       server.rpcScanFromHeight,
       isGeneratedWallet,
       {
+        // Quick checks need partial sync in react-native-bdk-sdk; until then
+        // every incremental sync checks all addresses
+        // (docs/bdk-sdk-partial-sync.md).
         onProgress: (tasksDone, totalTasks) =>
-          setSyncProgress(latest.id, { tasksDone, totalTasks }),
+          setSyncProgress(latest.id, {
+            scope: isScanFull ? 'deep' : 'full',
+            tasksDone,
+            totalTasks,
+            unit: server.backend === 'rpc' ? 'blocks' : 'addresses'
+          }),
         signal
       }
     )
