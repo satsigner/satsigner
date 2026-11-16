@@ -2,7 +2,7 @@ import { ScrollView, Pressable, StyleSheet } from 'react-native'
 
 import SSText from '@/components/SSText'
 import { Colors } from '@/styles'
-import { type BlossomFileTypeFilter } from '@/types/models/Blossom'
+import type { BlossomFileTypeFilter } from '@/types/models/Blossom'
 import { getBlossomFileTypeFilterLabel } from '@/utils/blossomFiles'
 
 type SSNostrBlossomFileFilterChipsProps = {

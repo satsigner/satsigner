@@ -1,5 +1,7 @@
-import { type ComponentProps, type ReactNode, useState } from 'react'
-import { ScrollView, type StyleProp, type ViewStyle } from 'react-native'
+import { useState } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
+import { ScrollView } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'

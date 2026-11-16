@@ -30,10 +30,10 @@ import { Colors } from '@/styles'
 import { getAccountTotalBalance } from '@/utils/account'
 import { getAccountKindLabelFromAccount } from '@/utils/accountKindLabel'
 import {
-  type ArkOnchainSweepBlocker,
   getArkOnchainSweepBlocker,
   getArkSweepDestinations
 } from '@/utils/arkOnchainSweep'
+import type { ArkOnchainSweepBlocker } from '@/utils/arkOnchainSweep'
 import { formatMaskedNumber, formatNumber } from '@/utils/format'
 
 const BLOCKER_MESSAGE_KEYS: Record<

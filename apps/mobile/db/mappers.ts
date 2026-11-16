@@ -1,23 +1,21 @@
-import { type Label } from '@/types/bips/329'
-import {
-  type Account,
-  type Key,
-  type KeyMeta,
-  type PolicyType,
-  type SyncProgress,
-  type SyncStatus
+import type { Label } from '@/types/bips/329'
+import type {
+  Account,
+  Key,
+  KeyMeta,
+  PolicyType,
+  SyncProgress,
+  SyncStatus
 } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Prices, PricesSchema } from '@/types/models/Blockchain'
-import {
-  type NostrAccount,
-  NostrAccountSchema,
-  type NostrDM
-} from '@/types/models/Nostr'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
+import type { Address } from '@/types/models/Address'
+import { PricesSchema } from '@/types/models/Blockchain'
+import type { Prices } from '@/types/models/Blockchain'
+import { NostrAccountSchema } from '@/types/models/Nostr'
+import type { NostrAccount, NostrDM } from '@/types/models/Nostr'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network } from '@/types/settings/blockchain'
 import { toRestoredSyncStatus } from '@/utils/accountSync'
 import { isNumberArray } from '@/utils/array'
 

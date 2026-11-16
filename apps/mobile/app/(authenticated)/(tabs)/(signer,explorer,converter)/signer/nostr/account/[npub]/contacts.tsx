@@ -19,7 +19,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { type NostrContactItem } from '@/types/models/Nostr'
+import type { NostrContactItem } from '@/types/models/Nostr'
 import { getSecretFromNsec } from '@/utils/nostr'
 import {
   filterNostrContacts,

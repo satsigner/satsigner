@@ -1,5 +1,6 @@
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { QR_COMPLEXITY_MAX, QRDisplayMode } from '@/constants/qr'
 import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'

@@ -1,14 +1,12 @@
 import { StyleSheet } from 'react-native'
 
-import {
-  SCRIPT_DIAGRAMS,
-  type ScriptDiagramItem
-} from '@/constants/scriptDiagrams'
+import { SCRIPT_DIAGRAMS } from '@/constants/scriptDiagrams'
+import type { ScriptDiagramItem } from '@/constants/scriptDiagrams'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 
 import SSText from './SSText'
 

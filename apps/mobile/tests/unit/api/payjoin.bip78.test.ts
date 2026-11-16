@@ -2,13 +2,10 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { __resetPayjoinMock } from 'react-native-payjoin'
 
-import {
-  postBip78OriginalPsbt,
-  sendPayjoin,
-  type FetchLike
-} from '@/api/payjoin'
+import { postBip78OriginalPsbt, sendPayjoin } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import { getPayjoinDeps } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 
 function buildPsbt(params: {
   inputs: { txid: string; vout: number }[]
@@ -71,6 +68,16 @@ const callbacks: PayjoinWalletCallbacks = {
   signPsbt: (psbt) => `SIGNED:${psbt}`
 }
 
+const unavailableFetch: FetchLike = () =>
+  Promise.resolve({
+    body: JSON.stringify({
+      errorCode: 'unavailable',
+      message: 'try later'
+    }),
+    bytes: new Uint8Array(),
+    status: 503
+  })
+
 describe('payjoin BIP78 send (phase 2)', () => {
   beforeEach(() => {
     __resetPayjoinMock()
@@ -97,19 +104,9 @@ describe('payjoin BIP78 send (phase 2)', () => {
   })
 
   it('maps BIP78 unavailable JSON error', async () => {
-    const fetchImpl: FetchLike = () =>
-      Promise.resolve({
-        body: JSON.stringify({
-          errorCode: 'unavailable',
-          message: 'try later'
-        }),
-        bytes: new Uint8Array(),
-        status: 503
-      })
-
     const result = await postBip78OriginalPsbt({
       endpoint: 'https://example.com/pj',
-      fetchImpl,
+      fetchImpl: unavailableFetch,
       psbtBase64: original.toBase64()
     })
 

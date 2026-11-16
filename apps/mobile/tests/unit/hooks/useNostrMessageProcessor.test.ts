@@ -7,8 +7,8 @@ import {
   processNostrEventBatch,
   resetHandlerFailures
 } from '@/hooks/useNostrMessageProcessor'
-import { type Account } from '@/types/models/Account'
-import { type NostrUnwrappedEvent } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrUnwrappedEvent } from '@/types/models/Nostr'
 import { compressMessage } from '@/utils/nostr'
 
 const mockProcessedIds = new Set<string>()
@@ -99,20 +99,20 @@ describe('getEventContent', () => {
   )
 })
 
+function rumor(id: string, createdAt: number, content = '{}') {
+  return {
+    content: { content, created_at: createdAt, id, pubkey: 'a'.repeat(64) },
+    created_at: createdAt,
+    id,
+    wrapId: `wrap-${id}`
+  }
+}
+
 describe('processNostrEventBatch', () => {
   const account = {
     id: 'account-1',
     nostr: { syncStart: new Date(0) }
   } as unknown as Account
-
-  function rumor(id: string, createdAt: number, content = '{}') {
-    return {
-      content: { content, created_at: createdAt, id, pubkey: 'a'.repeat(64) },
-      created_at: createdAt,
-      id,
-      wrapId: `wrap-${id}`
-    }
-  }
 
   beforeEach(() => {
     mockProcessedIds.clear()

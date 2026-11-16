@@ -4,17 +4,17 @@ import {
   SECONDS_PER_HOUR as HOUR,
   SECONDS_PER_MINUTE as MINUTE
 } from '@/constants/time'
-import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
-import {
-  type NostrChatConversationItem,
-  type NostrDM,
-  type NostrReactionRow,
-  type NostrReactionSummaryEntry
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import type {
+  NostrChatConversationItem,
+  NostrDM,
+  NostrReactionRow,
+  NostrReactionSummaryEntry
 } from '@/types/models/Nostr'
 import { safeNpubEncode } from '@/utils/nostr'
-import { type NostrMessagePreview } from '@/utils/nostrMessageDetail'
+import type { NostrMessagePreview } from '@/utils/nostrMessageDetail'
 
-import { type DesignSampleSet } from './designSampleVariations'
+import type { DesignSampleSet } from './designSampleVariations'
 
 const NOW = Math.floor(Date.now() / MS_PER_SECOND)
 

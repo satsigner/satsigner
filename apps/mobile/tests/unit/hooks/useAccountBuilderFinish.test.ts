@@ -7,7 +7,7 @@ import { storeKeySecret } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Secret } from '@/types/models/Account'
+import type { Account, Secret } from '@/types/models/Account'
 
 jest.mock<typeof import('@/api/bdk')>('@/api/bdk', () => ({
   getWalletData: jest.fn()

@@ -1,7 +1,5 @@
-import {
-  KeyboardAwareScrollView,
-  type KeyboardAwareScrollViewRef
-} from 'react-native-keyboard-controller'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
+import type { KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller'
 
 type SSScrollViewProps = {
   ref?: React.Ref<KeyboardAwareScrollViewRef>

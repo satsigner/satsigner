@@ -1,4 +1,4 @@
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 
 export type ArkServerId = 'second'
 

@@ -1,7 +1,7 @@
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 
 export type FeeReplacementKind = 'bump' | 'cancel' | 'cpfp'
 

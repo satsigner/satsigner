@@ -2,7 +2,8 @@ import {
   getLndChannelPeerAlias,
   LIQUIDITY_BAR_PART_COUNT,
   liquidityBarSegmentFlexParts,
-  parseLndSats
+  parseLndSats,
+  sumLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 
 describe('lndChannelDetail', () => {
@@ -72,6 +73,32 @@ describe('lndChannelDetail', () => {
       expect(parseLndSats('x')).toBe(0)
       expect(parseLndSats(undefined)).toBe(0)
       expect(parseLndSats(Number.NaN)).toBe(0)
+    })
+  })
+
+  describe('sumLndChannelSatsField', () => {
+    it('should sum the first matching key of every channel', () => {
+      const channels = [
+        { local_balance: '1000' },
+        { localBalance: 250 },
+        { remote_balance: '9' }
+      ]
+      expect(
+        sumLndChannelSatsField(channels, ['local_balance', 'localBalance'])
+      ).toBe(1250)
+    })
+
+    it('should skip entries that are not channel objects', () => {
+      expect(
+        sumLndChannelSatsField(
+          [null, undefined, 0, 'x', [], { capacity: '500' }],
+          ['capacity']
+        )
+      ).toBe(500)
+    })
+
+    it('should return 0 for no channels', () => {
+      expect(sumLndChannelSatsField([], ['capacity'])).toBe(0)
     })
   })
 })

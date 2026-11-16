@@ -1,17 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { nostrKeys } from '@/db/keys'
-import {
-  type NostrContactItem,
-  type NostrDataSource,
-  type NostrErrorCode
+import type {
+  NostrContactItem,
+  NostrDataSource,
+  NostrErrorCode
 } from '@/types/models/Nostr'
 import {
   fetchNostrContacts,
   getNostrContactsPlaceholder,
-  getNostrContactsRelaysKey,
-  type NostrContactsQueryData
+  getNostrContactsRelaysKey
 } from '@/utils/nostrContacts'
+import type { NostrContactsQueryData } from '@/utils/nostrContacts'
 
 type UseNostrContactsResult = {
   connectedRelayCount: number

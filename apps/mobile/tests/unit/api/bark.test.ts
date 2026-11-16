@@ -135,6 +135,10 @@ function movementCreatedEvent(
   }
 }
 
+function exitTx(tag: string) {
+  return { status: { tag } }
+}
+
 describe('bark provider', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -1207,10 +1211,6 @@ describe('bark provider', () => {
 
     function exitStatus(vtxoId: string, tag: string, inner = {}) {
       return { state: { inner: { tipHeight: TIP, ...inner }, tag }, vtxoId }
-    }
-
-    function exitTx(tag: string) {
-      return { status: { tag } }
     }
 
     it('listExits maps every exit state and its progress', async () => {

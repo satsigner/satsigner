@@ -3,7 +3,7 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { compressMessage } from '@/utils/nostr'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 
@@ -32,7 +32,7 @@ async function announceNostrDevice(
   try {
     await nostrApi.connect()
     await nostrApi.publishEvent(
-      nostrApi.createKind1059(commonNsec, commonNpub, compressedMessage)
+      NostrAPI.createKind1059(commonNsec, commonNpub, compressedMessage)
     )
     return true
   } catch (error) {

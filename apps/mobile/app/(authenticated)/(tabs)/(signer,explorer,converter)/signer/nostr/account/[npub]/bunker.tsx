@@ -11,10 +11,8 @@ import SSNip46ConnectionModal from '@/components/SSNip46ConnectionModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNip46Connect } from '@/hooks/useNip46Connect'
-import {
-  type Nip46AnswerResult,
-  useNip46SessionManager
-} from '@/hooks/useNip46SessionManager'
+import { useNip46SessionManager } from '@/hooks/useNip46SessionManager'
+import type { Nip46AnswerResult } from '@/hooks/useNip46SessionManager'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'

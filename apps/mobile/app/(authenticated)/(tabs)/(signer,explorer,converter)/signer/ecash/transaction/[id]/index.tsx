@@ -29,10 +29,30 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
-import { type EcashTransaction } from '@/types/models/Ecash'
-import { type EcashSearchParams } from '@/types/navigation/searchParams'
+import type { EcashTransaction } from '@/types/models/Ecash'
+import type { EcashSearchParams } from '@/types/navigation/searchParams'
 import { toCheckedTokenStatus } from '@/utils/ecashToken'
 import { formatFiatPrice } from '@/utils/format'
+
+function getTransactionIcon(type: EcashTransaction['type']) {
+  switch (type) {
+    case 'send': {
+      return <SSIconOutgoing height={32} width={32} />
+    }
+    case 'receive': {
+      return <SSIconIncoming height={32} width={32} />
+    }
+    case 'mint': {
+      return <SSIconIncomingLightning height={32} width={32} />
+    }
+    case 'melt': {
+      return <SSIconOutgoingLightning height={32} width={32} />
+    }
+    default: {
+      return <SSText size="2xl">•</SSText>
+    }
+  }
+}
 
 export default function EcashTransactionDetailPage() {
   const router = useRouter()
@@ -176,26 +196,6 @@ export default function EcashTransactionDetailPage() {
         </SSVStack>
       </SSMainLayout>
     )
-  }
-
-  function getTransactionIcon(type: EcashTransaction['type']) {
-    switch (type) {
-      case 'send': {
-        return <SSIconOutgoing height={32} width={32} />
-      }
-      case 'receive': {
-        return <SSIconIncoming height={32} width={32} />
-      }
-      case 'mint': {
-        return <SSIconIncomingLightning height={32} width={32} />
-      }
-      case 'melt': {
-        return <SSIconOutgoingLightning height={32} width={32} />
-      }
-      default: {
-        return <SSText size="2xl">•</SSText>
-      }
-    }
   }
 
   function getTransactionLabel(type: EcashTransaction['type']) {

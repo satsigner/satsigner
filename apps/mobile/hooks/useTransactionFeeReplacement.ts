@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { router } from 'expo-router'
-import { type BdkWallet, type PsbtLike } from 'react-native-bdk-sdk'
+import type { BdkWallet, PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -18,14 +18,14 @@ import {
   useTransactionBuilderStore
 } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
-import {
-  type FeeReplacementDraft,
-  type FeeReplacementKind,
-  type PrebuiltReplacement
+import type { Account } from '@/types/models/Account'
+import type {
+  FeeReplacementDraft,
+  FeeReplacementKind,
+  PrebuiltReplacement
 } from '@/types/models/FeeReplacement'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Backend } from '@/types/settings/blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Backend } from '@/types/settings/blockchain'
 import { getAccountAddressSets } from '@/utils/address'
 import {
   buildCpfpDraft,

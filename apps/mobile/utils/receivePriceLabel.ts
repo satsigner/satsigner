@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 import { formatDate, formatNumber } from '@/utils/format'
 
 const FIAT_DECIMALS = 2

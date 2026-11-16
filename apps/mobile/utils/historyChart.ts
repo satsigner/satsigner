@@ -3,23 +3,23 @@ import { curveLinear, line } from 'd3-shape'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { Colors } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Rectangle } from '@/types/ui/geometry'
-import {
-  type BalanceHistory,
-  type FiatChartPoint,
-  type FiatChartPointsParams,
-  type HistoryChartData,
-  type TxInfoLabel,
-  type TxInfoLabelsParams,
-  type TxXAxisLabel,
-  type TxXAxisLabelsParams,
-  type UtxoGeometryParams,
-  type UtxoLabel,
-  type UtxoRectangle,
-  type YDomainParams
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Rectangle } from '@/types/ui/geometry'
+import type {
+  BalanceHistory,
+  FiatChartPoint,
+  FiatChartPointsParams,
+  HistoryChartData,
+  TxInfoLabel,
+  TxInfoLabelsParams,
+  TxXAxisLabel,
+  TxXAxisLabelsParams,
+  UtxoGeometryParams,
+  UtxoLabel,
+  UtxoRectangle,
+  YDomainParams
 } from '@/types/ui/historyChart'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 import { isOverlapping } from '@/utils/geometry'
@@ -83,6 +83,16 @@ export function buildChartData(
       type: transaction.type ?? 'receive'
     }
   })
+}
+
+export function earliestChartDate(chartData: HistoryChartData[]): Date {
+  let earliest = chartData[0].date
+  for (const point of chartData) {
+    if (point.date < earliest) {
+      earliest = point.date
+    }
+  }
+  return earliest
 }
 
 export function buildBalanceHistory(

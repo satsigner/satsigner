@@ -4,23 +4,23 @@ import {
   Paint,
   Paragraph,
   Skia,
-  type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia'
 import { useEffect, useMemo } from 'react'
 import {
-  type SharedValue,
   useDerivedValue,
   useSharedValue,
   withDelay,
   withSequence,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { normalizeUtxoLabelForDisplay } from '@/utils/parse'
 

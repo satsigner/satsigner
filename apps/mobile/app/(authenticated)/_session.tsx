@@ -26,7 +26,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account } from '@/types/models/Account'
-import { type PageParams, type PageRoute } from '@/types/navigation/page'
+import type { PageParams, PageRoute } from '@/types/navigation/page'
 import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import { loadAccountWallets } from '@/utils/accountWallets'
 import { devLog, devStep } from '@/utils/devConsole'
@@ -36,10 +36,8 @@ import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'
 import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
-import {
-  type SyncErrorReporter,
-  createSyncFailureBatch
-} from '@/utils/syncFailureToasts'
+import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
+import type { SyncErrorReporter } from '@/utils/syncFailureToasts'
 import { yieldToUi } from '@/utils/time'
 
 function toPageRoute(path: string, params: Record<string, unknown>): PageRoute {

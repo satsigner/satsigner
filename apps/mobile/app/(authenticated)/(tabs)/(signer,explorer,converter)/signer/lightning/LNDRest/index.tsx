@@ -16,7 +16,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/store/lightning'
 import { getAllClipboardContent } from '@/utils/clipboard'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { parseLndConnectionInput } from '@/utils/lndRestRemoteConfig'
 
 const CONNECTING_LOADER_SIZE = 80

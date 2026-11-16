@@ -7,15 +7,14 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getAccountAddressSets } from '@/utils/address'
 import { formatTxId } from '@/utils/format'
 import {
   extractTransactionDataFromPSBTEnhanced,
-  findMatchingAccount,
-  type KeyFingerprintsByAccount,
-  type TransactionData
+  findMatchingAccount
 } from '@/utils/psbt'
+import type { KeyFingerprintsByAccount, TransactionData } from '@/utils/psbt'
 import { parsePsbtDetails } from '@/utils/psbtDetails'
 import {
   buildKnownTxIds,

@@ -8,10 +8,10 @@ import {
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray, white } from '@/styles/colors'
 import {
-  type SankeyRibbonPlan,
   ribbonWidthForLink,
   stackedRibbonOffsetBeforeLink
 } from '@/utils/sankeyFlowWidths'
+import type { SankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import { CHART_REMAINING_BALANCE_LOCAL_ID } from '@/utils/stonewall'
 
 interface Node {

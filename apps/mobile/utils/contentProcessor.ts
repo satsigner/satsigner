@@ -1,8 +1,8 @@
 import { Buffer } from 'buffer'
 
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { type Href } from 'expo-router'
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import type { Href } from 'expo-router'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import {
@@ -11,8 +11,8 @@ import {
   UNSET_OUTPUT_AMOUNT_SATS
 } from '@/constants/btc'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   bitcoinAmountBtcToSats,
   isUriPaymentAmount
@@ -21,11 +21,8 @@ import {
   parseBitcoinPaymentUri,
   validateBitcoinAddressWithNetwork
 } from '@/utils/bip321'
-import {
-  type ContentContext,
-  type DetectedContent,
-  prepareEcashTokenInput
-} from '@/utils/contentDetector'
+import { prepareEcashTokenInput } from '@/utils/contentDetector'
+import type { ContentContext, DetectedContent } from '@/utils/contentDetector'
 import { getUsableFeeRate } from '@/utils/feeWarnings'
 import {
   ensureBitcoinPrefix,
@@ -43,9 +40,9 @@ import {
   extractTransactionDataFromPSBTEnhanced,
   extractTransactionIdFromPSBT,
   findMatchingAccount,
-  getCollectedSignerPubkeys,
-  type KeyFingerprintsByAccount
+  getCollectedSignerPubkeys
 } from '@/utils/psbt'
+import type { KeyFingerprintsByAccount } from '@/utils/psbt'
 import { selectEfficientUtxos } from '@/utils/utxo'
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
@@ -115,7 +112,7 @@ export function extractPayjoinUriFromContent(
 }
 
 function highestValueUtxo(utxos: Utxo[]): Utxo {
-  return utxos.reduce((max, utxo) => (utxo.value > max.value ? utxo : max))
+  return utxos.toSorted((a, b) => b.value - a.value)[0]
 }
 
 export function autoSelectUtxos(

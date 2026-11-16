@@ -10,13 +10,11 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { getNewestProcessedCreatedAt } from '@/db/nostrProcessedEvents'
-import {
-  type NostrBatchResult,
-  processNostrEventBatch
-} from '@/hooks/useNostrMessageProcessor'
+import { processNostrEventBatch } from '@/hooks/useNostrMessageProcessor'
+import type { NostrBatchResult } from '@/hooks/useNostrMessageProcessor'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import type {
   NostrErrorCode,
   NostrMessage,

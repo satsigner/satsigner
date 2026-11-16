@@ -1,7 +1,7 @@
-import {
-  type SankeyExtraProperties,
-  type SankeyGraph,
-  type SankeyLayout
+import type {
+  SankeyExtraProperties,
+  SankeyGraph,
+  SankeyLayout
 } from 'd3-sankey'
 
 /**

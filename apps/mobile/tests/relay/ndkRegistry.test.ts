@@ -1,7 +1,8 @@
 import { clearNdkRegistry, getOrCreateNdk } from '@/api/ndkRegistry'
 
 import { CONNECT_TIMEOUT_MS } from './support/testNdk'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 import { delay, waitFor } from './support/waitFor'
 
 const RECONNECT_WINDOW_MS = 1500

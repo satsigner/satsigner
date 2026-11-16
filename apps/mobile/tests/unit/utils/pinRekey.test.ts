@@ -21,9 +21,9 @@ import {
   clearPinRekeyJournal,
   clearPinRekeyJournalFor,
   listPinSecretSlots,
-  type PinSecretSlot,
   rekeyPinSecrets
 } from '@/utils/pinRekey'
+import type { PinSecretSlot } from '@/utils/pinRekey'
 
 // A ciphertext names its key, so the tests can see which digest opens it.
 jest.mock<typeof import('@/utils/crypto')>('@/utils/crypto', () => ({

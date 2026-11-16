@@ -10,9 +10,11 @@ import {
 import { resetRelayHealth } from '@/api/nostrRelayHealth'
 import { fetchZapsByPubkey } from '@/utils/nostrZap'
 
-import { createTestIdentity, type TestIdentity } from './support/identities'
+import { createTestIdentity } from './support/identities'
+import type { TestIdentity } from './support/identities'
 import { resetNodeNitroSqlite } from './support/nodeNitroSqlite'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 
 const NOW_SEC = Math.floor(Date.now() / 1000)
 const NOTE_COUNT = 5

@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import { type SyncProgress } from '@/types/models/Account'
+import type { SyncProgress } from '@/types/models/Account'
 
 type SyncProgressLabelParams = Partial<
   Pick<SyncProgress, 'scope' | 'tasksDone' | 'totalTasks' | 'unit'>

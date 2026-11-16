@@ -1,5 +1,5 @@
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
 import {
   compareAmount,
   compareTimestamp,
@@ -19,6 +19,18 @@ function makeTx(
     vin: [],
     vout: [],
     ...overrides
+  }
+}
+
+function makeAddress(index: number): Address {
+  return {
+    address: `addr${index}`,
+    index,
+    keychain: 'external',
+    label: '',
+    summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
+    transactions: [],
+    utxos: []
   }
 }
 
@@ -168,17 +180,6 @@ describe('sort utils', () => {
   })
 
   describe('sortAddressesByIndex', () => {
-    function makeAddress(index: number): Address {
-      return {
-        address: `addr${index}`,
-        index,
-        keychain: 'external',
-        label: '',
-        summary: { balance: 0, satsInMempool: 0, transactions: 0, utxos: 0 },
-        transactions: [],
-        utxos: []
-      }
-    }
     const addresses = [makeAddress(1), makeAddress(0), makeAddress(2)]
 
     it('sorts by index ascending on asc', () => {

@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
-import { type VStackGap } from '@/styles/layout'
+import type { VStackGap } from '@/styles/layout'
 
 type SSVStackProps = {
   gap?: VStackGap

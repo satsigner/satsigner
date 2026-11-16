@@ -9,10 +9,10 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { Label } from '@/types/bips/329'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import type { Label } from '@/types/bips/329'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { AddrSearchParams } from '@/types/navigation/searchParams'
 
 function AddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()

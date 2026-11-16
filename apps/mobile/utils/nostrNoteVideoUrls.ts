@@ -1,10 +1,10 @@
-import { NostrVideoEmbed } from '@/types/models/Nostr'
+import type { NostrVideoEmbed } from '@/types/models/Nostr'
 import {
   isPlausibleImageHttpUrl,
-  type NostrImetaInfo,
   parseImetaByUrl,
   VIDEO_FILE_EXT_RE
 } from '@/utils/nostrNoteMedia'
+import type { NostrImetaInfo } from '@/utils/nostrNoteMedia'
 
 function pushUrl(raw: string, seen: Set<string>, out: string[]) {
   const u = raw.trim().replace(/\)+$/, '')

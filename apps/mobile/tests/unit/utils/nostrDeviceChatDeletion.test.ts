@@ -1,4 +1,4 @@
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 import { applyDeviceDeletionRumor } from '@/utils/nostrDeviceChat'
 
 const mockRemoveAccountDms = jest.fn()

@@ -17,13 +17,12 @@ import { useAuthStore } from '@/store/auth'
 import { Colors, Typography } from '@/styles'
 import { decryptBackup } from '@/utils/backupEncryption'
 import {
-  type LoadBackupResult,
-  type LoadedBackup,
   loadBackupText,
   pickBackupFile,
   shouldHoldBackupOffscreen
 } from '@/utils/backupFile'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { LoadBackupResult, LoadedBackup } from '@/utils/backupFile'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatBytes } from '@/utils/format'
 import { performRecoverOverwrite } from '@/utils/recoverBackup'
 import { showRecoverResultToast } from '@/utils/recoverToast'

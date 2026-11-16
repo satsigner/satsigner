@@ -14,9 +14,9 @@ import {
   fetchFollowingFeedPage,
   getNextNotesPageParam,
   kindsForNoteKindFilterId,
-  type NostrFeedNotesPage,
   summarizeFeedPages
 } from '@/utils/nostrFeedQueries'
+import type { NostrFeedNotesPage } from '@/utils/nostrFeedQueries'
 
 type UseNostrFeedFetchOptions = {
   authors: string[]

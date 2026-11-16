@@ -4,9 +4,9 @@ import {
   Paint,
   Paragraph,
   Skia,
-  type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia'
 import { useEffect, useMemo } from 'react'
 import { useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 

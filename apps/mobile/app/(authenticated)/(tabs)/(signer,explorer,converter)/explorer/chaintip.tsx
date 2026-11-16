@@ -1,6 +1,7 @@
 import { useFont } from '@shopify/react-native-skia'
 import { router, Stack } from 'expo-router'
-import { useState, type ComponentProps, type ReactElement } from 'react'
+import { useState } from 'react'
+import type { ComponentProps, ReactElement } from 'react'
 import {
   Pressable,
   ScrollView,
@@ -46,13 +47,12 @@ import {
   PRICE_CHART_LOADER_SIZE,
   PRICE_CHART_PADDING,
   PRICE_CHART_TICK_COUNT,
-  type PriceChartDomain,
-  type PriceChartPoint,
   formatPriceChartXLabel,
   formatPriceChartYLabel,
   formatSpotPriceDisplay,
   priceDomainFromData
 } from '@/utils/priceChart'
+import type { PriceChartDomain, PriceChartPoint } from '@/utils/priceChart'
 
 const chartFont = require('@/assets/fonts/Geist-Medium.ttf')
 

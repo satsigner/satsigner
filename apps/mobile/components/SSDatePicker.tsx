@@ -1,14 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
-  type DimensionValue,
   ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
-  View,
-  type ScrollViewInstance
+  View
 } from 'react-native'
+import type { DimensionValue, ScrollViewInstance } from 'react-native'
 
 import { useMountEffect } from '@/hooks/useMountEffect'
 import { t } from '@/locales'
@@ -71,6 +70,9 @@ type SSDatePickerProps = {
   onChange(value: Date): void
   onDragStart?: () => void
 }
+
+const getDaysInMonth = (month: number, year: number) =>
+  new Date(year, month, 0).getDate()
 
 function SSDatePicker({
   value,
@@ -146,9 +148,6 @@ function SSDatePicker({
       onChange(newDate)
     }
   }
-
-  const getDaysInMonth = (month: number, year: number) =>
-    new Date(year, month, 0).getDate()
 
   const formatMonth = (m: number) => t(`date.${MONTH_KEYS[m - 1]}`)
   const renderDayItem = (

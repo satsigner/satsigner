@@ -5,9 +5,9 @@ import {
   ARK_ONCHAIN_SWEEP_OVERHEAD_VBYTES
 } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
-import { type ArkOnchainUtxo } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { ArkOnchainUtxo } from '@/types/models/Ark'
+import type { Network } from '@/types/settings/blockchain'
 
 type ArkOnchainSweepRejection = 'empty' | 'belowDust'
 

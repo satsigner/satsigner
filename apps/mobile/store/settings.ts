@@ -6,14 +6,12 @@ import {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_SESSION_TTL_MS
 } from '@/constants/payjoin'
-import mmkvStorage from '@/storage/mmkv'
-import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import {
-  type PayjoinCoordinationMode,
-  type PayjoinSettings
-} from '@/types/payjoin'
-import { type CurrencyUnit } from '@/types/ui/displayPreferences'
+import { mmkvStorage } from '@/storage/mmkv'
+import { DEFAULT_WORD_LIST } from '@/types/bips/39'
+import type { WordListName } from '@/types/bips/39'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { PayjoinCoordinationMode, PayjoinSettings } from '@/types/payjoin'
+import type { CurrencyUnit } from '@/types/ui/displayPreferences'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { isRecord } from '@/utils/object'
 import {

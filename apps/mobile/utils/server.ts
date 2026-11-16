@@ -1,4 +1,4 @@
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 
 type ServerEndpoint = Pick<Server, 'backend' | 'url'>
 

@@ -1,8 +1,8 @@
 import {
   FfiConverterObjectWithCallbacks,
-  FfiConverterOptional,
-  type UniffiObjectFactory
+  FfiConverterOptional
 } from '@ubjs/core'
+import type { UniffiObjectFactory } from '@ubjs/core'
 
 type Inspector = { inspect: () => void }
 

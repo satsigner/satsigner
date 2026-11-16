@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { type MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import { WITNESS_SCALE_FACTOR } from '@/constants/btc'
 import type { ExplorerBlockVizData } from '@/types/explorer/blockViz'
 

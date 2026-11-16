@@ -1,13 +1,8 @@
-import { FlashList, FlashListRef } from '@shopify/flash-list'
+import type { FlashListRef } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
 import { useEffect, useRef } from 'react'
-import {
-  Platform,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Platform, StyleSheet, Text, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 import Animated, {
   interpolate,
   useAnimatedStyle,

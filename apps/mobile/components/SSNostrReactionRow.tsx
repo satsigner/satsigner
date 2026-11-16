@@ -6,7 +6,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
-import { type NostrReactionRow } from '@/types/models/Nostr'
+import type { NostrReactionRow } from '@/types/models/Nostr'
 import { formatRelativeTime } from '@/utils/date'
 
 const AVATAR_SIZE = 32

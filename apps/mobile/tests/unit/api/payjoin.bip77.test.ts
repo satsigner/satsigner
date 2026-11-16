@@ -11,14 +11,14 @@ import {
   finalizeReceiverPayjoin,
   pollReceiverSession,
   processDirectoryBridgedBip78Proposal,
-  sendPayjoin,
-  type FetchLike
+  sendPayjoin
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import {
   getPayjoinDeps,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { getShuffledOhttpRelays } from '@/utils/payjoinRelays'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 

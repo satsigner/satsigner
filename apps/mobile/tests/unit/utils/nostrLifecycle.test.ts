@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo'
 import { AppState } from 'react-native'
 
 import { reconnectNdkForRelays } from '@/api/nostr'
@@ -128,8 +128,8 @@ describe('nostrLifecycle', () => {
     startNostrLifecycle()
     startNostrLifecycle()
 
-    expect(NetInfo.addEventListener).toHaveBeenCalledTimes(1)
-    const [[onConnectivity]] = jest.mocked(NetInfo.addEventListener).mock.calls
+    expect(addNetInfoListener).toHaveBeenCalledTimes(1)
+    const [[onConnectivity]] = jest.mocked(addNetInfoListener).mock.calls
     onConnectivity({ isConnected: false })
     onConnectivity({ isConnected: true })
     await flushPromises()

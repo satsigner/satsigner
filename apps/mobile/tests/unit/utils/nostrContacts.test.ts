@@ -1,5 +1,5 @@
 import { setNostrFollowCache } from '@/storage/mmkv'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 import {
   contactToIdentity,
   fetchNostrContacts,

@@ -6,8 +6,8 @@ import {
   PAYJOIN_TAG,
   RBF_TAG
 } from '@/constants/transaction'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
 import { getAccountAddressSets } from '@/utils/address'
 import {
   isTransactionUnconfirmed,

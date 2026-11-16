@@ -1,4 +1,4 @@
-import { type BdkWallet } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import { syncWallet } from '@/api/bdk'
@@ -14,13 +14,14 @@ import {
 } from '@/constants/sync'
 import { markServerConnectionFailed } from '@/hooks/useVerifyConnection'
 import { t } from '@/locales'
-import { type SyncTaskControls, SyncTimeoutError } from '@/services/syncQueue'
+import { SyncTimeoutError } from '@/services/syncQueue'
+import type { SyncTaskControls } from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { type Account, type SyncProgress } from '@/types/models/Account'
-import { type Prices } from '@/types/models/Blockchain'
-import { type Config, type Server } from '@/types/settings/blockchain'
+import type { Account, SyncProgress } from '@/types/models/Account'
+import type { Prices } from '@/types/models/Blockchain'
+import type { Config, Server } from '@/types/settings/blockchain'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { getSyncStallTimeoutMs, shouldFullScan } from '@/utils/accountSync'
 import {
@@ -40,10 +41,8 @@ import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { isSameServerEndpoint } from '@/utils/server'
-import {
-  type SyncErrorReporter,
-  reportSyncFailure
-} from '@/utils/syncFailureToasts'
+import { reportSyncFailure } from '@/utils/syncFailureToasts'
+import type { SyncErrorReporter } from '@/utils/syncFailureToasts'
 import { withTimeout } from '@/utils/time'
 import { reconcileTransactions } from '@/utils/transaction'
 

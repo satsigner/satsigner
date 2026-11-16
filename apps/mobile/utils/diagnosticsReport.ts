@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
 import Constants from 'expo-constants'
 import { nip19 } from 'nostr-tools'
 import { Platform } from 'react-native'
@@ -9,11 +9,8 @@ import {
   NOSTR_SECURITY_REPORT_NPUB
 } from '@/constants/nostr'
 import { randomKey } from '@/utils/crypto'
-import {
-  type DiagnosticResult,
-  type DiagnosticStatus,
-  resolveLiveRoundtripRelays
-} from '@/utils/diagnostics'
+import { resolveLiveRoundtripRelays } from '@/utils/diagnostics'
+import type { DiagnosticResult, DiagnosticStatus } from '@/utils/diagnostics'
 
 export const DIAGNOSTICS_REPORT_VERSION = 2
 
@@ -72,7 +69,7 @@ export async function submitDiagnosticsReport(
   payload: DiagnosticsReportPayload,
   relayUrls: string[]
 ): Promise<void> {
-  const netState = await NetInfo.fetch()
+  const netState = await fetchNetInfo()
   if (netState.isConnected === false) {
     throw new Error('device is offline')
   }
@@ -85,7 +82,7 @@ export async function submitDiagnosticsReport(
 
   const api = new NostrAPI(relays)
   try {
-    const wrap = api.createKind1059(
+    const wrap = NostrAPI.createKind1059(
       nsec,
       NOSTR_SECURITY_REPORT_NPUB,
       JSON.stringify(payload)

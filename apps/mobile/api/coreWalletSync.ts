@@ -1,9 +1,6 @@
 import { hex } from '@scure/base'
-import {
-  type BdkWallet,
-  KeychainKind,
-  type Network
-} from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { BdkWallet, Network } from 'react-native-bdk-sdk'
 
 import {
   BDK_RESCAN_MAX_POLLS,
@@ -17,17 +14,18 @@ import {
 import { HASH_HEX_LENGTH, SATS_PER_BITCOIN } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { MS_PER_SECOND } from '@/constants/time'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import {
-  type Network as BlockchainNetwork,
-  type RpcCredentials
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type {
+  Network as BlockchainNetwork,
+  RpcCredentials
 } from '@/types/settings/blockchain'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { RpcError } from '@/utils/errors'
 import { computeRpcScanStartHeight } from '@/utils/rpcScanStartHeight'
 import { sleep } from '@/utils/time'
+import { sumUtxoValues } from '@/utils/utxo'
 import {
   annotateTransactionsWithWalletOwnership,
   collectTransactionOutputAddresses,
@@ -42,12 +40,12 @@ import {
   revealKnownAddresses,
   toAppNetwork
 } from './bdkWalletMappers'
-import {
-  BitcoinCoreWallet,
-  type CoreTxDetails,
-  type CoreWalletInfo,
-  type CoreWalletListTx,
-  type ImportDescriptorRequest
+import { BitcoinCoreWallet } from './rpc'
+import type {
+  CoreTxDetails,
+  CoreWalletInfo,
+  CoreWalletListTx,
+  ImportDescriptorRequest
 } from './rpc'
 
 type CoreWalletSyncProgress = (
@@ -796,19 +794,19 @@ async function syncWithCoreWallet(
       .filter((tx) => (tx.blockHeight ?? 0) > 0)
       .map((tx) => tx.id)
   )
-  const sumValues = (list: Utxo[]) => list.reduce((sum, u) => sum + u.value, 0)
-
   return {
     addresses,
     rpcLastBlockHash: sinceResult.lastblock,
     summary: {
-      balance: sumValues(utxos.filter((u) => confirmedTxids.has(u.txid))),
+      balance: sumUtxoValues(utxos.filter((u) => confirmedTxids.has(u.txid))),
       numberOfAddresses: addresses.filter(
         (a) => a.keychain === 'external' && usedAddresses.has(a.address)
       ).length,
       numberOfTransactions: ownedTransactions.length,
       numberOfUtxos: utxos.length,
-      satsInMempool: sumValues(utxos.filter((u) => !confirmedTxids.has(u.txid)))
+      satsInMempool: sumUtxoValues(
+        utxos.filter((u) => !confirmedTxids.has(u.txid))
+      )
     },
     transactions: ownedTransactions,
     utxos

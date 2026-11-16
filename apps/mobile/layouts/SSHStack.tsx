@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
-import { type HStackGap } from '@/styles/layout'
+import type { HStackGap } from '@/styles/layout'
 
 type SSHStackProps = {
   gap?: HStackGap

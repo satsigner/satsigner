@@ -8,12 +8,9 @@ import { useAccountKeyFingerprintsLoader } from '@/hooks/useAccountKeyFingerprin
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { Account } from '@/types/models/Account'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
-  type BitcoinContentActions,
-  type BitcoinContentTarget,
-  type BitcoinUriExceedsBalancePromptInfo,
   applyScannedPsbt,
   commitAddressOnly,
   commitBitcoinUriToIoPreview,
@@ -24,7 +21,12 @@ import {
   parseScannedPaymentUri,
   psbtContentToBase64
 } from '@/utils/contentProcessor'
-import { type KeyFingerprintsByAccount } from '@/utils/psbt'
+import type {
+  BitcoinContentActions,
+  BitcoinContentTarget,
+  BitcoinUriExceedsBalancePromptInfo
+} from '@/utils/contentProcessor'
+import type { KeyFingerprintsByAccount } from '@/utils/psbt'
 
 type UseBitcoinContentHandlerProps = {
   accountId: string

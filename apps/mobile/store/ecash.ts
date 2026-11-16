@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import type {
   EcashAccount,
   EcashKeysetCounter,
@@ -11,7 +11,8 @@ import type {
   MeltQuote,
   MintQuote
 } from '@/types/models/Ecash'
-import { mergeByKey, type ParsedEcashBackup } from '@/utils/ecashBackup'
+import { mergeByKey } from '@/utils/ecashBackup'
+import type { ParsedEcashBackup } from '@/utils/ecashBackup'
 import { withAdvancedKeysetCounter } from '@/utils/ecashKeysetCounters'
 import { isRecord } from '@/utils/object'
 

@@ -12,7 +12,7 @@ import {
 import { usePayjoinReceiver } from '@/hooks/usePayjoinReceiver'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { type ArkAccount } from '@/types/models/Ark'
+import type { ArkAccount } from '@/types/models/Ark'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 
 const PENDING_STATUS_LABEL_KEYS = new Set([

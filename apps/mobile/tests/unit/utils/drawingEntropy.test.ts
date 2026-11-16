@@ -5,9 +5,9 @@ import {
   getDrawingEntropyProgress,
   hexToBinary,
   serializeDrawingPoints,
-  shouldAcceptDrawingSample,
-  type DrawingPoint
+  shouldAcceptDrawingSample
 } from '@/utils/drawingEntropy'
+import type { DrawingPoint } from '@/utils/drawingEntropy'
 
 function point(x: number, y: number, t = 0): DrawingPoint {
   return { t, x, y }

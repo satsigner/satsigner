@@ -29,13 +29,13 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type NFCReadResult } from '@/types/models/Nfc'
+import type { NFCReadResult } from '@/types/models/Nfc'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { keyOriginPath, parseXpubInput } from '@/utils/descriptor'
 import { sanitizeScannedText } from '@/utils/parse'
 import { validateExtendedKey, validateFingerprint } from '@/utils/validation'

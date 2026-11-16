@@ -71,6 +71,16 @@ type InputTransactionsLoad = {
   setTransactions: (transactions: Map<string, ExtendedTransaction>) => void
 }
 
+function normalizeTxid(id: string): string {
+  return id.trim().toLowerCase()
+}
+
+/** Wire-order outpoint hash → explorer / Electrum txid (Hermes: no TypedArray#toReversed). */
+function outpointHashBytesToTxid(hash: Uint8Array): string {
+  // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
+  return normalizeTxid(Buffer.from(hash).reverse().toString('hex'))
+}
+
 async function loadInputTransactions({
   inputs,
   levelDeep,
@@ -80,16 +90,6 @@ async function loadInputTransactions({
   setLoading,
   setTransactions
 }: InputTransactionsLoad) {
-  function normalizeTxid(id: string): string {
-    return id.trim().toLowerCase()
-  }
-
-  /** Wire-order outpoint hash → explorer / Electrum txid (Hermes: no TypedArray#toReversed). */
-  function outpointHashBytesToTxid(hash: Uint8Array): string {
-    // eslint-disable-next-line unicorn/no-array-reverse -- Hermes lacks TypedArray#toReversed
-    return normalizeTxid(Buffer.from(hash).reverse().toString('hex'))
-  }
-
   const levelOneTxids = new Set(
     [...inputs.values()].map((u) => normalizeTxid(u.txid))
   )

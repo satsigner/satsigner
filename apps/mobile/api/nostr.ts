@@ -2,8 +2,9 @@ import { Buffer } from 'buffer'
 
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
-import NetInfo from '@react-native-community/netinfo'
-import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
+import { nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import {
   decrypt as nip04Decrypt,
@@ -97,9 +98,9 @@ import {
   buildReactionTags,
   buildRepost,
   dropDeletedEngagement,
-  type EngagementTarget,
   toEngagementEvent
 } from '@/utils/nostrEngagement'
+import type { EngagementTarget } from '@/utils/nostrEngagement'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import {
   getNostrTagValue,
@@ -193,7 +194,7 @@ export async function testNostrRelaysReachable(
     return { reason: 'no_relays', status: 'disconnected' }
   }
 
-  const netState = await NetInfo.fetch()
+  const netState = await fetchNetInfo()
   if (netState.isConnected === false) {
     return { reason: 'no_internet', status: 'disconnected' }
   }
@@ -665,7 +666,7 @@ export class NostrAPI {
     const extra = indexingRelaysBeyond(this.relays)
     const fallback =
       extra.length > 0
-        ? await this.tryKind3On(extra, npub, hexPubkey)
+        ? await NostrAPI.tryKind3On(extra, npub, hexPubkey)
         : { list: null }
 
     if (fallback.list?.kind3Found) {
@@ -696,7 +697,7 @@ export class NostrAPI {
     }
   }
 
-  private async tryKind3On(
+  private static async tryKind3On(
     relays: string[],
     npub: string,
     hexPubkey: string
@@ -1552,7 +1553,7 @@ export class NostrAPI {
     this.ndk = null
   }
 
-  createKind1059(
+  static createKind1059(
     nsec: string,
     recipientNpub: string,
     content: string
@@ -1580,7 +1581,7 @@ export class NostrAPI {
    * done inline, so publishEvent needs no signer. Prefer NIP-17
    * (createKind1059) for new conversations — kind 4 leaks metadata.
    */
-  async createKind4(
+  static async createKind4(
     nsec: string,
     recipientNpub: string,
     content: string,

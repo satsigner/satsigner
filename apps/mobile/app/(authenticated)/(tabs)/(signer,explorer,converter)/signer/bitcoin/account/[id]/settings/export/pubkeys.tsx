@@ -1,12 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useRef, useState } from 'react'
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  View,
-  type ViewInstance
-} from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -21,14 +16,14 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { isElectrumDerivationPath } from '@/utils/bip39'
 import {
   convertKeyFormat,
   getNetworkKeyFormatName,
-  getPubkeyExportFormats,
-  type PubkeyExportFormat
+  getPubkeyExportFormats
 } from '@/utils/bitcoin'
+import type { PubkeyExportFormat } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportPubkeys() {

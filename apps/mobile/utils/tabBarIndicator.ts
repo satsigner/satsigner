@@ -1,8 +1,5 @@
-import {
-  DEFAULT_TAB_SEGMENT,
-  TAB_SEGMENTS,
-  type TabSegment
-} from '@/types/navigation/tabs'
+import { DEFAULT_TAB_SEGMENT, TAB_SEGMENTS } from '@/types/navigation/tabs'
+import type { TabSegment } from '@/types/navigation/tabs'
 
 export const TAB_BAR_ITEM_WIDTH = 100
 export const TAB_BAR_INDICATOR_RADIUS = 5

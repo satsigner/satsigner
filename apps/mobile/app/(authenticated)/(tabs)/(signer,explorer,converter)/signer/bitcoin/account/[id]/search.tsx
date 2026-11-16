@@ -1,13 +1,13 @@
 import { Slider } from '@miblanchard/react-native-slider'
-import { FlashList, type FlashListRef } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { FlashListRef } from '@shopify/flash-list'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import {
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  StyleSheet,
-  View
+import { StyleSheet, View } from 'react-native'
+import type {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent
 } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -25,12 +25,11 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Transaction } from '@/types/models/Transaction'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import { formatDate } from '@/utils/format'
 import {
-  type TransactionDirection,
   dateToDayIndex,
   describeActiveFilters,
   dayIndexToDate,
@@ -39,6 +38,7 @@ import {
   getTransactionTags,
   toggleTag
 } from '@/utils/transactionSearch'
+import type { TransactionDirection } from '@/utils/transactionSearch'
 
 type DateEdge = 'from' | 'to'
 type DateInputMode = 'calendar' | 'slider'

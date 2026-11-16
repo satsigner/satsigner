@@ -1,4 +1,5 @@
-import { open, type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import { open } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { runMigrations } from './schema'
 

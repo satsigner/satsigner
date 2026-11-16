@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { StyleSheet, type ViewProps } from 'react-native'
+import { StyleSheet } from 'react-native'
+import type { ViewProps } from 'react-native'
 
 const decorationPointerEvents: ViewProps['pointerEvents'] = 'none'
 

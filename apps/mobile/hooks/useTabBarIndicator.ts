@@ -1,11 +1,8 @@
 import { useEffect, useRef } from 'react'
-import {
-  type SharedValue,
-  useSharedValue,
-  withSpring
-} from 'react-native-reanimated'
+import { useSharedValue, withSpring } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
-import { type TabSegment } from '@/types/navigation/tabs'
+import type { TabSegment } from '@/types/navigation/tabs'
 import { tabSegmentIndex } from '@/utils/tabBarIndicator'
 
 export const TAB_INDICATOR_SPRING = {

@@ -1,7 +1,7 @@
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
-import { type NostrMsgHandler } from '@/types/models/Nostr'
+import type { NostrMsgHandler } from '@/types/models/Nostr'
 
 import { isSenderAllowedForAccount } from './useNostrDMStorage'
 import {

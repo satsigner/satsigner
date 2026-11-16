@@ -3,10 +3,10 @@ import { LndPaymentFailedError } from '@/utils/lndPayInvoice'
 import {
   isLndPayOutcomeUnknown,
   LND_PAY_SEND_IDLE,
-  type LndPaySendState,
   sendLndPayment,
   transitionLndPaySend
 } from '@/utils/lndPayMachine'
+import type { LndPaySendState } from '@/utils/lndPayMachine'
 
 const SENDING: LndPaySendState = { rail: 'lightning', status: 'sending' }
 

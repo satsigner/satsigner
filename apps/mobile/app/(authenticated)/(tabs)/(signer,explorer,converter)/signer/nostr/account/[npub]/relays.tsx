@@ -21,10 +21,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import {
-  type NostrRelay,
-  type NostrRelayConnectionInfo
-} from '@/types/models/Nostr'
+import type { NostrRelay, NostrRelayConnectionInfo } from '@/types/models/Nostr'
 import {
   getNostrIdentityRelays,
   identityRelayConnectionQueryKey

@@ -1,12 +1,12 @@
 import { getKeySecret } from '@/storage/encrypted'
-import {
-  SecretSchema,
-  type Account,
-  type DecryptedAccount,
-  type DecryptedKey,
-  type EncryptedKeySecret,
-  type Key,
-  type Secret
+import { SecretSchema } from '@/types/models/Account'
+import type {
+  Account,
+  DecryptedAccount,
+  DecryptedKey,
+  EncryptedKeySecret,
+  Key,
+  Secret
 } from '@/types/models/Account'
 import { aesDecrypt } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'

@@ -1,4 +1,4 @@
-import { type ComponentProps } from 'react'
+import type { ComponentProps } from 'react'
 import { Linking, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
@@ -13,10 +13,10 @@ import {
 } from '@/constants/nostrMarkdown'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
-import {
-  type MarkdownBlock,
-  type MarkdownInlineSegment
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
+import type {
+  MarkdownBlock,
+  MarkdownInlineSegment
 } from '@/types/models/NostrMarkdown'
 import {
   collapseMarkdownSpacers,

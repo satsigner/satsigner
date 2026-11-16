@@ -1,7 +1,7 @@
 import { t } from '@/locales'
-import { type Address } from '@/types/models/Address'
-import { type Output } from '@/types/models/Output'
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { Address } from '@/types/models/Address'
+import type { Output } from '@/types/models/Output'
+import type { ScriptVersionType } from '@/types/models/Script'
 import { getScriptVersionType, isChangeOutputLabel } from '@/utils/address'
 import {
   mapStonewallChangeOutputs,

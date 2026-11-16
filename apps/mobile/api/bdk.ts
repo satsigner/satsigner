@@ -1,6 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import {
-  type AddressInfo,
   BdkElectrumClient,
   BdkEsploraClient,
   BdkPsbtParams,
@@ -10,12 +9,11 @@ import {
   createPublicDescriptor,
   DescriptorTemplate,
   KeychainKind,
-  type Network,
   Psbt,
-  type PsbtLike,
   SelectionStrategy,
   walletNameFromDescriptor
 } from 'react-native-bdk-sdk'
+import type { AddressInfo, Network, PsbtLike } from 'react-native-bdk-sdk'
 
 import { assertElectrumReachable } from '@/api/electrumReachability'
 import { BDK_PROGRESS_THROTTLE_MS } from '@/constants/bdk'
@@ -27,16 +25,16 @@ import {
   SEQUENCE_RBF
 } from '@/constants/btc'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import { type FeeReplacementRecipient } from '@/types/models/FeeReplacement'
-import { type Output } from '@/types/models/Output'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import {
-  type Backend,
-  type Network as BlockchainNetwork,
-  type RpcCredentials,
-  type Server
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { FeeReplacementRecipient } from '@/types/models/FeeReplacement'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type {
+  Backend,
+  Network as BlockchainNetwork,
+  RpcCredentials,
+  Server
 } from '@/types/settings/blockchain'
 import {
   getExtendedKeyFromDescriptor,

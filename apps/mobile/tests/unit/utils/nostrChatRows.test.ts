@@ -1,4 +1,4 @@
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 import {
   buildChatRows,
   buildReplyPreview,

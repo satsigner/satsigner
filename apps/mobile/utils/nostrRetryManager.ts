@@ -1,5 +1,8 @@
 import { NOSTR_DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
-import { NostrRetryConfig, NostrRetryManagerHandle } from '@/types/models/Nostr'
+import type {
+  NostrRetryConfig,
+  NostrRetryManagerHandle
+} from '@/types/models/Nostr'
 
 export function calculateRetryDelay(
   attempt: number,

@@ -10,6 +10,7 @@ import {
   getNextDisplayIndex,
   hasStoredMnemonic,
   isAutoSyncDue,
+  isZeroFingerprint,
   updateAccountObjectLabels
 } from '@/utils/account'
 import { time } from '@/utils/time'
@@ -174,6 +175,19 @@ describe('createResetKey', () => {
       scriptVersion: undefined,
       secret: ''
     })
+  })
+})
+
+describe('isZeroFingerprint', () => {
+  it('treats a missing or all-zero fingerprint as zero', () => {
+    expect(isZeroFingerprint(undefined)).toBe(true)
+    expect(isZeroFingerprint('')).toBe(true)
+    expect(isZeroFingerprint('00000000')).toBe(true)
+  })
+
+  it('accepts a real fingerprint', () => {
+    expect(isZeroFingerprint('73c5da0a')).toBe(false)
+    expect(isZeroFingerprint('0000000a')).toBe(false)
   })
 })
 

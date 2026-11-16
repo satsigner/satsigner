@@ -1,4 +1,4 @@
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 
 const RPC_PORT_MAINNET = 8332
 const RPC_PORT_SIGNET = 38_332

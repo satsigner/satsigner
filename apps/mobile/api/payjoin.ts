@@ -32,15 +32,15 @@ import {
   PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  type PayjoinBoardDestination,
-  type PayjoinDeps,
-  type PayjoinSendResult,
-  type PayjoinSession,
-  type PayjoinSessionStore,
-  type PayjoinWalletCallbacks
+import type {
+  PayjoinBoardDestination,
+  PayjoinDeps,
+  PayjoinSendResult,
+  PayjoinSession,
+  PayjoinSessionStore,
+  PayjoinWalletCallbacks
 } from '@/types/payjoin'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { isSuccessfulHttpStatus } from '@/utils/http'
 import {
@@ -807,6 +807,12 @@ async function startBip77SendOnce(
   }
 }
 
+function isDeadNativeSession(message: string): boolean {
+  // Durable nativeState can replay after process death. "not found" means
+  // a legacy id-only blob or a corrupt/expired event log.
+  return /sender session not found/i.test(message)
+}
+
 /** Resume a persisted BIP77 sender session (after visiting Receive). */
 async function pollBip77Send(params: {
   session: PayjoinSession
@@ -857,12 +863,6 @@ async function pollBip77Send(params: {
   const mailbox = mailboxFromEndpoint(params.session.pjEndpoint)
   const startedAt = Date.now()
   let polls = 0
-
-  function isDeadNativeSession(message: string): boolean {
-    // Durable nativeState can replay after process death. "not found" means
-    // a legacy id-only blob or a corrupt/expired event log.
-    return /sender session not found/i.test(message)
-  }
 
   function fallbackDeadSession(reason: string): Bip77AsyncSendResult {
     params.deps.sessions.updateSessionStatus(params.session.id, 'fallback', {

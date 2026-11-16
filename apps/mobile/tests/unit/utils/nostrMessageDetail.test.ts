@@ -1,7 +1,7 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NOSTR_PENDING_DM_ID_PREFIX } from '@/constants/nostr'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 import { safeNpubEncode } from '@/utils/nostr'
 import {
   buildMessageDetailRows,

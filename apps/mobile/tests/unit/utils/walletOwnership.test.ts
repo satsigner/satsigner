@@ -1,5 +1,5 @@
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
 import {
   annotateTransactionsWithWalletOwnership,
   getTransactionRunningBalances,

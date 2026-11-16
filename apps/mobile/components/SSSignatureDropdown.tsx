@@ -1,7 +1,7 @@
 import { setStringAsync } from 'expo-clipboard'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import { SSIconCircleX, SSIconGreen } from '@/components/icons'
@@ -14,7 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes, Typography } from '@/styles'
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { extractPublicKeyFromKey, isSeedDropped } from '@/utils/key'
 import { validateNormalizedPsbt } from '@/utils/psbt'
 

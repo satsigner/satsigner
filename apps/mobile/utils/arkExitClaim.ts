@@ -1,7 +1,7 @@
 import { ARK_EXIT_CLAIM_MAX_FEE_RATE_MULTIPLIER } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
-import { type ArkExitClaimDraft } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { ArkExitClaimDraft } from '@/types/models/Ark'
+import type { Network } from '@/types/settings/blockchain'
 import { getScriptTypeFromOutputScript } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import {
@@ -10,10 +10,10 @@ import {
   outputScriptFor,
   parsePsbt,
   parseTransaction,
-  type Prevout,
   prevoutForInput,
   unsignedTxid
 } from '@/utils/psbtInspection'
+import type { Prevout } from '@/utils/psbtInspection'
 
 type ArkExitClaimRejection =
   | 'belowDust'

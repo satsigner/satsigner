@@ -3,7 +3,7 @@ import { useState } from 'react'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
