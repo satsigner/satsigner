@@ -6,7 +6,7 @@ import {
   payjoinSessionStore,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinSession } from '@/types/payjoin'
+import type { PayjoinSession } from '@/types/payjoin'
 import { receiverNativeStateIsDurable } from '@/utils/payjoinReceiverState'
 import { withReceiverSessionBip21Params } from '@/utils/payjoinSessionParams'
 

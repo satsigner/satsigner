@@ -1,9 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { PAYJOIN_DEFAULT_PJOS } from '@/constants/payjoin'
-import {
-  type PayjoinEndpointKind,
-  type PayjoinUriParams
-} from '@/types/payjoin'
+import type { PayjoinEndpointKind, PayjoinUriParams } from '@/types/payjoin'
 import { formatSatsAsBtc } from '@/utils/format'
 import { isMalformedUriComponent, readBitcoinUriAmount } from '@/utils/parse'
 

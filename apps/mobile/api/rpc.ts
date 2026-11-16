@@ -1,5 +1,5 @@
 import { Platform } from 'react-native'
-import z from 'zod'
+import { z } from 'zod'
 
 import { HTTP_STATUS } from '@/constants/http'
 import {

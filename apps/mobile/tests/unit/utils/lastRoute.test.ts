@@ -2,12 +2,11 @@ import { LAST_ROUTE_DENYLIST } from '@/constants/navigation'
 import {
   isAuthenticatedRoute,
   isRestorableRoute,
-  type LastRoute,
   parseHref,
   routeFromSegments,
-  type RouteOwnership,
   serializeHref
 } from '@/utils/lastRoute'
+import type { LastRoute, RouteOwnership } from '@/utils/lastRoute'
 
 const ACCOUNT_ID = 'account-1'
 const ARK_ACCOUNT_ID = 'ark-1'

@@ -1,12 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
-import {
-  type LayoutChangeEvent,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
@@ -29,9 +25,9 @@ import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes, Typography } from '@/styles'
 import { mainContainerPaddingHorizontalRatio } from '@/styles/layout'
-import {
-  type BlockDifficulty,
-  type DifficultyAdjustment
+import type {
+  BlockDifficulty,
+  DifficultyAdjustment
 } from '@/types/models/Blockchain'
 import { parseDifficultyEpochFile } from '@/utils/difficultyEpochFile'
 import {

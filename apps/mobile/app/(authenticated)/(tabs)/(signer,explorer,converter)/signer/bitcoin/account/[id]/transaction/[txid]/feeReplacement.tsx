@@ -9,8 +9,8 @@ import { useTransactionFeeReplacement } from '@/hooks/useTransactionFeeReplaceme
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
-import { type FeeReplacementSearchParams } from '@/types/navigation/searchParams'
+import type { FeeReplacementKind } from '@/types/models/FeeReplacement'
+import type { FeeReplacementSearchParams } from '@/types/navigation/searchParams'
 import { parseFeeReplacementKind } from '@/utils/feeReplacement'
 import { estimateTargetBlocks } from '@/utils/feeWarnings'
 

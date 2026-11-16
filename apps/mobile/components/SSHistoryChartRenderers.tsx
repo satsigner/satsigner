@@ -8,19 +8,19 @@ import {
   Path,
   Rect,
   Skia,
-  type SkParagraph,
   Text,
   TileMode,
   vec
 } from '@shopify/react-native-skia'
-import { type ScaleLinear, type ScaleTime } from 'd3-scale'
+import type { SkParagraph } from '@shopify/react-native-skia'
+import type { ScaleLinear, ScaleTime } from 'd3-scale'
 import { timeFormat } from 'd3-time-format'
 import { Fragment, memo, useEffect, useMemo } from 'react'
 
-import { useGeistFonts } from '@/hooks/useGeistFonts'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Rectangle } from '@/types/ui/geometry'
-import { type UtxoLabel, type UtxoRectangle } from '@/types/ui/historyChart'
+import type { useGeistFonts } from '@/hooks/useGeistFonts'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Rectangle } from '@/types/ui/geometry'
+import type { UtxoLabel, UtxoRectangle } from '@/types/ui/historyChart'
 import { formatNumber, formatTxId } from '@/utils/format'
 import { hexToRgba } from '@/utils/historyChart'
 import { getUtxoOutpoint } from '@/utils/utxo'

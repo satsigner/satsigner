@@ -1,6 +1,6 @@
-import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { Colors } from '@/styles'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
+import type { NostrAccount, NostrDM } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { safeNpubEncode } from '@/utils/nostr'
 

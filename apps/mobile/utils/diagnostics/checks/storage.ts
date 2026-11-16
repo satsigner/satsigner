@@ -11,9 +11,9 @@ import {
   checkEntropyCollisions,
   checkPinKdf,
   checkSecureStore,
-  checkSqlite,
-  type LegacyDiagnosticResult
+  checkSqlite
 } from '../coreChecks'
+import type { LegacyDiagnosticResult } from '../coreChecks'
 import type { DiagnosticCheck, DiagnosticOutcome } from '../types'
 
 const NOSTR_STORE_KEY = 'satsigner-nostr'

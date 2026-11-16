@@ -2,7 +2,7 @@ import * as ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { findSignedPsbtsPerCosignerInPsbt } from '@/services/cosignerSignatures'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 const FINGERPRINTS = ['aaaaaaaa', 'bbbbbbbb']
 

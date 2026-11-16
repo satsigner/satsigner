@@ -7,7 +7,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
 import {

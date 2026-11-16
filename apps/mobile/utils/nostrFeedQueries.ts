@@ -1,6 +1,6 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import { type NostrAPI } from '@/api/nostr'
+import type { NostrAPI } from '@/api/nostr'
 import {
   NOSTR_BOOKMARKS_MAX_FETCH,
   NOSTR_FEED_PAGE_SIZE,

@@ -1,6 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 

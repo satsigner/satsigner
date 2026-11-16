@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { type ViewInstance } from 'react-native'
+import type { ViewInstance } from 'react-native'
 
 import {
   ANIMATION_SPEED_DEFAULT,
@@ -11,7 +11,7 @@ import {
   QRDisplayMode
 } from '@/constants/qr'
 import { useAnimatedQrFrameCycle } from '@/hooks/useAnimatedQrFrameCycle'
-import { type PsbtQrChunks } from '@/types/models/Psbt'
+import type { PsbtQrChunks } from '@/types/models/Psbt'
 import {
   createPsbtQrChunks,
   getQrAnimationIntervalMs,

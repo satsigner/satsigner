@@ -1,7 +1,7 @@
-import {
-  type MarkdownBlock,
-  type MarkdownInlineSegment,
-  type VisibleMarkdownBlock
+import type {
+  MarkdownBlock,
+  MarkdownInlineSegment,
+  VisibleMarkdownBlock
 } from '@/types/models/NostrMarkdown'
 
 const HEADING_RE = /^(#{1,6})\s+(.+)$/

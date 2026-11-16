@@ -2,7 +2,7 @@ import { toast } from 'sonner-native'
 
 import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
-import { type NostrMsgHandler } from '@/types/models/Nostr'
+import type { NostrMsgHandler } from '@/types/models/Nostr'
 
 import { isSenderAllowedForAccount } from './useNostrDMStorage'
 import {

@@ -5,7 +5,7 @@
  */
 
 import { base32, hex } from '@scure/base'
-import pako from 'pako'
+import { deflate, inflate } from 'pako'
 
 import { QR_DATA_CAPACITY } from './consts'
 import type { Encoding, SplitOptions, Version } from './types'
@@ -112,7 +112,7 @@ export function encodeData(raw: Uint8Array, encoding: Encoding = 'Z') {
   if (currentEncoding === 'Z') {
     // trial compression, but skip if it embiggens the data
 
-    const compressed = pako.deflate(currentRaw, { windowBits: -10 })
+    const compressed = deflate(currentRaw, { windowBits: -10 })
 
     if (compressed.length >= currentRaw.length) {
       currentEncoding = '2'
@@ -145,7 +145,7 @@ export function decodeData(parts: string[], encoding: Encoding) {
   )
 
   if (encoding === 'Z') {
-    return pako.inflate(bytes, { windowBits: -10 })
+    return inflate(bytes, { windowBits: -10 })
   }
 
   return bytes

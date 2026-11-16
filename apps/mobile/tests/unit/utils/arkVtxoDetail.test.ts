@@ -6,7 +6,6 @@ import {
 } from '@/constants/ark'
 import type { ArkMovement } from '@/types/models/Ark'
 import {
-  type ArkVtxoLineageStep,
   buildArkVtxoLineage,
   findArkVtxoMovements,
   getArkVtxoEta,
@@ -17,6 +16,7 @@ import {
   getArkVtxoRoute,
   isArkVtxoExitUneconomical
 } from '@/utils/arkVtxoDetail'
+import type { ArkVtxoLineageStep } from '@/utils/arkVtxoDetail'
 
 const BLOCKS_PER_DAY = 144
 const LIFETIME_BLOCKS = 4032

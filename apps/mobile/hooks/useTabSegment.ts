@@ -1,6 +1,7 @@
 import { createContext, use } from 'react'
 
-import { DEFAULT_TAB_SEGMENT, type TabSegment } from '@/types/navigation/tabs'
+import { DEFAULT_TAB_SEGMENT } from '@/types/navigation/tabs'
+import type { TabSegment } from '@/types/navigation/tabs'
 
 // Each bottom tab mounts its own copy of the shared stack, so the stack layout
 // provides its tab here. `useSegments()` would report the focused tab instead.

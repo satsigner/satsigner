@@ -3,7 +3,8 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { Network } from 'react-native-bdk-sdk'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -20,7 +21,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   deriveNostrKeysFromMnemonic,

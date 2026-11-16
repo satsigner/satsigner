@@ -1,4 +1,4 @@
-import { type PayjoinSession } from '@/types/payjoin'
+import type { PayjoinSession } from '@/types/payjoin'
 
 type NewPayjoinSession = Omit<
   PayjoinSession,

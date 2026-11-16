@@ -1,12 +1,12 @@
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { ListRenderItemInfo } from '@shopify/flash-list'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { createContext, use, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
-import SSChatComposer, {
-  type SSChatComposerReply
-} from '@/components/chat/SSChatComposer'
+import SSChatComposer from '@/components/chat/SSChatComposer'
+import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -14,18 +14,19 @@ import SSText from '@/components/SSText'
 import { NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD } from '@/constants/nostr'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
-import { type AuthorDisplayInfo, getAuthorLabel } from '@/hooks/useNostrMessage'
+import { getAuthorLabel } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type NostrChatThreadItem, type NostrDM } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
 import {
   buildChatRows,
   buildReplyPreview,
-  type ChatRow,
   findRowIndex,
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
+import type { ChatRow } from '@/utils/nostrChatRows'
 
 const MESSAGE_MAX_LENGTH = 500
 

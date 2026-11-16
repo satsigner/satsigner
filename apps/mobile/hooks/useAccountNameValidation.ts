@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { SSTextInputProps } from '@/components/SSTextInput'
+import type { SSTextInputProps } from '@/components/SSTextInput'
 import { useAccountsStore } from '@/store/accounts'
-import { Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 type AccountNameValidationParams = {
   name?: Account['name']

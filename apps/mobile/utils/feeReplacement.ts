@@ -3,21 +3,21 @@ import {
   DUST_LIMIT,
   INCREMENTAL_RELAY_FEE_RATE
 } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import {
-  type FeeReplacementActions,
-  type FeeReplacementAssessment,
-  type FeeReplacementDraft,
-  type FeeReplacementDraftResult,
-  type FeeReplacementKind,
-  type FeeReplacementRecipient
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type {
+  FeeReplacementActions,
+  FeeReplacementAssessment,
+  FeeReplacementDraft,
+  FeeReplacementDraftResult,
+  FeeReplacementKind,
+  FeeReplacementRecipient
 } from '@/types/models/FeeReplacement'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Backend } from '@/types/settings/blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Backend } from '@/types/settings/blockchain'
 import { getAccountAddressSets } from '@/utils/address'
-import { type ExtractedTransactionData } from '@/utils/psbt'
+import type { ExtractedTransactionData } from '@/utils/psbt'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { filterUtxosByExcludedOutpoints, getUtxoOutpoint } from '@/utils/utxo'
 

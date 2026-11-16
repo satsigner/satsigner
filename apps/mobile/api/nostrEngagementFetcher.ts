@@ -3,7 +3,7 @@ import {
   NOSTR_ENGAGEMENT_BATCH_DELAY_MS,
   NOSTR_ENGAGEMENT_BATCH_SIZE
 } from '@/constants/nostr'
-import { type NostrEngagementEvent } from '@/types/models/Nostr'
+import type { NostrEngagementEvent } from '@/types/models/Nostr'
 import { chunk, groupBy } from '@/utils/array'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 

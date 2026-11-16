@@ -7,9 +7,9 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import {
-  type ArkExitClaimBroadcastStatus,
-  type ArkExitClaimRecord
+import type {
+  ArkExitClaimBroadcastStatus,
+  ArkExitClaimRecord
 } from '@/types/models/Ark'
 import { formatMaskedSats, formatTxId } from '@/utils/format'
 

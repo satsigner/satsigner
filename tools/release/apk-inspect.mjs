@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { promisify } from 'node:util'
 
-import WebSocket from 'ws'
+import { WebSocket } from 'ws'
 
 import {
   findTrackers,

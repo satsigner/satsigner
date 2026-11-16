@@ -1,12 +1,12 @@
 import { ARK_VTXO_EXPIRY_WARNING_BLOCKS } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
-import {
-  type ArkExit,
-  type ArkExitClaimRecord,
-  type ArkExitStatus
+import type { Account } from '@/types/models/Account'
+import type {
+  ArkExit,
+  ArkExitClaimRecord,
+  ArkExitStatus
 } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import {
   countArkVtxosNearExpiry,
   getArkExitBlocksUntilClaimable,

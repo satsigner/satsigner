@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 export function useNostrShareTransaction(account: Account | undefined) {
   const router = useRouter()

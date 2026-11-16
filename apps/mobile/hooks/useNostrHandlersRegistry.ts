@@ -1,6 +1,6 @@
-import {
-  type NostrMsgHandler,
-  type NostrMsgHandlerContext
+import type {
+  NostrMsgHandler,
+  NostrMsgHandlerContext
 } from '@/types/models/Nostr'
 
 const handlers: NostrMsgHandler[] = []

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { type LayoutChangeEvent } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 
-import { type ZoomLayoutState } from '@/types/ui/gestures'
+import type { ZoomLayoutState } from '@/types/ui/gestures'
 
 export const useLayout = () => {
   const [state, setState] = useState<ZoomLayoutState>({

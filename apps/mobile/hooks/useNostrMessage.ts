@@ -3,8 +3,8 @@ import {
   NOSTR_PUBKEY_HEX_LENGTH
 } from '@/constants/nostr'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
 import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'

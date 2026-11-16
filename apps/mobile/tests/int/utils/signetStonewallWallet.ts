@@ -3,8 +3,8 @@ import { BIP32Factory } from 'bip32'
 import { payments, networks } from 'bitcoinjs-lib'
 
 import Esplora from '@/api/esplora'
-import { type Address } from '@/types/models/Address'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Address } from '@/types/models/Address'
+import type { Utxo } from '@/types/models/Utxo'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 
 /** Esplora endpoint; matches SatSigner Signet default (mempool.space). */

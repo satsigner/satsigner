@@ -22,23 +22,25 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout, Typography } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Direction } from '@/types/logic/sort'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
-import { getUtxoOutpoint } from '@/utils/utxo'
+import { getUtxoOutpoint, sumUtxoValues } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
   isUtxoExcluded,
-  prepareUtxoList,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoSortField,
-  type UtxoTagFilter
+  prepareUtxoList
+} from '@/utils/utxoList'
+import type {
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoSortField,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   groupDisplayTitle,
@@ -147,12 +149,8 @@ export default function SelectUtxoList() {
 
   const largestValue = Math.max(0, ...account.utxos.map((utxo) => utxo.value))
 
-  function utxosValue(utxos: Utxo[]): number {
-    return utxos.reduce((acc, utxo) => acc + utxo.value, 0)
-  }
-
-  const utxosTotalValue = utxosValue(selectableUtxos)
-  const utxosSelectedValue = utxosValue([...inputs.values()])
+  const utxosTotalValue = sumUtxoValues(selectableUtxos)
+  const utxosSelectedValue = sumUtxoValues([...inputs.values()])
 
   function handleSelectAllUtxos() {
     for (const utxo of selectableUtxos) {

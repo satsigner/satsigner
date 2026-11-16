@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { AppState } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
 import { NFC_AVAILABILITY_RETRY_MS } from '@/constants/nfc'

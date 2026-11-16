@@ -2,8 +2,10 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, type ViewInstance } from 'react-native'
-import { type BdkWallet, KeychainKind, Psbt } from 'react-native-bdk-sdk'
+import { StyleSheet, TextInput } from 'react-native'
+import type { ViewInstance } from 'react-native'
+import { KeychainKind, Psbt } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -45,10 +47,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
-import { type Label } from '@/types/bips/329'
-import { type Account } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type PayjoinSession } from '@/types/payjoin'
+import type { Label } from '@/types/bips/329'
+import type { Account } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { PayjoinSession } from '@/types/payjoin'
 import { isAddressUsed } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
@@ -153,6 +155,10 @@ function findAddressLabel(addresses: Account['addresses'], address: string) {
   return addresses.find((addr) => addr.address === address)?.label || ''
 }
 
+function formatAddressInGroups(address: string): string {
+  return (address.match(/(.{1,4})/g) || []).join(' ')
+}
+
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const router = useRouter()
@@ -253,10 +259,6 @@ export default function Receive() {
   const saveLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   )
-
-  function formatAddressInGroups(address: string): string {
-    return (address.match(/(.{1,4})/g) || []).join(' ')
-  }
 
   const amountSatsForPayjoin = includeAmount
     ? parseReceiveAmountSats(localCustomAmount)

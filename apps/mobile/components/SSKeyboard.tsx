@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useId } from 'react'
-import { DimensionValue, StyleSheet, View } from 'react-native'
+import type { DimensionValue } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -12,7 +13,8 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes } from '@/styles'
-import { hStack, type HStackGap } from '@/styles/layout'
+import { hStack } from '@/styles/layout'
+import type { HStackGap } from '@/styles/layout'
 import { range, shuffle } from '@/utils/array'
 
 import { SSIconDelete, SSIconTrash } from './icons'

@@ -1,9 +1,9 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { ARK_BOARD_MAX_FUNDING_INPUTS } from '@/constants/ark'
-import { type Key } from '@/types/models/Account'
-import { type ArkBoardIntent } from '@/types/models/Ark'
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { Key } from '@/types/models/Account'
+import type { ArkBoardIntent } from '@/types/models/Ark'
+import type { ScriptVersionType } from '@/types/models/Script'
 import {
   buildArkBoardCosignPsbt,
   canAccountFundArkBoard,

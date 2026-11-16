@@ -155,7 +155,7 @@ Avoid using `any` type at all costs. Use proper TypeScript types:
 
 - For React Native styles, use `StyleProp<ViewStyle>` instead of `any`
 - For component props, define proper interfaces or types
-- Use type imports: `import { type Block } from '...'`
+- Use type-only imports: `import type { Block } from '...'`
 - Prefer types over interfaces when possible
 
 [Console Statements]

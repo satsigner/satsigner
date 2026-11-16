@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { ScrollView, View, type ViewInstance } from 'react-native'
+import { ScrollView, View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -20,9 +21,9 @@ import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   convertKeyFormat,
   getNetworkKeyFormatName,
-  getPubkeyExportFormats,
-  type PubkeyExportFormat
+  getPubkeyExportFormats
 } from '@/utils/bitcoin'
+import type { PubkeyExportFormat } from '@/utils/bitcoin'
 import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 

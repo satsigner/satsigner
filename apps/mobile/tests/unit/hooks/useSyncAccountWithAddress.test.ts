@@ -4,7 +4,7 @@ import { act, create } from 'react-test-renderer'
 import { fetchAddressSnapshot } from '@/api/addressSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 const ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
 const STORED_BALANCE = 5000

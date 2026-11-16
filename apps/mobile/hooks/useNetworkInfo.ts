@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useShallow } from 'zustand/react/shallow'
 
-import { type MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { fetchBackendNextBlockFee } from '@/api/explorerMempool'

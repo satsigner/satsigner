@@ -11,7 +11,7 @@ import {
 import * as varuint from 'varuint-bitcoin'
 
 import { HASH_BYTE_LENGTH, NULL_PREVOUT_INDEX } from '@/constants/btc'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork, getScriptTypeFromAddress } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'

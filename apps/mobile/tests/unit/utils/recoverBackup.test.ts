@@ -304,6 +304,39 @@ describe('performRecoverOverwrite validation', () => {
   })
 })
 
+function backupWithWordList(mnemonicWordList: string) {
+  return JSON.stringify({
+    accounts: [],
+    settings: {
+      currencyUnit: 'sats',
+      mnemonicWordList,
+      useZeroPadding: false
+    },
+    version: 1
+  })
+}
+
+function minimalBackup(extra: Record<string, unknown> = {}) {
+  return JSON.stringify({
+    accounts: [
+      {
+        id: 'acc-1',
+        keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
+        name: 'Wallet',
+        network: 'bitcoin',
+        policyType: 'singlesig'
+      }
+    ],
+    settings: {
+      currencyUnit: 'sats',
+      mnemonicWordList: 'english',
+      useZeroPadding: false
+    },
+    version: 1,
+    ...extra
+  })
+}
+
 describe('performRecoverOverwrite restore', () => {
   const addAccount = jest.fn()
   const addCustomServer = jest.fn()
@@ -792,18 +825,6 @@ describe('performRecoverOverwrite restore', () => {
   it('applies a known mnemonic word list and ignores an unknown one', async () => {
     const { setMnemonicWordList } = useSettingsStore.getState()
 
-    function backupWithWordList(mnemonicWordList: string) {
-      return JSON.stringify({
-        accounts: [],
-        settings: {
-          currencyUnit: 'sats',
-          mnemonicWordList,
-          useZeroPadding: false
-        },
-        version: 1
-      })
-    }
-
     await expect(
       performRecoverOverwrite(backupWithWordList('klingon'))
     ).resolves.toStrictEqual({ success: true })
@@ -988,27 +1009,6 @@ describe('performRecoverOverwrite restore', () => {
     expect(setChannels).toHaveBeenCalledWith([])
     expect(setConnected).toHaveBeenCalledWith(true)
   })
-
-  function minimalBackup(extra: Record<string, unknown> = {}) {
-    return JSON.stringify({
-      accounts: [
-        {
-          id: 'acc-1',
-          keys: [{ index: 0, name: 'k1', seedWords: 'abandon abandon' }],
-          name: 'Wallet',
-          network: 'bitcoin',
-          policyType: 'singlesig'
-        }
-      ],
-      settings: {
-        currencyUnit: 'sats',
-        mnemonicWordList: 'english',
-        useZeroPadding: false
-      },
-      version: 1,
-      ...extra
-    })
-  }
 
   it('rolls back accounts and secrets on disk when the keychain write fails', async () => {
     const { storeKeySecret, deleteEcashMnemonic } = jest.requireMock(

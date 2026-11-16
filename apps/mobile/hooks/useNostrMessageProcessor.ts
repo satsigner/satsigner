@@ -9,18 +9,20 @@ import {
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   getProcessedNostrEventIds,
-  markNostrEventsProcessed,
-  type NostrProcessedEvent
+  markNostrEventsProcessed
 } from '@/db/nostrProcessedEvents'
+import type { NostrProcessedEvent } from '@/db/nostrProcessedEvents'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import {
-  type NostrMessage,
   NostrMessageDataSchema,
-  type NostrMsgHandlerContext,
-  type NostrPendingDM,
-  type NostrUnwrappedEvent,
   NostrUnwrappedEventSchema
+} from '@/types/models/Nostr'
+import type {
+  NostrMessage,
+  NostrMsgHandlerContext,
+  NostrPendingDM,
+  NostrUnwrappedEvent
 } from '@/types/models/Nostr'
 import { decompressMessage } from '@/utils/nostr'
 import { applyDeviceDeletionRumor } from '@/utils/nostrDeviceChat'

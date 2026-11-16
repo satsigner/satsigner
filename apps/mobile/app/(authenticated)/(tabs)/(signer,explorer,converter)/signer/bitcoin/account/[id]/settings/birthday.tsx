@@ -17,7 +17,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { isToday } from '@/utils/date'
 import { formatDate } from '@/utils/format'
 import {

@@ -7,10 +7,10 @@ import { labelsHandler } from '@/hooks/useNostrLabelsHandler'
 import { psbtHandler } from '@/hooks/useNostrPsbtHandler'
 import { signMessageHandler } from '@/hooks/useNostrSignMessageHandler'
 import { txHandler } from '@/hooks/useNostrTxHandler'
-import { type Account } from '@/types/models/Account'
-import {
-  type NostrMsgHandlerContext,
-  type NostrPendingDM
+import type { Account } from '@/types/models/Account'
+import type {
+  NostrMsgHandlerContext,
+  NostrPendingDM
 } from '@/types/models/Nostr'
 
 import { accountIds, nostrKeys } from '../utils/nostrSamples'

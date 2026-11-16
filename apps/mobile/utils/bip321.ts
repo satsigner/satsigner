@@ -1,22 +1,21 @@
 import {
-  type BIP321ParseResult,
   encodeBIP321,
-  type Network as Bip321Network,
   parseBIP321,
   validateArkAddress,
   validateBitcoinAddress,
   validateBolt12Offer,
   validateLightningInvoice
 } from 'bip-321'
+import type { BIP321ParseResult, Network as Bip321Network } from 'bip-321'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   ensureBitcoinPrefix,
   hasBitcoinPrefix,
-  type ParsedUriParams,
   readBitcoinUriAmount
 } from '@/utils/parse'
+import type { ParsedUriParams } from '@/utils/parse'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 
 type ParsedBitcoinUri = {

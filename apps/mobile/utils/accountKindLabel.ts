@@ -1,6 +1,6 @@
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { Account } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
 
 const POLICY_LABEL_KEYS: Record<Account['policyType'], string> = {
   multisig: 'account.policy.multiSignature.title',

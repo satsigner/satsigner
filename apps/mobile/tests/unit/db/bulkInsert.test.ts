@@ -1,4 +1,4 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { bulkInsert } from '@/db/bulkInsert'
 

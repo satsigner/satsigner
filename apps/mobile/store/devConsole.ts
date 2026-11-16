@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { DEV_CONSOLE_MAX_ENTRIES } from '@/constants/devConsole'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import { isRecord } from '@/utils/object'
 

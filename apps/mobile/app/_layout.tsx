@@ -4,13 +4,8 @@ import { Slot, useGlobalSearchParams, useSegments } from 'expo-router'
 import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import {
-  AppState,
-  type AppStateStatus,
-  Platform,
-  StyleSheet,
-  View
-} from 'react-native'
+import { AppState, Platform, StyleSheet, View } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import NfcManager from 'react-native-nfc-manager'
@@ -33,10 +28,8 @@ import { useDevConsoleStore } from '@/store/devConsole'
 import { useIntroStore } from '@/store/intro'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { Colors } from '@/styles'
-import {
-  type AppLifecycleStep,
-  nextAppLifecycleStep
-} from '@/utils/appLifecycle'
+import { nextAppLifecycleStep } from '@/utils/appLifecycle'
+import type { AppLifecycleStep } from '@/utils/appLifecycle'
 import { installDevConsole, isDevConsoleAvailable } from '@/utils/devConsole'
 import { installDevErrorReporting } from '@/utils/devErrorReporting'
 import { saveLastRoute } from '@/utils/lastRouteSession'

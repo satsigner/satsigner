@@ -11,7 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import type { ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedPublicKeyFromMnemonic } from '@/utils/bip39'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 

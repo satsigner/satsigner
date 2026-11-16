@@ -5,14 +5,14 @@ import { boardArkPsbt } from '@/api/ark'
 import {
   createReceivePayjoinSession,
   finalizeBoardReceiverPayjoin,
-  pollReceiverSession,
-  type FetchLike
+  pollReceiverSession
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import {
   getPayjoinDeps,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { resolveReceiverPollMode } from '@/utils/payjoinReceiverPoll'
 
 jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({

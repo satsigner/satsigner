@@ -1,10 +1,5 @@
-import {
-  Canvas,
-  Path,
-  Skia,
-  type SkPath,
-  type SkPathBuilder
-} from '@shopify/react-native-skia'
+import { Canvas, Path, Skia } from '@shopify/react-native-skia'
+import type { SkPath, SkPathBuilder } from '@shopify/react-native-skia'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { StyleSheet, View, useWindowDimensions } from 'react-native'
@@ -26,9 +21,9 @@ import {
 import {
   drawingPointsToBinary,
   getDrawingEntropyProgress,
-  shouldAcceptDrawingSample,
-  type DrawingPoint
+  shouldAcceptDrawingSample
 } from '@/utils/drawingEntropy'
+import type { DrawingPoint } from '@/utils/drawingEntropy'
 
 type DrawingPanHandlers = {
   onBegin: (x: number, y: number) => void

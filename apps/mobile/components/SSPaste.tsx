@@ -1,11 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import {
-  AppState,
-  Keyboard,
-  StyleSheet,
-  TextInput,
-  type TextInputInstance
-} from 'react-native'
+import { AppState, Keyboard, StyleSheet, TextInput } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -17,11 +12,13 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { getAllClipboardContent } from '@/utils/clipboard'
 import {
-  type ContentContext,
-  type ContentType,
   detectContentByContext,
-  type DetectedContent,
   preprocessByContext
+} from '@/utils/contentDetector'
+import type {
+  ContentContext,
+  ContentType,
+  DetectedContent
 } from '@/utils/contentDetector'
 
 type SSPasteProps = {

@@ -4,10 +4,8 @@ import Svg, { Circle, Text as SvgText } from 'react-native-svg'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
-import {
-  buildPackedBubbleLayout,
-  type PackedBubbleDatum
-} from '@/utils/packedBubbleLayout'
+import { buildPackedBubbleLayout } from '@/utils/packedBubbleLayout'
+import type { PackedBubbleDatum } from '@/utils/packedBubbleLayout'
 
 type SSPackedBubbleChartProps = {
   data: PackedBubbleDatum[]

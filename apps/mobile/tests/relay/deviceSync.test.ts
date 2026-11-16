@@ -11,7 +11,7 @@ import {
 import { dmHandler } from '@/hooks/useNostrDMHandler'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import { type NostrMsgHandlerContext } from '@/types/models/Nostr'
+import type { NostrMsgHandlerContext } from '@/types/models/Nostr'
 import { resumeNostr } from '@/utils/nostrLifecycle'
 import { nostrSyncService } from '@/utils/nostrSyncService'
 
@@ -20,10 +20,11 @@ import { resetNodeNitroSqlite } from './support/nodeNitroSqlite'
 import {
   createSyncAccountKeys,
   installSyncAccount,
-  storedDmIds,
-  type SyncAccountKeys
+  storedDmIds
 } from './support/syncAccount'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import type { SyncAccountKeys } from './support/syncAccount'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 import { delay, waitFor } from './support/waitFor'
 
 const BACKLOG_SIZE = 500

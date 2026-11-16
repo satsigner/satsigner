@@ -2,14 +2,14 @@ import { useState } from 'react'
 
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
-import { type ArkExit } from '@/types/models/Ark'
+import type { ArkExit } from '@/types/models/Ark'
 import {
-  type ArkExitClaimFeeSpeed,
   getArkExitClaimBlocker,
   getArkExitClaimFeeRate,
   getClaimableArkExits,
   sumArkExitSats
 } from '@/utils/arkExit'
+import type { ArkExitClaimFeeSpeed } from '@/utils/arkExit'
 import { getArkSweepDestinations } from '@/utils/arkOnchainSweep'
 import { findByIdOrFirst } from '@/utils/array'
 

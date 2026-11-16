@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import { type PayjoinInvoice } from '@/types/payjoin'
+import type { PayjoinInvoice } from '@/types/payjoin'
 import { bitcoinAmountBtcToSats } from '@/utils/autoSelectUtxos'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parsePayjoinExpiresAtMs } from '@/utils/payjoinExpiry'

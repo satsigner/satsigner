@@ -6,8 +6,8 @@ import {
 } from 'react-native-bdk-sdk'
 
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
-import { ScriptVersionType } from '@/types/models/Script'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { isDescriptorChecksumValid } from '@/utils/descriptorChecksum'
 
 bitcoinjs.initEccLib(ecc)

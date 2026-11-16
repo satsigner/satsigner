@@ -9,8 +9,9 @@ import { useLND } from '@/hooks/useLND'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { t } from '@/locales'
 import { isPendingMeltError } from '@/services/ecash/lightningPayment'
-import { useZapFlowStore, type ZapOutcome } from '@/store/zapFlow'
-import { type EcashMint } from '@/types/models/Ecash'
+import { useZapFlowStore } from '@/store/zapFlow'
+import type { ZapOutcome } from '@/store/zapFlow'
+import type { EcashMint } from '@/types/models/Ecash'
 import type {
   LNDDecodedInvoice,
   LNURLPayResponse

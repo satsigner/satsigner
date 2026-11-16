@@ -9,13 +9,13 @@ import {
   SAMPLE_UNLABELED_COIN
 } from '@/constants/sampleLabels'
 import { DUST_ATTACK_MAX_SATS, SELF_SEND_TAG } from '@/constants/transaction'
-import { type Label } from '@/types/bips/329'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Label } from '@/types/bips/329'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
 import { isDustReceive } from '@/utils/automaticTags'
 import { addLabelTag, parseLabel, parseLabelTags } from '@/utils/parse'
-import { type SampleWallet } from '@/utils/sampleWallet'
+import type { SampleWallet } from '@/utils/sampleWallet'
 import { isSelfSend } from '@/utils/transaction'
 
 type LabelSource = Pick<Account, 'addresses' | 'transactions' | 'utxos'>

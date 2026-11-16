@@ -118,7 +118,7 @@ async function publishToTrustedDevices(
   const results = await Promise.allSettled(
     sends.map(({ deviceNpub, jsonl }) =>
       nostrApi.publishEvent(
-        nostrApi.createKind1059(
+        NostrAPI.createKind1059(
           deviceNsec,
           deviceNpub,
           buildLabelMessage(jsonl)

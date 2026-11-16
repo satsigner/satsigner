@@ -17,9 +17,9 @@ import {
   extractTransactionIdFromPSBT,
   findDerivedPublicKey,
   findMatchingAccount,
-  getCollectedSignerPubkeys,
-  type TransactionData
+  getCollectedSignerPubkeys
 } from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 export function useNostrSignFlow() {
   const router = useRouter()

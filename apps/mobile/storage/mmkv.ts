@@ -1,5 +1,5 @@
 import { createMMKV } from 'react-native-mmkv'
-import { type StateStorage } from 'zustand/middleware'
+import type { StateStorage } from 'zustand/middleware'
 
 import { isStringArray } from '@/utils/array'
 
@@ -87,7 +87,6 @@ function probeMmkvRoundtrip(): boolean {
   return roundtrip && storage.getString(MMKV_PROBE_KEY) === undefined
 }
 
-export default mmkvStorage
 export {
   clearAllStorage,
   clearNostrFollowCache,

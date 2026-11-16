@@ -2,8 +2,8 @@ import ElectrumClient from '@/api/electrum'
 import { assertElectrumReachable } from '@/api/electrumReachability'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { type Server } from '@/types/settings/blockchain'
-import { type ServerChainReader } from '@/utils/walletChain'
+import type { Server } from '@/types/settings/blockchain'
+import type { ServerChainReader } from '@/utils/walletChain'
 
 type OpenServerChainReader = ServerChainReader & { close: () => void }
 

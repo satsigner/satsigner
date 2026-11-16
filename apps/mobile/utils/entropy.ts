@@ -1,6 +1,6 @@
 import QuickCrypto from 'react-native-quick-crypto'
 
-import { type MnemonicWordCount } from '@/types/bips/39'
+import type { MnemonicWordCount } from '@/types/bips/39'
 
 const DICE_FACES = 6
 const COIN_SIDES = 2

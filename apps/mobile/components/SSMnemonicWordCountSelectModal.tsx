@@ -1,7 +1,8 @@
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import { t } from '@/locales'
-import { MNEMONIC_WORD_COUNTS, type MnemonicWordCount } from '@/types/bips/39'
+import { MNEMONIC_WORD_COUNTS } from '@/types/bips/39'
+import type { MnemonicWordCount } from '@/types/bips/39'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 type SSMnemonicWordCountSelectModalProps = {

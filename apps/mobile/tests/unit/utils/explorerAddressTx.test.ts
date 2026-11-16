@@ -1,4 +1,4 @@
-import { type EsploraTx } from '@/types/models/Esplora'
+import type { EsploraTx } from '@/types/models/Esplora'
 import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
 
 const ADDRESS = 'bc1qexampleaddress00000000000000000000000'

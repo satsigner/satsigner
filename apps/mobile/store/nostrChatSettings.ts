@@ -5,7 +5,7 @@ import {
   NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND,
   NOSTR_POW_DEFAULT_DIFFICULTY
 } from '@/constants/nostr'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { omitKey } from '@/utils/object'
 
 type NostrChatFilter = 'following' | 'others'

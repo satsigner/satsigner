@@ -9,15 +9,17 @@ import {
   rowToLabel,
   rowToNostrDm,
   rowToTransaction,
-  rowToUtxo,
-  type AccountRow,
-  type AddressRow,
-  type LabelRow,
-  type NostrDmRow,
-  type TransactionRow,
-  type TxInputRow,
-  type TxOutputRow,
-  type UtxoRow
+  rowToUtxo
+} from '@/db/mappers'
+import type {
+  AccountRow,
+  AddressRow,
+  LabelRow,
+  NostrDmRow,
+  TransactionRow,
+  TxInputRow,
+  TxOutputRow,
+  UtxoRow
 } from '@/db/mappers'
 import { isNumberArray } from '@/utils/array'
 import { isRecord } from '@/utils/object'

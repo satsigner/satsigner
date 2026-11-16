@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchProfilesCoalesced } from '@/api/nostrProfileFetcher'
 import { NOSTR_PROFILE_QUERY_STALE_TIME_MS } from '@/constants/nostr'
 import { nostrKeys } from '@/db/keys'
-import { type NostrIdentity } from '@/types/models/Nostr'
+import type { NostrIdentity } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   getNostrContactsRelaysKey,

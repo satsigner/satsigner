@@ -13,10 +13,10 @@ import type {
 } from '@/types/models/Ecash'
 import {
   coveringMintUrls,
-  type MintSpendBalance,
   mintCoversMeltQuote,
   sliceAmountAfterFeeMiss
 } from '@/utils/ecashMintRoute'
+import type { MintSpendBalance } from '@/utils/ecashMintRoute'
 import { toError } from '@/utils/error'
 
 /** A Lightning payment from ecash could not be routed or fully settled. */

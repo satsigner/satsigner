@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { type NostrChatProtocol } from '@/types/models/Nostr'
+import type { NostrChatProtocol } from '@/types/models/Nostr'
 
 type NostrChatReplyState = {
   /** Message being replied to, per chat (see deviceChatKey / identityChatKey). */

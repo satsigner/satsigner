@@ -9,11 +9,11 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { getTombstoneAuthors } from '@/db/nostrMessageState'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import {
-  type NostrDM,
-  type NostrPendingDM,
-  type NostrUnwrappedEvent
+import type { Account } from '@/types/models/Account'
+import type {
+  NostrDM,
+  NostrPendingDM,
+  NostrUnwrappedEvent
 } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getReplyToId } from '@/utils/nostrChatTags'
@@ -200,6 +200,10 @@ function storeNostrDmBatch(
   return { deferredIds }
 }
 
+function loadAccountDms(account?: Account) {
+  return account?.nostr?.dms || []
+}
+
 function useNostrDMStorage() {
   function store(
     account: Account,
@@ -213,10 +217,6 @@ function useNostrDMStorage() {
     storeNostrDmBatch(account.id, pendingDms)
   }
 
-  function load(account?: Account) {
-    return account?.nostr?.dms || []
-  }
-
   function clear(account?: Account) {
     if (!account?.nostr) {
       return
@@ -225,7 +225,7 @@ function useNostrDMStorage() {
     useAccountsStore.getState().updateAccountNostr(account.id, { dms: [] })
   }
 
-  return { clear, load, store, storeBatch }
+  return { clear, load: loadAccountDms, store, storeBatch }
 }
 
 export type { NostrDmBatchOutcome }

@@ -32,17 +32,19 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatShortPubkey } from '@/utils/format'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
   formatLndPeerUri,
-  type LndOpenChannelFunding,
-  type LndOpenChannelValidationReason,
   openChannelWithPeer,
   parseOptionalSatPerVbyte,
   peerUriFromScannedText,
   validateLndOpenChannelInput
+} from '@/utils/lndOpenChannel'
+import type {
+  LndOpenChannelFunding,
+  LndOpenChannelValidationReason
 } from '@/utils/lndOpenChannel'
 
 const OPEN_CHANNEL_PEER_LIST_MAX = 16

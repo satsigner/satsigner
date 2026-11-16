@@ -1,7 +1,8 @@
-import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 
 import { UNUSED_INTERNAL_ADDRESSES_NEEDED } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { isWifAccount } from '@/utils/wif'
 

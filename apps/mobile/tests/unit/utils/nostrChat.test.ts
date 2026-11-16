@@ -111,7 +111,8 @@ jest.mock<
   registerNostrLifecycleHandler: jest.fn(() => jest.fn())
 }))
 
-import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
+import NDK from '@nostr-dev-kit/ndk'
+import type { NDKEvent } from '@nostr-dev-kit/ndk'
 import { getPublicKey, nip19, nip44, nip59 } from 'nostr-tools'
 import { decrypt as nip04Decrypt } from 'nostr-tools/nip04'
 
@@ -128,7 +129,7 @@ import {
 } from '@/db/mutations/nostrChat'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
-import { type NostrChatGiftWrap } from '@/types/models/Nostr'
+import type { NostrChatGiftWrap } from '@/types/models/Nostr'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
   acquireChatPipeline,
@@ -486,8 +487,9 @@ describe('nostrChat', () => {
 
   it('sendNip04Chat produces a kind-4 event decryptable by the recipient', async () => {
     const api = new NostrAPI([])
-    const published: { event?: Awaited<ReturnType<NostrAPI['createKind4']>> } =
-      {}
+    const published: {
+      event?: Awaited<ReturnType<typeof NostrAPI.createKind4>>
+    } = {}
     jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
       published.event = event
     })
@@ -678,7 +680,7 @@ describe('nostrChat', () => {
 
   it('wraps NIP-17 content as UTF-8 without URI encoding', () => {
     const text = 'café 你好 🔐'
-    const wrap = new NostrAPI([]).createKind1059(sender.nsec, peerNpub, text)
+    const wrap = NostrAPI.createKind1059(sender.nsec, peerNpub, text)
     const rumor = nip59.unwrapEvent(wrap.toNostrEvent(), peerSecretKey)
 
     expect(rumor.content).toBe(text)
@@ -715,7 +717,7 @@ describe('nostrChat', () => {
     it('reopening sends since = newest stored message and never decrypts a wrap twice', async () => {
       const subscriptions = captureNdkSubscriptions()
       const decryptSpy = jest.spyOn(nip44.v2, 'decrypt')
-      const wrap = new NostrAPI([]).createKind1059(
+      const wrap = NostrAPI.createKind1059(
         peerNsec,
         senderNpub,
         'decrypt me once'
@@ -751,7 +753,7 @@ describe('nostrChat', () => {
 
     it('skips stored kind-4 events before decrypting them', async () => {
       const subscriptions = captureNdkSubscriptions()
-      const event = await new NostrAPI([]).createKind4(
+      const event = await NostrAPI.createKind4(
         peerNsec,
         senderNpub,
         'kind 4 once'

@@ -1,4 +1,4 @@
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 
 export type CurrencyUnit = 'sats' | 'btc'
 

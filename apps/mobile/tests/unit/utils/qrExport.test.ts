@@ -126,18 +126,18 @@ describe('getQrDisplayModeDescription', () => {
   })
 })
 
-describe('max density QR frames', () => {
-  // Bytes that neither zlib nor base32 can shrink, just under the size limit.
-  function incompressibleBytes(length: number) {
-    const xorshift = { state: 0x9e_37_79_b9 }
-    return Uint8Array.from({ length }, () => {
-      xorshift.state ^= xorshift.state << 13
-      xorshift.state ^= xorshift.state >>> 17
-      xorshift.state ^= xorshift.state << 5
-      return xorshift.state & 0xff
-    })
-  }
+// Bytes that neither zlib nor base32 can shrink, just under the size limit.
+function incompressibleBytes(length: number) {
+  const xorshift = { state: 0x9e_37_79_b9 }
+  return Uint8Array.from({ length }, () => {
+    xorshift.state ^= xorshift.state << 13
+    xorshift.state ^= xorshift.state >>> 17
+    xorshift.state ^= xorshift.state << 5
+    return xorshift.state & 0xff
+  })
+}
 
+describe('max density QR frames', () => {
   it('splits a UR whose single frame would not fit one QR', () => {
     const psbtBase64 = Buffer.from(incompressibleBytes(740)).toString('base64')
     const fragments = createUrPsbtFragments(psbtBase64, QR_COMPLEXITY_MAX)

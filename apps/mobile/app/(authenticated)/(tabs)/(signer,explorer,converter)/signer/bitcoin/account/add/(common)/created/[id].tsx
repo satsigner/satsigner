@@ -10,7 +10,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function WalletCreated() {

@@ -2,11 +2,11 @@ import { StyleSheet } from 'react-native'
 
 import SSConnectionStatusIndicator from '@/components/SSConnectionStatusIndicator'
 import SSText from '@/components/SSText'
-import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
+import type { ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import { tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
-import { type ServerPrivacy } from '@/utils/serverPrivacy'
+import type { ServerPrivacy } from '@/utils/serverPrivacy'
 import {
   SERVER_STATUS_LABEL_KEYS,
   serverStatusTextColor

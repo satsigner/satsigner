@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
-import SSText, { type SSTextProps } from '@/components/SSText'
+import SSText from '@/components/SSText'
+import type { SSTextProps } from '@/components/SSText'
 import { TXID_HEX_PATTERN } from '@/constants/btc'
 import { Colors, Sizes, Typography } from '@/styles'
 

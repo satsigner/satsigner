@@ -1,9 +1,10 @@
-import { type ComponentProps } from 'react'
-import { type StyleProp, type TextStyle } from 'react-native'
+import type { ComponentProps } from 'react'
+import type { StyleProp, TextStyle } from 'react-native'
 
 import { PRIVACY_MASK } from '@/constants/privacy'
 import { t } from '@/locales'
-import { getDigitLineHeight, type TextFontSize } from '@/styles/sizes'
+import { getDigitLineHeight } from '@/styles/sizes'
+import type { TextFontSize } from '@/styles/sizes'
 
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'

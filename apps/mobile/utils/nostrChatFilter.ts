@@ -1,8 +1,8 @@
-import { type NostrChatFilter } from '@/store/nostrChatSettings'
-import {
-  type NostrChatConversationItem,
-  type NostrFetchResult,
-  type NostrFollowList
+import type { NostrChatFilter } from '@/store/nostrChatSettings'
+import type {
+  NostrChatConversationItem,
+  NostrFetchResult,
+  NostrFollowList
 } from '@/types/models/Nostr'
 
 type InboundMessageCheck = {

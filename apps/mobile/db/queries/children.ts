@@ -1,13 +1,9 @@
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 import { groupBy } from '@/utils/array'
 
 import { getDb } from '../connection'
-import {
-  type TransactionRow,
-  type TxInputRow,
-  type TxOutputRow,
-  rowToTransaction
-} from '../mappers'
+import { rowToTransaction } from '../mappers'
+import type { TransactionRow, TxInputRow, TxOutputRow } from '../mappers'
 
 /**
  * Bulk fetching of parent/child rows.

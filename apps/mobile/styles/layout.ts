@@ -1,4 +1,4 @@
-import { type DimensionValue } from 'react-native'
+import type { DimensionValue } from 'react-native'
 
 import { HEADER_HEIGHT_TRIM_PX } from '@/constants/headerChrome'
 

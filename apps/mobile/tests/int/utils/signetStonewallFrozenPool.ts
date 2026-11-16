@@ -5,8 +5,8 @@
  * use estimated address indices — refresh after Sparrow fully syncs on the same
  * backend (see STONEWALL-SPARROW-PARITY.md).
  */
-import { type Address } from '@/types/models/Address'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Address } from '@/types/models/Address'
+import type { Utxo } from '@/types/models/Utxo'
 
 type FrozenUtxo = Utxo & {
   addressIndex: number

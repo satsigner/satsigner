@@ -2,7 +2,7 @@ import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
-import z from 'zod'
+import { z } from 'zod'
 
 import {
   ELECTRUM_CONNECT_TIMEOUT_MS,
@@ -12,10 +12,8 @@ import {
   ELECTRUM_TX_CACHE_MAX_ENTRIES
 } from '@/constants/electrum'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  ElectrumClientSchema,
-  type ElectrumClientInterface
-} from '@/types/models/Electrum'
+import { ElectrumClientSchema } from '@/types/models/Electrum'
+import type { ElectrumClientInterface } from '@/types/models/Electrum'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'
@@ -68,7 +66,7 @@ export const ElectrumServerVersionSchema = z.tuple([z.string(), z.string()])
 
 class ModifiedClient extends BlueWalletElectrumClient {
   // Same as the library's connectSocket, plus a connect timeout.
-  connectSocket(conn: TcpSocketInstance, port: number, host: string) {
+  override connectSocket(conn: TcpSocketInstance, port: number, host: string) {
     const connectTimeout = isOnionUrl(host)
       ? ELECTRUM_CONNECT_TOR_TIMEOUT_MS
       : ELECTRUM_CONNECT_TIMEOUT_MS

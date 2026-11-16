@@ -1,5 +1,5 @@
-import { type Account, type Key } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
+import type { Account, Key } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
 import {
   bip21decode,
   getAccountDerivationPath,
