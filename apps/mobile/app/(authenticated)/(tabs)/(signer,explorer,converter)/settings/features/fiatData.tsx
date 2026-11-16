@@ -17,12 +17,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { tn } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
 import { formatDate } from '@/utils/format'
 
 const tl = tn('settings.features.fiatData')
-
-const COVERAGE_CURRENCY = 'USD'
 
 export default function FiatData() {
   const {
@@ -37,6 +36,7 @@ export default function FiatData() {
     setFetchHistoricalPricesFromNetwork,
     setFiatPriceProvider
   } = useFiatData()
+  const fiatCurrency = usePriceStore((state) => state.fiatCurrency)
 
   function selectMempool() {
     setFiatPriceProvider('mempool')
@@ -67,7 +67,7 @@ export default function FiatData() {
   const providerName = isMempool
     ? tl('provider.mempool')
     : tl('provider.custom')
-  const coverage = getLocalPriceCoverage(COVERAGE_CURRENCY)
+  const coverage = getLocalPriceCoverage(fiatCurrency)
 
   return (
     <>
