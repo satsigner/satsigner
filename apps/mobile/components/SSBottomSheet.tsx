@@ -1,4 +1,7 @@
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
+import BottomSheet, {
+  BottomSheetScrollView,
+  BottomSheetView
+} from '@gorhom/bottom-sheet'
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { StyleSheet } from 'react-native'
 
@@ -11,6 +14,9 @@ type SSBottomSheetProps = {
   title: string
   snapPoints?: (string | number)[]
   paddingX?: boolean
+  // Off for content with its own vertical gestures, such as wheel pickers,
+  // so the sheet stops claiming swipes that start on the content.
+  scrollable?: boolean
   children: React.ReactNode
   ref?: React.Ref<BottomSheetMethods>
   onClose?: () => void
@@ -20,38 +26,44 @@ function SSBottomSheet({
   title,
   snapPoints = ['50%'],
   paddingX = true,
+  scrollable = true,
   children,
   ref,
   onClose
 }: SSBottomSheetProps) {
+  const contentPadding = {
+    paddingHorizontal: paddingX ? Layout.mainContainer.paddingHorizontal : 0
+  }
+  const content = (
+    <SSVStack>
+      <SSText uppercase center>
+        {title}
+      </SSText>
+      {children}
+    </SSVStack>
+  )
+
   return (
     <BottomSheet
       ref={ref}
       index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
+      enableContentPanningGesture={scrollable}
       onClose={onClose}
       backgroundStyle={styles.background}
       handleStyle={styles.handle}
       style={styles.bottomSheet}
     >
-      <BottomSheetScrollView
-        style={[
-          styles.scrollView,
-          {
-            paddingHorizontal: paddingX
-              ? Layout.mainContainer.paddingHorizontal
-              : 0
-          }
-        ]}
-      >
-        <SSVStack>
-          <SSText uppercase center>
-            {title}
-          </SSText>
-          {children}
-        </SSVStack>
-      </BottomSheetScrollView>
+      {scrollable ? (
+        <BottomSheetScrollView style={[styles.scrollView, contentPadding]}>
+          {content}
+        </BottomSheetScrollView>
+      ) : (
+        <BottomSheetView style={[styles.scrollView, contentPadding]}>
+          {content}
+        </BottomSheetView>
+      )}
     </BottomSheet>
   )
 }

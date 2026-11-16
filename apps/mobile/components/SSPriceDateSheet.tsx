@@ -70,6 +70,7 @@ function SSPriceDateSheet({
       ref={ref}
       title={t('receive.priceDate.title')}
       snapPoints={SHEET_SNAP_POINTS}
+      scrollable={false}
     >
       <SSVStack gap="md">
         <View style={styles.pickerWrap}>
