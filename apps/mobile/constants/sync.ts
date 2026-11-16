@@ -56,7 +56,8 @@ const FULL_ADDRESS_CHECK_AFTER_MS = 14 * 24 * 60 * 60_000
 const QUICK_CHECK_MIN_ADDRESSES = 5
 const QUICK_CHECK_MAX_ADDRESSES = 50
 
-// The sync toolbar alternates between the progress and the check kind.
+// The sync ticker holds the progress this long before scrolling to the
+// check kind and back.
 const SYNC_LABEL_TICK_MS = 3000
 
 export {
