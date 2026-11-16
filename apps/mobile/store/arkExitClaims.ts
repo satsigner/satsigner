@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { type ArkExit, type ArkExitClaimRecord } from '@/types/models/Ark'
 import { pruneArkExitClaimRecords } from '@/utils/arkExit'
 

@@ -87,7 +87,6 @@ function probeMmkvRoundtrip(): boolean {
   return roundtrip && storage.getString(MMKV_PROBE_KEY) === undefined
 }
 
-export default mmkvStorage
 export {
   clearAllStorage,
   clearNostrFollowCache,

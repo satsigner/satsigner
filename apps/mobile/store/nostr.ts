@@ -5,7 +5,7 @@ import {
   clearNostrProcessedEvents,
   markNostrEventsProcessed
 } from '@/db/nostrProcessedEvents'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
 import { type NostrErrorCode } from '@/types/models/Nostr'
 import { generateColorFromNpub } from '@/utils/nostr'

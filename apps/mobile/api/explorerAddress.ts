@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import { type MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'

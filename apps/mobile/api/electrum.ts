@@ -2,7 +2,7 @@ import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
-import z from 'zod'
+import { z } from 'zod'
 
 import {
   ELECTRUM_CONNECT_TIMEOUT_MS,

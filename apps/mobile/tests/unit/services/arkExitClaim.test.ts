@@ -18,7 +18,7 @@ import {
   discardArkExitClaim,
   retryArkExitClaimBroadcast
 } from '@/services/arkExitClaim'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'

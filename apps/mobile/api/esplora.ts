@@ -1,5 +1,5 @@
 import { hex } from '@scure/base'
-import z from 'zod'
+import { z } from 'zod'
 
 import {
   ESPLORA_ERROR_MESSAGES,

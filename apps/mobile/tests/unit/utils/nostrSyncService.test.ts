@@ -79,7 +79,7 @@ jest.mock<Partial<typeof import('@/storage/mmkv')>>('@/storage/mmkv', () => {
   const storage: Record<string, string> = {}
   return {
     __esModule: true,
-    default: {
+    mmkvStorage: {
       getItem: jest.fn((name: string) => storage[name] ?? null),
       removeItem: jest.fn((name: string) => {
         delete storage[name]

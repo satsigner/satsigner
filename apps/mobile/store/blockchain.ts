@@ -15,7 +15,7 @@ import {
   MEMPOOL_TESTNET_URL
 } from '@/config/servers'
 import { MempoolServers } from '@/constants/servers'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import {
   type Backend,
   type Config,

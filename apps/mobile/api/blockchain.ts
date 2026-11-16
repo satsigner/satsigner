@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {

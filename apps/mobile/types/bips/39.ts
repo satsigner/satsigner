@@ -9,7 +9,7 @@ import korean from 'bip39/src/wordlists/korean.json'
 import portuguese from 'bip39/src/wordlists/portuguese.json'
 import spanish from 'bip39/src/wordlists/spanish.json'
 import { Language, WordCount } from 'react-native-bdk-sdk'
-import z from 'zod'
+import { z } from 'zod'
 
 export const MnemonicWordCountSchema = z.union([
   z.literal(12),

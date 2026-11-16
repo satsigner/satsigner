@@ -6,7 +6,7 @@ import {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_SESSION_TTL_MS
 } from '@/constants/payjoin'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { type WordListName, DEFAULT_WORD_LIST } from '@/types/bips/39'
 import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import {

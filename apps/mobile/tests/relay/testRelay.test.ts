@@ -1,5 +1,5 @@
 import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
-import WebSocket from 'ws'
+import { WebSocket } from 'ws'
 
 import { BASE_CREATED_AT, fixturePubkey, makeEvent } from './support/fixtures'
 import { connectRawClient, type RawRelayClient } from './support/rawClient'
