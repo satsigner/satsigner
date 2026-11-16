@@ -557,3 +557,11 @@ export function getTransactionIdDisplay({
   }
   return { text: transactionId }
 }
+
+export function isSelfSend(tx: Transaction, ownAddresses: Set<string>) {
+  return (
+    tx.sent > 0 &&
+    tx.vout.length > 0 &&
+    tx.vout.every(({ address }) => ownAddresses.has(address))
+  )
+}

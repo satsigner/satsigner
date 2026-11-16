@@ -155,6 +155,14 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
   return parseLabelTags(label, tags)
 }
 
+function addLabelTag(rawLabel: string, tag: string) {
+  const { label, tags } = parseLabel(rawLabel)
+  if (tags.includes(tag)) {
+    return rawLabel
+  }
+  return parseLabelTags(label, [...tags, tag])
+}
+
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
   if (tags.length === 0) {
@@ -454,6 +462,7 @@ export {
   isMalformedUriComponent,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
+  addLabelTag,
   parseLabel,
   parseLabelTags,
   parseTXOutputs,

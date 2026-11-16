@@ -378,6 +378,62 @@ describe('updateAccountObjectLabels', () => {
     expect(result.utxos[0].label).toBe('savings')
   })
 
+  it('tags self-sends and keeps the existing label', () => {
+    const account = makeAccount({
+      addresses: [
+        {
+          address: 'bc1qown',
+          label: '',
+          summary: { balance: 0, satsInMempool: 0, transactions: 1, utxos: 1 },
+          transactions: ['tx-self'],
+          utxos: []
+        }
+      ],
+      labels: {
+        'tx-self': { label: 'tidy up', ref: 'tx-self', type: 'tx' }
+      },
+      transactions: [
+        {
+          id: 'tx-self',
+          label: '',
+          lockTimeEnabled: false,
+          prices: {},
+          received: 49_800,
+          sent: 50_000,
+          type: 'send',
+          vin: [],
+          vout: [{ address: 'bc1qown', script: '', value: 49_800 }]
+        }
+      ]
+    })
+    const result = updateAccountObjectLabels(account)
+    expect(result.transactions[0].label).toBe('tidy up #selfsend')
+    expect(result.labels['tx-self'].label).toBe('tidy up #selfsend')
+    expect(updateAccountObjectLabels(result).transactions[0].label).toBe(
+      'tidy up #selfsend'
+    )
+  })
+
+  it('does not tag payments to other wallets as self-sends', () => {
+    const account = makeAccount({
+      transactions: [
+        {
+          id: 'tx-pay',
+          label: '',
+          lockTimeEnabled: false,
+          prices: {},
+          received: 0,
+          sent: 50_000,
+          type: 'send',
+          vin: [],
+          vout: [{ address: 'bc1qstranger', script: '', value: 49_800 }]
+        }
+      ]
+    })
+    const result = updateAccountObjectLabels(account)
+    expect(result.transactions[0].label).toBe('')
+  })
+
   it('propagates label to transaction by txid', () => {
     const account = makeAccount({
       labels: {
