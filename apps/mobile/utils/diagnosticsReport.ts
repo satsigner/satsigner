@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
 import Constants from 'expo-constants'
 import { nip19 } from 'nostr-tools'
 import { Platform } from 'react-native'
@@ -72,7 +72,7 @@ export async function submitDiagnosticsReport(
   payload: DiagnosticsReportPayload,
   relayUrls: string[]
 ): Promise<void> {
-  const netState = await NetInfo.fetch()
+  const netState = await fetchNetInfo()
   if (netState.isConnected === false) {
     throw new Error('device is offline')
   }

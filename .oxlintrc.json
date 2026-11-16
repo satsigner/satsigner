@@ -59,7 +59,6 @@
     "import/no-named-as-default": "allow",
     "typescript/no-dynamic-delete": "allow",
     "unicorn/no-array-reduce": "allow",
-    "import/no-named-as-default-member": "allow",
     "unicorn/prefer-event-target": "allow",
     "no-bitwise": "allow",
     "max-classes-per-file": "allow",

@@ -1,6 +1,7 @@
 import { useEffect, useId } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
+  createAnimatedComponent,
   Easing,
   useAnimatedProps,
   useAnimatedStyle,
@@ -23,8 +24,8 @@ import { Colors } from '@/styles'
 const { gray, white } = Colors
 const { 50: G50, 200: CHECK_GREY } = gray
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-const AnimatedPath = Animated.createAnimatedComponent(Path)
+const AnimatedCircle = createAnimatedComponent(Circle)
+const AnimatedPath = createAnimatedComponent(Path)
 
 const VIEW_SIZE = 160
 const VIEW_PAD_FILLED = 44

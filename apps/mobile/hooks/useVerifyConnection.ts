@@ -1,4 +1,7 @@
-import NetInfo from '@react-native-community/netinfo'
+import {
+  addEventListener as addNetInfoListener,
+  fetch as fetchNetInfo
+} from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -39,7 +42,7 @@ const deviceConnectivity: { isConnected: boolean | null } = {
 }
 
 async function readDeviceConnectivity() {
-  const state = await NetInfo.fetch()
+  const state = await fetchNetInfo()
   deviceConnectivity.isConnected = state.isConnected
 }
 
@@ -119,7 +122,7 @@ function useVerifyConnection() {
     await readDeviceConnectivity()
     refetch({ cancelRefetch: false })
 
-    return NetInfo.addEventListener((netInfoState) => {
+    return addNetInfoListener((netInfoState) => {
       const next = netInfoState.isConnected
       if (deviceConnectivity.isConnected === next) {
         return

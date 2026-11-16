@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
+  createAnimatedComponent,
   Easing,
   interpolateColor,
   type SharedValue,
@@ -15,8 +16,8 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
 import { Colors } from '@/styles'
 
-const AnimatedPath = Animated.createAnimatedComponent(Path)
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+const AnimatedPath = createAnimatedComponent(Path)
+const AnimatedCircle = createAnimatedComponent(Circle)
 
 const COORDINATION_INITIAL_DELAY_MS = 400
 const COORDINATION_NODE_REVEAL_MS = 600

@@ -8,6 +8,7 @@ jest.mock<typeof import('react-native-quick-crypto')>(
       '../../../__mocks__/react-native-quick-crypto'
     ).default
     return {
+      Buffer: jest.requireActual('node:buffer').Buffer,
       __esModule: true,
       default: {
         ...shared,

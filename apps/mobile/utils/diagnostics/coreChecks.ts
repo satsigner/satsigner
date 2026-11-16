@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
 import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
@@ -267,7 +267,7 @@ export async function checkRelayPersistence(
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
-    const netState = await NetInfo.fetch()
+    const netState = await fetchNetInfo()
     if (netState.isConnected === false) {
       throw new Error('device is offline')
     }
@@ -358,7 +358,7 @@ export async function checkNip17LiveRoundtrip(
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
-    const netState = await NetInfo.fetch()
+    const netState = await fetchNetInfo()
     if (netState.isConnected === false) {
       throw new Error('device is offline')
     }

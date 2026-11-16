@@ -1,4 +1,7 @@
-import NetInfo, { type NetInfoState } from '@react-native-community/netinfo'
+import {
+  addEventListener as addNetInfoListener,
+  type NetInfoState
+} from '@react-native-community/netinfo'
 import {
   AppState,
   type AppStateStatus,
@@ -171,7 +174,7 @@ function startNostrLifecycle(): void {
     listeners.lastAppState = current
   }
   listeners.appState = AppState.addEventListener('change', handleAppStateChange)
-  listeners.netInfo = NetInfo.addEventListener(handleConnectivityChange)
+  listeners.netInfo = addNetInfoListener(handleConnectivityChange)
 }
 
 function stopNostrLifecycle(): void {
